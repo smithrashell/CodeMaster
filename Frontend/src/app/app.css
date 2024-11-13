@@ -1,0 +1,34 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  margin: 0;
+  padding: 0;
+}
+
+#flashcard-container {
+  width: 80%;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: #ffffff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+}
+
+#flashcard {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#code-editor {
+  height: 300px;
+}
+
+#output {
+  background-color: #f8f8f8;
+  padding: 10px;
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}

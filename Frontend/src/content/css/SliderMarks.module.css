@@ -1,0 +1,54 @@
+.sliderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.sliderTrack {
+  width: 100%; /* Ensures the slider spans the full width */
+  padding: 0 20px; /* Add padding if needed to center the slider thumb */
+}
+
+.marks {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px; /* Space between slider and marks */
+}
+
+.markLabel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 20px; /* Adjust width to match spacing needs */
+  font-size: 12px; /* Optional font size adjustment */
+}
+.root {
+  background-color: light-dark(var(--mantine-color-white), var(--mantine-color-dark-6));
+  box-shadow: var(--mantine-shadow-md);
+  border: rem(1px) solid light-dark(var(--mantine-color-gray-1), var(--mantine-color-dark-4));
+}
+
+.indicator {
+  background-image: linear-gradient(
+    to right,
+    var(--mantine-color-pink-filled),
+    var(--mantine-color-orange-filled)
+  );
+}
+
+.control {
+  &::before {
+    display: none;
+  }
+}
+
+.label {
+  &,
+  &:hover {
+    &[data-active] {
+      color: var(--mantine-color-white);
+    }
+  }
+}

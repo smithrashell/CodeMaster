@@ -1,0 +1,156 @@
+/*TODO: create a folder for css styles */
+.injected {
+  color: #000;
+}
+.btn {
+  background-color: #f1f1f1;
+  border: none;
+  border-radius: 25%;
+}
+
+button {
+  margin-right: 5px;
+}
+#cd-menuButton {
+  top: 10px;
+  width: 60px;
+  color: ghostwhite;
+  position: fixed;
+  border-radius: 5px 5px 0px 0px;
+  background-color: #0c433d;
+  height: 40px;
+  z-index: 110;
+  vertical-align: top;
+  transform: rotate(7deg);
+  -ms-transform: rotate(90deg); /* IE 9 */
+  -moz-transform: rotate(90deg); /* Firefox */
+  -webkit-transform: rotate(90deg); /* Safari and Chrome */
+  -o-transform: rotate(90deg); /* Opera */
+}
+
+#homeIcon {
+  padding: 10px 10px 0px 10px;
+  top: 70px;
+  width: 63px;
+  color: #fabd22;
+  position: fixed;
+  border-radius: 5px 5px 0px 0px;
+  background-color: #0c433d;
+  height: 40px;
+  z-index: 100;
+  vertical-align: top;
+  transform: rotate(7deg);
+  -ms-transform: rotate(90deg); /* IE 9 */
+  -moz-transform: rotate(90deg); /* Firefox */
+  -webkit-transform: rotate(90deg); /* Safari and Chrome */
+  -o-transform: rotate(90deg); /* Opera */
+}
+.cd-left {
+  left: -10px;
+  transition: eft 0.5s;
+}
+.cd-leftoffset {
+  left: 240px;
+}
+
+.cd-right {
+  right: 10px;
+}
+
+.codeDaemon-Container {
+  transition: margin-left 0.5s;
+  padding: 0px;
+  margin-left: 250px;
+}
+
+@media screen and (max-height: 450px) {
+  .sidenav {
+    padding-top: 15px;
+  }
+  .sidenav a {
+    font-size: 18px;
+  }
+}
+
+.cd-hidden {
+  display: none;
+}
+.cd-sidenav {
+  padding: 20px;
+  height: 100%; /* 100% Full-height */
+  width: 250px; /* 0 width - change this with JavaScript */
+  position: fixed; /* Stay in place */
+  z-index: 100; /* Stay on top */
+  top: 0px;
+  left: 0;
+  background-color: #9cc4cf;
+  overflow-x: hidden; /* Disable horizontal scroll */
+  padding-top: 60px; /* Place content 60px from the top */
+  transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
+}
+
+/* The navigation menu links */
+.cd-sidenav a {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+.link {
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+.link:hover {
+  color: #f1f1f1;
+}
+/* When you mouse over the navigation links, change their color */
+.cd-sidenav a:hover {
+  color: #f1f1f1;
+}
+
+button {
+  color: white;
+  /* background-color: darkred; */
+}
+
+/* probtime component  */
+input[type="submit"] {
+  color: white;
+  font-weight: 600;
+}
+
+/* .error {
+  outline: 1px solid red;
+} */
+
+.disabled {
+  color: #818181; /* Gray color */
+  pointer-events: none; /* Disable click events */
+  cursor: not-allowed; /* Show not-allowed cursor */
+  padding: 8px 8px 8px 32px;
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+}
+
+
+.link-disabled {
+  pointer-events: none; /* Disable pointer events */
+  color: grey; /* Default color for disabled links */
+  text-decoration: none; /* Remove underline or default link styling */
+}
+
+.link-disabled:hover {
+  color: darkgrey; /* Change color on hover to indicate inactive status */
+  cursor: not-allowed; /* Change cursor to not-allowed to indicate disabled */
+}
