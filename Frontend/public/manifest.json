@@ -1,0 +1,38 @@
+{
+  "name": "react-codeDaemon",
+  "version": "1.0",
+  "description": "test",
+  "manifest_version": 3,
+  "action": {},
+  "host_permissions": ["<all_urls>"],
+  "permissions": [
+    "tabs",
+    "bookmarks",
+    "activeTab",
+    "scripting",
+    "storage",
+    "debugger"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://leetcode.com/*"],
+      "css": [
+        "content/css/main.css",
+        "content/css/timer.css",
+        "content/css/probrec.css"
+      ],
+      "js": ["content.js"],
+      "media": []
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["app.html", "app.js","app.css"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

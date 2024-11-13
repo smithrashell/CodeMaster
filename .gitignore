@@ -1,0 +1,10 @@
+.idea
+dist/
+node_modules/
+*.log
+package-lock.json
+/Frontend/node_modules/
+/Frontend/dist/
+/Backend/node_modules/
+/Backend/.env
+/Backend/package-lock.json

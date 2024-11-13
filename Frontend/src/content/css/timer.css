@@ -1,0 +1,117 @@
+#cd-timerContainer {
+  position: absolute;
+  top: 10%;
+  left: 80%;
+  z-index: 110;
+  width: 80px;
+  height: 75px;
+  border-radius: 0px;
+  border: none;
+  text-align: center;
+  margin: 2px;
+}
+#cd-timerpage {
+  top: 5%;
+  left: 15%;
+}
+
+#cd-timerpage #cd-timer {
+  background-color: #9cc4cf;
+}
+#cd-timerpage .bread {
+  display: none;
+}
+#cd-timer {
+  position: relative;
+  background-color: #0c433d;
+  top: 0px;
+  right: 11px;
+  color: white;
+  z-index: 110;
+  border-radius: 0px;
+  border: none;
+  width: 170px;
+  height: 45px;
+}
+.bread {
+  width: 150px;
+  padding: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: space-between;
+  flex-direction: row;
+  height: 25px;
+  background-color: #9cc4cf;
+}
+.dail p {
+  padding: 2px;
+  align-self: center;
+  font-size: small;
+}
+.dail span {
+  padding: 2px;
+  font-size: large;
+}
+
+.hide {
+  display: none;
+}
+
+.form {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-content: flex-start;
+  flex-wrap: nowrap;
+  margin: 0;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.MuiFormLabel-root {
+  font-size: 11px;
+  color: #0c433d;
+  font-weight: bold;
+  margin: 3px 0;
+}
+
+.custom-select {
+  border: none;
+  border-bottom: 1px solid #0c433d;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.custom-select .MuiSelect-select {
+  padding: 4px 0;
+}
+
+.custom-textarea {
+  border: none;
+  border-bottom: 1px solid #0c433d;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  resize: none;
+}
+
+.custom-textarea .MuiInputBase-root {
+  padding: 0;
+}
+
+.custom-textarea .MuiInputBase-input {
+  padding: 4px 0;
+}
+
+.timer-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000; /* Ensure it stays on top */
+  background-color: #fff; /* Add background color if needed */
+  padding: 10px 0; /* Add padding if needed */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow for better visibility */
+}
