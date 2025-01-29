@@ -49,6 +49,7 @@ export default function Main() {
   const [currentProblem, setCurrentProblem] = useState(
     getProblemSlugFromUrl(window.location.href)
   ); // Initialize with the current URL slug
+  const [settings, setSettings] = useState(null);
 
   // Function to fetch problem data based on the problem slug
   const fetchProblemData = (problemSlug) => {
@@ -60,7 +61,8 @@ export default function Main() {
     const title =
       problemTitleFormatted.charAt(0).toUpperCase() +
       problemTitleFormatted.slice(1);
-    console.log("Problem Title:", title);
+    // console.log("Slug", problemSlug);
+    // console.log("Problem Title:", title);
     setProblemTitle(title);
 
     setLoading(true);
@@ -69,10 +71,14 @@ export default function Main() {
       { type: "getProblemByDescription", title },
       (response) => {
         if (response.error) {
-          console.error(response.error);
+          console.error("error in getProblemByDescription", response.error);
 
           chrome.runtime.sendMessage(
-            { type: "callChatGPT", description: title.toLowerCase() },
+            {
+              type: "getFromStandardProblems",
+              description: problemSlug,
+              title: title,
+            },
             (response) => {
               console.log("ChatGPT response:", response);
               setProblemData(response);
@@ -93,8 +99,11 @@ export default function Main() {
   // UseEffect to handle initial data fetch on component mount
   useEffect(() => {
     // Run the initial data fetch once when the component mounts
+    console.log("Current problem slug:", currentProblem);
     fetchProblemData(currentProblem);
   }, []); // Empty dependency array ensures it only runs once on mount
+
+
 
   // Function to handle URL changes after initial load
   const handleUrlChange = () => {
@@ -164,12 +173,14 @@ export default function Main() {
           >
             <nav>
               <Link to="/ProbStat">Problems Statistics</Link>
-              <Link to="/Settings">Settings</Link>
+              <Link to="/Settings" >
+                Settings
+              </Link>
               <Link to="/ProbGen">Problems Generator</Link>
               {problemTitle && (
                 <Link
                   to="/ProbTime"
-                  state={{ problemData }}
+                  state={{ problemData, problemFound }}
                   onClick={(e) => {
                     if (!problemData) {
                       e.preventDefault(); // Prevent navigation if problemData is not ready

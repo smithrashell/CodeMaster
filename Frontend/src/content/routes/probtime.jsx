@@ -45,6 +45,7 @@ const ProbTime = () => {
   const [loading, setLoading] = useState(false);
   const [problemData, setProblemData] = useState(null);
   const [Tags, setTags] = useState([]);
+  const [showSkip, setShowSkip] = useState(false);
 
   const {
     control,
@@ -53,9 +54,9 @@ const ProbTime = () => {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      leetCodeID: problemData?.LeetCodeID || "",
-      title: problemData?.Description || "",
-      timeSpent: routeState?.time ? `${Math.round(routeState.time / 60)}` : "",
+      leetCodeID: routeState?.LeetCodeID || "",
+      title: routeState?.Description || "",
+      timeSpent: routeState?.Time ? `${Math.round(routeState.Time)}` : "",
       success: "",
       difficulty: "",
       comments: "",
@@ -63,27 +64,17 @@ const ProbTime = () => {
   });
 
   useEffect(() => {
-    if (routeState) {
-      console.log("routeState", routeState);
-      setValue("leetCodeID", routeState?.LeetCodeID || "");
-      setValue("title", routeState?.Description || "");
-      setTags(routeState.Tags || []);
-      console.log("Tags", Tags);
+    if (routeState.problemData) {
+      console.log("routeState problemData", routeState.problemData);
+      setValue("leetCodeID", routeState?.problemData?.LeetCodeID || "");
+      setValue("title", routeState?.problemData?.Description || "");
+      setTags(routeState.problemData.Tags || []);
     }
   }, [routeState, setValue]);
 
-  // useEffect(() => {
-  //   console.log("from probtime routeState", routeState);
-  //   if(routeState.title && routeState.problem == null){
-  //     setLoading(true);
-  //      chrome.runtime.sendMessage({ type: "callChatGPT", description: routeState.title.toLowerCase()}, (response) => {
-  //         console.log("ChatGPT response:", response);
-  //         setProblemData(response);
-  //         setLoading(false);
-  //       });
-  //   }
-  //   console.log("routeState", routeState);
-  // },[routeState,setProblemData,setLoading])
+  useEffect(() => {
+    setShowSkip(!routeState.problemFound);
+  }, [setShowSkip]);
 
   const onSubmit = (data) => {
     const formData = {
@@ -117,6 +108,17 @@ const ProbTime = () => {
     "equality",
     previousRoute === "/Timer"
   );
+
+  const onSkip = () => {
+    chrome.runtime.sendMessage(
+      { type: "skipProblem", consentScriptData: routeState.problemData },
+      function (response) {
+        console.log("skipProblem response", response);
+        navigate("/Probgen");
+      }
+    );
+  };
+
   if (previousRoute === "/Timer") {
     // Render the form if coming from the Timer route
     return (
@@ -242,6 +244,16 @@ const ProbTime = () => {
             >
               New Attempt
             </button>
+            <input
+              type="button"
+              value="Skip"
+              onClick={() => onSkip()}
+              style={
+                !showSkip
+                  ? { display: "none" }
+                  : { marginLeft: "10px", color: "red" }
+              }
+            />
             <p>Problem data received </p>
           </>
         )}

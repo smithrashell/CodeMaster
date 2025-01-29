@@ -2,42 +2,48 @@ import "../css/main.css";
 import React, { useState, useEffect } from "react";
 import { Label, Button, Title } from "@mantine/core";
 import {
-  SliderMarks,
-  GradientSegmentedControl,
-  ToggleSelect,
+  SliderMarksSessionLength,
+  SliderMarksNewProblemsPerSession,
+  GradientSegmentedControlTimeLimit,
+  ToggleSelectRemainders,
 } from "../components/nantine";
 
 const Settings = () => {
-  const { settings, setSettings } = useState();
+  const [settings, setSettings] = useState(null);
   const [value, setValue] = useState(40);
-  useEffect(() => {
-    // chrome.runtime.sendMessage({ type: 'getSettings' }, (response) => {
-    //   console.log('Settings received:', response);
-    //   setSettings(response)
-    // });
-  }, [settings]);
 
-  // Function to handle a change in settings
+  /// useEffect to get settings
+  useEffect(() => {
+    console.log("Fetching settings...");
+    chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
+      console.log("Settings received:", response);
+      if (response) {
+        setSettings(response);
+      } else {
+        console.warn("No settings received, using defaults.");
+      }
+    });
+  }, [setSettings]);
+
   const handleChange = (newSessionLength) => {
     if (newSessionLength !== undefined) {
-      // Update the sessionLength setting
       setSettings((prevSettings) => ({
         ...prevSettings,
         sessionLength: newSessionLength,
       }));
-
-      // Send the updated session length to the background script
-      // chrome.runtime.sendMessage(
-      //   { type: 'setSettings', payload: { key: 'sessionLength', value: newSessionLength } },
-      //   (response) => {
-      //     console.log('Session length saved:', response);
-      //   }
-      // );
     } else {
       console.error("Received undefined value in handleChange");
     }
   };
 
+  const handleSave = (settings) => {
+    chrome.runtime.sendMessage(
+      { type: "setSettings", message: settings },
+      (response) => {
+        console.log("Settings saved:", response);
+      }
+    );
+  };
   return (
     <div id="cd-mySidenav" className="cd-sidenav problink">
       <Title order={2}>Settings</Title>
@@ -52,13 +58,36 @@ const Settings = () => {
         }}
       >
         <label>Session Length</label>
-        <SliderMarks value={value} onChange={setValue} />
+        <SliderMarksSessionLength
+          value={settings?.sessionLength}
+          onChange={(value) =>
+            setSettings({ ...settings, sessionLength: value })
+          }
+        />
+        <label>Max Number of New Problems Per Session </label>
+        <SliderMarksNewProblemsPerSession
+          value={settings?.numberofNewProblemsPerSession}
+          onChange={(value) =>
+            setSettings({ ...settings, numberofNewProblemsPerSession: value })
+          }
+          max={settings?.sessionLength}
+        />
         <label> Time Limits </label>
-        <GradientSegmentedControl />
+        <GradientSegmentedControlTimeLimit
+          value={settings?.limit}
+          onChange={(value) => setSettings({ ...settings, limit: value })}
+        />
         <label>Remainders</label>
-        <ToggleSelect />
-        {/* I should add a  option to use time limits or not  */}
-        <Button>Save</Button>
+        <ToggleSelectRemainders
+          reminder={settings?.reminder}
+          onChange={(updatedReminder) =>
+            setSettings((prevSettings) => ({
+              ...prevSettings,
+              reminder: { ...prevSettings.reminder, ...updatedReminder },
+            }))
+          }
+        />
+        <Button onClick={() => handleSave(settings)}>Save</Button>
       </div>
     </div>
   );

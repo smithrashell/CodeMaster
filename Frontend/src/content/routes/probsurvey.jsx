@@ -37,6 +37,9 @@ const ProbSurvey = (props) => {
     // TODO: Send the data to your background script
     navigate("/Probstat", { state: data });
   };
+  const onSkip = () => {
+    
+  };
   return (
     <div id="cd-mySidenav" className="cd-sidenav ">
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -74,8 +77,16 @@ const ProbSurvey = (props) => {
             <Input {...field} placeholder="Add any additional comments here" />
           )}
         />
-
-        <input type="submit" value="Submit Feedback" />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+          }}
+        >
+          <input type="submit" value="Submit Feedback" />
+          <input type="button" value="Skip" onClick={onSkip} />
+        </div>
       </form>
     </div>
   );

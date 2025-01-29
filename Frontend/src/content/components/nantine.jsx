@@ -2,22 +2,40 @@ import { Switch, Select, Group, Slider, rem } from "@mantine/core";
 import { IconPoint, IconGripHorizontal } from "@tabler/icons-react";
 import { SegmentedControl } from "@mantine/core";
 import classes from "../css/SliderMarks.module.css";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-export function ToggleSelect() {
-  const [isOn, setIsOn] = useState(false); // State to manage the slider toggle
+export function ToggleSelectRemainders({ reminder, onChange }) {
+  const [currReminder, setCurrReminder] = useState(reminder); // State to manage the slider toggle
+  useEffect(() => {
+    setCurrReminder(reminder);
+  }, [reminder]);
 
-  const handleToggle = () => setIsOn((prev) => !prev);
+  const handleToggle = () => {
+    const updatedReminder = { ...currReminder, value: !currReminder.value };
+    setCurrReminder(updatedReminder);
+    onChange(updatedReminder);
+  };
+
+  const handleSelectChange = (selectedValue) => {
+    const updatedReminder = { ...currReminder, label: selectedValue };
+    setCurrReminder(updatedReminder);
+    onChange(updatedReminder);
+  };
 
   return (
     <div style={{ padding: rem(20) }}>
       <Group position="center">
         {/* Slider Toggle */}
-        <Switch checked={isOn} onChange={handleToggle} size="md" color="teal" />
+        <Switch
+          checked={currReminder?.value || false}
+          onChange={handleToggle}
+          size="md"
+          color="teal"
+        />
       </Group>
 
       {/* Dropdown Select Component */}
-      {isOn && (
+      {currReminder?.value && (
         <Select
           label="Select an option"
           placeholder="Pick one"
@@ -26,6 +44,7 @@ export function ToggleSelect() {
             { value: "12", label: "Every 12 hours" },
             { value: "24", label: "Once a day" },
           ]}
+          onChange={handleSelectChange}
           styles={{
             dropdown: {
               color: "#333",
@@ -58,7 +77,8 @@ const point = (
   />
 );
 
-export function SliderMarks() {
+export function SliderMarksSessionLength(props) {
+  console.log("props", props);
   return (
     <div className={classes.sliderContainer}>
       <Slider
@@ -68,7 +88,8 @@ export function SliderMarks() {
           marksWrapper: classes.marks, // Horizontal alignment for marks
           markLabel: classes.markLabel, // Center each label/icon
         }}
-        defaultValue={2}
+        onChange={props.onChange}
+        value={props.value}
         thumbChildren={
           <IconGripHorizontal
             style={{ width: rem(20), height: rem(20) }}
@@ -94,16 +115,56 @@ export function SliderMarks() {
     </div>
   );
 }
-export function GradientSegmentedControl() {
+
+export function SliderMarksNewProblemsPerSession(props) {
+  console.log("props", props);
+  // Dynamically genrate Marks
+  const generateMarks = (max) => {
+    return Array.from({ length: max }, (_, index) => ({
+      value: index + 1,
+      label: index + 1,
+    }));
+  };
+
+  const marks = generateMarks(props.max);
+  return (
+    <div className={classes.sliderContainer}>
+      <Slider
+        orientation="horizontal"
+        classNames={{
+          track: classes.sliderTrack, // Style for slider track
+          marksWrapper: classes.marks, // Horizontal alignment for marks
+          markLabel: classes.markLabel, // Center each label/icon
+        }}
+        onChange={props.onChange}
+        value={props.value}
+        thumbChildren={
+          <IconGripHorizontal
+            style={{ width: rem(20), height: rem(20) }}
+            stroke={1.5}
+          />
+        }
+        marks={marks}
+        step={1}
+        min={1}
+        max={props.max}
+        style={{ width: "100%" }}
+      />
+    </div>
+  );
+}
+export function GradientSegmentedControlTimeLimit(props) {
   return (
     <SegmentedControl
       radius="md"
       size="sm"
       data={["Auto", "off", "15", "20", "30"]}
       classNames={classes}
+      value={props.value}
+      onChange={props.onChange}
       styles={() => ({
         indicator: {
-          background: "linear-gradient(45deg, #FFF9C4, #FDD835)", // Light yellow to dark yellow gradient
+          background: "linear-gradient(45deg, #9EC2FF, #03018C)", // Light yellow to dark yellow gradient
         },
         control: {
           "&[data-active]": {

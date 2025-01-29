@@ -19,8 +19,7 @@ const ProbGen = (props) => {
   }, []);
 
   const handleLinkClick = (problem) => {
-    window.location.href = problem.LeetCodeAddress;
- 
+    window.location.href = problem.LeetCodeAddress || `https://leetcode.com/problems/${problem.slug}/description/`;
   };
 
   return (
@@ -32,7 +31,7 @@ const ProbGen = (props) => {
             <li key={problem.id}>
               <a href="#" onClick={(e) => handleLinkClick(problem)}>
                 {" "}
-                {problem.ProblemDescription}
+                {problem.ProblemDescription || problem.title}
               </a>
             </li>
           ))}

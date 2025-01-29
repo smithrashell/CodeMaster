@@ -72,9 +72,9 @@ const TimerBanner = (props) => {
       console.log("why");
       let problem = state;
       console.log("state timercomponent", problem);
-      console.log("time", time);
-      problem["time"] = time;
-
+      console.log("time", time, time / (1000 * 60));
+      problem["Time"] = Math.round(time / 60) < 1 ? 1 : Math.round(time / 60);
+      console.log("problem.time", problem.time);
       setOpen(false);
       navigate("/Probtime", { state: problem });
     }
