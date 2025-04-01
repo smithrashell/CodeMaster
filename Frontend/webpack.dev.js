@@ -1,7 +1,11 @@
-const { merge } = require("webpack-merge");
-const config = require("./webpack.config");
+const configFactory = require("./webpack.config");
 
-module.exports = merge(config, {
-  mode: "development",
-  devtool: "inline-source-map",
-});
+module.exports = (env, argv) => {
+  const baseConfig = configFactory(env, { mode: "development" });
+
+  return {
+    ...baseConfig,
+    mode: "development",
+    devtool: "inline-source-map",
+  };
+};

@@ -1,6 +1,17 @@
-const { merge } = require("webpack-merge");
-const config = require("./webpack.config");
+const configFactory = require("./webpack.config");
+const CopyPlugin = require("copy-webpack-plugin");
 
-module.exports = merge(config, {
-  mode: "production",
-});
+module.exports = (env, argv) => {
+  const baseConfig = configFactory(env, { mode: "production" });
+
+  baseConfig.plugins.push(
+    new CopyPlugin({
+      patterns: [{ from: "public" }],
+    })
+  );
+
+  return {
+    ...baseConfig,
+    mode: "production",
+  };
+};

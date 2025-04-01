@@ -6,7 +6,13 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Flashcards } from "./pages/flashcards";
+import { MantineProvider } from "@mantine/core";
+import { DoubleNavbar } from "../shared/components/DoubleNavbar";
+import "@mantine/core/styles.css";
+import "../app/app.css";
+import { Progress } from "../app/pages/dashboard/progress";
+import { Stats } from "../app/pages/dashboard/stats";
+
 import {
   HomePage,
   DashboardPage,
@@ -14,25 +20,23 @@ import {
   SettingsPage,
   AccountPage,
   FlashcardPage,
-  Stats,
   Reports,
   Goals,
-  Progress,
-  Conversions,
-  Sources,
+  Trends,
+  MistakeAnalysis,
+  TagMastery,
+  Metrics,
+  ProductivityInsights,
+  Profile,
+  Notifications,
   General,
   Appearance,
   Accessibility,
-  Profile,
-  Settings,
-  Notifications,
+  Flashcards,
   Practice,
   Review,
+  Analytics,
 } from "./pages/mockup";
-import { MantineProvider } from "@mantine/core";
-import { DoubleNavbar } from "../content/components/DoubleNavbar";
-import "@mantine/core/styles.css";
-import "../app/app.css";
 
 function App() {
   return (
@@ -46,30 +50,46 @@ function App() {
                 path="/app.html"
                 element={<Navigate to="/stats" replace />}
               />
+
+              {/* Dashboard */}
               <Route path="/" element={<DashboardPage />}>
                 <Route index element={<Navigate to="stats" replace />} />
                 <Route path="stats" element={<Stats />} />
-                <Route path="reports" element={<Reports />} />
+                <Route path="progress" element={<Progress />} />
                 <Route path="goals" element={<Goals />} />
               </Route>
+
+              {/* Analytics */}
               <Route path="/analytics" element={<AnalyticsPage />}>
-                <Route index element={<Navigate to="progress" replace />} />
-                <Route path="progress" element={<Progress />} />
-                <Route path="conversions" element={<Conversions />} />
-                <Route path="sources" element={<Sources />} />
+                <Route index element={<Navigate to="trends" replace />} />
+                <Route path="trends" element={<Trends />} />
+                <Route path="mistake-analysis" element={<MistakeAnalysis />} />
+                <Route path="tag-mastery" element={<TagMastery />} />
               </Route>
-              <Route path="/settings" element={<SettingsPage />}>
-                <Route index element={<Navigate to="general" replace />} />
-                <Route path="general" element={<General />} />
-                <Route path="appearance" element={<Appearance />} />
-                <Route path="accessibility" element={<Accessibility />} />
+
+              {/* Sessions */}
+              <Route path="/sessions">
+                <Route index element={<Navigate to="metrics" replace />} />
+                <Route path="session-metrics" element={<Metrics />} />
+                <Route
+                  path="productivity-insights"
+                  element={<ProductivityInsights />}
+                />
               </Route>
+
+              {/* Account */}
               <Route path="/account" element={<AccountPage />}>
                 <Route index element={<Navigate to="profile" replace />} />
                 <Route path="profile" element={<Profile />} />
-                <Route path="settings" element={<Settings />} />
                 <Route path="notifications" element={<Notifications />} />
+                <Route path="settings" element={<SettingsPage />}>
+                  <Route path="general" element={<General />} />
+                  <Route path="appearance" element={<Appearance />} />
+                  <Route path="accessibility" element={<Accessibility />} />
+                </Route>
               </Route>
+
+              {/* Flashcards / Review */}
               <Route path="/review" element={<FlashcardPage />}>
                 <Route index element={<Navigate to="flashcards" replace />} />
                 <Route path="flashcards" element={<Flashcards />} />
