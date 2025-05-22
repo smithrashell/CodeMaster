@@ -11,13 +11,14 @@ const ProbDetail = (isLoading) => {
   const Description =
     routeState?.problemData?.ProblemDescription ||
     routeState?.problemData?.title;
-  const [Tags, setTags] = useState(routeState?.problemData?.tags || []);
+  const [Tags, setTags] = useState(routeState?.problemData?.Tags || []);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(isLoading);
   const [showSkip, setShowSkip] = useState(false);
 
   useEffect(() => {
     setShowSkip(!routeState.problemFound);
+    console.log("routeState", routeState);
     console.log("Tags", Tags);
   }, [setShowSkip, setTags]);
 

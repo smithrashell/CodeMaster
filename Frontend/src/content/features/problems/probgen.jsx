@@ -30,7 +30,7 @@ const ProbGen = (props) => {
       {problems.length > 0 ? (
         <ul>
           {problems.map((problem) => (
-            <li key={problem.id}>
+            <li key={problem.id + problem.title}>
               <a href="#" onClick={(e) => handleLinkClick(problem)}>
                 {" "}
                 {problem.ProblemDescription || problem.title}

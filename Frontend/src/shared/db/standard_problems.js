@@ -1,6 +1,5 @@
 import { dbHelper } from "./index.js";
 
-
 const openDB = dbHelper.openDB;
 export async function getProblemFromStandardProblems(slug) {
   try {
@@ -52,15 +51,82 @@ export async function getProblemFromStandardProblems(slug) {
   }
 }
 
+export async function updateStandardProblemsFromData(problems) {
+  try {
+    if (!Array.isArray(problems)) {
+      throw new Error("❌ Invalid data: expected an array.");
+    }
 
+    console.log("📌 Loaded", problems.length, "problems from local JSON");
 
+    const db = await openDB();
+    if (!db) throw new Error("❌ Failed to open IndexedDB.");
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["standard_problems"], "readwrite");
+      const store = transaction.objectStore("standard_problems");
+
+      let updatedCount = 0;
+
+      problems.forEach((problem) => {
+        console.log(problem);
+        let newProblem = {
+          id: problem["Problem Number"],
+          title: problem["Title"],
+          difficulty: problem["Difficulty"],
+          tags:
+            problem["Official Tags"] == null
+              ? problem["Tags"].split(",").map((tag) =>
+                  tag
+                    .trim()
+                    .toLowerCase()
+                    .split(" ")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ")
+                )
+              : problem["Official Tags"].split(",").map((tag) =>
+                  tag
+                    .trim()
+                    .toLowerCase()
+                    .split(" ")
+                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(" ")
+                ),
+          slug: problem["Slug"],
+        };
+
+        const request = store.put(newProblem);
+        request.onsuccess = () => {
+          updatedCount++;
+        };
+
+        request.onerror = (event) => {
+          console.error("❌ Error updating problem:", event.target.error);
+        };
+      });
+
+      transaction.oncomplete = () => {
+        console.log(`✅ Successfully updated ${updatedCount} problems.`);
+        resolve(updatedCount);
+      };
+
+      transaction.onerror = (event) => {
+        console.error("❌ Transaction failed:", event.target.error);
+        reject("Transaction failed: " + event.target.error);
+      };
+    });
+  } catch (error) {
+    console.error("❌ updateStandardProblemsFromData error:", error);
+    throw error;
+  }
+}
 
 export async function updateStandardProblems(jsonFilePath) {
   try {
     console.log("📌 updateStandardProblems called with:", { jsonFilePath });
 
     // Fetch the JSON file
-    const response = await fetch(jsonFilePath);
+    const response = jsonFilePath;
     if (!response.ok) throw new Error("❌ Failed to fetch JSON file.");
 
     const problems = await response.json();
@@ -140,4 +206,19 @@ export async function fetchProblemById(problemId) {
     console.error(`❌ Error fetching problem ${problemId}:`, error);
     return null;
   }
+}
+
+export async function normalizeTagForStandardProblems() {
+  let problems = await getAllStandardProblems();
+  problems.forEach((problem) => {
+    problem.tags = problem.tags.map((tag) => tag.trim().toLowerCase());
+  });
+
+  console.log(problems);
+  const db = await openDB();
+  const tx = db.transaction("standard_problems", "readwrite");
+  const store = tx.objectStore("standard_problems");
+  problems.forEach((problem) => {
+    store.put(problem);
+  });
 }

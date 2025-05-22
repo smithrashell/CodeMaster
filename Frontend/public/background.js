@@ -5,8 +5,8 @@ import { ScheduleService } from "../src/shared/services/scheduleService.js";
 import { LimitService } from "../src/shared/services/limitService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
-import { buildAndStoreTagGraph } from "../src/shared/db/tag_relationships.js";
-import { classifyTags } from "../src/shared/db/tag_relationships.js";
+import { buildAndStoreTagGraph } from "../src/shared/db/tag_mastery.js";
+import { classifyTags } from "../src/shared/db/tag_mastery.js";
 import { updateStandardProblems } from "../src/shared/db/standard_problems.js";
 import { updateProblemTags } from "../src/shared/db/standard_problems.js";
 import { calculateTagMastery } from "../src/shared/db/tag_mastery.js";
@@ -14,9 +14,18 @@ import { rebuildProblemRelationships } from "../src/shared/db/problem_relationsh
 import { recreateSessions } from "../src/shared/db/sessions.js";
 import { addStabilityToProblems } from "../src/shared/db/problems.js";
 import { connect } from "chrome-extension-hot-reload";
+import { updateProblemsWithRating } from "../src/shared/db/problems.js";
+import { getDashboardStatistics } from "../src/shared/services/dashboardService.js";
+import { updateStandardProblemsFromData } from "../src/shared/db/standard_problems.js";
+import leetCodeProblems from "./../src/shared/db/LeetCode_Tags_Combined(2).json";
+import { updateProblemWithTags } from "../src/shared/db/problems.js";
+import { normalizeTagForStandardProblems } from "../src/shared/db/standard_problems.js";
+import { generatePatternLaddersAndUpdateTagMastery } from "../src/shared/db/pattern_ladder.js";
+import { clearOrRenameStoreField } from "../src/shared/utils/Utils.js";
+import { getSessionPerformance } from "../src/shared/db/sessions.js";
+import { getLearningState } from "../src/shared/services/dashboardService.js";
+
 connect(); // handles app and popup
-
-
 
 let activeRequests = {};
 let requestQueue = [];
@@ -154,22 +163,45 @@ const handleRequest = async (request, sender, sendResponse) => {
 
       // TODO: getCurrentSession
       case "getCurrentSession":
-        // updateStandardProblems("./db/Strict_Approved_Tags_IndexedDB_Backup.json").then(() => {
-        //   sendResponse({ message: "Standard problems updated" });
-        // }).catch((error) => {
-        //   console.error("Error updating standard problems:", error);
+        // const fileUrl = chrome.runtime.getURL("LeetCode_Tags_Combined.json");
+        // console.log("updateStandardProblems");
+        // updateStandardProblemsFromData(leetCodeProblems)
+        //   .then(() => {
+        //     sendResponse({ message: "Standard problems updated" });
+        //   })
+        //   .catch((error) => {
+        //     console.error("Error updating standard problems:", error);
+        //     sendResponse({
+        //       backgroundScriptData: "Error updating standard problems",
+        //     });
+        //   });
+        // buildAndStoreTagGraph()
+        //   .then(() => {
+        //     sendResponse({ message: "Tag graph built" });
+        //   })
+        //   .catch((error) => {
+        //     console.error("Error building tag graph:", error);
+        //     sendResponse({
+        //       backgroundScriptData: "Error building tag graph",
+        //     });
+        //   });
+        // normalizeTagForStandardProblems()
+        // .then(()=> {
+        //   sendResponse({ message: "Tags updated in standard problems" });
+        // })
+        // .catch((error) => {
+        //   console.error("Error updating tags:", error);
         //   sendResponse({
-        //     backgroundScriptData: "Error updating standard problems",
+        //     backgroundScriptData: "Error updating tags",
         //   });
         // })
-        // buildAndStoreTagGraph().then(() => {
-        //   sendResponse({ message: "Tag graph built" });
-        // }).catch((error) => {
-        //   console.error("Error building tag graph:", error);
-        //   sendResponse({
-        //     backgroundScriptData: "Error building tag graph",
+        // updateProblemWithTags()
+        //   .then(() => {
+        //     sendResponse({ message: "Tags updated" });
+        //   })
+        //   .catch((error) => {
+        //     console.error("Error updating tags:", error);
         //   });
-        // })
         // classifyTags()
         //   .then(() => {
         //     sendResponse({ message: "Tags classified" });
@@ -179,22 +211,17 @@ const handleRequest = async (request, sender, sendResponse) => {
         //     sendResponse({
         //       backgroundScriptData: "Error classifying tags",
         //     });
-        //   })
-        // calculateTagMastery().then(() => {
-        //   sendResponse({ message: "Tag mastery calculated" });
-        // }).catch((error) => {
-        //   console.error("Error calculating tag mastery:", error);
-        //   sendResponse({
-        //     backgroundScriptData: "Error calculating tag mastery",
         //   });
-        // })
-        // rebuildProblemRelationships().then(() => {
-        //   sendResponse({ message: "Problem relationships rebuilt" });
-        // }).catch((error) => {
-        //   console.error("Error rebuilding problem relationships:", error);
-        //   sendResponse({
-        //     backgroundScriptData: "Error rebuilding problem relationships",
-        //   })})
+        // calculateTagMastery()
+        //   .then(() => {
+        //     sendResponse({ message: "Tag mastery calculated" });
+        //   })
+        //   .catch((error) => {
+        //     console.error("Error calculating tag mastery:", error);
+        //     sendResponse({
+        //       backgroundScriptData: "Error calculating tag mastery",
+        //     });
+        //   });
         // rebuildProblemRelationships().then(() => {
         //   sendResponse({ message: "Problem relationships rebuilt" });
         // }).catch((error) => {
@@ -218,6 +245,33 @@ const handleRequest = async (request, sender, sendResponse) => {
         //     backgroundScriptData: "Error adding stability to problems",
         //   });
         // })
+        // updateProblemsWithRating().then(() => {
+        //   sendResponse({ message: "Problems updated with ratings" });
+        // }).catch((error) => {
+        //   console.error("Error updating problems with ratings:", error);
+        //   sendResponse({
+        //     backgroundScriptData: "Error updating problems with ratings",
+        //   });
+        // });
+        // generatePatternLaddersAndUpdateTagMastery()
+        //   .then(() => sendResponse({ message: "Pattern ladders and tag mastery updated" }))
+        //   .catch((error) => {
+        //   console.error("Error updating pattern ladders and tag mastery:", error);
+        //   sendResponse({
+        //     backgroundScriptData: "Error updating pattern ladders and tag mastery",
+        //   });
+        // })
+        //  let result = await clearOrRenameStoreField("tag_mastery", {
+        //    remove: ["ladderPreview"],
+        //  }).catch(error => console.log(error))
+        //  console.log("result", result)
+        // console.log("🔍 getSessionPerformance");
+        // const { unmasteredTags } = await getCurrentLearningState();
+        // await getSessionPerformance({
+        //   recentSessionsLimit: 5,
+        //   unmasteredTags,
+        // });
+        // console.log("performance", performance);
         SessionService.getOrCreateSession()
           .then((session) => {
             console.log("session", session);
@@ -254,6 +308,15 @@ const handleRequest = async (request, sender, sendResponse) => {
           .catch(() => sendResponse({ result: "error" }))
           .finally(finishRequest);
         return true;
+      /** ──────────────── Dashboard Management ──────────────── **/
+      // TODO: getDashboardStatistics
+      case "getDashboardStatistics":
+        console.log("getDashboardStatistics!!!");
+        getDashboardStatistics()
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error }))
+          .finally(finishRequest);
+        return true;
 
       default:
         sendResponse({ error: "Unknown request type" });
@@ -268,54 +331,18 @@ const handleRequest = async (request, sender, sendResponse) => {
 
 const contentPorts = {};
 
-chrome.runtime.onConnect.addListener((port) => {
-  if (port.name === "content-script") {
-    console.log(`🔌 Connected: Tab ${port.sender.tab.id}`);
-    contentPorts[port.sender.tab.id] = port;
-
-    port.onDisconnect.addListener(() => {
-      console.log(`❌ Disconnected: Tab ${port.sender.tab.id}`);
-      delete contentPorts[port.sender.tab.id];
-    });
-  }
-});
 chrome.action.onClicked.addListener((tab) => {
   // Open your React application in a new tab
+
+
   chrome.tabs.create({ url: "app.html" });
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("Received request:", request);
 
-  if (request.action === "forceReload") {
-    console.log("♻️ Force Reload Triggered...");
-
-    // Reload popup & app
-    chrome.runtime.reload();
-
-    // Reinject content script into leetcode tabs
-    chrome.tabs.query({}, (tabs) => {
-      tabs.forEach((tab) => {
-        if (tab.url && tab.url.includes("leetcode.com")) {
-          chrome.scripting.executeScript(
-            {
-              target: { tabId: tab.id },
-              files: ["content.js"],
-            },
-            () => {
-              console.log(`📥 Reinjected content script into ${tab.url}`);
-            }
-          );
-        }
-      });
-    });
-
-    return true;
-  }
-
   requestQueue.push({ request, sender, sendResponse });
   if (!isProcessing) processNextRequest();
 
   return true; // Keep response channel open
 });
-

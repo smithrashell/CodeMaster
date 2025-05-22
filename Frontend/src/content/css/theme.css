@@ -1,0 +1,113 @@
+/* ========= Default (Light Mode) ========= */
+:root {
+  --cd-bg: #9cc4cf;
+  --cd-text: #000;
+  --cd-link: #818181;
+  --cd-link-hover: #f1f1f1;
+  --cd-highlight: #fabd22;
+  --cd-btn-bg: #0c433d;
+  --cd-btn-text: #fabd22;
+   /* color: var(--cd-highlight);
+  background-color: #0c433d; */
+}
+
+body {
+  background-color: var(--cd-bg);
+  color: var(--cd-text);
+}
+
+/* ========= Dark Mode Overrides ========= */
+body[data-theme="dark"] {
+  --cd-bg: #1f2937;
+  --cd-text: #f1f1f1;
+  --cd-link: #94a3b8;
+  --cd-link-hover: #ffffff;
+  --cd-highlight: #facc15;
+  --cd-btn-bg: #334155;
+  --cd-btn-text: #f8fafc;
+}
+
+/* ========== Apply Variables to Your CSS ========== */
+.injected {
+  color: var(--cd-text);
+}
+
+.btn {
+  background-color: var(--cd-btn-bg);
+  color: var(--cd-btn-text);
+  border: none;
+  border-radius: 25%;
+}
+
+button {
+  margin-right: 5px;
+  color: var(--cd-btn-text);
+}
+
+/* #cd-menuButton,
+#homeIcon {
+  color: var(--cd-highlight);
+  background-color: #0c433d;
+} */
+
+/* Side Drawer */
+.cd-sidenav {
+  background-color: var(--cd-bg);
+}
+
+.cd-sidenav a,
+.link {
+  color: var(--cd-link);
+}
+
+.cd-sidenav a:hover,
+.link:hover {
+  color: var(--cd-link-hover);
+}
+
+.link-disabled {
+  color: gray;
+  pointer-events: none;
+}
+
+.link-disabled:hover {
+  color: darkgray;
+  cursor: not-allowed;
+}
+
+/* Misc reused styles from your main.css (unchanged) */
+.cd-left {
+  left: -10px;
+  transition: eft 0.5s;
+}
+.cd-leftoffset {
+  left: 240px;
+}
+.cd-right {
+  right: 10px;
+}
+.codeDaemon-Container {
+  transition: margin-left 0.5s;
+  padding: 0px;
+  margin-left: 250px;
+}
+@media screen and (max-height: 450px) {
+  .sidenav {
+    padding-top: 15px;
+  }
+  .sidenav a {
+    font-size: 18px;
+  }
+}
+.cd-hidden {
+  display: none;
+}
+input[type="submit"] {
+  color: white;
+  font-weight: 600;
+}
+.disabled {
+  color: var(--cd-link);
+  pointer-events: none;
+  cursor: not-allowed;
+}

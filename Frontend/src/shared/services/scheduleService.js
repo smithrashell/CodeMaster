@@ -1,8 +1,9 @@
 import { problemSortingCriteria, deduplicateById } from "../utils/Utils.js";
 import { fetchAllProblems, fetchAdditionalProblems } from "../db/problems.js";
-import { TagService } from "./tagServices.js";
+
 import { ProblemService } from "./problemService.js";
 import { calculateDecayScore } from "../utils/Utils.js";
+import { TagService } from "./tagServices.js";
 const getCurrentLearningState = TagService.getCurrentLearningState;
 export const ScheduleService = {
   isDueForReview,
@@ -10,105 +11,71 @@ export const ScheduleService = {
   getDailyReviewSchedule,
 };
 
-
-async function getDailyReviewSchedule(sessionLength) {
+export async function getDailyReviewSchedule(sessionLength) {
   try {
     const { unmasteredTags, tagsinTier } = await getCurrentLearningState();
-
-    // ✅ Fetch all problems
     let allProblems = await fetchAllProblems();
-    if (!Array.isArray(allProblems)) {
-      console.warn(
-        "⚠️ fetchAllProblems() returned an invalid value. Defaulting to empty array."
-      );
-      allProblems = [];
-    }
-    // ✅ Step 0: FallBack  if no problems after tag filtering, just get by **due for review** according to FSRS
-    let fsrsDueProblems = allProblems.filter(
-      (problem) =>
-        isDueForReview(problem.ReviewSchedule) ||
-        !isRecentlyAttempted(problem.lastAttemptDate, problem.BoxLevel)
-    );
 
-    // ✅ Step 1: Select problems that are **due for review** according to FSRS
+    if (!Array.isArray(allProblems)) allProblems = [];
+
+    // Step 1: Get problems due for review
     let reviewProblems = allProblems.filter(
-      (problem) =>
-        isDueForReview(problem.ReviewSchedule) ||
-        !isRecentlyAttempted(problem.lastAttemptDate, problem.BoxLevel)
+      (p) =>
+        isDueForReview(p.ReviewSchedule) ||
+        !isRecentlyAttempted(p.lastAttemptDate, p.BoxLevel)
+    );
+
+    // Step 2: Filter to tier-appropriate problems
+    reviewProblems = reviewProblems.filter((p) =>
+      (p.Tags || []).every((tag) => tagsinTier.includes(tag))
+    );
+
+    // ✅ Step 3: Select one unique problem per unmasteredTag
+    const seen = new Set();
+    const tagMatchedProblems = [];
+
+    for (let tag of unmasteredTags) {
+      const match = reviewProblems.find((p) => {
+        const id = p.leetCodeID ?? p.id;
+        return (p.Tags || []).includes(tag) && !seen.has(id);
+      });
+
+      if (match) {
+        const id = match.leetCodeID ?? match.id;
+        seen.add(id);
+        tagMatchedProblems.push(match);
+        console.log(
+          `🎯 Matched tag "${tag}" with problem "${match.ProblemDescription}"`
+        );
+      } else {
+        console.warn(`⚠️ No available review problem found for tag "${tag}"`);
+      }
+    }
+
+    // ✅ Step 4: Fill remaining with other FSRS due problems (if needed)
+    const fsrsFillers = reviewProblems
+      .filter((p) => !seen.has(p.leetCodeID ?? p.id))
+      .sort((a, b) => new Date(a.ReviewSchedule) - new Date(b.ReviewSchedule))
+      .slice(0, sessionLength - tagMatchedProblems.length);
+
+    const finalReviewProblems = [...tagMatchedProblems, ...fsrsFillers].slice(
+      0,
+      sessionLength
     );
 
     console.log(
-      `✅ Problems due for review before filtering: ${reviewProblems.length}`
-    );
-    console.log("Tags:", reviewProblems[0].Tags, typeof reviewProblems[0].Tags);
-    console.log("tagsinTier:", tagsinTier, typeof tagsinTier);
-    // ✅ Step 2: Remove problems that contain tags NOT in the learning tier
-    reviewProblems = reviewProblems.filter((problem) =>
-      (problem.Tags || []).every((tag) => tagsinTier.includes(tag))
-    );
-
-    console.log(
-      `✅ Problems after removing those outside learning tier: ${reviewProblems.length}`
+      "✅ Final Review Set:",
+      finalReviewProblems.map((p) => ({
+        title: p.ProblemDescription,
+        tags: p.Tags,
+        leetCodeID: p.leetCodeID,
+      }))
     );
 
-    // ✅ Step 3: Prioritize problems covering active **unmastered tags**
-    reviewProblems.forEach((problem) => {
-      problem.tagMatchScore = (problem.Tags || []).reduce((score, tag) => {
-        return score + (unmasteredTags.includes(tag) ? 1 : 0);
-      }, 0);
-    });
-
-    // ✅ Step 4: Ensure selected problems contain at least one `unmasteredTag`
-    // High priority tag-matched problems
-    let tagFocusedProblems = reviewProblems.filter((p) => p.tagMatchScore >= 2);
-    // ✅ Step 5: Remove tag-focused problems from fsrsDueProblems
-    const tagFocusedProblemIds = new Set(tagFocusedProblems.map((p) => p.id));
-    fsrsDueProblems = fsrsDueProblems.filter(
-      (p) => !tagFocusedProblemIds.has(p.id)
-    );
-    console.log(
-      `✅ Problems after enforcing unmastered tag focus: ${reviewProblems.length}`
-    );
-
-    const minFsrsQuota = Math.max(Math.floor(sessionLength * 0.2), 2);
-    const fsrsProblemsSelected = fsrsDueProblems
-      .sort(
-        (a, b) => new Date(a.ReviewSchedule) - new Date(b.ReviewSchedule) // Earliest due first
-      )
-      .slice(0, minFsrsQuota);
-    // ✅ Step 6: Sort by **unmastered tag relevance** FIRST, then FSRS priority
-    tagFocusedProblems.sort((a, b) => {
-      const tagDiff = b.tagMatchScore - a.tagMatchScore;
-      if (tagDiff !== 0) return tagDiff;
-
-      // Secondary: Decay Score (instead of just review date)
-      return (
-        calculateDecayScore(
-          a.lastAttemptDate,
-          a.AttemptStats.SuccessfulAttempts / a.AttemptStats.TotalAttempts,
-          a.Stability || 1
-        ) -
-        calculateDecayScore(
-          b.lastAttemptDate,
-          b.AttemptStats.SuccessfulAttempts / b.AttemptStats.TotalAttempts,
-          b.Stability || 1
-        )
-      );
-    });
-let combinedProblems = [...tagFocusedProblems, ...fsrsProblemsSelected];
-
-// Ensure final session length
-combinedProblems = combinedProblems.slice(0, sessionLength);
-
-    console.log(
-      `🏆 Final sorted review problems:`,
-      combinedProblems.slice(0, sessionLength)
-    );
-
-    return combinedProblems.slice(0, sessionLength);
+    return finalReviewProblems;
   } catch (error) {
-    console.error("❌ Error retrieving problems from Schedule:", error);
-    return []; // Return an empty list to prevent crashes
+    console.error("❌ Error in getDailyReviewSchedule:", error);
+    return [];
   }
 }
 
@@ -144,5 +111,3 @@ export function isRecentlyAttempted(
   const daysSinceLastAttempt = (today - lastAttempt) / (1000 * 60 * 60 * 24);
   return daysSinceLastAttempt < skipInterval;
 }
-
-

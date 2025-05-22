@@ -2,10 +2,12 @@ import { getAllStandardProblems } from "./standard_problems.js";
 import { getTagRelationships } from "./tag_mastery";
 import { getTagMastery } from "./tag_mastery.js";
 import { calculateTagSimilarity } from "./tag_mastery.js";
-import { TagService } from "../services/tagServices.js";
+import { TagService } from "../services/tagServices";
 import { fetchAllProblems } from "./problems.js";
-const getCurrentLearningState = TagService.getCurrentLearningState;
 import { dbHelper } from "./index.js";
+
+const getCurrentLearningState = TagService.getCurrentLearningState;
+
 const openDB = dbHelper.openDB;
 
 export const addProblemRelationship = async (
@@ -771,7 +773,6 @@ export async function findBestNextProblem(
   console.log(`📝 Attempted Problems (After Selection):`, attemptedProblems);
   return selectedProblem;
 }
-
 
 export async function determineNextProblem(
   problemId,

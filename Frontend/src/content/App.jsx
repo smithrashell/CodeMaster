@@ -23,6 +23,11 @@ import ProbSubmission from "./features/problems/probsubmission";
 import ProbDetail from "./features/problems/probdetail";
 // import * as Sentry from "@sentry/react";
 import { MantineProvider } from "@mantine/core";
+import ThemeProviderWrapper from "../shared/provider/themeprovider";
+
+
+
+
 const history = createMemoryHistory();
 
 const Router = () => {
@@ -44,7 +49,7 @@ const Router = () => {
 
   return (
     <MemoryRouter history={history}>
-      <MantineProvider>
+      <ThemeProviderWrapper>
         <PreviousRouteProvider>
           <Routes>
             <Route index element={<Main />} />
@@ -58,7 +63,7 @@ const Router = () => {
             </Route>
           </Routes>
         </PreviousRouteProvider>
-      </MantineProvider>
+      </ThemeProviderWrapper>
     </MemoryRouter>
   );
 };

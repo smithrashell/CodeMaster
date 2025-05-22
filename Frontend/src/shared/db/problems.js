@@ -1,13 +1,17 @@
 import { dbHelper } from "./index.js";
 import { isDifficultyAllowed, deduplicateById } from "../utils/Utils.js";
 import { AttemptsService } from "../services/attemptsService.js";
-import { TagService } from "../services/tagServices.js";
+
 import { determineNextProblem } from "./problem_relationships.js";
 import { findBestNextProblem } from "./problem_relationships.js";
 import { getAllStandardProblems } from "./standard_problems.js";
 import { fetchProblemById } from "./standard_problems.js";
+import { TagService } from "../services/tagServices.js";
 const getCurrentLearningState = TagService.getCurrentLearningState;
 import { v4 as uuidv4 } from "uuid";
+import { getAllowedDifficulties } from "../utils/Utils.js";
+import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
+
 const openDB = dbHelper.openDB;
 
 /**
@@ -293,6 +297,7 @@ export async function getProblemByDescription(description, slug) {
 export async function addProblem(problemData) {
   try {
     const db = await openDB();
+    const standardProblem = await fetchProblemById(problemData.leetCodeID);
 
     let session = await new Promise((resolve) => {
       chrome.storage.local.get(["currentSession"], (result) => {
@@ -317,6 +322,7 @@ export async function addProblem(problemData) {
     const address = problemData.address;
     const problem = {
       id: problemId,
+      Rating: standardProblem.difficulty,
       ProblemDescription: problemData.title.toLowerCase(),
       ProblemNumberAssoc: [],
       leetCodeID: leetCodeID,
@@ -416,7 +422,7 @@ export async function checkDatabaseForProblem(problemId) {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
     const index = store.index("by_problem");
-
+    console.log("🔍 problemId:", problemId);
     const request = index.get(problemId);
 
     // return true if problem is found, false otherwise
@@ -460,179 +466,109 @@ export async function fetchAllProblems() {
     };
   });
 }
-
-export async function fetchAdditionalProblems(numNewProblems, excludeIds) {
+export async function fetchAdditionalProblems(
+  numNewProblems,
+  excludeIds = new Set()
+) {
   try {
-    const { sessionPerformance, masteryData, unmasteredTags, tagsinTier } =
+    const { masteryData, unmasteredTags, tagsinTier } =
       await getCurrentLearningState();
+    
+    const allProblems = await getAllStandardProblems();
 
-    let allProblems = await getAllStandardProblems();
     const unmasteredTagSet = new Set(unmasteredTags);
     const tierTagSet = new Set(tagsinTier);
-    const tagMasteryMap = {};
-    masteryData.forEach((tagObj) => {
-      tagMasteryMap[tagObj.tag] = {
-        attempts: tagObj.totalAttempts,
-        correct: tagObj.successfulAttempts,
-      };
-    });
 
-    console.log("🔍 tagMasteryMap:", tagMasteryMap);
-    console.log("🔍 unmasteredTagSet:", unmasteredTagSet);
-    console.log("🔍 tierTagSet:", tierTagSet);
-
-    console.log("🔍 masteryData:", masteryData);
-
-    console.log(`🔍 Exclude List Size: ${excludeIds.size}`);
-
-    // 1️⃣ Dynamic Difficulty Adjustment
-    let difficultyWeights = {
-      Easy: 1,
-      Medium: 0,
-      Hard: 0,
-    };
-
-    if (
-      sessionPerformance.Easy.correct / sessionPerformance.Easy.attempts >
-      0.85
-    ) {
-      difficultyWeights.Medium = 1;
-    }
-    if (
-      sessionPerformance.Medium.correct / sessionPerformance.Medium.attempts >
-      0.75
-    ) {
-      difficultyWeights.Hard = 0.5;
+    const tagMasteryMap = Object.fromEntries(
+      masteryData.map((entry) => [entry.tag, entry])
+    );
+    console.log("🧼 masteryData:", masteryData);
+    const tagDifficultyAllowance = {};
+    for (const tag of unmasteredTags) {
+      tagDifficultyAllowance[tag] = getDifficultyAllowanceForTag(
+        tag,
+        tagMasteryMap[tag]
+      );
     }
 
-    const allowedDifficulties = Object.keys(difficultyWeights).filter(
-      (d) => difficultyWeights[d] > 0
-    );
+    const candidateProblems = [];
+    console.log("🧼 tagMasteryMap:", tagMasteryMap);
+    for (const tag of unmasteredTags) {
+      const ladder = tagMasteryMap[tag]?.coreLadder || [];
+      console.log("🧼 ladder:", ladder);
 
-    // 2️⃣ Filter out seen problems & allowed difficulties
-    let candidateProblems = allProblems.filter(
-      (problem) =>
-        !excludeIds.has(problem.id) &&
-        allowedDifficulties.includes(problem.difficulty)
-    );
+      for (const problem of ladder) {
+        const id = problem.leetCodeID ?? problem.id;
+        if (excludeIds.has(id)) continue;
 
-    console.log(
-      `✅ Candidate Problems Before Tag Filtering: ${candidateProblems.length}`
-    );
+        // Must be within tier
+        if (!(problem.tags || []).every((t) => tierTagSet.has(t))) continue;
 
-    // 3️⃣ Tag mastery scoring
-    candidateProblems.forEach((problem) => {
-      problem.tagMatchScore = (problem.tags || []).reduce((score, tag) => {
-        let tagScore = 0;
+        // Must include current tag (optional check — usually true in coreLadder)
+        if (!(problem.tags || []).includes(tag)) continue;
 
-        if (unmasteredTagSet.has(tag)) {
-          tagScore += 3; // Current focus
-        } else if (tierTagSet.has(tag)) {
-          tagScore += 1; // Tier tag
+        const rating = problem.rating || "Medium";
+        const allowance = tagDifficultyAllowance[tag] || {
+          Easy: 1,
+          Medium: 0,
+          Hard: 0,
+        };
+
+        if (allowance[rating] > 0) {
+          candidateProblems.push({
+            ...problem,
+            tagOrigin: tag,
+            ratingWeight: allowance[rating],
+          });
         }
-
-        const tagStats = tagMasteryMap[tag];
-        const accuracy = tagStats
-          ? tagStats.attempts > 0
-            ? tagStats.correct / tagStats.attempts
-            : 0
-          : 0;
-        if (accuracy > 0.75) tagScore += 1; // Mastered tags bonus
-
-        // 🛑 Penalize tags outside tier/focus:
-        if (!tierTagSet.has(tag) && !unmasteredTagSet.has(tag)) {
-          tagScore -= 1;
-        }
-
-        return score + tagScore;
-      }, 0);
-    });
-
-    console.log(
-      "🔍 candidateProblems:",
-      candidateProblems.sort((a, b) => b.tagMatchScore - a.tagMatchScore)
-    );
-
-    // Filter out problems with weak tag match
-    candidateProblems = candidateProblems.filter((p) => p.tagMatchScore >= 2);
-
-    console.log(
-      `✅ Candidate Problems After Tag Filtering (Min Match Score 2): ${candidateProblems.length}`
-    );
+      }
+    }
 
     if (candidateProblems.length === 0) {
-      console.warn("⚠️ No new problems found matching tags.");
+      console.warn(
+        "⚠️ No eligible new problems found from tag mastery core ladders."
+      );
       return [];
     }
 
-    // 4️⃣ Get sequence scores dynamically
-    for (let problem of candidateProblems) {
-      problem.sequenceScore = await getProblemSequenceScore(
-        problem.id,
-        unmasteredTagSet,
-        tierTagSet
-      );
-    }
-    // ✅ Normalize sequence scores to 0-100 range
-    let sequenceScores = candidateProblems.map((p) => p.sequenceScore || 0);
-    let maxSequenceScore = Math.max(...sequenceScores, 1);
-    let minSequenceScore = Math.min(...sequenceScores, 0);
-    let scoreRange = maxSequenceScore - minSequenceScore || 1;
-
-    candidateProblems.forEach((problem) => {
-      problem.sequenceScore =
-        ((problem.sequenceScore - minSequenceScore) / scoreRange) * 100;
-    });
-
-    // 🏆 Strict Chained Sort:
-    // First by tagMatchScore DESCENDING
-    // Then by sequenceScore DESCENDING
-    candidateProblems.sort((a, b) => {
-      if (b.tagMatchScore !== a.tagMatchScore) {
-        return b.tagMatchScore - a.tagMatchScore;
-      }
-      return b.sequenceScore - a.sequenceScore;
-    });
-
-    console.log("🏆 Sorted Candidates:", candidateProblems);
-
-    // 6️⃣ Weighted Sampling by difficulty
-    function weightedSample(candidates, weights, totalNeeded) {
-      const pools = { Easy: [], Medium: [], Hard: [] };
-      candidates.forEach((p) => pools[p.difficulty].push(p));
-
-      const result = [];
-      const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
-
-      for (let diff of Object.keys(pools)) {
-        const count = Math.floor(totalNeeded * (weights[diff] / totalWeight));
-        result.push(...pools[diff].slice(0, count));
-      }
-
-      // If still need more, fill from any left
-      while (result.length < totalNeeded) {
-        const extra = candidates.find(
-          (p) =>
-            !result.includes(p) && allowedDifficulties.includes(p.difficulty)
-        );
-        if (!extra) break;
-        result.push(extra);
-      }
-
-      return result;
-    }
-
-    const finalProblems = weightedSample(
-      candidateProblems,
-      difficultyWeights,
-      numNewProblems
+    // Optional debug
+    console.log(
+      "📦 Final candidate problems:",
+      candidateProblems.map((p) => ({
+        title: p.title,
+        tag: p.tagOrigin,
+        difficulty: p.rating,
+        ratingWeight: p.ratingWeight,
+      }))
     );
+    console.log(`🧼 Initial candidate count: ${candidateProblems.length}`);
+    // Sort by rating weight
+    candidateProblems.sort((a, b) => b.ratingWeight - a.ratingWeight);
+    // ✅ Deduplicate by leetCodeID
+    const seen = new Set();
+    const uniqueProblems = [];
 
-    console.log("🎯 Final Selected Problems:", finalProblems);
-
-    return finalProblems;
+    for (let problem of candidateProblems) {
+      const id = problem.leetCodeID ?? problem.id;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      uniqueProblems.push(problem);
+    }
+    console.log(
+      `🧼 Removed duplicates — final count: ${uniqueProblems.length}`
+    );
+    
+    uniqueProblems = uniqueProblems.slice(0, numNewProblems);
+    uniqueProblems.map(async (problem) => {
+      const standardProblem = allProblems.find(
+        (p) => p.id === problem.leetCodeID
+      );
+      return standardProblem;
+    });
+    console.log("🧼 uniqueProblems:", uniqueProblems);
+    return uniqueProblems;
   } catch (error) {
-    console.error("❌ Error fetching additional problems:", error);
+    console.error("❌ Error in fetchAdditionalProblems():", error);
     return [];
   }
 }
@@ -794,14 +730,6 @@ async function getProblemSequenceScore(
 //   return nextProblems;
 // }
 
-function getAllowedDifficulties(classification) {
-  if (classification === "Core Concept") return ["Easy"];
-  if (classification === "Fundamental Technique") return ["Easy", "Medium"];
-  if (classification === "Advanced Technique")
-    return ["Easy", "Medium", "Hard"];
-  return ["Easy", "Medium", "Hard"]; // If everything is mastered, allow all difficulties
-}
-
 export async function addStabilityToProblems() {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -872,4 +800,74 @@ export function updateStabilityFSRS(currentStability, wasCorrect) {
   } else {
     return parseFloat((currentStability * 0.7).toFixed(2));
   }
+}
+
+/**
+ * Updates all problems with a Rating property based on their difficulty from standard_problems.
+ * @returns {Promise<void>}
+ */
+export async function updateProblemsWithRating() {
+  try {
+    const db = await openDB();
+    const standardProblems = await getAllStandardProblems();
+
+    // Create a map of problem IDs to their difficulties
+    const difficultyMap = {};
+    standardProblems.forEach((problem) => {
+      difficultyMap[problem.id] = problem.difficulty;
+    });
+    console.log("🔍 difficultyMap:", difficultyMap);
+    const transaction = db.transaction(["problems"], "readwrite");
+    const problemStore = transaction.objectStore("problems");
+
+    const request = problemStore.getAll();
+
+    request.onsuccess = async (event) => {
+      const problems = event.target.result;
+
+      for (let problem of problems) {
+        const difficulty = difficultyMap[problem.leetCodeID];
+        console.log("🔍 difficulty:", difficulty);
+        console.log("🔍 problem:", problem.leetCodeID);
+        if (difficulty) {
+          problem.Rating = difficulty;
+          problemStore.put(problem);
+        }
+      }
+    };
+
+    transaction.oncomplete = () => {
+      console.log("✅ All problems updated with ratings.");
+    };
+
+    transaction.onerror = (event) => {
+      console.error("❌ Transaction error:", event.target.error);
+    };
+  } catch (error) {
+    console.error("❌ Error updating problems with ratings:", error);
+  }
+}
+
+export async function updateProblemWithTags() {
+  const db = await openDB();
+  const standardProblems = await getAllStandardProblems();
+  const problemStore = db
+    .transaction(["problems"], "readwrite")
+    .objectStore("problems");
+  const request = problemStore.getAll();
+
+  request.onsuccess = async (event) => {
+    const problems = event.target.result;
+
+    for (let problem of problems) {
+      const standardProblem = standardProblems.find(
+        (p) => p.id === problem.leetCodeID
+      );
+      if (standardProblem) {
+        delete problem.tags;
+        problem.Tags = standardProblem.tags;
+        problemStore.put(problem);
+      }
+    }
+  };
 }

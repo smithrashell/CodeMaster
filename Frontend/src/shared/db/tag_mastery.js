@@ -4,10 +4,7 @@ import { getAllStandardProblems } from "./standard_problems.js";
 import { getAllProblemRelationship } from "./problem_relationships.js";
 
 const openDB = dbHelper.openDB;
-
-
-
-
+const normalizeTag = (tag) => tag.trim().toLowerCase();
 export const buildAndStoreTagGraph = async () => {
   let tagGraph = new Map();
   let tagProblemCounts = new Map(); // To track problem difficulty per tag
@@ -16,29 +13,37 @@ export const buildAndStoreTagGraph = async () => {
   console.log("Problems:", problems);
 
   problems.forEach(({ tags, difficulty }) => {
-    if (!tags || tags.length < 2) return;
+    if (!tags || tags.length < 1) return;
 
     let weightMultiplier =
       difficulty === "Easy" ? 3 : difficulty === "Medium" ? 2 : 1;
 
     tags.forEach((tag) => {
-      if (!tagProblemCounts.has(tag))
-        tagProblemCounts.set(tag, { easy: 0, medium: 0, hard: 0 });
-      if (difficulty === "Easy") tagProblemCounts.get(tag).easy++;
-      if (difficulty === "Medium") tagProblemCounts.get(tag).medium++;
-      if (difficulty === "Hard") tagProblemCounts.get(tag).hard++;
+      const normalized = normalizeTag(tag);
+
+      if (!tagProblemCounts.has(normalized))
+        tagProblemCounts.set(normalized, {
+          easy: 0,
+          medium: 0,
+          hard: 0,
+        });
+
+      if (difficulty === "Easy") tagProblemCounts.get(normalized).easy++;
+      if (difficulty === "Medium") tagProblemCounts.get(normalized).medium++;
+      if (difficulty === "Hard") tagProblemCounts.get(normalized).hard++;
     });
 
     for (let i = 0; i < tags.length; i++) {
       for (let j = i + 1; j < tags.length; j++) {
-        let tagA = tags[i];
-        let tagB = tags[j];
+        let tagA = normalizeTag(tags[i]);
+        let tagB = normalizeTag(tags[j]);
 
         if (!tagGraph.has(tagA)) tagGraph.set(tagA, new Map());
         if (!tagGraph.has(tagB)) tagGraph.set(tagB, new Map());
 
         let existingWeight = tagGraph.get(tagA).get(tagB) || 0;
         let newWeight = existingWeight + weightMultiplier;
+
         tagGraph.get(tagA).set(tagB, newWeight);
         tagGraph.get(tagB).set(tagA, newWeight);
       }
@@ -51,12 +56,13 @@ export const buildAndStoreTagGraph = async () => {
   const db = await openDB();
   const transaction = db.transaction(["tag_relationships"], "readwrite");
   const store = transaction.objectStore("tag_relationships");
-
+   
   tagGraph.forEach((relations, tag) => {
+    console.log(tag);
     store.put({
-      id: tag,
+      id: tag, // normalized
       relatedTags: Object.fromEntries(relations),
-      problemCounts: tagProblemCounts.get(tag), // Store problem difficulty distribution
+      problemCounts: tagProblemCounts.get(tag),
     });
   });
 
@@ -192,8 +198,12 @@ export async function getTagRelationships() {
   });
 }
 
-
-export async function getHighlyRelatedTags(db, masteredTags, missingTags, limit = 5) {
+export async function getHighlyRelatedTags(
+  db,
+  masteredTags,
+  missingTags,
+  limit = 5
+) {
   const tx = db.transaction("tag_relationships", "readonly");
   const relationshipsStore = tx.objectStore("tag_relationships");
 
@@ -272,35 +282,72 @@ export async function getNextFiveTagsFromNextTier(masteryData) {
   };
 }
 
-
 export async function calculateTagMastery() {
   try {
     const db = await openDB();
 
-    // ✅ Fetch all problems properly as a resolved promise
-    const problems = await new Promise((resolve, reject) => {
+    // Step 1: Fetch user problems
+    const userProblems = await new Promise((resolve, reject) => {
       const transaction = db.transaction(["problems"], "readonly");
-      const problemStore = transaction.objectStore("problems");
-      const request = problemStore.getAll();
+      const store = transaction.objectStore("problems");
+      const request = store.getAll();
 
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
 
-    if (!Array.isArray(problems) || problems.length === 0) {
-      console.warn("⚠️ No problems found in the database.");
-      return;
+    console.log("📥 Loaded user problems:", userProblems.length);
+
+    // Step 2: Fetch standard problems
+    const standardProblems = await new Promise((resolve, reject) => {
+      const transaction = db.transaction(["standard_problems"], "readonly");
+      const store = transaction.objectStore("standard_problems");
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    console.log("📦 Loaded standard problems:", standardProblems.length);
+    console.log("🔍 Sample standard problem:", standardProblems[0]);
+
+    // Step 3: Extract all unique tags from standard problems
+    let allTags = new Set();
+    for (const problem of standardProblems) {
+      const tags = Array.isArray(problem.tags) ? problem.tags : [];
+
+      for (const tag of tags) {
+        allTags.add(tag);
+      }
     }
 
-    let tagStats = new Map();
+    console.log(
+      "📊 Total unique tags found in standard problems:",
+      allTags.size
+    );
+    console.log("🏷️ Tag list:", [...allTags]);
 
-    for (const problem of problems) {
-      let tags = problem.Tags || [];
-      let { TotalAttempts = 0, SuccessfulAttempts = 0 } =
+    // Step 4: Initialize tagStats
+    let tagStats = new Map();
+    for (const tag of allTags) {
+      tagStats.set(tag, {
+        totalAttempts: 0,
+        successfulAttempts: 0,
+        lastAttemptDate: null,
+      });
+    }
+
+    // Step 5: Accumulate stats from userProblems
+    for (const problem of userProblems) {
+      const tags = Array.isArray(problem.Tags) ? problem.Tags : [];
+      const { TotalAttempts = 0, SuccessfulAttempts = 0 } =
         problem.AttemptStats || {};
 
       for (const tag of tags) {
         if (!tagStats.has(tag)) {
+          console.warn(
+            `⚠️ Tag "${tag}" found in user problems but not in standard problems.`
+          );
           tagStats.set(tag, {
             totalAttempts: 0,
             successfulAttempts: 0,
@@ -308,32 +355,46 @@ export async function calculateTagMastery() {
           });
         }
 
-        let tagEntry = tagStats.get(tag);
-        tagEntry.totalAttempts += TotalAttempts;
-        tagEntry.successfulAttempts += SuccessfulAttempts;
+        const entry = tagStats.get(tag);
+        entry.totalAttempts += TotalAttempts;
+        entry.successfulAttempts += SuccessfulAttempts;
 
         if (
-          !tagEntry.lastAttemptDate ||
-          new Date(problem.lastAttemptDate) > new Date(tagEntry.lastAttemptDate)
+          !entry.lastAttemptDate ||
+          new Date(problem.lastAttemptDate) > new Date(entry.lastAttemptDate)
         ) {
-          tagEntry.lastAttemptDate = problem.lastAttemptDate;
+          entry.lastAttemptDate = problem.lastAttemptDate;
         }
       }
     }
 
-    // ✅ Open a separate transaction for updating 'tag_mastery'
+    console.log("📈 Tag stats before writing to DB:", [...tagStats.entries()]);
+
+    // Step 6: Write to tag_mastery
     const updateTransaction = db.transaction(["tag_mastery"], "readwrite");
     const tagMasteryStore = updateTransaction.objectStore("tag_mastery");
 
     for (const [tag, stats] of tagStats.entries()) {
-      let daysSinceLastAttempt = stats.lastAttemptDate
+      const daysSinceLast = stats.lastAttemptDate
         ? (Date.now() - new Date(stats.lastAttemptDate)) / (1000 * 60 * 60 * 24)
         : 0;
 
-      let decayScore =
-        (1 - stats.successfulAttempts / stats.totalAttempts) *
-        daysSinceLastAttempt;
-      let mastered = stats.successfulAttempts / stats.totalAttempts >= 0.8;
+      const masteryRatio =
+        stats.totalAttempts > 0
+          ? stats.successfulAttempts / stats.totalAttempts
+          : 0;
+
+      const decayScore =
+        stats.totalAttempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
+
+      const mastered = masteryRatio >= 0.8;
+
+      console.log(`🧠 Writing mastery for "${tag}":`, {
+        totalAttempts: stats.totalAttempts,
+        successfulAttempts: stats.successfulAttempts,
+        decayScore,
+        mastered,
+      });
 
       await new Promise((resolve, reject) => {
         const request = tagMasteryStore.put({
@@ -349,13 +410,11 @@ export async function calculateTagMastery() {
       });
     }
 
-    console.log("✅ Tag mastery successfully calculated & stored!");
+    console.log("✅ Tag mastery calculation complete.");
   } catch (error) {
     console.error("❌ Error calculating tag mastery:", error);
   }
 }
-
-
 
 export async function getTagMastery() {
   const db = await openDB();
@@ -408,7 +467,6 @@ export function calculateTagSimilarity(
 
   return similarity;
 }
-
 
 // export function calculateTagSimilarity(
 //   tags1,
