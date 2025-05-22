@@ -24,64 +24,153 @@ import {
   Radar,
 } from "recharts";
 import { useEffect, useState } from "react";
+import MetricCard from "../../../shared/components/MetricCard";
+import TimeGranularChartCard from "../../../shared/components/TimeGranularChartCard";
+import {
+  getAccuracyTrendData,
+  getAttemptBreakdownData,
+} from "../../../shared/utils/DataAdapter.js";
+export function Stats({appState}) {
+  const [statistics, setStatistics] = useState(appState.statistics);
+  const [averageTime, setAverageTime] = useState(appState.averageTime);
+  const [successRate, setSuccessRate] = useState(appState.successRate);
+  const [allSessions, setAllSessions] = useState(appState.allSessions);
+  const [accuracyData, setAccuracyData] = useState({
+    weekly: null,
+    monthly: null,
+    yearly: null,
+  });
+  const [breakdownData, setBreakdownData] = useState({
+    weekly: null,
+    monthly: null,
+    yearly: null,
+  });
 
-export function Stats() {
-  const sampleAccuracyData = [
-    { name: "Day 1", accuracy: 75 },
-    { name: "Day 2", accuracy: 80 },
-    { name: "Day 3", accuracy: 78 },
-    { name: "Day 4", accuracy: 85 },
-    { name: "Day 5", accuracy: 82 },
-    { name: "Day 6", accuracy: 88 },
-    { name: "Day 7", accuracy: 90 },
-  ];
+  useEffect(() => {
+console.log("props", appState)
+        if (appState) {
+          setStatistics(appState.statistics);
+          setAverageTime(appState.averageTime);
+          setSuccessRate(appState.successRate);
+          setAllSessions(appState.allSessions);
 
-  const sampleGoalData = [
-    { name: "Week 1", completion: 50 },
-    { name: "Week 2", completion: 65 },
-    { name: "Week 3", completion: 80 },
-    { name: "Week 4", completion: 90 },
-  ];
+          const weekly = getAccuracyTrendData(
+            appState.allSessions,
+            "weekly"
+          );
+          const monthly = getAccuracyTrendData(
+            appState.allSessions,
+            "monthly"
+          );
+          const yearly = getAccuracyTrendData(
+            appState.allSessions,
+            "yearly"
+          );
+
+          setAccuracyData({
+            weekly,
+            monthly,
+            yearly,
+          });
+
+          const weeklyBreakdown = getAttemptBreakdownData(
+            appState.allSessions,
+            "weekly"
+          );
+          const monthlyBreakdown = getAttemptBreakdownData(
+            appState.allSessions,
+            "monthly"
+          );
+          const yearlyBreakdown = getAttemptBreakdownData(
+            appState.allSessions,
+            "yearly"
+          );
+
+          setBreakdownData({
+            weekly: weeklyBreakdown,
+            monthly: monthlyBreakdown,
+            yearly: yearlyBreakdown,
+          });
+        }
+    
+  }, []);
+  console.log("allSessions", allSessions);
+  console.log("accuracyData", accuracyData);
+  // const accuracyData = {
+  //   weekly: getAccuracyTrendData(allSessions, "weekly"),
+  //   monthly: getAccuracyTrendData(allSessions, "monthly"),
+  //   yearly: getAccuracyTrendData(allSessions, "yearly"),
+  // };
+
+  // const breakdownData = {
+  //   weekly: getAttemptBreakdownData(allSessions, "weekly"),
+  //   monthly: getAttemptBreakdownData(allSessions, "monthly"),
+  //   yearly: getAttemptBreakdownData(allSessions, "yearly"),
+  // };
   return (
     <Container size="xl" p="md">
       <Title order={2} mb="md">
         General Performance Summary
       </Title>
-      <Grid gutter="md">
+      <Grid gutter="sm">
         {/* Summary Cards */}
-        <Grid.Col span={4}>
-          <Card shadow="sm" p="lg">
-            <Text weight={500} size="lg">
-              Total Problems Solved
-            </Text>
-            <Text size="xl" weight={700}>
-              120
-            </Text>
-          </Card>
+
+        <MetricCard
+          title="Total Problems Solved"
+          value={statistics?.totalSolved ?? 0}
+          details={[
+            { label: "Mastered", value: statistics?.mastered ?? 0 },
+            { label: "In Progress", value: statistics?.inProgress ?? 0 },
+            { label: "New", value: statistics?.new ?? 0 },
+          ]}
+        />
+
+        <MetricCard
+          title="Average Time Per Problem"
+          value={averageTime?.overall ?? 0}
+          details={[
+            { label: "Easy", value: averageTime?.Easy ?? 0 },
+            { label: "Medium", value: averageTime?.Medium ?? 0 },
+            { label: "Hard", value: averageTime?.Hard ?? 0 },
+          ]}
+        />
+
+        <MetricCard
+          title="Success Rate"
+          value={successRate?.overall ?? 0}
+          details={[
+            { label: "Easy", value: successRate?.Easy ?? 0 },
+            { label: "Medium", value: successRate?.Medium ?? 0 },
+            { label: "Hard", value: successRate?.Hard ?? 0 },
+          ]}
+        />
+      </Grid>
+      <Grid gutter="md" mt="md">
+        <Grid.Col span={6}>
+          <TimeGranularChartCard
+            title="Accuracy Trend"
+            chartType="line"
+            data={accuracyData}
+            dataKeys={[{ key: "accuracy", color: "#8884d8" }]}
+            yAxisFormatter={(val) => `${val}%`}
+            tooltipFormatter={(val) => `${val}%`}
+          />
         </Grid.Col>
-        <Grid.Col span={4}>
-          <Card shadow="sm" p="lg">
-            <Text weight={500} size="lg">
-              Average Time Per Problem
-            </Text>
-            <Text size="xl" weight={700}>
-              3m 25s
-            </Text>
-          </Card>
-        </Grid.Col>
-        <Grid.Col span={4}>
-          <Card shadow="sm" p="lg">
-            <Text weight={500} size="lg">
-              Success Rate
-            </Text>
-            <Text size="xl" weight={700}>
-              85%
-            </Text>
-          </Card>
+        <Grid.Col span={6}>
+          <TimeGranularChartCard
+          title="Attempt Quality Breakdown"
+          chartType="bar"
+          data={breakdownData}
+          dataKeys={[
+            { key: "firstTry", color: "#4CAF50" },
+            { key: "retrySuccess", color: "#FFC107" },
+              { key: "failed", color: "#F44336" },
+            ]}
+          />
         </Grid.Col>
       </Grid>
 
-      <Grid gutter="md" mt="md">
+      {/* <Grid gutter="md" mt="md">
         <Grid.Col span={6}>
           <Card shadow="sm" p="lg">
             <Text weight={500} size="lg" mb="sm">
@@ -102,9 +191,9 @@ export function Stats() {
               </LineChart>
             </ResponsiveContainer>
           </Card>
-        </Grid.Col>
+        </Grid.Col> */}
 
-        <Grid.Col span={6}>
+      {/* <Grid.Col span={6}>
           <Card shadow="sm" p="lg">
             <Text weight={500} size="lg" mb="sm">
               Goal Completion %
@@ -120,7 +209,7 @@ export function Stats() {
             </ResponsiveContainer>
           </Card>
         </Grid.Col>
-      </Grid>
+      </Grid> */}
     </Container>
   );
 }

@@ -1,34 +1,46 @@
 import React, { useState, useEffect } from "react";
-import "../../css/main.css";
+import "../../css/theme.css";
 import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
+import { Paper, Group, Text, SegmentedControl } from "@mantine/core";
+import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
+import { IconMenu2, IconHome } from "@tabler/icons-react";
 
-const Menubutton = (props) => {
+const Menubutton = ({ toggle, setToggle, currPath }) => {
+  const navigate = useNavigate();
+
+  const isMainMenu = currPath === "/";
+
+  const handleClick = () => {
+    if (toggle && !isMainMenu) {
+      navigate("/"); // Go home
+    } else {
+      setToggle(!toggle); // Toggle drawer
+    }
+  };
+
   return (
-    <input
-      onClick={() => {
-        props.setToggle(!props.toggle);
-      }}
-      type="button"
-      value="Menu"
+    <button
       id="cd-menuButton"
-      className={props.toggle ? "cd-leftoffset" : "cd-left"}
-    />
+      onClick={handleClick}
+      aria-label={toggle && !isMainMenu ? "Go Home" : "Open Menu"}
+      title={toggle && !isMainMenu ? "Go Home" : "Open Menu"}
+    >
+      CM
+    </button>
   );
 };
 
 const Homebutton = (props) => {
-  const toggle = props.toggle ? "cd-leftoffset" : "cd-left";
-  const showHome = props.currPath === "/" ? "cd-hidden" : null;
   return (
-    <Link
-      to="/"
-      type="button"
-      value="Home"
+    <button
       id="homeIcon"
-      className={`${toggle} ${showHome}`}
+   
+      onClick={() => {
+        setToggle(false);
+      }}
     >
-      Home
-    </Link>
+      X
+    </button>
   );
 };
 
@@ -210,9 +222,14 @@ export default function Main() {
   return (
     <div>
       {pathname !== "/Timer" && (
-        <div>
-          <Menubutton setToggle={setToggle} toggle={toggle} />
-          <Homebutton currPath={pathname} toggle={toggle} />
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <Menubutton
+            setToggle={setToggle}
+            toggle={toggle}
+            currPath={pathname}
+          />
+
+          {/* <Homebutton currPath={pathname} toggle={toggle} /> */}
         </div>
       )}
       <div style={{ display: toggle ? "block" : "none" }}>
@@ -222,10 +239,18 @@ export default function Main() {
             id="cd-mySidenav"
             className={toggle ? "cd-sidenav" : "cd-sidenav cd-hidden"}
           >
+            <button
+              className="drawer-close-btn"
+              onClick={() => setToggle(false)}
+              aria-label="Close Drawer"
+              title="Close"
+            >
+              ✕
+            </button>
             <nav>
-              <Link to="/ProbStat">Problems Statistics </Link>
-              <Link to="/Settings">Settingss </Link>
-              <Link to="/ProbGen">Problems Generator </Link>
+              <Link to="/ProbStat">Statistics </Link>
+              <Link to="/Settings">Settings</Link>
+              <Link to="/ProbGen">Generator</Link>
               {problemTitle && (
                 <Link
                   to="/ProbTime"
@@ -244,8 +269,30 @@ export default function Main() {
                     : "New Problem"}
                 </Link>
               )}
+              <Paper
+                shadow="md"
+                radius="md"
+                withBorder
+                p="sm"
+                style={{
+                  backgroundColor: "var(--mantine-color-body)",
+                  width: "100%",
+                  maxWidth: 200,
+                  margin: "0 auto",
+                }}
+              >
+                {/* <SegmentedControl
+                  value="dark"
+                  onChange={() => {}}
+                  data={[
+                    { value: "light", label: "Light" },
+                    { value: "dark", label: "Dark" },
+                  ]}
+                /> */}
+                <ThemeToggle />
+              </Paper>
 
-              <div style={{ display: "flex", flexDirection: "column" }}>
+              {/* <div style={{ display: "flex", flexDirection: "column" }}>
                 <button
                   style={{
                     marginTop: "10px",
@@ -256,7 +303,7 @@ export default function Main() {
                 >
                   Restore
                 </button>
-              </div>
+              </div> */}
             </nav>
           </div>
         )}

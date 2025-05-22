@@ -11,39 +11,102 @@
 button {
   margin-right: 5px;
 }
+
+
 #cd-menuButton {
-  top: 10px;
-  width: 60px;
-  color: ghostwhite;
-  position: fixed;
-  border-radius: 5px 5px 0px 0px;
-  background-color: #0c433d;
+  background-color: var(--cd-btn-bg);
+  color: var(--cd-btn-text);
+  font-weight: bold;
+  font-size: 14px;
+  border: none;
+  border-radius: 12px;
+  width: 40px;
   height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 16px;
+  left: 16px;
   z-index: 110;
-  vertical-align: top;
-  transform: rotate(7deg);
-  -ms-transform: rotate(90deg); /* IE 9 */
-  -moz-transform: rotate(90deg); /* Firefox */
-  -webkit-transform: rotate(90deg); /* Safari and Chrome */
-  -o-transform: rotate(90deg); /* Opera */
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  transform: none;
 }
 
-#homeIcon {
-  padding: 10px 10px 0px 10px;
-  top: 70px;
-  width: 63px;
-  color: #fabd22;
+/* Hover state for "Go Home" affordance */
+body[data-theme='dark'] #cd-menuButton:hover {
+  background-color: #3b82f6; /* blue accent */
+  color: white;
+}
+
+body[data-theme='light'] #cd-menuButton:hover {
+  background-color: #2e426e;
+  color: white;
+}
+
+/* #cd-menuButton {
   position: fixed;
-  border-radius: 5px 5px 0px 0px;
-  background-color: #0c433d;
+  top: 16px;
+  left: 16px;
+  width: 40px;
   height: 40px;
-  z-index: 100;
-  vertical-align: top;
-  transform: rotate(7deg);
-  -ms-transform: rotate(90deg); /* IE 9 */
-  -moz-transform: rotate(90deg); /* Firefox */
-  -webkit-transform: rotate(90deg); /* Safari and Chrome */
-  -o-transform: rotate(90deg); /* Opera */
+  background-color: var(--cd-btn-bg); /* dark or light depending on theme */
+  /* color: var(--cd-btn-text);
+  border: none;
+  border-radius: 6px;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 110;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); */
+  /* remove rotation */
+/* } */ */
+
+/* #cd-menuButton:hover {
+  background-color: var(--cd-link-hover);
+} */
+
+.drawer-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--cd-btn-text);
+  cursor: pointer;
+  z-index: 120;
+  transition: color 0.2s ease;
+}
+
+.drawer-close-btn:hover {
+  color: var(--cd-link-hover);
+}
+
+
+#homeIcon {
+  background-color: var(--cd-btn-bg);
+  color: var(--cd-btn-text);
+  font-weight: bold;
+  font-size: 14px;
+  border: none;
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 110;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+  transform: none;
 }
 .cd-left {
   left: -10px;
@@ -75,9 +138,13 @@ button {
 .cd-hidden {
   display: none;
 }
+
+
 .cd-sidenav {
+  border: 2px solid var(--cd-bg);
+  border-radius: 5px;
   padding: 20px;
-  height: 100%; /* 100% Full-height */
+  height: 65%; /* 100% Full-height */
   width: 250px; /* 0 width - change this with JavaScript */
   position: fixed; /* Stay in place */
   z-index: 100; /* Stay on top */

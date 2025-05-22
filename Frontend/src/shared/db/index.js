@@ -1,6 +1,6 @@
 export const dbHelper = {
   dbName: "review",
-  version: 17, // 🚨 Increment version to trigger upgrade
+  version: 18, // 🚨 Increment version to trigger upgrade
   db: null,
 
   async openDB() {
@@ -147,13 +147,13 @@ export const dbHelper = {
         //add a index on classification
 
         // // ✅ **NEW: Ensure 'user_stats' store exists**
-        // if (!db.objectStoreNames.contains("user_stats")) {
-        //   let userStatsStore = db.createObjectStore("user_stats", {
-        //     keyPath: "id",
-        //   });
+        if (!db.objectStoreNames.contains("pattern_ladders")) {
+          let patternLaddersStore = db.createObjectStore("pattern_ladders", {
+            keyPath: "tag",
+          });
 
-        //   dbHelper.ensureIndex(userStatsStore, "by_id", "id");
-        // }
+          dbHelper.ensureIndex(patternLaddersStore, "by_tag", "tag");
+        }
       };
 
       request.onsuccess = (event) => {

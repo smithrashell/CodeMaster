@@ -135,10 +135,10 @@ let masteryDataCopy = [...masteryData];
 }
 
 
-async function getCurrentLearningState(db) {
+async function getCurrentLearningState() {
   const { classification, masteredTags, tagsinTier, unmasteredTags, masteryData } = await getCurrentTier(
   );
-  const sessionPerformance = await getSessionPerformance();
+  const sessionPerformance = await getSessionPerformance({unmasteredTags});
 
   console.log(`📌 User Classification: ${classification}`);
   console.log(`✅ Mastered Tags: ${masteredTags.join(", ")}`);

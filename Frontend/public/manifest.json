@@ -24,7 +24,8 @@
       "css": [
         "content/css/main.css",
         "content/css/timer.css",
-        "content/css/probrec.css"
+        "content/css/probrec.css",
+        "content/css/theme.css"
       ],
       "run_at": "document_idle",
       "js": ["content.js"],
@@ -33,7 +34,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["app.html", "app.js","app.css"],
+      "resources": ["app.html", "app.js","app.css" ,"LeetCode_Tags_Combined.json"],
       "matches": ["<all_urls>"]
     }
   ]

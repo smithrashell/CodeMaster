@@ -1,40 +1,46 @@
 import "../../css/main.css";
 import React, { useState, useEffect } from "react";
-import { Label, Button, Title } from "@mantine/core";
+import { Label, Button, Title, Switch, Tooltip, Group } from "@mantine/core";
 import {
   SliderMarksSessionLength,
   SliderMarksNewProblemsPerSession,
   GradientSegmentedControlTimeLimit,
   ToggleSelectRemainders,
 } from "../../../shared/components/nantine.jsx";
+import { IconQuestionMark } from "@tabler/icons-react"; // or
+import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 
 const Settings = () => {
   const [settings, setSettings] = useState(null);
   const [value, setValue] = useState(40);
+  const useMock = false;
+  const MOCK_SETTINGS = {
+    adaptive: true, // try false to test toggling
+    sessionLength: 8,
+    numberofNewProblemsPerSession: 3,
+    limit: "Auto",
+    reminder: {
+      enabled: true,
+      time: "09:00",
+    },
+  };
 
   /// useEffect to get settings
   useEffect(() => {
-    console.log("Fetching settings...");
-    chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-      console.log("Settings received:", response);
-      if (response) {
-        setSettings(response);
-      } else {
-        console.warn("No settings received, using defaults.");
-      }
-    });
-  }, [setSettings]);
-
-  const handleChange = (newSessionLength) => {
-    if (newSessionLength !== undefined) {
-      setSettings((prevSettings) => ({
-        ...prevSettings,
-        sessionLength: newSessionLength,
-      }));
+    if (useMock) {
+      console.log("🔧 Using MOCK_SETTINGS");
+      setSettings(MOCK_SETTINGS);
     } else {
-      console.error("Received undefined value in handleChange");
+      console.log("Fetching settings from Chrome runtime...");
+      chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
+        if (response) {
+          setSettings(response);
+        } else {
+          console.warn("No settings received, using defaults.");
+        }
+      });
     }
-  };
+  }, []);
 
   const handleSave = (settings) => {
     chrome.runtime.sendMessage(
@@ -44,40 +50,63 @@ const Settings = () => {
       }
     );
   };
+
+  const toggleAdaptive = (value) => {
+    setSettings((prev) => ({ ...prev, adaptive: value }));
+  };
+
   return (
     <div id="cd-mySidenav" className="cd-sidenav problink">
       <Title order={2}>Settings</Title>
+
       <div
         style={{
           display: "flex",
           flexDirection: "column",
           gap: "20px",
           alignItems: "left",
-          height: "75%",
+          maxHeight: "100%",
           marginTop: "20px",
         }}
       >
-        <label>Session Length</label>
-        <SliderMarksSessionLength
-          value={settings?.sessionLength}
-          onChange={(value) =>
-            setSettings({ ...settings, sessionLength: value })
-          }
+        {/* Adaptive Toggle */}
+        <AdaptiveSessionToggle
+          adaptive={settings?.adaptive}
+          onChange={(val) => setSettings({ ...settings, adaptive: val })}
         />
-        <label>Max Number of New Problems Per Session </label>
-        <SliderMarksNewProblemsPerSession
-          value={settings?.numberofNewProblemsPerSession}
-          onChange={(value) =>
-            setSettings({ ...settings, numberofNewProblemsPerSession: value })
-          }
-          max={settings?.sessionLength}
-        />
-        <label> Time Limits </label>
+
+        {/* Session Controls (conditionally shown) */}
+        {!settings?.adaptive && (
+          <>
+            <label>Session Length</label>
+            <SliderMarksSessionLength
+              value={settings?.sessionLength}
+              onChange={(value) =>
+                setSettings({ ...settings, sessionLength: value })
+              }
+            />
+
+            <label>Max Number of New Problems Per Session</label>
+            <SliderMarksNewProblemsPerSession
+              value={settings?.numberofNewProblemsPerSession}
+              onChange={(value) =>
+                setSettings({
+                  ...settings,
+                  numberofNewProblemsPerSession: value,
+                })
+              }
+              max={settings?.sessionLength}
+            />
+          </>
+        )}
+
+        <label>Time Limits</label>
         <GradientSegmentedControlTimeLimit
           value={settings?.limit}
           onChange={(value) => setSettings({ ...settings, limit: value })}
         />
-        <label>Remainders</label>
+
+        <label>Reminders</label>
         <ToggleSelectRemainders
           reminder={settings?.reminder}
           onChange={(updatedReminder) =>
@@ -87,6 +116,7 @@ const Settings = () => {
             }))
           }
         />
+
         <Button onClick={() => handleSave(settings)}>Save</Button>
       </div>
     </div>

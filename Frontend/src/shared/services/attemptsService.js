@@ -1,5 +1,5 @@
 import { dbHelper } from "../db/index.js";
-import { attempts } from "../db/attempts.js";
+import { attempts, getMostRecentAttempt } from "../db/attempts.js";
 import { getProblem, saveUpdatedProblem } from "../db/problems.js";
 import { SessionService } from "../services/sessionService.js";
 import { calculateLeitnerBox } from "../utils/leitnerSystem";
@@ -112,4 +112,5 @@ function putData(store, data) {
 
 export const AttemptsService = {
   addAttempt,
+  getMostRecentAttempt
 };

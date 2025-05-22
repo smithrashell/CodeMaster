@@ -46,8 +46,6 @@ export async function addAttempt(attemptData) {
     // Update problem Leitner box logic
     problem = await calculateLeitnerBox(problem, attemptData);
 
- 
-
     // Add or update the problem in session
     session = addOrUpdateProblemInSession(session, problem, attemptData.id);
     await saveSessionToStorage(session, true);
@@ -141,11 +139,17 @@ export async function getMostRecentAttempt(problemId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("attempts", "readonly");
-    const store = transaction
-      .objectStore("attempts")
-      .index("by_problem_and_date");
+    let store;
+    let request;
+    if (!problemId) {
+      store = transaction.objectStore("attempts").index("by_date");
 
-    const request = store.openCursor(problemId, "prev"); // Fetch most recent attempt
+      request = store.openCursor(null, "prev"); // Fetch most recent attempt
+    } else {
+      store = transaction.objectStore("attempts").index("by_problem_and_date");
+      request = store.openCursor(problemId, "prev"); // Fetch most recent attempt
+    }
+
     request.onsuccess = (event) => {
       const cursor = event.target.result;
       resolve(cursor ? cursor.value : null);

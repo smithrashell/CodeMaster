@@ -6,7 +6,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider, Text } from "@mantine/core";
 import { DoubleNavbar } from "../shared/components/DoubleNavbar";
 import "@mantine/core/styles.css";
 import "../app/app.css";
@@ -37,66 +37,88 @@ import {
   Review,
   Analytics,
 } from "./pages/mockup";
-
+import { useState, useEffect } from "react";
 function App() {
+  const [appState, setAppState] = useState(null);
+  useEffect(() => {
+    chrome.runtime.sendMessage(
+      { type: "getDashboardStatistics" },
+      (response) => {
+        console.log(response.result);
+        setAppState(response.result);
+      }
+    );
+  }, []);
+
   return (
     <MantineProvider>
       <Router>
         <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
           <DoubleNavbar />
+
           <main style={{ padding: "20px", flex: 1 }}>
-            <Routes>
-              <Route
-                path="/app.html"
-                element={<Navigate to="/stats" replace />}
-              />
-
-              {/* Dashboard */}
-              <Route path="/" element={<DashboardPage />}>
-                <Route index element={<Navigate to="stats" replace />} />
-                <Route path="stats" element={<Stats />} />
-                <Route path="progress" element={<Progress />} />
-                <Route path="goals" element={<Goals />} />
-              </Route>
-
-              {/* Analytics */}
-              <Route path="/analytics" element={<AnalyticsPage />}>
-                <Route index element={<Navigate to="trends" replace />} />
-                <Route path="trends" element={<Trends />} />
-                <Route path="mistake-analysis" element={<MistakeAnalysis />} />
-                <Route path="tag-mastery" element={<TagMastery />} />
-              </Route>
-
-              {/* Sessions */}
-              <Route path="/sessions">
-                <Route index element={<Navigate to="metrics" replace />} />
-                <Route path="session-metrics" element={<Metrics />} />
+            {!appState ? (
+              <Text>Loading...</Text>
+            ) : (
+              <Routes>
                 <Route
-                  path="productivity-insights"
-                  element={<ProductivityInsights />}
+                  path="/app.html"
+                  element={<Navigate to="/stats" replace />}
                 />
-              </Route>
 
-              {/* Account */}
-              <Route path="/account" element={<AccountPage />}>
-                <Route index element={<Navigate to="profile" replace />} />
-                <Route path="profile" element={<Profile />} />
-                <Route path="notifications" element={<Notifications />} />
-                <Route path="settings" element={<SettingsPage />}>
-                  <Route path="general" element={<General />} />
-                  <Route path="appearance" element={<Appearance />} />
-                  <Route path="accessibility" element={<Accessibility />} />
+                {/* Dashboard */}
+                <Route path="/" element={<DashboardPage />}>
+                  <Route index element={<Navigate to="stats" replace />} />
+                  <Route
+                    path="stats"
+                    element={<Stats appState={appState?.statistics} />}
+                  />
+                  <Route path="progress" element={<Progress appState={appState?.progress} />} />
+                  <Route path="goals" element={<Goals />} />
                 </Route>
-              </Route>
 
-              {/* Flashcards / Review */}
-              <Route path="/review" element={<FlashcardPage />}>
-                <Route index element={<Navigate to="flashcards" replace />} />
-                <Route path="flashcards" element={<Flashcards />} />
-                <Route path="practice" element={<Practice />} />
-                <Route path="review" element={<Review />} />
-              </Route>
-            </Routes>
+                {/* Analytics */}
+                <Route path="/analytics" element={<AnalyticsPage />}>
+                  <Route index element={<Navigate to="trends" replace />} />
+                  <Route path="trends" element={<Trends />} />
+                  <Route
+                    path="mistake-analysis"
+                    element={<MistakeAnalysis />}
+                  />
+                  <Route path="tag-mastery" element={<TagMastery />} />
+                </Route>
+
+                {/* Sessions */}
+                <Route path="/sessions">
+                  <Route index element={<Navigate to="metrics" replace />} />
+                  <Route path="session-metrics" element={<Metrics />} />
+                  <Route
+                    path="productivity-insights"
+                    element={<ProductivityInsights />}
+                  />
+                </Route>
+
+                {/* Account */}
+                <Route path="/account" element={<AccountPage />}>
+                  <Route index element={<Navigate to="profile" replace />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="settings" element={<SettingsPage />}>
+                    <Route path="general" element={<General />} />
+                    <Route path="appearance" element={<Appearance />} />
+                    <Route path="accessibility" element={<Accessibility />} />
+                  </Route>
+                </Route>
+
+                {/* Flashcards / Review */}
+                <Route path="/review" element={<FlashcardPage />}>
+                  <Route index element={<Navigate to="flashcards" replace />} />
+                  <Route path="flashcards" element={<Flashcards />} />
+                  <Route path="practice" element={<Practice />} />
+                  <Route path="review" element={<Review />} />
+                </Route>
+              </Routes>
+            )}
           </main>
         </div>
       </Router>
