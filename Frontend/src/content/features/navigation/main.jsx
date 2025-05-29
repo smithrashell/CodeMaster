@@ -4,8 +4,9 @@ import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
 import { Paper, Group, Text, SegmentedControl } from "@mantine/core";
 import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
 import { IconMenu2, IconHome } from "@tabler/icons-react";
-
-const Menubutton = ({ toggle, setToggle, currPath }) => {
+import { useNav } from "../../../shared/provider/navprovider.jsx";
+import Header from "../../../shared/components/header.jsx"
+const Menubutton = ({ toggle,setToggle,currPath }) => {
   const navigate = useNavigate();
 
   const isMainMenu = currPath === "/";
@@ -53,11 +54,12 @@ const getProblemSlugFromUrl = (url) => {
 export default function Main() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [toggle, setToggle] = useState(false);
+  const {toggle, setToggle} = useNav()
   const [problemTitle, setProblemTitle] = useState("");
   const [problemFound, setProblemFound] = useState(false);
   const [loading, setLoading] = useState(false);
   const [problemData, setProblemData] = useState(null);
+  const[theme, setTheme] = useState("light");
   const [currentProblem, setCurrentProblem] = useState(
     getProblemSlugFromUrl(window.location.href)
   ); // Initialize with the current URL slug
@@ -105,7 +107,14 @@ export default function Main() {
       }
     );
   };
-
+  useEffect(() => {
+    chrome.runtime.sendMessage({type: "getSettings"}, (response) => {
+      if (response) {
+     
+        setTheme(response.theme);
+      }
+    })
+  }, [])
   // UseEffect to handle initial data fetch on component mount
 
   useEffect(() => {
@@ -237,18 +246,13 @@ export default function Main() {
         {shouldShowNav && (
           <div
             id="cd-mySidenav"
+  
             className={toggle ? "cd-sidenav" : "cd-sidenav cd-hidden"}
           >
-            <button
-              className="drawer-close-btn"
-              onClick={() => setToggle(false)}
-              aria-label="Close Drawer"
-              title="Close"
-            >
-              ✕
-            </button>
-            <nav>
-              <Link to="/ProbStat">Statistics </Link>
+      <Header/>
+      <div className="cd-sidenav__content">
+            <nav id="nav">
+              <Link to="/ProbStat">Statistics</Link>
               <Link to="/Settings">Settings</Link>
               <Link to="/ProbGen">Generator</Link>
               {problemTitle && (
@@ -262,35 +266,14 @@ export default function Main() {
                   }}
                   className={!problemData ? "link-disabled" : ""}
                 >
-                  {problemData && problemFound
+                  {problemData && problemFound 
                     ? "New Attempt"
                     : !problemData && loading
                     ? "Loading..."
                     : "New Problem"}
                 </Link>
               )}
-              <Paper
-                shadow="md"
-                radius="md"
-                withBorder
-                p="sm"
-                style={{
-                  backgroundColor: "var(--mantine-color-body)",
-                  width: "100%",
-                  maxWidth: 200,
-                  margin: "0 auto",
-                }}
-              >
-                {/* <SegmentedControl
-                  value="dark"
-                  onChange={() => {}}
-                  data={[
-                    { value: "light", label: "Light" },
-                    { value: "dark", label: "Dark" },
-                  ]}
-                /> */}
-                <ThemeToggle />
-              </Paper>
+            
 
               {/* <div style={{ display: "flex", flexDirection: "column" }}>
                 <button
@@ -305,6 +288,10 @@ export default function Main() {
                 </button>
               </div> */}
             </nav>
+       
+                <ThemeToggle />
+       
+              </div>
           </div>
         )}
       </div>

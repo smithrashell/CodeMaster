@@ -15,8 +15,8 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-        <label style={{ fontSize: "1rem", fontWeight: 500 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" , maxWidth: "100%"}} >
+        <label style={{ fontSize: "1rem", fontWeight: 500 , color: "var(--cd-text)"}}>
           Adaptive Sessions
         </label>
 
@@ -42,12 +42,30 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
       </div>
 
       {/* Inline paragraph shown only when hovering */}
-      {hovered && (
-        <p style={{ margin: 0, fontSize: "0.85rem", color: "#444" }}>
-          Automatically adjusts session length and number of new problems
-          based on your performance.
-        </p>
-      )}
+      <div
+  style={{
+    maxHeight: hovered ? "100px" : "0px",
+    opacity: hovered ? 1 : 0,
+    overflow: "hidden",
+    transition: "all 0.3s ease",
+  }}
+>
+  <p
+    style={{
+      maxWidth: "200px",
+      margin: 0,
+      fontSize: "0.85rem",
+      color: "#444",
+      lineHeight: 1.4,
+      wordWrap: "break-word",
+      overflowWrap: "anywhere",
+    }}
+  >
+    Automatically adjusts session length and number of new problems
+    based on your performance.
+  </p>
+</div>
+
 
       <Switch
         checked={adaptive}

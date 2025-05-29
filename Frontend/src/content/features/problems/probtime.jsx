@@ -12,10 +12,11 @@ import {
   InputLabel,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { usePreviousRoute } from "../navigation/PreviousRouteProvider.js";
+import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
 import TagInput from "../../../shared/components/TagInput";
 import ProbSubmission from "../problems/probsubmission";
 import ProbDetail from "../problems/probdetail";
+import Header from "../../../shared/components/header.jsx";
 
 const StyledSelect = styled(Select)({
   "&.MuiOutlinedInput-root": {
@@ -77,10 +78,7 @@ const ProbTime = () => {
     }
   }, [routeState, setValue]);
 
-  // useEffect(() => {
-  //   setShowSkip(!routeState.problemFound);
-  //   console.log("Tags", Tags);
-  // }, [setShowSkip, setTags]);
+
 
   const onSubmit = (data) => {
     const formData = {
@@ -129,17 +127,18 @@ const ProbTime = () => {
   // Render the form if coming from the Timer route
   return (
     <div id="cd-mySidenav" className="cd-sidenav problink">
+         <Header title={previousRoute == "/Timer" ? "Problem Submission": "Problem Details"}/>
+         <div className="cd-sidenav__content"
+      >
       {previousRoute === "/Timer" ? (
         <ProbSubmission />
       ) : (
         <ProbDetail isLoading={loading} />
       )}
+      </div>
     </div>
   );
 };
 
 export default ProbTime;
 
-//  <div id="cd-mySidenav" className="cd-sidenav problink">
-//    {previousRoute === "/Timer" ? <ProbSubmission /> : <ProbDetail />}
-//  </div>;

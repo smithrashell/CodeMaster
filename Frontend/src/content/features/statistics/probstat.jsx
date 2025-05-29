@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-
+import Header from "../../../shared/components/header";
 const ProbStat = () => {
   const [boxLevelData, setBoxLevelData] = useState({});
 
@@ -18,12 +18,15 @@ const ProbStat = () => {
 
   return (
     <div id="cd-mySidenav" className="cd-sidenav ">
-      <h2>Problem Stats by Box Level</h2>
+    <Header title="Statistics"/>
+    <div className="cd-sidenav__content"
+      >
       {Object.entries(boxLevelData).map(([level, count]) => (
         <p key={level}>
           Box Level {level}: {count} problems
         </p>
       ))}
+    </div>
     </div>
   );
 };

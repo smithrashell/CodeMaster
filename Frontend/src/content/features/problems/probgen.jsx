@@ -1,9 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import "../../css/probrec.css";
+import Header from "../../../shared/components/header";
 const ProbGen = (props) => {
   const { state } = useLocation();
   const [problems, setProblems] = useState([]);
+
   const navigate = useNavigate();
   useEffect(() => {
     chrome.runtime.sendMessage(
@@ -26,7 +28,9 @@ const ProbGen = (props) => {
 
   return (
     <div id="cd-mySidenav" className="cd-sidenav problink">
-      <h1>Problem Generator</h1>
+    <Header title="Generator"/>
+    <div className="cd-sidenav__content "
+      >
       {problems.length > 0 ? (
         <ul>
           {problems.map((problem) => (
@@ -41,6 +45,7 @@ const ProbGen = (props) => {
       ) : (
         <p>No problems found.</p>
       )}
+      </div>
     </div>
   );
 };

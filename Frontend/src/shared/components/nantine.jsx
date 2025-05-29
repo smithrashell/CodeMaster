@@ -23,20 +23,21 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
   };
 
   return (
-    <div style={{ padding: rem(20) }}>
+    <div>
       <Group position="center">
         {/* Slider Toggle */}
         <Switch
           checked={currReminder?.value || false}
           onChange={handleToggle}
           size="md"
-          color="teal"
+          color={currReminder?.value ? "blue.5" : "gray.5"} // vivid blue when active
         />
       </Group>
 
       {/* Dropdown Select Component */}
       {currReminder?.value && (
         <Select
+     
           label="Select an option"
           placeholder="Pick one"
           data={[
@@ -46,24 +47,13 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
           ]}
           onChange={handleSelectChange}
           styles={{
+           
             dropdown: {
-              color: "#333",
-              backgroundColor: "#ffffff", // Set dropdown background color
-              border: "1px solid #ddd", // Optional: Add a border to the dropdown
+              backgroundColor: "var(--cd-dropdown-bg)", // match dark background
+              color: "var(--cd-dropdown-color)",
             },
-            item: {
-              color: "#333", // Set text color for items
-              "&[data-selected]": {
-                backgroundColor: "#FDD835", // Selected item background
-                color: "#333", // Selected item text color
-              },
-              "&[data-hovered]": {
-                backgroundColor: "#FFF9C4", // Hover background color for items
-                color: "#333", // Hover text color
-              },
-            },
+          
           }}
-          style={{ marginTop: rem(20) }}
         />
       )}
     </div>
@@ -72,7 +62,7 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
 
 const point = (
   <IconPoint
-    style={{ marginTop: rem(6), width: rem(10), height: rem(10) }}
+    style={{ marginTop: rem(6), width: rem(10), height: rem(10), color: "var(--cd-text)" }}
     stroke={1.5}
   />
 );
@@ -92,7 +82,7 @@ export function SliderMarksSessionLength(props) {
         value={props.value}
         thumbChildren={
           <IconGripHorizontal
-            style={{ width: rem(20), height: rem(20) }}
+            style={{ width: rem(20), height: rem(20), color: "var(--cd-text)" }}
             stroke={1.5}
           />
         }
@@ -110,7 +100,7 @@ export function SliderMarksSessionLength(props) {
         step={1}
         min={2}
         max={10}
-        style={{ width: "100%" }}
+        style={{ width: "100%", marginBottom: rem(10) }}
       />
     </div>
   );
@@ -140,7 +130,7 @@ export function SliderMarksNewProblemsPerSession(props) {
         value={props.value}
         thumbChildren={
           <IconGripHorizontal
-            style={{ width: rem(20), height: rem(20) }}
+            style={{ width: rem(20), height: rem(20), color: "var(--cd-text)" }}
             stroke={1.5}
           />
         }
@@ -148,7 +138,7 @@ export function SliderMarksNewProblemsPerSession(props) {
         step={1}
         min={1}
         max={props.max}
-        style={{ width: "100%" }}
+        style={{ marginBottom: rem(10), width: "100%" }}
       />
     </div>
   );
@@ -159,19 +149,11 @@ export function GradientSegmentedControlTimeLimit(props) {
       radius="md"
       size="sm"
       data={["Auto", "off", "15", "20", "30"]}
-      classNames={classes}
       value={props.value}
       onChange={props.onChange}
-      styles={() => ({
-        indicator: {
-          background: "linear-gradient(45deg, #9EC2FF, #03018C)", // Light yellow to dark yellow gradient
-        },
-        control: {
-          "&[dataActive]": {
-            color: "#333", // Optional: Set the active text color to contrast the yellow gradient
-          },
-        },
-      })}
+      color = "var(--cd-active-blue)"
     />
+  
+   
   );
 }

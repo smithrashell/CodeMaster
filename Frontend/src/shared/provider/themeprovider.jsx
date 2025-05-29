@@ -5,10 +5,10 @@ const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
 function ThemeProviderWrapper({ children }) {
-  const [colorScheme, setColorScheme] = useState("dark");
+  const [colorScheme, setColorScheme] = useState("light");
 
   const toggleColorScheme = (value) => {
-    setColorScheme(value); // accepts 'light' or 'dark'
+   setColorScheme((current) => (current === "light" ? "dark" : "light"));
   };
 
   useEffect(() => {
