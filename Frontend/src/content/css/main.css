@@ -1,6 +1,11 @@
+
+
+
+
 /*TODO: create a folder for css styles */
 .injected {
   color: #000;
+  background-color: #e5c84c;
 }
 .btn {
   background-color: #f1f1f1;
@@ -25,7 +30,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: fixed;
+  position: absolute;
   top: 16px;
   left: 16px;
   z-index: 110;
@@ -41,39 +46,31 @@ body[data-theme='dark'] #cd-menuButton:hover {
 }
 
 body[data-theme='light'] #cd-menuButton:hover {
-  background-color: #2e426e;
-  color: white;
+  /* background-color: #0b7199;
+  color: #fabd22; */
+  background-color: #334155;
+  color: #ffffff;
 }
 
-/* #cd-menuButton {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  width: 40px;
-  height: 40px;
-  background-color: var(--cd-btn-bg); /* dark or light depending on theme */
-  /* color: var(--cd-btn-text);
-  border: none;
-  border-radius: 6px;
-  font-size: 24px;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 110;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); */
-  /* remove rotation */
-/* } */ */
 
-/* #cd-menuButton:hover {
-  background-color: var(--cd-link-hover);
+
+/* #cd-mySidenav .drawer-close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--cd-btn-text);
+  cursor: pointer;
+  z-index: 120;
+  transition: color 0.2s ease;
 } */
 
-.drawer-close-btn {
+.cd-button--close {
+  top: 20px;
+  right:20px;
   position: absolute;
-  top: 16px;
-  right: 16px;
   background: transparent;
   border: none;
   font-size: 20px;
@@ -83,7 +80,7 @@ body[data-theme='light'] #cd-menuButton:hover {
   transition: color 0.2s ease;
 }
 
-.drawer-close-btn:hover {
+.cd-button--close:hover {
   color: var(--cd-link-hover);
 }
 
@@ -139,23 +136,78 @@ body[data-theme='light'] #cd-menuButton:hover {
   display: none;
 }
 
+#cd-mySidenav label{
+  margin: 2px;
 
-.cd-sidenav {
-  border: 2px solid var(--cd-bg);
-  border-radius: 5px;
-  padding: 20px;
-  height: 65%; /* 100% Full-height */
-  width: 250px; /* 0 width - change this with JavaScript */
-  position: fixed; /* Stay in place */
-  z-index: 100; /* Stay on top */
-  top: 0px;
-  left: 0;
-  background-color: #9cc4cf;
-  overflow-x: hidden; /* Disable horizontal scroll */
-  padding-top: 60px; /* Place content 60px from the top */
-  transition: 0.5s; /* 0.5 second transition effect to slide in the sidenav */
 }
 
+/* Add spacing to label + form controls in settings */
+.cd-sidenav__content label {
+  margin-top: 10px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.cd-sidenav__content > *:first-child {
+  margin-top: 20px;
+}
+
+.cd-sidenav__content > *:not(:last-child) {
+  margin-bottom: 10px; /* consistent spacing between elements */
+}
+.cd-form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.cd-form-group label:not(.mantine-SegmentedControl-label) {
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: var(--cd-text);
+}
+
+.cd-form-group label[data-active="true"] {
+  color: white;
+}
+.cd-form-group {
+  margin-bottom: var(--cd-spacing);
+}
+#cd-mySidenav nav {
+
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cd-sidenav__content {
+  color: var(--cd-text);
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  align-items: flex-start;
+  max-height: 100%;
+}
+.cd-sidenav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: fit-content;
+  min-width: 250px;
+  max-height: 100%;/* 100% Full-height */
+  padding: 10px 20px;/* 0 width - change this with JavaScript */
+  background-color: var(--cd-bg);
+  border: 2px solid var(--cd-bg);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column; /* <--- Key */
+  gap: 25px;              /* vertical space between button, nav, paper */
+  z-index: 100;
+  transition: 1s;
+
+}
+#cd-mySidenav 
 /* The navigation menu links */
 .cd-sidenav a {
   padding: 8px 8px 8px 32px;
@@ -183,7 +235,7 @@ body[data-theme='light'] #cd-menuButton:hover {
   color: #f1f1f1;
 }
 
-button {
+.cd-button {
   color: #818181;
   /* background-color: darkred; */
 }
@@ -221,3 +273,17 @@ input[type="submit"] {
   color: darkgrey; /* Change color on hover to indicate inactive status */
   cursor: not-allowed; /* Change cursor to not-allowed to indicate disabled */
 }
+
+#nav{
+  display: flex;
+  flex-direction: row;
+  align-content: space-evenly;
+}
+
+.cd-sidenav {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+
+

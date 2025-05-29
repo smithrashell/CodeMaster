@@ -11,46 +11,30 @@ import {
 import { createMemoryHistory } from "history";
 
 import ProbStat from "./features/statistics/probstat";
-import Main from "./features/navigation/Main";
+import Main from "./features/navigation/main";
 import ProbGen from "./features/problems/probgen";
 import ProbTime from "./features/problems/probtime";
 
 import Settings from "./features/settings/settings";
 import TimerBanner from "../shared/components/timercomponent";
-import { PreviousRouteProvider } from "./features/navigation/PreviousRouteProvider";
+import { PreviousRouteProvider } from "../shared/provider/PreviousRouteProvider";
 import "@mantine/core/styles.css";
 import ProbSubmission from "./features/problems/probsubmission";
 import ProbDetail from "./features/problems/probdetail";
 // import * as Sentry from "@sentry/react";
 import { MantineProvider } from "@mantine/core";
 import ThemeProviderWrapper from "../shared/provider/themeprovider";
-
+import { AppProviders } from "../shared/provider/appprovider";
 
 
 
 const history = createMemoryHistory();
 
 const Router = () => {
-  // const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   const handleLocationChange = () => {
-  //     console.log("Location changed");
-  //     // Handle location change logic here
-  //     Sentry.startTransaction({ name: "locationchange" });
-  //   };
-
-  //   window.addEventListener("locationchange", handleLocationChange);
-
-  //   return () => {
-  //     window.removeEventListener("locationchange", handleLocationChange);
-  //   };
-  // }, [navigate]);
 
   return (
-    <MemoryRouter history={history}>
-      <ThemeProviderWrapper>
-        <PreviousRouteProvider>
+     <AppProviders>
           <Routes>
             <Route index element={<Main />} />
             <Route path="*" element={<Main />} />
@@ -62,9 +46,8 @@ const Router = () => {
               <Route path="/Timer" exact element={<TimerBanner />} />
             </Route>
           </Routes>
-        </PreviousRouteProvider>
-      </ThemeProviderWrapper>
-    </MemoryRouter>
+          </AppProviders>
+       
   );
 };
 

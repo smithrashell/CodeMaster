@@ -1,14 +1,18 @@
 /* ========= Default (Light Mode) ========= */
 :root {
-  --cd-bg: #9cc4cf;
-  --cd-text: #000;
-  --cd-link: #818181;
-  --cd-link-hover: #f1f1f1;
+  --cd-bg: #dceefb; 
+  --cd-text: #334155;
+  --cd-link:#444f5a;
+  --cd-link-hover:#1c2a3a;
   --cd-highlight: #fabd22;
-  --cd-btn-bg: #0c433d;
+  --cd-btn-bg: #0b7199;
   --cd-btn-text: #fabd22;
-   /* color: var(--cd-highlight);
-  background-color: #0c433d; */
+  --cd-spacing: 16px;
+  --cd-active-blue: #2563eb;
+  --cd-dropdown-color: #334155;
+  --cd-dropdown-bg: #ffffff;
+
+
 }
 
 body {
@@ -19,19 +23,21 @@ body {
 /* ========= Dark Mode Overrides ========= */
 body[data-theme="dark"] {
   --cd-bg: #1f2937;
+  --cd-bg-alt: #3b506e;
   --cd-text: #f1f1f1;
   --cd-link: #94a3b8;
   --cd-link-hover: #ffffff;
   --cd-highlight: #facc15;
   --cd-btn-bg: #334155;
   --cd-btn-text: #f8fafc;
+
 }
 
 /* ========== Apply Variables to Your CSS ========== */
 .injected {
   color: var(--cd-text);
 }
-
+ 
 .btn {
   background-color: var(--cd-btn-bg);
   color: var(--cd-btn-text);
@@ -111,3 +117,8 @@ input[type="submit"] {
   pointer-events: none;
   cursor: not-allowed;
 }
+
+/* this is for the label for sementcontrol  for time limit*/
+/* input label {
+  color: var(--cd-segmented-control-color);
+} */

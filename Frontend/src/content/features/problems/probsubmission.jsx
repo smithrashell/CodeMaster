@@ -5,7 +5,7 @@ import Input from "@mui/material/Input";
 import MenuItem from "@mui/material/MenuItem";
 import { Select, FormLabel, FormHelperText, TextField } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { usePreviousRoute } from "../navigation/PreviousRouteProvider.js";
+import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
 
 const StyledSelect = styled(Select)({
   "&.MuiOutlinedInput-root fieldset": { border: "none" },

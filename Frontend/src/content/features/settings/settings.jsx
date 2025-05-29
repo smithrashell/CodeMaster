@@ -9,7 +9,7 @@ import {
 } from "../../../shared/components/nantine.jsx";
 import { IconQuestionMark } from "@tabler/icons-react"; // or
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
-
+import Header from "../../../shared/components/header.jsx";
 const Settings = () => {
   const [settings, setSettings] = useState(null);
   const [value, setValue] = useState(40);
@@ -57,17 +57,11 @@ const Settings = () => {
 
   return (
     <div id="cd-mySidenav" className="cd-sidenav problink">
-      <Title order={2}>Settings</Title>
+ 
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "20px",
-          alignItems: "left",
-          maxHeight: "100%",
-          marginTop: "20px",
-        }}
+    <Header title="Settings" />
+
+      <div className="cd-sidenav__content "
       >
         {/* Adaptive Toggle */}
         <AdaptiveSessionToggle
@@ -78,6 +72,7 @@ const Settings = () => {
         {/* Session Controls (conditionally shown) */}
         {!settings?.adaptive && (
           <>
+          <div className="cd-form-group">
             <label>Session Length</label>
             <SliderMarksSessionLength
               value={settings?.sessionLength}
@@ -85,8 +80,11 @@ const Settings = () => {
                 setSettings({ ...settings, sessionLength: value })
               }
             />
+            </div>
 
-            <label>Max Number of New Problems Per Session</label>
+
+            <div className="cd-form-group">
+            <label>New Problems Per Session</label>
             <SliderMarksNewProblemsPerSession
               value={settings?.numberofNewProblemsPerSession}
               onChange={(value) =>
@@ -97,15 +95,18 @@ const Settings = () => {
               }
               max={settings?.sessionLength}
             />
+            </div>
           </>
         )}
 
+        <div className="cd-form-group">
         <label>Time Limits</label>
         <GradientSegmentedControlTimeLimit
           value={settings?.limit}
           onChange={(value) => setSettings({ ...settings, limit: value })}
         />
-
+        </div>
+        <div className="cd-form-group">
         <label>Reminders</label>
         <ToggleSelectRemainders
           reminder={settings?.reminder}
@@ -116,7 +117,7 @@ const Settings = () => {
             }))
           }
         />
-
+        </div>
         <Button onClick={() => handleSave(settings)}>Save</Button>
       </div>
     </div>
