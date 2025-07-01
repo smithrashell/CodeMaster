@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import TagInput from "../../../shared/components/TagInput";
+import Header from "../../../shared/components/header";
 
 const ProbDetail = (isLoading) => {
   const { state: routeState } = useLocation();
@@ -11,7 +12,7 @@ const ProbDetail = (isLoading) => {
   const Description =
     routeState?.problemData?.ProblemDescription ||
     routeState?.problemData?.title;
-  const [Tags, setTags] = useState(routeState?.problemData?.Tags || []);
+  const [Tags, setTags] = useState(routeState?.problemData?.tags || []);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(isLoading);
   const [showSkip, setShowSkip] = useState(false);
@@ -31,22 +32,24 @@ const ProbDetail = (isLoading) => {
   };
 
   return (
-    <div className="cd-sidenav problink">
-      {loading && !LeetCodeID ? (
+   <div id="cd-mySidenav" className="cd-sidenav__content">
+        {loading && !LeetCodeID ? (
         <p>Loading...</p>
       ) : (
-        <>
+        <div>
           <p>Problem ID: {LeetCodeID || "N/A"}</p>
           <p>Title: {Description || "N/A"}</p>
-          <p>
-            Tags:{" "}
+          <div className="cd-tags-line">
+          <strong>Tags:</strong>{" "}
+          <span>
             {Tags && Tags.length > 0
-              ? Tags.map(
-                  (tag) => tag.charAt(0).toUpperCase() + tag.slice(1)
-                ).join(", ")
+              ? Tags.map((tag) => tag.charAt(0).toUpperCase() + tag.slice(1)).join(", ")
               : "No tags available"}
-          </p>
-          <TagInput setTags={setTags} />
+                      {/* <TagInput setTags={setTags} /> */}
+          </span>
+          </div>
+
+  
           <button
             onClick={() =>
               navigate("/Timer", { state: { LeetCodeID, Description, Tags } })
@@ -65,7 +68,7 @@ const ProbDetail = (isLoading) => {
             }
           />
           <p>Problem data received </p>
-        </>
+        </div>
       )}
     </div>
   );

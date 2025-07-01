@@ -3,9 +3,9 @@ import React, { createContext, useContext, useState } from "react";
 const NavContext = createContext();
 
 export const NavProvider = ({ children }) => {
-  const [toggle, setToggle] = useState(false);
+  const [isAppOpen, setIsAppOpen] = useState(false);
   return (
-    <NavContext.Provider value={{ toggle, setToggle }}>
+    <NavContext.Provider value={{ isAppOpen, setIsAppOpen }}>
       {children}
     </NavContext.Provider>
   );

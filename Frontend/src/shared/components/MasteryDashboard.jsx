@@ -16,10 +16,10 @@ import TimeGranularChartCard from "./TimeGranularChartCard";
 // Mock functions (replace with getCurrentLearningState())
 const fetchMockData = (data) => {
   return {
-    classification: data.classification,
+    currentTier: data.currentTier,
     masteredTags: data.masteredTags,
-    unmasteredTags: data.unmasteredTags,
-    tagsinTier: data.tagsinTier,
+    allTagsInCurrentTier: data.allTagsInCurrentTier,
+    focusTags: data.focusTags,
     masteryData: data.masteryData,
   };
 };

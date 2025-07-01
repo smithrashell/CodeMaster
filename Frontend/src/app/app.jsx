@@ -14,13 +14,11 @@ import { Progress } from "../app/pages/dashboard/progress";
 import { Stats } from "../app/pages/dashboard/stats";
 
 import {
-  HomePage,
   DashboardPage,
   AnalyticsPage,
   SettingsPage,
   AccountPage,
   FlashcardPage,
-  Reports,
   Goals,
   Trends,
   MistakeAnalysis,
@@ -35,7 +33,6 @@ import {
   Flashcards,
   Practice,
   Review,
-  Analytics,
 } from "./pages/mockup";
 import { useState, useEffect } from "react";
 function App() {

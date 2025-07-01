@@ -1,5 +1,5 @@
 import { dbHelper } from "./index.js";
-
+import  STANDARD_PROBLEMS  from "../constants/Strict_Approved_Tags_IndexedDB_Backup.json"
 const openDB = dbHelper.openDB;
 export async function getProblemFromStandardProblems(slug) {
   try {
@@ -70,32 +70,7 @@ export async function updateStandardProblemsFromData(problems) {
 
       problems.forEach((problem) => {
         console.log(problem);
-        let newProblem = {
-          id: problem["Problem Number"],
-          title: problem["Title"],
-          difficulty: problem["Difficulty"],
-          tags:
-            problem["Official Tags"] == null
-              ? problem["Tags"].split(",").map((tag) =>
-                  tag
-                    .trim()
-                    .toLowerCase()
-                    .split(" ")
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(" ")
-                )
-              : problem["Official Tags"].split(",").map((tag) =>
-                  tag
-                    .trim()
-                    .toLowerCase()
-                    .split(" ")
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join(" ")
-                ),
-          slug: problem["Slug"],
-        };
-
-        const request = store.put(newProblem);
+        const request = store.put(problem);
         request.onsuccess = () => {
           updatedCount++;
         };
@@ -222,3 +197,29 @@ export async function normalizeTagForStandardProblems() {
     store.put(problem);
   });
 }
+
+export async function insertStandardProblems() {
+  const db = await openDB();
+  const tx = db.transaction("standard_problems", "readwrite");
+  const store = tx.objectStore("standard_problems");
+
+  const existing = await store.getAll();
+  if (existing.length > 0) {
+    console.log("📚 standard_problems already seeded.");
+    return;
+  }
+
+  await Promise.all(
+    STANDARD_PROBLEMS.map(problem => {
+      return new Promise((resolve, reject) => {
+        console.log("🧼 problem:", problem);
+        const req = store.put(problem);
+        req.onsuccess = resolve;
+        req.onerror = () => reject(req.error);
+      });
+    })
+  );
+
+  console.log(`✅ Inserted ${STANDARD_PROBLEMS.length} standard problems.`);
+}
+

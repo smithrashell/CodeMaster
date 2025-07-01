@@ -180,33 +180,42 @@ body[data-theme='light'] #cd-menuButton:hover {
   gap: 20px;
 }
 
-.cd-sidenav__content {
-  color: var(--cd-text);
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  align-items: flex-start;
-  max-height: 100%;
-}
 .cd-sidenav {
   position: absolute;
   top: 0;
   left: 0;
   width: fit-content;
+  max-width: 250px; /* <- LIMIT width */
   min-width: 250px;
-  max-height: 100%;/* 100% Full-height */
-  padding: 10px 20px;/* 0 width - change this with JavaScript */
+  max-height: 100%;
+  padding: 10px 20px;
   background-color: var(--cd-bg);
   border: 2px solid var(--cd-bg);
   border-radius: 5px;
   display: flex;
-  flex-direction: column; /* <--- Key */
-  gap: 25px;              /* vertical space between button, nav, paper */
+  flex-direction: column;
+  gap: 25px;
   z-index: 100;
   transition: 1s;
-
+  box-sizing: border-box;
 }
+
+.cd-sidenav__content {
+  width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  align-items: flex-start;
+  box-sizing: border-box;
+}
+
+.cd-sidenav__content p {
+  word-break: break-word;
+}
+
 #cd-mySidenav 
 /* The navigation menu links */
 .cd-sidenav a {

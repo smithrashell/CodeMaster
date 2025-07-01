@@ -1,6 +1,6 @@
 export const dbHelper = {
   dbName: "review",
-  version: 18, // 🚨 Increment version to trigger upgrade
+  version: 21, // 🚨 Increment version to trigger upgrade
   db: null,
 
   async openDB() {
@@ -41,26 +41,19 @@ export const dbHelper = {
         }
 
         // ✅ Ensure 'problem_relationships' store exists
-        if (!db.objectStoreNames.contains("problem_relationships")) {
-          let relationshipsStore = db.createObjectStore(
-            "problem_relationships",
-            {
-              keyPath: "id",
-              autoIncrement: true,
-            }
-          );
+        // if (db.objectStoreNames.contains("problem_relationships")) {
+        //   db.deleteObjectStore("problem_relationships");
+        // }
+       
 
-          dbHelper.ensureIndex(
-            relationshipsStore,
-            "by_problemId1",
-            "problemId1"
-          );
-          dbHelper.ensureIndex(
-            relationshipsStore,
-            "by_problemId2",
-            "problemId2"
-          );
+        if (!db.objectStoreNames.contains("problem_relationships")) {
+          db.createObjectStore("problem_relationships");
+
+          dbHelper.ensureIndex(relationshipsStore, "by_problemId1", "problemId1");
+          dbHelper.ensureIndex(relationshipsStore, "by_problemId2", "problemId2");
+
         }
+                
 
         // ✅ Ensure 'problems' store exists
         if (!db.objectStoreNames.contains("problems")) {

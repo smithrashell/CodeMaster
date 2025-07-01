@@ -1,46 +1,41 @@
 import React, { useState, useEffect } from "react";
 import "../../css/theme.css";
 import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
-import { Paper, Group, Text, SegmentedControl } from "@mantine/core";
 import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
-import { IconMenu2, IconHome } from "@tabler/icons-react";
 import { useNav } from "../../../shared/provider/navprovider.jsx";
 import Header from "../../../shared/components/header.jsx"
-const Menubutton = ({ toggle,setToggle,currPath }) => {
+
+
+const Menubutton = ({ isAppOpen,setIsAppOpen,currPath }) => {
   const navigate = useNavigate();
 
   const isMainMenu = currPath === "/";
-
+ 
   const handleClick = () => {
-    if (toggle && !isMainMenu) {
+    if (isAppOpen && !isMainMenu) {
       navigate("/"); // Go home
     } else {
-      setToggle(!toggle); // Toggle drawer
+      setIsAppOpen(!isAppOpen); // Toggle drawer
     }
   };
-
+  const handleLabelChange = (isAppOpen, isMainMenu) => {
+     if(isAppOpen && !isMainMenu){
+      return "Go Home"
+     } else if(isAppOpen && isMainMenu){
+      return "Close Menu"
+     } else if(!isAppOpen && isMainMenu){
+      return "Open Menu"
+     }
+     
+  };
   return (
     <button
       id="cd-menuButton"
       onClick={handleClick}
-      aria-label={toggle && !isMainMenu ? "Go Home" : "Open Menu"}
-      title={toggle && !isMainMenu ? "Go Home" : "Open Menu"}
+      aria-label={handleLabelChange(isAppOpen, isMainMenu)}
+      title={handleLabelChange(isAppOpen, isMainMenu)}
     >
       CM
-    </button>
-  );
-};
-
-const Homebutton = (props) => {
-  return (
-    <button
-      id="homeIcon"
-   
-      onClick={() => {
-        setToggle(false);
-      }}
-    >
-      X
     </button>
   );
 };
@@ -54,7 +49,7 @@ const getProblemSlugFromUrl = (url) => {
 export default function Main() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const {toggle, setToggle} = useNav()
+  const {isAppOpen, setIsAppOpen} = useNav()
   const [problemTitle, setProblemTitle] = useState("");
   const [problemFound, setProblemFound] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -108,15 +103,22 @@ export default function Main() {
     );
   };
   useEffect(() => {
-    chrome.runtime.sendMessage({type: "getSettings"}, (response) => {
+    chrome.runtime.sendMessage({type: "onboardingUserIfNeeded"}, (response) => {
       if (response) {
-     
-        setTheme(response.theme);
+        console.log("onboardingUserIfNeeded", response);
       }
     })
   }, [])
-  // UseEffect to handle initial data fetch on component mount
-
+  // useEffect(() => {
+  //   chrome.runtime.sendMessage({type: "getSettings"}, (response) => {
+  //     if (response) {
+     
+  //       setTheme(response.theme);
+  //     }
+  //   })
+  // }, [])
+  // // UseEffect to handle initial data fetch on component mount
+  
   useEffect(() => {
     // Run the initial data fetch once when the component mounts
     console.log("Current problem slug:", currentProblem);
@@ -233,21 +235,21 @@ export default function Main() {
       {pathname !== "/Timer" && (
         <div style={{ display: "flex", flexDirection: "row" }}>
           <Menubutton
-            setToggle={setToggle}
-            toggle={toggle}
+            setIsAppOpen={setIsAppOpen}
+            isAppOpen={isAppOpen}
             currPath={pathname}
           />
 
           {/* <Homebutton currPath={pathname} toggle={toggle} /> */}
         </div>
       )}
-      <div style={{ display: toggle ? "block" : "none" }}>
+      <div style={{ display: isAppOpen ? "block" : "none" }}>
         <Outlet />
         {shouldShowNav && (
           <div
             id="cd-mySidenav"
   
-            className={toggle ? "cd-sidenav" : "cd-sidenav cd-hidden"}
+            className={isAppOpen ? "cd-sidenav" : "cd-sidenav cd-hidden"}
           >
       <Header/>
       <div className="cd-sidenav__content">

@@ -4,18 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint .",
+    "lint": "eslint src --ext .js,.jsx",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
     "format": "prettier --write \"**/*.+(js|jsx|json|css|md)\"",
-    "lint:fix": "eslint --fix .",
     "dev": "webpack --watch --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest",
-      "plugin:prettier/recommended"
-    ]
   },
   "keywords": [],
   "author": "",
@@ -59,6 +52,7 @@
     "react-icons": "^4.9.0",
     "react-redux": "^9.1.2",
     "react-router-dom": "^6.8.1",
+    "react-scripts": "^0.0.0",
     "recharts": "^2.15.1",
     "reselect": "^5.1.1",
     "stream-browserify": "^3.0.0",
@@ -79,9 +73,12 @@
     "cross-env": "^7.0.3",
     "crx-hotreload": "^1.0.6",
     "css-loader": "^6.7.3",
-    "eslint": "^8.43.0",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-clean-code": "^0.1.12",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-react": "^7.37.5",
     "html-webpack-plugin": "^5.5.0",
     "monaco-editor-webpack-plugin": "^7.0.1",
     "prettier": "^2.8.8",

@@ -13,7 +13,7 @@ export const ScheduleService = {
 
 export async function getDailyReviewSchedule(sessionLength) {
   try {
-    const { unmasteredTags, tagsinTier } = await getCurrentLearningState();
+    const { focusTags, allTagsInCurrentTier } = await getCurrentLearningState();
     let allProblems = await fetchAllProblems();
 
     if (!Array.isArray(allProblems)) allProblems = [];
@@ -27,14 +27,14 @@ export async function getDailyReviewSchedule(sessionLength) {
 
     // Step 2: Filter to tier-appropriate problems
     reviewProblems = reviewProblems.filter((p) =>
-      (p.Tags || []).every((tag) => tagsinTier.includes(tag))
+      (p.Tags || []).every((tag) => allTagsInCurrentTier.includes(tag))
     );
 
     // ✅ Step 3: Select one unique problem per unmasteredTag
     const seen = new Set();
     const tagMatchedProblems = [];
 
-    for (let tag of unmasteredTags) {
+    for (let tag of focusTags) {
       const match = reviewProblems.find((p) => {
         const id = p.leetCodeID ?? p.id;
         return (p.Tags || []).includes(tag) && !seen.has(id);

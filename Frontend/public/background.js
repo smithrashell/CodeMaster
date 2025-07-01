@@ -1,29 +1,30 @@
 import { StorageService } from "../src/shared/services/storageService.js";
 import { ProblemService } from "../src/shared/services/problemService.js";
 import { SessionService } from "../src/shared/services/sessionService.js";
-import { ScheduleService } from "../src/shared/services/scheduleService.js";
+///import { ScheduleService } from "../src/shared/services/scheduleService.js";
 import { LimitService } from "../src/shared/services/limitService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
-import { buildAndStoreTagGraph } from "../src/shared/db/tag_mastery.js";
-import { classifyTags } from "../src/shared/db/tag_mastery.js";
-import { updateStandardProblems } from "../src/shared/db/standard_problems.js";
-import { updateProblemTags } from "../src/shared/db/standard_problems.js";
-import { calculateTagMastery } from "../src/shared/db/tag_mastery.js";
-import { rebuildProblemRelationships } from "../src/shared/db/problem_relationships.js";
-import { recreateSessions } from "../src/shared/db/sessions.js";
-import { addStabilityToProblems } from "../src/shared/db/problems.js";
+// import { buildAndStoreTagGraph } from "../src/shared/db/tag_mastery.js";
+// import { classifyTags } from "../src/shared/db/tag_mastery.js";
+// import { updateStandardProblems } from "../src/shared/db/standard_problems.js";
+// import { updateProblemTags } from "../src/shared/db/standard_problems.js";
+// import { calculateTagMastery } from "../src/shared/db/tag_mastery.js";
+// import { rebuildProblemRelationships } from "../src/shared/db/problem_relationships.js";
+// import { recreateSessions } from "../src/shared/db/sessions.js";
+// import { addStabilityToProblems } from "../src/shared/db/problems.js";
 import { connect } from "chrome-extension-hot-reload";
-import { updateProblemsWithRating } from "../src/shared/db/problems.js";
+import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
+//import { updateProblemsWithRating } from "../src/shared/db/problems.js";
 import { getDashboardStatistics } from "../src/shared/services/dashboardService.js";
-import { updateStandardProblemsFromData } from "../src/shared/db/standard_problems.js";
-import leetCodeProblems from "./../src/shared/db/LeetCode_Tags_Combined(2).json";
-import { updateProblemWithTags } from "../src/shared/db/problems.js";
-import { normalizeTagForStandardProblems } from "../src/shared/db/standard_problems.js";
-import { generatePatternLaddersAndUpdateTagMastery } from "../src/shared/db/pattern_ladder.js";
-import { clearOrRenameStoreField } from "../src/shared/utils/Utils.js";
-import { getSessionPerformance } from "../src/shared/db/sessions.js";
-import { getLearningState } from "../src/shared/services/dashboardService.js";
+// import { updateStandardProblemsFromData } from "../src/shared/db/standard_problems.js";
+// import leetCodeProblems from "./../src/shared/db/LeetCode_Tags_Combined(2).json";
+// import { updateProblemWithTags } from "../src/shared/db/problems.js";
+// import { normalizeTagForStandardProblems } from "../src/shared/db/standard_problems.js";
+// import { generatePatternLaddersAndUpdateTagMastery } from "../src/shared/db/pattern_ladder.js";
+// import { clearOrRenameStoreField } from "../src/shared/utils/Utils.js";
+// import { getSessionPerformance } from "../src/shared/db/sessions.js";
+// import { getLearningState } from "../src/shared/services/dashboardService.js";
 
 connect(); // handles app and popup
 
@@ -102,7 +103,16 @@ const handleRequest = async (request, sender, sendResponse) => {
           .then(sendResponse)
           .finally(finishRequest);
         return true;
-
+    /** ──────────────── User Onboarding ──────────────── **/
+    case "onboardingUserIfNeeded":
+      onboardUserIfNeeded()
+        .then(sendResponse)
+        .catch((error) => {
+          console.error("❌ Error onboarding user:", error);
+          sendResponse({ error: error.message });
+          return true;
+        }).finally(finishRequest);
+        return true;
       /** ──────────────── User Settings ──────────────── **/
       // TODO: setSettings
       case "setSettings":
@@ -118,11 +128,11 @@ const handleRequest = async (request, sender, sendResponse) => {
       /** ──────────────── Problems Management ──────────────── **/
       // TODO: getProblemByDescription
       case "getProblemByDescription":
+        console.log("🧼 getProblemByDescription:", request.description, request.slug);
         ProblemService.getProblemByDescription(
           request.description,
           request.slug
-        )
-          .then(sendResponse)
+        ).then(sendResponse)
           .catch(() => sendResponse({ error: "Problem not found" }))
           .finally(finishRequest);
         return true;

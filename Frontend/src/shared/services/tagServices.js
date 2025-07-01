@@ -1,24 +1,13 @@
 import { dbHelper } from "../db/index.js";
-import { getHighlyRelatedTags } from "../db/tag_mastery.js";
-import { getNextFiveTagsFromNextTier } from "../db/tag_mastery.js";
-
+import { getHighlyRelatedTags, getNextFiveTagsFromNextTier } from "../db/tag_relationships.js";
 import { getSessionPerformance } from "../db/sessions.js";
 
-
-
-
-
-  const openDB = dbHelper.openDB
-
+const openDB = dbHelper.openDB;
 
 export const TagService = {
-    getCurrentTier,
-    getCurrentLearningState
-
+  getCurrentTier,
+  getCurrentLearningState
 };
-
-
-
 
 async function getCurrentTier() {
   const db = await openDB();
@@ -26,137 +15,159 @@ async function getCurrentTier() {
   const masteryStore = tx.objectStore("tag_mastery");
   const relationshipsStore = tx.objectStore("tag_relationships");
 
-  // Get all attempted tags from tag_mastery
-  const masteryRequest = masteryStore.getAll();
   const masteryData = await new Promise((resolve, reject) => {
-    masteryRequest.onsuccess = () => resolve(masteryRequest.result);
-    masteryRequest.onerror = () => reject(request.error);
+    const request = masteryStore.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
   });
-console.log("🔍 masteryData:", masteryData);
-let masteryDataCopy = [...masteryData];
-  // Get all tiers from tag_relationships
+
+  console.log("🔍 masteryData:", masteryData);
+
+  // ✅ Onboarding fallback: No mastery data yet
+  if (!masteryData || masteryData.length === 0) {
+    const tagRelationships = await new Promise((resolve, reject) => {
+      const tx = db.transaction("tag_relationships", "readonly");
+      const store = tx.objectStore("tag_relationships");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    const topTags = tagRelationships
+      .map(entry => {
+        const totalWeight = Object.values(entry.relatedTags || {}).reduce((sum, w) => sum + w, 0);
+        return { tag: entry.id, weight: totalWeight };
+      })
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, 5)
+      .map(entry => entry.tag);
+
+    const allTags = tagRelationships.map(entry => entry);
+    const tagsinCurrentTier = allTags.filter(tag => tag.classification === "Core Concept").map(tag => tag.id);
+
+    console.log("👶 Onboarding with top weighted tags:", topTags);
+   console.log("allTags", allTags)
+   console.log("allTagsInCurrentTier", allTags.filter(tag => tag.classification === "Core Concept"))
+    return {
+      classification: "Core Concept",
+      masteredTags: [],
+      allTagsInCurrentTier: tagsinCurrentTier,
+      focusTags: topTags,
+      masteryData: []
+    };
+
+
+    
+  }
+
+  // ✅ Returning user logic
   const tiers = ["Core Concept", "Fundamental Technique", "Advanced Technique"];
 
   for (const tier of tiers) {
-    const tierRequest = relationshipsStore
-      .index("by_classification")
-      .getAll(tier);
+    const tierRequest = relationshipsStore.index("by_classification").getAll(tier);
     const tierTags = await new Promise((resolve, reject) => {
-      tierRequest.onsuccess = () =>
-        resolve(tierRequest.result.map((tag) => tag.id));
-      tierRequest.onerror = () => reject(request.error);
+      tierRequest.onsuccess = () => resolve(tierRequest.result.map(t => t.id));
+      tierRequest.onerror = () => reject(tierRequest.error);
     });
 
-    // 1️⃣ **Get mastered & unmastered tags in this tier**
-    let masteredTags = masteryData
+    const masteredTags = masteryData
       .filter(
-        (tag) =>
+        tag =>
           tierTags.includes(tag.tag) &&
+          tag.totalAttempts > 0 &&
           tag.successfulAttempts / tag.totalAttempts >= 0.8
       )
-      .map((tag) => tag.tag);
+      .map(tag => tag.tag);
 
-    let unmasteredTags = masteryData
+    const unmasteredTags = masteryData
       .filter(
-        (tag) =>
+        tag =>
           tierTags.includes(tag.tag) &&
+          tag.totalAttempts > 0 &&
           tag.successfulAttempts / tag.totalAttempts < 0.8
       )
       .sort(
         (a, b) =>
           b.successfulAttempts / b.totalAttempts -
           a.successfulAttempts / a.totalAttempts
-      ) // Sort by mastery rate
-      .map((tag) => tag.tag)
-      .slice(0, 5); // Limit to 5 unmastered tags
+      )
+      .map(tag => tag.tag)
+      .slice(0, 5);
 
-    // 2️⃣ **Check if tier is at 80% mastery**
     const masteryThreshold = Math.ceil(tierTags.length * 0.8);
     const isTierMastered = masteredTags.length >= masteryThreshold;
 
     if (!isTierMastered) {
-      console.log(
-        `✅ User is currently in ${tier}, focusing on ${unmasteredTags.length} unmastered tags.`
-      );
+      console.log(`✅ User is in ${tier}, working on ${unmasteredTags.length} tags.`);
       return {
         classification: tier,
-        masteredTags: masteredTags,
-        tagsinTier: tierTags,
-        unmasteredTags: unmasteredTags,
-        masteryData: masteryData,
+        masteredTags,
+        allTagsInCurrentTier: tierTags,
+        focusTags: unmasteredTags,
+        masteryData
       };
     }
 
-    // 3️⃣ **If no unmastered tags remain, check for missing tags**
-    const missingTags = tierTags.filter(
-      (tag) => !masteryData.some((m) => m.tag === tag)
-    );
+    const missingTags = tierTags.filter(tag => !masteryData.some(m => m.tag === tag));
 
     if (unmasteredTags.length === 0 && missingTags.length > 0) {
-      // **Only add up to 5 new tags that are highly related to mastered tags**
-      const newTags = await getHighlyRelatedTags(
-        db,
-        masteredTags,
-        missingTags,
-        5
-      );
+      const newTags = await getHighlyRelatedTags(db, masteredTags, missingTags, 5);
 
-      console.log(
-        `🔹 Adding ${newTags.length} new tags to tag_mastery from ${tier}.`
-      );
+      console.log(`🔹 Seeding ${newTags.length} new tags from ${tier} into tag_mastery`);
 
-      // **Ensure all inserts are fully resolved**
       await Promise.all(
-        newTags.map(
-          (newTag) =>
-            new Promise((resolve, reject) => {
-              const putRequest = masteryStore.put({
-                tag: newTag,
-                totalAttempts: 0,
-                successfulAttempts: 0,
-                decayScore: 0,
-                mastered: false,
-              });
-              putRequest.onsuccess = () => resolve();
-              putRequest.onerror = () => reject(putRequest.error);
-            })
-        )
+        newTags.map(newTag => {
+          return new Promise((resolve, reject) => {
+            const putRequest = masteryStore.put({
+              tag: newTag,
+              totalAttempts: 0,
+              successfulAttempts: 0,
+              decayScore: 1,
+              mastered: false
+            });
+            putRequest.onsuccess = () => resolve();
+            putRequest.onerror = () => reject(putRequest.error);
+          });
+        })
       );
 
-      return { classification: tier, masteredTags: masteredTags, tagsinTier: tierTags, unmasteredTags: newTags, masteryData: masteryData };
+      return {
+        classification: tier,
+        masteredTags,
+        allTagsInCurrentTier: tierTags,
+        focusTags: newTags,
+        masteryData
+      };
     }
   }
 
-  // 4️⃣ **If no tags remain, move to the next classification in increments of 5**
-  console.log(
-    `✅ All tags mastered in all tiers. Fetching next batch of 5 new tags.`
-  );
-  return getNextFiveTagsFromNextTier( masteryData);
+  // ✅ All tiers mastered — advance
+  console.log("🚀 All tiers mastered. Advancing to next tier...");
+  return getNextFiveTagsFromNextTier(masteryData);
 }
-
 
 async function getCurrentLearningState() {
-  const { classification, masteredTags, tagsinTier, unmasteredTags, masteryData } = await getCurrentTier(
-  );
-  const sessionPerformance = await getSessionPerformance({unmasteredTags});
+  const {
+    classification,
+    masteredTags,
+    allTagsInCurrentTier,
+    focusTags,
+    masteryData
+  } = await getCurrentTier();
 
-  console.log(`📌 User Classification: ${classification}`);
+  const sessionPerformance = await getSessionPerformance({allTagsInCurrentTier });
+  console.log("tags", allTagsInCurrentTier)
+  console.log(`📌 Tier: ${classification}`);
   console.log(`✅ Mastered Tags: ${masteredTags.join(", ")}`);
-  console.log(`🔹 Current Focus: ${unmasteredTags.slice(0, 5).join(", ")}`);
-  console.log(`🔹 Tags in Tier: ${tagsinTier.join(", ")}`);
+  console.log(`🔹 Focus Tags: ${focusTags.join(", ")}`);
+  console.log(`🔹 Tags in Tier: ${allTagsInCurrentTier.join(", ")}`);
 
   return {
-    classification: classification,
-    masteredTags: masteredTags,
-    tagsinTier: tagsinTier,
-    unmasteredTags: unmasteredTags.slice(0, 5),
-    masteryData: masteryData,
-    sessionPerformance: sessionPerformance,
-
+    currentTier: classification,
+    masteredTags,
+    allTagsInCurrentTier,
+    focusTags,
+    masteryData,
+    sessionPerformance
   };
 }
-
-
-
-
-
