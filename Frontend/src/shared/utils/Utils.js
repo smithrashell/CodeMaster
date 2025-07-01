@@ -115,13 +115,14 @@ export async function clearOrRenameStoreField(
   });
 }
 
-
-export function getDifficultyAllowanceForTag(tag, data) {
-  if (!data || data.totalAttempts < 3) {
-    return { Easy: 1, Medium: 0, Hard: 0 };
+export function getDifficultyAllowanceForTag( data = null) {
+  // 🚨 Onboarding fallback
+  if (!data || typeof data.totalAttempts !== "number" || data.totalAttempts < 3) {
+    return { Easy: 1, Medium: 1, Hard: 0 };
   }
 
   const successRate = data.successfulAttempts / data.totalAttempts;
+
   return {
     Easy: 1,
     Medium: successRate >= 0.75 ? 1 : 0,

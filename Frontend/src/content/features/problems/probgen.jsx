@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import React, { useState, useEffect } from "react";
 import "../../css/probrec.css";
 import Header from "../../../shared/components/header";
+import { v4 as uuidv4 } from "uuid";
 const ProbGen = (props) => {
   const { state } = useLocation();
   const [problems, setProblems] = useState([]);
@@ -34,10 +35,10 @@ const ProbGen = (props) => {
       {problems.length > 0 ? (
         <ul>
           {problems.map((problem) => (
-            <li key={problem.id + problem.title}>
+            <li key={uuidv4()}>
               <a href="#" onClick={(e) => handleLinkClick(problem)}>
                 {" "}
-                {problem.ProblemDescription || problem.title}
+                {problem.problemDescription || problem.title}
               </a>
             </li>
           ))}
