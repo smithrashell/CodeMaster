@@ -38,6 +38,15 @@
 ![Problem Statistics Page](./screenshots/ProlemStatistics%20.png)
 ![Problem Settings Page](./screenshots/ProblemSettings.png)
 
+---
+## Refactoring Strategy
+
+Refactored session logic into smaller composable functions:
+- `buildAdaptiveSessionSettings()`
+- `fetchAndAssembleSessionProblems()`
+...
+
+This improves testability and isolates session generation logic from state logic.
 
 ---
 
@@ -48,3 +57,6 @@ git clone https://github.com/your-username/codemaster.git
 cd codemaster
 npm install
 npm run dev
+
+
+
