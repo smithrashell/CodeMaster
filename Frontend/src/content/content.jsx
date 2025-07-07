@@ -15,6 +15,7 @@ if (!appContainer) {
   appContainer.id = "root";
   appContainer.className = "app-container";
   body.prepend(appContainer);
+  console.log("container appended")
 }
 
 // create root once
