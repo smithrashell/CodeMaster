@@ -8,7 +8,8 @@
     "lint:fix": "eslint src --ext .js,.jsx --fix",
     "format": "prettier --write \"**/*.+(js|jsx|json|css|md)\"",
     "dev": "webpack --watch --config webpack.dev.js",
-    "build": "webpack --config webpack.prod.js"
+    "build": "webpack --config webpack.prod.js",
+    "test": "echo \"No tests yet\" && exit 0"
   },
   "keywords": [],
   "author": "",

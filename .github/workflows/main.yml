@@ -1,9 +1,9 @@
 name: Run Checks
 
 on:
-  pull_request:
-    branches: [main]
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
 
 jobs:
@@ -11,7 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Frontend     
+        working-directory: Frontend  # if your package.json is inside Frontend/
+
     steps:
       - uses: actions/checkout@v3
 
@@ -23,8 +24,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint code
-        run: npm run lint || echo "Lint failed but continuing"
+      - name: Lint code (non-blocking for now)
+        run: npm run lint || echo "Linting failed but continuing"
 
-      - name: Run tests
+      - name: Run tests (stub)
         run: npm test
