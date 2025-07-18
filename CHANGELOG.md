@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.1] - 2025-07-18
+### Refactored
+- **🏗️ Session Orchestrator Refactoring**: Completed modularization of `getOrCreateSession()` function
+  - Extracted `resumeSession()` → Dedicated function for handling existing in-progress sessions
+  - Extracted `createNewSession()` → Focused function for new session creation and persistence
+  - Simplified `getOrCreateSession()` → Clean orchestrator that delegates to specialized functions
+  - Improved separation of concerns and testability across session lifecycle management
+
 ## [0.8.0] - 2025-07-17
 ### Refactored
 - **🏗️ Session Logic Architecture Overhaul**: Complete refactoring of session creation logic into modular 3-layer architecture
