@@ -115,18 +115,44 @@ export async function clearOrRenameStoreField(
   });
 }
 
-export function getDifficultyAllowanceForTag( data = null) {
-  // 🚨 Onboarding fallback
+export function getDifficultyAllowanceForTag(data = null) {
+  // 🚨 Onboarding fallback - allow Easy and Medium for new users
   if (!data || typeof data.totalAttempts !== "number" || data.totalAttempts < 3) {
-    return { Easy: 1, Medium: 1, Hard: 0 };
+    return { Easy: 1.0, Medium: 0.8, Hard: 0 };
   }
 
   const successRate = data.successfulAttempts / data.totalAttempts;
+  const attempts = data.totalAttempts;
 
-  return {
-    Easy: 1,
-    Medium: successRate >= 0.75 ? 1 : 0,
-    Hard: successRate >= 0.9 ? 0.5 : 0,
+  // Progressive difficulty scaling based on success rate and experience
+  const allowance = {
+    Easy: 1.0, // Always allow Easy problems
+    Medium: 0,
+    Hard: 0
   };
+
+  // Medium difficulty allowance with progressive scaling
+  if (successRate >= 0.85 && attempts >= 5) {
+    allowance.Medium = 1.0; // Full confidence
+  } else if (successRate >= 0.75 && attempts >= 3) {
+    allowance.Medium = 0.8; // Good confidence
+  } else if (successRate >= 0.65 && attempts >= 2) {
+    allowance.Medium = 0.6; // Moderate confidence
+  } else if (successRate >= 0.5 && attempts >= 1) {
+    allowance.Medium = 0.4; // Low confidence
+  }
+
+  // Hard difficulty allowance with stricter requirements
+  if (successRate >= 0.9 && attempts >= 8) {
+    allowance.Hard = 0.8; // High confidence for hard problems
+  } else if (successRate >= 0.85 && attempts >= 6) {
+    allowance.Hard = 0.6; // Moderate confidence
+  } else if (successRate >= 0.8 && attempts >= 4) {
+    allowance.Hard = 0.4; // Low confidence
+  }
+
+  console.log(`🎯 Difficulty allowance for tag (${attempts} attempts, ${(successRate * 100).toFixed(1)}% success):`, allowance);
+  
+  return allowance;
 }
 

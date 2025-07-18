@@ -8,6 +8,7 @@ import {
 import { updateProblemRelationships, determineNextProblem } from "../db/problem_relationships.js";
 import { ProblemService } from "../services/problemService.js";
 import { calculateTagMastery } from "../db/tag_mastery.js";
+import { StorageService } from "./storageService.js";
 import { v4 as uuidv4 } from "uuid";
 
 
@@ -57,15 +58,11 @@ export const SessionService = {
   async getOrCreateSession() {
     console.log("📌 getOrCreateSession called");
 
-    let settings = await new Promise((resolve) => {
-      chrome.storage.local.get("settings", (result) => {
-        console.log("✅ Retrieved settings:", result.settings);
-        resolve(result.settings);
-      });
-    });
-
+    // First try to migrate settings from Chrome storage if needed
+    let settings = await StorageService.migrateSettingsToIndexedDB();
+    
     if (!settings) {
-      console.error("❌ Settings not found in Chrome Storage.");
+      console.error("❌ Settings not found.");
       return null;
     }
 
@@ -97,10 +94,8 @@ export const SessionService = {
     console.log("📌 No ongoing session found, creating a new one...");
 
     // Fetch new problems for the session
-    const problems = await ProblemService.fetchProblemsForSession(
-      sessionLength,
-      settings.numberofNewProblemsPerSession
-    );
+    const problems = await ProblemService.createSession();
+
 
     console.log("📌 problems for new session:", problems);
 
@@ -111,7 +106,7 @@ export const SessionService = {
 
     const newSession = {
       id: uuidv4(),
-      Date: new Date().toISOString(),
+      date: new Date().toISOString(),
       status: "in_progress",
       problems: problems,
       attempts: [],
