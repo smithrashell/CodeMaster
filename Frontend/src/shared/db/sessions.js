@@ -1,5 +1,8 @@
 import { dbHelper } from "./index.js";
 import { v4 as uuidv4 } from "uuid";
+import { TagService } from "../services/tagServices.js";
+import { StorageService } from "../services/storageService.js";
+import { AttemptsService } from "../services/attemptsService.js";
 
 const openDB = dbHelper.openDB;
 
@@ -354,6 +357,114 @@ export const recreateSessions = async () => {
 
 //   return performance;
 // }
+
+export async function buildAdaptiveSessionSettings() {
+  const { focusTags} = await TagService.getCurrentTier();
+  const sessionStateKey = "session_state";
+  const now = new Date();
+
+  // Try to migrate from Chrome storage first, then get from IndexedDB
+  let sessionState = await StorageService.migrateSessionStateToIndexedDB() || 
+                     await StorageService.getSessionState(sessionStateKey) || {
+    id: sessionStateKey,
+    numSessionsCompleted: 0,
+    currentDifficultyCap: "Easy",
+    tagIndex: 0,
+    difficultyTimeStats: {
+      Easy: { problems: 0, totalTime: 0, avgTime: 0 },
+      Medium: { problems: 0, totalTime: 0, avgTime: 0 },
+      Hard: { problems: 0, totalTime: 0, avgTime: 0 }
+    },
+    lastPerformance: {
+      accuracy: null,
+      efficiencyScore: null
+    }
+  };
+
+  const onboarding = sessionState.numSessionsCompleted < 3;
+  const performance = sessionState.lastPerformance || {};
+  const accuracy = performance.accuracy ?? 0.5;
+  const efficiencyScore = performance.efficiencyScore ?? 0.5;
+
+  // Default values
+  let sessionLength = 4;
+  let numberOfNewProblems = 4;
+  let allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, 1) : ["array"];
+
+  if (!onboarding) {
+    // 🧠 Time gap since last session
+    let gapInDays = 999;
+    const lastAttempt = await AttemptsService.getMostRecentAttempt();
+    if (lastAttempt?.AttemptDate) {
+      const lastTime = new Date(lastAttempt.AttemptDate);
+      gapInDays = (now - lastTime) / (1000 * 60 * 60 * 24);
+    }
+
+    sessionLength = computeSessionLength(accuracy, efficiencyScore);
+
+    if (gapInDays > 4 || accuracy < 0.5) {
+      sessionLength = Math.min(sessionLength, 5);
+    }
+
+    // Scale new problems
+    if (accuracy >= 0.85) {
+      numberOfNewProblems = Math.min(5, Math.floor(sessionLength / 2));
+    } else if (accuracy < 0.6) {
+      numberOfNewProblems = 1;
+    } else {
+      numberOfNewProblems = Math.floor(sessionLength * 0.3);
+    }
+
+    // 🏷️ Progressive tag exposure within focus window
+    const tagCount = calculateTagIndexProgression(accuracy, efficiencyScore, sessionState.tagIndex, focusTags.length);
+    allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, tagCount) : ["array", "hash table"];
+    
+    // Update tagIndex for next session
+    sessionState.tagIndex = tagCount - 1; // Convert from count to index
+    
+    console.log(`🏷️ Tag exposure: ${tagCount}/${focusTags.length} focus tags (tagIndex: ${sessionState.tagIndex}, accuracy: ${(accuracy * 100).toFixed(1)}%)`);
+
+    // Progressive difficulty cap unlocking
+    if (accuracy >= 0.9 && sessionState.currentDifficultyCap === "Easy") {
+      sessionState.currentDifficultyCap = "Medium";
+      console.log("🎯 Difficulty cap upgraded: Easy → Medium");
+    } else if (accuracy >= 0.9 && sessionState.currentDifficultyCap === "Medium") {
+      sessionState.currentDifficultyCap = "Hard";
+      console.log("🎯 Difficulty cap upgraded: Medium → Hard");
+    }
+  }
+
+  sessionState.lastSessionDate = now.toISOString();
+  await StorageService.setSessionState(sessionStateKey, sessionState);
+
+  console.log("🧠 Adaptive Session Config:", {
+    sessionLength,
+    numberOfNewProblems,
+    allowedTags,
+    accuracy,
+    efficiencyScore
+  });
+
+  return {
+    sessionLength,
+    numberOfNewProblems,
+    currentAllowedTags: allowedTags,
+    currentDifficultyCap: sessionState.currentDifficultyCap,
+    sessionState
+  };
+}
+
+function computeSessionLength(accuracy, efficiencyScore) {
+  const accWeight = Math.min(Math.max(accuracy ?? 0.5, 0), 1);
+  const effWeight = Math.min(Math.max(efficiencyScore ?? 0.5, 0), 1);
+
+  const composite = (accWeight * 0.6) + (effWeight * 0.4);
+
+  // Scale from 3 to 12 problems based on performance
+  return Math.round(3 + composite * 9); // [3, 12]
+}
+
+
 export async function getSessionPerformance({
   recentSessionsLimit = 5,
   daysBack = null,
@@ -514,4 +625,35 @@ export async function getAllSessions() {
     sessionRequest.onerror = () => reject(sessionRequest.error);
   });
   return sessions;
+}
+
+/**
+ * Calculates progressive tag exposure within the focus window (5 tags max)
+ * @param {number} accuracy - Current accuracy (0-1)
+ * @param {number} efficiencyScore - Current efficiency (0-1)
+ * @param {number} currentTagIndex - Current tag index in focus window
+ * @param {number} focusTagsLength - Length of current focus tags array
+ * @returns {number} Number of tags to include from focus window
+ */
+function calculateTagIndexProgression(accuracy, efficiencyScore, currentTagIndex, focusTagsLength) {
+  // Start with current progress
+  let tagCount = currentTagIndex + 1; // Convert index to count
+  
+  // Performance thresholds for tag expansion
+  const canExpandToNext = accuracy >= 0.75 && efficiencyScore >= 0.6;
+  const canExpandQuickly = accuracy >= 0.9 && efficiencyScore >= 0.8;
+  
+  // Progressive expansion within focus window
+  if (canExpandQuickly && tagCount < focusTagsLength) {
+    tagCount = Math.min(tagCount + 2, focusTagsLength); // Jump 2 tags if excellent performance
+  } else if (canExpandToNext && tagCount < focusTagsLength) {
+    tagCount = Math.min(tagCount + 1, focusTagsLength); // Add 1 tag if good performance
+  }
+  
+  // Never exceed focus window size or go below 1
+  const finalCount = Math.min(Math.max(1, tagCount), focusTagsLength);
+  
+  console.log(`🏷️ Tag progression: index=${currentTagIndex} → count=${finalCount}/${focusTagsLength} (accuracy: ${(accuracy * 100).toFixed(1)}%, efficiency: ${(efficiencyScore * 100).toFixed(1)}%)`);
+  
+  return finalCount;
 }
