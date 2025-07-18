@@ -1,6 +1,6 @@
 export const dbHelper = {
   dbName: "review",
-  version: 21, // 🚨 Increment version to trigger upgrade
+  version: 23, // 🚨 Increment version to trigger upgrade (added settings store)
   db: null,
 
   async openDB() {
@@ -44,6 +44,9 @@ export const dbHelper = {
         // if (db.objectStoreNames.contains("problem_relationships")) {
         //   db.deleteObjectStore("problem_relationships");
         // }
+        if(!db.objectStoreNames.contains("session_state")){
+          db.createObjectStore("session_state", {keyPath: "id"});
+        }
        
 
         if (!db.objectStoreNames.contains("problem_relationships")) {
@@ -136,6 +139,15 @@ export const dbHelper = {
           });
 
           dbHelper.ensureIndex(tagMasteryStore, "by_tag", "tag");
+        }
+
+        // ✅ **NEW: Ensure 'settings' store exists**
+        if (!db.objectStoreNames.contains("settings")) {
+          let settingsStore = db.createObjectStore("settings", {
+            keyPath: "id",
+          });
+          
+          console.log("Settings store created!");
         }
         //add a index on classification
 

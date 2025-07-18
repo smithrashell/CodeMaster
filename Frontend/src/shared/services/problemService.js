@@ -6,10 +6,12 @@ import {
 import { getProblemFromStandardProblems } from "../db/standard_problems.js";
 import { AttemptsService } from "./attemptsService";
 import { v4 as uuidv4 } from "uuid";
-import { fetchAllProblems, fetchAdditionalProblems } from "../db/problems.js";
+import { fetchAllProblems, fetchAdditionalProblems, updateProblemsWithRatings as updateProblemsWithRatingsInDB } from "../db/problems.js";
 import { ScheduleService } from "./scheduleService.js";
 import { TagService } from "./tagServices.js";
 import { StorageService } from "./storageService.js";
+import { buildAdaptiveSessionSettings } from "../db/sessions.js";
+import { calculateDecayScore } from "../utils/Utils.js";
 
 const getCurrentLearningState = TagService.getCurrentLearningState;
 const getDailyReviewSchedule = ScheduleService.getDailyReviewSchedule;
@@ -96,102 +98,86 @@ export const ProblemService = {
     return await addProblem(contentScriptData);
   },
 
-
-  async fetchProblemsForSession(settings) {
-    const { sessionPerformance, focusTags, allTagsInCurrentTier, masteryData } =
-      await getCurrentLearningState();
-    var { adaptive, sessionLength, numberofNewProblemsPerSession } =
-      await StorageService.getSettings();
-    const allProblems = await fetchAllProblems();
-
-    // 🧠 If adaptive mode is enabled, compute dynamic values
-    if (adaptive) {
-      console.log("🧠 Adaptive mode is enabled");
-    
-      let lastAttemptDateObj = await AttemptsService.getMostRecentAttempt();
-      const now = new Date();
-      let gapInDays = 999; // default gap if no previous attempts
-    
-      if (lastAttemptDateObj && lastAttemptDateObj.AttemptDate) {
-        const lastAttemptDate = new Date(lastAttemptDateObj.AttemptDate);
-        gapInDays = (now - lastAttemptDate) / (1000 * 60 * 60 * 24);
-      } else {
-        console.warn("⚠️ No previous attempts found — using default gap.");
-      }
-    
-      sessionLength = 10;
-    
-      if (gapInDays > 4 || sessionPerformance.accuracy < 0.5) {
-        sessionLength = 5;
-      } else if (
-        sessionPerformance.accuracy >= 0.8 &&
-        sessionPerformance.avgTime < 90
-      ) {
-        sessionLength = 12;
-      }
-    
-      if (sessionPerformance.accuracy >= 0.85) {
-        numberofNewProblemsPerSession = Math.min(5, Math.floor(sessionLength / 2));
-      } else if (sessionPerformance.accuracy < 0.6) {
-        numberofNewProblemsPerSession = 1;
-      } else {
-        numberofNewProblemsPerSession = Math.floor(sessionLength * 0.3);
-      }
-    
-      console.log("🧠 Adaptive Session Config:", {
-        sessionLength,
-        numberofNewProblemsPerSession,
-        gapInDays,
-        performance: sessionPerformance,
-      });
-    }
-    
-    let problemsDueForReview = await getDailyReviewSchedule(
-      sessionLength - numberofNewProblemsPerSession
+ async createSession() {
+    const settings = await buildAdaptiveSessionSettings(); // includes session length and tag/difficulty caps
+   
+    const problems = await this.fetchAndAssembleSessionProblems(
+      settings.sessionLength,
+      settings.numberOfNewProblems,
+      settings.currentAllowedTags,
+      settings.currentDifficultyCap
     );
-    console.log("🧼 problemsDueForReview:", problemsDueForReview, "length:", problemsDueForReview.length);
-    console.log("🧼 sessionLength:", sessionLength);
-    const additionalNeeded = problemsDueForReview.length < 1 ?  sessionLength: numberofNewProblemsPerSession ;
-    console.log("🧼 additionalNeeded:", additionalNeeded);
-    const excludeIds = allProblems.map((p) => p.leetCodeID);
-
-    const additionalProblems = await fetchAdditionalProblems(
-      additionalNeeded,
-      new Set(excludeIds)
-    );
-    function deduplicateById(problems) {
-      const seen = new Set();
-      return problems.filter((problem) => {
-        if (seen.has(problem.id)) {
-          return false;
-        }
-        seen.add(problem.id);
-        return true;
-      });
-    }
-
-    console.log("🧼 additionalProblems:", additionalProblems);
-    console.log("🧼 problemsDueForReview:", problemsDueForReview);
-    problemsDueForReview = [...problemsDueForReview, ...additionalProblems];
-    console.log("🧼 problemsDueForReview:", problemsDueForReview);
-    console.log("🧼 sessionLength:", sessionLength);
-    if (problemsDueForReview.length < sessionLength) {
-      const allProblems = await fetchAllProblems();
-      const fallback = allProblems.filter((p) => !excludeIds.includes(p.id));
-
-      fallback.sort(problemSortingCriteria);
-      problemsDueForReview = deduplicateById([
-        ...problemsDueForReview,
-        ...fallback.slice(0, sessionLength - problemsDueForReview.length),
-      ]);
-    }
-
-    return problemsDueForReview.slice(0, sessionLength);
+  
+    return problems;
   },
+
+  /**
+   * Assembles session problems with intelligent distribution
+   * @param {number} sessionLength - Total number of problems in session
+   * @param {number} numberOfNewProblems - Number of new problems to include
+   * @param {string[]} currentAllowedTags - Tags to focus on
+   * @param {string} currentDifficultyCap - Maximum difficulty level
+   * @returns {Promise<Array>} - Array of problems for the session
+   */
+  async fetchAndAssembleSessionProblems(sessionLength, numberOfNewProblems, currentAllowedTags, currentDifficultyCap) {
+    console.log("🎯 Starting intelligent session assembly...");
+    console.log("🎯 Session length:", sessionLength);
+    console.log("🎯 New problems target:", numberOfNewProblems);
+    
+    const allProblems = await fetchAllProblems();
+    const excludeIds = new Set(allProblems.map(p => p.leetCodeID));
+    
+    const sessionProblems = [];
+    
+    // **Step 1: Review Problems (40% of session)**
+    const reviewTarget = Math.floor(sessionLength * 0.4);
+    const reviewProblems = await getDailyReviewSchedule(reviewTarget);
+    sessionProblems.push(...reviewProblems);
+    
+    console.log(`🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`);
+    
+    // **Step 2: New Problems (60% of session) - Split between focus and expansion**
+    const newProblemsNeeded = sessionLength - sessionProblems.length;
+    
+    if (newProblemsNeeded > 0) {
+      const newProblems = await fetchAdditionalProblems(
+        newProblemsNeeded,
+        excludeIds
+      );
+      
+      sessionProblems.push(...newProblems);
+      console.log(`🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems`);
+    }
+    
+    // **Step 3: Fallback if still short**
+    if (sessionProblems.length < sessionLength) {
+      const fallbackNeeded = sessionLength - sessionProblems.length;
+      const usedIds = new Set(sessionProblems.map(p => p.id || p.leetCodeID));
+      
+      const fallbackProblems = allProblems
+        .filter(p => !usedIds.has(p.id))
+        .sort(problemSortingCriteria)
+        .slice(0, fallbackNeeded);
+      
+      sessionProblems.push(...fallbackProblems);
+      console.log(`🔄 Added ${fallbackProblems.length} fallback problems`);
+    }
+    
+    // **Step 4: Final session composition**
+    const finalSession = deduplicateById(sessionProblems).slice(0, sessionLength);
+    
+    console.log(`🎯 Final session composition:`);
+    console.log(`   📊 Total problems: ${finalSession.length}/${sessionLength}`);
+    console.log(`   🔄 Review problems: ${reviewProblems.length}`);
+    console.log(`   🆕 New problems: ${finalSession.length - reviewProblems.length}`);
+    
+    return finalSession;
+  },
+
 
   
   async updateProblemsWithRatings() {
-    return updateProblemsWithRatingsInDB();
+    return await updateProblemsWithRatingsInDB();
   },
   /**
    * Adds or updates a problem within a session.
@@ -236,6 +222,22 @@ const shuffleArray = (array) => {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+};
+
+/**
+ * Deduplicates an array of problems by their ID.
+ * @param {Array} problems - The array of problems to deduplicate.
+ * @returns {Array} - The deduplicated array.
+ */
+const deduplicateById = (problems) => {
+  const seen = new Set();
+  return problems.filter((problem) => {
+    if (seen.has(problem.id)) {
+      return false;
+    }
+    seen.add(problem.id);
+    return true;
+  });
 };
 
 
