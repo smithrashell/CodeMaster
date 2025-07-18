@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getAllowedDifficulties } from "../utils/Utils.js";
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
+import { getTagRelationships } from "./tag_relationships.js";
 const openDB = dbHelper.openDB;
 
 /**
@@ -474,178 +475,90 @@ export async function fetchAdditionalProblems(
 ) {
   try {
     const { masteryData, focusTags, allTagsInCurrentTier } = await getCurrentLearningState();
-
     const allProblems = await getAllStandardProblems();
-
-    const focusTagSet = new Set(focusTags);
-    const allTagsInCurrentTierSet = new Set(allTagsInCurrentTier);
-
-    console.log("🧼 masteryData:", masteryData);
-    const tagDifficultyAllowance = {};
+    const ladders = await getPatternLadders();
+    
+    console.log("🧠 Starting intelligent problem selection...");
+    console.log("🧠 Focus Tags:", focusTags);
+    console.log("🧠 Needed problems:", numNewProblems);
+    
+    // Get tag relationships for expansion
+    const tagRelationships = await getTagRelationships();
+    
+    // Calculate difficulty allowances for all tags
+    const tagDifficultyAllowances = {};
     for (const tag of focusTags) {
-      tagDifficultyAllowance[tag] = getDifficultyAllowanceForTag(masteryData[tag]);
+      const tagMastery = masteryData.find(m => m.tag === tag) || {
+        tag,
+        totalAttempts: 0,
+        successfulAttempts: 0,
+        mastered: false
+      };
+      tagDifficultyAllowances[tag] = getDifficultyAllowanceForTag(tagMastery);
     }
-
-    const candidateProblems = [];
-    const ladders = await getPatternLadders(); // { tag1: { problems: [...] }, tag2: ... }
-
-    // for (const tag of focusTags) {
-    //   const ladder = ladders?.[tag]?.problems || [];
-    //   console.log("🧼 ladder for tag:", tag, ladder);
     
-    //   for (const problem of ladder) {
-    //     console.log("🧼 problem:", problem);
-    //     const rating = problem.rating || "Medium";
-    //     const allowance = tagDifficultyAllowance[tag] || {
-    //       Easy: 1,
-    //       Medium: 0,
-    //       Hard: 0,
-    //     };
-    //     console.log("🧼 allowance:", allowance);
-  
-    //     const id = problem.leetCodeID ?? problem.id;
-    //     if (excludeIds.has(id)) continue;
+    const selectedProblems = [];
+    const usedProblemIds = new Set(excludeIds);
     
-    //     // Tier constraint
-    //     if (!(problem.tags || []).some((t) => t.toLowerCase() === tag.toLowerCase())) continue;
-
-    //     // Must include current tag (sanity check)
-    //     console.log("🧼 problem.tags:", problem.tags);
-    //     console.log("🧼 tag:", tag);
-    //     if (!(problem.tags || []).includes(tag)) continue;
+    // Step 1: Primary focus (60% of problems) - Deep learning on weakest tag
+    const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
+    const primaryTag = focusTags[0]; // Weakest tag based on performance
     
-     
-     
-    //     console.log("🧼 allowance:", allowance[rating]);
-    //     if (allowance[rating] > 0) {
-          
-    //       candidateProblems.push({
-    //         ...problem,
-    //         tagOrigin: tag,
-    //         ratingWeight: allowance[rating],
-    //       });
-    //       console.log("🧼 candidateProblems:", candidateProblems);
-    //     }
-    //   }
-    // }
-    const difficultyOrder = { Easy: 1, Medium: 2, Hard: 3 };
-    const selectedProblemIds = new Set();
-for (const tag of focusTags) {
-  const ladder = ladders?.[tag]?.problems || [];
-  const allowance = tagDifficultyAllowance[tag] || { Easy: 1, Medium: 0, Hard: 0 };
-  console.log("🧼 ladder:", ladder);
-  console.log("🧼 allowance:", allowance);
-  const sorted = ladder
-    .filter((problem) => {
-      const id = problem.leetCodeID ?? problem.id;
-      const rating = problem.rating || "Medium";
-      const tags = normalizeTags(problem.tags || []);
-
-      console.log(`🧼 Checking Problem #${problem.title} [${id}]`);
-      console.log("    Tags:", tags);
-      console.log("    Rating:", rating);
-
-      if (excludeIds.has(id)) {
-        console.log("    ❌ Excluded due to excludeIds.");
-        return false;
-      }
-
-      if(selectedProblemIds.has(id)) {
-        console.log("🧼 Skipped — already selected.");
-        return false;
-      }
-
-      const tierValid = tags.every((t) => allTagsInCurrentTierSet.has(t));
-      if (!tierValid) {
-        console.log("🧼 allTagsInCurrentTierSet:", allTagsInCurrentTierSet);
-        console.log("🧼 tags:", tags);
-        console.log("    ❌ Skipped — has tags outside current tier.");
-        return false;
-      }
-
-      if (!tags.includes(tag)) {
-        console.log(`    ❌ Skipped — does not include focus tag: ${tag}`);
-        return false;
-      }
-
-      if (allowance[rating] <= 0) {
-        console.log(`    ❌ Skipped — allowance[${rating}] = ${allowance[rating]}`);
-        return false;
-      }
-
-      console.log("    ✅ Included");
-      return true;
-    })
-    .sort((a, b) => difficultyOrder[a.rating || "Medium"] - difficultyOrder[b.rating || "Medium"]);
-
- console.log("🧼 sorted:", sorted);
-  if (sorted.length) {
+    console.log(`🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`);
+    const primaryProblems = await selectProblemsForTag(
+      primaryTag,
+      primaryFocusCount,
+      tagDifficultyAllowances[primaryTag],
+      ladders,
+      allProblems,
+      allTagsInCurrentTier,
+      usedProblemIds
+    );
     
-    const chosen = sorted[0];
-    console.log("🧼 chosen:", chosen);
-    const rating = chosen.rating || "Medium";
-    if(selectedProblemIds.has(chosen.id)) {
-      console.log("🧼 Skipped — already selected.");
-      return;
-    }
-    candidateProblems.push({
-      ...chosen,
-      tagOrigin: tag,
-      ratingWeight: allowance[rating],
-    });
-    selectedProblemIds.add(chosen.leetCodeID);
-    console.log("🧼 selectedProblemIds:", selectedProblemIds);
-    // Optional: decrement allowance here if needed
-  }
-}
-
-// Final cap
-// const limited = candidateProblems.slice(0, numNewProblems);
-
-    if (candidateProblems.length === 0) {
-      console.warn(
-        "⚠️ No eligible new problems found from tag mastery core ladders."
+    selectedProblems.push(...primaryProblems);
+    primaryProblems.forEach(p => usedProblemIds.add(p.id));
+    
+    // Step 2: Focus tag expansion (40% of problems) - Use next focus tag
+    const expansionCount = numNewProblems - selectedProblems.length;
+    if (expansionCount > 0 && focusTags.length > 1) {
+      const expansionTag = focusTags[1]; // Use next focus tag for expansion
+      console.log(`🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`);
+      
+      const tagMastery = masteryData.find(m => m.tag === expansionTag) || {
+        tag: expansionTag,
+        totalAttempts: 0,
+        successfulAttempts: 0,
+        mastered: false
+      };
+      const allowance = getDifficultyAllowanceForTag(tagMastery);
+      
+      const expansionProblems = await selectProblemsForTag(
+        expansionTag,
+        expansionCount,
+        allowance,
+        ladders,
+        allProblems,
+        allTagsInCurrentTier,
+        usedProblemIds
       );
-      return [];
+      
+      selectedProblems.push(...expansionProblems);
+      expansionProblems.forEach(p => usedProblemIds.add(p.id));
+      
+      console.log(`🔗 Added ${expansionProblems.length} problems from expansion tag: ${expansionTag}`);
     }
-
-    // Optional debug
-    console.log(
-      "📦 Final candidate problems:",
-      candidateProblems
-    );
-    console.log(`🧼 Initial candidate count: ${candidateProblems.length}`);
-    // Sort by rating weight
-    candidateProblems.sort((a, b) => b.ratingWeight - a.ratingWeight);
-    // ✅ Deduplicate by leetCodeID
-    const seen = new Set();
-    let uniqueProblems = [];
-
-    for (let problem of candidateProblems) {
-      const id = problem.leetCodeID 
-      if (seen.has(id)) continue;
-      seen.add(id);
-      uniqueProblems.push(problem);
-    }
-    console.log(
-      `🧼 Removed duplicates — final count: ${uniqueProblems}`
-    );
     
-    uniqueProblems = uniqueProblems.slice(0, numNewProblems);
-    console.log("🧼 numNewProblems:", numNewProblems);
-    console.log("🧼 uniqueProblems:", uniqueProblems);
-    console.log("🧼 standardProblems:", allProblems);
-    const standardProblems = uniqueProblems.map((problem) => {
-      return allProblems.find((p) => p.id === problem.leetCodeID);
-    });
-    console.log("🧼 uniqueProblems:", uniqueProblems);
-    console.log("🧼 standardProblems:", standardProblems);
-    return standardProblems;
+    console.log(`🎯 Selected ${selectedProblems.length} problems for learning`);
+    return selectedProblems;
+    
   } catch (error) {
     console.error("❌ Error in fetchAdditionalProblems():", error);
     return [];
   }
 }
+
+
+
 
 async function getProblemSequenceScore(
   problemId,
@@ -953,4 +866,99 @@ export async function updateProblemWithTags() {
 function normalizeTags(tags) {
   if (!Array.isArray(tags)) return [];
   return tags.map(tag => tag.trim().toLowerCase());
+}
+
+/**
+ * Selects problems for a specific tag with progressive difficulty
+ * @param {string} tag - The tag to select problems for
+ * @param {number} count - Number of problems to select
+ * @param {object} difficultyAllowance - Difficulty allowance for the tag
+ * @param {object} ladders - Pattern ladders
+ * @param {array} allProblems - All standard problems
+ * @param {array} allTagsInCurrentTier - Tags in current tier
+ * @param {Set} usedProblemIds - Already used problem IDs
+ * @returns {Promise<Array>} Selected problems
+ */
+async function selectProblemsForTag(
+  tag,
+  count,
+  difficultyAllowance,
+  ladders,
+  allProblems,
+  allTagsInCurrentTier,
+  usedProblemIds
+) {
+  console.log(`🎯 Selecting ${count} problems for tag: ${tag}`);
+  
+  const ladder = ladders?.[tag]?.problems || [];
+  const allTagsInCurrentTierSet = new Set(allTagsInCurrentTier);
+  
+  // Filter eligible problems with progressive difficulty preference
+  const eligibleProblems = ladder
+    .filter(problem => {
+      const id = problem.leetCodeID ?? problem.id;
+      const rating = problem.rating || "Medium";
+      const tags = normalizeTags(problem.tags || []);
+      
+      // Basic filters
+      if (usedProblemIds.has(id)) return false;
+      if (difficultyAllowance[rating] <= 0) return false;
+      if (!tags.includes(tag)) return false;
+      
+      // Tier constraint - all tags must be in current tier
+      const tierValid = tags.every(t => allTagsInCurrentTierSet.has(t));
+      if (!tierValid) return false;
+      
+      return true;
+    })
+    .map(problem => ({
+      ...problem,
+      difficultyScore: getDifficultyScore(problem.rating || "Medium"),
+      allowanceWeight: difficultyAllowance[problem.rating || "Medium"]
+    }))
+    .sort((a, b) => {
+      // Sort by difficulty score (easier first) and then by allowance weight
+      if (a.difficultyScore !== b.difficultyScore) {
+        return a.difficultyScore - b.difficultyScore;
+      }
+      return b.allowanceWeight - a.allowanceWeight;
+    });
+  
+  console.log(`🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`);
+  
+  // Select problems with progressive difficulty
+  const selectedProblems = [];
+  let selectedCount = 0;
+  
+  for (const problem of eligibleProblems) {
+    if (selectedCount >= count) break;
+    
+    const standardProblem = allProblems.find(p => p.id === problem.leetCodeID);
+    if (standardProblem) {
+      selectedProblems.push(standardProblem);
+      selectedCount++;
+    }
+  }
+  
+  console.log(`🎯 Selected ${selectedProblems.length} problems for ${tag}`);
+  return selectedProblems;
+}
+
+/**
+ * Gets related tags for expansion based on tag relationships
+ * @param {string} primaryTag - The primary focus tag
+ * @param {array} focusTags - Current focus tags
+ * @param {object} tagRelationships - Tag relationship data
+ * @param {array} allTagsInCurrentTier - All tags in current tier
+ * @returns {Promise<Array>} Related tags for expansion
+ */
+
+/**
+ * Gets difficulty score for progressive difficulty ordering
+ * @param {string} difficulty - Difficulty level
+ * @returns {number} Difficulty score
+ */
+function getDifficultyScore(difficulty) {
+  const scores = { "Easy": 1, "Medium": 2, "Hard": 3 };
+  return scores[difficulty] || 2;
 }
