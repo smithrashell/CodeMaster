@@ -20,8 +20,6 @@
 
 - 🃏 **Flashcard Mode** for reinforced learning based on recent sessions and failed problems 
 - 🤖 **ChatGPT-powered flashcard generation** using user notes and problem tags
-- 🎮 Gamified elements (XP, badges, streaks)
-
 
 ---
 ## 📸 Screenshots
