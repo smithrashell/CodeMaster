@@ -53,50 +53,37 @@ export const SessionService = {
   },
 
   /**
-   * Retrieves an existing session or creates a new one if none exists.
+   * Attempts to resume an existing in-progress session.
+   * @returns {Promise<Array|null>} - Array of remaining problems or null if no resumable session
    */
-  async getOrCreateSession() {
-    console.log("📌 getOrCreateSession called");
-
-    // First try to migrate settings from Chrome storage if needed
-    let settings = await StorageService.migrateSettingsToIndexedDB();
-    
-    if (!settings) {
-      console.error("❌ Settings not found.");
-      return null;
-    }
-
-    const sessionLength = settings.sessionLength;
-
-
+  async resumeSession() {
     const latestSession = await getLatestSession();
     console.log("✅ latestSession:", latestSession);
 
     if (latestSession && latestSession.status === "in_progress") {
       console.log("📌 Found ongoing session. Checking attempts...");
 
+      let problems = await this.checkAndCompleteSession(latestSession.id);
+      console.log("✅ Session completion check:", problems);
 
-      let problems = await this.checkAndCompleteSession(
-        latestSession.id
-      );
-      console.log("✅ isSessionCompleted:", problems);
-
-
-        if (problems.length > 0 ) {
-       
+      if (problems.length > 0) {
         console.log("📌 Returning unattempted problems:", problems);
         await saveSessionToStorage(latestSession);
         return problems;
       }
     }
 
+    return null;
+  },
 
+  /**
+   * Creates a new session with fresh problems.
+   * @returns {Promise<Array|null>} - Array of session problems or null on failure
+   */
+  async createNewSession() {
     console.log("📌 No ongoing session found, creating a new one...");
 
-    // Fetch new problems for the session
     const problems = await ProblemService.createSession();
-
-
     console.log("📌 problems for new session:", problems);
 
     if (!problems || problems.length === 0) {
@@ -114,12 +101,31 @@ export const SessionService = {
 
     console.log("📌 newSession:", newSession);
 
-    // Save the new session
     await saveNewSessionToDB(newSession);
     await saveSessionToStorage(newSession);
 
     console.log("✅ New session created and stored:", newSession);
     return newSession.problems;
+  },
+
+  /**
+   * Retrieves an existing session or creates a new one if none exists.
+   */
+  async getOrCreateSession() {
+    console.log("📌 getOrCreateSession called");
+
+    const settings = await StorageService.migrateSettingsToIndexedDB();
+    if (!settings) {
+      console.error("❌ Settings not found.");
+      return null;
+    }
+
+    const resumedProblems = await this.resumeSession();
+    if (resumedProblems) {
+      return resumedProblems;
+    }
+
+    return await this.createNewSession();
   },
   
   /**
