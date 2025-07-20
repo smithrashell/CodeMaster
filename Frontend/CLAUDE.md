@@ -9,6 +9,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Linting**: `npm run lint`
 - **Auto-fix linting issues**: `npm run lint:fix`
 - **Format code**: `npm run format`
+- **Run tests**: `npm test`
+- **Run tests in watch mode**: `npm run test:watch`
+- **Run tests with coverage**: `npm run test:coverage`
+- **Run tests for CI**: `npm run test:ci`
 
 ## Project Architecture
 
