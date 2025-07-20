@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.2] - 2025-07-20
+### Added
+- **🧪 Core Test Infrastructure**: Established foundational testing tools for CodeMaster Chrome extension (Resolves #5)
+  - Installed Jest, React Testing Library, and Jest Environment JSDOM for comprehensive testing
+  - Created `jest.config.js` with Chrome extension and ES6/JSX support configuration
+  - Built `test/setup.js` with global mocks for Chrome APIs (storage, runtime, tabs) and browser environment
+  - Integrated fake-indexeddb for isolated IndexedDB testing without external dependencies
+  - Added GitHub Actions workflow (`.github/workflows/test.yml`) for automated CI testing
+  - Created example test files demonstrating session logic and database testing patterns
+  - Updated package.json with test scripts: `test`, `test:watch`, `test:coverage`, `test:ci`
+
+### Enhanced  
+- **📚 Test Utilities**: Comprehensive testing helpers and mock factories
+  - Custom render function with Mantine provider integration for React component testing
+  - Mock factories for session, problem, and tag mastery data structures
+  - Chrome extension API helpers with storage and runtime mocking utilities
+  - Test assertion helpers for validating data structure integrity
+  - IndexedDB mock utilities for database operation testing
+
+### Technical Improvements
+- **🔧 Development Workflow**: Updated CLAUDE.md with testing commands and best practices
+- **🚀 CI/CD Integration**: Automated testing on push/PR with coverage reporting via Codecov
+- **🛡️ Environment Simulation**: Complete browser and Chrome extension environment mocking
+- **📊 Coverage Reporting**: Configured coverage thresholds and reporting for maintainable code quality
+
+### Testing Foundation
+- Enables reliable testing of session creation, tag mastery progression, and user settings persistence
+- Supports future development with isolated, reproducible test environment
+- Prevents regressions as system complexity increases through automated testing
+- Provides patterns for testing Chrome extension APIs and IndexedDB operations
+
 ## [0.8.1] - 2025-07-18
 ### Refactored
 - **🏗️ Session Orchestrator Refactoring**: Completed modularization of `getOrCreateSession()` function
