@@ -95,21 +95,13 @@ global.chrome = {
 // Mock browser global for WebExtensions API
 global.browser = global.chrome;
 
-// Mock window.location
-delete window.location;
-window.location = {
-  href: 'http://localhost:3000',
-  protocol: 'http:',
-  host: 'localhost:3000',
-  hostname: 'localhost',
-  port: '3000',
-  pathname: '/',
-  search: '',
-  hash: '',
-  origin: 'http://localhost:3000',
-  assign: jest.fn(),
-  replace: jest.fn(),
-  reload: jest.fn()
+// Suppress JSDOM navigation warnings during tests
+const originalError = console.error;
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('Not implemented: navigation')) {
+    return; // Suppress JSDOM navigation warnings
+  }
+  originalError.call(console, ...args);
 };
 
 // Mock console methods to reduce noise in tests

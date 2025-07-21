@@ -26,7 +26,7 @@ export const SessionService = {
     try {
       // 1️⃣ Capture pre-session state for delta calculations
       const preSessionTagMastery = await getTagMastery();
-      const preSessionMasteryMap = new Map(preSessionTagMastery.map(tm => [tm.tag, tm]));
+      const preSessionMasteryMap = new Map((preSessionTagMastery || []).map(tm => [tm.tag, tm]));
       
       // 2️⃣ Update problem relationships based on session attempts
       console.info("🔗 Updating problem relationships...");
@@ -38,18 +38,27 @@ export const SessionService = {
       
       // 4️⃣ Get updated tag mastery for delta calculation
       const postSessionTagMastery = await getTagMastery();
-      const postSessionMasteryMap = new Map(postSessionTagMastery.map(tm => [tm.tag, tm]));
+      const postSessionMasteryMap = new Map((postSessionTagMastery || []).map(tm => [tm.tag, tm]));
       
       // 5️⃣ Generate comprehensive session performance metrics
       console.info("📈 Generating session performance metrics...");
-      const unmasteredTags = postSessionTagMastery
+      const unmasteredTags = (postSessionTagMastery || [])
         .filter(tm => !tm.mastered)
         .map(tm => tm.tag);
       
       const performanceMetrics = await getSessionPerformance({
         recentSessionsLimit: 1, // Focus on current session
         unmasteredTags
-      });
+      }) || {
+        accuracy: 0,
+        avgTime: 0,
+        strongTags: [],
+        weakTags: [],
+        timingFeedback: {},
+        Easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+        Medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+        Hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 }
+      };
       
       // 6️⃣ Calculate mastery progression deltas
       const masteryDeltas = this.calculateMasteryDeltas(preSessionMasteryMap, postSessionMasteryMap);
