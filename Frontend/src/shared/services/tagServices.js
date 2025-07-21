@@ -181,8 +181,10 @@ async function getCurrentLearningState() {
  * @returns {Promise<Array>} Intelligent focus tags
  */
 async function getIntelligentFocusTags(masteryData, tierTags) {
-  console.log("🧠 Selecting intelligent focus tags...");
+  console.info("🧠 Selecting intelligent focus tags...");
   const db = await openDB();
+  const masteryTx = db.transaction("tag_mastery", "readwrite");
+  const masteryStore = masteryTx.objectStore("tag_mastery");
   // Get tag relationships for intelligent expansion
   const tagRelationshipsData = await new Promise((resolve, reject) => {
     const tx = db.transaction("tag_relationships", "readonly");

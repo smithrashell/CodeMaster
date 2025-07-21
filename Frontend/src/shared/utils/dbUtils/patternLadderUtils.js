@@ -19,8 +19,8 @@ const classificationRank = {
 export function getAllowedClassifications(currentClassification) {
   const normalized = (currentClassification || "").toLowerCase().trim();
   const currentRank = classificationRank[normalized] ?? 1;
-  console.log("normalized", normalized)
- console.log("currentRank", currentRank)
+  console.info("normalized", normalized)
+ console.info("currentRank", currentRank)
 
   return Object.entries(classificationRank)
     .filter(([_, rank]) => rank <= currentRank)
@@ -102,7 +102,7 @@ export function getValidProblems({
     p._matchedFocusTags = matchedFocusTags.length;
 
     // if (passed < 5) {
-    //   console.log(`   • Problem #${p.Title} - ID ${p.id}:`, tags);
+    //   console.info(`   • Problem #${p.Title} - ID ${p.id}:`, tags);
     // }
     passed++;
     return true;
@@ -110,13 +110,13 @@ export function getValidProblems({
   .sort((a, b) => b._matchedFocusTags - a._matchedFocusTags); // Highest count first
 
 
-  console.log("📊 Problem filtering summary");
-  console.log(`   • Total checked: ${totalChecked}`);
-  console.log(`   • Skipped (seen): ${failedUserMap}`);
-  console.log(`   • Skipped (no focus tag): ${failedFocusTag}`);
-  console.log(`   • Skipped (tag out of tier): ${failedTier}`);
-  console.log(`   ✅ Passed: ${passed}`);
-  console.log(`   🎯 Returned validProblems: ${valid.length}`);
+  console.info("📊 Problem filtering summary");
+  console.info(`   • Total checked: ${totalChecked}`);
+  console.info(`   • Skipped (seen): ${failedUserMap}`);
+  console.info(`   • Skipped (no focus tag): ${failedFocusTag}`);
+  console.info(`   • Skipped (tag out of tier): ${failedTier}`);
+  console.info(`   ✅ Passed: ${passed}`);
+  console.info(`   🎯 Returned validProblems: ${valid.length}`);
 
   return valid;
 }
@@ -138,16 +138,16 @@ export function buildLadder({
   const easyCount = Math.round(((problemCounts.easy || 0) / total) * ladderSize);
   const mediumCount = Math.round(((problemCounts.medium || 0) / total) * ladderSize);
   const hardCount = ladderSize - easyCount - mediumCount;
-  console.log("easyCount", easyCount)
-  console.log("mediumCount", mediumCount)
-  console.log("hardCount", hardCount)
+  console.info("easyCount", easyCount)
+  console.info("mediumCount", mediumCount)
+  console.info("hardCount", hardCount)
 
   const easy = validProblems.filter(p => p.difficulty === "Easy").slice(0, easyCount);
   const medium = validProblems.filter(p => p.difficulty === "Medium").slice(0, mediumCount);
   const hard = validProblems.filter(p => p.difficulty === "Hard").slice(0, hardCount);
 
   let problemsByDifficulty = [...easy, ...medium, ...hard];
-  console.log("ladderProblems", problemsByDifficulty)
+  console.info("ladderProblems", problemsByDifficulty)
   const ladderProblems = problemsByDifficulty.map((p) => {
     const userData = userProblemMap.get(p.id);
     const stats = userData?.AttemptStats || {};
