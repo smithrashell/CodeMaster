@@ -41,7 +41,7 @@ function App() {
     chrome.runtime.sendMessage(
       { type: "getDashboardStatistics" },
       (response) => {
-        console.log(response.result);
+        console.info("Dashboard statistics received:", response.result);
         setAppState(response.result);
       }
     );
