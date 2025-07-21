@@ -25,7 +25,7 @@
         "content/css/main.css",
         "content/css/timer.css",
         "content/css/probrec.css",
-        "content/css/theme.css"
+        "content/css/timerBanner.css"
       ],
       "run_at": "document_idle",
       "js": ["content.js"],
