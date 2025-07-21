@@ -9,6 +9,7 @@ import {
 import { updateProblemRelationships } from "../db/problem_relationships.js";
 import { ProblemService } from "../services/problemService.js";
 import { calculateTagMastery, getTagMastery } from "../db/tag_mastery.js";
+import { storeSessionAnalytics } from "../db/sessionAnalytics.js";
 import { StorageService } from "./storageService.js";
 import { v4 as uuidv4 } from "uuid";
 
@@ -80,7 +81,10 @@ export const SessionService = {
         insights: this.generateSessionInsights(performanceMetrics, masteryDeltas, difficultyMix)
       };
       
-      // 9️⃣ Log structured analytics for dashboard integration
+      // 9️⃣ Store session analytics in dedicated IndexedDB store
+      await storeSessionAnalytics(sessionSummary);
+      
+      // 🔟 Log structured analytics for dashboard integration (Chrome storage backup)
       this.logSessionAnalytics(sessionSummary);
       
       console.info(`✅ Session performance summary completed for ${session.id}`);
