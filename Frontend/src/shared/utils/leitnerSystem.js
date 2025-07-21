@@ -1,10 +1,12 @@
-import { updateStabilityFSRS } from "../db/problems.js";
+import { updateStabilityFSRS, fetchAllProblems as getAllProblems, saveUpdatedProblem } from "../db/problems.js";
+import { dbHelper } from "../db/index.js";
 
+const openDB = dbHelper.openDB;
 
 async function evaluateAttempts(problem) {
-  const db = await getDatabase();
+  const db = await openDB();
   const problemId = problem.id;
-  console.log("evaluateAttempt - problemId and problem", problemId, problem);
+  console.info("evaluateAttempt - problemId and problem", problemId, problem);
 
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(["attempts"], "readonly");
@@ -13,8 +15,8 @@ async function evaluateAttempts(problem) {
     let startDate = new Date(2022, 0, 1);
     let endDate = new Date();
 
-    console.log("evaluateAttempts - startDate", startDate.toISOString());
-    console.log("evaluateAttempts - endDate", endDate.toISOString());
+    console.info("evaluateAttempts - startDate", startDate.toISOString());
+    console.info("evaluateAttempts - endDate", endDate.toISOString());
 
     const range = IDBKeyRange.bound(
       [problemId, startDate.toISOString()],
@@ -31,14 +33,14 @@ async function evaluateAttempts(problem) {
       const cursor = event.target.result;
       if (cursor) {
         if (!lastAttempt) {
-          console.log("First attempt found:", cursor.value);
+          console.info("First attempt found:", cursor.value);
           lastAttempt = cursor.value;
         }
 
         attempts.push(cursor.value);
         cursor.continue();
       } else {
-        console.log("All attempts sorted:", attempts, "problem", problem);
+        console.info("All attempts sorted:", attempts, "problem", problem);
         let tempProblem = reassessBoxLevel(problem, attempts);
         let updatedProblem = await calculateLeitnerBox(
           tempProblem,
@@ -95,11 +97,11 @@ function reassessBoxLevel(problem, attempts) {
   problem.AttemptStats = stats;
   problem.CooldownStatus = stats.UnsuccessfulAttempts >= FAILURE_THRESHOLD;
   problem.BoxLevel = currentBoxLevel;
-  console.log("problem.BoxLevel", problem.BoxLevel);
+  console.info("problem.BoxLevel", problem.BoxLevel);
 
   let nextReviewDays = boxIntervals[currentBoxLevel - 1];
 
-  console.log("nextReviewDays", nextReviewDays);
+  console.info("nextReviewDays", nextReviewDays);
   if (problem.CooldownStatus) {
     nextReviewDays = Math.max(nextReviewDays, COOLDOWN_REVIEW_INTERVAL);
   }
@@ -113,13 +115,13 @@ function reassessBoxLevel(problem, attempts) {
   return problem;
 }
 
-async function calculateLeitnerBox(
+function calculateLeitnerBox(
   problem,
   attemptData,
   useTimeLimits = false
 ) {
-  console.log("CalculateLeitnerBox - attemptData", attemptData);
-  console.log("problem", problem);
+  console.info("CalculateLeitnerBox - attemptData", attemptData);
+  console.info("problem", problem);
 
   let exceededTimeLimit = false;
   if (useTimeLimits) {
@@ -131,7 +133,8 @@ async function calculateLeitnerBox(
     exceededTimeLimit = attemptData.TimeSpent > allowedTime;
   }
 
-  const problemId = problem.id;
+  // Note: problemId available for future use if needed
+  // const problemId = problem.id;
   let AttemptStats = problem.AttemptStats;
   const FAILURE_THRESHOLD = 3;
   const COOLDOWN_REVIEW_INTERVAL = 3;
@@ -170,7 +173,7 @@ async function calculateLeitnerBox(
   // Apply Stability multiplier to next review days
   const stabilityMultiplier = problem.Stability / 2;
   let nextReviewDays = Math.round(baseDays * stabilityMultiplier);
-  console.log("nextReviewDays", nextReviewDays);
+  console.info("nextReviewDays", nextReviewDays);
   // Safety net: Don't allow too short interval
   nextReviewDays = Math.max(1, nextReviewDays);
 
@@ -183,20 +186,20 @@ async function calculateLeitnerBox(
   problem.Difficulty += attemptData.Difficulty;
   problem.lastAttemptDate = attemptData.AttemptDate;
   problem.AttemptStats = AttemptStats;
-  console.log("attemptData.AttemptDate", attemptData.AttemptDate);
+  console.info("attemptData.AttemptDate", attemptData.AttemptDate);
   const nextReviewDate = new Date(attemptData.AttemptDate);
-  console.log("nextReviewDate", nextReviewDate);
-  console.log("nextReviewDays", nextReviewDays);
+  console.info("nextReviewDate", nextReviewDate);
+  console.info("nextReviewDays", nextReviewDays);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays);
-  console.log("nextReviewDate", nextReviewDate);
+  console.info("nextReviewDate", nextReviewDate);
   problem.ReviewSchedule = nextReviewDate.toISOString();
-  console.log("problem.ReviewSchedule", problem.ReviewSchedule);
+  console.info("problem.ReviewSchedule", problem.ReviewSchedule);
 
-  console.log(
+  console.info(
     "CalculateLeitnerBox - problem.ConsecutiveFailures",
     problem.ConsecutiveFailures
   );
-  console.log(
+  console.info(
     "Next Review Days:",
     nextReviewDays,
     "| Stability:",

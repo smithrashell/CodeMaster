@@ -1,38 +1,16 @@
-import { Container, Grid, Card, Title, Text, Button } from "@mantine/core";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  HeatMap,
-  HeatMapChart,
-  Treemap,
-  Rectangle,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-} from "recharts";
+import { Container, Grid, Title } from "@mantine/core";
+// Note: Recharts imports removed - add back as needed when charts are implemented
 import { useEffect, useState } from "react";
 import TimeGranularChartCard from "../../../shared/components/TimeGranularChartCard";
 import MasteryDashboard from "../../../shared/components/MasteryDashboard";
 import { getPromotionDemotionData } from "../../../shared/components/generatePromotionDataFromSession";
 import { getProblemActivityData } from "../../../shared/utils/DataAdapter";
 export function Progress({ appState }) {
-  console.log(appState);
+  console.info("Progress component - appState:", appState);
   const [boxLevelData, setBoxLevelData] = useState(appState.boxLevelData);
-  const [masteryData, setMasteryData] = useState(appState.masteryData);
-  const [learningState, setLearningState] = useState(appState.learningState);
+  // Note: Unused state variables commented out - uncomment when implementing charts
+  // const [masteryData, setMasteryData] = useState(appState.masteryData);
+  // const [learningState, setLearningState] = useState(appState.learningState);
   const [promotionData, setPromotionData] = useState(null);
   const [activityData, setActivityData] = useState(null);
   useEffect(() => {
@@ -75,7 +53,7 @@ export function Progress({ appState }) {
         appState.allSessions,
         "yearly"
       );
-      console.log("✅ weekly", weekly); // should not be empty
+      console.info("✅ weekly promotion data:", weekly);
       setPromotionData({ weekly, monthly, yearly });
       setActivityData({
         weekly: activityData,
@@ -86,11 +64,12 @@ export function Progress({ appState }) {
   }, [appState]);
 
   useEffect(() => {
-    console.log("📊 Rendered promotionData:", promotionData);
-    console.log("📊 Rendered activityData:", activityData);
+    console.info("📊 Rendered promotionData:", promotionData);
+    console.info("📊 Rendered activityData:", activityData);
   }, [promotionData, activityData]);
 
-  const COLORS = ["#8884d8", "#82ca9d"];
+  // Note: Colors for charts - uncomment when implementing visualizations
+  // const COLORS = ["#8884d8", "#82ca9d"];
 
   return (
     <Container size="xl" p="md">
@@ -114,7 +93,8 @@ export function Progress({ appState }) {
 
         {/* Mastery Pie Chart */}
         <Grid.Col span={6}>
-          <MasteryDashboard data={learningState} />
+          {/* <MasteryDashboard data={learningState} /> */}
+          <div>MasteryDashboard - Coming Soon</div>
           {/* <Card shadow="sm" p="lg">
             <Text weight={500} size="lg">
               Mastery Percentage

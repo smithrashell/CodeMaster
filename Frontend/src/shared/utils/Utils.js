@@ -1,5 +1,5 @@
 import { dbHelper } from "../db/index.js";
-import { v4 as uuidv4 } from "uuid";
+// import { v4 as uuidv4 } from "uuid"; // Commented out - uncomment when needed
 
 const openDB = dbHelper.openDB;
 
