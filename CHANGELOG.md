@@ -2,6 +2,130 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.5] - 2025-07-21
+### Added
+- **🛢️ Persistent Session Analytics Store**: Created dedicated IndexedDB store for historical session performance data
+  - Added new `session_analytics` store (database version 24) with sessionId as primary key
+  - Implemented comprehensive session analytics API with 6 specialized query functions
+  - Created optimized indexes for date-based, accuracy-based, and difficulty-based queries
+  - Enabled unlimited historical storage replacing 50-session Chrome storage limitation
+  - Built automatic data retention and cleanup system for long-term maintenance
+
+### Enhanced  
+- **📊 Session Performance Data Persistence**: Enhanced `summarizeSessionPerformance()` to store analytics permanently
+  - Integrated `storeSessionAnalytics()` for persistent storage of complete session summaries
+  - Maintained Chrome storage as backup system while adding IndexedDB as primary storage
+  - Preserved point-in-time mastery progression calculations for historical trend analysis
+  - Added structured analytics data optimized for dashboard queries and visualization
+
+### Technical Improvements
+- **🗄️ Database Architecture Enhancement**: Extended storage infrastructure for advanced analytics
+  - Upgraded database schema to version 24 with proper migration handling
+  - Added comprehensive session analytics data model with performance metrics, mastery deltas, and insights
+  - Implemented robust error handling and validation for analytics data storage operations
+  - Created specialized query functions for date ranges, accuracy filtering, and recent sessions retrieval
+
+### Analytics API Features
+- **🔍 Advanced Query Capabilities**: Built comprehensive API for session analytics retrieval
+  - `getSessionAnalyticsRange()` - Date-based queries for dashboard time series analysis
+  - `getRecentSessionAnalytics()` - Recent sessions overview with configurable limits
+  - `getSessionAnalyticsByAccuracy()` - Performance-filtered queries for trend analysis
+  - `cleanupOldSessionAnalytics()` - Automated data retention with configurable cleanup periods
+  - All functions include proper error handling, indexing optimization, and result sorting
+
+### Dashboard Foundation
+- **📈 Analytics-Ready Data Structure**: Prepared comprehensive data for advanced dashboard features
+  - Pre-calculated performance metrics for fast dashboard loading (accuracy, timing, difficulty breakdown)
+  - Historical mastery progression tracking with before/after state comparisons
+  - Tag performance analysis with strong/weak identification and timing feedback
+  - Session insights and recommendations stored for user feedback and progress tracking
+  - Structured data format optimized for chart libraries and visualization components
+
+### Bug Fixes
+- **🧪 Test Environment Enhancements**: Fixed compatibility issues for reliable testing
+  - Added `structuredClone` polyfill for Node.js test environment compatibility
+  - Fixed missing variable declaration in IndexedDB problem_relationships store creation
+  - Enhanced error handling and validation in session performance functions
+  - Suppressed JSDOM navigation warnings for cleaner test output
+
+### Future-Ready Architecture
+- **🚀 Scalable Analytics Foundation**: Built extensible system for advanced analytics features
+  - Established infrastructure for longitudinal learning insights and retention analysis
+  - Created indexed data structure supporting complex dashboard queries and filters
+  - Prepared foundation for machine learning insights and personalized recommendations
+  - Designed for integration with advanced visualization libraries and analytics tools
+
+## [0.8.4] - 2025-07-21
+### Added
+- **📊 Centralized Session Performance Summary**: Implemented comprehensive session analytics orchestration (Resolves #10)
+  - Created `summarizeSessionPerformance(session)` function as single entry point for all post-session analysis
+  - Consolidated existing logic from `calculateTagMastery()`, `updateProblemRelationships()`, and `getSessionPerformance()`
+  - Added mastery progression delta calculations to track learning advancement and decay over time
+  - Implemented session difficulty distribution analysis with percentages and predominant difficulty identification
+  - Generated actionable insights with accuracy, efficiency, and mastery feedback plus next action recommendations
+
+### Enhanced
+- **🎯 Session Analytics Foundation**: Established structured logging and analytics infrastructure
+  - Added comprehensive session analytics logging with JSON-formatted events for dashboard integration
+  - Implemented Chrome storage integration for last 50 session analytics with automatic cleanup
+  - Created helper functions for accuracy, efficiency, and mastery insight generation
+  - Enhanced session completion flow with centralized performance tracking instead of scattered function calls
+
+### Technical Improvements
+- **🔧 Code Architecture**: Improved session lifecycle management and maintainability
+  - Refactored `checkAndCompleteSession()` to use centralized performance analysis instead of individual function calls
+  - Maintained existing integration points in `attemptsService.addAttempt()` with zero breaking changes
+  - Added comprehensive error handling and logging throughout session performance pipeline
+  - Implemented delta calculations for pre/post session tag mastery state comparison
+
+### Analytics Features
+- **📈 Performance Metrics**: Comprehensive session performance tracking capabilities
+  - Tag accuracy and efficiency measurement across difficulty levels
+  - Mastery progression tracking with new masteries and decay detection
+  - Session difficulty mix analysis with counts, percentages, and predominant difficulty
+  - Timing feedback analysis against expected time ranges for each difficulty level
+  - Strong and weak tag identification for personalized learning recommendations
+
+### Future-Ready Infrastructure
+- Established foundation for longitudinal insights and retention analysis
+- Prepared analytics data structure for advanced dashboard visualizations
+- Created extensible architecture for additional performance metrics and insights
+- Simplified debugging and testing through centralized session analysis logic
+
+## [0.8.3] - 2025-07-21
+### Fixed
+- **🧹 ESLint Configuration Overhaul**: Completely refactored and balanced linting setup for improved developer experience (Resolves #13)
+  - Fixed broken `no-direct-db-access` custom rule that was causing configuration errors
+  - Resolved all critical `no-undef` errors by adding missing imports across codebase
+  - Cleaned up hundreds of unused imports and variables with proper commenting for future use
+  - Adjusted aggressive `max-lines-per-function` limit from 30 → 75 lines (100 for services/DB)
+  - Added complexity-focused rules with realistic thresholds (15 base, 18-20 for business logic)
+  - Implemented context-aware overrides for test files, service layer, and database operations
+
+### Enhanced
+- **🎯 Smart Linting Rules**: Balanced configuration prioritizing real issues over style noise
+  - Added `argsIgnorePattern: "^_"` and `varsIgnorePattern: "^_"` for intentional unused variables
+  - Enhanced Chrome extension environment support with `webextensions: true` and proper globals
+  - Integrated React Hooks linting with `eslint-plugin-react-hooks` for better hook usage validation
+  - Replaced `console.log` statements with appropriate logging levels (`console.info`, `console.error`)
+  - Added domain-specific import restrictions to encourage modular database access patterns
+
+### Technical Improvements
+- **📊 Linting Philosophy**: Established clear error vs warning categorization
+  - **Errors**: Critical issues that break functionality (`no-undef`, `no-unused-vars`, `no-console`)
+  - **Warnings**: Code quality suggestions (`complexity`, `max-lines-per-function`, `require-await`)
+  - **Context-aware**: Relaxed rules for tests, stricter for production code
+- **🔧 Developer Experience**: Reduced linting noise from 607 → 536 problems while improving accuracy
+  - Fixed import resolution issues and undefined function references
+  - Established consistent async/await patterns and Promise handling
+  - Improved build stability with proper module exports and imports
+
+### Code Quality Impact
+- Maintained 100% test pass rate and successful builds throughout refactoring
+- Reduced false positive warnings while surfacing legitimate code issues
+- Established foundation for consistent code style without hindering productivity
+- Improved onboarding experience by removing configuration barriers
+
 ## [0.8.2] - 2025-07-20
 ### Added
 - **🧪 Core Test Infrastructure**: Established foundational testing tools for CodeMaster Chrome extension (Resolves #5)
