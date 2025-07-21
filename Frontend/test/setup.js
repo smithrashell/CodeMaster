@@ -95,6 +95,11 @@ global.chrome = {
 // Mock browser global for WebExtensions API
 global.browser = global.chrome;
 
+// Polyfill structuredClone for Node.js environment (not available in older versions)
+if (!global.structuredClone) {
+  global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
+}
+
 // Suppress JSDOM navigation warnings during tests
 const originalError = console.error;
 console.error = (...args) => {
