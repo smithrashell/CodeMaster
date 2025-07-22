@@ -6,7 +6,18 @@ module.exports = (env, argv) => {
 
   baseConfig.plugins.push(
     new CopyPlugin({
-      patterns: [{ from: "public" }],
+      patterns: [
+        { from: "public" },
+        { 
+          from: "src/content/css", 
+          to: "content/css",
+          globOptions: {
+            ignore: ["**/*.module.css"]
+          }
+        },
+        { from: "src/app/app.css", to: "app.css" },
+        { from: "src/shared/constants/LeetCode_Tags_Combined.json", to: "LeetCode_Tags_Combined.json" }
+      ],
     })
   );
 
