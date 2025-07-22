@@ -2,9 +2,20 @@
 dist/
 node_modules/
 *.log
-package-lock.json
 /Frontend/node_modules/
 /Frontend/dist/
+/Frontend/coverage/
 /Backend/node_modules/
 /Backend/.env
 /Backend/package-lock.json
+
+# Claude Code settings and temporary files
+.claude/
+.cursorignore
+
+# Test and development files
+test_*.ps1
+tstaus
+
+# API documentation (if it contains sensitive info)
+# API_USAGE_GUIDE.md
