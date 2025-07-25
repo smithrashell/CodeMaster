@@ -50,7 +50,17 @@ function App() {
   return (
     <MantineProvider>
       <Router>
-        <div style={{ display: "flex", height: "100vh", width: "100vw" }}>
+        <div style={{ 
+          display: "flex", 
+          height: "100vh", 
+          width: "100vw",
+          minWidth: "100vw",
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        }}>
           <DoubleNavbar />
 
           <main style={{ padding: "20px", flex: 1 }}>
