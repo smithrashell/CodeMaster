@@ -3,22 +3,22 @@
 
 
 /*TODO: create a folder for css styles */
-.injected {
-  color: #000;
-  background-color: #e5c84c;
+.cd-extension .injected {
+  color: #000 !important;
+  background-color: #e5c84c !important;
 }
-.btn {
-  background-color: #f1f1f1;
-  border: none;
-  border-radius: 25%;
-}
-
-button {
-  margin-right: 5px;
+.cd-extension .btn {
+  background-color: #f1f1f1 !important;
+  border: none !important;
+  border-radius: 25% !important;
 }
 
+.cd-extension button {
+  margin-right: 5px !important;
+}
 
-#cd-menuButton {
+
+.cd-extension #cd-menuButton {
   background-color: var(--cd-btn-bg);
   color: var(--cd-btn-text);
   font-weight: bold;
@@ -30,26 +30,51 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 110;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999;
   cursor: pointer;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.3s, color 0.3s, transform 0.2s ease;
   transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
 }
 
 /* Hover state for "Go Home" affordance */
-body[data-theme='dark'] #cd-menuButton:hover {
-  background-color: #3b82f6; /* blue accent */
-  color: white;
+.cd-extension #cd-menuButton:hover {
+  transform: scale(1.05);
 }
 
-body[data-theme='light'] #cd-menuButton:hover {
-  /* background-color: #0b7199;
-  color: #fabd22; */
-  background-color: #334155;
-  color: #ffffff;
+body[data-theme='dark'] .cd-extension #cd-menuButton:hover {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+body[data-theme='light'] .cd-extension #cd-menuButton:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(51, 65, 85, 0.3);
+}
+
+/* Responsive positioning for narrow screens */
+@media screen and (max-width: 768px) {
+  .cd-extension #cd-menuButton {
+    top: 10px;
+    left: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+}
+
+/* Safe zone positioning to avoid LeetCode navigation */
+@media screen and (min-width: 1200px) {
+  .cd-extension #cd-menuButton {
+    left: 24px;
+    top: 24px;
+  }
 }
 
 
@@ -67,7 +92,7 @@ body[data-theme='light'] #cd-menuButton:hover {
   transition: color 0.2s ease;
 } */
 
-.cd-button--close {
+.cd-extension .cd-button--close {
   top: 20px;
   right:20px;
   position: absolute;
@@ -76,7 +101,7 @@ body[data-theme='light'] #cd-menuButton:hover {
   font-size: 20px;
   color: var(--cd-btn-text);
   cursor: pointer;
-  z-index: 120;
+  z-index: 10000;
   transition: color 0.2s ease;
 }
 
@@ -85,7 +110,7 @@ body[data-theme='light'] #cd-menuButton:hover {
 }
 
 
-#homeIcon {
+.cd-extension #homeIcon {
   background-color: var(--cd-btn-bg);
   color: var(--cd-btn-text);
   font-weight: bold;
@@ -100,7 +125,7 @@ body[data-theme='light'] #cd-menuButton:hover {
   position: fixed;
   top: 16px;
   left: 16px;
-  z-index: 110;
+  z-index: 9999;
   cursor: pointer;
   transition: background-color 0.3s, color 0.3s;
   transform: none;
@@ -182,7 +207,7 @@ body[data-theme='light'] #cd-menuButton:hover {
   font-size: 1.5em;
 }
 
-.cd-sidenav {
+.cd-extension .cd-sidenav {
   position: absolute;
   top: 0;
   left: 0;
@@ -198,7 +223,7 @@ body[data-theme='light'] #cd-menuButton:hover {
   display: flex;
   flex-direction: column;
   gap: 25px;
-  z-index: 100;
+  z-index: 9998;
   transition: 1s;
   box-sizing: border-box;
 }
