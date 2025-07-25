@@ -2,7 +2,7 @@
   position: absolute;
   top: 10%;
   left: 80%;
-  z-index: 110;
+  z-index: 9800;
   width: 80px;
   height: 75px;
   border-radius: 0px;
@@ -27,7 +27,7 @@
   top: 0px;
   right: 11px;
   color: white;
-  z-index: 110;
+  z-index: 9800;
   border-radius: 0px;
   border: none;
   width: 170px;
@@ -110,7 +110,7 @@
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 1000; /* Ensure it stays on top */
+  z-index: 9850; /* Ensure it stays on top */
   background-color: #fff; /* Add background color if needed */
   padding: 10px 0; /* Add padding if needed */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow for better visibility */
