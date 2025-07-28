@@ -199,26 +199,49 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
     return acc;
   }, {});
   
-  // Filter unmastered tags in current tier
-  const unmasteredTags = masteryData
+  // 🔓 Time-based escape hatch: Check for tags stuck for 2+ weeks
+  const now = new Date();
+  
+  // Filter and process tags in current tier with time-based escape hatch logic
+  const allRelevantTags = masteryData
     .filter(tag => 
       tierTags.includes(tag.tag) && 
-      tag.totalAttempts > 0 && 
-      tag.successfulAttempts / tag.totalAttempts < 0.8
+      tag.totalAttempts > 0
     )
-    .map(tag => ({
-      ...tag,
-      successRate: tag.successfulAttempts / tag.totalAttempts,
-      learningVelocity: calculateLearningVelocity(tag),
-      relationshipScore: calculateRelationshipScore(tag.tag, masteryData, tagRelationships)
-    }));
+    .map(tag => {
+      const successRate = tag.successfulAttempts / tag.totalAttempts;
+      let adjustedMasteryThreshold = 0.8; // Standard 80% threshold
+      let timeBasedEscapeHatch = false;
+      
+      // Check if tag has been stuck for 2+ weeks
+      if (tag.lastAttemptDate) {
+        const lastAttemptDate = new Date(tag.lastAttemptDate);
+        const daysSinceLastAttempt = (now - lastAttemptDate) / (1000 * 60 * 60 * 24);
+        
+        // Apply time-based escape hatch if stuck for 14+ days and has some progress (≥60%)
+        if (daysSinceLastAttempt >= 14 && successRate >= 0.6 && successRate < 0.8) {
+          adjustedMasteryThreshold = 0.6; // Lower threshold from 80% to 60%
+          timeBasedEscapeHatch = true;
+          console.log(`🔓 Time-based escape hatch available for "${tag.tag}": ${daysSinceLastAttempt.toFixed(0)} days since last attempt, ${(successRate * 100).toFixed(1)}% accuracy`);
+        }
+      }
+      
+      return {
+        ...tag,
+        successRate,
+        adjustedMasteryThreshold,
+        timeBasedEscapeHatch,
+        learningVelocity: calculateLearningVelocity(tag),
+        relationshipScore: calculateRelationshipScore(tag.tag, masteryData, tagRelationships)
+      };
+    });
 
-  // 🎓 Check if current focus tags are mastered and need graduation
-  const currentFocusTags = masteryData.filter(tag => 
-    tierTags.includes(tag.tag) && 
-    tag.totalAttempts > 0 && 
-    tag.successfulAttempts / tag.totalAttempts >= 0.8
-  );
+  // Split into mastered and unmastered using adjusted thresholds
+  const unmasteredTags = allRelevantTags.filter(tag => tag.successRate < tag.adjustedMasteryThreshold);
+  const masteredTags = allRelevantTags.filter(tag => tag.successRate >= tag.adjustedMasteryThreshold);
+
+  // 🎓 Check if current focus tags are mastered and need graduation (including escape hatch logic)
+  const currentFocusTags = masteredTags;
 
   // 🎓 Graduate when most of focus window is mastered (4 out of 5 tags)
   if (currentFocusTags.length >= 4) {

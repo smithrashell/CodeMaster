@@ -160,13 +160,29 @@ export async function calculateTagMastery() {
       const decayScore =
         stats.totalAttempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
 
-      const mastered = masteryRatio >= 0.8;
+      // 🔓 Attempt-based escape hatch: After 15+ failed attempts, allow graduation at reduced success rate
+      let masteryThreshold = 0.8; // Default 80% success rate
+      let escapeHatchActivated = false;
+      
+      const failedAttempts = stats.totalAttempts - stats.successfulAttempts;
+      if (failedAttempts >= 15 && masteryRatio >= 0.6) {
+        // Apply attempt-based escape hatch - lower threshold from 80% to 60%
+        masteryThreshold = 0.6;
+        escapeHatchActivated = true;
+        console.log(`🔓 Attempt-based escape hatch ACTIVATED for "${tag}": ${failedAttempts} failed attempts, allowing graduation at 60% (was ${(masteryRatio * 100).toFixed(1)}%)`);
+      }
+
+      const mastered = masteryRatio >= masteryThreshold;
 
       console.log(`🧠 Writing mastery for "${tag}":`, {
         totalAttempts: stats.totalAttempts,
         successfulAttempts: stats.successfulAttempts,
+        failedAttempts,
         decayScore,
-        mastered,
+        mastered: mastered,
+        masteryThreshold: `${(masteryThreshold * 100).toFixed(0)}%`,
+        currentAccuracy: `${(masteryRatio * 100).toFixed(1)}%`,
+        escapeHatchUsed: escapeHatchActivated
       });
 
       await new Promise((resolve, reject) => {
