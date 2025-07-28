@@ -21,24 +21,37 @@ import Header from "../../../shared/components/header.jsx";
 const StyledSelect = styled(Select)({
   "&.MuiOutlinedInput-root": {
     "& fieldset": {
-      border: "none",
+      border: "none !important",
+      outline: "none !important"
     },
     "&:hover fieldset": {
-      border: "none",
+      border: "none !important",
     },
     "&.Mui-focused fieldset": {
-      border: "none",
+      border: "none !important",
     },
   },
   "&.MuiInput-underline:before": {
-    borderBottom: "1px solid #0c433d",
+    borderBottom: "1px solid var(--cd-btn-bg) !important",
   },
   "&.MuiInput-underline:hover:not(.Mui-disabled):before": {
-    borderBottom: "2px solid #0c433d",
+    borderBottom: "2px solid var(--cd-btn-bg) !important",
   },
   "&.MuiInput-underline:after": {
-    borderBottom: "2px solid #0c433d",
+    borderBottom: "2px solid var(--cd-active-blue) !important",
   },
+  "& .MuiSelect-select": {
+    color: "var(--cd-text) !important",
+    backgroundColor: "transparent !important",
+    padding: "8px 0 !important"
+  },
+  "& .MuiInputBase-root": {
+    color: "var(--cd-text) !important"
+  },
+  "& .MuiMenuItem-root": {
+    color: "var(--cd-dropdown-color) !important",
+    backgroundColor: "var(--cd-dropdown-bg) !important"
+  }
 });
 
 const ProbTime = () => {

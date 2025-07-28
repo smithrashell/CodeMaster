@@ -32,43 +32,54 @@ const ProbDetail = (isLoading) => {
   };
 
   return (
-   <div id="cd-mySidenav" className="cd-sidenav__content">
-        {loading && !LeetCodeID ? (
+    <div className="cd-simple-details">
+      {loading && !LeetCodeID ? (
         <p>Loading...</p>
       ) : (
-        <div>
-          <p>Problem ID: {LeetCodeID || "N/A"}</p>
-          <p>Title: {Description || "N/A"}</p>
-          <div className="cd-tags-line">
-          <strong>Tags:</strong>{" "}
-          <span>
-            {Tags && Tags.length > 0
-              ? Tags.map((tag) => tag.charAt(0).toUpperCase() + tag.slice(1)).join(", ")
-              : "No tags available"}
-                      {/* <TagInput setTags={setTags} /> */}
-          </span>
+        <>
+          <div className="cd-detail-row">
+            <strong>Problem ID:</strong> {LeetCodeID || "N/A"}
+          </div>
+          
+          <div className="cd-detail-row">
+            <strong>Title:</strong> {Description || "N/A"}
+          </div>
+          
+          <div className="cd-detail-row">
+            <strong>Tags:</strong> {Tags && Tags.length > 0 ? (
+              Tags.map((tag, index) => (
+                <span key={index} className="cd-simple-tag">
+                  {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                </span>
+              ))
+            ) : (
+              "No tags available"
+            )}
           </div>
 
-  
-          <button
-            onClick={() =>
-              navigate("/Timer", { state: { LeetCodeID, Description, Tags } })
-            }
-          >
-            New Attempt
-          </button>
-          <input
-            type="button"
-            value="Skip"
-            onClick={() => onSkip()}
-            style={
-              !showSkip
-                ? { display: "none" }
-                : { marginLeft: "10px", color: "red" }
-            }
-          />
-          <p>Problem data received </p>
-        </div>
+          <div className="cd-simple-actions">
+            <button
+              className="cd-primary-button"
+              onClick={() =>
+                navigate("/Timer", { state: { LeetCodeID, Description, Tags } })
+              }
+            >
+              <span className="cd-nav-icon cd-retry-icon"></span>
+              New Attempt
+            </button>
+            
+            {showSkip && (
+              <button
+                className="cd-skip-button"
+                onClick={() => onSkip()}
+              >
+                Skip
+              </button>
+            )}
+          </div>
+          
+          <p className="cd-simple-status">Problem data received</p>
+        </>
       )}
     </div>
   );
