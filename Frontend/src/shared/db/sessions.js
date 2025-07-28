@@ -71,20 +71,68 @@ export const updateSessionInDB = async (session) => {
 };
 
 /**
- * Saves session to Chrome Storage (optional: updates IndexedDB if needed).
+ * Saves session to Chrome Storage with fallback handling (optional: updates IndexedDB if needed).
+ * Implements graceful degradation when Chrome APIs are unavailable.
  */
 export const saveSessionToStorage = async (session, updateDatabase = false) => {
   return new Promise(async (resolve, reject) => {
-    chrome.storage.local.set({ currentSession: session }, async () => {
+    try {
+      // Check if Chrome API is available
+      if (typeof chrome !== 'undefined' && chrome?.storage?.local?.set) {
+        chrome.storage.local.set({ currentSession: session }, async () => {
+          if (chrome.runtime?.lastError) {
+            console.warn('Chrome storage error:', chrome.runtime.lastError);
+            // Continue with IndexedDB update even if Chrome storage fails
+          }
+          
+          if (updateDatabase) {
+            try {
+              await updateSessionInDB(session);
+            } catch (error) {
+              console.warn('IndexedDB update failed after Chrome storage save:', error);
+              // Don't reject - Chrome storage succeeded
+            }
+          }
+          resolve();
+        });
+      } else {
+        // Chrome API unavailable - log warning and continue
+        console.warn('Chrome storage API unavailable, skipping session storage to Chrome');
+        
+        // Still update IndexedDB if requested
+        if (updateDatabase) {
+          try {
+            await updateSessionInDB(session);
+            console.info('Session saved to IndexedDB (Chrome storage unavailable)');
+          } catch (error) {
+            console.error('Both Chrome storage and IndexedDB unavailable:', error);
+            reject(new Error('No storage mechanism available'));
+            return;
+          }
+        }
+        
+        // Resolve even without Chrome storage - system can continue
+        resolve();
+      }
+    } catch (error) {
+      console.error('Error in saveSessionToStorage:', error);
+      
+      // Try IndexedDB as fallback
       if (updateDatabase) {
         try {
           await updateSessionInDB(session);
-        } catch (error) {
-          reject(error);
+          console.info('Fallback to IndexedDB successful');
+          resolve();
+        } catch (dbError) {
+          console.error('All storage mechanisms failed:', { chromeError: error, dbError });
+          reject(new Error('All storage mechanisms unavailable'));
         }
+      } else {
+        // No fallback requested, but don't fail the entire operation
+        console.warn('Chrome storage failed, but continuing without storage');
+        resolve();
       }
-      resolve();
-    });
+    }
   });
 };
 
