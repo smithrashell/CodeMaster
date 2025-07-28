@@ -21,7 +21,7 @@ const Settings = () => {
     limit: "Auto",
     reminder: {
       enabled: true,
-      time: "09:00",
+      time: "12",
     },
   };
 

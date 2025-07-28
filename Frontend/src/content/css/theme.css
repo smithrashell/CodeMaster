@@ -25,13 +25,15 @@ body {
 body[data-theme="dark"] {
   --cd-bg: #1f2937;
   --cd-bg-alt: #3b506e;
-  --cd-text: #f1f1f1;
-  --cd-link: #94a3b8;
+  --cd-text: #f8fafc;
+  --cd-link: #cbd5e1;
   --cd-link-hover: #ffffff;
-  --cd-highlight: #facc15;
-  --cd-btn-bg: #334155;
-  --cd-btn-text: #f8fafc;
-
+  --cd-highlight: #fbbf24;
+  --cd-btn-bg: #4f46e5;
+  --cd-btn-text: #ffffff;
+  --cd-dropdown-color: #f8fafc;
+  --cd-dropdown-bg: #374151;
+  --cd-overlay-z-base: 9990;
 }
 
 /* ========== Apply Variables to Your CSS ========== */

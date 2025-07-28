@@ -5,19 +5,19 @@ import classes from "./css/SliderMarks.module.css";
 import React, { useState, useEffect } from "react";
 
 export function ToggleSelectRemainders({ reminder, onChange }) {
-  const [currReminder, setCurrReminder] = useState(reminder); // State to manage the slider toggle
+  const [currReminder, setCurrReminder] = useState(reminder || { enabled: false, time: "12" }); // State to manage the slider toggle
   useEffect(() => {
-    setCurrReminder(reminder);
+    setCurrReminder(reminder || { enabled: false, time: "12" });
   }, [reminder]);
 
   const handleToggle = () => {
-    const updatedReminder = { ...currReminder, value: !currReminder.value };
+    const updatedReminder = { ...currReminder, enabled: !currReminder?.enabled };
     setCurrReminder(updatedReminder);
     onChange(updatedReminder);
   };
 
   const handleSelectChange = (selectedValue) => {
-    const updatedReminder = { ...currReminder, label: selectedValue };
+    const updatedReminder = { ...currReminder, time: selectedValue };
     setCurrReminder(updatedReminder);
     onChange(updatedReminder);
   };
@@ -27,32 +27,31 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
       <Group position="center">
         {/* Slider Toggle */}
         <Switch
-          checked={currReminder?.value || false}
+          checked={currReminder?.enabled || false}
           onChange={handleToggle}
           size="md"
-          color={currReminder?.value ? "blue.5" : "gray.5"} // vivid blue when active
+          color={currReminder?.enabled ? "blue.5" : "gray.5"} // vivid blue when active
         />
       </Group>
 
       {/* Dropdown Select Component */}
-      {currReminder?.value && (
+      {currReminder?.enabled && (
         <Select
-     
-          label="Select an option"
-          placeholder="Pick one"
+          label="Reminder Frequency"
+          placeholder="Select frequency"
+          value={currReminder?.time}
           data={[
             { value: "6", label: "Every 6 hours" },
             { value: "12", label: "Every 12 hours" },
             { value: "24", label: "Once a day" },
           ]}
           onChange={handleSelectChange}
+          withinPortal={false}
+          dropdownPosition="bottom"
           styles={{
-           
             dropdown: {
-              backgroundColor: "var(--cd-dropdown-bg)", // match dark background
-              color: "var(--cd-dropdown-color)",
+              zIndex: 10000,
             },
-          
           }}
         />
       )}
