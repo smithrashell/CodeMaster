@@ -150,6 +150,7 @@ export const MockDataFactories = {
         masteryScore: 0.6 + (index * 0.1),
         decayScore: 1.0 - (index * 0.05)
       };
+      return mastery;
     }, {});
   },
 
