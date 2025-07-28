@@ -4,11 +4,11 @@
 
 /*TODO: create a folder for css styles */
 .cd-extension .injected {
-  color: #000 !important;
-  background-color: #e5c84c !important;
+  color: var(--cd-dropdown-color) !important;
+  background-color: var(--cd-highlight) !important;
 }
 .cd-extension .btn {
-  background-color: #f1f1f1 !important;
+  background-color: var(--cd-dropdown-bg) !important;
   border: none !important;
   border-radius: 25% !important;
 }
@@ -35,7 +35,7 @@
   left: 20px;
   z-index: 9999;
   cursor: pointer;
-  transition: background-color 0.3s, color 0.3s, transform 0.2s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
@@ -47,33 +47,36 @@
 }
 
 body[data-theme='dark'] .cd-extension #cd-menuButton:hover {
-  background-color: #3b82f6 !important;
-  color: white !important;
+  background-color: var(--cd-active-blue) !important;
+  color: var(--cd-btn-text) !important;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 body[data-theme='light'] .cd-extension #cd-menuButton:hover {
-  background-color: #334155 !important;
-  color: #ffffff !important;
+  background-color: var(--cd-link-hover) !important;
+  color: var(--cd-btn-text) !important;
   box-shadow: 0 4px 12px rgba(51, 65, 85, 0.3);
 }
 
-/* Responsive positioning for narrow screens */
-@media screen and (max-width: 768px) {
+/* Responsive positioning for narrow desktop screens */
+@media screen and (max-width: 1024px) {
   .cd-extension #cd-menuButton {
-    top: 10px;
-    left: 10px;
-    width: 36px;
-    height: 36px;
-    font-size: 12px;
+    top: 12px;
+    left: 12px;
+    width: 38px;
+    height: 38px;
+    font-size: 13px;
   }
 }
 
-/* Safe zone positioning to avoid LeetCode navigation */
+/* Optimized positioning for larger desktop screens */
 @media screen and (min-width: 1200px) {
   .cd-extension #cd-menuButton {
     left: 24px;
     top: 24px;
+    width: 42px;
+    height: 42px;
+    font-size: 15px;
   }
 }
 
@@ -127,7 +130,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   left: 16px;
   z-index: 9999;
   cursor: pointer;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.3s ease, color 0.3s ease;
   transform: none;
 }
 .cd-left {
@@ -148,12 +151,26 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   margin-left: 250px;
 }
 
-@media screen and (max-height: 450px) {
-  .sidenav {
-    padding-top: 15px;
+/* Sidebar adaptations for different desktop screen heights */
+@media screen and (max-height: 600px) {
+  .cd-extension .cd-sidenav {
+    padding: 8px 16px;
   }
-  .sidenav a {
-    font-size: 18px;
+  .cd-extension .cd-sidenav__content {
+    padding-top: 35px;
+    gap: 10px;
+  }
+  .cd-extension .cd-sidenav a {
+    font-size: 16px;
+    padding: 10px 16px !important;
+  }
+}
+
+/* Sidebar width optimization for narrow desktop screens */
+@media screen and (max-width: 1024px) {
+  .cd-extension .cd-sidenav {
+    max-width: 220px;
+    min-width: 220px;
   }
 }
 
@@ -226,7 +243,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   flex-direction: column;
   gap: 25px;
   z-index: 9998;
-  transition: 1s;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   box-sizing: border-box;
 }
 
@@ -256,7 +273,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   color: var(--cd-link) !important;
   display: flex !important;
   align-items: center !important;
-  transition: all 0.3s ease !important;
+  transition: color 0.3s ease, background-color 0.3s ease !important;
   text-align: left !important;
   width: 100% !important;
   border-radius: 8px !important;
@@ -271,7 +288,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   font-size: 18px !important;
   color: var(--cd-link) !important;
   display: block !important;
-  transition: all 0.3s ease !important;
+  transition: color 0.3s ease, background-color 0.3s ease !important;
   border-radius: 6px !important;
   margin-bottom: 6px !important;
 }
@@ -285,13 +302,12 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 .cd-button {
-  color: #818181;
-  /* background-color: darkred; */
+  color: var(--cd-link);
 }
 
 /* probtime component & form improvements */
 .cd-extension input[type="submit"] {
-  color: white !important;
+  color: var(--cd-btn-text) !important;
   font-weight: 600 !important;
   background-color: var(--cd-btn-bg) !important;
   border: none !important;
@@ -320,7 +336,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   margin-top: 20px !important;
   width: 100% !important;
   cursor: pointer !important;
-  transition: all 0.3s ease !important;
+  transition: color 0.3s ease, background-color 0.3s ease !important;
 }
 
 .cd-extension .mantine-Button-root:hover {
@@ -352,14 +368,14 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 } */
 
 .cd-extension .disabled {
-  color: #818181 !important; /* Gray color */
-  pointer-events: none !important; /* Disable click events */
-  cursor: not-allowed !important; /* Show not-allowed cursor */
+  color: var(--cd-link) !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
   padding: 8px 8px 8px 32px !important;
   text-decoration: none !important;
   font-size: 25px !important;
   display: block !important;
-  transition: 0.3s !important;
+  transition: opacity 0.3s ease !important;
   opacity: 0.5 !important;
   background-color: rgba(129, 129, 129, 0.1) !important;
   border-radius: 4px !important;
@@ -367,18 +383,18 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 
 
 .cd-extension .link-disabled {
-  pointer-events: none !important; /* Disable pointer events */
-  color: grey !important; /* Default color for disabled links */
-  text-decoration: none !important; /* Remove underline or default link styling */
+  pointer-events: none !important;
+  color: var(--cd-link) !important;
+  text-decoration: none !important;
   opacity: 0.6 !important;
   position: relative !important;
   cursor: not-allowed !important;
 }
 
 .cd-extension .link-disabled:hover {
-  color: darkgrey !important; /* Change color on hover to indicate inactive status */
-  cursor: not-allowed !important; /* Change cursor to not-allowed to indicate disabled */
-  transform: none !important; /* Prevent any hover animations */
+  color: var(--cd-link) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
 }
 
 /* Loading state for navigation links */
@@ -728,7 +744,7 @@ body[data-theme='dark'] .cd-extension .cd-retry-icon::after {
   font-weight: 600 !important;
   font-size: 14px !important;
   cursor: pointer !important;
-  transition: all 0.3s ease !important;
+  transition: color 0.3s ease, background-color 0.3s ease !important;
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
@@ -749,7 +765,7 @@ body[data-theme='dark'] .cd-extension .cd-retry-icon::after {
   font-weight: 500 !important;
   font-size: 14px !important;
   cursor: pointer !important;
-  transition: all 0.3s ease !important;
+  transition: color 0.3s ease, background-color 0.3s ease !important;
 }
 
 .cd-extension .cd-secondary-button:hover {

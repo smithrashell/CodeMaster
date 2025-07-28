@@ -1,6 +1,6 @@
 html, body {
   font-family: Arial, sans-serif;
-  background-color: #f0f0f0;
+  background-color: var(--cd-bg);
   margin: 0;
   padding: 0;
   width: 100%;
@@ -32,7 +32,7 @@ div[style*="display: flex"][style*="width: 100vw"] {
   width: 80%;
   margin: 20px auto;
   padding: 20px;
-  background-color: #ffffff;
+  background-color: var(--cd-dropdown-bg);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   border-radius: 5px;
 }
@@ -48,7 +48,7 @@ div[style*="display: flex"][style*="width: 100vw"] {
 }
 
 #output {
-  background-color: #f8f8f8;
+  background-color: var(--cd-bg-alt, var(--cd-bg));
   padding: 10px;
   border-radius: 4px;
   max-height: 150px;

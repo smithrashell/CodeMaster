@@ -106,8 +106,7 @@
 }
 
 .settingsOpen {
-  background-color: #8d8787; 
-  /* Light dark gray when open */
+  background-color: var(--cd-bg-alt, var(--cd-bg));
   border-radius: 5px;
   padding: 0px;
 }
@@ -123,18 +122,18 @@
   padding: 0px 10px;
   margin-left: 15px;
   display: block;
-  color: #bbb;
+  color: var(--cd-link);
   text-decoration: none;
-  transition: background 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out;
 }
 
 .subLink:hover {
-  background-color: #3a3a3a;
+  background-color: var(--cd-bg-alt, var(--cd-bg));
   border-radius: 5px;
 }
 
 .activeSubLink {
-  background-color: #228be6;
-  color: white;
+  background-color: var(--cd-active-blue);
+  color: var(--cd-btn-text);
   border-radius: 5px;
 }
