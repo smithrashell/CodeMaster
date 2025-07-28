@@ -33,16 +33,34 @@ const ProbGen = (props) => {
     <div className="cd-sidenav__content "
       >
       {problems.length > 0 ? (
-        <ul>
-          {problems.map((problem) => (
-            <li key={uuidv4()}>
-              <a href="#" onClick={(e) => handleLinkClick(problem)}>
-                {" "}
-                {problem.problemDescription || problem.title}
-              </a>
-            </li>
-          ))}
-        </ul>
+        <div className="cd-simple-problems-list">
+          {problems.map((problem) => {
+            const isNewProblem = !problem.attempts || problem.attempts.length === 0;
+            
+            return (
+              <div key={uuidv4()} className="cd-simple-problem-item">
+                <a 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLinkClick(problem);
+                  }}
+                  className="cd-simple-problem-link"
+                >
+                  {problem.problemDescription || problem.title}
+                </a>
+                <div className="cd-problem-badges">
+                  {isNewProblem && (
+                    <span className="cd-new-tag">NEW</span>
+                  )}
+                  <span className={`cd-difficulty cd-difficulty-${(problem.difficulty || 'medium').toLowerCase()}`}>
+                    {problem.difficulty || 'Medium'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <p>No problems found.</p>
       )}

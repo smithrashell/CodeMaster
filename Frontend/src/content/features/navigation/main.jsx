@@ -262,17 +262,34 @@ export default function Main() {
                   to="/ProbTime"
                   state={{ problemData, problemFound }}
                   onClick={(e) => {
-                    if (!problemData) {
+                    if (!problemData || loading) {
                       e.preventDefault(); // Prevent navigation if problemData is not ready
                     }
                   }}
-                  className={!problemData ? "link-disabled" : ""}
+                  className={`${
+                    !problemData || loading 
+                      ? "link-disabled" 
+                      : loading 
+                      ? "nav-link-loading" 
+                      : ""
+                  }`}
+                  title={
+                    loading 
+                      ? "Loading problem data..." 
+                      : !problemData 
+                      ? "Problem data not available" 
+                      : problemData && problemFound
+                      ? "Start a new attempt on this problem"
+                      : "Add this problem to your collection"
+                  }
                 >
-                  {problemData && problemFound 
-                    ? "New Attempt"
-                    : !problemData && loading
+                  {loading
                     ? "Loading..."
-                    : "New Problem"}
+                    : problemData && problemFound 
+                    ? <><span className="cd-nav-icon cd-retry-icon"></span>New Attempt</>
+                    : problemData && !problemFound
+                    ? <><span className="cd-nav-icon cd-plus-icon"></span>New Problem</>
+                    : "Problem Unavailable"}
                 </Link>
               )}
             
