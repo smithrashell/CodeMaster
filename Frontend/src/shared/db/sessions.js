@@ -426,6 +426,13 @@ export async function buildAdaptiveSessionSettings() {
     lastPerformance: {
       accuracy: null,
       efficiencyScore: null
+    },
+    // 🔓 Escape hatch tracking
+    escapeHatches: {
+      sessionsAtCurrentDifficulty: 0,
+      lastDifficultyPromotion: null,
+      sessionsWithoutPromotion: 0,
+      activatedEscapeHatches: []
     }
   };
 
@@ -472,13 +479,69 @@ export async function buildAdaptiveSessionSettings() {
     
     console.log(`🏷️ Tag exposure: ${tagCount}/${focusTags.length} focus tags (tagIndex: ${sessionState.tagIndex}, accuracy: ${(accuracy * 100).toFixed(1)}%)`);
 
-    // Progressive difficulty cap unlocking
-    if (accuracy >= 0.9 && sessionState.currentDifficultyCap === "Easy") {
+    // 🔓 Session-based escape hatch detection and activation
+    const currentDifficulty = sessionState.currentDifficultyCap;
+    
+    // Ensure escapeHatches object exists (backward compatibility)
+    if (!sessionState.escapeHatches) {
+      sessionState.escapeHatches = {
+        sessionsAtCurrentDifficulty: 0,
+        lastDifficultyPromotion: null,
+        sessionsWithoutPromotion: 0,
+        activatedEscapeHatches: []
+      };
+    }
+    
+    const escapeHatches = sessionState.escapeHatches;
+    
+    // Track sessions at current difficulty level
+    escapeHatches.sessionsAtCurrentDifficulty++;
+    
+    // Check for session-based escape hatch (10+ sessions without promotion)
+    let promotionThreshold = 0.9; // Default 90% accuracy
+    let escapeHatchActivated = false;
+    
+    if (escapeHatches.sessionsAtCurrentDifficulty >= 10) {
+      // Apply session-based escape hatch - lower threshold from 90% to 80%
+      promotionThreshold = 0.8;
+      escapeHatchActivated = true;
+      
+      if (!escapeHatches.activatedEscapeHatches.includes('session-based')) {
+        escapeHatches.activatedEscapeHatches.push('session-based');
+        console.log("🔓 Session-based escape hatch ACTIVATED: Lowering difficulty promotion threshold from 90% to 80%");
+      }
+    }
+
+    // Progressive difficulty cap unlocking with escape hatch threshold
+    if (accuracy >= promotionThreshold && sessionState.currentDifficultyCap === "Easy") {
       sessionState.currentDifficultyCap = "Medium";
-      console.log("🎯 Difficulty cap upgraded: Easy → Medium");
-    } else if (accuracy >= 0.9 && sessionState.currentDifficultyCap === "Medium") {
+      escapeHatches.lastDifficultyPromotion = now.toISOString();
+      escapeHatches.sessionsAtCurrentDifficulty = 0; // Reset counter
+      escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
+      
+      if (escapeHatchActivated) {
+        console.log("🎯 Difficulty cap upgraded via ESCAPE HATCH: Easy → Medium (80% threshold)");
+      } else {
+        console.log("🎯 Difficulty cap upgraded: Easy → Medium");
+      }
+    } else if (accuracy >= promotionThreshold && sessionState.currentDifficultyCap === "Medium") {
       sessionState.currentDifficultyCap = "Hard";
-      console.log("🎯 Difficulty cap upgraded: Medium → Hard");
+      escapeHatches.lastDifficultyPromotion = now.toISOString();
+      escapeHatches.sessionsAtCurrentDifficulty = 0; // Reset counter
+      escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
+      
+      if (escapeHatchActivated) {
+        console.log("🎯 Difficulty cap upgraded via ESCAPE HATCH: Medium → Hard (80% threshold)");
+      } else {
+        console.log("🎯 Difficulty cap upgraded: Medium → Hard");
+      }
+    }
+
+    // Track sessions without promotion for debugging
+    if (sessionState.currentDifficultyCap === currentDifficulty) {
+      escapeHatches.sessionsWithoutPromotion++;
+    } else {
+      escapeHatches.sessionsWithoutPromotion = 0;
     }
   }
 
