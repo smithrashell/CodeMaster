@@ -8,12 +8,35 @@ import { styled } from "@mui/material/styles";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
 
 const StyledSelect = styled(Select)({
-  "&.MuiOutlinedInput-root fieldset": { border: "none" },
-  "&.MuiInput-underline:before": { borderBottom: "1px solid #0c433d" },
-  "&.MuiInput-underline:hover:not(.Mui-disabled):before": {
-    borderBottom: "2px solid #0c433d",
+  "&.MuiOutlinedInput-root": {
+    "& fieldset": { 
+      border: "none !important",
+      outline: "none !important" 
+    },
+    "&:hover fieldset": { 
+      border: "none !important" 
+    },
+    "&.Mui-focused fieldset": { 
+      border: "none !important" 
+    }
   },
-  "&.MuiInput-underline:after": { borderBottom: "2px solid #0c433d" },
+  "&.MuiInput-underline:before": { 
+    borderBottom: "1px solid var(--cd-btn-bg) !important" 
+  },
+  "&.MuiInput-underline:hover:not(.Mui-disabled):before": {
+    borderBottom: "2px solid var(--cd-btn-bg) !important",
+  },
+  "&.MuiInput-underline:after": { 
+    borderBottom: "2px solid var(--cd-active-blue) !important" 
+  },
+  "& .MuiSelect-select": {
+    color: "var(--cd-text) !important",
+    backgroundColor: "transparent !important",
+    padding: "8px 0 !important"
+  },
+  "& .MuiInputBase-root": {
+    color: "var(--cd-text) !important"
+  }
 });
 
 const ProbSubmission = () => {
