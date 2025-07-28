@@ -16,17 +16,17 @@
 }
 
 #cd-timerpage #cd-timer {
-  background-color: #9cc4cf;
+  background-color: var(--cd-bg-alt, var(--cd-bg));
 }
 #cd-timerpage .bread {
   display: none;
 }
 #cd-timer {
   position: relative;
-  background-color: #0c433d;
+  background-color: var(--cd-btn-bg);
   top: 0px;
   right: 11px;
-  color: white;
+  color: var(--cd-btn-text);
   z-index: 9800;
   border-radius: 0px;
   border: none;
@@ -42,7 +42,7 @@
   align-content: space-between;
   flex-direction: row;
   height: 25px;
-  background-color: #9cc4cf;
+  background-color: var(--cd-bg-alt, var(--cd-bg));
 }
 .dail p {
   padding: 2px;
@@ -73,14 +73,14 @@
 
 .MuiFormLabel-root {
   font-size: 11px;
-  color: #0c433d;
+  color: var(--cd-text);
   font-weight: bold;
   margin: 3px 0;
 }
 
 .custom-select {
   border: none;
-  border-bottom: 1px solid #0c433d;
+  border-bottom: 1px solid var(--cd-btn-bg);
   padding-bottom: 4px;
   margin-bottom: 8px;
 }
@@ -91,7 +91,7 @@
 
 .custom-textarea {
   border: none;
-  border-bottom: 1px solid #0c433d;
+  border-bottom: 1px solid var(--cd-btn-bg);
   padding-bottom: 4px;
   margin-bottom: 8px;
   resize: none;
@@ -110,8 +110,8 @@
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 9850; /* Ensure it stays on top */
-  background-color: #fff; /* Add background color if needed */
-  padding: 10px 0; /* Add padding if needed */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add shadow for better visibility */
+  z-index: 9850;
+  background-color: var(--cd-dropdown-bg);
+  padding: 10px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }

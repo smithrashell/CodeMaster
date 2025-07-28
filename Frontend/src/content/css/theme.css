@@ -100,12 +100,13 @@ button {
   padding: 0px;
   margin-left: 250px;
 }
-@media screen and (max-height: 450px) {
-  .sidenav {
-    padding-top: 15px;
+@media screen and (max-height: 600px) {
+  .cd-sidenav {
+    padding-top: 10px;
   }
-  .sidenav a {
-    font-size: 18px;
+  .cd-sidenav a {
+    font-size: 16px;
+    padding: 8px 12px;
   }
 }
 .cd-hidden {
