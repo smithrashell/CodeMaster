@@ -52,8 +52,8 @@
 }
 
 .cd-extension .cd-new-tag {
-  background-color: white !important;
-  color: #333 !important;
+  background-color: var(--cd-dropdown-bg) !important;
+  color: var(--cd-dropdown-color) !important;
   font-size: 8px !important;
   font-weight: bold !important;
   padding: 1px 4px !important;
@@ -63,8 +63,8 @@
 }
 
 body[data-theme="dark"] .cd-extension .cd-new-tag {
-  background-color: #60a5fa !important;
-  color: white !important;
+  background-color: var(--cd-active-blue) !important;
+  color: var(--cd-btn-text) !important;
 }
 
 .cd-extension .cd-difficulty {
@@ -77,15 +77,15 @@ body[data-theme="dark"] .cd-extension .cd-new-tag {
 
 .cd-extension .cd-difficulty-easy {
   background-color: #10b981 !important;
-  color: white !important;
+  color: var(--cd-btn-text) !important;
 }
 
 .cd-extension .cd-difficulty-medium {
   background-color: #f59e0b !important;
-  color: white !important;
+  color: var(--cd-btn-text) !important;
 }
 
 .cd-extension .cd-difficulty-hard {
   background-color: #ef4444 !important;
-  color: white !important;
+  color: var(--cd-btn-text) !important;
 }
