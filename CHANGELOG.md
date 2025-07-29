@@ -1,8 +1,52 @@
 # 📓 Changelog
 
 All notable changes to this project will be documented in this file.
+Here are the changelog entry updates to append under a new version (suggested: `## [0.8.9] - 2025-07-28`):
 
-## [0.8.8] - 2025-01-28
+---
+
+## [0.8.9] - 2025-07-28
+
+### Enhanced
+
+* **🧠 Softened Progression Bottlenecks**: Comprehensive refactor of tag, tier, and difficulty advancement to reduce learner stagnation
+
+  * Added progressive tag graduation thresholds: 75% (light struggle), 70% (moderate), and 60% (heavy) with corresponding attempt ranges
+  * Replaced rigid AND logic with OR-based tag expansion: users can progress with either high accuracy or high efficiency
+  * Implemented stagnation fallback: 5+ sessions at same tag count triggers forced expansion
+  * Introduced tier advancement unlock after 30+ days without progress if user meets 60%+ completion
+  * Integrated adaptive thresholds that lower based on repeated struggle using centralized `adaptiveThresholds.js` utility
+
+### Technical Improvements
+
+* **🔧 Bottleneck Prevention Architecture**: Modular utilities and session tracking enhancements
+
+  * Updated `tag_mastery.js` with granular struggle classification and escape hatch tracking
+  * Enhanced `calculateTagIndexProgression()` to handle stagnation detection with sessionState input
+  * Extended `tagServices.js` to persist tier-level progress history and unlocks based on time gaps
+  * Created `adaptiveThresholds.js` for centralized context-aware threshold adjustment logic
+  * Tracked struggle history and adaptive logic outcomes for debugging and transparency
+
+### Testing Infrastructure
+
+* **🧪 Progressive Softening Validation**: Full coverage of new bottleneck escape logic
+
+  * Added `progressionBottlenecks.integration.test.js` to validate end-to-end advancement logic
+  * Extended test coverage for `adaptiveThresholds.test.js` and `tag_mastery.test.js`
+  * Verified correct activation of fallback conditions across session, tag, and tier levels
+  * All 103 tests passing with 93%+ coverage on key modules (`sessionService.js`, `adaptiveThresholds.js`)
+
+### User Experience Impact
+
+* **🎯 Resilient Progression Pathways**: Reduces frustration and improves motivation
+
+  * Users no longer punished for getting stuck at 77% accuracy — can now graduate
+  * Tag and tier advancement more forgiving with time and effort-based alternatives
+  * Clear debug logging and internal messaging improves transparency of support mechanisms
+  * Maintains educational integrity while supporting diverse learning trajectories
+
+
+## [0.8.8] - 2025-07-28
 ### Added
 - **🔓 Anti-Stalling Escape Hatch System**: Comprehensive fallback mechanisms to prevent user frustration and abandonment when stuck at rigid progression thresholds
   - Implemented session-based escape hatch activating after 10+ sessions without difficulty cap promotion (90% → 80% accuracy threshold)
@@ -44,7 +88,7 @@ All notable changes to this project will be documented in this file.
   - Clear console logging and user messaging explaining when and why escape hatches activate
   - Transparent operation maintaining user trust while providing necessary learning assistance
 
-## [0.8.7] - 2025-01-28
+## [0.8.7] - 2025-07-28
 ### Added
 - **🎨 Chrome Extension Responsive Theme System**: Completed Phase 3 of UI improvement plan with comprehensive styling enhancements (Resolves #32)
   - Implemented desktop-focused responsive design optimized for Chrome extension usage (1024px+ breakpoints)
