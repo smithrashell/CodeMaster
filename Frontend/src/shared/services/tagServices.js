@@ -98,14 +98,50 @@ async function getCurrentTier() {
     const masteryThreshold = Math.ceil(tierTags.length * 0.8);
     const isTierMastered = masteredTags.length >= masteryThreshold;
 
+    // 🔓 Time-based tier progression escape hatch: Allow advancement after 30+ days without progress
+    const now = new Date();
+    let allowTierAdvancement = isTierMastered;
+    let tierEscapeHatchActivated = false;
+    
     if (!isTierMastered) {
+      // Check if user has been stuck at this tier for 30+ days
+      const tierProgressKey = `tier_progress_${tier}`;
+      let tierProgressData = await StorageService.getSessionState(tierProgressKey) || {
+        tierStartDate: now.toISOString(),
+        lastProgressDate: now.toISOString(),
+        daysWithoutProgress: 0
+      };
+      
+      // Calculate days since last tier progress
+      const lastProgressDate = new Date(tierProgressData.lastProgressDate);
+      const daysSinceProgress = (now - lastProgressDate) / (1000 * 60 * 60 * 24);
+      
+      // Check if user has reasonable progress (60%+ tags mastered) and been stuck 30+ days
+      const progressRatio = masteredTags.length / tierTags.length;
+      if (daysSinceProgress >= 30 && progressRatio >= 0.6) {
+        allowTierAdvancement = true;
+        tierEscapeHatchActivated = true;
+        console.log(`🔓 Tier progression escape hatch ACTIVATED for ${tier}: ${Math.floor(daysSinceProgress)} days without progress, ${masteredTags.length}/${tierTags.length} tags mastered (${(progressRatio * 100).toFixed(1)}%)`);
+        
+        // Update progress tracking
+        tierProgressData.lastProgressDate = now.toISOString();
+        await StorageService.setSessionState(tierProgressKey, tierProgressData);
+      } else {
+        // Update days without progress tracking
+        tierProgressData.daysWithoutProgress = Math.floor(daysSinceProgress);
+        await StorageService.setSessionState(tierProgressKey, tierProgressData);
+      }
+    }
+
+    if (!allowTierAdvancement) {
       console.log(`✅ User is in ${tier}, working on ${unmasteredTags.length} tags.`);
       return {
         classification: tier,
         masteredTags,
         allTagsInCurrentTier: tierTags,
         focusTags: unmasteredTags,
-        masteryData
+        masteryData,
+        tierEscapeHatchActivated: false
       };
     }
 
@@ -137,7 +173,8 @@ async function getCurrentTier() {
         masteredTags,
         allTagsInCurrentTier: tierTags,
         focusTags: newTags,
-        masteryData
+        masteryData,
+        tierEscapeHatchActivated
       };
     }
   }
