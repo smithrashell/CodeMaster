@@ -471,7 +471,7 @@ export async function buildAdaptiveSessionSettings() {
     }
 
     // 🏷️ Progressive tag exposure within focus window
-    const tagCount = calculateTagIndexProgression(accuracy, efficiencyScore, sessionState.tagIndex, focusTags.length);
+    const tagCount = calculateTagIndexProgression(accuracy, efficiencyScore, sessionState.tagIndex, focusTags.length, sessionState);
     allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, tagCount) : ["array", "hash table"];
     
     // Update tagIndex for next session
@@ -744,22 +744,49 @@ export async function getAllSessions() {
  * @param {number} efficiencyScore - Current efficiency (0-1)
  * @param {number} currentTagIndex - Current tag index in focus window
  * @param {number} focusTagsLength - Length of current focus tags array
+ * @param {object} sessionState - Session state for tracking stagnation
  * @returns {number} Number of tags to include from focus window
  */
-function calculateTagIndexProgression(accuracy, efficiencyScore, currentTagIndex, focusTagsLength) {
+function calculateTagIndexProgression(accuracy, efficiencyScore, currentTagIndex, focusTagsLength, sessionState) {
   // Start with current progress
   let tagCount = currentTagIndex + 1; // Convert index to count
   
-  // Performance thresholds for tag expansion
-  const canExpandToNext = accuracy >= 0.75 && efficiencyScore >= 0.6;
-  const canExpandQuickly = accuracy >= 0.9 && efficiencyScore >= 0.8;
+  // 🔓 Softened tag expansion thresholds: Separate accuracy and efficiency OR-based conditions
+  // Allow expansion if user meets EITHER accuracy OR efficiency threshold (not both)
+  const hasGoodAccuracy = accuracy >= 0.75;
+  const hasGoodEfficiency = efficiencyScore >= 0.6;
+  const hasExcellentAccuracy = accuracy >= 0.9;
+  const hasExcellentEfficiency = efficiencyScore >= 0.8;
+  
+  // More lenient expansion conditions
+  const canExpandToNext = hasGoodAccuracy || hasGoodEfficiency; // OR instead of AND
+  const canExpandQuickly = (hasExcellentAccuracy || hasExcellentEfficiency) && (accuracy >= 0.7 || efficiencyScore >= 0.5);
+  
+  // Additional fallback: Allow expansion after 5+ sessions at same tag count (anti-stagnation)
+  const sessionsAtCurrentTagCount = sessionState.sessionsAtCurrentTagCount || 0;
+  const canExpandByStagnation = sessionsAtCurrentTagCount >= 5 && (accuracy >= 0.6 || efficiencyScore >= 0.4);
   
   // Progressive expansion within focus window
-  if (canExpandQuickly && tagCount < focusTagsLength) {
-    tagCount = Math.min(tagCount + 2, focusTagsLength); // Jump 2 tags if excellent performance
+  if ((canExpandQuickly || canExpandByStagnation) && tagCount < focusTagsLength) {
+    tagCount = Math.min(tagCount + 2, focusTagsLength); // Jump 2 tags if excellent performance or stuck
+    console.log(`🏷️ Tag expansion: +2 tags (${canExpandQuickly ? 'excellent performance' : 'stagnation fallback'})`);
   } else if (canExpandToNext && tagCount < focusTagsLength) {
     tagCount = Math.min(tagCount + 1, focusTagsLength); // Add 1 tag if good performance
+    console.log(`🏷️ Tag expansion: +1 tag (good ${hasGoodAccuracy ? 'accuracy' : 'efficiency'})`);
   }
+  
+  // Track sessions at current tag count for stagnation detection
+  if (!sessionState.sessionsAtCurrentTagCount) {
+    sessionState.sessionsAtCurrentTagCount = 0;
+  }
+  
+  const previousTagCount = sessionState.lastTagCount || 1;
+  if (tagCount === previousTagCount) {
+    sessionState.sessionsAtCurrentTagCount++;
+  } else {
+    sessionState.sessionsAtCurrentTagCount = 0; // Reset when tag count changes
+  }
+  sessionState.lastTagCount = tagCount;
   
   // Never exceed focus window size or go below 1
   const finalCount = Math.min(Math.max(1, tagCount), focusTagsLength);
