@@ -15,6 +15,14 @@ module.exports = (env, argv) => {
             ignore: ["**/*.module.css"]
           }
         },
+        { 
+          from: "src/shared/components/css/timer.css", 
+          to: "content/css/timer.css"
+        },
+        { 
+          from: "src/shared/components/css/timerBanner.css", 
+          to: "content/css/timerBanner.css"
+        },
         { from: "src/app/app.css", to: "app.css" },
         { from: "src/shared/constants/LeetCode_Tags_Combined.json", to: "LeetCode_Tags_Combined.json" }
       ],

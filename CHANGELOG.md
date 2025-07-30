@@ -1,7 +1,47 @@
 # 📓 Changelog
 
 All notable changes to this project will be documented in this file.
-Here are the changelog entry updates to append under a new version (suggested: `## [0.8.9] - 2025-07-28`):
+Here are the changelog entry updates to append under a new version (suggested: `## [0.9.0] - 2025-07-29`):
+
+---
+
+## [0.9.0] - 2025-07-29
+
+### Fixed
+
+* **🎨 Problem Details Page Layout Issues**: Resolved container overflow and element spacing problems in problem details sidebar
+
+  * Fixed sidebar card width constraints - reduced from `calc(110% - 24px)` to `calc(100% - 24px)` and max-width from 276px to 238px to fit within 250px sidebar container
+  * Optimized button sizing - reduced primary button padding from `24px 32px` to `12px 20px` and font size to 14px for better fit
+  * Standardized section spacing - reduced margins to 10px and improved gap consistency between all form elements  
+  * Enhanced text overflow handling - added proper ellipsis and line-clamping for long problem titles and descriptions
+  * Improved element centering - added proper flex alignment to action buttons and content sections
+
+* **📏 Container and Spacing Optimization**: Ensured all elements fit within single view without scrollbars or overflow
+
+  * Reduced font sizes across components (titles: 18px→16px, stats: 14px→12px, tags: 12px→10px) for better space utilization
+  * Optimized difficulty badge sizing and status card padding for compact layout
+  * Added proper box-sizing and overflow constraints to prevent element expansion beyond container bounds
+  * Implemented responsive text truncation with white-space controls for consistent display
+
+### Enhanced
+
+* **🎯 Layout Spacing and Visual Hierarchy**: Improved overall page structure and content organization
+
+  * Added 10px top margin to sidebar content container (`.cd-sidenav__content`) for better visual separation between header and page content
+  * Standardized gap spacing throughout details content sections for consistent visual rhythm
+  * Enhanced action button container with proper centering and alignment controls
+  * Improved tag and status section layouts with optimized flex properties and spacing
+
+### Technical Improvements
+
+* **🔧 CSS Architecture Refinements**: Optimized styling for better maintainability and performance
+
+  * Updated `probrec.css` with 16 targeted fixes addressing width constraints, padding, and text overflow issues
+  * Modified `main.css` with 4 strategic updates to content spacing and section alignment  
+  * Maintained existing CSS custom properties and theme variables for consistency
+  * Preserved all existing functionality while fixing layout constraint violations
+  * Used proper CSS specificity and `!important` declarations for Chrome extension overlay compatibility
 
 ---
 

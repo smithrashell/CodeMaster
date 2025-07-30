@@ -1,86 +1,184 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import TagInput from "../../../shared/components/TagInput";
+import { useNav } from "../../../shared/provider/navprovider";
 import Header from "../../../shared/components/header";
+import { ChevronLeftIcon, BarChart3Icon, TrendingUpIcon, TagIcon, PlayIcon, BrainIcon } from "../../../shared/components/ui/Icons";
+import Button from "../../../shared/components/ui/Button";
+import Badge from "../../../shared/components/ui/Badge";
+import Separator from "../../../shared/components/ui/Separator";
 
 const ProbDetail = (isLoading) => {
   const { state: routeState } = useLocation();
-
-  console.log("📌routeState  being read in component ", routeState);
-  const LeetCodeID =
-    routeState?.problemData?.leetCodeID || routeState?.problemData?.id;
-  const Description =
-    routeState?.problemData?.ProblemDescription ||
-    routeState?.problemData?.title;
-  const [Tags, setTags] = useState(routeState?.problemData?.tags || []);
+  const { setIsAppOpen } = useNav();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(isLoading);
+  
   const [showSkip, setShowSkip] = useState(false);
 
-  useEffect(() => {
-    setShowSkip(!routeState.problemFound);
-    console.log("routeState", routeState);
-    console.log("Tags", Tags);
-  }, [setShowSkip, setTags]);
+  // Extract problem data from route state
+  const problemData = {
+    id: routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
+    leetCodeID: routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
+    title: routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
+    ProblemDescription: routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
+    tags: routeState?.problemData?.tags || [],
+    difficulty: routeState?.problemData?.difficulty || "Unknown",
+    acceptance: routeState?.problemData?.acceptance || "N/A",
+    submissions: routeState?.problemData?.submissions || "N/A",
+    attempts: routeState?.problemData?.attempts || 0,
+    lastSolved: routeState?.problemData?.lastSolved || "Never"
+  };
 
-  const onSkip = () => {
-    chrome.runtime.sendMessage({
-      type: "skipProblem",
-      consentScriptData: routeState.problemData,
+  useEffect(() => {
+    setShowSkip(!routeState?.problemFound);
+  }, [routeState?.problemFound]);
+
+  const handleClose = () => {
+    setIsAppOpen(false);
+  };
+
+  const handleNewAttempt = () => {
+    navigate("/Timer", { 
+      state: { 
+        LeetCodeID: problemData.leetCodeID,
+        Description: problemData.ProblemDescription,
+        Tags: problemData.tags
+      } 
     });
+  };
+
+  const handleSkip = () => {
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({
+        type: "skipProblem",
+        consentScriptData: routeState?.problemData,
+      });
+    }
     navigate("/Probgen");
   };
 
+  const getDifficultyVariant = (difficulty) => {
+    if (!difficulty) return "default";
+    const diff = difficulty.toLowerCase();
+    if (diff === "easy") return "easy";
+    if (diff === "medium") return "medium";
+    if (diff === "hard") return "hard";
+    return "default";
+  };
+
+  if (isLoading && !problemData.leetCodeID) {
+    return (
+      <div id="cd-mySidenav" className="cd-sidenav">
+        <Header title="Problem Details" onClose={handleClose} />
+        <div className="cd-sidenav__content">
+          <p style={{ color: "var(--cd-text)", textAlign: "center", marginTop: "50px" }}>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="cd-simple-details">
-      {loading && !LeetCodeID ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <div className="cd-detail-row">
-            <strong>Problem ID:</strong> {LeetCodeID || "N/A"}
+    <div id="cd-mySidenav" className="cd-sidenav">
+      <Header title="Problem Details" onClose={handleClose} />
+      
+      <div className="cd-sidenav__content">
+        {/* Main Content Card */}
+        <div className="problem-sidebar-card">
+          <div className="problem-sidebar-card-header">
+            <ChevronLeftIcon className="problem-sidebar-back-icon" />
+            <span>Problem #{problemData?.leetCodeID || problemData?.id || "N/A"}</span>
           </div>
-          
-          <div className="cd-detail-row">
-            <strong>Title:</strong> {Description || "N/A"}
+          <h3 className="problem-sidebar-card-title">
+            {problemData?.ProblemDescription || problemData?.title || "N/A"}
+          </h3>
+          <Badge 
+            className="problem-sidebar-difficulty-badge" 
+            variant={getDifficultyVariant(problemData?.difficulty)}
+          >
+            {problemData?.difficulty || "Unknown"}
+          </Badge>
+
+          <Separator className="problem-sidebar-separator" />
+
+          <div className="problem-sidebar-stats">
+            <div className="problem-sidebar-stat">
+              <BarChart3Icon className="problem-sidebar-stat-icon" />
+              <div>
+                <div className="problem-sidebar-stat-value">
+                  {problemData?.acceptance || "N/A"}
+                </div>
+                <div className="problem-sidebar-stat-label">Acceptance</div>
+              </div>
+            </div>
+            <div className="problem-sidebar-stat">
+              <TrendingUpIcon className="problem-sidebar-stat-icon" />
+              <div>
+                <div className="problem-sidebar-stat-value">
+                  {problemData?.submissions || "N/A"}
+                </div>
+                <div className="problem-sidebar-stat-label">Submissions</div>
+              </div>
+            </div>
           </div>
-          
-          <div className="cd-detail-row">
-            <strong>Tags:</strong> {Tags && Tags.length > 0 ? (
-              Tags.map((tag, index) => (
-                <span key={index} className="cd-simple-tag">
+        </div>
+
+        {/* Tags Section */}
+        <div className="problem-sidebar-section">
+          <div className="problem-sidebar-section-header">
+            <TagIcon className="problem-sidebar-section-icon" />
+            <span className="problem-sidebar-section-title">Tags</span>
+          </div>
+          <div className="problem-sidebar-tags">
+            {problemData?.tags && problemData.tags.length > 0 ? (
+              problemData.tags.map((tag, index) => (
+                <Badge key={index} variant="secondary" className="problem-sidebar-tag">
                   {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                </span>
+                </Badge>
               ))
             ) : (
-              "No tags available"
+              <span className="problem-sidebar-no-tags">No tags available</span>
             )}
           </div>
+        </div>
 
-          <div className="cd-simple-actions">
-            <button
-              className="cd-primary-button"
-              onClick={() =>
-                navigate("/Timer", { state: { LeetCodeID, Description, Tags } })
-              }
-            >
-              <span className="cd-nav-icon cd-retry-icon"></span>
-              New Attempt
-            </button>
-            
-            {showSkip && (
-              <button
-                className="cd-skip-button"
-                onClick={() => onSkip()}
-              >
-                Skip
-              </button>
-            )}
+        {/* Status Section */}
+        <div className="problem-sidebar-section">
+          <div className="problem-sidebar-status-card">
+            <BrainIcon className="problem-sidebar-status-icon" />
+            <div className="problem-sidebar-status-content">
+              <div className="problem-sidebar-status-item">
+                <span className="problem-sidebar-status-label">Attempts:</span>
+                <span className="problem-sidebar-status-value">{problemData?.attempts || 0}</span>
+              </div>
+              <div className="problem-sidebar-status-item">
+                <span className="problem-sidebar-status-label">Last Solved:</span>
+                <span className="problem-sidebar-status-value">{problemData?.lastSolved || "Never"}</span>
+              </div>
+            </div>
           </div>
-          
-          <p className="cd-simple-status">Problem data received</p>
-        </>
-      )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="problem-sidebar-actions" style={{ marginTop: '20px', padding: '0' }}>
+          <Button
+            onClick={handleNewAttempt}
+            className="problem-sidebar-primary-btn"
+            variant="default"
+            size="lg"
+          >
+            <PlayIcon className="problem-sidebar-btn-icon" />
+            New Attempt
+          </Button>
+          {showSkip && (
+            <Button 
+              variant="ghost" 
+              onClick={handleSkip} 
+              className="problem-sidebar-skip-btn"
+            >
+              Skip Problem
+            </Button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
