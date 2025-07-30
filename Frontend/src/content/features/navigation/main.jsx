@@ -3,7 +3,8 @@ import "../../css/theme.css";
 import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
 import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
 import { useNav } from "../../../shared/provider/navprovider.jsx";
-import Header from "../../../shared/components/header.jsx"
+import { DoubleNavbar } from "../../../shared/components/DoubleNavbar.jsx";
+import Header from "../../../shared/components/header.jsx";
 
 
 const Menubutton = ({ isAppOpen,setIsAppOpen,currPath }) => {
@@ -251,7 +252,7 @@ export default function Main() {
   
             className={isAppOpen ? "cd-sidenav" : "cd-sidenav cd-hidden"}
           >
-      <Header/>
+      <Header title="CodeMaster" />
       <div className="cd-sidenav__content">
             <nav id="nav">
               <Link to="/ProbStat">Statistics</Link>
