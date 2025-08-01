@@ -255,9 +255,10 @@ export default function Main() {
       <Header title="CodeMaster" />
       <div className="cd-sidenav__content">
             <nav id="nav">
+              <Link to="/Strategy">Strategy Map</Link>
+              <Link to="/ProbGen">Generator</Link>
               <Link to="/ProbStat">Statistics</Link>
               <Link to="/Settings">Settings</Link>
-              <Link to="/ProbGen">Generator</Link>
               {problemTitle && (
                 <Link
                   to="/ProbTime"
