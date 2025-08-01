@@ -1,6 +1,6 @@
 export const dbHelper = {
   dbName: "review",
-  version: 24, // 🚨 Increment version to trigger upgrade (added session_analytics store)
+  version: 25, // 🚨 Increment version to trigger upgrade (added strategy_data store)
   db: null,
 
   async openDB() {
@@ -171,6 +171,17 @@ export const dbHelper = {
           dbHelper.ensureIndex(sessionAnalyticsStore, "by_difficulty", "predominantDifficulty");
           
           console.log("✅ Session analytics store created!");
+        }
+
+        // ✅ **NEW: Ensure 'strategy_data' store exists**
+        if (!db.objectStoreNames.contains("strategy_data")) {
+          let strategyDataStore = db.createObjectStore("strategy_data", {
+            keyPath: "tag",
+          });
+
+          dbHelper.ensureIndex(strategyDataStore, "by_tag", "tag");
+          
+          console.log("✅ Strategy data store created!");
         }
       };
 

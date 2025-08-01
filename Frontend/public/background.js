@@ -4,6 +4,7 @@ import { SessionService } from "../src/shared/services/sessionService.js";
 ///import { ScheduleService } from "../src/shared/services/scheduleService.js";
 import { LimitService } from "../src/shared/services/limitService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
+import { TagService } from "../src/shared/services/tagServices.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
 // import { buildAndStoreTagGraph } from "../src/shared/db/tag_mastery.js";
 // import { classifyTags } from "../src/shared/db/tag_mastery.js";
@@ -42,6 +43,71 @@ const processNextRequest = () => {
   handleRequest(request, sender, sendResponse).finally(() =>
     processNextRequest()
   );
+};
+
+// Strategy Map data aggregation function
+const getStrategyMapData = async () => {
+  try {
+    // Get current tier and learning state from TagService
+    const currentTierData = await TagService.getCurrentTier();
+    const learningState = await TagService.getCurrentLearningState();
+    
+    // Get all tag relationships to build tier structure
+    const { dbHelper } = await import("../src/shared/db/index.js");
+    const db = await dbHelper.openDB();
+    
+    const tagRelationships = await new Promise((resolve, reject) => {
+      const tx = db.transaction("tag_relationships", "readonly");
+      const store = tx.objectStore("tag_relationships");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    
+    // Get tag mastery data
+    const tagMastery = await new Promise((resolve, reject) => {
+      const tx = db.transaction("tag_mastery", "readonly");
+      const store = tx.objectStore("tag_mastery");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    
+    // Organize tags by tier with mastery information
+    const tierData = {};
+    const tiers = ["Core Concept", "Fundamental Technique", "Advanced Technique"];
+    
+    tiers.forEach(tier => {
+      const tierTags = tagRelationships
+        .filter(tag => tag.classification === tier)
+        .map(tag => {
+          const masteryInfo = tagMastery.find(m => m.tag === tag.id) || {};
+          const successRate = masteryInfo.totalAttempts > 0 
+            ? masteryInfo.successfulAttempts / masteryInfo.totalAttempts 
+            : 0;
+          
+          return {
+            tag: tag.id,
+            mastery: successRate,
+            unlocked: successRate > 0 || tier === "Core Concept", // Core concepts always unlocked
+            attempts: masteryInfo.totalAttempts || 0,
+            successful: masteryInfo.successfulAttempts || 0
+          };
+        });
+      
+      tierData[tier] = tierTags;
+    });
+    
+    return {
+      currentTier: currentTierData.classification || "Core Concept",
+      focusTags: currentTierData.focusTags || [],
+      tierData,
+      masteryData: tagMastery
+    };
+  } catch (error) {
+    console.error("❌ Error getting Strategy Map data:", error);
+    throw error;
+  }
 };
 
 const handleRequest = async (request, sender, sendResponse) => {
@@ -325,6 +391,18 @@ const handleRequest = async (request, sender, sendResponse) => {
         getDashboardStatistics()
           .then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error }))
+          .finally(finishRequest);
+        return true;
+
+      /** ──────────────── Strategy Map Data ──────────────── **/
+      case "getStrategyMapData":
+        console.log("🗺️ Getting Strategy Map data...");
+        getStrategyMapData()
+          .then((data) => sendResponse({ status: "success", data }))
+          .catch((error) => {
+            console.error("❌ Strategy Map error:", error);
+            sendResponse({ status: "error", error: error.message });
+          })
           .finally(finishRequest);
         return true;
 
