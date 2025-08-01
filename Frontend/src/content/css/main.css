@@ -937,5 +937,214 @@ body[data-theme='dark'] .cd-extension .cd-loading-state p {
   position: relative !important;
 }
 
+/* Strategy Map Styling */
+.cd-extension .strategy-map-card {
+  transition: all 0.2s ease !important;
+}
+
+.cd-extension .strategy-map-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.cd-extension .strategy-map-card:active {
+  transform: translateY(0px) !important;
+}
+
+/* Mantine component overrides for Strategy Map */
+.cd-extension .mantine-Card-root {
+  background-color: var(--cd-dropdown-bg) !important;
+  border-color: var(--cd-dropdown-bg) !important;
+  color: var(--cd-text) !important;
+}
+
+.cd-extension .mantine-Text-root {
+  color: var(--cd-text) !important;
+}
+
+.cd-extension .mantine-Progress-root {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.cd-extension .mantine-Progress-bar {
+  background-color: var(--cd-btn-bg) !important;
+}
+
+.cd-extension .mantine-Badge-root {
+  background-color: var(--cd-btn-bg) !important;
+  color: var(--cd-btn-text) !important;
+}
+
+/* Strategy Map Compact Tag Styling - Updated for better readability */
+.cd-extension .cd-strategy-focus-tag {
+  background-color: var(--cd-active-blue) !important;
+  color: var(--cd-btn-text) !important;
+  font-size: 10px !important;
+  font-weight: bold !important;
+  padding: 3px 8px !important;
+  border-radius: 8px !important;
+  text-transform: capitalize !important;
+  letter-spacing: 0.2px !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.cd-extension .cd-strategy-mastered-tag {
+  background-color: #10b981 !important;
+  color: var(--cd-btn-text) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  padding: 3px 8px !important;
+  border-radius: 8px !important;
+  text-transform: capitalize !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.cd-extension .cd-strategy-learning-tag {
+  background-color: #f59e0b !important;
+  color: var(--cd-btn-text) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  padding: 3px 8px !important;
+  border-radius: 8px !important;
+  text-transform: capitalize !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.cd-extension .cd-strategy-available-tag {
+  background-color: var(--cd-dropdown-bg) !important;
+  color: var(--cd-dropdown-color) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  padding: 3px 8px !important;
+  border-radius: 8px !important;
+  text-transform: capitalize !important;
+  display: inline-block !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.cd-extension .cd-strategy-locked-tag {
+  background-color: #666 !important;
+  color: #999 !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  padding: 3px 8px !important;
+  border-radius: 8px !important;
+  text-transform: capitalize !important;
+  display: inline-block !important;
+  cursor: default !important;
+  opacity: 0.6 !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Hover effects for strategy tags */
+.cd-extension .cd-strategy-focus-tag:hover,
+.cd-extension .cd-strategy-mastered-tag:hover,
+.cd-extension .cd-strategy-learning-tag:hover,
+.cd-extension .cd-strategy-available-tag:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Dark theme support for Strategy Map tags */
+body[data-theme="dark"] .cd-extension .cd-strategy-focus-tag {
+  background-color: var(--cd-active-blue) !important;
+  color: var(--cd-btn-text) !important;
+}
+
+body[data-theme="dark"] .cd-extension .cd-strategy-available-tag {
+  background-color: #374151 !important;
+  color: #f8fafc !important;
+}
+
+body[data-theme="dark"] .cd-extension .cd-strategy-locked-tag {
+  background-color: #4b5563 !important;
+  color: #9ca3af !important;
+}
+
+/* Strategy Map Container Scrolling */
+.cd-extension .cd-sidenav .cd-sidenav__content {
+  overflow-y: auto !important;
+  max-height: calc(100vh - 80px) !important;
+  padding-right: 8px !important;
+}
+
+/* Custom Scrollbar Styling for Strategy Map */
+.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-track {
+  background: var(--cd-bg) !important;
+  border-radius: 4px !important;
+}
+
+.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb {
+  background: var(--cd-dropdown-bg) !important;
+  border-radius: 4px !important;
+  transition: background-color 0.3s ease !important;
+}
+
+.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+  background: var(--cd-link) !important;
+}
+
+/* Dark theme scrollbar styling */
+body[data-theme="dark"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-track {
+  background: #1f2937 !important;
+}
+
+body[data-theme="dark"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb {
+  background: #374151 !important;
+}
+
+body[data-theme="dark"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+  background: #4b5563 !important;
+}
+
+/* Light theme scrollbar styling */
+body[data-theme="light"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+}
+
+body[data-theme="light"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb {
+  background: #e2e8f0 !important;
+}
+
+body[data-theme="light"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1 !important;
+}
+
+/* Light theme Strategy Map tag color overrides */
+body[data-theme="light"] .cd-extension .cd-strategy-focus-tag {
+  color: white !important;
+}
+
+body[data-theme="light"] .cd-extension .cd-strategy-mastered-tag {
+  color: white !important;
+}
+
+body[data-theme="light"] .cd-extension .cd-strategy-learning-tag {
+  color: white !important;
+}
+
+body[data-theme="light"] .cd-extension .cd-strategy-available-tag {
+  background-color: #e1e8f0 !important;
+  color: #424054 !important;
+}
+
+body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
+  background-color: #e1e8f0 !important;
+  color: #424054 !important;
+  opacity: 0.6 !important;
+}
+
 
 
