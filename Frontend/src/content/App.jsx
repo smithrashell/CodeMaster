@@ -14,6 +14,7 @@ import ProbStat from "./features/statistics/probstat";
 import Main from "./features/navigation/main";
 import ProbGen from "./features/problems/probgen";
 import ProbTime from "./features/problems/probtime";
+import StrategyMap from "./features/strategy/StrategyMap";
 
 import Settings from "./features/settings/settings";
 import TimerBanner from "../shared/components/timercomponent";
@@ -42,6 +43,7 @@ const Router = () => {
               <Route path="/Probtime" exact element={<ProbTime />} />
               <Route path="/Probstat" exact element={<ProbStat />} />
               <Route path="/Probgen" exact element={<ProbGen />} />
+              <Route path="/Strategy" exact element={<StrategyMap />} />
               <Route path="/Settings" exact element={<Settings />} />
               <Route path="/Timer" exact element={<TimerBanner />} />
             </Route>

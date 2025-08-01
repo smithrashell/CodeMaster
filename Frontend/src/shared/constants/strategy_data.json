@@ -1,0 +1,1368 @@
+[
+  {
+    "tag": "array",
+    "overview": "The foundational data structure for indexed access and sequential processing, appearing in over 1/3 of all problems.",
+    "patterns": ["greedy", "dynamic programming", "math", "sorting", "simulation", "hash table"],
+    "related": ["hash table", "two pointers", "sorting", "dynamic programming", "greedy", "math"],
+    "strategy": "Use index-based traversal and consider multiple pointers for optimization. Prefix sums and sliding windows often eliminate nested loops.",
+    "strategies": [
+      {
+        "when": "hash table",
+        "tip": "Track seen elements or indices using a hash map to reduce nested loops from O(n²) to O(n)."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Anchor one pointer and scan with the other to avoid brute-force pair checks, especially in sorted arrays."
+      },
+      {
+        "when":  "sorting",
+        "tip": "Sort first when order doesn't matter in the original problem but helps with pattern recognition or two-pointer techniques."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use prefix sums or DP tables to optimize subarray computations and avoid redundant range calculations."
+      },
+      {
+        "when":  "greedy",
+        "tip": "Make locally optimal choices at each array position when problem has optimal substructure without overlapping subproblems."
+      }
+    ]
+  },
+  {
+    "tag": "backtracking",
+    "overview": "Algorithmic approach that incrementally builds solutions and abandons candidates that cannot lead to valid solutions.",
+    "patterns": ["string", "dynamic programming", "recursion", "enumeration", "depth-first search"],
+    "related": ["string", "dynamic programming", "recursion", "enumeration", "depth-first search"],
+    "strategy": "Use for generating all possible solutions systematically. Implement proper pruning to avoid unnecessary exploration of invalid paths.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Build strings character by character and backtrack when constraints are violated, using StringBuilder for efficiency."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Cache intermediate results during backtracking to avoid recomputing the same subproblems multiple times."
+      },
+      {
+        "when": "recursion",
+        "tip": "Use recursive calls to explore choices and unwind decisions, maintaining state through parameters or global variables."
+      },
+      {
+        "when": "enumeration",
+        "tip": "Systematically generate all valid combinations by making choices at each level and pruning invalid branches early."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Explore paths deeply before backtracking, using DFS to traverse decision trees or graph structures."
+      }
+    ]
+  },
+  {
+    "tag": "binary indexed tree",
+    "overview": "Efficient data structure for calculating prefix sums and handling range queries with point updates.",
+    "patterns": ["segment tree", "divide and conquer", "array", "dynamic programming"],
+    "related": [],
+    "strategy": "Use for range sum queries and point updates in O(log n) time. Build using binary representation of indices for efficient traversal.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Replace prefix sum arrays with BIT when you need both range queries and point updates efficiently."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Choose BIT for simpler implementation when you only need range sums, use segment tree for more complex range operations."
+      }
+    ]
+  },
+  {
+    "tag": "binary search",
+    "overview": "Efficient search algorithm that repeatedly divides sorted search space in half to find target values.",
+    "patterns": ["array", "math", "greedy", "sorting"],
+    "related": ["array", "sorting", "math"],
+    "strategy": "Look for monotonic properties in the search space. Use template: while(left < right) with careful boundary handling to avoid infinite loops.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Search for target values, insertion points, or the first/last occurrence of elements in sorted arrays."
+      },
+      {
+        "when": "math",
+        "tip": "Find square roots, nth roots, or optimal values by searching on the mathematical property space."
+      },
+      {
+        "when": "greedy",
+        "tip": "Binary search on the answer when you can greedily check if a particular value is achievable."
+      },
+      {
+        "when": "sorting",
+        "tip": "Sort data first to enable binary search, trading O(n log n) preprocessing for O(log n) queries."
+      }
+    ]
+  },
+  {
+    "tag": "binary search tree",
+    "overview": "Binary tree with ordering property where left subtree values are less than node, which is less than right subtree values.",
+    "patterns": ["dynamic programming", "binary tree", "tree", "depth-first search", "recursion"],
+    "related": ["binary tree", "tree", "dynamic programming", "depth-first search", "recursion"],
+    "strategy": "Leverage BST property for O(log n) operations. Inorder traversal gives sorted sequence for many problems.",
+    "strategies": [
+      {
+        "when": "binary tree",
+        "tip": "Validate BST property by ensuring inorder traversal produces sorted sequence or use min/max bounds."
+      },
+      {
+        "when": "tree",
+        "tip": "Utilize BST ordering for efficient search, insertion, and deletion while maintaining tree balance."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Cache results of subtree computations when solving optimization problems on BSTs."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use DFS with inorder traversal to process nodes in sorted order for range-based queries."
+      },
+      {
+        "when": "recursion",
+        "tip": "Implement BST operations recursively, passing min/max bounds to maintain BST property during modifications."
+      }
+    ]
+  },
+  {
+    "tag": "binary tree",
+    "overview": "Tree data structure where each node has at most two children, referred to as left and right child.",
+    "patterns": ["binary search tree", "tree", "dynamic programming", "depth-first search", "recursion"],
+    "related": ["binary search tree", "tree", "dynamic programming", "depth-first search", "recursion"],
+    "strategy": "Master three traversal orders: inorder, preorder, postorder. Consider level-order traversal for breadth-first problems.",
+    "strategies": [
+      {
+        "when": "binary search tree",
+        "tip": "Convert between regular binary trees and BSTs by using inorder traversal to extract sorted values."
+      },
+      {
+        "when": "tree",
+        "tip": "Apply general tree algorithms to binary trees, often with simpler implementation due to at-most-two-children constraint."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use post-order traversal to compute optimal values from children before processing current node."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Implement preorder, inorder, and postorder traversals using DFS with explicit or implicit stacks."
+      },
+      {
+        "when": "recursion",
+        "tip": "Solve tree problems recursively by processing left subtree, right subtree, then current node."
+      }
+    ]
+  },
+  {
+    "tag": "bit manipulation",
+    "overview": "Techniques for manipulating individual bits in binary representations to solve problems efficiently.",
+    "patterns": ["array", "math", "string", "dynamic programming"],
+    "related": ["array", "math", "string", "dynamic programming"],
+    "strategy": "Master basic operations: AND, OR, XOR, bit shifts. XOR is particularly useful for finding unique elements and toggling states.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use XOR to find unique elements or missing numbers, and bit vectors to represent subsets of array elements."
+      },
+      {
+        "when": "math",
+        "tip": "Apply bitwise operations for fast arithmetic: use shifts for multiplication/division by powers of 2."
+      },
+      {
+        "when": "string",
+        "tip": "Represent character sets as bitmasks for efficient anagram checking and character frequency comparisons."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use bitmasks to represent states in DP when dealing with subset enumeration or flag combinations."
+      }
+    ]
+  },
+  {
+    "tag": "bitmask",
+    "overview": "Technique using bit patterns to represent sets of states or subsets efficiently in dynamic programming.",
+    "patterns": ["dynamic programming", "backtracking"],
+    "related": [],
+    "strategy": "Use for subset enumeration and state compression in DP. Each bit represents inclusion/exclusion of an element.",
+    "strategies": [
+      {
+        "when": "dynamic programming",
+        "tip": "Represent subsets as integers where each bit indicates element inclusion, enabling efficient state transitions."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Use bitmasks to track which elements have been used in current path, allowing quick validity checks."
+      }
+    ]
+  },
+  {
+    "tag": "brainteaser",
+    "overview": "Logic puzzles and mathematical problems that require creative thinking and pattern recognition.",
+    "patterns": ["math", "string", "geometry"],
+    "related": ["math", "string"],
+    "strategy": "Look for mathematical patterns and edge cases. Often involves modular arithmetic, probability, or logical deduction.",
+    "strategies": [
+      {
+        "when": "math",
+        "tip": "Look for mathematical invariants, modular arithmetic patterns, or closed-form solutions rather than simulation."
+      },
+      {
+        "when": "string",
+        "tip": "Find string manipulation tricks or pattern recognition that avoid brute force character-by-character processing."
+      }
+    ]
+  },
+  {
+    "tag": "breadth-first search",
+    "overview": "Graph traversal algorithm that explores neighbors before moving to next level vertices, guaranteeing shortest paths.",
+    "patterns": ["graph", "topological sort", "depth-first search", "matrix"],
+    "related": ["graph", "topological sort", "depth-first search", "tree", "binary search tree", "binary tree"],
+    "strategy": "Use for shortest path in unweighted graphs and level-order tree traversal. Queue-based implementation is standard.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Find shortest paths in unweighted graphs or explore all nodes at distance k before moving to distance k+1."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Use Kahn's algorithm: repeatedly remove nodes with no incoming edges and add their neighbors to queue."
+      },
+      {
+        "when": "tree",
+        "tip": "Perform level-order traversal using queue to process all nodes at each level before moving deeper."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Process BST nodes level by level to solve problems requiring level-wise operations or validations."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Use BFS for problems requiring processing nodes by levels, such as finding maximum width or level averages."
+      }
+    ]
+  },
+  {
+    "tag": "combinatorics",
+    "overview": "Branch of mathematics concerning counting, arrangement, and selection of objects in systematic ways.",
+    "patterns": ["dynamic programming", "math"],
+    "related": [],
+    "strategy": "Use factorial, combination, and permutation formulas. Dynamic programming helps with complex counting problems involving constraints.",
+    "strategies": [
+      {
+        "when": "dynamic programming",
+        "tip": "Use DP to count valid arrangements when simple formulas don't handle complex constraints or overlapping cases."
+      },
+      {
+        "when": "math",
+        "tip": "Apply C(n,k) = n!/(k!(n-k)!) for combinations and P(n,k) = n!/(n-k)! for permutations with careful overflow handling."
+      }
+    ]
+  },
+  {
+    "tag": "counting",
+    "overview": "Problems involving frequency analysis, occurrence tracking, and statistical counting operations on data.",
+    "patterns": ["array", "string", "hash table", "math", "dynamic programming"],
+    "related": ["array", "string", "hash table", "math", "dynamic programming"],
+    "strategy": "Use hash maps for frequency counting. Consider prefix sums for range counting queries and sliding window for subarray counts.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Count element frequencies, subarrays with specific properties, or use counting sort for limited range integers."
+      },
+      {
+        "when": "string",
+        "tip": "Track character frequencies for anagram problems or count substrings with specific character patterns."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash maps to store frequency counts and enable fast lookups for duplicate detection or pattern matching."
+      },
+      {
+        "when": "math",
+        "tip": "Apply combinatorial formulas to count arrangements without explicitly generating all possibilities."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Count valid ways to reach each state using DP when direct counting formulas are too complex."
+      }
+    ]
+  },
+  {
+    "tag": "data stream",
+    "overview": "Problems involving processing continuous streams of data with constraints on memory and time.",
+    "patterns": ["design", "hash table", "queue", "simulation"],
+    "related": ["design", "hash table", "queue"],
+    "strategy": "Use sliding window techniques and efficient data structures. Consider space-time tradeoffs for online algorithms.",
+    "strategies": [
+      {
+        "when": "design",
+        "tip": "Design APIs that handle continuous data flow with methods for adding elements and querying current state."
+      },
+      {
+        "when": "hash table",
+        "tip": "Maintain frequency counts or seen elements in hash table with space-efficient eviction policies."
+      },
+      {
+        "when": "queue",
+        "tip": "Use deques or priority queues to maintain elements in processing order while supporting efficient insertions and deletions."
+      }
+    ]
+  },
+  {
+    "tag": "database",
+    "overview": "Problems involving database operations, query optimization, and data management systems.",
+    "patterns": ["design", "sorting", "simulation"],
+    "related": ["design", "sorting"],
+    "strategy": "Focus on efficient query processing and indexing strategies. Consider join operations and data normalization principles.",
+    "strategies": [
+      {
+        "when": "design",
+        "tip": "Design table schemas and indexing strategies that optimize for the most frequent query patterns."
+      },
+      {
+        "when": "sorting",
+        "tip": "Use sorting to optimize join operations and enable efficient range queries on indexed columns."
+      }
+    ]
+  },
+  {
+    "tag": "depth-first search",
+    "overview": "Graph traversal algorithm that explores as far as possible along each branch before backtracking.",
+    "patterns": ["backtracking", "binary search tree", "tree", "dynamic programming", "graph", "topological sort"],
+    "related": ["backtracking", "binary search tree", "tree", "dynamic programming", "graph"],
+    "strategy": "Use for path finding, cycle detection, and topological sorting. Mark visited nodes to avoid infinite loops in cyclic graphs.",
+    "strategies": [
+      {
+        "when": "backtracking",
+        "tip": "Explore all possible paths deeply using DFS, backtracking when constraints are violated or dead ends are reached."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Use DFS with inorder traversal to visit BST nodes in sorted order for range queries or validation."
+      },
+      {
+        "when": "tree",
+        "tip": "Implement tree traversals (preorder, inorder, postorder) using DFS to solve path-based or aggregation problems."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use DFS to explore state space while memoizing results to avoid recomputing overlapping subproblems."
+      },
+      {
+        "when": "graph",
+        "tip": "Detect cycles, find connected components, or compute strongly connected components using DFS traversal."
+      }
+    ]
+  },
+  {
+    "tag": "design",
+    "overview": "Problems requiring the implementation of data structures or systems with specific operational requirements.",
+    "patterns": ["hash table", "simulation", "data stream", "queue", "tree", "binary search tree"],
+    "related": ["hash table", "simulation", "tree", "binary search tree", "stack"],
+    "strategy": "Focus on API design and efficient data structure choice. Consider time-space complexity tradeoffs for different operations.",
+    "strategies": [
+      {
+        "when": "hash table",
+        "tip": "Use hash tables for fast key-value lookups in cache implementations, LRU caches, or frequency tracking systems."
+      },
+      {
+        "when": "simulation",
+        "tip": "Implement system behavior step-by-step, maintaining internal state and exposing clean APIs for external interactions."
+      },
+      {
+        "when": "tree",
+        "tip": "Design tree-based data structures for hierarchical relationships, range queries, or maintaining sorted data."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Implement balanced BSTs for ordered data with efficient insertion, deletion, and range query operations."
+      },
+      {
+        "when": "stack",
+        "tip": "Use stacks for parsing expressions, implementing undo operations, or maintaining nested structure state."
+      }
+    ]
+  },
+  {
+    "tag": "divide and conquer",
+    "overview": "Algorithm design paradigm that recursively breaks problems into smaller independent subproblems.",
+    "patterns": ["array", "dynamic programming", "recursion"],
+    "related": [],
+    "strategy": "Divide problem into independent subproblems, solve recursively, then combine results. Often yields O(n log n) time complexity.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Split arrays in half recursively for problems like merge sort, quick sort, or finding maximum subarray sums."
+      },
+      {
+        "when": "recursion",
+        "tip": "Break problems into smaller independent subproblems that can be solved recursively and combined efficiently."
+      }
+    ]
+  },
+  {
+    "tag": "doubly-linked list",
+    "overview": "Linked list variant where each node has pointers to both next and previous nodes for bidirectional traversal.",
+    "patterns": ["dynamic programming", "backtracking", "recursion"],
+    "related": ["dynamic programming", "backtracking", "linked list"],
+    "strategy": "Leverage bidirectional pointers for efficient insertion and deletion. Useful for implementing LRU caches and deques.",
+    "strategies": [
+      {
+        "when": "dynamic programming",
+        "tip": "Use doubly-linked structure to efficiently move between states in DP problems requiring bidirectional traversal."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Maintain bidirectional pointers to efficiently undo moves during backtracking without rebuilding entire structure."
+      },
+      {
+        "when": "linked list",
+        "tip": "Convert singly-linked lists to doubly-linked when you need efficient backward traversal or bidirectional operations."
+      }
+    ]
+  },
+  {
+    "tag": "dynamic programming",
+    "overview": "Problem-solving technique that breaks complex problems into overlapping subproblems with optimal substructure.",
+    "patterns": ["string", "backtracking", "recursion", "array", "greedy", "math"],
+    "related": ["string", "backtracking", "recursion", "array", "greedy", "math"],
+    "strategy": "Identify overlapping subproblems and optimal substructure. Start with recursive solution, then add memoization or build bottom-up table.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Use 2D DP tables for string matching problems like edit distance, longest common subsequence, or palindrome detection."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Cache intermediate results during backtracking to avoid recomputing the same subproblems multiple times."
+      },
+      {
+        "when": "recursion",
+        "tip": "Add memoization to recursive solutions by storing results in hash table or array indexed by function parameters."
+      },
+      {
+        "when": "array",
+        "tip": "Use 1D or 2D DP arrays for subarray problems like maximum sum, counting subarrays, or optimal partitioning."
+      },
+      {
+        "when": "greedy",
+        "tip": "Choose DP when greedy fails due to overlapping subproblems, or prove greedy correctness using DP analysis."
+      }
+    ]
+  },
+  {
+    "tag": "enumeration",
+    "overview": "Systematic counting or listing of all possible cases or solutions to explore the complete solution space.",
+    "patterns": ["string", "math", "array", "backtracking", "dynamic programming"],
+    "related": ["string", "math", "array", "backtracking", "dynamic programming"],
+    "strategy": "Generate all valid cases systematically. Use backtracking for complex constraints and pruning for efficiency.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Generate all possible strings by systematically varying characters, often using recursive generation with constraints."
+      },
+      {
+        "when": "math",
+        "tip": "Use mathematical formulas to count possibilities without explicit enumeration when the pattern is regular."
+      },
+      {
+        "when": "array",
+        "tip": "Generate all permutations, combinations, or subsets of array elements using systematic recursive approaches."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Build valid solutions incrementally, backtracking when constraints are violated to explore all possibilities."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Count valid enumerations using DP when direct enumeration is too expensive but counting is sufficient."
+      }
+    ]
+  },
+  {
+    "tag": "eulerian circuit",
+    "overview": "Path in graph that visits every edge exactly once, fundamental concept in graph theory and traversal problems.",
+    "patterns": ["strongly connected component", "graph", "topological sort", "breadth-first search"],
+    "related": [],
+    "strategy": "Check that all vertices have even degree for undirected graphs. Use Hierholzer's algorithm for circuit construction.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Verify all vertices have even degree in undirected graphs or balanced in/out degrees in directed graphs before finding circuit."
+      },
+      {
+        "when": "strongly connected component",
+        "tip": "Ensure graph is strongly connected and has balanced degrees before applying Hierholzer's algorithm for circuit construction."
+      }
+    ]
+  },
+  {
+    "tag": "game theory",
+    "overview": "Mathematical framework for analyzing strategic decision-making between rational players in competitive scenarios.",
+    "patterns": ["dynamic programming", "simulation"],
+    "related": ["dynamic programming", "simulation"],
+    "strategy": "Analyze winning and losing positions using minimax algorithm. Consider optimal play from both players' perspectives.",
+    "strategies": [
+      {
+        "when": "dynamic programming",
+        "tip": "Use DP to determine winning/losing positions by checking if any move leads to opponent's losing position."
+      },
+      {
+        "when": "simulation",
+        "tip": "Simulate game states and use minimax with pruning to find optimal moves for both players."
+      }
+    ]
+  },
+  {
+    "tag": "geometry",
+    "overview": "Problems involving geometric shapes, coordinates, distances, and spatial relationships in 2D or 3D space.",
+    "patterns": ["math", "simulation", "sorting"],
+    "related": ["math", "simulation"],
+    "strategy": "Use coordinate geometry formulas for distance and area calculations. Consider precision issues with floating-point arithmetic.",
+    "strategies": [
+      {
+        "when": "math",
+        "tip": "Apply coordinate geometry formulas for distance, area, and angle calculations using precise arithmetic."
+      },
+      {
+        "when": "simulation",
+        "tip": "Simulate geometric transformations or movements step by step, tracking coordinate changes over time."
+      }
+    ]
+  },
+  {
+    "tag": "graph",
+    "overview": "Data structure representing relationships between entities through vertices connected by edges.",
+    "patterns": ["topological sort", "breadth-first search", "depth-first search", "eulerian circuit", "strongly connected component"],
+    "related": ["topological sort", "breadth-first search", "depth-first search"],
+    "strategy": "Choose DFS for path-related problems, BFS for shortest paths. Consider adjacency list vs matrix representation based on density.",
+    "strategies": [
+      {
+        "when": "topological sort",
+        "tip": "Use topological sort for dependency resolution in DAGs, either with DFS post-order or Kahn's algorithm."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Find shortest paths in unweighted graphs or explore nodes level by level using BFS with queue."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Detect cycles, find connected components, or explore paths deeply using DFS with recursion or explicit stack."
+      }
+    ]
+  },
+  {
+    "tag": "greedy",
+    "overview": "Algorithm paradigm that makes locally optimal choices at each step to find global optimum solution.",
+    "patterns": ["array", "dynamic programming", "sorting", "string", "math"],
+    "related": ["array", "dynamic programming", "sorting", "string", "math"],
+    "strategy": "Identify problems with optimal substructure but no overlapping subproblems. Sort data first when order matters for greedy choice.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Make locally optimal choices at each array position when problem has clear greedy choice property."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use greedy when you can prove optimal substructure without overlapping subproblems, otherwise use DP."
+      },
+      {
+        "when": "sorting",
+        "tip": "Sort by appropriate criteria first to enable greedy selection of optimal elements in correct order."
+      },
+      {
+        "when": "string",
+        "tip": "Build optimal strings by making character choices greedily, often based on lexicographic or frequency criteria."
+      },
+      {
+        "when": "math",
+        "tip": "Apply mathematical greedy strategies like choosing largest/smallest values first when optimal substructure holds."
+      }
+    ]
+  },
+  {
+    "tag": "hash function",
+    "overview": "Function that maps data of arbitrary size to fixed-size values, used in hashing and string algorithms.",
+    "patterns": ["string", "sliding window"],
+    "related": [],
+    "strategy": "Use for fast string comparison and pattern matching. Rolling hash enables efficient sliding window string operations.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Use polynomial rolling hash for fast string comparison and substring matching in sliding window problems."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Maintain hash value as window slides, updating efficiently by removing old character and adding new one."
+      }
+    ]
+  },
+  {
+    "tag": "hash table",
+    "overview": "Data structure providing O(1) average-case lookup, insertion, and deletion operations using key-value mapping.",
+    "patterns": ["array", "string", "counting", "sliding window"],
+    "related": ["array", "string", "counting", "two pointers"],
+    "strategy": "Use for frequency counting, fast lookups, and eliminating nested loops. Consider space-time tradeoffs and collision handling.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Track seen elements or indices to reduce nested loops from O(n²) to O(n) in problems like Two Sum."
+      },
+      {
+        "when": "string",
+        "tip": "Count character frequencies for anagram detection or track characters in sliding window substring problems."
+      },
+      {
+        "when": "counting",
+        "tip": "Store frequency counts and enable fast lookups for duplicate detection or pattern matching operations."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Use hash table to store complements or targets while iterating with pointers through the data structure."
+      }
+    ]
+  },
+  {
+    "tag": "heap (priority queue)",
+    "overview": "Complete binary tree with heap property, enabling efficient priority queue operations and selection algorithms.",
+    "patterns": ["sorting", "greedy", "array"],
+    "related": ["sorting", "greedy", "array"],
+    "strategy": "Use for top-k problems and maintaining extremes efficiently. Min-heap for smallest elements, max-heap for largest elements.",
+    "strategies": [
+      {
+        "when": "sorting",
+        "tip": "Use heap sort for O(n log n) sorting or maintain partially sorted order with priority queue operations."
+      },
+      {
+        "when": "greedy",
+        "tip": "Always select the optimal next element using heap to maintain greedy choice property efficiently."
+      },
+      {
+        "when": "array",
+        "tip": "Find k largest/smallest elements or maintain running median using min/max heap combinations."
+      }
+    ]
+  },
+  {
+    "tag": "interactive",
+    "overview": "Problems where solution must interact with hidden system through queries, with limited query budget.",
+    "patterns": ["binary search", "graph"],
+    "related": [],
+    "strategy": "Minimize number of queries through binary search or strategic probing. Analyze information gained from each query.",
+    "strategies": [
+      {
+        "when": "binary search",
+        "tip": "Use binary search to minimize queries when searching in ordered space or finding target values efficiently."
+      },
+      {
+        "when": "graph",
+        "tip": "Explore graph structure through strategic queries, building knowledge of connectivity while minimizing query count."
+      }
+    ]
+  },
+  {
+    "tag": "iterator",
+    "overview": "Design pattern for traversing collections without exposing underlying representation, enabling clean iteration.",
+    "patterns": ["binary search tree", "array", "design"],
+    "related": ["binary search tree", "array", "design"],
+    "strategy": "Implement stateful traversal with clear separation of concerns. Handle edge cases like empty collections and concurrent modification.",
+    "strategies": [
+      {
+        "when": "binary search tree",
+        "tip": "Implement inorder iterator using stack to maintain traversal state and provide O(1) amortized next() operation."
+      },
+      {
+        "when": "array",
+        "tip": "Design array iterators with bounds checking and support for bidirectional traversal or filtering."
+      },
+      {
+        "when": "design",
+        "tip": "Implement iterator interface with hasNext() and next() methods, handling edge cases and state management cleanly."
+      }
+    ]
+  },
+  {
+    "tag": "line sweep",
+    "overview": "Algorithmic technique that processes geometric objects by sweeping a line across the plane systematically.",
+    "patterns": ["segment tree", "array"],
+    "related": [],
+    "strategy": "Sort events by coordinate and process in order. Use data structures to maintain active objects during sweep.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Sort events by x-coordinate and process intervals or points as sweep line moves, maintaining active set."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Use segment tree to efficiently query and update interval information as sweep line progresses."
+      }
+    ]
+  },
+  {
+    "tag": "linked list",
+    "overview": "Linear data structure where elements are stored in nodes containing data and pointer to next node.",
+    "patterns": ["two pointers", "dynamic programming", "backtracking", "recursion"],
+    "related": ["two pointers", "dynamic programming", "backtracking", "recursion"],
+    "strategy": "Use two pointers for cycle detection and finding middle. Dummy nodes simplify edge case handling in modifications.",
+    "strategies": [
+      {
+        "when": "two pointers",
+        "tip": "Use Floyd's cycle detection with slow/fast pointers or find middle element with advancing pointers."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Process linked list nodes with DP when decisions at each node depend on optimal choices from remaining nodes."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Explore different paths through linked list structure, backtracking when constraints are violated."
+      },
+      {
+        "when": "recursion",
+        "tip": "Process linked lists recursively, handling base case of null nodes and building solution from tail to head."
+      }
+    ]
+  },
+  {
+    "tag": "math",
+    "overview": "Problems requiring mathematical concepts, formulas, number theory, and computational mathematics.",
+    "patterns": ["array", "dynamic programming", "string", "greedy", "simulation", "counting"],
+    "related": ["array", "dynamic programming", "string", "greedy", "simulation", "counting"],
+    "strategy": "Look for mathematical patterns and closed-form solutions. Consider modular arithmetic for large numbers and overflow prevention.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply mathematical formulas to array problems like arithmetic progressions, geometric series, or statistical calculations."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use mathematical recurrence relations to optimize DP state transitions or find closed-form solutions."
+      },
+      {
+        "when": "string",
+        "tip": "Apply number theory concepts like modular arithmetic for string hashing or pattern matching algorithms."
+      },
+      {
+        "when": "greedy",
+        "tip": "Prove greedy correctness using mathematical induction or exchange arguments based on mathematical properties."
+      },
+      {
+        "when": "simulation",
+        "tip": "Use mathematical models to predict simulation outcomes or optimize simulation parameters."
+      }
+    ]
+  },
+  {
+    "tag": "matrix",
+    "overview": "Two-dimensional array structure useful for grid-based problems and spatial relationship modeling.",
+    "patterns": ["array", "simulation", "dynamic programming", "depth-first search", "breadth-first search"],
+    "related": ["array", "simulation", "dynamic programming", "depth-first search", "backtracking"],
+    "strategy": "Consider direction vectors for neighbor access. Use DFS/BFS for connected component problems and path finding.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Treat matrix as 2D array with row-major order indexing for problems requiring linear processing of elements."
+      },
+      {
+        "when": "simulation",
+        "tip": "Simulate matrix operations step by step, tracking changes to individual cells over time iterations."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use 2D DP tables where dp[i][j] represents optimal solution for submatrix from (0,0) to (i,j)."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Explore matrix paths using DFS with direction vectors, marking visited cells to avoid cycles."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Find all valid paths through matrix by exploring each direction and backtracking when constraints fail."
+      }
+    ]
+  },
+  {
+    "tag": "memoization",
+    "overview": "Optimization technique storing results of expensive function calls to avoid recomputation in recursive solutions.",
+    "patterns": ["dynamic programming", "recursion"],
+    "related": [],
+    "strategy": "Add cache to recursive solutions with overlapping subproblems. Use dictionary or array for storage based on state space.",
+    "strategies": [
+      {
+        "when": "dynamic programming",
+        "tip": "Cache intermediate DP results using hash table or array indexed by state parameters to avoid recomputation."
+      },
+      {
+        "when": "recursion",
+        "tip": "Add memoization wrapper to recursive functions by storing results keyed by function parameter combinations."
+      }
+    ]
+  },
+  {
+    "tag": "merge sort",
+    "overview": "Divide-and-conquer sorting algorithm with guaranteed O(n log n) time complexity and stable sorting property.",
+    "patterns": ["quickselect", "sorting"],
+    "related": [],
+    "strategy": "Use for stable sorting and when worst-case O(n log n) is required. Excellent for external sorting of large datasets.",
+    "strategies": [
+      {
+        "when": "sorting",
+        "tip": "Use merge sort when stability is required or when worst-case O(n log n) guarantee is needed over quicksort."
+      },
+      {
+        "when": "quickselect",
+        "tip": "Apply merge sort's divide-and-conquer approach for problems requiring sorted partial results during selection."
+      }
+    ]
+  },
+  {
+    "tag": "minimum spanning tree",
+    "overview": "Subset of edges in weighted graph that connects all vertices with minimum total weight, no cycles.",
+    "patterns": ["graph", "topological sort", "union find"],
+    "related": ["graph", "topological sort"],
+    "strategy": "Use Kruskal's algorithm with union-find or Prim's algorithm with priority queue for efficient MST construction.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Apply Kruskal's or Prim's algorithm to find MST, choosing based on edge density and data structure preferences."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Use MST properties in DAGs where edge weights represent dependencies or costs between ordered elements."
+      }
+    ]
+  },
+  {
+    "tag": "monotonic stack",
+    "overview": "Stack variant that maintains elements in monotonic order, useful for finding next greater/smaller elements.",
+    "patterns": ["array", "stack"],
+    "related": [],
+    "strategy": "Maintain increasing or decreasing order by popping elements. Useful for histogram problems and temperature-like queries.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use monotonic stack to find next greater/smaller elements in array with O(n) time complexity."
+      },
+      {
+        "when": "stack",
+        "tip": "Maintain stack property by popping elements that violate monotonic order before pushing new elements."
+      }
+    ]
+  },
+  {
+    "tag": "number theory",
+    "overview": "Branch of mathematics studying properties and relationships of integers, primes, and modular arithmetic.",
+    "patterns": ["math"],
+    "related": ["math"],
+    "strategy": "Master GCD, LCM, and modular arithmetic operations. Use sieve algorithms for prime-related problems efficiently.",
+    "strategies": [
+      {
+        "when": "math",
+        "tip": "Apply GCD/LCM algorithms, modular arithmetic, and prime factorization for integer-based mathematical problems."
+      }
+    ]
+  },
+  {
+    "tag": "ordered set",
+    "overview": "Data structure maintaining elements in sorted order with efficient insertion, deletion, and range queries.",
+    "patterns": ["design", "segment tree"],
+    "related": [],
+    "strategy": "Use balanced BST or segment tree for order statistics. Consider treap or skip list for implementation alternatives.",
+    "strategies": [
+      {
+        "when": "design",
+        "tip": "Implement ordered set using balanced BST (like TreeSet) for maintaining sorted elements with log(n) operations."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Use segment tree implementation of ordered set for efficient range queries and order statistics."
+      }
+    ]
+  },
+  {
+    "tag": "prefix sum",
+    "overview": "Preprocessing technique storing cumulative sums to answer range sum queries efficiently in constant time.",
+    "patterns": ["array", "matrix", "sliding window", "math"],
+    "related": ["array", "matrix", "sliding window", "math"],
+    "strategy": "Build prefix array where prefix[i] = sum from 0 to i. Range sum = prefix[j] - prefix[i-1] for range [i,j].",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Precompute prefix sums to answer range sum queries in O(1) time after O(n) preprocessing."
+      },
+      {
+        "when": "matrix",
+        "tip": "Build 2D prefix sum matrix to answer rectangle sum queries efficiently in constant time."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Use prefix sums to quickly calculate window sums as window slides through the array."
+      },
+      {
+        "when": "math",
+        "tip": "Apply prefix sum technique to mathematical sequences and series for efficient range calculations."
+      }
+    ]
+  },
+  {
+    "tag": "probability and statistics",
+    "overview": "Mathematical concepts dealing with uncertainty, randomness, statistical analysis, and probabilistic reasoning.",
+    "patterns": ["math", "dynamic programming"],
+    "related": [],
+    "strategy": "Apply probability rules and expected value calculations. Use combinatorial counting and Bayes' theorem for complex scenarios.",
+    "strategies": [
+      {
+        "when": "math",
+        "tip": "Apply probability formulas, expected value calculations, and statistical distributions to solve uncertainty problems."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use DP to calculate probabilities of reaching different states when direct calculation is complex."
+      }
+    ]
+  },
+  {
+    "tag": "queue",
+    "overview": "First-In-First-Out (FIFO) data structure supporting enqueue and dequeue operations for sequential processing.",
+    "patterns": ["simulation", "design", "data stream"],
+    "related": ["simulation", "design", "stack"],
+    "strategy": "Use for level-order traversals and problems requiring processing in arrival order. Consider circular queue for efficiency.",
+    "strategies": [
+      {
+        "when": "simulation",
+        "tip": "Use queue to model FIFO processes and maintain order of events in time-based simulations."
+      },
+      {
+        "when": "design",
+        "tip": "Implement queue-based systems for request processing, job scheduling, or buffering operations."
+      },
+      {
+        "when": "stack",
+        "tip": "Implement queue using two stacks or use both structures together for problems requiring both FIFO and LIFO access."
+      }
+    ]
+  },
+  {
+    "tag": "quickselect",
+    "overview": "Selection algorithm for finding k-th smallest element with average O(n) time complexity using partitioning.",
+    "patterns": ["sorting", "merge sort"],
+    "related": [],
+    "strategy": "Use partitioning logic from quicksort but recurse only on relevant side. Randomization improves average case performance.",
+    "strategies": [
+      {
+        "when": "sorting",
+        "tip": "Use quickselect for k-th element problems when full sorting is unnecessary, achieving O(n) average time."
+      },
+      {
+        "when": "merge sort",
+        "tip": "Choose quickselect for average O(n) selection or merge sort's partitioning for worst-case guarantees."
+      }
+    ]
+  },
+  {
+    "tag": "randomized",
+    "overview": "Algorithms that use random choices during execution to achieve better average-case performance or simplicity.",
+    "patterns": ["simulation", "design"],
+    "related": ["simulation", "design"],
+    "strategy": "Use randomization for load balancing and average-case optimization. Consider Monte Carlo methods for approximation problems.",
+    "strategies": [
+      {
+        "when": "simulation",
+        "tip": "Use randomization in simulations for Monte Carlo methods or to break symmetry in competitive scenarios."
+      },
+      {
+        "when": "design",
+        "tip": "Implement randomized data structures like skip lists or use random sampling for load balancing."
+      }
+    ]
+  },
+  {
+    "tag": "recursion",
+    "overview": "Problem-solving approach where function calls itself with smaller subproblems until reaching base cases.",
+    "patterns": ["dynamic programming", "backtracking", "binary search tree", "tree", "binary tree"],
+    "related": ["dynamic programming", "backtracking", "binary search tree", "tree", "binary tree"],
+    "strategy": "Define base cases clearly and ensure progress toward base case. Consider memoization for overlapping subproblems.",
+    "strategies": [
+      {
+        "when": "dynamic programming",
+        "tip": "Add memoization to recursive solutions to cache results and avoid recomputing overlapping subproblems."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Use recursion to explore choices systematically, backtracking when constraints are violated or solutions are found."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Implement BST operations recursively by passing min/max bounds to maintain BST property during traversal."
+      },
+      {
+        "when": "tree",
+        "tip": "Solve tree problems recursively by processing children first (post-order) or current node first (pre-order)."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Use recursion for binary tree traversals and operations, handling left and right subtrees systematically."
+      }
+    ]
+  },
+  {
+    "tag": "rolling hash",
+    "overview": "Hash function that efficiently updates hash value as window slides, enabling fast string pattern matching.",
+    "patterns": ["string", "string matching"],
+    "related": [],
+    "strategy": "Use for substring search and comparison in sliding window. Polynomial rolling hash with large prime modulus prevents collisions.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Use polynomial rolling hash for fast string comparison and substring matching in sliding window problems."
+      },
+      {
+        "when": "string matching",
+        "tip": "Implement Rabin-Karp algorithm using rolling hash for efficient pattern matching with collision handling."
+      }
+    ]
+  },
+  {
+    "tag": "segment tree",
+    "overview": "Binary tree data structure for answering range queries and updates efficiently with logarithmic complexity.",
+    "patterns": ["array", "binary indexed tree"],
+    "related": [],
+    "strategy": "Build tree bottom-up for range queries in O(log n). Use lazy propagation for efficient range updates.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use segment tree for range queries (sum, min, max) and point updates on arrays with O(log n) complexity."
+      },
+      {
+        "when": "binary indexed tree",
+        "tip": "Choose segment tree for complex range operations, BIT for simpler range sums with easier implementation."
+      }
+    ]
+  },
+  {
+    "tag": "shortest path",
+    "overview": "Finding minimum cost path between vertices in weighted graphs using various algorithmic approaches.",
+    "patterns": ["graph", "topological sort", "breadth-first search"],
+    "related": ["graph", "topological sort", "breadth-first search"],
+    "strategy": "Use BFS for unweighted graphs, Dijkstra for non-negative weights. Consider Floyd-Warshall for all-pairs shortest paths.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Apply Dijkstra's algorithm for weighted graphs or BFS for unweighted graphs to find shortest paths."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Use topological sort with relaxation for shortest paths in DAGs with negative edge weights."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Use BFS for shortest path in unweighted graphs, guaranteeing minimum number of edges in path."
+      }
+    ]
+  },
+  {
+    "tag": "simulation",
+    "overview": "Direct implementation of problem requirements by mimicking the described process step-by-step systematically.",
+    "patterns": ["array", "string", "matrix", "math", "graph", "topological sort"],
+    "related": ["array", "string", "matrix", "math", "stack"],
+    "strategy": "Break down complex requirements into simple steps. Handle edge cases carefully and validate intermediate states.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Simulate array operations step by step, tracking state changes and handling boundary conditions carefully."
+      },
+      {
+        "when": "string",
+        "tip": "Process strings character by character, simulating transformations or pattern matching operations directly."
+      },
+      {
+        "when": "matrix",
+        "tip": "Simulate matrix transformations or cellular automata by applying rules to each cell systematically."
+      },
+      {
+        "when": "math",
+        "tip": "Implement mathematical processes step by step when closed-form solutions are complex or unavailable."
+      },
+      {
+        "when": "stack",
+        "tip": "Use stack to simulate nested processes, function calls, or bracket matching operations."
+      }
+    ]
+  },
+  {
+    "tag": "sliding window",
+    "overview": "Technique maintaining a window of elements and sliding it across data structure to solve subarray problems.",
+    "patterns": ["string", "array", "hash table", "two pointers"],
+    "related": ["string", "array", "hash table", "two pointers"],
+    "strategy": "Identify subarray/substring problems with constraints. Expand window when possible, contract when constraint is violated.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Maintain character frequency count in sliding window for substring problems with character constraints."
+      },
+      {
+        "when": "array",
+        "tip": "Use sliding window for subarray problems with sum, count, or other aggregate constraints."
+      },
+      {
+        "when": "hash table",
+        "tip": "Track window contents using hash table for frequency counting or constraint validation."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Implement sliding window using two pointers (left and right) to define window boundaries dynamically."
+      }
+    ]
+  },
+  {
+    "tag": "sorting",
+    "overview": "Algorithms for arranging elements in specific order, often serving as preprocessing step for other algorithms.",
+    "patterns": ["array", "greedy", "two pointers", "string", "math"],
+    "related": ["array", "greedy", "two pointers", "string", "hash table"],
+    "strategy": "Consider whether order matters for the solution approach. Custom comparators enable complex sorting criteria and logic.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Sort arrays to enable binary search, two pointers, or to group similar elements together for processing."
+      },
+      {
+        "when": "greedy",
+        "tip": "Sort by greedy criteria (like earliest deadline first) to enable optimal sequential decision making."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Sort array first to enable two pointers technique for finding pairs, triplets, or specific sums."
+      },
+      {
+        "when": "string",
+        "tip": "Sort characters within strings for anagram detection or sort strings by custom criteria for processing."
+      },
+      {
+        "when": "hash table",
+        "tip": "Sort hash table entries by keys or values to process elements in specific order after frequency counting."
+      }
+    ]
+  },
+  {
+    "tag": "stack",
+    "overview": "Last-In-First-Out (LIFO) data structure supporting push, pop, and peek operations for sequential processing.",
+    "patterns": ["string", "simulation", "array", "dynamic programming"],
+    "related": ["string", "simulation", "array", "dynamic programming"],
+    "strategy": "Use for problems requiring reversal, matching brackets, or maintaining order constraints. Consider monotonic stack variants.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Use stack for bracket matching, parsing expressions, or removing characters based on adjacent relationships."
+      },
+      {
+        "when": "simulation",
+        "tip": "Simulate stack-based processes like function calls, undo operations, or nested structure processing."
+      },
+      {
+        "when": "array",
+        "tip": "Use stack to track array indices for problems requiring access to previous elements or maintaining order."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use stack to simulate recursion in iterative DP solutions or maintain computation order."
+      }
+    ]
+  },
+  {
+    "tag": "string",
+    "overview": "Character sequence problems involving pattern matching, manipulation, and analysis of textual data structures.",
+    "patterns": ["hash table", "dynamic programming", "greedy", "simulation", "sliding window", "backtracking"],
+    "related": ["hash table", "dynamic programming", "greedy", "simulation", "two pointers", "counting"],
+    "strategy": "Consider character frequency maps and sliding window techniques. Pattern matching often benefits from KMP or Z-algorithm.",
+    "strategies": [
+      {
+        "when": "hash table",
+        "tip": "Count character frequencies for anagram problems or track characters in sliding window substring searches."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use 2D DP for string matching problems like edit distance, longest common subsequence, or palindrome detection."
+      },
+      {
+        "when": "greedy",
+        "tip": "Build optimal strings by making character choices greedily based on lexicographic order or frequency constraints."
+      },
+      {
+        "when": "simulation",
+        "tip": "Process strings character by character, simulating transformations or operations as described in problem."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Use two pointers from ends or different positions to solve palindrome, substring, or comparison problems."
+      }
+    ]
+  },
+  {
+    "tag": "string matching",
+    "overview": "Finding occurrences of pattern strings within text using efficient algorithms like KMP, Rabin-Karp, or Z-algorithm.",
+    "patterns": ["string", "dynamic programming"],
+    "related": [],
+    "strategy": "Use KMP for single pattern matching, Aho-Corasick for multiple patterns. Rolling hash enables fast average-case matching.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Apply KMP, Z-algorithm, or rolling hash for efficient pattern matching with linear time complexity."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use DP for complex string matching with wildcards, edit distance, or approximate pattern matching."
+      }
+    ]
+  },
+  {
+    "tag": "strongly connected component",
+    "overview": "Maximal set of vertices in directed graph where every vertex is reachable from every other vertex.",
+    "patterns": ["eulerian circuit", "graph", "topological sort", "breadth-first search"],
+    "related": [],
+    "strategy": "Use Tarjan's or Kosaraju's algorithm for SCC detection. Essential for analyzing graph connectivity and cycles.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Apply Tarjan's or Kosaraju's algorithm to find SCCs and analyze connectivity properties in directed graphs."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Use SCC decomposition to create condensation graph that can be topologically sorted."
+      }
+    ]
+  },
+  {
+    "tag": "suffix array",
+    "overview": "Sorted array of all suffixes of string, enabling efficient pattern matching and substring operations.",
+    "patterns": ["string", "binary search"],
+    "related": ["string", "binary search"],
+    "strategy": "Build suffix array with O(n log n) algorithms. Use for multiple pattern queries and longest common substring problems.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Build suffix array for efficient multiple pattern queries and longest common substring computations."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search on suffix array for fast pattern matching and range queries on string suffixes."
+      }
+    ]
+  },
+  {
+    "tag": "topological sort",
+    "overview": "Linear ordering of vertices in directed acyclic graph respecting edge directions, used in dependency resolution.",
+    "patterns": ["graph", "breadth-first search", "depth-first search"],
+    "related": ["graph", "breadth-first search", "depth-first search"],
+    "strategy": "Use Kahn's algorithm (BFS-based) or DFS-based approach. Check for cycles before attempting topological ordering.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Apply topological sort for dependency resolution, course scheduling, or any DAG ordering problems."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Use Kahn's algorithm with BFS: repeatedly remove nodes with no incoming edges and process neighbors."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use DFS-based topological sort by recording post-order finish times and reversing the order."
+      }
+    ]
+  },
+  {
+    "tag": "tree",
+    "overview": "Hierarchical data structure with nodes connected by edges, forming connected acyclic graph structure.",
+    "patterns": ["binary search tree", "binary tree", "dynamic programming", "depth-first search", "recursion"],
+    "related": ["binary search tree", "binary tree", "dynamic programming", "depth-first search", "recursion"],
+    "strategy": "Use recursion for natural tree traversal patterns. Consider iterative approaches with explicit stacks for optimization.",
+    "strategies": [
+      {
+        "when": "binary search tree",
+        "tip": "Apply general tree algorithms to BSTs while leveraging ordering property for efficient operations."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Use binary tree as special case of general tree with at-most-two-children constraint for simpler implementation."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Solve tree DP problems by computing optimal values for subtrees before processing current node."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use DFS for tree traversal, path finding, or computing subtree properties with pre/post-order operations."
+      },
+      {
+        "when": "recursion",
+        "tip": "Implement tree operations recursively by processing children first or current node first based on problem requirements."
+      }
+    ]
+  },
+  {
+    "tag": "trie",
+    "overview": "Tree-like data structure for storing strings with shared prefixes efficiently, enabling fast prefix operations.",
+    "patterns": ["string", "design", "string matching"],
+    "related": ["string", "design"],
+    "strategy": "Build trie for prefix-related string problems. Each node represents character, paths from root represent complete strings.",
+    "strategies": [
+      {
+        "when": "string",
+        "tip": "Build trie for efficient prefix matching, autocomplete, or finding common prefixes among multiple strings."
+      },
+      {
+        "when": "design",
+        "tip": "Implement trie-based data structures for word dictionaries, IP routing tables, or prefix-based search systems."
+      }
+    ]
+  },
+  {
+    "tag": "two pointers",
+    "overview": "Technique using two indices to traverse data structure from different positions or directions efficiently.",
+    "patterns": ["array", "string", "sorting", "linked list", "sliding window"],
+    "related": ["array", "string", "sorting", "linked list", "hash table"],
+    "strategy": "Use for array/string problems needing O(n) time complexity. Consider fast-slow pointers for cycle detection in linked lists.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use two pointers from ends or same start to find pairs, remove duplicates, or solve sum-based problems."
+      },
+      {
+        "when": "string",
+        "tip": "Apply two pointers for palindrome checking, string reversal, or finding matching character patterns."
+      },
+      {
+        "when": "sorting",
+        "tip": "Sort array first to enable two pointers technique for finding target sums or closest pairs efficiently."
+      },
+      {
+        "when": "linked list",
+        "tip": "Use Floyd's algorithm with slow/fast pointers for cycle detection or finding middle element."
+      },
+      {
+        "when": "hash table",
+        "tip": "Combine two pointers traversal with hash table for tracking complements or seen elements efficiently."
+      }
+    ]
+  },
+  {
+    "tag": "union find",
+    "overview": "Data structure for tracking disjoint sets with efficient union and find operations for connectivity queries.",
+    "patterns": ["graph", "topological sort", "depth-first search"],
+    "related": [],
+    "strategy": "Use path compression and union by rank for optimal performance. Excellent for connectivity problems and cycle detection.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Use union-find for connectivity queries, cycle detection, or implementing Kruskal's MST algorithm efficiently."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Choose union-find for connectivity queries or DFS for path-specific information in graph problems."
+      }
+    ]
+  }
+]
