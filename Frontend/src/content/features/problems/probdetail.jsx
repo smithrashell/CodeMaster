@@ -6,6 +6,105 @@ import { ChevronLeftIcon, BarChart3Icon, TrendingUpIcon, TagIcon, PlayIcon, Brai
 import Button from "../../../shared/components/ui/Button";
 import Badge from "../../../shared/components/ui/Badge";
 import Separator from "../../../shared/components/ui/Separator";
+import StrategyService from "../../../shared/services/strategyService";
+
+// Expandable Primer Component that matches the design
+const ExpandablePrimerSection = ({ problemTags }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [primers, setPrimers] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (problemTags && problemTags.length > 0) {
+      loadPrimers();
+    }
+  }, [problemTags]);
+
+  const loadPrimers = async () => {
+    try {
+      setLoading(true);
+      console.log('Loading primers for tags:', problemTags);
+      // Normalize tags to lowercase to match strategy data
+      const normalizedTags = problemTags.map(tag => tag.toLowerCase().trim());
+      console.log('Normalized tags:', normalizedTags);
+      const tagPrimers = await StrategyService.getTagPrimers(normalizedTags);
+      console.log('Loaded primers:', tagPrimers);
+      setPrimers(tagPrimers);
+    } catch (err) {
+      console.error('Error loading primers:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
+    // Track engagement for effectiveness measurement
+    if (!isExpanded) {
+      console.log('📊 Primer section opened for tags:', problemTags);
+    }
+  };
+
+  return (
+    <div className="problem-sidebar-section">
+      <div 
+        className="problem-sidebar-section-header" 
+        onClick={handleToggle}
+        style={{ cursor: 'pointer', userSelect: 'none' }}
+      >
+        <BrainIcon className="problem-sidebar-section-icon" />
+        <span className="problem-sidebar-section-title">
+          Problem Overview 
+          {primers.length > 0 && `(${primers.length})`}
+        </span>
+        <span style={{ marginLeft: 'auto', fontSize: '12px' }}>
+          {isExpanded ? '▼' : '▶'}
+        </span>
+      </div>
+      
+      {isExpanded && (
+        <div className="problem-sidebar-primer-content" style={{ 
+          marginTop: '8px',
+          fontSize: '14px',
+          lineHeight: '1.5',
+          color: 'rgba(255, 255, 255, 0.85)'
+        }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '12px', fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>Loading strategies...</div>
+          ) : primers.length > 0 ? (
+            primers.map((primer, index) => (
+              <div key={index} style={{ marginBottom: '16px', padding: '8px', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
+                <div style={{ 
+                  fontWeight: '600', 
+                  marginBottom: '6px',
+                  color: 'rgba(255, 255, 255, 0.95)',
+                  textTransform: 'capitalize',
+                  fontSize: '15px'
+                }}>
+                  {primer.tag}
+                </div>
+                {primer.strategy && (
+                  <div style={{ 
+                    fontSize: '13px',
+                    marginBottom: '6px',
+                    lineHeight: '1.4',
+                    color: 'rgba(255, 255, 255, 0.8)'
+                  }}>
+                    💡 {primer.strategy}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '12px', opacity: 0.7, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
+              No strategy information available
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const ProbDetail = (isLoading) => {
   const { state: routeState } = useLocation();
@@ -140,6 +239,13 @@ const ProbDetail = (isLoading) => {
           </div>
         </div>
 
+        {/* Strategy Primer Section */}
+        {problemData?.tags && problemData.tags.length > 0 && (
+          <ExpandablePrimerSection 
+            problemTags={problemData.tags}
+          />
+        )}
+
         {/* Status Section */}
         <div className="problem-sidebar-section">
           <div className="problem-sidebar-status-card">
@@ -158,7 +264,7 @@ const ProbDetail = (isLoading) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="problem-sidebar-actions" style={{ marginTop: '20px', padding: '0' }}>
+        <div className="problem-sidebar-actions" style={{ marginTop: '40px', padding: '12px', marginBottom: '20px' }}>
           <Button
             onClick={handleNewAttempt}
             className="problem-sidebar-primary-btn"

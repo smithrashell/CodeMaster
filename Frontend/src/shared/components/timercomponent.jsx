@@ -4,6 +4,7 @@ import { FaPause, FaPlay, FaArrowRight } from "react-icons/fa";
 import { AiOutlineClear } from "react-icons/ai";
 import { GrClose, GrPowerReset } from "react-icons/gr";
 import TimeDisplay from "../../shared/components/timedisplay";
+import { FloatingHintButton } from "./strategy";
 import "./css/timerBanner.css";
 
 const TimerBanner = (props) => {
@@ -138,6 +139,22 @@ const TimerBanner = (props) => {
       <div className="timer-banner-controls">
         <GrPowerReset style={{ color: "black" }} onClick={handleReset} />
         <AiOutlineClear style={{ color: "black" }} />
+        {/* Add hint button as part of timer controls */}
+        {state?.Tags && state.Tags.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <FloatingHintButton 
+              problemTags={state.Tags.map(tag => tag.toLowerCase().trim())}
+              onOpen={(data) => {
+                console.log('🔍 Strategy hints popover opened:', data);
+                // Track popover open event for analytics
+              }}
+              onClose={(data) => {
+                console.log('❌ Strategy hints popover closed:', data);
+                // Track popover close event for analytics
+              }}
+            />
+          </div>
+        )}
         {timerRunning ? (
           <FaPause style={{ color: "black" }} onClick={handleStop} />
         ) : (
