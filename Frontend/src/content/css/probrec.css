@@ -412,7 +412,7 @@ body[data-theme="dark"] .cd-extension .cd-new-tag {
 }
 
 .problem-sidebar-actions {
-  margin-top: 5px !important;
+  margin-top: 20px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;

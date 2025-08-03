@@ -1,5 +1,5 @@
 import { dbHelper } from "./index.js";
-import  STANDARD_PROBLEMS  from "../constants/Strict_Approved_Tags_IndexedDB_Backup.json"
+import  STANDARD_PROBLEMS  from "../constants/LeetCode_Tags_Combined.json"
 const openDB = dbHelper.openDB;
 export async function getProblemFromStandardProblems(slug) {
   try {
