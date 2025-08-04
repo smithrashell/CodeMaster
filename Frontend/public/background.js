@@ -350,17 +350,16 @@ const handleRequest = async (request, sender, sendResponse) => {
         // console.log("performance", performance);
         SessionService.getOrCreateSession()
           .then((session) => {
-            console.log("session", session);
+            console.log("getCurrentSession - session:", session);
             sendResponse({
-              backgroundScriptData: "Schedule received from content script",
               session: session,
             });
           })
           .catch((error) => {
-            console.error("Error retrieving problems from Schedule:", error);
+            console.error("Error retrieving session:", error);
             sendResponse({
-              backgroundScriptData:
-                "There was an error retrieving problems from Schedule",
+              error: "Failed to get current session",
+              session: []
             });
           })
           .finally(finishRequest);

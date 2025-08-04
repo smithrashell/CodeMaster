@@ -39,7 +39,7 @@ export function calculateAdaptiveThresholds(baseThresholds, struggleHistory, con
  * Adapts difficulty promotion thresholds based on struggle patterns
  */
 function adaptDifficultyThresholds(adaptations, history) {
-  const { sessionsAtCurrentLevel = 0, consecutiveFailedPromotions = 0 } = history;
+  const { sessionsAtCurrentLevel = 0, consecutiveFailedPromotions: _consecutiveFailedPromotions = 0 } = history;
   
   // Progressive difficulty threshold reduction
   if (sessionsAtCurrentLevel >= 15) {
@@ -95,7 +95,7 @@ function adaptMasteryThresholds(adaptations, history) {
  * Adapts tag expansion thresholds based on expansion failure patterns
  */
 function adaptExpansionThresholds(adaptations, history) {
-  const { sessionsAtSameTagCount = 0, expansionFailures = 0 } = history;
+  const { sessionsAtSameTagCount = 0, expansionFailures: _expansionFailures = 0 } = history;
   
   // Progressive expansion threshold reduction
   if (sessionsAtSameTagCount >= 8) {

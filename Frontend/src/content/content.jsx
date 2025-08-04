@@ -15,7 +15,7 @@ if (!appContainer) {
   appContainer.id = "root";
   appContainer.className = "app-container cd-extension";
   body.prepend(appContainer);
-  console.log("container appended")
+  console.info("container appended")
 } else {
   // Add cd-extension class to existing container
   appContainer.classList.add("cd-extension");
