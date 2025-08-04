@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 import Header from "../../../shared/components/header";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 
 const ProbStat = () => {
   const [boxLevelData, setBoxLevelData] = useState({});
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    setLoading(true);
-    chrome.runtime.sendMessage(
-      { type: "countProblemsByBoxLevel" },
-      (response) => {
-        setLoading(false);
+  // New approach using custom hook
+  const { data: statisticsData, loading, error: hookError } = useChromeMessage(
+    { type: "countProblemsByBoxLevel" },
+    [],
+    {
+      onSuccess: (response) => {
         if (response && response.status === "success") {
           setBoxLevelData(response.data);
           setError(null);
@@ -19,9 +19,14 @@ const ProbStat = () => {
           console.error("Failed to get problem count by box level");
           setError("Failed to load statistics. Please try refreshing.");
         }
+      },
+      onError: (errorMsg) => {
+        console.error("Failed to get problem count by box level");
+        setError("Failed to load statistics. Please try refreshing.");
       }
-    );
-  }, []);
+    }
+  );
+  
 
   const totalProblems = Object.values(boxLevelData).reduce((sum, count) => sum + count, 0);
   const hasData = Object.keys(boxLevelData).length > 0;

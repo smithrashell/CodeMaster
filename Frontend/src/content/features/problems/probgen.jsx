@@ -4,6 +4,7 @@ import "../../css/probrec.css";
 import Header from "../../../shared/components/header";
 import { v4 as uuidv4 } from "uuid";
 import ProblemInfoIcon from "../../../shared/components/ui/ProblemInfoIcon";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 
 // Problem Item Component with expandable reason text
 const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
@@ -76,18 +77,22 @@ const ProbGen = (props) => {
   const [problems, setProblems] = useState([]);
 
   const navigate = useNavigate();
-  useEffect(() => {
-    chrome.runtime.sendMessage(
-      { type: "getCurrentSession" },
-      function (response) {
+  
+  // New approach using custom hook
+  const { data: sessionData, loading, error } = useChromeMessage(
+    { type: "getCurrentSession" },
+    [],
+    {
+      onSuccess: (response) => {
         console.log(response);
         if (response.session) {
           console.log(response.session);
           setProblems(response.session);
         }
       }
-    );
-  }, []);
+    }
+  );
+  
 
   const handleLinkClick = (problem) => {
     window.location.href =
