@@ -34,18 +34,23 @@ import {
   Practice,
   Review,
 } from "./pages/mockup";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useChromeMessage } from "../shared/hooks/useChromeMessage";
 function App() {
   const [appState, setAppState] = useState(null);
-  useEffect(() => {
-    chrome.runtime.sendMessage(
-      { type: "getDashboardStatistics" },
-      (response) => {
+  
+  // New approach using custom hook
+  const { data: _dashboardData, loading: _loading, error: _error } = useChromeMessage(
+    { type: "getDashboardStatistics" },
+    [],
+    {
+      onSuccess: (response) => {
         console.info("Dashboard statistics received:", response.result);
         setAppState(response.result);
       }
-    );
-  }, []);
+    }
+  );
+  
 
   return (
     <MantineProvider>

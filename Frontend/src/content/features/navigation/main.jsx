@@ -5,6 +5,7 @@ import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
 import { useNav } from "../../../shared/provider/navprovider.jsx";
 import { DoubleNavbar } from "../../../shared/components/DoubleNavbar.jsx";
 import Header from "../../../shared/components/header.jsx";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 
 
 const Menubutton = ({ isAppOpen,setIsAppOpen,currPath }) => {
@@ -103,21 +104,19 @@ export default function Main() {
       }
     );
   };
-  useEffect(() => {
-    chrome.runtime.sendMessage({type: "onboardingUserIfNeeded"}, (response) => {
-      if (response) {
-        console.log("onboardingUserIfNeeded", response);
+  // New approach using custom hook
+  const { data: onboardingData, loading: onboardingLoading, error: onboardingError } = useChromeMessage(
+    { type: "onboardingUserIfNeeded" },
+    [],
+    {
+      onSuccess: (response) => {
+        if (response) {
+          console.log("onboardingUserIfNeeded", response);
+        }
       }
-    })
-  }, [])
-  // useEffect(() => {
-  //   chrome.runtime.sendMessage({type: "getSettings"}, (response) => {
-  //     if (response) {
-     
-  //       setTheme(response.theme);
-  //     }
-  //   })
-  // }, [])
+    }
+  );
+  
   // // UseEffect to handle initial data fetch on component mount
   
   useEffect(() => {

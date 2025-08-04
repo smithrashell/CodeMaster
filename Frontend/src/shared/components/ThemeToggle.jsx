@@ -3,19 +3,27 @@ import { useTheme } from "../provider/themeprovider";
 import { SegmentedControl, Group, rem, Paper } from "@mantine/core";
 import { IconSun, IconMoon } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
+import { useChromeMessage } from "../hooks/useChromeMessage";
 
 export default function ThemeToggle() {
   const { colorScheme, toggleColorScheme } = useTheme();
   const isLight = colorScheme === "light";
   const [theme, setTheme] = useState("light");
-  useEffect(() => {
-    chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-      const savedTheme = response?.theme || "light";
-      if (savedTheme !== colorScheme) {
-        toggleColorScheme(savedTheme);
+  
+  // New approach using custom hook
+  const { data: settings, loading, error } = useChromeMessage(
+    { type: "getSettings" },
+    [],
+    {
+      onSuccess: (response) => {
+        const savedTheme = response?.theme || "light";
+        if (savedTheme !== colorScheme) {
+          toggleColorScheme(savedTheme);
+        }
       }
-    });
-  }, []);
+    }
+  );
+  
   
   
   const options = [
