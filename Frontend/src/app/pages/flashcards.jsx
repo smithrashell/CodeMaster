@@ -23,7 +23,7 @@ export function Flashcards() {
   ];
 
   const currentExercise = exercises[0];
-  const handleTestResults = (results) => {
+  const _handleTestResults = (results) => {
     setOutput(results.join("\n"));
   };
 
@@ -53,7 +53,7 @@ export function Flashcards() {
     }
   };
 
-  const handleResult = (result) => {
+  const _handleResult = (result) => {
     setOutput(result);
   };
 
