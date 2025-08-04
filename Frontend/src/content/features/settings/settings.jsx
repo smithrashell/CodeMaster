@@ -10,6 +10,7 @@ import {
 import { IconQuestionMark } from "@tabler/icons-react"; // or
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../../shared/components/header.jsx";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 const Settings = () => {
   const [settings, setSettings] = useState(null);
   const [value, setValue] = useState(40);
@@ -25,22 +26,29 @@ const Settings = () => {
     },
   };
 
-  /// useEffect to get settings
-  useEffect(() => {
-    if (useMock) {
-      console.log("🔧 Using MOCK_SETTINGS");
-      setSettings(MOCK_SETTINGS);
-    } else {
-      console.log("Fetching settings from Chrome runtime...");
-      chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
+  // New approach using custom hook
+  const { data: chromeSettings, loading, error } = useChromeMessage(
+    !useMock ? { type: "getSettings" } : null,
+    [],
+    {
+      onSuccess: (response) => {
         if (response) {
           setSettings(response);
         } else {
           console.warn("No settings received, using defaults.");
         }
-      });
+      }
+    }
+  );
+
+  // Handle mock settings
+  useEffect(() => {
+    if (useMock) {
+      console.log("🔧 Using MOCK_SETTINGS");
+      setSettings(MOCK_SETTINGS);
     }
   }, []);
+
 
   const handleSave = (settings) => {
     chrome.runtime.sendMessage(

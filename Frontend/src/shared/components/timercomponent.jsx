@@ -5,6 +5,7 @@ import { AiOutlineClear } from "react-icons/ai";
 import { GrClose, GrPowerReset } from "react-icons/gr";
 import TimeDisplay from "../../shared/components/timedisplay";
 import { FloatingHintButton } from "./strategy";
+import { useChromeMessage } from "../hooks/useChromeMessage";
 import "./css/timerBanner.css";
 
 const TimerBanner = (props) => {
@@ -31,18 +32,20 @@ const TimerBanner = (props) => {
     }
   };
 
-  useEffect(() => {
-    chrome.runtime.sendMessage(
-      { type: "getLimits", id: state.LeetCodeID },
-      function (response) {
+  // New approach using custom hook
+  const { data: limitsData, loading, error } = useChromeMessage(
+    { type: "getLimits", id: state?.LeetCodeID },
+    [state?.LeetCodeID],
+    {
+      onSuccess: (response) => {
         console.log("✅limits being sent to content script", response);
-
         let limit = response.limits.Time;
         setLimit(limit * 60);
         setTime(limit * 60);
       }
-    );
-  }, [setLimit, setTime]);
+    }
+  );
+  
 
   const handleStart = () => {
     setTimerRunning(true);
