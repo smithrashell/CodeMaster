@@ -1,28 +1,4 @@
-import { Container, Grid, Card, Title, Text, Button } from "@mantine/core";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  HeatMap,
-  HeatMapChart,
-  Treemap,
-  Rectangle,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-} from "recharts";
+import { Container, Grid, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 import MetricCard from "../../../shared/components/MetricCard";
 import TimeGranularChartCard from "../../../shared/components/TimeGranularChartCard";
@@ -47,7 +23,7 @@ export function Stats({appState}) {
   });
 
   useEffect(() => {
-console.log("props", appState)
+console.info("props", appState)
         if (appState) {
           setStatistics(appState.statistics);
           setAverageTime(appState.averageTime);
@@ -94,8 +70,8 @@ console.log("props", appState)
         }
     
   }, []);
-  console.log("allSessions", allSessions);
-  console.log("accuracyData", accuracyData);
+  console.info("allSessions", allSessions);
+  console.info("accuracyData", accuracyData);
   // const accuracyData = {
   //   weekly: getAccuracyTrendData(allSessions, "weekly"),
   //   monthly: getAccuracyTrendData(allSessions, "monthly"),

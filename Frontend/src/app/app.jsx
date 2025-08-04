@@ -34,13 +34,13 @@ import {
   Practice,
   Review,
 } from "./pages/mockup";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useChromeMessage } from "../shared/hooks/useChromeMessage";
 function App() {
   const [appState, setAppState] = useState(null);
   
   // New approach using custom hook
-  const { data: dashboardData, loading, error } = useChromeMessage(
+  const { data: _dashboardData, loading: _loading, error: _error } = useChromeMessage(
     { type: "getDashboardStatistics" },
     [],
     {
