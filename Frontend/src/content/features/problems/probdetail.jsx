@@ -7,6 +7,7 @@ import Button from "../../../shared/components/ui/Button";
 import Badge from "../../../shared/components/ui/Badge";
 import Separator from "../../../shared/components/ui/Separator";
 import StrategyService from "../../../shared/services/strategyService";
+import WhyThisProblem from "../../../shared/components/WhyThisProblem";
 
 // Expandable Primer Component that matches the design
 const ExpandablePrimerSection = ({ problemTags }) => {
@@ -238,6 +239,14 @@ const ProbDetail = (isLoading) => {
             )}
           </div>
         </div>
+
+        {/* Why This Problem Section - Show reasoning for problem selection */}
+        {routeState?.problemData?.selectionReason && (
+          <WhyThisProblem 
+            selectionReason={routeState.problemData.selectionReason}
+            problemTags={problemData?.tags || []}
+          />
+        )}
 
         {/* Strategy Primer Section */}
         {problemData?.tags && problemData.tags.length > 0 && (
