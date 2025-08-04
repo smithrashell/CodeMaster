@@ -21,6 +21,9 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
+  overflow: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .cd-extension .cd-simple-problem-item:last-child {
@@ -44,11 +47,19 @@
   font-weight: 400 !important;
 }
 
+.cd-extension .cd-simple-problem-item-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
 .cd-extension .cd-problem-badges {
   display: flex !important;
   align-items: center !important;
   gap: 4px !important;
   flex-shrink: 0 !important;
+  max-width: 180px !important;
+  overflow: hidden !important;
 }
 
 .cd-extension .cd-new-tag {
@@ -88,6 +99,16 @@ body[data-theme="dark"] .cd-extension .cd-new-tag {
 .cd-extension .cd-difficulty-hard {
   background-color: #ef4444 !important;
   color: var(--cd-btn-text) !important;
+}
+
+.cd-extension .cd-problem-info-icon {
+  flex-shrink: 0 !important;
+  order: -1 !important;
+  --cd-info-icon-bg: #3b82f6 !important; /* Blue for light mode */
+}
+
+body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
+  --cd-info-icon-bg: #60a5fa !important; /* Lighter blue for dark mode */
 }
 
 /* Problem Sidebar Styling */

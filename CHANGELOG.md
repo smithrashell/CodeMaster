@@ -4,6 +4,85 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.9.4] - 2025-08-04
+
+### Added
+
+* **🧠 Why This Problem? Feature**: Transparent problem selection reasoning system providing session-specific rationale for adaptive problem selection
+
+  * **ProblemReasoningService**: New service generating 9 different reasoning types (tag weakness, spaced repetition, new tag introduction, difficulty progression, performance recovery, pattern reinforcement, etc.) for comprehensive problem selection explanations
+  * **ProblemInfoIcon Component**: Distinctive blue info badge displayed as first element in problem badges, matching design consistency with NEW and difficulty badges
+  * **Expandable Reason Display**: Inline paragraph text appearing below badges on hover, following AdaptiveSessionToggle pattern for consistent UX behavior
+  * **Session Pipeline Integration**: Automatic reasoning generation for all problems during session creation with user performance context analysis
+  * **Theme-Aware Design**: Responsive blue color scheme (#3b82f6 light mode, #60a5fa dark mode) ensuring visibility across both themes
+
+* **🎯 Problem List Integration**: Seamless integration of selection reasoning into existing problem generator workflow
+
+  * **First Badge Position**: Info icon appears as first element in badges container before NEW tag and difficulty for logical information hierarchy
+  * **Hover-Triggered Display**: Text expands naturally below badges using flex layout without disrupting horizontal alignment
+  * **Smooth Animations**: Professional transitions with cubic-bezier easing and optimized timing for polished user experience
+  * **Layout Consistency**: Maintains existing problem list spacing and alignment while adding informational functionality
+  * **Performance Context**: Reasoning based on tag mastery data, review schedules, and user performance patterns
+
+* **📊 Intelligent Reasoning Algorithm**: Context-aware problem selection explanation generation
+
+  * **Tag Weakness Detection**: Identifies problems selected due to below-70% accuracy with detailed performance breakdown
+  * **Spaced Repetition Logic**: Explains review problems based on optimal recall intervals and last attempt timing
+  * **New Tag Introduction**: Highlights problems introducing unexplored algorithmic concepts with progression rationale
+  * **Difficulty Progression**: Shows problems selected for skill advancement and challenge scaling
+  * **Pattern Reinforcement**: Identifies problems strengthening recently learned concepts and techniques
+  * **Performance Recovery**: Explains problems targeting improvement in weak areas with specific guidance
+
+### Enhanced
+
+* **🔧 Problem Service Architecture**: Extended session creation pipeline with reasoning generation capabilities
+
+  * **User Performance Context**: Enhanced `buildUserPerformanceContext()` analyzing tag mastery data for accurate reasoning generation
+  * **Session Reasoning Integration**: Added `addProblemReasoningToSession()` with comprehensive error handling and fallback mechanisms
+  * **Reasoning Data Flow**: Seamless integration of reasoning service with existing problem selection algorithms
+  * **Debug Logging**: Comprehensive console logging for reasoning generation debugging and effectiveness tracking
+
+* **🎨 UI Component System**: Professional badge-style component integration with existing design language
+
+  * **Badge Consistency**: Info icon styled to match existing NEW tags and difficulty badges for visual harmony
+  * **Responsive Layout**: Column-based layout with expandable text section following proven AdaptiveSessionToggle pattern  
+  * **Theme Integration**: Automatic color adaptation using CSS variable system for consistent theming
+  * **Animation Polish**: Smooth expand/collapse transitions with professional easing curves and timing
+
+### Technical Improvements
+
+* **🏗️ Service Layer Enhancement**: Added dedicated reasoning service with comprehensive problem selection logic
+
+  * **9 Reasoning Types**: Complete coverage of adaptive learning scenarios with specific explanation generation
+  * **Context Analysis**: Integration with tag mastery system for performance-aware reasoning
+  * **Error Resilience**: Graceful fallbacks when reasoning generation fails, ensuring session creation reliability
+  * **Extensible Architecture**: Modular design supporting addition of new reasoning types and analysis methods
+
+* **🎯 CSS Architecture**: Enhanced styling system with theme-aware color variables and responsive design
+
+  * **CSS Variable System**: Added `--cd-info-icon-bg` with automatic dark/light mode switching
+  * **Layout Optimization**: Column-based problem item containers with proper flex alignment and spacing
+  * **Animation System**: Smooth transitions using cubic-bezier curves for professional user experience
+  * **Badge Integration**: Seamless integration into existing badge system with proper ordering and spacing
+
+### User Experience Impact
+
+* **🧠 Transparent Learning**: Users now understand why specific problems are selected in their adaptive sessions
+
+  * **Learning Rationale**: Clear explanations like "Selected due to decay in 'sliding window'" or "New tag introduced: 'tries'"
+  * **Performance Awareness**: Users see how their past performance influences future problem selection
+  * **Educational Value**: Reasoning helps users understand their learning progression and weak areas
+  * **Motivation Enhancement**: Transparent selection logic builds trust in the adaptive learning system
+
+* **⚡ Improved Problem-Solving Context**: Strategic context awareness for better learning outcomes
+
+  * **Session Purpose**: Users understand the educational goal behind each problem selection
+  * **Performance Insights**: Clear indication of areas needing improvement or reinforcement
+  * **Progress Visibility**: Tangible feedback on learning advancement and skill development
+  * **Confidence Building**: Understanding selection rationale reduces uncertainty and builds engagement
+
+---
+
 ## [0.9.3] - 2025-08-03
 
 ### Added

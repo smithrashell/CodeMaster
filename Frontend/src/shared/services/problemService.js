@@ -12,6 +12,8 @@ import { TagService } from "./tagServices.js";
 import { StorageService } from "./storageService.js";
 import { buildAdaptiveSessionSettings } from "../db/sessions.js";
 import { calculateDecayScore } from "../utils/Utils.js";
+import { ProblemReasoningService } from "./problemReasoningService.js";
+import { getTagMastery } from "../db/tag_mastery.js";
 
 const getCurrentLearningState = TagService.getCurrentLearningState;
 const getDailyReviewSchedule = ScheduleService.getDailyReviewSchedule;
@@ -166,15 +168,97 @@ export const ProblemService = {
     // **Step 4: Final session composition**
     const finalSession = deduplicateById(sessionProblems).slice(0, sessionLength);
     
-    console.log(`🎯 Final session composition:`);
-    console.log(`   📊 Total problems: ${finalSession.length}/${sessionLength}`);
-    console.log(`   🔄 Review problems: ${reviewProblems.length}`);
-    console.log(`   🆕 New problems: ${finalSession.length - reviewProblems.length}`);
+    // **Step 5: Add problem selection reasoning**
+    const sessionWithReasons = await this.addProblemReasoningToSession(finalSession, {
+      sessionLength,
+      reviewCount: reviewProblems.length,
+      newCount: finalSession.length - reviewProblems.length,
+      allowedTags: currentAllowedTags,
+      difficultyCap: currentDifficultyCap
+    });
     
-    return finalSession;
+    console.log(`🎯 Final session composition:`);
+    console.log(`   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`);
+    console.log(`   🔄 Review problems: ${reviewProblems.length}`);
+    console.log(`   🆕 New problems: ${sessionWithReasons.length - reviewProblems.length}`);
+    console.log(`   🧠 Problems with reasoning: ${sessionWithReasons.filter(p => p.selectionReason).length}`);
+    
+    return sessionWithReasons;
   },
 
+  /**
+   * Add problem selection reasoning to each problem in the session
+   * @param {Array} problems - Array of problems in the session
+   * @param {Object} sessionContext - Session context and metadata
+   * @returns {Promise<Array>} - Problems with selectionReason added
+   */
+  async addProblemReasoningToSession(problems, sessionContext) {
+    try {
+      console.log(`🧠 Adding reasoning to ${problems.length} problems in session`);
+      
+      // Get user performance data for reasoning generation
+      const tagMasteryData = await getTagMastery();
+      const userPerformance = this.buildUserPerformanceContext(tagMasteryData);
+      
+      // Generate reasoning for each problem
+      const problemsWithReasons = ProblemReasoningService.generateSessionReasons(
+        problems,
+        sessionContext,
+        userPerformance
+      );
+      
+      console.log(`✅ Added reasoning to ${problemsWithReasons.filter(p => p.selectionReason).length} problems`);
+      return problemsWithReasons;
+      
+    } catch (error) {
+      console.error('❌ Error adding problem reasoning to session:', error);
+      // Return original problems if reasoning fails
+      return problems;
+    }
+  },
 
+  /**
+   * Build user performance context from tag mastery data
+   * @param {Array} tagMasteryData - Tag mastery records
+   * @returns {Object} - Formatted user performance data
+   */
+  buildUserPerformanceContext(tagMasteryData) {
+    if (!tagMasteryData || tagMasteryData.length === 0) {
+      return {
+        weakTags: [],
+        newTags: [],
+        tagAccuracy: {},
+        tagAttempts: {}
+      };
+    }
+    
+    // Identify weak tags (below 70% accuracy)
+    const weakTags = tagMasteryData
+      .filter(tm => tm.successRate < 0.7 && tm.totalAttempts >= 3)
+      .map(tm => tm.tag.toLowerCase());
+    
+    // Identify new tags (less than 3 attempts)
+    const newTags = tagMasteryData
+      .filter(tm => tm.totalAttempts < 3)
+      .map(tm => tm.tag.toLowerCase());
+    
+    // Build accuracy mapping
+    const tagAccuracy = {};
+    const tagAttempts = {};
+    
+    tagMasteryData.forEach(tm => {
+      const tagKey = tm.tag.toLowerCase();
+      tagAccuracy[tagKey] = tm.successRate || 0;
+      tagAttempts[tagKey] = tm.totalAttempts || 0;
+    });
+    
+    return {
+      weakTags,
+      newTags,
+      tagAccuracy,
+      tagAttempts
+    };
+  },
   
   async updateProblemsWithRatings() {
     return await updateProblemsWithRatingsInDB();
