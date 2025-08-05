@@ -18,6 +18,7 @@
 **Indexes**: `by_date`, `by_problem_and_date`, `by_problemId`, `by_sessionId`
 
 **Object Structure**:
+
 ```javascript
 {
   id: 123,                          // Auto-increment primary key
@@ -40,6 +41,7 @@
 **Indexes**: `by_createAt`
 
 **Object Structure**:
+
 ```javascript
 {
   id: 1,
@@ -58,6 +60,7 @@
 **Key**: `id`
 
 **Object Structure**:
+
 ```javascript
 {
   id: "current_session",
@@ -77,10 +80,11 @@
 **Indexes**: `by_problemId1`, `by_problemId2`
 
 **Object Structure**:
+
 ```javascript
 {
   problemId1: "problem-123",
-  problemId2: "problem-456", 
+  problemId2: "problem-456",
   relationshipStrength: 0.75,
   sharedTags: ["array", "hash-table"],
   difficulty: "similar",
@@ -97,6 +101,7 @@
 **Indexes**: `by_tag`, `by_problem`, `by_review`, `by_ProblemDescription`, `by_nextProblem`
 
 **Object Structure**:
+
 ```javascript
 {
   leetCodeID: "two-sum",
@@ -106,15 +111,15 @@
   difficulty: "Easy",
   review: "2024-01-20",           // Next review date
   nextProblem: "2024-01-25",      // Spaced repetition schedule
-  
+
   // Leitner System Fields
   box: 1,                         // Current Leitner box level (0-6)
   stability: 2.5,                 // FSRS stability score
-  difficulty: 0.3,                // FSRS difficulty score  
+  difficulty: 0.3,                // FSRS difficulty score
   lastAttempt: "2024-01-15",      // Last attempt date
   successRate: 0.75,              // Historical success rate
   retrievability: 0.85,           // Current retrievability score
-  
+
   // Metadata
   slug: "two-sum",
   companies: ["Google", "Amazon"],
@@ -132,6 +137,7 @@
 **Indexes**: `by_date`
 
 **Object Structure**:
+
 ```javascript
 {
   id: "session-uuid-123",
@@ -166,11 +172,12 @@
 **Indexes**: `by_slug`
 
 **Object Structure**:
+
 ```javascript
 {
   id: 1,
   slug: "two-sum",
-  Title: "Two Sum", 
+  Title: "Two Sum",
   Difficulty: "Easy",
   Tags: ["Array", "Hash Table"],
   Description: "Given an array of integers...",
@@ -191,6 +198,7 @@
 **Indexes**: `by_backupId`
 
 **Object Structure**:
+
 ```javascript
 {
   backupId: "backup-2024-01-15",
@@ -219,6 +227,7 @@
 **Indexes**: `by_classification`
 
 **Object Structure**:
+
 ```javascript
 {
   id: "array",
@@ -244,30 +253,31 @@
 **Indexes**: `by_tag`
 
 **Object Structure**:
+
 ```javascript
 {
   tag: "array",
   strength: 0.75,                     // Current mastery strength (0-1)
   decayScore: 0.85,                   // Decay factor for spaced repetition
   mastered: false,                    // Whether tag is considered mastered
-  
+
   // Pattern Ladder Progress
   coreLadder: [
     { problemId: "two-sum", completed: true, attempts: 3 },
     { problemId: "best-time-buy-sell", completed: true, attempts: 2 }
   ],
-  
-  // Performance Metrics  
+
+  // Performance Metrics
   totalAttempts: 25,                  // Total problems attempted with this tag
   successfulAttempts: 20,             // Successful attempts
   averageTime: 720,                   // Average time per problem (seconds)
   lastAttempt: "2024-01-15",          // Last attempt date
-  
+
   // FSRS Integration
   stability: 3.2,                     // FSRS stability for this tag
   difficulty: 0.4,                    // FSRS difficulty for this tag
   retrievability: 0.88,               // Current retrievability
-  
+
   // Progression Tracking
   boxLevel: 2,                        // Current Leitner box level
   nextReview: "2024-01-20",           // Next review date
@@ -283,6 +293,7 @@
 **Key**: `id`
 
 **Object Structure**:
+
 ```javascript
 {
   id: "user_preferences",
@@ -309,24 +320,25 @@
 **Indexes**: `by_tag`
 
 **Object Structure**:
+
 ```javascript
 {
   tag: "dynamic-programming",
   currentLevel: 2,                    // Current progression level
   completionRate: 0.6,                // Overall completion rate
-  
+
   ladder: [
     {
       level: 1,
       problemId: "climbing-stairs",
-      difficulty: "Easy", 
+      difficulty: "Easy",
       mastered: true,
       attempts: 3,
       bestTime: 300,
       lastAttempt: "2024-01-10"
     },
     {
-      level: 2, 
+      level: 2,
       problemId: "house-robber",
       difficulty: "Medium",
       mastered: false,
@@ -335,7 +347,7 @@
       lastAttempt: "2024-01-12"
     }
   ],
-  
+
   // Progression Metadata
   prerequisiteTags: ["array", "recursion"],
   nextUnlockTags: ["memoization"],
@@ -353,6 +365,7 @@
 **Indexes**: `by_date`, `by_accuracy`, `by_difficulty`
 
 **Object Structure**:
+
 ```javascript
 {
   sessionId: "session-uuid-123",
@@ -362,16 +375,16 @@
   accuracy: 0.85,                     // Session accuracy rate
   avgTime: 720,                       // Average time per problem
   totalTime: 1800,                    // Total session time
-  
+
   // Difficulty Analysis
   predominantDifficulty: "Medium",
   totalProblems: 8,
   difficultyMix: {
     Easy: 0.25,
-    Medium: 0.625, 
+    Medium: 0.625,
     Hard: 0.125
   },
-  
+
   // Mastery Progression
   newMasteries: ["two-pointers"],     // Tags newly mastered
   decayedMasteries: [],               // Tags that decayed
@@ -379,17 +392,17 @@
     "array": 0.05,
     "hash-table": -0.02
   },
-  
+
   // Tag Performance Analysis
   strongTags: ["array", "string"],    // Best performing tags
   weakTags: ["graph", "dynamic-programming"], // Struggling tags
   improvementTags: ["sorting"],       // Tags showing improvement
-  
+
   // Session Quality Metrics
   focusScore: 0.9,                    // Consistency of performance
   learningEfficiency: 0.75,          // Learning per unit time
   retentionPrediction: 0.85,          // Predicted retention
-  
+
   // AI-Generated Insights
   insights: [
     "Strong performance on array problems - consider advancing difficulty",
@@ -400,14 +413,14 @@
     "Practice BFS/DFS fundamentals",
     "Review tree traversal patterns"
   ],
-  
+
   // Detailed Performance Breakdown
   difficultyBreakdown: {
     Easy: { attempted: 2, successful: 2, avgTime: 300 },
     Medium: { attempted: 5, successful: 4, avgTime: 800 },
     Hard: { attempted: 1, successful: 0, avgTime: 1200 }
   },
-  
+
   // Strategy Map Integration
   hintsUsed: 3,                       // Number of hints accessed
   primersViewed: ["array-fundamentals"], // Educational content viewed
@@ -420,6 +433,7 @@
 ## 🔗 Key Relationships
 
 ### Primary Relationships
+
 - `Sessions ↔ Attempts`: `sessions.id = attempts.sessionId`
 - `Problems ↔ Attempts`: `problems.leetCodeID = attempts.problemId`
 - `Tags ↔ Mastery`: `tag_relationships.id = tag_mastery.tag`
@@ -427,6 +441,7 @@
 - `Sessions ↔ Analytics`: `sessions.id = session_analytics.sessionId`
 
 ### Data Flow Dependencies
+
 - **Session Creation**: `tag_mastery` → `pattern_ladders` → `problems` → `sessions`
 - **Attempt Recording**: `attempts` → `sessions` → `tag_mastery` → `session_analytics`
 - **Mastery Calculation**: `attempts` → `tag_mastery` → `pattern_ladders`
@@ -437,12 +452,14 @@
 ## 📈 Schema Evolution
 
 ### Version History
+
 - **v22**: Initial schema with basic stores
 - **v23**: Added `strategy_data` store for hint system
 - **v24**: Enhanced session analytics and reasoning
 - **v25**: Current version with full v0.9.5 integration
 
 ### Migration Support
+
 - Automatic schema upgrades via `src/shared/db/index.js`
 - Backward compatibility maintained
 - Data preservation during version upgrades

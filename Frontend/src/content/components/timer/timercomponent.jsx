@@ -3,10 +3,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { FaPause, FaPlay, FaArrowRight } from "react-icons/fa";
 import { AiOutlineClear } from "react-icons/ai";
 import { GrClose, GrPowerReset } from "react-icons/gr";
-import TimeDisplay from "../../shared/components/timedisplay";
-import { FloatingHintButton } from "./strategy";
-import { useChromeMessage } from "../hooks/useChromeMessage";
-import "./css/timerBanner.css";
+import TimeDisplay from "../../../shared/components/timedisplay";
+import { FloatingHintButton } from "../strategy";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import "../../../shared/components/css/timerBanner.css";
 
 const TimerBanner = (props) => {
   const [problemTitle, setProblemTitle] = useState("");
@@ -33,7 +33,11 @@ const TimerBanner = (props) => {
   };
 
   // New approach using custom hook
-  const { data: limitsData, loading, error } = useChromeMessage(
+  const {
+    data: limitsData,
+    loading,
+    error,
+  } = useChromeMessage(
     { type: "getLimits", id: state?.LeetCodeID },
     [state?.LeetCodeID],
     {
@@ -42,10 +46,9 @@ const TimerBanner = (props) => {
         let limit = response.limits.Time;
         setLimit(limit * 60);
         setTime(limit * 60);
-      }
+      },
     }
   );
-  
 
   const handleStart = () => {
     setTimerRunning(true);
@@ -144,15 +147,15 @@ const TimerBanner = (props) => {
         <AiOutlineClear style={{ color: "black" }} />
         {/* Add hint button as part of timer controls */}
         {state?.Tags && state.Tags.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <FloatingHintButton 
-              problemTags={state.Tags.map(tag => tag.toLowerCase().trim())}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <FloatingHintButton
+              problemTags={state.Tags.map((tag) => tag.toLowerCase().trim())}
               onOpen={(data) => {
-                console.log('🔍 Strategy hints popover opened:', data);
+                console.log("🔍 Strategy hints popover opened:", data);
                 // Track popover open event for analytics
               }}
               onClose={(data) => {
-                console.log('❌ Strategy hints popover closed:', data);
+                console.log("❌ Strategy hints popover closed:", data);
                 // Track popover close event for analytics
               }}
             />

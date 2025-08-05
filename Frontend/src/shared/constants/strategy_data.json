@@ -284,17 +284,8 @@
   {
     "tag": "binary search",
     "overview": "Efficient search algorithm that repeatedly divides sorted search space in half to find target values.",
-    "patterns": [
-      "array",
-      "math",
-      "greedy",
-      "sorting"
-    ],
-    "related": [
-      "array",
-      "sorting",
-      "math"
-    ],
+    "patterns": ["array", "math", "greedy", "sorting"],
+    "related": ["array", "sorting", "math"],
     "strategy": "Look for monotonic properties in the search space. Use template: while(left < right) with careful boundary handling to avoid infinite loops.",
     "strategies": [
       {
@@ -484,18 +475,8 @@
   {
     "tag": "bit manipulation",
     "overview": "Techniques for manipulating individual bits in binary representations to solve problems efficiently.",
-    "patterns": [
-      "array",
-      "math",
-      "string",
-      "dynamic programming"
-    ],
-    "related": [
-      "array",
-      "math",
-      "string",
-      "dynamic programming"
-    ],
+    "patterns": ["array", "math", "string", "dynamic programming"],
+    "related": ["array", "math", "string", "dynamic programming"],
     "strategy": "Master basic operations: AND, OR, XOR, bit shifts. XOR is particularly useful for finding unique elements and toggling states.",
     "strategies": [
       {
@@ -523,10 +504,7 @@
   {
     "tag": "bitmask",
     "overview": "Technique using bit patterns to represent sets of states or subsets efficiently in dynamic programming.",
-    "patterns": [
-      "dynamic programming",
-      "backtracking"
-    ],
+    "patterns": ["dynamic programming", "backtracking"],
     "related": [],
     "strategy": "Use for subset enumeration and state compression in DP. Each bit represents inclusion/exclusion of an element.",
     "strategies": [
@@ -539,27 +517,15 @@
   {
     "tag": "brainteaser",
     "overview": "Logic puzzles and mathematical problems that require creative thinking and pattern recognition.",
-    "patterns": [
-      "math",
-      "string",
-      "geometry"
-    ],
-    "related": [
-      "math",
-      "string"
-    ],
+    "patterns": ["math", "string", "geometry"],
+    "related": ["math", "string"],
     "strategy": "Look for mathematical patterns and edge cases. Often involves modular arithmetic, probability, or logical deduction.",
     "strategies": []
   },
   {
     "tag": "breadth-first search",
     "overview": "Graph traversal algorithm that explores neighbors before moving to next level vertices, guaranteeing shortest paths.",
-    "patterns": [
-      "graph",
-      "topological sort",
-      "depth-first search",
-      "matrix"
-    ],
+    "patterns": ["graph", "topological sort", "depth-first search", "matrix"],
     "related": [
       "graph",
       "topological sort",
@@ -631,10 +597,7 @@
   {
     "tag": "combinatorics",
     "overview": "Branch of mathematics concerning counting, arrangement, and selection of objects in systematic ways.",
-    "patterns": [
-      "dynamic programming",
-      "math"
-    ],
+    "patterns": ["dynamic programming", "math"],
     "related": [],
     "strategy": "Use factorial, combination, and permutation formulas. Dynamic programming helps with complex counting problems involving constraints.",
     "strategies": [
@@ -654,13 +617,7 @@
       "math",
       "dynamic programming"
     ],
-    "related": [
-      "array",
-      "string",
-      "hash table",
-      "math",
-      "dynamic programming"
-    ],
+    "related": ["array", "string", "hash table", "math", "dynamic programming"],
     "strategy": "Use hash maps for frequency counting. Consider prefix sums for range counting queries and sliding window for subarray counts.",
     "strategies": [
       {
@@ -705,17 +662,8 @@
   {
     "tag": "data stream",
     "overview": "Problems involving processing continuous streams of data with constraints on memory and time.",
-    "patterns": [
-      "design",
-      "hash table",
-      "queue",
-      "simulation"
-    ],
-    "related": [
-      "design",
-      "hash table",
-      "queue"
-    ],
+    "patterns": ["design", "hash table", "queue", "simulation"],
+    "related": ["design", "hash table", "queue"],
     "strategy": "Use sliding window techniques and efficient data structures. Consider space-time tradeoffs for online algorithms.",
     "strategies": [
       {
@@ -883,11 +831,7 @@
   {
     "tag": "divide and conquer",
     "overview": "Algorithm design paradigm that recursively breaks problems into smaller independent subproblems.",
-    "patterns": [
-      "array",
-      "dynamic programming",
-      "recursion"
-    ],
+    "patterns": ["array", "dynamic programming", "recursion"],
     "related": [],
     "strategy": "Divide problem into independent subproblems, solve recursively, then combine results. Often yields O(n log n) time complexity.",
     "strategies": [
@@ -924,16 +868,8 @@
   {
     "tag": "doubly-linked list",
     "overview": "Linked list variant where each node has pointers to both next and previous nodes for bidirectional traversal.",
-    "patterns": [
-      "dynamic programming",
-      "backtracking",
-      "recursion"
-    ],
-    "related": [
-      "dynamic programming",
-      "backtracking",
-      "linked list"
-    ],
+    "patterns": ["dynamic programming", "backtracking", "recursion"],
+    "related": ["dynamic programming", "backtracking", "linked list"],
     "strategy": "Leverage bidirectional pointers for efficient insertion and deletion. Useful for implementing LRU caches and deques.",
     "strategies": []
   },
@@ -1065,14 +1001,8 @@
   {
     "tag": "game theory",
     "overview": "Mathematical framework for analyzing strategic decision-making between rational players in competitive scenarios.",
-    "patterns": [
-      "dynamic programming",
-      "simulation"
-    ],
-    "related": [
-      "dynamic programming",
-      "simulation"
-    ],
+    "patterns": ["dynamic programming", "simulation"],
+    "related": ["dynamic programming", "simulation"],
     "strategy": "Analyze winning and losing positions using minimax algorithm. Consider optimal play from both players' perspectives.",
     "strategies": [
       {
@@ -1084,15 +1014,8 @@
   {
     "tag": "geometry",
     "overview": "Problems involving geometric shapes, coordinates, distances, and spatial relationships in 2D or 3D space.",
-    "patterns": [
-      "math",
-      "simulation",
-      "sorting"
-    ],
-    "related": [
-      "math",
-      "simulation"
-    ],
+    "patterns": ["math", "simulation", "sorting"],
+    "related": ["math", "simulation"],
     "strategy": "Use coordinate geometry formulas for distance and area calculations. Consider precision issues with floating-point arithmetic.",
     "strategies": [
       {
@@ -1151,20 +1074,8 @@
   {
     "tag": "greedy",
     "overview": "Algorithm paradigm that makes locally optimal choices at each step to find global optimum solution.",
-    "patterns": [
-      "array",
-      "dynamic programming",
-      "sorting",
-      "string",
-      "math"
-    ],
-    "related": [
-      "array",
-      "dynamic programming",
-      "sorting",
-      "string",
-      "math"
-    ],
+    "patterns": ["array", "dynamic programming", "sorting", "string", "math"],
+    "related": ["array", "dynamic programming", "sorting", "string", "math"],
     "strategy": "Identify problems with optimal substructure but no overlapping subproblems. Sort data first when order matters for greedy choice.",
     "strategies": [
       {
@@ -1216,10 +1127,7 @@
   {
     "tag": "hash function",
     "overview": "Function that maps data of arbitrary size to fixed-size values, used in hashing and string algorithms.",
-    "patterns": [
-      "string",
-      "sliding window"
-    ],
+    "patterns": ["string", "sliding window"],
     "related": [],
     "strategy": "Use for fast string comparison and pattern matching. Rolling hash enables efficient sliding window string operations.",
     "strategies": [
@@ -1248,18 +1156,8 @@
   {
     "tag": "hash table",
     "overview": "Data structure providing O(1) average-case lookup, insertion, and deletion operations using key-value mapping.",
-    "patterns": [
-      "array",
-      "string",
-      "counting",
-      "sliding window"
-    ],
-    "related": [
-      "array",
-      "string",
-      "counting",
-      "two pointers"
-    ],
+    "patterns": ["array", "string", "counting", "sliding window"],
+    "related": ["array", "string", "counting", "two pointers"],
     "strategy": "Use for frequency counting, fast lookups, and eliminating nested loops. Consider space-time tradeoffs and collision handling.",
     "strategies": [
       {
@@ -1395,16 +1293,8 @@
   {
     "tag": "heap (priority queue)",
     "overview": "Complete binary tree with heap property, enabling efficient priority queue operations and selection algorithms.",
-    "patterns": [
-      "sorting",
-      "greedy",
-      "array"
-    ],
-    "related": [
-      "sorting",
-      "greedy",
-      "array"
-    ],
+    "patterns": ["sorting", "greedy", "array"],
+    "related": ["sorting", "greedy", "array"],
     "strategy": "Use for top-k problems and maintaining extremes efficiently. Min-heap for smallest elements, max-heap for largest elements.",
     "strategies": [
       {
@@ -1496,10 +1386,7 @@
   {
     "tag": "interactive",
     "overview": "Problems where solution must interact with hidden system through queries, with limited query budget.",
-    "patterns": [
-      "binary search",
-      "graph"
-    ],
+    "patterns": ["binary search", "graph"],
     "related": [],
     "strategy": "Minimize number of queries through binary search or strategic probing. Analyze information gained from each query.",
     "strategies": [
@@ -1516,26 +1403,15 @@
   {
     "tag": "iterator",
     "overview": "Design pattern for traversing collections without exposing underlying representation, enabling clean iteration.",
-    "patterns": [
-      "binary search tree",
-      "array",
-      "design"
-    ],
-    "related": [
-      "binary search tree",
-      "array",
-      "design"
-    ],
+    "patterns": ["binary search tree", "array", "design"],
+    "related": ["binary search tree", "array", "design"],
     "strategy": "Implement stateful traversal with clear separation of concerns. Handle edge cases like empty collections and concurrent modification.",
     "strategies": []
   },
   {
     "tag": "line sweep",
     "overview": "Algorithmic technique that processes geometric objects by sweeping a line across the plane systematically.",
-    "patterns": [
-      "segment tree",
-      "array"
-    ],
+    "patterns": ["segment tree", "array"],
     "related": [],
     "strategy": "Sort events by coordinate and process in order. Use data structures to maintain active objects during sweep.",
     "strategies": []
@@ -1686,10 +1562,7 @@
   {
     "tag": "memoization",
     "overview": "Optimization technique storing results of expensive function calls to avoid recomputation in recursive solutions.",
-    "patterns": [
-      "dynamic programming",
-      "recursion"
-    ],
+    "patterns": ["dynamic programming", "recursion"],
     "related": [],
     "strategy": "Add cache to recursive solutions with overlapping subproblems. Use dictionary or array for storage based on state space.",
     "strategies": [
@@ -1702,10 +1575,7 @@
   {
     "tag": "merge sort",
     "overview": "Divide-and-conquer sorting algorithm with guaranteed O(n log n) time complexity and stable sorting property.",
-    "patterns": [
-      "quickselect",
-      "sorting"
-    ],
+    "patterns": ["quickselect", "sorting"],
     "related": [],
     "strategy": "Use for stable sorting and when worst-case O(n log n) is required. Excellent for external sorting of large datasets.",
     "strategies": [
@@ -1718,15 +1588,8 @@
   {
     "tag": "minimum spanning tree",
     "overview": "Subset of edges in weighted graph that connects all vertices with minimum total weight, no cycles.",
-    "patterns": [
-      "graph",
-      "topological sort",
-      "union find"
-    ],
-    "related": [
-      "graph",
-      "topological sort"
-    ],
+    "patterns": ["graph", "topological sort", "union find"],
+    "related": ["graph", "topological sort"],
     "strategy": "Use Kruskal's algorithm with union-find or Prim's algorithm with priority queue for efficient MST construction.",
     "strategies": []
   },
@@ -1754,10 +1617,7 @@
   {
     "tag": "monotonic stack",
     "overview": "Stack variant that maintains elements in monotonic order, useful for finding next greater/smaller elements.",
-    "patterns": [
-      "array",
-      "stack"
-    ],
+    "patterns": ["array", "stack"],
     "related": [],
     "strategy": "Maintain increasing or decreasing order by popping elements. Useful for histogram problems and temperature-like queries.",
     "strategies": [
@@ -1786,12 +1646,8 @@
   {
     "tag": "number theory",
     "overview": "Branch of mathematics studying properties and relationships of integers, primes, and modular arithmetic.",
-    "patterns": [
-      "math"
-    ],
-    "related": [
-      "math"
-    ],
+    "patterns": ["math"],
+    "related": ["math"],
     "strategy": "Master GCD, LCM, and modular arithmetic operations. Use sieve algorithms for prime-related problems efficiently.",
     "strategies": [
       {
@@ -1807,10 +1663,7 @@
   {
     "tag": "ordered set",
     "overview": "Data structure maintaining elements in sorted order with efficient insertion, deletion, and range queries.",
-    "patterns": [
-      "design",
-      "segment tree"
-    ],
+    "patterns": ["design", "segment tree"],
     "related": [],
     "strategy": "Use balanced BST or segment tree for order statistics. Consider treap or skip list for implementation alternatives.",
     "strategies": [
@@ -1847,18 +1700,8 @@
   {
     "tag": "prefix sum",
     "overview": "Preprocessing technique storing cumulative sums to answer range sum queries efficiently in constant time.",
-    "patterns": [
-      "array",
-      "matrix",
-      "sliding window",
-      "math"
-    ],
-    "related": [
-      "array",
-      "matrix",
-      "sliding window",
-      "math"
-    ],
+    "patterns": ["array", "matrix", "sliding window", "math"],
+    "related": ["array", "matrix", "sliding window", "math"],
     "strategy": "Build prefix array where prefix[i] = sum from 0 to i. Range sum = prefix[j] - prefix[i-1] for range [i,j].",
     "strategies": [
       {
@@ -1890,10 +1733,7 @@
   {
     "tag": "probability and statistics",
     "overview": "Mathematical concepts dealing with uncertainty, randomness, statistical analysis, and probabilistic reasoning.",
-    "patterns": [
-      "math",
-      "dynamic programming"
-    ],
+    "patterns": ["math", "dynamic programming"],
     "related": [],
     "strategy": "Apply probability rules and expected value calculations. Use combinatorial counting and Bayes' theorem for complex scenarios.",
     "strategies": []
@@ -1901,16 +1741,8 @@
   {
     "tag": "queue",
     "overview": "First-In-First-Out (FIFO) data structure supporting enqueue and dequeue operations for sequential processing.",
-    "patterns": [
-      "simulation",
-      "design",
-      "data stream"
-    ],
-    "related": [
-      "simulation",
-      "design",
-      "stack"
-    ],
+    "patterns": ["simulation", "design", "data stream"],
+    "related": ["simulation", "design", "stack"],
     "strategy": "Use for level-order traversals and problems requiring processing in arrival order. Consider circular queue for efficiency.",
     "strategies": [
       {
@@ -1938,10 +1770,7 @@
   {
     "tag": "quickselect",
     "overview": "Selection algorithm for finding k-th smallest element with average O(n) time complexity using partitioning.",
-    "patterns": [
-      "sorting",
-      "merge sort"
-    ],
+    "patterns": ["sorting", "merge sort"],
     "related": [],
     "strategy": "Use partitioning logic from quicksort but recurse only on relevant side. Randomization improves average case performance.",
     "strategies": []
@@ -1957,14 +1786,8 @@
   {
     "tag": "randomized",
     "overview": "Algorithms that use random choices during execution to achieve better average-case performance or simplicity.",
-    "patterns": [
-      "simulation",
-      "design"
-    ],
-    "related": [
-      "simulation",
-      "design"
-    ],
+    "patterns": ["simulation", "design"],
+    "related": ["simulation", "design"],
     "strategy": "Use randomization for load balancing and average-case optimization. Consider Monte Carlo methods for approximation problems.",
     "strategies": []
   },
@@ -2012,10 +1835,7 @@
   {
     "tag": "rolling hash",
     "overview": "Hash function that efficiently updates hash value as window slides, enabling fast string pattern matching.",
-    "patterns": [
-      "string",
-      "string matching"
-    ],
+    "patterns": ["string", "string matching"],
     "related": [],
     "strategy": "Use for substring search and comparison in sliding window. Polynomial rolling hash with large prime modulus prevents collisions.",
     "strategies": [
@@ -2040,10 +1860,7 @@
   {
     "tag": "segment tree",
     "overview": "Binary tree data structure for answering range queries and updates efficiently with logarithmic complexity.",
-    "patterns": [
-      "array",
-      "binary indexed tree"
-    ],
+    "patterns": ["array", "binary indexed tree"],
     "related": [],
     "strategy": "Build tree bottom-up for range queries in O(log n). Use lazy propagation for efficient range updates.",
     "strategies": [
@@ -2072,16 +1889,8 @@
   {
     "tag": "shortest path",
     "overview": "Finding minimum cost path between vertices in weighted graphs using various algorithmic approaches.",
-    "patterns": [
-      "graph",
-      "topological sort",
-      "breadth-first search"
-    ],
-    "related": [
-      "graph",
-      "topological sort",
-      "breadth-first search"
-    ],
+    "patterns": ["graph", "topological sort", "breadth-first search"],
+    "related": ["graph", "topological sort", "breadth-first search"],
     "strategy": "Use BFS for unweighted graphs, Dijkstra for non-negative weights. Consider Floyd-Warshall for all-pairs shortest paths.",
     "strategies": [
       {
@@ -2109,13 +1918,7 @@
       "graph",
       "topological sort"
     ],
-    "related": [
-      "array",
-      "string",
-      "matrix",
-      "math",
-      "stack"
-    ],
+    "related": ["array", "string", "matrix", "math", "stack"],
     "strategy": "Break down complex requirements into simple steps. Handle edge cases carefully and validate intermediate states.",
     "strategies": [
       {
@@ -2147,18 +1950,8 @@
   {
     "tag": "sliding window",
     "overview": "Technique maintaining a window of elements and sliding it across data structure to solve subarray problems.",
-    "patterns": [
-      "string",
-      "array",
-      "hash table",
-      "two pointers"
-    ],
-    "related": [
-      "string",
-      "array",
-      "hash table",
-      "two pointers"
-    ],
+    "patterns": ["string", "array", "hash table", "two pointers"],
+    "related": ["string", "array", "hash table", "two pointers"],
     "strategy": "Identify subarray/substring problems with constraints. Expand window when possible, contract when constraint is violated.",
     "strategies": [
       {
@@ -2190,20 +1983,8 @@
   {
     "tag": "sorting",
     "overview": "Algorithms for arranging elements in specific order, often serving as preprocessing step for other algorithms.",
-    "patterns": [
-      "array",
-      "greedy",
-      "two pointers",
-      "string",
-      "math"
-    ],
-    "related": [
-      "array",
-      "greedy",
-      "two pointers",
-      "string",
-      "hash table"
-    ],
+    "patterns": ["array", "greedy", "two pointers", "string", "math"],
+    "related": ["array", "greedy", "two pointers", "string", "hash table"],
     "strategy": "Consider whether order matters for the solution approach. Custom comparators enable complex sorting criteria and logic.",
     "strategies": [
       {
@@ -2299,18 +2080,8 @@
   {
     "tag": "stack",
     "overview": "Last-In-First-Out (LIFO) data structure supporting push, pop, and peek operations for sequential processing.",
-    "patterns": [
-      "string",
-      "simulation",
-      "array",
-      "dynamic programming"
-    ],
-    "related": [
-      "string",
-      "simulation",
-      "array",
-      "dynamic programming"
-    ],
+    "patterns": ["string", "simulation", "array", "dynamic programming"],
+    "related": ["string", "simulation", "array", "dynamic programming"],
     "strategy": "Use for problems requiring reversal, matching brackets, or maintaining order constraints. Consider monotonic stack variants.",
     "strategies": [
       {
@@ -2461,10 +2232,7 @@
   {
     "tag": "string matching",
     "overview": "Finding occurrences of pattern strings within text using efficient algorithms like KMP, Rabin-Karp, or Z-algorithm.",
-    "patterns": [
-      "string",
-      "dynamic programming"
-    ],
+    "patterns": ["string", "dynamic programming"],
     "related": [],
     "strategy": "Use KMP for single pattern matching, Aho-Corasick for multiple patterns. Rolling hash enables fast average-case matching.",
     "strategies": [
@@ -2498,30 +2266,16 @@
   {
     "tag": "suffix array",
     "overview": "Sorted array of all suffixes of string, enabling efficient pattern matching and substring operations.",
-    "patterns": [
-      "string",
-      "binary search"
-    ],
-    "related": [
-      "string",
-      "binary search"
-    ],
+    "patterns": ["string", "binary search"],
+    "related": ["string", "binary search"],
     "strategy": "Build suffix array with O(n log n) algorithms. Use for multiple pattern queries and longest common substring problems.",
     "strategies": []
   },
   {
     "tag": "topological sort",
     "overview": "Linear ordering of vertices in directed acyclic graph respecting edge directions, used in dependency resolution.",
-    "patterns": [
-      "graph",
-      "breadth-first search",
-      "depth-first search"
-    ],
-    "related": [
-      "graph",
-      "breadth-first search",
-      "depth-first search"
-    ],
+    "patterns": ["graph", "breadth-first search", "depth-first search"],
+    "related": ["graph", "breadth-first search", "depth-first search"],
     "strategy": "Use Kahn's algorithm (BFS-based) or DFS-based approach. Check for cycles before attempting topological ordering.",
     "strategies": [
       {
@@ -2614,15 +2368,8 @@
   {
     "tag": "trie",
     "overview": "Tree-like data structure for storing strings with shared prefixes efficiently, enabling fast prefix operations.",
-    "patterns": [
-      "string",
-      "design",
-      "string matching"
-    ],
-    "related": [
-      "string",
-      "design"
-    ],
+    "patterns": ["string", "design", "string matching"],
+    "related": ["string", "design"],
     "strategy": "Build trie for prefix-related string problems. Each node represents character, paths from root represent complete strings.",
     "strategies": [
       {
@@ -2638,20 +2385,8 @@
   {
     "tag": "two pointers",
     "overview": "Technique using two indices to traverse data structure from different positions or directions efficiently.",
-    "patterns": [
-      "array",
-      "string",
-      "sorting",
-      "linked list",
-      "sliding window"
-    ],
-    "related": [
-      "array",
-      "string",
-      "sorting",
-      "linked list",
-      "hash table"
-    ],
+    "patterns": ["array", "string", "sorting", "linked list", "sliding window"],
+    "related": ["array", "string", "sorting", "linked list", "hash table"],
     "strategy": "Use for array/string problems needing O(n) time complexity. Consider fast-slow pointers for cycle detection in linked lists.",
     "strategies": [
       {
@@ -2703,11 +2438,7 @@
   {
     "tag": "union find",
     "overview": "Data structure for tracking disjoint sets with efficient union and find operations for connectivity queries.",
-    "patterns": [
-      "graph",
-      "topological sort",
-      "depth-first search"
-    ],
+    "patterns": ["graph", "topological sort", "depth-first search"],
     "related": [],
     "strategy": "Use path compression and union by rank for optimal performance. Excellent for connectivity problems and cycle detection.",
     "strategies": [

@@ -1,13 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Text, Badge, Stack, Group, Loader, Alert, Divider } from '@mantine/core';
-import { IconBook, IconInfoCircle, IconTags } from '@tabler/icons-react';
-import StrategyService from '../../services/strategyService';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Text,
+  Badge,
+  Stack,
+  Group,
+  Loader,
+  Alert,
+  Divider,
+} from "@mantine/core";
+import { IconBook, IconInfoCircle, IconTags } from "@tabler/icons-react";
+import StrategyService from "../../services/strategyService";
 
 /**
  * PrimerSection - Displays tag overviews and general strategies before starting a problem
  * Shows one general tip per tag to help users understand the problem's focus areas
  */
-const PrimerSection = ({ problemTags = [], isVisible = true, className = "" }) => {
+const PrimerSection = ({
+  problemTags = [],
+  isVisible = true,
+  className = "",
+}) => {
   const [primers, setPrimers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,13 +38,12 @@ const PrimerSection = ({ problemTags = [], isVisible = true, className = "" }) =
     try {
       setLoading(true);
       setError(null);
-      
+
       const tagPrimers = await StrategyService.getTagPrimers(problemTags);
       setPrimers(tagPrimers);
-      
     } catch (err) {
-      console.error('Error loading primers:', err);
-      setError('Failed to load tag information');
+      console.error("Error loading primers:", err);
+      setError("Failed to load tag information");
     } finally {
       setLoading(false);
     }
@@ -42,13 +54,13 @@ const PrimerSection = ({ problemTags = [], isVisible = true, className = "" }) =
   }
 
   return (
-    <Card 
-      shadow="sm" 
-      padding="lg" 
-      radius="md" 
-      withBorder 
+    <Card
+      shadow="sm"
+      padding="lg"
+      radius="md"
+      withBorder
       className={className}
-      style={{ marginBottom: '1.5rem' }}
+      style={{ marginBottom: "1.5rem" }}
     >
       <Group gap="xs" mb="lg">
         <IconBook size={24} color="#4c6ef5" />
@@ -65,12 +77,19 @@ const PrimerSection = ({ problemTags = [], isVisible = true, className = "" }) =
       {loading && (
         <Group justify="center" p="xl">
           <Loader size="md" />
-          <Text size="sm" c="dimmed">Loading problem overview...</Text>
+          <Text size="sm" c="dimmed">
+            Loading problem overview...
+          </Text>
         </Group>
       )}
 
       {error && (
-        <Alert icon={<IconInfoCircle size={16} />} color="red" variant="light" mb="md">
+        <Alert
+          icon={<IconInfoCircle size={16} />}
+          color="red"
+          variant="light"
+          mb="md"
+        >
           {error}
         </Alert>
       )}
@@ -86,9 +105,9 @@ const PrimerSection = ({ problemTags = [], isVisible = true, className = "" }) =
           {primers.map((primer, index) => (
             <div key={primer.tag}>
               <Group gap="sm" mb="sm">
-                <Badge 
-                  size="md" 
-                  variant="light" 
+                <Badge
+                  size="md"
+                  variant="light"
                   color="blue"
                   leftSection={<IconTags size={14} />}
                 >
@@ -108,21 +127,23 @@ const PrimerSection = ({ problemTags = [], isVisible = true, className = "" }) =
 
               {/* Common Patterns */}
               {primer.patterns && primer.patterns.length > 0 && (
-                <div style={{ marginBottom: '0.75rem' }}>
+                <div style={{ marginBottom: "0.75rem" }}>
                   <Text size="xs" weight={500} c="dimmed" mb="xs">
                     COMMON PATTERNS:
                   </Text>
                   <Group gap="xs">
-                    {primer.patterns.slice(0, 4).map((pattern, patternIndex) => (
-                      <Badge 
-                        key={patternIndex} 
-                        size="xs" 
-                        variant="outline" 
-                        color="gray"
-                      >
-                        {pattern}
-                      </Badge>
-                    ))}
+                    {primer.patterns
+                      .slice(0, 4)
+                      .map((pattern, patternIndex) => (
+                        <Badge
+                          key={patternIndex}
+                          size="xs"
+                          variant="outline"
+                          color="gray"
+                        >
+                          {pattern}
+                        </Badge>
+                      ))}
                     {primer.patterns.length > 4 && (
                       <Badge size="xs" variant="outline" color="gray">
                         +{primer.patterns.length - 4} more
@@ -139,16 +160,18 @@ const PrimerSection = ({ problemTags = [], isVisible = true, className = "" }) =
                     OFTEN COMBINED WITH:
                   </Text>
                   <Group gap="xs">
-                    {primer.related.slice(0, 4).map((relatedTag, relatedIndex) => (
-                      <Badge 
-                        key={relatedIndex} 
-                        size="xs" 
-                        variant="dot" 
-                        color="blue"
-                      >
-                        {relatedTag}
-                      </Badge>
-                    ))}
+                    {primer.related
+                      .slice(0, 4)
+                      .map((relatedTag, relatedIndex) => (
+                        <Badge
+                          key={relatedIndex}
+                          size="xs"
+                          variant="dot"
+                          color="blue"
+                        >
+                          {relatedTag}
+                        </Badge>
+                      ))}
                     {primer.related.length > 4 && (
                       <Badge size="xs" variant="dot" color="blue">
                         +{primer.related.length - 4} more

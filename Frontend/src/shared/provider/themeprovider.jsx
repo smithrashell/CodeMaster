@@ -8,7 +8,7 @@ function ThemeProviderWrapper({ children }) {
   const [colorScheme, setColorScheme] = useState("light");
 
   const toggleColorScheme = (value) => {
-   setColorScheme((current) => (current === "light" ? "dark" : "light"));
+    setColorScheme((current) => (current === "light" ? "dark" : "light"));
   };
 
   useEffect(() => {

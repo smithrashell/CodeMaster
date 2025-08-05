@@ -468,43 +468,45 @@ export async function fetchAllProblems() {
   });
 }
 
-
 export async function fetchAdditionalProblems(
   numNewProblems,
   excludeIds = new Set()
 ) {
   try {
-    const { masteryData, focusTags, allTagsInCurrentTier } = await getCurrentLearningState();
+    const { masteryData, focusTags, allTagsInCurrentTier } =
+      await getCurrentLearningState();
     const allProblems = await getAllStandardProblems();
     const ladders = await getPatternLadders();
-    
+
     console.log("🧠 Starting intelligent problem selection...");
     console.log("🧠 Focus Tags:", focusTags);
     console.log("🧠 Needed problems:", numNewProblems);
-    
+
     // Get tag relationships for expansion
     const tagRelationships = await getTagRelationships();
-    
+
     // Calculate difficulty allowances for all tags
     const tagDifficultyAllowances = {};
     for (const tag of focusTags) {
-      const tagMastery = masteryData.find(m => m.tag === tag) || {
+      const tagMastery = masteryData.find((m) => m.tag === tag) || {
         tag,
         totalAttempts: 0,
         successfulAttempts: 0,
-        mastered: false
+        mastered: false,
       };
       tagDifficultyAllowances[tag] = getDifficultyAllowanceForTag(tagMastery);
     }
-    
+
     const selectedProblems = [];
     const usedProblemIds = new Set(excludeIds);
-    
+
     // Step 1: Primary focus (60% of problems) - Deep learning on weakest tag
     const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
     const primaryTag = focusTags[0]; // Weakest tag based on performance
-    
-    console.log(`🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`);
+
+    console.log(
+      `🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`
+    );
     const primaryProblems = await selectProblemsForTag(
       primaryTag,
       primaryFocusCount,
@@ -514,24 +516,26 @@ export async function fetchAdditionalProblems(
       allTagsInCurrentTier,
       usedProblemIds
     );
-    
+
     selectedProblems.push(...primaryProblems);
-    primaryProblems.forEach(p => usedProblemIds.add(p.id));
-    
+    primaryProblems.forEach((p) => usedProblemIds.add(p.id));
+
     // Step 2: Focus tag expansion (40% of problems) - Use next focus tag
     const expansionCount = numNewProblems - selectedProblems.length;
     if (expansionCount > 0 && focusTags.length > 1) {
       const expansionTag = focusTags[1]; // Use next focus tag for expansion
-      console.log(`🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`);
-      
-      const tagMastery = masteryData.find(m => m.tag === expansionTag) || {
+      console.log(
+        `🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`
+      );
+
+      const tagMastery = masteryData.find((m) => m.tag === expansionTag) || {
         tag: expansionTag,
         totalAttempts: 0,
         successfulAttempts: 0,
-        mastered: false
+        mastered: false,
       };
       const allowance = getDifficultyAllowanceForTag(tagMastery);
-      
+
       const expansionProblems = await selectProblemsForTag(
         expansionTag,
         expansionCount,
@@ -541,24 +545,22 @@ export async function fetchAdditionalProblems(
         allTagsInCurrentTier,
         usedProblemIds
       );
-      
+
       selectedProblems.push(...expansionProblems);
-      expansionProblems.forEach(p => usedProblemIds.add(p.id));
-      
-      console.log(`🔗 Added ${expansionProblems.length} problems from expansion tag: ${expansionTag}`);
+      expansionProblems.forEach((p) => usedProblemIds.add(p.id));
+
+      console.log(
+        `🔗 Added ${expansionProblems.length} problems from expansion tag: ${expansionTag}`
+      );
     }
-    
+
     console.log(`🎯 Selected ${selectedProblems.length} problems for learning`);
     return selectedProblems;
-    
   } catch (error) {
     console.error("❌ Error in fetchAdditionalProblems():", error);
     return [];
   }
 }
-
-
-
 
 async function getProblemSequenceScore(
   problemId,
@@ -865,7 +867,7 @@ export async function updateProblemWithTags() {
  */
 function normalizeTags(tags) {
   if (!Array.isArray(tags)) return [];
-  return tags.map(tag => tag.trim().toLowerCase());
+  return tags.map((tag) => tag.trim().toLowerCase());
 }
 
 /**
@@ -889,32 +891,32 @@ async function selectProblemsForTag(
   usedProblemIds
 ) {
   console.log(`🎯 Selecting ${count} problems for tag: ${tag}`);
-  
+
   const ladder = ladders?.[tag]?.problems || [];
   const allTagsInCurrentTierSet = new Set(allTagsInCurrentTier);
-  
+
   // Filter eligible problems with progressive difficulty preference
   const eligibleProblems = ladder
-    .filter(problem => {
+    .filter((problem) => {
       const id = problem.leetCodeID ?? problem.id;
       const rating = problem.rating || "Medium";
       const tags = normalizeTags(problem.tags || []);
-      
+
       // Basic filters
       if (usedProblemIds.has(id)) return false;
       if (difficultyAllowance[rating] <= 0) return false;
       if (!tags.includes(tag)) return false;
-      
+
       // Tier constraint - all tags must be in current tier
-      const tierValid = tags.every(t => allTagsInCurrentTierSet.has(t));
+      const tierValid = tags.every((t) => allTagsInCurrentTierSet.has(t));
       if (!tierValid) return false;
-      
+
       return true;
     })
-    .map(problem => ({
+    .map((problem) => ({
       ...problem,
       difficultyScore: getDifficultyScore(problem.rating || "Medium"),
-      allowanceWeight: difficultyAllowance[problem.rating || "Medium"]
+      allowanceWeight: difficultyAllowance[problem.rating || "Medium"],
     }))
     .sort((a, b) => {
       // Sort by difficulty score (easier first) and then by allowance weight
@@ -923,23 +925,27 @@ async function selectProblemsForTag(
       }
       return b.allowanceWeight - a.allowanceWeight;
     });
-  
-  console.log(`🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`);
-  
+
+  console.log(
+    `🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`
+  );
+
   // Select problems with progressive difficulty
   const selectedProblems = [];
   let selectedCount = 0;
-  
+
   for (const problem of eligibleProblems) {
     if (selectedCount >= count) break;
-    
-    const standardProblem = allProblems.find(p => p.id === problem.leetCodeID);
+
+    const standardProblem = allProblems.find(
+      (p) => p.id === problem.leetCodeID
+    );
     if (standardProblem) {
       selectedProblems.push(standardProblem);
       selectedCount++;
     }
   }
-  
+
   console.log(`🎯 Selected ${selectedProblems.length} problems for ${tag}`);
   return selectedProblems;
 }
@@ -959,6 +965,6 @@ async function selectProblemsForTag(
  * @returns {number} Difficulty score
  */
 function getDifficultyScore(difficulty) {
-  const scores = { "Easy": 1, "Medium": 2, "Hard": 3 };
+  const scores = { Easy: 1, Medium: 2, Hard: 3 };
   return scores[difficulty] || 2;
 }

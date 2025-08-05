@@ -12,12 +12,12 @@
 // const domNode = document.getElementById("popup");
 
 // createRoot(domNode).render(<Popup />);
-import React from 'react';
-import { createRoot } from 'react-dom/client';
+import React from "react";
+import { createRoot } from "react-dom/client";
 
 function Popup() {
   const openApp = () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('app.html') });
+    chrome.tabs.create({ url: chrome.runtime.getURL("app.html") });
   };
 
   return (
@@ -27,5 +27,5 @@ function Popup() {
   );
 }
 
-const root = createRoot(document.getElementById('popup-root'));
+const root = createRoot(document.getElementById("popup-root"));
 root.render(<Popup />);

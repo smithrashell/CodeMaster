@@ -1,9 +1,9 @@
 /* ========= Default (Light Mode) ========= */
 :root {
-  --cd-bg: #dceefb; 
+  --cd-bg: #dceefb;
   --cd-text: #334155;
-  --cd-link:#444f5a;
-  --cd-link-hover:#1c2a3a;
+  --cd-link: #444f5a;
+  --cd-link-hover: #1c2a3a;
   --cd-highlight: #fabd22;
   --cd-btn-bg: #0b7199;
   --cd-btn-text: #fabd22;
@@ -12,8 +12,6 @@
   --cd-dropdown-color: #334155;
   --cd-dropdown-bg: #ffffff;
   --cd-overlay-z-base: 9990;
-
-
 }
 
 body {
@@ -40,7 +38,7 @@ body[data-theme="dark"] {
 .injected {
   color: var(--cd-text);
 }
- 
+
 .btn {
   background-color: var(--cd-btn-bg);
   color: var(--cd-btn-text);

@@ -1,5 +1,5 @@
 import { dbHelper } from "./index.js";
-import  STANDARD_PROBLEMS  from "../constants/LeetCode_Tags_Combined.json"
+import STANDARD_PROBLEMS from "../constants/LeetCode_Tags_Combined.json";
 const openDB = dbHelper.openDB;
 export async function getProblemFromStandardProblems(slug) {
   try {
@@ -210,7 +210,7 @@ export async function insertStandardProblems() {
   }
 
   await Promise.all(
-    STANDARD_PROBLEMS.map(problem => {
+    STANDARD_PROBLEMS.map((problem) => {
       return new Promise((resolve, reject) => {
         console.log("🧼 problem:", problem);
         const req = store.put(problem);
@@ -222,4 +222,3 @@ export async function insertStandardProblems() {
 
   console.log(`✅ Inserted ${STANDARD_PROBLEMS.length} standard problems.`);
 }
-

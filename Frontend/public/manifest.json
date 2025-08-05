@@ -12,7 +12,7 @@
     "scripting",
     "storage",
     "debugger",
-     "downloads"
+    "downloads"
   ],
   "background": {
     "service_worker": "background.js"
@@ -34,7 +34,12 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["app.html", "app.js","app.css" ,"LeetCode_Tags_Combined.json"],
+      "resources": [
+        "app.html",
+        "app.js",
+        "app.css",
+        "LeetCode_Tags_Combined.json"
+      ],
       "matches": ["<all_urls>"]
     }
   ]
