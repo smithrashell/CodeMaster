@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import StrategyService from '../services/strategyService';
+import { useState, useEffect, useCallback } from "react";
+import StrategyService from "../../content/services/strategyService";
 
 /**
  * React hook for managing strategy data and hints
@@ -19,7 +19,7 @@ export const useStrategy = (problemTags = []) => {
         const loaded = await StrategyService.isStrategyDataLoaded();
         setIsDataLoaded(loaded);
       } catch (err) {
-        console.error('Error checking strategy data:', err);
+        console.error("Error checking strategy data:", err);
         setIsDataLoaded(false);
       }
     };
@@ -45,15 +45,14 @@ export const useStrategy = (problemTags = []) => {
       // Load both hints and primers in parallel
       const [contextualHints, tagPrimers] = await Promise.all([
         StrategyService.getContextualHints(problemTags),
-        StrategyService.getTagPrimers(problemTags)
+        StrategyService.getTagPrimers(problemTags),
       ]);
 
       setHints(contextualHints);
       setPrimers(tagPrimers);
-
     } catch (err) {
-      console.error('Error loading strategy data:', err);
-      setError(err.message || 'Failed to load strategy data');
+      console.error("Error loading strategy data:", err);
+      setError(err.message || "Failed to load strategy data");
     } finally {
       setLoading(false);
     }
@@ -90,23 +89,23 @@ export const useStrategy = (problemTags = []) => {
     // Data
     hints,
     primers,
-    
+
     // State
     loading,
     error,
     isDataLoaded,
-    
+
     // Computed values
     hasHints: hints.length > 0,
     hasPrimers: primers.length > 0,
-    contextualHints: hints.filter(hint => hint.type === 'contextual'),
-    generalHints: hints.filter(hint => hint.type === 'general'),
-    
+    contextualHints: hints.filter((hint) => hint.type === "contextual"),
+    generalHints: hints.filter((hint) => hint.type === "general"),
+
     // Functions
     refreshStrategy,
     getTagStrategy,
     getTagPrimer,
-    
+
     // Utilities
     clearError: () => setError(null),
   };

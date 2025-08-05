@@ -11,7 +11,7 @@ import {
   Group,
 } from "@mantine/core";
 import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
-import TimeGranularChartCard from "./TimeGranularChartCard";
+import TimeGranularChartCard from "../charts/TimeGranularChartCard";
 
 // Mock functions (replace with getCurrentLearningState())
 const fetchMockData = (data) => {

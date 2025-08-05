@@ -9,23 +9,21 @@ export default function ThemeToggle() {
   const { colorScheme, toggleColorScheme } = useTheme();
   const isLight = colorScheme === "light";
   const [theme, setTheme] = useState("light");
-  
+
   // New approach using custom hook
-  const { data: settings, loading, error } = useChromeMessage(
-    { type: "getSettings" },
-    [],
-    {
-      onSuccess: (response) => {
-        const savedTheme = response?.theme || "light";
-        if (savedTheme !== colorScheme) {
-          toggleColorScheme(savedTheme);
-        }
+  const {
+    data: settings,
+    loading,
+    error,
+  } = useChromeMessage({ type: "getSettings" }, [], {
+    onSuccess: (response) => {
+      const savedTheme = response?.theme || "light";
+      if (savedTheme !== colorScheme) {
+        toggleColorScheme(savedTheme);
       }
-    }
-  );
-  
-  
-  
+    },
+  });
+
   const options = [
     {
       value: "light",
@@ -63,7 +61,7 @@ export default function ThemeToggle() {
           value={colorScheme}
           onChange={(newTheme) => {
             toggleColorScheme(newTheme);
-          
+
             // update settings in Chrome
             chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
               const updatedSettings = { ...response, theme: newTheme };
@@ -73,12 +71,11 @@ export default function ThemeToggle() {
               });
             });
           }}
-          
           data={options}
           radius="md"
           size="sm"
           fullWidth
-          color= {isLight ? "#fcd263" : "#121212"}
+          color={isLight ? "#fcd263" : "#121212"}
           styles={{
             root: {
               backgroundColor: isLight ? "#fff3b0" : "#1f1f1f",
@@ -97,7 +94,7 @@ export default function ThemeToggle() {
               boxShadow: isLight
                 ? "inset 0 0 4px rgba(0, 0, 0, 0.2)"
                 : "inset 0 0 4px rgba(255, 255, 255, 0.05)",
-            }
+            },
           }}
         />
       </Paper>

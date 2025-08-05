@@ -7,6 +7,7 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 ## 📋 Documentation Navigation
 
 ### Core Documentation
+
 - **[Development Commands & Architecture](CLAUDE.md)** - Project setup, build commands, and core architecture overview
 - **[Chrome API Usage Analysis](CHROME_API_USAGE_ANALYSIS.md)** - Detailed analysis of Chrome extension API patterns
 - **[Project Overview](PROJECT_OVERVIEW.md)** - High-level project vision and current v0.9.5 status
@@ -14,21 +15,24 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 - **[Changelog](../CHANGELOG.md)** - Recent changes including v0.9.5 useChromeMessage hook refactoring
 
 ### Technical Deep-Dives
-- **[Hook Implementation Planning](HOOKS_IMPLEMENTATION_PLANNING.md)** - Hook development strategy and patterns  
+
+- **[Hook Implementation Planning](HOOKS_IMPLEMENTATION_PLANNING.md)** - Hook development strategy and patterns
 - **[useChromeMessage Hook Plan](USECHROMEMESSAGE_PLAN.md)** - Detailed hook implementation and migration guide
 - **[Component Refactoring Audit](COMPONENT_REFACTORING_AUDIT.md)** - Component analysis and refactoring strategy
 
 ### Service & Database Documentation
+
 - **[Services Layer](src/shared/services/README.md)**: `src/shared/services/` - 17 specialized business logic services
 - **[Database Layer](src/shared/db/README.md)**: `src/shared/db/` - IndexedDB utilities and schema management
 - **Utilities**: `src/shared/utils/` - Helper functions and algorithms
 - **Components**: `src/shared/components/` - Reusable UI components with Mantine integration
 
-*This document outlines patterns, conventions, and guidelines for maintaining scalable and consistent code across all system layers.*
+_This document outlines patterns, conventions, and guidelines for maintaining scalable and consistent code across all system layers._
 
 ## Architecture Summary
 
 ### Core Structure
+
 - **Chrome Extension**: Multi-entry point extension (popup, content script, background, standalone app)
 - **State Management**: IndexedDB with service layer for persistence
 - **UI Framework**: Mantine UI with custom theme system
@@ -36,6 +40,7 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 - **Testing**: Jest with React Testing Library
 
 ### Key Directories
+
 ```
 src/
 ├── shared/
@@ -60,18 +65,19 @@ graph TB
     A[User on LeetCode] --> B[Content Script]
     B --> C[Background Service Worker]
     C --> D[IndexedDB Storage]
-    
+
     E[Extension Popup] --> C
     F[Standalone Dashboard] --> G[React App]
     G --> H[Service Layer]
     H --> D
-    
+
     I[Chrome Runtime API] --> C
     C --> J[Component Communication]
     J --> K[useChromeMessage Hook]
 ```
 
 #### Entry Points
+
 - **Content Script** (`src/content/`): Overlays on LeetCode pages, captures problem data, provides timer functionality
 - **Extension Popup** (`src/popup/`): Quick access interface for basic extension controls
 - **Background Service Worker** (`public/background.js`): Handles inter-tab communication and data persistence
@@ -82,13 +88,15 @@ graph TB
 The system uses a service-oriented architecture with 17 specialized services orchestrating business logic:
 
 #### Core Services
+
 - **ProblemService**: Problem fetching, session creation, adaptive algorithms
-- **SessionService**: Session lifecycle management and completion tracking  
+- **SessionService**: Session lifecycle management and completion tracking
 - **AttemptsService**: Problem attempt tracking and statistics
 - **TagService**: Tag mastery and learning state management
 - **ScheduleService**: Spaced repetition scheduling using FSRS algorithm
 
 #### Supporting Services
+
 - **StorageService**: Chrome storage API wrapper
 - **NavigationService**: Inter-component routing
 - **OnboardingService**: User initialization
@@ -104,7 +112,7 @@ sequenceDiagram
     participant S as Service
     participant DB as IndexedDB
     participant BG as Background Script
-    
+
     U->>C: User Action
     C->>S: Business Logic Call
     S->>DB: Data Operation
@@ -116,8 +124,9 @@ sequenceDiagram
 ```
 
 #### Key Business Logic Systems
+
 - **Leitner System**: Spaced repetition using box levels and cooldown periods
-- **Pattern Ladders**: Tag-aware difficulty progression system  
+- **Pattern Ladders**: Tag-aware difficulty progression system
 - **Adaptive Sessions**: Dynamic session length and content based on performance
 - **Tag Mastery Engine**: Tracks ladder completion and decay scores
 
@@ -131,7 +140,7 @@ const ProblemGenerator = () => {
   const { data, loading, error } = useChromeMessage(
     { type: "getCurrentSession" },
     [],
-    { 
+    {
       onSuccess: (response) => {
         // Handle session data through service layer
         setProblems(response.session);
@@ -153,17 +162,21 @@ async createSession() {
 ### When to Create Custom Hooks
 
 #### ✅ **DO Extract When:**
+
 1. **Logic Reused Across 2+ Components**
+
    - Async data fetching patterns
    - Chrome runtime communication
    - Complex state management
 
 2. **Complex Stateful Logic**
+
    - Multiple related state variables
    - Side effects with cleanup
    - Event listener management
 
 3. **Business Logic Isolation**
+
    - Domain-specific calculations
    - API integrations
    - Feature-specific state
@@ -174,6 +187,7 @@ async createSession() {
    - Standardizing behavior patterns
 
 #### ❌ **DON'T Extract When:**
+
 - Simple useState calls without additional logic
 - One-off component-specific state
 - Trivial calculations or transformations
@@ -183,16 +197,16 @@ async createSession() {
 
 ```javascript
 // Pattern: use[Domain][Action/State]
-useStrategy()           // Domain-specific hooks
-useChromeRuntime()      // Platform integration
-useAsyncState()         // Generic patterns
-useProblemNavigation()  // Feature-specific hooks
+useStrategy(); // Domain-specific hooks
+useChromeRuntime(); // Platform integration
+useAsyncState(); // Generic patterns
+useProblemNavigation(); // Feature-specific hooks
 ```
 
 ### Hook Structure Template
 
 ```javascript
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 export const useCustomHook = (dependencies = {}) => {
   // 1. State declarations
@@ -222,19 +236,19 @@ export const useCustomHook = (dependencies = {}) => {
   return {
     // Data
     data,
-    
+
     // State
     loading,
     error,
-    
+
     // Computed values
     hasData: data !== null,
-    
+
     // Actions
     handleAction,
-    
+
     // Utilities
-    clearError: () => setError(null)
+    clearError: () => setError(null),
   };
 };
 ```
@@ -242,11 +256,13 @@ export const useCustomHook = (dependencies = {}) => {
 ## Existing Hook Patterns
 
 ### useStrategy Hook
+
 **Location**: `src/shared/hooks/useStrategy.js`
 
 **Purpose**: Manages strategy data and contextual hints for problems
 
 **Usage Pattern**:
+
 ```javascript
 const {
   hints,
@@ -255,11 +271,12 @@ const {
   error,
   hasHints,
   refreshStrategy,
-  getTagStrategy
+  getTagStrategy,
 } = useStrategy(problemTags);
 ```
 
 **Key Features**:
+
 - Automatic data loading based on problem tags
 - Parallel async operations with Promise.all
 - Error boundary handling
@@ -269,10 +286,13 @@ const {
 ## Chrome Extension Integration
 
 ### Chrome Runtime Patterns
+
 Many components currently handle `chrome.runtime` manually:
+
 ```javascript
 // Current pattern (to be refactored)
-chrome.runtime.sendMessage({ type: "getLimits", id: state.LeetCodeID }, 
+chrome.runtime.sendMessage(
+  { type: "getLimits", id: state.LeetCodeID },
   function (response) {
     console.log("limits being sent", response);
     setLimit(response.limits.Time);
@@ -281,6 +301,7 @@ chrome.runtime.sendMessage({ type: "getLimits", id: state.LeetCodeID },
 ```
 
 ### Current Chrome Hook Pattern (v0.9.5)
+
 ```javascript
 // useChromeMessage Hook Pattern
 const { data, loading, error } = useChromeMessage(
@@ -292,7 +313,7 @@ const { data, loading, error } = useChromeMessage(
     },
     onError: (error) => {
       console.error("Failed to get limits:", error);
-    }
+    },
   }
 );
 ```
@@ -307,13 +328,15 @@ CodeMaster uses IndexedDB for persistent local storage with a comprehensive sche
 **Total Stores**: 13 specialized object stores
 
 #### Core Learning Stores
+
 - **`problems`**: Individual problems with Leitner system metadata (box levels, stability scores)
 - **`sessions`**: Structured learning sessions with performance tracking
 - **`attempts`**: Individual problem attempts with timing and success data
 - **`tag_mastery`**: User mastery progress per algorithm pattern
 - **`pattern_ladders`**: Progressive difficulty sequences for each algorithm tag
 
-#### Supporting Stores  
+#### Supporting Stores
+
 - **`standard_problems`**: Canonical LeetCode problem database
 - **`session_analytics`**: Detailed session performance analysis
 - **`strategy_data`**: Algorithm hints and educational content
@@ -321,7 +344,7 @@ CodeMaster uses IndexedDB for persistent local storage with a comprehensive sche
 - **`settings`**: User preferences and configuration
 - **`backup_storage`**: Database backup and recovery
 
-*For complete schema documentation, see: [IndexedDB Schema Documentation](INDEXEDDB_SCHEMA.md)*
+_For complete schema documentation, see: [IndexedDB Schema Documentation](INDEXEDDB_SCHEMA.md)_
 
 ### Component-Store Access Patterns
 
@@ -329,11 +352,11 @@ Components never access IndexedDB directly. All data operations flow through the
 
 ```javascript
 // ❌ Never do this in components
-import { dbHelper } from '../db/index.js';
+import { dbHelper } from "../db/index.js";
 
 // ✅ Always use service layer
-import { SessionService } from '../services/sessionService.js';
-import { useChromeMessage } from '../hooks/useChromeMessage.js';
+import { SessionService } from "../services/sessionService.js";
+import { useChromeMessage } from "../hooks/useChromeMessage.js";
 
 const Component = () => {
   const { data: sessionData } = useChromeMessage(
@@ -343,7 +366,7 @@ const Component = () => {
       onSuccess: (response) => {
         // Service layer handles all DB operations
         setSession(response.session);
-      }
+      },
     }
   );
 };
@@ -355,7 +378,7 @@ Key relationships enabling the adaptive learning system:
 
 ```
 Sessions ↔ Attempts: sessions.id = attempts.SessionID
-Problems ↔ Attempts: problems.leetCodeID = attempts.ProblemID  
+Problems ↔ Attempts: problems.leetCodeID = attempts.ProblemID
 Tags ↔ Mastery: tag_relationships.id = tag_mastery.tag
 Tags ↔ Ladders: tag_relationships.id = pattern_ladders.tag
 Sessions ↔ Analytics: sessions.id = session_analytics.sessionId
@@ -364,27 +387,30 @@ Sessions ↔ Analytics: sessions.id = session_analytics.sessionId
 ## Component Integration Guidelines
 
 ### Hook Composition
+
 ```javascript
 const ProblemComponent = ({ problemId }) => {
   // Domain-specific hooks
   const { hints, loading: strategyLoading } = useStrategy(problemTags);
-  
-  // Platform hooks  
+
+  // Platform hooks
   const { sendMessage } = useChromeRuntime();
-  
+
   // Generic patterns
-  const { data: limits, loading: limitsLoading } = useAsyncState(
-    () => sendMessage({ type: "getLimits", id: problemId })
+  const { data: limits, loading: limitsLoading } = useAsyncState(() =>
+    sendMessage({ type: "getLimits", id: problemId })
   );
 
   const loading = strategyLoading || limitsLoading;
-  
+
   // Component logic...
 };
 ```
 
 ### Provider Integration
+
 Hook state can integrate with existing providers:
+
 ```javascript
 const useThemeAwareHook = () => {
   const { theme } = useTheme(); // From existing provider
@@ -395,66 +421,70 @@ const useThemeAwareHook = () => {
 ## Testing Patterns
 
 ### Hook Testing Setup
+
 ```javascript
-import { renderHook, act } from '@testing-library/react';
-import { useCustomHook } from '../useCustomHook';
+import { renderHook, act } from "@testing-library/react";
+import { useCustomHook } from "../useCustomHook";
 
 // Mock external dependencies
-jest.mock('../services/apiService');
+jest.mock("../services/apiService");
 
-describe('useCustomHook', () => {
-  it('should handle async operations', async () => {
+describe("useCustomHook", () => {
+  it("should handle async operations", async () => {
     const { result } = renderHook(() => useCustomHook());
-    
+
     expect(result.current.loading).toBe(false);
-    
+
     await act(async () => {
       await result.current.handleAction();
     });
-    
+
     expect(result.current.data).toBeDefined();
   });
 });
 ```
 
 ### Component Integration Testing
+
 ```javascript
-import { render, screen } from '@testing-library/react';
-import { useCustomHook } from '../hooks/useCustomHook';
+import { render, screen } from "@testing-library/react";
+import { useCustomHook } from "../hooks/useCustomHook";
 
 // Mock the hook
-jest.mock('../hooks/useCustomHook');
+jest.mock("../hooks/useCustomHook");
 
 const Component = () => {
   const { data, loading } = useCustomHook();
   return loading ? <div>Loading</div> : <div>{data}</div>;
 };
 
-test('component uses hook correctly', () => {
-  useCustomHook.mockReturnValue({ data: 'test', loading: false });
+test("component uses hook correctly", () => {
+  useCustomHook.mockReturnValue({ data: "test", loading: false });
   render(<Component />);
-  expect(screen.getByText('test')).toBeInTheDocument();
+  expect(screen.getByText("test")).toBeInTheDocument();
 });
 ```
 
 ## Performance Considerations
 
 ### Optimization Strategies
+
 1. **Memoization**: Use `useCallback` and `useMemo` for expensive operations
 2. **Dependency Arrays**: Keep effect dependencies minimal and stable
 3. **State Batching**: Group related state updates
 4. **Cleanup**: Always cleanup side effects (listeners, timers, subscriptions)
 
 ### Example Optimized Hook
+
 ```javascript
 export const useOptimizedHook = (config) => {
   const memoizedConfig = useMemo(() => config, [config.key, config.value]);
-  
+
   const expensiveCallback = useCallback(
     (data) => processData(data, memoizedConfig),
     [memoizedConfig]
   );
-  
+
   useEffect(() => {
     const cleanup = setupEffect(expensiveCallback);
     return cleanup;
@@ -501,6 +531,7 @@ sequenceDiagram
 ```
 
 **Key Files Involved:**
+
 - `src/content/features/problems/probgen.jsx:18-30` - useChromeMessage hook usage
 - `src/shared/services/problemService.js:125-180` - Adaptive session creation
 - `src/shared/services/tagServices.js:13-110` - Learning state analysis
@@ -542,6 +573,7 @@ sequenceDiagram
 ```
 
 **Key Files Involved:**
+
 - `src/shared/components/timercomponent.jsx:25-50` - Timer and submission logic
 - `src/shared/services/attemptsService.js:25-80` - Attempt recording
 - `src/shared/services/sessionService.js:24-120` - Session performance analysis
@@ -560,23 +592,24 @@ useEffect(() => {
 }, []);
 
 // After v0.9.5 (Standardized pattern across 7 components)
-const { data: settings, loading, error } = useChromeMessage(
-  { type: "getSettings" },
-  [],
-  {
-    onSuccess: (response) => {
-      setSettings(response);
-    },
-    onError: (error) => {
-      setError(`Failed to load settings: ${error}`);
-    }
-  }
-);
+const {
+  data: settings,
+  loading,
+  error,
+} = useChromeMessage({ type: "getSettings" }, [], {
+  onSuccess: (response) => {
+    setSettings(response);
+  },
+  onError: (error) => {
+    setError(`Failed to load settings: ${error}`);
+  },
+});
 ```
 
 **Migrated Components (v0.9.5):**
+
 1. `ThemeToggle.jsx` - Settings theme retrieval
-2. `settings.jsx` - Settings page with conditional mock/runtime switching  
+2. `settings.jsx` - Settings page with conditional mock/runtime switching
 3. `probgen.jsx` - Problem generator session loading
 4. `timercomponent.jsx` - Timer limits fetching
 5. `main.jsx` - Onboarding check on navigation
@@ -605,13 +638,14 @@ sequenceDiagram
     HS-->>PD: Strategy data available
     PD->>PD: Render HintPanel + PrimerSection
     PD-->>U: Display strategic guidance
-    
+
     U->>PD: Click hint button
     PD->>PD: Show CompactHintPanel
     PD-->>U: Display contextual hints
 ```
 
 **Key Files Involved:**
+
 - `src/shared/hooks/useStrategy.js:15-60` - Strategy data management
 - `src/shared/services/strategyService.js:25-100` - Strategy logic
 - `src/shared/components/strategy/HintPanel.jsx` - Hint display
@@ -620,17 +654,20 @@ sequenceDiagram
 ## Migration Strategy
 
 ### Phase 1: Documentation & Planning ✅ Complete
+
 - ✅ Document current patterns and guidelines
-- ✅ Identify refactoring opportunities  
+- ✅ Identify refactoring opportunities
 - ✅ Create hook implementation plans
 
 ### Phase 2: Core Hook Development ✅ Complete (v0.9.5)
+
 - ✅ Implement `useChromeMessage` hook (47 lines, centralized Chrome API communication)
 - ✅ Standardized error handling for both Chrome runtime and response errors
 - ✅ Loading state management across all Chrome API interactions
 - ✅ Conditional request support for mock/development environments
 
 ### Phase 3: Component Refactoring ✅ Complete (v0.9.5)
+
 - ✅ Updated 7 components to use useChromeMessage hook
 - ✅ Removed 95% of Chrome API boilerplate code duplication
 - ✅ Added comprehensive tests with 110 total tests passing
@@ -639,8 +676,9 @@ sequenceDiagram
 ### v0.9.5 Achievement Summary
 
 **Components Successfully Migrated:**
+
 1. **ThemeToggle.jsx** - Settings theme retrieval
-2. **settings.jsx** - Settings page with mock/runtime switching  
+2. **settings.jsx** - Settings page with mock/runtime switching
 3. **probgen.jsx** - Problem generator session loading
 4. **timercomponent.jsx** - Timer limits fetching
 5. **main.jsx** - Onboarding check on navigation
@@ -648,6 +686,7 @@ sequenceDiagram
 7. **probstat.jsx** - Problem statistics by box level
 
 **Performance Results:**
+
 - ✅ **Eliminated re-rendering issues** - Solved original user complaint
 - ✅ **60-70% code reduction** for Chrome API integrations
 - ✅ **95% duplicate code elimination** - 21 implementations → 1 centralized hook
@@ -657,6 +696,7 @@ sequenceDiagram
 - ✅ **Minimal bundle impact** - Only 10KB increase for significant improvements
 
 **Quality Metrics:**
+
 - **Test Coverage**: 110 total tests passing, including 7 hook-specific tests
 - **Build Success**: All webpack builds successful with no regressions
 - **Linting**: ESLint compliance maintained throughout migration
@@ -665,6 +705,7 @@ sequenceDiagram
 ## File Organization
 
 ### Hook Files
+
 ```
 src/shared/hooks/
 ├── index.js                 # Export all hooks
@@ -678,23 +719,26 @@ src/shared/hooks/
 ```
 
 ### Import Patterns
+
 ```javascript
 // Preferred: Named imports from index
-import { useStrategy, useChromeRuntime } from '../shared/hooks';
+import { useStrategy, useChromeRuntime } from "../shared/hooks";
 
 // Acceptable: Direct imports for specific hooks
-import { useStrategy } from '../shared/hooks/useStrategy';
+import { useStrategy } from "../shared/hooks/useStrategy";
 ```
 
 ## Contributing Guidelines
 
 ### Before Creating a New Hook
+
 1. **Check Existing Patterns**: Review current hooks for similar functionality
 2. **Consider Composition**: Can existing hooks be composed instead?
 3. **Evaluate Scope**: Is this truly reusable or component-specific?
 4. **Plan Testing**: How will this hook be tested in isolation?
 
 ### Code Review Checklist
+
 - [ ] Hook follows naming conventions
 - [ ] Proper dependency arrays in useEffect/useCallback
 - [ ] Error handling and loading states
@@ -708,30 +752,35 @@ import { useStrategy } from '../shared/hooks/useStrategy';
 ## 📚 Additional Resources
 
 ### Development & Testing
+
 - **Testing Setup**: `src/shared/hooks/__tests__/` - Hook testing examples and patterns
-- **Service Tests**: `src/shared/services/__tests__/` - Business logic test suites  
+- **Service Tests**: `src/shared/services/__tests__/` - Business logic test suites
 - **Build Configuration**: `webpack.config.js`, `webpack.dev.js`, `webpack.prod.js` - Multi-entry build setup
 - **Linting Configuration**: `.eslintrc.json` - ESLint Airbnb configuration with Chrome extension support
 
 ### Chrome Extension Integration
+
 - **Background Script**: `public/background.js` - Service worker handling inter-tab communication
 - **Content Scripts**: `src/content/` - LeetCode page integration and problem capture
 - **Extension Manifest**: `public/manifest.json` - Chrome extension configuration (Manifest v3)
 - **Popup Interface**: `src/popup/` - Quick access extension controls
 
 ### UI & Component System
+
 - **Shared Components**: `src/shared/components/` - Reusable UI components with Mantine integration
 - **Strategy Components**: `src/shared/components/strategy/` - Strategy Map UI components (HintPanel, PrimerSection)
 - **Theme System**: `src/shared/provider/themeprovider.jsx` - Dark/light mode theme management
 - **CSS Architecture**: Component-specific CSS modules with global theme variables
 
 ### Data & Business Logic
+
 - **Problem Management**: `src/shared/services/problemService.js` - Adaptive session creation and problem selection
 - **Learning Analytics**: `src/shared/services/sessionService.js` - Session performance analysis and mastery tracking
 - **Spaced Repetition**: `src/shared/utils/leitnerSystem.js` - FSRS algorithm implementation
 - **Tag Classification**: `src/shared/services/tagServices.js` - Algorithm pattern mastery progression
 
 ### Recent Achievements
+
 - **v0.9.5 Chrome Hook Refactoring**: Successfully migrated 7 components to standardized `useChromeMessage` pattern
 - **Strategy Map Integration**: Implemented contextual hint system with educational primers
 - **Performance Optimization**: 95% reduction in Chrome API boilerplate, 4x improvement in error handling consistency
@@ -739,4 +788,4 @@ import { useStrategy } from '../shared/hooks/useStrategy';
 
 ---
 
-*This documentation hub evolves with the codebase. For questions about specific systems or implementation details, refer to the linked documentation or examine the comprehensive test suites for practical examples.*
+_This documentation hub evolves with the codebase. For questions about specific systems or implementation details, refer to the linked documentation or examine the comprehensive test suites for practical examples._

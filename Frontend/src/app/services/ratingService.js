@@ -1,5 +1,5 @@
-import { getDatabase } from "../db/index.js";
-import { addLimit } from "../db/limits.js";
+import { getDatabase } from "../../shared/db/index.js";
+import { addLimit } from "../../shared/db/limit.js";
 
 export const RatingService = {
   updateProblemsWithRatings,

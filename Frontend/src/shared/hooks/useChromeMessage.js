@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 /**
  * Simple hook for Chrome extension message communication
  * Replaces the most common pattern: useEffect + chrome.runtime.sendMessage
- * 
+ *
  * @param {Object} request - The message to send to background script
  * @param {Array} deps - Dependencies array (like useEffect deps)
  * @param {Object} options - Optional configuration
@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
  */
 export const useChromeMessage = (request, deps = [], options = {}) => {
   const { immediate = true, onSuccess, onError } = options;
-  
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);

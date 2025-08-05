@@ -1,13 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNav } from "../../../shared/provider/navprovider";
-import Header from "../../../shared/components/header";
-import { ChevronLeftIcon, BarChart3Icon, TrendingUpIcon, TagIcon, PlayIcon, BrainIcon } from "../../../shared/components/ui/Icons";
+import Header from "../../components/navigation/header";
+import {
+  ChevronLeftIcon,
+  BarChart3Icon,
+  TrendingUpIcon,
+  TagIcon,
+  PlayIcon,
+  BrainIcon,
+} from "../../../shared/components/ui/Icons";
 import Button from "../../../shared/components/ui/Button";
 import Badge from "../../../shared/components/ui/Badge";
 import Separator from "../../../shared/components/ui/Separator";
-import StrategyService from "../../../shared/services/strategyService";
-import WhyThisProblem from "../../../shared/components/WhyThisProblem";
+import StrategyService from "../../services/strategyService";
+import WhyThisProblem from "../../components/problem/WhyThisProblem";
 
 // Expandable Primer Component that matches the design
 const ExpandablePrimerSection = ({ problemTags }) => {
@@ -24,15 +31,15 @@ const ExpandablePrimerSection = ({ problemTags }) => {
   const loadPrimers = async () => {
     try {
       setLoading(true);
-      console.log('Loading primers for tags:', problemTags);
+      console.log("Loading primers for tags:", problemTags);
       // Normalize tags to lowercase to match strategy data
-      const normalizedTags = problemTags.map(tag => tag.toLowerCase().trim());
-      console.log('Normalized tags:', normalizedTags);
+      const normalizedTags = problemTags.map((tag) => tag.toLowerCase().trim());
+      console.log("Normalized tags:", normalizedTags);
       const tagPrimers = await StrategyService.getTagPrimers(normalizedTags);
-      console.log('Loaded primers:', tagPrimers);
+      console.log("Loaded primers:", tagPrimers);
       setPrimers(tagPrimers);
     } catch (err) {
-      console.error('Error loading primers:', err);
+      console.error("Error loading primers:", err);
     } finally {
       setLoading(false);
     }
@@ -42,62 +49,95 @@ const ExpandablePrimerSection = ({ problemTags }) => {
     setIsExpanded(!isExpanded);
     // Track engagement for effectiveness measurement
     if (!isExpanded) {
-      console.log('📊 Primer section opened for tags:', problemTags);
+      console.log("📊 Primer section opened for tags:", problemTags);
     }
   };
 
   return (
     <div className="problem-sidebar-section">
-      <div 
-        className="problem-sidebar-section-header" 
+      <div
+        className="problem-sidebar-section-header"
         onClick={handleToggle}
-        style={{ cursor: 'pointer', userSelect: 'none' }}
+        style={{ cursor: "pointer", userSelect: "none" }}
       >
         <BrainIcon className="problem-sidebar-section-icon" />
         <span className="problem-sidebar-section-title">
-          Problem Overview 
+          Problem Overview
           {primers.length > 0 && `(${primers.length})`}
         </span>
-        <span style={{ marginLeft: 'auto', fontSize: '12px' }}>
-          {isExpanded ? '▼' : '▶'}
+        <span style={{ marginLeft: "auto", fontSize: "12px" }}>
+          {isExpanded ? "▼" : "▶"}
         </span>
       </div>
-      
+
       {isExpanded && (
-        <div className="problem-sidebar-primer-content" style={{ 
-          marginTop: '8px',
-          fontSize: '14px',
-          lineHeight: '1.5',
-          color: 'rgba(255, 255, 255, 0.85)'
-        }}>
+        <div
+          className="problem-sidebar-primer-content"
+          style={{
+            marginTop: "8px",
+            fontSize: "14px",
+            lineHeight: "1.5",
+            color: "rgba(255, 255, 255, 0.85)",
+          }}
+        >
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '12px', fontSize: '14px', color: 'rgba(255, 255, 255, 0.7)' }}>Loading strategies...</div>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "12px",
+                fontSize: "14px",
+                color: "rgba(255, 255, 255, 0.7)",
+              }}
+            >
+              Loading strategies...
+            </div>
           ) : primers.length > 0 ? (
             primers.map((primer, index) => (
-              <div key={index} style={{ marginBottom: '16px', padding: '8px', backgroundColor: 'rgba(255, 255, 255, 0.08)', borderRadius: '6px', border: '1px solid rgba(255, 255, 255, 0.15)' }}>
-                <div style={{ 
-                  fontWeight: '600', 
-                  marginBottom: '6px',
-                  color: 'rgba(255, 255, 255, 0.95)',
-                  textTransform: 'capitalize',
-                  fontSize: '15px'
-                }}>
+              <div
+                key={index}
+                style={{
+                  marginBottom: "16px",
+                  padding: "8px",
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                }}
+              >
+                <div
+                  style={{
+                    fontWeight: "600",
+                    marginBottom: "6px",
+                    color: "rgba(255, 255, 255, 0.95)",
+                    textTransform: "capitalize",
+                    fontSize: "15px",
+                  }}
+                >
                   {primer.tag}
                 </div>
                 {primer.strategy && (
-                  <div style={{ 
-                    fontSize: '13px',
-                    marginBottom: '6px',
-                    lineHeight: '1.4',
-                    color: 'rgba(255, 255, 255, 0.8)'
-                  }}>
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      marginBottom: "6px",
+                      lineHeight: "1.4",
+                      color: "rgba(255, 255, 255, 0.8)",
+                    }}
+                  >
                     💡 {primer.strategy}
                   </div>
                 )}
               </div>
             ))
           ) : (
-            <div style={{ textAlign: 'center', padding: '12px', opacity: 0.7, fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
+            <div
+              style={{
+                textAlign: "center",
+                padding: "12px",
+                opacity: 0.7,
+                fontSize: "14px",
+                color: "rgba(255, 255, 255, 0.6)",
+              }}
+            >
               No strategy information available
             </div>
           )}
@@ -111,21 +151,26 @@ const ProbDetail = (isLoading) => {
   const { state: routeState } = useLocation();
   const { setIsAppOpen } = useNav();
   const navigate = useNavigate();
-  
+
   const [showSkip, setShowSkip] = useState(false);
 
   // Extract problem data from route state
   const problemData = {
     id: routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
-    leetCodeID: routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
-    title: routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
-    ProblemDescription: routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
+    leetCodeID:
+      routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
+    title:
+      routeState?.problemData?.ProblemDescription ||
+      routeState?.problemData?.title,
+    ProblemDescription:
+      routeState?.problemData?.ProblemDescription ||
+      routeState?.problemData?.title,
     tags: routeState?.problemData?.tags || [],
     difficulty: routeState?.problemData?.difficulty || "Unknown",
     acceptance: routeState?.problemData?.acceptance || "N/A",
     submissions: routeState?.problemData?.submissions || "N/A",
     attempts: routeState?.problemData?.attempts || 0,
-    lastSolved: routeState?.problemData?.lastSolved || "Never"
+    lastSolved: routeState?.problemData?.lastSolved || "Never",
   };
 
   useEffect(() => {
@@ -137,12 +182,12 @@ const ProbDetail = (isLoading) => {
   };
 
   const handleNewAttempt = () => {
-    navigate("/Timer", { 
-      state: { 
+    navigate("/Timer", {
+      state: {
         LeetCodeID: problemData.leetCodeID,
         Description: problemData.ProblemDescription,
-        Tags: problemData.tags
-      } 
+        Tags: problemData.tags,
+      },
     });
   };
 
@@ -170,7 +215,15 @@ const ProbDetail = (isLoading) => {
       <div id="cd-mySidenav" className="cd-sidenav">
         <Header title="Problem Details" onClose={handleClose} />
         <div className="cd-sidenav__content">
-          <p style={{ color: "var(--cd-text)", textAlign: "center", marginTop: "50px" }}>Loading...</p>
+          <p
+            style={{
+              color: "var(--cd-text)",
+              textAlign: "center",
+              marginTop: "50px",
+            }}
+          >
+            Loading...
+          </p>
         </div>
       </div>
     );
@@ -179,19 +232,21 @@ const ProbDetail = (isLoading) => {
   return (
     <div id="cd-mySidenav" className="cd-sidenav">
       <Header title="Problem Details" onClose={handleClose} />
-      
+
       <div className="cd-sidenav__content">
         {/* Main Content Card */}
         <div className="problem-sidebar-card">
           <div className="problem-sidebar-card-header">
             <ChevronLeftIcon className="problem-sidebar-back-icon" />
-            <span>Problem #{problemData?.leetCodeID || problemData?.id || "N/A"}</span>
+            <span>
+              Problem #{problemData?.leetCodeID || problemData?.id || "N/A"}
+            </span>
           </div>
           <h3 className="problem-sidebar-card-title">
             {problemData?.ProblemDescription || problemData?.title || "N/A"}
           </h3>
-          <Badge 
-            className="problem-sidebar-difficulty-badge" 
+          <Badge
+            className="problem-sidebar-difficulty-badge"
             variant={getDifficultyVariant(problemData?.difficulty)}
           >
             {problemData?.difficulty || "Unknown"}
@@ -230,7 +285,11 @@ const ProbDetail = (isLoading) => {
           <div className="problem-sidebar-tags">
             {problemData?.tags && problemData.tags.length > 0 ? (
               problemData.tags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="problem-sidebar-tag">
+                <Badge
+                  key={index}
+                  variant="secondary"
+                  className="problem-sidebar-tag"
+                >
                   {tag.charAt(0).toUpperCase() + tag.slice(1)}
                 </Badge>
               ))
@@ -242,7 +301,7 @@ const ProbDetail = (isLoading) => {
 
         {/* Why This Problem Section - Show reasoning for problem selection */}
         {routeState?.problemData?.selectionReason && (
-          <WhyThisProblem 
+          <WhyThisProblem
             selectionReason={routeState.problemData.selectionReason}
             problemTags={problemData?.tags || []}
           />
@@ -250,9 +309,7 @@ const ProbDetail = (isLoading) => {
 
         {/* Strategy Primer Section */}
         {problemData?.tags && problemData.tags.length > 0 && (
-          <ExpandablePrimerSection 
-            problemTags={problemData.tags}
-          />
+          <ExpandablePrimerSection problemTags={problemData.tags} />
         )}
 
         {/* Status Section */}
@@ -262,18 +319,27 @@ const ProbDetail = (isLoading) => {
             <div className="problem-sidebar-status-content">
               <div className="problem-sidebar-status-item">
                 <span className="problem-sidebar-status-label">Attempts:</span>
-                <span className="problem-sidebar-status-value">{problemData?.attempts || 0}</span>
+                <span className="problem-sidebar-status-value">
+                  {problemData?.attempts || 0}
+                </span>
               </div>
               <div className="problem-sidebar-status-item">
-                <span className="problem-sidebar-status-label">Last Solved:</span>
-                <span className="problem-sidebar-status-value">{problemData?.lastSolved || "Never"}</span>
+                <span className="problem-sidebar-status-label">
+                  Last Solved:
+                </span>
+                <span className="problem-sidebar-status-value">
+                  {problemData?.lastSolved || "Never"}
+                </span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="problem-sidebar-actions" style={{ marginTop: '40px', padding: '12px', marginBottom: '20px' }}>
+        <div
+          className="problem-sidebar-actions"
+          style={{ marginTop: "40px", padding: "12px", marginBottom: "20px" }}
+        >
           <Button
             onClick={handleNewAttempt}
             className="problem-sidebar-primary-btn"
@@ -284,9 +350,9 @@ const ProbDetail = (isLoading) => {
             New Attempt
           </Button>
           {showSkip && (
-            <Button 
-              variant="ghost" 
-              onClick={handleSkip} 
+            <Button
+              variant="ghost"
+              onClick={handleSkip}
               className="problem-sidebar-skip-btn"
             >
               Skip Problem

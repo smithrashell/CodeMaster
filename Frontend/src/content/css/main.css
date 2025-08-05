@@ -1,7 +1,3 @@
-
-
-
-
 /*TODO: create a folder for css styles */
 .cd-extension .injected {
   color: var(--cd-dropdown-color) !important;
@@ -16,7 +12,6 @@
 .cd-extension button {
   margin-right: 5px !important;
 }
-
 
 .cd-extension #cd-menuButton {
   background-color: var(--cd-btn-bg);
@@ -35,7 +30,8 @@
   left: 20px;
   z-index: 9999;
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.3s ease, color 0.3s ease,
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
@@ -46,13 +42,13 @@
   transform: scale(1.05);
 }
 
-body[data-theme='dark'] .cd-extension #cd-menuButton:hover {
+body[data-theme="dark"] .cd-extension #cd-menuButton:hover {
   background-color: var(--cd-active-blue) !important;
   color: var(--cd-btn-text) !important;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-body[data-theme='light'] .cd-extension #cd-menuButton:hover {
+body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   background-color: var(--cd-link-hover) !important;
   color: var(--cd-btn-text) !important;
   box-shadow: 0 4px 12px rgba(51, 65, 85, 0.3);
@@ -80,8 +76,6 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   }
 }
 
-
-
 /* #cd-mySidenav .drawer-close-btn {
   position: absolute;
   top: 20px;
@@ -97,7 +91,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 
 .cd-extension .cd-button--close {
   top: 20px;
-  right:20px;
+  right: 20px;
   position: absolute;
   background: transparent;
   border: none;
@@ -111,7 +105,6 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 .cd-button--close:hover {
   color: var(--cd-link-hover);
 }
-
 
 .cd-extension #homeIcon {
   background-color: var(--cd-btn-bg);
@@ -178,9 +171,8 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   display: none;
 }
 
-#cd-mySidenav label{
+#cd-mySidenav label {
   margin: 2px;
-
 }
 
 /* Add spacing to label + form controls in settings */
@@ -197,8 +189,6 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 /* .cd-sidenav__content > *:not(:last-child) {
   margin-bottom: 10px; 
 } */
-
-
 
 .cd-extension .cd-form-group {
   display: flex;
@@ -260,7 +250,6 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   flex-direction: column;
   align-items: flex-start;
   box-sizing: border-box;
-
 }
 
 .cd-sidenav__content p {
@@ -383,7 +372,6 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
   border-radius: 4px !important;
 }
 
-
 .cd-extension .link-disabled {
   pointer-events: none !important;
   color: var(--cd-link) !important;
@@ -407,17 +395,24 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 .cd-extension .nav-link-loading::after {
-  content: '...' !important;
+  content: "..." !important;
   animation: cd-loading-dots 1.5s infinite !important;
 }
 
 @keyframes cd-loading-dots {
-  0%, 20% { opacity: 0; }
-  50% { opacity: 1; }
-  100% { opacity: 0; }
+  0%,
+  20% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
-#nav{
+#nav {
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -447,8 +442,12 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 @keyframes cd-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .cd-extension .cd-stats-error {
@@ -576,7 +575,11 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 
 .cd-extension .cd-stat-fill {
   height: 100% !important;
-  background: linear-gradient(90deg, var(--cd-btn-bg), var(--cd-highlight)) !important;
+  background: linear-gradient(
+    90deg,
+    var(--cd-btn-bg),
+    var(--cd-highlight)
+  ) !important;
   border-radius: 4px !important;
   transition: width 0.8s ease-in-out !important;
 }
@@ -593,7 +596,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 .cd-extension .cd-plus-icon::before {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
@@ -604,7 +607,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 .cd-extension .cd-plus-icon::after {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
@@ -615,7 +618,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 .cd-extension .cd-retry-icon::before {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
@@ -628,7 +631,7 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 .cd-extension .cd-retry-icon::after {
-  content: '' !important;
+  content: "" !important;
   position: absolute !important;
   right: -1px !important;
   top: 2px !important;
@@ -640,17 +643,17 @@ body[data-theme='light'] .cd-extension #cd-menuButton:hover {
 }
 
 /* Dark theme adjustments for icons */
-body[data-theme='dark'] .cd-extension .cd-plus-icon::before,
-body[data-theme='dark'] .cd-extension .cd-plus-icon::after {
+body[data-theme="dark"] .cd-extension .cd-plus-icon::before,
+body[data-theme="dark"] .cd-extension .cd-plus-icon::after {
   background-color: var(--cd-highlight) !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-retry-icon::before {
+body[data-theme="dark"] .cd-extension .cd-retry-icon::before {
   border-color: var(--cd-highlight) !important;
   border-top: 2px solid transparent !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-retry-icon::after {
+body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
   border-left-color: var(--cd-highlight) !important;
 }
 
@@ -808,42 +811,42 @@ body[data-theme='dark'] .cd-extension .cd-retry-icon::after {
 }
 
 /* Dark Mode Specific Improvements */
-body[data-theme='dark'] .cd-extension .cd-detail-item {
+body[data-theme="dark"] .cd-extension .cd-detail-item {
   background-color: rgba(255, 255, 255, 0.08) !important;
   border-left-color: var(--cd-btn-bg) !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-detail-label {
+body[data-theme="dark"] .cd-extension .cd-detail-label {
   color: #e2e8f0 !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-detail-value {
+body[data-theme="dark"] .cd-extension .cd-detail-value {
   color: #f8fafc !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-problem-title {
+body[data-theme="dark"] .cd-extension .cd-problem-title {
   color: var(--cd-highlight) !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-tag-chip {
+body[data-theme="dark"] .cd-extension .cd-tag-chip {
   background-color: var(--cd-btn-bg) !important;
   color: #ffffff !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-no-tags {
+body[data-theme="dark"] .cd-extension .cd-no-tags {
   color: #94a3b8 !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-sidenav__content p {
+body[data-theme="dark"] .cd-extension .cd-sidenav__content p {
   color: var(--cd-text) !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-sidenav__content {
+body[data-theme="dark"] .cd-extension .cd-sidenav__content {
   color: var(--cd-text) !important;
 }
 
 /* Improve general text readability in dark mode */
-body[data-theme='dark'] .cd-extension {
+body[data-theme="dark"] .cd-extension {
   color: var(--cd-text) !important;
 }
 
@@ -902,23 +905,23 @@ body[data-theme="dark"] .cd-extension .mantine-Select-input {
   color: #333 !important;
 }
 
-body[data-theme='dark'] .cd-extension p {
+body[data-theme="dark"] .cd-extension p {
   color: var(--cd-text) !important;
 }
 
-body[data-theme='dark'] .cd-extension span {
+body[data-theme="dark"] .cd-extension span {
   color: inherit !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-stats-empty h3 {
+body[data-theme="dark"] .cd-extension .cd-stats-empty h3 {
   color: #f8fafc !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-stats-empty p {
+body[data-theme="dark"] .cd-extension .cd-stats-empty p {
   color: #e2e8f0 !important;
 }
 
-body[data-theme='dark'] .cd-extension .cd-loading-state p {
+body[data-theme="dark"] .cd-extension .cd-loading-state p {
   color: #f8fafc !important;
 }
 
@@ -1097,28 +1100,46 @@ body[data-theme="dark"] .cd-extension .cd-strategy-locked-tag {
 }
 
 /* Dark theme scrollbar styling */
-body[data-theme="dark"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-track {
+body[data-theme="dark"]
+  .cd-extension
+  .cd-sidenav
+  .cd-sidenav__content::-webkit-scrollbar-track {
   background: #1f2937 !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb {
+body[data-theme="dark"]
+  .cd-extension
+  .cd-sidenav
+  .cd-sidenav__content::-webkit-scrollbar-thumb {
   background: #374151 !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+body[data-theme="dark"]
+  .cd-extension
+  .cd-sidenav
+  .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
   background: #4b5563 !important;
 }
 
 /* Light theme scrollbar styling */
-body[data-theme="light"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-track {
+body[data-theme="light"]
+  .cd-extension
+  .cd-sidenav
+  .cd-sidenav__content::-webkit-scrollbar-track {
   background: #f8fafc !important;
 }
 
-body[data-theme="light"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb {
+body[data-theme="light"]
+  .cd-extension
+  .cd-sidenav
+  .cd-sidenav__content::-webkit-scrollbar-thumb {
   background: #e2e8f0 !important;
 }
 
-body[data-theme="light"] .cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+body[data-theme="light"]
+  .cd-extension
+  .cd-sidenav
+  .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1 !important;
 }
 
@@ -1145,6 +1166,3 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
   color: #424054 !important;
   opacity: 0.6 !important;
 }
-
-
-

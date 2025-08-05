@@ -40,7 +40,6 @@
   transition: all 0.2s ease !important;
 }
 
-
 .cd-extension .cd-simple-problem-item:hover .cd-simple-problem-link {
   color: var(--cd-link-hover) !important;
   font-size: 16px !important;

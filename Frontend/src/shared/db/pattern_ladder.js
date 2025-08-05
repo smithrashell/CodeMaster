@@ -1,7 +1,6 @@
 import { dbHelper } from "./index.js";
 const openDB = dbHelper.openDB;
 
-
 export async function clearPatternLadders() {
   const db = await openDB();
   const tx = db.transaction("pattern_ladders", "readwrite");

@@ -15,7 +15,9 @@ export async function insertDefaultTagMasteryRecords() {
   });
 
   if (!tagRelationships || tagRelationships.length === 0) {
-    console.warn("⚠️ No tag_relationships found. Skipping tag_mastery initialization.");
+    console.warn(
+      "⚠️ No tag_relationships found. Skipping tag_mastery initialization."
+    );
     return;
   }
 
@@ -163,33 +165,53 @@ export async function calculateTagMastery() {
       // 🔓 Progressive attempt-based escape hatch: Multiple thresholds based on struggle level
       let masteryThreshold = 0.8; // Default 80% success rate
       let escapeHatchActivated = false;
-      let escapeHatchType = '';
-      
+      let escapeHatchType = "";
+
       const failedAttempts = stats.totalAttempts - stats.successfulAttempts;
-      
+
       // Progressive softening based on struggle level:
       // 1. Light struggle: 8+ attempts with 75-79% → allow graduation
-      // 2. Moderate struggle: 12+ attempts with 70-79% → allow graduation  
+      // 2. Moderate struggle: 12+ attempts with 70-79% → allow graduation
       // 3. Heavy struggle: 15+ attempts with 60%+ → allow graduation (existing)
-      
-      if (stats.totalAttempts >= 8 && masteryRatio >= 0.75 && masteryRatio < 0.8) {
+
+      if (
+        stats.totalAttempts >= 8 &&
+        masteryRatio >= 0.75 &&
+        masteryRatio < 0.8
+      ) {
         // Light struggle escape: 75-79% with 8+ attempts
         masteryThreshold = 0.75;
         escapeHatchActivated = true;
-        escapeHatchType = 'light struggle (75% threshold)';
-        console.log(`🔓 Light struggle escape hatch ACTIVATED for "${tag}": ${stats.totalAttempts} attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`);
-      } else if (stats.totalAttempts >= 12 && masteryRatio >= 0.7 && masteryRatio < 0.8) {
+        escapeHatchType = "light struggle (75% threshold)";
+        console.log(
+          `🔓 Light struggle escape hatch ACTIVATED for "${tag}": ${
+            stats.totalAttempts
+          } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
+        );
+      } else if (
+        stats.totalAttempts >= 12 &&
+        masteryRatio >= 0.7 &&
+        masteryRatio < 0.8
+      ) {
         // Moderate struggle escape: 70-79% with 12+ attempts
         masteryThreshold = 0.7;
         escapeHatchActivated = true;
-        escapeHatchType = 'moderate struggle (70% threshold)';
-        console.log(`🔓 Moderate struggle escape hatch ACTIVATED for "${tag}": ${stats.totalAttempts} attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`);
+        escapeHatchType = "moderate struggle (70% threshold)";
+        console.log(
+          `🔓 Moderate struggle escape hatch ACTIVATED for "${tag}": ${
+            stats.totalAttempts
+          } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
+        );
       } else if (failedAttempts >= 15 && masteryRatio >= 0.6) {
         // Heavy struggle escape: 60%+ with 15+ failed attempts (existing logic)
         masteryThreshold = 0.6;
         escapeHatchActivated = true;
-        escapeHatchType = 'heavy struggle (60% threshold)';
-        console.log(`🔓 Heavy struggle escape hatch ACTIVATED for "${tag}": ${failedAttempts} failed attempts, allowing graduation at 60% (was ${(masteryRatio * 100).toFixed(1)}%)`);
+        escapeHatchType = "heavy struggle (60% threshold)";
+        console.log(
+          `🔓 Heavy struggle escape hatch ACTIVATED for "${tag}": ${failedAttempts} failed attempts, allowing graduation at 60% (was ${(
+            masteryRatio * 100
+          ).toFixed(1)}%)`
+        );
       }
 
       const mastered = masteryRatio >= masteryThreshold;
@@ -203,7 +225,7 @@ export async function calculateTagMastery() {
         masteryThreshold: `${(masteryThreshold * 100).toFixed(0)}%`,
         currentAccuracy: `${(masteryRatio * 100).toFixed(1)}%`,
         escapeHatchUsed: escapeHatchActivated,
-        escapeHatchType: escapeHatchType || 'none'
+        escapeHatchType: escapeHatchType || "none",
       });
 
       await new Promise((resolve, reject) => {
@@ -278,7 +300,6 @@ export function calculateTagSimilarity(
   return similarity;
 }
 
-
 function getDifficultyWeight(diff1, diff2) {
   const difficultyMap = { Easy: 1, Medium: 2, Hard: 3 };
   const d1 = difficultyMap[diff1] || 2;
@@ -290,7 +311,6 @@ function getDifficultyWeight(diff1, diff2) {
   if (diffGap === 1) return 1; // Allow slight jumps
   return 0.7; // Discourage large jumps (e.g., Easy → Hard)
 }
-
 
 export async function getAllTagMastery() {
   const db = await openDB();
@@ -310,5 +330,3 @@ export async function upsertTagMastery(tagMasteryObj) {
   store.put(tagMasteryObj);
   return tx.complete;
 }
-
-

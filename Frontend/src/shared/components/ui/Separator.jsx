@@ -1,5 +1,5 @@
-import React from 'react';
-import { cn } from '../../utils/cn';
+import React from "react";
+import { cn } from "../../utils/cn";
 
 export function Separator({ className, orientation = "horizontal", ...props }) {
   return (

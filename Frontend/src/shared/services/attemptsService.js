@@ -23,7 +23,6 @@ async function addAttempt(attemptData, problem) {
   try {
     const db = await openDB();
 
-
     // Retrieve or create session
     let session = await new Promise((resolve) => {
       chrome.storage.local.get(["currentSession"], (result) => {
@@ -42,7 +41,6 @@ async function addAttempt(attemptData, problem) {
     // Associate the attempt with the session
     attemptData.SessionID = session.id;
 
-
     if (!problem) {
       console.error("AddAttempt: Problem not found");
       return { error: "Problem not found." };
@@ -52,10 +50,13 @@ async function addAttempt(attemptData, problem) {
     problem = await calculateLeitnerBox(problem, attemptData);
 
     // Add or update the problem in session
-    session = await ProblemService.addOrUpdateProblemInSession(session, problem, attemptData.id);
-    
-    await saveSessionToStorage(session, true);
+    session = await ProblemService.addOrUpdateProblemInSession(
+      session,
+      problem,
+      attemptData.id
+    );
 
+    await saveSessionToStorage(session, true);
 
     // Open a transaction for database operations
     const transaction = db.transaction(
@@ -112,5 +113,5 @@ function putData(store, data) {
 
 export const AttemptsService = {
   addAttempt,
-  getMostRecentAttempt
+  getMostRecentAttempt,
 };

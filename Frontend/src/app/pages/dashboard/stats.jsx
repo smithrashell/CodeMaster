@@ -1,12 +1,12 @@
 import { Container, Grid, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
-import MetricCard from "../../../shared/components/MetricCard";
-import TimeGranularChartCard from "../../../shared/components/TimeGranularChartCard";
+import MetricCard from "../../components/analytics/MetricCard";
+import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
 import {
   getAccuracyTrendData,
   getAttemptBreakdownData,
 } from "../../../shared/utils/DataAdapter.js";
-export function Stats({appState}) {
+export function Stats({ appState }) {
   const [statistics, setStatistics] = useState(appState.statistics);
   const [averageTime, setAverageTime] = useState(appState.averageTime);
   const [successRate, setSuccessRate] = useState(appState.successRate);
@@ -23,52 +23,42 @@ export function Stats({appState}) {
   });
 
   useEffect(() => {
-console.info("props", appState)
-        if (appState) {
-          setStatistics(appState.statistics);
-          setAverageTime(appState.averageTime);
-          setSuccessRate(appState.successRate);
-          setAllSessions(appState.allSessions);
+    console.info("props", appState);
+    if (appState) {
+      setStatistics(appState.statistics);
+      setAverageTime(appState.averageTime);
+      setSuccessRate(appState.successRate);
+      setAllSessions(appState.allSessions);
 
-          const weekly = getAccuracyTrendData(
-            appState.allSessions,
-            "weekly"
-          );
-          const monthly = getAccuracyTrendData(
-            appState.allSessions,
-            "monthly"
-          );
-          const yearly = getAccuracyTrendData(
-            appState.allSessions,
-            "yearly"
-          );
+      const weekly = getAccuracyTrendData(appState.allSessions, "weekly");
+      const monthly = getAccuracyTrendData(appState.allSessions, "monthly");
+      const yearly = getAccuracyTrendData(appState.allSessions, "yearly");
 
-          setAccuracyData({
-            weekly,
-            monthly,
-            yearly,
-          });
+      setAccuracyData({
+        weekly,
+        monthly,
+        yearly,
+      });
 
-          const weeklyBreakdown = getAttemptBreakdownData(
-            appState.allSessions,
-            "weekly"
-          );
-          const monthlyBreakdown = getAttemptBreakdownData(
-            appState.allSessions,
-            "monthly"
-          );
-          const yearlyBreakdown = getAttemptBreakdownData(
-            appState.allSessions,
-            "yearly"
-          );
+      const weeklyBreakdown = getAttemptBreakdownData(
+        appState.allSessions,
+        "weekly"
+      );
+      const monthlyBreakdown = getAttemptBreakdownData(
+        appState.allSessions,
+        "monthly"
+      );
+      const yearlyBreakdown = getAttemptBreakdownData(
+        appState.allSessions,
+        "yearly"
+      );
 
-          setBreakdownData({
-            weekly: weeklyBreakdown,
-            monthly: monthlyBreakdown,
-            yearly: yearlyBreakdown,
-          });
-        }
-    
+      setBreakdownData({
+        weekly: weeklyBreakdown,
+        monthly: monthlyBreakdown,
+        yearly: yearlyBreakdown,
+      });
+    }
   }, []);
   console.info("allSessions", allSessions);
   console.info("accuracyData", accuracyData);
@@ -134,12 +124,12 @@ console.info("props", appState)
         </Grid.Col>
         <Grid.Col span={6}>
           <TimeGranularChartCard
-          title="Attempt Quality Breakdown"
-          chartType="bar"
-          data={breakdownData}
-          dataKeys={[
-            { key: "firstTry", color: "#4CAF50" },
-            { key: "retrySuccess", color: "#FFC107" },
+            title="Attempt Quality Breakdown"
+            chartType="bar"
+            data={breakdownData}
+            dataKeys={[
+              { key: "firstTry", color: "#4CAF50" },
+              { key: "retrySuccess", color: "#FFC107" },
               { key: "failed", color: "#F44336" },
             ]}
           />

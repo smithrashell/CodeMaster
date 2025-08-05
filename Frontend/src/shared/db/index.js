@@ -44,19 +44,26 @@ export const dbHelper = {
         // if (db.objectStoreNames.contains("problem_relationships")) {
         //   db.deleteObjectStore("problem_relationships");
         // }
-        if(!db.objectStoreNames.contains("session_state")){
-          db.createObjectStore("session_state", {keyPath: "id"});
+        if (!db.objectStoreNames.contains("session_state")) {
+          db.createObjectStore("session_state", { keyPath: "id" });
         }
-       
 
         if (!db.objectStoreNames.contains("problem_relationships")) {
-          let relationshipsStore = db.createObjectStore("problem_relationships");
+          let relationshipsStore = db.createObjectStore(
+            "problem_relationships"
+          );
 
-          dbHelper.ensureIndex(relationshipsStore, "by_problemId1", "problemId1");
-          dbHelper.ensureIndex(relationshipsStore, "by_problemId2", "problemId2");
-
+          dbHelper.ensureIndex(
+            relationshipsStore,
+            "by_problemId1",
+            "problemId1"
+          );
+          dbHelper.ensureIndex(
+            relationshipsStore,
+            "by_problemId2",
+            "problemId2"
+          );
         }
-                
 
         // ✅ Ensure 'problems' store exists
         if (!db.objectStoreNames.contains("problems")) {
@@ -146,7 +153,7 @@ export const dbHelper = {
           let settingsStore = db.createObjectStore("settings", {
             keyPath: "id",
           });
-          
+
           console.log("Settings store created!");
         }
         //add a index on classification
@@ -162,14 +169,25 @@ export const dbHelper = {
 
         // ✅ **NEW: Ensure 'session_analytics' store exists**
         if (!db.objectStoreNames.contains("session_analytics")) {
-          let sessionAnalyticsStore = db.createObjectStore("session_analytics", {
-            keyPath: "sessionId",
-          });
+          let sessionAnalyticsStore = db.createObjectStore(
+            "session_analytics",
+            {
+              keyPath: "sessionId",
+            }
+          );
 
           dbHelper.ensureIndex(sessionAnalyticsStore, "by_date", "completedAt");
-          dbHelper.ensureIndex(sessionAnalyticsStore, "by_accuracy", "accuracy");
-          dbHelper.ensureIndex(sessionAnalyticsStore, "by_difficulty", "predominantDifficulty");
-          
+          dbHelper.ensureIndex(
+            sessionAnalyticsStore,
+            "by_accuracy",
+            "accuracy"
+          );
+          dbHelper.ensureIndex(
+            sessionAnalyticsStore,
+            "by_difficulty",
+            "predominantDifficulty"
+          );
+
           console.log("✅ Session analytics store created!");
         }
 
@@ -180,7 +198,7 @@ export const dbHelper = {
           });
 
           dbHelper.ensureIndex(strategyDataStore, "by_tag", "tag");
-          
+
           console.log("✅ Strategy data store created!");
         }
       };

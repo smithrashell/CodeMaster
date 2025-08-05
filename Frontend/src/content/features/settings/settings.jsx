@@ -9,7 +9,7 @@ import {
 } from "../../../shared/components/nantine.jsx";
 import { IconQuestionMark } from "@tabler/icons-react"; // or
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
-import Header from "../../../shared/components/header.jsx";
+import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 const Settings = () => {
   const [settings, setSettings] = useState(null);
@@ -27,19 +27,19 @@ const Settings = () => {
   };
 
   // New approach using custom hook
-  const { data: chromeSettings, loading, error } = useChromeMessage(
-    !useMock ? { type: "getSettings" } : null,
-    [],
-    {
-      onSuccess: (response) => {
-        if (response) {
-          setSettings(response);
-        } else {
-          console.warn("No settings received, using defaults.");
-        }
+  const {
+    data: chromeSettings,
+    loading,
+    error,
+  } = useChromeMessage(!useMock ? { type: "getSettings" } : null, [], {
+    onSuccess: (response) => {
+      if (response) {
+        setSettings(response);
+      } else {
+        console.warn("No settings received, using defaults.");
       }
-    }
-  );
+    },
+  });
 
   // Handle mock settings
   useEffect(() => {
@@ -48,7 +48,6 @@ const Settings = () => {
       setSettings(MOCK_SETTINGS);
     }
   }, []);
-
 
   const handleSave = (settings) => {
     chrome.runtime.sendMessage(
@@ -65,12 +64,9 @@ const Settings = () => {
 
   return (
     <div id="cd-mySidenav" className="cd-sidenav problink">
- 
+      <Header title="Settings" />
 
-    <Header title="Settings" />
-
-      <div className="cd-sidenav__content "
-      >
+      <div className="cd-sidenav__content ">
         {/* Adaptive Toggle */}
         <AdaptiveSessionToggle
           adaptive={settings?.adaptive}
@@ -80,51 +76,50 @@ const Settings = () => {
         {/* Session Controls (conditionally shown) */}
         {!settings?.adaptive && (
           <>
-          <div className="cd-form-group">
-            <label>Session Length</label>
-            <SliderMarksSessionLength
-              value={settings?.sessionLength}
-              onChange={(value) =>
-                setSettings({ ...settings, sessionLength: value })
-              }
-            />
+            <div className="cd-form-group">
+              <label>Session Length</label>
+              <SliderMarksSessionLength
+                value={settings?.sessionLength}
+                onChange={(value) =>
+                  setSettings({ ...settings, sessionLength: value })
+                }
+              />
             </div>
 
-
             <div className="cd-form-group">
-            <label>New Problems Per Session</label>
-            <SliderMarksNewProblemsPerSession
-              value={settings?.numberofNewProblemsPerSession}
-              onChange={(value) =>
-                setSettings({
-                  ...settings,
-                  numberofNewProblemsPerSession: value,
-                })
-              }
-              max={settings?.sessionLength}
-            />
+              <label>New Problems Per Session</label>
+              <SliderMarksNewProblemsPerSession
+                value={settings?.numberofNewProblemsPerSession}
+                onChange={(value) =>
+                  setSettings({
+                    ...settings,
+                    numberofNewProblemsPerSession: value,
+                  })
+                }
+                max={settings?.sessionLength}
+              />
             </div>
           </>
         )}
 
         <div className="cd-form-group">
-        <label>Time Limits</label>
-        <GradientSegmentedControlTimeLimit
-          value={settings?.limit}
-          onChange={(value) => setSettings({ ...settings, limit: value })}
-        />
+          <label>Time Limits</label>
+          <GradientSegmentedControlTimeLimit
+            value={settings?.limit}
+            onChange={(value) => setSettings({ ...settings, limit: value })}
+          />
         </div>
         <div className="cd-form-group">
-        <label>Reminders</label>
-        <ToggleSelectRemainders
-          reminder={settings?.reminder}
-          onChange={(updatedReminder) =>
-            setSettings((prevSettings) => ({
-              ...prevSettings,
-              reminder: { ...prevSettings.reminder, ...updatedReminder },
-            }))
-          }
-        />
+          <label>Reminders</label>
+          <ToggleSelectRemainders
+            reminder={settings?.reminder}
+            onChange={(updatedReminder) =>
+              setSettings((prevSettings) => ({
+                ...prevSettings,
+                reminder: { ...prevSettings.reminder, ...updatedReminder },
+              }))
+            }
+          />
         </div>
         <Button onClick={() => handleSave(settings)}>Save</Button>
       </div>

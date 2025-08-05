@@ -24,7 +24,6 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-
 } from "recharts";
 
 // Page Components
@@ -301,22 +300,31 @@ export function Metrics() {
     { time: "6 PM", activity: 6 },
     { time: "9 PM", activity: 7 },
   ];
-  return(
-  <Container size="xl" p="md">
-      <Title order={2} mb="md">Sessions - Custom Session Metrics</Title>
-      
+  return (
+    <Container size="xl" p="md">
+      <Title order={2} mb="md">
+        Sessions - Custom Session Metrics
+      </Title>
+
       <Grid gutter="md">
         {/* Average Session Length */}
         <Grid.Col span={6}>
           <Card shadow="sm" p="lg">
-            <Text weight={500} size="lg">Average Session Length</Text>
+            <Text weight={500} size="lg">
+              Average Session Length
+            </Text>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={sessionLengthData}>
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
                 <CartesianGrid stroke="#f5f5f5" />
-                <Line type="monotone" dataKey="length" stroke="#8884d8" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="length"
+                  stroke="#8884d8"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </Card>
@@ -325,7 +333,9 @@ export function Metrics() {
         {/* Session Frequency */}
         <Grid.Col span={6}>
           <Card shadow="sm" p="lg">
-            <Text weight={500} size="lg">Session Frequency</Text>
+            <Text weight={500} size="lg">
+              Session Frequency
+            </Text>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={sessionFrequencyData}>
                 <XAxis dataKey="name" />
@@ -338,12 +348,14 @@ export function Metrics() {
           </Card>
         </Grid.Col>
       </Grid>
-      
+
       {/* Peak Productivity Time */}
       <Grid gutter="md" mt="md">
         <Grid.Col span={6}>
           <Card shadow="sm" p="lg">
-            <Text weight={500} size="lg">Peak Productivity Time</Text>
+            <Text weight={500} size="lg">
+              Peak Productivity Time
+            </Text>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={peakProductivityData}>
                 <XAxis dataKey="time" />

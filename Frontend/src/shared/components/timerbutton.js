@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { navigate } from "react-router-dom"; // Import from `react-router-dom` if needed
 
-
 const TimerButton = () => {
- const [time, setTime] = useState(0);
+  const [time, setTime] = useState(0);
   const [content, setContent] = useState("");
   const [timerRunning, setTimerRunning] = useState(false);
   const [limit, setLimit] = useState(0);
@@ -13,35 +12,22 @@ const TimerButton = () => {
   let min = `${minutes.toString().padStart(2, "0")}m`;
   let sec = `${seconds.toString().padStart(2, "0")}s`;
 
+  const handleTimerClick = () => {};
 
-
-
-  
- 
-  const handleTimerClick = () => {
-   
-    
-
-  };
-
-  const handleReset = () => {
-
-
-  };
+  const handleReset = () => {};
 
   const handleSubmit = () => {
     setTimerRunning(false);
-    chrome.storage.local.set({time: time}, () => {
+    chrome.storage.local.set({ time: time }, () => {
       console.log("**limit saved to Chrome storage.", time);
-    })
+    });
     // Send a message directly to the background script
     chrome.runtime.sendMessage({
-      type:"navigate",
+      type: "navigate",
       navigate: true,
       route: "/Probtime",
       content: content,
-      time: Math.floor(time*60),
-      
+      time: Math.floor(time * 60),
     });
   };
 
@@ -65,11 +51,7 @@ const TimerButton = () => {
 
 const InjectedButton = () => {
   console.log("InjectedButton is rendering");
-  return (
-    
-      <TimerButton />
-
-  );
+  return <TimerButton />;
 };
 
 export default InjectedButton;

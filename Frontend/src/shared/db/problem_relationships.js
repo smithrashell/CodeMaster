@@ -50,7 +50,6 @@ export const weakenProblemRelationship = async (problemId1, problemId2) => {
   });
 };
 
-
 export async function clearProblemRelationships(db) {
   const tx = db.transaction("problem_relationships", "readwrite");
   const store = tx.objectStore("problem_relationships");
@@ -263,12 +262,16 @@ export async function buildRelationshipMap() {
   });
 }
 
-
-export function restoreMissingProblemRelationships({ problems, problemGraph, removedRelationships }) {
-  
-  const problemsArray = Array.isArray(problems) ? problems : Object.values(problems);
+export function restoreMissingProblemRelationships({
+  problems,
+  problemGraph,
+  removedRelationships,
+}) {
+  const problemsArray = Array.isArray(problems)
+    ? problems
+    : Object.values(problems);
   const missingProblems = new Set();
-  console.log("problems", problemsArray)
+  console.log("problems", problemsArray);
   // 🔹 Step 1: Ensure every problem appears in `problem_relationships`
   for (const problem of problemsArray) {
     const existing = problemGraph.get(problem.id);
@@ -280,35 +283,51 @@ export function restoreMissingProblemRelationships({ problems, problemGraph, rem
       // Try restoring from trimmed
       if (removedRelationships.has(problem.id)) {
         console.log(`🔄 Restoring trimmed relationship for ${problem.id}`);
-        problemGraph.set(problem.id, removedRelationships.get(problem.id).slice(0, 1));
+        problemGraph.set(
+          problem.id,
+          removedRelationships.get(problem.id).slice(0, 1)
+        );
       } else {
         // Fallback to same-tag pairing
         const fallback = problemsArray.find(
-          (p) => p.id !== problem.id && p.tags.some((tag) => problem.tags.includes(tag))
+          (p) =>
+            p.id !== problem.id &&
+            p.tags.some((tag) => problem.tags.includes(tag))
         );
 
         if (fallback) {
           console.log(`🛠️ Fallback: ${problem.id} → ${fallback.id}`);
-          problemGraph.set(problem.id, [{
-            problemId1: problem.id,
-            problemId2: fallback.id,
-            strength: 1, // Weakest connection
-          }]);
+          problemGraph.set(problem.id, [
+            {
+              problemId1: problem.id,
+              problemId2: fallback.id,
+              strength: 1, // Weakest connection
+            },
+          ]);
         }
       }
     }
   }
 
   console.log(`🔹 Restored ${missingProblems.size} missing relationships.`);
-  return {updatedProblemGraph: problemGraph, updatedRemovedRelationships: removedRelationships };
+  return {
+    updatedProblemGraph: problemGraph,
+    updatedRemovedRelationships: removedRelationships,
+  };
 }
 
-
-export function calculateAndTrimProblemRelationships({ problems, tagGraph, tagMastery, limit }) {
+export function calculateAndTrimProblemRelationships({
+  problems,
+  tagGraph,
+  tagMastery,
+  limit,
+}) {
   const problemGraph = new Map();
   const removedRelationships = new Map();
   const difficultyMap = { Easy: 1, Medium: 2, Hard: 3 };
-  const problemsArray = Array.isArray(problems) ? problems : Object.values(problems);
+  const problemsArray = Array.isArray(problems)
+    ? problems
+    : Object.values(problems);
 
   // Build raw relationships
   problemsArray.forEach((p1) => {
@@ -343,14 +362,14 @@ export function calculateAndTrimProblemRelationships({ problems, tagGraph, tagMa
   for (const [problemId, relationships] of problemGraph.entries()) {
     relationships.sort((a, b) => b.strength - a.strength);
     if (relationships.length > limit) {
-        // Store removed relationships in a Map in case they are needed later
+      // Store removed relationships in a Map in case they are needed later
       removedRelationships.set(problemId, relationships.slice(limit));
     }
-      // Trim to the strongest `N` connections
+    // Trim to the strongest `N` connections
     problemGraph.set(problemId, relationships.slice(0, limit));
   }
 
-  console.log("problemGraph", problemGraph)
+  console.log("problemGraph", problemGraph);
 
   return { problemGraph, removedRelationships };
 }
