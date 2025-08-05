@@ -3,15 +3,15 @@
  * Provides consistent test data across session service tests
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 // This is a utility file, not a test file
 // Adding a dummy test to prevent Jest from complaining
-if (process.env.NODE_ENV === 'test') {
-  describe('MockDataFactories', () => {
-    it('should export factory functions', () => {
-      expect(typeof MockDataFactories.createMockSession).toBe('function');
-      expect(typeof MockDataFactories.createMockProblem).toBe('function');
+if (process.env.NODE_ENV === "test") {
+  describe("MockDataFactories", () => {
+    it("should export factory functions", () => {
+      expect(typeof MockDataFactories.createMockSession).toBe("function");
+      expect(typeof MockDataFactories.createMockProblem).toBe("function");
     });
   });
 }
@@ -25,10 +25,10 @@ export const MockDataFactories = {
   createMockSession: (overrides = {}) => ({
     id: uuidv4(),
     date: new Date().toISOString(),
-    status: 'in_progress',
+    status: "in_progress",
     problems: [],
     attempts: [],
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -39,13 +39,13 @@ export const MockDataFactories = {
   createMockProblem: (overrides = {}) => ({
     id: Math.floor(Math.random() * 1000),
     leetCodeID: Math.floor(Math.random() * 3000),
-    title: 'Sample Problem',
-    difficulty: 'Easy',
-    tags: ['array'],
-    description: 'Sample problem description',
+    title: "Sample Problem",
+    difficulty: "Easy",
+    tags: ["array"],
+    description: "Sample problem description",
     acceptance: 50.5,
     boxLevel: 1,
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -59,7 +59,7 @@ export const MockDataFactories = {
     success: true,
     timeSpent: 300, // 5 minutes in seconds
     AttemptDate: new Date().toISOString(),
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -68,14 +68,14 @@ export const MockDataFactories = {
    * @returns {Object} Mock session settings
    */
   createMockSessionSettings: (overrides = {}) => ({
-    id: 'session_state',
+    id: "session_state",
     numSessionsCompleted: 0,
-    currentDifficultyCap: 'Easy',
+    currentDifficultyCap: "Easy",
     sessionLength: 5,
     numberOfNewProblems: 3,
-    currentAllowedTags: ['array', 'string'],
+    currentAllowedTags: ["array", "string"],
     lastSessionDate: new Date().toISOString(),
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -85,9 +85,15 @@ export const MockDataFactories = {
    * @returns {Array} Array of mock problems
    */
   createMockProblems: (count = 5, options = {}) => {
-    const difficulties = options.difficulties || ['Easy', 'Medium', 'Hard'];
-    const tags = options.tags || ['array', 'string', 'hash-table', 'dynamic-programming', 'tree'];
-    
+    const difficulties = options.difficulties || ["Easy", "Medium", "Hard"];
+    const tags = options.tags || [
+      "array",
+      "string",
+      "hash-table",
+      "dynamic-programming",
+      "tree",
+    ];
+
     return Array.from({ length: count }, (_, index) => ({
       id: index + 1,
       leetCodeID: (index + 1) * 10,
@@ -95,9 +101,9 @@ export const MockDataFactories = {
       difficulty: difficulties[index % difficulties.length],
       tags: [tags[index % tags.length]],
       description: `Description for problem ${index + 1}`,
-      acceptance: 40 + (index * 5) % 60,
+      acceptance: 40 + ((index * 5) % 60),
       boxLevel: Math.floor(index / 3) + 1,
-      ...options.overrides
+      ...options.overrides,
     }));
   },
 
@@ -109,23 +115,25 @@ export const MockDataFactories = {
   createCompletedSessionWithData: (options = {}) => {
     const problems = MockDataFactories.createMockProblems(
       options.problemCount || 3,
-      { difficulties: ['Easy', 'Medium'] }
+      { difficulties: ["Easy", "Medium"] }
     );
-    
-    const attempts = problems.map((problem, index) => 
+
+    const attempts = problems.map((problem, index) =>
       MockDataFactories.createMockAttempt({
         problemId: problem.id,
         success: index < 2, // First 2 attempts successful
-        timeSpent: 180 + (index * 60) // Varying time spent
+        timeSpent: 180 + index * 60, // Varying time spent
       })
     );
 
     return MockDataFactories.createMockSession({
-      status: 'completed',
+      status: "completed",
       problems,
       attempts,
-      date: options.date || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
-      ...options.overrides
+      date:
+        options.date ||
+        new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
+      ...options.overrides,
     });
   },
 
@@ -134,7 +142,7 @@ export const MockDataFactories = {
    * @param {Array} tags - Tags to create mastery data for
    * @returns {Object} Mock tag mastery mapping
    */
-  createMockTagMastery: (tags = ['array', 'string', 'hash-table']) => {
+  createMockTagMastery: (tags = ["array", "string", "hash-table"]) => {
     return tags.reduce((mastery, tag, index) => {
       mastery[tag] = {
         tag,
@@ -142,13 +150,15 @@ export const MockDataFactories = {
         successfulAttempts: 6 + index * 3,
         averageTime: 240 + index * 30,
         difficultyProgress: {
-          Easy: index > 0 ? 'mastered' : 'learning',
-          Medium: index > 1 ? 'learning' : 'locked',
-          Hard: 'locked'
+          Easy: index > 0 ? "mastered" : "learning",
+          Medium: index > 1 ? "learning" : "locked",
+          Hard: "locked",
         },
-        lastAttemptDate: new Date(Date.now() - index * 24 * 60 * 60 * 1000).toISOString(),
-        masteryScore: 0.6 + (index * 0.1),
-        decayScore: 1.0 - (index * 0.05)
+        lastAttemptDate: new Date(
+          Date.now() - index * 24 * 60 * 60 * 1000
+        ).toISOString(),
+        masteryScore: 0.6 + index * 0.1,
+        decayScore: 1.0 - index * 0.05,
       };
       return mastery;
     }, {});
@@ -167,14 +177,14 @@ export const MockDataFactories = {
     tagPerformance: MockDataFactories.createMockTagMastery(),
     difficultyProgression: {
       Easy: { attempted: 45, successful: 38, accuracy: 0.84 },
-      Medium: { attempted: 20, successful: 12, accuracy: 0.60 },
-      Hard: { attempted: 3, successful: 1, accuracy: 0.33 }
+      Medium: { attempted: 20, successful: 12, accuracy: 0.6 },
+      Hard: { attempted: 3, successful: 1, accuracy: 0.33 },
     },
     recentTrend: {
-      last7Days: { accuracy: 0.80, averageTime: 1680 },
-      last30Days: { accuracy: 0.75, averageTime: 1800 }
+      last7Days: { accuracy: 0.8, averageTime: 1680 },
+      last30Days: { accuracy: 0.75, averageTime: 1800 },
     },
-    ...overrides
+    ...overrides,
   }),
 
   /**
@@ -184,7 +194,7 @@ export const MockDataFactories = {
    */
   createMockStorage: (data = {}) => ({
     get: jest.fn((keys) => {
-      if (typeof keys === 'string') {
+      if (typeof keys === "string") {
         return Promise.resolve({ [keys]: data[keys] });
       }
       if (Array.isArray(keys)) {
@@ -200,13 +210,13 @@ export const MockDataFactories = {
     }),
     remove: jest.fn((keys) => {
       const keysArray = Array.isArray(keys) ? keys : [keys];
-      keysArray.forEach(key => delete data[key]);
+      keysArray.forEach((key) => delete data[key]);
       return Promise.resolve();
     }),
     clear: jest.fn(() => {
-      Object.keys(data).forEach(key => delete data[key]);
+      Object.keys(data).forEach((key) => delete data[key]);
       return Promise.resolve();
-    })
+    }),
   }),
 
   /**
@@ -219,16 +229,18 @@ export const MockDataFactories = {
     error: null,
     transaction: {
       objectStore: jest.fn(() => ({
-        get: jest.fn((key) => ({ result: data.find(item => item.id === key) })),
+        get: jest.fn((key) => ({
+          result: data.find((item) => item.id === key),
+        })),
         getAll: jest.fn(() => ({ result: data })),
         add: jest.fn(() => ({ result: true })),
         put: jest.fn(() => ({ result: true })),
         delete: jest.fn(() => ({ result: true })),
         index: jest.fn(() => ({
-          openCursor: jest.fn((range, direction) => ({ result: null }))
-        }))
-      }))
-    }
+          openCursor: jest.fn((range, direction) => ({ result: null })),
+        })),
+      })),
+    },
   }),
 
   /**
@@ -238,46 +250,60 @@ export const MockDataFactories = {
     newUser: () => ({
       sessionSettings: MockDataFactories.createMockSessionSettings({
         numSessionsCompleted: 0,
-        currentDifficultyCap: 'Easy',
-        currentAllowedTags: ['array', 'string']
+        currentDifficultyCap: "Easy",
+        currentAllowedTags: ["array", "string"],
       }),
-      problems: MockDataFactories.createMockProblems(3, { 
-        difficulties: ['Easy'],
-        tags: ['array', 'string'] 
+      problems: MockDataFactories.createMockProblems(3, {
+        difficulties: ["Easy"],
+        tags: ["array", "string"],
       }),
-      tagMastery: {}
+      tagMastery: {},
     }),
 
     intermediateUser: () => ({
       sessionSettings: MockDataFactories.createMockSessionSettings({
         numSessionsCompleted: 25,
-        currentDifficultyCap: 'Medium',
+        currentDifficultyCap: "Medium",
         sessionLength: 7,
         numberOfNewProblems: 4,
-        currentAllowedTags: ['array', 'string', 'dynamic-programming']
+        currentAllowedTags: ["array", "string", "dynamic-programming"],
       }),
-      problems: MockDataFactories.createMockProblems(7, { 
-        difficulties: ['Easy', 'Medium'],
-        tags: ['array', 'string', 'dynamic-programming'] 
+      problems: MockDataFactories.createMockProblems(7, {
+        difficulties: ["Easy", "Medium"],
+        tags: ["array", "string", "dynamic-programming"],
       }),
-      tagMastery: MockDataFactories.createMockTagMastery(['array', 'string', 'dynamic-programming'])
+      tagMastery: MockDataFactories.createMockTagMastery([
+        "array",
+        "string",
+        "dynamic-programming",
+      ]),
     }),
 
     expertUser: () => ({
       sessionSettings: MockDataFactories.createMockSessionSettings({
         numSessionsCompleted: 100,
-        currentDifficultyCap: 'Hard',
+        currentDifficultyCap: "Hard",
         sessionLength: 10,
         numberOfNewProblems: 3,
-        currentAllowedTags: ['graph', 'tree', 'dynamic-programming', 'backtracking']
+        currentAllowedTags: [
+          "graph",
+          "tree",
+          "dynamic-programming",
+          "backtracking",
+        ],
       }),
-      problems: MockDataFactories.createMockProblems(10, { 
-        difficulties: ['Medium', 'Hard'],
-        tags: ['graph', 'tree', 'dynamic-programming', 'backtracking'] 
+      problems: MockDataFactories.createMockProblems(10, {
+        difficulties: ["Medium", "Hard"],
+        tags: ["graph", "tree", "dynamic-programming", "backtracking"],
       }),
-      tagMastery: MockDataFactories.createMockTagMastery(['graph', 'tree', 'dynamic-programming', 'backtracking'])
-    })
-  }
+      tagMastery: MockDataFactories.createMockTagMastery([
+        "graph",
+        "tree",
+        "dynamic-programming",
+        "backtracking",
+      ]),
+    }),
+  },
 };
 
 export default MockDataFactories;

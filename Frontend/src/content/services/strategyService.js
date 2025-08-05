@@ -1,49 +1,52 @@
-import { dbHelper } from "../db/index.js";
-import { getTagRelationships, buildTagRelationships } from "../db/tag_relationships.js";
-import strategyDataFile from "../constants/strategy_data.json";
-import ProblemRelationshipService from "./problemRelationshipService.js";
+import { dbHelper } from "../../shared/db/index.js";
+import {
+  getTagRelationships,
+  buildTagRelationships,
+} from "../../shared/db/tag_relationships.js";
+import strategyDataFile from "../../shared/constants/strategy_data.json";
+import ProblemRelationshipService from "../../shared/services/problemRelationshipService.js";
 
 // Natural cutoff thresholds for tier-based hint selection
 const NATURAL_CUTOFFS = {
-  TIER_1: 0.12,   // Essential relationships (top 5%)
-  TIER_2: 0.045,  // Strong relationships (top 15%)
-  TIER_3: 0.017   // Meaningful relationships (top 30%)
+  TIER_1: 0.12, // Essential relationships (top 5%)
+  TIER_2: 0.045, // Strong relationships (top 15%)
+  TIER_3: 0.017, // Meaningful relationships (top 30%)
 };
 
 // Hint selection configuration
 const HINT_CONFIG = {
-  MAX_HINTS: 4,           // Maximum hints to show users
+  MAX_HINTS: 4, // Maximum hints to show users
   TIER_WEIGHTS: {
-    essential: 300,       // Highest priority
-    strong: 200,          // Medium priority
-    meaningful: 100       // Lower priority
+    essential: 300, // Highest priority
+    strong: 200, // Medium priority
+    meaningful: 100, // Lower priority
   },
   HINT_DISTRIBUTION: {
-    essential: { min: 1, max: 3 },     // Always show 1-3 essential
-    strong: { min: 0, max: 2 },        // Up to 2 strong
-    meaningful: { min: 0, max: 1 }     // At most 1 meaningful
+    essential: { min: 1, max: 3 }, // Always show 1-3 essential
+    strong: { min: 0, max: 2 }, // Up to 2 strong
+    meaningful: { min: 0, max: 1 }, // At most 1 meaningful
   },
   // Difficulty-specific configuration
   DIFFICULTY_CONFIG: {
-    'Easy': {
+    Easy: {
       maxHints: 3,
-      preferredTypes: ['pattern', 'general'],  // Focus on basic patterns
-      complexityBonus: 0,                      // No complexity bonus
-      tierWeights: { essential: 300, strong: 150, meaningful: 50 }
+      preferredTypes: ["pattern", "general"], // Focus on basic patterns
+      complexityBonus: 0, // No complexity bonus
+      tierWeights: { essential: 300, strong: 150, meaningful: 50 },
     },
-    'Medium': {
+    Medium: {
       maxHints: 4,
-      preferredTypes: ['contextual', 'pattern', 'general'], // Balanced mix
-      complexityBonus: 50,                     // Moderate complexity bonus
-      tierWeights: { essential: 300, strong: 200, meaningful: 100 }
+      preferredTypes: ["contextual", "pattern", "general"], // Balanced mix
+      complexityBonus: 50, // Moderate complexity bonus
+      tierWeights: { essential: 300, strong: 200, meaningful: 100 },
     },
-    'Hard': {
+    Hard: {
       maxHints: 4,
-      preferredTypes: ['contextual', 'optimization'], // Advanced techniques
-      complexityBonus: 100,                    // High complexity bonus
-      tierWeights: { essential: 350, strong: 250, meaningful: 150 }
-    }
-  }
+      preferredTypes: ["contextual", "optimization"], // Advanced techniques
+      complexityBonus: 100, // High complexity bonus
+      tierWeights: { essential: 350, strong: 250, meaningful: 150 },
+    },
+  },
 };
 
 /**
@@ -51,7 +54,6 @@ const HINT_CONFIG = {
  * Handles uploading, retrieving, and providing context-aware hints
  */
 export class StrategyService {
-  
   /**
    * Initialize strategy data in IndexedDB if not already present
    */
@@ -60,7 +62,7 @@ export class StrategyService {
       const db = await dbHelper.openDB();
       const tx = db.transaction("strategy_data", "readonly");
       const store = tx.objectStore("strategy_data");
-      
+
       // Check if data already exists
       const existingCount = await new Promise((resolve, reject) => {
         const countRequest = store.count();
@@ -69,14 +71,15 @@ export class StrategyService {
       });
 
       if (existingCount > 0) {
-        console.log(`✅ Strategy data already loaded (${existingCount} entries)`);
+        console.log(
+          `✅ Strategy data already loaded (${existingCount} entries)`
+        );
         return;
       }
 
       console.log("📥 Loading strategy data into IndexedDB...");
       await this.uploadStrategyData();
       console.log("✅ Strategy data initialization complete!");
-      
     } catch (error) {
       console.error("❌ Error initializing strategy data:", error);
       throw error;
@@ -96,13 +99,13 @@ export class StrategyService {
 
       for (const strategyEntry of strategyDataFile) {
         const { tag, ...strategyData } = strategyEntry;
-        
+
         await new Promise((resolve, reject) => {
           const putRequest = store.put({
             tag: tag,
-            ...strategyData
+            ...strategyData,
           });
-          
+
           putRequest.onsuccess = () => {
             uploadedCount++;
             resolve();
@@ -118,7 +121,6 @@ export class StrategyService {
 
       console.log(`✅ Uploaded ${uploadedCount} strategy entries to IndexedDB`);
       return uploadedCount;
-
     } catch (error) {
       console.error("❌ Error uploading strategy data:", error);
       throw error;
@@ -141,7 +143,6 @@ export class StrategyService {
         getRequest.onsuccess = () => resolve(getRequest.result || null);
         getRequest.onerror = () => reject(getRequest.error);
       });
-
     } catch (error) {
       console.error(`❌ Error getting strategy for tag "${tag}":`, error);
       return null;
@@ -156,9 +157,9 @@ export class StrategyService {
   static async getStrategiesForTags(tags) {
     try {
       const strategies = {};
-      
-      console.log('📋 Loading strategies for tags:', tags);
-      
+
+      console.log("📋 Loading strategies for tags:", tags);
+
       for (const tag of tags) {
         const strategy = await this.getStrategyForTag(tag);
         if (strategy) {
@@ -166,17 +167,18 @@ export class StrategyService {
           console.log(`✅ Loaded strategy for [${tag}]:`, {
             hasStrategy: !!strategy.strategy,
             hasStrategies: !!strategy.strategies,
-            strategiesCount: strategy.strategies ? strategy.strategies.length : 0,
-            patterns: strategy.patterns
+            strategiesCount: strategy.strategies
+              ? strategy.strategies.length
+              : 0,
+            patterns: strategy.patterns,
           });
         } else {
           console.log(`❌ No strategy found for [${tag}]`);
         }
       }
 
-      console.log('📋 Final strategies loaded:', Object.keys(strategies));
+      console.log("📋 Final strategies loaded:", Object.keys(strategies));
       return strategies;
-
     } catch (error) {
       console.error("❌ Error getting strategies for tags:", error);
       return {};
@@ -190,17 +192,27 @@ export class StrategyService {
    * @param {number} problemId - Optional problem ID for relationship-based hints
    * @returns {Object[]} Array of optimal strategy hints
    */
-  static async getContextualHints(problemTags, difficulty = 'Medium', problemId = null) {
+  static async getContextualHints(
+    problemTags,
+    difficulty = "Medium",
+    problemId = null
+  ) {
     try {
       if (!problemTags || problemTags.length === 0) {
         return [];
       }
 
-      console.log(`🧠 Starting intelligent hint selection for ${difficulty} problem with tags:`, problemTags);
-      
-      // Use new difficulty-aware intelligent selection
-      return await this.buildOptimalHintSelection(problemTags, difficulty, problemId);
+      console.log(
+        `🧠 Starting intelligent hint selection for ${difficulty} problem with tags:`,
+        problemTags
+      );
 
+      // Use new difficulty-aware intelligent selection
+      return await this.buildOptimalHintSelection(
+        problemTags,
+        difficulty,
+        problemId
+      );
     } catch (error) {
       console.error("❌ Error getting contextual hints:", error);
       return [];
@@ -214,63 +226,107 @@ export class StrategyService {
    * @param {number} problemId - Optional problem ID for relationship-based hints
    * @returns {Object[]} Array of optimally selected hints
    */
-  static async buildOptimalHintSelection(problemTags, difficulty = 'Medium', problemId = null) {
+  static async buildOptimalHintSelection(
+    problemTags,
+    difficulty = "Medium",
+    problemId = null
+  ) {
     try {
       const strategiesData = await this.getStrategiesForTags(problemTags);
-      const difficultyConfig = HINT_CONFIG.DIFFICULTY_CONFIG[difficulty] || HINT_CONFIG.DIFFICULTY_CONFIG['Medium'];
-      
-      console.log(`🎯 Building ${difficulty}-aware hint selection using natural cutoff tiers`);
-      console.log('📊 Strategy data loaded for tags:', Object.keys(strategiesData));
-      console.log('⚙️ Difficulty config:', difficultyConfig);
-      
+      const difficultyConfig =
+        HINT_CONFIG.DIFFICULTY_CONFIG[difficulty] ||
+        HINT_CONFIG.DIFFICULTY_CONFIG["Medium"];
+
+      console.log(
+        `🎯 Building ${difficulty}-aware hint selection using natural cutoff tiers`
+      );
+      console.log(
+        "📊 Strategy data loaded for tags:",
+        Object.keys(strategiesData)
+      );
+      console.log("⚙️ Difficulty config:", difficultyConfig);
+
       // Step 1: Analyze problem context for relationship-based enhancements
       let problemContext = { useTagBasedHints: true, relationshipBonuses: {} };
       if (problemId) {
-        console.log(`🔍 Analyzing problem relationships for problem ${problemId}`);
-        problemContext = await ProblemRelationshipService.analyzeProblemContext(
-          problemId, problemTags, 5
+        console.log(
+          `🔍 Analyzing problem relationships for problem ${problemId}`
         );
-        
+        problemContext = await ProblemRelationshipService.analyzeProblemContext(
+          problemId,
+          problemTags,
+          5
+        );
+
         if (!problemContext.useTagBasedHints) {
-          console.log(`📈 Found ${problemContext.similarProblems.length} similar problems with context strength: ${problemContext.contextStrength.toFixed(2)}`);
-          console.log('🔗 Relationship bonuses:', problemContext.relationshipBonuses);
+          console.log(
+            `📈 Found ${
+              problemContext.similarProblems.length
+            } similar problems with context strength: ${problemContext.contextStrength.toFixed(
+              2
+            )}`
+          );
+          console.log(
+            "🔗 Relationship bonuses:",
+            problemContext.relationshipBonuses
+          );
         }
       }
-      
+
       // Step 2: Collect all available strategy hints with tier classification
       const allHints = [];
-      
+
       if (problemTags.length >= 2) {
         // Multi-tag problem: Focus on inter-tag relationships
-        console.log('🔗 Multi-tag problem: analyzing tag pair relationships');
-        allHints.push(...await this.collectInterTagHints(problemTags, strategiesData));
+        console.log("🔗 Multi-tag problem: analyzing tag pair relationships");
+        allHints.push(
+          ...(await this.collectInterTagHints(problemTags, strategiesData))
+        );
       }
-      
+
       // Add intra-tag hints (single tag strategies) for diversity
-      console.log('📋 Adding intra-tag hints for comprehensive coverage');
-      allHints.push(...await this.collectIntraTagHints(problemTags, strategiesData));
-      
+      console.log("📋 Adding intra-tag hints for comprehensive coverage");
+      allHints.push(
+        ...(await this.collectIntraTagHints(problemTags, strategiesData))
+      );
+
       console.log(`📊 Total hints collected: ${allHints.length}`);
-      
+
       // Step 3: Score and rank all hints using difficulty-aware tier-based algorithm with relationship bonuses
-      const scoredHints = this.scoreAndRankHints(allHints, difficulty, difficultyConfig, problemContext);
-      console.log('🏆 Top scored hints:', scoredHints.slice(0, 5).map(h => ({
-        tags: `${h.primaryTag} + ${h.relatedTag || 'general'}`, 
-        tier: h.tier, 
-        type: h.type,
-        score: h.finalScore
-      })));
-      
+      const scoredHints = this.scoreAndRankHints(
+        allHints,
+        difficulty,
+        difficultyConfig,
+        problemContext
+      );
+      console.log(
+        "🏆 Top scored hints:",
+        scoredHints.slice(0, 5).map((h) => ({
+          tags: `${h.primaryTag} + ${h.relatedTag || "general"}`,
+          tier: h.tier,
+          type: h.type,
+          score: h.finalScore,
+        }))
+      );
+
       // Step 4: Apply intelligent hint selection with difficulty-aware tier distribution
-      const selectedHints = this.applyIntelligentSelection(scoredHints, difficultyConfig);
-      
-      console.log(`🎯 Selected ${selectedHints.length} optimal ${difficulty} hints:`);
+      const selectedHints = this.applyIntelligentSelection(
+        scoredHints,
+        difficultyConfig
+      );
+
+      console.log(
+        `🎯 Selected ${selectedHints.length} optimal ${difficulty} hints:`
+      );
       selectedHints.forEach((hint, index) => {
-        console.log(`  ${index + 1}. [${hint.primaryTag}] + [${hint.relatedTag || 'general'}] (${hint.tier} tier, ${hint.type} type, score: ${hint.finalScore})`);
+        console.log(
+          `  ${index + 1}. [${hint.primaryTag}] + [${
+            hint.relatedTag || "general"
+          }] (${hint.tier} tier, ${hint.type} type, score: ${hint.finalScore})`
+        );
       });
-      
+
       return selectedHints;
-      
     } catch (error) {
       console.error("❌ Error building optimal hint selection:", error);
       return [];
@@ -285,31 +341,35 @@ export class StrategyService {
    */
   static async collectInterTagHints(problemTags, strategiesData) {
     const hints = [];
-    
+
     for (let i = 0; i < problemTags.length; i++) {
       for (let j = i + 1; j < problemTags.length; j++) {
         const tagA = problemTags[i];
         const tagB = problemTags[j];
-        
+
         // Find strategy for this tag pair
-        const strategy = this.findStrategyForTagPair(tagA, tagB, strategiesData);
+        const strategy = this.findStrategyForTagPair(
+          tagA,
+          tagB,
+          strategiesData
+        );
         if (strategy) {
           // Determine natural tier based on relationship strength patterns
           const tier = this.classifyRelationshipTier(tagA, tagB);
-          
+
           hints.push({
-            type: 'contextual',
+            type: "contextual",
             primaryTag: tagA,
             relatedTag: tagB,
             tip: strategy.tip,
             tier: tier,
-            source: 'inter-tag',
-            complexity: this.getHintComplexity(strategy.tip)
+            source: "inter-tag",
+            complexity: this.getHintComplexity(strategy.tip),
           });
         }
       }
     }
-    
+
     console.log(`🔗 Collected ${hints.length} inter-tag hints`);
     return hints;
   }
@@ -322,45 +382,46 @@ export class StrategyService {
    */
   static async collectIntraTagHints(problemTags, strategiesData) {
     const hints = [];
-    
+
     for (const tag of problemTags) {
       const tagData = strategiesData[tag];
       if (!tagData) continue;
-      
+
       // Add general strategy for fallback
       if (tagData.strategy) {
         hints.push({
-          type: 'general',
+          type: "general",
           primaryTag: tag,
           relatedTag: null,
           tip: tagData.strategy,
-          tier: 'meaningful', // General strategies are lower priority
-          source: 'intra-tag',
-          complexity: this.getHintComplexity(tagData.strategy)
+          tier: "meaningful", // General strategies are lower priority
+          source: "intra-tag",
+          complexity: this.getHintComplexity(tagData.strategy),
         });
       }
-      
+
       // Add top strategies from this tag (first few are likely highest strength)
       if (tagData.strategies && tagData.strategies.length > 0) {
         const topStrategies = tagData.strategies.slice(0, 3); // First 3 are highest strength
-        
+
         topStrategies.forEach((strategy, index) => {
           // Classify tier based on position (first few are likely essential/strong)
-          const tier = index === 0 ? 'essential' : index === 1 ? 'strong' : 'meaningful';
-          
+          const tier =
+            index === 0 ? "essential" : index === 1 ? "strong" : "meaningful";
+
           hints.push({
-            type: 'pattern',
+            type: "pattern",
             primaryTag: tag,
             relatedTag: strategy.when,
             tip: strategy.tip,
             tier: tier,
-            source: 'intra-tag',
-            complexity: this.getHintComplexity(strategy.tip)
+            source: "intra-tag",
+            complexity: this.getHintComplexity(strategy.tip),
           });
         });
       }
     }
-    
+
     console.log(`📋 Collected ${hints.length} intra-tag hints`);
     return hints;
   }
@@ -374,29 +435,39 @@ export class StrategyService {
   static classifyRelationshipTier(tagA, tagB) {
     // Define known essential relationships (from natural cutoff analysis)
     const essentialPairs = new Set([
-      'array+hash table', 'hash table+array',
-      'array+sorting', 'sorting+array',
-      'array+dynamic programming', 'dynamic programming+array',
-      'hash table+string', 'string+hash table',
-      'tree+depth-first search', 'depth-first search+tree',
-      'binary tree+depth-first search', 'depth-first search+binary tree'
+      "array+hash table",
+      "hash table+array",
+      "array+sorting",
+      "sorting+array",
+      "array+dynamic programming",
+      "dynamic programming+array",
+      "hash table+string",
+      "string+hash table",
+      "tree+depth-first search",
+      "depth-first search+tree",
+      "binary tree+depth-first search",
+      "depth-first search+binary tree",
     ]);
-    
+
     const strongPairs = new Set([
-      'array+greedy', 'greedy+array',
-      'string+dynamic programming', 'dynamic programming+string',
-      'graph+breadth-first search', 'breadth-first search+graph',
-      'sorting+greedy', 'greedy+sorting'
+      "array+greedy",
+      "greedy+array",
+      "string+dynamic programming",
+      "dynamic programming+string",
+      "graph+breadth-first search",
+      "breadth-first search+graph",
+      "sorting+greedy",
+      "greedy+sorting",
     ]);
-    
+
     const pairKey = `${tagA}+${tagB}`;
-    
+
     if (essentialPairs.has(pairKey)) {
-      return 'essential';
+      return "essential";
     } else if (strongPairs.has(pairKey)) {
-      return 'strong';
+      return "strong";
     } else {
-      return 'meaningful';
+      return "meaningful";
     }
   }
 
@@ -407,20 +478,33 @@ export class StrategyService {
    */
   static getHintComplexity(tip) {
     const complexKeywords = [
-      'optimize', 'complexity', 'algorithm', 'efficient', 'performance',
-      'logarithmic', 'polynomial', 'amortized', 'space-time tradeoff'
+      "optimize",
+      "complexity",
+      "algorithm",
+      "efficient",
+      "performance",
+      "logarithmic",
+      "polynomial",
+      "amortized",
+      "space-time tradeoff",
     ];
-    
+
     const advancedKeywords = [
-      'memoization', 'dynamic programming', 'backtracking', 'pruning',
-      'segment tree', 'trie', 'union find', 'topological sort'
+      "memoization",
+      "dynamic programming",
+      "backtracking",
+      "pruning",
+      "segment tree",
+      "trie",
+      "union find",
+      "topological sort",
     ];
-    
+
     const tip_lower = tip.toLowerCase();
-    
-    if (advancedKeywords.some(keyword => tip_lower.includes(keyword))) {
+
+    if (advancedKeywords.some((keyword) => tip_lower.includes(keyword))) {
       return 3; // Complex
-    } else if (complexKeywords.some(keyword => tip_lower.includes(keyword))) {
+    } else if (complexKeywords.some((keyword) => tip_lower.includes(keyword))) {
       return 2; // Moderate
     } else {
       return 1; // Simple
@@ -434,22 +518,26 @@ export class StrategyService {
    * @param {Object} difficultyConfig - Difficulty configuration
    * @returns {number} Complexity bonus score
    */
-  static getDifficultyComplexityBonus(complexity, difficulty, difficultyConfig) {
+  static getDifficultyComplexityBonus(
+    complexity,
+    difficulty,
+    difficultyConfig
+  ) {
     const baseBonus = difficultyConfig.complexityBonus;
-    
+
     switch (difficulty) {
-      case 'Easy':
+      case "Easy":
         // For easy problems, prefer simpler hints
         return complexity === 1 ? baseBonus : -(complexity - 1) * 20;
-      
-      case 'Medium':
+
+      case "Medium":
         // For medium problems, balanced preference
         return complexity === 2 ? baseBonus : baseBonus * 0.5;
-      
-      case 'Hard':
+
+      case "Hard":
         // For hard problems, prefer more complex hints
         return complexity * baseBonus;
-      
+
       default:
         return 0;
     }
@@ -463,35 +551,57 @@ export class StrategyService {
    * @param {Object} problemContext - Problem relationship context (optional)
    * @returns {Object[]} Scored and sorted hints
    */
-  static scoreAndRankHints(hints, difficulty = 'Medium', difficultyConfig, problemContext = null) {
-    return hints.map((hint, index) => {
-      // Use difficulty-specific tier weights
-      const tierWeight = difficultyConfig.tierWeights[hint.tier] || 50;
-      
-      // Diversity bonus (prefer different types)
-      const diversityBonus = hint.source === 'inter-tag' ? 20 : 10;
-      
-      // Position bonus (earlier strategies in array are typically stronger)
-      const positionBonus = Math.max(10 - index * 2, 0);
-      
-      // Difficulty-aware complexity bonus
-      const complexityBonus = this.getDifficultyComplexityBonus(hint.complexity, difficulty, difficultyConfig);
-      
-      // Type preference bonus
-      const typeBonus = difficultyConfig.preferredTypes.includes(hint.type) ? 30 : 0;
-      
-      // Problem relationship bonus
-      const relationshipBonus = this.getRelationshipBonus(hint, problemContext);
-      
-      const finalScore = tierWeight + diversityBonus + positionBonus + complexityBonus + typeBonus + relationshipBonus;
-      
-      return {
-        ...hint,
-        finalScore: finalScore,
-        relationshipBonus: relationshipBonus,
-        chainPosition: 0 // Will be set during selection
-      };
-    }).sort((a, b) => b.finalScore - a.finalScore);
+  static scoreAndRankHints(
+    hints,
+    difficulty = "Medium",
+    difficultyConfig,
+    problemContext = null
+  ) {
+    return hints
+      .map((hint, index) => {
+        // Use difficulty-specific tier weights
+        const tierWeight = difficultyConfig.tierWeights[hint.tier] || 50;
+
+        // Diversity bonus (prefer different types)
+        const diversityBonus = hint.source === "inter-tag" ? 20 : 10;
+
+        // Position bonus (earlier strategies in array are typically stronger)
+        const positionBonus = Math.max(10 - index * 2, 0);
+
+        // Difficulty-aware complexity bonus
+        const complexityBonus = this.getDifficultyComplexityBonus(
+          hint.complexity,
+          difficulty,
+          difficultyConfig
+        );
+
+        // Type preference bonus
+        const typeBonus = difficultyConfig.preferredTypes.includes(hint.type)
+          ? 30
+          : 0;
+
+        // Problem relationship bonus
+        const relationshipBonus = this.getRelationshipBonus(
+          hint,
+          problemContext
+        );
+
+        const finalScore =
+          tierWeight +
+          diversityBonus +
+          positionBonus +
+          complexityBonus +
+          typeBonus +
+          relationshipBonus;
+
+        return {
+          ...hint,
+          finalScore: finalScore,
+          relationshipBonus: relationshipBonus,
+          chainPosition: 0, // Will be set during selection
+        };
+      })
+      .sort((a, b) => b.finalScore - a.finalScore);
   }
 
   /**
@@ -501,17 +611,24 @@ export class StrategyService {
    * @returns {number} Relationship bonus score
    */
   static getRelationshipBonus(hint, problemContext) {
-    if (!problemContext || problemContext.useTagBasedHints || !problemContext.relationshipBonuses) {
+    if (
+      !problemContext ||
+      problemContext.useTagBasedHints ||
+      !problemContext.relationshipBonuses
+    ) {
       return 0;
     }
-    
+
     // Create pair key for relationship lookup
     let pairKey = null;
     if (hint.relatedTag && hint.relatedTag !== hint.primaryTag) {
       // Multi-tag hint: use sorted pair
-      pairKey = [hint.primaryTag.toLowerCase().trim(), hint.relatedTag.toLowerCase().trim()]
+      pairKey = [
+        hint.primaryTag.toLowerCase().trim(),
+        hint.relatedTag.toLowerCase().trim(),
+      ]
         .sort()
-        .join('+');
+        .join("+");
     } else {
       // Single tag hint: check if it appears in any relationship
       const primaryTag = hint.primaryTag.toLowerCase().trim();
@@ -522,13 +639,19 @@ export class StrategyService {
         }
       }
     }
-    
-    const bonus = pairKey ? (problemContext.relationshipBonuses[pairKey] || 0) : 0;
-    
+
+    const bonus = pairKey
+      ? problemContext.relationshipBonuses[pairKey] || 0
+      : 0;
+
     if (bonus > 0) {
-      console.log(`🔗 Relationship bonus for [${hint.primaryTag}] + [${hint.relatedTag || 'general'}]: +${bonus}`);
+      console.log(
+        `🔗 Relationship bonus for [${hint.primaryTag}] + [${
+          hint.relatedTag || "general"
+        }]: +${bonus}`
+      );
     }
-    
+
     return bonus;
   }
 
@@ -541,46 +664,49 @@ export class StrategyService {
     const selected = [];
     const tierCounts = { essential: 0, strong: 0, meaningful: 0 };
     const usedPairs = new Set();
-    
+
     for (const hint of scoredHints) {
       // Check tier distribution limits
       const tierConfig = HINT_CONFIG.HINT_DISTRIBUTION[hint.tier];
       if (tierCounts[hint.tier] >= tierConfig.max) {
         continue; // Skip if tier is full
       }
-      
+
       // Check for duplicates
-      const pairKey = hint.relatedTag ? 
-        [hint.primaryTag, hint.relatedTag].sort().join(':') : 
-        hint.primaryTag;
-      
+      const pairKey = hint.relatedTag
+        ? [hint.primaryTag, hint.relatedTag].sort().join(":")
+        : hint.primaryTag;
+
       if (usedPairs.has(pairKey)) {
         continue; // Skip duplicates
       }
-      
+
       // Add to selection
       selected.push({
         ...hint,
         relevance: hint.finalScore / 300, // Normalize for UI
-        chainPosition: selected.length + 1
+        chainPosition: selected.length + 1,
       });
-      
+
       tierCounts[hint.tier]++;
       usedPairs.add(pairKey);
-      
+
       // Stop when we have enough hints
       if (selected.length >= difficultyConfig.maxHints) {
         break;
       }
     }
-    
+
     // Ensure we have at least one essential hint if available
-    if (tierCounts.essential === 0 && scoredHints.some(h => h.tier === 'essential')) {
-      console.log('⚠️ No essential hints selected, adjusting selection...');
+    if (
+      tierCounts.essential === 0 &&
+      scoredHints.some((h) => h.tier === "essential")
+    ) {
+      console.log("⚠️ No essential hints selected, adjusting selection...");
       // Could implement fallback logic here if needed
     }
-    
-    console.log('📊 Final tier distribution:', tierCounts);
+
+    console.log("📊 Final tier distribution:", tierCounts);
     return selected;
   }
 
@@ -601,7 +727,7 @@ export class StrategyService {
           }
         }
       }
-      
+
       // Check tagB strategies for tagA
       if (strategiesData[tagB] && strategiesData[tagB].strategies) {
         for (const strategy of strategiesData[tagB].strategies) {
@@ -610,18 +736,21 @@ export class StrategyService {
           }
         }
       }
-      
+
       // Fallback: return general strategy from primary tag
       if (strategiesData[tagA] && strategiesData[tagA].strategy) {
         return {
           tip: strategiesData[tagA].strategy,
-          when: null
+          when: null,
         };
       }
-      
+
       return null;
     } catch (error) {
-      console.error(`❌ Error finding strategy for pair ${tagA}-${tagB}:`, error);
+      console.error(
+        `❌ Error finding strategy for pair ${tagA}-${tagB}:`,
+        error
+      );
       return null;
     }
   }
@@ -634,7 +763,7 @@ export class StrategyService {
   static async getTagPrimer(tag) {
     try {
       const strategyData = await this.getStrategyForTag(tag);
-      
+
       if (!strategyData) {
         return null;
       }
@@ -644,9 +773,8 @@ export class StrategyService {
         overview: strategyData.overview,
         strategy: strategyData.strategy,
         patterns: strategyData.patterns || [],
-        related: strategyData.related || []
+        related: strategyData.related || [],
       };
-
     } catch (error) {
       console.error(`❌ Error getting primer for tag "${tag}":`, error);
       return null;
@@ -661,7 +789,7 @@ export class StrategyService {
   static async getTagPrimers(tags) {
     try {
       const primers = [];
-      
+
       for (const tag of tags) {
         const primer = await this.getTagPrimer(tag);
         if (primer) {
@@ -670,7 +798,6 @@ export class StrategyService {
       }
 
       return primers;
-
     } catch (error) {
       console.error("❌ Error getting tag primers:", error);
       return [];
@@ -686,7 +813,7 @@ export class StrategyService {
       const db = await dbHelper.openDB();
       const tx = db.transaction("strategy_data", "readonly");
       const store = tx.objectStore("strategy_data");
-      
+
       const count = await new Promise((resolve, reject) => {
         const countRequest = store.count();
         countRequest.onsuccess = () => resolve(countRequest.result);
@@ -694,7 +821,6 @@ export class StrategyService {
       });
 
       return count > 0;
-
     } catch (error) {
       console.error("❌ Error checking strategy data:", error);
       return false;
@@ -710,13 +836,12 @@ export class StrategyService {
       const db = await dbHelper.openDB();
       const tx = db.transaction("strategy_data", "readonly");
       const store = tx.objectStore("strategy_data");
-      
+
       return new Promise((resolve, reject) => {
         const getAllRequest = store.getAllKeys();
         getAllRequest.onsuccess = () => resolve(getAllRequest.result);
         getAllRequest.onerror = () => reject(getAllRequest.error);
       });
-
     } catch (error) {
       console.error("❌ Error getting all strategy tags:", error);
       return [];
@@ -725,7 +850,7 @@ export class StrategyService {
 }
 
 // Initialize strategy data when service is imported
-StrategyService.initializeStrategyData().catch(error => {
+StrategyService.initializeStrategyData().catch((error) => {
   console.error("❌ Failed to initialize strategy data:", error);
 });
 

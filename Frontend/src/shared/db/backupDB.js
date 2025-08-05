@@ -84,7 +84,10 @@ async function saveBackupToIndexedDB(backupData) {
 
     // 🔹 **Immediately Read Back & Log**
     console.log("📌 Verifying backup after save...");
-    const verifyTransaction = backupDB.transaction(["backup_storage"], "readonly");
+    const verifyTransaction = backupDB.transaction(
+      ["backup_storage"],
+      "readonly"
+    );
     const verifyStore = verifyTransaction.objectStore("backup_storage");
 
     const verifyRequest = verifyStore.get("latestBackup");
@@ -94,7 +97,6 @@ async function saveBackupToIndexedDB(backupData) {
     verifyRequest.onerror = () => {
       console.error("❌ Error verifying backup:", verifyRequest.error);
     };
-
   } catch (error) {
     console.error("❌ Error saving backup to IndexedDB:", error);
     throw error;
@@ -147,7 +149,6 @@ export async function backupIndexedDB() {
     throw error;
   }
 }
-
 
 /**
  * Retrieves the latest backup from IndexedDB.

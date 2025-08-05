@@ -1,4 +1,8 @@
-import { updateStabilityFSRS, fetchAllProblems as getAllProblems, saveUpdatedProblem } from "../db/problems.js";
+import {
+  updateStabilityFSRS,
+  fetchAllProblems as getAllProblems,
+  saveUpdatedProblem,
+} from "../db/problems.js";
 import { dbHelper } from "../db/index.js";
 
 const openDB = dbHelper.openDB;
@@ -115,11 +119,7 @@ function reassessBoxLevel(problem, attempts) {
   return problem;
 }
 
-function calculateLeitnerBox(
-  problem,
-  attemptData,
-  useTimeLimits = false
-) {
+function calculateLeitnerBox(problem, attemptData, useTimeLimits = false) {
   console.info("CalculateLeitnerBox - attemptData", attemptData);
   console.info("problem", problem);
 
@@ -210,7 +210,6 @@ function calculateLeitnerBox(
 
   return problem;
 }
-
 
 async function updateProblemsWithAttemptStats() {
   const problems = await getAllProblems();

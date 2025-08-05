@@ -22,7 +22,9 @@ export async function onboardUserIfNeeded() {
   ]);
 
   const isMissingStandardData =
-    standardProblems.length === 0 || tagRelationships.length === 0 || problemRelationships.length === 0;
+    standardProblems.length === 0 ||
+    tagRelationships.length === 0 ||
+    problemRelationships.length === 0;
   const isMissingUserData =
     userProblems.length === 0 || tagMastery.length === 0;
 

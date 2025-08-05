@@ -87,7 +87,13 @@ export default function TagInput({ setTags }) {
       const match = tags.find((tag) =>
         tag.toLowerCase().startsWith(value.toLowerCase())
       );
-      setSuggestedTag(match ? match.replace(/^./, char => char.toUpperCase()).slice(value.length) : "");
+      setSuggestedTag(
+        match
+          ? match
+              .replace(/^./, (char) => char.toUpperCase())
+              .slice(value.length)
+          : ""
+      );
     } else {
       setSuggestedTag("");
     }

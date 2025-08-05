@@ -117,7 +117,11 @@ export async function clearOrRenameStoreField(
 
 export function getDifficultyAllowanceForTag(data = null) {
   // 🚨 Onboarding fallback - allow Easy and Medium for new users
-  if (!data || typeof data.totalAttempts !== "number" || data.totalAttempts < 3) {
+  if (
+    !data ||
+    typeof data.totalAttempts !== "number" ||
+    data.totalAttempts < 3
+  ) {
     return { Easy: 1.0, Medium: 0.8, Hard: 0 };
   }
 
@@ -128,7 +132,7 @@ export function getDifficultyAllowanceForTag(data = null) {
   const allowance = {
     Easy: 1.0, // Always allow Easy problems
     Medium: 0,
-    Hard: 0
+    Hard: 0,
   };
 
   // Medium difficulty allowance with progressive scaling
@@ -151,8 +155,12 @@ export function getDifficultyAllowanceForTag(data = null) {
     allowance.Hard = 0.4; // Low confidence
   }
 
-  console.log(`🎯 Difficulty allowance for tag (${attempts} attempts, ${(successRate * 100).toFixed(1)}% success):`, allowance);
-  
+  console.log(
+    `🎯 Difficulty allowance for tag (${attempts} attempts, ${(
+      successRate * 100
+    ).toFixed(1)}% success):`,
+    allowance
+  );
+
   return allowance;
 }
-

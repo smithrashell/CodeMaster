@@ -1,8 +1,6 @@
 import { backupDB } from "./backupDB.js";
 import { openBackupDB } from "./backupDB.js";
 
-
-
 export async function getBackupFile() {
   const db = await dbHelper.openDB();
   const transaction = db.transaction(["backup_storage"], "readonly");
@@ -22,7 +20,6 @@ export async function getBackupFile() {
     request.onerror = () => reject(request.error);
   });
 }
-
 
 /**
  * Restores IndexedDB from a backup JSON file.

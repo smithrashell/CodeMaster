@@ -17,7 +17,7 @@ import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
 import { connect } from "chrome-extension-hot-reload";
 import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
 //import { updateProblemsWithRating } from "../src/shared/db/problems.js";
-import { getDashboardStatistics } from "../src/shared/services/dashboardService.js";
+import { getDashboardStatistics } from "../src/app/services/dashboardService.js";
 // import { updateStandardProblemsFromData } from "../src/shared/db/standard_problems.js";
 // import leetCodeProblems from "./../src/shared/db/LeetCode_Tags_Combined(2).json";
 // import { updateProblemWithTags } from "../src/shared/db/problems.js";
@@ -51,11 +51,11 @@ const getStrategyMapData = async () => {
     // Get current tier and learning state from TagService
     const currentTierData = await TagService.getCurrentTier();
     const learningState = await TagService.getCurrentLearningState();
-    
+
     // Get all tag relationships to build tier structure
     const { dbHelper } = await import("../src/shared/db/index.js");
     const db = await dbHelper.openDB();
-    
+
     const tagRelationships = await new Promise((resolve, reject) => {
       const tx = db.transaction("tag_relationships", "readonly");
       const store = tx.objectStore("tag_relationships");
@@ -63,7 +63,7 @@ const getStrategyMapData = async () => {
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    
+
     // Get tag mastery data
     const tagMastery = await new Promise((resolve, reject) => {
       const tx = db.transaction("tag_mastery", "readonly");
@@ -72,37 +72,42 @@ const getStrategyMapData = async () => {
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    
+
     // Organize tags by tier with mastery information
     const tierData = {};
-    const tiers = ["Core Concept", "Fundamental Technique", "Advanced Technique"];
-    
-    tiers.forEach(tier => {
+    const tiers = [
+      "Core Concept",
+      "Fundamental Technique",
+      "Advanced Technique",
+    ];
+
+    tiers.forEach((tier) => {
       const tierTags = tagRelationships
-        .filter(tag => tag.classification === tier)
-        .map(tag => {
-          const masteryInfo = tagMastery.find(m => m.tag === tag.id) || {};
-          const successRate = masteryInfo.totalAttempts > 0 
-            ? masteryInfo.successfulAttempts / masteryInfo.totalAttempts 
-            : 0;
-          
+        .filter((tag) => tag.classification === tier)
+        .map((tag) => {
+          const masteryInfo = tagMastery.find((m) => m.tag === tag.id) || {};
+          const successRate =
+            masteryInfo.totalAttempts > 0
+              ? masteryInfo.successfulAttempts / masteryInfo.totalAttempts
+              : 0;
+
           return {
             tag: tag.id,
             mastery: successRate,
             unlocked: successRate > 0 || tier === "Core Concept", // Core concepts always unlocked
             attempts: masteryInfo.totalAttempts || 0,
-            successful: masteryInfo.successfulAttempts || 0
+            successful: masteryInfo.successfulAttempts || 0,
           };
         });
-      
+
       tierData[tier] = tierTags;
     });
-    
+
     return {
       currentTier: currentTierData.classification || "Core Concept",
       focusTags: currentTierData.focusTags || [],
       tierData,
-      masteryData: tagMastery
+      masteryData: tagMastery,
     };
   } catch (error) {
     console.error("❌ Error getting Strategy Map data:", error);
@@ -169,15 +174,16 @@ const handleRequest = async (request, sender, sendResponse) => {
           .then(sendResponse)
           .finally(finishRequest);
         return true;
-    /** ──────────────── User Onboarding ──────────────── **/
-    case "onboardingUserIfNeeded":
-      onboardUserIfNeeded()
-        .then(sendResponse)
-        .catch((error) => {
-          console.error("❌ Error onboarding user:", error);
-          sendResponse({ error: error.message });
-          return true;
-        }).finally(finishRequest);
+      /** ──────────────── User Onboarding ──────────────── **/
+      case "onboardingUserIfNeeded":
+        onboardUserIfNeeded()
+          .then(sendResponse)
+          .catch((error) => {
+            console.error("❌ Error onboarding user:", error);
+            sendResponse({ error: error.message });
+            return true;
+          })
+          .finally(finishRequest);
         return true;
       /** ──────────────── User Settings ──────────────── **/
       // TODO: setSettings
@@ -194,11 +200,16 @@ const handleRequest = async (request, sender, sendResponse) => {
       /** ──────────────── Problems Management ──────────────── **/
       // TODO: getProblemByDescription
       case "getProblemByDescription":
-        console.log("🧼 getProblemByDescription:", request.description, request.slug);
+        console.log(
+          "🧼 getProblemByDescription:",
+          request.description,
+          request.slug
+        );
         ProblemService.getProblemByDescription(
           request.description,
           request.slug
-        ).then(sendResponse)
+        )
+          .then(sendResponse)
           .catch(() => sendResponse({ error: "Problem not found" }))
           .finally(finishRequest);
         return true;
@@ -359,7 +370,7 @@ const handleRequest = async (request, sender, sendResponse) => {
             console.error("Error retrieving session:", error);
             sendResponse({
               error: "Failed to get current session",
-              session: []
+              session: [],
             });
           })
           .finally(finishRequest);
@@ -420,7 +431,6 @@ const contentPorts = {};
 
 chrome.action.onClicked.addListener((tab) => {
   // Open your React application in a new tab
-
 
   chrome.tabs.create({ url: "app.html" });
 });

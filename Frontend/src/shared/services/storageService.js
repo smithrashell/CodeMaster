@@ -30,7 +30,7 @@ export const StorageService = {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction("settings", "readonly");
       const store = transaction.objectStore("settings");
-      
+
       const request = store.get("user_settings");
       request.onsuccess = () => {
         if (request.result) {
@@ -57,13 +57,13 @@ export const StorageService = {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction("settings", "readwrite");
       const store = transaction.objectStore("settings");
-      
+
       const settingsObject = {
         id: "user_settings",
         data: settings,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
-      
+
       const request = store.put(settingsObject);
       request.onsuccess = () => resolve({ status: "success" });
       request.onerror = () => reject(request.error);
@@ -76,7 +76,7 @@ export const StorageService = {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction("session_state", "readonly");
       const store = transaction.objectStore("session_state");
-      
+
       const request = store.get(key);
       request.onsuccess = () => {
         resolve(request.result || null);
@@ -90,7 +90,7 @@ export const StorageService = {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction("session_state", "readwrite");
       const store = transaction.objectStore("session_state");
-      
+
       const request = store.put({ id: key, ...data });
       request.onsuccess = () => resolve({ status: "success" });
       request.onerror = () => reject(request.error);
@@ -102,9 +102,12 @@ export const StorageService = {
     try {
       // Check if settings already exist in IndexedDB
       const existingSettings = await this.getSettings();
-      
+
       // If we got default settings, try to migrate from Chrome storage
-      if (existingSettings.theme === "light" && existingSettings.sessionLength === 5) {
+      if (
+        existingSettings.theme === "light" &&
+        existingSettings.sessionLength === 5
+      ) {
         const chromeSettings = await new Promise((resolve) => {
           chrome.storage.local.get(["settings"], (result) => {
             resolve(result.settings || null);
@@ -112,16 +115,19 @@ export const StorageService = {
         });
 
         if (chromeSettings) {
-          console.log("🔄 Migrating settings from Chrome storage to IndexedDB:", chromeSettings);
+          console.log(
+            "🔄 Migrating settings from Chrome storage to IndexedDB:",
+            chromeSettings
+          );
           await this.setSettings(chromeSettings);
-          
+
           // Optionally remove from Chrome storage after successful migration
           chrome.storage.local.remove(["settings"]);
-          
+
           return chromeSettings;
         }
       }
-      
+
       return existingSettings;
     } catch (error) {
       console.error("❌ Error migrating settings:", error);
@@ -134,7 +140,7 @@ export const StorageService = {
     try {
       // Check if session state already exists in IndexedDB
       const existingSessionState = await this.getSessionState();
-      
+
       if (!existingSessionState) {
         // Try to get from Chrome storage
         const chromeSessionState = await new Promise((resolve) => {
@@ -144,16 +150,19 @@ export const StorageService = {
         });
 
         if (chromeSessionState) {
-          console.log("🔄 Migrating session state from Chrome storage to IndexedDB:", chromeSessionState);
+          console.log(
+            "🔄 Migrating session state from Chrome storage to IndexedDB:",
+            chromeSessionState
+          );
           await this.setSessionState("session_state", chromeSessionState);
-          
+
           // Remove from Chrome storage after successful migration
           chrome.storage.local.remove(["session_state"]);
-          
+
           return chromeSessionState;
         }
       }
-      
+
       return existingSessionState;
     } catch (error) {
       console.error("❌ Error migrating session state:", error);

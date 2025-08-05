@@ -13,16 +13,16 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
-import TagInput from "../../../shared/components/TagInput";
+import TagInput from "../../components/forms/TagInput";
 import ProbSubmission from "../problems/probsubmission";
 import ProbDetail from "../problems/probdetail";
-import Header from "../../../shared/components/header.jsx";
+import Header from "../../components/navigation/header.jsx";
 
 const StyledSelect = styled(Select)({
   "&.MuiOutlinedInput-root": {
     "& fieldset": {
       border: "none !important",
-      outline: "none !important"
+      outline: "none !important",
     },
     "&:hover fieldset": {
       border: "none !important",
@@ -43,15 +43,15 @@ const StyledSelect = styled(Select)({
   "& .MuiSelect-select": {
     color: "var(--cd-text) !important",
     backgroundColor: "transparent !important",
-    padding: "8px 0 !important"
+    padding: "8px 0 !important",
   },
   "& .MuiInputBase-root": {
-    color: "var(--cd-text) !important"
+    color: "var(--cd-text) !important",
   },
   "& .MuiMenuItem-root": {
     color: "var(--cd-dropdown-color) !important",
-    backgroundColor: "var(--cd-dropdown-bg) !important"
-  }
+    backgroundColor: "var(--cd-dropdown-bg) !important",
+  },
 });
 
 const ProbTime = () => {
@@ -90,8 +90,6 @@ const ProbTime = () => {
       setTags(routeState.problemData.Tags || []);
     }
   }, [routeState, setValue]);
-
-
 
   const onSubmit = (data) => {
     const formData = {
@@ -140,18 +138,20 @@ const ProbTime = () => {
   // Render the form if coming from the Timer route
   return (
     <div id="cd-mySidenav" className="cd-sidenav problink">
-         <Header title={previousRoute == "/Timer" ? "Problem Submission": "Problem Details"}/>
-         <div className="cd-sidenav__content"
-      >
-      {previousRoute === "/Timer" ? (
-        <ProbSubmission />
-      ) : (
-        <ProbDetail isLoading={loading} />
-      )}
+      <Header
+        title={
+          previousRoute == "/Timer" ? "Problem Submission" : "Problem Details"
+        }
+      />
+      <div className="cd-sidenav__content">
+        {previousRoute === "/Timer" ? (
+          <ProbSubmission />
+        ) : (
+          <ProbDetail isLoading={loading} />
+        )}
       </div>
     </div>
   );
 };
 
 export default ProbTime;
-

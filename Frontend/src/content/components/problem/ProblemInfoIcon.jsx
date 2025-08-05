@@ -36,29 +36,29 @@ const ProblemInfoIcon = ({ className = "" }) => {
 export const ReasonTypeIcon = ({ reasonType, size = 14 }) => {
   const getIconAndColor = (type) => {
     switch (type) {
-      case 'tag_weakness':
-        return { icon: '⚠', color: '#f59e0b' }; // Yellow for weakness
-      case 'spaced_repetition':
-        return { icon: '🔄', color: '#3b82f6' }; // Blue for review
-      case 'new_tag_introduction':
-        return { icon: '✨', color: '#10b981' }; // Green for new
-      case 'difficulty_progression':
-        return { icon: '📈', color: '#8b5cf6' }; // Purple for progression
-      case 'performance_recovery':
-        return { icon: '💪', color: '#ef4444' }; // Red for recovery
-      case 'pattern_reinforcement':
-        return { icon: '🎯', color: '#06b6d4' }; // Cyan for reinforcement
-      case 'review_problem':
-        return { icon: '📚', color: '#6b7280' }; // Gray for general review
-      case 'new_problem':
-        return { icon: '🆕', color: '#10b981' }; // Green for new
+      case "tag_weakness":
+        return { icon: "⚠", color: "#f59e0b" }; // Yellow for weakness
+      case "spaced_repetition":
+        return { icon: "🔄", color: "#3b82f6" }; // Blue for review
+      case "new_tag_introduction":
+        return { icon: "✨", color: "#10b981" }; // Green for new
+      case "difficulty_progression":
+        return { icon: "📈", color: "#8b5cf6" }; // Purple for progression
+      case "performance_recovery":
+        return { icon: "💪", color: "#ef4444" }; // Red for recovery
+      case "pattern_reinforcement":
+        return { icon: "🎯", color: "#06b6d4" }; // Cyan for reinforcement
+      case "review_problem":
+        return { icon: "📚", color: "#6b7280" }; // Gray for general review
+      case "new_problem":
+        return { icon: "🆕", color: "#10b981" }; // Green for new
       default:
-        return { icon: 'i', color: 'var(--cd-link, #cbd5e1)' }; // Default info
+        return { icon: "i", color: "var(--cd-link, #cbd5e1)" }; // Default info
     }
   };
-  
+
   const { icon, color } = getIconAndColor(reasonType);
-  
+
   return (
     <div
       style={{
@@ -72,7 +72,7 @@ export const ReasonTypeIcon = ({ reasonType, size = 14 }) => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        cursor: "default"
+        cursor: "default",
       }}
     >
       {icon}
@@ -83,19 +83,23 @@ export const ReasonTypeIcon = ({ reasonType, size = 14 }) => {
 /**
  * Enhanced ProblemInfoIcon with reason type styling
  */
-export const StyledProblemInfoIcon = ({ selectionReason, showIcon = false, className = "" }) => {
+export const StyledProblemInfoIcon = ({
+  selectionReason,
+  showIcon = false,
+  className = "",
+}) => {
   const [hovered, setHovered] = useState(false);
-  
+
   if (!selectionReason || !selectionReason.shortText) {
     return null;
   }
-  
+
   return (
-    <div 
-      style={{ 
-        position: "relative", 
+    <div
+      style={{
+        position: "relative",
         display: "inline-block",
-        marginLeft: "4px" 
+        marginLeft: "4px",
       }}
       className={className}
     >
@@ -106,10 +110,10 @@ export const StyledProblemInfoIcon = ({ selectionReason, showIcon = false, class
         style={{
           opacity: 0.8,
           transition: "opacity 0.2s ease, transform 0.2s ease",
-          transform: hovered ? "scale(1.1)" : "scale(1)"
+          transform: hovered ? "scale(1.1)" : "scale(1)",
         }}
-        onMouseOver={(e) => e.currentTarget.style.opacity = "1"}
-        onMouseOut={(e) => e.currentTarget.style.opacity = "0.8"}
+        onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
+        onMouseOut={(e) => (e.currentTarget.style.opacity = "0.8")}
       >
         {showIcon ? (
           <ReasonTypeIcon reasonType={selectionReason.type} size={14} />
@@ -126,14 +130,14 @@ export const StyledProblemInfoIcon = ({ selectionReason, showIcon = false, class
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              cursor: "default"
+              cursor: "default",
             }}
           >
             i
           </div>
         )}
       </div>
-      
+
       {/* Enhanced tooltip */}
       <div
         style={{
@@ -150,18 +154,18 @@ export const StyledProblemInfoIcon = ({ selectionReason, showIcon = false, class
           borderRadius: "6px",
           padding: hovered ? "8px 10px" : "0px 10px",
           fontSize: "11px",
-          color: "var(--cd-text, #ffffff)", 
+          color: "var(--cd-text, #ffffff)",
           whiteSpace: "nowrap",
           zIndex: 1000,
           boxShadow: hovered ? "0 4px 12px rgba(0, 0, 0, 0.3)" : "none",
           minWidth: "120px",
           textAlign: "center",
-          backdropFilter: "blur(8px)"
+          backdropFilter: "blur(8px)",
         }}
       >
         {selectionReason.shortText}
       </div>
-      
+
       {/* Tooltip arrow */}
       {hovered && (
         <div
@@ -173,9 +177,9 @@ export const StyledProblemInfoIcon = ({ selectionReason, showIcon = false, class
             width: 0,
             height: 0,
             borderLeft: "4px solid transparent",
-            borderRight: "4px solid transparent", 
+            borderRight: "4px solid transparent",
             borderTop: "4px solid var(--cd-border, #334155)",
-            zIndex: 999
+            zIndex: 999,
           }}
         />
       )}

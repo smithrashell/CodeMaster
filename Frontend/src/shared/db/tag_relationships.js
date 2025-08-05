@@ -1,9 +1,7 @@
 import { dbHelper } from "./index.js";
 import { getAllStandardProblems } from "./standard_problems.js";
 
-
 const openDB = dbHelper.openDB;
-
 
 const normalizeTag = (tag) => tag.trim().toLowerCase();
 
@@ -14,7 +12,7 @@ export const buildAndStoreTagGraph2 = async () => {
 
   console.log("Problems:", problems);
 
-    problems.forEach(({ Tags, Difficulty }) => {
+  problems.forEach(({ Tags, Difficulty }) => {
     if (!Tags || Tags.length < 1) return;
 
     let weightMultiplier =
@@ -58,7 +56,7 @@ export const buildAndStoreTagGraph2 = async () => {
   const db = await openDB();
   const transaction = db.transaction(["tag_relationships"], "readwrite");
   const store = transaction.objectStore("tag_relationships");
-   
+
   tagGraph.forEach((relations, tag) => {
     console.log(tag);
     store.put({
@@ -283,7 +281,6 @@ export async function getNextFiveTagsFromNextTier(masteryData) {
     unmasteredTags: [],
   };
 }
-
 
 export async function buildTagRelationships() {
   const db = await openDB();

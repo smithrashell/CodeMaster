@@ -6,7 +6,7 @@ import {
 import {
   getAllowedClassifications,
   getValidProblems,
-  buildLadder
+  buildLadder,
 } from "../utils/dbUtils/patternLadderUtils.js";
 
 import { buildRelationshipMap } from "../db/problem_relationships.js";
@@ -34,26 +34,21 @@ export async function initializePatternLaddersForOnboarding() {
     return;
   }
 
-  const {
-    allTagsInCurrentTier,
-    focusTags,
-  } = await getCurrentLearningState();
+  const { allTagsInCurrentTier, focusTags } = await getCurrentLearningState();
 
   const focusTagSet = new Set(focusTags);
   const allTagsInTierSet = new Set(allTagsInCurrentTier);
-  const userProblemMap = new Map(userProblems.map(p => [p.leetCodeID, p]));
+  const userProblemMap = new Map(userProblems.map((p) => [p.leetCodeID, p]));
   const relationshipMap = await buildRelationshipMap(problemRelationships);
 
   for (const entry of tagRelationships) {
     const tag = entry.id;
-    const classification = entry.classification 
+    const classification = entry.classification;
     const allowedClassifications = getAllowedClassifications(classification);
-    console.log("tag", tag)
-    console.log("classification", classification)
-    console.log("allowedClassifications", allowedClassifications)
+    console.log("tag", tag);
+    console.log("classification", classification);
+    console.log("allowedClassifications", allowedClassifications);
 
-
-  
     const validProblems = getValidProblems({
       problems: standardProblems,
       userProblemMap,
@@ -61,7 +56,7 @@ export async function initializePatternLaddersForOnboarding() {
       allowedClassifications,
       focusTags,
     });
-    console.log("validProblems", validProblems)
+    console.log("validProblems", validProblems);
     const ladderSize = focusTagSet.has(tag)
       ? 12
       : allTagsInTierSet.has(tag)
@@ -75,7 +70,7 @@ export async function initializePatternLaddersForOnboarding() {
       relationshipMap,
       ladderSize,
     });
-  console.log("ladder", ladder)
+    console.log("ladder", ladder);
 
     await upsertPatternLadder({
       tag,
@@ -87,9 +82,6 @@ export async function initializePatternLaddersForOnboarding() {
   console.log("🎉 Onboarding complete: pattern ladders initialized.");
 }
 
-
-
- 
 export async function generatePatternLaddersAndUpdateTagMastery() {
   const [
     standardProblems,
@@ -105,11 +97,8 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     getAllFromStore("problem_relationships"),
   ]);
 
-
-  const userProblemMap = new Map(userProblems.map(p => [p.leetCodeID, p]));
+  const userProblemMap = new Map(userProblems.map((p) => [p.leetCodeID, p]));
   const relationshipMap = buildRelationshipMap(problemRelationships);
-
-
 
   await clearPatternLadders();
 
@@ -125,7 +114,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       tagRelationships,
       allowedClassifications,
     });
-    
+
     const ladder = buildLadder({
       validProblems,
       problemCounts: entry.problemCounts || {},
@@ -133,7 +122,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       relationshipMap,
       ladderSize,
     });
-    
+
     await upsertPatternLadder({
       tag,
       lastUpdated: new Date().toISOString(),
@@ -147,5 +136,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     });
   }
 
-  console.log("✅ Pattern ladders rebuilt with updated filtering, ratios, and tag mastery sync.");
+  console.log(
+    "✅ Pattern ladders rebuilt with updated filtering, ratios, and tag mastery sync."
+  );
 }

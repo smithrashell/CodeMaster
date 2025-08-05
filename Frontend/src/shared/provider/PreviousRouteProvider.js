@@ -1,5 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+import { useLocation } from "react-router-dom";
 
 // Create a context to hold the previous route
 const PreviousRouteContext = createContext();
@@ -25,4 +31,3 @@ export const PreviousRouteProvider = ({ children }) => {
 
 // Custom hook to use the PreviousRouteContext
 export const usePreviousRoute = () => useContext(PreviousRouteContext);
-

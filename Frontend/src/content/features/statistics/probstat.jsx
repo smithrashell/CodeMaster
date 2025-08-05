@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Header from "../../../shared/components/header";
+import Header from "../../components/navigation/header";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 
 const ProbStat = () => {
@@ -7,33 +7,35 @@ const ProbStat = () => {
   const [error, setError] = useState(null);
 
   // New approach using custom hook
-  const { data: statisticsData, loading, error: hookError } = useChromeMessage(
-    { type: "countProblemsByBoxLevel" },
-    [],
-    {
-      onSuccess: (response) => {
-        if (response && response.status === "success") {
-          setBoxLevelData(response.data);
-          setError(null);
-        } else {
-          console.error("Failed to get problem count by box level");
-          setError("Failed to load statistics. Please try refreshing.");
-        }
-      },
-      onError: (errorMsg) => {
+  const {
+    data: statisticsData,
+    loading,
+    error: hookError,
+  } = useChromeMessage({ type: "countProblemsByBoxLevel" }, [], {
+    onSuccess: (response) => {
+      if (response && response.status === "success") {
+        setBoxLevelData(response.data);
+        setError(null);
+      } else {
         console.error("Failed to get problem count by box level");
         setError("Failed to load statistics. Please try refreshing.");
       }
-    }
-  );
-  
+    },
+    onError: (errorMsg) => {
+      console.error("Failed to get problem count by box level");
+      setError("Failed to load statistics. Please try refreshing.");
+    },
+  });
 
-  const totalProblems = Object.values(boxLevelData).reduce((sum, count) => sum + count, 0);
+  const totalProblems = Object.values(boxLevelData).reduce(
+    (sum, count) => sum + count,
+    0
+  );
   const hasData = Object.keys(boxLevelData).length > 0;
 
   return (
     <div id="cd-mySidenav" className="cd-sidenav">
-      <Header title="Statistics"/>
+      <Header title="Statistics" />
       <div className="cd-sidenav__content cd-stats-container">
         {loading ? (
           <div className="cd-stats-loading">
@@ -43,7 +45,7 @@ const ProbStat = () => {
         ) : error ? (
           <div className="cd-stats-error">
             <p>⚠️ {error}</p>
-            <button 
+            <button
               className="cd-retry-button"
               onClick={() => window.location.reload()}
             >
@@ -73,22 +75,27 @@ const ProbStat = () => {
                 <span className="cd-stat-label">Total Problems</span>
               </div>
             </div>
-            
+
             <div className="cd-stats-breakdown">
               <h4>Box Level Distribution</h4>
               {Object.entries(boxLevelData)
                 .sort(([a], [b]) => parseInt(a) - parseInt(b))
                 .map(([level, count]) => {
-                  const percentage = totalProblems > 0 ? ((count / totalProblems) * 100).toFixed(1) : 0;
+                  const percentage =
+                    totalProblems > 0
+                      ? ((count / totalProblems) * 100).toFixed(1)
+                      : 0;
                   return (
                     <div key={level} className="cd-stat-row">
                       <div className="cd-stat-info">
                         <span className="cd-stat-level">📦 Box {level}</span>
-                        <span className="cd-stat-count">{count} problems ({percentage}%)</span>
+                        <span className="cd-stat-count">
+                          {count} problems ({percentage}%)
+                        </span>
                       </div>
                       <div className="cd-stat-bar">
-                        <div 
-                          className="cd-stat-fill" 
+                        <div
+                          className="cd-stat-fill"
                           style={{ width: `${percentage}%` }}
                         ></div>
                       </div>

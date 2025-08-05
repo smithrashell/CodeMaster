@@ -78,18 +78,21 @@ export const saveSessionToStorage = async (session, updateDatabase = false) => {
   return new Promise(async (resolve, reject) => {
     try {
       // Check if Chrome API is available
-      if (typeof chrome !== 'undefined' && chrome?.storage?.local?.set) {
+      if (typeof chrome !== "undefined" && chrome?.storage?.local?.set) {
         chrome.storage.local.set({ currentSession: session }, async () => {
           if (chrome.runtime?.lastError) {
-            console.warn('Chrome storage error:', chrome.runtime.lastError);
+            console.warn("Chrome storage error:", chrome.runtime.lastError);
             // Continue with IndexedDB update even if Chrome storage fails
           }
-          
+
           if (updateDatabase) {
             try {
               await updateSessionInDB(session);
             } catch (error) {
-              console.warn('IndexedDB update failed after Chrome storage save:', error);
+              console.warn(
+                "IndexedDB update failed after Chrome storage save:",
+                error
+              );
               // Don't reject - Chrome storage succeeded
             }
           }
@@ -97,39 +100,49 @@ export const saveSessionToStorage = async (session, updateDatabase = false) => {
         });
       } else {
         // Chrome API unavailable - log warning and continue
-        console.warn('Chrome storage API unavailable, skipping session storage to Chrome');
-        
+        console.warn(
+          "Chrome storage API unavailable, skipping session storage to Chrome"
+        );
+
         // Still update IndexedDB if requested
         if (updateDatabase) {
           try {
             await updateSessionInDB(session);
-            console.info('Session saved to IndexedDB (Chrome storage unavailable)');
+            console.info(
+              "Session saved to IndexedDB (Chrome storage unavailable)"
+            );
           } catch (error) {
-            console.error('Both Chrome storage and IndexedDB unavailable:', error);
-            reject(new Error('No storage mechanism available'));
+            console.error(
+              "Both Chrome storage and IndexedDB unavailable:",
+              error
+            );
+            reject(new Error("No storage mechanism available"));
             return;
           }
         }
-        
+
         // Resolve even without Chrome storage - system can continue
         resolve();
       }
     } catch (error) {
-      console.error('Error in saveSessionToStorage:', error);
-      
+      console.error("Error in saveSessionToStorage:", error);
+
       // Try IndexedDB as fallback
       if (updateDatabase) {
         try {
           await updateSessionInDB(session);
-          console.info('Fallback to IndexedDB successful');
+          console.info("Fallback to IndexedDB successful");
           resolve();
         } catch (dbError) {
-          console.error('All storage mechanisms failed:', { chromeError: error, dbError });
-          reject(new Error('All storage mechanisms unavailable'));
+          console.error("All storage mechanisms failed:", {
+            chromeError: error,
+            dbError,
+          });
+          reject(new Error("All storage mechanisms unavailable"));
         }
       } else {
         // No fallback requested, but don't fail the entire operation
-        console.warn('Chrome storage failed, but continuing without storage');
+        console.warn("Chrome storage failed, but continuing without storage");
         resolve();
       }
     }
@@ -407,34 +420,34 @@ export const recreateSessions = async () => {
 // }
 
 export async function buildAdaptiveSessionSettings() {
-  const { focusTags} = await TagService.getCurrentTier();
+  const { focusTags } = await TagService.getCurrentTier();
   const sessionStateKey = "session_state";
   const now = new Date();
 
   // Try to migrate from Chrome storage first, then get from IndexedDB
-  let sessionState = await StorageService.migrateSessionStateToIndexedDB() || 
-                     await StorageService.getSessionState(sessionStateKey) || {
-    id: sessionStateKey,
-    numSessionsCompleted: 0,
-    currentDifficultyCap: "Easy",
-    tagIndex: 0,
-    difficultyTimeStats: {
-      Easy: { problems: 0, totalTime: 0, avgTime: 0 },
-      Medium: { problems: 0, totalTime: 0, avgTime: 0 },
-      Hard: { problems: 0, totalTime: 0, avgTime: 0 }
-    },
-    lastPerformance: {
-      accuracy: null,
-      efficiencyScore: null
-    },
-    // 🔓 Escape hatch tracking
-    escapeHatches: {
-      sessionsAtCurrentDifficulty: 0,
-      lastDifficultyPromotion: null,
-      sessionsWithoutPromotion: 0,
-      activatedEscapeHatches: []
-    }
-  };
+  let sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
+    (await StorageService.getSessionState(sessionStateKey)) || {
+      id: sessionStateKey,
+      numSessionsCompleted: 0,
+      currentDifficultyCap: "Easy",
+      tagIndex: 0,
+      difficultyTimeStats: {
+        Easy: { problems: 0, totalTime: 0, avgTime: 0 },
+        Medium: { problems: 0, totalTime: 0, avgTime: 0 },
+        Hard: { problems: 0, totalTime: 0, avgTime: 0 },
+      },
+      lastPerformance: {
+        accuracy: null,
+        efficiencyScore: null,
+      },
+      // 🔓 Escape hatch tracking
+      escapeHatches: {
+        sessionsAtCurrentDifficulty: 0,
+        lastDifficultyPromotion: null,
+        sessionsWithoutPromotion: 0,
+        activatedEscapeHatches: [],
+      },
+    };
 
   const onboarding = sessionState.numSessionsCompleted < 3;
   const performance = sessionState.lastPerformance || {};
@@ -444,7 +457,8 @@ export async function buildAdaptiveSessionSettings() {
   // Default values
   let sessionLength = 4;
   let numberOfNewProblems = 4;
-  let allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, 1) : ["array"];
+  let allowedTags =
+    focusTags && focusTags.length > 0 ? focusTags.slice(0, 1) : ["array"];
 
   if (!onboarding) {
     // 🧠 Time gap since last session
@@ -471,67 +485,92 @@ export async function buildAdaptiveSessionSettings() {
     }
 
     // 🏷️ Progressive tag exposure within focus window
-    const tagCount = calculateTagIndexProgression(accuracy, efficiencyScore, sessionState.tagIndex, focusTags.length, sessionState);
-    allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, tagCount) : ["array", "hash table"];
-    
+    const tagCount = calculateTagIndexProgression(
+      accuracy,
+      efficiencyScore,
+      sessionState.tagIndex,
+      focusTags.length,
+      sessionState
+    );
+    allowedTags =
+      focusTags && focusTags.length > 0
+        ? focusTags.slice(0, tagCount)
+        : ["array", "hash table"];
+
     // Update tagIndex for next session
     sessionState.tagIndex = tagCount - 1; // Convert from count to index
-    
-    console.log(`🏷️ Tag exposure: ${tagCount}/${focusTags.length} focus tags (tagIndex: ${sessionState.tagIndex}, accuracy: ${(accuracy * 100).toFixed(1)}%)`);
+
+    console.log(
+      `🏷️ Tag exposure: ${tagCount}/${focusTags.length} focus tags (tagIndex: ${
+        sessionState.tagIndex
+      }, accuracy: ${(accuracy * 100).toFixed(1)}%)`
+    );
 
     // 🔓 Session-based escape hatch detection and activation
     const currentDifficulty = sessionState.currentDifficultyCap;
-    
+
     // Ensure escapeHatches object exists (backward compatibility)
     if (!sessionState.escapeHatches) {
       sessionState.escapeHatches = {
         sessionsAtCurrentDifficulty: 0,
         lastDifficultyPromotion: null,
         sessionsWithoutPromotion: 0,
-        activatedEscapeHatches: []
+        activatedEscapeHatches: [],
       };
     }
-    
+
     const escapeHatches = sessionState.escapeHatches;
-    
+
     // Track sessions at current difficulty level
     escapeHatches.sessionsAtCurrentDifficulty++;
-    
+
     // Check for session-based escape hatch (10+ sessions without promotion)
     let promotionThreshold = 0.9; // Default 90% accuracy
     let escapeHatchActivated = false;
-    
+
     if (escapeHatches.sessionsAtCurrentDifficulty >= 10) {
       // Apply session-based escape hatch - lower threshold from 90% to 80%
       promotionThreshold = 0.8;
       escapeHatchActivated = true;
-      
-      if (!escapeHatches.activatedEscapeHatches.includes('session-based')) {
-        escapeHatches.activatedEscapeHatches.push('session-based');
-        console.log("🔓 Session-based escape hatch ACTIVATED: Lowering difficulty promotion threshold from 90% to 80%");
+
+      if (!escapeHatches.activatedEscapeHatches.includes("session-based")) {
+        escapeHatches.activatedEscapeHatches.push("session-based");
+        console.log(
+          "🔓 Session-based escape hatch ACTIVATED: Lowering difficulty promotion threshold from 90% to 80%"
+        );
       }
     }
 
     // Progressive difficulty cap unlocking with escape hatch threshold
-    if (accuracy >= promotionThreshold && sessionState.currentDifficultyCap === "Easy") {
+    if (
+      accuracy >= promotionThreshold &&
+      sessionState.currentDifficultyCap === "Easy"
+    ) {
       sessionState.currentDifficultyCap = "Medium";
       escapeHatches.lastDifficultyPromotion = now.toISOString();
       escapeHatches.sessionsAtCurrentDifficulty = 0; // Reset counter
       escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
-      
+
       if (escapeHatchActivated) {
-        console.log("🎯 Difficulty cap upgraded via ESCAPE HATCH: Easy → Medium (80% threshold)");
+        console.log(
+          "🎯 Difficulty cap upgraded via ESCAPE HATCH: Easy → Medium (80% threshold)"
+        );
       } else {
         console.log("🎯 Difficulty cap upgraded: Easy → Medium");
       }
-    } else if (accuracy >= promotionThreshold && sessionState.currentDifficultyCap === "Medium") {
+    } else if (
+      accuracy >= promotionThreshold &&
+      sessionState.currentDifficultyCap === "Medium"
+    ) {
       sessionState.currentDifficultyCap = "Hard";
       escapeHatches.lastDifficultyPromotion = now.toISOString();
       escapeHatches.sessionsAtCurrentDifficulty = 0; // Reset counter
       escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
-      
+
       if (escapeHatchActivated) {
-        console.log("🎯 Difficulty cap upgraded via ESCAPE HATCH: Medium → Hard (80% threshold)");
+        console.log(
+          "🎯 Difficulty cap upgraded via ESCAPE HATCH: Medium → Hard (80% threshold)"
+        );
       } else {
         console.log("🎯 Difficulty cap upgraded: Medium → Hard");
       }
@@ -553,7 +592,7 @@ export async function buildAdaptiveSessionSettings() {
     numberOfNewProblems,
     allowedTags,
     accuracy,
-    efficiencyScore
+    efficiencyScore,
   });
 
   return {
@@ -561,7 +600,7 @@ export async function buildAdaptiveSessionSettings() {
     numberOfNewProblems,
     currentAllowedTags: allowedTags,
     currentDifficultyCap: sessionState.currentDifficultyCap,
-    sessionState
+    sessionState,
   };
 }
 
@@ -569,12 +608,11 @@ function computeSessionLength(accuracy, efficiencyScore) {
   const accWeight = Math.min(Math.max(accuracy ?? 0.5, 0), 1);
   const effWeight = Math.min(Math.max(efficiencyScore ?? 0.5, 0), 1);
 
-  const composite = (accWeight * 0.6) + (effWeight * 0.4);
+  const composite = accWeight * 0.6 + effWeight * 0.4;
 
   // Scale from 3 to 12 problems based on performance
   return Math.round(3 + composite * 9); // [3, 12]
 }
-
 
 export async function getSessionPerformance({
   recentSessionsLimit = 5,
@@ -656,7 +694,7 @@ export async function getSessionPerformance({
   // 🧠 Derive strong + weak tags
   const strongTags = [];
   const weakTags = [];
-    console.log("unmasteredTagSet", unmasteredTagSet);
+  console.log("unmasteredTagSet", unmasteredTagSet);
   for (let tag in tagStats) {
     if (!unmasteredTagSet.has(tag)) continue;
 
@@ -672,7 +710,7 @@ export async function getSessionPerformance({
 
     if (acc >= 0.8 && attempts >= 2) {
       strongTags.push(tag);
-    } else if (acc < 0.7 ) {
+    } else if (acc < 0.7) {
       weakTags.push(tag);
     }
   }
@@ -747,39 +785,60 @@ export async function getAllSessions() {
  * @param {object} sessionState - Session state for tracking stagnation
  * @returns {number} Number of tags to include from focus window
  */
-function calculateTagIndexProgression(accuracy, efficiencyScore, currentTagIndex, focusTagsLength, sessionState) {
+function calculateTagIndexProgression(
+  accuracy,
+  efficiencyScore,
+  currentTagIndex,
+  focusTagsLength,
+  sessionState
+) {
   // Start with current progress
   let tagCount = currentTagIndex + 1; // Convert index to count
-  
+
   // 🔓 Softened tag expansion thresholds: Separate accuracy and efficiency OR-based conditions
   // Allow expansion if user meets EITHER accuracy OR efficiency threshold (not both)
   const hasGoodAccuracy = accuracy >= 0.75;
   const hasGoodEfficiency = efficiencyScore >= 0.6;
   const hasExcellentAccuracy = accuracy >= 0.9;
   const hasExcellentEfficiency = efficiencyScore >= 0.8;
-  
+
   // More lenient expansion conditions
   const canExpandToNext = hasGoodAccuracy || hasGoodEfficiency; // OR instead of AND
-  const canExpandQuickly = (hasExcellentAccuracy || hasExcellentEfficiency) && (accuracy >= 0.7 || efficiencyScore >= 0.5);
-  
+  const canExpandQuickly =
+    (hasExcellentAccuracy || hasExcellentEfficiency) &&
+    (accuracy >= 0.7 || efficiencyScore >= 0.5);
+
   // Additional fallback: Allow expansion after 5+ sessions at same tag count (anti-stagnation)
   const sessionsAtCurrentTagCount = sessionState.sessionsAtCurrentTagCount || 0;
-  const canExpandByStagnation = sessionsAtCurrentTagCount >= 5 && (accuracy >= 0.6 || efficiencyScore >= 0.4);
-  
+  const canExpandByStagnation =
+    sessionsAtCurrentTagCount >= 5 &&
+    (accuracy >= 0.6 || efficiencyScore >= 0.4);
+
   // Progressive expansion within focus window
-  if ((canExpandQuickly || canExpandByStagnation) && tagCount < focusTagsLength) {
+  if (
+    (canExpandQuickly || canExpandByStagnation) &&
+    tagCount < focusTagsLength
+  ) {
     tagCount = Math.min(tagCount + 2, focusTagsLength); // Jump 2 tags if excellent performance or stuck
-    console.log(`🏷️ Tag expansion: +2 tags (${canExpandQuickly ? 'excellent performance' : 'stagnation fallback'})`);
+    console.log(
+      `🏷️ Tag expansion: +2 tags (${
+        canExpandQuickly ? "excellent performance" : "stagnation fallback"
+      })`
+    );
   } else if (canExpandToNext && tagCount < focusTagsLength) {
     tagCount = Math.min(tagCount + 1, focusTagsLength); // Add 1 tag if good performance
-    console.log(`🏷️ Tag expansion: +1 tag (good ${hasGoodAccuracy ? 'accuracy' : 'efficiency'})`);
+    console.log(
+      `🏷️ Tag expansion: +1 tag (good ${
+        hasGoodAccuracy ? "accuracy" : "efficiency"
+      })`
+    );
   }
-  
+
   // Track sessions at current tag count for stagnation detection
   if (!sessionState.sessionsAtCurrentTagCount) {
     sessionState.sessionsAtCurrentTagCount = 0;
   }
-  
+
   const previousTagCount = sessionState.lastTagCount || 1;
   if (tagCount === previousTagCount) {
     sessionState.sessionsAtCurrentTagCount++;
@@ -787,11 +846,15 @@ function calculateTagIndexProgression(accuracy, efficiencyScore, currentTagIndex
     sessionState.sessionsAtCurrentTagCount = 0; // Reset when tag count changes
   }
   sessionState.lastTagCount = tagCount;
-  
+
   // Never exceed focus window size or go below 1
   const finalCount = Math.min(Math.max(1, tagCount), focusTagsLength);
-  
-  console.log(`🏷️ Tag progression: index=${currentTagIndex} → count=${finalCount}/${focusTagsLength} (accuracy: ${(accuracy * 100).toFixed(1)}%, efficiency: ${(efficiencyScore * 100).toFixed(1)}%)`);
-  
+
+  console.log(
+    `🏷️ Tag progression: index=${currentTagIndex} → count=${finalCount}/${focusTagsLength} (accuracy: ${(
+      accuracy * 100
+    ).toFixed(1)}%, efficiency: ${(efficiencyScore * 100).toFixed(1)}%)`
+  );
+
   return finalCount;
 }

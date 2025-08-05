@@ -38,34 +38,35 @@ import { useState } from "react";
 import { useChromeMessage } from "../shared/hooks/useChromeMessage";
 function App() {
   const [appState, setAppState] = useState(null);
-  
+
   // New approach using custom hook
-  const { data: _dashboardData, loading: _loading, error: _error } = useChromeMessage(
-    { type: "getDashboardStatistics" },
-    [],
-    {
-      onSuccess: (response) => {
-        console.info("Dashboard statistics received:", response.result);
-        setAppState(response.result);
-      }
-    }
-  );
-  
+  const {
+    data: _dashboardData,
+    loading: _loading,
+    error: _error,
+  } = useChromeMessage({ type: "getDashboardStatistics" }, [], {
+    onSuccess: (response) => {
+      console.info("Dashboard statistics received:", response.result);
+      setAppState(response.result);
+    },
+  });
 
   return (
     <MantineProvider>
       <Router>
-        <div style={{ 
-          display: "flex", 
-          height: "100vh", 
-          width: "100vw",
-          minWidth: "100vw",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0
-        }}>
+        <div
+          style={{
+            display: "flex",
+            height: "100vh",
+            width: "100vw",
+            minWidth: "100vw",
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+          }}
+        >
           <DoubleNavbar />
 
           <main style={{ padding: "20px", flex: 1 }}>
@@ -85,7 +86,10 @@ function App() {
                     path="stats"
                     element={<Stats appState={appState?.statistics} />}
                   />
-                  <Route path="progress" element={<Progress appState={appState?.progress} />} />
+                  <Route
+                    path="progress"
+                    element={<Progress appState={appState?.progress} />}
+                  />
                   <Route path="goals" element={<Goals />} />
                 </Route>
 

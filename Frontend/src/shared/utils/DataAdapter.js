@@ -31,8 +31,6 @@ function sortByLabel(data, range) {
   return data;
 }
 
-
-
 // --- Time bucket key ---
 function getGroupKey(dateStr, range = "weekly") {
   // Validate and normalize date input
@@ -40,15 +38,15 @@ function getGroupKey(dateStr, range = "weekly") {
     console.warn("Invalid date provided to getGroupKey:", dateStr);
     return "";
   }
-  
+
   const date = new Date(dateStr);
-  
+
   // Check if date is valid
   if (isNaN(date.getTime())) {
     console.warn("Invalid date value in getGroupKey:", dateStr);
     return "";
   }
-  
+
   if (range === "weekly") {
     const week = getWeek(date, { weekStartsOn: 1 });
     return `${date.getFullYear()}-W${String(week).padStart(2, "0")}`;
@@ -63,12 +61,15 @@ function getGroupKey(dateStr, range = "weekly") {
 }
 
 // --- Accuracy Trend (still session-based) ---
-export function getAccuracyTrendData(sessions, range = 'weekly') {
+export function getAccuracyTrendData(sessions, range = "weekly") {
   const grouped = {};
 
   // Validate sessions input
   if (!Array.isArray(sessions)) {
-    console.warn("Invalid sessions array provided to getAccuracyTrendData:", sessions);
+    console.warn(
+      "Invalid sessions array provided to getAccuracyTrendData:",
+      sessions
+    );
     return [];
   }
 
@@ -78,11 +79,11 @@ export function getAccuracyTrendData(sessions, range = 'weekly') {
       console.warn("Session missing Date property:", session);
       return;
     }
-    
+
     const key = getGroupKey(session.Date, range);
     // Skip sessions with invalid dates
     if (!key) return;
-    
+
     if (!grouped[key]) grouped[key] = { correct: 0, total: 0 };
 
     // Validate attempts array
@@ -92,7 +93,7 @@ export function getAccuracyTrendData(sessions, range = 'weekly') {
     }
 
     session.attempts.forEach((attempt) => {
-      if (attempt && typeof attempt.success !== 'undefined') {
+      if (attempt && typeof attempt.success !== "undefined") {
         grouped[key].total += 1;
         if (attempt.success) grouped[key].correct += 1;
       }
@@ -173,7 +174,6 @@ export function getAttemptBreakdownData(sessions, range = "weekly") {
 
   return sortByLabel(result, range);
 }
-
 
 export function getProblemActivityData(sessions, range = "weekly") {
   const grouped = {};
