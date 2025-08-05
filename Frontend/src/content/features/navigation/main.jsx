@@ -4,15 +4,14 @@ import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
 import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
 import { useNav } from "../../../shared/provider/navprovider.jsx";
 import { DoubleNavbar } from "../../../shared/components/DoubleNavbar.jsx";
-import Header from "../../../shared/components/header.jsx";
+import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 
-
-const Menubutton = ({ isAppOpen,setIsAppOpen,currPath }) => {
+const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   const navigate = useNavigate();
 
   const isMainMenu = currPath === "/";
- 
+
   const handleClick = () => {
     if (isAppOpen && !isMainMenu) {
       navigate("/"); // Go home
@@ -21,14 +20,13 @@ const Menubutton = ({ isAppOpen,setIsAppOpen,currPath }) => {
     }
   };
   const handleLabelChange = (isAppOpen, isMainMenu) => {
-     if(isAppOpen && !isMainMenu){
-      return "Go Home"
-     } else if(isAppOpen && isMainMenu){
-      return "Close Menu"
-     } else if(!isAppOpen && isMainMenu){
-      return "Open Menu"
-     }
-     
+    if (isAppOpen && !isMainMenu) {
+      return "Go Home";
+    } else if (isAppOpen && isMainMenu) {
+      return "Close Menu";
+    } else if (!isAppOpen && isMainMenu) {
+      return "Open Menu";
+    }
   };
   return (
     <button
@@ -51,12 +49,12 @@ const getProblemSlugFromUrl = (url) => {
 export default function Main() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const {isAppOpen, setIsAppOpen} = useNav()
+  const { isAppOpen, setIsAppOpen } = useNav();
   const [problemTitle, setProblemTitle] = useState("");
   const [problemFound, setProblemFound] = useState(false);
   const [loading, setLoading] = useState(false);
   const [problemData, setProblemData] = useState(null);
-  const[theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState("light");
   const [currentProblem, setCurrentProblem] = useState(
     getProblemSlugFromUrl(window.location.href)
   ); // Initialize with the current URL slug
@@ -105,20 +103,20 @@ export default function Main() {
     );
   };
   // New approach using custom hook
-  const { data: onboardingData, loading: onboardingLoading, error: onboardingError } = useChromeMessage(
-    { type: "onboardingUserIfNeeded" },
-    [],
-    {
-      onSuccess: (response) => {
-        if (response) {
-          console.log("onboardingUserIfNeeded", response);
-        }
+  const {
+    data: onboardingData,
+    loading: onboardingLoading,
+    error: onboardingError,
+  } = useChromeMessage({ type: "onboardingUserIfNeeded" }, [], {
+    onSuccess: (response) => {
+      if (response) {
+        console.log("onboardingUserIfNeeded", response);
       }
-    }
-  );
-  
+    },
+  });
+
   // // UseEffect to handle initial data fetch on component mount
-  
+
   useEffect(() => {
     // Run the initial data fetch once when the component mounts
     console.log("Current problem slug:", currentProblem);
@@ -248,54 +246,60 @@ export default function Main() {
         {shouldShowNav && (
           <div
             id="cd-mySidenav"
-  
             className={isAppOpen ? "cd-sidenav" : "cd-sidenav cd-hidden"}
           >
-      <Header title="CodeMaster" />
-      <div className="cd-sidenav__content">
-            <nav id="nav">
-              <Link to="/Strategy">Strategy Map</Link>
-              <Link to="/ProbGen">Generator</Link>
-              <Link to="/ProbStat">Statistics</Link>
-              <Link to="/Settings">Settings</Link>
-              {problemTitle && (
-                <Link
-                  to="/ProbTime"
-                  state={{ problemData, problemFound }}
-                  onClick={(e) => {
-                    if (!problemData || loading) {
-                      e.preventDefault(); // Prevent navigation if problemData is not ready
+            <Header title="CodeMaster" />
+            <div className="cd-sidenav__content">
+              <nav id="nav">
+                <Link to="/Strategy">Strategy Map</Link>
+                <Link to="/ProbGen">Generator</Link>
+                <Link to="/ProbStat">Statistics</Link>
+                <Link to="/Settings">Settings</Link>
+                {problemTitle && (
+                  <Link
+                    to="/ProbTime"
+                    state={{ problemData, problemFound }}
+                    onClick={(e) => {
+                      if (!problemData || loading) {
+                        e.preventDefault(); // Prevent navigation if problemData is not ready
+                      }
+                    }}
+                    className={`${
+                      !problemData || loading
+                        ? "link-disabled"
+                        : loading
+                        ? "nav-link-loading"
+                        : ""
+                    }`}
+                    title={
+                      loading
+                        ? "Loading problem data..."
+                        : !problemData
+                        ? "Problem data not available"
+                        : problemData && problemFound
+                        ? "Start a new attempt on this problem"
+                        : "Add this problem to your collection"
                     }
-                  }}
-                  className={`${
-                    !problemData || loading 
-                      ? "link-disabled" 
-                      : loading 
-                      ? "nav-link-loading" 
-                      : ""
-                  }`}
-                  title={
-                    loading 
-                      ? "Loading problem data..." 
-                      : !problemData 
-                      ? "Problem data not available" 
-                      : problemData && problemFound
-                      ? "Start a new attempt on this problem"
-                      : "Add this problem to your collection"
-                  }
-                >
-                  {loading
-                    ? "Loading..."
-                    : problemData && problemFound 
-                    ? <><span className="cd-nav-icon cd-retry-icon"></span>New Attempt</>
-                    : problemData && !problemFound
-                    ? <><span className="cd-nav-icon cd-plus-icon"></span>New Problem</>
-                    : "Problem Unavailable"}
-                </Link>
-              )}
-            
+                  >
+                    {loading ? (
+                      "Loading..."
+                    ) : problemData && problemFound ? (
+                      <>
+                        <span className="cd-nav-icon cd-retry-icon"></span>New
+                        Attempt
+                      </>
+                    ) : problemData && !problemFound ? (
+                      <>
+                        <span className="cd-nav-icon cd-plus-icon"></span>New
+                        Problem
+                      </>
+                    ) : (
+                      "Problem Unavailable"
+                    )}
+                  </Link>
+                )}
 
-              {/* <div style={{ display: "flex", flexDirection: "column" }}>
+                {/* <div style={{ display: "flex", flexDirection: "column" }}>
                 <button
                   style={{
                     marginTop: "10px",
@@ -307,11 +311,10 @@ export default function Main() {
                   Restore
                 </button>
               </div> */}
-            </nav>
-       
-                <ThemeToggle />
-       
-              </div>
+              </nav>
+
+              <ThemeToggle />
+            </div>
           </div>
         )}
       </div>

@@ -1,8 +1,8 @@
-import { fetchAllProblems } from "../db/problems.js";
-import { getAllAttempts } from "../db/attempts.js";
-import { getAllSessions } from "../db/sessions.js";
-import { TagService } from "../services/tagServices.js";
-import { ProblemService } from "../services/problemService";
+import { fetchAllProblems } from "../../shared/db/problems.js";
+import { getAllAttempts } from "../../shared/db/attempts.js";
+import { getAllSessions } from "../../shared/db/sessions.js";
+import { TagService } from "../../shared/services/tagServices.js";
+import { ProblemService } from "../../shared/services/problemService";
 
 export async function getDashboardStatistics() {
   try {

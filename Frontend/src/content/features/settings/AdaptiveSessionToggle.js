@@ -9,14 +9,22 @@ import {
 } from "../../../shared/components/nantine.jsx";
 import { IconQuestionMark } from "@tabler/icons-react"; // or
 
-
 const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "8px" , maxWidth: "100%"}} >
-        <label style={{ fontSize: "1rem", fontWeight: 500 , color: "var(--cd-text)"}}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          maxWidth: "100%",
+        }}
+      >
+        <label
+          style={{ fontSize: "1rem", fontWeight: 500, color: "var(--cd-text)" }}
+        >
           Adaptive Sessions
         </label>
 
@@ -34,7 +42,7 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            cursor: "default"
+            cursor: "default",
           }}
         >
           i
@@ -43,29 +51,28 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
 
       {/* Inline paragraph shown only when hovering */}
       <div
-  style={{
-    maxHeight: hovered ? "100px" : "0px",
-    opacity: hovered ? 1 : 0,
-    overflow: "hidden",
-    transition: "all 0.3s ease",
-  }}
->
-  <p
-    style={{
-      maxWidth: "200px",
-      margin: 0,
-      fontSize: "0.85rem",
-      color: "#444",
-      lineHeight: 1.4,
-      wordWrap: "break-word",
-      overflowWrap: "anywhere",
-    }}
-  >
-    Automatically adjusts session length and number of new problems
-    based on your performance.
-  </p>
-</div>
-
+        style={{
+          maxHeight: hovered ? "100px" : "0px",
+          opacity: hovered ? 1 : 0,
+          overflow: "hidden",
+          transition: "all 0.3s ease",
+        }}
+      >
+        <p
+          style={{
+            maxWidth: "200px",
+            margin: 0,
+            fontSize: "0.85rem",
+            color: "#444",
+            lineHeight: 1.4,
+            wordWrap: "break-word",
+            overflowWrap: "anywhere",
+          }}
+        >
+          Automatically adjusts session length and number of new problems based
+          on your performance.
+        </p>
+      </div>
 
       <Switch
         checked={adaptive}
@@ -75,7 +82,7 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
         size="lg"
         styles={{
           track: { height: 24 },
-          thumb: { width: 18, height: 18 }
+          thumb: { width: 18, height: 18 },
         }}
       />
     </div>

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Container, Stack, Button, Group, Text, Divider } from '@mantine/core';
-import { HintPanel, PrimerSection } from '../shared/components/strategy';
-import { useStrategy } from '../shared/hooks/useStrategy';
+import React, { useState } from "react";
+import { Container, Stack, Button, Group, Text, Divider } from "@mantine/core";
+import { HintPanel, PrimerSection } from "../content/components/strategy";
+import { useStrategy } from "../shared/hooks/useStrategy";
 
 /**
  * Example component showing how to integrate the Strategy System
@@ -9,7 +9,10 @@ import { useStrategy } from '../shared/hooks/useStrategy';
  */
 const StrategyIntegrationExample = () => {
   // Example problem tags - in real usage, these would come from your problem data
-  const [currentProblemTags, setCurrentProblemTags] = useState(['array', 'hash table']);
+  const [currentProblemTags, setCurrentProblemTags] = useState([
+    "array",
+    "hash table",
+  ]);
   const [showPrimer, setShowPrimer] = useState(true);
   const [showHints, setShowHints] = useState(true);
 
@@ -24,17 +27,26 @@ const StrategyIntegrationExample = () => {
     hasPrimers,
     contextualHints,
     generalHints,
-    refreshStrategy
+    refreshStrategy,
   } = useStrategy(currentProblemTags);
 
   // Example problem scenarios for testing
   const problemScenarios = [
-    { name: 'Two Sum', tags: ['array', 'hash table'] },
-    { name: 'Binary Tree Inorder', tags: ['binary tree', 'depth-first search', 'recursion'] },
-    { name: 'Sliding Window Maximum', tags: ['array', 'sliding window', 'monotonic stack'] },
-    { name: 'Course Schedule', tags: ['graph', 'topological sort', 'depth-first search'] },
-    { name: 'Edit Distance', tags: ['string', 'dynamic programming'] },
-    { name: 'Merge Intervals', tags: ['array', 'sorting', 'greedy'] }
+    { name: "Two Sum", tags: ["array", "hash table"] },
+    {
+      name: "Binary Tree Inorder",
+      tags: ["binary tree", "depth-first search", "recursion"],
+    },
+    {
+      name: "Sliding Window Maximum",
+      tags: ["array", "sliding window", "monotonic stack"],
+    },
+    {
+      name: "Course Schedule",
+      tags: ["graph", "topological sort", "depth-first search"],
+    },
+    { name: "Edit Distance", tags: ["string", "dynamic programming"] },
+    { name: "Merge Intervals", tags: ["array", "sorting", "greedy"] },
   ];
 
   return (
@@ -45,22 +57,24 @@ const StrategyIntegrationExample = () => {
             Strategy System Integration Example
           </Text>
           <Text size="sm" c="dimmed">
-            This example shows how to use the HintPanel and PrimerSection components
-            with different problem tag combinations.
+            This example shows how to use the HintPanel and PrimerSection
+            components with different problem tag combinations.
           </Text>
         </div>
 
         {/* Status Information */}
         <div>
-          <Text size="sm" weight={500} mb="xs">System Status:</Text>
+          <Text size="sm" weight={500} mb="xs">
+            System Status:
+          </Text>
           <Group gap="sm">
-            <Text size="xs" c={isDataLoaded ? 'green' : 'red'}>
-              Strategy Data: {isDataLoaded ? 'Loaded ✓' : 'Loading...'}
+            <Text size="xs" c={isDataLoaded ? "green" : "red"}>
+              Strategy Data: {isDataLoaded ? "Loaded ✓" : "Loading..."}
             </Text>
-            <Text size="xs" c={hasHints ? 'blue' : 'gray'}>
+            <Text size="xs" c={hasHints ? "blue" : "gray"}>
               Hints: {hints.length}
             </Text>
-            <Text size="xs" c={hasPrimers ? 'blue' : 'gray'}>
+            <Text size="xs" c={hasPrimers ? "blue" : "gray"}>
               Primers: {primers.length}
             </Text>
           </Group>
@@ -82,9 +96,10 @@ const StrategyIntegrationExample = () => {
                 key={index}
                 size="xs"
                 variant={
-                  JSON.stringify(currentProblemTags) === JSON.stringify(scenario.tags)
-                    ? 'filled'
-                    : 'outline'
+                  JSON.stringify(currentProblemTags) ===
+                  JSON.stringify(scenario.tags)
+                    ? "filled"
+                    : "outline"
                 }
                 onClick={() => setCurrentProblemTags(scenario.tags)}
               >
@@ -92,9 +107,9 @@ const StrategyIntegrationExample = () => {
               </Button>
             ))}
           </Group>
-          
+
           <Text size="xs" c="dimmed" mt="xs">
-            Current tags: {currentProblemTags.join(', ')}
+            Current tags: {currentProblemTags.join(", ")}
           </Text>
         </div>
 
@@ -102,17 +117,17 @@ const StrategyIntegrationExample = () => {
         <Group gap="sm">
           <Button
             size="xs"
-            variant={showPrimer ? 'filled' : 'outline'}
+            variant={showPrimer ? "filled" : "outline"}
             onClick={() => setShowPrimer(!showPrimer)}
           >
-            {showPrimer ? 'Hide' : 'Show'} Primer Section
+            {showPrimer ? "Hide" : "Show"} Primer Section
           </Button>
           <Button
             size="xs"
-            variant={showHints ? 'filled' : 'outline'}
+            variant={showHints ? "filled" : "outline"}
             onClick={() => setShowHints(!showHints)}
           >
-            {showHints ? 'Hide' : 'Show'} Hint Panel
+            {showHints ? "Hide" : "Show"} Hint Panel
           </Button>
           <Button size="xs" variant="light" onClick={refreshStrategy}>
             Refresh Strategy Data
@@ -127,7 +142,7 @@ const StrategyIntegrationExample = () => {
             <Text size="md" weight={600} mb="sm">
               📖 Primer Section (Before Starting Problem)
             </Text>
-            <PrimerSection 
+            <PrimerSection
               problemTags={currentProblemTags}
               isVisible={showPrimer}
             />
@@ -140,10 +155,7 @@ const StrategyIntegrationExample = () => {
             <Text size="md" weight={600} mb="sm">
               💡 Hint Panel (During Problem Solving)
             </Text>
-            <HintPanel 
-              problemTags={currentProblemTags}
-              isVisible={showHints}
-            />
+            <HintPanel problemTags={currentProblemTags} isVisible={showHints} />
           </div>
         )}
 
@@ -161,13 +173,15 @@ const StrategyIntegrationExample = () => {
                 <strong>General Hints:</strong> {generalHints.length}
               </Text>
               <Text size="sm">
-                <strong>Loading:</strong> {loading ? 'Yes' : 'No'}
+                <strong>Loading:</strong> {loading ? "Yes" : "No"}
               </Text>
             </Group>
-            
+
             {contextualHints.length > 0 && (
               <div>
-                <Text size="xs" weight={500} c="blue">Multi-tag combinations found:</Text>
+                <Text size="xs" weight={500} c="blue">
+                  Multi-tag combinations found:
+                </Text>
                 {contextualHints.map((hint, index) => (
                   <Text key={index} size="xs" c="dimmed">
                     • {hint.primaryTag} + {hint.relatedTag}
@@ -187,22 +201,41 @@ const StrategyIntegrationExample = () => {
             <Text size="sm">
               <strong>1. Import components:</strong>
             </Text>
-            <Text size="xs" ff="monospace" bg="gray.1" p="xs" style={{ borderRadius: '4px' }}>
-              {`import { HintPanel, PrimerSection } from '../shared/components/strategy';`}
+            <Text
+              size="xs"
+              ff="monospace"
+              bg="gray.1"
+              p="xs"
+              style={{ borderRadius: "4px" }}
+            >
+              {`import { HintPanel, PrimerSection } from '../content/components/strategy';`}
             </Text>
-            
+
             <Text size="sm">
               <strong>2. Use in your problem components:</strong>
             </Text>
-            <Text size="xs" ff="monospace" bg="gray.1" p="xs" style={{ borderRadius: '4px' }}>
-              {`<PrimerSection problemTags={problem.tags} />`}<br />
+            <Text
+              size="xs"
+              ff="monospace"
+              bg="gray.1"
+              p="xs"
+              style={{ borderRadius: "4px" }}
+            >
+              {`<PrimerSection problemTags={problem.tags} />`}
+              <br />
               {`<HintPanel problemTags={problem.tags} />`}
             </Text>
-            
+
             <Text size="sm">
               <strong>3. Optional: Use the hook for advanced features:</strong>
             </Text>
-            <Text size="xs" ff="monospace" bg="gray.1" p="xs" style={{ borderRadius: '4px' }}>
+            <Text
+              size="xs"
+              ff="monospace"
+              bg="gray.1"
+              p="xs"
+              style={{ borderRadius: "4px" }}
+            >
               {`const { hints, primers, loading } = useStrategy(problemTags);`}
             </Text>
           </Stack>

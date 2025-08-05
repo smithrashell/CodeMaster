@@ -4,6 +4,98 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.9.7] - 2025-08-05
+
+### Added
+
+* **🏗️ Context-Based Architecture Reorganization**: Comprehensive component and service reorganization by application context for improved maintainability and developer experience
+
+  * **Content Script Context Structure**: Created dedicated `content/components/` and `content/services/` directories for LeetCode overlay functionality
+    * **Timer Components**: Moved timer functionality (`timercomponent.jsx`) to `content/components/timer/`
+    * **Navigation Components**: Relocated header component to `content/components/navigation/`
+    * **Problem Components**: Organized problem-related components (`WhyThisProblem.jsx`, `ProblemInfoIcon.jsx`) in `content/components/problem/`
+    * **Form Components**: Moved form inputs (`TagInput.js`) to `content/components/forms/`
+    * **Strategy Components**: Relocated all strategy UI components (`HintPanel.jsx`, `PrimerSection.jsx`, etc.) to `content/components/strategy/`
+  * **Dashboard Context Structure**: Created dedicated `app/components/` and `app/services/` directories for standalone analytics functionality
+    * **Analytics Components**: Moved dashboard components (`MasteryDashboard.jsx`, `MetricCard.jsx`) to `app/components/analytics/`
+    * **Chart Components**: Relocated chart components (`TimeGranularChartCard.js`) to `app/components/charts/`
+    * **Table Components**: Organized table components (`SearchableTagTable.jsx`, `SelectedTagDetailCard.jsx`) in `app/components/tables/`
+  * **Service Layer Reorganization**: Moved context-specific services to appropriate application contexts
+    * **Content Services**: Relocated `strategyService.js` and `problemReasoningService.js` to `content/services/`
+    * **Dashboard Services**: Moved `dashboardService.js` and `ratingService.js` to `app/services/`
+
+* **📦 Clean Import Architecture**: Established index.js barrel exports for streamlined component imports
+
+  * **Component Indexes**: Created index.js files in all new component directories enabling clean imports like `import { HintPanel } from '../content/components/strategy'`
+  * **Service Indexes**: Added index.js files for service directories providing centralized access to context-specific services
+  * **Import Path Optimization**: All import statements updated to reflect new organizational structure with proper relative paths
+
+### Enhanced
+
+* **🧠 Cognitive Load Reduction**: Dramatically improved developer experience through clear separation of concerns
+
+  * **Context Clarity**: Components grouped by actual usage context (content script vs dashboard) instead of generic "shared" classification
+  * **Reduced Mental Overhead**: Developers immediately know where to find components based on application context
+  * **Improved Discoverability**: Clear organizational structure eliminates guesswork when locating components
+  * **Better Maintainability**: Context isolation prevents cross-contamination between content script and dashboard functionality
+
+* **📚 Import Statement Consistency**: Comprehensive update of all import references across the codebase
+
+  * **15 Component Relocations**: Successfully moved 15 components across timer, navigation, problem, form, strategy, analytics, chart, and table categories
+  * **4 Service Relocations**: Moved 4 services (strategy, problem reasoning, dashboard, rating) to appropriate contexts
+  * **20+ Import Updates**: Updated all import statements across affected files with proper relative path corrections
+  * **Zero Breaking Changes**: All functionality preserved while improving organizational structure
+
+### Fixed
+
+* **🔗 Import Link Integrity**: Resolved all broken import references resulting from file reorganization
+
+  * **Background Script Imports**: Fixed dashboard service import path in Chrome extension background script
+  * **Component Internal Imports**: Updated internal component imports (header, timer, strategy components) to reference shared resources correctly
+  * **Service Dependencies**: Corrected all service-to-service and service-to-database import paths
+  * **CSS and Asset Imports**: Fixed all stylesheet and asset references in relocated components
+
+### Technical Improvements
+
+* **🏗️ Directory Structure Optimization**: Established scalable organizational patterns for continued development
+
+  * **Three-Tier Architecture**: Clear separation between content (`content/`), dashboard (`app/`), and truly shared (`shared/`) contexts
+  * **Component Co-location**: Components grouped with their specific application context rather than artificial "shared" classification
+  * **Service Specialization**: Services organized by functional domain (content vs dashboard) improving code locality
+  * **Extensible Architecture**: New organizational structure supports easy addition of new contexts and components
+
+* **📊 Quality Assurance**: Comprehensive validation ensuring zero functional regressions
+
+  * **110 Tests Passing**: All existing unit tests continue to pass without modification
+  * **Build Verification**: Successful webpack compilation with only performance warnings (unrelated to reorganization)
+  * **Import Validation**: Comprehensive audit of all import statements confirming zero broken links
+  * **Code Standards**: ESLint and Prettier formatting maintained throughout reorganization
+
+### User Experience Impact
+
+* **🎯 Improved Development Velocity**: Reduced time to locate and modify components through intuitive organization
+
+  * **Faster Feature Development**: Clear context boundaries accelerate implementation of new features
+  * **Reduced Context Switching**: Developers work within focused component sets without cognitive overhead
+  * **Better Code Reviews**: Clearer organization makes code reviews more efficient and thorough
+  * **Simplified Onboarding**: New developers can quickly understand system organization and component relationships
+
+* **🔧 Enhanced Maintainability**: Long-term architectural benefits for continued development
+
+  * **Isolated Changes**: Modifications to content script functionality don't affect dashboard components
+  * **Reduced Risk**: Clear boundaries between contexts minimize chance of unintended side effects
+  * **Easier Testing**: Context-specific components enable more focused and efficient testing strategies
+  * **Future-Ready**: Organizational structure supports addition of new application contexts and features
+
+### Architecture Benefits
+
+* **📈 Scalable Organization**: Built foundation for continued growth and complexity management
+* **🎨 Clear Separation of Concerns**: Content script and dashboard functionality cleanly separated
+* **🔄 Maintained Backwards Compatibility**: All existing functionality preserved during reorganization
+* **🚀 Developer Experience**: Intuitive file organization reduces cognitive load and improves productivity
+
+---
+
   ## [0.9.6] - 2025-08-04
 
   Added

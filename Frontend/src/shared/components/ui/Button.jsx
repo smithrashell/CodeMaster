@@ -1,15 +1,20 @@
-import React from 'react';
-import { cn, createVariants } from '../../utils/cn';
+import React from "react";
+import { cn, createVariants } from "../../utils/cn";
 
 const buttonVariants = createVariants(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variant: {
-      default: "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-600",
-      destructive: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600",
-      outline: "border border-gray-600 bg-transparent text-gray-300 hover:bg-gray-700 hover:text-white focus-visible:ring-gray-600",
-      secondary: "bg-gray-700 text-gray-300 hover:bg-gray-600 focus-visible:ring-gray-600",
-      ghost: "text-gray-400 hover:bg-gray-700 hover:text-white focus-visible:ring-gray-600",
+      default:
+        "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-600",
+      destructive:
+        "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-600",
+      outline:
+        "border border-gray-600 bg-transparent text-gray-300 hover:bg-gray-700 hover:text-white focus-visible:ring-gray-600",
+      secondary:
+        "bg-gray-700 text-gray-300 hover:bg-gray-600 focus-visible:ring-gray-600",
+      ghost:
+        "text-gray-400 hover:bg-gray-700 hover:text-white focus-visible:ring-gray-600",
       link: "text-blue-400 underline-offset-4 hover:underline focus-visible:ring-blue-600",
     },
     size: {
@@ -25,13 +30,7 @@ const buttonVariants = createVariants(
   }
 );
 
-export function Button({ 
-  className, 
-  variant, 
-  size, 
-  children, 
-  ...props 
-}) {
+export function Button({ className, variant, size, children, ...props }) {
   return (
     <button
       className={cn(buttonVariants({ variant, size }), className)}

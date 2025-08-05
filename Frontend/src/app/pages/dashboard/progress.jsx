@@ -1,9 +1,9 @@
 import { Container, Grid, Title } from "@mantine/core";
 // Note: Recharts imports removed - add back as needed when charts are implemented
 import { useEffect, useState } from "react";
-import TimeGranularChartCard from "../../../shared/components/TimeGranularChartCard";
-import MasteryDashboard from "../../../shared/components/MasteryDashboard"; // eslint-disable-line no-unused-vars
-import { getPromotionDemotionData } from "../../../shared/components/generatePromotionDataFromSession";
+import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
+import MasteryDashboard from "../../components/analytics/MasteryDashboard"; // eslint-disable-line no-unused-vars
+import { getPromotionDemotionData } from "../../components/analytics/generatePromotionDataFromSession";
 import { getProblemActivityData } from "../../../shared/utils/DataAdapter";
 export function Progress({ appState }) {
   console.info("Progress component - appState:", appState);

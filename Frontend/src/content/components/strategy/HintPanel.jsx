@@ -1,7 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Text, Badge, Button, Collapse, Stack, Group, Loader, Alert } from '@mantine/core';
-import { IconBulb, IconChevronDown, IconChevronUp, IconInfoCircle } from '@tabler/icons-react';
-import StrategyService from '../../services/strategyService';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Text,
+  Badge,
+  Button,
+  Collapse,
+  Stack,
+  Group,
+  Loader,
+  Alert,
+} from "@mantine/core";
+import {
+  IconBulb,
+  IconChevronDown,
+  IconChevronUp,
+  IconInfoCircle,
+} from "@tabler/icons-react";
+import StrategyService from "../../services/strategyService";
 
 /**
  * HintPanel - Real-time context-aware strategy hints during problem solving
@@ -26,13 +41,14 @@ const HintPanel = ({ problemTags = [], isVisible = true, className = "" }) => {
     try {
       setLoading(true);
       setError(null);
-      
-      const contextualHints = await StrategyService.getContextualHints(problemTags);
+
+      const contextualHints = await StrategyService.getContextualHints(
+        problemTags
+      );
       setHints(contextualHints);
-      
     } catch (err) {
-      console.error('Error loading hints:', err);
-      setError('Failed to load strategy hints');
+      console.error("Error loading hints:", err);
+      setError("Failed to load strategy hints");
     } finally {
       setLoading(false);
     }
@@ -42,17 +58,17 @@ const HintPanel = ({ problemTags = [], isVisible = true, className = "" }) => {
     return null;
   }
 
-  const generalHints = hints.filter(hint => hint.type === 'general');
-  const contextualHints = hints.filter(hint => hint.type === 'contextual');
+  const generalHints = hints.filter((hint) => hint.type === "general");
+  const contextualHints = hints.filter((hint) => hint.type === "contextual");
 
   return (
-    <Card 
-      shadow="sm" 
-      padding="md" 
-      radius="md" 
-      withBorder 
+    <Card
+      shadow="sm"
+      padding="md"
+      radius="md"
+      withBorder
       className={className}
-      style={{ marginBottom: '1rem' }}
+      style={{ marginBottom: "1rem" }}
     >
       <Group justify="space-between" mb="xs">
         <Group gap="xs">
@@ -66,14 +82,20 @@ const HintPanel = ({ problemTags = [], isVisible = true, className = "" }) => {
             </Badge>
           )}
         </Group>
-        
+
         <Button
           variant="subtle"
           size="xs"
           onClick={() => setIsExpanded(!isExpanded)}
-          rightSection={isExpanded ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+          rightSection={
+            isExpanded ? (
+              <IconChevronUp size={14} />
+            ) : (
+              <IconChevronDown size={14} />
+            )
+          }
         >
-          {isExpanded ? 'Hide' : 'Show'} Hints
+          {isExpanded ? "Hide" : "Show"} Hints
         </Button>
       </Group>
 
@@ -81,12 +103,19 @@ const HintPanel = ({ problemTags = [], isVisible = true, className = "" }) => {
         {loading && (
           <Group justify="center" p="md">
             <Loader size="sm" />
-            <Text size="sm" c="dimmed">Loading strategy hints...</Text>
+            <Text size="sm" c="dimmed">
+              Loading strategy hints...
+            </Text>
           </Group>
         )}
 
         {error && (
-          <Alert icon={<IconInfoCircle size={16} />} color="red" variant="light" mb="sm">
+          <Alert
+            icon={<IconInfoCircle size={16} />}
+            color="red"
+            variant="light"
+            mb="sm"
+          >
             {error}
           </Alert>
         )}
@@ -106,12 +135,19 @@ const HintPanel = ({ problemTags = [], isVisible = true, className = "" }) => {
                   Multi-Tag Strategies
                 </Text>
                 {contextualHints.map((hint, index) => (
-                  <Card key={`contextual-${index}`} p="sm" radius="sm" bg="blue.0">
+                  <Card
+                    key={`contextual-${index}`}
+                    p="sm"
+                    radius="sm"
+                    bg="blue.0"
+                  >
                     <Group gap="xs" mb="xs">
                       <Badge size="xs" variant="filled" color="blue">
                         {hint.primaryTag}
                       </Badge>
-                      <Text size="xs" c="dimmed">+</Text>
+                      <Text size="xs" c="dimmed">
+                        +
+                      </Text>
                       <Badge size="xs" variant="outline" color="blue">
                         {hint.relatedTag}
                       </Badge>
@@ -127,7 +163,9 @@ const HintPanel = ({ problemTags = [], isVisible = true, className = "" }) => {
             {/* General hints */}
             {generalHints.length > 0 && (
               <>
-                {contextualHints.length > 0 && <div style={{ marginTop: '0.5rem' }} />}
+                {contextualHints.length > 0 && (
+                  <div style={{ marginTop: "0.5rem" }} />
+                )}
                 <Text size="xs" weight={500} c="gray" tt="uppercase">
                   General Strategies
                 </Text>

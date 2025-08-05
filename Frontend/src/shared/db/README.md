@@ -5,34 +5,40 @@ The database layer provides IndexedDB abstraction with a centralized helper syst
 ## Database Helper (`index.js`)
 
 ### Core Database Management
+
 - **Database Name**: "review"
 - **Current Version**: 25
 - **Store Count**: 13 specialized object stores
 - **Upgrade Strategy**: Automatic versioned migrations with data preservation
 
 ### Key Functions
+
 ```javascript
 // Primary database connection
-await dbHelper.openDB()
+await dbHelper.openDB();
 
 // Store access (readonly/readwrite)
-const store = await dbHelper.getStore('storeName', 'readwrite')
+const store = await dbHelper.getStore("storeName", "readwrite");
 
 // Index creation utility
-dbHelper.ensureIndex(store, indexName, keyPath)
+dbHelper.ensureIndex(store, indexName, keyPath);
 ```
 
 ## Store Utilities
 
 ### 🧮 **attempts.js**
+
 **Purpose**: Individual problem attempt tracking
+
 - `recordAttempt(attemptData)` - Logs problem attempts with timing and success data
 - `getAttemptsBySession(sessionId)` - Retrieves all attempts for a session
 - `getAttemptHistory(problemId)` - Gets historical attempts for a problem
 - `calculateAttemptStatistics()` - Computes success rates and timing metrics
 
-### 🔄 **sessions.js** 
+### 🔄 **sessions.js**
+
 **Purpose**: Learning session management and analytics
+
 - `saveNewSessionToDB(session)` - Creates new session records
 - `updateSessionInDB(sessionId, updates)` - Updates session progress
 - `getSessionById(sessionId)` - Retrieves specific session data
@@ -41,7 +47,9 @@ dbHelper.ensureIndex(store, indexName, keyPath)
 - `buildAdaptiveSessionSettings()` - Creates adaptive session configurations
 
 ### 🧩 **problems.js**
+
 **Purpose**: Problem data and Leitner system management
+
 - `addProblem(problemData)` - Adds new problems with metadata
 - `updateProblemInDB(problemId, updates)` - Updates problem state (box levels, stability)
 - `fetchAllProblems()` - Retrieves all problems with filters
@@ -51,7 +59,9 @@ dbHelper.ensureIndex(store, indexName, keyPath)
 - `updateProblemsWithRatings()` - Bulk rating updates
 
 ### 🏷️ **tag_mastery.js**
+
 **Purpose**: Algorithm pattern mastery tracking
+
 - `calculateTagMastery()` - Recalculates mastery scores across all tags
 - `getTagMastery(tag?)` - Retrieves mastery data for specific tag or all tags
 - `updateTagMasteryScore(tag, delta)` - Adjusts mastery score
@@ -59,55 +69,71 @@ dbHelper.ensureIndex(store, indexName, keyPath)
 - `getWeakTags()` - Identifies struggling patterns needing focus
 
 ### 🪜 **pattern_ladder.js**
-**Purpose**: Progressive difficulty ladder management  
+
+**Purpose**: Progressive difficulty ladder management
+
 - `updatePatternLadder(tag, problemId, success)` - Updates ladder progression
 - `getPatternLadder(tag)` - Retrieves ladder state for algorithm pattern
 - `getNextLadderProblem(tag)` - Selects next problem in progression
 - `calculateLadderCompletion(tag)` - Computes completion percentage
 
 ### 📊 **sessionAnalytics.js**
+
 **Purpose**: Detailed session performance analysis
+
 - `storeSessionAnalytics(analyticsData)` - Saves comprehensive session analysis
-- `getSessionAnalytics(sessionId)` - Retrieves detailed session metrics  
+- `getSessionAnalytics(sessionId)` - Retrieves detailed session metrics
 - `getAnalyticsTrends(timeframe)` - Gets performance trends over time
 - `generateSessionInsights(sessionId)` - Creates AI-generated insights
 
 ### 🔍 **standard_problems.js**
+
 **Purpose**: Canonical LeetCode problem database
+
 - `getProblemFromStandardProblems(slug)` - Fetches canonical problem data
 - `searchStandardProblems(criteria)` - Searches canonical problem set
 - `updateStandardProblem(slug, updates)` - Updates canonical problem data
 - `importStandardProblems(problemSet)` - Bulk imports problem data
 
 ### 🔗 **problem_relationships.js**
+
 **Purpose**: Problem similarity and relationship graph
+
 - `updateProblemRelationships(session)` - Updates relationship strengths based on session
 - `getProblemRelationships(problemId)` - Gets related problems
 - `calculateRelationshipStrength(problem1, problem2)` - Computes similarity score
 - `maintainRelationshipGraph()` - Periodic relationship graph maintenance
 
 ### 🏗️ **tag_relationships.js**
+
 **Purpose**: Algorithm tag classification and connections
+
 - `getTagRelationships(tag?)` - Retrieves tag relationship data
 - `updateTagRelationships(relationships)` - Updates tag connection strengths
 - `getTagsByClassification(classification)` - Gets tags by tier (Core, Fundamental, Advanced)
 - `calculateTagSimilarity(tag1, tag2)` - Computes tag relationship strength
 
 ### ⚙️ **limit.js**
+
 **Purpose**: Time and attempt limit management
+
 - `getProblemLimits(problemId)` - Retrieves time limits for problems
 - `updateLimits(problemId, limits)` - Updates problem time constraints
 - `calculateAdaptiveLimits(difficulty, userLevel)` - Computes personalized limits
 
 ### 🗄️ **backupDB.js** & **restoreDB.js**
+
 **Purpose**: Database backup and recovery operations
+
 - `createBackup()` - Generates complete database backup
 - `restoreFromBackup(backupData)` - Restores database from backup
 - `validateBackup(backupData)` - Verifies backup integrity
 - `scheduleAutomaticBackup()` - Sets up periodic backups
 
 ### 📝 **common.js**
+
 **Purpose**: Shared database utilities and helpers
+
 - Database connection management
 - Common query patterns
 - Error handling utilities
@@ -116,11 +142,12 @@ dbHelper.ensureIndex(store, indexName, keyPath)
 ## Database Schema Management
 
 ### Version Migration Strategy
+
 ```javascript
 // Automatic upgrades in index.js
 request.onupgradeneeded = (event) => {
   const db = event.target.result;
-  
+
   // Store creation with proper indexes
   if (!db.objectStoreNames.contains("storeName")) {
     let store = db.createObjectStore("storeName", { keyPath: "id" });
@@ -130,14 +157,16 @@ request.onupgradeneeded = (event) => {
 ```
 
 ### Index Strategy
+
 - **Primary Keys**: Natural keys where possible (leetCodeID, tag), auto-increment for logs
 - **Secondary Indexes**: Query-optimized indexes for common access patterns
 - **Composite Indexes**: Multi-field indexes for complex queries
 
 ### Data Relationships
+
 ```
 Sessions ↔ Attempts: sessions.id = attempts.sessionId
-Problems ↔ Attempts: problems.leetCodeID = attempts.problemId  
+Problems ↔ Attempts: problems.leetCodeID = attempts.problemId
 Tags ↔ Mastery: tag_relationships.id = tag_mastery.tag
 Tags ↔ Ladders: tag_relationships.id = pattern_ladders.tag
 Sessions ↔ Analytics: sessions.id = session_analytics.sessionId
@@ -146,18 +175,21 @@ Sessions ↔ Analytics: sessions.id = session_analytics.sessionId
 ## Performance Optimizations
 
 ### Query Optimization
+
 - Strategic use of indexes for common query patterns
 - Batch operations for bulk updates
 - Transaction batching for related operations
 - Cursor-based iteration for large datasets
 
 ### Memory Management
+
 - Proper cursor cleanup
 - Transaction scoping
 - Connection pooling via singleton pattern
 - Lazy loading of large datasets
 
 ### Error Handling
+
 - Comprehensive error catching and transformation
 - Graceful degradation for storage quota issues
 - Backup/restore capability for data recovery
@@ -166,8 +198,9 @@ Sessions ↔ Analytics: sessions.id = session_analytics.sessionId
 ## Testing Strategy
 
 Database layer testing focuses on:
+
 - **Schema Integrity**: Version migration testing
-- **Data Consistency**: Relationship constraint validation  
+- **Data Consistency**: Relationship constraint validation
 - **Performance**: Query optimization verification
 - **Error Handling**: Failure scenario testing
 

@@ -6,13 +6,17 @@ import {
 import { getProblemFromStandardProblems } from "../db/standard_problems.js";
 import { AttemptsService } from "./attemptsService";
 import { v4 as uuidv4 } from "uuid";
-import { fetchAllProblems, fetchAdditionalProblems, updateProblemsWithRatings as updateProblemsWithRatingsInDB } from "../db/problems.js";
+import {
+  fetchAllProblems,
+  fetchAdditionalProblems,
+  updateProblemsWithRatings as updateProblemsWithRatingsInDB,
+} from "../db/problems.js";
 import { ScheduleService } from "./scheduleService.js";
 import { TagService } from "./tagServices.js";
 import { StorageService } from "./storageService.js";
 import { buildAdaptiveSessionSettings } from "../db/sessions.js";
 import { calculateDecayScore } from "../utils/Utils.js";
-import { ProblemReasoningService } from "./problemReasoningService.js";
+import { ProblemReasoningService } from "../../content/services/problemReasoningService.js";
 import { getTagMastery } from "../db/tag_mastery.js";
 
 const getCurrentLearningState = TagService.getCurrentLearningState;
@@ -100,16 +104,16 @@ export const ProblemService = {
     return await addProblem(contentScriptData);
   },
 
- async createSession() {
+  async createSession() {
     const settings = await buildAdaptiveSessionSettings(); // includes session length and tag/difficulty caps
-   
+
     const problems = await this.fetchAndAssembleSessionProblems(
       settings.sessionLength,
       settings.numberOfNewProblems,
       settings.currentAllowedTags,
       settings.currentDifficultyCap
     );
-  
+
     return problems;
   },
 
@@ -121,68 +125,91 @@ export const ProblemService = {
    * @param {string} currentDifficultyCap - Maximum difficulty level
    * @returns {Promise<Array>} - Array of problems for the session
    */
-  async fetchAndAssembleSessionProblems(sessionLength, numberOfNewProblems, currentAllowedTags, currentDifficultyCap) {
+  async fetchAndAssembleSessionProblems(
+    sessionLength,
+    numberOfNewProblems,
+    currentAllowedTags,
+    currentDifficultyCap
+  ) {
     console.log("🎯 Starting intelligent session assembly...");
     console.log("🎯 Session length:", sessionLength);
     console.log("🎯 New problems target:", numberOfNewProblems);
-    
+
     const allProblems = await fetchAllProblems();
-    const excludeIds = new Set(allProblems.map(p => p.leetCodeID));
-    
+    const excludeIds = new Set(allProblems.map((p) => p.leetCodeID));
+
     const sessionProblems = [];
-    
+
     // **Step 1: Review Problems (40% of session)**
     const reviewTarget = Math.floor(sessionLength * 0.4);
     const reviewProblems = await getDailyReviewSchedule(reviewTarget);
     sessionProblems.push(...reviewProblems);
-    
-    console.log(`🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`);
-    
+
+    console.log(
+      `🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`
+    );
+
     // **Step 2: New Problems (60% of session) - Split between focus and expansion**
     const newProblemsNeeded = sessionLength - sessionProblems.length;
-    
+
     if (newProblemsNeeded > 0) {
       const newProblems = await fetchAdditionalProblems(
         newProblemsNeeded,
         excludeIds
       );
-      
+
       sessionProblems.push(...newProblems);
-      console.log(`🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems`);
+      console.log(
+        `🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems`
+      );
     }
-    
+
     // **Step 3: Fallback if still short**
     if (sessionProblems.length < sessionLength) {
       const fallbackNeeded = sessionLength - sessionProblems.length;
-      const usedIds = new Set(sessionProblems.map(p => p.id || p.leetCodeID));
-      
+      const usedIds = new Set(sessionProblems.map((p) => p.id || p.leetCodeID));
+
       const fallbackProblems = allProblems
-        .filter(p => !usedIds.has(p.id))
+        .filter((p) => !usedIds.has(p.id))
         .sort(problemSortingCriteria)
         .slice(0, fallbackNeeded);
-      
+
       sessionProblems.push(...fallbackProblems);
       console.log(`🔄 Added ${fallbackProblems.length} fallback problems`);
     }
-    
+
     // **Step 4: Final session composition**
-    const finalSession = deduplicateById(sessionProblems).slice(0, sessionLength);
-    
+    const finalSession = deduplicateById(sessionProblems).slice(
+      0,
+      sessionLength
+    );
+
     // **Step 5: Add problem selection reasoning**
-    const sessionWithReasons = await this.addProblemReasoningToSession(finalSession, {
-      sessionLength,
-      reviewCount: reviewProblems.length,
-      newCount: finalSession.length - reviewProblems.length,
-      allowedTags: currentAllowedTags,
-      difficultyCap: currentDifficultyCap
-    });
-    
+    const sessionWithReasons = await this.addProblemReasoningToSession(
+      finalSession,
+      {
+        sessionLength,
+        reviewCount: reviewProblems.length,
+        newCount: finalSession.length - reviewProblems.length,
+        allowedTags: currentAllowedTags,
+        difficultyCap: currentDifficultyCap,
+      }
+    );
+
     console.log(`🎯 Final session composition:`);
-    console.log(`   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`);
+    console.log(
+      `   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`
+    );
     console.log(`   🔄 Review problems: ${reviewProblems.length}`);
-    console.log(`   🆕 New problems: ${sessionWithReasons.length - reviewProblems.length}`);
-    console.log(`   🧠 Problems with reasoning: ${sessionWithReasons.filter(p => p.selectionReason).length}`);
-    
+    console.log(
+      `   🆕 New problems: ${sessionWithReasons.length - reviewProblems.length}`
+    );
+    console.log(
+      `   🧠 Problems with reasoning: ${
+        sessionWithReasons.filter((p) => p.selectionReason).length
+      }`
+    );
+
     return sessionWithReasons;
   },
 
@@ -194,24 +221,30 @@ export const ProblemService = {
    */
   async addProblemReasoningToSession(problems, sessionContext) {
     try {
-      console.log(`🧠 Adding reasoning to ${problems.length} problems in session`);
-      
+      console.log(
+        `🧠 Adding reasoning to ${problems.length} problems in session`
+      );
+
       // Get user performance data for reasoning generation
       const tagMasteryData = await getTagMastery();
       const userPerformance = this.buildUserPerformanceContext(tagMasteryData);
-      
+
       // Generate reasoning for each problem
-      const problemsWithReasons = ProblemReasoningService.generateSessionReasons(
-        problems,
-        sessionContext,
-        userPerformance
+      const problemsWithReasons =
+        ProblemReasoningService.generateSessionReasons(
+          problems,
+          sessionContext,
+          userPerformance
+        );
+
+      console.log(
+        `✅ Added reasoning to ${
+          problemsWithReasons.filter((p) => p.selectionReason).length
+        } problems`
       );
-      
-      console.log(`✅ Added reasoning to ${problemsWithReasons.filter(p => p.selectionReason).length} problems`);
       return problemsWithReasons;
-      
     } catch (error) {
-      console.error('❌ Error adding problem reasoning to session:', error);
+      console.error("❌ Error adding problem reasoning to session:", error);
       // Return original problems if reasoning fails
       return problems;
     }
@@ -228,38 +261,38 @@ export const ProblemService = {
         weakTags: [],
         newTags: [],
         tagAccuracy: {},
-        tagAttempts: {}
+        tagAttempts: {},
       };
     }
-    
+
     // Identify weak tags (below 70% accuracy)
     const weakTags = tagMasteryData
-      .filter(tm => tm.successRate < 0.7 && tm.totalAttempts >= 3)
-      .map(tm => tm.tag.toLowerCase());
-    
+      .filter((tm) => tm.successRate < 0.7 && tm.totalAttempts >= 3)
+      .map((tm) => tm.tag.toLowerCase());
+
     // Identify new tags (less than 3 attempts)
     const newTags = tagMasteryData
-      .filter(tm => tm.totalAttempts < 3)
-      .map(tm => tm.tag.toLowerCase());
-    
+      .filter((tm) => tm.totalAttempts < 3)
+      .map((tm) => tm.tag.toLowerCase());
+
     // Build accuracy mapping
     const tagAccuracy = {};
     const tagAttempts = {};
-    
-    tagMasteryData.forEach(tm => {
+
+    tagMasteryData.forEach((tm) => {
       const tagKey = tm.tag.toLowerCase();
       tagAccuracy[tagKey] = tm.successRate || 0;
       tagAttempts[tagKey] = tm.totalAttempts || 0;
     });
-    
+
     return {
       weakTags,
       newTags,
       tagAccuracy,
-      tagAttempts
+      tagAttempts,
     };
   },
-  
+
   async updateProblemsWithRatings() {
     return await updateProblemsWithRatingsInDB();
   },
@@ -323,7 +356,6 @@ const deduplicateById = (problems) => {
     return true;
   });
 };
-
 
 function problemSortingCriteria(a, b) {
   const reviewDateA = new Date(a.ReviewSchedule);

@@ -5,13 +5,18 @@ import classes from "./css/SliderMarks.module.css";
 import React, { useState, useEffect } from "react";
 
 export function ToggleSelectRemainders({ reminder, onChange }) {
-  const [currReminder, setCurrReminder] = useState(reminder || { enabled: false, time: "12" }); // State to manage the slider toggle
+  const [currReminder, setCurrReminder] = useState(
+    reminder || { enabled: false, time: "12" }
+  ); // State to manage the slider toggle
   useEffect(() => {
     setCurrReminder(reminder || { enabled: false, time: "12" });
   }, [reminder]);
 
   const handleToggle = () => {
-    const updatedReminder = { ...currReminder, enabled: !currReminder?.enabled };
+    const updatedReminder = {
+      ...currReminder,
+      enabled: !currReminder?.enabled,
+    };
     setCurrReminder(updatedReminder);
     onChange(updatedReminder);
   };
@@ -61,7 +66,12 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
 
 const point = (
   <IconPoint
-    style={{ marginTop: rem(6), width: rem(10), height: rem(10), color: "var(--cd-text)" }}
+    style={{
+      marginTop: rem(6),
+      width: rem(10),
+      height: rem(10),
+      color: "var(--cd-text)",
+    }}
     stroke={1.5}
   />
 );
@@ -150,9 +160,7 @@ export function GradientSegmentedControlTimeLimit(props) {
       data={["Auto", "off", "15", "20", "30"]}
       value={props.value}
       onChange={props.onChange}
-      color = "var(--cd-active-blue)"
+      color="var(--cd-active-blue)"
     />
-  
-   
   );
 }
