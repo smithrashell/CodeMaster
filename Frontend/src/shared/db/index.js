@@ -1,6 +1,6 @@
 export const dbHelper = {
   dbName: "review",
-  version: 25, // 🚨 Increment version to trigger upgrade (added strategy_data store)
+  version: 29, // 🚨 Increment version to trigger upgrade (removed onboarding_progress store, consolidated into settings)
   db: null,
 
   async openDB() {
@@ -48,22 +48,26 @@ export const dbHelper = {
           db.createObjectStore("session_state", { keyPath: "id" });
         }
 
-        if (!db.objectStoreNames.contains("problem_relationships")) {
-          let relationshipsStore = db.createObjectStore(
-            "problem_relationships"
-          );
-
-          dbHelper.ensureIndex(
-            relationshipsStore,
-            "by_problemId1",
-            "problemId1"
-          );
-          dbHelper.ensureIndex(
-            relationshipsStore,
-            "by_problemId2",
-            "problemId2"
-          );
+        // ✅ Fix problem_relationships store schema - recreate with proper keyPath
+        if (db.objectStoreNames.contains("problem_relationships")) {
+          db.deleteObjectStore("problem_relationships");
         }
+        
+        let relationshipsStore = db.createObjectStore(
+          "problem_relationships",
+          { keyPath: "id", autoIncrement: true }
+        );
+
+        dbHelper.ensureIndex(
+          relationshipsStore,
+          "by_problemId1",
+          "problemId1"
+        );
+        dbHelper.ensureIndex(
+          relationshipsStore,
+          "by_problemId2",
+          "problemId2"
+        );
 
         // ✅ Ensure 'problems' store exists
         if (!db.objectStoreNames.contains("problems")) {
@@ -201,6 +205,7 @@ export const dbHelper = {
 
           console.log("✅ Strategy data store created!");
         }
+
       };
 
       request.onsuccess = (event) => {

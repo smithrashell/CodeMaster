@@ -2,12 +2,10 @@ import { dbHelper } from "./index.js";
 import { isDifficultyAllowed, deduplicateById } from "../utils/Utils.js";
 import { AttemptsService } from "../services/attemptsService.js";
 
-import { determineNextProblem } from "./problem_relationships.js";
-import { findBestNextProblem } from "./problem_relationships.js";
 import { getAllStandardProblems } from "./standard_problems.js";
 import { fetchProblemById } from "./standard_problems.js";
 import { TagService } from "../services/tagServices.js";
-const getCurrentLearningState = TagService.getCurrentLearningState;
+// Remove early binding - use TagService.getCurrentLearningState() directly
 import { v4 as uuidv4 } from "uuid";
 import { getAllowedDifficulties } from "../utils/Utils.js";
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
@@ -474,7 +472,7 @@ export async function fetchAdditionalProblems(
 ) {
   try {
     const { masteryData, focusTags, allTagsInCurrentTier } =
-      await getCurrentLearningState();
+      await TagService.getCurrentLearningState();
     const allProblems = await getAllStandardProblems();
     const ladders = await getPatternLadders();
 

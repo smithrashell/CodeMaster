@@ -13,7 +13,7 @@ import { buildRelationshipMap } from "../db/problem_relationships.js";
 
 import { TagService } from "../services/tagServices.js";
 import { getAllFromStore } from "../db/common.js";
-const getCurrentLearningState = TagService.getCurrentLearningState;
+// Remove early binding - use TagService.getCurrentLearningState() directly
 export async function initializePatternLaddersForOnboarding() {
   const [
     standardProblems,
@@ -34,7 +34,7 @@ export async function initializePatternLaddersForOnboarding() {
     return;
   }
 
-  const { allTagsInCurrentTier, focusTags } = await getCurrentLearningState();
+  const { allTagsInCurrentTier, focusTags } = await TagService.getCurrentLearningState();
 
   const focusTagSet = new Set(focusTags);
   const allTagsInTierSet = new Set(allTagsInCurrentTier);
