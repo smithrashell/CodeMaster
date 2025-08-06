@@ -4,6 +4,98 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.9.8] - 2025-08-06
+
+### Added
+
+* **🎯 Comprehensive User Onboarding System**: Complete dual-context onboarding flow to eliminate first-time user confusion and reduce 80%+ user abandonment
+
+  * **4-Step App Onboarding (WelcomeModal)**: Interactive welcome flow in dashboard app introducing core features (dashboard, analytics, sessions, review) with progress tracking and educational content
+  * **10-Step Content Onboarding (ContentOnboardingTour)**: Contextual LeetCode overlay tour with CM button introduction → navigation overview → feature deep-dives (generator, statistics, settings, timer) → strategy hints explanation
+  * **Smart Element Highlighting System**: ElementHighlighter component with spotlight effects, pulsing borders, auto-scroll, and multiple highlight types (spotlight, outline, pointer) for guided user attention
+  * **Intelligent Positioning System**: SmartPositioning utility with auto-placement calculations, collision detection, viewport boundary awareness, and dynamic arrow positioning for optimal tour card placement
+  * **Granular Progress Tracking**: Enhanced onboarding service with screen-specific progress (intro, cmButton, navigation, generator, statistics, settings, problemTimer, strategyHints) and interaction tracking (clickedCMButton, openedMenu, visitedGenerator)
+
+* **📊 Onboarding Database Architecture**: Robust progress persistence with resume capabilities and state management
+
+  * **Separate Onboarding Records**: Independent database records (`app_onboarding` and `content_onboarding` in settings store) preventing cross-context conflicts and state overwriting issues
+  * **Resume Functionality**: getResumeStep() logic for continuing interrupted onboarding tours with lastActiveStep tracking and intelligent step determination
+  * **Comprehensive State Tracking**: completedSteps arrays, screenProgress objects, interactionProgress tracking, and resumeData for context-aware onboarding continuation
+  * **Database Schema Updates**: Incremented database version to 29 with proper migration handling and consolidated settings store architecture
+
+### Enhanced
+
+* **🚀 Chrome Extension User Experience**: Seamless onboarding flow integration with existing extension functionality
+
+  * **Original Navigation Flow**: Restored intended UX pattern (App onboarding → "Start First Session" button → New LeetCode tab → Content onboarding) with window.open('_blank') for proper tab isolation
+  * **Smart Button Visibility**: Enhanced "Start First Session" button logic to show for users with existing data when content onboarding incomplete, eliminating false negatives for returning users
+  * **Independent Onboarding Systems**: App and content onboarding completely isolated - completing one doesn't affect the other, enabling proper progressive disclosure
+  * **Comprehensive Debug Logging**: Extensive console logging throughout onboarding flow for development debugging and user experience optimization
+
+* **⚡ Onboarding Component Architecture**: Professional UI components with consistent design language and responsive behavior
+
+  * **Enhanced Tour Cards**: Compact 280px width tour cards with progress bars, step indicators, themed icons, and responsive positioning for overlay context
+  * **Button Layout Optimization**: Fixed horizontal button layout with flexbox, proper sizing (28px height, 12px font), and consistent spacing preventing column stacking issues
+  * **Theme Integration**: Full Mantine theme compatibility with light/dark mode support, CSS custom properties, and consistent color schemes
+  * **Animation Polish**: Smooth transitions with cubic-bezier easing, proper opacity management, and performance-optimized transform animations
+
+### Fixed
+
+* **🔧 Onboarding System Integration Issues**: Resolved critical blocking issues preventing content onboarding from triggering
+
+  * **Record Conflict Resolution**: Eliminated unified record conflicts by separating app_onboarding and content_onboarding into independent settings store records, preventing mutual overwriting
+  * **Content Script Loading**: Fixed content onboarding detection with proper async/await handling, error recovery, and fallback mechanisms for reliable tour triggering
+  * **Database Access Context**: Resolved IndexedDB access from content script context with proper service layer integration and cross-context data persistence
+  * **Navigation Flow Dependencies**: Fixed content onboarding independence from data onboarding completion, enabling immediate tour display on LeetCode navigation
+
+* **🎨 UI/UX Consistency Issues**: Addressed visual and interaction problems in onboarding tour components
+
+  * **Button Text Visibility**: Increased font sizes (12px) and button heights (28px) with proper font-weight (500) ensuring readable button labels throughout tour
+  * **Step Progression Logic**: Simplified interaction detection removing complex waitForInteraction requirements that caused tour stagnation on step 3
+  * **Component Rendering Issues**: Fixed conditional rendering logic in ContentOnboardingTour with proper shouldShowStep() validation and menu state monitoring
+  * **Element Highlighting Accuracy**: Enhanced target element selection with robust querySelector handling and highlight state management
+
+### Technical Improvements
+
+* **🏗️ Database Architecture Optimization**: Consolidated onboarding persistence with improved maintainability and reduced complexity
+
+  * **Settings Store Consolidation**: Removed sparse onboarding_progress store, migrated all onboarding data to existing settings store for cleaner database architecture
+  * **Version Migration Handling**: Proper database version increments (28→29) with schema upgrade triggers and backward compatibility preservation
+  * **Service Layer Enhancement**: Updated all onboarding service functions for separate record handling with comprehensive error management and logging
+  * **Data Structure Optimization**: Streamlined onboarding data models with clear separation of concerns and optimized query patterns
+
+* **🔍 Development and Debugging Infrastructure**: Enhanced developer experience with comprehensive logging and debugging tools
+
+  * **Comprehensive Debug Logging**: Extensive console logging with emoji indicators (🔍, 📊, ✅, 🚀) throughout onboarding flow for precise debugging
+  * **Component State Tracking**: Real-time visibility into onboarding component rendering, visibility states, and user interaction patterns
+  * **Database Operation Logging**: Detailed logging of record creation, updates, and retrieval operations for onboarding state management
+  * **Error Recovery Systems**: Graceful fallback mechanisms with comprehensive error handling ensuring onboarding continues even during partial failures
+
+* **⚡ Performance and Architecture Benefits**: Optimized onboarding system for production reliability and scalability
+
+  * **Independent System Architecture**: Complete isolation between app and content onboarding enabling parallel development and context-specific optimizations
+  * **Minimal Bundle Impact**: Efficient code organization and component reuse minimizing impact on extension size and load times
+  * **Memory Management**: Proper cleanup of event listeners, observers, and React effects preventing memory leaks during extended onboarding sessions
+  * **Future-Ready Foundation**: Extensible architecture supporting additional onboarding contexts and educational flows
+
+### User Experience Impact
+
+* **🎯 Eliminated First-Time User Confusion**: Comprehensive onboarding addressing the #1 barrier to adoption with clear guided introduction to all features
+
+  * **Progressive Feature Discovery**: Structured 4→10 step flow introducing core concepts (dashboard analytics) then contextual features (LeetCode integration)
+  * **Contextual Learning**: Content onboarding appears exactly when users need it (on LeetCode) with relevant feature explanations and interaction guidance
+  * **Clear Value Proposition**: Educational content explaining why each feature matters and how it improves coding practice and interview preparation
+  * **Confidence Building**: Guided tour eliminates uncertainty about feature location and usage, building user engagement and feature adoption
+
+* **🚀 Improved User Activation and Retention**: Seamless onboarding flow designed to convert first-time visitors into active users
+
+  * **Reduced Cognitive Load**: Structured information delivery preventing overwhelming users with too many features simultaneously
+  * **Immediate Value Demonstration**: Quick wins in app onboarding followed by practical feature usage in content onboarding
+  * **Natural Progression Flow**: Logical sequence from overview (app) to hands-on usage (content) matching user mental model and workflow
+  * **Optional but Guided**: Skippable onboarding with clear progression indicators and resume capabilities for user control and flexibility
+
+---
+
 ## [0.9.7] - 2025-08-05
 
 ### Added
