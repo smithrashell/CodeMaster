@@ -85,12 +85,12 @@ export default function Main() {
       (response) => {
         if (response.error) {
           console.error("❌ Error in getProblemByDescription", response.error);
-          setProblemDate(null);
+          setProblemData(null);
           setProblemFound(false);
           setLoading(false);
         }
         if (response.problem) {
-          setProblemData("✅ Problem found: ", response.problem);
+          console.log("✅ Problem found: ", response.problem);
           setProblemFound(response.found);
           setProblemData(response.problem);
         } else {
@@ -255,7 +255,8 @@ export default function Main() {
                 <Link to="/ProbGen">Generator</Link>
                 <Link to="/ProbStat">Statistics</Link>
                 <Link to="/Settings">Settings</Link>
-                {problemTitle && (
+{/* Problem Link - Only show when on a valid LeetCode problem page */}
+                {currentProblem && (
                   <Link
                     to="/ProbTime"
                     state={{ problemData, problemFound }}
@@ -294,7 +295,10 @@ export default function Main() {
                         Problem
                       </>
                     ) : (
-                      "Problem Unavailable"
+                      <>
+                        <span className="cd-nav-icon cd-problem-icon"></span>
+                        {problemTitle || currentProblem}
+                      </>
                     )}
                   </Link>
                 )}
