@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Tooltip,
   Stack,
@@ -24,6 +24,9 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
   const [opened, setOpened] = useState(false);
   const buttonRef = useRef(null);
 
+  // Memoize the stringified tags to prevent effect from running on array reference changes
+  const tagsString = useMemo(() => JSON.stringify(problemTags), [problemTags]);
+  
   // Load contextual hints when problem tags change
   useEffect(() => {
     if (problemTags.length > 0) {
@@ -31,7 +34,8 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
     } else {
       setHints([]);
     }
-  }, [problemTags]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tagsString]); // Use string version to prevent unnecessary calls
 
   const loadHints = async () => {
     try {
@@ -52,29 +56,69 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
     }
   };
 
+  // Memoize expensive hint filtering calculations
+  const { generalHints, contextualHints, totalHints } = useMemo(() => {
+    const general = hints.filter(
+      (hint) => hint.type === "general" || hint.type === "pattern"
+    );
+    const contextual = hints.filter((hint) => hint.type === "contextual");
+    
+    return {
+      generalHints: general,
+      contextualHints: contextual,
+      totalHints: hints.length
+    };
+  }, [hints]);
+
+  // Memoize button styles to prevent re-creation on every render
+  const buttonStyles = useMemo(() => ({
+    background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
+    border: "none",
+    borderRadius: "50%",
+    width: "30px",
+    height: "30px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    position: "relative",
+    margin: "0 4px",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+    transition: "all 0.2s ease",
+  }), []);
+
+  // Memoize callback functions
+  const handlePopoverClose = useCallback(() => {
+    setOpened(false);
+    if (onClose) {
+      onClose({
+        problemTags,
+        hintsCount: hints.length,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, [onClose, problemTags, hints.length]);
+
+  const handleButtonClick = useCallback(() => {
+    const newOpened = !opened;
+    setOpened(newOpened);
+    if (newOpened && onOpen) {
+      onOpen({
+        problemTags,
+        hintsCount: hints.length,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, [opened, onOpen, problemTags, hints.length]);
+
   if (problemTags.length === 0) {
     return null;
   }
 
-  const generalHints = hints.filter(
-    (hint) => hint.type === "general" || hint.type === "pattern"
-  );
-  const contextualHints = hints.filter((hint) => hint.type === "contextual");
-  const totalHints = hints.length;
-
   return (
     <Popover
       opened={opened}
-      onClose={() => {
-        setOpened(false);
-        if (onClose) {
-          onClose({
-            problemTags,
-            hintsCount: hints.length,
-            timestamp: new Date().toISOString(),
-          });
-        }
-      }}
+      onClose={handlePopoverClose}
       width={350}
       position="bottom"
       withArrow
@@ -94,32 +138,8 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
         >
           <button
             ref={buttonRef}
-            onClick={() => {
-              const newOpened = !opened;
-              setOpened(newOpened);
-              if (newOpened && onOpen) {
-                onOpen({
-                  problemTags,
-                  hintsCount: hints.length,
-                  timestamp: new Date().toISOString(),
-                });
-              }
-            }}
-            style={{
-              background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
-              border: "none",
-              borderRadius: "50%",
-              width: "30px",
-              height: "30px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              position: "relative",
-              margin: "0 4px",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-              transition: "all 0.2s ease",
-            }}
+            onClick={handleButtonClick}
+            style={buttonStyles}
             onMouseEnter={(e) => {
               e.target.style.transform = "scale(1.05)";
               e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";

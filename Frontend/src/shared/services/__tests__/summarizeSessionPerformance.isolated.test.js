@@ -9,6 +9,7 @@ const mockCalculateTagMastery = jest.fn();
 const mockUpdateProblemRelationships = jest.fn();
 const mockGetSessionPerformance = jest.fn();
 const mockStoreSessionAnalytics = jest.fn();
+const mockFetchProblemById = jest.fn().mockResolvedValue({ difficulty: "Medium" });
 
 jest.mock("../../db/tag_mastery", () => ({
   getTagMastery: mockGetTagMastery,
@@ -30,6 +31,9 @@ jest.mock("../../db/sessionAnalytics", () => ({
 // Mock other modules to prevent circular imports
 jest.mock("../../db/problems", () => ({}));
 jest.mock("../../db/attempts", () => ({}));
+jest.mock("../../db/standard_problems", () => ({
+  fetchProblemById: mockFetchProblemById,
+}));
 jest.mock("../storageService", () => ({}));
 jest.mock("../scheduleService", () => ({}));
 jest.mock("../tagServices", () => ({}));
@@ -72,9 +76,9 @@ describe("SessionService.summarizeSessionPerformance (Isolated)", () => {
       const mockSession = {
         id: "test-session-123",
         problems: [
-          { id: 1, difficulty: "Easy", tags: ["array"] },
-          { id: 2, difficulty: "Medium", tags: ["string"] },
-          { id: 3, difficulty: "Easy", tags: ["hash-table"] },
+          { id: 1, leetCodeID: 1, difficulty: "Easy", tags: ["array"] },
+          { id: 2, leetCodeID: 2, difficulty: "Medium", tags: ["string"] },
+          { id: 3, leetCodeID: 3, difficulty: "Easy", tags: ["hash-table"] },
         ],
         attempts: [
           { problemId: 1, success: true },
@@ -118,6 +122,12 @@ describe("SessionService.summarizeSessionPerformance (Isolated)", () => {
       mockCalculateTagMastery.mockResolvedValue();
       mockGetSessionPerformance.mockResolvedValue(mockPerformanceMetrics);
       mockStoreSessionAnalytics.mockResolvedValue();
+      
+      // Mock standard problems for each problem in the session
+      mockFetchProblemById
+        .mockResolvedValueOnce({ difficulty: "Easy" })
+        .mockResolvedValueOnce({ difficulty: "Medium" })
+        .mockResolvedValueOnce({ difficulty: "Easy" });
 
       // Act
       const result = await SessionService.summarizeSessionPerformance(
@@ -238,20 +248,29 @@ describe("SessionService.summarizeSessionPerformance (Isolated)", () => {
   });
 
   describe("analyzeSessionDifficulty", () => {
-    it("should analyze difficulty distribution correctly", () => {
+    it("should analyze difficulty distribution correctly", async () => {
       // Arrange
       const mockSession = {
         problems: [
-          { difficulty: "Easy" },
-          { difficulty: "Easy" },
-          { Rating: "Medium" }, // Alternative field name
-          { difficulty: "Hard" },
-          { difficulty: "Easy" },
+          { leetCodeID: 1, difficulty: "Easy" },
+          { leetCodeID: 2, difficulty: "Easy" },
+          { leetCodeID: 3, Rating: "Medium" }, // Alternative field name
+          { leetCodeID: 4, difficulty: "Hard" },
+          { leetCodeID: 5, difficulty: "Easy" },
         ],
       };
 
+      // Clear and set up the mock for this specific test
+      jest.clearAllMocks();
+      mockFetchProblemById
+        .mockResolvedValueOnce({ difficulty: "Easy" })
+        .mockResolvedValueOnce({ difficulty: "Easy" })
+        .mockResolvedValueOnce({ difficulty: "Medium" })
+        .mockResolvedValueOnce({ difficulty: "Hard" })
+        .mockResolvedValueOnce({ difficulty: "Easy" });
+
       // Act
-      const analysis = SessionService.analyzeSessionDifficulty(mockSession);
+      const analysis = await SessionService.analyzeSessionDifficulty(mockSession);
 
       // Assert
       expect(analysis).toEqual({
@@ -260,39 +279,48 @@ describe("SessionService.summarizeSessionPerformance (Isolated)", () => {
         totalProblems: 5,
         predominantDifficulty: "Easy",
       });
+      
+      // Verify the mock was called correctly
+      expect(mockFetchProblemById).toHaveBeenCalledTimes(5);
     });
 
-    it("should handle empty problems array", () => {
+    it("should handle empty problems array", async () => {
       // Arrange
       const emptySession = { problems: [] };
 
       // Act
-      const analysis = SessionService.analyzeSessionDifficulty(emptySession);
+      const analysis = await SessionService.analyzeSessionDifficulty(emptySession);
 
       // Assert
       expect(analysis.totalProblems).toBe(0);
       expect(analysis.counts).toEqual({ Easy: 0, Medium: 0, Hard: 0 });
     });
 
-    it("should default unknown difficulties to Medium", () => {
+    it("should default unknown difficulties to Medium", async () => {
       // Arrange
       const mockSession = {
         problems: [
-          { difficulty: "Unknown" },
-          { difficulty: null },
-          {}, // No difficulty field
+          { leetCodeID: 1 },
+          { leetCodeID: 2 },
+          { leetCodeID: 3 },
         ],
       };
 
-      // Act
-      const analysis = SessionService.analyzeSessionDifficulty(mockSession);
+      // Mock fetchProblemById to return null (problem not found)
+      const mockFetchProblemById = jest.fn()
+        .mockResolvedValue(null);
 
-      // Assert - The actual implementation only counts valid difficulties
-      // Invalid/unknown difficulties are ignored, not defaulted to Medium
-      expect(analysis.counts.Easy).toBe(0);
-      expect(analysis.counts.Hard).toBe(0);
+      jest.doMock("../../db/standard_problems.js", () => ({
+        fetchProblemById: mockFetchProblemById,
+      }));
+
+      // Act
+      const analysis = await SessionService.analyzeSessionDifficulty(mockSession);
+
+      // Assert - When problems not found, should default to Medium
+      expect(analysis.counts.Medium).toBe(3);
       expect(analysis.totalProblems).toBe(3);
-      // The predominant difficulty will be whichever has the most count
+      expect(analysis.predominantDifficulty).toBe("Medium");
     });
   });
 
