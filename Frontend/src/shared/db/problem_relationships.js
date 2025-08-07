@@ -6,8 +6,6 @@ import { TagService } from "../services/tagServices";
 import { fetchAllProblems } from "./problems.js";
 import { dbHelper } from "./index.js";
 
-const getCurrentLearningState = TagService.getCurrentLearningState;
-
 const openDB = dbHelper.openDB;
 
 export const addProblemRelationship = async (
@@ -73,10 +71,10 @@ export async function storeRelationships(problemGraph) {
         const tx = db.transaction("problem_relationships", "readwrite");
         const store = tx.objectStore("problem_relationships");
 
-        const request = store.put({
+        const request = store.add({
           problemId1,
           problemId2,
-          weight: strength, // ✅ Match original field name
+          strength, // ✅ Use consistent field name
         });
 
         request.onsuccess = resolve;
