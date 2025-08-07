@@ -2,15 +2,18 @@ import { Container, Grid, Title } from "@mantine/core";
 import { useEffect, useState } from "react";
 import MetricCard from "../../components/analytics/MetricCard";
 import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
+import { EmptyStateCard } from "../../components/onboarding/EmptyStateCard";
 import {
   getAccuracyTrendData,
   getAttemptBreakdownData,
 } from "../../../shared/utils/DataAdapter.js";
+import { checkContentOnboardingStatus } from "../../../shared/services/onboardingService.js";
 export function Stats({ appState }) {
-  const [statistics, setStatistics] = useState(appState.statistics);
-  const [averageTime, setAverageTime] = useState(appState.averageTime);
-  const [successRate, setSuccessRate] = useState(appState.successRate);
-  const [allSessions, setAllSessions] = useState(appState.allSessions);
+  const [statistics, setStatistics] = useState(appState?.statistics);
+  const [averageTime, setAverageTime] = useState(appState?.averageTime);
+  const [successRate, setSuccessRate] = useState(appState?.successRate);
+  const [allSessions, setAllSessions] = useState(appState?.allSessions);
+  const [contentOnboardingCompleted, setContentOnboardingCompleted] = useState(null);
   const [accuracyData, setAccuracyData] = useState({
     weekly: null,
     monthly: null,
@@ -21,6 +24,20 @@ export function Stats({ appState }) {
     monthly: null,
     yearly: null,
   });
+
+  // Check content onboarding status
+  useEffect(() => {
+    const checkContentStatus = async () => {
+      try {
+        const status = await checkContentOnboardingStatus();
+        setContentOnboardingCompleted(status.isCompleted);
+      } catch (error) {
+        console.error("Error checking content onboarding status:", error);
+        setContentOnboardingCompleted(false);
+      }
+    };
+    checkContentStatus();
+  }, []);
 
   useEffect(() => {
     console.info("props", appState);
@@ -59,7 +76,7 @@ export function Stats({ appState }) {
         yearly: yearlyBreakdown,
       });
     }
-  }, []);
+  }, [appState]);
   console.info("allSessions", allSessions);
   console.info("accuracyData", accuracyData);
   // const accuracyData = {
@@ -73,68 +90,92 @@ export function Stats({ appState }) {
   //   monthly: getAttemptBreakdownData(allSessions, "monthly"),
   //   yearly: getAttemptBreakdownData(allSessions, "yearly"),
   // };
+  // Check if there's meaningful data to display
+  // Show empty state for completely new users OR users who completed app onboarding but not content onboarding
+  const hasData = appState && (
+    (statistics?.totalSolved > 0) ||
+    (allSessions && allSessions.length > 0)
+  );
+  
+  // Show "Start First Session" if no data OR content onboarding not completed
+  const showStartSessionButton = !hasData || (contentOnboardingCompleted === false);
+
+  const handleStartFirstSession = () => {
+    // Navigate to the LeetCode content script or show guidance
+    window.open('https://leetcode.com/problems/', '_blank');
+  };
+
   return (
     <Container size="xl" p="md">
       <Title order={2} mb="md">
         General Performance Summary
       </Title>
-      <Grid gutter="sm">
-        {/* Summary Cards */}
-
-        <MetricCard
-          title="Total Problems Solved"
-          value={statistics?.totalSolved ?? 0}
-          details={[
-            { label: "Mastered", value: statistics?.mastered ?? 0 },
-            { label: "In Progress", value: statistics?.inProgress ?? 0 },
-            { label: "New", value: statistics?.new ?? 0 },
-          ]}
+      
+      {showStartSessionButton ? (
+        <EmptyStateCard 
+          type="dashboard"
+          onAction={handleStartFirstSession}
         />
+      ) : (
+        <>
+          <Grid gutter="sm">
+            {/* Summary Cards */}
+            <MetricCard
+              title="Total Problems Solved"
+              value={statistics?.totalSolved ?? 0}
+              details={[
+                { label: "Mastered", value: statistics?.mastered ?? 0 },
+                { label: "In Progress", value: statistics?.inProgress ?? 0 },
+                { label: "New", value: statistics?.new ?? 0 },
+              ]}
+            />
 
-        <MetricCard
-          title="Average Time Per Problem"
-          value={averageTime?.overall ?? 0}
-          details={[
-            { label: "Easy", value: averageTime?.Easy ?? 0 },
-            { label: "Medium", value: averageTime?.Medium ?? 0 },
-            { label: "Hard", value: averageTime?.Hard ?? 0 },
-          ]}
-        />
+            <MetricCard
+              title="Average Time Per Problem"
+              value={averageTime?.overall ?? 0}
+              details={[
+                { label: "Easy", value: averageTime?.Easy ?? 0 },
+                { label: "Medium", value: averageTime?.Medium ?? 0 },
+                { label: "Hard", value: averageTime?.Hard ?? 0 },
+              ]}
+            />
 
-        <MetricCard
-          title="Success Rate"
-          value={successRate?.overall ?? 0}
-          details={[
-            { label: "Easy", value: successRate?.Easy ?? 0 },
-            { label: "Medium", value: successRate?.Medium ?? 0 },
-            { label: "Hard", value: successRate?.Hard ?? 0 },
-          ]}
-        />
-      </Grid>
-      <Grid gutter="md" mt="md">
-        <Grid.Col span={6}>
-          <TimeGranularChartCard
-            title="Accuracy Trend"
-            chartType="line"
-            data={accuracyData}
-            dataKeys={[{ key: "accuracy", color: "#8884d8" }]}
-            yAxisFormatter={(val) => `${val}%`}
-            tooltipFormatter={(val) => `${val}%`}
-          />
-        </Grid.Col>
-        <Grid.Col span={6}>
-          <TimeGranularChartCard
-            title="Attempt Quality Breakdown"
-            chartType="bar"
-            data={breakdownData}
-            dataKeys={[
-              { key: "firstTry", color: "#4CAF50" },
-              { key: "retrySuccess", color: "#FFC107" },
-              { key: "failed", color: "#F44336" },
-            ]}
-          />
-        </Grid.Col>
-      </Grid>
+            <MetricCard
+              title="Success Rate"
+              value={successRate?.overall ?? 0}
+              details={[
+                { label: "Easy", value: successRate?.Easy ?? 0 },
+                { label: "Medium", value: successRate?.Medium ?? 0 },
+                { label: "Hard", value: successRate?.Hard ?? 0 },
+              ]}
+            />
+          </Grid>
+          <Grid gutter="md" mt="md">
+            <Grid.Col span={6}>
+              <TimeGranularChartCard
+                title="Accuracy Trend"
+                chartType="line"
+                data={accuracyData}
+                dataKeys={[{ key: "accuracy", color: "#8884d8" }]}
+                yAxisFormatter={(val) => `${val}%`}
+                tooltipFormatter={(val) => `${val}%`}
+              />
+            </Grid.Col>
+            <Grid.Col span={6}>
+              <TimeGranularChartCard
+                title="Attempt Quality Breakdown"
+                chartType="bar"
+                data={breakdownData}
+                dataKeys={[
+                  { key: "firstTry", color: "#4CAF50" },
+                  { key: "retrySuccess", color: "#FFC107" },
+                  { key: "failed", color: "#F44336" },
+                ]}
+              />
+            </Grid.Col>
+          </Grid>
+        </>
+      )}
 
       {/* <Grid gutter="md" mt="md">
         <Grid.Col span={6}>
