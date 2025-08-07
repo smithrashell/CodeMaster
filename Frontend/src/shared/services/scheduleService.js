@@ -4,7 +4,7 @@ import { fetchAllProblems, fetchAdditionalProblems } from "../db/problems.js";
 import { ProblemService } from "./problemService.js";
 import { calculateDecayScore } from "../utils/Utils.js";
 import { TagService } from "./tagServices.js";
-const getCurrentLearningState = TagService.getCurrentLearningState;
+// Remove early binding - use TagService.getCurrentLearningState() directly
 export const ScheduleService = {
   isDueForReview,
   isRecentlyAttempted,
@@ -13,7 +13,7 @@ export const ScheduleService = {
 
 export async function getDailyReviewSchedule(sessionLength) {
   try {
-    const { focusTags, allTagsInCurrentTier } = await getCurrentLearningState();
+    const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();
     let allProblems = await fetchAllProblems();
 
     if (!Array.isArray(allProblems)) allProblems = [];

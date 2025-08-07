@@ -6,6 +6,12 @@ import { useNav } from "../../../shared/provider/navprovider.jsx";
 import { DoubleNavbar } from "../../../shared/components/DoubleNavbar.jsx";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { ContentOnboardingTour } from "../../components/onboarding";
+import { 
+  checkContentOnboardingStatus, 
+  completeContentOnboarding,
+  getResumeStep 
+} from "../../../shared/services/onboardingService";
 
 const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   const navigate = useNavigate();
@@ -47,6 +53,7 @@ const getProblemSlugFromUrl = (url) => {
 };
 
 export default function Main() {
+  console.log("🚀 CONTENT SCRIPT MAIN COMPONENT LOADED");
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isAppOpen, setIsAppOpen } = useNav();
@@ -59,6 +66,8 @@ export default function Main() {
     getProblemSlugFromUrl(window.location.href)
   ); // Initialize with the current URL slug
   const [settings, setSettings] = useState(null);
+  const [showContentOnboarding, setShowContentOnboarding] = useState(false);
+  const [contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
 
   // Function to fetch problem data based on the problem slug
   const fetchProblemData = (problemSlug) => {
@@ -122,6 +131,41 @@ export default function Main() {
     console.log("Current problem slug:", currentProblem);
     fetchProblemData(currentProblem);
   }, []); // Empty dependency array ensures it only runs once on mount
+
+  // Check content onboarding status with resume capability
+  useEffect(() => {
+    const checkContentOnboarding = async () => {
+      try {
+        console.log("🔍 Checking content onboarding status...");
+        const status = await checkContentOnboardingStatus();
+        console.log("📊 Content onboarding status:", status);
+        setContentOnboardingStatus(status);
+        
+        // Show onboarding tour if not completed - independent of data onboarding
+        if (!status.isCompleted) {
+          console.log("✅ Content onboarding not completed, showing tour");
+          // Small delay to ensure the DOM is ready
+          const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
+          setTimeout(() => {
+            console.log("🚀 Setting showContentOnboarding to true");
+            setShowContentOnboarding(true);
+          }, delayTime);
+        } else {
+          console.log("⏭️ Content onboarding already completed");
+        }
+      } catch (error) {
+        console.error("❌ Error checking content onboarding status:", error);
+        // Fallback: show onboarding anyway for new users
+        console.log("🔄 Fallback: showing onboarding due to error");
+        setTimeout(() => {
+          setShowContentOnboarding(true);
+        }, 1000);
+      }
+    };
+
+    // Run immediately - no longer dependent on data onboarding
+    checkContentOnboarding();
+  }, []); // Empty dependency array - run once on mount
 
   // Function to handle URL changes after initial load
   const handleUrlChange = () => {
@@ -226,6 +270,21 @@ export default function Main() {
     };
   }, [currentProblem, pathname, navigate]);
 
+  // Content onboarding handlers
+  const handleCompleteContentOnboarding = async () => {
+    try {
+      await completeContentOnboarding();
+      setShowContentOnboarding(false);
+      setContentOnboardingStatus((prev) => ({ ...prev, isCompleted: true }));
+    } catch (error) {
+      console.error("Error completing content onboarding:", error);
+    }
+  };
+
+  const handleCloseContentOnboarding = () => {
+    setShowContentOnboarding(false);
+  };
+
   const shouldShowNav = pathname === "/";
   const hideBackup = true;
   return (
@@ -251,7 +310,7 @@ export default function Main() {
             <Header title="CodeMaster" />
             <div className="cd-sidenav__content">
               <nav id="nav">
-                <Link to="/Strategy">Strategy Map</Link>
+                {/* <Link to="/Strategy">Strategy Map</Link> */}
                 <Link to="/ProbGen">Generator</Link>
                 <Link to="/ProbStat">Statistics</Link>
                 <Link to="/Settings">Settings</Link>
@@ -318,6 +377,13 @@ export default function Main() {
           </div>
         )}
       </div>
+      
+      {/* Content Script Onboarding Tour */}
+      <ContentOnboardingTour
+        isVisible={showContentOnboarding}
+        onComplete={handleCompleteContentOnboarding}
+        onClose={handleCloseContentOnboarding}
+      />
     </div>
   );
 }

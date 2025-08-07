@@ -6,7 +6,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { MantineProvider, Text } from "@mantine/core";
+import { MantineProvider } from "@mantine/core";
 import { DoubleNavbar } from "../shared/components/DoubleNavbar";
 import "@mantine/core/styles.css";
 import "../app/app.css";
@@ -34,12 +34,30 @@ import {
   Practice,
   Review,
 } from "./pages/mockup";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useChromeMessage } from "../shared/hooks/useChromeMessage";
+import { checkOnboardingStatus, completeOnboarding } from "../shared/services/onboardingService";
+import { WelcomeModal } from "./components/onboarding";
 function App() {
   const [appState, setAppState] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // New approach using custom hook
+  // Check onboarding status on app initialization
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const status = await checkOnboardingStatus();
+        setShowOnboarding(!status.isCompleted);
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+        setShowOnboarding(false);
+      }
+    };
+
+    checkOnboarding();
+  }, []);
+
+  // New approach using custom hook - non-blocking data fetch
   const {
     data: _dashboardData,
     loading: _loading,
@@ -49,7 +67,25 @@ function App() {
       console.info("Dashboard statistics received:", response.result);
       setAppState(response.result);
     },
+    onError: (error) => {
+      console.warn("Dashboard statistics failed:", error);
+      // Don't block the app if data fetch fails
+      setAppState({ statistics: null, progress: null });
+    },
   });
+
+  const handleCompleteOnboarding = async () => {
+    try {
+      await completeOnboarding();
+      setShowOnboarding(false);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+    }
+  };
+
+  const handleCloseOnboarding = () => {
+    setShowOnboarding(false);
+  };
 
   return (
     <MantineProvider>
@@ -70,10 +106,7 @@ function App() {
           <DoubleNavbar />
 
           <main style={{ padding: "20px", flex: 1 }}>
-            {!appState ? (
-              <Text>Loading...</Text>
-            ) : (
-              <Routes>
+            <Routes>
                 <Route
                   path="/app.html"
                   element={<Navigate to="/stats" replace />}
@@ -134,7 +167,12 @@ function App() {
                   <Route path="review" element={<Review />} />
                 </Route>
               </Routes>
-            )}
+              
+            <WelcomeModal
+              opened={showOnboarding}
+              onClose={handleCloseOnboarding}
+              onComplete={handleCompleteOnboarding}
+            />
           </main>
         </div>
       </Router>

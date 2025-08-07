@@ -65,7 +65,6 @@ All notable changes to this project will be documented in this file.
   * **Accurate Session Analysis**: Session difficulty distribution reflects actual problem difficulties
   * **Clear Data Separation**: User assessments and official difficulty clearly distinguished in all interfaces
 
----
 
 ## [0.9.8] - 2025-08-06
 

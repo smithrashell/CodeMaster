@@ -19,7 +19,7 @@ import { calculateDecayScore } from "../utils/Utils.js";
 import { ProblemReasoningService } from "../../content/services/problemReasoningService.js";
 import { getTagMastery } from "../db/tag_mastery.js";
 
-const getCurrentLearningState = TagService.getCurrentLearningState;
+// Remove early binding - use TagService.getCurrentLearningState() directly
 const getDailyReviewSchedule = ScheduleService.getDailyReviewSchedule;
 
 /**
