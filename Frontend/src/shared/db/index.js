@@ -1,6 +1,6 @@
 export const dbHelper = {
   dbName: "review",
-  version: 29, // 🚨 Increment version to trigger upgrade (removed onboarding_progress store, consolidated into settings)
+  version: 30, // 🚨 Increment version to trigger upgrade (enhanced time tracking)
   db: null,
 
   async openDB() {

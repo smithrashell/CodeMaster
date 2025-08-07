@@ -3,17 +3,28 @@ import { getAllAttempts } from "../../shared/db/attempts.js";
 import { getAllSessions } from "../../shared/db/sessions.js";
 import { TagService } from "../../shared/services/tagServices.js";
 import { ProblemService } from "../../shared/services/problemService";
+import AccurateTimer from "../../shared/utils/AccurateTimer.js";
+import { getAllStandardProblems } from "../../shared/db/standard_problems.js";
 
 export async function getDashboardStatistics() {
   try {
     const allProblems = await fetchAllProblems();
     const allAttempts = await getAllAttempts();
     const allSessions = await getAllSessions();
+    const allStandardProblems = await getAllStandardProblems();
     const learningState = await TagService.getCurrentLearningState();
     let boxLevelData = await ProblemService.countProblemsByBoxLevel();
-    const problemRatingMap = {};
+    
+    // Create mapping from problem ID to official difficulty
+    const problemDifficultyMap = {};
+    const standardProblemsMap = {};
+    allStandardProblems.forEach((standardProblem) => {
+      standardProblemsMap[standardProblem.id] = standardProblem;
+    });
+    
     allProblems.forEach((problem) => {
-      problemRatingMap[problem.id] = problem.Rating;
+      const standardProblem = standardProblemsMap[problem.leetCodeID];
+      problemDifficultyMap[problem.id] = standardProblem?.difficulty || "Medium";
     });
 
     const statistics = {
@@ -54,8 +65,8 @@ export async function getDashboardStatistics() {
     });
     statistics.totalSolved = statistics.mastered + statistics.inProgress;
     allAttempts.forEach((attempt) => {
-      const problemRating = problemRatingMap[attempt.ProblemID];
-      const timeSpent = attempt.TimeSpent;
+      const officialDifficulty = problemDifficultyMap[attempt.ProblemID];
+      const timeSpent = Number(attempt.TimeSpent) || 0; // TimeSpent now in seconds
 
       // Update overall time statistics
       timeStats.overall.totalTime += timeSpent;
@@ -67,20 +78,21 @@ export async function getDashboardStatistics() {
         successStats.overall.successful++;
       }
 
-      // Update statistics based on problem rating
-      if (problemRating && timeStats[problemRating]) {
-        timeStats[problemRating].totalTime += timeSpent;
-        timeStats[problemRating].count++;
+      // Update statistics based on official difficulty
+      if (officialDifficulty && timeStats[officialDifficulty]) {
+        timeStats[officialDifficulty].totalTime += timeSpent;
+        timeStats[officialDifficulty].count++;
 
-        successStats[problemRating].total++;
+        successStats[officialDifficulty].total++;
         if (attempt.Success) {
-          successStats[problemRating].successful++;
+          successStats[officialDifficulty].successful++;
         }
       }
     });
 
-    const calculateAverage = (totalTime, count) =>
-      count > 0 ? parseInt(totalTime / count) : 0;
+    // Calculate average time in minutes for display (convert from seconds)
+    const calculateAverage = (totalTimeInSeconds, count) =>
+      count > 0 ? AccurateTimer.secondsToMinutes(totalTimeInSeconds / count, 1) : 0;
 
     const calculateSuccessRate = (successful, total) =>
       total > 0 ? parseInt((successful / total) * 100) : 0;

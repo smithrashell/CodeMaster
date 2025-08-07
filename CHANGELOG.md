@@ -4,6 +4,68 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.9.8] - 2025-08-07
+
+### Fixed
+
+* **🔧 Timer Accuracy and Difficulty Resolution**: Comprehensive fix for timer calculation accuracy and standardized time tracking across components (Resolves #50)
+
+  * **Root Cause Resolution**: Fixed timer defaulting to "Medium" difficulty for all problems instead of using actual LeetCode difficulty
+  * **Database Schema Refactoring**: Renamed `Difficulty` → `perceivedDifficulty` in problems store (user's 0-10 assessment) and removed confusing `Rating` property (was duplicate of standard_problems.difficulty)
+  * **Single Source of Truth Architecture**: AdaptiveLimitsService now queries standard_problems store directly for official difficulty instead of receiving it through parameter passing
+  * **Simplified Timer Flow**: Timer component now sends only `{type: "getLimits", id: problemId}` - no more difficulty parameter passing through multiple layers
+
+* **🗄️ Data Architecture Improvements**: Eliminated confusion between user-assessed vs. official difficulty
+
+  * **Clear Property Separation**: `perceivedDifficulty` (user's subjective 0-10 assessment) vs. `standard_problems.difficulty` (official "Easy"/"Medium"/"Hard")
+  * **Helper Functions**: Added `getProblemWithOfficialDifficulty()` for components needing merged user + official data
+  * **Data Migration Utility**: Created `dataMigration.js` with safe migration tools and status checking for existing data conversion
+
+### Enhanced
+
+* **⚡ Service Layer Architecture**: Improved adaptive limits service with internal difficulty fetching
+
+  * **Method Signature Update**: Changed `getLimits(difficulty, problemId)` → `getLimits(problemId)` for cleaner API
+  * **Internal Difficulty Resolution**: Service fetches official difficulty from standard_problems store internally
+  * **Better Error Handling**: Enhanced logging and fallback mechanisms throughout difficulty resolution pipeline
+  * **Background Script Simplification**: Removed difficulty parameter handling and validation logic
+
+* **📊 Analytics and Dashboard Updates**: Updated all analytics services to use appropriate difficulty sources
+
+  * **Dashboard Service**: Now uses official difficulty for stats categorization instead of user assessments
+  * **Session Service**: Enhanced `analyzeSessionDifficulty()` to async fetch official difficulty for accurate session analysis  
+  * **Consistent Data Flow**: All services now query appropriate stores for their specific data needs
+
+### Technical Improvements
+
+* **🏗️ Architectural Benefits**: Established maintainable patterns for difficulty data access
+
+  * **Eliminated Parameter Passing**: Removed error-prone difficulty parameter chain through timer → background → service
+  * **Centralized Data Access**: All official difficulty queries now happen in service layer where they belong
+  * **Future-Proof Design**: Easy to extend user assessment features independently of official difficulty handling
+  * **Zero Breaking Changes**: All existing functionality preserved while improving underlying architecture
+
+* **🔍 Enhanced Debugging**: Added comprehensive logging throughout difficulty resolution pipeline
+
+  * **Service Layer Logging**: AdaptiveLimitsService logs all difficulty fetching and resolution steps
+  * **Background Script Logging**: Enhanced request/response logging for limits requests
+  * **Error Tracking**: Better error messages and stack traces for difficulty-related issues
+
+### User Experience Impact
+
+* **✅ Accurate Timer Limits**: Timer now shows correct difficulty-specific limits instead of Medium defaults
+
+  * **Problem #268 "Missing Number"**: Now correctly shows Easy difficulty limits instead of Medium
+  * **All Problems**: Timer limits now match actual LeetCode difficulty ratings
+  * **Consistent Experience**: No more confusion between different difficulty sources
+
+* **📈 Better Analytics**: Dashboard and session analytics now reflect actual problem difficulties
+
+  * **Correct Stats Categorization**: Easy/Medium/Hard stats based on official difficulty, not user perception
+  * **Accurate Session Analysis**: Session difficulty distribution reflects actual problem difficulties
+  * **Clear Data Separation**: User assessments and official difficulty clearly distinguished in all interfaces
+
+
 ## [0.9.8] - 2025-08-06
 
 ### Added
@@ -1263,4 +1325,3 @@ All notable changes to this project will be documented in this file.
 - Initial setup for CodeMaster project
 - Started Chrome Extension with LeetCode overlay
 - Integrated IndexedDB for persistent problem storage
-
