@@ -101,7 +101,7 @@ function adjustProblemRatings(attempts) {
     if (!problemRatings[ProblemID]) {
       problemRatings[ProblemID] = [];
     }
-    problemRatings[ProblemID].push(parseFloat(TimeSpent) || 0);
+    problemRatings[ProblemID].push(Number(TimeSpent) || 0); // TimeSpent now in seconds
   });
 
   Object.keys(problemRatings).forEach((ProblemID) => {
@@ -184,7 +184,7 @@ function setTimeLimits(attempts, ratings, idealLimits) {
 
   attempts.forEach(({ ProblemID, TimeSpent }) => {
     const rating = determineRating(ratings[ProblemID]);
-    timeSums[rating] += parseFloat(TimeSpent) || 0;
+    timeSums[rating] += Number(TimeSpent) || 0; // TimeSpent now in seconds
     counts[rating]++;
   });
 

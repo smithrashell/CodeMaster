@@ -6,6 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { Select, FormLabel, FormHelperText, TextField } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
+import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
 
 const StyledSelect = styled(Select)({
   "&.MuiOutlinedInput-root": {
@@ -68,15 +69,32 @@ const ProbSubmission = () => {
   }, [routeState, setValue]);
 
   const onSubmit = (data) => {
+    // Convert time from minutes to seconds for consistent database storage
+    const timeInMinutes = Number(data.timeSpent) || 0;
+    const timeInSeconds = AccurateTimer.minutesToSeconds(timeInMinutes);
+    
     const formData = {
       ...data,
+      timeSpent: timeInSeconds, // Store as seconds
       date: new Date(),
       address: window.location.href,
       id: null,
       success: data.success.trim().toLowerCase() === "true",
       tags: routeState?.Tags || [],
+      
+      // Enhanced time tracking from timer (if available)
+      exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
+      overageTime: routeState?.overageTime || 0,
+      userIntent: routeState?.userIntent || "completed",
+      timeWarningLevel: routeState?.timeWarningLevel || 0,
     };
-    console.log("📌 formData being sent", formData);
+    
+    console.log("📌 ProbSubmission data:", {
+      originalTimeMinutes: timeInMinutes,
+      timeInSeconds: timeInSeconds,
+      formData
+    });
+    
     chrome.runtime.sendMessage({
       type: "addProblem",
       contentScriptData: formData,

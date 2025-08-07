@@ -17,6 +17,7 @@ import TagInput from "../../components/forms/TagInput";
 import ProbSubmission from "../problems/probsubmission";
 import ProbDetail from "../problems/probdetail";
 import Header from "../../components/navigation/header.jsx";
+import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
 
 const StyledSelect = styled(Select)({
   "&.MuiOutlinedInput-root": {
@@ -92,21 +93,36 @@ const ProbTime = () => {
   }, [routeState, setValue]);
 
   const onSubmit = (data) => {
+    // Convert time to seconds for consistent storage
+    const timeInMinutes = Number(data.timeSpent) || 0;
+    const timeInSeconds = AccurateTimer.minutesToSeconds(timeInMinutes);
+    
     const formData = {
       ...data,
+      timeSpent: timeInSeconds, // Store as seconds in database
       date: new Date(),
       address: window.location.href,
       id: null,
       success: data.success.trim().toLowerCase() === "true",
       tags: routeState.Tags || [],
+      
+      // Enhanced time tracking from timer (if available)
+      exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
+      overageTime: routeState?.overageTime || 0,
+      userIntent: routeState?.userIntent || "completed",
+      timeWarningLevel: routeState?.timeWarningLevel || 0,
     };
-    console.log("📌formData being sent to content script", formData);
-    console.log("📌Tags from routeState", routeState, routeState.Tags);
+    
+    console.log("📌 Form data being sent:", {
+      originalTimeMinutes: timeInMinutes,
+      timeInSeconds: timeInSeconds,
+      formData
+    });
+    
     chrome.runtime.sendMessage(
       { type: "addProblem", contentScriptData: formData },
-
       function (response) {
-        console.log("📌Response from content script", response);
+        console.log("📌 Response from content script", response);
       }
     );
     navigate("/Probstat", { state: data });
