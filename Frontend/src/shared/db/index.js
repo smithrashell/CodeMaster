@@ -1,3 +1,5 @@
+import migrationSafety from "./migrationSafety.js";
+
 export const dbHelper = {
   dbName: "review",
   version: 30, // 🚨 Increment version to trigger upgrade (enhanced time tracking)
@@ -8,10 +10,26 @@ export const dbHelper = {
       return dbHelper.db; // Return cached database if already opened
     }
 
+    // Initialize migration safety system
+    migrationSafety.initializeMigrationSafety();
+
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(dbHelper.dbName, dbHelper.version);
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = async (event) => {
+        // eslint-disable-next-line no-console
+        console.log('📋 Database upgrade needed - creating safety backup...');
+        
+        // Create backup before any schema changes
+        try {
+          if (event.oldVersion > 0) { // Only backup if upgrading existing database
+            await migrationSafety.createMigrationBackup();
+            // eslint-disable-next-line no-console
+            console.log('✅ Safety backup created before upgrade');
+          }
+        } catch (error) {
+          console.error('⚠️ Backup creation failed, proceeding with upgrade:', error);
+        }
         const db = event.target.result;
 
         // ✅ Ensure 'attempts' store exists
@@ -85,21 +103,26 @@ export const dbHelper = {
           );
           dbHelper.ensureIndex(problemsStore, "by_nextProblem", "nextProblem");
         }
-        // ✅ Ensure 'sessions' store exists
-        if (db.objectStoreNames.contains("sessions")) {
-          db.deleteObjectStore("sessions");
+        // ✅ Ensure 'sessions' store exists with safe migration
+        let sessionsStore;
+        if (!db.objectStoreNames.contains("sessions")) {
+          // Create new sessions store if it doesn't exist
+          sessionsStore = db.createObjectStore("sessions", {
+            keyPath: "id",
+            autoIncrement: false, // You manually set sessionID
+          });
+        } else {
+          // Access existing sessions store for index management
+          sessionsStore = event.target.transaction.objectStore("sessions");
         }
 
-        // Recreate sessions store
-        const sessionsStore = db.createObjectStore("sessions", {
-          keyPath: "id",
-          autoIncrement: false, // You manually set sessionID
-        });
+        // Ensure required indexes exist
+        if (!sessionsStore.indexNames.contains("by_date")) {
+          sessionsStore.createIndex("by_date", "Date", { unique: false });
+        }
 
-        // Create secondary index on Date, NOT unique
-        sessionsStore.createIndex("by_date", "Date", { unique: false });
-
-        console.log("Sessions store recreated!");
+        // eslint-disable-next-line no-console
+        console.log("Sessions store configured safely!");
         // ✅ Ensure 'standard_problems' store exists
         if (!db.objectStoreNames.contains("standard_problems")) {
           let standardProblemsStore = db.createObjectStore(
@@ -141,6 +164,7 @@ export const dbHelper = {
           );
         }
 
+        // eslint-disable-next-line no-console
         console.log("Database upgrade completed");
 
         // ✅ **NEW: Ensure 'tag_mastery' store exists**
@@ -158,6 +182,7 @@ export const dbHelper = {
             keyPath: "id",
           });
 
+          // eslint-disable-next-line no-console
           console.log("Settings store created!");
         }
         //add a index on classification
@@ -192,6 +217,7 @@ export const dbHelper = {
             "predominantDifficulty"
           );
 
+          // eslint-disable-next-line no-console
           console.log("✅ Session analytics store created!");
         }
 
@@ -203,6 +229,7 @@ export const dbHelper = {
 
           dbHelper.ensureIndex(strategyDataStore, "by_tag", "tag");
 
+          // eslint-disable-next-line no-console
           console.log("✅ Strategy data store created!");
         }
 
@@ -210,6 +237,7 @@ export const dbHelper = {
 
       request.onsuccess = (event) => {
         dbHelper.db = event.target.result;
+        // eslint-disable-next-line no-console
         console.log("✅ DB opened successfully (dbHelper working)");
         resolve(dbHelper.db);
       };
