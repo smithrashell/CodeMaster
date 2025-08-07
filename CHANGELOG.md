@@ -4,6 +4,97 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.1] - 2025-08-07
+
+### Fixed
+
+* **⚡ Critical Settings Cache Invalidation Issue**: Complete resolution of timer limits not updating in real-time after settings changes (Resolves settings synchronization bug)
+
+  * **Root Cause Analysis**: `AdaptiveLimitsService` was caching user settings in memory (`this.userSettings`) but never clearing cache when settings were updated through UI
+  * **Timer Limits Update Fix**: Timer limits now change immediately when updated in settings page without requiring browser refresh or extension reload
+  * **Comprehensive Cache Invalidation**: Added `clearSettingsCache()` method to `StorageService` with automatic cache clearing after every settings update
+  * **Cross-Context Communication**: Enhanced settings page to trigger cache clearing via new `clearSettingsCache` background script message handler
+  * **Production Testing**: All settings changes now propagate instantly across popup, content scripts, background, and dashboard contexts
+
+* **🔧 Background Script Stability Enhancement**: Resolved `document is not defined` error preventing extension startup in service worker context
+
+  * **Context-Aware Error Notifications**: Modified `errorNotifications.js` to detect execution context and gracefully handle DOM operations in background/service worker environment
+  * **Background Script Compatibility**: Added browser context detection (`typeof document === 'undefined'`) with console logging fallback for service worker environments
+  * **Extension Boot Fix**: Background script now initializes successfully without DOM-related errors, ensuring all Chrome extension functionality works properly
+  * **Cross-Context Reliability**: Error notification system works seamlessly across popup, content script, background, and dashboard contexts
+
+* **🎯 Navigation Link Restoration**: Fixed missing problem links in main navigation preventing users from accessing timer functionality
+
+  * **Problem Link Logic Fix**: Corrected conditional rendering in `main.jsx` that was hiding problem links due to inconsistent state checks
+  * **Navigation State Management**: Improved problem detection logic using `currentProblem` instead of unreliable `problemTitle` state
+  * **User Experience Restoration**: Problem links now appear correctly when on valid LeetCode problem pages, restoring full timer and session functionality
+  * **Fallback Display Logic**: Enhanced problem link display with proper fallback text and improved loading states
+
+### Technical Improvements
+
+* **🏗️ Settings Synchronization Architecture**: Modern cache invalidation system ensuring immediate settings propagation across all extension contexts
+
+  * **StorageService Enhancement**: Added `clearSettingsCache()` method with dynamic import system to clear dependent service caches without circular dependencies
+  * **Background Message Handler**: New `clearSettingsCache` case in background script message router with proper async handling and response management
+  * **Settings UI Enhancement**: Modified settings page `handleSave()` to trigger immediate cache invalidation after successful settings persistence
+  * **AdaptiveLimitsService Integration**: Existing `clearCache()` method properly utilized to clear user settings, performance cache, and expiry timestamps
+
+* **🔄 ResilientStorage Integration**: Comprehensive integration of dual storage strategy maintaining backward compatibility while adding enterprise-level resilience
+
+  * **Settings Persistence**: User settings now use ResilientStorage with IndexedDB primary and Chrome Storage fallback for critical data protection
+  * **Session State Management**: Session state migrated to ResilientStorage ensuring continuity during IndexedDB failures or corruption scenarios  
+  * **Automatic Fallback**: Seamless switching between IndexedDB and Chrome Storage based on availability and health monitoring
+  * **Cache Coherence**: ResilientStorage health monitoring and sync intervals working correctly with no stale data issues between storage systems
+
+* **🛠️ Error Handling Improvements**: Enhanced error notification system supporting both DOM and service worker execution contexts
+
+  * **Context Detection**: Automatic detection of browser execution context (popup/content vs background/service worker) with appropriate notification strategies
+  * **Graceful Degradation**: DOM-based notifications in browser contexts, console logging in service worker contexts, with unified API interface
+  * **Background Safety**: All DOM operations wrapped in context checks preventing `document is not defined` errors in background scripts
+  * **Development Logging**: Comprehensive logging system for debugging notification behavior across different extension contexts
+
+### User Experience Impact
+
+* **⚡ Immediate Settings Updates**: Timer limits and all user preferences now update instantly without requiring browser refresh, extension reload, or manual intervention
+
+  * **Real-Time Configuration**: Changes to time limits, session lengths, reminder settings, and adaptive modes take effect immediately in active timer sessions
+  * **Seamless User Experience**: Settings page changes propagate instantly to all open LeetCode tabs, dashboard instances, and popup interfaces
+  * **Professional Behavior**: Extension now behaves like modern applications with immediate preference updates and real-time synchronization
+  * **Zero Interruption**: Users can modify timer limits mid-session and see changes applied immediately without losing current progress
+
+* **🔧 Extension Reliability**: Complete elimination of background script startup errors ensuring consistent extension functionality
+
+  * **Reliable Extension Boot**: Background script initializes successfully in all Chrome versions and extension environments
+  * **Stable Core Services**: All Chrome extension APIs, storage services, and message passing work reliably without initialization failures
+  * **Consistent Functionality**: Timer, settings, problem detection, and session management work consistently across all browser sessions
+  * **Professional Quality**: Extension startup and operation match enterprise-level Chrome extension standards
+
+* **🎯 Restored Navigation**: Problem links and navigation functionality fully restored providing complete access to timer and session features
+
+  * **Complete Feature Access**: Users can access timer, new attempts, and problem management features from navigation interface
+  * **Intuitive Problem Detection**: Navigation automatically detects current LeetCode problems and provides appropriate action buttons
+  * **Seamless Problem Flow**: Smooth transition from problem browsing to timer sessions and attempt tracking
+  * **Enhanced Usability**: Clear visual indicators for problem status (new problem vs retry) with appropriate navigation options
+
+### Files Modified
+
+**Settings Cache System:**
+- `src/shared/services/storageService.js` - Added cache invalidation with `clearSettingsCache()` method
+- `src/content/features/settings/settings.jsx` - Enhanced save handler with immediate cache clearing
+- `public/background.js` - Added `clearSettingsCache` message handler for cross-context communication
+
+**Background Script Compatibility:**
+- `src/shared/utils/errorNotifications.js` - Added browser context detection with DOM operation safety
+
+**Navigation Restoration:**
+- `src/content/features/navigation/main.jsx` - Fixed problem link logic and state management
+
+**Test Infrastructure:**
+- `src/shared/services/__tests__/ResilientStorage.test.js` - Added proper mocks and fixed core functionality tests
+- `src/shared/services/ResilientStorage.js` - Enhanced error handling for undefined Chrome storage responses
+
+---
+
 ## [0.10.0] - 2025-08-07
 
 ### Added

@@ -196,6 +196,12 @@ const handleRequest = async (request, sender, sendResponse) => {
       case "getSettings":
         StorageService.getSettings().then(sendResponse).finally(finishRequest);
         return true;
+      // TODO: clearSettingsCache
+      case "clearSettingsCache":
+        StorageService.clearSettingsCache();
+        sendResponse({ status: "success" });
+        finishRequest();
+        return true;
 
       /** ──────────────── Problems Management ──────────────── **/
       // TODO: getProblemByDescription
