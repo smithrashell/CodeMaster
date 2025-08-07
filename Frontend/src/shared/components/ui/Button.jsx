@@ -30,10 +30,33 @@ const buttonVariants = createVariants(
   }
 );
 
-export function Button({ className, variant, size, children, ...props }) {
+export function Button({ 
+  className, 
+  variant, 
+  size, 
+  children, 
+  disabled,
+  'aria-label': ariaLabel,
+  'aria-describedby': ariaDescribedBy,
+  'aria-expanded': ariaExpanded,
+  'aria-pressed': ariaPressed,
+  role,
+  ...props 
+}) {
   return (
     <button
       className={cn(buttonVariants({ variant, size }), className)}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
+      aria-expanded={ariaExpanded}
+      aria-pressed={ariaPressed}
+      role={role}
+      style={{
+        minHeight: '44px', // WCAG AA touch target
+        minWidth: '44px',  // WCAG AA touch target
+        ...props.style
+      }}
       {...props}
     >
       {children}
