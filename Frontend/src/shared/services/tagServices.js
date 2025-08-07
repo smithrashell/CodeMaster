@@ -8,11 +8,6 @@ import { StorageService } from "./storageService.js";
 
 const openDB = dbHelper.openDB;
 
-export const TagService = {
-  getCurrentTier,
-  getCurrentLearningState,
-};
-
 async function getCurrentTier() {
   const db = await openDB();
   const tx = db.transaction(["tag_mastery", "tag_relationships"], "readwrite");
@@ -510,3 +505,9 @@ async function resetTagIndexForNewWindow() {
     console.log("🔄 Reset tagIndex to 0 for new focus window");
   }
 }
+
+// Export TagService after all functions are defined
+export const TagService = {
+  getCurrentTier,
+  getCurrentLearningState,
+};

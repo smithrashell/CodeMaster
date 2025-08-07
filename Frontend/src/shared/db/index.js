@@ -66,22 +66,26 @@ export const dbHelper = {
           db.createObjectStore("session_state", { keyPath: "id" });
         }
 
-        if (!db.objectStoreNames.contains("problem_relationships")) {
-          let relationshipsStore = db.createObjectStore(
-            "problem_relationships"
-          );
-
-          dbHelper.ensureIndex(
-            relationshipsStore,
-            "by_problemId1",
-            "problemId1"
-          );
-          dbHelper.ensureIndex(
-            relationshipsStore,
-            "by_problemId2",
-            "problemId2"
-          );
+        // ✅ Fix problem_relationships store schema - recreate with proper keyPath
+        if (db.objectStoreNames.contains("problem_relationships")) {
+          db.deleteObjectStore("problem_relationships");
         }
+        
+        let relationshipsStore = db.createObjectStore(
+          "problem_relationships",
+          { keyPath: "id", autoIncrement: true }
+        );
+
+        dbHelper.ensureIndex(
+          relationshipsStore,
+          "by_problemId1",
+          "problemId1"
+        );
+        dbHelper.ensureIndex(
+          relationshipsStore,
+          "by_problemId2",
+          "problemId2"
+        );
 
         // ✅ Ensure 'problems' store exists
         if (!db.objectStoreNames.contains("problems")) {
@@ -228,6 +232,7 @@ export const dbHelper = {
           // eslint-disable-next-line no-console
           console.log("✅ Strategy data store created!");
         }
+
       };
 
       request.onsuccess = (event) => {
