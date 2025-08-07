@@ -2,7 +2,7 @@ import migrationSafety from "./migrationSafety.js";
 
 export const dbHelper = {
   dbName: "review",
-  version: 30, // 🚨 Increment version to trigger upgrade (enhanced time tracking)
+  version: 31, // 🚨 Increment version to trigger upgrade (enhanced time tracking)
   db: null,
 
   async openDB() {

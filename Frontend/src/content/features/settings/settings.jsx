@@ -54,6 +54,19 @@ const Settings = () => {
       { type: "setSettings", message: settings },
       (response) => {
         console.log("Settings saved:", response);
+        
+        // Clear any cached settings to ensure fresh data on next read
+        chrome.runtime.sendMessage(
+          { type: "clearSettingsCache" },
+          (cacheResponse) => {
+            console.log("Settings cache cleared:", cacheResponse);
+          }
+        );
+        
+        // Notify user of successful save
+        if (response?.status === "success") {
+          console.log("✅ Settings successfully updated and cache cleared");
+        }
       }
     );
   };
