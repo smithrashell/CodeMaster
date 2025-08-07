@@ -1,6 +1,6 @@
 export const dbHelper = {
   dbName: "review",
-  version: 25, // 🚨 Increment version to trigger upgrade (added strategy_data store)
+  version: 30, // 🚨 Increment version to trigger upgrade (enhanced time tracking)
   db: null,
 
   async openDB() {

@@ -11,6 +11,7 @@ import { ProblemService } from "../services/problemService.js";
 import { calculateTagMastery, getTagMastery } from "../db/tag_mastery.js";
 import { storeSessionAnalytics } from "../db/sessionAnalytics.js";
 import { StorageService } from "./storageService.js";
+import { fetchProblemById } from "../db/standard_problems.js";
 import { v4 as uuidv4 } from "uuid";
 
 export const SessionService = {
@@ -71,7 +72,7 @@ export const SessionService = {
       );
 
       // 7️⃣ Analyze session difficulty distribution
-      const difficultyMix = this.analyzeSessionDifficulty(session);
+      const difficultyMix = await this.analyzeSessionDifficulty(session);
 
       // 8️⃣ Create comprehensive summary
       const sessionSummary = {
@@ -294,16 +295,19 @@ export const SessionService = {
    * @param {Object} session - The session object
    * @returns {Object} Difficulty analysis with counts and percentages
    */
-  analyzeSessionDifficulty(session) {
+  async analyzeSessionDifficulty(session) {
     const difficultyCount = { Easy: 0, Medium: 0, Hard: 0 };
     const totalProblems = session.problems.length;
 
-    session.problems.forEach((problem) => {
-      const difficulty = problem.Rating || problem.difficulty || "Medium";
+    for (const problem of session.problems) {
+      // Get official difficulty from standard_problems
+      const standardProblem = await fetchProblemById(problem.leetCodeID || problem.id);
+      const difficulty = standardProblem?.difficulty || "Medium";
+      
       if (Object.prototype.hasOwnProperty.call(difficultyCount, difficulty)) {
         difficultyCount[difficulty]++;
       }
-    });
+    }
 
     return {
       counts: difficultyCount,

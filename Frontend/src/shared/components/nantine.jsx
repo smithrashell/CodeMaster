@@ -157,7 +157,11 @@ export function GradientSegmentedControlTimeLimit(props) {
     <SegmentedControl
       radius="md"
       size="sm"
-      data={["Auto", "off", "15", "20", "30"]}
+      data={[
+        { label: "Auto", value: "Auto" },
+        { label: "Off", value: "off" }, 
+        { label: "Fixed", value: "Fixed" }
+      ]}
       value={props.value}
       onChange={props.onChange}
       color="var(--cd-active-blue)"

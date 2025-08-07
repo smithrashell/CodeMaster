@@ -2,7 +2,7 @@ import { StorageService } from "../src/shared/services/storageService.js";
 import { ProblemService } from "../src/shared/services/problemService.js";
 import { SessionService } from "../src/shared/services/sessionService.js";
 ///import { ScheduleService } from "../src/shared/services/scheduleService.js";
-import { LimitService } from "../src/shared/services/limitService.js";
+import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { TagService } from "../src/shared/services/tagServices.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
@@ -379,10 +379,35 @@ const handleRequest = async (request, sender, sendResponse) => {
       /** ──────────────── Limits & Problem Tracking ──────────────── **/
       // TODO: getLimits
       case "getLimits":
-        console.log("✅ Getting limits for problem", request.id);
-        LimitService.getLimits(request.id)
-          .then((limits) => sendResponse({ limits }))
-          .catch(() => sendResponse({ error: "Failed to get limits" }))
+        console.log("🔍 Getting adaptive limits for problem", request.id);
+        
+        console.log("🔍 Calling adaptiveLimitsService.getLimits with problemId:", request.id);
+        
+        adaptiveLimitsService.getLimits(request.id)
+          .then((limitsConfig) => {
+            console.log("✅ AdaptiveLimitsService returned successfully:", limitsConfig);
+            
+            if (!limitsConfig) {
+              console.error("❌ AdaptiveLimitsService returned null/undefined");
+              sendResponse({ error: "Service returned no data" });
+              return;
+            }
+            
+            // Transform to match expected format
+            const limits = {
+              limit: limitsConfig.difficulty,
+              Time: limitsConfig.recommendedTime,
+              // Include additional adaptive data for timer component
+              adaptiveLimits: limitsConfig
+            };
+            
+            console.log("🔍 Sending limits response:", limits);
+            sendResponse({ limits });
+          })
+          .catch((error) => {
+            console.error("❌ Error getting adaptive limits:", error, error.stack);
+            sendResponse({ error: "Failed to get limits: " + error.message });
+          })
           .finally(finishRequest);
         return true;
 

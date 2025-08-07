@@ -323,7 +323,6 @@ export async function addProblem(problemData) {
     const address = problemData.address;
     const problem = {
       id: problemId,
-      Rating: standardProblem.difficulty,
       ProblemDescription: problemData.title.toLowerCase(),
       ProblemNumberAssoc: [],
       leetCodeID: leetCodeID,
@@ -331,7 +330,7 @@ export async function addProblem(problemData) {
       CooldownStatus: false,
       BoxLevel: 1,
       ReviewSchedule: problemData.reviewSchedule,
-      Difficulty: problemData.difficulty || 0,
+      perceivedDifficulty: problemData.difficulty || 5, // User's perceived difficulty (0-10 scale, default 5)
       ConsecutiveFailures: 0,
       Stability: 1.0,
       AttemptStats: {
@@ -352,12 +351,18 @@ export async function addProblem(problemData) {
         ProblemID: problemId,
         Success: problemData.success,
         AttemptDate: problemData.date,
-        TimeSpent: Number(problemData.timeSpent),
-        Difficulty: problemData.difficulty || 0,
+        TimeSpent: Number(problemData.timeSpent), // Now expecting seconds from forms
+        perceivedDifficulty: problemData.difficulty || 5, // User's perceived difficulty assessment
         Comments: problemData.comments || "",
         BoxLevel: 1,
         NextReviewDate: null,
         SessionID: session.id,
+        
+        // Enhanced time tracking fields
+        ExceededRecommendedTime: problemData.exceededRecommendedTime || false,
+        OverageTime: Number(problemData.overageTime) || 0,
+        UserIntent: problemData.userIntent || "completed",
+        TimeWarningLevel: Number(problemData.timeWarningLevel) || 0,
       };
 
       try {
@@ -967,4 +972,48 @@ async function selectProblemsForTag(
 function getDifficultyScore(difficulty) {
   const scores = { Easy: 1, Medium: 2, Hard: 3 };
   return scores[difficulty] || 2;
+}
+
+/**
+ * Gets problem data with official difficulty from standard_problems
+ * Merges user problem data with official difficulty information
+ * @param {number} leetCodeID - The LeetCode problem ID
+ * @returns {Promise<Object|null>} - Problem with official difficulty or null
+ */
+export async function getProblemWithOfficialDifficulty(leetCodeID) {
+  try {
+    const db = await openDB();
+    
+    // Get user problem data
+    const problemTx = db.transaction("problems", "readonly");
+    const problemStore = problemTx.objectStore("problems");
+    const problemIndex = problemStore.index("by_problem");
+    
+    const userProblem = await new Promise((resolve, reject) => {
+      const request = problemIndex.get(leetCodeID);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Get official difficulty from standard_problems
+    const standardProblem = await fetchProblemById(leetCodeID);
+    
+    if (!standardProblem) {
+      console.warn(`⚠️ No standard problem found for LeetCode ID: ${leetCodeID}`);
+      return userProblem; // Return user problem without official difficulty
+    }
+    
+    // Merge data: user problem data + official difficulty
+    const mergedProblem = {
+      ...userProblem,
+      officialDifficulty: standardProblem.difficulty,
+      tags: standardProblem.tags,
+      title: standardProblem.title || userProblem?.ProblemDescription,
+    };
+    
+    return mergedProblem;
+  } catch (error) {
+    console.error(`❌ Error getting problem with official difficulty for ID ${leetCodeID}:`, error);
+    return null;
+  }
 }
