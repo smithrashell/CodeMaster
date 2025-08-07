@@ -13,10 +13,18 @@ class NotificationManager {
   constructor() {
     this.container = null;
     this.notifications = new Map();
-    this.init();
+    this.isBackgroundContext = typeof document === 'undefined';
+    if (!this.isBackgroundContext) {
+      this.init();
+    }
   }
 
   init() {
+    // Skip DOM operations in background/service worker context
+    if (this.isBackgroundContext) {
+      return;
+    }
+    
     // Create notification container if it doesn't exist
     if (!document.getElementById('codemaster-notifications')) {
       this.container = document.createElement('div');
@@ -36,6 +44,14 @@ class NotificationManager {
   }
 
   show(options) {
+    // In background context, log to console instead of showing DOM notification
+    if (this.isBackgroundContext) {
+      const { title = 'Notification', message = '', type = 'info' } = options;
+      const logMethod = type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log';
+      console[logMethod](`[${type.toUpperCase()}] ${title}:`, message);
+      return `background-${Date.now()}`;
+    }
+
     const {
       id = `notification-${Date.now()}`,
       title = 'Notification',
@@ -170,6 +186,12 @@ class NotificationManager {
   }
 
   hide(id) {
+    // In background context, just remove from memory
+    if (this.isBackgroundContext) {
+      this.notifications.delete(id);
+      return;
+    }
+
     const notification = this.notifications.get(id);
     if (notification) {
       notification.style.transform = 'translateX(100%)';
@@ -185,6 +207,10 @@ class NotificationManager {
   }
 
   hideAll() {
+    if (this.isBackgroundContext) {
+      this.notifications.clear();
+      return;
+    }
     this.notifications.forEach((_, id) => this.hide(id));
   }
 
