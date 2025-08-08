@@ -1,4 +1,4 @@
-import "../content/css/main.css";
+import "./css/main.css";
 import React from "react";
 import {
   Routes,
