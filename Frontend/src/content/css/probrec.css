@@ -196,6 +196,7 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   box-sizing: border-box !important;
   max-width: 238px !important;
   width: calc(100% - 24px) !important;
+  min-height: 200px !important;
   overflow: hidden !important;
 }
 
@@ -310,7 +311,89 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   box-sizing: border-box !important;
   max-width: 238px !important;
   width: calc(100% - 16px) !important;
+  overflow: visible !important;
+}
+
+/* Specific override for tag strategy sections to allow expansion */
+.problem-sidebar-section:has(.tag-strategy-simple-grid),
+.problem-sidebar-section.tag-strategy-container {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 10 !important;
+  max-width: 280px !important;
+  width: 100% !important;
+  padding: 0 12px !important;
+  /* Ensure adequate spacing around the container */
+  margin-top: 8px !important;
+  margin-bottom: 12px !important;
+}
+
+/* Enhanced scrolling behavior for tag strategy expansion */
+.problem-sidebar-section.tag-strategy-container .tag-strategy-hint {
+  /* Ensure strategy hints don't break out of scrollable area */
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  /* Add scroll into view behavior when expanded */
+  scroll-margin-top: 20px !important;
+  /* Remove margin to eliminate gap between tag and strategy */
+  margin-top: 0px !important;
+  /* Ensure proper z-index layering */
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Ensure problem card has adequate spacing from tag strategies */
+.problem-sidebar-card {
+  margin-bottom: 16px !important;
+  /* Ensure the problem card content is never obscured */
+  position: relative !important;
+  z-index: 20 !important;
+}
+
+/* Ensure problem sidebar maintains proper scrolling with expanded content */
+.cd-extension .cd-sidenav.problem-sidebar-view {
+  /* Ensure the sidebar itself doesn't grow beyond viewport */
+  max-height: 100vh !important;
   overflow: hidden !important;
+}
+
+.cd-extension .cd-sidenav.problem-sidebar-view .cd-sidenav__content {
+  /* Enable smooth scrolling within the content area */
+  scroll-behavior: smooth !important;
+  /* Add subtle scroll padding for better UX */
+  scroll-padding-top: 20px !important;
+  scroll-padding-bottom: 20px !important;
+}
+
+/* Prevent expanded strategy content from causing horizontal overflow */
+.problem-sidebar-section.tag-strategy-container .tag-strategy-hint-content {
+  max-width: calc(100% - 4px) !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  box-sizing: border-box !important;
+}
+
+/* Animation and styling for expanded strategy hints */
+.tag-strategy-hint.expanded {
+  /* Remove scaling to prevent gap issues */
+  transform: none !important;
+  transition: transform 0.2s ease-out !important;
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15) !important;
+}
+
+.tag-strategy-hint.expanded .tag-strategy-hint-content {
+  animation: slideInExpand 0.3s ease-out !important;
+}
+
+@keyframes slideInExpand {
+  from {
+    opacity: 0.7;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .problem-sidebar-section-header {
@@ -512,6 +595,955 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   overflow: hidden !important;
 }
 
+
+/* ============================================================================
+   COMPREHENSIVE TAG LAYOUT SOLUTIONS - Multiple Approaches for 2-Column Grid
+   ============================================================================ */
+
+/* SOLUTION 1: CSS GRID APPROACH (PRIMARY - MOST ROBUST) */
+.tag-strategy-simple-grid {
+  /* Force CSS Grid layout - single column for wider buttons */
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  grid-gap: 8px !important;
+  gap: 8px !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  
+  /* Ensure container takes full width */
+  min-width: 100% !important;
+  max-width: 100% !important;
+  
+  /* Reset any inherited flex properties */
+  flex-direction: initial !important;
+  flex-wrap: initial !important;
+  justify-content: initial !important;
+  align-items: initial !important;
+}
+
+/* SOLUTION 2: ENHANCED FLEXBOX APPROACH (FALLBACK) */
+.tag-strategy-simple-grid.use-flexbox {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+  justify-content: flex-start !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+  margin-bottom: 12px !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  
+  /* Force column layout for single column */
+  align-content: stretch !important;
+}
+
+/* COMPREHENSIVE BUTTON STYLES FOR ALL LAYOUT APPROACHES */
+.tag-strategy-button {
+  /* Grid layout properties - works with Solution 1 (CSS Grid) */
+  grid-column: span 1 !important;
+  
+  /* Flexbox layout properties - works with Solution 2 (Enhanced Flexbox) */
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  flex-basis: 100% !important;
+  padding: 12px 20px !important;
+  border: 1px solid transparent !important;
+  border-radius: 20px !important;
+  background: none !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+  min-height: 40px !important;
+  line-height: 1.3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+}
+
+/* LeetCode Badge Theme Styles */
+
+/* Light theme badge styling (default) */
+.tag-strategy-button:hover {
+  background-color: #e2e8f0 !important;
+  color: #334155 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Prevent hover effect on expanded buttons */
+.tag-strategy-button-expanded:hover {
+  transform: none !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  color: rgba(59, 130, 246, 0.9) !important;
+}
+
+.tag-strategy-button-expanded {
+  /* TAB SHAPE: Match strategy content styling */
+  border-radius: 8px 8px 0 0 !important;
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  border-bottom: none !important;
+  color: rgba(59, 130, 246, 0.9) !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  z-index: 2 !important;
+  margin-bottom: -2px !important;
+  transform: none !important;
+  position: relative !important;
+}
+
+/* Dark theme badge styling */
+body[data-theme="dark"] .tag-strategy-button {
+  background-color: #374151 !important;
+  color: #d1d5db !important;
+}
+
+body[data-theme="dark"] .tag-strategy-button:hover {
+  background-color: #4b5563 !important;
+  color: #f9fafb !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Prevent hover effect on expanded buttons in dark theme */
+body[data-theme="dark"] .tag-strategy-button-expanded:hover {
+  transform: none !important;
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: #ffffff !important;
+}
+
+body[data-theme="dark"] .tag-strategy-button-expanded {
+  /* DARK THEME TAB SHAPE: Match strategy content styling */
+  border-radius: 8px 8px 0 0 !important;
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  border: 1px solid rgba(59, 130, 246, 0.7) !important;
+  border-bottom: none !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: none !important;
+  z-index: 2 !important;
+  margin-bottom: -2px !important;
+  transform: none !important;
+  position: relative !important;
+}
+
+/* Light theme specific overrides */
+body[data-theme="light"] .tag-strategy-button {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+.tag-strategy-indicator {
+  font-size: 10px !important;
+  margin-left: 4px !important;
+  opacity: 0.8 !important;
+}
+
+.tag-strategy-hint {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  margin-top: 0px !important;
+  margin-bottom: 8px !important;
+  animation: slideDown 0.2s ease-out !important;
+}
+
+/* Dark mode strategy content */
+body[data-theme="dark"] .tag-strategy-hint-content {
+  background-color: #374151 !important;
+  border: none !important;
+  border-radius: 0 0 8px 8px !important;
+  padding: 12px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-shadow: none !important;
+  color: #f3f4f6 !important;
+  margin-top: -1px !important;
+}
+
+body[data-theme="dark"] .tag-strategy-hint-title {
+  font-weight: 600 !important;
+  color: #f3f4f6 !important;
+  font-size: 14px !important;
+}
+
+body[data-theme="dark"] .tag-strategy-hint-body {
+  color: #f3f4f6 !important;
+  margin-bottom: 6px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  font-weight: 400 !important;
+}
+
+/* Light mode strategy content */
+body[data-theme="light"] .tag-strategy-hint-content {
+  background-color: #ffffff !important;
+  border: none !important;
+  border-radius: 0 0 8px 8px !important;
+  padding: 12px !important;
+  font-size: 13px !important;
+  margin-top: 0px !important;
+  line-height: 1.4 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-shadow: none !important;
+  color: #374151 !important;
+}
+
+body[data-theme="light"] .tag-strategy-hint-title {
+  font-weight: 600 !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+}
+
+body[data-theme="light"] .tag-strategy-hint-body {
+  color: #374151 !important;
+  margin-bottom: 6px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  font-weight: 400 !important;
+}
+
+/* Default fallback styles */
+.tag-strategy-hint-content {
+  background-color: #ffffff !important;
+  border: none !important;
+  border-radius: 0 0 8px 8px !important;
+  padding: 12px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-shadow: none !important;
+  color: #374151 !important;
+  margin-top: -1px !important;
+}
+
+.tag-strategy-hint-header {
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 8px !important;
+}
+
+.tag-strategy-hint-title {
+  font-weight: 600 !important;
+  color: #374151 !important;
+  font-size: 14px !important;
+}
+
+.tag-strategy-hint-body {
+  color: #374151 !important;
+  margin-bottom: 6px !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  font-weight: 400 !important;
+}
+
+.tag-strategy-hint-patterns {
+  margin-top: 6px !important;
+}
+
+/* Dark mode patterns */
+body[data-theme="dark"] .tag-strategy-hint-patterns-title {
+  font-weight: 500 !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 10px !important;
+  margin-bottom: 3px !important;
+}
+
+body[data-theme="dark"] .tag-strategy-hint-pattern {
+  background-color: #4b5563 !important;
+  color: #f3f4f6 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  font-size: 9px !important;
+  border: none !important;
+}
+
+/* Light mode patterns */
+body[data-theme="light"] .tag-strategy-hint-patterns-title {
+  font-weight: 500 !important;
+  color: rgba(0, 0, 0, 0.7) !important;
+  font-size: 10px !important;
+  margin-bottom: 3px !important;
+}
+
+body[data-theme="light"] .tag-strategy-hint-pattern {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  font-size: 9px !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* Common pattern styles */
+.tag-strategy-hint-patterns-title {
+  font-weight: 500 !important;
+  color: rgba(0, 0, 0, 0.7) !important;
+  font-size: 10px !important;
+  margin-bottom: 3px !important;
+}
+
+.tag-strategy-hint-patterns-list {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 3px !important;
+}
+
+.tag-strategy-hint-pattern {
+  background-color: #f9fafb !important;
+  color: #374151 !important;
+  padding: 1px 4px !important;
+  border-radius: 3px !important;
+  font-size: 9px !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.tag-strategy-hint-empty {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-style: italic !important;
+  text-align: center !important;
+  padding: 8px !important;
+}
+
+.tag-strategy-loading {
+  grid-column: 1 / -1 !important;
+  text-align: center !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  font-size: 12px !important;
+  padding: 8px !important;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   ADDITIONAL LAYOUT SOLUTIONS AND COMPREHENSIVE OVERRIDES
+   ============================================================================ */
+
+/* SOLUTION 3: FLOAT-BASED APPROACH (MAXIMUM COMPATIBILITY) */
+.tag-strategy-simple-grid.use-float {
+  display: block !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 8px !important;
+  /* Clear floats */
+  overflow: hidden !important;
+  zoom: 1 !important; /* IE fix */
+}
+
+.tag-strategy-simple-grid.use-float::after {
+  content: "" !important;
+  display: table !important;
+  clear: both !important;
+}
+
+.tag-strategy-simple-grid.use-float .tag-strategy-button {
+  float: left !important;
+  width: calc(50% - 1px) !important;
+  margin-right: 2px !important;
+  margin-bottom: 2px !important;
+  box-sizing: border-box !important;
+}
+
+.tag-strategy-simple-grid.use-float .tag-strategy-button:nth-child(2n) {
+  margin-right: 0 !important;
+  float: right !important;
+}
+
+/* SOLUTION 4: SUPER AGGRESSIVE OVERRIDE FOR STUBBORN CASES */
+body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  grid-gap: 2px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button {
+  grid-column: span 1 !important;
+  width: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* SOLUTION 5: INLINE-BLOCK APPROACH */
+.tag-strategy-simple-grid.use-inline-block {
+  display: block !important;
+  width: 100% !important;
+  text-align: justify !important;
+  font-size: 0 !important; /* Remove whitespace */
+  box-sizing: border-box !important;
+  margin-bottom: 8px !important;
+}
+
+.tag-strategy-simple-grid.use-inline-block::after {
+  content: "" !important;
+  display: inline-block !important;
+  width: 100% !important;
+  height: 0 !important;
+}
+
+.tag-strategy-simple-grid.use-inline-block .tag-strategy-button {
+  display: inline-block !important;
+  width: calc(50% - 1px) !important;
+  font-size: 10px !important; /* Restore font size */
+  text-align: center !important;
+  vertical-align: top !important;
+  box-sizing: border-box !important;
+}
+
+/* NUCLEAR OPTION: FORCE 2-COLUMN WITH MAXIMUM SPECIFICITY */
+html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  grid-gap: 2px !important;
+  gap: 2px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  /* Override any possible flex properties */
+  flex-direction: unset !important;
+  flex-wrap: unset !important;
+  justify-content: unset !important;
+  align-items: unset !important;
+  align-content: unset !important;
+}
+
+html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex-basis: auto !important;
+  flex-grow: 0 !important;
+  flex-shrink: 0 !important;
+  grid-column: span 1 !important;
+  box-sizing: content-box !important;
+  padding: 12px 16px !important;
+  font-size: 13px !important;
+  min-height: 40px !important;
+  height: auto !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+}
+
+/* Responsive adjustments for tag grid */
+@media screen and (max-width: 220px) {
+  .tag-strategy-simple-grid,
+  .tag-strategy-simple-grid.use-flexbox,
+  .tag-strategy-simple-grid.use-float,
+  .tag-strategy-simple-grid.use-inline-block,
+  html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .tag-strategy-simple-grid.use-float .tag-strategy-button,
+  .tag-strategy-simple-grid.use-inline-block .tag-strategy-button {
+    width: 100% !important;
+    float: none !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* ============================================================================
+   COMPREHENSIVE TAG STRATEGY FIXES - DEFINITIVE SOLUTION
+   ============================================================================ */
+
+/* CRITICAL SCROLLING FIXES - Prevent content overflow blocking */
+.problem-sidebar {
+  /* Ensure proper scrolling behavior */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  /* Smooth scrolling for better UX */
+  scroll-behavior: smooth !important;
+  /* Ensure content doesn't get cut off */
+  height: 100vh !important;
+  max-height: 100vh !important;
+}
+
+.cd-sidenav__content {
+  /* Critical: Allow proper scrolling when content expands */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  /* Ensure full height usage with proper padding */
+  height: calc(100vh - 80px) !important;
+  max-height: calc(100vh - 80px) !important;
+  /* Add padding to prevent content cutoff */
+  padding-bottom: 60px !important;
+  /* Enable smooth scrolling */
+  scroll-behavior: smooth !important;
+  /* Fix webkit scrolling issues */
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* REMOVED - Using simplified .tag-strategy-button selector instead */
+
+/* REMOVED - Using simplified selectors instead */
+
+/* REMOVED - Using simplified selectors instead */
+
+/* REMOVED - Updated version exists below */
+
+/* REMOVED - Redundant grid layout rule */
+
+/* RESPONSIVE BREAKPOINTS FOR TAG BUTTONS */
+@media screen and (max-width: 280px) {
+  .tag-strategy-button {
+    padding: 10px 16px !important;
+    min-height: 40px !important;
+    font-size: 13px !important;
+  }
+}
+
+@media screen and (min-width: 281px) {
+  .tag-strategy-button {
+    padding: 12px 20px !important;
+    min-height: 44px !important;
+    font-size: 14px !important;
+  }
+}
+
+@media screen and (min-width: 320px) {
+  .tag-strategy-button {
+    padding: 14px 24px !important;
+    min-height: 48px !important;
+    font-size: 15px !important;
+  }
+}
+
+/* FORCE VISIBILITY AND PREVENT HIDDEN BUTTONS */
+.tag-strategy-button {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* ENHANCED HOVER EFFECTS FOR LARGER BUTTONS */
+.tag-strategy-button:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.2s ease !important;
+}
+
+/* PREVENT CONTENT CUTOFF ON SMALL SCREENS */
+@media screen and (max-height: 700px) {
+  .cd-sidenav__content {
+    padding-bottom: 80px !important;
+  }
+  
+  .problem-sidebar-actions {
+    position: sticky !important;
+    bottom: 0 !important;
+    background: var(--cd-bg) !important;
+    z-index: 10 !important;
+  }
+}
+
+/* CUSTOM SCROLLBAR FOR BETTER UX */
+.cd-sidenav__content::-webkit-scrollbar {
+  width: 12px !important;
+}
+
+.cd-sidenav__content::-webkit-scrollbar-track {
+  background: var(--cd-dropdown-bg) !important;
+  border-radius: 6px !important;
+}
+
+.cd-sidenav__content::-webkit-scrollbar-thumb {
+  background: var(--cd-btn-bg) !important;
+  border-radius: 6px !important;
+  border: 2px solid var(--cd-dropdown-bg) !important;
+}
+
+.cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+  background: var(--cd-active-blue) !important;
+}
+
+/* FINAL NUCLEAR APPROACH: ATTRIBUTE SELECTORS */
+button[class*="tag-strategy"][type="button"] {
+  /* MAXIMUM OVERRIDE POWER */
+  padding: 24px 36px !important;
+  min-height: 64px !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  width: calc(50% - 10px) !important;
+  margin: 5px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  border-radius: 14px !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  text-align: center !important;
+}
+
+/* DEBUG MODE - Uncomment to visualize layout issues */
+/*
+.tag-strategy-simple-grid {
+  border: 2px solid red !important;
+  background-color: rgba(255, 0, 0, 0.1) !important;
+}
+
+.tag-strategy-button {
+  border: 1px solid blue !important;
+  background-color: rgba(0, 0, 255, 0.1) !important;
+}
+*/
+
+/* NUCLEAR SOLUTION: FORCE LARGE TAG BUTTONS - MAXIMUM SPECIFICITY */
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button {
+  /* Force large button sizing */
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  min-height: 40px !important;
+  height: auto !important;
+  line-height: 1.3 !important;
+  
+  /* Override all width constraints */
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  flex-basis: auto !important;
+  flex-grow: 1 !important;
+  flex-shrink: 0 !important;
+  
+  /* Force proper display and sizing */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  
+  /* Allow text wrapping for better display */
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  text-align: center !important;
+  
+  /* Enhanced visual styling */
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+
+/* Override the responsive media query that forces single column */
+@media screen and (max-width: 220px) {
+  html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+    grid-template-columns: 1fr 1fr !important; /* Keep 2 columns even on narrow screens */
+  }
+  
+  html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 6px 12px !important; /* Adjusted padding for very narrow screens while still readable */
+    font-size: 12px !important;
+  }
+}
+
+
+/* Tag Strategy Grid - Compact layout with theme-appropriate styling */
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"],
+.tag-strategy-simple-grid .tag-strategy-button[type="button"] {
+  /* Smaller, more compact pill styling */
+  width: auto !important;
+  min-width: 48% !important;
+  max-width: none !important;
+  padding: 6px 8px !important;
+  margin: 1px !important;
+  min-height: 32px !important;
+  height: auto !important;
+  
+  /* Typography - Compact but readable */
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  
+  /* Pill shape with smaller radius */
+  border-radius: 16px !important;
+  
+  /* Layout */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+  cursor: pointer !important;
+  
+  /* Transitions */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  
+  /* Position */
+  position: relative !important;
+  z-index: 1 !important;
+  
+  /* Colors - default state */
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+/* NUCLEAR HOVER STATE: Maximum Specificity */
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
+html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
+body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover,
+.tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover {
+  background-color: #e2e8f0 !important;
+  color: #334155 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* NUCLEAR EXPANDED STATE: Transform to tab shape with maximum specificity */
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"],
+.tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
+.tag-strategy-button-expanded {
+  /* TAB SHAPE: Square top corners, connect to content below */
+  border-radius: 8px 8px 0 0 !important;
+  background-color: #ffffff !important;
+  border: none !important;
+  color: #374151 !important;
+  font-weight: 600 !important;
+  
+  /* Position for seamless connection */
+  z-index: 2 !important;
+  margin: 0px !important;
+  position: relative !important;
+  
+  /* Remove transform effects when expanded */
+  transform: none !important;
+  box-shadow: none !important;
+  
+  /* Override any pill styling */
+  border-radius: 8px 8px 0 0 !important;
+}
+
+/* NUCLEAR EXPANDED HOVER: Prevent hover effects on expanded buttons */
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
+.tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
+.tag-strategy-button-expanded:hover {
+  transform: none !important;
+  background-color: #ffffff !important;
+  color: #374151 !important;
+  box-shadow: none !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+/* NUCLEAR DARK THEME: Maximum Specificity */
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"],
+body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button[type="button"] {
+  background-color: #374151 !important;
+  color: #f3f4f6 !important;
+  border: none !important;
+}
+
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
+html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
+body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover,
+body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover {
+  background-color: #4b5563 !important;
+  color: #f9fafb !important;
+}
+
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"],
+body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
+body[data-theme="dark"] .tag-strategy-button-expanded {
+  background-color: #374151 !important;
+  border: none !important;
+  color: #f3f4f6 !important;
+  margin: 0px !important;
+  position: relative !important;
+  z-index: 2 !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
+body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
+body[data-theme="dark"] .tag-strategy-button-expanded:hover {
+  background-color: #374151 !important;
+  color: #f3f4f6 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+/* Strategy hint container - spans full grid width */
+.tag-strategy-hint {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  margin-top: 0px !important;
+  margin-bottom: 16px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  animation: expandStrategy 0.3s ease-out !important;
+}
+
+/* Strategy content that connects to the tab */
+.tag-strategy-hint-content {
+  background-color: #ffffff !important;
+  border: none !important;
+  border-radius: 0 0 8px 8px !important;
+  padding: 12px !important;
+  margin-top: 0px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-shadow: none !important;
+  color: #374151 !important;
+}
+
+body[data-theme="dark"] .tag-strategy-hint-content {
+  background-color: #374151 !important;
+  border: none !important;
+  margin-top: 0px !important;
+  color: #f3f4f6 !important;
+}
+
+@keyframes expandStrategy {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 300px;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced scrolling for problem sidebar - FIXED */
+.cd-sidenav__content {
+  /* Core scrolling setup */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scroll-behavior: smooth !important;
+  scrollbar-width: thin !important;
+  
+  /* Ensure proper height and padding to prevent content cutoff */
+  height: calc(100vh - 80px) !important;
+  max-height: calc(100vh - 80px) !important;
+  padding-bottom: 40px !important;
+  
+  /* Enable smooth scrolling on webkit */
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Fix for strategy expansion - ensure smooth auto-scroll */
+.tag-strategy-hint {
+  /* Smooth expansion animation */
+  animation: expandStrategyContent 0.3s ease-out !important;
+  
+  /* Ensure proper spacing and no content blocking */
+  margin-top: 0px !important;
+  margin-bottom: 16px !important;
+  
+  /* Full width within grid */
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  
+  /* Ensure visibility */
+  position: relative !important;
+  z-index: 1 !important;
+  
+  /* Smooth scrolling target */
+  scroll-margin-top: 20px !important;
+}
+
+@keyframes expandStrategyContent {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 300px;
+    transform: translateY(0);
+  }
+}
+
+/* Prevent sidebar from growing beyond viewport */
+.cd-sidenav.problem-sidebar-view {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+.problem-sidebar-section.tag-strategy-container {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 10 !important;
+  margin-bottom: 8px !important;
+}
+
+/* Strategy expansion animation with seamless tab connection */
+.tag-strategy-hint {
+  animation: expandStrategy 0.3s ease-out !important;
+  margin-top: 0px !important;
+  margin-bottom: 12px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  grid-column: 1 / -1 !important;
+}
+
+@keyframes expandStrategy {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    transform: translateY(0);
+  }
+}
+=======
 /* Complete focus outline removal for problem generation page */
 .cd-extension .cd-simple-problem-link:focus,
 .cd-extension .cd-simple-problem-link:focus-visible,
@@ -558,4 +1590,4 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 .cd-extension .cd-simple-problem-link:focus:not(:focus-visible) {
   outline: none !important;
   box-shadow: none !important;
-}
+
