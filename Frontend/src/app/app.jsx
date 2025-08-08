@@ -6,7 +6,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { MantineProvider } from "@mantine/core";
+import { MantineProvider, Text } from "@mantine/core";
 import { DoubleNavbar } from "../shared/components/DoubleNavbar";
 import ErrorBoundary from "../shared/components/ErrorBoundary";
 import { DashboardErrorFallback } from "../shared/components/ErrorFallback";
