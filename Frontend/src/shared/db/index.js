@@ -2,7 +2,7 @@ import migrationSafety from "./migrationSafety.js";
 
 export const dbHelper = {
   dbName: "review",
-  version: 31, // 🚨 Increment version to trigger upgrade (enhanced time tracking)
+  version: 32, // 🚨 Increment version to trigger upgrade (strategy performance optimization)
   db: null,
 
   async openDB() {
@@ -221,16 +221,29 @@ export const dbHelper = {
           console.log("✅ Session analytics store created!");
         }
 
-        // ✅ **NEW: Ensure 'strategy_data' store exists**
+        // ✅ **NEW: Ensure 'strategy_data' store exists with optimized indexes**
         if (!db.objectStoreNames.contains("strategy_data")) {
           let strategyDataStore = db.createObjectStore("strategy_data", {
             keyPath: "tag",
           });
 
+          // Core indexes for fast lookups
           dbHelper.ensureIndex(strategyDataStore, "by_tag", "tag");
+          dbHelper.ensureIndex(strategyDataStore, "by_patterns", "patterns", { multiEntry: true });
+          dbHelper.ensureIndex(strategyDataStore, "by_related", "related", { multiEntry: true });
 
           // eslint-disable-next-line no-console
-          console.log("✅ Strategy data store created!");
+          console.log("✅ Strategy data store created with optimized indexes!");
+        } else {
+          // Add new indexes to existing store if they don't exist
+          const strategyDataStore = event.target.transaction.objectStore("strategy_data");
+          
+          if (!strategyDataStore.indexNames.contains("by_patterns")) {
+            strategyDataStore.createIndex("by_patterns", "patterns", { multiEntry: true });
+          }
+          if (!strategyDataStore.indexNames.contains("by_related")) {
+            strategyDataStore.createIndex("by_related", "related", { multiEntry: true });
+          }
         }
 
       };

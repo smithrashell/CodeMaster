@@ -43,6 +43,11 @@ const ProbDetail = (isLoading) => {
     lastSolved: routeState?.problemData?.lastSolved || "Never",
   };
 
+  // DEBUG: Log problem data and route state
+  console.log("🔍 ProbDetail routeState:", routeState);
+  console.log("🔍 ProbDetail problemData:", problemData);
+  console.log("🔍 ProbDetail tags specifically:", problemData.tags);
+
   useEffect(() => {
     setShowSkip(!routeState?.problemFound);
   }, [routeState?.problemFound]);

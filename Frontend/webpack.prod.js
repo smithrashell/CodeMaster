@@ -28,6 +28,10 @@ module.exports = (env, argv) => {
           from: "src/shared/constants/LeetCode_Tags_Combined.json",
           to: "LeetCode_Tags_Combined.json",
         },
+        {
+          from: "src/shared/constants/strategy_data.json",
+          to: "strategy_data.json",
+        },
       ],
     })
   );

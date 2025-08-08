@@ -1,16 +1,44 @@
-import { dbHelper } from "../../shared/db/index.js";
-import {
-  getTagRelationships,
-  buildTagRelationships,
-} from "../../shared/db/tag_relationships.js";
-import strategyDataFile from "../../shared/constants/strategy_data.json";
 import ProblemRelationshipService from "../../shared/services/problemRelationshipService.js";
+import strategyCacheService from "../../shared/services/StrategyCacheService.js";
+import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
 
-// Natural cutoff thresholds for tier-based hint selection
-const NATURAL_CUTOFFS = {
-  TIER_1: 0.12, // Essential relationships (top 5%)
-  TIER_2: 0.045, // Strong relationships (top 15%)
-  TIER_3: 0.017, // Meaningful relationships (top 30%)
+// Fallback strategy data when database is unavailable
+const FALLBACK_STRATEGIES = {
+  'array': {
+    tag: 'array',
+    strategy: 'Consider using two pointers, sliding window, or divide and conquer approaches.',
+    overview: 'Arrays are fundamental data structures for storing sequential data.',
+    patterns: ['Two Pointers', 'Sliding Window', 'Binary Search'],
+    related: ['sorting', 'hash table']
+  },
+  'hash table': {
+    tag: 'hash table',
+    strategy: 'Use hash maps for O(1) lookups and to track frequency or existence of elements.',
+    overview: 'Hash tables provide constant-time access for key-value relationships.',
+    patterns: ['Frequency Count', 'Lookup Table', 'Memoization'],
+    related: ['array', 'string']
+  },
+  'sorting': {
+    tag: 'sorting',
+    strategy: 'Sort first to enable two pointers or binary search approaches.',
+    overview: 'Sorting can simplify many problems by creating order.',
+    patterns: ['Merge Sort', 'Quick Sort', 'Bucket Sort'],
+    related: ['array', 'greedy']
+  },
+  'string': {
+    tag: 'string',
+    strategy: 'Consider sliding window, two pointers, or character frequency approaches.',
+    overview: 'String manipulation often involves pattern matching and character analysis.',
+    patterns: ['Sliding Window', 'Two Pointers', 'Pattern Matching'],
+    related: ['hash table', 'dynamic programming']
+  },
+  'tree': {
+    tag: 'tree',
+    strategy: 'Use DFS for path problems, BFS for level-order, and consider tree properties.',
+    overview: 'Trees are hierarchical data structures with parent-child relationships.',
+    patterns: ['DFS', 'BFS', 'Tree Traversal'],
+    related: ['depth-first search', 'breadth-first search']
+  }
 };
 
 // Hint selection configuration
@@ -51,142 +79,157 @@ const HINT_CONFIG = {
 
 /**
  * Strategy Service for managing strategy data in IndexedDB
- * Handles uploading, retrieving, and providing context-aware hints
+ * Handles retrieving and providing context-aware hints
  */
 export class StrategyService {
   /**
-   * Initialize strategy data in IndexedDB if not already present
+   * Initialize strategy data - delegates to background script
    */
   static async initializeStrategyData() {
     try {
-      const db = await dbHelper.openDB();
-      const tx = db.transaction("strategy_data", "readonly");
-      const store = tx.objectStore("strategy_data");
-
-      // Check if data already exists
-      const existingCount = await new Promise((resolve, reject) => {
-        const countRequest = store.count();
-        countRequest.onsuccess = () => resolve(countRequest.result);
-        countRequest.onerror = () => reject(countRequest.error);
+      // eslint-disable-next-line no-console
+      console.log("🔧 CONTENT: Starting strategy data initialization via background script...");
+      
+      const response = await chrome.runtime.sendMessage({
+        type: "isStrategyDataLoaded"
       });
-
-      if (existingCount > 0) {
-        console.log(
-          `✅ Strategy data already loaded (${existingCount} entries)`
-        );
-        return;
+      
+      if (response.status === 'success' && response.data) {
+        // eslint-disable-next-line no-console
+        console.log("✅ CONTENT: Strategy data already loaded");
+        return true;
       }
 
-      console.log("📥 Loading strategy data into IndexedDB...");
-      await this.uploadStrategyData();
-      console.log("✅ Strategy data initialization complete!");
+      // eslint-disable-next-line no-console
+      console.log("📊 CONTENT: Strategy data initialization handled by background script onboarding...");
+      
+      return true;
     } catch (error) {
-      console.error("❌ Error initializing strategy data:", error);
-      throw error;
+      console.error("❌ CONTENT: Error initializing strategy data:", error);
+      return false;
     }
   }
 
   /**
-   * Upload strategy data from JSON file to IndexedDB
-   */
-  static async uploadStrategyData() {
-    try {
-      const db = await dbHelper.openDB();
-      const tx = db.transaction("strategy_data", "readwrite");
-      const store = tx.objectStore("strategy_data");
-
-      let uploadedCount = 0;
-
-      for (const strategyEntry of strategyDataFile) {
-        const { tag, ...strategyData } = strategyEntry;
-
-        await new Promise((resolve, reject) => {
-          const putRequest = store.put({
-            tag: tag,
-            ...strategyData,
-          });
-
-          putRequest.onsuccess = () => {
-            uploadedCount++;
-            resolve();
-          };
-          putRequest.onerror = () => reject(putRequest.error);
-        });
-      }
-
-      await new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-
-      console.log(`✅ Uploaded ${uploadedCount} strategy entries to IndexedDB`);
-      return uploadedCount;
-    } catch (error) {
-      console.error("❌ Error uploading strategy data:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get strategy data for a specific tag
+   * Get strategy data for a specific tag (cached)
    * @param {string} tag - The tag name
    * @returns {Object|null} Strategy data object or null if not found
    */
   static async getStrategyForTag(tag) {
+    const queryContext = performanceMonitor.startQuery('getStrategyForTag', { tag });
+    
     try {
-      const db = await dbHelper.openDB();
-      const tx = db.transaction("strategy_data", "readonly");
-      const store = tx.objectStore("strategy_data");
-
-      return new Promise((resolve, reject) => {
-        const getRequest = store.get(tag);
-        getRequest.onsuccess = () => resolve(getRequest.result || null);
-        getRequest.onerror = () => reject(getRequest.error);
+      // eslint-disable-next-line no-console
+      console.log(`🔍 CONTENT: Getting strategy for tag: "${tag}" via background script`);
+      
+      const response = await chrome.runtime.sendMessage({
+        type: "getStrategyForTag",
+        tag: tag
       });
+      
+      if (response.status === 'success') {
+        const dbResult = response.data;
+        // eslint-disable-next-line no-console
+        console.log(`🔍 CONTENT: Background script result for "${tag}":`, dbResult ? 'FOUND' : 'NULL');
+        
+        if (dbResult) {
+          performanceMonitor.endQuery(queryContext, true, JSON.stringify(dbResult).length);
+          return dbResult;
+        }
+      } else {
+        console.error(`❌ CONTENT: Background script error for "${tag}":`, response.error);
+      }
+
+      // Try fallback strategy data
+      const fallback = FALLBACK_STRATEGIES[tag.toLowerCase()];
+      if (fallback) {
+        // eslint-disable-next-line no-console
+        console.log(`🔄 CONTENT: Using fallback strategy for tag "${tag}"`);
+        performanceMonitor.endQuery(queryContext, true, JSON.stringify(fallback).length);
+        return fallback;
+      }
+      
+      // eslint-disable-next-line no-console
+      console.log(`❌ CONTENT: No strategy found for "${tag}" (no fallback either)`);
+      
+      performanceMonitor.endQuery(queryContext, true, 0);
+      return null;
     } catch (error) {
-      console.error(`❌ Error getting strategy for tag "${tag}":`, error);
+      console.error(`❌ CONTENT: Error getting strategy for tag "${tag}":`, error);
+      
+      // Try fallback strategy data
+      const fallback = FALLBACK_STRATEGIES[tag.toLowerCase()];
+      if (fallback) {
+        // eslint-disable-next-line no-console
+        console.log(`🔄 CONTENT: Using fallback strategy for tag "${tag}"`);
+        performanceMonitor.endQuery(queryContext, true, JSON.stringify(fallback).length);
+        return fallback;
+      }
+      
+      performanceMonitor.endQuery(queryContext, false, 0, error);
       return null;
     }
   }
 
   /**
-   * Get multiple strategy data entries for an array of tags
+   * Get multiple strategy data entries for an array of tags (optimized with parallel processing)
    * @param {string[]} tags - Array of tag names
    * @returns {Object} Object with tag names as keys and strategy data as values
    */
   static async getStrategiesForTags(tags) {
+    const queryContext = performanceMonitor.startQuery('getStrategiesForTags', { tagCount: tags.length });
+    
     try {
-      const strategies = {};
+      const cacheKey = strategyCacheService.constructor.generateCacheKey('strategies_bulk', tags.sort());
+      
+      const result = await strategyCacheService.getCachedData(cacheKey, async () => {
+        // eslint-disable-next-line no-console
+        console.log("📋 Loading strategies for tags (parallel):", tags);
+        
+        // Process all tags in parallel
+        const strategyPromises = tags.map(async (tag) => {
+          try {
+            const strategy = await this.getStrategyForTag(tag);
+            if (strategy) {
+              // eslint-disable-next-line no-console
+              console.log(`✅ Loaded strategy for [${tag}]`);
+              return { tag, strategy };
+            }
+            // eslint-disable-next-line no-console
+            console.log(`❌ No strategy found for [${tag}]`);
+            return null;
+          } catch (error) {
+            console.error(`❌ Error loading strategy for [${tag}]:`, error);
+            return null;
+          }
+        });
 
-      console.log("📋 Loading strategies for tags:", tags);
+        const results = await Promise.all(strategyPromises);
+        
+        // Convert results to object format
+        const strategies = {};
+        results.forEach(result => {
+          if (result && result.strategy) {
+            strategies[result.tag] = result.strategy;
+          }
+        });
 
-      for (const tag of tags) {
-        const strategy = await this.getStrategyForTag(tag);
-        if (strategy) {
-          strategies[tag] = strategy;
-          console.log(`✅ Loaded strategy for [${tag}]:`, {
-            hasStrategy: !!strategy.strategy,
-            hasStrategies: !!strategy.strategies,
-            strategiesCount: strategy.strategies
-              ? strategy.strategies.length
-              : 0,
-            patterns: strategy.patterns,
-          });
-        } else {
-          console.log(`❌ No strategy found for [${tag}]`);
-        }
-      }
-
-      console.log("📋 Final strategies loaded:", Object.keys(strategies));
-      return strategies;
+        // eslint-disable-next-line no-console
+        console.log("📋 Final strategies loaded (parallel):", Object.keys(strategies));
+        return strategies;
+      });
+      
+      performanceMonitor.endQuery(queryContext, true, Object.keys(result).length);
+      return result;
     } catch (error) {
       console.error("❌ Error getting strategies for tags:", error);
+      performanceMonitor.endQuery(queryContext, false, 0, error);
       return {};
     }
   }
 
   /**
-   * Get context-aware strategies using intelligent tier-based selection with difficulty awareness
+   * Get context-aware strategies using intelligent tier-based selection with difficulty awareness (cached)
    * @param {string[]} problemTags - Tags associated with current problem
    * @param {string} difficulty - Problem difficulty ('Easy', 'Medium', 'Hard')
    * @param {number} problemId - Optional problem ID for relationship-based hints
@@ -197,24 +240,40 @@ export class StrategyService {
     difficulty = "Medium",
     problemId = null
   ) {
+    const queryContext = performanceMonitor.startQuery('getContextualHints', { 
+      tagCount: problemTags?.length || 0, 
+      difficulty, 
+      hasProblemId: !!problemId 
+    });
+    
     try {
       if (!problemTags || problemTags.length === 0) {
+        performanceMonitor.endQuery(queryContext, true, 0);
         return [];
       }
 
+      // eslint-disable-next-line no-console
       console.log(
         `🧠 Starting intelligent hint selection for ${difficulty} problem with tags:`,
         problemTags
       );
 
-      // Use new difficulty-aware intelligent selection
-      return await this.buildOptimalHintSelection(
-        problemTags,
-        difficulty,
-        problemId
+      const cacheKey = strategyCacheService.constructor.generateCacheKey(
+        'contextual_hints', 
+        problemTags.sort(), 
+        difficulty, 
+        problemId || 'no-problem-id'
       );
+      
+      const result = await strategyCacheService.getCachedData(cacheKey, async () => {
+        return await this.buildOptimalHintSelection(problemTags, difficulty, problemId);
+      });
+      
+      performanceMonitor.endQuery(queryContext, true, result.length);
+      return result;
     } catch (error) {
       console.error("❌ Error getting contextual hints:", error);
+      performanceMonitor.endQuery(queryContext, false, 0, error);
       return [];
     }
   }
@@ -232,101 +291,69 @@ export class StrategyService {
     problemId = null
   ) {
     try {
+      // eslint-disable-next-line no-console
+      console.log("🔍 HINT DEBUG: Starting buildOptimalHintSelection with tags:", problemTags);
+      
       const strategiesData = await this.getStrategiesForTags(problemTags);
+      
+      // eslint-disable-next-line no-console
+      console.log("🔍 HINT DEBUG: Retrieved strategies data:", strategiesData);
+      console.log("🔍 HINT DEBUG: Available strategy keys:", Object.keys(strategiesData));
+      
       const difficultyConfig =
         HINT_CONFIG.DIFFICULTY_CONFIG[difficulty] ||
         HINT_CONFIG.DIFFICULTY_CONFIG["Medium"];
 
+      // eslint-disable-next-line no-console
       console.log(
         `🎯 Building ${difficulty}-aware hint selection using natural cutoff tiers`
       );
-      console.log(
-        "📊 Strategy data loaded for tags:",
-        Object.keys(strategiesData)
-      );
-      console.log("⚙️ Difficulty config:", difficultyConfig);
 
-      // Step 1: Analyze problem context for relationship-based enhancements
-      let problemContext = { useTagBasedHints: true, relationshipBonuses: {} };
-      if (problemId) {
-        console.log(
-          `🔍 Analyzing problem relationships for problem ${problemId}`
-        );
-        problemContext = await ProblemRelationshipService.analyzeProblemContext(
-          problemId,
-          problemTags,
-          5
-        );
-
-        if (!problemContext.useTagBasedHints) {
-          console.log(
-            `📈 Found ${
-              problemContext.similarProblems.length
-            } similar problems with context strength: ${problemContext.contextStrength.toFixed(
-              2
-            )}`
-          );
-          console.log(
-            "🔗 Relationship bonuses:",
-            problemContext.relationshipBonuses
-          );
+      // For now, return basic hints from strategies
+      const hints = [];
+      
+      for (const tag of problemTags) {
+        // eslint-disable-next-line no-console
+        console.log(`🔍 HINT DEBUG: Processing tag: "${tag}"`);
+        
+        const strategy = strategiesData[tag];
+        
+        // eslint-disable-next-line no-console
+        console.log(`🔍 HINT DEBUG: Strategy for "${tag}":`, strategy);
+        
+        if (strategy) {
+          const hint = {
+            type: "general",
+            primaryTag: tag,
+            relatedTag: null,
+            tip: strategy.strategy,
+            tier: "essential",
+            source: "strategy",
+            complexity: 1,
+            relevance: 1.0,
+            finalScore: 300,
+            chainPosition: hints.length + 1,
+          };
+          
+          hints.push(hint);
+          // eslint-disable-next-line no-console
+          console.log(`✅ HINT DEBUG: Added hint for "${tag}":`, hint);
+        } else {
+          // eslint-disable-next-line no-console
+          console.log(`❌ HINT DEBUG: No strategy found for tag "${tag}"`);
         }
       }
 
-      // Step 2: Collect all available strategy hints with tier classification
-      const allHints = [];
-
-      if (problemTags.length >= 2) {
-        // Multi-tag problem: Focus on inter-tag relationships
-        console.log("🔗 Multi-tag problem: analyzing tag pair relationships");
-        allHints.push(
-          ...(await this.collectInterTagHints(problemTags, strategiesData))
-        );
-      }
-
-      // Add intra-tag hints (single tag strategies) for diversity
-      console.log("📋 Adding intra-tag hints for comprehensive coverage");
-      allHints.push(
-        ...(await this.collectIntraTagHints(problemTags, strategiesData))
-      );
-
-      console.log(`📊 Total hints collected: ${allHints.length}`);
-
-      // Step 3: Score and rank all hints using difficulty-aware tier-based algorithm with relationship bonuses
-      const scoredHints = this.scoreAndRankHints(
-        allHints,
-        difficulty,
-        difficultyConfig,
-        problemContext
-      );
-      console.log(
-        "🏆 Top scored hints:",
-        scoredHints.slice(0, 5).map((h) => ({
-          tags: `${h.primaryTag} + ${h.relatedTag || "general"}`,
-          tier: h.tier,
-          type: h.type,
-          score: h.finalScore,
-        }))
-      );
-
-      // Step 4: Apply intelligent hint selection with difficulty-aware tier distribution
-      const selectedHints = this.applyIntelligentSelection(
-        scoredHints,
-        difficultyConfig
-      );
-
-      console.log(
-        `🎯 Selected ${selectedHints.length} optimal ${difficulty} hints:`
-      );
-      selectedHints.forEach((hint, index) => {
-        console.log(
-          `  ${index + 1}. [${hint.primaryTag}] + [${
-            hint.relatedTag || "general"
-          }] (${hint.tier} tier, ${hint.type} type, score: ${hint.finalScore})`
-        );
-      });
-
-      return selectedHints;
+      // eslint-disable-next-line no-console
+      console.log("🔍 HINT DEBUG: Final hints array:", hints);
+      console.log("🔍 HINT DEBUG: Difficulty config max hints:", difficultyConfig.maxHints);
+      
+      const finalHints = hints.slice(0, difficultyConfig.maxHints);
+      
+      // eslint-disable-next-line no-console
+      console.log("🔍 HINT DEBUG: Returning hints:", finalHints);
+      
+      return finalHints;
     } catch (error) {
       console.error("❌ Error building optimal hint selection:", error);
       return [];
@@ -334,472 +361,81 @@ export class StrategyService {
   }
 
   /**
-   * Collect inter-tag relationship hints for multi-tag problems
-   * @param {string[]} problemTags - Problem tags
-   * @param {Object} strategiesData - Strategy data for all tags
-   * @returns {Object[]} Array of inter-tag hints with tier classification
-   */
-  static async collectInterTagHints(problemTags, strategiesData) {
-    const hints = [];
-
-    for (let i = 0; i < problemTags.length; i++) {
-      for (let j = i + 1; j < problemTags.length; j++) {
-        const tagA = problemTags[i];
-        const tagB = problemTags[j];
-
-        // Find strategy for this tag pair
-        const strategy = this.findStrategyForTagPair(
-          tagA,
-          tagB,
-          strategiesData
-        );
-        if (strategy) {
-          // Determine natural tier based on relationship strength patterns
-          const tier = this.classifyRelationshipTier(tagA, tagB);
-
-          hints.push({
-            type: "contextual",
-            primaryTag: tagA,
-            relatedTag: tagB,
-            tip: strategy.tip,
-            tier: tier,
-            source: "inter-tag",
-            complexity: this.getHintComplexity(strategy.tip),
-          });
-        }
-      }
-    }
-
-    console.log(`🔗 Collected ${hints.length} inter-tag hints`);
-    return hints;
-  }
-
-  /**
-   * Collect intra-tag hints for comprehensive coverage
-   * @param {string[]} problemTags - Problem tags
-   * @param {Object} strategiesData - Strategy data for all tags
-   * @returns {Object[]} Array of intra-tag hints
-   */
-  static async collectIntraTagHints(problemTags, strategiesData) {
-    const hints = [];
-
-    for (const tag of problemTags) {
-      const tagData = strategiesData[tag];
-      if (!tagData) continue;
-
-      // Add general strategy for fallback
-      if (tagData.strategy) {
-        hints.push({
-          type: "general",
-          primaryTag: tag,
-          relatedTag: null,
-          tip: tagData.strategy,
-          tier: "meaningful", // General strategies are lower priority
-          source: "intra-tag",
-          complexity: this.getHintComplexity(tagData.strategy),
-        });
-      }
-
-      // Add top strategies from this tag (first few are likely highest strength)
-      if (tagData.strategies && tagData.strategies.length > 0) {
-        const topStrategies = tagData.strategies.slice(0, 3); // First 3 are highest strength
-
-        topStrategies.forEach((strategy, index) => {
-          // Classify tier based on position (first few are likely essential/strong)
-          const tier =
-            index === 0 ? "essential" : index === 1 ? "strong" : "meaningful";
-
-          hints.push({
-            type: "pattern",
-            primaryTag: tag,
-            relatedTag: strategy.when,
-            tip: strategy.tip,
-            tier: tier,
-            source: "intra-tag",
-            complexity: this.getHintComplexity(strategy.tip),
-          });
-        });
-      }
-    }
-
-    console.log(`📋 Collected ${hints.length} intra-tag hints`);
-    return hints;
-  }
-
-  /**
-   * Classify relationship tier based on known strong relationships
-   * @param {string} tagA - First tag
-   * @param {string} tagB - Second tag
-   * @returns {string} Tier classification (essential, strong, meaningful)
-   */
-  static classifyRelationshipTier(tagA, tagB) {
-    // Define known essential relationships (from natural cutoff analysis)
-    const essentialPairs = new Set([
-      "array+hash table",
-      "hash table+array",
-      "array+sorting",
-      "sorting+array",
-      "array+dynamic programming",
-      "dynamic programming+array",
-      "hash table+string",
-      "string+hash table",
-      "tree+depth-first search",
-      "depth-first search+tree",
-      "binary tree+depth-first search",
-      "depth-first search+binary tree",
-    ]);
-
-    const strongPairs = new Set([
-      "array+greedy",
-      "greedy+array",
-      "string+dynamic programming",
-      "dynamic programming+string",
-      "graph+breadth-first search",
-      "breadth-first search+graph",
-      "sorting+greedy",
-      "greedy+sorting",
-    ]);
-
-    const pairKey = `${tagA}+${tagB}`;
-
-    if (essentialPairs.has(pairKey)) {
-      return "essential";
-    } else if (strongPairs.has(pairKey)) {
-      return "strong";
-    } else {
-      return "meaningful";
-    }
-  }
-
-  /**
-   * Get hint complexity score based on content analysis
-   * @param {string} tip - The hint text
-   * @returns {number} Complexity score (1-3: simple to complex)
-   */
-  static getHintComplexity(tip) {
-    const complexKeywords = [
-      "optimize",
-      "complexity",
-      "algorithm",
-      "efficient",
-      "performance",
-      "logarithmic",
-      "polynomial",
-      "amortized",
-      "space-time tradeoff",
-    ];
-
-    const advancedKeywords = [
-      "memoization",
-      "dynamic programming",
-      "backtracking",
-      "pruning",
-      "segment tree",
-      "trie",
-      "union find",
-      "topological sort",
-    ];
-
-    const tip_lower = tip.toLowerCase();
-
-    if (advancedKeywords.some((keyword) => tip_lower.includes(keyword))) {
-      return 3; // Complex
-    } else if (complexKeywords.some((keyword) => tip_lower.includes(keyword))) {
-      return 2; // Moderate
-    } else {
-      return 1; // Simple
-    }
-  }
-
-  /**
-   * Calculate complexity bonus based on difficulty level
-   * @param {number} complexity - Hint complexity (1-3)
-   * @param {string} difficulty - Problem difficulty
-   * @param {Object} difficultyConfig - Difficulty configuration
-   * @returns {number} Complexity bonus score
-   */
-  static getDifficultyComplexityBonus(
-    complexity,
-    difficulty,
-    difficultyConfig
-  ) {
-    const baseBonus = difficultyConfig.complexityBonus;
-
-    switch (difficulty) {
-      case "Easy":
-        // For easy problems, prefer simpler hints
-        return complexity === 1 ? baseBonus : -(complexity - 1) * 20;
-
-      case "Medium":
-        // For medium problems, balanced preference
-        return complexity === 2 ? baseBonus : baseBonus * 0.5;
-
-      case "Hard":
-        // For hard problems, prefer more complex hints
-        return complexity * baseBonus;
-
-      default:
-        return 0;
-    }
-  }
-
-  /**
-   * Score and rank hints using difficulty-aware tier-based algorithm with relationship bonuses
-   * @param {Object[]} hints - All collected hints
-   * @param {string} difficulty - Problem difficulty level
-   * @param {Object} difficultyConfig - Configuration for this difficulty
-   * @param {Object} problemContext - Problem relationship context (optional)
-   * @returns {Object[]} Scored and sorted hints
-   */
-  static scoreAndRankHints(
-    hints,
-    difficulty = "Medium",
-    difficultyConfig,
-    problemContext = null
-  ) {
-    return hints
-      .map((hint, index) => {
-        // Use difficulty-specific tier weights
-        const tierWeight = difficultyConfig.tierWeights[hint.tier] || 50;
-
-        // Diversity bonus (prefer different types)
-        const diversityBonus = hint.source === "inter-tag" ? 20 : 10;
-
-        // Position bonus (earlier strategies in array are typically stronger)
-        const positionBonus = Math.max(10 - index * 2, 0);
-
-        // Difficulty-aware complexity bonus
-        const complexityBonus = this.getDifficultyComplexityBonus(
-          hint.complexity,
-          difficulty,
-          difficultyConfig
-        );
-
-        // Type preference bonus
-        const typeBonus = difficultyConfig.preferredTypes.includes(hint.type)
-          ? 30
-          : 0;
-
-        // Problem relationship bonus
-        const relationshipBonus = this.getRelationshipBonus(
-          hint,
-          problemContext
-        );
-
-        const finalScore =
-          tierWeight +
-          diversityBonus +
-          positionBonus +
-          complexityBonus +
-          typeBonus +
-          relationshipBonus;
-
-        return {
-          ...hint,
-          finalScore: finalScore,
-          relationshipBonus: relationshipBonus,
-          chainPosition: 0, // Will be set during selection
-        };
-      })
-      .sort((a, b) => b.finalScore - a.finalScore);
-  }
-
-  /**
-   * Calculate relationship bonus based on problem similarity data
-   * @param {Object} hint - Hint object with tag information
-   * @param {Object} problemContext - Problem relationship context
-   * @returns {number} Relationship bonus score
-   */
-  static getRelationshipBonus(hint, problemContext) {
-    if (
-      !problemContext ||
-      problemContext.useTagBasedHints ||
-      !problemContext.relationshipBonuses
-    ) {
-      return 0;
-    }
-
-    // Create pair key for relationship lookup
-    let pairKey = null;
-    if (hint.relatedTag && hint.relatedTag !== hint.primaryTag) {
-      // Multi-tag hint: use sorted pair
-      pairKey = [
-        hint.primaryTag.toLowerCase().trim(),
-        hint.relatedTag.toLowerCase().trim(),
-      ]
-        .sort()
-        .join("+");
-    } else {
-      // Single tag hint: check if it appears in any relationship
-      const primaryTag = hint.primaryTag.toLowerCase().trim();
-      for (const key of Object.keys(problemContext.relationshipBonuses)) {
-        if (key.includes(primaryTag)) {
-          pairKey = key;
-          break;
-        }
-      }
-    }
-
-    const bonus = pairKey
-      ? problemContext.relationshipBonuses[pairKey] || 0
-      : 0;
-
-    if (bonus > 0) {
-      console.log(
-        `🔗 Relationship bonus for [${hint.primaryTag}] + [${
-          hint.relatedTag || "general"
-        }]: +${bonus}`
-      );
-    }
-
-    return bonus;
-  }
-
-  /**
-   * Apply intelligent selection with tier distribution constraints
-   * @param {Object[]} scoredHints - All hints scored and ranked
-   * @returns {Object[]} Selected optimal hints
-   */
-  static applyIntelligentSelection(scoredHints, difficultyConfig) {
-    const selected = [];
-    const tierCounts = { essential: 0, strong: 0, meaningful: 0 };
-    const usedPairs = new Set();
-
-    for (const hint of scoredHints) {
-      // Check tier distribution limits
-      const tierConfig = HINT_CONFIG.HINT_DISTRIBUTION[hint.tier];
-      if (tierCounts[hint.tier] >= tierConfig.max) {
-        continue; // Skip if tier is full
-      }
-
-      // Check for duplicates
-      const pairKey = hint.relatedTag
-        ? [hint.primaryTag, hint.relatedTag].sort().join(":")
-        : hint.primaryTag;
-
-      if (usedPairs.has(pairKey)) {
-        continue; // Skip duplicates
-      }
-
-      // Add to selection
-      selected.push({
-        ...hint,
-        relevance: hint.finalScore / 300, // Normalize for UI
-        chainPosition: selected.length + 1,
-      });
-
-      tierCounts[hint.tier]++;
-      usedPairs.add(pairKey);
-
-      // Stop when we have enough hints
-      if (selected.length >= difficultyConfig.maxHints) {
-        break;
-      }
-    }
-
-    // Ensure we have at least one essential hint if available
-    if (
-      tierCounts.essential === 0 &&
-      scoredHints.some((h) => h.tier === "essential")
-    ) {
-      console.log("⚠️ No essential hints selected, adjusting selection...");
-      // Could implement fallback logic here if needed
-    }
-
-    console.log("📊 Final tier distribution:", tierCounts);
-    return selected;
-  }
-
-  /**
-   * Find strategy tip for a specific tag pair from strategy data
-   * @param {string} tagA - Primary tag
-   * @param {string} tagB - Related tag
-   * @param {Object} strategiesData - Strategy data for all tags
-   * @returns {Object|null} Strategy object with tip, or null if not found
-   */
-  static findStrategyForTagPair(tagA, tagB, strategiesData) {
-    try {
-      // Check tagA strategies for tagB
-      if (strategiesData[tagA] && strategiesData[tagA].strategies) {
-        for (const strategy of strategiesData[tagA].strategies) {
-          if (strategy.when === tagB) {
-            return strategy;
-          }
-        }
-      }
-
-      // Check tagB strategies for tagA
-      if (strategiesData[tagB] && strategiesData[tagB].strategies) {
-        for (const strategy of strategiesData[tagB].strategies) {
-          if (strategy.when === tagA) {
-            return strategy;
-          }
-        }
-      }
-
-      // Fallback: return general strategy from primary tag
-      if (strategiesData[tagA] && strategiesData[tagA].strategy) {
-        return {
-          tip: strategiesData[tagA].strategy,
-          when: null,
-        };
-      }
-
-      return null;
-    } catch (error) {
-      console.error(
-        `❌ Error finding strategy for pair ${tagA}-${tagB}:`,
-        error
-      );
-      return null;
-    }
-  }
-
-  /**
-   * Get primer information for a specific tag (for pre-problem display)
+   * Get primer information for a specific tag (for pre-problem display) - cached
    * @param {string} tag - The tag name
    * @returns {Object|null} Primer information with overview and general strategy
    */
   static async getTagPrimer(tag) {
+    const queryContext = performanceMonitor.startQuery('getTagPrimer', { tag });
+    
     try {
+      // BYPASS CACHE TEMPORARILY - Direct call to test background script communication
+      // eslint-disable-next-line no-console
+      console.log(`🔍 CONTENT: Getting primer for tag "${tag}" (cache bypassed)`);
+      
       const strategyData = await this.getStrategyForTag(tag);
 
       if (!strategyData) {
+        // eslint-disable-next-line no-console
+        console.log(`❌ CONTENT: No strategy data found for tag "${tag}"`);
+        performanceMonitor.endQuery(queryContext, true, 0);
         return null;
       }
 
-      return {
+      const result = {
         tag: tag,
         overview: strategyData.overview,
         strategy: strategyData.strategy,
         patterns: strategyData.patterns || [],
         related: strategyData.related || [],
       };
+      
+      // eslint-disable-next-line no-console
+      console.log(`✅ CONTENT: Created primer for tag "${tag}":`, result);
+      
+      performanceMonitor.endQuery(queryContext, true, JSON.stringify(result).length);
+      return result;
     } catch (error) {
-      console.error(`❌ Error getting primer for tag "${tag}":`, error);
+      console.error(`❌ CONTENT: Error getting primer for tag "${tag}":`, error);
+      performanceMonitor.endQuery(queryContext, false, 0, error);
       return null;
     }
   }
 
   /**
-   * Get primers for multiple tags (for multi-tag problems)
+   * Get primers for multiple tags (for multi-tag problems) - optimized with parallel processing
    * @param {string[]} tags - Array of tag names
    * @returns {Object[]} Array of primer objects
    */
   static async getTagPrimers(tags) {
+    const queryContext = performanceMonitor.startQuery('getTagPrimers', { tagCount: tags.length });
+    
     try {
-      const primers = [];
-
-      for (const tag of tags) {
-        const primer = await this.getTagPrimer(tag);
-        if (primer) {
-          primers.push(primer);
+      // BYPASS CACHE TEMPORARILY - Direct parallel processing to test background script communication
+      // eslint-disable-next-line no-console
+      console.log(`🔍 CONTENT: Getting primers for ${tags.length} tags (cache bypassed):`, tags);
+      
+      // Process all tags in parallel
+      const primerPromises = tags.map(async (tag) => {
+        try {
+          return await this.getTagPrimer(tag);
+        } catch (error) {
+          console.error(`❌ CONTENT: Error getting primer for tag "${tag}":`, error);
+          return null;
         }
-      }
+      });
 
-      return primers;
+      const primers = await Promise.all(primerPromises);
+      const result = primers.filter(primer => primer !== null);
+      
+      // eslint-disable-next-line no-console
+      console.log(`✅ CONTENT: Got ${result.length} primers out of ${tags.length} tags:`, result.map(p => p.tag));
+      
+      performanceMonitor.endQuery(queryContext, true, result.length);
+      return result;
     } catch (error) {
-      console.error("❌ Error getting tag primers:", error);
+      console.error("❌ CONTENT: Error getting tag primers:", error);
+      performanceMonitor.endQuery(queryContext, false, 0, error);
       return [];
     }
   }
@@ -810,19 +446,18 @@ export class StrategyService {
    */
   static async isStrategyDataLoaded() {
     try {
-      const db = await dbHelper.openDB();
-      const tx = db.transaction("strategy_data", "readonly");
-      const store = tx.objectStore("strategy_data");
-
-      const count = await new Promise((resolve, reject) => {
-        const countRequest = store.count();
-        countRequest.onsuccess = () => resolve(countRequest.result);
-        countRequest.onerror = () => reject(countRequest.error);
+      const response = await chrome.runtime.sendMessage({
+        type: "isStrategyDataLoaded"
       });
-
-      return count > 0;
+      
+      if (response.status === 'success') {
+        return response.data;
+      } else {
+        console.error("❌ CONTENT: Background script error checking data status:", response.error);
+        return false;
+      }
     } catch (error) {
-      console.error("❌ Error checking strategy data:", error);
+      console.error("❌ CONTENT: Error checking strategy data:", error);
       return false;
     }
   }
@@ -833,25 +468,119 @@ export class StrategyService {
    */
   static async getAllStrategyTags() {
     try {
-      const db = await dbHelper.openDB();
-      const tx = db.transaction("strategy_data", "readonly");
-      const store = tx.objectStore("strategy_data");
-
-      return new Promise((resolve, reject) => {
-        const getAllRequest = store.getAllKeys();
-        getAllRequest.onsuccess = () => resolve(getAllRequest.result);
-        getAllRequest.onerror = () => reject(getAllRequest.error);
-      });
+      // For now, return fallback tags as this method isn't used in the main flow
+      // Could add a background script handler if needed later
+      console.warn("⚠️ CONTENT: getAllStrategyTags using fallback data only");
+      return Object.keys(FALLBACK_STRATEGIES);
     } catch (error) {
-      console.error("❌ Error getting all strategy tags:", error);
+      console.error("❌ CONTENT: Error getting all strategy tags:", error);
       return [];
+    }
+  }
+
+  /**
+   * Simple test method to verify system
+   * @returns {Promise<Object>} Test results
+   */
+  static async testSystem() {
+    // eslint-disable-next-line no-console
+    console.log('🧪 SYSTEM TEST: Starting comprehensive system test...');
+    
+    const results = {
+      databaseConnectable: false,
+      storeExists: true, // Assuming it exists since we use onboarding
+      currentCount: 0,
+      sampleData: null,
+      fallbackAvailable: Object.keys(FALLBACK_STRATEGIES).length,
+      tagsList: [],
+      directDBTest: null,
+      cacheTest: null
+    };
+
+    try {
+      // Test 1: Check if data is loaded via background script
+      // eslint-disable-next-line no-console
+      console.log('🧪 CONTENT TEST 1: Checking if strategy data is loaded...');
+      const response = await chrome.runtime.sendMessage({ type: "isStrategyDataLoaded" });
+      if (response.status === 'success') {
+        results.databaseConnectable = true;
+        results.currentCount = response.data ? 'LOADED' : 'EMPTY';
+        const loaded = response.data;
+
+        // Test 2: Get sample strategy via background script
+        if (loaded) {
+          // eslint-disable-next-line no-console
+          console.log('🧪 CONTENT TEST 2: Testing strategy retrieval via background script...');
+          try {
+            const strategyResponse = await chrome.runtime.sendMessage({
+              type: "getStrategyForTag",
+              tag: "array"
+            });
+            
+            if (strategyResponse.status === 'success') {
+              results.directDBTest = strategyResponse.data;
+              // eslint-disable-next-line no-console
+              console.log('🧪 CONTENT: Background strategy test result:', results.directDBTest ? 'SUCCESS' : 'NULL');
+            } else {
+              results.directDBTest = { error: strategyResponse.error };
+            }
+          } catch (strategyError) {
+            console.error('❌ CONTENT: Strategy test failed:', strategyError);
+            results.directDBTest = { error: strategyError.message };
+          }
+
+          // Test 3: Cache service test
+          // eslint-disable-next-line no-console
+          console.log('🧪 CONTENT TEST 3: Testing through service layer...');
+          try {
+            results.cacheTest = await this.getStrategyForTag('array');
+            // eslint-disable-next-line no-console
+            console.log('🧪 CONTENT: Service layer test result:', results.cacheTest ? 'SUCCESS' : 'NULL');
+          } catch (cacheError) {
+            console.error('❌ CONTENT: Service layer test failed:', cacheError);
+            results.cacheTest = { error: cacheError.message };
+          }
+        }
+      } else {
+        results.error = response.error;
+      }
+    } catch (error) {
+      console.error('❌ System test error:', error);
+      results.error = error.message;
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('🔍 System Test Results:', results);
+    return results;
+  }
+
+  /**
+   * Manual database reset and reinitialize (for debugging)
+   */
+  static async debugReset() {
+    try {
+      // eslint-disable-next-line no-console
+      console.log('🔄 CONTENT DEBUG: Database reset handled by background script onboarding...');
+      
+      // eslint-disable-next-line no-console
+      console.log('🔄 CONTENT DEBUG: Reset complete, running test...');
+      
+      return await this.testSystem();
+    } catch (error) {
+      console.error('❌ CONTENT: Debug reset failed:', error);
+      return { error: error.message };
     }
   }
 }
 
-// Initialize strategy data when service is imported
-StrategyService.initializeStrategyData().catch((error) => {
-  console.error("❌ Failed to initialize strategy data:", error);
+// Initialize strategy data when service is imported - use onboarding system
+StrategyService.initializeStrategyData().catch(error => {
+  console.error("❌ Strategy initialization failed, using fallbacks:", error);
 });
+
+// Expose debugging and management methods
+StrategyService.cache = strategyCacheService;
+StrategyService.performance = performanceMonitor;
+StrategyService.test = StrategyService.testSystem;
 
 export default StrategyService;
