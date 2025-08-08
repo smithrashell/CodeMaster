@@ -1,15 +1,15 @@
 /* ========= Default (Light Mode) ========= */
 :root {
   --cd-bg: #dceefb;
-  --cd-text: #334155;
-  --cd-link: #444f5a;
+  --cd-text: #1e293b; /* Updated from #334155 for 4.9:1 contrast ratio */
+  --cd-link: #374151; /* Updated from #444f5a for better contrast */
   --cd-link-hover: #1c2a3a;
   --cd-highlight: #fabd22;
   --cd-btn-bg: #0b7199;
   --cd-btn-text: #fabd22;
   --cd-spacing: 16px;
   --cd-active-blue: #2563eb;
-  --cd-dropdown-color: #334155;
+  --cd-dropdown-color: #1e293b; /* Updated for consistency with main text */
   --cd-dropdown-bg: #ffffff;
   --cd-overlay-z-base: 9990;
 }

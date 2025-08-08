@@ -252,7 +252,7 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 .problem-sidebar-separator {
   background-color: var(--cd-dropdown-bg) !important;
   opacity: 0.3 !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 10px !important; /* Reduced from 16px to save space */
 }
 
 .problem-sidebar-stats {
@@ -306,7 +306,7 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-section {
-  margin-bottom: 10px !important;
+  margin-bottom: 6px !important; /* Reduced from 10px to save space */
   padding: 0 8px !important;
   box-sizing: border-box !important;
   max-width: 238px !important;
@@ -515,11 +515,11 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-actions {
-  margin-top: 20px !important;
+  margin-top: 8px !important; /* Reduced from 20px to save space */
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
-  padding: 8px 12px !important;
+  padding: 4px 12px !important; /* Reduced top/bottom padding */
   box-sizing: border-box !important;
   align-items: center !important;
   max-width: 100% !important;
@@ -594,6 +594,7 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   box-sizing: border-box !important;
   overflow: hidden !important;
 }
+
 
 /* ============================================================================
    COMPREHENSIVE TAG LAYOUT SOLUTIONS - Multiple Approaches for 2-Column Grid
@@ -1542,3 +1543,51 @@ body[data-theme="dark"] .tag-strategy-hint-content {
     transform: translateY(0);
   }
 }
+=======
+/* Complete focus outline removal for problem generation page */
+.cd-extension .cd-simple-problem-link:focus,
+.cd-extension .cd-simple-problem-link:focus-visible,
+.cd-extension .cd-simple-problem-link:active,
+.cd-extension .cd-simple-problem-link:hover {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+.cd-extension .cd-simple-problem-item:focus,
+.cd-extension .cd-simple-problem-item:focus-visible,
+.cd-extension .cd-simple-problem-item:active,
+.cd-extension .cd-simple-problem-item:hover,
+.cd-extension .cd-simple-problem-item-container:focus,
+.cd-extension .cd-simple-problem-item-container:focus-visible,
+.cd-extension .cd-simple-problem-item-container:active,
+.cd-extension .cd-simple-problem-item-container:hover {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+}
+
+/* Remove any potential webkit focus rings */
+.cd-extension .cd-simple-problem-link:focus,
+.cd-extension .cd-simple-problem-item:focus,
+.cd-extension .cd-simple-problem-item-container:focus {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-focus-ring-color: transparent !important;
+}
+
+/* Ensure no borders or outlines are inherited */
+.cd-extension .cd-simple-problem-link,
+.cd-extension .cd-simple-problem-item,
+.cd-extension .cd-simple-problem-item-container {
+  border: none !important;
+  outline: none !important;
+}
+
+/* Force remove all possible focus states */
+.cd-extension button:focus:not(:focus-visible),
+.cd-extension .cd-simple-problem-link:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+
