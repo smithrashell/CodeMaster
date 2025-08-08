@@ -42,11 +42,9 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
       setLoading(true);
       setError(null);
 
-      console.log("🔍 FloatingHintButton loading hints for tags:", problemTags);
       const contextualHints = await StrategyService.getContextualHints(
         problemTags
       );
-      console.log("💡 FloatingHintButton received hints:", contextualHints);
       setHints(contextualHints);
     } catch (err) {
       console.error("❌ Error loading hints in FloatingHintButton:", err);
@@ -75,8 +73,8 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
     background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
     border: "none",
     borderRadius: "50%",
-    width: "30px",
-    height: "30px",
+    width: "32px", /* Reduced to match other toolbar icons */
+    height: "32px", /* Reduced to match other toolbar icons */
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -140,6 +138,9 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
             ref={buttonRef}
             onClick={handleButtonClick}
             style={buttonStyles}
+            aria-label={`${totalHints} strategy hints available. Click to view hints for ${problemTags.join(', ')}`}
+            aria-expanded={opened}
+            aria-haspopup="dialog"
             onMouseEnter={(e) => {
               e.target.style.transform = "scale(1.05)";
               e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
@@ -147,6 +148,12 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
             onMouseLeave={(e) => {
               e.target.style.transform = "scale(1)";
               e.target.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleButtonClick();
+              }
             }}
           >
             <IconBulb size={16} color="white" />
