@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.3] - 2025-08-08
+
+### Enhanced
+
+* **🏷️ Tag Strategy Grid Visual Improvements**: Redesigned tag strategy display with compact layout and better visual cohesion
+
+  * **Compact Tag Layout**: Reduced tag button size with optimized padding (6px 12px) and smaller height (32px) for better space utilization
+  * **Seamless Tab Connection**: Eliminated visual gaps between expanded tags and strategy content for cohesive tab-folder appearance
+  * **Theme-Appropriate Styling**: Tags now properly adapt to light/dark themes - white backgrounds with dark text in light mode, dark gray backgrounds with light text in dark mode
+  * **Improved Typography**: Increased strategy content text size (+2px) for better readability while maintaining compact tag buttons
+  * **Better Text Handling**: Enhanced text display for longer tag names like "Bit Manipulation" with optimized spacing
+  * **Clean Border Design**: Removed unnecessary borders and blue styling for cleaner, more professional appearance
+  * **Grid Gap Optimization**: Eliminated grid gaps when tags are expanded to ensure seamless visual connection with strategy content
+
+### Technical Improvements
+
+* **CSS Architecture Cleanup**: Removed commented backup code and consolidated styling rules for better maintainability
+* **Cross-Theme Consistency**: Unified styling approach ensuring consistent behavior across light and dark themes
+* **Performance Optimization**: Streamlined CSS rules and removed unused styling to improve rendering performance
+
+---
+
 ## [0.10.2] - 2025-08-08
 
 ### Added
