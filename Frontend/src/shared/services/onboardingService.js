@@ -1,6 +1,7 @@
 import { initializePatternLaddersForOnboarding } from "./problemladderService.js";
 import { buildTagRelationships } from "../db/tag_relationships.js";
 import { insertStandardProblems } from "../db/standard_problems.js"; // assuming this is where seeding is
+import { insertStrategyData } from "../db/strategy_data.js";
 import { buildProblemRelationships } from "../services/relationshipService.js";
 
 import { getAllFromStore, addRecord, updateRecord, getRecord } from "../db/common.js";
@@ -13,18 +14,21 @@ export async function onboardUserIfNeeded() {
     userProblems,
     tagMastery,
     tagRelationships,
+    strategyData,
   ] = await Promise.all([
     getAllFromStore("problem_relationships"),
     getAllFromStore("standard_problems"),
     getAllFromStore("problems"),
     getAllFromStore("tag_mastery"),
     getAllFromStore("tag_relationships"),
+    getAllFromStore("strategy_data"),
   ]);
 
   const isMissingStandardData =
     standardProblems.length === 0 ||
     tagRelationships.length === 0 ||
-    problemRelationships.length === 0;
+    problemRelationships.length === 0 ||
+    strategyData.length === 0;
   const isMissingUserData =
     userProblems.length === 0 || tagMastery.length === 0;
 
@@ -45,8 +49,9 @@ export async function onboardUserIfNeeded() {
 }
 
 async function seedStandardData() {
-  console.log("📦 Seeding standard problems and tag relationships...");
+  console.log("📦 Seeding standard problems, strategy data, and tag relationships...");
   await seedStandardProblems();
+  await seedStrategyData();
   await seedTagRelationships();
   await seedProblemRelationships();
 }
@@ -59,6 +64,11 @@ async function seedUserData() {
 async function seedStandardProblems() {
   console.log("📦 Inserting standard problems...");
   await insertStandardProblems();
+}
+
+async function seedStrategyData() {
+  console.log("📊 Inserting strategy data...");
+  await insertStrategyData();
 }
 
 async function seedTagRelationships() {
