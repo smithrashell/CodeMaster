@@ -447,6 +447,66 @@ const handleRequest = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
+      /** ──────────────── Strategy Data Operations ──────────────── **/
+      case "getStrategyForTag":
+        console.log(`🎯 BACKGROUND: Getting strategy for tag "${request.tag}"`);
+        (async () => {
+          try {
+            const { getStrategyForTag } = await import("../src/shared/db/strategy_data.js");
+            const strategy = await getStrategyForTag(request.tag);
+            console.log(`🎯 BACKGROUND: Strategy result for "${request.tag}":`, strategy ? 'FOUND' : 'NOT FOUND');
+            sendResponse({ status: "success", data: strategy });
+          } catch (error) {
+            console.error(`❌ BACKGROUND: Strategy error for "${request.tag}":`, error);
+            sendResponse({ status: "error", error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "getStrategiesForTags":
+        console.log(`🎯 BACKGROUND: Getting strategies for tags:`, request.tags);
+        (async () => {
+          try {
+            const { getStrategyForTag } = await import("../src/shared/db/strategy_data.js");
+            
+            const strategies = {};
+            await Promise.all(
+              request.tags.map(async (tag) => {
+                try {
+                  const strategy = await getStrategyForTag(tag);
+                  if (strategy) {
+                    strategies[tag] = strategy;
+                  }
+                } catch (error) {
+                  console.error(`❌ BACKGROUND: Error getting strategy for "${tag}":`, error);
+                }
+              })
+            );
+            
+            console.log(`🎯 BACKGROUND: Bulk strategies result:`, Object.keys(strategies));
+            sendResponse({ status: "success", data: strategies });
+          } catch (error) {
+            console.error(`❌ BACKGROUND: Bulk strategies error:`, error);
+            sendResponse({ status: "error", error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "isStrategyDataLoaded":
+        console.log(`🎯 BACKGROUND: Checking if strategy data is loaded`);
+        (async () => {
+          try {
+            const { isStrategyDataLoaded } = await import("../src/shared/db/strategy_data.js");
+            const loaded = await isStrategyDataLoaded();
+            console.log(`🎯 BACKGROUND: Strategy data loaded:`, loaded);
+            sendResponse({ status: "success", data: loaded });
+          } catch (error) {
+            console.error(`❌ BACKGROUND: Strategy data check error:`, error);
+            sendResponse({ status: "error", error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
       default:
         sendResponse({ error: "Unknown request type" });
         finishRequest();

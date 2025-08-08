@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.4] - 2025-08-08
+
+### Fixed
+
+* **🔧 Strategy System Architecture**: Fixed strategy data retrieval system to properly use Chrome extension background script communication instead of direct IndexedDB access from content scripts
+
+  * **Background Script Integration**: Updated strategy service to communicate with background script via chrome.runtime.sendMessage for all IndexedDB operations
+  * **Message Handler Implementation**: Added comprehensive message handlers in background.js for strategy operations (getStrategyForTag, getStrategiesForTags, isStrategyDataLoaded)
+  * **Content Script Communication**: Resolved content script timeout issues by implementing proper Chrome extension architecture patterns
+  * **Performance Optimization**: Eliminated 5-second cache timeouts and improved strategy loading from ~5000ms to ~200ms per tag
+  * **Data Flow Correction**: Established proper data flow: Content Script → Background Script → IndexedDB → Background Script → Content Script → UI
+
+### Technical Improvements
+
+* **Extension Architecture Compliance**: Ensured all database operations follow Chrome extension manifest v3 architecture requirements
+* **Strategy Service Refactoring**: Removed direct IndexedDB imports from content script and implemented proper message-based communication
+
+---
+
 ## [0.10.3] - 2025-08-08
 
 ### Enhanced

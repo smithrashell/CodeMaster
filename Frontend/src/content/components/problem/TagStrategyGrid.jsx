@@ -13,9 +13,24 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
   const [strategies, setStrategies] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // DEBUG: Log what tags we're receiving
+  useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log("🏷️ TagStrategyGrid received problemTags:", problemTags);
+    // eslint-disable-next-line no-console
+    console.log("🏷️ TagStrategyGrid tags length:", problemTags?.length);
+    // eslint-disable-next-line no-console
+    console.log("🏷️ TagStrategyGrid tags type:", typeof problemTags);
+  }, [problemTags]);
+
   useEffect(() => {
     if (problemTags && problemTags.length > 0) {
+      // eslint-disable-next-line no-console
+      console.log("🏷️ TagStrategyGrid: Loading strategies for tags:", problemTags);
       loadStrategies();
+    } else {
+      // eslint-disable-next-line no-console
+      console.log("🏷️ TagStrategyGrid: No tags to load strategies for");
     }
   }, [problemTags, loadStrategies]);
 
@@ -26,6 +41,7 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
       // Normalize tags to lowercase to match strategy data
       const normalizedTags = problemTags.map((tag) => tag.toLowerCase().trim());
       
+      // Use optimized parallel processing from StrategyService
       const tagPrimers = await StrategyService.getTagPrimers(normalizedTags);
       
       // Convert array to object with tag names as keys
@@ -199,6 +215,8 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
   };
 
   if (!problemTags || problemTags.length === 0) {
+    // eslint-disable-next-line no-console
+    console.log("🏷️ TagStrategyGrid: Rendering 'No tags available' message");
     return (
       <div className={`problem-sidebar-section ${className}`}>
         <div className="problem-sidebar-section-header">
@@ -208,6 +226,9 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
       </div>
     );
   }
+
+  // eslint-disable-next-line no-console
+  console.log("🏷️ TagStrategyGrid: Rendering with tags:", problemTags);
 
   const expandedRowIndex = getExpandedTagRowIndex();
 
