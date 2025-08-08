@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import StrategyService from "../../content/services/strategyService";
+import performanceMonitor from "../utils/PerformanceMonitor.js";
 
 /**
  * React hook for managing strategy data and hints
@@ -38,11 +39,15 @@ export const useStrategy = (problemTags = []) => {
   }, [problemTags, isDataLoaded]);
 
   const loadStrategyData = async () => {
+    const queryContext = performanceMonitor.startQuery('useStrategy_loadData', { 
+      tagCount: problemTags.length 
+    });
+    
     try {
       setLoading(true);
       setError(null);
 
-      // Load both hints and primers in parallel
+      // Load both hints and primers in parallel (already optimized in StrategyService)
       const [contextualHints, tagPrimers] = await Promise.all([
         StrategyService.getContextualHints(problemTags),
         StrategyService.getTagPrimers(problemTags),
@@ -50,9 +55,12 @@ export const useStrategy = (problemTags = []) => {
 
       setHints(contextualHints);
       setPrimers(tagPrimers);
+      
+      performanceMonitor.endQuery(queryContext, true, contextualHints.length + tagPrimers.length);
     } catch (err) {
       console.error("Error loading strategy data:", err);
       setError(err.message || "Failed to load strategy data");
+      performanceMonitor.endQuery(queryContext, false, 0, err);
     } finally {
       setLoading(false);
     }

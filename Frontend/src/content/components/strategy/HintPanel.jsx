@@ -42,6 +42,7 @@ const HintPanel = ({ problemTags = [], isVisible = true, className = "" }) => {
       setLoading(true);
       setError(null);
 
+      // Use optimized cached service with performance monitoring
       const contextualHints = await StrategyService.getContextualHints(
         problemTags
       );
