@@ -13,6 +13,9 @@ import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { getTagRelationships } from "./tag_relationships.js";
 const openDB = dbHelper.openDB;
 
+// Import retry service for enhanced database operations
+import indexedDBRetry from "../services/IndexedDBRetryService.js";
+
 /**
  * Fetches a set of problems based on difficulty level.
  * @param {number} limit - The number of problems to fetch.
@@ -1014,4 +1017,317 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
     console.error(`❌ Error getting problem with official difficulty for ID ${leetCodeID}:`, error);
     return null;
   }
+}
+
+// ===============================
+// RETRY-ENABLED DATABASE OPERATIONS
+// ===============================
+
+/**
+ * Get problem by ID with retry logic
+ * Enhanced version of getProblem() with timeout and retry handling
+ * @param {number} problemId - Problem ID to fetch
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Object|null>} Problem data or null
+ */
+export async function getProblemWithRetry(problemId, options = {}) {
+  const {
+    timeout = indexedDBRetry.quickTimeout,
+    operationName = 'getProblem',
+    priority = 'normal',
+    abortController = null
+  } = options;
+
+  return indexedDBRetry.executeWithRetry(
+    async () => {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["problems"], "readonly");
+        const problemStore = transaction.objectStore("problems");
+        const request = problemStore.get(problemId);
+
+        request.onsuccess = (event) => {
+          resolve(event.target.result || null);
+        };
+
+        request.onerror = () => reject(request.error);
+        transaction.onerror = () => reject(transaction.error);
+      });
+    },
+    {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      deduplicationKey: `get_problem_${problemId}`
+    }
+  );
+}
+
+/**
+ * Check if problem exists in database with retry logic
+ * Enhanced version of checkDatabaseForProblem() with timeout and retry handling
+ * @param {number} problemId - Problem ID to check
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<boolean>} True if problem exists, false otherwise
+ */
+export async function checkDatabaseForProblemWithRetry(problemId, options = {}) {
+  const {
+    timeout = indexedDBRetry.quickTimeout,
+    operationName = 'checkDatabaseForProblem',
+    priority = 'normal',
+    abortController = null
+  } = options;
+
+  return indexedDBRetry.executeWithRetry(
+    async () => {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["problems"], "readonly");
+        const store = transaction.objectStore("problems");
+        const index = store.index("by_problem");
+        const request = index.get(problemId);
+
+        request.onsuccess = () => {
+          resolve(!!request.result); // Convert to boolean
+        };
+
+        request.onerror = () => reject(request.error);
+        transaction.onerror = () => reject(transaction.error);
+      });
+    },
+    {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      deduplicationKey: `check_problem_${problemId}`
+    }
+  );
+}
+
+/**
+ * Add problem to database with retry logic
+ * Enhanced version of addProblem() with timeout and retry handling
+ * @param {Object} problemData - Problem data to add
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Object>} Result of add operation
+ */
+export async function addProblemWithRetry(problemData, options = {}) {
+  const {
+    timeout = indexedDBRetry.defaultTimeout,
+    operationName = 'addProblem',
+    priority = 'normal',
+    abortController = null
+  } = options;
+
+  return indexedDBRetry.executeWithRetry(
+    async () => {
+      // This is a complex operation, so we'll use the enhanced dbHelper transaction method
+      return dbHelper.executeTransaction(
+        ["problems", "standard_problems"], // Multiple stores needed
+        "readwrite",
+        async (tx, stores) => {
+          const [problemStore] = stores;
+          
+          // Get standard problem data
+          const standardProblem = await fetchProblemById(problemData.leetCodeID);
+          
+          // Get current session from Chrome storage (this is external to transaction)
+          let session = await new Promise((resolve) => {
+            chrome.storage.local.get(["currentSession"], (result) => {
+              resolve(result.currentSession || null);
+            });
+          });
+
+          if (!session) {
+            throw new Error("No active session found");
+          }
+
+          // Create the problem entry
+          const problemEntry = {
+            leetCodeID: problemData.leetCodeID,
+            ProblemDescription: problemData.ProblemDescription,
+            problem: problemData.leetCodeID,
+            review: new Date().toISOString(),
+            tags: standardProblem?.tags || [],
+            difficulty: standardProblem?.difficulty || "Medium",
+            box: 1, // Start in first Leitner box
+            nextProblem: problemData.nextProblem || null,
+            sessionId: session.id
+          };
+
+          // Add problem to database
+          return new Promise((resolve, reject) => {
+            const request = problemStore.put(problemEntry);
+            request.onsuccess = () => resolve({
+              success: true,
+              problemId: problemEntry.leetCodeID,
+              data: problemEntry
+            });
+            request.onerror = () => reject(request.error);
+          });
+        },
+        {
+          timeout,
+          operationName,
+          priority,
+          abortController
+        }
+      );
+    },
+    {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      retries: 2 // Fewer retries for write operations
+    }
+  );
+}
+
+/**
+ * Save updated problem with retry logic
+ * Enhanced version of saveUpdatedProblem() with timeout and retry handling
+ * @param {Object} problem - Problem data to save
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Object>} Save result
+ */
+export async function saveUpdatedProblemWithRetry(problem, options = {}) {
+  const {
+    timeout = indexedDBRetry.defaultTimeout,
+    operationName = 'saveUpdatedProblem',
+    priority = 'normal',
+    abortController = null
+  } = options;
+
+  return indexedDBRetry.executeWithRetry(
+    async () => {
+      return dbHelper.putRecord("problems", problem, {
+        timeout,
+        operationName,
+        priority,
+        abortController
+      });
+    },
+    {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      retries: 2 // Fewer retries for write operations
+    }
+  );
+}
+
+/**
+ * Count problems by box level with retry logic
+ * Enhanced version of countProblemsByBoxLevel() with timeout and retry handling
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Array>} Box level counts
+ */
+export async function countProblemsByBoxLevelWithRetry(options = {}) {
+  const {
+    timeout = indexedDBRetry.defaultTimeout,
+    operationName = 'countProblemsByBoxLevel',
+    priority = 'low',
+    abortController = null
+  } = options;
+
+  return indexedDBRetry.executeWithRetry(
+    async () => {
+      const db = await openDB();
+      const problems = await new Promise((resolve, reject) => {
+        const transaction = db.transaction(["problems"], "readonly");
+        const store = transaction.objectStore("problems");
+        const request = store.getAll();
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      // Count problems by box level
+      const boxCounts = [0, 0, 0, 0, 0]; // Boxes 0-4
+      problems.forEach(problem => {
+        const box = Math.min(problem.box || 1, 4); // Cap at box 4
+        boxCounts[box]++;
+      });
+
+      return boxCounts;
+    },
+    {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      deduplicationKey: 'count_problems_by_box'
+    }
+  );
+}
+
+/**
+ * Fetch all problems with retry logic and streaming support
+ * Enhanced version of fetchAllProblems() with timeout and retry handling
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Array>} All problems
+ */
+export async function fetchAllProblemsWithRetry(options = {}) {
+  const {
+    timeout = indexedDBRetry.bulkTimeout,
+    operationName = 'fetchAllProblems',
+    priority = 'low',
+    abortController = null,
+    streaming = false,
+    onProgress = null
+  } = options;
+
+  return indexedDBRetry.executeWithRetry(
+    async () => {
+      return dbHelper.getAllRecords("problems", null, {
+        timeout,
+        operationName,
+        priority,
+        abortController,
+        streaming,
+        onProgress
+      });
+    },
+    {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      retries: 3 // More retries for bulk operations
+    }
+  );
+}
+
+/**
+ * Get problem with official difficulty using retry logic
+ * Enhanced version of getProblemWithOfficialDifficulty() with timeout and retry handling
+ * @param {number} leetCodeID - LeetCode problem ID
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Object|null>} Problem with official difficulty
+ */
+export async function getProblemWithOfficialDifficultyWithRetry(leetCodeID, options = {}) {
+  const {
+    timeout = indexedDBRetry.defaultTimeout,
+    operationName = 'getProblemWithOfficialDifficulty',
+    priority = 'normal',
+    abortController = null
+  } = options;
+
+  return indexedDBRetry.executeWithRetry(
+    async () => {
+      // Use the existing implementation but wrap it with our retry logic
+      return getProblemWithOfficialDifficulty(leetCodeID);
+    },
+    {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      deduplicationKey: `problem_official_difficulty_${leetCodeID}`
+    }
+  );
 }
