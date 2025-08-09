@@ -1,14 +1,15 @@
 #cd-timerContainer {
-  position: absolute;
-  top: 10%;
-  left: 80%;
-  z-index: 9800;
-  width: 80px;
-  height: 75px;
-  border-radius: 0px;
+  position: fixed;
+  top: clamp(60px, 12vh, 120px);
+  right: clamp(10px, 2vw, 30px);
+  z-index: var(--cd-z-timer, 9100);
+  width: clamp(70px, 8vw, 100px);
+  height: clamp(65px, 8vh, 85px);
+  border-radius: 8px;
   border: none;
   text-align: center;
-  margin: 2px;
+  margin: 0;
+  box-sizing: border-box;
 }
 #cd-timerpage {
   top: 5%;
@@ -24,14 +25,18 @@
 #cd-timer {
   position: relative;
   background-color: var(--cd-btn-bg);
-  top: 0px;
-  right: 11px;
   color: var(--cd-btn-text);
-  z-index: 9800;
-  border-radius: 0px;
+  z-index: var(--cd-z-timer, 9100);
+  border-radius: 8px;
   border: none;
-  width: 170px;
-  height: 45px;
+  width: 100%;
+  height: 100%;
+  min-width: 150px;
+  min-height: 40px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .bread {
   width: 150px;
@@ -110,8 +115,69 @@
   top: 0;
   left: 0;
   width: 100%;
-  z-index: 9850;
+  z-index: var(--cd-z-overlay, 9500);
   background-color: var(--cd-dropdown-bg);
-  padding: 10px 0;
+  padding: clamp(8px, 1.5vh, 12px) 0;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+/* ===== TIMER RESPONSIVE IMPROVEMENTS ===== */
+
+/* Desktop responsive breakpoints for timer */
+@media screen and (min-width: 1024px) and (max-width: 1366px) {
+  #cd-timerContainer {
+    width: clamp(65px, 7vw, 90px);
+    height: clamp(60px, 7vh, 80px);
+  }
+}
+
+@media screen and (min-width: 1367px) and (max-width: 1920px) {
+  #cd-timerContainer {
+    width: clamp(80px, 6vw, 120px);
+    height: clamp(70px, 6vh, 90px);
+  }
+}
+
+@media screen and (min-width: 1921px) {
+  #cd-timerContainer {
+    width: clamp(90px, 5vw, 140px);
+    height: clamp(80px, 5vh, 100px);
+    right: clamp(20px, 3vw, 50px);
+  }
+}
+
+/* Browser zoom level optimizations for timer */
+@media screen and (min-width: 1024px) {
+  /* Ensure timer remains accessible at different zoom levels */
+  #cd-timerContainer {
+    min-width: 60px;
+    min-height: 50px;
+  }
+  
+  #cd-timer {
+    font-size: clamp(11px, 1.2vw, 14px);
+    border-radius: clamp(4px, 0.8vw, 8px);
+  }
+  
+  .bread {
+    padding: clamp(3px, 0.5vw, 5px);
+    gap: clamp(2px, 0.3vw, 4px);
+  }
+}
+
+/* Handle split-view problem pages */
+body:has([data-testid="split-pane-container"]) #cd-timerContainer,
+body:has(.split-view) #cd-timerContainer {
+  right: calc(var(--cd-content-padding, 10px) + 10px);
+  top: calc(var(--cd-content-padding, 10px) + 40px);
+}
+
+/* High zoom / accessibility support */
+@media screen and (max-width: 1366px) {
+  #cd-timerContainer {
+    width: clamp(60px, 6vw, 85px);
+    height: clamp(50px, 6vh, 70px);
+    top: clamp(50px, 8vh, 90px);
+  }
 }
