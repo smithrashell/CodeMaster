@@ -152,22 +152,21 @@ const ProbTime = () => {
   };
 
   // Render the form if coming from the Timer route
-  return (
-    <div id="cd-mySidenav" className="cd-sidenav problink">
-      <Header
-        title={
-          previousRoute == "/Timer" ? "Problem Submission" : "Problem Details"
-        }
-      />
-      <div className="cd-sidenav__content">
-        {previousRoute === "/Timer" ? (
+  if (previousRoute === "/Timer") {
+    return (
+      <div id="cd-mySidenav" className="cd-sidenav problink">
+        <Header
+          title="Problem Submission"
+        />
+        <div className="cd-sidenav__content">
           <ProbSubmission />
-        ) : (
-          <ProbDetail isLoading={loading} />
-        )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // For Problem Details, let ProbDetail handle its own structure
+  return <ProbDetail isLoading={loading} />;
 };
 
 export default ProbTime;
