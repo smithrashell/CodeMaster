@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.6] - 2025-08-09
+
+### Fixed
+
+* **🚨 Critical Chrome Messaging System Recovery**: Resolved complete Chrome messaging system failure preventing strategy data retrieval and causing indefinite timeouts
+
+  * **Root Cause Identified**: Background script (service worker) was crashing due to `window` object access in `IndexedDBRetryService` and `EmergencyStrategyBypass`
+  * **Service Worker Compatibility**: Added environment detection (`typeof window === 'undefined'`) to prevent `window` API calls in service worker context
+  * **Background Script Stability**: Fixed service initialization crashes that prevented Chrome runtime message handling
+  * **Emergency Fallback System**: Implemented comprehensive emergency strategy bypass with 10+ algorithm patterns for guaranteed data availability
+  * **Enhanced Diagnostics**: Added detailed background script logging to track message processing, queue handling, and database operations
+
+* **📊 Strategy Data Consistency**: Fixed missing `isStrategyDataLoaded` function that caused background script import failures
+
+  * **Database Schema Validation**: Added proper IndexedDB count check for strategy data availability
+  * **Function Export Correction**: Implemented missing `isStrategyDataLoaded` export in `strategy_data.js`
+  * **Import Error Resolution**: Resolved background script dynamic import failures for strategy operations
+
+### Enhanced
+
+* **🔧 Multi-Layer Fallback Architecture**: Comprehensive fallback system ensuring strategy data is always available
+
+  * **Primary**: Chrome messaging with IndexedDB backend
+  * **Secondary**: Local fallback strategy cache with common patterns  
+  * **Tertiary**: Emergency bypass system with 10+ algorithm strategies
+  * **Quaternary**: Generated basic strategies for unknown tags
+
+* **🔍 Advanced Debugging Infrastructure**: Production-ready diagnostic system for Chrome messaging troubleshooting
+
+  * **Background Script Monitoring**: Real-time logging of message reception, queue processing, and handler execution
+  * **Strategy Operation Tracking**: Detailed logs for database imports, function calls, and response generation
+  * **Performance Analytics**: Query timing, cache hit rates, and fallback usage statistics
+  * **Emergency Mode Controls**: Console functions for manual emergency bypass activation/deactivation
+
+### Technical Improvements
+
+* **⚡ Service Worker Architecture Compliance**: Proper Chrome extension manifest v3 service worker implementation without DOM API dependencies
+* **🛡️ Resilient Error Handling**: Never-fail strategy system with multiple fallback layers and comprehensive error recovery
+* **📱 Cross-Context Compatibility**: Unified codebase working seamlessly in both content script (window) and service worker (background) contexts
+
+---
+
 ## [0.10.5] - 2025-08-09
 
 ### Fixed
