@@ -33,6 +33,39 @@ let activeRequests = {};
 let requestQueue = [];
 let isProcessing = false;
 
+// Add response caching to prevent repeated expensive queries
+const responseCache = new Map();
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
+const getCachedResponse = (key) => {
+  const item = responseCache.get(key);
+  if (!item) return null;
+  
+  if (Date.now() > item.expiry) {
+    responseCache.delete(key);
+    return null;
+  }
+  
+  return item.data;
+};
+
+const setCachedResponse = (key, data) => {
+  responseCache.set(key, {
+    data,
+    expiry: Date.now() + CACHE_EXPIRY
+  });
+  
+  // Clean cache if it gets too large
+  if (responseCache.size > 100) {
+    const now = Date.now();
+    for (const [k, item] of responseCache.entries()) {
+      if (now > item.expiry) {
+        responseCache.delete(k);
+      }
+    }
+  }
+};
+
 const processNextRequest = () => {
   if (requestQueue.length === 0) {
     isProcessing = false;
@@ -449,16 +482,30 @@ const handleRequest = async (request, sender, sendResponse) => {
 
       /** ──────────────── Strategy Data Operations ──────────────── **/
       case "getStrategyForTag":
+        const cacheKey = `strategy_${request.tag}`;
+        const cachedStrategy = getCachedResponse(cacheKey);
+        
+        if (cachedStrategy) {
+          console.log(`💾 BACKGROUND: Using cached strategy for "${request.tag}"`);
+          sendResponse(cachedStrategy);
+          finishRequest();
+          return true;
+        }
+        
         console.log(`🎯 BACKGROUND: Getting strategy for tag "${request.tag}"`);
         (async () => {
           try {
             const { getStrategyForTag } = await import("../src/shared/db/strategy_data.js");
             const strategy = await getStrategyForTag(request.tag);
             console.log(`🎯 BACKGROUND: Strategy result for "${request.tag}":`, strategy ? 'FOUND' : 'NOT FOUND');
-            sendResponse({ status: "success", data: strategy });
+            
+            const response = { status: "success", data: strategy };
+            setCachedResponse(cacheKey, response);
+            sendResponse(response);
           } catch (error) {
             console.error(`❌ BACKGROUND: Strategy error for "${request.tag}":`, error);
-            sendResponse({ status: "error", error: error.message });
+            const errorResponse = { status: "error", error: error.message };
+            sendResponse(errorResponse);
           }
         })().finally(finishRequest);
         return true;

@@ -8,27 +8,43 @@ const openDB = dbHelper.openDB;
  * @param {string} tag - The tag name
  * @returns {Promise<Object|null>} Strategy data or null
  */
+// In-memory cache for database results to prevent repeated IndexedDB access
+const strategyCache = new Map();
+const CACHE_EXPIRY_TIME = 5 * 60 * 1000; // 5 minutes
+
 export async function getStrategyForTag(tag) {
   try {
     // eslint-disable-next-line no-console
-    console.log(`📊 DB DEBUG: Starting optimized query for tag "${tag}"`);
+    console.log(`📊 DB DEBUG: Starting ultra-fast query for tag "${tag}"`);
+    
+    // Check cache first
+    const cacheKey = tag.toLowerCase();
+    const cached = strategyCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiry) {
+      // eslint-disable-next-line no-console
+      console.log(`💾 DB DEBUG: Using in-memory cache for "${tag}"`);
+      return cached.data;
+    }
     
     const db = await openDB();
-    if (!db) throw new Error("❌ Failed to open IndexedDB.");
+    if (!db) {
+      console.warn(`⚠️ DB DEBUG: IndexedDB not available for "${tag}"`);
+      return null;
+    }
 
-    // Simplified, more reliable approach
-    return new Promise((resolve, reject) => {
+    // Ultra-fast promise-based approach with aggressive timeout
+    const result = await new Promise((resolve) => {
       let completed = false;
       
-      // Set up timeout first
+      // Very aggressive timeout - 800ms
       const timeout = setTimeout(() => {
         if (!completed) {
           completed = true;
           // eslint-disable-next-line no-console
-          console.log(`⏱️ DB DEBUG: Query timeout for "${tag}" - using fast resolution`);
-          resolve(null); // Resolve with null instead of rejecting to prevent hanging
+          console.log(`⚡ DB DEBUG: Ultra-fast timeout for "${tag}" - immediate resolution`);
+          resolve(null);
         }
-      }, 3000); // Reduced timeout to 3 seconds
+      }, 800);
       
       try {
         const transaction = db.transaction(["strategy_data"], "readonly");
@@ -40,46 +56,57 @@ export async function getStrategyForTag(tag) {
             completed = true;
             clearTimeout(timeout);
             
-            const result = event.target.result;
+            const dbResult = event.target.result;
             // eslint-disable-next-line no-console
-            console.log(`📊 DB DEBUG: Fast query success for "${tag}":`, result ? 'FOUND' : 'NOT FOUND');
+            console.log(`⚡ DB DEBUG: Ultra-fast success for "${tag}":`, dbResult ? 'FOUND' : 'NOT FOUND');
             
-            resolve(result || null);
+            // Cache the result (including null results to prevent repeated queries)
+            strategyCache.set(cacheKey, {
+              data: dbResult || null,
+              expiry: Date.now() + CACHE_EXPIRY_TIME
+            });
+            
+            resolve(dbResult || null);
           }
         };
 
-        request.onerror = (event) => {
+        // Combine all error handlers for faster resolution
+        const handleError = () => {
           if (!completed) {
             completed = true;
             clearTimeout(timeout);
-            console.error(`❌ Query error for "${tag}":`, event.target.error);
-            resolve(null); // Resolve with null instead of rejecting
+            // eslint-disable-next-line no-console
+            console.warn(`⚡ DB DEBUG: Ultra-fast error for "${tag}" - resolving null`);
+            
+            // Cache null result to prevent repeated failed queries
+            strategyCache.set(cacheKey, {
+              data: null,
+              expiry: Date.now() + (CACHE_EXPIRY_TIME / 10) // Shorter cache for errors
+            });
+            
+            resolve(null);
           }
         };
 
-        // Handle transaction errors
-        transaction.onerror = (event) => {
-          if (!completed) {
-            completed = true;
-            clearTimeout(timeout);
-            console.error(`❌ Transaction error for "${tag}":`, event.target.error);
-            resolve(null); // Resolve with null instead of rejecting
-          }
-        };
+        request.onerror = handleError;
+        transaction.onerror = handleError;
+        transaction.onabort = handleError;
 
       } catch (error) {
         if (!completed) {
           completed = true;
           clearTimeout(timeout);
-          console.error(`❌ Transaction setup error for "${tag}":`, error);
-          resolve(null); // Resolve with null instead of rejecting
+          console.warn(`⚡ DB DEBUG: Ultra-fast exception for "${tag}":`, error.message);
+          resolve(null);
         }
       }
     });
     
+    return result;
+    
   } catch (error) {
-    console.error(`❌ Database connection error for "${tag}":`, error);
-    return null; // Return null instead of throwing
+    console.warn(`⚡ DB DEBUG: Ultra-fast outer error for "${tag}":`, error.message);
+    return null;
   }
 }
 
