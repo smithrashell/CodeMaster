@@ -4,6 +4,49 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.5] - 2025-08-09
+
+### Fixed
+
+* **🎯 Chrome Messaging Timeout Resolution**: Resolved critical Chrome extension messaging timeouts causing strategy system delays and "message channel closed" errors (2.6+ second delays reduced to sub-800ms)
+
+  * **Robust Messaging Service**: Implemented comprehensive Chrome messaging service with exponential backoff retry logic (500ms → 1s → 2s) and timeout handling
+  * **Multi-Layer Caching Strategy**: Added aggressive caching at content script level (5-minute expiry) and background script level to prevent repeated slow queries
+  * **Database Query Optimization**: Implemented ultra-fast IndexedDB queries with 800ms timeout and immediate fallback mechanisms
+  * **Pre-warming Cache System**: Automatic cache pre-warming for common tags ('array', 'hash table', 'string', 'sorting', 'tree', 'dynamic programming')
+  * **Performance Monitoring**: Integrated debug utilities and performance tracking for strategy system operations
+
+* **📱 Responsive Design System Overhaul**: Comprehensive responsive design improvements for Chrome extension UI across different screen sizes and LeetCode UI variations
+
+  * **CSS Custom Properties System**: Implemented flexible layout system with CSS clamp() functions for responsive scaling
+  * **Desktop-Focused Breakpoints**: Added desktop-specific responsive breakpoints (1024px-1366px, 1367px-1920px, 1921px+) optimized for browser usage
+  * **Z-Index Standardization**: Established layered z-index system (1-100 scale) preventing UI overlap issues across different LeetCode page variations
+  * **Dynamic Component Positioning**: Updated timer, problem sidebar, and menu components to use flexible positioning with responsive clamp() values
+  * **Browser Zoom Support**: Enhanced support for different browser zoom levels with scalable layouts
+
+### Enhanced
+
+* **⚡ Chrome Extension Performance Optimization**: Multi-layered approach to eliminate messaging bottlenecks and improve user experience
+
+  * **Background Script Caching**: Added response caching to prevent repeated expensive IndexedDB queries with 5-minute expiry
+  * **Content Script Optimization**: Eliminated direct IndexedDB access from content scripts, routing all database operations through background messaging
+  * **Strategy Data Service Refactoring**: Completely refactored strategy service to use robust messaging patterns with fallback strategies
+  * **Error Recovery System**: Implemented comprehensive error handling with automatic fallback to cached strategy data
+
+* **🎨 UI/UX Responsive Architecture**: Modern responsive design system ensuring consistent experience across screen sizes
+
+  * **Flexible Layout Components**: Converted fixed-width layouts to responsive clamp-based sizing for menu buttons, timers, and sidebars
+  * **Theme-Adaptive Responsiveness**: Responsive breakpoints work seamlessly with both light and dark theme modes
+  * **LeetCode Integration Optimization**: Dynamic positioning adjustments for various LeetCode UI states and page layouts
+
+### Technical Improvements
+
+* **🔧 Chrome Extension Architecture Compliance**: Ensured proper Chrome extension manifest v3 communication patterns throughout the strategy system
+* **📊 Debug Infrastructure**: Added comprehensive debugging utilities including cache statistics, performance monitoring, and quick test functions
+* **🛠️ Development Experience**: Enhanced error logging with structured console output and debugging information for easier troubleshooting
+
+---
+
 ## [0.10.4] - 2025-08-08
 
 ### Fixed

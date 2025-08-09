@@ -1,4 +1,26 @@
 /*TODO: create a folder for css styles */
+
+/* CSS Custom Properties for Responsive Design */
+:root {
+  --cd-sidebar-min-width: 250px;
+  --cd-sidebar-max-width: 320px;
+  --cd-sidebar-preferred-width: 25vw;
+  --cd-menu-button-size: min(40px, 4vw);
+  --cd-menu-button-min-size: 32px;
+  --cd-content-padding: clamp(8px, 2vw, 20px);
+  --cd-responsive-gap: clamp(4px, 1vw, 12px);
+  
+  /* Z-index Scale for Extension Components */
+  --cd-z-base: 9000;
+  --cd-z-timer: 9100;
+  --cd-z-sidebar: 9200;
+  --cd-z-menu-button: 9300;
+  --cd-z-dropdown: 9400;
+  --cd-z-overlay: 9500;
+  --cd-z-modal: 9600;
+  --cd-z-tooltip: 9700;
+}
+
 .cd-extension .injected {
   color: var(--cd-dropdown-color) !important;
   background-color: var(--cd-highlight) !important;
@@ -17,18 +39,20 @@
   background-color: var(--cd-btn-bg);
   color: var(--cd-btn-text);
   font-weight: bold;
-  font-size: 14px;
+  font-size: clamp(12px, 2.5vw, 16px);
   border: none;
   border-radius: 12px;
-  width: 40px;
-  height: 40px;
+  width: var(--cd-menu-button-size);
+  height: var(--cd-menu-button-size);
+  min-width: var(--cd-menu-button-min-size);
+  min-height: var(--cd-menu-button-min-size);
   display: flex;
   align-items: center;
   justify-content: center;
   position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 9999;
+  top: var(--cd-content-padding);
+  left: var(--cd-content-padding);
+  z-index: var(--cd-z-menu-button);
   cursor: pointer;
   transition: background-color 0.3s ease, color 0.3s ease,
     transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -223,18 +247,16 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   position: absolute;
   top: 0;
   left: 0;
-  width: fit-content;
-  max-width: 270px;
-  min-width: 270px;
+  width: clamp(var(--cd-sidebar-min-width), var(--cd-sidebar-preferred-width), var(--cd-sidebar-max-width));
   height: 100vh;
   max-height: 100vh;
-  padding: 20px 20px;
+  padding: var(--cd-content-padding);
   background-color: var(--cd-bg);
   border: 2px solid var(--cd-bg);
   border-radius: 5px;
   display: flex;
   flex-direction: column;
-  z-index: 9998;
+  z-index: var(--cd-z-sidebar);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   box-sizing: border-box;
 }
@@ -1334,4 +1356,113 @@ body[data-theme="light"] .cd-extension .tag-strategy-button:hover {
   background-color: rgba(0, 0, 0, 0.12) !important;
   border-color: rgba(0, 0, 0, 0.25) !important;
   transform: translateY(-1px) scale(1.02) !important;
+}
+
+/* ===== RESPONSIVE DESIGN IMPROVEMENTS ===== */
+
+/* Desktop Responsive Breakpoints */
+
+/* Small laptop/tablet landscape (1024px - 1366px) */
+@media screen and (min-width: 1024px) and (max-width: 1366px) {
+  .cd-extension #cd-menuButton {
+    --cd-menu-button-size: 38px;
+    font-size: 13px;
+  }
+  
+  .cd-extension .cd-sidenav {
+    --cd-sidebar-preferred-width: 24vw;
+    --cd-sidebar-max-width: 300px;
+  }
+  
+  .cd-sidenav__content {
+    padding-right: 6px;
+  }
+}
+
+/* Standard desktop (1367px - 1920px) */
+@media screen and (min-width: 1367px) and (max-width: 1920px) {
+  .cd-extension #cd-menuButton {
+    --cd-menu-button-size: 44px;
+    font-size: 15px;
+  }
+  
+  .cd-extension .cd-sidenav {
+    --cd-sidebar-preferred-width: 22vw;
+    --cd-sidebar-max-width: 350px;
+  }
+}
+
+/* Large desktop/ultra-wide (1921px+) */
+@media screen and (min-width: 1921px) {
+  .cd-extension #cd-menuButton {
+    --cd-menu-button-size: 48px;
+    font-size: 16px;
+  }
+  
+  .cd-extension .cd-sidenav {
+    --cd-sidebar-preferred-width: 20vw;
+    --cd-sidebar-max-width: 400px;
+  }
+  
+  /* Prevent excessive stretching on ultra-wide monitors */
+  .cd-sidenav__content {
+    max-width: 380px;
+  }
+}
+
+/* Browser Zoom Level Support */
+@supports (zoom: 1) {
+  /* Zoom adjustments for better usability */
+  .cd-extension #cd-menuButton {
+    min-width: 32px;
+    min-height: 32px;
+  }
+  
+  .cd-extension .cd-sidenav {
+    min-width: 240px;
+  }
+  
+  /* Ensure text remains readable at all zoom levels */
+  .cd-extension {
+    font-size: max(12px, 1rem);
+    line-height: 1.4;
+  }
+}
+
+/* Dynamic LeetCode UI Adaptation */
+.cd-extension {
+  /* Fallback positioning when LeetCode layout changes */
+  --cd-fallback-offset: 60px;
+}
+
+/* Adapt to LeetCode's navigation changes */
+body:has([data-cy="navbar"]) .cd-extension #cd-menuButton,
+body:has(.navbar) .cd-extension #cd-menuButton {
+  top: calc(var(--cd-content-padding) + var(--cd-fallback-offset));
+}
+
+/* Responsive adjustments for narrow windows */
+@media screen and (max-width: 1200px) {
+  /* Compress sidebar on narrow windows */
+  .cd-extension .cd-sidenav {
+    --cd-sidebar-preferred-width: 280px;
+    --cd-sidebar-max-width: 300px;
+  }
+}
+
+/* High DPI / Retina display optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .cd-extension #cd-menuButton {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  .cd-extension .cd-sidenav {
+    border-width: 1px;
+  }
+  
+  /* Sharper text rendering */
+  .cd-extension {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
