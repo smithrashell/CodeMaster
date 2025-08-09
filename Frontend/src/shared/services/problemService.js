@@ -2,6 +2,13 @@ import {
   countProblemsByBoxLevel,
   addProblem,
   checkDatabaseForProblem,
+  // Import retry-enabled functions
+  getProblemWithRetry,
+  checkDatabaseForProblemWithRetry,
+  addProblemWithRetry,
+  countProblemsByBoxLevelWithRetry,
+  fetchAllProblemsWithRetry,
+  saveUpdatedProblemWithRetry
 } from "../db/problems.js";
 import { getProblemFromStandardProblems } from "../db/standard_problems.js";
 import { AttemptsService } from "./attemptsService";
@@ -381,3 +388,271 @@ function problemSortingCriteria(a, b) {
 
   return bScore - aScore;
 }
+
+// ===============================
+// RETRY-ENABLED SERVICE METHODS
+// ===============================
+
+/**
+ * Enhanced version of addOrUpdateProblem with retry logic
+ * @param {Object} contentScriptData - Problem data from content script
+ * @param {Function} sendResponse - Response callback function
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Object>} Operation result
+ */
+ProblemService.addOrUpdateProblemWithRetry = async function(contentScriptData, sendResponse, options = {}) {
+  const {
+    timeout = 10000, // Longer timeout for complex operation
+    priority = 'high', // High priority for user-initiated actions
+    abortController = null
+  } = options;
+
+  try {
+    console.log("📌 ProblemService: Adding/updating problem with retry logic:", contentScriptData);
+
+    // Use retry-enabled database functions
+    const result = await addProblemWithRetry(contentScriptData, {
+      timeout,
+      priority,
+      abortController,
+      operationName: 'ProblemService.addOrUpdateProblem'
+    });
+
+    console.log("✅ Problem added/updated successfully with retry:", result);
+    
+    if (sendResponse) {
+      sendResponse({ 
+        success: true, 
+        message: "Problem added successfully", 
+        data: result 
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("❌ Error adding/updating problem:", error);
+    
+    if (sendResponse) {
+      sendResponse({ 
+        success: false, 
+        error: "Failed to add problem: " + error.message 
+      });
+    }
+    
+    throw error;
+  }
+};
+
+/**
+ * Enhanced version of getProblemByDescription with retry logic
+ * @param {string} description - Problem description
+ * @param {string} slug - Problem slug
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Object>} Problem search result
+ */
+ProblemService.getProblemByDescriptionWithRetry = async function(description, slug, options = {}) {
+  const {
+    timeout = 5000,
+    priority = 'normal',
+    abortController = null
+  } = options;
+
+  try {
+    console.log("📌 ProblemService: Searching for problem with retry logic:", description);
+
+    // 1️⃣ Try fetching from `Standard_Problems` store (this doesn't need retry as it's already cached)
+    const problem = await getProblemFromStandardProblems(slug);
+
+    if (problem) {
+      console.log("✅ Problem found in 'Standard_Problems' store:", problem);
+      
+      // 2️⃣ Check if problem exists in `problems` store using retry logic
+      const problemInProblems = await checkDatabaseForProblemWithRetry(problem.id, {
+        timeout,
+        priority,
+        abortController,
+        operationName: 'ProblemService.checkDatabaseForProblem'
+      });
+      
+      if (problemInProblems) {
+        console.log("✅ Problem found in 'problems' store with retry");
+        
+        // Get the full problem data with retry
+        const fullProblem = await getProblemWithRetry(problem.id, {
+          timeout,
+          priority,
+          abortController,
+          operationName: 'ProblemService.getProblem'
+        });
+        
+        return { problem: fullProblem, found: true };
+      }
+    } else {
+      console.warn("❌ Problem not found in any store.");
+      return { problem: null, found: false };
+    }
+
+    console.warn("⚠️ Problem not found in 'problems' store. returning problem from 'Standard_Problems' store");
+    console.log("✅ Returning problem found in 'standard_problems':", problem);
+
+    return { problem, found: true };
+  } catch (error) {
+    console.error("❌ Error in getProblemByDescriptionWithRetry:", error);
+    throw error;
+  }
+};
+
+/**
+ * Enhanced version of getAllProblems with retry logic and streaming support
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Array>} All problems
+ */
+ProblemService.getAllProblemsWithRetry = async function(options = {}) {
+  const {
+    timeout = 15000, // Longer timeout for bulk operation
+    priority = 'low',
+    abortController = null,
+    streaming = false,
+    onProgress = null
+  } = options;
+
+  try {
+    console.log("📌 ProblemService: Fetching all problems with retry logic");
+
+    const problems = await fetchAllProblemsWithRetry({
+      timeout,
+      priority,
+      abortController,
+      streaming,
+      onProgress,
+      operationName: 'ProblemService.getAllProblems'
+    });
+
+    console.log(`✅ Fetched ${problems.length} problems with retry logic`);
+    return problems;
+  } catch (error) {
+    console.error("❌ Error fetching all problems with retry:", error);
+    throw error;
+  }
+};
+
+/**
+ * Enhanced version of countProblemsByBoxLevel with retry logic
+ * @param {Object} options - Retry configuration options
+ * @returns {Promise<Array>} Box level counts
+ */
+ProblemService.countProblemsByBoxLevelWithRetry = async function(options = {}) {
+  const {
+    timeout = 5000,
+    priority = 'low',
+    abortController = null
+  } = options;
+
+  try {
+    console.log("📌 ProblemService: Counting problems by box level with retry logic");
+
+    const counts = await countProblemsByBoxLevelWithRetry({
+      timeout,
+      priority,
+      abortController,
+      operationName: 'ProblemService.countProblemsByBoxLevel'
+    });
+
+    console.log("✅ Box level counts with retry:", counts);
+    return counts;
+  } catch (error) {
+    console.error("❌ Error counting problems by box level with retry:", error);
+    throw error;
+  }
+};
+
+/**
+ * Create an abort controller for cancelling operations
+ * @returns {AbortController} New abort controller
+ */
+ProblemService.createAbortController = function() {
+  return new AbortController();
+};
+
+/**
+ * Enhanced session generation with retry logic and cancellation support
+ * @param {Object} params - Session generation parameters
+ * @param {AbortController} abortController - Optional abort controller
+ * @returns {Promise<Array>} Generated session problems
+ */
+ProblemService.generateSessionWithRetry = async function(params = {}, abortController = null) {
+  const {
+    sessionLength = 5,
+    difficulty = "Medium",
+    tags = [],
+    includeReview = true,
+    streaming = false,
+    onProgress = null,
+    timeout = 20000
+  } = params;
+
+  try {
+    console.log("📌 ProblemService: Generating session with retry logic", params);
+
+    // Check if operation was cancelled before starting
+    if (abortController?.signal.aborted) {
+      throw new Error('Session generation cancelled before start');
+    }
+
+    // Get all problems with retry logic
+    let allProblems = await this.getAllProblemsWithRetry({
+      timeout,
+      priority: 'high',
+      abortController,
+      streaming,
+      onProgress: streaming ? (count) => onProgress?.({ stage: 'loading', count }) : null
+    });
+
+    // Check cancellation after data loading
+    if (abortController?.signal.aborted) {
+      throw new Error('Session generation cancelled after data loading');
+    }
+
+    // Apply filters and selection logic
+    let filteredProblems = allProblems;
+
+    // Filter by difficulty if specified
+    if (difficulty && difficulty !== 'Any') {
+      filteredProblems = filteredProblems.filter(problem => 
+        problem.difficulty === difficulty || problem.Rating === difficulty
+      );
+    }
+
+    // Filter by tags if specified
+    if (tags && tags.length > 0) {
+      filteredProblems = filteredProblems.filter(problem =>
+        problem.tags && problem.tags.some(tag => tags.includes(tag))
+      );
+    }
+
+    // Check cancellation before final processing
+    if (abortController?.signal.aborted) {
+      throw new Error('Session generation cancelled during processing');
+    }
+
+    // Select problems for session (simplified logic for demonstration)
+    const selectedProblems = filteredProblems
+      .sort((a, b) => new Date(a.review) - new Date(b.review)) // Sort by review date
+      .slice(0, sessionLength);
+
+    console.log(`✅ Generated session with ${selectedProblems.length} problems using retry logic`);
+
+    if (onProgress) {
+      onProgress({ stage: 'complete', count: selectedProblems.length });
+    }
+
+    return selectedProblems;
+  } catch (error) {
+    if (error.message.includes('cancelled')) {
+      console.log("🚫 Session generation cancelled:", error.message);
+    } else {
+      console.error("❌ Error generating session with retry:", error);
+    }
+    throw error;
+  }
+};

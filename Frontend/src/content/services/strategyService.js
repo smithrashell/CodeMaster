@@ -2,6 +2,7 @@ import ProblemRelationshipService from "../../shared/services/problemRelationshi
 import strategyCacheService from "../../shared/services/StrategyCacheService.js";
 import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
 import chromeMessaging from "./chromeMessagingService.js";
+import emergencyStrategy from "../../shared/utils/EmergencyStrategyBypass.js";
 
 // Fallback strategy data when database is unavailable
 const FALLBACK_STRATEGIES = {
@@ -96,7 +97,7 @@ export class StrategyService {
           type: "isStrategyDataLoaded"
         },
         {
-          timeout: 1000, // Quick check
+          timeout: 5000, // Increased timeout for reliability
           retries: 1,
           cacheable: true,
           cacheKey: 'strategy_data_loaded_status'
@@ -137,7 +138,7 @@ export class StrategyService {
           tag: tag
         },
         {
-          timeout: 1500, // Shorter timeout for faster fallback
+          timeout: 8000, // Increased timeout for slow network conditions
           retries: 2, // Fewer retries for faster response
           cacheable: true,
           cacheKey: `strategy_${tag.toLowerCase()}`
@@ -155,13 +156,22 @@ export class StrategyService {
       const fallback = FALLBACK_STRATEGIES[tag.toLowerCase()];
       if (fallback) {
         // eslint-disable-next-line no-console
-        console.log(`🔄 CONTENT: Using fallback strategy for tag "${tag}"`);
+        console.log(`🔄 CONTENT: Using local fallback strategy for tag "${tag}"`);
         performanceMonitor.endQuery(queryContext, true, JSON.stringify(fallback).length);
         return fallback;
       }
+
+      // Try emergency bypass system as final fallback
+      // eslint-disable-next-line no-console
+      console.log(`🚨 CONTENT: Using emergency bypass for tag "${tag}"`);
+      const emergencyResult = emergencyStrategy.getEmergencyStrategy(tag);
+      if (emergencyResult) {
+        performanceMonitor.endQuery(queryContext, true, JSON.stringify(emergencyResult).length);
+        return emergencyResult;
+      }
       
       // eslint-disable-next-line no-console
-      console.log(`❌ CONTENT: No strategy found for "${tag}" (no fallback either)`);
+      console.log(`❌ CONTENT: No strategy found for "${tag}" (all fallbacks exhausted)`);
       
       performanceMonitor.endQuery(queryContext, true, 0);
       return null;
@@ -172,9 +182,22 @@ export class StrategyService {
       const fallback = FALLBACK_STRATEGIES[tag.toLowerCase()];
       if (fallback) {
         // eslint-disable-next-line no-console
-        console.log(`🔄 CONTENT: Using fallback strategy for tag "${tag}"`);
+        console.log(`🔄 CONTENT: Using local fallback strategy for tag "${tag}" (after error)`);
         performanceMonitor.endQuery(queryContext, true, JSON.stringify(fallback).length);
         return fallback;
+      }
+
+      // Try emergency bypass as last resort
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`🚨 CONTENT: Using emergency bypass for tag "${tag}" (after error)`);
+        const emergencyResult = emergencyStrategy.getEmergencyStrategy(tag);
+        if (emergencyResult) {
+          performanceMonitor.endQuery(queryContext, true, JSON.stringify(emergencyResult).length);
+          return emergencyResult;
+        }
+      } catch (emergencyError) {
+        console.error(`💥 CONTENT: Emergency bypass failed for "${tag}":`, emergencyError);
       }
       
       performanceMonitor.endQuery(queryContext, false, 0, error);
@@ -644,6 +667,24 @@ StrategyService.debug = {
       console.error(`❌ Quick test failed in ${duration}ms:`, error);
       return { success: false, duration, error: error.message };
     }
+  },
+
+  async diagnoseMessaging() {
+    console.log('🔍 Running deep Chrome messaging diagnostics...');
+    const diagnostics = new ChromeMessagingDiagnostics();
+    const results = await diagnostics.runFullDiagnostics();
+    
+    console.log('🔍 DIAGNOSTIC RESULTS:');
+    console.table(results.tests);
+    console.log('📋 RECOMMENDATIONS:', results.recommendations);
+    
+    return results;
+  },
+
+  async testDirectDB() {
+    console.log('🔍 Testing direct database access...');
+    const diagnostics = new ChromeMessagingDiagnostics();
+    return await diagnostics.testDirectDBAccess();
   }
 };
 

@@ -5,7 +5,7 @@
 
 export class ChromeMessagingService {
   constructor() {
-    this.defaultTimeout = 2000; // 2 second timeout
+    this.defaultTimeout = 8000; // 8 second timeout for slow conditions
     this.maxRetries = 3;
     this.retryDelay = 500; // Base retry delay in ms
     this.cache = new Map(); // Simple in-memory cache
@@ -77,6 +77,7 @@ export class ChromeMessagingService {
    */
   async sendSingleMessage(message, timeout) {
     return new Promise((resolve, reject) => {
+      // Extended timeout to test if operations can complete
       const timer = setTimeout(() => {
         reject(new Error(`Message timeout after ${timeout}ms for type: ${message.type}`));
       }, timeout);
