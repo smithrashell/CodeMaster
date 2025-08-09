@@ -6,7 +6,7 @@
   background-color: #f4f4f4;
   border-bottom: 2px solid #ccc;
   padding: 10px;
-  z-index: 0;
+  z-index: var(--cd-z-base, 9000);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -56,5 +56,5 @@
   align-items: center;
   justify-content: center;
   font-size: 8rem;
-  z-index: 9850;
+  z-index: var(--cd-z-overlay, 9500);
 }

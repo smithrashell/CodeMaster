@@ -1,6 +1,7 @@
 import ProblemRelationshipService from "../../shared/services/problemRelationshipService.js";
 import strategyCacheService from "../../shared/services/StrategyCacheService.js";
 import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
+import chromeMessaging from "./chromeMessagingService.js";
 
 // Fallback strategy data when database is unavailable
 const FALLBACK_STRATEGIES = {
@@ -88,13 +89,21 @@ export class StrategyService {
   static async initializeStrategyData() {
     try {
       // eslint-disable-next-line no-console
-      console.log("🔧 CONTENT: Starting strategy data initialization via background script...");
+      console.log("🔧 CONTENT: Starting strategy data initialization via robust messaging...");
       
-      const response = await chrome.runtime.sendMessage({
-        type: "isStrategyDataLoaded"
-      });
+      const isLoaded = await chromeMessaging.sendMessage(
+        {
+          type: "isStrategyDataLoaded"
+        },
+        {
+          timeout: 1000, // Quick check
+          retries: 1,
+          cacheable: true,
+          cacheKey: 'strategy_data_loaded_status'
+        }
+      );
       
-      if (response.status === 'success' && response.data) {
+      if (isLoaded) {
         // eslint-disable-next-line no-console
         console.log("✅ CONTENT: Strategy data already loaded");
         return true;
@@ -120,24 +129,26 @@ export class StrategyService {
     
     try {
       // eslint-disable-next-line no-console
-      console.log(`🔍 CONTENT: Getting strategy for tag: "${tag}" via background script`);
+      console.log(`🔍 CONTENT: Getting strategy for tag: "${tag}" via robust messaging`);
       
-      const response = await chrome.runtime.sendMessage({
-        type: "getStrategyForTag",
-        tag: tag
-      });
-      
-      if (response.status === 'success') {
-        const dbResult = response.data;
-        // eslint-disable-next-line no-console
-        console.log(`🔍 CONTENT: Background script result for "${tag}":`, dbResult ? 'FOUND' : 'NULL');
-        
-        if (dbResult) {
-          performanceMonitor.endQuery(queryContext, true, JSON.stringify(dbResult).length);
-          return dbResult;
+      const dbResult = await chromeMessaging.sendMessage(
+        {
+          type: "getStrategyForTag",
+          tag: tag
+        },
+        {
+          timeout: 1500, // Shorter timeout for faster fallback
+          retries: 2, // Fewer retries for faster response
+          cacheable: true,
+          cacheKey: `strategy_${tag.toLowerCase()}`
         }
-      } else {
-        console.error(`❌ CONTENT: Background script error for "${tag}":`, response.error);
+      );
+      
+      if (dbResult) {
+        // eslint-disable-next-line no-console
+        console.log(`🔍 CONTENT: Background script result for "${tag}": FOUND`);
+        performanceMonitor.endQuery(queryContext, true, JSON.stringify(dbResult).length);
+        return dbResult;
       }
 
       // Try fallback strategy data
@@ -573,14 +584,67 @@ export class StrategyService {
   }
 }
 
+// Pre-warm cache with commonly used strategies
+const COMMON_TAGS = ['array', 'hash table', 'string', 'sorting', 'tree', 'dynamic programming'];
+
+const preWarmCache = async () => {
+  try {
+    console.log("🔥 CONTENT: Pre-warming strategy cache for common tags...");
+    
+    // Fire and forget - don't wait for these
+    COMMON_TAGS.forEach(async (tag) => {
+      try {
+        await StrategyService.getStrategyForTag(tag);
+      } catch (error) {
+        console.warn(`⚠️ Pre-warm failed for ${tag}:`, error.message);
+      }
+    });
+    
+    console.log("🔥 CONTENT: Pre-warm cache initiated for", COMMON_TAGS.length, "common tags");
+  } catch (error) {
+    console.warn("⚠️ Pre-warm cache failed:", error);
+  }
+};
+
 // Initialize strategy data when service is imported - use onboarding system
-StrategyService.initializeStrategyData().catch(error => {
-  console.error("❌ Strategy initialization failed, using fallbacks:", error);
-});
+StrategyService.initializeStrategyData()
+  .then(() => {
+    // Pre-warm cache after initialization
+    setTimeout(preWarmCache, 1000); // Delay to avoid blocking main thread
+  })
+  .catch(error => {
+    console.error("❌ Strategy initialization failed, using fallbacks:", error);
+  });
 
 // Expose debugging and management methods
 StrategyService.cache = strategyCacheService;
 StrategyService.performance = performanceMonitor;
 StrategyService.test = StrategyService.testSystem;
+StrategyService.messaging = chromeMessaging;
+
+// Debug utilities
+StrategyService.debug = {
+  getCacheStats: () => chromeMessaging.getCacheStats(),
+  clearCache: () => chromeMessaging.clearCache(),
+  preWarm: preWarmCache,
+  testTags: COMMON_TAGS,
+  
+  async quickTest() {
+    console.log('🧪 Quick strategy system test...');
+    const start = Date.now();
+    
+    try {
+      const result = await StrategyService.getStrategyForTag('array');
+      const duration = Date.now() - start;
+      
+      console.log(`✅ Quick test completed in ${duration}ms:`, result ? 'SUCCESS' : 'NULL');
+      return { success: true, duration, result: !!result };
+    } catch (error) {
+      const duration = Date.now() - start;
+      console.error(`❌ Quick test failed in ${duration}ms:`, error);
+      return { success: false, duration, error: error.message };
+    }
+  }
+};
 
 export default StrategyService;
