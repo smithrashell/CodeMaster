@@ -32,19 +32,19 @@ export async function getStrategyForTag(tag) {
       return null;
     }
 
-    // Ultra-fast promise-based approach with aggressive timeout
+    // Test with extended timeout to diagnose if operations complete
     const result = await new Promise((resolve) => {
       let completed = false;
       
-      // Very aggressive timeout - 800ms
+      // Long timeout to see if operation actually completes
       const timeout = setTimeout(() => {
         if (!completed) {
           completed = true;
           // eslint-disable-next-line no-console
-          console.log(`⚡ DB DEBUG: Ultra-fast timeout for "${tag}" - immediate resolution`);
+          console.log(`⚡ DB DEBUG: Database timeout for "${tag}" after 30s - resolving null`);
           resolve(null);
         }
-      }, 800);
+      }, 30000);
       
       try {
         const transaction = db.transaction(["strategy_data"], "readonly");
@@ -58,7 +58,7 @@ export async function getStrategyForTag(tag) {
             
             const dbResult = event.target.result;
             // eslint-disable-next-line no-console
-            console.log(`⚡ DB DEBUG: Ultra-fast success for "${tag}":`, dbResult ? 'FOUND' : 'NOT FOUND');
+            console.log(`⚡ DB DEBUG: Database success for "${tag}":`, dbResult ? 'FOUND' : 'NOT FOUND');
             
             // Cache the result (including null results to prevent repeated queries)
             strategyCache.set(cacheKey, {
@@ -76,7 +76,7 @@ export async function getStrategyForTag(tag) {
             completed = true;
             clearTimeout(timeout);
             // eslint-disable-next-line no-console
-            console.warn(`⚡ DB DEBUG: Ultra-fast error for "${tag}" - resolving null`);
+            console.warn(`⚡ DB DEBUG: Database error for "${tag}" - resolving null`);
             
             // Cache null result to prevent repeated failed queries
             strategyCache.set(cacheKey, {
@@ -96,7 +96,7 @@ export async function getStrategyForTag(tag) {
         if (!completed) {
           completed = true;
           clearTimeout(timeout);
-          console.warn(`⚡ DB DEBUG: Ultra-fast exception for "${tag}":`, error.message);
+          console.warn(`⚡ DB DEBUG: Database exception for "${tag}":`, error.message);
           resolve(null);
         }
       }
@@ -128,6 +128,36 @@ export async function getAllStrategies() {
   } catch (error) {
     console.error("❌ Error getting all strategies:", error);
     return [];
+  }
+}
+
+/**
+ * Check if strategy data is loaded in IndexedDB
+ * @returns {Promise<boolean>} True if strategy data exists
+ */
+export async function isStrategyDataLoaded() {
+  try {
+    const db = await openDB();
+    if (!db) return false;
+    
+    const tx = db.transaction("strategy_data", "readonly");
+    const store = tx.objectStore("strategy_data");
+    const request = store.count();
+
+    return new Promise((resolve) => {
+      request.onsuccess = () => {
+        const count = request.result;
+        console.log(`🎯 DB DEBUG: Strategy data count: ${count}`);
+        resolve(count > 0);
+      };
+      request.onerror = () => {
+        console.warn(`⚠️ DB DEBUG: Error checking strategy data`);
+        resolve(false);
+      };
+    });
+  } catch (error) {
+    console.warn(`⚠️ DB DEBUG: Exception checking strategy data:`, error.message);
+    return false;
   }
 }
 
@@ -174,41 +204,6 @@ export async function insertStrategyData() {
   } catch (error) {
     console.error("❌ Error inserting strategy data:", error);
     throw error;
-  }
-}
-
-/**
- * Check if strategy data is loaded in IndexedDB
- * @returns {Promise<boolean>}
- */
-export async function isStrategyDataLoaded() {
-  try {
-    // eslint-disable-next-line no-console
-    console.log("🔍 DB DIAGNOSTIC: Checking if strategy data is loaded...");
-    
-    const db = await openDB();
-    const tx = db.transaction("strategy_data", "readonly");
-    const store = tx.objectStore("strategy_data");
-
-    const count = await new Promise((resolve, reject) => {
-      const countRequest = store.count();
-      countRequest.onsuccess = () => {
-        // eslint-disable-next-line no-console
-        console.log("🔍 DB DIAGNOSTIC: Count request success, result:", countRequest.result);
-        resolve(countRequest.result);
-      };
-      countRequest.onerror = () => {
-        console.error("🔍 DB DIAGNOSTIC: Count request failed:", countRequest.error);
-        reject(countRequest.error);
-      };
-    });
-
-    // eslint-disable-next-line no-console
-    console.log("🔍 DB DIAGNOSTIC: Strategy data count:", count);
-    return count > 0;
-  } catch (error) {
-    console.error("❌ Error checking strategy data:", error);
-    return false;
   }
 }
 

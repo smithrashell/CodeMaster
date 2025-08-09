@@ -68,14 +68,17 @@ const setCachedResponse = (key, data) => {
 
 const processNextRequest = () => {
   if (requestQueue.length === 0) {
+    console.log("🔍 BACKGROUND DEBUG: Queue empty, stopping processing");
     isProcessing = false;
     return;
   }
   isProcessing = true;
   const { request, sender, sendResponse } = requestQueue.shift();
-  handleRequest(request, sender, sendResponse).finally(() =>
-    processNextRequest()
-  );
+  console.log("🔍 BACKGROUND DEBUG: Processing request:", request.type);
+  handleRequest(request, sender, sendResponse).finally(() => {
+    console.log("🔍 BACKGROUND DEBUG: Finished processing:", request.type);
+    processNextRequest();
+  });
 };
 
 // Strategy Map data aggregation function
@@ -486,26 +489,30 @@ const handleRequest = async (request, sender, sendResponse) => {
         const cachedStrategy = getCachedResponse(cacheKey);
         
         if (cachedStrategy) {
-          console.log(`💾 BACKGROUND: Using cached strategy for "${request.tag}"`);
+          console.log(`🔍 BACKGROUND DEBUG: Using cached strategy for "${request.tag}"`);
           sendResponse(cachedStrategy);
           finishRequest();
           return true;
         }
         
-        console.log(`🎯 BACKGROUND: Getting strategy for tag "${request.tag}"`);
+        console.log(`🔍 BACKGROUND DEBUG: Getting strategy for tag "${request.tag}"`);
         (async () => {
           try {
+            console.log(`🔍 BACKGROUND DEBUG: Importing strategy_data.js for tag "${request.tag}"`);
             const { getStrategyForTag } = await import("../src/shared/db/strategy_data.js");
+            console.log(`🔍 BACKGROUND DEBUG: Import successful, calling getStrategyForTag for "${request.tag}"`);
             const strategy = await getStrategyForTag(request.tag);
-            console.log(`🎯 BACKGROUND: Strategy result for "${request.tag}":`, strategy ? 'FOUND' : 'NOT FOUND');
+            console.log(`🔍 BACKGROUND DEBUG: Strategy result for "${request.tag}":`, strategy ? 'FOUND' : 'NOT FOUND');
             
             const response = { status: "success", data: strategy };
             setCachedResponse(cacheKey, response);
             sendResponse(response);
+            console.log(`🔍 BACKGROUND DEBUG: Response sent for getStrategyForTag "${request.tag}"`);
           } catch (error) {
-            console.error(`❌ BACKGROUND: Strategy error for "${request.tag}":`, error);
+            console.error(`❌ BACKGROUND DEBUG: Strategy error for "${request.tag}":`, error);
             const errorResponse = { status: "error", error: error.message };
             sendResponse(errorResponse);
+            console.log(`🔍 BACKGROUND DEBUG: Error response sent for getStrategyForTag "${request.tag}"`);
           }
         })().finally(finishRequest);
         return true;
@@ -540,16 +547,20 @@ const handleRequest = async (request, sender, sendResponse) => {
         return true;
 
       case "isStrategyDataLoaded":
-        console.log(`🎯 BACKGROUND: Checking if strategy data is loaded`);
+        console.log(`🔍 BACKGROUND DEBUG: Handling isStrategyDataLoaded request`);
         (async () => {
           try {
+            console.log(`🔍 BACKGROUND DEBUG: Importing strategy_data.js...`);
             const { isStrategyDataLoaded } = await import("../src/shared/db/strategy_data.js");
+            console.log(`🔍 BACKGROUND DEBUG: Import successful, calling function...`);
             const loaded = await isStrategyDataLoaded();
-            console.log(`🎯 BACKGROUND: Strategy data loaded:`, loaded);
+            console.log(`🔍 BACKGROUND DEBUG: Strategy data loaded result:`, loaded);
             sendResponse({ status: "success", data: loaded });
+            console.log(`🔍 BACKGROUND DEBUG: Response sent for isStrategyDataLoaded`);
           } catch (error) {
-            console.error(`❌ BACKGROUND: Strategy data check error:`, error);
+            console.error(`❌ BACKGROUND DEBUG: Strategy data check error:`, error);
             sendResponse({ status: "error", error: error.message });
+            console.log(`🔍 BACKGROUND DEBUG: Error response sent for isStrategyDataLoaded`);
           }
         })().finally(finishRequest);
         return true;
@@ -574,7 +585,7 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("Received request:", request);
+  console.log("🔍 BACKGROUND DEBUG: Received request:", request.type, request);
 
   requestQueue.push({ request, sender, sendResponse });
   if (!isProcessing) processNextRequest();
