@@ -42,10 +42,15 @@
   font-size: clamp(12px, 2.5vw, 16px);
   border: none;
   border-radius: 12px;
+
   width: var(--cd-menu-button-size);
   height: var(--cd-menu-button-size);
   min-width: var(--cd-menu-button-min-size);
   min-height: var(--cd-menu-button-min-size);
+
+  width: 44px; /* Increased from 40px for WCAG AA touch target */
+  height: 44px; /* Increased from 40px for WCAG AA touch target */
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -124,10 +129,116 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   cursor: pointer;
   z-index: 10000;
   transition: color 0.2s ease;
+  width: 44px; /* WCAG AA touch target */
+  height: 44px; /* WCAG AA touch target */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cd-button--close:hover {
   color: var(--cd-link-hover);
+}
+
+/* ========= ACCESSIBILITY FOCUS STYLES ========= */
+/* Only show focus styles for keyboard navigation, not mouse clicks */
+.cd-extension button:focus-visible,
+.cd-extension .cd-button--close:focus-visible,
+.cd-extension #cd-menuButton:focus-visible,
+.cd-extension .cd-primary-button:focus-visible,
+.cd-extension .cd-secondary-button:focus-visible {
+  outline: 2px solid var(--cd-active-blue) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Focus styles for links and interactive elements - keyboard only */
+.cd-extension .cd-sidenav a:focus-visible,
+.cd-extension .link:focus-visible {
+  outline: 2px solid var(--cd-active-blue) !important;
+  outline-offset: 2px !important;
+  background-color: rgba(37, 99, 235, 0.1) !important;
+}
+
+/* Focus styles for form elements - keyboard only */
+.cd-extension input:focus-visible,
+.cd-extension select:focus-visible,
+.cd-extension textarea:focus-visible {
+  outline: 2px solid var(--cd-active-blue) !important;
+  outline-offset: 1px !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Remove default focus outline for mouse users */
+.cd-extension button:focus:not(:focus-visible),
+.cd-extension a:focus:not(:focus-visible),
+.cd-extension input:focus:not(:focus-visible),
+.cd-extension select:focus:not(:focus-visible),
+.cd-extension textarea:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Skip to content link for keyboard users */
+.cd-extension .skip-to-content {
+  position: absolute;
+  left: -9999px;
+  z-index: 999;
+  padding: 8px 16px;
+  background: var(--cd-btn-bg);
+  color: var(--cd-btn-text);
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.cd-extension .skip-to-content:focus {
+  left: 20px;
+  top: 20px;
+}
+
+/* Visual focus indicator when keyboard navigating - only show when actively using keyboard */
+.cd-extension .cd-focused {
+  /* No visual styling by default - only show during keyboard focus */
+}
+
+/* Strong focus indicator only for keyboard focus */
+.cd-extension .cd-focused:focus-visible {
+  background-color: rgba(37, 99, 235, 0.15) !important;
+  outline: 2px solid var(--cd-active-blue) !important;
+  outline-offset: 2px !important;
+}
+
+/* Specifically remove focus outline for problem link buttons when clicked */
+.cd-extension .cd-simple-problem-link:focus:not(:focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Remove all focus styling for mouse clicks on problem links */
+.cd-extension .cd-simple-problem-link:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Only show focus for keyboard navigation */
+.cd-extension .cd-simple-problem-link:focus-visible {
+  outline: 2px solid var(--cd-active-blue) !important;
+  outline-offset: 2px !important;
+}
+
+/* Remove any browser-specific focus styles */
+.cd-extension .cd-simple-problem-link {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-focus-ring-color: transparent !important;
+  outline: none !important;
+}
+
+.cd-extension .cd-simple-problem-link::-moz-focus-inner {
+  border: 0 !important;
+  padding: 0 !important;
 }
 
 .cd-extension #homeIcon {
@@ -137,8 +248,8 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   font-size: 14px;
   border: none;
   border-radius: 12px;
-  width: 40px;
-  height: 40px;
+  width: 44px; /* Increased for WCAG AA touch target */
+  height: 44px; /* Increased for WCAG AA touch target */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1021,7 +1132,8 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   color: var(--cd-btn-text) !important;
   font-size: 10px !important;
   font-weight: bold !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   letter-spacing: 0.2px !important;
@@ -1035,7 +1147,8 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   color: var(--cd-btn-text) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   display: inline-block !important;
@@ -1048,7 +1161,8 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   color: var(--cd-btn-text) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   display: inline-block !important;
@@ -1061,7 +1175,8 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   color: var(--cd-dropdown-color) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   display: inline-block !important;
@@ -1109,11 +1224,22 @@ body[data-theme="dark"] .cd-extension .cd-strategy-locked-tag {
   color: #9ca3af !important;
 }
 
-/* Strategy Map Container Scrolling */
+/* Strategy Map Container Scrolling - Only show scroll when needed */
 .cd-extension .cd-sidenav .cd-sidenav__content {
   overflow-y: auto !important;
   max-height: calc(100vh - 80px) !important;
   padding-right: 8px !important;
+}
+
+/* Hide scrollbar for main navigation unless content overflows */
+.cd-extension .cd-sidenav:not(.strategy-map) .cd-sidenav__content {
+  overflow-y: auto !important;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.cd-extension .cd-sidenav:not(.strategy-map) .cd-sidenav__content::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 /* Custom Scrollbar Styling for Strategy Map */
