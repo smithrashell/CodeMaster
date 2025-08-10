@@ -4,7 +4,6 @@ import {
   Stack,
   Text,
   Badge,
-  Card,
   Group,
   Loader,
   Alert,
@@ -17,11 +16,12 @@ import StrategyService from "../../services/strategyService";
  * FloatingHintButton - Compact floating button that shows strategy hints in a popover
  * Better UX than inline panel - doesn't take up space until needed
  */
-const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
+const FloatingHintButton = ({ problemTags = [], onOpen, onClose, onHintClick }) => {
   const [hints, setHints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [opened, setOpened] = useState(false);
+  const [expandedHints, setExpandedHints] = useState(new Set());
   const buttonRef = useRef(null);
 
   // Memoize the stringified tags to prevent effect from running on array reference changes
@@ -88,6 +88,8 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
   // Memoize callback functions
   const handlePopoverClose = useCallback(() => {
     setOpened(false);
+    // Reset expanded hints when popover closes
+    setExpandedHints(new Set());
     if (onClose) {
       onClose({
         problemTags,
@@ -108,6 +110,51 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
       });
     }
   }, [opened, onOpen, problemTags, hints.length]);
+
+  // Handle hint expand/collapse toggle
+  const toggleHintExpansion = useCallback((hintId, hint, index, hintType) => {
+    const isCurrentlyExpanded = expandedHints.has(hintId);
+    
+    setExpandedHints(prev => {
+      const newSet = new Set(prev);
+      if (isCurrentlyExpanded) {
+        newSet.delete(hintId);
+      } else {
+        newSet.add(hintId);
+      }
+      return newSet;
+    });
+
+    // Track the expand/collapse action
+    if (onHintClick) {
+      const hintClickData = {
+        hintId,
+        hintType,
+        primaryTag: hint.primaryTag,
+        relatedTag: hint.relatedTag,
+        content: hint.tip,
+        relationshipScore: hint.relationshipScore || null,
+        timestamp: new Date().toISOString(),
+        problemTags: problemTags,
+        action: isCurrentlyExpanded ? 'collapse' : 'expand',
+        sessionContext: {
+          popoverOpen: opened,
+          totalHints: hints.length,
+          hintPosition: index,
+          expandedHintsCount: isCurrentlyExpanded ? expandedHints.size - 1 : expandedHints.size + 1
+        }
+      };
+      
+      // eslint-disable-next-line no-console
+      console.log(`🎯 Hint ${isCurrentlyExpanded ? 'collapsed' : 'expanded'}:`, hintClickData);
+      onHintClick(hintClickData);
+    }
+  }, [expandedHints, onHintClick, problemTags, hints.length, opened]);
+
+  // Generate a unique hint ID
+  const getHintId = useCallback((hint, index, hintType) => {
+    return `${hintType}-${hint.primaryTag}-${hint.relatedTag || 'general'}-${index}`;
+  }, []);
 
   if (problemTags.length === 0) {
     return null;
@@ -226,41 +273,75 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
           )}
 
           {!loading && !error && hints.length > 0 && (
-            <Stack gap="sm">
+            <Stack gap="xs">
               {/* Contextual hints (higher priority) */}
               {contextualHints.length > 0 && (
                 <>
-                  <Text size="xs" fw={500} c="blue" tt="uppercase">
-                    Multi-Tag Strategies
+                  <Text size="xs" fw={500} c="blue" tt="uppercase" mb="xs">
+                    Multi-Tag Strategies ({contextualHints.length})
                   </Text>
-                  {contextualHints.map((hint, index) => (
-                    <Card
-                      key={`contextual-${index}`}
-                      p="sm"
-                      radius="sm"
-                      bg="blue.0"
-                    >
-                      <Group gap="xs" mb="xs">
-                        <Badge size="xs" variant="filled" color="blue">
-                          {hint.primaryTag}
-                        </Badge>
-                        <Text size="xs" c="dimmed">
-                          +
-                        </Text>
-                        <Badge size="xs" variant="outline" color="blue">
-                          {hint.relatedTag}
-                        </Badge>
-                        {hint.relationshipScore > 0 && (
-                          <Badge size="xs" variant="dot" color="green">
-                            {hint.relationshipScore}
-                          </Badge>
+                  {contextualHints.map((hint, index) => {
+                    const hintId = getHintId(hint, index, "contextual");
+                    const isExpanded = expandedHints.has(hintId);
+                    
+                    return (
+                      <div key={hintId} style={{ border: "1px solid #e9ecef", borderRadius: "6px" }}>
+                        {/* Collapsed title row */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          style={{
+                            padding: "10px 14px",
+                            cursor: "pointer",
+                            backgroundColor: isExpanded ? "#f8f9ff" : "#fafafa",
+                            borderRadius: isExpanded ? "6px 6px 0 0" : "6px",
+                            transition: "background-color 0.2s ease",
+                            borderBottom: isExpanded ? "1px solid #e6f3ff" : "none"
+                          }}
+                          onClick={() => toggleHintExpansion(hintId, hint, index, "contextual")}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleHintExpansion(hintId, hint, index, "contextual");
+                            }
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = isExpanded ? "#f0f6ff" : "#f0f6ff";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = isExpanded ? "#f8f9ff" : "#fafafa";
+                          }}
+                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${hint.primaryTag} + ${hint.relatedTag} strategy hint`}
+                        >
+                          <Text 
+                            size="sm" 
+                            fw={500}
+                            c="dark"
+                            style={{ 
+                              textTransform: "capitalize",
+                              letterSpacing: "0.3px"
+                            }}
+                          >
+                            {hint.primaryTag} + {hint.relatedTag}
+                          </Text>
+                        </div>
+                        
+                        {/* Expanded content */}
+                        {isExpanded && (
+                          <div style={{
+                            padding: "12px 14px",
+                            backgroundColor: "#ffffff",
+                            borderRadius: "0 0 6px 6px",
+                            borderTop: "1px solid #f0f6ff"
+                          }}>
+                            <Text size="sm" lh={1.6} c="dark" style={{ lineHeight: "1.5" }}>
+                              {hint.tip}
+                            </Text>
+                          </div>
                         )}
-                      </Group>
-                      <Text size="sm" lh={1.4}>
-                        {hint.tip}
-                      </Text>
-                    </Card>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </>
               )}
 
@@ -268,38 +349,74 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose }) => {
               {generalHints.length > 0 && (
                 <>
                   {contextualHints.length > 0 && (
-                    <div style={{ marginTop: "0.5rem" }} />
+                    <div style={{ height: "8px" }} />
                   )}
-                  <Text size="xs" fw={500} c="gray" tt="uppercase">
-                    General Strategies
+                  <Text size="xs" fw={500} c="gray" tt="uppercase" mb="xs">
+                    General Strategies ({generalHints.length})
                   </Text>
-                  {generalHints.map((hint, index) => (
-                    <Card
-                      key={`general-${index}`}
-                      p="sm"
-                      radius="sm"
-                      bg="gray.0"
-                    >
-                      <Group gap="xs" mb="xs">
-                        <Badge size="xs" variant="light" color="gray">
-                          {hint.primaryTag}
-                        </Badge>
-                        {hint.relatedTag && (
-                          <>
-                            <Text size="xs" c="dimmed">
-                              pattern:
+                  {generalHints.map((hint, index) => {
+                    const hintId = getHintId(hint, index + contextualHints.length, hint.type || "general");
+                    const isExpanded = expandedHints.has(hintId);
+                    
+                    return (
+                      <div key={hintId} style={{ border: "1px solid #e9ecef", borderRadius: "6px" }}>
+                        {/* Collapsed title row */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          style={{
+                            padding: "10px 14px",
+                            cursor: "pointer",
+                            backgroundColor: isExpanded ? "#f9f9f9" : "#fafafa",
+                            borderRadius: isExpanded ? "6px 6px 0 0" : "6px",
+                            transition: "background-color 0.2s ease",
+                            borderBottom: isExpanded ? "1px solid #e9ecef" : "none"
+                          }}
+                          onClick={() => toggleHintExpansion(hintId, hint, index + contextualHints.length, hint.type || "general")}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleHintExpansion(hintId, hint, index + contextualHints.length, hint.type || "general");
+                            }
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = "#f0f0f0";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = isExpanded ? "#f9f9f9" : "#fafafa";
+                          }}
+                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${hint.primaryTag}${hint.relatedTag ? ` + ${hint.relatedTag}` : ''} strategy hint`}
+                        >
+                          <Text 
+                            size="sm" 
+                            fw={500}
+                            c="dark"
+                            style={{ 
+                              textTransform: "capitalize",
+                              letterSpacing: "0.3px"
+                            }}
+                          >
+                            {hint.primaryTag}
+                            {hint.relatedTag && ` + ${hint.relatedTag}`}
+                          </Text>
+                        </div>
+                        
+                        {/* Expanded content */}
+                        {isExpanded && (
+                          <div style={{
+                            padding: "12px 14px",
+                            backgroundColor: "#ffffff",
+                            borderRadius: "0 0 6px 6px",
+                            borderTop: "1px solid #f0f0f0"
+                          }}>
+                            <Text size="sm" lh={1.6} c="dark" style={{ lineHeight: "1.5" }}>
+                              {hint.tip}
                             </Text>
-                            <Badge size="xs" variant="outline" color="orange">
-                              {hint.relatedTag}
-                            </Badge>
-                          </>
+                          </div>
                         )}
-                      </Group>
-                      <Text size="sm" lh={1.4}>
-                        {hint.tip}
-                      </Text>
-                    </Card>
-                  ))}
+                      </div>
+                    );
+                  })}
                 </>
               )}
             </Stack>
