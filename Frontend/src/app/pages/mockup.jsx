@@ -12,11 +12,6 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
-  Cell,
-  HeatMap,
-  HeatMapChart,
   Treemap,
   Rectangle,
   RadarChart,
@@ -167,12 +162,12 @@ export function TagMastery() {
     "Biconnected Component",
   ];
 
-  const masteryData = tags.map((tag, index) => ({
+  const masteryData = tags.map((tag, _index) => ({
     tag,
     mastery: Math.floor(Math.random() * 100), // Mock mastery percentage
   }));
 
-  const heatmapData = tags.map((tag, index) => ({
+  const heatmapData = tags.map((tag, _index) => ({
     tag,
     week1: Math.floor(Math.random() * 10),
     week2: Math.floor(Math.random() * 10),

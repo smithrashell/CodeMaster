@@ -259,7 +259,7 @@ export async function getNextFiveTagsFromNextTier(masteryData) {
       missingTags,
       5
     );
-    //TODO: Add mastered tag and taginTier to the return object
+    // Note: Consider adding tagInTier info to return object for better debugging
     if (newTags.length > 0) {
       console.log(
         `🔹 Fetching 5 new highly related tags from ${tier}: ${newTags.join(
