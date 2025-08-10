@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import "../../css/probrec.css";
 import Header from "../../components/navigation/header";
 import { v4 as uuidv4 } from "uuid";
@@ -132,7 +132,7 @@ const ProbGen = () => {
             <p>No problems found. Please generate a new session.</p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 };
