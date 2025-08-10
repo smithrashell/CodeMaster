@@ -13,6 +13,7 @@ import { storeSessionAnalytics } from "../db/sessionAnalytics.js";
 import { StorageService } from "./storageService.js";
 import { fetchProblemById } from "../db/standard_problems.js";
 import { v4 as uuidv4 } from "uuid";
+import performanceMonitor from "../utils/PerformanceMonitor.js";
 
 export const SessionService = {
   /**
@@ -22,6 +23,12 @@ export const SessionService = {
    * @returns {Object} Comprehensive session performance summary
    */
   async summarizeSessionPerformance(session) {
+    const queryContext = performanceMonitor.startQuery('session_performance_summary', {
+      operation: 'session_creation',
+      sessionId: session.id,
+      attemptCount: session.attempts?.length || 0
+    });
+
     console.info(`📊 Starting performance summary for session ${session.id}`);
 
     try {
@@ -105,12 +112,15 @@ export const SessionService = {
       console.info(
         `✅ Session performance summary completed for ${session.id}`
       );
+      
+      performanceMonitor.endQuery(queryContext, true, Object.keys(sessionSummary).length);
       return sessionSummary;
     } catch (error) {
       console.error(
         `❌ Error summarizing session performance for ${session.id}:`,
         error
       );
+      performanceMonitor.endQuery(queryContext, false, 0, error);
       throw error;
     }
   },
@@ -179,15 +189,21 @@ export const SessionService = {
    * @returns {Promise<Array|null>} - Array of session problems or null on failure
    */
   async createNewSession() {
-    console.info("📌 No ongoing session found, creating a new one...");
+    const queryContext = performanceMonitor.startQuery('createNewSession', {
+      operation: 'session_creation'
+    });
 
-    const problems = await ProblemService.createSession();
-    console.info("📌 problems for new session:", problems);
+    try {
+      console.info("📌 No ongoing session found, creating a new one...");
 
-    if (!problems || problems.length === 0) {
-      console.error("❌ No problems fetched for the new session.");
-      return null;
-    }
+      const problems = await ProblemService.createSession();
+      console.info("📌 problems for new session:", problems);
+
+      if (!problems || problems.length === 0) {
+        console.error("❌ No problems fetched for the new session.");
+        performanceMonitor.endQuery(queryContext, true, 0);
+        return null;
+      }
 
     const newSession = {
       id: uuidv4(),
@@ -203,7 +219,12 @@ export const SessionService = {
     await saveSessionToStorage(newSession);
 
     console.info("✅ New session created and stored:", newSession);
+    performanceMonitor.endQuery(queryContext, true, newSession.problems.length);
     return newSession.problems;
+    } catch (error) {
+      performanceMonitor.endQuery(queryContext, false, 0, error);
+      throw error;
+    }
   },
 
   /**
