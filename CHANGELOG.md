@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.9] - 2025-08-10
+
+### Enhanced
+
+* **🎯 Expandable Strategy Hints UI**: Redesigned timer section hints with clean, trackable expandable interface
+
+  * **Expandable Design**: Replaced overwhelming hint cards with collapsible titles that expand on click
+    - Multi-Tag Strategies and General Strategies sections clearly organized
+    - Clean, one-line titles without redundant "Strategy" text (e.g., "Array + Hash Table")
+    - Space-efficient collapsed state with optimized padding (10px/14px)
+    - Smooth hover transitions and consistent background colors
+
+  * **Enhanced Multi-Tag Logic**: Fixed contextual hint generation for problems with multiple tags
+    - Added 10+ predefined contextual strategies (Array + Hash Table, Tree + DFS, etc.)
+    - Intelligent fallback generation for any tag combination
+    - Fixed issue where all hints were incorrectly marked as "general" type
+    - Proper separation between contextual and general hint sections
+
+  * **Individual Hint Tracking**: Comprehensive analytics for strategy hint usage patterns
+    - Track expand/collapse actions for each individual hint with unique IDs
+    - Detailed session context including total hints, position, and expanded count
+    - Action-specific tracking ("expand" vs "collapse") with timestamps
+    - Foundation for understanding which strategies users find most valuable
+
+  * **Improved Accessibility**: Enhanced keyboard navigation and screen reader support
+    - Added proper ARIA labels and role attributes for clickable hint elements
+    - Full keyboard support (Enter/Space keys) for hint expansion
+    - Consistent focus management and interactive element identification
+
+### Technical Improvements
+
+* **🔧 Strategy Service Enhancements**: Improved hint generation and contextual strategy creation
+  * Enhanced `buildOptimalHintSelection` to create both contextual and general hints
+  * Added `generateContextualTip` method with smart tag combination logic
+  * Implemented `extractKeyword` utility for intelligent strategy text processing
+  * Fixed hint type generation to properly distinguish contextual from general strategies
 
 ## [0.10.8] - 2025-08-10
 
