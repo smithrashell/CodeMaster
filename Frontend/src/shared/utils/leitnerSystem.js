@@ -110,7 +110,14 @@ function reassessBoxLevel(problem, attempts) {
     nextReviewDays = Math.max(nextReviewDays, COOLDOWN_REVIEW_INTERVAL);
   }
 
-  const nextReviewDate = new Date(problem.lastAttemptDate);
+  // Ensure lastAttemptDate is valid, fallback to current date if invalid
+  const lastAttemptDate = problem.lastAttemptDate ? new Date(problem.lastAttemptDate) : new Date();
+  if (isNaN(lastAttemptDate.getTime())) {
+    // If still invalid, use current date
+    lastAttemptDate.setTime(Date.now());
+  }
+  
+  const nextReviewDate = new Date(lastAttemptDate);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays);
   problem.ReviewSchedule = nextReviewDate.toISOString();
   problem.ConsecutiveFailures = consecutiveFailures;
@@ -127,7 +134,7 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   let timePerformanceScore = 1.0; // Default neutral score
   let exceededTimeLimit = false;
   
-  if (useTimeLimits) {
+  if (useTimeLimits && attemptData) {
     // Get recommended time limits by difficulty (in minutes)
     const timeLimitsByDifficulty = { 1: 15, 2: 25, 3: 40 };
     const recommendedTimeMinutes = timeLimitsByDifficulty[attemptData.Difficulty] || 25;
@@ -168,7 +175,7 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   AttemptStats.TotalAttempts++;
 
   // ----- BoxLevel and Attempt Stats Update with Graduated Scoring -----
-  if (attemptData.Success || (problem.CooldownStatus && attemptData.Success)) {
+  if (attemptData && (attemptData.Success || (problem.CooldownStatus && attemptData.Success))) {
     problem.CooldownStatus = false;
     problem.ConsecutiveFailures = 0;
     AttemptStats.SuccessfulAttempts++;
@@ -211,11 +218,11 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   // Update Stability based on success/failure and time performance
   let stabilityAdjustment = updateStabilityFSRS(
     problem.Stability,
-    attemptData.Success
+    attemptData ? attemptData.Success : false
   );
   
   // Apply time performance bonus/penalty to stability
-  if (attemptData.Success) {
+  if (attemptData && attemptData.Success) {
     stabilityAdjustment *= timePerformanceScore;
   }
   
@@ -234,11 +241,20 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   }
 
   // ----- Update Problem Stats -----
-  problem.Difficulty += attemptData.Difficulty;
-  problem.lastAttemptDate = attemptData.AttemptDate;
+  if (attemptData) {
+    problem.Difficulty += attemptData.Difficulty || 0;
+    problem.lastAttemptDate = attemptData.AttemptDate;
+  }
   problem.AttemptStats = AttemptStats;
-  console.info("attemptData.AttemptDate", attemptData.AttemptDate);
-  const nextReviewDate = new Date(attemptData.AttemptDate);
+  console.info("attemptData.AttemptDate", attemptData?.AttemptDate);
+  
+  // Ensure attemptDate is valid, fallback to current date if invalid
+  const attemptDate = attemptData?.AttemptDate ? new Date(attemptData.AttemptDate) : new Date();
+  if (isNaN(attemptDate.getTime())) {
+    attemptDate.setTime(Date.now());
+  }
+  
+  const nextReviewDate = new Date(attemptDate);
   console.info("nextReviewDate", nextReviewDate);
   console.info("nextReviewDays", nextReviewDays);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays);
