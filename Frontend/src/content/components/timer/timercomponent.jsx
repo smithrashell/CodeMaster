@@ -54,6 +54,19 @@ const TimerBanner = (props) => {
     // Track popover close event for analytics
   }, []);
 
+  const handleHintClick = useCallback((hintData) => {
+    console.log("🎯 Individual hint clicked in timer:", hintData);
+    // Track individual hint clicks for usage analytics
+    // This data can be used to:
+    // 1. Understand which strategies are most helpful
+    // 2. Improve hint relevance algorithms
+    // 3. Analyze user engagement patterns
+    // 4. Build personalized hint recommendations
+    
+    // Future: Send to analytics service or store locally
+    // AnalyticsService.trackHintUsage(hintData);
+  }, []);
+
   const toggleTimer = () => {
     if (!timerRef.current) return;
     
@@ -413,6 +426,7 @@ const TimerBanner = (props) => {
               problemTags={processedTags}
               onOpen={handleHintOpen}
               onClose={handleHintClose}
+              onHintClick={handleHintClick}
             />
           </div>
         )}
