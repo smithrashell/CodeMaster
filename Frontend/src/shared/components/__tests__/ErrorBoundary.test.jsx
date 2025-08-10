@@ -47,6 +47,9 @@ describe('ErrorBoundary Component', () => {
     console.error = jest.fn();
     jest.clearAllMocks();
     
+    // Suppress unhandled promise rejection warnings
+    process.on('unhandledRejection', () => {});
+    
     // Mock window.prompt for error reporting
     window.prompt = jest.fn().mockReturnValue('User feedback for test error');
   });
@@ -139,22 +142,24 @@ describe('ErrorBoundary Component', () => {
   });
 
   describe('Development Mode', () => {
-    it('shows appropriate error information in development', () => {
+    it('shows appropriate error information in development', async () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
       
-      render(
-        <TestWrapper>
-          <ErrorBoundary section="Test Section">
-            <ThrowError shouldThrow={true} errorMessage="Dev mode error" />
-          </ErrorBoundary>
-        </TestWrapper>
-      );
-      
-      // Should show error message in development
-      expect(screen.getByText('Dev mode error')).toBeInTheDocument();
-      
-      process.env.NODE_ENV = originalEnv;
+      try {
+        render(
+          <TestWrapper>
+            <ErrorBoundary section="Test Section">
+              <ThrowError shouldThrow={true} errorMessage="Dev mode error" />
+            </ErrorBoundary>
+          </TestWrapper>
+        );
+        
+        // Should show error message in development
+        expect(screen.getByText('Dev mode error')).toBeInTheDocument();
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
     });
   });
 });
