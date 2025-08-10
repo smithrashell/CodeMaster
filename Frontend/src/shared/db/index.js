@@ -3,7 +3,7 @@ import indexedDBRetry from "../services/IndexedDBRetryService.js";
 
 export const dbHelper = {
   dbName: "review",
-  version: 32, // 🚨 Increment version to trigger upgrade (strategy performance optimization)
+  version: 33, // 🚨 Increment version to trigger upgrade (hint interactions analytics)
   db: null,
 
   async openDB() {
@@ -245,6 +245,30 @@ export const dbHelper = {
           if (!strategyDataStore.indexNames.contains("by_related")) {
             strategyDataStore.createIndex("by_related", "related", { multiEntry: true });
           }
+        }
+
+        // ✅ **NEW: Ensure 'hint_interactions' store exists for usage analytics**
+        if (!db.objectStoreNames.contains("hint_interactions")) {
+          let hintInteractionsStore = db.createObjectStore("hint_interactions", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+
+          // Core indexes for analytics queries
+          dbHelper.ensureIndex(hintInteractionsStore, "by_problem_id", "problemId");
+          dbHelper.ensureIndex(hintInteractionsStore, "by_session_id", "sessionId");
+          dbHelper.ensureIndex(hintInteractionsStore, "by_timestamp", "timestamp");
+          dbHelper.ensureIndex(hintInteractionsStore, "by_hint_type", "hintType");
+          dbHelper.ensureIndex(hintInteractionsStore, "by_user_action", "userAction");
+          dbHelper.ensureIndex(hintInteractionsStore, "by_difficulty", "problemDifficulty");
+          dbHelper.ensureIndex(hintInteractionsStore, "by_box_level", "boxLevel");
+          
+          // Composite indexes for advanced analytics
+          dbHelper.ensureIndex(hintInteractionsStore, "by_problem_and_action", ["problemId", "userAction"]);
+          dbHelper.ensureIndex(hintInteractionsStore, "by_hint_type_and_difficulty", ["hintType", "problemDifficulty"]);
+
+          // eslint-disable-next-line no-console
+          console.log("✅ Hint interactions store created for usage analytics!");
         }
 
       };
