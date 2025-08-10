@@ -1,58 +1,74 @@
-/*TODO: create a folder for css styles */
+/**
+ * CodeMaster Extension Content Script Styles
+ * 
+ * This file contains styles for components injected into LeetCode pages.
+ * !important declarations are REQUIRED to override host site styles.
+ * 
+ * Structure:
+ * 1. CSS Custom Properties & Variables
+ * 2. Base Extension Styles  
+ * 3. Menu Button Component
+ * 4. Sidebar Components
+ * 5. Problem List Components
+ * 6. Responsive Design Rules
+ */
 
-/* CSS Custom Properties for Responsive Design */
+/* ===== 1. CSS CUSTOM PROPERTIES & VARIABLES ===== */
 :root {
-  --cd-sidebar-min-width: 250px;
-  --cd-sidebar-max-width: 320px;
-  --cd-sidebar-preferred-width: 25vw;
-  --cd-menu-button-size: min(40px, 4vw);
-  --cd-menu-button-min-size: 32px;
-  --cd-content-padding: clamp(8px, 2vw, 20px);
-  --cd-responsive-gap: clamp(4px, 1vw, 12px);
+  --cm-sidebar-min-width: 250px;
+  --cm-sidebar-max-width: 320px;
+  --cm-sidebar-preferred-width: 25vw;
+  --cm-menu-button-size: min(40px, 4vw);
+  --cm-menu-button-min-size: 32px;
+  --cm-content-padding: clamp(8px, 2vw, 20px);
+  --cm-responsive-gap: clamp(4px, 1vw, 12px);
   
   /* Z-index Scale for Extension Components */
-  --cd-z-base: 9000;
-  --cd-z-timer: 9100;
-  --cd-z-sidebar: 9200;
-  --cd-z-menu-button: 9300;
-  --cd-z-dropdown: 9400;
-  --cd-z-overlay: 9500;
-  --cd-z-modal: 9600;
-  --cd-z-tooltip: 9700;
+  --cm-z-base: 9000;
+  --cm-z-timer: 9100;
+  --cm-z-sidebar: 9200;
+  --cm-z-menu-button: 9300;
+  --cm-z-dropdown: 9400;
+  --cm-z-overlay: 9500;
+  --cm-z-modal: 9600;
+  --cm-z-tooltip: 9700;
 }
 
-.cd-extension .injected {
-  color: var(--cd-dropdown-color) !important;
-  background-color: var(--cd-highlight) !important;
+/* ===== 2. BASE EXTENSION STYLES ===== */
+
+.cm-extension .injected {
+  color: var(--cm-dropdown-color) !important;
+  background-color: var(--cm-highlight) !important;
 }
-.cd-extension .btn {
-  background-color: var(--cd-dropdown-bg) !important;
+.cm-extension .btn {
+  background-color: var(--cm-dropdown-bg) !important;
   border: none !important;
   border-radius: 25% !important;
 }
 
-.cd-extension button {
+.cm-extension button {
   margin-right: 5px !important;
 }
 
-.cd-extension #cd-menuButton {
-  background-color: var(--cd-btn-bg);
-  color: var(--cd-btn-text);
+/* ===== 3. MENU BUTTON COMPONENT ===== */
+.cm-extension #cm-menuButton {
+  background-color: var(--cm-btn-bg);
+  color: var(--cm-btn-text);
   font-weight: bold;
   font-size: clamp(12px, 2.5vw, 16px);
   border: none;
   border-radius: 12px;
-  width: var(--cd-menu-button-size);
-  height: var(--cd-menu-button-size);
-  min-width: var(--cd-menu-button-min-size);
-  min-height: var(--cd-menu-button-min-size);
+  width: var(--cm-menu-button-size);
+  height: var(--cm-menu-button-size);
+  min-width: var(--cm-menu-button-min-size);
+  min-height: var(--cm-menu-button-min-size);
   display: flex;
   align-items: center;
   justify-content: center;
   position: fixed;
-  top: var(--cd-content-padding);
-  left: var(--cd-content-padding);
-  z-index: var(--cd-z-menu-button);
+  top: var(--cm-content-padding);
+  left: var(--cm-content-padding);
+  z-index: var(--cm-z-menu-button);
   cursor: pointer;
   transition: background-color 0.3s ease, color 0.3s ease,
     transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -62,25 +78,25 @@
 }
 
 /* Hover state for "Go Home" affordance */
-.cd-extension #cd-menuButton:hover {
+.cm-extension #cm-menuButton:hover {
   transform: scale(1.05);
 }
 
-body[data-theme="dark"] .cd-extension #cd-menuButton:hover {
-  background-color: var(--cd-active-blue) !important;
-  color: var(--cd-btn-text) !important;
+body[data-theme="dark"] .cm-extension #cm-menuButton:hover {
+  background-color: var(--cm-active-blue) !important;
+  color: var(--cm-btn-text) !important;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
-body[data-theme="light"] .cd-extension #cd-menuButton:hover {
-  background-color: var(--cd-link-hover) !important;
-  color: var(--cd-btn-text) !important;
+body[data-theme="light"] .cm-extension #cm-menuButton:hover {
+  background-color: var(--cm-link-hover) !important;
+  color: var(--cm-btn-text) !important;
   box-shadow: 0 4px 12px rgba(51, 65, 85, 0.3);
 }
 
 /* Responsive positioning for narrow desktop screens */
 @media screen and (max-width: 1024px) {
-  .cd-extension #cd-menuButton {
+  .cm-extension #cm-menuButton {
     top: 12px;
     left: 12px;
     width: 38px;
@@ -91,7 +107,7 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
 
 /* Optimized positioning for larger desktop screens */
 @media screen and (min-width: 1200px) {
-  .cd-extension #cd-menuButton {
+  .cm-extension #cm-menuButton {
     left: 24px;
     top: 24px;
     width: 42px;
@@ -100,39 +116,39 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   }
 }
 
-/* #cd-mySidenav .drawer-close-btn {
+/* #cm-mySidenav .drawer-close-btn {
   position: absolute;
   top: 20px;
   right: 20px;
   background: transparent;
   border: none;
   font-size: 20px;
-  color: var(--cd-btn-text);
+  color: var(--cm-btn-text);
   cursor: pointer;
   z-index: 120;
   transition: color 0.2s ease;
 } */
 
-.cd-extension .cd-button--close {
+.cm-extension .cm-button--close {
   top: 20px;
   right: 20px;
   position: absolute;
   background: transparent;
   border: none;
   font-size: 20px;
-  color: var(--cd-btn-text);
+  color: var(--cm-btn-text);
   cursor: pointer;
   z-index: 10000;
   transition: color 0.2s ease;
 }
 
-.cd-button--close:hover {
-  color: var(--cd-link-hover);
+.cm-button--close:hover {
+  color: var(--cm-link-hover);
 }
 
-.cd-extension #homeIcon {
-  background-color: var(--cd-btn-bg);
-  color: var(--cd-btn-text);
+.cm-extension #homeIcon {
+  background-color: var(--cm-btn-bg);
+  color: var(--cm-btn-text);
   font-weight: bold;
   font-size: 14px;
   border: none;
@@ -150,15 +166,36 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   transition: background-color 0.3s ease, color 0.3s ease;
   transform: none;
 }
-.cd-left {
+
+.cm-extension #homeIcon {
+  background-color: var(--cm-btn-bg);
+  color: var(--cm-btn-text);
+  font-weight: bold;
+  font-size: 14px;
+  border: none;
+  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 9999;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  transform: none;
+}
+.cm-left {
   left: -10px;
   transition: eft 0.5s;
 }
-.cd-leftoffset {
+.cm-leftoffset {
   left: 240px;
 }
 
-.cd-right {
+.cm-right {
   right: 10px;
 }
 
@@ -170,14 +207,14 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
 
 /* Sidebar adaptations for different desktop screen heights */
 @media screen and (max-height: 600px) {
-  .cd-extension .cd-sidenav {
+  .cm-extension .cm-sidenav {
     padding: 8px 16px;
   }
-  .cd-extension .cd-sidenav__content {
+  .cm-extension .cm-sidenav__content {
     padding-top: 35px;
     gap: 10px;
   }
-  .cd-extension .cd-sidenav a {
+  .cm-extension .cm-sidenav a {
     font-size: 16px;
     padding: 10px 16px !important;
   }
@@ -185,56 +222,56 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
 
 /* Sidebar width optimization for narrow desktop screens */
 @media screen and (max-width: 1024px) {
-  .cd-extension .cd-sidenav {
+  .cm-extension .cm-sidenav {
     max-width: 220px;
     min-width: 220px;
   }
 }
 
-.cd-hidden {
+.cm-hidden {
   display: none;
 }
 
-#cd-mySidenav label {
+#cm-mySidenav label {
   margin: 2px;
 }
 
 /* Add spacing to label + form controls in settings */
-.cd-sidenav__content label {
+.cm-sidenav__content label {
   margin-top: 10px;
   font-weight: 500;
   font-size: 14px;
 }
 
-/* .cd-sidenav__content > *:first-child {
+/* .cm-sidenav__content > *:first-child {
   margin-top: 10px;
 } */
 
-/* .cd-sidenav__content > *:not(:last-child) {
+/* .cm-sidenav__content > *:not(:last-child) {
   margin-bottom: 10px; 
 } */
 
-.cd-extension .cd-form-group {
+.cm-extension .cm-form-group {
   display: flex;
   flex-direction: column;
   margin-bottom: 16px !important;
 }
 
-.cd-extension .cd-form-group label:not(.mantine-SegmentedControl-label) {
+.cm-extension .cm-form-group label:not(.mantine-SegmentedControl-label) {
   margin-bottom: 6px !important;
   font-size: 14px !important;
-  color: var(--cd-link) !important;
+  color: var(--cm-link) !important;
   font-weight: 500 !important;
 }
 
-.cd-extension .cd-form-group label[data-active="true"] {
+.cm-extension .cm-form-group label[data-active="true"] {
   color: white !important;
 }
-.cd-extension .cd-form-group {
-  margin-bottom: var(--cd-spacing) !important;
+.cm-extension .cm-form-group {
+  margin-bottom: var(--cm-spacing) !important;
 }
 
-#cd-mySidenav nav {
+#cm-mySidenav nav {
   margin: 0px 30px;
   display: flex;
   flex-direction: column;
@@ -243,25 +280,25 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   font-size: 1.5em;
 }
 
-.cd-extension .cd-sidenav {
+.cm-extension .cm-sidenav {
   position: absolute;
   top: 0;
   left: 0;
-  width: clamp(var(--cd-sidebar-min-width), var(--cd-sidebar-preferred-width), var(--cd-sidebar-max-width));
+  width: clamp(var(--cm-sidebar-min-width), var(--cm-sidebar-preferred-width), var(--cm-sidebar-max-width));
   height: 100vh;
   max-height: 100vh;
-  padding: var(--cd-content-padding);
-  background-color: var(--cd-bg);
-  border: 2px solid var(--cd-bg);
+  padding: var(--cm-content-padding);
+  background-color: var(--cm-bg);
+  border: 2px solid var(--cm-bg);
   border-radius: 5px;
   display: flex;
   flex-direction: column;
-  z-index: var(--cd-z-sidebar);
+  z-index: var(--cm-z-sidebar);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   box-sizing: border-box;
 }
 
-.cd-sidenav__content {
+.cm-sidenav__content {
   margin-top: 10px;
   width: 100%;
   height: calc(100vh - 80px);
@@ -278,16 +315,16 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   padding-right: 4px;
 }
 
-.cd-sidenav__content p {
+.cm-sidenav__content p {
   word-break: break-word;
 }
 
-.cd-extension #cd-mySidenav .cd-sidenav a {
+.cm-extension #cm-mySidenav .cm-sidenav a {
   padding: 12px 20px !important;
   text-decoration: none !important;
   font-size: 18px !important;
   font-weight: 500 !important;
-  color: var(--cd-link) !important;
+  color: var(--cm-link) !important;
   display: flex !important;
   align-items: center !important;
   transition: color 0.3s ease, background-color 0.3s ease !important;
@@ -299,34 +336,34 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   box-sizing: border-box !important;
 }
 
-.cd-extension .link {
+.cm-extension .link {
   padding: 12px 16px !important;
   text-decoration: none !important;
   font-size: 18px !important;
-  color: var(--cd-link) !important;
+  color: var(--cm-link) !important;
   display: block !important;
   transition: color 0.3s ease, background-color 0.3s ease !important;
   border-radius: 6px !important;
   margin-bottom: 6px !important;
 }
 
-.cd-extension .link:hover {
-  color: var(--cd-link-hover) !important;
+.cm-extension .link:hover {
+  color: var(--cm-link-hover) !important;
 }
 /* When you mouse over the navigation links, change their color */
-.cd-extension .cd-sidenav a:hover {
-  color: var(--cd-link-hover) !important;
+.cm-extension .cm-sidenav a:hover {
+  color: var(--cm-link-hover) !important;
 }
 
-.cd-button {
-  color: var(--cd-link);
+.cm-button {
+  color: var(--cm-link);
 }
 
 /* probtime component & form improvements */
-.cd-extension input[type="submit"] {
-  color: var(--cd-btn-text) !important;
+.cm-extension input[type="submit"] {
+  color: var(--cm-btn-text) !important;
   font-weight: 600 !important;
-  background-color: var(--cd-btn-bg) !important;
+  background-color: var(--cm-btn-bg) !important;
   border: none !important;
   border-radius: 8px !important;
   padding: 10px 20px !important;
@@ -335,16 +372,16 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   transition: background-color 0.3s ease !important;
 }
 
-.cd-extension input[type="submit"]:hover {
-  background-color: var(--cd-active-blue) !important;
+.cm-extension input[type="submit"]:hover {
+  background-color: var(--cm-active-blue) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Enhanced Settings Save Button */
-.cd-extension .mantine-Button-root {
-  background-color: var(--cd-btn-bg) !important;
-  color: var(--cd-btn-text) !important;
+.cm-extension .mantine-Button-root {
+  background-color: var(--cm-btn-bg) !important;
+  color: var(--cm-btn-text) !important;
   border: none !important;
   border-radius: 8px !important;
   padding: 12px 24px !important;
@@ -356,25 +393,25 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   transition: color 0.3s ease, background-color 0.3s ease !important;
 }
 
-.cd-extension .mantine-Button-root:hover {
-  background-color: var(--cd-active-blue) !important;
+.cm-extension .mantine-Button-root:hover {
+  background-color: var(--cm-active-blue) !important;
   transform: translateY(-1px) !important;
 }
 
 /* Form error states */
-.cd-extension .MuiFormHelperText-root.Mui-error {
+.cm-extension .MuiFormHelperText-root.Mui-error {
   color: #ef4444 !important;
   font-size: 12px !important;
   margin-top: 4px !important;
 }
 
 /* Form spacing improvements */
-.cd-extension .form {
+.cm-extension .form {
   gap: 16px !important;
 }
 
-.cd-extension .MuiFormLabel-root {
-  color: var(--cd-text) !important;
+.cm-extension .MuiFormLabel-root {
+  color: var(--cm-text) !important;
   font-weight: 500 !important;
   margin-bottom: 6px !important;
   font-size: 14px !important;
@@ -384,8 +421,8 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   outline: 1px solid red;
 } */
 
-.cd-extension .disabled {
-  color: var(--cd-link) !important;
+.cm-extension .disabled {
+  color: var(--cm-link) !important;
   pointer-events: none !important;
   cursor: not-allowed !important;
   padding: 8px 8px 8px 32px !important;
@@ -398,34 +435,34 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   border-radius: 4px !important;
 }
 
-.cd-extension .link-disabled {
+.cm-extension .link-disabled {
   pointer-events: none !important;
-  color: var(--cd-link) !important;
+  color: var(--cm-link) !important;
   text-decoration: none !important;
   opacity: 0.6 !important;
   position: relative !important;
   cursor: not-allowed !important;
 }
 
-.cd-extension .link-disabled:hover {
-  color: var(--cd-link) !important;
+.cm-extension .link-disabled:hover {
+  color: var(--cm-link) !important;
   cursor: not-allowed !important;
   transform: none !important;
 }
 
 /* Loading state for navigation links */
-.cd-extension .nav-link-loading {
+.cm-extension .nav-link-loading {
   position: relative !important;
-  color: var(--cd-link) !important;
+  color: var(--cm-link) !important;
   opacity: 0.7 !important;
 }
 
-.cd-extension .nav-link-loading::after {
+.cm-extension .nav-link-loading::after {
   content: "..." !important;
-  animation: cd-loading-dots 1.5s infinite !important;
+  animation: cm-loading-dots 1.5s infinite !important;
 }
 
-@keyframes cd-loading-dots {
+@keyframes cm-loading-dots {
   0%,
   20% {
     opacity: 0;
@@ -447,27 +484,27 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
 }
 
 /* Statistics Page Styling */
-.cd-extension .cd-stats-container {
+.cm-extension .cm-stats-container {
   margin: 20px !important;
   padding: 5px 0 !important;
 }
 
-.cd-extension .cd-stats-loading {
+.cm-extension .cm-stats-loading {
   text-align: center !important;
   padding: 40px 20px !important;
 }
 
-.cd-extension .cd-loading-spinner {
+.cm-extension .cm-loading-spinner {
   width: 20px !important;
   height: 20px !important;
-  border: 2px solid var(--cd-link) !important;
+  border: 2px solid var(--cm-link) !important;
   border-top: 2px solid transparent !important;
   border-radius: 50% !important;
-  animation: cd-spin 1s linear infinite !important;
+  animation: cm-spin 1s linear infinite !important;
   margin: 16px auto !important;
 }
 
-@keyframes cd-spin {
+@keyframes cm-spin {
   0% {
     transform: rotate(0deg);
   }
@@ -476,15 +513,15 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   }
 }
 
-.cd-extension .cd-stats-error {
+.cm-extension .cm-stats-error {
   text-align: center !important;
   padding: 20px !important;
   color: #ef4444 !important;
 }
 
-.cd-extension .cd-retry-button {
-  background-color: var(--cd-btn-bg) !important;
-  color: var(--cd-btn-text) !important;
+.cm-extension .cm-retry-button {
+  background-color: var(--cm-btn-bg) !important;
+  color: var(--cm-btn-text) !important;
   border: none !important;
   border-radius: 6px !important;
   padding: 8px 16px !important;
@@ -493,105 +530,105 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   transition: background-color 0.3s ease !important;
 }
 
-.cd-extension .cd-retry-button:hover {
-  background-color: var(--cd-active-blue) !important;
+.cm-extension .cm-retry-button:hover {
+  background-color: var(--cm-active-blue) !important;
 }
 
-.cd-extension .cd-stats-empty {
+.cm-extension .cm-stats-empty {
   text-align: center !important;
   padding: 20px !important;
 }
 
-.cd-extension .cd-stats-empty h3 {
-  color: var(--cd-text) !important;
+.cm-extension .cm-stats-empty h3 {
+  color: var(--cm-text) !important;
   margin-bottom: 12px !important;
   font-size: 18px !important;
 }
 
-.cd-extension .cd-stats-hint {
+.cm-extension .cm-stats-hint {
   margin-top: 20px !important;
   padding: 16px !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-radius: 8px !important;
-  border-left: 4px solid var(--cd-highlight) !important;
+  border-left: 4px solid var(--cm-highlight) !important;
 }
 
-.cd-extension .cd-stats-hint ul {
+.cm-extension .cm-stats-hint ul {
   text-align: left !important;
   margin: 12px 0 !important;
   padding-left: 20px !important;
 }
 
-.cd-extension .cd-stats-hint li {
+.cm-extension .cm-stats-hint li {
   margin-bottom: 6px !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   font-size: 14px !important;
 }
 
-.cd-extension .cd-stats-summary {
+.cm-extension .cm-stats-summary {
   margin-bottom: 24px !important;
   text-align: center !important;
 }
 
-.cd-extension .cd-stats-summary h3 {
-  color: var(--cd-text) !important;
+.cm-extension .cm-stats-summary h3 {
+  color: var(--cm-text) !important;
   margin-bottom: 16px !important;
   font-size: 18px !important;
 }
 
-.cd-extension .cd-total-problems {
+.cm-extension .cm-total-problems {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   padding: 16px !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-radius: 12px !important;
-  border: 2px solid var(--cd-highlight) !important;
+  border: 2px solid var(--cm-highlight) !important;
 }
 
-.cd-extension .cd-stat-number {
+.cm-extension .cm-stat-number {
   font-size: 32px !important;
   font-weight: bold !important;
-  color: var(--cd-highlight) !important;
+  color: var(--cm-highlight) !important;
   line-height: 1 !important;
 }
 
-.cd-extension .cd-stat-label {
+.cm-extension .cm-stat-label {
   font-size: 14px !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   margin-top: 4px !important;
 }
 
-.cd-extension .cd-stats-breakdown h4 {
-  color: var(--cd-text) !important;
+.cm-extension .cm-stats-breakdown h4 {
+  color: var(--cm-text) !important;
   margin-bottom: 16px !important;
   font-size: 16px !important;
   text-align: center !important;
 }
 
-.cd-extension .cd-stat-row {
+.cm-extension .cm-stat-row {
   margin-bottom: 16px !important;
 }
 
-.cd-extension .cd-stat-info {
+.cm-extension .cm-stat-info {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   margin-bottom: 6px !important;
 }
 
-.cd-extension .cd-stat-level {
+.cm-extension .cm-stat-level {
   font-weight: 500 !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   font-size: 14px !important;
 }
 
-.cd-extension .cd-stat-count {
+.cm-extension .cm-stat-count {
   font-size: 12px !important;
-  color: var(--cd-link) !important;
+  color: var(--cm-link) !important;
 }
 
-.cd-extension .cd-stat-bar {
+.cm-extension .cm-stat-bar {
   width: 100% !important;
   height: 8px !important;
   background-color: rgba(255, 255, 255, 0.1) !important;
@@ -599,19 +636,19 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   overflow: hidden !important;
 }
 
-.cd-extension .cd-stat-fill {
+.cm-extension .cm-stat-fill {
   height: 100% !important;
   background: linear-gradient(
     90deg,
-    var(--cd-btn-bg),
-    var(--cd-highlight)
+    var(--cm-btn-bg),
+    var(--cm-highlight)
   ) !important;
   border-radius: 4px !important;
   transition: width 0.8s ease-in-out !important;
 }
 
 /* Navigation Icons */
-.cd-extension .cd-nav-icon {
+.cm-extension .cm-nav-icon {
   display: inline-block !important;
   width: 16px !important;
   height: 16px !important;
@@ -621,81 +658,81 @@ body[data-theme="light"] .cd-extension #cd-menuButton:hover {
   flex-shrink: 0 !important;
 }
 
-.cd-extension .cd-plus-icon::before {
+.cm-extension .cm-plus-icon::before {
   content: "" !important;
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
   width: 10px !important;
   height: 2px !important;
-  background-color: var(--cd-highlight) !important;
+  background-color: var(--cm-highlight) !important;
   transform: translate(-50%, -50%) !important;
 }
 
-.cd-extension .cd-plus-icon::after {
+.cm-extension .cm-plus-icon::after {
   content: "" !important;
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
   width: 2px !important;
   height: 10px !important;
-  background-color: var(--cd-highlight) !important;
+  background-color: var(--cm-highlight) !important;
   transform: translate(-50%, -50%) !important;
 }
 
-.cd-extension .cd-retry-icon::before {
+.cm-extension .cm-retry-icon::before {
   content: "" !important;
   position: absolute !important;
   left: 50% !important;
   top: 50% !important;
   width: 12px !important;
   height: 12px !important;
-  border: 2px solid var(--cd-highlight) !important;
+  border: 2px solid var(--cm-highlight) !important;
   border-top: 2px solid transparent !important;
   border-radius: 50% !important;
   transform: translate(-50%, -50%) !important;
 }
 
-.cd-extension .cd-retry-icon::after {
+.cm-extension .cm-retry-icon::after {
   content: "" !important;
   position: absolute !important;
   right: -1px !important;
   top: 2px !important;
   width: 0 !important;
   height: 0 !important;
-  border-left: 4px solid var(--cd-highlight) !important;
+  border-left: 4px solid var(--cm-highlight) !important;
   border-top: 2px solid transparent !important;
   border-bottom: 2px solid transparent !important;
 }
 
 /* Dark theme adjustments for icons */
-body[data-theme="dark"] .cd-extension .cd-plus-icon::before,
-body[data-theme="dark"] .cd-extension .cd-plus-icon::after {
-  background-color: var(--cd-highlight) !important;
+body[data-theme="dark"] .cm-extension .cm-plus-icon::before,
+body[data-theme="dark"] .cm-extension .cm-plus-icon::after {
+  background-color: var(--cm-highlight) !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-retry-icon::before {
-  border-color: var(--cd-highlight) !important;
+body[data-theme="dark"] .cm-extension .cm-retry-icon::before {
+  border-color: var(--cm-highlight) !important;
   border-top: 2px solid transparent !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
-  border-left-color: var(--cd-highlight) !important;
+body[data-theme="dark"] .cm-extension .cm-retry-icon::after {
+  border-left-color: var(--cm-highlight) !important;
 }
 
 /* Problem Details Page Styling */
-.cd-extension .cd-problem-details {
+.cm-extension .cm-problem-details {
   padding: 12px 0 !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
 }
 
-.cd-extension .cd-loading-state {
+.cm-extension .cm-loading-state {
   text-align: center !important;
   padding: 40px 20px !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
 }
 
-.cd-extension .cd-details-content {
+.cm-extension .cm-details-content {
   display: flex !important;
   flex-direction: column !important;
   gap: 8px !important;
@@ -703,54 +740,54 @@ body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
   max-width: 100% !important;
 }
 
-.cd-extension .cd-detail-item {
+.cm-extension .cm-detail-item {
   display: flex !important;
   flex-direction: column !important;
   gap: 6px !important;
   padding: 12px !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-radius: 8px !important;
-  border-left: 4px solid var(--cd-btn-bg) !important;
+  border-left: 4px solid var(--cm-btn-bg) !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
 
-.cd-extension .cd-detail-label {
+.cm-extension .cm-detail-label {
   font-weight: 600 !important;
   font-size: 14px !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   text-transform: uppercase !important;
   letter-spacing: 0.5px !important;
   opacity: 0.8 !important;
 }
 
-.cd-extension .cd-detail-value {
+.cm-extension .cm-detail-value {
   font-size: 16px !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   font-weight: 500 !important;
   line-height: 1.4 !important;
 }
 
-.cd-extension .cd-problem-title {
+.cm-extension .cm-problem-title {
   font-size: 18px !important;
   font-weight: 600 !important;
-  color: var(--cd-highlight) !important;
+  color: var(--cm-highlight) !important;
 }
 
-.cd-extension .cd-tags-section {
-  border-left-color: var(--cd-highlight) !important;
+.cm-extension .cm-tags-section {
+  border-left-color: var(--cm-highlight) !important;
 }
 
-.cd-extension .cd-tags-container {
+.cm-extension .cm-tags-container {
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 8px !important;
   margin-top: 4px !important;
 }
 
-.cd-extension .cd-tag-chip {
-  background-color: var(--cd-btn-bg) !important;
-  color: var(--cd-btn-text) !important;
+.cm-extension .cm-tag-chip {
+  background-color: var(--cm-btn-bg) !important;
+  color: var(--cm-btn-text) !important;
   padding: 4px 12px !important;
   border-radius: 16px !important;
   font-size: 12px !important;
@@ -758,13 +795,13 @@ body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
   text-transform: capitalize !important;
 }
 
-.cd-extension .cd-no-tags {
-  color: var(--cd-link) !important;
+.cm-extension .cm-no-tags {
+  color: var(--cm-link) !important;
   font-style: italic !important;
   opacity: 0.7 !important;
 }
 
-.cd-extension .cd-actions-section {
+.cm-extension .cm-actions-section {
   display: flex !important;
   gap: 8px !important;
   margin-top: 8px !important;
@@ -774,9 +811,9 @@ body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
   max-width: 100% !important;
 }
 
-.cd-extension .cd-primary-button {
-  background-color: var(--cd-btn-bg) !important;
-  color: var(--cd-btn-text) !important;
+.cm-extension .cm-primary-button {
+  background-color: var(--cm-btn-bg) !important;
+  color: var(--cm-btn-text) !important;
   border: none !important;
   border-radius: 8px !important;
   padding: 12px 20px !important;
@@ -789,16 +826,16 @@ body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
   gap: 8px !important;
 }
 
-.cd-extension .cd-primary-button:hover {
-  background-color: var(--cd-active-blue) !important;
+.cm-extension .cm-primary-button:hover {
+  background-color: var(--cm-active-blue) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-.cd-extension .cd-secondary-button {
+.cm-extension .cm-secondary-button {
   background-color: transparent !important;
-  color: var(--cd-link) !important;
-  border: 2px solid var(--cd-link) !important;
+  color: var(--cm-link) !important;
+  border: 2px solid var(--cm-link) !important;
   border-radius: 8px !important;
   padding: 10px 18px !important;
   font-weight: 500 !important;
@@ -807,22 +844,22 @@ body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
   transition: color 0.3s ease, background-color 0.3s ease !important;
 }
 
-.cd-extension .cd-secondary-button:hover {
-  background-color: var(--cd-link) !important;
-  color: var(--cd-bg) !important;
+.cm-extension .cm-secondary-button:hover {
+  background-color: var(--cm-link) !important;
+  color: var(--cm-bg) !important;
 }
 
-.cd-extension .cd-skip-button {
+.cm-extension .cm-skip-button {
   border-color: #ef4444 !important;
   color: #ef4444 !important;
 }
 
-.cd-extension .cd-skip-button:hover {
+.cm-extension .cm-skip-button:hover {
   background-color: #ef4444 !important;
   color: white !important;
 }
 
-.cd-extension .cd-status-message {
+.cm-extension .cm-status-message {
   text-align: center !important;
   padding: 16px !important;
   background-color: rgba(16, 185, 129, 0.1) !important;
@@ -830,139 +867,204 @@ body[data-theme="dark"] .cd-extension .cd-retry-icon::after {
   border: 1px solid rgba(16, 185, 129, 0.3) !important;
 }
 
-.cd-extension .cd-status-text {
+.cm-extension .cm-status-text {
   color: #10b981 !important;
   font-weight: 500 !important;
   font-size: 14px !important;
 }
 
 /* Dark Mode Specific Improvements */
-body[data-theme="dark"] .cd-extension .cd-detail-item {
+body[data-theme="dark"] .cm-extension .cm-detail-item {
   background-color: rgba(255, 255, 255, 0.08) !important;
-  border-left-color: var(--cd-btn-bg) !important;
+  border-left-color: var(--cm-btn-bg) !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-detail-label {
+body[data-theme="dark"] .cm-extension .cm-detail-label {
   color: #e2e8f0 !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-detail-value {
+body[data-theme="dark"] .cm-extension .cm-detail-value {
   color: #f8fafc !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-problem-title {
-  color: var(--cd-highlight) !important;
+body[data-theme="dark"] .cm-extension .cm-problem-title {
+  color: var(--cm-highlight) !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-tag-chip {
-  background-color: var(--cd-btn-bg) !important;
+body[data-theme="dark"] .cm-extension .cm-tag-chip {
+  background-color: var(--cm-btn-bg) !important;
   color: #ffffff !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-no-tags {
+body[data-theme="dark"] .cm-extension .cm-no-tags {
   color: #94a3b8 !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-sidenav__content p {
-  color: var(--cd-text) !important;
+body[data-theme="dark"] .cm-extension .cm-sidenav__content p {
+  color: var(--cm-text) !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-sidenav__content {
-  color: var(--cd-text) !important;
+body[data-theme="dark"] .cm-extension .cm-sidenav__content {
+  color: var(--cm-text) !important;
 }
 
 /* Improve general text readability in dark mode */
-body[data-theme="dark"] .cd-extension {
-  color: var(--cd-text) !important;
+body[data-theme="dark"] .cm-extension {
+  color: var(--cm-text) !important;
 }
 
 /* Mantine Select dropdown fixes */
-.cd-extension .mantine-Select-dropdown {
+.cm-extension .mantine-Select-dropdown {
   z-index: 10001 !important;
-  background-color: var(--cd-dropdown-bg) !important;
-  border: 1px solid var(--cd-link) !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  border: 1px solid var(--cm-link) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
 }
 
-.cd-extension .mantine-Select-item {
-  color: var(--cd-dropdown-color) !important;
+.cm-extension .mantine-Select-item {
+  color: var(--cm-dropdown-color) !important;
   background-color: transparent !important;
   padding: 8px 12px !important;
 }
 
-.cd-extension .mantine-Select-item[data-selected] {
+.cm-extension .mantine-Select-item[data-selected] {
   background-color: white !important;
   color: #333 !important;
 }
 
-.cd-extension .mantine-Select-item:hover {
+.cm-extension .mantine-Select-item:hover {
   background-color: white !important;
   color: #333 !important;
 }
 
-.cd-extension .mantine-Select-input {
+.cm-extension .mantine-Select-input {
   background-color: white !important;
   color: #333 !important;
-  border-color: var(--cd-link) !important;
+  border-color: var(--cm-link) !important;
 }
 
 /* Dark mode specific fixes */
-body[data-theme="dark"] .cd-extension .mantine-Select-dropdown {
+body[data-theme="dark"] .cm-extension .mantine-Select-dropdown {
   background-color: #374151 !important;
 }
 
-body[data-theme="dark"] .cd-extension .mantine-Select-item {
+body[data-theme="dark"] .cm-extension .mantine-Select-item {
   color: #f8fafc !important;
   background-color: transparent !important;
 }
 
-body[data-theme="dark"] .cd-extension .mantine-Select-item[data-selected] {
+body[data-theme="dark"] .cm-extension .mantine-Select-item[data-selected] {
   background-color: white !important;
   color: #333 !important;
 }
 
-body[data-theme="dark"] .cd-extension .mantine-Select-item:hover {
+body[data-theme="dark"] .cm-extension .mantine-Select-item:hover {
   background-color: white !important;
   color: #333 !important;
 }
 
-body[data-theme="dark"] .cd-extension .mantine-Select-input {
+body[data-theme="dark"] .cm-extension .mantine-Select-input {
   background-color: white !important;
   color: #333 !important;
 }
 
-body[data-theme="dark"] .cd-extension p {
-  color: var(--cd-text) !important;
+body[data-theme="dark"] .cm-extension p {
+  color: var(--cm-text) !important;
 }
 
-body[data-theme="dark"] .cd-extension span {
+body[data-theme="dark"] .cm-extension span {
   color: inherit !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-stats-empty h3 {
+body[data-theme="dark"] .cm-extension .cm-stats-empty h3 {
   color: #f8fafc !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-stats-empty p {
+body[data-theme="dark"] .cm-extension .cm-stats-empty p {
   color: #e2e8f0 !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-loading-state p {
+body[data-theme="dark"] .cm-extension .cm-loading-state p {
   color: #f8fafc !important;
 }
 
-.cd-sidenav {
+/* Theme Toggle Dark Mode - Match screenshot styling */
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-root {
+  background-color: #374151 !important; /* Dark gray background */
+  border: 1px solid #4b5563 !important; /* Subtle border */
+  border-radius: 8px !important; /* Rounded corners to match light mode */
+}
+
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control {
+  background-color: transparent !important;
+  color: #9ca3af !important; /* Light gray text for inactive */
+  border-color: transparent !important;
+}
+
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control[data-active="true"] {
+  background-color: #1f2937 !important; /* Darker gray for active state */
+  color: #f3f4f6 !important; /* Light text for active */
+  border-radius: 6px !important; /* Rounded corners for active button */
+}
+
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-label {
+  color: #9ca3af !important; /* Light gray for inactive labels */
+}
+
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control[data-active="true"] .mantine-SegmentedControl-label {
+  color: #f3f4f6 !important; /* Light text for active labels */
+}
+
+/* Theme Toggle Dark Mode Icon Colors */
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-root svg,
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-label svg,
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control svg {
+  color: #9ca3af !important; /* Light gray for inactive icons */
+  fill: #9ca3af !important;
+  stroke: #9ca3af !important;
+}
+
+/* Active state icons should be light colored */
+body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control[data-active="true"] svg {
+  color: #f3f4f6 !important; /* Light text for active icons */
+  fill: #f3f4f6 !important;
+  stroke: #f3f4f6 !important;
+}
+
+/* Center align theme toggle with navigation items */
+.cm-extension .mantine-Group-root {
+  margin-top: 16px !important;
+  margin-bottom: 8px !important;
+  margin-left: 20px !important;
+  padding: 0 12px !important;
+}
+
+/* CodeMaster Menu Button Blue Styling in Dark Mode */
+body[data-theme="dark"] #cm-menuButton {
+  background-color: #2563eb !important; /* Blue background */
+  color: white !important;
+  border: 1px solid #1d4ed8 !important;
+  transition: background-color 0.2s ease !important;
+}
+
+body[data-theme="dark"] #cm-menuButton:hover {
+  background-color: #1d4ed8 !important; /* Darker blue on hover */
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+}
+
+.cm-sidenav {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* Ensure dropdowns can appear above sidenav - but maintain scroll for problem sidebar */
-.cd-extension .cd-sidenav__content {
+.cm-extension .cm-sidenav__content {
   overflow: visible !important;
 }
 
 /* Override for problem sidebar to enable scrolling */
-.cd-extension .cd-sidenav.problem-sidebar-view .cd-sidenav__content {
+.cm-extension .cm-sidenav.problem-sidebar-view .cm-sidenav__content {
   overflow-y: auto !important;
   overflow-x: visible !important;
   scroll-behavior: smooth !important;
@@ -972,53 +1074,53 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   scroll-padding-bottom: 20px !important;
 }
 
-.cd-extension .cd-form-group {
+.cm-extension .cm-form-group {
   overflow: visible !important;
   position: relative !important;
 }
 
 /* Strategy Map Styling */
-.cd-extension .strategy-map-card {
+.cm-extension .strategy-map-card {
   transition: all 0.2s ease !important;
 }
 
-.cd-extension .strategy-map-card:hover {
+.cm-extension .strategy-map-card:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-.cd-extension .strategy-map-card:active {
+.cm-extension .strategy-map-card:active {
   transform: translateY(0px) !important;
 }
 
 /* Mantine component overrides for Strategy Map */
-.cd-extension .mantine-Card-root {
-  background-color: var(--cd-dropdown-bg) !important;
-  border-color: var(--cd-dropdown-bg) !important;
-  color: var(--cd-text) !important;
+.cm-extension .mantine-Card-root {
+  background-color: var(--cm-dropdown-bg) !important;
+  border-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
 }
 
-.cd-extension .mantine-Text-root {
-  color: var(--cd-text) !important;
+.cm-extension .mantine-Text-root {
+  color: var(--cm-text) !important;
 }
 
-.cd-extension .mantine-Progress-root {
+.cm-extension .mantine-Progress-root {
   background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
-.cd-extension .mantine-Progress-bar {
-  background-color: var(--cd-btn-bg) !important;
+.cm-extension .mantine-Progress-bar {
+  background-color: var(--cm-btn-bg) !important;
 }
 
-.cd-extension .mantine-Badge-root {
-  background-color: var(--cd-btn-bg) !important;
-  color: var(--cd-btn-text) !important;
+.cm-extension .mantine-Badge-root:not(.problem-sidebar-difficulty-badge) {
+  background-color: var(--cm-btn-bg) !important;
+  color: var(--cm-btn-text) !important;
 }
 
 /* Strategy Map Compact Tag Styling - Updated for better readability */
-.cd-extension .cd-strategy-focus-tag {
-  background-color: var(--cd-active-blue) !important;
-  color: var(--cd-btn-text) !important;
+.cm-extension .cm-strategy-focus-tag {
+  background-color: var(--cm-active-blue) !important;
+  color: var(--cm-btn-text) !important;
   font-size: 10px !important;
   font-weight: bold !important;
   padding: 3px 8px !important;
@@ -1030,9 +1132,9 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   transition: all 0.2s ease !important;
 }
 
-.cd-extension .cd-strategy-mastered-tag {
+.cm-extension .cm-strategy-mastered-tag {
   background-color: #10b981 !important;
-  color: var(--cd-btn-text) !important;
+  color: var(--cm-btn-text) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
   padding: 3px 8px !important;
@@ -1043,9 +1145,9 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   transition: all 0.2s ease !important;
 }
 
-.cd-extension .cd-strategy-learning-tag {
+.cm-extension .cm-strategy-learning-tag {
   background-color: #f59e0b !important;
-  color: var(--cd-btn-text) !important;
+  color: var(--cm-btn-text) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
   padding: 3px 8px !important;
@@ -1056,9 +1158,9 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   transition: all 0.2s ease !important;
 }
 
-.cd-extension .cd-strategy-available-tag {
-  background-color: var(--cd-dropdown-bg) !important;
-  color: var(--cd-dropdown-color) !important;
+.cm-extension .cm-strategy-available-tag {
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-dropdown-color) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
   padding: 3px 8px !important;
@@ -1069,7 +1171,7 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
   transition: all 0.2s ease !important;
 }
 
-.cd-extension .cd-strategy-locked-tag {
+.cm-extension .cm-strategy-locked-tag {
   background-color: #666 !important;
   color: #999 !important;
   font-size: 10px !important;
@@ -1084,121 +1186,121 @@ body[data-theme="dark"] .cd-extension .cd-loading-state p {
 }
 
 /* Hover effects for strategy tags */
-.cd-extension .cd-strategy-focus-tag:hover,
-.cd-extension .cd-strategy-mastered-tag:hover,
-.cd-extension .cd-strategy-learning-tag:hover,
-.cd-extension .cd-strategy-available-tag:hover {
+.cm-extension .cm-strategy-focus-tag:hover,
+.cm-extension .cm-strategy-mastered-tag:hover,
+.cm-extension .cm-strategy-learning-tag:hover,
+.cm-extension .cm-strategy-available-tag:hover {
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
   transition: all 0.2s ease !important;
 }
 
 /* Dark theme support for Strategy Map tags */
-body[data-theme="dark"] .cd-extension .cd-strategy-focus-tag {
-  background-color: var(--cd-active-blue) !important;
-  color: var(--cd-btn-text) !important;
+body[data-theme="dark"] .cm-extension .cm-strategy-focus-tag {
+  background-color: var(--cm-active-blue) !important;
+  color: var(--cm-btn-text) !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-strategy-available-tag {
+body[data-theme="dark"] .cm-extension .cm-strategy-available-tag {
   background-color: #374151 !important;
   color: #f8fafc !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-strategy-locked-tag {
+body[data-theme="dark"] .cm-extension .cm-strategy-locked-tag {
   background-color: #4b5563 !important;
   color: #9ca3af !important;
 }
 
 /* Strategy Map Container Scrolling */
-.cd-extension .cd-sidenav .cd-sidenav__content {
+.cm-extension .cm-sidenav .cm-sidenav__content {
   overflow-y: auto !important;
   max-height: calc(100vh - 80px) !important;
   padding-right: 8px !important;
 }
 
 /* Custom Scrollbar Styling for Strategy Map */
-.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar {
+.cm-extension .cm-sidenav .cm-sidenav__content::-webkit-scrollbar {
   width: 8px !important;
 }
 
-.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-track {
-  background: var(--cd-bg) !important;
+.cm-extension .cm-sidenav .cm-sidenav__content::-webkit-scrollbar-track {
+  background: var(--cm-bg) !important;
   border-radius: 4px !important;
 }
 
-.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb {
-  background: var(--cd-dropdown-bg) !important;
+.cm-extension .cm-sidenav .cm-sidenav__content::-webkit-scrollbar-thumb {
+  background: var(--cm-dropdown-bg) !important;
   border-radius: 4px !important;
   transition: background-color 0.3s ease !important;
 }
 
-.cd-extension .cd-sidenav .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
-  background: var(--cd-link) !important;
+.cm-extension .cm-sidenav .cm-sidenav__content::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-link) !important;
 }
 
 /* Dark theme scrollbar styling */
 body[data-theme="dark"]
-  .cd-extension
-  .cd-sidenav
-  .cd-sidenav__content::-webkit-scrollbar-track {
+  .cm-extension
+  .cm-sidenav
+  .cm-sidenav__content::-webkit-scrollbar-track {
   background: #1f2937 !important;
 }
 
 body[data-theme="dark"]
-  .cd-extension
-  .cd-sidenav
-  .cd-sidenav__content::-webkit-scrollbar-thumb {
+  .cm-extension
+  .cm-sidenav
+  .cm-sidenav__content::-webkit-scrollbar-thumb {
   background: #374151 !important;
 }
 
 body[data-theme="dark"]
-  .cd-extension
-  .cd-sidenav
-  .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+  .cm-extension
+  .cm-sidenav
+  .cm-sidenav__content::-webkit-scrollbar-thumb:hover {
   background: #4b5563 !important;
 }
 
 /* Light theme scrollbar styling */
 body[data-theme="light"]
-  .cd-extension
-  .cd-sidenav
-  .cd-sidenav__content::-webkit-scrollbar-track {
+  .cm-extension
+  .cm-sidenav
+  .cm-sidenav__content::-webkit-scrollbar-track {
   background: #f8fafc !important;
 }
 
 body[data-theme="light"]
-  .cd-extension
-  .cd-sidenav
-  .cd-sidenav__content::-webkit-scrollbar-thumb {
+  .cm-extension
+  .cm-sidenav
+  .cm-sidenav__content::-webkit-scrollbar-thumb {
   background: #e2e8f0 !important;
 }
 
 body[data-theme="light"]
-  .cd-extension
-  .cd-sidenav
-  .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
+  .cm-extension
+  .cm-sidenav
+  .cm-sidenav__content::-webkit-scrollbar-thumb:hover {
   background: #cbd5e1 !important;
 }
 
 /* Light theme Strategy Map tag color overrides */
-body[data-theme="light"] .cd-extension .cd-strategy-focus-tag {
+body[data-theme="light"] .cm-extension .cm-strategy-focus-tag {
   color: white !important;
 }
 
-body[data-theme="light"] .cd-extension .cd-strategy-mastered-tag {
+body[data-theme="light"] .cm-extension .cm-strategy-mastered-tag {
   color: white !important;
 }
 
-body[data-theme="light"] .cd-extension .cd-strategy-learning-tag {
+body[data-theme="light"] .cm-extension .cm-strategy-learning-tag {
   color: white !important;
 }
 
-body[data-theme="light"] .cd-extension .cd-strategy-available-tag {
+body[data-theme="light"] .cm-extension .cm-strategy-available-tag {
   background-color: #e1e8f0 !important;
   color: #424054 !important;
 }
 
-body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
+body[data-theme="light"] .cm-extension .cm-strategy-locked-tag {
   background-color: #e1e8f0 !important;
   color: #424054 !important;
   opacity: 0.6 !important;
@@ -1209,7 +1311,7 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
    ============================================================================ */
 
 /* Ensure sidebar content properly handles dynamic content */
-.cd-extension .cd-sidenav__content {
+.cm-extension .cm-sidenav__content {
   /* Force proper scrolling behavior */
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -1220,7 +1322,7 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
 }
 
 /* Enhanced tag button styling with maximum override power */
-.cd-extension .tag-strategy-button {
+.cm-extension .tag-strategy-button {
   /* FORCE LARGER SIZING - More comfortable like LeetCode badges */
   padding: 8px 16px !important;
   min-height: 40px !important;
@@ -1255,7 +1357,7 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
 }
 
 /* Strategy grid container enhancements */
-.cd-extension .tag-strategy-simple-grid {
+.cm-extension .tag-strategy-simple-grid {
   /* FORCE GRID LAYOUT */
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
@@ -1272,7 +1374,7 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
 }
 
 /* Prevent expanded content from blocking other content */
-.cd-extension .tag-strategy-hint {
+.cm-extension .tag-strategy-hint {
   /* SMOOTH ANIMATION */
   animation: slideInExpand 0.3s ease-out !important;
   /* PROPER Z-INDEX */
@@ -1296,28 +1398,28 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
 }
 
 /* Enhanced scrollbar for better UX */
-.cd-extension .cd-sidenav__content::-webkit-scrollbar {
+.cm-extension .cm-sidenav__content::-webkit-scrollbar {
   width: 10px !important;
 }
 
-.cd-extension .cd-sidenav__content::-webkit-scrollbar-track {
-  background: var(--cd-bg) !important;
+.cm-extension .cm-sidenav__content::-webkit-scrollbar-track {
+  background: var(--cm-bg) !important;
   border-radius: 5px !important;
 }
 
-.cd-extension .cd-sidenav__content::-webkit-scrollbar-thumb {
-  background: var(--cd-btn-bg) !important;
+.cm-extension .cm-sidenav__content::-webkit-scrollbar-thumb {
+  background: var(--cm-btn-bg) !important;
   border-radius: 5px !important;
-  border: 1px solid var(--cd-bg) !important;
+  border: 1px solid var(--cm-bg) !important;
 }
 
-.cd-extension .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
-  background: var(--cd-active-blue) !important;
+.cm-extension .cm-sidenav__content::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-active-blue) !important;
 }
 
 /* Responsive adjustments */
 @media screen and (max-width: 300px) {
-  .cd-extension .tag-strategy-button {
+  .cm-extension .tag-strategy-button {
     padding: 6px 12px !important;
     min-height: 36px !important;
     font-size: 12px !important;
@@ -1325,7 +1427,7 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
 }
 
 @media screen and (min-width: 301px) and (max-width: 350px) {
-  .cd-extension .tag-strategy-button {
+  .cm-extension .tag-strategy-button {
     padding: 7px 14px !important;
     min-height: 38px !important;
     font-size: 12px !important;
@@ -1333,26 +1435,26 @@ body[data-theme="light"] .cd-extension .cd-strategy-locked-tag {
 }
 
 /* Dark theme specific enhancements */
-body[data-theme="dark"] .cd-extension .tag-strategy-button {
+body[data-theme="dark"] .cm-extension .tag-strategy-button {
   background-color: rgba(255, 255, 255, 0.1) !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
   color: rgba(255, 255, 255, 0.9) !important;
 }
 
-body[data-theme="dark"] .cd-extension .tag-strategy-button:hover {
+body[data-theme="dark"] .cm-extension .tag-strategy-button:hover {
   background-color: rgba(255, 255, 255, 0.15) !important;
   border-color: rgba(255, 255, 255, 0.4) !important;
   transform: translateY(-1px) scale(1.02) !important;
 }
 
 /* Light theme specific enhancements */
-body[data-theme="light"] .cd-extension .tag-strategy-button {
+body[data-theme="light"] .cm-extension .tag-strategy-button {
   background-color: rgba(0, 0, 0, 0.08) !important;
   border: 1px solid rgba(0, 0, 0, 0.15) !important;
   color: rgba(0, 0, 0, 0.85) !important;
 }
 
-body[data-theme="light"] .cd-extension .tag-strategy-button:hover {
+body[data-theme="light"] .cm-extension .tag-strategy-button:hover {
   background-color: rgba(0, 0, 0, 0.12) !important;
   border-color: rgba(0, 0, 0, 0.25) !important;
   transform: translateY(-1px) scale(1.02) !important;
@@ -1364,48 +1466,48 @@ body[data-theme="light"] .cd-extension .tag-strategy-button:hover {
 
 /* Small laptop/tablet landscape (1024px - 1366px) */
 @media screen and (min-width: 1024px) and (max-width: 1366px) {
-  .cd-extension #cd-menuButton {
-    --cd-menu-button-size: 38px;
+  .cm-extension #cm-menuButton {
+    --cm-menu-button-size: 38px;
     font-size: 13px;
   }
   
-  .cd-extension .cd-sidenav {
-    --cd-sidebar-preferred-width: 24vw;
-    --cd-sidebar-max-width: 300px;
+  .cm-extension .cm-sidenav {
+    --cm-sidebar-preferred-width: 24vw;
+    --cm-sidebar-max-width: 300px;
   }
   
-  .cd-sidenav__content {
+  .cm-sidenav__content {
     padding-right: 6px;
   }
 }
 
 /* Standard desktop (1367px - 1920px) */
 @media screen and (min-width: 1367px) and (max-width: 1920px) {
-  .cd-extension #cd-menuButton {
-    --cd-menu-button-size: 44px;
+  .cm-extension #cm-menuButton {
+    --cm-menu-button-size: 44px;
     font-size: 15px;
   }
   
-  .cd-extension .cd-sidenav {
-    --cd-sidebar-preferred-width: 22vw;
-    --cd-sidebar-max-width: 350px;
+  .cm-extension .cm-sidenav {
+    --cm-sidebar-preferred-width: 22vw;
+    --cm-sidebar-max-width: 350px;
   }
 }
 
 /* Large desktop/ultra-wide (1921px+) */
 @media screen and (min-width: 1921px) {
-  .cd-extension #cd-menuButton {
-    --cd-menu-button-size: 48px;
+  .cm-extension #cm-menuButton {
+    --cm-menu-button-size: 48px;
     font-size: 16px;
   }
   
-  .cd-extension .cd-sidenav {
-    --cd-sidebar-preferred-width: 20vw;
-    --cd-sidebar-max-width: 400px;
+  .cm-extension .cm-sidenav {
+    --cm-sidebar-preferred-width: 20vw;
+    --cm-sidebar-max-width: 400px;
   }
   
   /* Prevent excessive stretching on ultra-wide monitors */
-  .cd-sidenav__content {
+  .cm-sidenav__content {
     max-width: 380px;
   }
 }
@@ -1413,55 +1515,55 @@ body[data-theme="light"] .cd-extension .tag-strategy-button:hover {
 /* Browser Zoom Level Support */
 @supports (zoom: 1) {
   /* Zoom adjustments for better usability */
-  .cd-extension #cd-menuButton {
+  .cm-extension #cm-menuButton {
     min-width: 32px;
     min-height: 32px;
   }
   
-  .cd-extension .cd-sidenav {
+  .cm-extension .cm-sidenav {
     min-width: 240px;
   }
   
   /* Ensure text remains readable at all zoom levels */
-  .cd-extension {
+  .cm-extension {
     font-size: max(12px, 1rem);
     line-height: 1.4;
   }
 }
 
 /* Dynamic LeetCode UI Adaptation */
-.cd-extension {
+.cm-extension {
   /* Fallback positioning when LeetCode layout changes */
-  --cd-fallback-offset: 60px;
+  --cm-fallback-offset: 60px;
 }
 
 /* Adapt to LeetCode's navigation changes */
-body:has([data-cy="navbar"]) .cd-extension #cd-menuButton,
-body:has(.navbar) .cd-extension #cd-menuButton {
-  top: calc(var(--cd-content-padding) + var(--cd-fallback-offset));
+body:has([data-cy="navbar"]) .cm-extension #cm-menuButton,
+body:has(.navbar) .cm-extension #cm-menuButton {
+  top: calc(var(--cm-content-padding) + var(--cm-fallback-offset));
 }
 
 /* Responsive adjustments for narrow windows */
 @media screen and (max-width: 1200px) {
   /* Compress sidebar on narrow windows */
-  .cd-extension .cd-sidenav {
-    --cd-sidebar-preferred-width: 280px;
-    --cd-sidebar-max-width: 300px;
+  .cm-extension .cm-sidenav {
+    --cm-sidebar-preferred-width: 280px;
+    --cm-sidebar-max-width: 300px;
   }
 }
 
 /* High DPI / Retina display optimizations */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  .cd-extension #cd-menuButton {
+  .cm-extension #cm-menuButton {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
   
-  .cd-extension .cd-sidenav {
+  .cm-extension .cm-sidenav {
     border-width: 1px;
   }
   
   /* Sharper text rendering */
-  .cd-extension {
+  .cm-extension {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

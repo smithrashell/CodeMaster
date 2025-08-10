@@ -1,25 +1,19 @@
 import React from "react";
-import { cn, createVariants } from "../../utils/cn";
+import { Badge as MantineBadge } from "@mantine/core";
 
-const badgeVariants = createVariants(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-  {
-    variant: {
-      default: "border-transparent bg-blue-600 text-white hover:bg-blue-700",
-      secondary:
-        "border-transparent bg-gray-700 text-gray-300 hover:bg-gray-600",
-      easy: "border-transparent text-white hover:opacity-90",
-      medium: "border-transparent text-white hover:opacity-90",
-      hard: "border-transparent text-white hover:opacity-90",
-      outline: "text-gray-300 border-gray-600 hover:bg-gray-700",
-    },
-  },
-  {
-    variant: "default",
-  }
-);
-
-export function Badge({ className, variant, children, ...props }) {
+/**
+ * Unified Badge component using Mantine Badge with CodeMaster variants
+ * Replaces the previous Tailwind-based badge system
+ */
+export function Badge({ 
+  variant = "filled", 
+  color, 
+  size = "sm",
+  children, 
+  className,
+  ...props 
+}) {
+  // Get exact hex colors matching original design
   const getInlineStyles = () => {
     if (variant === "easy") {
       return { backgroundColor: "#10b981", color: "white" };
@@ -33,14 +27,53 @@ export function Badge({ className, variant, children, ...props }) {
     return {};
   };
 
+  // Use neutral color for Mantine, override with inline styles
+  const getMantineColor = (v, c) => {
+    switch (v) {
+      case "easy":
+      case "medium": 
+      case "hard":
+        return "gray"; // Will be overridden by inline styles
+      case "secondary":
+        return "gray";
+      default:
+        return c || "blue"; // Default CodeMaster blue
+    }
+  };
+
+  // Map variants to Mantine equivalents
+  const getMantineVariant = (v) => {
+    switch (v) {
+      case "outline":
+        return "outline";
+      case "secondary":
+        return "light";
+      default:
+        return "filled";
+    }
+  };
+
+  // Add difficulty class to prevent theme override
+  const getDifficultyClass = () => {
+    if (variant === "easy" || variant === "medium" || variant === "hard") {
+      return "problem-sidebar-difficulty-badge";
+    }
+    return "";
+  };
+
+  const combinedClassName = [className, getDifficultyClass()].filter(Boolean).join(" ");
+
   return (
-    <div
-      className={cn(badgeVariants({ variant }), className)}
+    <MantineBadge
+      variant={getMantineVariant(variant)}
+      color={getMantineColor(variant, color)}
+      size={size}
+      className={combinedClassName}
       style={getInlineStyles()}
       {...props}
     >
       {children}
-    </div>
+    </MantineBadge>
   );
 }
 

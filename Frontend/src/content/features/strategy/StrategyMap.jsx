@@ -44,11 +44,11 @@ const StrategyMap = () => {
 
   // Helper function to get tag class based on status
   const getTagClass = (mastery, unlocked, isFocus) => {
-    if (isFocus) return "cd-strategy-focus-tag";
-    if (!unlocked) return "cd-strategy-locked-tag";
-    if (mastery >= 0.8) return "cd-strategy-mastered-tag";
-    if (mastery >= 0.3) return "cd-strategy-learning-tag";
-    return "cd-strategy-available-tag";
+    if (isFocus) return "cm-strategy-focus-tag";
+    if (!unlocked) return "cm-strategy-locked-tag";
+    if (mastery >= 0.8) return "cm-strategy-mastered-tag";
+    if (mastery >= 0.3) return "cm-strategy-learning-tag";
+    return "cm-strategy-available-tag";
   };
 
   // Get visible tags based on tier expand state
@@ -70,12 +70,12 @@ const StrategyMap = () => {
 
   if (loading) {
     return (
-      <div id="cd-mySidenav" className="cd-sidenav">
+      <div id="cm-mySidenav" className="cm-sidenav">
         <Header title="Strategy Map" />
-        <div className="cd-sidenav__content">
-          <div className="cd-stats-loading">
+        <div className="cm-sidenav__content">
+          <div className="cm-stats-loading">
             <p>Loading strategy map...</p>
-            <div className="cd-loading-spinner"></div>
+            <div className="cm-loading-spinner"></div>
           </div>
         </div>
       </div>
@@ -84,13 +84,13 @@ const StrategyMap = () => {
 
   if (error) {
     return (
-      <div id="cd-mySidenav" className="cd-sidenav">
+      <div id="cm-mySidenav" className="cm-sidenav">
         <Header title="Strategy Map" />
-        <div className="cd-sidenav__content">
-          <div className="cd-stats-error">
+        <div className="cm-sidenav__content">
+          <div className="cm-stats-error">
             <p>⚠️ {error}</p>
             <button
-              className="cd-retry-button"
+              className="cm-retry-button"
               onClick={() => window.location.reload()}
             >
               Retry
@@ -102,9 +102,9 @@ const StrategyMap = () => {
   }
 
   return (
-    <div id="cd-mySidenav" className="cd-sidenav">
+    <div id="cm-mySidenav" className="cm-sidenav">
       <Header title="Strategy Map" />
-      <div className="cd-sidenav__content">
+      <div className="cm-sidenav__content">
         <div style={{ padding: "8px 12px" }}>
           {/* Current Tier Status */}
           <div
@@ -120,7 +120,7 @@ const StrategyMap = () => {
               style={{
                 fontSize: "11px",
                 fontWeight: "600",
-                color: "var(--cd-text)",
+                color: "var(--cm-text)",
               }}
             >
               Current Tier: {currentTier}
@@ -134,7 +134,7 @@ const StrategyMap = () => {
                 style={{
                   fontSize: "12px",
                   fontWeight: "600",
-                  color: "var(--cd-text)",
+                  color: "var(--cm-text)",
                   marginBottom: "6px",
                 }}
               >
@@ -154,7 +154,7 @@ const StrategyMap = () => {
                   return (
                     <span
                       key={tag}
-                      className="cd-extension cd-strategy-focus-tag"
+                      className="cm-extension cd-strategy-focus-tag"
                     >
                       {formatTagName(tag)}
                     </span>
@@ -171,7 +171,7 @@ const StrategyMap = () => {
                 style={{
                   fontSize: "12px",
                   fontWeight: "600",
-                  color: "var(--cd-text)",
+                  color: "var(--cm-text)",
                   marginBottom: "6px",
                 }}
               >
@@ -196,7 +196,7 @@ const StrategyMap = () => {
                   return (
                     <span
                       key={tagData.tag}
-                      className={`cd-extension ${tagClass}`}
+                      className={`cm-extension ${tagClass}`}
                       style={{
                         cursor: tagData.unlocked ? "pointer" : "default",
                       }}
@@ -221,7 +221,7 @@ const StrategyMap = () => {
                     onClick={() => toggleTierExpansion(tierName)}
                     style={{
                       fontSize: "10px",
-                      color: "var(--cd-link)",
+                      color: "var(--cm-link)",
                       opacity: 0.8,
                       padding: "2px 6px",
                       fontWeight: "500",
@@ -248,7 +248,7 @@ const StrategyMap = () => {
                     onClick={() => toggleTierExpansion(tierName)}
                     style={{
                       fontSize: "10px",
-                      color: "var(--cd-link)",
+                      color: "var(--cm-link)",
                       opacity: 0.8,
                       padding: "2px 6px",
                       fontWeight: "500",
@@ -280,7 +280,7 @@ const StrategyMap = () => {
               style={{
                 textAlign: "center",
                 padding: "20px",
-                color: "var(--cd-text)",
+                color: "var(--cm-text)",
                 opacity: 0.7,
               }}
             >
@@ -304,7 +304,7 @@ const StrategyMap = () => {
               <div
                 style={{
                   fontSize: "10px",
-                  color: "var(--cd-text)",
+                  color: "var(--cm-text)",
                   opacity: 0.8,
                   marginBottom: "4px",
                   fontWeight: "500",
@@ -315,7 +315,7 @@ const StrategyMap = () => {
               <div
                 style={{
                   fontSize: "9px",
-                  color: "var(--cd-text)",
+                  color: "var(--cm-text)",
                   opacity: 0.7,
                   lineHeight: "1.3",
                 }}

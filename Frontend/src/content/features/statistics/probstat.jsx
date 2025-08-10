@@ -34,29 +34,29 @@ const ProbStat = () => {
   const hasData = Object.keys(boxLevelData).length > 0;
 
   return (
-    <div id="cd-mySidenav" className="cd-sidenav">
+    <div id="cm-mySidenav" className="cm-sidenav">
       <Header title="Statistics" />
-      <div className="cd-sidenav__content cd-stats-container">
+      <div className="cm-sidenav__content cd-stats-container">
         {loading ? (
-          <div className="cd-stats-loading">
+          <div className="cm-stats-loading">
             <p>Loading statistics...</p>
-            <div className="cd-loading-spinner"></div>
+            <div className="cm-loading-spinner"></div>
           </div>
         ) : error ? (
-          <div className="cd-stats-error">
+          <div className="cm-stats-error">
             <p>⚠️ {error}</p>
             <button
-              className="cd-retry-button"
+              className="cm-retry-button"
               onClick={() => window.location.reload()}
             >
               Retry
             </button>
           </div>
         ) : !hasData ? (
-          <div className="cd-stats-empty">
+          <div className="cm-stats-empty">
             <h3>📊 No Data Yet</h3>
             <p>Start solving problems to see your statistics!</p>
-            <div className="cd-stats-hint">
+            <div className="cm-stats-hint">
               <p>Your progress will be tracked using the Leitner system:</p>
               <ul>
                 <li>📦 Box 1: New/Difficult problems</li>
@@ -67,16 +67,16 @@ const ProbStat = () => {
             </div>
           </div>
         ) : (
-          <div className="cd-stats-content">
-            <div className="cd-stats-summary">
+          <div className="cm-stats-content">
+            <div className="cm-stats-summary">
               <h3>📈 Your Progress</h3>
-              <div className="cd-total-problems">
-                <span className="cd-stat-number">{totalProblems}</span>
-                <span className="cd-stat-label">Total Problems</span>
+              <div className="cm-total-problems">
+                <span className="cm-stat-number">{totalProblems}</span>
+                <span className="cm-stat-label">Total Problems</span>
               </div>
             </div>
 
-            <div className="cd-stats-breakdown">
+            <div className="cm-stats-breakdown">
               <h4>Box Level Distribution</h4>
               {Object.entries(boxLevelData)
                 .sort(([a], [b]) => parseInt(a) - parseInt(b))
@@ -86,16 +86,16 @@ const ProbStat = () => {
                       ? ((count / totalProblems) * 100).toFixed(1)
                       : 0;
                   return (
-                    <div key={level} className="cd-stat-row">
-                      <div className="cd-stat-info">
-                        <span className="cd-stat-level">📦 Box {level}</span>
-                        <span className="cd-stat-count">
+                    <div key={level} className="cm-stat-row">
+                      <div className="cm-stat-info">
+                        <span className="cm-stat-level">📦 Box {level}</span>
+                        <span className="cm-stat-count">
                           {count} problems ({percentage}%)
                         </span>
                       </div>
-                      <div className="cd-stat-bar">
+                      <div className="cm-stat-bar">
                         <div
-                          className="cd-stat-fill"
+                          className="cm-stat-fill"
                           style={{ width: `${percentage}%` }}
                         ></div>
                       </div>

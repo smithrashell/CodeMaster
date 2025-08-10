@@ -33,25 +33,25 @@ const StyledSelect = styled(Select)({
     },
   },
   "&.MuiInput-underline:before": {
-    borderBottom: "1px solid var(--cd-btn-bg) !important",
+    borderBottom: "1px solid var(--cm-btn-bg) !important",
   },
   "&.MuiInput-underline:hover:not(.Mui-disabled):before": {
-    borderBottom: "2px solid var(--cd-btn-bg) !important",
+    borderBottom: "2px solid var(--cm-btn-bg) !important",
   },
   "&.MuiInput-underline:after": {
-    borderBottom: "2px solid var(--cd-active-blue) !important",
+    borderBottom: "2px solid var(--cm-active-blue) !important",
   },
   "& .MuiSelect-select": {
-    color: "var(--cd-text) !important",
+    color: "var(--cm-text) !important",
     backgroundColor: "transparent !important",
     padding: "8px 0 !important",
   },
   "& .MuiInputBase-root": {
-    color: "var(--cd-text) !important",
+    color: "var(--cm-text) !important",
   },
   "& .MuiMenuItem-root": {
-    color: "var(--cd-dropdown-color) !important",
-    backgroundColor: "var(--cd-dropdown-bg) !important",
+    color: "var(--cm-dropdown-color) !important",
+    backgroundColor: "var(--cm-dropdown-bg) !important",
   },
 });
 
@@ -153,13 +153,13 @@ const ProbTime = () => {
 
   // Render the form if coming from the Timer route
   return (
-    <div id="cd-mySidenav" className="cd-sidenav problink">
+    <div id="cm-mySidenav" className="cm-sidenav problink">
       <Header
         title={
           previousRoute == "/Timer" ? "Problem Submission" : "Problem Details"
         }
       />
-      <div className="cd-sidenav__content">
+      <div className="cm-sidenav__content">
         {previousRoute === "/Timer" ? (
           <ProbSubmission />
         ) : (

@@ -76,10 +76,10 @@ const Settings = () => {
   };
 
   return (
-    <div id="cd-mySidenav" className="cd-sidenav problink">
+    <div id="cm-mySidenav" className="cm-sidenav problink">
       <Header title="Settings" />
 
-      <div className="cd-sidenav__content ">
+      <div className="cm-sidenav__content ">
         {/* Adaptive Toggle */}
         <AdaptiveSessionToggle
           adaptive={settings?.adaptive}
@@ -89,7 +89,7 @@ const Settings = () => {
         {/* Session Controls (conditionally shown) */}
         {!settings?.adaptive && (
           <>
-            <div className="cd-form-group">
+            <div className="cm-form-group">
               <label>Session Length</label>
               <SliderMarksSessionLength
                 value={settings?.sessionLength}
@@ -99,7 +99,7 @@ const Settings = () => {
               />
             </div>
 
-            <div className="cd-form-group">
+            <div className="cm-form-group">
               <label>New Problems Per Session</label>
               <SliderMarksNewProblemsPerSession
                 value={settings?.numberofNewProblemsPerSession}
@@ -115,14 +115,14 @@ const Settings = () => {
           </>
         )}
 
-        <div className="cd-form-group">
+        <div className="cm-form-group">
           <label>Time Limits</label>
           <GradientSegmentedControlTimeLimit
             value={settings?.limit}
             onChange={(value) => setSettings({ ...settings, limit: value })}
           />
         </div>
-        <div className="cd-form-group">
+        <div className="cm-form-group">
           <label>Reminders</label>
           <ToggleSelectRemainders
             reminder={settings?.reminder}

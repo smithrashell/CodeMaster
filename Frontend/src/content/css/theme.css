@@ -1,54 +1,54 @@
 /* ========= Default (Light Mode) ========= */
 :root {
-  --cd-bg: #dceefb;
-  --cd-text: #334155;
-  --cd-link: #444f5a;
-  --cd-link-hover: #1c2a3a;
-  --cd-highlight: #fabd22;
-  --cd-btn-bg: #0b7199;
-  --cd-btn-text: #fabd22;
-  --cd-spacing: 16px;
-  --cd-active-blue: #2563eb;
-  --cd-dropdown-color: #334155;
-  --cd-dropdown-bg: #ffffff;
-  --cd-overlay-z-base: 9990;
+  --cm-bg: #dceefb;
+  --cm-text: #334155;
+  --cm-link: #444f5a;
+  --cm-link-hover: #1c2a3a;
+  --cm-highlight: #fabd22;
+  --cm-btn-bg: #0b7199;
+  --cm-btn-text: #fabd22;
+  --cm-spacing: 16px;
+  --cm-active-blue: #2563eb;
+  --cm-dropdown-color: #334155;
+  --cm-dropdown-bg: #ffffff;
+  --cm-overlay-z-base: 9990;
 }
 
 body {
-  background-color: var(--cd-bg);
-  color: var(--cd-text);
+  background-color: var(--cm-bg);
+  color: var(--cm-text);
 }
 
 /* ========= Dark Mode Overrides ========= */
 body[data-theme="dark"] {
-  --cd-bg: #1f2937;
-  --cd-bg-alt: #3b506e;
-  --cd-text: #f8fafc;
-  --cd-link: #cbd5e1;
-  --cd-link-hover: #ffffff;
-  --cd-highlight: #fbbf24;
-  --cd-btn-bg: #4f46e5;
-  --cd-btn-text: #ffffff;
-  --cd-dropdown-color: #f8fafc;
-  --cd-dropdown-bg: #374151;
-  --cd-overlay-z-base: 9990;
+  --cm-bg: #1f2937;
+  --cm-bg-alt: #3b506e;
+  --cm-text: #f8fafc;
+  --cm-link: #cbd5e1;
+  --cm-link-hover: #ffffff;
+  --cm-highlight: #fbbf24;
+  --cm-btn-bg: #4f46e5;
+  --cm-btn-text: #ffffff;
+  --cm-dropdown-color: #f8fafc;
+  --cm-dropdown-bg: #374151;
+  --cm-overlay-z-base: 9990;
 }
 
 /* ========== Apply Variables to Your CSS ========== */
 .injected {
-  color: var(--cd-text);
+  color: var(--cm-text);
 }
 
 .btn {
-  background-color: var(--cd-btn-bg);
-  color: var(--cd-btn-text);
+  background-color: var(--cm-btn-bg);
+  color: var(--cm-btn-text);
   border: none;
   border-radius: 25%;
 }
 
 button {
   margin-right: 5px;
-  color: var(--cd-btn-text);
+  color: var(--cm-btn-text);
 }
 
 /* #cd-menuButton,
@@ -58,18 +58,18 @@ button {
 } */
 
 /* Side Drawer */
-.cd-sidenav {
-  background-color: var(--cd-bg);
+.cm-sidenav {
+  background-color: var(--cm-bg);
 }
 
-.cd-sidenav a,
+.cm-sidenav a,
 .link {
-  color: var(--cd-link);
+  color: var(--cm-link);
 }
 
-.cd-sidenav a:hover,
+.cm-sidenav a:hover,
 .link:hover {
-  color: var(--cd-link-hover);
+  color: var(--cm-link-hover);
 }
 
 .link-disabled {
@@ -83,31 +83,31 @@ button {
 }
 
 /* Misc reused styles from your main.css (unchanged) */
-.cd-left {
+.cm-left {
   left: -10px;
   transition: eft 0.5s;
 }
-.cd-leftoffset {
+.cm-leftoffset {
   left: 240px;
 }
-.cd-right {
+.cm-right {
   right: 10px;
 }
-.codeDaemon-Container {
+.codeMaster-Container {
   transition: margin-left 0.5s;
   padding: 0px;
   margin-left: 250px;
 }
 @media screen and (max-height: 600px) {
-  .cd-sidenav {
+  .cm-sidenav {
     padding-top: 10px;
   }
-  .cd-sidenav a {
+  .cm-sidenav a {
     font-size: 16px;
     padding: 8px 12px;
   }
 }
-.cd-hidden {
+.cm-hidden {
   display: none;
 }
 input[type="submit"] {
@@ -115,7 +115,7 @@ input[type="submit"] {
   font-weight: 600;
 }
 .disabled {
-  color: var(--cd-link);
+  color: var(--cm-link);
   pointer-events: none;
   cursor: not-allowed;
 }
