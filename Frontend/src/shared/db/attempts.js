@@ -1,6 +1,8 @@
 import { dbHelper } from "./index.js";
 import { sessionService } from "../services/sessionService.js";
 import { getProblem, saveUpdatedProblem } from "./problems.js";
+import { saveSessionToStorage } from "./sessions.js";
+import { ProblemService } from "../services/problemService.js";
 import { calculateLeitnerBox } from "../utils/leitnerSystem.js";
 import { SessionService } from "../services/sessionService.js";
 import { createAttemptRecord } from "../utils/Utils.js";
@@ -27,7 +29,7 @@ export async function addAttempt(attemptData) {
 
     if (!session) {
       console.log("No active session found. Creating a new session...");
-      session = await getOrCreateSession();
+      session = await SessionService.getOrCreateSession();
       await saveSessionToStorage(session);
     }
 
@@ -47,7 +49,7 @@ export async function addAttempt(attemptData) {
     problem = await calculateLeitnerBox(problem, attemptData);
 
     // Add or update the problem in session
-    session = addOrUpdateProblemInSession(session, problem, attemptData.id);
+    session = await ProblemService.addOrUpdateProblemInSession(session, problem, attemptData.id);
     await saveSessionToStorage(session, true);
 
     // Open a transaction for database operations
