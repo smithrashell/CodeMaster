@@ -25,6 +25,7 @@ import { buildAdaptiveSessionSettings } from "../db/sessions.js";
 import { calculateDecayScore } from "../utils/Utils.js";
 import { ProblemReasoningService } from "../../content/services/problemReasoningService.js";
 import { getTagMastery } from "../db/tag_mastery.js";
+import performanceMonitor from "../utils/PerformanceMonitor.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
 const getDailyReviewSchedule = ScheduleService.getDailyReviewSchedule;
@@ -43,33 +44,47 @@ export const ProblemService = {
    */
 
   async getProblemByDescription(description, slug) {
-    console.log("📌 ProblemService: Searching for problem:", description);
+    const queryContext = performanceMonitor.startQuery('getProblemByDescription', {
+      operation: 'problem_generation',
+      description: description?.substring(0, 50),
+      slug
+    });
 
-    // 1️⃣ Try fetching from `Standard_Problems` store
-    const problem = await getProblemFromStandardProblems(slug);
+    try {
+      console.log("📌 ProblemService: Searching for problem:", description);
 
-    if (problem) {
-      console.log("✅ Problem found in 'Standard_Problems' store:", problem);
-      //  2️⃣  Check if problem exists in `problems` store
-      const problemInProblems = await checkDatabaseForProblem(problem.id);
-      if (problemInProblems) {
-        console.log(
-          "✅ Returning Problem found in 'problems' store:",
-          problemInProblems
-        );
-        return { problem: problemInProblems, found: true }; // ✅ Found in problems store
+      // 1️⃣ Try fetching from `Standard_Problems` store
+      const problem = await getProblemFromStandardProblems(slug);
+
+      if (problem) {
+        console.log("✅ Problem found in 'Standard_Problems' store:", problem);
+        //  2️⃣  Check if problem exists in `problems` store
+        const problemInProblems = await checkDatabaseForProblem(problem.id);
+        if (problemInProblems) {
+          console.log(
+            "✅ Returning Problem found in 'problems' store:",
+            problemInProblems
+          );
+          performanceMonitor.endQuery(queryContext, true, 1);
+          return { problem: problemInProblems, found: true }; // ✅ Found in problems store
+        }
+      } else {
+        console.warn("❌ Problem not found in any store.");
+        performanceMonitor.endQuery(queryContext, true, 0);
+        return { problem: null, found: false }; // ❌ No problem found
       }
-    } else {
-      console.warn("❌ Problem not found in any store.");
-      return { problem: null, found: false }; // ❌ No problem found
+
+      console.warn(
+        "⚠️ Problem not found in 'problems' store. returning problem from 'Standard_Problems' store"
+      );
+
+      console.log("✅ Returning problem found in  'standard_problems':", problem);
+      performanceMonitor.endQuery(queryContext, true, 1);
+      return { problem: problem, found: false }; // ✅ Found in standard_problems
+    } catch (error) {
+      performanceMonitor.endQuery(queryContext, false, 0, error);
+      throw error;
     }
-
-    console.warn(
-      "⚠️ Problem not found in 'problems' store. returning problem from 'Standard_Problems' store"
-    );
-
-    console.log("✅ Returning problem found in  'standard_problems':", problem);
-    return { problem: problem, found: false }; // ✅ Found in standard_problems
   },
 
   /**
