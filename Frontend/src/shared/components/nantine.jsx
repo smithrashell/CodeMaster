@@ -70,7 +70,7 @@ const point = (
       marginTop: rem(6),
       width: rem(10),
       height: rem(10),
-      color: "var(--cd-text)",
+      color: "var(--cm-text)",
     }}
     stroke={1.5}
   />
@@ -91,7 +91,7 @@ export function SliderMarksSessionLength(props) {
         value={props.value}
         thumbChildren={
           <IconGripHorizontal
-            style={{ width: rem(20), height: rem(20), color: "var(--cd-text)" }}
+            style={{ width: rem(20), height: rem(20), color: "var(--cm-text)" }}
             stroke={1.5}
           />
         }
@@ -139,7 +139,7 @@ export function SliderMarksNewProblemsPerSession(props) {
         value={props.value}
         thumbChildren={
           <IconGripHorizontal
-            style={{ width: rem(20), height: rem(20), color: "var(--cd-text)" }}
+            style={{ width: rem(20), height: rem(20), color: "var(--cm-text)" }}
             stroke={1.5}
           />
         }
@@ -164,7 +164,7 @@ export function GradientSegmentedControlTimeLimit(props) {
       ]}
       value={props.value}
       onChange={props.onChange}
-      color="var(--cd-active-blue)"
+      color="var(--cm-active-blue)"
     />
   );
 }

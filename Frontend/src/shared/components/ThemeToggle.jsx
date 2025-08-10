@@ -1,6 +1,6 @@
 // components/ThemeToggle.jsx
 import { useTheme } from "../provider/themeprovider";
-import { SegmentedControl, Group, rem, Paper } from "@mantine/core";
+import { SegmentedControl, Group, rem } from "@mantine/core";
 import { IconSun, IconMoon } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useChromeMessage } from "../hooks/useChromeMessage";
@@ -47,57 +47,25 @@ export default function ThemeToggle() {
 
   return (
     <Group justify="center" mt="md">
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xs"
-        style={{
-          backgroundColor: isLight ? "#fff8d6" : "#2c2e33", // muted for light, dark gray for dark
-          border: "1px solid",
-          borderColor: isLight ? "#fcd263" : "#1a1b1e",
-        }}
-      >
-        <SegmentedControl
-          value={colorScheme}
-          onChange={(newTheme) => {
-            toggleColorScheme(newTheme);
+      <SegmentedControl
+        value={colorScheme}
+        onChange={(newTheme) => {
+          toggleColorScheme(newTheme);
 
-            // update settings in Chrome
-            chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-              const updatedSettings = { ...response, theme: newTheme };
-              chrome.runtime.sendMessage({
-                type: "setSettings",
-                message: updatedSettings,
-              });
+          // update settings in Chrome
+          chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
+            const updatedSettings = { ...response, theme: newTheme };
+            chrome.runtime.sendMessage({
+              type: "setSettings",
+              message: updatedSettings,
             });
-          }}
-          data={options}
-          radius="md"
-          size="sm"
-          fullWidth
-          color={isLight ? "#fcd263" : "#121212"}
-          styles={{
-            root: {
-              backgroundColor: isLight ? "#fff3b0" : "#1f1f1f",
-              border: isLight ? "1px solid #e5c84c" : "1px solid #444",
-            },
-            label: {
-              padding: `${rem(4)} ${rem(12)}`,
-              color: isLight ? "#145d7a" : "#ccc",
-              justifyContent: "center",
-              gap: rem(6),
-              fontWeight: 500,
-            },
-            labelActive: {
-              backgroundColor: isLight ? "#fcd263" : "#121212",
-              color: isLight ? "#000" : "#ffdf",
-              boxShadow: isLight
-                ? "inset 0 0 4px rgba(0, 0, 0, 0.2)"
-                : "inset 0 0 4px rgba(255, 255, 255, 0.05)",
-            },
-          }}
-        />
-      </Paper>
+          });
+        }}
+        data={options}
+        radius="md"
+        size="sm"
+        fullWidth
+      />
     </Group>
   );
 }

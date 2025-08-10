@@ -76,7 +76,7 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
       // Smart scrolling to prevent content blocking
       setTimeout(() => {
         const hintElement = document.querySelector('.tag-strategy-hint');
-        const sidebarContent = document.querySelector('.cd-sidenav.problem-sidebar-view .cd-sidenav__content');
+        const sidebarContent = document.querySelector('.cm-sidenav.problem-sidebar-view .cm-sidenav__content');
         const expandedButton = document.querySelector('.tag-strategy-button-expanded');
         const problemCard = document.querySelector('.problem-sidebar-card');
         
@@ -251,11 +251,18 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
           return (
             <React.Fragment key={index}>
               <button
-                className={`tag-strategy-button ${isExpanded ? 'tag-strategy-button-expanded' : ''}`}
+                className={`tag-strategy-button ${isExpanded ? 'tag-strategy-button-expanded tag-strategy-no-hover' : ''}`}
                 onClick={() => handleTagClick(tag)}
                 type="button"
                 aria-expanded={isExpanded}
                 aria-label={`Toggle strategy for ${tag} tag`}
+                style={isExpanded ? {
+                  backgroundColor: 'var(--cm-dropdown-bg)',
+                  color: 'var(--cm-text)',
+                  borderRadius: '10px 10px 0px 0px',
+                  margin: '0px',
+                  border: 'none'
+                } : {}}
               >
                 {tag.charAt(0).toUpperCase() + tag.slice(1)}
               </button>

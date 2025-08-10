@@ -3,9 +3,7 @@ import {
   Card,
   TextInput,
   Table,
-  Text,
   ScrollArea,
-  Group,
   Button,
 } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";

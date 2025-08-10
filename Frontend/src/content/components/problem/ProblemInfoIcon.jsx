@@ -6,23 +6,40 @@ import React, { useState } from "react";
  * No hover behavior - just a visual indicator
  */
 const ProblemInfoIcon = ({ className = "" }) => {
+  // Use minimal inline styles when cm-problem-info-icon class is present
+  const isCSSStyled = className.includes('cm-problem-info-icon');
+  
+  const baseStyles = isCSSStyled ? {
+    // Let CSS class handle most styling, only add essential inline styles
+    borderRadius: "50%",
+    backgroundColor: "var(--cm-info-icon-bg, #3b82f6)",
+    color: "white",
+    fontSize: "8px",
+    fontWeight: "bold",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+  } : {
+    // Full inline styles for standalone usage
+    width: 14,
+    height: 14,
+    borderRadius: "50%",
+    backgroundColor: "var(--cm-info-icon-bg, #3b82f6)",
+    color: "white",
+    fontSize: "8px",
+    fontWeight: "bold",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "default",
+    opacity: 0.9,
+    flexShrink: 0,
+    boxSizing: "border-box",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
+  };
+
   return (
     <div
       className={className}
-      style={{
-        width: 12,
-        height: 12,
-        borderRadius: "50%",
-        backgroundColor: "var(--cd-info-icon-bg, #3b82f6)",
-        color: "white",
-        fontSize: "8px",
-        fontWeight: "bold",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        cursor: "default",
-        opacity: 0.9,
-      }}
+      style={baseStyles}
     >
       i
     </div>
@@ -53,7 +70,7 @@ export const ReasonTypeIcon = ({ reasonType, size = 14 }) => {
       case "new_problem":
         return { icon: "🆕", color: "#10b981" }; // Green for new
       default:
-        return { icon: "i", color: "var(--cd-link, #cbd5e1)" }; // Default info
+        return { icon: "i", color: "var(--cm-link, #cbd5e1)" }; // Default info
     }
   };
 
@@ -123,7 +140,7 @@ export const StyledProblemInfoIcon = ({
               width: 14,
               height: 14,
               borderRadius: "50%",
-              backgroundColor: "var(--cd-link, #cbd5e1)",
+              backgroundColor: "var(--cm-link, #cbd5e1)",
               color: "white",
               fontSize: "9px",
               fontWeight: "bold",
@@ -149,12 +166,12 @@ export const StyledProblemInfoIcon = ({
           opacity: hovered ? 1 : 0,
           overflow: "hidden",
           transition: "all 0.3s ease",
-          backgroundColor: "var(--cd-bg, #1a1a1a)",
-          border: "1px solid var(--cd-border, #334155)",
+          backgroundColor: "var(--cm-bg, #1a1a1a)",
+          border: "1px solid var(--cm-border, #334155)",
           borderRadius: "6px",
           padding: hovered ? "8px 10px" : "0px 10px",
           fontSize: "11px",
-          color: "var(--cd-text, #ffffff)",
+          color: "var(--cm-text, #ffffff)",
           whiteSpace: "nowrap",
           zIndex: 1000,
           boxShadow: hovered ? "0 4px 12px rgba(0, 0, 0, 0.3)" : "none",
@@ -178,7 +195,7 @@ export const StyledProblemInfoIcon = ({
             height: 0,
             borderLeft: "4px solid transparent",
             borderRight: "4px solid transparent",
-            borderTop: "4px solid var(--cd-border, #334155)",
+            borderTop: "4px solid var(--cm-border, #334155)",
             zIndex: 999,
           }}
         />

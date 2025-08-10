@@ -23,7 +23,7 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
         }}
       >
         <label
-          style={{ fontSize: "1rem", fontWeight: 500, color: "var(--cd-text)" }}
+          style={{ fontSize: "1rem", fontWeight: 500, color: "var(--cm-text)" }}
         >
           Adaptive Sessions
         </label>

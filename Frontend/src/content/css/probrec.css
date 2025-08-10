@@ -5,7 +5,7 @@
 }
 
 /* Simplified Problem Generator List */
-.cd-extension .cd-simple-problems-list {
+.cm-extension .cd-simple-problems-list {
   display: flex !important;
   flex-direction: column !important;
   gap: 4px !important;
@@ -13,7 +13,7 @@
   overflow-y: auto !important;
 }
 
-.cd-extension .cd-simple-problem-item {
+.cm-extension .cd-simple-problem-item {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
@@ -26,12 +26,12 @@
   max-width: 100% !important;
 }
 
-.cd-extension .cd-simple-problem-item:last-child {
+.cm-extension .cd-simple-problem-item:last-child {
   border-bottom: none !important;
 }
 
-.cd-extension .cd-simple-problem-link {
-  color: var(--cd-text) !important;
+.cm-extension .cd-simple-problem-link {
+  color: var(--cm-text) !important;
   text-decoration: none !important;
   font-size: 16px !important;
   flex: 1 !important;
@@ -40,44 +40,105 @@
   transition: all 0.2s ease !important;
 }
 
-.cd-extension .cd-simple-problem-item:hover .cd-simple-problem-link {
-  color: var(--cd-link-hover) !important;
+.cm-extension .cd-simple-problem-item:hover .cd-simple-problem-link {
+  color: var(--cm-link-hover) !important;
   font-size: 16px !important;
   font-weight: 400 !important;
 }
 
-.cd-extension .cd-simple-problem-item-container {
+.cm-extension .cd-simple-problem-item-container,
+.cm-extension .cm-simple-problem-item-container {
   display: flex !important;
   flex-direction: column !important;
   gap: 2px !important;
 }
 
-.cd-extension .cd-problem-badges {
+/* Problem item layout - title and badges on same line */
+.cm-extension .cm-simple-problem-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-height: 24px !important;
+  box-sizing: border-box !important;
+  flex-wrap: wrap !important;
+  margin: 5px 0 !important;
+}
+
+/* Problem link styling */
+.cm-extension .cm-simple-problem-link {
+  color: var(--cm-text) !important;
+  text-decoration: none !important;
+  font-size: 14px !important;
+  flex: 1 !important;
+  line-height: 1.3 !important;
+  transition: all 0.2s ease !important;
+  min-width: 0 !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  display: block !important;
+}
+
+/* Problem link hover state */
+.cm-extension .cm-simple-problem-link:hover {
+  color: var(--cm-link-hover) !important;
+  text-decoration: none !important;
+  opacity: 0.9 !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+}
+
+.cm-extension .cd-problem-badges,
+.cm-extension .cm-problem-badges {
   display: flex !important;
   align-items: center !important;
   gap: 4px !important;
   flex-shrink: 0 !important;
-  max-width: 180px !important;
-  overflow: hidden !important;
+  overflow: visible !important;
+  min-height: 20px !important;
+  padding: 2px !important;
+  box-sizing: border-box !important;
+  background-color: rgba(255, 255, 255, 0.02) !important;
+  border-radius: 4px !important;
+  flex-wrap: wrap !important;
 }
 
-.cd-extension .cd-new-tag {
-  background-color: var(--cd-dropdown-bg) !important;
-  color: var(--cd-dropdown-color) !important;
-  font-size: 8px !important;
+/* Problem info icon styling */
+.cm-extension .cm-problem-info-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-sizing: border-box !important;
+  opacity: 0.9 !important;
+}
+
+.cm-extension .cd-new-tag,
+.cm-extension .cm-new-tag {
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-dropdown-color) !important;
+  font-size: 7px !important;
   font-weight: bold !important;
-  padding: 1px 4px !important;
-  border-radius: 3px !important;
+  padding: 1px 3px !important;
+  border-radius: 2px !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.3px !important;
+  letter-spacing: 0.2px !important;
 }
 
-body[data-theme="dark"] .cd-extension .cd-new-tag {
-  background-color: var(--cd-active-blue) !important;
-  color: var(--cd-btn-text) !important;
+body[data-theme="dark"] .cm-extension .cd-new-tag,
+body[data-theme="dark"] .cm-extension .cm-new-tag {
+  background-color: var(--cm-active-blue) !important;
+  color: var(--cm-btn-text) !important;
 }
 
-.cd-extension .cd-difficulty {
+.cm-extension .cd-difficulty {
   font-size: 9px !important;
   padding: 1px 5px !important;
   border-radius: 8px !important;
@@ -85,49 +146,49 @@ body[data-theme="dark"] .cd-extension .cd-new-tag {
   text-transform: capitalize !important;
 }
 
-.cd-extension .cd-difficulty-easy {
+.cm-extension .cd-difficulty-easy {
   background-color: #10b981 !important;
-  color: var(--cd-btn-text) !important;
+  color: var(--cm-btn-text) !important;
 }
 
-.cd-extension .cd-difficulty-medium {
+.cm-extension .cd-difficulty-medium {
   background-color: #f59e0b !important;
-  color: var(--cd-btn-text) !important;
+  color: var(--cm-btn-text) !important;
 }
 
-.cd-extension .cd-difficulty-hard {
+.cm-extension .cd-difficulty-hard {
   background-color: #ef4444 !important;
-  color: var(--cd-btn-text) !important;
+  color: var(--cm-btn-text) !important;
 }
 
-.cd-extension .cd-problem-info-icon {
+.cm-extension .cd-problem-info-icon {
   flex-shrink: 0 !important;
   order: -1 !important;
-  --cd-info-icon-bg: #3b82f6 !important; /* Blue for light mode */
+  --cm-info-icon-bg: #3b82f6 !important; /* Blue for light mode */
 }
 
-body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
-  --cd-info-icon-bg: #60a5fa !important; /* Lighter blue for dark mode */
+body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
+  --cm-info-icon-bg: #60a5fa !important; /* Lighter blue for dark mode */
 }
 
 /* Problem Sidebar Styling */
 .problem-sidebar {
   width: clamp(240px, 22vw, 320px) !important;
-  background-color: var(--cd-bg) !important;
-  color: var(--cd-text) !important;
+  background-color: var(--cm-bg) !important;
+  color: var(--cm-text) !important;
   height: 100vh !important;
   display: flex !important;
   flex-direction: column !important;
   padding: 0 !important;
-  padding-top: var(--cd-content-padding, 10px) !important;
+  padding-top: var(--cm-content-padding, 10px) !important;
   margin: 0 !important;
   position: fixed !important;
   left: 0 !important;
   top: 0 !important;
-  z-index: var(--cd-z-sidebar, 9200) !important;
+  z-index: var(--cm-z-sidebar, 9200) !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  border-right: 1px solid var(--cd-dropdown-bg) !important;
+  border-right: 1px solid var(--cm-dropdown-bg) !important;
   box-sizing: border-box !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
@@ -186,14 +247,14 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-card {
-  background-color: var(--cd-dropdown-bg) !important;
-  border: 1px solid var(--cd-dropdown-bg) !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  border: 1px solid var(--cm-dropdown-bg) !important;
   border-radius: 8px !important;
-  padding: 12px !important;
-  margin: 7px 6px !important;
+  padding: 6px !important;
+  margin: 2px 2px !important;
   box-sizing: border-box !important;
-  max-width: 238px !important;
-  width: calc(100% - 24px) !important;
+  max-width: calc(100% - 4px) !important;
+  width: calc(100% - 4px) !important;
   min-height: 200px !important;
   overflow: hidden !important;
 }
@@ -202,7 +263,7 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   opacity: 0.7 !important;
   font-size: 14px !important;
   margin-bottom: 8px !important;
@@ -218,25 +279,22 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 
 .problem-sidebar-card-title {
   font-weight: 600 !important;
-  font-size: 16px !important;
-  line-height: 1.25 !important;
-  color: var(--cd-text) !important;
-  margin: 0 0 12px 0 !important;
+  font-size: 15px !important;
+  line-height: 1.3 !important;
+  color: var(--cm-text) !important;
+  margin: 0 0 8px 0 !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   hyphens: auto !important;
   max-width: 100% !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .problem-sidebar-difficulty-badge {
   font-weight: 700 !important;
-  font-size: 11px !important;
-  padding: 3px 10px !important;
+  font-size: 9px !important;
+  padding: 2px 6px !important;
   border-radius: 9999px !important;
   margin-bottom: 12px !important;
   display: inline-block !important;
@@ -245,43 +303,51 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
+  text-align: center !important;
 }
 
 .problem-sidebar-separator {
-  background-color: var(--cd-dropdown-bg) !important;
+  background-color: var(--cm-dropdown-bg) !important;
   opacity: 0.3 !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 8px !important;
 }
 
 .problem-sidebar-stats {
   display: flex !important;
-  justify-content: space-around !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
   font-size: 12px !important;
   max-width: 100% !important;
   width: 100% !important;
+  padding: 0 2px !important;
   box-sizing: border-box !important;
-  gap: 8px !important;
+  gap: 6px !important;
 }
 
 .problem-sidebar-stat {
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   gap: 6px !important;
-  flex: 1 !important;
-  max-width: 45% !important;
+  justify-content: flex-start !important;
   box-sizing: border-box !important;
   min-width: 0 !important;
+  flex: 1 !important;
+  max-width: calc(50% - 3px) !important;
 }
 
 .problem-sidebar-stat-icon {
-  height: 16px !important;
-  width: 16px !important;
-  color: #9ca3af !important;
+  height: 20px !important;
+  width: 20px !important;
+  min-width: 20px !important; /* Ensure minimum width */
+  min-height: 20px !important; /* Ensure minimum height */
+  color: var(--cm-text) !important;
+  opacity: 0.8 !important;
+  flex-shrink: 0 !important; /* Prevent icon from shrinking */
 }
 
 .problem-sidebar-stat-value {
   font-weight: 500 !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
   max-width: 100% !important;
@@ -292,7 +358,7 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-stat-label {
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   opacity: 0.7 !important;
   font-size: 10px !important;
   word-wrap: break-word !important;
@@ -304,11 +370,11 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-section {
-  margin-bottom: 10px !important;
-  padding: 0 8px !important;
+  margin-bottom: 2px !important;
+  padding: 0 4px !important;
   box-sizing: border-box !important;
-  max-width: 238px !important;
-  width: calc(100% - 16px) !important;
+  max-width: calc(100% - 8px) !important;
+  width: calc(100% - 8px) !important;
   overflow: visible !important;
 }
 
@@ -318,12 +384,12 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   overflow: visible !important;
   position: relative !important;
   z-index: 10 !important;
-  max-width: 280px !important;
-  width: 100% !important;
-  padding: 0 12px !important;
+  max-width: calc(100% - 8px) !important;
+  width: calc(100% - 8px) !important;
+  padding: 0 4px !important;
   /* Ensure adequate spacing around the container */
-  margin-top: 8px !important;
-  margin-bottom: 12px !important;
+  margin-top: 2px !important;
+  margin-bottom: 4px !important;
 }
 
 /* Enhanced scrolling behavior for tag strategy expansion */
@@ -349,18 +415,24 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 /* Ensure problem sidebar maintains proper scrolling with expanded content */
-.cd-extension .cd-sidenav.problem-sidebar-view {
+.cm-extension .cd-sidenav.problem-sidebar-view {
   /* Ensure the sidebar itself doesn't grow beyond viewport */
   max-height: 100vh !important;
   overflow: hidden !important;
 }
 
-.cd-extension .cd-sidenav.problem-sidebar-view .cd-sidenav__content {
+.cm-extension .cd-sidenav.problem-sidebar-view .cd-sidenav__content {
   /* Enable smooth scrolling within the content area */
   scroll-behavior: smooth !important;
   /* Add subtle scroll padding for better UX */
-  scroll-padding-top: 20px !important;
-  scroll-padding-bottom: 20px !important;
+  scroll-padding-top: 8px !important;
+  scroll-padding-bottom: 8px !important;
+  /* Optimize padding to fit content */
+  padding: 2px 0 !important;
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 /* Prevent expanded strategy content from causing horizontal overflow */
@@ -398,7 +470,7 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   opacity: 0.8 !important;
   font-size: 14px !important;
   margin-bottom: 12px !important;
@@ -423,8 +495,8 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-tag {
-  background-color: var(--cd-dropdown-bg) !important;
-  color: var(--cd-text) !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
   font-size: 10px !important;
   padding: 4px 8px !important;
   border-radius: 9999px !important;
@@ -444,28 +516,32 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-no-tags {
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   opacity: 0.7 !important;
   font-size: 14px !important;
 }
 
 .problem-sidebar-status-card {
-  background-color: var(--cd-dropdown-bg) !important;
-  border: 1px solid var(--cd-dropdown-bg) !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  border: 1px solid var(--cm-dropdown-bg) !important;
   border-radius: 8px !important;
   padding: 8px !important;
   display: flex !important;
-  align-items: center !important;
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
   gap: 8px !important;
   max-width: 100% !important;
+  width: 100% !important;
   box-sizing: border-box !important;
-  margin: 0 4px !important;
+  margin: 4px 0 !important;
 }
 
 .problem-sidebar-status-icon {
   height: 20px !important;
   width: 20px !important;
-  color: var(--cd-text) !important;
+  min-width: 20px !important; /* Ensure minimum width */
+  min-height: 20px !important; /* Ensure minimum height */
+  color: var(--cm-text) !important;
   opacity: 0.8 !important;
   flex-shrink: 0 !important;
 }
@@ -481,43 +557,40 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 
 .problem-sidebar-status-item {
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
-  font-size: 11px !important;
+  justify-content: space-between !important; /* Better spacing between label and value */
+  font-size: 12px !important; /* Slightly larger text */
   flex: 1 !important;
-  text-align: center !important;
   min-width: 0 !important;
+  gap: 8px !important; /* Add gap between label and value */
 }
 
 .problem-sidebar-status-label {
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   opacity: 0.7 !important;
   font-weight: 500 !important;
-  font-size: 9px !important;
+  font-size: 11px !important; /* Larger font for better readability */
   white-space: nowrap !important;
-  overflow: hidden !important;
+  flex-shrink: 0 !important; /* Prevent label from shrinking */
   text-overflow: ellipsis !important;
   max-width: 100% !important;
 }
 
 .problem-sidebar-status-value {
-  color: var(--cd-text) !important;
+  color: var(--cm-text) !important;
   font-weight: 600 !important;
-  text-align: center !important;
-  margin-top: 2px !important;
-  font-size: 10px !important;
+  font-size: 12px !important; /* Larger font for better readability */
   white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  max-width: 100% !important;
+  flex-shrink: 0 !important; /* Prevent value from shrinking */
 }
 
 .problem-sidebar-actions {
-  margin-top: 20px !important;
+  margin-top: 12px !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: 8px !important;
-  padding: 8px 12px !important;
+  gap: 6px !important;
+  padding: 4px 8px 8px 8px !important;
   box-sizing: border-box !important;
   align-items: center !important;
   max-width: 100% !important;
@@ -525,20 +598,47 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 
 .problem-sidebar-primary-btn {
   width: 100% !important;
-  background-color: var(--cd-btn-bg) !important;
-  color: var(--cd-btn-text) !important;
+  background-color: var(--cm-btn-bg) !important;
+  color: var(--cm-btn-text) !important;
   font-weight: 600 !important;
-  padding: 12px 20px !important;
+  padding: 8px 16px !important;
   font-size: 14px !important;
   border-radius: 6px !important;
   border: none !important;
   transition: background-color 0.2s ease !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
+  outline: none !important;
 }
 
 .problem-sidebar-primary-btn:hover {
-  background-color: var(--cd-active-blue) !important;
+  background-color: var(--cm-active-blue) !important;
+}
+
+/* Remove all focus and active blue effects */
+.cm-extension .problem-sidebar-primary-btn:focus,
+.cm-extension .problem-sidebar-primary-btn:active,
+.cm-extension .problem-sidebar-primary-btn:focus-visible {
+  background-color: var(--cm-btn-bg) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Override any Mantine button focus/active styles */
+.cm-extension [class*="mantine"][class*="Button"]:focus,
+.cm-extension [class*="mantine"][class*="Button"]:active,
+.cm-extension [class*="mantine"][class*="Button"]:focus-visible {
+  background-color: var(--cm-btn-bg) !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Remove pseudo-element styles */
+.cm-extension .problem-sidebar-primary-btn:before,
+.cm-extension .problem-sidebar-primary-btn:after {
+  display: none !important;
 }
 
 .problem-sidebar-btn-icon {
@@ -548,21 +648,63 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-skip-btn {
-  width: 100% !important;
   color: #9ca3af !important;
-  background: transparent !important;
+  background: none !important;
   border: none !important;
-  padding: 6px 12px !important;
-  border-radius: 6px !important;
-  transition: all 0.2s ease !important;
+  padding: 4px 0 !important;
   font-size: 12px !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  font-weight: normal !important;
+  text-decoration: none !important;
+  display: block !important;
+}
+
+/* Nuclear override for Mantine skip button styles */
+.cm-extension .problem-sidebar-skip-btn,
+.cm-extension button.problem-sidebar-skip-btn,
+.cm-extension [class*="mantine"].problem-sidebar-skip-btn,
+.cm-extension [class*="Button"].problem-sidebar-skip-btn {
+  color: #9ca3af !important;
+  background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-decoration: none !important;
+  font-weight: normal !important;
 }
 
 .problem-sidebar-skip-btn:hover {
-  color: white !important;
+  color: #d1d5db !important;
+  background: none !important;
+  text-decoration: none !important;
+}
+
+/* Nuclear override for Mantine skip button hover/focus/active states */
+.cm-extension .problem-sidebar-skip-btn:hover,
+.cm-extension .problem-sidebar-skip-btn:focus,
+.cm-extension .problem-sidebar-skip-btn:active,
+.cm-extension .problem-sidebar-skip-btn:focus-visible,
+.cm-extension button.problem-sidebar-skip-btn:hover,
+.cm-extension button.problem-sidebar-skip-btn:focus,
+.cm-extension button.problem-sidebar-skip-btn:active,
+.cm-extension button.problem-sidebar-skip-btn:focus-visible,
+.cm-extension [class*="mantine"].problem-sidebar-skip-btn:hover,
+.cm-extension [class*="mantine"].problem-sidebar-skip-btn:focus,
+.cm-extension [class*="mantine"].problem-sidebar-skip-btn:active,
+.cm-extension [class*="mantine"].problem-sidebar-skip-btn:focus-visible,
+.cm-extension [class*="Button"].problem-sidebar-skip-btn:hover,
+.cm-extension [class*="Button"].problem-sidebar-skip-btn:focus,
+.cm-extension [class*="Button"].problem-sidebar-skip-btn:active,
+.cm-extension [class*="Button"].problem-sidebar-skip-btn:focus-visible {
+  color: #d1d5db !important;
   background-color: transparent !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  text-decoration: none !important;
 }
 
 /* Screen reader only class */
@@ -673,26 +815,26 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 /* LeetCode Badge Theme Styles */
 
 /* Light theme badge styling (default) */
-.tag-strategy-button:hover {
-  background-color: #e2e8f0 !important;
-  color: #334155 !important;
+.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+  /* Removed yellow background - keep only transform effect */
+  color: var(--cm-text) !important;
   transform: translateY(-1px) !important;
 }
 
 /* Prevent hover effect on expanded buttons */
 .tag-strategy-button-expanded:hover {
   transform: none !important;
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  color: rgba(59, 130, 246, 0.9) !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
 }
 
 .tag-strategy-button-expanded {
   /* TAB SHAPE: Match strategy content styling */
   border-radius: 8px 8px 0 0 !important;
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  border: 1px solid rgba(59, 130, 246, 0.4) !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  border: 1px solid var(--cm-link) !important;
   border-bottom: none !important;
-  color: rgba(59, 130, 246, 0.9) !important;
+  color: var(--cm-text) !important;
   font-weight: 600 !important;
   box-shadow: none !important;
   z-index: 2 !important;
@@ -703,30 +845,30 @@ body[data-theme="dark"] .cd-extension .cd-problem-info-icon {
 
 /* Dark theme badge styling */
 body[data-theme="dark"] .tag-strategy-button {
-  background-color: #374151 !important;
-  color: #d1d5db !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
 }
 
-body[data-theme="dark"] .tag-strategy-button:hover {
-  background-color: #4b5563 !important;
-  color: #f9fafb !important;
+body[data-theme="dark"] .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+  /* Removed yellow background - keep only transform effect */
+  color: var(--cm-text) !important;
   transform: translateY(-1px) !important;
 }
 
 /* Prevent hover effect on expanded buttons in dark theme */
 body[data-theme="dark"] .tag-strategy-button-expanded:hover {
   transform: none !important;
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  color: #ffffff !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
 }
 
 body[data-theme="dark"] .tag-strategy-button-expanded {
   /* DARK THEME TAB SHAPE: Match strategy content styling */
   border-radius: 8px 8px 0 0 !important;
-  background-color: rgba(59, 130, 246, 0.2) !important;
-  border: 1px solid rgba(59, 130, 246, 0.7) !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  border: 1px solid var(--cm-link) !important;
   border-bottom: none !important;
-  color: #ffffff !important;
+  color: var(--cm-text) !important;
   font-weight: 600 !important;
   box-shadow: none !important;
   z-index: 2 !important;
@@ -737,8 +879,8 @@ body[data-theme="dark"] .tag-strategy-button-expanded {
 
 /* Light theme specific overrides */
 body[data-theme="light"] .tag-strategy-button {
-  background-color: #f1f5f9 !important;
-  color: #475569 !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
 }
 
 .tag-strategy-indicator {
@@ -757,27 +899,27 @@ body[data-theme="light"] .tag-strategy-button {
 
 /* Dark mode strategy content */
 body[data-theme="dark"] .tag-strategy-hint-content {
-  background-color: #374151 !important;
-  border: none !important;
+  background-color: var(--cm-dropdown-bg, #374151) !important;
+  border: 1px solid var(--cm-link, #cbd5e1) !important;
   border-radius: 0 0 8px 8px !important;
   padding: 12px !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
   position: relative !important;
   z-index: 1 !important;
-  box-shadow: none !important;
-  color: #f3f4f6 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  color: var(--cm-text, #f3f4f6) !important;
   margin-top: -1px !important;
 }
 
 body[data-theme="dark"] .tag-strategy-hint-title {
   font-weight: 600 !important;
-  color: #f3f4f6 !important;
+  color: var(--cm-text, #f3f4f6) !important;
   font-size: 14px !important;
 }
 
 body[data-theme="dark"] .tag-strategy-hint-body {
-  color: #f3f4f6 !important;
+  color: var(--cm-text, #f3f4f6) !important;
   margin-bottom: 6px !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
@@ -786,8 +928,8 @@ body[data-theme="dark"] .tag-strategy-hint-body {
 
 /* Light mode strategy content */
 body[data-theme="light"] .tag-strategy-hint-content {
-  background-color: #ffffff !important;
-  border: none !important;
+  background-color: var(--cm-dropdown-bg, #ffffff) !important;
+  border: 1px solid var(--cm-link, #444f5a) !important;
   border-radius: 0 0 8px 8px !important;
   padding: 12px !important;
   font-size: 13px !important;
@@ -795,18 +937,18 @@ body[data-theme="light"] .tag-strategy-hint-content {
   line-height: 1.4 !important;
   position: relative !important;
   z-index: 1 !important;
-  box-shadow: none !important;
-  color: #374151 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  color: var(--cm-text, #374151) !important;
 }
 
 body[data-theme="light"] .tag-strategy-hint-title {
   font-weight: 600 !important;
-  color: #374151 !important;
+  color: var(--cm-text, #374151) !important;
   font-size: 14px !important;
 }
 
 body[data-theme="light"] .tag-strategy-hint-body {
-  color: #374151 !important;
+  color: var(--cm-text, #374151) !important;
   margin-bottom: 6px !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
@@ -973,7 +1115,7 @@ body[data-theme="light"] .tag-strategy-hint-pattern {
 body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: repeat(2, 1fr) !important;
-  grid-gap: 2px !important;
+  grid-gap: 0px !important;
   width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -1014,8 +1156,8 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
 html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
-  grid-gap: 2px !important;
-  gap: 2px !important;
+  grid-gap: 0px !important;
+  gap: 0px !important;
   width: 100% !important;
   box-sizing: border-box !important;
   /* Override any possible flex properties */
@@ -1153,7 +1295,7 @@ html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-
   .problem-sidebar-actions {
     position: sticky !important;
     bottom: 0 !important;
-    background: var(--cd-bg) !important;
+    background: var(--cm-bg) !important;
     z-index: 10 !important;
   }
 }
@@ -1164,18 +1306,18 @@ html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-
 }
 
 .cd-sidenav__content::-webkit-scrollbar-track {
-  background: var(--cd-dropdown-bg) !important;
+  background: var(--cm-dropdown-bg) !important;
   border-radius: 6px !important;
 }
 
 .cd-sidenav__content::-webkit-scrollbar-thumb {
-  background: var(--cd-btn-bg) !important;
+  background: var(--cm-btn-bg) !important;
   border-radius: 6px !important;
-  border: 2px solid var(--cd-dropdown-bg) !important;
+  border: 2px solid var(--cm-dropdown-bg) !important;
 }
 
 .cd-sidenav__content::-webkit-scrollbar-thumb:hover {
-  background: var(--cd-active-blue) !important;
+  background: var(--cm-active-blue) !important;
 }
 
 /* FINAL NUCLEAR APPROACH: ATTRIBUTE SELECTORS */
@@ -1265,22 +1407,23 @@ html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-st
 html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
-  gap: 0px !important;
+  gap: 0px !important; /* Critical: No gap between grid items */
+  grid-gap: 0px !important; /* Fallback for older browsers */
   width: 100% !important;
   box-sizing: border-box !important;
 }
 
 html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
 body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"],
 .tag-strategy-simple-grid .tag-strategy-button[type="button"] {
   /* Smaller, more compact pill styling */
   width: auto !important;
   min-width: 48% !important;
   max-width: none !important;
-  padding: 6px 8px !important;
-  margin: 1px !important;
-  min-height: 32px !important;
+  padding: 8px 12px !important; /* Slightly larger padding for visibility */
+  margin: 4px !important; /* Even more margin to make separation obvious */
+  min-height: 36px !important; /* Slightly taller for visibility */
   height: auto !important;
   
   /* Typography - Compact but readable */
@@ -1302,95 +1445,96 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
   box-sizing: border-box !important;
   cursor: pointer !important;
   
-  /* Transitions */
+  /* Transitions for smooth pill-to-tab animation */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   
   /* Position */
   position: relative !important;
   z-index: 1 !important;
   
-  /* Colors - default state */
-  background-color: #ffffff !important;
-  color: #374151 !important;
-  border: 1px solid #e5e7eb !important;
+  /* Colors - theme integrated */
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
+  border: none !important; /* Remove border for cleaner look */
 }
 
-/* NUCLEAR HOVER STATE: Maximum Specificity */
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
-html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
-body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover,
-.tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover {
-  background-color: #e2e8f0 !important;
-  color: #334155 !important;
+/* NUCLEAR HOVER STATE: Maximum Specificity - Removed yellow background */
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+.tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+  /* Removed yellow background - keep only transform and shadow effects */
+  color: var(--cm-text) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* NUCLEAR EXPANDED STATE: Transform to tab shape with maximum specificity */
 html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
 body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"],
 .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
 .tag-strategy-button-expanded {
-  /* TAB SHAPE: Square top corners, connect to content below */
+  /* TAB SHAPE: Rounded top corners, square bottom for seamless connection */
   border-radius: 8px 8px 0 0 !important;
-  background-color: #ffffff !important;
+  background-color: var(--cm-dropdown-bg) !important;
   border: none !important;
-  color: #374151 !important;
+  color: var(--cm-text) !important;
   font-weight: 600 !important;
   
-  /* Position for seamless connection */
+  /* Position for seamless connection - remove all margins */
   z-index: 2 !important;
   margin: 0px !important;
+  margin-bottom: 0px !important; /* Critical: No gap between tab and content */
   position: relative !important;
   
   /* Remove transform effects when expanded */
   transform: none !important;
   box-shadow: none !important;
   
-  /* Override any pill styling */
-  border-radius: 8px 8px 0 0 !important;
+  /* Ensure tab connects perfectly to content */
+  border-bottom: none !important;
 }
 
 /* NUCLEAR EXPANDED HOVER: Prevent hover effects on expanded buttons */
 html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-html body .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
 body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
 .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
 .tag-strategy-button-expanded:hover {
   transform: none !important;
-  background-color: #ffffff !important;
-  color: #374151 !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
   box-shadow: none !important;
   border-radius: 8px 8px 0 0 !important;
 }
 
 /* NUCLEAR DARK THEME: Maximum Specificity */
 html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
 body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"],
 body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button[type="button"] {
-  background-color: #374151 !important;
-  color: #f3f4f6 !important;
-  border: none !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
+  border: 1px solid var(--cm-link) !important;
 }
 
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
-html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover,
-body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover,
-body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover {
-  background-color: #4b5563 !important;
-  color: #f9fafb !important;
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+  /* Removed yellow background for dark theme too */
+  color: var(--cm-text) !important;
 }
 
 html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
 body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"],
 body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
 body[data-theme="dark"] .tag-strategy-button-expanded {
-  background-color: #374151 !important;
+  background-color: var(--cm-dropdown-bg) !important;
   border: none !important;
-  color: #f3f4f6 !important;
+  color: var(--cm-text) !important;
   margin: 0px !important;
   position: relative !important;
   z-index: 2 !important;
@@ -1398,46 +1542,47 @@ body[data-theme="dark"] .tag-strategy-button-expanded {
 }
 
 html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-html body[data-theme="dark"] .cd-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
 body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
 body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
 body[data-theme="dark"] .tag-strategy-button-expanded:hover {
-  background-color: #374151 !important;
-  color: #f3f4f6 !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
   transform: none !important;
   box-shadow: none !important;
   border-radius: 8px 8px 0 0 !important;
 }
 
-/* Strategy hint container - spans full grid width */
+/* Strategy hint container - spans full grid width with seamless connection */
 .tag-strategy-hint {
   grid-column: 1 / -1 !important;
   width: 100% !important;
-  margin-top: 0px !important;
+  margin-top: 0px !important; /* No gap between tab and content */
   margin-bottom: 16px !important;
   position: relative !important;
   z-index: 1 !important;
   animation: expandStrategy 0.3s ease-out !important;
 }
 
-/* Strategy content that connects to the tab */
+/* Strategy content that connects seamlessly to the tab */
 .tag-strategy-hint-content {
-  background-color: #ffffff !important;
-  border: none !important;
-  border-radius: 0 0 8px 8px !important;
+  background-color: var(--cm-dropdown-bg) !important; /* Use theme colors */
+  border: none !important; /* Remove all borders */
+  border-radius: 0 10px 10px 10px !important; /* Match 10px radius, round all corners except top-left */
   padding: 12px !important;
-  margin-top: 0px !important;
+  margin-top: 0px !important; /* Critical: No gap */
   position: relative !important;
   z-index: 1 !important;
-  box-shadow: none !important;
-  color: #374151 !important;
+  box-shadow: none !important; /* Remove box shadow */
+  color: var(--cm-text) !important; /* Use theme text color */
 }
 
 body[data-theme="dark"] .tag-strategy-hint-content {
-  background-color: #374151 !important;
-  border: none !important;
-  margin-top: 0px !important;
-  color: #f3f4f6 !important;
+  background-color: var(--cm-dropdown-bg) !important; /* Use theme variable for consistency */
+  border: none !important; /* No borders */
+  border-radius: 0 10px 10px 10px !important; /* Match 10px radius */
+  margin-top: 0px !important; /* No gap */
+  color: var(--cm-text) !important; /* Use theme text color */
 }
 
 @keyframes expandStrategy {
@@ -1508,14 +1653,17 @@ body[data-theme="dark"] .tag-strategy-hint-content {
 .cd-sidenav.problem-sidebar-view {
   height: 100vh !important;
   max-height: 100vh !important;
-  overflow: hidden !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  width: 100% !important;
+  max-width: 320px !important;
 }
 
 .problem-sidebar-section.tag-strategy-container {
   overflow: visible !important;
   position: relative !important;
   z-index: 10 !important;
-  margin-bottom: 8px !important;
+  margin-bottom: 4px !important;
 }
 
 /* Strategy expansion animation with seamless tab connection */
@@ -1539,4 +1687,286 @@ body[data-theme="dark"] .tag-strategy-hint-content {
     max-height: 200px;
     transform: translateY(0);
   }
+}
+
+/* ===== NUCLEAR OVERRIDE: FORCE TAG BUTTON THEME COLORS ===== */
+/* Maximum specificity to override any existing rules */
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+.cm-extension .tag-strategy-button,
+button.tag-strategy-button,
+[class*="tag-strategy-button"] {
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
+  border: none !important;
+  border-radius: 16px !important;
+}
+
+/* NUCLEAR OVERRIDE: Hover states */
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+.cm-extension .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
+[class*="tag-strategy-button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+  /* Removed yellow background from this rule too */
+  color: var(--cm-text) !important;
+}
+
+/* NUCLEAR OVERRIDE: SEAMLESS TAB-TO-CONTENT CONNECTION */
+.tag-strategy-hint,
+.tag-strategy-hint-content {
+  margin-top: 0px !important; /* No gap between tab and content */
+  border: none !important; /* Remove all borders */
+  box-shadow: none !important; /* Remove shadows */
+  background-color: var(--cm-dropdown-bg) !important; /* Theme background */
+  color: var(--cm-text) !important; /* Theme text color */
+}
+
+/* Ensure strategy content has proper notebook-style connection */
+.tag-strategy-hint-content {
+  border-radius: 0 10px 10px 10px !important; /* Match 10px radius, round all corners except top-left */
+  margin-bottom: 16px !important; /* Space after content but not before */
+}
+
+/* ULTRA NUCLEAR: Override ALL possible conflicting rules with maximum specificity */
+html body[data-theme="light"] .tag-strategy-hint-content,
+html body[data-theme="dark"] .tag-strategy-hint-content,
+html body .problem-sidebar .tag-strategy-hint-content,
+html body .cm-extension .tag-strategy-hint-content,
+html body div.cd-sidenav div.cd-sidenav__content .tag-strategy-hint-content,
+body[data-theme="light"] .tag-strategy-hint-content,
+body[data-theme="dark"] .tag-strategy-hint-content {
+  background-color: var(--cm-dropdown-bg) !important;
+  border: none !important;
+  border-radius: 0 10px 10px 10px !important; /* Match 10px radius */
+  box-shadow: none !important;
+  color: var(--cm-text) !important;
+  margin-top: 0px !important;
+  margin-bottom: 16px !important;
+  padding: 12px !important;
+}
+
+/* ULTRA NUCLEAR: Tag buttons with absolute maximum specificity */
+html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[type="button"],
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"] {
+  padding: 8px 12px !important;
+  margin: 4px !important;
+  min-height: 36px !important;
+  border-radius: 16px !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
+  border: none !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* ULTRA NUCLEAR: Expanded tab state with absolute maximum specificity */
+html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"] {
+  border-radius: 10px 10px 0px 0px !important; /* Updated for better connection */
+  margin: 0px !important;
+  margin-bottom: 0px !important;
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
+  border: none !important;
+  border-bottom: none !important;
+  z-index: 2 !important;
+}
+
+/* ULTRA NUCLEAR: Remove hover effects on expanded/active tabs - Maximum Specificity */
+html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button-expanded:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+.cm-extension .tag-strategy-button-expanded:hover,
+button.tag-strategy-button-expanded:hover,
+[class*="tag-strategy-button-expanded"]:hover {
+  background-color: var(--cm-dropdown-bg) !important; /* Keep same background as non-hover */
+  color: var(--cm-text) !important; /* Keep same text color */
+  transform: none !important; /* No hover animation */
+  box-shadow: none !important; /* No hover shadow */
+  margin: 0px !important; /* Keep tight connection */
+  margin-bottom: 0px !important;
+  border: none !important;
+  border-radius: 10px 10px 0px 0px !important; /* Maintain tab shape on hover */
+}
+
+/* ULTIMATE NUCLEAR: Override the specific hover rule - NO YELLOW HOVER ON ANY EXPANDED TABS */
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button-expanded:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+.cm-extension .tag-strategy-button-expanded:hover,
+button.tag-strategy-button-expanded:hover,
+[class*="tag-strategy-button-expanded"]:hover,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button.tag-strategy-button-expanded:hover,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[aria-expanded="true"]:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[aria-expanded="true"]:hover,
+.cm-extension button[aria-expanded="true"]:hover,
+button[aria-expanded="true"]:hover,
+[class*="tag-strategy-button"][aria-expanded="true"]:hover {
+  background-color: var(--cm-dropdown-bg) !important; /* NO highlight color change */
+  color: var(--cm-text) !important; /* Keep same text color */
+  border-radius: 10px 10px 0px 0px !important; /* Maintain tab shape */
+  transform: none !important; /* No hover effects */
+  box-shadow: none !important; /* No hover shadow */
+}
+
+/* MEGA NUCLEAR: Target expanded tabs by class AND aria-expanded attribute */
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button-expanded,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+.cm-extension .tag-strategy-button-expanded,
+button.tag-strategy-button-expanded,
+[class*="tag-strategy-button-expanded"],
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[aria-expanded="true"],
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[aria-expanded="true"],
+.cm-extension button[aria-expanded="true"],
+button[aria-expanded="true"],
+[class*="tag-strategy-button"][aria-expanded="true"] {
+  border-radius: 10px 10px 0px 0px !important; /* Tab shape when expanded */
+  margin: 0px !important; /* No margins for seamless connection */
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
+  border: none !important;
+  z-index: 2 !important;
+}
+
+/* ULTIMATE NUCLEAR: Override the exact hover rule that's causing yellow with maximum specificity */
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button.tag-strategy-button-expanded:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button.tag-strategy-button-expanded:hover,
+.cm-extension .tag-strategy-button.tag-strategy-button-expanded:hover,
+button.tag-strategy-button.tag-strategy-button-expanded:hover,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button[aria-expanded="true"]:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[aria-expanded="true"]:hover,
+.cm-extension .tag-strategy-button[aria-expanded="true"]:hover,
+button.tag-strategy-button[aria-expanded="true"]:hover,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button[class*="tag-strategy-button-expanded"]:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button-expanded"]:hover {
+  background-color: var(--cm-dropdown-bg) !important; /* Override the yellow hover */
+  color: var(--cm-text) !important;
+  border-radius: 10px 10px 0px 0px !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ABSOLUTE NUCLEAR: Direct override with maximum possible specificity */
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button:hover.tag-strategy-button-expanded,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button.tag-strategy-button:hover.tag-strategy-button-expanded,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button[aria-expanded="true"]:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button.tag-strategy-button[aria-expanded="true"]:hover,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[class*="tag-strategy-button"]:hover.tag-strategy-button-expanded,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[class*="tag-strategy-button"]:hover.tag-strategy-button-expanded,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[class*="tag-strategy-button"][aria-expanded="true"]:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[class*="tag-strategy-button"][aria-expanded="true"]:hover {
+  background-color: var(--cm-dropdown-bg) !important; /* Absolute override - NO YELLOW */
+  color: var(--cm-text) !important;
+}
+
+/* JAVASCRIPT + CSS NUCLEAR APPROACH: Disable hover with new class */
+.tag-strategy-no-hover:hover,
+.tag-strategy-no-hover:hover,
+button.tag-strategy-no-hover:hover,
+[class*="tag-strategy-no-hover"]:hover,
+html body .tag-strategy-no-hover:hover,
+html body button.tag-strategy-no-hover:hover,
+html body [class*="tag-strategy-no-hover"]:hover,
+html body div.cm-sidenav .tag-strategy-no-hover:hover,
+html body .cm-extension .tag-strategy-no-hover:hover,
+html body div.cm-sidenav div.cm-sidenav__content .tag-strategy-no-hover:hover,
+html body .cm-extension .problem-sidebar .tag-strategy-no-hover:hover,
+html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-no-hover:hover,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-no-hover:hover {
+  background-color: var(--cm-dropdown-bg) !important; /* Force theme background */
+  color: var(--cm-text) !important; /* Force theme text */
+  transform: none !important; /* No transforms */
+  box-shadow: none !important; /* No shadows */
+  border: none !important; /* No borders */
+  border-radius: 10px 10px 0px 0px !important; /* Keep tab shape */
+  margin: 0px !important; /* No margins */
+}
+
+/* ULTRA NUCLEAR: Force zero grid gap with maximum specificity */
+html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid,
+html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid,
+html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid,
+html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+  gap: 0px !important;
+  grid-gap: 0px !important;
+  column-gap: 0px !important;
+  row-gap: 0px !important;
+  grid-column-gap: 0px !important;
+  grid-row-gap: 0px !important;
+}
+
+/* MEGA NUCLEAR: Force zero gap on ALL grid rules with maximum specificity */
+.tag-strategy-simple-grid,
+div.tag-strategy-simple-grid,
+.cm-extension .tag-strategy-simple-grid,
+body .tag-strategy-simple-grid,
+html body .tag-strategy-simple-grid,
+html body div .tag-strategy-simple-grid,
+html body div.cd-sidenav .tag-strategy-simple-grid,
+html body div.cd-sidenav div.cd-sidenav__content .tag-strategy-simple-grid,
+[class*="tag-strategy-simple-grid"] {
+  gap: 0px !important;
+  grid-gap: 0px !important;
+  column-gap: 0px !important;
+  row-gap: 0px !important;
+  grid-column-gap: 0px !important;
+  grid-row-gap: 0px !important;
+  margin-bottom: 12px !important;
+  padding: 0px !important;
+}
+
+/* ULTIMATE NUCLEAR: Override the specific .cm-extension rule that's causing the gap */
+html body .cm-extension .tag-strategy-simple-grid,
+body .cm-extension .tag-strategy-simple-grid,
+.cm-extension .tag-strategy-simple-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0px !important; /* Override the 6px gap */
+  grid-gap: 0px !important;
+  column-gap: 0px !important;
+  row-gap: 0px !important;
+  margin-bottom: 12px !important;
+  padding: 0px !important; /* Override the 4px padding */
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* MEGA NUCLEAR: Force zero margin on expanded tabs to eliminate any space + pill-to-tab transition */
+.tag-strategy-button-expanded,
+button.tag-strategy-button-expanded,
+[class*="tag-strategy-button-expanded"] {
+  margin: 0px !important;
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+  margin-left: 0px !important;
+  margin-right: 0px !important;
+  padding-bottom: 0px !important;
+  border-bottom: none !important;
+  position: relative !important;
+  z-index: 10 !important;
+  
+  /* CRITICAL: Pill-to-tab transition - rounded top, square bottom */
+  border-radius: 10px 10px 0px 0px !important; /* Better connection with 10px radius */
+  background-color: var(--cm-dropdown-bg) !important;
+  color: var(--cm-text) !important;
+  border: none !important;
+}
+
+/* MEGA NUCLEAR: Force zero margin and gap on strategy hint */
+.tag-strategy-hint {
+  margin: 0px !important;
+  margin-top: 0px !important;
+  margin-bottom: 16px !important;
+  padding: 0px !important;
+  padding-top: 0px !important;
+  grid-column: 1 / -1 !important;
+  position: relative !important;
+  z-index: 5 !important;
 }
