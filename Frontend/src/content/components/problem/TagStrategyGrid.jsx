@@ -13,24 +13,14 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
   const [strategies, setStrategies] = useState({});
   const [loading, setLoading] = useState(false);
 
-  // DEBUG: Log what tags we're receiving
+  // Handle problem tags updates
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("🏷️ TagStrategyGrid received problemTags:", problemTags);
-    // eslint-disable-next-line no-console
-    console.log("🏷️ TagStrategyGrid tags length:", problemTags?.length);
-    // eslint-disable-next-line no-console
-    console.log("🏷️ TagStrategyGrid tags type:", typeof problemTags);
+    // Problem tags received and processed
   }, [problemTags]);
 
   useEffect(() => {
     if (problemTags && problemTags.length > 0) {
-      // eslint-disable-next-line no-console
-      console.log("🏷️ TagStrategyGrid: Loading strategies for tags:", problemTags);
       loadStrategies();
-    } else {
-      // eslint-disable-next-line no-console
-      console.log("🏷️ TagStrategyGrid: No tags to load strategies for");
     }
   }, [problemTags, loadStrategies]);
 
@@ -227,8 +217,7 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
     );
   }
 
-  // eslint-disable-next-line no-console
-  console.log("🏷️ TagStrategyGrid: Rendering with tags:", problemTags);
+  // Render strategy grid with available tags
 
   const expandedRowIndex = getExpandedTagRowIndex();
 

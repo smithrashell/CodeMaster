@@ -157,8 +157,6 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
     
     // Also call the callback for any additional handling
     if (onHintClick) {
-      // eslint-disable-next-line no-console
-      console.log(`🎯 Hint ${isCurrentlyExpanded ? 'collapsed' : 'expanded'}:`, hintClickData);
       onHintClick(hintClickData);
     }
   }, [expandedHints, onHintClick, problemTags, hints.length, opened]);
