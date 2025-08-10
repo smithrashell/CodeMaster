@@ -11,12 +11,13 @@ import {
 } from "@mantine/core";
 import { IconBulb, IconInfoCircle } from "@tabler/icons-react";
 import StrategyService from "../../services/strategyService";
+import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
 /**
  * FloatingHintButton - Compact floating button that shows strategy hints in a popover
  * Better UX than inline panel - doesn't take up space until needed
  */
-const FloatingHintButton = ({ problemTags = [], onOpen, onClose, onHintClick }) => {
+const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClose, onHintClick }) => {
   const [hints, setHints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -112,7 +113,7 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose, onHintClick }) 
   }, [opened, onOpen, problemTags, hints.length]);
 
   // Handle hint expand/collapse toggle
-  const toggleHintExpansion = useCallback((hintId, hint, index, hintType) => {
+  const toggleHintExpansion = useCallback(async (hintId, hint, index, hintType) => {
     const isCurrentlyExpanded = expandedHints.has(hintId);
     
     setExpandedHints(prev => {
@@ -126,25 +127,36 @@ const FloatingHintButton = ({ problemTags = [], onOpen, onClose, onHintClick }) 
     });
 
     // Track the expand/collapse action
+    const hintClickData = {
+      problemId: problemId || 'unknown',
+      hintId,
+      hintType,
+      primaryTag: hint.primaryTag,
+      relatedTag: hint.relatedTag,
+      content: hint.tip,
+      relationshipScore: hint.relationshipScore || null,
+      timestamp: new Date().toISOString(),
+      problemTags: problemTags,
+      action: isCurrentlyExpanded ? 'collapse' : 'expand',
+      sessionContext: {
+        popoverOpen: opened,
+        totalHints: hints.length,
+        hintPosition: index,
+        expandedHintsCount: isCurrentlyExpanded ? expandedHints.size - 1 : expandedHints.size + 1
+      }
+    };
+    
+    // Save interaction to persistent storage
+    try {
+      await HintInteractionService.saveHintInteraction(hintClickData, {
+        totalHints: hints.length,
+      });
+    } catch (error) {
+      console.warn("Failed to save hint interaction:", error);
+    }
+    
+    // Also call the callback for any additional handling
     if (onHintClick) {
-      const hintClickData = {
-        hintId,
-        hintType,
-        primaryTag: hint.primaryTag,
-        relatedTag: hint.relatedTag,
-        content: hint.tip,
-        relationshipScore: hint.relationshipScore || null,
-        timestamp: new Date().toISOString(),
-        problemTags: problemTags,
-        action: isCurrentlyExpanded ? 'collapse' : 'expand',
-        sessionContext: {
-          popoverOpen: opened,
-          totalHints: hints.length,
-          hintPosition: index,
-          expandedHintsCount: isCurrentlyExpanded ? expandedHints.size - 1 : expandedHints.size + 1
-        }
-      };
-      
       // eslint-disable-next-line no-console
       console.log(`🎯 Hint ${isCurrentlyExpanded ? 'collapsed' : 'expanded'}:`, hintClickData);
       onHintClick(hintClickData);
