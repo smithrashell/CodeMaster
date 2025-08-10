@@ -36,6 +36,38 @@
 
 /* ===== 2. BASE EXTENSION STYLES ===== */
 
+/* Skip to main content accessibility link - hidden by default, shown on focus */
+.cd-extension.skip-to-content {
+  position: absolute !important;
+  left: -10000px !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+}
+
+.cd-extension.skip-to-content:focus {
+  position: absolute !important;
+  left: 6px !important;
+  top: 6px !important;
+  width: auto !important;
+  height: auto !important;
+  clip: auto !important;
+  white-space: normal !important;
+  background: var(--cm-bg) !important;
+  color: var(--cm-text) !important;
+  padding: 8px 12px !important;
+  text-decoration: none !important;
+  border-radius: 4px !important;
+  border: 2px solid var(--cm-link) !important;
+  z-index: var(--cm-z-tooltip) !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  outline: 2px solid var(--cm-link) !important;
+  outline-offset: 2px !important;
+}
+
 .cm-extension .injected {
   color: var(--cm-dropdown-color) !important;
   background-color: var(--cm-highlight) !important;
