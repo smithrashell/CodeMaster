@@ -343,20 +343,63 @@ export class StrategyService {
         `🎯 Building ${difficulty}-aware hint selection using natural cutoff tiers`
       );
 
-      // For now, return basic hints from strategies
+      // Build both contextual and general hints
       const hints = [];
       
+      // First, create contextual hints for multi-tag combinations
+      if (problemTags.length > 1) {
+        // eslint-disable-next-line no-console
+        console.log(`🔍 HINT DEBUG: Creating contextual hints for ${problemTags.length} tags`);
+        
+        // Generate contextual hints for tag pairs
+        for (let i = 0; i < problemTags.length; i++) {
+          for (let j = i + 1; j < problemTags.length; j++) {
+            const primaryTag = problemTags[i];
+            const relatedTag = problemTags[j];
+            
+            const primaryStrategy = strategiesData[primaryTag];
+            const relatedStrategy = strategiesData[relatedTag];
+            
+            if (primaryStrategy && relatedStrategy) {
+              // Generate contextual hint combining both strategies
+              const contextualTip = this.generateContextualTip(
+                primaryTag, 
+                relatedTag, 
+                primaryStrategy, 
+                relatedStrategy
+              );
+              
+              const contextualHint = {
+                type: "contextual",
+                primaryTag,
+                relatedTag,
+                tip: contextualTip,
+                tier: "essential",
+                source: "multi-tag-contextual",
+                complexity: 2,
+                relevance: 1.2, // Higher relevance for contextual hints
+                relationshipScore: 0.85, // Mock relationship score
+                finalScore: 350,
+                chainPosition: hints.length + 1,
+              };
+              
+              hints.push(contextualHint);
+              // eslint-disable-next-line no-console
+              console.log(`✅ HINT DEBUG: Added contextual hint for "${primaryTag}" + "${relatedTag}":`, contextualHint);
+            }
+          }
+        }
+      }
+      
+      // Then, create general hints for individual tags
       for (const tag of problemTags) {
         // eslint-disable-next-line no-console
-        console.log(`🔍 HINT DEBUG: Processing tag: "${tag}"`);
+        console.log(`🔍 HINT DEBUG: Processing general hint for tag: "${tag}"`);
         
         const strategy = strategiesData[tag];
         
-        // eslint-disable-next-line no-console
-        console.log(`🔍 HINT DEBUG: Strategy for "${tag}":`, strategy);
-        
         if (strategy) {
-          const hint = {
+          const generalHint = {
             type: "general",
             primaryTag: tag,
             relatedTag: null,
@@ -369,9 +412,9 @@ export class StrategyService {
             chainPosition: hints.length + 1,
           };
           
-          hints.push(hint);
+          hints.push(generalHint);
           // eslint-disable-next-line no-console
-          console.log(`✅ HINT DEBUG: Added hint for "${tag}":`, hint);
+          console.log(`✅ HINT DEBUG: Added general hint for "${tag}":`, generalHint);
         } else {
           // eslint-disable-next-line no-console
           console.log(`❌ HINT DEBUG: No strategy found for tag "${tag}"`);
@@ -392,6 +435,70 @@ export class StrategyService {
       console.error("❌ Error building optimal hint selection:", error);
       return [];
     }
+  }
+
+  /**
+   * Generate contextual hint by combining strategies from two related tags
+   * @param {string} primaryTag - The primary tag
+   * @param {string} relatedTag - The related tag 
+   * @param {Object} primaryStrategy - Strategy data for primary tag
+   * @param {Object} relatedStrategy - Strategy data for related tag
+   * @returns {string} Combined contextual tip
+   */
+  static generateContextualTip(primaryTag, relatedTag, primaryStrategy, relatedStrategy) {
+    // Define common tag combinations and their contextual strategies
+    const contextualCombinations = {
+      'array+hash table': 'Use an array to iterate through elements and a hash table to store indices or frequencies for O(1) lookups. This combination is powerful for two-sum style problems.',
+      'array+two pointers': 'Sort the array first, then use two pointers from opposite ends. This approach works well for finding pairs or subarrays that meet specific criteria.',
+      'string+hash table': 'Use a hash table to track character frequencies or positions while iterating through the string. Perfect for anagram detection and substring problems.',
+      'tree+depth-first search': 'Apply DFS traversal on tree nodes to explore all paths from root to leaves. Use recursion to handle subtree operations naturally.',
+      'tree+breadth-first search': 'Use BFS with a queue to process tree nodes level by level. Ideal for finding shortest paths or level-order operations.',
+      'dynamic programming+array': 'Use array indices to represent subproblem states in your DP solution. Each array element stores the optimal solution for that substate.',
+      'sliding window+string': 'Maintain a sliding window over the string and use hash table to track characters in current window. Adjust window size based on problem constraints.',
+      'binary search+array': 'Take advantage of sorted array properties to eliminate half the search space in each iteration. Perfect for finding targets or insertion points.',
+      'greedy+sorting': 'Sort first to enable greedy choices. Process elements in order to make locally optimal decisions that lead to global optimum.',
+      'backtracking+tree': 'Use tree structure to represent decision space. Backtrack when current path cannot lead to valid solution.',
+    };
+    
+    // Create a key for the combination (order independent)
+    const combinationKey1 = `${primaryTag}+${relatedTag}`;
+    const combinationKey2 = `${relatedTag}+${primaryTag}`;
+    
+    // Check if we have a specific contextual strategy for this combination
+    const contextualTip = contextualCombinations[combinationKey1] || contextualCombinations[combinationKey2];
+    
+    if (contextualTip) {
+      return contextualTip;
+    }
+    
+    // If no specific combination exists, generate a generic contextual hint
+    const primaryKeyword = this.extractKeyword(primaryStrategy.strategy);
+    const relatedKeyword = this.extractKeyword(relatedStrategy.strategy);
+    
+    return `Combine ${primaryTag} techniques with ${relatedTag} patterns. Consider using ${primaryKeyword} alongside ${relatedKeyword} for an optimal solution approach.`;
+  }
+
+  /**
+   * Extract key technique/approach from strategy text
+   * @param {string} strategy - Strategy description text
+   * @returns {string} Key technique extracted
+   */
+  static extractKeyword(strategy) {
+    const keywords = [
+      'hash map', 'hash table', 'two pointers', 'sliding window', 'binary search',
+      'DFS', 'BFS', 'dynamic programming', 'backtracking', 'greedy', 'sort',
+      'divide and conquer', 'recursion', 'iteration', 'stack', 'queue'
+    ];
+    
+    const lowerStrategy = strategy.toLowerCase();
+    for (const keyword of keywords) {
+      if (lowerStrategy.includes(keyword.toLowerCase())) {
+        return keyword;
+      }
+    }
+    
+    // Default fallback
+    return 'systematic approach';
   }
 
   /**
