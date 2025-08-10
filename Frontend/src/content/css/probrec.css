@@ -309,8 +309,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 .problem-sidebar-separator {
   background-color: var(--cm-dropdown-bg) !important;
   opacity: 0.3 !important;
+
   margin-bottom: 8px !important;
-}
 
 .problem-sidebar-stats {
   display: flex !important;
@@ -370,8 +370,10 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-section {
+
   margin-bottom: 2px !important;
   padding: 0 4px !important;
+
   box-sizing: border-box !important;
   max-width: calc(100% - 8px) !important;
   width: calc(100% - 8px) !important;
@@ -586,11 +588,13 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-actions {
+
   margin-top: 12px !important;
   display: flex !important;
   flex-direction: column !important;
   gap: 6px !important;
   padding: 4px 8px 8px 8px !important;
+
   box-sizing: border-box !important;
   align-items: center !important;
   max-width: 100% !important;
@@ -734,6 +738,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   box-sizing: border-box !important;
   overflow: hidden !important;
 }
+
 
 /* ============================================================================
    COMPREHENSIVE TAG LAYOUT SOLUTIONS - Multiple Approaches for 2-Column Grid
@@ -1970,3 +1975,4 @@ button.tag-strategy-button-expanded,
   position: relative !important;
   z-index: 5 !important;
 }
+

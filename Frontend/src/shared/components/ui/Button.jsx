@@ -40,12 +40,14 @@ export function Button({
     return "blue"; // Default CodeMaster blue
   };
 
+
   return (
     <MantineButton
       variant={getMantineVariant(variant)}
       size={size}
       color={getMantineColor(variant, color)}
       className={className}
+
       {...props}
     >
       {children}

@@ -183,10 +183,7 @@ const ProbDetail = (isLoading) => {
       
 
         {/* Action Buttons */}
-        <div
-          className="problem-sidebar-actions"
-          style={{ marginTop: "40px", padding: "12px", marginBottom: "20px" }}
-        >
+        <div className="problem-sidebar-actions">
           <Button
             onClick={handleNewAttempt}
             className="problem-sidebar-primary-btn"
