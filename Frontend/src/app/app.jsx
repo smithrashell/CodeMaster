@@ -10,7 +10,6 @@ import { MantineProvider, Text } from "@mantine/core";
 import { DoubleNavbar } from "../shared/components/DoubleNavbar";
 import ErrorBoundary from "../shared/components/ErrorBoundary";
 import { DashboardErrorFallback } from "../shared/components/ErrorFallback";
-import { codeMasterTheme } from "../shared/theme/mantineTheme";
 import "@mantine/core/styles.css";
 import "../content/css/theme.css";
 import "../app/app.css";
@@ -41,20 +40,19 @@ import {
 import { useState, useEffect } from "react";
 import { useChromeMessage } from "../shared/hooks/useChromeMessage";
 import { checkOnboardingStatus, completeOnboarding } from "../shared/services/onboardingService";
-import { WelcomeModal } from "./components/onboarding";
 function App() {
   const [appState, setAppState] = useState(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [_showOnboarding, _setShowOnboarding] = useState(false);
 
   // Check onboarding status on app initialization
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
         const status = await checkOnboardingStatus();
-        setShowOnboarding(!status.isCompleted);
+        _setShowOnboarding(!status.isCompleted);
       } catch (error) {
         console.error("Error checking onboarding status:", error);
-        setShowOnboarding(false);
+        _setShowOnboarding(false);
       }
     };
 
@@ -78,17 +76,17 @@ function App() {
     },
   });
 
-  const handleCompleteOnboarding = async () => {
+  const _handleCompleteOnboarding = async () => {
     try {
       await completeOnboarding();
-      setShowOnboarding(false);
+      _setShowOnboarding(false);
     } catch (error) {
       console.error("Error completing onboarding:", error);
     }
   };
 
-  const handleCloseOnboarding = () => {
-    setShowOnboarding(false);
+  const _handleCloseOnboarding = () => {
+    _setShowOnboarding(false);
   };
 
   return (
