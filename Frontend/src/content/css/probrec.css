@@ -311,6 +311,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   opacity: 0.3 !important;
 
   margin-bottom: 8px !important;
+}
 
 .problem-sidebar-stats {
   display: flex !important;

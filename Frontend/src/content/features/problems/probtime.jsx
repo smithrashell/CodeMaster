@@ -162,15 +162,13 @@ const ProbTime = () => {
       />
       <div className="cm-sidenav__content">
         {previousRoute === "/Timer" ? (
-
           <ProbSubmission />
-        </div>
+        ) : (
+          <ProbDetail isLoading={loading} />
+        )}
       </div>
-    );
-  }
-
-  // For Problem Details, let ProbDetail handle its own structure
-  return <ProbDetail isLoading={loading} />;
+    </div>
+  );
 };
 
 export default ProbTime;
