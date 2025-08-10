@@ -36,7 +36,7 @@ const TOUR_STEPS = [
     id: "cm-button-intro",
     title: "Your CodeMaster Control Center",
     content: "This 'CM' button is your gateway to all CodeMaster features. It's always available when you're on LeetCode.",
-    target: "#cd-menuButton",
+    target: "#cm-menuButton",
     position: "auto",
     highlightType: "spotlight",
     screenKey: "cmButton",
@@ -47,7 +47,7 @@ const TOUR_STEPS = [
     id: "cm-button-interactive",
     title: "Opening the Menu",
     content: "Great! Now click the CM button to see your CodeMaster dashboard. The menu will appear on the right side.",
-    target: "#cd-menuButton",
+    target: "#cm-menuButton",
     position: "auto", 
     highlightType: "pointer",
     screenKey: "cmButton",
@@ -59,7 +59,7 @@ const TOUR_STEPS = [
     id: "navigation-overview",
     title: "Your CodeMaster Dashboard",
     content: "Perfect! This is your CodeMaster menu. Here you can access all the tools to improve your problem-solving skills.",
-    target: "#cd-mySidenav",
+    target: "#cm-mySidenav",
     position: "auto",
     highlightType: "outline",
     screenKey: "navigation",
@@ -192,8 +192,8 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
     if (!isVisible) return;
 
     const checkMenuState = () => {
-      const menuElement = document.querySelector('#cd-mySidenav');
-      const isOpen = menuElement && !menuElement.classList.contains('cd-hidden');
+      const menuElement = document.querySelector('#cm-mySidenav');
+      const isOpen = menuElement && !menuElement.classList.contains('cm-hidden');
       setMenuOpenState(isOpen);
       
       // Debug logging
@@ -212,7 +212,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       });
     });
     
-    const menuElement = document.querySelector('#cd-mySidenav');
+    const menuElement = document.querySelector('#cm-mySidenav');
     if (menuElement) {
       observer.observe(menuElement, { 
         attributes: true, 
@@ -224,7 +224,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
     const bodyObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === 1 && (node.id === 'cd-mySidenav' || node.querySelector('#cd-mySidenav'))) {
+          if (node.nodeType === 1 && (node.id === 'cd-mySidenav' || node.querySelector('#cm-mySidenav'))) {
             setTimeout(checkMenuState, 100);
           }
         });
@@ -252,7 +252,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         setIsWaitingForInteraction(false);
         
         // For CM button click, wait for menu to actually open
-        if (currentStepData.target === "#cd-menuButton") {
+        if (currentStepData.target === "#cm-menuButton") {
           setTimeout(() => {
             handleNext();
           }, 500); // Longer delay for menu animation

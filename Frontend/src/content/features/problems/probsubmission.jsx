@@ -22,21 +22,21 @@ const StyledSelect = styled(Select)({
     },
   },
   "&.MuiInput-underline:before": {
-    borderBottom: "1px solid var(--cd-btn-bg) !important",
+    borderBottom: "1px solid var(--cm-btn-bg) !important",
   },
   "&.MuiInput-underline:hover:not(.Mui-disabled):before": {
-    borderBottom: "2px solid var(--cd-btn-bg) !important",
+    borderBottom: "2px solid var(--cm-btn-bg) !important",
   },
   "&.MuiInput-underline:after": {
-    borderBottom: "2px solid var(--cd-active-blue) !important",
+    borderBottom: "2px solid var(--cm-active-blue) !important",
   },
   "& .MuiSelect-select": {
-    color: "var(--cd-text) !important",
+    color: "var(--cm-text) !important",
     backgroundColor: "transparent !important",
     padding: "8px 0 !important",
   },
   "& .MuiInputBase-root": {
-    color: "var(--cd-text) !important",
+    color: "var(--cm-text) !important",
   },
 });
 

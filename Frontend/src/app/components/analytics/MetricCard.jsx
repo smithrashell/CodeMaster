@@ -15,7 +15,7 @@ export default function MetricCard({ title, value, details }) {
   return (
     <Grid.Col span={4}>
       <Card shadow="sm" p="lg" withBorder>
-        <UnstyledButton onClick={toggle} style={{ width: "100%" }}>
+        <UnstyledButton onClick={toggle} sx={{ width: "100%" }}>
           <Group position="apart">
             <div>
               <Text weight={500} size="lg">

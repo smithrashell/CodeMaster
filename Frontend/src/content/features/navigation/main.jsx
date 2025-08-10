@@ -36,7 +36,7 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   };
   return (
     <button
-      id="cd-menuButton"
+      id="cm-menuButton"
       onClick={handleClick}
       aria-label={handleLabelChange(isAppOpen, isMainMenu)}
       title={handleLabelChange(isAppOpen, isMainMenu)}
@@ -304,11 +304,11 @@ export default function Main() {
         <Outlet />
         {shouldShowNav && (
           <div
-            id="cd-mySidenav"
-            className={isAppOpen ? "cd-sidenav" : "cd-sidenav cd-hidden"}
+            id="cm-mySidenav"
+            className={isAppOpen ? "cm-sidenav" : "cm-sidenav cm-hidden"}
           >
             <Header title="CodeMaster" />
-            <div className="cd-sidenav__content">
+            <div className="cm-sidenav__content">
               <nav id="nav">
                 {/* <Link to="/Strategy">Strategy Map</Link> */}
                 <Link to="/ProbGen">Generator</Link>
@@ -345,17 +345,17 @@ export default function Main() {
                       "Loading..."
                     ) : problemData && problemFound ? (
                       <>
-                        <span className="cd-nav-icon cd-retry-icon"></span>New
+                        <span className="cm-nav-icon cm-retry-icon"></span>New
                         Attempt
                       </>
                     ) : problemData && !problemFound ? (
                       <>
-                        <span className="cd-nav-icon cd-plus-icon"></span>New
+                        <span className="cm-nav-icon cm-plus-icon"></span>New
                         Problem
                       </>
                     ) : (
                       <>
-                        <span className="cd-nav-icon cd-problem-icon"></span>
+                        <span className="cm-nav-icon cm-problem-icon"></span>
                         {problemTitle || currentProblem}
                       </>
                     )}
