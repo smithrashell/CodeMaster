@@ -123,7 +123,7 @@ export default function MasteryDashboard(props) {
           mb="md"
         />
       )}
-      <ScrollArea style={{ maxHeight: 300 }}>
+      <ScrollArea sx={{ maxHeight: 300 }}>
         <Table striped highlightOnHover withBorder withColumnBorders>
           <thead>
             <tr>
@@ -191,7 +191,7 @@ export default function MasteryDashboard(props) {
   );
 
   return (
-    <Tabs style={{ backgroundColor: "white" }} defaultValue="overall">
+    <Tabs sx={{ backgroundColor: "white" }} defaultValue="overall">
       <Tabs.List>
         <Tabs.Tab value="overall">Overall Mastery</Tabs.Tab>
         <Tabs.Tab value="tier">Current Tier Mastery</Tabs.Tab>

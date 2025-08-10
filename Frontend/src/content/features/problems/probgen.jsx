@@ -10,10 +10,12 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <div className="cd-simple-problem-item-container">
-      <div className="cd-simple-problem-item">
-        <button
-          type="button"
+
+    <div className="cm-simple-problem-item-container">
+      <div className="cm-simple-problem-item">
+        <a
+          href="#"
+
           onClick={(e) => {
             onLinkClick(problem);
             e.target.blur(); // Remove focus after click to prevent outline
@@ -24,35 +26,24 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
               }
             }, 0);
           }}
-          className="cd-simple-problem-link"
-          aria-label={`Navigate to ${problem.problemDescription || problem.title} problem. Difficulty: ${problem.difficulty || 'Medium'}${isNewProblem ? '. This is a new problem.' : ''}`}
-          style={{ 
-            background: 'transparent', 
-            border: 'none', 
-            color: 'inherit', 
-            textAlign: 'left',
-            padding: 0,
-            font: 'inherit',
-            cursor: 'pointer',
-            textDecoration: 'none',
-            display: 'block',
-            width: '100%'
-          }}
+
+          className="cm-simple-problem-link"
         >
           {problem.problemDescription || problem.title}
-        </button>
-        <div className="cd-problem-badges">
+        </a>
+        <div className="cm-problem-badges">
+
           {/* Show problem selection reasoning if available - FIRST in badges */}
           {problem.selectionReason && (
             <div
               onMouseEnter={() => setHovered(true)}
               onMouseLeave={() => setHovered(false)}
-              className="cd-problem-info-icon"
+              className="cm-problem-info-icon"
             >
-              <ProblemInfoIcon />
+              <ProblemInfoIcon className="cm-problem-info-icon" />
             </div>
           )}
-          {isNewProblem && <span className="cd-new-tag">NEW</span>}
+          {isNewProblem && <span className="cm-new-tag">NEW</span>}
           <span
             className={`cd-difficulty cd-difficulty-${(
               problem.difficulty || "medium"
@@ -78,7 +69,7 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
               maxWidth: "200px",
               margin: 0,
               fontSize: "0.75rem",
-              color: "var(--cd-text, #ffffff)",
+              color: "var(--cm-text, #ffffff)",
               lineHeight: 1.4,
               wordWrap: "break-word",
               overflowWrap: "anywhere",
@@ -113,41 +104,15 @@ const ProbGen = () => {
 
 
   return (
-    <div id="cd-mySidenav" className="cd-sidenav problink" role="dialog" aria-labelledby="main-heading" aria-modal="true">
-      <div 
-        role="status" 
-        aria-live="assertive" 
-        aria-atomic="true"
-        className="sr-only"
-        style={{ 
-          position: 'absolute', 
-          left: '-10000px', 
-          width: '1px', 
-          height: '1px', 
-          overflow: 'hidden' 
-        }}
-      >
-        {announcement}
-      </div>
+
+    <div id="cm-mySidenav" className="cm-sidenav problink">
       <Header title="Generator" />
-      <main className="cd-sidenav__content" id="main-content" role="main">
-        <div 
-          role="region" 
-          aria-label="Navigation instructions"
-          className="cd-navigation-help sr-only"
-          style={{ 
-            position: 'absolute',
-            left: '-10000px',
-            width: '1px',
-            height: '1px',
-            overflow: 'hidden'
-          }}
-        >
-          Use arrow keys to navigate, Enter to select, Escape to close
-        </div>
+      <div className="cm-sidenav__content ">
         {problems.length > 0 ? (
-          <div className="cd-simple-problems-list" role="list" aria-label={`Available problems for practice. ${problems.length} problems total. Use arrow keys to navigate.`}>
-            {problems.map((problem, index) => {
+          <div className="cm-simple-problems-list">
+            {problems.map((problem) => {
+
+
               const isNewProblem =
                 !problem.attempts || problem.attempts.length === 0;
 

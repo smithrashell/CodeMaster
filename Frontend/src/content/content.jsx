@@ -13,12 +13,12 @@ let appContainer = document.getElementById("root");
 if (!appContainer) {
   appContainer = document.createElement("div");
   appContainer.id = "root";
-  appContainer.className = "app-container cd-extension";
+  appContainer.className = "app-container cm-extension";
   body.prepend(appContainer);
   console.info("container appended");
 } else {
-  // Add cd-extension class to existing container
-  appContainer.classList.add("cd-extension");
+  // Add cm-extension class to existing container
+  appContainer.classList.add("cm-extension");
 }
 
 // create root once

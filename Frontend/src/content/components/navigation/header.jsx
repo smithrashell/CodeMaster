@@ -19,8 +19,8 @@ export default function Header({ title, onClose }) {
       display: "flex",
       alignItems: "center",
       margin: "2px 0px 4px 35px",
-      backgroundColor: "var(--cd-bg)",
-      borderBottom: "1px solid var(--cd-dropdown-bg)",
+      backgroundColor: "var(--cm-bg)",
+      borderBottom: "1px solid var(--cm-dropdown-bg)",
       position: "relative",
       zIndex: 10,
       marginBottom: "4px",
@@ -37,7 +37,7 @@ export default function Header({ title, onClose }) {
     title: {
       fontSize: "18px",
       fontWeight: "600",
-      color: "var(--cd-text)",
+      color: "var(--cm-text)",
       margin: 0,
       textAlign: "center",
       lineHeight: "1.2",
@@ -49,7 +49,7 @@ export default function Header({ title, onClose }) {
       height: "44px", /* Increased for WCAG AA touch target */
       width: "44px", /* Increased for WCAG AA touch target */
       backgroundColor: "transparent",
-      color: "var(--cd-text)",
+      color: "var(--cm-text)",
       opacity: "0.7",
       borderRadius: "6px",
       border: "none",

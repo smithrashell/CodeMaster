@@ -1,7 +1,7 @@
 html,
 body {
   font-family: Arial, sans-serif;
-  background-color: var(--cd-bg);
+  background-color: var(--cm-bg);
   margin: 0;
   padding: 0;
   width: 100%;
@@ -33,7 +33,7 @@ div[style*="display: flex"][style*="width: 100vw"] {
   width: 80%;
   margin: 20px auto;
   padding: 20px;
-  background-color: var(--cd-dropdown-bg);
+  background-color: var(--cm-dropdown-bg);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   border-radius: 5px;
 }
@@ -49,7 +49,7 @@ div[style*="display: flex"][style*="width: 100vw"] {
 }
 
 #output {
-  background-color: var(--cd-bg-alt, var(--cd-bg));
+  background-color: var(--cm-bg-alt, var(--cm-bg));
   padding: 10px;
   border-radius: 4px;
   max-height: 150px;

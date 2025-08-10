@@ -87,12 +87,12 @@ const ProbDetail = (isLoading) => {
 
   if (isLoading && !problemData.leetCodeID) {
     return (
-      <div id="cd-mySidenav" className="cd-sidenav problem-sidebar-view">
+      <div id="cm-mySidenav" className="cm-sidenav problem-sidebar-view">
         <Header title="Problem Details" onClose={handleClose} />
-        <div className="cd-sidenav__content">
+        <div className="cm-sidenav__content">
           <p
             style={{
-              color: "var(--cd-text)",
+              color: "var(--cm-text)",
               textAlign: "center",
               marginTop: "50px",
             }}
@@ -105,10 +105,10 @@ const ProbDetail = (isLoading) => {
   }
 
   return (
-    <div id="cd-mySidenav" className="cd-sidenav problem-sidebar-view">
+    <div id="cm-mySidenav" className="cm-sidenav problem-sidebar-view">
       <Header title="Problem Details" onClose={handleClose} />
 
-      <div className="cd-sidenav__content">
+      <div className="cm-sidenav__content">
         {/* Main Content Card */}
         <div className="problem-sidebar-card">
           <div className="problem-sidebar-card-header">
@@ -149,6 +149,23 @@ const ProbDetail = (isLoading) => {
               </div>
             </div>
           </div>
+            {/* Status Section */}
+        <div className="problem-sidebar-section">
+          <div className="problem-sidebar-status-card">
+            <BrainIcon className="problem-sidebar-status-icon" />
+         
+          
+              <div className="problem-sidebar-status-item">
+                <span className="problem-sidebar-status-label">
+                  Last Solved:
+                </span>
+                <span className="problem-sidebar-status-value">
+                  {problemData?.lastSolved || "Never"}
+                </span>
+        
+            </div>
+          </div>
+        </div>
         </div>
 
         {/* Tags with Strategy Grid */}
@@ -163,28 +180,7 @@ const ProbDetail = (isLoading) => {
         )}
 
 
-        {/* Status Section */}
-        <div className="problem-sidebar-section">
-          <div className="problem-sidebar-status-card">
-            <BrainIcon className="problem-sidebar-status-icon" />
-            <div className="problem-sidebar-status-content">
-              <div className="problem-sidebar-status-item">
-                <span className="problem-sidebar-status-label">Attempts:</span>
-                <span className="problem-sidebar-status-value">
-                  {problemData?.attempts || 0}
-                </span>
-              </div>
-              <div className="problem-sidebar-status-item">
-                <span className="problem-sidebar-status-label">
-                  Last Solved:
-                </span>
-                <span className="problem-sidebar-status-value">
-                  {problemData?.lastSolved || "Never"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+      
 
         {/* Action Buttons */}
         <div className="problem-sidebar-actions">

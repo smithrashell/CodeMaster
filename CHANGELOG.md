@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 ---
 
 
+## [0.10.7] - 2025-08-10
+
+### Enhanced
+
+* **🎨 UI Design System Improvements**: Enhanced visual consistency and user experience across components
+
+  * **Problem Generation Layout**: Fixed icon visibility and text wrapping issues
+    - Made problem info icons properly visible with CSS class targeting
+    - Removed width constraints allowing badges to display fully
+    - Enabled text wrapping for long problem descriptions
+    - Added 5px top/bottom margin for better spacing
+
+  * **Problem Details Refinement**: Improved difficulty badge sizing and positioning
+    - Reduced difficulty pill size (11px → 9px font, 3px → 2px padding)
+    - Added centered text alignment for better visual balance
+    - Maintained theme consistency across light/dark modes
+
+  * **Navigation Theme Integration**: Enhanced theme toggle and menu button styling
+    - Fixed theme toggle icons to use dark gray (#6b7280) in dark mode
+    - Improved theme toggle positioning with 20px left margin
+    - Added rounded corners (8px container, 6px buttons) for consistency
+    - Applied blue primary color (#2563eb) to CodeMaster menu button in dark mode
+    - Enhanced hover effects with smooth transitions and shadows
+
+### Technical Improvements
+
+* **🔧 CSS Architecture Optimization**: Consolidated styling approach for better maintainability
+  * Enhanced Mantine component integration with proper dark mode overrides
+  * Improved CSS specificity targeting for theme components
+  * Added smooth transitions (0.2s ease) for interactive elements
+  * Implemented consistent color schemes using design tokens
+
+---
+
+
 ## [0.10.6] - 2025-08-09
 
 ### Fixed

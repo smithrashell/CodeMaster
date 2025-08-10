@@ -273,7 +273,7 @@ const WhyThisProblem = ({
       default:
         return {
           component: <BrainIcon className="problem-sidebar-section-icon" />,
-          color: "var(--cd-link)",
+          color: "var(--cm-link)",
         };
     }
   };
