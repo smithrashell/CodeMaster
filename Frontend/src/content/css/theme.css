@@ -1,5 +1,6 @@
 /* ========= Default (Light Mode) ========= */
 :root {
+
   --cm-bg: #dceefb;
   --cm-text: #334155;
   --cm-link: #444f5a;
@@ -12,6 +13,7 @@
   --cm-dropdown-color: #334155;
   --cm-dropdown-bg: #ffffff;
   --cm-overlay-z-base: 9990;
+
 }
 
 body {

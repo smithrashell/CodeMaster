@@ -58,10 +58,12 @@
   font-size: clamp(12px, 2.5vw, 16px);
   border: none;
   border-radius: 12px;
+
   width: var(--cm-menu-button-size);
   height: var(--cm-menu-button-size);
   min-width: var(--cm-menu-button-min-size);
   min-height: var(--cm-menu-button-min-size);
+
   display: flex;
   align-items: center;
   justify-content: center;
@@ -140,6 +142,11 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   cursor: pointer;
   z-index: 10000;
   transition: color 0.2s ease;
+  width: 44px; /* WCAG AA touch target */
+  height: 44px; /* WCAG AA touch target */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cm-button--close:hover {
@@ -167,6 +174,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   transform: none;
 }
 
+
 .cm-extension #homeIcon {
   background-color: var(--cm-btn-bg);
   color: var(--cm-btn-text);
@@ -174,8 +182,8 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   font-size: 14px;
   border: none;
   border-radius: 12px;
-  width: 40px;
-  height: 40px;
+  width: 44px; /* Increased for WCAG AA touch target */
+  height: 44px; /* Increased for WCAG AA touch target */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1123,7 +1131,8 @@ body[data-theme="dark"] #cm-menuButton:hover {
   color: var(--cm-btn-text) !important;
   font-size: 10px !important;
   font-weight: bold !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   letter-spacing: 0.2px !important;
@@ -1137,7 +1146,8 @@ body[data-theme="dark"] #cm-menuButton:hover {
   color: var(--cm-btn-text) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   display: inline-block !important;
@@ -1150,7 +1160,8 @@ body[data-theme="dark"] #cm-menuButton:hover {
   color: var(--cm-btn-text) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   display: inline-block !important;
@@ -1163,7 +1174,8 @@ body[data-theme="dark"] #cm-menuButton:hover {
   color: var(--cm-dropdown-color) !important;
   font-size: 10px !important;
   font-weight: 500 !important;
-  padding: 3px 8px !important;
+  padding: 6px 10px !important; /* Balanced for touch target and space */
+  min-height: 36px !important; /* Reduced from 44px to save space */
   border-radius: 8px !important;
   text-transform: capitalize !important;
   display: inline-block !important;
@@ -1211,11 +1223,24 @@ body[data-theme="dark"] .cm-extension .cm-strategy-locked-tag {
   color: #9ca3af !important;
 }
 
+
 /* Strategy Map Container Scrolling */
 .cm-extension .cm-sidenav .cm-sidenav__content {
+
   overflow-y: auto !important;
   max-height: calc(100vh - 80px) !important;
   padding-right: 8px !important;
+}
+
+/* Hide scrollbar for main navigation unless content overflows */
+.cd-extension .cd-sidenav:not(.strategy-map) .cd-sidenav__content {
+  overflow-y: auto !important;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.cd-extension .cd-sidenav:not(.strategy-map) .cd-sidenav__content::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 /* Custom Scrollbar Styling for Strategy Map */

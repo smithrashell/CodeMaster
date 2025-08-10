@@ -1,5 +1,5 @@
 // HeaderWithClose.jsx
-import { Title, ActionIcon } from "@mantine/core";
+import { Title } from "@mantine/core";
 import { useNav } from "../../../shared/provider/navprovider";
 export default function Header({ title, onClose }) {
   const { isAppOpen, setIsAppOpen } = useNav();
@@ -46,8 +46,8 @@ export default function Header({ title, onClose }) {
       height: "36px", // Match the close button height for perfect alignment
     },
     closeButton: {
-      height: "36px",
-      width: "36px",
+      height: "44px", /* Increased for WCAG AA touch target */
+      width: "44px", /* Increased for WCAG AA touch target */
       backgroundColor: "transparent",
       color: "var(--cm-text)",
       opacity: "0.7",
@@ -69,20 +69,28 @@ export default function Header({ title, onClose }) {
     },
   };
   return (
-    <div style={styles.header}>
+    <header style={styles.header} role="banner">
+      <a href="#main-content" className="cd-extension skip-to-content">
+        Skip to main content
+      </a>
       <div style={styles.titleContainer}>
-        <Title order={3} style={styles.title}>
+        <Title order={1} style={styles.title} id="main-heading">
           {title}
         </Title>
       </div>
       <button
         onClick={handleClose}
         style={styles.closeButton}
-        aria-label="Close menu"
-        title="Close menu"
+        aria-label={`Close ${title} panel`}
+        title={`Close ${title} panel`}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            handleClose();
+          }
+        }}
       >
-        <div style={styles.closeIcon}>×</div>
+        <div style={styles.closeIcon} aria-hidden="true">×</div>
       </button>
-    </div>
+    </header>
   );
 }

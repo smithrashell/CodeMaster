@@ -1,5 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../../css/probrec.css";
 import Header from "../../components/navigation/header";
 import { v4 as uuidv4 } from "uuid";
@@ -11,19 +10,29 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
+
     <div className="cm-simple-problem-item-container">
       <div className="cm-simple-problem-item">
         <a
           href="#"
+
           onClick={(e) => {
-            e.preventDefault();
             onLinkClick(problem);
+            e.target.blur(); // Remove focus after click to prevent outline
+            // Force remove focus with timeout to ensure it's gone
+            setTimeout(() => {
+              if (e.target === document.activeElement) {
+                e.target.blur();
+              }
+            }, 0);
           }}
+
           className="cm-simple-problem-link"
         >
           {problem.problemDescription || problem.title}
         </a>
         <div className="cm-problem-badges">
+
           {/* Show problem selection reasoning if available - FIRST in badges */}
           {problem.selectionReason && (
             <div
@@ -74,22 +83,14 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
     </div>
   );
 };
-const ProbGen = (props) => {
-  const { state } = useLocation();
+const ProbGen = () => {
   const [problems, setProblems] = useState([]);
-
-  const navigate = useNavigate();
+  const [announcement, setAnnouncement] = useState('');
 
   // New approach using custom hook
-  const {
-    data: sessionData,
-    loading,
-    error,
-  } = useChromeMessage({ type: "getCurrentSession" }, [], {
+  useChromeMessage({ type: "getCurrentSession" }, [], {
     onSuccess: (response) => {
-      console.log(response);
       if (response.session) {
-        console.log(response.session);
         setProblems(response.session);
       }
     },
@@ -101,30 +102,37 @@ const ProbGen = (props) => {
       `https://leetcode.com/problems/${problem.slug}/description/`;
   };
 
+
   return (
+
     <div id="cm-mySidenav" className="cm-sidenav problink">
       <Header title="Generator" />
       <div className="cm-sidenav__content ">
         {problems.length > 0 ? (
           <div className="cm-simple-problems-list">
             {problems.map((problem) => {
+
+
               const isNewProblem =
                 !problem.attempts || problem.attempts.length === 0;
 
               return (
-                <ProblemItemWithReason
-                  key={uuidv4()}
-                  problem={problem}
-                  isNewProblem={isNewProblem}
-                  onLinkClick={handleLinkClick}
-                />
+                <div key={uuidv4()} role="listitem">
+                  <ProblemItemWithReason
+                    problem={problem}
+                    isNewProblem={isNewProblem}
+                    onLinkClick={handleLinkClick}
+                  />
+                </div>
               );
             })}
           </div>
         ) : (
-          <p>No problems found.</p>
+          <div role="status" aria-live="polite">
+            <p>No problems found. Please generate a new session.</p>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };
