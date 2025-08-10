@@ -6,26 +6,9 @@ import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsServ
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { TagService } from "../src/shared/services/tagServices.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
-// import { buildAndStoreTagGraph } from "../src/shared/db/tag_mastery.js";
-// import { classifyTags } from "../src/shared/db/tag_mastery.js";
-// import { updateStandardProblems } from "../src/shared/db/standard_problems.js";
-// import { updateProblemTags } from "../src/shared/db/standard_problems.js";
-// import { calculateTagMastery } from "../src/shared/db/tag_mastery.js";
-// import { rebuildProblemRelationships } from "../src/shared/db/problem_relationships.js";
-// import { recreateSessions } from "../src/shared/db/sessions.js";
-// import { addStabilityToProblems } from "../src/shared/db/problems.js";
 import { connect } from "chrome-extension-hot-reload";
 import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
-//import { updateProblemsWithRating } from "../src/shared/db/problems.js";
 import { getDashboardStatistics } from "../src/app/services/dashboardService.js";
-// import { updateStandardProblemsFromData } from "../src/shared/db/standard_problems.js";
-// import leetCodeProblems from "./../src/shared/db/LeetCode_Tags_Combined(2).json";
-// import { updateProblemWithTags } from "../src/shared/db/problems.js";
-// import { normalizeTagForStandardProblems } from "../src/shared/db/standard_problems.js";
-// import { generatePatternLaddersAndUpdateTagMastery } from "../src/shared/db/pattern_ladder.js";
-// import { clearOrRenameStoreField } from "../src/shared/utils/Utils.js";
-// import { getSessionPerformance } from "../src/shared/db/sessions.js";
-// import { getLearningState } from "../src/shared/services/dashboardService.js";
 
 connect(); // handles app and popup
 
@@ -192,19 +175,16 @@ const handleRequest = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Storage Handlers ──────────────── **/
-      // TODO: setStorage
       case "setStorage":
         StorageService.set(request.key, request.value)
           .then(sendResponse)
           .finally(finishRequest);
         return true;
-      // TODO: getStorage
       case "getStorage":
         StorageService.get(request.key)
           .then(sendResponse)
           .finally(finishRequest);
         return true;
-      // TODO: removeStorage
       case "removeStorage":
         StorageService.remove(request.key)
           .then(sendResponse)
@@ -222,17 +202,14 @@ const handleRequest = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
       /** ──────────────── User Settings ──────────────── **/
-      // TODO: setSettings
       case "setSettings":
         StorageService.setSettings(request.message)
           .then(sendResponse)
           .finally(finishRequest);
         return true;
-      // TODO: getSettings
       case "getSettings":
         StorageService.getSettings().then(sendResponse).finally(finishRequest);
         return true;
-      // TODO: clearSettingsCache
       case "clearSettingsCache":
         StorageService.clearSettingsCache();
         sendResponse({ status: "success" });
@@ -240,7 +217,6 @@ const handleRequest = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Problems Management ──────────────── **/
-      // TODO: getProblemByDescription
       case "getProblemByDescription":
         console.log(
           "🧼 getProblemByDescription:",
@@ -255,7 +231,6 @@ const handleRequest = async (request, sender, sendResponse) => {
           .catch(() => sendResponse({ error: "Problem not found" }))
           .finally(finishRequest);
         return true;
-      // TODO: countProblemsByBoxLevel
       case "countProblemsByBoxLevel":
         ProblemService.countProblemsByBoxLevel()
           .then((counts) => sendResponse({ status: "success", data: counts }))
@@ -263,7 +238,6 @@ const handleRequest = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
-      // TODO: addProblem
       case "addProblem":
         ProblemService.addOrUpdateProblem(
           request.contentScriptData,
@@ -273,7 +247,6 @@ const handleRequest = async (request, sender, sendResponse) => {
           .catch(() => sendResponse({ error: "Failed to add problem" }))
           .finally(finishRequest);
         return true;
-      // TODO: getAllProblems
       case "getAllProblems":
         ProblemService.getAllProblems()
           .then(sendResponse)
@@ -282,7 +255,6 @@ const handleRequest = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Sessions Management ──────────────── **/
-      // TODO: getSession
       case "getSession":
         SessionService.getSession()
           .then((session) => sendResponse({ session }))
@@ -290,7 +262,6 @@ const handleRequest = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
-      // TODO: getCurrentSession
       case "getCurrentSession":
         // const fileUrl = chrome.runtime.getURL("LeetCode_Tags_Combined.json");
         // console.log("updateStandardProblems");
@@ -419,7 +390,6 @@ const handleRequest = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Limits & Problem Tracking ──────────────── **/
-      // TODO: getLimits
       case "getLimits":
         console.log("🔍 Getting adaptive limits for problem", request.id);
         
@@ -454,7 +424,6 @@ const handleRequest = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Navigation Management ──────────────── **/
-      // TODO: navigate
       case "navigate":
         NavigationService.navigate(request.route, request.time)
           .then(() => sendResponse({ result: "success" }))
@@ -462,7 +431,6 @@ const handleRequest = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
       /** ──────────────── Dashboard Management ──────────────── **/
-      // TODO: getDashboardStatistics
       case "getDashboardStatistics":
         console.log("getDashboardStatistics!!!");
         getDashboardStatistics()

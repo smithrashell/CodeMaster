@@ -28,9 +28,9 @@ const TimerBanner = (props) => {
   const { pathname, state } = useLocation();
   const navigate = useNavigate();
 
-  // Debug: Log the timer state
+  // Timer state management
   useEffect(() => {
-    console.log("🔍 Timer state:", { LeetCodeID: state?.LeetCodeID, Description: state?.Description });
+    // Timer state updates handled here
   }, [state]);
 
   // Use AccurateTimer for all time operations
@@ -45,17 +45,14 @@ const TimerBanner = (props) => {
 
   // Memoize callback functions to prevent re-renders
   const handleHintOpen = useCallback((data) => {
-    console.log("🔍 Strategy hints popover opened:", data);
     // Track popover open event for analytics
   }, []);
 
   const handleHintClose = useCallback((data) => {
-    console.log("❌ Strategy hints popover closed:", data);
     // Track popover close event for analytics
   }, []);
 
   const handleHintClick = useCallback((hintData) => {
-    console.log("🎯 Individual hint clicked in timer:", hintData);
     // Track individual hint clicks for usage analytics
     // This data can be used to:
     // 1. Understand which strategies are most helpful
@@ -90,7 +87,7 @@ const TimerBanner = (props) => {
     [state?.LeetCodeID],
     {
       onSuccess: (response) => {
-        console.log("✅ Adaptive limits received:", response);
+        // Adaptive limits received and processed
         const limitInMinutes = response.limits.Time;
         const limitInSeconds = AccurateTimer.minutesToSeconds(limitInMinutes);
         
@@ -107,20 +104,9 @@ const TimerBanner = (props) => {
         timerRef.current.recommendedLimit = limitInSeconds;
         timerRef.current.isUnlimited = unlimited;
         
-        console.log(`✅ Timer initialized as elapsed time counter. Recommended limit: ${unlimited ? 'NONE' : `${limitInMinutes}min`}`);
+        // Timer initialized as elapsed time counter
         
-        // Log adaptive limits information
-        if (adaptiveLimits) {
-          console.log("📊 Adaptive limits configuration:", {
-            mode: adaptiveLimits.mode,
-            recommendedTime: adaptiveLimits.recommendedTime,
-            minimumTime: adaptiveLimits.minimumTime,
-            maximumTime: adaptiveLimits.maximumTime,
-            isAdaptive: adaptiveLimits.isAdaptive,
-            isUnlimited: adaptiveLimits.isUnlimited,
-            baseTime: adaptiveLimits.baseTime
-          });
-        }
+        // Adaptive limits configured
       },
     }
   );
@@ -160,7 +146,7 @@ const TimerBanner = (props) => {
         }
       }, 1000);
 
-      console.log(`✅ Timer started - elapsed time mode. Warnings: ${isUnlimitedMode ? 'OFF' : 'ON'}`);
+      // Timer started in elapsed time mode
     }
   };
 
@@ -180,13 +166,13 @@ const TimerBanner = (props) => {
   const handleStillWorking = () => {
     setShowStillWorkingPrompt(false);
     setUserIntent("solving");
-    console.log("👤 User indicated still working on solution");
+    // User indicated still working on solution
   };
 
   const handleStuck = () => {
     setShowStillWorkingPrompt(false);
     setUserIntent("stuck");
-    console.log("👤 User indicated stuck - suggesting hints");
+    // User indicated stuck - suggesting hints
     // Could trigger hint system or other help
   };
 
@@ -207,7 +193,7 @@ const TimerBanner = (props) => {
       intervalIdRef.current = null;
     }
 
-    console.log("⏸️ Timer stopped");
+    // Timer stopped
   };
 
   const handleClose = () => {
@@ -236,15 +222,7 @@ const TimerBanner = (props) => {
       problem["userIntent"] = userIntent;
       problem["timeWarningLevel"] = timeWarningLevel;
       
-      console.log("✅ Problem completion:", {
-        elapsedSeconds: timeSpentInSeconds,
-        elapsedMinutes: timeSpentInMinutes,
-        finalTime: problem["Time"],
-        exceededRecommendedTime,
-        overageTime,
-        userIntent,
-        timeWarningLevel
-      });
+      // Problem completion recorded
       
       setOpen(false);
       navigate("/Probtime", { state: problem });
@@ -264,7 +242,7 @@ const TimerBanner = (props) => {
     setUserIntent("solving");
     setExceededRecommendedTime(false);
     
-    console.log(`🔄 Timer reset to 0. Mode: ${isUnlimitedMode ? 'UNLIMITED' : 'WITH WARNINGS'}`);
+    // Timer reset to 0
   };
 
   // Get warning message based on current warning level

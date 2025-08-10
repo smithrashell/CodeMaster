@@ -124,8 +124,7 @@ export default function TimeGranularChartCard({
     );
   }
   if (isPromotionTrendShape(data)) {
-    console.log("🔍 currentData for view:", view, currentData);
-    console.log("🔑 dataKeys:", dataKeys);
+    // Debug: currentData processing for promotion trends
   }
   return (
     <Card shadow="sm" p="lg">

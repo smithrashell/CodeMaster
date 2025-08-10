@@ -21,13 +21,6 @@ const WhyThisProblem = ({
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
-    // Track engagement for analytics
-    if (!isExpanded) {
-      console.log(
-        "📊 Why This Problem section opened for reason:",
-        selectionReason.type
-      );
-    }
   };
 
   /**
