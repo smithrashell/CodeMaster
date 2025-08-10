@@ -752,7 +752,7 @@ StrategyService.performance = performanceMonitor;
 StrategyService.test = StrategyService.testSystem;
 StrategyService.messaging = chromeMessaging;
 
-// Debug utilities
+// Debug utilities with hint analytics
 StrategyService.debug = {
   getCacheStats: () => chromeMessaging.getCacheStats(),
   clearCache: () => chromeMessaging.clearCache(),
@@ -792,7 +792,146 @@ StrategyService.debug = {
     console.log('🔍 Testing direct database access...');
     const diagnostics = new ChromeMessagingDiagnostics();
     return await diagnostics.testDirectDBAccess();
-  }
+  },
+
+  // 📊 HINT ANALYTICS DEBUG FUNCTIONS
+  async getHintStats() {
+    try {
+      console.log('📊 Loading hint interaction statistics...');
+      const { HintInteractionService } = await import('../../../shared/services/hintInteractionService.js');
+      const stats = await HintInteractionService.getSystemAnalytics();
+      
+      console.log('📊 HINT INTERACTION STATS:');
+      console.table(stats.overview);
+      console.log('📈 EFFECTIVENESS BY HINT TYPE:', stats.effectiveness);
+      
+      return stats;
+    } catch (error) {
+      console.error('❌ Error loading hint stats:', error);
+      return { error: error.message };
+    }
+  },
+
+  async generateHintReport() {
+    try {
+      console.log('📋 Generating comprehensive hint effectiveness report...');
+      const { HintAnalyticsService } = await import('../../../shared/services/hintAnalyticsService.js');
+      const report = await HintAnalyticsService.generateEffectivenessReport();
+      
+      console.log('📋 HINT EFFECTIVENESS REPORT:');
+      console.log('━'.repeat(50));
+      console.log(`📊 Summary (${report.dateRange.start.split('T')[0]} to ${report.dateRange.end.split('T')[0]})`);
+      console.log(`   • Total Interactions: ${report.summary.totalInteractions}`);
+      console.log(`   • Unique Problems: ${report.summary.uniqueProblems}`);
+      console.log(`   • Unique Sessions: ${report.summary.uniqueSessions}`);
+      console.log(`   • Avg Engagement Rate: ${(report.summary.averageEngagementRate * 100).toFixed(1)}%`);
+      console.log('━'.repeat(50));
+      
+      if (report.recommendations.length > 0) {
+        console.log('💡 RECOMMENDATIONS:');
+        report.recommendations.forEach((rec, i) => {
+          console.log(`   ${i + 1}. [${rec.priority.toUpperCase()}] ${rec.message}`);
+        });
+        console.log('━'.repeat(50));
+      }
+      
+      if (report.insights.length > 0) {
+        console.log('🔍 KEY INSIGHTS:');
+        report.insights.forEach((insight, i) => {
+          console.log(`   ${i + 1}. ${insight}`);
+        });
+      }
+      
+      return report;
+    } catch (error) {
+      console.error('❌ Error generating hint report:', error);
+      return { error: error.message };
+    }
+  },
+
+  async getMostHelpfulHints() {
+    try {
+      console.log('🏆 Finding most helpful hints...');
+      const { HintAnalyticsService } = await import('../../../shared/services/hintAnalyticsService.js');
+      const helpful = await HintAnalyticsService.getMostHelpfulHints();
+      
+      console.log('🏆 TOP PERFORMING HINTS:');
+      console.table(helpful);
+      
+      return helpful;
+    } catch (error) {
+      console.error('❌ Error getting helpful hints:', error);
+      return { error: error.message };
+    }
+  },
+
+  async getEngagementAnalysis() {
+    try {
+      console.log('📈 Analyzing user engagement patterns...');
+      const { HintAnalyticsService } = await import('../../../shared/services/hintAnalyticsService.js');
+      const engagement = await HintAnalyticsService.getEngagementAnalysis();
+      
+      console.log('📈 ENGAGEMENT ANALYSIS:');
+      console.log(`   Total Interactions: ${engagement.totalInteractions}`);
+      console.log('   Action Distribution:');
+      Object.entries(engagement.engagementMetrics).forEach(([action, rate]) => {
+        console.log(`     ${action}: ${(rate * 100).toFixed(1)}%`);
+      });
+      
+      if (engagement.dropOffPoints) {
+        console.log('   Drop-off Points:');
+        Object.entries(engagement.dropOffPoints).forEach(([point, count]) => {
+          console.log(`     ${point}: ${count}`);
+        });
+      }
+      
+      return engagement;
+    } catch (error) {
+      console.error('❌ Error analyzing engagement:', error);
+      return { error: error.message };
+    }
+  },
+
+  async cleanupOldData(days = 90) {
+    try {
+      console.log(`🧹 Cleaning up hint interaction data older than ${days} days...`);
+      const { HintInteractionService } = await import('../../../shared/services/hintInteractionService.js');
+      const result = await HintInteractionService.cleanupOldData(days);
+      
+      console.log(`✅ Cleanup complete: ${result.deletedCount} old interactions removed`);
+      return result;
+    } catch (error) {
+      console.error('❌ Error cleaning up data:', error);
+      return { error: error.message };
+    }
+  },
+
+  // Quick access functions for common analytics
+  async hintOverview() {
+    console.log('📊 QUICK HINT OVERVIEW:');
+    console.log('Loading analytics...');
+    
+    try {
+      const [stats, helpful, engagement] = await Promise.all([
+        this.getHintStats(),
+        this.getMostHelpfulHints(),
+        this.getEngagementAnalysis(),
+      ]);
+      
+      console.log('━'.repeat(60));
+      console.log('📊 HINT SYSTEM OVERVIEW');
+      console.log('━'.repeat(60));
+      console.log(`📈 Total Interactions: ${stats.overview?.totalInteractions || 'N/A'}`);
+      console.log(`🎯 Most Effective: ${helpful[0]?.hintType || 'N/A'} (${helpful[0]?.engagementRate || 'N/A'})`);
+      console.log(`📱 Expand Rate: ${(engagement.engagementMetrics?.expandRate * 100 || 0).toFixed(1)}%`);
+      console.log('━'.repeat(60));
+      
+      return { stats, helpful, engagement };
+    } catch (error) {
+      console.error('❌ Error loading overview:', error);
+      return { error: error.message };
+    }
+  },
 };
 
 export default StrategyService;

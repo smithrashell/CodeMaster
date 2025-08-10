@@ -11,6 +11,7 @@ import {
 } from "@mantine/core";
 import { IconBook, IconInfoCircle, IconTags } from "@tabler/icons-react";
 import StrategyService from "../../services/strategyService";
+import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
 /**
  * PrimerSection - Displays tag overviews and general strategies before starting a problem
@@ -18,6 +19,7 @@ import StrategyService from "../../services/strategyService";
  */
 const PrimerSection = ({
   problemTags = [],
+  problemId = null,
   isVisible = true,
   className = "",
 }) => {
@@ -41,6 +43,29 @@ const PrimerSection = ({
 
       const tagPrimers = await StrategyService.getTagPrimers(problemTags);
       setPrimers(tagPrimers);
+
+      // Track primer viewing when successfully loaded
+      if (tagPrimers && tagPrimers.length > 0) {
+        try {
+          await HintInteractionService.saveHintInteraction({
+            problemId: problemId || 'unknown',
+            hintId: 'primer-section',
+            hintType: 'primer',
+            primaryTag: problemTags[0] || 'unknown',
+            relatedTag: problemTags.length > 1 ? problemTags[1] : null,
+            content: `Viewed primers for ${problemTags.join(', ')}`,
+            problemTags: problemTags,
+            action: 'viewed',
+            sessionContext: {
+              primerCount: tagPrimers.length,
+              componentType: 'PrimerSection',
+              tagsDisplayed: problemTags,
+            }
+          });
+        } catch (trackingError) {
+          console.warn("Failed to track primer view:", trackingError);
+        }
+      }
     } catch (err) {
       console.error("Error loading primers:", err);
       setError("Failed to load tag information");

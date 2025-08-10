@@ -424,6 +424,7 @@ const TimerBanner = (props) => {
           <div style={{ display: "flex", alignItems: "center" }}>
             <FloatingHintButton
               problemTags={processedTags}
+              problemId={state?.LeetCodeID || null}
               onOpen={handleHintOpen}
               onClose={handleHintClose}
               onHintClick={handleHintClick}
