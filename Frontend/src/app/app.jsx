@@ -44,14 +44,22 @@ import {
   checkOnboardingStatus,
   completeOnboarding,
 } from "../shared/services/onboardingService";
+import { shouldUseMockDashboard } from "./config/mockConfig.js";
+import { getMockDashboardStatistics } from "./services/mockDashboardService.js";
 function App() {
   const [appState, setAppState] = useState(null);
   const [_showOnboarding, _setShowOnboarding] = useState(false);
 
-  // Check onboarding status on app initialization
+  // Check onboarding status on app initialization (skip in mock mode)
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
+        // Skip onboarding in development/mock mode
+        if (shouldUseMockDashboard()) {
+          _setShowOnboarding(false);
+          return;
+        }
+
         const status = await checkOnboardingStatus();
         _setShowOnboarding(!status.isCompleted);
       } catch (error) {
@@ -63,22 +71,54 @@ function App() {
     checkOnboarding();
   }, []);
 
-  // New approach using custom hook - non-blocking data fetch
+  // Initialize data based on mode (mock vs real)
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        if (shouldUseMockDashboard()) {
+          // Use mock data in development
+          // eslint-disable-next-line no-console
+          console.log("🎭 Using mock dashboard data");
+          const mockData = await getMockDashboardStatistics();
+          setAppState(mockData);
+        } else {
+          // Use real Chrome extension data in production
+          // This will be handled by the Chrome message hook below
+        }
+      } catch (error) {
+        console.error("Error initializing dashboard data:", error);
+        setAppState({ statistics: null, progress: null });
+      }
+    };
+
+    initializeData();
+  }, []);
+
+  // Chrome message hook for production data (conditionally used)
   const {
     data: _dashboardData,
     loading: _loading,
     error: _error,
-  } = useChromeMessage({ type: "getDashboardStatistics" }, [], {
-    onSuccess: (response) => {
-      console.info("Dashboard statistics received:", response.result);
-      setAppState(response.result);
-    },
-    onError: (error) => {
-      console.warn("Dashboard statistics failed:", error);
-      // Don't block the app if data fetch fails
-      setAppState({ statistics: null, progress: null });
-    },
-  });
+  } = useChromeMessage(
+    { type: "getDashboardStatistics" }, 
+    [], 
+    {
+      immediate: !shouldUseMockDashboard(), // Only immediate in production
+      onSuccess: (response) => {
+        if (!shouldUseMockDashboard()) {
+          console.info("Dashboard statistics received:", response.result);
+          setAppState(response.result);
+        }
+      },
+      onError: (error) => {
+        if (!shouldUseMockDashboard()) {
+          console.warn("Dashboard statistics failed:", error);
+          // Don't block the app if data fetch fails
+          setAppState({ statistics: null, progress: null });
+        }
+      },
+    }
+  );
 
   const _handleCompleteOnboarding = async () => {
     try {
