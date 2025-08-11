@@ -1,37 +1,37 @@
 /**
  * Resilient Storage Service for CodeMaster
- * 
+ *
  * Implements dual storage strategy with automatic fallback from IndexedDB to Chrome Storage
  * for critical data persistence when IndexedDB becomes unavailable or corrupted.
  */
 
-import { dbHelper } from '../db/index.js';
-import { ChromeAPIErrorHandler } from './ChromeAPIErrorHandler.js';
-import ErrorReportService from './ErrorReportService.js';
-import StorageCompression from '../utils/storageCompression.js';
+import { dbHelper } from "../db/index.js";
+import { ChromeAPIErrorHandler } from "./ChromeAPIErrorHandler.js";
+import ErrorReportService from "./ErrorReportService.js";
+import StorageCompression from "../utils/storageCompression.js";
 
 export class ResilientStorage {
   static STORAGE_MODE = {
-    INDEXEDDB_PRIMARY: 'indexeddb_primary',
-    CHROME_FALLBACK: 'chrome_fallback',
-    MIXED_MODE: 'mixed_mode'
+    INDEXEDDB_PRIMARY: "indexeddb_primary",
+    CHROME_FALLBACK: "chrome_fallback",
+    MIXED_MODE: "mixed_mode",
   };
 
   static DATA_TYPE = {
-    CRITICAL: 'critical',
-    BULK: 'bulk',
-    METADATA: 'metadata'
+    CRITICAL: "critical",
+    BULK: "bulk",
+    METADATA: "metadata",
   };
 
   // Chrome Storage keys for fallback data
   static CHROME_KEYS = {
-    STORAGE_MODE: 'codemaster_storage_mode',
-    CRITICAL_DATA: 'codemaster_critical_data',
-    METADATA: 'codemaster_metadata',
-    HEALTH_STATUS: 'codemaster_health_status',
-    SETTINGS: 'codemaster_settings_backup',
-    SESSION_STATE: 'codemaster_session_backup',
-    RECENT_ATTEMPTS: 'codemaster_recent_attempts'
+    STORAGE_MODE: "codemaster_storage_mode",
+    CRITICAL_DATA: "codemaster_critical_data",
+    METADATA: "codemaster_metadata",
+    HEALTH_STATUS: "codemaster_health_status",
+    SETTINGS: "codemaster_settings_backup",
+    SESSION_STATE: "codemaster_session_backup",
+    RECENT_ATTEMPTS: "codemaster_recent_attempts",
   };
 
   // Storage limits and thresholds
@@ -40,7 +40,7 @@ export class ResilientStorage {
     CHROME_ITEM_MAX_SIZE: 8 * 1024, // 8KB per item
     INDEXEDDB_QUOTA_THRESHOLD: 0.9, // Switch to fallback at 90% quota usage
     HEALTH_CHECK_INTERVAL: 5 * 60 * 1000, // 5 minutes
-    SYNC_INTERVAL: 30 * 1000 // 30 seconds
+    SYNC_INTERVAL: 30 * 1000, // 30 seconds
   };
 
   // Current storage mode
@@ -55,18 +55,23 @@ export class ResilientStorage {
     try {
       // Check last known storage mode
       try {
-        const savedMode = await ChromeAPIErrorHandler.storageGetWithRetry([this.CHROME_KEYS.STORAGE_MODE]);
+        const savedMode = await ChromeAPIErrorHandler.storageGetWithRetry([
+          this.CHROME_KEYS.STORAGE_MODE,
+        ]);
         if (savedMode && savedMode[this.CHROME_KEYS.STORAGE_MODE]) {
           this.currentMode = savedMode[this.CHROME_KEYS.STORAGE_MODE];
         }
       } catch (storageError) {
-        console.warn('Failed to retrieve saved storage mode, using default:', storageError);
+        console.warn(
+          "Failed to retrieve saved storage mode, using default:",
+          storageError
+        );
         // Continue with default mode
       }
 
       // Perform initial health check
       const healthStatus = await this.performHealthCheck();
-      
+
       // Start monitoring intervals
       this.startHealthMonitoring();
       this.startDataSync();
@@ -74,20 +79,19 @@ export class ResilientStorage {
       return {
         success: true,
         mode: this.currentMode,
-        health: healthStatus
+        health: healthStatus,
       };
-
     } catch (error) {
-      console.error('Failed to initialize ResilientStorage:', error);
+      console.error("Failed to initialize ResilientStorage:", error);
       try {
-        await this.handleStorageError('initialization', error);
+        await this.handleStorageError("initialization", error);
       } catch (handlerError) {
-        console.warn('Error handler failed:', handlerError);
+        console.warn("Error handler failed:", handlerError);
       }
       return {
         success: false,
         error: error.message,
-        mode: this.STORAGE_MODE.CHROME_FALLBACK
+        mode: this.STORAGE_MODE.CHROME_FALLBACK,
       };
     }
   }
@@ -97,8 +101,8 @@ export class ResilientStorage {
    */
   static async get(key, dataType = this.DATA_TYPE.CRITICAL) {
     // Validate key
-    if (key === undefined || key === null || key === '') {
-      throw new Error('Key cannot be undefined, null, or empty');
+    if (key === undefined || key === null || key === "") {
+      throw new Error("Key cannot be undefined, null, or empty");
     }
 
     try {
@@ -107,7 +111,7 @@ export class ResilientStorage {
           try {
             return await this.getFromIndexedDB(key);
           } catch (error) {
-            console.warn('IndexedDB get failed, trying Chrome Storage:', error);
+            console.warn("IndexedDB get failed, trying Chrome Storage:", error);
             return await this.getFromChromeStorage(key, dataType);
           }
 
@@ -125,7 +129,7 @@ export class ResilientStorage {
           throw new Error(`Unknown storage mode: ${this.currentMode}`);
       }
     } catch (error) {
-      await this.handleStorageError('get', error, { key, dataType });
+      await this.handleStorageError("get", error, { key, dataType });
       throw error;
     }
   }
@@ -135,8 +139,8 @@ export class ResilientStorage {
    */
   static async set(key, value, dataType = this.DATA_TYPE.CRITICAL) {
     // Validate key
-    if (key === undefined || key === null || key === '') {
-      throw new Error('Key cannot be undefined, null, or empty');
+    if (key === undefined || key === null || key === "") {
+      throw new Error("Key cannot be undefined, null, or empty");
     }
 
     try {
@@ -153,7 +157,10 @@ export class ResilientStorage {
             }
             return;
           } catch (error) {
-            console.warn('IndexedDB set failed, switching to Chrome Storage:', error);
+            console.warn(
+              "IndexedDB set failed, switching to Chrome Storage:",
+              error
+            );
             await this.switchToFallbackMode();
             await this.setInChromeStorage(key, value, dataType, sizeBytes);
             return;
@@ -175,7 +182,7 @@ export class ResilientStorage {
           throw new Error(`Unknown storage mode: ${this.currentMode}`);
       }
     } catch (error) {
-      await this.handleStorageError('set', error, { key, dataType });
+      await this.handleStorageError("set", error, { key, dataType });
       throw error;
     }
   }
@@ -189,21 +196,28 @@ export class ResilientStorage {
 
       // Try to remove from IndexedDB
       if (this.currentMode !== this.STORAGE_MODE.CHROME_FALLBACK) {
-        promises.push(this.removeFromIndexedDB(key).catch(error => {
-          console.warn('Failed to remove from IndexedDB:', error);
-        }));
+        promises.push(
+          this.removeFromIndexedDB(key).catch((error) => {
+            console.warn("Failed to remove from IndexedDB:", error);
+          })
+        );
       }
 
       // Try to remove from Chrome Storage
-      if (dataType === this.DATA_TYPE.CRITICAL || this.currentMode === this.STORAGE_MODE.CHROME_FALLBACK) {
-        promises.push(this.removeFromChromeStorage(key).catch(error => {
-          console.warn('Failed to remove from Chrome Storage:', error);
-        }));
+      if (
+        dataType === this.DATA_TYPE.CRITICAL ||
+        this.currentMode === this.STORAGE_MODE.CHROME_FALLBACK
+      ) {
+        promises.push(
+          this.removeFromChromeStorage(key).catch((error) => {
+            console.warn("Failed to remove from Chrome Storage:", error);
+          })
+        );
       }
 
       await Promise.all(promises);
     } catch (error) {
-      await this.handleStorageError('remove', error, { key, dataType });
+      await this.handleStorageError("remove", error, { key, dataType });
       throw error;
     }
   }
@@ -216,10 +230,10 @@ export class ResilientStorage {
     // For now, using a generic approach
     const db = await dbHelper.openDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['settings'], 'readonly');
-      const store = transaction.objectStore('settings');
+      const transaction = db.transaction(["settings"], "readonly");
+      const store = transaction.objectStore("settings");
       const request = store.get(key);
-      
+
       request.onsuccess = () => {
         resolve(request.result?.data || null);
       };
@@ -230,14 +244,14 @@ export class ResilientStorage {
   static async setInIndexedDB(key, value) {
     const db = await dbHelper.openDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['settings'], 'readwrite');
-      const store = transaction.objectStore('settings');
-      
+      const transaction = db.transaction(["settings"], "readwrite");
+      const store = transaction.objectStore("settings");
+
       const settingsObject = {
         id: key,
         data: value,
         lastUpdated: new Date().toISOString(),
-        source: 'resilient_storage'
+        source: "resilient_storage",
       };
 
       const request = store.put(settingsObject);
@@ -249,10 +263,10 @@ export class ResilientStorage {
   static async removeFromIndexedDB(key) {
     const db = await dbHelper.openDB();
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['settings'], 'readwrite');
-      const store = transaction.objectStore('settings');
+      const transaction = db.transaction(["settings"], "readwrite");
+      const store = transaction.objectStore("settings");
       const request = store.delete(key);
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
@@ -264,17 +278,17 @@ export class ResilientStorage {
   static async getFromChromeStorage(key, dataType) {
     const chromeKey = this.getChromeStorageKey(key, dataType);
     const result = await ChromeAPIErrorHandler.storageGetWithRetry([chromeKey]);
-    return result && result[chromeKey] || null;
+    return (result && result[chromeKey]) || null;
   }
 
   static async setInChromeStorage(key, value, dataType, sizeBytes) {
     const chromeKey = this.getChromeStorageKey(key, dataType);
-    
+
     // Check size limits
     if (sizeBytes > this.LIMITS.CHROME_ITEM_MAX_SIZE) {
       console.warn(`Data too large for Chrome Storage: ${sizeBytes} bytes`);
       // Could implement compression here
-      throw new Error('Data too large for Chrome Storage');
+      throw new Error("Data too large for Chrome Storage");
     }
 
     const items = { [chromeKey]: value };
@@ -284,9 +298,9 @@ export class ResilientStorage {
   static async removeFromChromeStorage(key) {
     const chromeKeys = [
       this.getChromeStorageKey(key, this.DATA_TYPE.CRITICAL),
-      this.getChromeStorageKey(key, this.DATA_TYPE.METADATA)
+      this.getChromeStorageKey(key, this.DATA_TYPE.METADATA),
     ];
-    
+
     return new Promise((resolve) => {
       chrome.storage.local.remove(chromeKeys, () => resolve());
     });
@@ -298,10 +312,15 @@ export class ResilientStorage {
   static async mirrorToChromeStorage(key, value, sizeBytes) {
     try {
       if (sizeBytes <= this.LIMITS.CHROME_ITEM_MAX_SIZE) {
-        await this.setInChromeStorage(key, value, this.DATA_TYPE.CRITICAL, sizeBytes);
+        await this.setInChromeStorage(
+          key,
+          value,
+          this.DATA_TYPE.CRITICAL,
+          sizeBytes
+        );
       }
     } catch (error) {
-      console.warn('Failed to mirror to Chrome Storage:', error);
+      console.warn("Failed to mirror to Chrome Storage:", error);
       // Don't throw - mirroring is best effort
     }
   }
@@ -314,51 +333,53 @@ export class ResilientStorage {
       timestamp: new Date().toISOString(),
       indexedDB: { available: false, quota: null, used: null },
       chromeStorage: { available: false, quota: null, used: null },
-      recommendedMode: this.STORAGE_MODE.INDEXEDDB_PRIMARY
+      recommendedMode: this.STORAGE_MODE.INDEXEDDB_PRIMARY,
     };
 
     // Check IndexedDB
     try {
       await dbHelper.openDB();
       healthStatus.indexedDB.available = true;
-      
+
       // Check quota if available
-      if ('storage' in navigator && 'estimate' in navigator.storage) {
+      if ("storage" in navigator && "estimate" in navigator.storage) {
         const estimate = await navigator.storage.estimate();
         healthStatus.indexedDB.quota = estimate.quota;
         healthStatus.indexedDB.used = estimate.usage;
-        
+
         const usageRatio = estimate.usage / estimate.quota;
         if (usageRatio > this.LIMITS.INDEXEDDB_QUOTA_THRESHOLD) {
           healthStatus.recommendedMode = this.STORAGE_MODE.CHROME_FALLBACK;
         }
       }
     } catch (error) {
-      console.warn('IndexedDB health check failed:', error);
+      console.warn("IndexedDB health check failed:", error);
       healthStatus.recommendedMode = this.STORAGE_MODE.CHROME_FALLBACK;
     }
 
     // Check Chrome Storage
     try {
-      await ChromeAPIErrorHandler.storageGetWithRetry([this.CHROME_KEYS.HEALTH_STATUS]);
+      await ChromeAPIErrorHandler.storageGetWithRetry([
+        this.CHROME_KEYS.HEALTH_STATUS,
+      ]);
       healthStatus.chromeStorage.available = true;
-      
+
       // Estimate Chrome Storage usage
       const allData = await ChromeAPIErrorHandler.storageGetWithRetry(null);
       const totalSize = JSON.stringify(allData).length;
       healthStatus.chromeStorage.used = totalSize;
       healthStatus.chromeStorage.quota = this.LIMITS.CHROME_MAX_SIZE;
     } catch (error) {
-      console.warn('Chrome Storage health check failed:', error);
+      console.warn("Chrome Storage health check failed:", error);
     }
 
     // Store health status
     try {
       await ChromeAPIErrorHandler.storageSetWithRetry({
-        [this.CHROME_KEYS.HEALTH_STATUS]: healthStatus
+        [this.CHROME_KEYS.HEALTH_STATUS]: healthStatus,
       });
     } catch (error) {
-      console.warn('Failed to store health status:', error);
+      console.warn("Failed to store health status:", error);
     }
 
     return healthStatus;
@@ -368,15 +389,15 @@ export class ResilientStorage {
    * Storage mode management
    */
   static async switchToFallbackMode() {
-    console.log('Switching to Chrome Storage fallback mode');
+    console.log("Switching to Chrome Storage fallback mode");
     this.currentMode = this.STORAGE_MODE.CHROME_FALLBACK;
-    
+
     try {
       await ChromeAPIErrorHandler.storageSetWithRetry({
-        [this.CHROME_KEYS.STORAGE_MODE]: this.currentMode
+        [this.CHROME_KEYS.STORAGE_MODE]: this.currentMode,
       });
     } catch (error) {
-      console.warn('Failed to save storage mode:', error);
+      console.warn("Failed to save storage mode:", error);
     }
 
     // Trigger emergency data backup
@@ -384,15 +405,15 @@ export class ResilientStorage {
   }
 
   static async switchToPrimaryMode() {
-    console.log('Switching back to IndexedDB primary mode');
+    console.log("Switching back to IndexedDB primary mode");
     this.currentMode = this.STORAGE_MODE.INDEXEDDB_PRIMARY;
-    
+
     try {
       await ChromeAPIErrorHandler.storageSetWithRetry({
-        [this.CHROME_KEYS.STORAGE_MODE]: this.currentMode
+        [this.CHROME_KEYS.STORAGE_MODE]: this.currentMode,
       });
     } catch (error) {
-      console.warn('Failed to save storage mode:', error);
+      console.warn("Failed to save storage mode:", error);
     }
   }
 
@@ -401,20 +422,20 @@ export class ResilientStorage {
    */
   static async createEmergencyBackup() {
     try {
-      console.log('Creating emergency backup to Chrome Storage');
-      
+      console.log("Creating emergency backup to Chrome Storage");
+
       // Backup critical stores from IndexedDB
       const db = await dbHelper.openDB();
-      const criticalStores = ['settings', 'session_state'];
+      const criticalStores = ["settings", "session_state"];
       const backup = {
         timestamp: new Date().toISOString(),
-        stores: {}
+        stores: {},
       };
 
       for (const storeName of criticalStores) {
         try {
           if (db.objectStoreNames.contains(storeName)) {
-            const transaction = db.transaction([storeName], 'readonly');
+            const transaction = db.transaction([storeName], "readonly");
             const store = transaction.objectStore(storeName);
             const data = await new Promise((resolve, reject) => {
               const request = store.getAll();
@@ -429,11 +450,10 @@ export class ResilientStorage {
       }
 
       await ChromeAPIErrorHandler.storageSetWithRetry({
-        [this.CHROME_KEYS.CRITICAL_DATA]: backup
+        [this.CHROME_KEYS.CRITICAL_DATA]: backup,
       });
-
     } catch (error) {
-      console.error('Emergency backup failed:', error);
+      console.error("Emergency backup failed:", error);
     }
   }
 
@@ -448,15 +468,18 @@ export class ResilientStorage {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
-    
+
     this.healthCheckInterval = setInterval(async () => {
       const health = await this.performHealthCheck();
-      
+
       // Auto-switch modes based on health
       if (health.recommendedMode !== this.currentMode) {
         if (health.recommendedMode === this.STORAGE_MODE.CHROME_FALLBACK) {
           await this.switchToFallbackMode();
-        } else if (health.indexedDB.available && this.currentMode === this.STORAGE_MODE.CHROME_FALLBACK) {
+        } else if (
+          health.indexedDB.available &&
+          this.currentMode === this.STORAGE_MODE.CHROME_FALLBACK
+        ) {
           await this.switchToPrimaryMode();
         }
       }
@@ -467,7 +490,7 @@ export class ResilientStorage {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
     }
-    
+
     this.syncInterval = setInterval(async () => {
       if (this.currentMode === this.STORAGE_MODE.INDEXEDDB_PRIMARY) {
         // Sync metadata to Chrome Storage
@@ -481,32 +504,32 @@ export class ResilientStorage {
       const metadata = {
         lastSync: new Date().toISOString(),
         mode: this.currentMode,
-        version: '1.0'
+        version: "1.0",
       };
-      
+
       await ChromeAPIErrorHandler.storageSetWithRetry({
-        [this.CHROME_KEYS.METADATA]: metadata
+        [this.CHROME_KEYS.METADATA]: metadata,
       });
     } catch (error) {
-      console.warn('Metadata sync failed:', error);
+      console.warn("Metadata sync failed:", error);
     }
   }
 
   static async handleStorageError(operation, error, context = {}) {
     console.error(`ResilientStorage ${operation} error:`, error);
-    
+
     try {
       await ErrorReportService.storeErrorReport({
         errorId: `resilient_storage_${Date.now()}`,
         message: error.message,
         stack: error.stack,
-        section: 'Resilient Storage',
-        errorType: 'storage_operation',
-        severity: 'high',
-        userContext: { operation, ...context }
+        section: "Resilient Storage",
+        errorType: "storage_operation",
+        severity: "high",
+        userContext: { operation, ...context },
       });
     } catch (reportError) {
-      console.warn('Failed to report storage error:', reportError);
+      console.warn("Failed to report storage error:", reportError);
     }
   }
 
@@ -520,8 +543,9 @@ export class ResilientStorage {
       health,
       isIndexedDBAvailable: health.indexedDB.available,
       isChromeStorageAvailable: health.chromeStorage.available,
-      quotaWarning: health.indexedDB.quota && 
-        (health.indexedDB.used / health.indexedDB.quota) > 0.8
+      quotaWarning:
+        health.indexedDB.quota &&
+        health.indexedDB.used / health.indexedDB.quota > 0.8,
     };
   }
 
@@ -534,18 +558,18 @@ export class ResilientStorage {
    */
   static async syncToFallback(options = {}) {
     const {
-      stores = ['settings', 'session_state'],
+      stores = ["settings", "session_state"],
       compress = true,
-      maxItems = 10
+      maxItems = 10,
     } = options;
 
     try {
-      console.log('Starting sync to Chrome Storage fallback');
+      console.log("Starting sync to Chrome Storage fallback");
       const syncResults = {
         timestamp: new Date().toISOString(),
         synced: {},
         errors: {},
-        totalSynced: 0
+        totalSynced: 0,
       };
 
       const db = await dbHelper.openDB();
@@ -553,14 +577,14 @@ export class ResilientStorage {
       for (const storeName of stores) {
         try {
           if (!db.objectStoreNames.contains(storeName)) {
-            syncResults.errors[storeName] = 'Store does not exist in IndexedDB';
+            syncResults.errors[storeName] = "Store does not exist in IndexedDB";
             continue;
           }
 
           // Get recent data from IndexedDB store
-          const transaction = db.transaction([storeName], 'readonly');
+          const transaction = db.transaction([storeName], "readonly");
           const store = transaction.objectStore(storeName);
-          
+
           const data = await new Promise((resolve, reject) => {
             const request = store.getAll();
             request.onsuccess = () => resolve(request.result);
@@ -569,23 +593,26 @@ export class ResilientStorage {
 
           // Limit data to most recent items
           const recentData = data.slice(-maxItems);
-          
+
           // Prepare data for Chrome Storage
           const chromeKey = `${this.CHROME_KEYS.CRITICAL_DATA}_${storeName}`;
-          
+
           if (compress) {
-            const compressionResult = await StorageCompression.prepareForChromeStorage(
-              chromeKey, 
-              recentData,
-              { optimize: true }
-            );
-            
+            const compressionResult =
+              await StorageCompression.prepareForChromeStorage(
+                chromeKey,
+                recentData,
+                { optimize: true }
+              );
+
             if (compressionResult.success) {
-              await ChromeAPIErrorHandler.storageSetWithRetry(compressionResult.items);
+              await ChromeAPIErrorHandler.storageSetWithRetry(
+                compressionResult.items
+              );
               syncResults.synced[storeName] = {
                 items: recentData.length,
                 compressed: true,
-                size: JSON.stringify(recentData).length
+                size: JSON.stringify(recentData).length,
               };
             } else {
               throw new Error(compressionResult.error);
@@ -593,17 +620,16 @@ export class ResilientStorage {
           } else {
             // Direct storage without compression
             await ChromeAPIErrorHandler.storageSetWithRetry({
-              [chromeKey]: recentData
+              [chromeKey]: recentData,
             });
             syncResults.synced[storeName] = {
               items: recentData.length,
               compressed: false,
-              size: JSON.stringify(recentData).length
+              size: JSON.stringify(recentData).length,
             };
           }
 
           syncResults.totalSynced++;
-
         } catch (error) {
           console.warn(`Failed to sync store ${storeName}:`, error);
           syncResults.errors[storeName] = error.message;
@@ -615,15 +641,14 @@ export class ResilientStorage {
         [this.CHROME_KEYS.METADATA]: {
           lastSync: syncResults.timestamp,
           mode: this.currentMode,
-          syncResults
-        }
+          syncResults,
+        },
       });
 
-      console.log('Sync to fallback completed:', syncResults);
+      console.log("Sync to fallback completed:", syncResults);
       return syncResults;
-
     } catch (error) {
-      console.error('Sync to fallback failed:', error);
+      console.error("Sync to fallback failed:", error);
       throw error;
     }
   }
@@ -633,18 +658,18 @@ export class ResilientStorage {
    */
   static async restoreFromFallback(options = {}) {
     const {
-      stores = ['settings', 'session_state'],
+      stores = ["settings", "session_state"],
       overwrite = false,
-      validate = true
+      validate = true,
     } = options;
 
     try {
-      console.log('Starting restore from Chrome Storage fallback');
+      console.log("Starting restore from Chrome Storage fallback");
       const restoreResults = {
         timestamp: new Date().toISOString(),
         restored: {},
         errors: {},
-        totalRestored: 0
+        totalRestored: 0,
       };
 
       const db = await dbHelper.openDB();
@@ -652,11 +677,11 @@ export class ResilientStorage {
       for (const storeName of stores) {
         try {
           const chromeKey = `${this.CHROME_KEYS.CRITICAL_DATA}_${storeName}`;
-          
+
           // Get data from Chrome Storage
           const chromeData = await ChromeAPIErrorHandler.storageGetWithRetry([
-            chromeKey, 
-            `${chromeKey}_metadata`
+            chromeKey,
+            `${chromeKey}_metadata`,
           ]);
 
           let dataToRestore;
@@ -664,11 +689,12 @@ export class ResilientStorage {
           // Check if data was compressed
           if (chromeData[`${chromeKey}_metadata`]) {
             // Decompress data
-            const retrievalResult = await StorageCompression.retrieveFromChromeStorage(
-              chromeKey, 
-              chromeData
-            );
-            
+            const retrievalResult =
+              await StorageCompression.retrieveFromChromeStorage(
+                chromeKey,
+                chromeData
+              );
+
             if (!retrievalResult.success) {
               throw new Error(retrievalResult.error);
             }
@@ -679,22 +705,24 @@ export class ResilientStorage {
           }
 
           if (!dataToRestore || !Array.isArray(dataToRestore)) {
-            restoreResults.errors[storeName] = 'No valid data found in Chrome Storage';
+            restoreResults.errors[storeName] =
+              "No valid data found in Chrome Storage";
             continue;
           }
 
           // Validate data if requested
           if (validate && !this.validateStoreData(storeName, dataToRestore)) {
-            throw new Error('Data validation failed');
+            throw new Error("Data validation failed");
           }
 
           // Restore to IndexedDB
           if (!db.objectStoreNames.contains(storeName)) {
-            restoreResults.errors[storeName] = 'Target store does not exist in IndexedDB';
+            restoreResults.errors[storeName] =
+              "Target store does not exist in IndexedDB";
             continue;
           }
 
-          const transaction = db.transaction([storeName], 'readwrite');
+          const transaction = db.transaction([storeName], "readwrite");
           const store = transaction.objectStore(storeName);
 
           // Clear existing data if overwrite is enabled
@@ -717,28 +745,29 @@ export class ResilientStorage {
               });
               restoredCount++;
             } catch (itemError) {
-              console.warn(`Failed to restore item in ${storeName}:`, itemError);
+              console.warn(
+                `Failed to restore item in ${storeName}:`,
+                itemError
+              );
             }
           }
 
           restoreResults.restored[storeName] = {
             totalItems: dataToRestore.length,
             restoredItems: restoredCount,
-            overwritten: overwrite
+            overwritten: overwrite,
           };
           restoreResults.totalRestored++;
-
         } catch (error) {
           console.warn(`Failed to restore store ${storeName}:`, error);
           restoreResults.errors[storeName] = error.message;
         }
       }
 
-      console.log('Restore from fallback completed:', restoreResults);
+      console.log("Restore from fallback completed:", restoreResults);
       return restoreResults;
-
     } catch (error) {
-      console.error('Restore from fallback failed:', error);
+      console.error("Restore from fallback failed:", error);
       throw error;
     }
   }
@@ -748,39 +777,39 @@ export class ResilientStorage {
    */
   static async performBidirectionalSync(options = {}) {
     const {
-      direction = 'auto', // 'auto', 'to_fallback', 'from_fallback'
-      conflictResolution = 'timestamp' // 'timestamp', 'indexeddb_wins', 'chrome_wins'
+      direction = "auto", // 'auto', 'to_fallback', 'from_fallback'
+      conflictResolution = "timestamp", // 'timestamp', 'indexeddb_wins', 'chrome_wins'
     } = options;
 
     try {
-      console.log('Starting bidirectional synchronization');
-      
+      console.log("Starting bidirectional synchronization");
+
       const health = await this.performHealthCheck();
       let actualDirection = direction;
 
-      if (direction === 'auto') {
+      if (direction === "auto") {
         // Determine sync direction based on health and current mode
         if (!health.indexedDB.available) {
           // Can't sync to IndexedDB, only from it if we have fallback data
-          actualDirection = 'from_fallback';
+          actualDirection = "from_fallback";
         } else if (!health.chromeStorage.available) {
           // Can't sync to Chrome Storage
-          actualDirection = 'to_fallback';
+          actualDirection = "to_fallback";
         } else if (this.currentMode === this.STORAGE_MODE.CHROME_FALLBACK) {
           // Currently in fallback mode, try to restore to IndexedDB
-          actualDirection = 'from_fallback';
+          actualDirection = "from_fallback";
         } else {
           // Normal mode, sync to fallback
-          actualDirection = 'to_fallback';
+          actualDirection = "to_fallback";
         }
       }
 
       let syncResult;
       switch (actualDirection) {
-        case 'to_fallback':
+        case "to_fallback":
           syncResult = await this.syncToFallback(options);
           break;
-        case 'from_fallback':
+        case "from_fallback":
           syncResult = await this.restoreFromFallback(options);
           break;
         default:
@@ -790,11 +819,10 @@ export class ResilientStorage {
       return {
         direction: actualDirection,
         result: syncResult,
-        health
+        health,
       };
-
     } catch (error) {
-      console.error('Bidirectional sync failed:', error);
+      console.error("Bidirectional sync failed:", error);
       throw error;
     }
   }
@@ -802,16 +830,20 @@ export class ResilientStorage {
   /**
    * Resolve synchronization conflicts
    */
-  static async resolveConflicts(indexedDBData, chromeStorageData, strategy = 'timestamp') {
+  static async resolveConflicts(
+    indexedDBData,
+    chromeStorageData,
+    strategy = "timestamp"
+  ) {
     switch (strategy) {
-      case 'timestamp':
+      case "timestamp":
         return this.resolveByTimestamp(indexedDBData, chromeStorageData);
-      case 'indexeddb_wins':
+      case "indexeddb_wins":
         return indexedDBData;
-      case 'chrome_wins':
+      case "chrome_wins":
         return chromeStorageData;
       default:
-        console.warn('Unknown conflict resolution strategy, using timestamp');
+        console.warn("Unknown conflict resolution strategy, using timestamp");
         return this.resolveByTimestamp(indexedDBData, chromeStorageData);
     }
   }
@@ -833,7 +865,9 @@ export class ResilientStorage {
     const indexedDBTime = getTimestamp(indexedDBData);
     const chromeStorageTime = getTimestamp(chromeStorageData);
 
-    return indexedDBTime >= chromeStorageTime ? indexedDBData : chromeStorageData;
+    return indexedDBTime >= chromeStorageTime
+      ? indexedDBData
+      : chromeStorageData;
   }
 
   /**
@@ -844,23 +878,17 @@ export class ResilientStorage {
 
     // Store-specific validation
     switch (storeName) {
-      case 'settings':
-        return data.every(item => 
-          item.id && typeof item.data === 'object'
-        );
-      case 'session_state':
-        return data.every(item => 
-          item.id && item.id !== undefined
-        );
-      case 'attempts':
-        return data.every(item => 
-          item.id && item.problemId && item.sessionId
+      case "settings":
+        return data.every((item) => item.id && typeof item.data === "object");
+      case "session_state":
+        return data.every((item) => item.id && item.id !== undefined);
+      case "attempts":
+        return data.every(
+          (item) => item.id && item.problemId && item.sessionId
         );
       default:
         // Basic validation - each item should be an object
-        return data.every(item => 
-          typeof item === 'object' && item !== null
-        );
+        return data.every((item) => typeof item === "object" && item !== null);
     }
   }
 
@@ -873,21 +901,21 @@ export class ResilientStorage {
       const metadata = {
         lastSync: new Date().toISOString(),
         mode: this.currentMode,
-        version: '1.1',
+        version: "1.1",
         health: {
           indexedDB: health.indexedDB.status,
-          chromeStorage: health.chromeStorage.status
+          chromeStorage: health.chromeStorage.status,
         },
-        syncHistory: this.getSyncHistory()
+        syncHistory: this.getSyncHistory(),
       };
-      
+
       await ChromeAPIErrorHandler.storageSetWithRetry({
-        [this.CHROME_KEYS.METADATA]: metadata
+        [this.CHROME_KEYS.METADATA]: metadata,
       });
 
       return metadata;
     } catch (error) {
-      console.warn('Enhanced metadata sync failed:', error);
+      console.warn("Enhanced metadata sync failed:", error);
       throw error;
     }
   }
@@ -903,7 +931,7 @@ export class ResilientStorage {
       lastFallbackSync: null,
       lastRestoreSync: null,
       totalSyncs: 0,
-      errors: []
+      errors: [],
     };
   }
 
@@ -914,21 +942,21 @@ export class ResilientStorage {
     if (this.syncInterval) {
       clearInterval(this.syncInterval);
     }
-    
+
     this.syncInterval = setInterval(async () => {
       try {
         if (this.currentMode === this.STORAGE_MODE.INDEXEDDB_PRIMARY) {
           // Sync critical data to Chrome Storage for redundancy
           await this.syncToFallback({
-            stores: ['settings', 'session_state'],
+            stores: ["settings", "session_state"],
             compress: true,
-            maxItems: 5
+            maxItems: 5,
           });
         } else if (this.currentMode === this.STORAGE_MODE.CHROME_FALLBACK) {
           // Periodically try to restore to IndexedDB
           const health = await this.performHealthCheck();
           if (health.indexedDB.available) {
-            console.log('IndexedDB available again, attempting restore');
+            console.log("IndexedDB available again, attempting restore");
             await this.restoreFromFallback({ overwrite: false });
             await this.switchToPrimaryMode();
           }
@@ -936,9 +964,8 @@ export class ResilientStorage {
 
         // Update metadata
         await this.syncMetadata();
-
       } catch (error) {
-        console.warn('Periodic sync failed:', error);
+        console.warn("Periodic sync failed:", error);
       }
     }, this.LIMITS.SYNC_INTERVAL);
   }

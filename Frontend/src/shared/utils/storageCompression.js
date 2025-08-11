@@ -1,6 +1,6 @@
 /**
  * Storage Compression Utilities for CodeMaster
- * 
+ *
  * Provides data compression and optimization for Chrome Storage to maximize
  * the available 10MB quota and ensure efficient data storage.
  */
@@ -8,17 +8,17 @@
 export class StorageCompression {
   // Compression methods
   static COMPRESSION_TYPE = {
-    NONE: 'none',
-    JSON_MINIFY: 'json_minify',
-    LZ_STRING: 'lz_string', // Would require library
-    SIMPLE_COMPRESS: 'simple_compress'
+    NONE: "none",
+    JSON_MINIFY: "json_minify",
+    LZ_STRING: "lz_string", // Would require library
+    SIMPLE_COMPRESS: "simple_compress",
   };
 
   // Size thresholds for compression
   static SIZE_THRESHOLDS = {
-    SMALL: 1024,      // 1KB - no compression needed
-    MEDIUM: 4096,     // 4KB - JSON minify
-    LARGE: 8192       // 8KB - full compression
+    SMALL: 1024, // 1KB - no compression needed
+    MEDIUM: 4096, // 4KB - JSON minify
+    LARGE: 8192, // 8KB - full compression
   };
 
   /**
@@ -30,8 +30,11 @@ export class StorageCompression {
       const originalSize = new Blob([originalData]).size;
 
       // Determine compression strategy
-      const compressionType = this.selectCompressionType(originalSize, forceCompression);
-      
+      const compressionType = this.selectCompressionType(
+        originalSize,
+        forceCompression
+      );
+
       let compressedData;
       let metadata;
 
@@ -43,7 +46,7 @@ export class StorageCompression {
             method: this.COMPRESSION_TYPE.NONE,
             originalSize,
             compressedSize: originalSize,
-            ratio: 1.0
+            ratio: 1.0,
           };
           break;
 
@@ -54,7 +57,7 @@ export class StorageCompression {
             method: this.COMPRESSION_TYPE.JSON_MINIFY,
             originalSize,
             compressedSize: new Blob([compressedData]).size,
-            ratio: new Blob([compressedData]).size / originalSize
+            ratio: new Blob([compressedData]).size / originalSize,
           };
           break;
 
@@ -65,7 +68,7 @@ export class StorageCompression {
             method: this.COMPRESSION_TYPE.SIMPLE_COMPRESS,
             originalSize,
             compressedSize: new Blob([compressedData]).size,
-            ratio: new Blob([compressedData]).size / originalSize
+            ratio: new Blob([compressedData]).size / originalSize,
           };
           break;
 
@@ -76,11 +79,10 @@ export class StorageCompression {
       return {
         data: compressedData,
         metadata,
-        success: true
+        success: true,
       };
-
     } catch (error) {
-      console.warn('Compression failed, returning original data:', error);
+      console.warn("Compression failed, returning original data:", error);
       const originalData = JSON.stringify(data);
       return {
         data: originalData,
@@ -90,9 +92,9 @@ export class StorageCompression {
           originalSize: new Blob([originalData]).size,
           compressedSize: new Blob([originalData]).size,
           ratio: 1.0,
-          error: error.message
+          error: error.message,
         },
-        success: false
+        success: false,
       };
     }
   }
@@ -105,7 +107,7 @@ export class StorageCompression {
       if (!metadata.compressed) {
         return {
           data: JSON.parse(compressedData),
-          success: true
+          success: true,
         };
       }
 
@@ -121,20 +123,21 @@ export class StorageCompression {
           break;
 
         default:
-          throw new Error(`Unsupported decompression method: ${metadata.method}`);
+          throw new Error(
+            `Unsupported decompression method: ${metadata.method}`
+          );
       }
 
       return {
         data: JSON.parse(originalData),
-        success: true
+        success: true,
       };
-
     } catch (error) {
-      console.error('Decompression failed:', error);
+      console.error("Decompression failed:", error);
       return {
         data: null,
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -164,7 +167,7 @@ export class StorageCompression {
       const parsed = JSON.parse(jsonString);
       return JSON.stringify(parsed); // This removes all unnecessary whitespace
     } catch (error) {
-      console.warn('JSON minification failed:', error);
+      console.warn("JSON minification failed:", error);
       return jsonString;
     }
   }
@@ -176,7 +179,7 @@ export class StorageCompression {
     try {
       // Replace common patterns in JSON data
       let compressed = data;
-      
+
       // Common JSON patterns
       const patterns = [
         { find: '","', replace: '"|"' },
@@ -185,21 +188,21 @@ export class StorageCompression {
         { find: '":true', replace: '":1' },
         { find: '":false', replace: '":0' },
         { find: '":null', replace: '":n' },
-        { find: 'timestamp', replace: 'ts' },
-        { find: 'sessionId', replace: 'sId' },
-        { find: 'problemId', replace: 'pId' },
-        { find: 'leetCodeID', replace: 'lId' },
-        { find: 'lastUpdated', replace: 'lu' }
+        { find: "timestamp", replace: "ts" },
+        { find: "sessionId", replace: "sId" },
+        { find: "problemId", replace: "pId" },
+        { find: "leetCodeID", replace: "lId" },
+        { find: "lastUpdated", replace: "lu" },
       ];
 
-      patterns.forEach(pattern => {
+      patterns.forEach((pattern) => {
         compressed = compressed.split(pattern.find).join(pattern.replace);
       });
 
       // Add compression marker
       return `SIMPLE_COMPRESSED:${compressed}`;
     } catch (error) {
-      console.warn('Simple compression failed:', error);
+      console.warn("Simple compression failed:", error);
       return data;
     }
   }
@@ -209,11 +212,11 @@ export class StorageCompression {
    */
   static simpleDecompress(compressedData) {
     try {
-      if (!compressedData.startsWith('SIMPLE_COMPRESSED:')) {
+      if (!compressedData.startsWith("SIMPLE_COMPRESSED:")) {
         return compressedData;
       }
 
-      let decompressed = compressedData.substring('SIMPLE_COMPRESSED:'.length);
+      let decompressed = compressedData.substring("SIMPLE_COMPRESSED:".length);
 
       // Reverse the compression patterns
       const patterns = [
@@ -222,20 +225,20 @@ export class StorageCompression {
         { find: '":1', replace: '":true' },
         { find: '":0', replace: '":false' },
         { find: '":n', replace: '":null' },
-        { find: 'ts', replace: 'timestamp' },
-        { find: 'sId', replace: 'sessionId' },
-        { find: 'pId', replace: 'problemId' },
-        { find: 'lId', replace: 'leetCodeID' },
-        { find: 'lu', replace: 'lastUpdated' }
+        { find: "ts", replace: "timestamp" },
+        { find: "sId", replace: "sessionId" },
+        { find: "pId", replace: "problemId" },
+        { find: "lId", replace: "leetCodeID" },
+        { find: "lu", replace: "lastUpdated" },
       ];
 
-      patterns.forEach(pattern => {
+      patterns.forEach((pattern) => {
         decompressed = decompressed.split(pattern.find).join(pattern.replace);
       });
 
       return decompressed;
     } catch (error) {
-      console.warn('Simple decompression failed:', error);
+      console.warn("Simple decompression failed:", error);
       return compressedData;
     }
   }
@@ -249,7 +252,7 @@ export class StorageCompression {
       trimStrings = true,
       roundNumbers = true,
       maxArrayLength = null,
-      maxObjectDepth = null
+      maxObjectDepth = null,
     } = options;
 
     try {
@@ -259,10 +262,10 @@ export class StorageCompression {
         roundNumbers,
         maxArrayLength,
         maxObjectDepth,
-        currentDepth: 0
+        currentDepth: 0,
       });
     } catch (error) {
-      console.warn('Data optimization failed:', error);
+      console.warn("Data optimization failed:", error);
       return data;
     }
   }
@@ -276,34 +279,37 @@ export class StorageCompression {
     }
 
     if (Array.isArray(obj)) {
-      let optimized = obj.map(item => 
-        this.optimizeValue(item, { ...options, currentDepth: options.currentDepth + 1 })
+      let optimized = obj.map((item) =>
+        this.optimizeValue(item, {
+          ...options,
+          currentDepth: options.currentDepth + 1,
+        })
       );
-      
+
       if (options.maxArrayLength && optimized.length > options.maxArrayLength) {
         optimized = optimized.slice(0, options.maxArrayLength);
       }
-      
+
       return optimized;
     }
 
-    if (typeof obj === 'object' && obj !== null) {
+    if (typeof obj === "object" && obj !== null) {
       const optimized = {};
-      
+
       for (const [key, value] of Object.entries(obj)) {
         // Skip null values if requested
         if (options.removeNulls && value === null) {
           continue;
         }
 
-        const optimizedValue = this.optimizeValue(
-          value, 
-          { ...options, currentDepth: options.currentDepth + 1 }
-        );
-        
+        const optimizedValue = this.optimizeValue(value, {
+          ...options,
+          currentDepth: options.currentDepth + 1,
+        });
+
         optimized[key] = optimizedValue;
       }
-      
+
       return optimized;
     }
 
@@ -314,16 +320,16 @@ export class StorageCompression {
    * Optimize individual values
    */
   static optimizeValue(value, options) {
-    if (typeof value === 'string' && options.trimStrings) {
+    if (typeof value === "string" && options.trimStrings) {
       return value.trim();
     }
 
-    if (typeof value === 'number' && options.roundNumbers) {
+    if (typeof value === "number" && options.roundNumbers) {
       // Round to 2 decimal places for floating point numbers
       return Math.round(value * 100) / 100;
     }
 
-    if (typeof value === 'object' && value !== null) {
+    if (typeof value === "object" && value !== null) {
       return this.optimizeObject(value, options);
     }
 
@@ -347,7 +353,7 @@ export class StorageCompression {
       originalSize,
       compressedSize: minifiedSize,
       savings: originalSize - minifiedSize,
-      ratio: minifiedSize / originalSize
+      ratio: minifiedSize / originalSize,
     };
 
     // Simple compression test
@@ -357,7 +363,7 @@ export class StorageCompression {
       originalSize,
       compressedSize: simpleCompressedSize,
       savings: originalSize - simpleCompressedSize,
-      ratio: simpleCompressedSize / originalSize
+      ratio: simpleCompressedSize / originalSize,
     };
 
     // Optimization test
@@ -368,7 +374,7 @@ export class StorageCompression {
       originalSize,
       compressedSize: optimizedSize,
       savings: originalSize - optimizedSize,
-      ratio: optimizedSize / originalSize
+      ratio: optimizedSize / originalSize,
     };
 
     return results;
@@ -377,10 +383,11 @@ export class StorageCompression {
   /**
    * Chunk large data for Chrome Storage item limits
    */
-  static chunkData(data, maxChunkSize = 8000) { // 8KB chunks (safe margin from 8KB limit)
+  static chunkData(data, maxChunkSize = 8000) {
+    // 8KB chunks (safe margin from 8KB limit)
     const serialized = JSON.stringify(data);
     const chunks = [];
-    
+
     for (let i = 0; i < serialized.length; i += maxChunkSize) {
       chunks.push(serialized.substring(i, i + maxChunkSize));
     }
@@ -393,8 +400,8 @@ export class StorageCompression {
         chunked: true,
         totalChunks: chunks.length,
         originalSize: serialized.length,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -406,28 +413,27 @@ export class StorageCompression {
       if (!metadata.chunked) {
         return {
           data: JSON.parse(chunks[0]),
-          success: true
+          success: true,
         };
       }
 
-      const reassembled = chunks.join('');
-      
+      const reassembled = chunks.join("");
+
       // Verify size matches
       if (reassembled.length !== metadata.originalSize) {
-        throw new Error('Chunk assembly size mismatch');
+        throw new Error("Chunk assembly size mismatch");
       }
 
       return {
         data: JSON.parse(reassembled),
-        success: true
+        success: true,
       };
-
     } catch (error) {
-      console.error('Chunk assembly failed:', error);
+      console.error("Chunk assembly failed:", error);
       return {
         data: null,
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -439,7 +445,7 @@ export class StorageCompression {
     const {
       forceCompression = false,
       maxItemSize = 8000,
-      optimize = true
+      optimize = true,
     } = options;
 
     try {
@@ -447,48 +453,50 @@ export class StorageCompression {
       let processedData = optimize ? this.optimizeForStorage(data) : data;
 
       // Step 2: Compress data
-      const compressionResult = this.compressData(processedData, forceCompression);
-      
+      const compressionResult = this.compressData(
+        processedData,
+        forceCompression
+      );
+
       // Step 3: Check if chunking is needed
       const dataSize = new Blob([compressionResult.data]).size;
-      
+
       if (dataSize <= maxItemSize) {
         // Data fits in single item
         return {
           items: {
             [key]: compressionResult.data,
-            [`${key}_metadata`]: compressionResult.metadata
+            [`${key}_metadata`]: compressionResult.metadata,
           },
-          success: true
+          success: true,
         };
       } else {
         // Need to chunk the data
         const chunkResult = this.chunkData(compressionResult.data, maxItemSize);
         const items = {};
-        
+
         // Store chunks
         chunkResult.chunks.forEach((chunk, index) => {
           items[`${key}_chunk_${index}`] = chunk;
         });
-        
+
         // Store combined metadata
         items[`${key}_metadata`] = {
           ...compressionResult.metadata,
-          ...chunkResult.metadata
+          ...chunkResult.metadata,
         };
 
         return {
           items,
-          success: true
+          success: true,
         };
       }
-
     } catch (error) {
-      console.error('Chrome Storage preparation failed:', error);
+      console.error("Chrome Storage preparation failed:", error);
       return {
         items: null,
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -499,9 +507,9 @@ export class StorageCompression {
   static async retrieveFromChromeStorage(key, chromeStorageData) {
     try {
       const metadata = chromeStorageData[`${key}_metadata`];
-      
+
       if (!metadata) {
-        throw new Error('Missing metadata for stored data');
+        throw new Error("Missing metadata for stored data");
       }
 
       let compressedData;
@@ -516,7 +524,7 @@ export class StorageCompression {
           }
           chunks.push(chunk);
         }
-        
+
         const assemblyResult = this.assembleChunks(chunks, metadata);
         if (!assemblyResult.success) {
           throw new Error(assemblyResult.error);
@@ -529,7 +537,7 @@ export class StorageCompression {
 
       // Decompress data
       const decompressionResult = this.decompressData(compressedData, metadata);
-      
+
       if (!decompressionResult.success) {
         throw new Error(decompressionResult.error);
       }
@@ -537,15 +545,14 @@ export class StorageCompression {
       return {
         data: decompressionResult.data,
         metadata,
-        success: true
+        success: true,
       };
-
     } catch (error) {
-      console.error('Chrome Storage retrieval failed:', error);
+      console.error("Chrome Storage retrieval failed:", error);
       return {
         data: null,
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -556,13 +563,13 @@ export class StorageCompression {
   static getCompressionStats(data) {
     const original = JSON.stringify(data);
     const originalSize = new Blob([original]).size;
-    
+
     return {
       originalSize,
       recommendedMethod: this.selectCompressionType(originalSize),
       estimatedSavings: this.estimateCompressionSavings(data),
       canFitInChromeStorage: originalSize <= 8000, // Single item limit
-      wouldNeedChunking: originalSize > 8000
+      wouldNeedChunking: originalSize > 8000,
     };
   }
 }

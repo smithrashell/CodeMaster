@@ -19,14 +19,14 @@ import ChromeAPIErrorHandler from "../services/ChromeAPIErrorHandler";
  * @returns {Object} { data, loading, error, retry, isRetrying, retryCount }
  */
 export const useChromeMessage = (request, deps = [], options = {}) => {
-  const { 
-    immediate = true, 
-    onSuccess, 
+  const {
+    immediate = true,
+    onSuccess,
     onError,
     maxRetries = 3,
     retryDelay = 1000,
     timeout = 10000,
-    showNotifications = true
+    showNotifications = true,
   } = options;
 
   const [data, setData] = useState(null);
@@ -34,7 +34,7 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
   const [error, setError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-  
+
   const timeoutRef = useRef(null);
   const retryTimeoutRef = useRef(null);
   const isMountedRef = useRef(true);
@@ -62,13 +62,16 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
 
     try {
       // Use the ChromeAPIErrorHandler for robust message sending
-      const response = await ChromeAPIErrorHandler.sendMessageWithRetry(request, {
-        maxRetries: maxRetries - currentRetryCount,
-        retryDelay,
-        timeout,
-        showNotifications: false // We'll handle notifications here
-      });
-      
+      const response = await ChromeAPIErrorHandler.sendMessageWithRetry(
+        request,
+        {
+          maxRetries: maxRetries - currentRetryCount,
+          retryDelay,
+          timeout,
+          showNotifications: false, // We'll handle notifications here
+        }
+      );
+
       if (!isMountedRef.current) return;
 
       // Success case
@@ -77,45 +80,44 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
       setIsRetrying(false);
       setRetryCount(currentRetryCount);
       if (onSuccess) onSuccess(response);
-      
     } catch (error) {
       if (!isMountedRef.current) return;
 
-      const errorMessage = error.message || 'Unknown Chrome extension error';
-      
+      const errorMessage = error.message || "Unknown Chrome extension error";
+
       // Final failure after all retries
       setLoading(false);
       setIsRetrying(false);
       setError(errorMessage);
       setRetryCount(maxRetries);
-      
+
       // Show user notification for critical errors
       if (showNotifications) {
-        showErrorNotification(
-          errorMessage,
-          {
-            title: 'Chrome Extension Error',
-            message: `Failed to communicate with extension: ${errorMessage}`,
-            context: 'useChromeMessage',
-            actions: [{
-              label: 'Retry',
+        showErrorNotification(errorMessage, {
+          title: "Chrome Extension Error",
+          message: `Failed to communicate with extension: ${errorMessage}`,
+          context: "useChromeMessage",
+          actions: [
+            {
+              label: "Retry",
               primary: true,
-              onClick: () => retry()
-            }, {
-              label: 'Report Issue',
+              onClick: () => retry(),
+            },
+            {
+              label: "Report Issue",
               onClick: () => {
                 ChromeAPIErrorHandler.showErrorReportDialog({
                   message: request,
                   error: errorMessage,
                   attempts: maxRetries,
-                  timestamp: new Date().toISOString()
+                  timestamp: new Date().toISOString(),
                 });
-              }
-            }]
-          }
-        );
+              },
+            },
+          ],
+        });
       }
-      
+
       if (onError) onError(errorMessage);
     }
   };
@@ -131,13 +133,13 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
     sendMessage();
   }, deps);
 
-  return { 
-    data, 
-    loading, 
-    error, 
-    retry, 
-    isRetrying, 
-    retryCount 
+  return {
+    data,
+    loading,
+    error,
+    retry,
+    isRetrying,
+    retryCount,
   };
 };
 

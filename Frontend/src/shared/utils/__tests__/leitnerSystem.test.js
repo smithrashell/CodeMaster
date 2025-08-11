@@ -9,19 +9,19 @@ import "fake-indexeddb/auto";
 jest.mock("../../../shared/db/problems.js", () => ({
   updateStabilityFSRS: jest.fn(),
   fetchAllProblems: jest.fn(),
-  saveUpdatedProblem: jest.fn()
+  saveUpdatedProblem: jest.fn(),
 }));
 
 jest.mock("../../../shared/db/index.js", () => ({
   dbHelper: {
-    openDB: jest.fn()
-  }
+    openDB: jest.fn(),
+  },
 }));
 
 import {
   calculateLeitnerBox,
   reassessBoxLevel,
-  evaluateAttempts
+  evaluateAttempts,
 } from "../leitnerSystem.js";
 import { dbHelper } from "../../db/index.js";
 import { updateStabilityFSRS } from "../../db/problems.js";
@@ -37,19 +37,19 @@ describe("Leitner System", () => {
 
     // Setup mock database infrastructure
     mockIndex = {
-      openCursor: jest.fn()
+      openCursor: jest.fn(),
     };
 
     mockObjectStore = {
-      index: jest.fn(() => mockIndex)
+      index: jest.fn(() => mockIndex),
     };
 
     mockTransaction = {
-      objectStore: jest.fn(() => mockObjectStore)
+      objectStore: jest.fn(() => mockObjectStore),
     };
 
     mockDB = {
-      transaction: jest.fn(() => mockTransaction)
+      transaction: jest.fn(() => mockTransaction),
     };
 
     dbHelper.openDB.mockResolvedValue(mockDB);
@@ -63,13 +63,13 @@ describe("Leitner System", () => {
         id: "prob-1",
         title: "Test Problem",
         BoxLevel: 1,
-        Difficulty: 0
+        Difficulty: 0,
       };
-      
+
       const attempts = [
         { AttemptDate: "2024-01-01", Success: true, Difficulty: 5 },
         { AttemptDate: "2024-01-02", Success: true, Difficulty: 4 },
-        { AttemptDate: "2024-01-03", Success: true, Difficulty: 3 }
+        { AttemptDate: "2024-01-03", Success: true, Difficulty: 3 },
       ];
 
       // Act
@@ -87,14 +87,14 @@ describe("Leitner System", () => {
       // Arrange
       const problem = {
         id: "prob-1",
-        title: "Test Problem", 
-        boxLevel: 5
+        title: "Test Problem",
+        boxLevel: 5,
       };
 
       const attempts = [
         { AttemptDate: "2024-01-01", Success: false, Difficulty: 8 },
         { AttemptDate: "2024-01-02", Success: false, Difficulty: 9 },
-        { AttemptDate: "2024-01-03", Success: false, Difficulty: 7 }
+        { AttemptDate: "2024-01-03", Success: false, Difficulty: 7 },
       ];
 
       // Act
@@ -113,14 +113,14 @@ describe("Leitner System", () => {
       const problem = {
         id: "prob-1",
         title: "Test Problem",
-        boxLevel: 3
+        boxLevel: 3,
       };
 
       const attempts = [
         { AttemptDate: "2024-01-01", Success: true, Difficulty: 6 },
         { AttemptDate: "2024-01-02", Success: false, Difficulty: 8 },
         { AttemptDate: "2024-01-03", Success: false, Difficulty: 7 },
-        { AttemptDate: "2024-01-04", Success: true, Difficulty: 5 }
+        { AttemptDate: "2024-01-04", Success: true, Difficulty: 5 },
       ];
 
       // Act
@@ -138,12 +138,12 @@ describe("Leitner System", () => {
       const problem = {
         id: "prob-1",
         title: "Test Problem",
-        boxLevel: 8 // Already at max
+        boxLevel: 8, // Already at max
       };
 
       const attempts = [
         { AttemptDate: "2024-01-01", Success: true, Difficulty: 3 },
-        { AttemptDate: "2024-01-02", Success: true, Difficulty: 2 }
+        { AttemptDate: "2024-01-02", Success: true, Difficulty: 2 },
       ];
 
       // Act
@@ -158,13 +158,13 @@ describe("Leitner System", () => {
       const problem = {
         id: "prob-1",
         title: "Test Problem",
-        boxLevel: 1 // Already at minimum
+        boxLevel: 1, // Already at minimum
       };
 
       const attempts = [
         { AttemptDate: "2024-01-01", Success: false, Difficulty: 10 },
         { AttemptDate: "2024-01-02", Success: false, Difficulty: 9 },
-        { AttemptDate: "2024-01-03", Success: false, Difficulty: 8 }
+        { AttemptDate: "2024-01-03", Success: false, Difficulty: 8 },
       ];
 
       // Act
@@ -177,9 +177,9 @@ describe("Leitner System", () => {
     it.skip("should reset consecutive failures after success", () => {
       // Arrange
       const problem = {
-        id: "prob-1", 
+        id: "prob-1",
         title: "Test Problem",
-        boxLevel: 4
+        boxLevel: 4,
       };
 
       const attempts = [
@@ -187,7 +187,7 @@ describe("Leitner System", () => {
         { AttemptDate: "2024-01-02", Success: false, Difficulty: 9 },
         { AttemptDate: "2024-01-03", Success: true, Difficulty: 6 }, // Resets failure count
         { AttemptDate: "2024-01-04", Success: false, Difficulty: 7 },
-        { AttemptDate: "2024-01-05", Success: false, Difficulty: 8 }
+        { AttemptDate: "2024-01-05", Success: false, Difficulty: 8 },
       ];
 
       // Act
@@ -208,16 +208,16 @@ describe("Leitner System", () => {
         AttemptStats: {
           TotalAttempts: 5,
           SuccessfulAttempts: 3,
-          UnsuccessfulAttempts: 2
+          UnsuccessfulAttempts: 2,
         },
         Stability: 2.5,
         CooldownStatus: false,
-        ConsecutiveFailures: 0
+        ConsecutiveFailures: 0,
       };
-      
+
       const lastAttempt = {
         AttemptDate: "2024-01-01T10:00:00Z",
-        Success: true
+        Success: true,
       };
 
       // Act
@@ -238,18 +238,18 @@ describe("Leitner System", () => {
         AttemptStats: {
           TotalAttempts: 0,
           SuccessfulAttempts: 0,
-          UnsuccessfulAttempts: 0
+          UnsuccessfulAttempts: 0,
         },
         Stability: 2.5,
         CooldownStatus: false,
-        ConsecutiveFailures: 0
+        ConsecutiveFailures: 0,
       };
 
       // Act - Use minimal attempt data instead of null
       const minimalAttempt = {
         AttemptDate: new Date().toISOString(),
         Success: false,
-        Difficulty: 1
+        Difficulty: 1,
       };
       const result = await calculateLeitnerBox(problem, minimalAttempt);
 
@@ -267,18 +267,18 @@ describe("Leitner System", () => {
         AttemptStats: {
           TotalAttempts: 3,
           SuccessfulAttempts: 2,
-          UnsuccessfulAttempts: 1
+          UnsuccessfulAttempts: 1,
         },
         Stability: 2.5,
         CooldownStatus: false,
-        ConsecutiveFailures: 0
+        ConsecutiveFailures: 0,
       };
-      
+
       const lastAttempt = {
         AttemptDate: "2024-01-01T10:00:00Z",
         Success: true,
         TimeSpent: 300,
-        Difficulty: 2
+        Difficulty: 2,
       };
 
       // Act
@@ -295,26 +295,26 @@ describe("Leitner System", () => {
       const problem = {
         id: "prob-123",
         title: "Test Problem",
-        boxLevel: 2
+        boxLevel: 2,
       };
 
       const mockAttempts = [
         { AttemptDate: "2024-01-01T10:00:00Z", Success: true, Difficulty: 5 },
         { AttemptDate: "2024-01-02T11:00:00Z", Success: true, Difficulty: 4 },
-        { AttemptDate: "2024-01-03T12:00:00Z", Success: false, Difficulty: 8 }
+        { AttemptDate: "2024-01-03T12:00:00Z", Success: false, Difficulty: 8 },
       ];
 
       // Mock cursor behavior
       let cursorCallCount = 0;
       mockIndex.openCursor.mockImplementation((range, direction) => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       // Simulate cursor traversal
       setTimeout(() => {
         const request = mockIndex.openCursor.mock.results[0].value;
-        
+
         // Simulate cursor results
         const simulateCursorTraversal = () => {
           if (cursorCallCount < mockAttempts.length) {
@@ -323,7 +323,7 @@ describe("Leitner System", () => {
               continue: jest.fn(() => {
                 cursorCallCount++;
                 setTimeout(simulateCursorTraversal, 0);
-              })
+              }),
             };
             if (request.onsuccess) {
               request.onsuccess({ target: { result: mockCursor } });
@@ -335,7 +335,7 @@ describe("Leitner System", () => {
             }
           }
         };
-        
+
         simulateCursorTraversal();
       }, 0);
 
@@ -355,12 +355,12 @@ describe("Leitner System", () => {
       const problem = {
         id: "prob-123",
         title: "Test Problem",
-        boxLevel: 2
+        boxLevel: 2,
       };
 
       mockIndex.openCursor.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       // Simulate database error
@@ -380,12 +380,12 @@ describe("Leitner System", () => {
       const problem = {
         id: "prob-no-attempts",
         title: "Unattempted Problem",
-        boxLevel: 1
+        boxLevel: 1,
       };
 
       mockIndex.openCursor.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       // Simulate no cursor results (empty database)
@@ -414,19 +414,21 @@ describe("Leitner System", () => {
         { boxLevel: 1, expectedMinInterval: 1 },
         { boxLevel: 3, expectedMinInterval: 7 },
         { boxLevel: 5, expectedMinInterval: 30 },
-        { boxLevel: 8, expectedMinInterval: 120 }
+        { boxLevel: 8, expectedMinInterval: 120 },
       ];
 
       testCases.forEach(({ boxLevel, expectedMinInterval }) => {
         const problem = { id: "test", boxLevel, title: "Test" };
-        const attempts = Array(boxLevel).fill().map((_, i) => ({
-          AttemptDate: `2024-01-0${i + 1}`,
-          Success: true,
-          Difficulty: 5
-        }));
+        const attempts = Array(boxLevel)
+          .fill()
+          .map((_, i) => ({
+            AttemptDate: `2024-01-0${i + 1}`,
+            Success: true,
+            Difficulty: 5,
+          }));
 
         const result = reassessBoxLevel(problem, attempts);
-        
+
         // Box level should match expected progression
         expect(result.boxLevel).toBeGreaterThanOrEqual(boxLevel);
       });
@@ -437,7 +439,7 @@ describe("Leitner System", () => {
     it.skip("should handle empty attempts array", () => {
       const problem = { id: "test", boxLevel: 3, title: "Test" };
       const result = reassessBoxLevel(problem, []);
-      
+
       expect(result.AttemptStats.TotalAttempts).toBe(0);
       expect(result.AttemptStats.SuccessfulAttempts).toBe(0);
       expect(result.AttemptStats.UnsuccessfulAttempts).toBe(0);
@@ -448,7 +450,7 @@ describe("Leitner System", () => {
       const problem = { id: "test", boxLevel: 2, title: "Test" };
       const attempts = [
         { AttemptDate: "invalid-date", Success: true, Difficulty: "invalid" },
-        { AttemptDate: "2024-01-01", Success: null, Difficulty: 5 }
+        { AttemptDate: "2024-01-01", Success: null, Difficulty: 5 },
       ];
 
       // Should not throw error
@@ -460,11 +462,11 @@ describe("Leitner System", () => {
       const unsortedAttempts = [
         { AttemptDate: "2024-01-03", Success: true, Difficulty: 5 },
         { AttemptDate: "2024-01-01", Success: false, Difficulty: 8 },
-        { AttemptDate: "2024-01-02", Success: true, Difficulty: 6 }
+        { AttemptDate: "2024-01-02", Success: true, Difficulty: 6 },
       ];
 
       const result = reassessBoxLevel(problem, unsortedAttempts);
-      
+
       // The algorithm should process in chronological order
       // 1st: failure (no change), 2nd: success (+1), 3rd: success (+1)
       expect(result.BoxLevel).toBe(3);

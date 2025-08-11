@@ -13,7 +13,8 @@ export const ScheduleService = {
 
 export async function getDailyReviewSchedule(sessionLength) {
   try {
-    const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();
+    const { focusTags, allTagsInCurrentTier } =
+      await TagService.getCurrentLearningState();
     let allProblems = await fetchAllProblems();
 
     if (!Array.isArray(allProblems)) allProblems = [];

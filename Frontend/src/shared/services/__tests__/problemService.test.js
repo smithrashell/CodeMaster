@@ -1,13 +1,13 @@
 // Mock all dependencies before importing
 jest.mock("../../db/problems");
-jest.mock("../../db/standard_problems");  
+jest.mock("../../db/standard_problems");
 jest.mock("../../db/sessions");
 jest.mock("../../db/tag_mastery");
 jest.mock("../attemptsService");
 jest.mock("../scheduleService", () => ({
   ScheduleService: {
-    getDailyReviewSchedule: jest.fn()
-  }
+    getDailyReviewSchedule: jest.fn(),
+  },
 }));
 jest.mock("../../../content/services/problemReasoningService");
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
@@ -24,7 +24,7 @@ import { ProblemReasoningService } from "../../../content/services/problemReason
 describe("ProblemService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Set up common mocks
     ScheduleService.getDailyReviewSchedule = jest.fn();
   });
@@ -37,39 +37,61 @@ describe("ProblemService", () => {
 
     it("should return problem from problems store when found in both stores", async () => {
       // Arrange
-      const mockStandardProblem = { id: 1, title: "Two Sum", difficulty: "Easy" };
-      const mockProblemInDb = { 
-        id: 1, 
-        title: "Two Sum", 
-        difficulty: "Easy", 
+      const mockStandardProblem = {
+        id: 1,
+        title: "Two Sum",
+        difficulty: "Easy",
+      };
+      const mockProblemInDb = {
+        id: 1,
+        title: "Two Sum",
+        difficulty: "Easy",
         attempts: 5,
-        boxLevel: 2
+        boxLevel: 2,
       };
 
-      standardProblems.getProblemFromStandardProblems.mockResolvedValue(mockStandardProblem);
+      standardProblems.getProblemFromStandardProblems.mockResolvedValue(
+        mockStandardProblem
+      );
       problemsDb.checkDatabaseForProblem.mockResolvedValue(mockProblemInDb);
 
       // Act
-      const result = await ProblemService.getProblemByDescription("Two Sum", "two-sum");
+      const result = await ProblemService.getProblemByDescription(
+        "Two Sum",
+        "two-sum"
+      );
 
       // Assert
-      expect(standardProblems.getProblemFromStandardProblems).toHaveBeenCalledWith("two-sum");
+      expect(
+        standardProblems.getProblemFromStandardProblems
+      ).toHaveBeenCalledWith("two-sum");
       expect(problemsDb.checkDatabaseForProblem).toHaveBeenCalledWith(1);
       expect(result).toEqual({ problem: mockProblemInDb, found: true });
     });
 
     it("should return problem from standard problems when not found in problems store", async () => {
       // Arrange
-      const mockStandardProblem = { id: 1, title: "Two Sum", difficulty: "Easy" };
+      const mockStandardProblem = {
+        id: 1,
+        title: "Two Sum",
+        difficulty: "Easy",
+      };
 
-      standardProblems.getProblemFromStandardProblems.mockResolvedValue(mockStandardProblem);
+      standardProblems.getProblemFromStandardProblems.mockResolvedValue(
+        mockStandardProblem
+      );
       problemsDb.checkDatabaseForProblem.mockResolvedValue(null);
 
       // Act
-      const result = await ProblemService.getProblemByDescription("Two Sum", "two-sum");
+      const result = await ProblemService.getProblemByDescription(
+        "Two Sum",
+        "two-sum"
+      );
 
       // Assert
-      expect(standardProblems.getProblemFromStandardProblems).toHaveBeenCalledWith("two-sum");
+      expect(
+        standardProblems.getProblemFromStandardProblems
+      ).toHaveBeenCalledWith("two-sum");
       expect(problemsDb.checkDatabaseForProblem).toHaveBeenCalledWith(1);
       expect(result).toEqual({ problem: mockStandardProblem, found: false });
     });
@@ -79,10 +101,15 @@ describe("ProblemService", () => {
       standardProblems.getProblemFromStandardProblems.mockResolvedValue(null);
 
       // Act
-      const result = await ProblemService.getProblemByDescription("Non-existent", "non-existent");
+      const result = await ProblemService.getProblemByDescription(
+        "Non-existent",
+        "non-existent"
+      );
 
       // Assert
-      expect(standardProblems.getProblemFromStandardProblems).toHaveBeenCalledWith("non-existent");
+      expect(
+        standardProblems.getProblemFromStandardProblems
+      ).toHaveBeenCalledWith("non-existent");
       expect(problemsDb.checkDatabaseForProblem).not.toHaveBeenCalled();
       expect(result).toEqual({ problem: null, found: false });
     });
@@ -101,7 +128,7 @@ describe("ProblemService", () => {
         leetCodeID: 1,
         title: "Two Sum",
         timeSpent: 1200,
-        success: true
+        success: true,
       };
       const existingProblem = { id: 1, title: "Two Sum", attempts: 3 };
 
@@ -118,7 +145,7 @@ describe("ProblemService", () => {
           id: "test-uuid-123",
           ProblemID: 1,
           TimeSpent: 1200,
-          Success: true
+          Success: true,
         }),
         existingProblem
       );
@@ -131,7 +158,7 @@ describe("ProblemService", () => {
         leetCodeID: 1,
         title: "Two Sum",
         timeSpent: 1200,
-        success: true
+        success: true,
       };
 
       problemsDb.checkDatabaseForProblem.mockResolvedValue(null);
@@ -159,45 +186,49 @@ describe("ProblemService", () => {
         sessionLength: 5,
         numberOfNewProblems: 3,
         currentAllowedTags: ["array", "hash-table"],
-        currentDifficultyCap: "Medium"
+        currentDifficultyCap: "Medium",
+        userFocusAreas: [],
       };
       const mockProblems = [
         { id: 1, title: "Problem 1" },
-        { id: 2, title: "Problem 2" }
+        { id: 2, title: "Problem 2" },
       ];
 
       sessionsDb.buildAdaptiveSessionSettings.mockResolvedValue(mockSettings);
-      ProblemService.fetchAndAssembleSessionProblems.mockResolvedValue(mockProblems);
+      ProblemService.fetchAndAssembleSessionProblems.mockResolvedValue(
+        mockProblems
+      );
 
       // Act
       const result = await ProblemService.createSession();
 
       // Assert
       expect(sessionsDb.buildAdaptiveSessionSettings).toHaveBeenCalled();
-      expect(ProblemService.fetchAndAssembleSessionProblems).toHaveBeenCalledWith(
-        5, 3, ["array", "hash-table"], "Medium"
-      );
+      expect(
+        ProblemService.fetchAndAssembleSessionProblems
+      ).toHaveBeenCalledWith(5, 3, ["array", "hash-table"], "Medium", []);
       expect(result).toEqual(mockProblems);
     });
   });
 
   describe("fetchAndAssembleSessionProblems", () => {
     let addReasoningSpy;
-    
+
     beforeEach(() => {
       // Reset all mocks
       jest.clearAllMocks();
-      
+
       // Setup database mocks
       problemsDb.fetchAllProblems = jest.fn();
       problemsDb.fetchAdditionalProblems = jest.fn();
       ScheduleService.getDailyReviewSchedule = jest.fn();
-      
-      // Setup reasoning service spy  
-      addReasoningSpy = jest.spyOn(ProblemService, "addProblemReasoningToSession")
+
+      // Setup reasoning service spy
+      addReasoningSpy = jest
+        .spyOn(ProblemService, "addProblemReasoningToSession")
         .mockImplementation((problems) => Promise.resolve(problems));
     });
-    
+
     afterEach(() => {
       // Clean up spies
       addReasoningSpy?.mockRestore();
@@ -208,21 +239,26 @@ describe("ProblemService", () => {
       const sessionLength = 5;
       const mockAllProblems = [
         { id: 1, leetCodeID: 1 },
-        { id: 2, leetCodeID: 2 }
+        { id: 2, leetCodeID: 2 },
       ];
       const mockReviewProblems = [{ id: 1, title: "Review Problem" }];
       const mockNewProblems = [
         { id: 3, title: "New Problem 1" },
-        { id: 4, title: "New Problem 2" }
+        { id: 4, title: "New Problem 2" },
       ];
 
       problemsDb.fetchAllProblems.mockResolvedValue(mockAllProblems);
-      ScheduleService.getDailyReviewSchedule.mockResolvedValue(mockReviewProblems);
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue(
+        mockReviewProblems
+      );
       problemsDb.fetchAdditionalProblems.mockResolvedValue(mockNewProblems);
 
       // Act
       const result = await ProblemService.fetchAndAssembleSessionProblems(
-        sessionLength, 3, ["array"], "Medium"
+        sessionLength,
+        3,
+        ["array"],
+        "Medium"
       );
 
       // Assert
@@ -241,9 +277,27 @@ describe("ProblemService", () => {
       // Arrange
       const sessionLength = 3;
       const mockAllProblems = [
-        { id: 1, leetCodeID: 1, ReviewSchedule: '2024-01-01T00:00:00.000Z', AttemptStats: { TotalAttempts: 1, SuccessfulAttempts: 1 }, lastAttemptDate: '2024-01-01T00:00:00.000Z' },
-        { id: 2, leetCodeID: 2, ReviewSchedule: '2024-01-02T00:00:00.000Z', AttemptStats: { TotalAttempts: 2, SuccessfulAttempts: 1 }, lastAttemptDate: '2024-01-02T00:00:00.000Z' },
-        { id: 3, leetCodeID: 3, ReviewSchedule: '2024-01-03T00:00:00.000Z', AttemptStats: { TotalAttempts: 1, SuccessfulAttempts: 0 }, lastAttemptDate: '2024-01-03T00:00:00.000Z' }
+        {
+          id: 1,
+          leetCodeID: 1,
+          ReviewSchedule: "2024-01-01T00:00:00.000Z",
+          AttemptStats: { TotalAttempts: 1, SuccessfulAttempts: 1 },
+          lastAttemptDate: "2024-01-01T00:00:00.000Z",
+        },
+        {
+          id: 2,
+          leetCodeID: 2,
+          ReviewSchedule: "2024-01-02T00:00:00.000Z",
+          AttemptStats: { TotalAttempts: 2, SuccessfulAttempts: 1 },
+          lastAttemptDate: "2024-01-02T00:00:00.000Z",
+        },
+        {
+          id: 3,
+          leetCodeID: 3,
+          ReviewSchedule: "2024-01-03T00:00:00.000Z",
+          AttemptStats: { TotalAttempts: 1, SuccessfulAttempts: 0 },
+          lastAttemptDate: "2024-01-03T00:00:00.000Z",
+        },
       ];
 
       problemsDb.fetchAllProblems.mockResolvedValue(mockAllProblems);
@@ -252,15 +306,20 @@ describe("ProblemService", () => {
 
       // Act
       const result = await ProblemService.fetchAndAssembleSessionProblems(
-        sessionLength, 3, ["array"], "Medium"
+        sessionLength,
+        3,
+        ["array"],
+        "Medium"
       );
 
       // Assert - Should use fallback logic to fill session
       expect(result).toHaveLength(sessionLength);
-      expect(result.every(p => p.id)).toBe(true); // All problems should have IDs
-      expect(result).toEqual(expect.arrayContaining([
-        expect.objectContaining({ id: expect.any(Number) })
-      ]));
+      expect(result.every((p) => p.id)).toBe(true); // All problems should have IDs
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ id: expect.any(Number) }),
+        ])
+      );
     });
   });
 
@@ -270,7 +329,7 @@ describe("ProblemService", () => {
       const tagMasteryData = [
         { tag: "Array", successRate: 0.8, totalAttempts: 10 },
         { tag: "Hash-Table", successRate: 0.5, totalAttempts: 4 },
-        { tag: "Dynamic-Programming", successRate: 0.9, totalAttempts: 2 }
+        { tag: "Dynamic-Programming", successRate: 0.9, totalAttempts: 2 },
       ];
 
       // Act
@@ -281,15 +340,15 @@ describe("ProblemService", () => {
         weakTags: ["hash-table"], // Below 0.7 and >= 3 attempts
         newTags: ["dynamic-programming"], // < 3 attempts
         tagAccuracy: {
-          "array": 0.8,
+          array: 0.8,
           "hash-table": 0.5,
-          "dynamic-programming": 0.9
+          "dynamic-programming": 0.9,
         },
         tagAttempts: {
-          "array": 10,
+          array: 10,
           "hash-table": 4,
-          "dynamic-programming": 2
-        }
+          "dynamic-programming": 2,
+        },
       });
     });
 
@@ -302,7 +361,7 @@ describe("ProblemService", () => {
         weakTags: [],
         newTags: [],
         tagAccuracy: {},
-        tagAttempts: {}
+        tagAttempts: {},
       });
     });
 
@@ -315,7 +374,7 @@ describe("ProblemService", () => {
         weakTags: [],
         newTags: [],
         tagAccuracy: {},
-        tagAttempts: {}
+        tagAttempts: {},
       });
     });
   });
@@ -325,7 +384,7 @@ describe("ProblemService", () => {
       tagMasteryDb.getTagMastery = jest.fn();
       ProblemReasoningService.generateSessionReasons = jest.fn();
       jest.spyOn(ProblemService, "buildUserPerformanceContext");
-      
+
       // Reset the spy from the previous describe block
       ProblemService.addProblemReasoningToSession.mockRestore?.();
     });
@@ -334,27 +393,36 @@ describe("ProblemService", () => {
       // Arrange
       const problems = [
         { id: 1, title: "Problem 1", tags: ["array"] },
-        { id: 2, title: "Problem 2", tags: ["hash-table"] }
+        { id: 2, title: "Problem 2", tags: ["hash-table"] },
       ];
       const sessionContext = { sessionLength: 5, reviewCount: 2, newCount: 3 };
-      const mockTagMastery = [{ tag: "array", successRate: 0.8, totalAttempts: 5 }];
+      const mockTagMastery = [
+        { tag: "array", successRate: 0.8, totalAttempts: 5 },
+      ];
       const mockUserPerformance = { weakTags: [], newTags: [] };
 
       tagMasteryDb.getTagMastery.mockResolvedValue(mockTagMastery);
-      ProblemService.buildUserPerformanceContext.mockReturnValue(mockUserPerformance);
+      ProblemService.buildUserPerformanceContext.mockReturnValue(
+        mockUserPerformance
+      );
       ProblemReasoningService.generateSessionReasons.mockReturnValue(
-        problems.map(p => ({ ...p, selectionReason: "Test reason" }))
+        problems.map((p) => ({ ...p, selectionReason: "Test reason" }))
       );
 
       // Act
-      const result = await ProblemService.addProblemReasoningToSession(problems, sessionContext);
+      const result = await ProblemService.addProblemReasoningToSession(
+        problems,
+        sessionContext
+      );
 
       // Assert
       expect(tagMasteryDb.getTagMastery).toHaveBeenCalled();
-      expect(ProblemService.buildUserPerformanceContext).toHaveBeenCalledWith(mockTagMastery);
-      expect(ProblemReasoningService.generateSessionReasons).toHaveBeenCalledWith(
-        problems, sessionContext, mockUserPerformance
+      expect(ProblemService.buildUserPerformanceContext).toHaveBeenCalledWith(
+        mockTagMastery
       );
+      expect(
+        ProblemReasoningService.generateSessionReasons
+      ).toHaveBeenCalledWith(problems, sessionContext, mockUserPerformance);
       expect(result).toHaveLength(2);
       expect(result[0].selectionReason).toBe("Test reason");
     });
@@ -367,7 +435,10 @@ describe("ProblemService", () => {
       tagMasteryDb.getTagMastery.mockRejectedValue(new Error("Database error"));
 
       // Act
-      const result = await ProblemService.addProblemReasoningToSession(problems, sessionContext);
+      const result = await ProblemService.addProblemReasoningToSession(
+        problems,
+        sessionContext
+      );
 
       // Assert
       expect(result).toEqual(problems);
@@ -380,16 +451,20 @@ describe("ProblemService", () => {
       const session = {
         problems: [
           { id: 1, title: "Problem 1", difficulty: "Easy" },
-          { id: 2, title: "Problem 2", difficulty: "Medium" }
-        ]
+          { id: 2, title: "Problem 2", difficulty: "Medium" },
+        ],
       };
-      const updatedProblem = { id: 1, title: "Problem 1 Updated", difficulty: "Easy" };
+      const updatedProblem = {
+        id: 1,
+        title: "Problem 1 Updated",
+        difficulty: "Easy",
+      };
       const attemptId = "attempt-123";
 
       // Act
       const result = await ProblemService.addOrUpdateProblemInSession(
-        session, 
-        { leetCodeID: 1, ...updatedProblem }, 
+        session,
+        { leetCodeID: 1, ...updatedProblem },
         attemptId
       );
 
@@ -404,16 +479,16 @@ describe("ProblemService", () => {
       const session = {
         problems: [
           { id: 1, title: "Problem 1" },
-          { id: 2, title: "Problem 2" }
-        ]
+          { id: 2, title: "Problem 2" },
+        ],
       };
       const newProblem = { id: 3, title: "Problem 3" };
       const attemptId = "attempt-123";
 
       // Act
       const result = await ProblemService.addOrUpdateProblemInSession(
-        session, 
-        { leetCodeID: 3, ...newProblem }, 
+        session,
+        { leetCodeID: 3, ...newProblem },
         attemptId
       );
 
@@ -456,7 +531,7 @@ describe("ProblemService Retry-Enabled Methods", () => {
         leetCodeID: 123,
         title: "Test Problem",
         success: true,
-        timeSpent: 1500
+        timeSpent: 1500,
       };
       const mockResult = { id: 123, success: true };
       const mockSendResponse = jest.fn();
@@ -465,7 +540,7 @@ describe("ProblemService Retry-Enabled Methods", () => {
 
       // Act
       const result = await ProblemService.addOrUpdateProblemWithRetry(
-        contentScriptData, 
+        contentScriptData,
         mockSendResponse
       );
 
@@ -474,14 +549,14 @@ describe("ProblemService Retry-Enabled Methods", () => {
         contentScriptData,
         expect.objectContaining({
           timeout: 10000,
-          priority: 'high',
-          operationName: 'ProblemService.addOrUpdateProblem'
+          priority: "high",
+          operationName: "ProblemService.addOrUpdateProblem",
         })
       );
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: true,
         message: "Problem added successfully",
-        data: mockResult
+        data: mockResult,
       });
       expect(result).toEqual(mockResult);
     });
@@ -496,12 +571,15 @@ describe("ProblemService Retry-Enabled Methods", () => {
 
       // Act & Assert
       await expect(
-        ProblemService.addOrUpdateProblemWithRetry(contentScriptData, mockSendResponse)
+        ProblemService.addOrUpdateProblemWithRetry(
+          contentScriptData,
+          mockSendResponse
+        )
       ).rejects.toThrow("Database connection failed");
-      
+
       expect(mockSendResponse).toHaveBeenCalledWith({
         success: false,
-        error: "Failed to add problem: Database connection failed"
+        error: "Failed to add problem: Database connection failed",
       });
     });
   });
@@ -516,37 +594,41 @@ describe("ProblemService Retry-Enabled Methods", () => {
     it("should find problem with retry logic", async () => {
       // Arrange
       const mockStandardProblem = { id: 1, title: "Test Problem" };
-      const mockFullProblem = { 
-        id: 1, 
-        title: "Test Problem", 
-        attempts: 3, 
-        boxLevel: 2 
+      const mockFullProblem = {
+        id: 1,
+        title: "Test Problem",
+        attempts: 3,
+        boxLevel: 2,
       };
 
-      standardProblems.getProblemFromStandardProblems.mockResolvedValue(mockStandardProblem);
+      standardProblems.getProblemFromStandardProblems.mockResolvedValue(
+        mockStandardProblem
+      );
       problemsDb.checkDatabaseForProblemWithRetry.mockResolvedValue(true);
       problemsDb.getProblemWithRetry.mockResolvedValue(mockFullProblem);
 
       // Act
       const result = await ProblemService.getProblemByDescriptionWithRetry(
-        "Test Problem", 
+        "Test Problem",
         "test-problem"
       );
 
       // Assert
-      expect(standardProblems.getProblemFromStandardProblems).toHaveBeenCalledWith("test-problem");
+      expect(
+        standardProblems.getProblemFromStandardProblems
+      ).toHaveBeenCalledWith("test-problem");
       expect(problemsDb.checkDatabaseForProblemWithRetry).toHaveBeenCalledWith(
         1,
         expect.objectContaining({
           timeout: 5000,
-          priority: 'normal',
-          operationName: 'ProblemService.checkDatabaseForProblem'
+          priority: "normal",
+          operationName: "ProblemService.checkDatabaseForProblem",
         })
       );
       expect(problemsDb.getProblemWithRetry).toHaveBeenCalledWith(
         1,
         expect.objectContaining({
-          operationName: 'ProblemService.getProblem'
+          operationName: "ProblemService.getProblem",
         })
       );
       expect(result).toEqual({ problem: mockFullProblem, found: true });
@@ -562,25 +644,25 @@ describe("ProblemService Retry-Enabled Methods", () => {
       // Arrange
       const mockProblems = [
         { id: 1, title: "Problem 1" },
-        { id: 2, title: "Problem 2" }
+        { id: 2, title: "Problem 2" },
       ];
-      
+
       problemsDb.fetchAllProblemsWithRetry.mockResolvedValue(mockProblems);
 
       // Act
       const result = await ProblemService.getAllProblemsWithRetry({
         timeout: 20000,
-        priority: 'high'
+        priority: "high",
       });
 
       // Assert
       expect(problemsDb.fetchAllProblemsWithRetry).toHaveBeenCalledWith({
         timeout: 20000,
-        priority: 'high',
+        priority: "high",
         abortController: null,
         streaming: false,
         onProgress: null,
-        operationName: 'ProblemService.getAllProblems'
+        operationName: "ProblemService.getAllProblems",
       });
       expect(result).toEqual(mockProblems);
     });
@@ -588,17 +670,27 @@ describe("ProblemService Retry-Enabled Methods", () => {
 
   describe("generateSessionWithRetry", () => {
     beforeEach(() => {
-      jest.spyOn(ProblemService, 'getAllProblemsWithRetry');
+      jest.spyOn(ProblemService, "getAllProblemsWithRetry");
     });
 
     it("should generate session with retry and filtering", async () => {
       // Arrange
       const mockAllProblems = [
         { id: 1, difficulty: "Easy", tags: ["array"], review: "2024-01-01" },
-        { id: 2, difficulty: "Medium", tags: ["hash-table"], review: "2024-01-02" },
-        { id: 3, difficulty: "Hard", tags: ["dynamic-programming"], review: "2024-01-03" }
+        {
+          id: 2,
+          difficulty: "Medium",
+          tags: ["hash-table"],
+          review: "2024-01-02",
+        },
+        {
+          id: 3,
+          difficulty: "Hard",
+          tags: ["dynamic-programming"],
+          review: "2024-01-03",
+        },
       ];
-      
+
       ProblemService.getAllProblemsWithRetry.mockResolvedValue(mockAllProblems);
 
       // Act
@@ -606,14 +698,14 @@ describe("ProblemService Retry-Enabled Methods", () => {
         sessionLength: 2,
         difficulty: "Easy",
         tags: ["array"],
-        timeout: 15000
+        timeout: 15000,
       });
 
       // Assert
       expect(ProblemService.getAllProblemsWithRetry).toHaveBeenCalledWith(
         expect.objectContaining({
           timeout: 15000,
-          priority: 'high'
+          priority: "high",
         })
       );
       expect(result).toHaveLength(1); // Only Easy array problems
@@ -628,7 +720,7 @@ describe("ProblemService Retry-Enabled Methods", () => {
       // Act & Assert
       await expect(
         ProblemService.generateSessionWithRetry({}, abortController)
-      ).rejects.toThrow('Session generation cancelled before start');
+      ).rejects.toThrow("Session generation cancelled before start");
     });
   });
 
@@ -640,7 +732,7 @@ describe("ProblemService Retry-Enabled Methods", () => {
       // Assert
       expect(controller).toBeInstanceOf(AbortController);
       expect(controller.signal).toBeDefined();
-      expect(typeof controller.abort).toBe('function');
+      expect(typeof controller.abort).toBe("function");
     });
   });
 });

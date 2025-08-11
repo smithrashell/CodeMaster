@@ -34,7 +34,8 @@ export async function initializePatternLaddersForOnboarding() {
     return;
   }
 
-  const { allTagsInCurrentTier, focusTags } = await TagService.getCurrentLearningState();
+  const { allTagsInCurrentTier, focusTags } =
+    await TagService.getCurrentLearningState();
 
   const focusTagSet = new Set(focusTags);
   const allTagsInTierSet = new Set(allTagsInCurrentTier);

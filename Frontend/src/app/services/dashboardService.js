@@ -14,17 +14,18 @@ export async function getDashboardStatistics() {
     const allStandardProblems = await getAllStandardProblems();
     const learningState = await TagService.getCurrentLearningState();
     let boxLevelData = await ProblemService.countProblemsByBoxLevel();
-    
+
     // Create mapping from problem ID to official difficulty
     const problemDifficultyMap = {};
     const standardProblemsMap = {};
     allStandardProblems.forEach((standardProblem) => {
       standardProblemsMap[standardProblem.id] = standardProblem;
     });
-    
+
     allProblems.forEach((problem) => {
       const standardProblem = standardProblemsMap[problem.leetCodeID];
-      problemDifficultyMap[problem.id] = standardProblem?.difficulty || "Medium";
+      problemDifficultyMap[problem.id] =
+        standardProblem?.difficulty || "Medium";
     });
 
     const statistics = {
@@ -92,7 +93,9 @@ export async function getDashboardStatistics() {
 
     // Calculate average time in minutes for display (convert from seconds)
     const calculateAverage = (totalTimeInSeconds, count) =>
-      count > 0 ? AccurateTimer.secondsToMinutes(totalTimeInSeconds / count, 1) : 0;
+      count > 0
+        ? AccurateTimer.secondsToMinutes(totalTimeInSeconds / count, 1)
+        : 0;
 
     const calculateSuccessRate = (successful, total) =>
       total > 0 ? parseInt((successful / total) * 100) : 0;

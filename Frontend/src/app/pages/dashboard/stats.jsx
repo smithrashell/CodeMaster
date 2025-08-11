@@ -8,6 +8,8 @@ import {
   getAttemptBreakdownData,
 } from "../../../shared/utils/DataAdapter.js";
 import { checkContentOnboardingStatus } from "../../../shared/services/onboardingService.js";
+import { shouldUseMockDashboard } from "../../config/mockConfig.js";
+import { FocusAreasDisplay } from "../../components/dashboard/FocusAreasDisplay.jsx";
 export function Stats({ appState }) {
   const [statistics, setStatistics] = useState(appState?.statistics);
   const [averageTime, setAverageTime] = useState(appState?.averageTime);
@@ -98,8 +100,17 @@ export function Stats({ appState }) {
     (statistics?.totalSolved > 0 || (allSessions && allSessions.length > 0));
 
   // Show "Start First Session" if no data OR content onboarding not completed
+  // BUT NOT in development/mock mode
   const showStartSessionButton =
-    !hasData || contentOnboardingCompleted === false;
+    (!hasData || contentOnboardingCompleted === false) && !shouldUseMockDashboard();
+  
+  console.log("📊 STATS PAGE DEBUG:", {
+    hasData,
+    contentOnboardingCompleted,
+    mockMode: shouldUseMockDashboard(),
+    showStartSessionButton,
+    appState: !!appState
+  });
 
   const handleStartFirstSession = () => {
     // Navigate to the LeetCode content script or show guidance
@@ -148,6 +159,20 @@ export function Stats({ appState }) {
               ]}
             />
           </Grid>
+          
+          {/* Focus Areas - Full Width Second Row */}
+          <Grid gutter="md" mt="md">
+            <Grid.Col span={12}>
+              <FocusAreasDisplay 
+                onNavigateToSettings={() => {
+                  // Navigate to settings - this would be handled by router in real app
+                  // eslint-disable-next-line no-console
+                  console.log("Navigate to focus areas settings");
+                }}
+              />
+            </Grid.Col>
+          </Grid>
+
           <Grid gutter="md" mt="md">
             <Grid.Col span={6}>
               <TimeGranularChartCard

@@ -1,34 +1,34 @@
 /**
  * Error Boundary Demo Component for CodeMaster
- * 
+ *
  * Simple demo component to test error boundary functionality
  * and verify that error reporting works correctly.
  */
 
-import React, { useState } from 'react';
-import { Button, Stack, Card, Text, Group } from '@mantine/core';
-import { IconBug, IconRefresh } from '@tabler/icons-react';
-import ErrorBoundary from './ErrorBoundary';
-import { GenericErrorFallback, TimerErrorFallback } from './ErrorFallback';
+import React, { useState } from "react";
+import { Button, Stack, Card, Text, Group } from "@mantine/core";
+import { IconBug, IconRefresh } from "@tabler/icons-react";
+import ErrorBoundary from "./ErrorBoundary";
+import { GenericErrorFallback, TimerErrorFallback } from "./ErrorFallback";
 
 // Component that throws different types of errors for testing
-const ErrorThrower = ({ errorType = 'none' }) => {
-  if (errorType === 'render') {
-    throw new Error('Render error: Component failed during rendering');
+const ErrorThrower = ({ errorType = "none" }) => {
+  if (errorType === "render") {
+    throw new Error("Render error: Component failed during rendering");
   }
-  
-  if (errorType === 'async') {
+
+  if (errorType === "async") {
     setTimeout(() => {
-      throw new Error('Async error: Unhandled promise rejection');
+      throw new Error("Async error: Unhandled promise rejection");
     }, 100);
   }
 
-  if (errorType === 'network') {
-    throw new Error('Network error: Failed to fetch data from server');
+  if (errorType === "network") {
+    throw new Error("Network error: Failed to fetch data from server");
   }
 
-  if (errorType === 'memory') {
-    throw new Error('Memory error: Quota exceeded');
+  if (errorType === "memory") {
+    throw new Error("Memory error: Quota exceeded");
   }
 
   return (
@@ -42,7 +42,7 @@ const ErrorThrower = ({ errorType = 'none' }) => {
 
 // Interactive component that can trigger errors
 const InteractiveErrorTrigger = () => {
-  const [errorType, setErrorType] = useState('none');
+  const [errorType, setErrorType] = useState("none");
   const [key, setKey] = useState(0); // Force re-render
 
   const triggerError = (type) => {
@@ -50,49 +50,49 @@ const InteractiveErrorTrigger = () => {
   };
 
   const resetComponent = () => {
-    setErrorType('none');
-    setKey(prev => prev + 1);
+    setErrorType("none");
+    setKey((prev) => prev + 1);
   };
 
   return (
     <Card padding="md" withBorder>
       <Stack spacing="md">
         <Text weight={500}>Error Boundary Testing</Text>
-        
+
         <Group spacing="sm">
-          <Button 
-            size="xs" 
-            variant="outline" 
+          <Button
+            size="xs"
+            variant="outline"
             color="red"
             leftIcon={<IconBug size="0.8rem" />}
-            onClick={() => triggerError('render')}
+            onClick={() => triggerError("render")}
           >
             Render Error
           </Button>
-          
-          <Button 
-            size="xs" 
-            variant="outline" 
+
+          <Button
+            size="xs"
+            variant="outline"
             color="orange"
             leftIcon={<IconBug size="0.8rem" />}
-            onClick={() => triggerError('network')}
+            onClick={() => triggerError("network")}
           >
             Network Error
           </Button>
-          
-          <Button 
-            size="xs" 
-            variant="outline" 
+
+          <Button
+            size="xs"
+            variant="outline"
             color="yellow"
             leftIcon={<IconBug size="0.8rem" />}
-            onClick={() => triggerError('memory')}
+            onClick={() => triggerError("memory")}
           >
             Memory Error
           </Button>
-          
-          <Button 
-            size="xs" 
-            variant="filled" 
+
+          <Button
+            size="xs"
+            variant="filled"
             color="blue"
             leftIcon={<IconRefresh size="0.8rem" />}
             onClick={resetComponent}
@@ -101,13 +101,13 @@ const InteractiveErrorTrigger = () => {
           </Button>
         </Group>
 
-        <ErrorBoundary 
+        <ErrorBoundary
           key={key}
           section="Demo Component"
           fallback={GenericErrorFallback}
           onReportProblem={(errorData) => {
             // eslint-disable-next-line no-console
-            console.log('Demo Error Report:', errorData);
+            console.log("Demo Error Report:", errorData);
             alert(`Error reported: ${errorData.error?.message}`);
           }}
         >
@@ -124,7 +124,7 @@ const ErrorBoundaryDemo = () => {
       <Text size="xl" weight={700}>
         Error Boundary Demo
       </Text>
-      
+
       <Text size="sm" c="dimmed">
         This demo shows how error boundaries catch component errors and provide
         user-friendly recovery options. Click the buttons to trigger different
@@ -133,19 +133,23 @@ const ErrorBoundaryDemo = () => {
 
       {/* Demo 1: Generic Error Boundary */}
       <Card padding="lg" withBorder>
-        <Text weight={600} mb="md">Generic Error Boundary</Text>
+        <Text weight={600} mb="md">
+          Generic Error Boundary
+        </Text>
         <InteractiveErrorTrigger />
       </Card>
 
       {/* Demo 2: Timer-specific Error Boundary */}
       <Card padding="lg" withBorder>
-        <Text weight={600} mb="md">Timer-specific Error Boundary</Text>
-        <ErrorBoundary 
+        <Text weight={600} mb="md">
+          Timer-specific Error Boundary
+        </Text>
+        <ErrorBoundary
           section="Timer Component"
           fallback={TimerErrorFallback}
           onReportProblem={(errorData) => {
             // eslint-disable-next-line no-console
-            console.log('Timer Error Report:', errorData);
+            console.log("Timer Error Report:", errorData);
           }}
         >
           <ErrorThrower errorType="none" />
@@ -154,11 +158,16 @@ const ErrorBoundaryDemo = () => {
 
       {/* Demo 3: Nested Error Boundaries */}
       <Card padding="lg" withBorder>
-        <Text weight={600} mb="md">Nested Error Boundaries</Text>
+        <Text weight={600} mb="md">
+          Nested Error Boundaries
+        </Text>
         <ErrorBoundary section="Outer Boundary" fallback={GenericErrorFallback}>
           <Stack spacing="sm">
             <Text size="sm">Outer boundary content is working</Text>
-            <ErrorBoundary section="Inner Boundary" fallback={GenericErrorFallback}>
+            <ErrorBoundary
+              section="Inner Boundary"
+              fallback={GenericErrorFallback}
+            >
               <ErrorThrower errorType="none" />
             </ErrorBoundary>
           </Stack>

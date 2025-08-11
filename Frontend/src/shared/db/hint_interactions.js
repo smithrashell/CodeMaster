@@ -106,7 +106,10 @@ export const getInteractionsByDateRange = async (startDate, endDate) => {
     const store = transaction.objectStore("hint_interactions");
     const index = store.index("by_timestamp");
 
-    const range = IDBKeyRange.bound(startDate.toISOString(), endDate.toISOString());
+    const range = IDBKeyRange.bound(
+      startDate.toISOString(),
+      endDate.toISOString()
+    );
     const request = index.getAll(range);
     request.onsuccess = () => resolve(request.result);
     request.onerror = (event) => reject(event.target.error);
@@ -119,7 +122,10 @@ export const getInteractionsByDateRange = async (startDate, endDate) => {
  * @param {string} hintType - The hint type
  * @returns {Promise<Array>} - Array of interactions matching criteria
  */
-export const getInteractionsByDifficultyAndType = async (difficulty, hintType) => {
+export const getInteractionsByDifficultyAndType = async (
+  difficulty,
+  hintType
+) => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readonly");
@@ -185,26 +191,31 @@ export const deleteOldInteractions = async (cutoffDate) => {
 export const getInteractionStats = async () => {
   try {
     const allInteractions = await getAllInteractions();
-    
+
     const stats = {
       totalInteractions: allInteractions.length,
       byAction: {},
       byHintType: {},
       byDifficulty: {},
       byBoxLevel: {},
-      recentInteractions: allInteractions
-        .filter(i => new Date(i.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
-        .length,
-      uniqueProblems: new Set(allInteractions.map(i => i.problemId)).size,
-      uniqueSessions: new Set(allInteractions.map(i => i.sessionId)).size,
+      recentInteractions: allInteractions.filter(
+        (i) =>
+          new Date(i.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      ).length,
+      uniqueProblems: new Set(allInteractions.map((i) => i.problemId)).size,
+      uniqueSessions: new Set(allInteractions.map((i) => i.sessionId)).size,
     };
 
     // Count by action type
-    allInteractions.forEach(interaction => {
-      stats.byAction[interaction.userAction] = (stats.byAction[interaction.userAction] || 0) + 1;
-      stats.byHintType[interaction.hintType] = (stats.byHintType[interaction.hintType] || 0) + 1;
-      stats.byDifficulty[interaction.problemDifficulty] = (stats.byDifficulty[interaction.problemDifficulty] || 0) + 1;
-      stats.byBoxLevel[interaction.boxLevel] = (stats.byBoxLevel[interaction.boxLevel] || 0) + 1;
+    allInteractions.forEach((interaction) => {
+      stats.byAction[interaction.userAction] =
+        (stats.byAction[interaction.userAction] || 0) + 1;
+      stats.byHintType[interaction.hintType] =
+        (stats.byHintType[interaction.hintType] || 0) + 1;
+      stats.byDifficulty[interaction.problemDifficulty] =
+        (stats.byDifficulty[interaction.problemDifficulty] || 0) + 1;
+      stats.byBoxLevel[interaction.boxLevel] =
+        (stats.byBoxLevel[interaction.boxLevel] || 0) + 1;
     });
 
     return stats;
@@ -221,11 +232,11 @@ export const getInteractionStats = async () => {
 export const getHintEffectiveness = async () => {
   try {
     const allInteractions = await getAllInteractions();
-    
+
     // Group by hint type and calculate engagement metrics
     const effectiveness = {};
-    
-    allInteractions.forEach(interaction => {
+
+    allInteractions.forEach((interaction) => {
       const key = `${interaction.hintType}-${interaction.problemDifficulty}`;
       if (!effectiveness[key]) {
         effectiveness[key] = {
@@ -238,26 +249,27 @@ export const getHintEffectiveness = async () => {
           problems: new Set(),
         };
       }
-      
+
       effectiveness[key].totalInteractions++;
       effectiveness[key].problems.add(interaction.problemId);
-      
-      if (interaction.userAction === 'expand') {
+
+      if (interaction.userAction === "expand") {
         effectiveness[key].expansions++;
-      } else if (interaction.userAction === 'dismissed') {
+      } else if (interaction.userAction === "dismissed") {
         effectiveness[key].dismissals++;
       }
     });
-    
+
     // Calculate engagement rates
-    Object.values(effectiveness).forEach(metric => {
-      metric.engagementRate = metric.totalInteractions > 0 
-        ? metric.expansions / metric.totalInteractions 
-        : 0;
+    Object.values(effectiveness).forEach((metric) => {
+      metric.engagementRate =
+        metric.totalInteractions > 0
+          ? metric.expansions / metric.totalInteractions
+          : 0;
       metric.uniqueProblems = metric.problems.size;
       delete metric.problems; // Remove Set for JSON serialization
     });
-    
+
     return effectiveness;
   } catch (error) {
     console.error("Error calculating hint effectiveness:", error);

@@ -1,13 +1,13 @@
 /**
  * Comprehensive Migration Test Suite for CodeMaster
- * 
+ *
  * Tests database migration safety, data preservation, and rollback capabilities
  */
 
 // Note: This test file requires a test environment with IndexedDB support
 // Currently configured for basic validation of migration safety framework
 
-import migrationSafety from '../migrationSafety.js';
+import migrationSafety from "../migrationSafety.js";
 
 // Mock data for testing (available for future integration tests)
 // const mockAttempts = [
@@ -74,89 +74,89 @@ import migrationSafety from '../migrationSafety.js';
 // ];
 
 // Skip tests if IndexedDB is not available (CI environment)
-const isIndexedDBAvailable = typeof indexedDB !== 'undefined';
+const isIndexedDBAvailable = typeof indexedDB !== "undefined";
 
-describe('Migration Safety Framework', () => {
+describe("Migration Safety Framework", () => {
   beforeAll(() => {
     if (!isIndexedDBAvailable) {
       // eslint-disable-next-line no-console
-      console.warn('IndexedDB not available - skipping migration tests');
+      console.warn("IndexedDB not available - skipping migration tests");
     } else {
       // Initialize migration safety system
       migrationSafety.initializeMigrationSafety();
     }
   });
 
-  describe('Database Integrity Validation', () => {
-    it.skip('should validate healthy database successfully - requires IndexedDB setup', () => {
+  describe("Database Integrity Validation", () => {
+    it.skip("should validate healthy database successfully - requires IndexedDB setup", () => {
       // This test requires proper IndexedDB environment setup
       // Skip for now to avoid CI failures
     });
 
-    it.skip('should detect missing required fields - requires IndexedDB setup', () => {
+    it.skip("should detect missing required fields - requires IndexedDB setup", () => {
       // This test requires proper database setup
     });
 
-    it.skip('should detect suspicious time values - requires IndexedDB setup', () => {
+    it.skip("should detect suspicious time values - requires IndexedDB setup", () => {
       // This test requires proper database setup
     });
 
-    it.skip('should validate tag mastery strength values - requires IndexedDB setup', () => {
-      // This test requires proper database setup
-    });
-  });
-
-  describe('Migration Backup and Restore', () => {
-    it.skip('should create backup of critical stores - requires IndexedDB setup', () => {
-      // This test requires proper database setup
-    });
-
-    it.skip('should backup only specified stores when requested - requires IndexedDB setup', () => {
+    it.skip("should validate tag mastery strength values - requires IndexedDB setup", () => {
       // This test requires proper database setup
     });
   });
 
-  describe('Safe Migration Execution', () => {
-    it('should validate migration function interface', () => {
+  describe("Migration Backup and Restore", () => {
+    it.skip("should create backup of critical stores - requires IndexedDB setup", () => {
+      // This test requires proper database setup
+    });
+
+    it.skip("should backup only specified stores when requested - requires IndexedDB setup", () => {
+      // This test requires proper database setup
+    });
+  });
+
+  describe("Safe Migration Execution", () => {
+    it("should validate migration function interface", () => {
       // Test that the migration safety functions exist and are callable
-      expect(typeof migrationSafety.initializeMigrationSafety).toBe('function');
-      expect(typeof migrationSafety.createMigrationBackup).toBe('function');
-      expect(typeof migrationSafety.validateDatabaseIntegrity).toBe('function');
-      expect(typeof migrationSafety.performSafeMigration).toBe('function');
+      expect(typeof migrationSafety.initializeMigrationSafety).toBe("function");
+      expect(typeof migrationSafety.createMigrationBackup).toBe("function");
+      expect(typeof migrationSafety.validateDatabaseIntegrity).toBe("function");
+      expect(typeof migrationSafety.performSafeMigration).toBe("function");
     });
 
-    it.skip('should execute migration successfully with backup - requires IndexedDB setup', () => {
+    it.skip("should execute migration successfully with backup - requires IndexedDB setup", () => {
       // This test requires proper database setup
     });
 
-    it.skip('should rollback on migration failure - requires IndexedDB setup', () => {
+    it.skip("should rollback on migration failure - requires IndexedDB setup", () => {
       // This test requires proper database setup
     });
 
-    it.skip('should report progress during migration - requires IndexedDB setup', () => {
+    it.skip("should report progress during migration - requires IndexedDB setup", () => {
       // This test requires proper database setup
     });
   });
 
-  describe('Time Migration Integration', () => {
-    it.skip('should integrate with time migration safely - requires IndexedDB setup', () => {
+  describe("Time Migration Integration", () => {
+    it.skip("should integrate with time migration safely - requires IndexedDB setup", () => {
       // This test requires proper database and time migration setup
     });
   });
 
-  describe('Schema Version Migration', () => {
-    it.skip('should handle version upgrades without data loss - requires IndexedDB setup', () => {
+  describe("Schema Version Migration", () => {
+    it.skip("should handle version upgrades without data loss - requires IndexedDB setup", () => {
       // This test requires proper database version management setup
     });
   });
 
-  describe('Performance Testing', () => {
-    it('should validate performance characteristics', () => {
+  describe("Performance Testing", () => {
+    it("should validate performance characteristics", () => {
       // Test that migration safety is designed for reasonable performance
       // Actual performance testing requires full IndexedDB environment
       const EXPECTED_BACKUP_TIME_MS = 5000; // 5 seconds max
       const EXPECTED_BATCH_SIZE = 1000; // Records per batch
-      
+
       expect(EXPECTED_BACKUP_TIME_MS).toBeLessThan(10000);
       expect(EXPECTED_BATCH_SIZE).toBeGreaterThan(100);
     });

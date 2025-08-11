@@ -358,7 +358,7 @@ export async function addProblem(problemData) {
         BoxLevel: 1,
         NextReviewDate: null,
         SessionID: session.id,
-        
+
         // Enhanced time tracking fields
         ExceededRecommendedTime: problemData.exceededRecommendedTime || false,
         OverageTime: Number(problemData.overageTime) || 0,
@@ -476,7 +476,8 @@ export async function fetchAllProblems() {
 
 export async function fetchAdditionalProblems(
   numNewProblems,
-  excludeIds = new Set()
+  excludeIds = new Set(),
+  userFocusAreas = []
 ) {
   try {
     const { masteryData, focusTags, allTagsInCurrentTier } =
@@ -486,14 +487,34 @@ export async function fetchAdditionalProblems(
 
     console.log("🧠 Starting intelligent problem selection...");
     console.log("🧠 Focus Tags:", focusTags);
+    console.log("🧠 User Focus Areas:", userFocusAreas);
     console.log("🧠 Needed problems:", numNewProblems);
+
+    // Create enhanced focus tags that prioritize user selections
+    const enhancedFocusTags = [...focusTags];
+    if (userFocusAreas.length > 0) {
+      // Boost user-selected tags by moving them to the front
+      const userSelectedTags = userFocusAreas.filter(tag => 
+        allTagsInCurrentTier.includes(tag)
+      );
+      if (userSelectedTags.length > 0) {
+        // Remove user selected tags from their current positions
+        const systemTags = focusTags.filter(tag => 
+          !userSelectedTags.includes(tag)
+        );
+        // Put user selected tags first with system tags following
+        enhancedFocusTags.splice(0, enhancedFocusTags.length, 
+          ...userSelectedTags, ...systemTags);
+        console.log("🎯 Enhanced focus tags (user priority):", enhancedFocusTags);
+      }
+    }
 
     // Get tag relationships for expansion
     const tagRelationships = await getTagRelationships();
 
     // Calculate difficulty allowances for all tags
     const tagDifficultyAllowances = {};
-    for (const tag of focusTags) {
+    for (const tag of enhancedFocusTags) {
       const tagMastery = masteryData.find((m) => m.tag === tag) || {
         tag,
         totalAttempts: 0,
@@ -506,9 +527,9 @@ export async function fetchAdditionalProblems(
     const selectedProblems = [];
     const usedProblemIds = new Set(excludeIds);
 
-    // Step 1: Primary focus (60% of problems) - Deep learning on weakest tag
+    // Step 1: Primary focus (60% of problems) - Deep learning on highest priority tag
     const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
-    const primaryTag = focusTags[0]; // Weakest tag based on performance
+    const primaryTag = enhancedFocusTags[0]; // Highest priority tag (user selection or system recommendation)
 
     console.log(
       `🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`
@@ -528,8 +549,8 @@ export async function fetchAdditionalProblems(
 
     // Step 2: Focus tag expansion (40% of problems) - Use next focus tag
     const expansionCount = numNewProblems - selectedProblems.length;
-    if (expansionCount > 0 && focusTags.length > 1) {
-      const expansionTag = focusTags[1]; // Use next focus tag for expansion
+    if (expansionCount > 0 && enhancedFocusTags.length > 1) {
+      const expansionTag = enhancedFocusTags[1]; // Use next highest priority tag for expansion
       console.log(
         `🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`
       );
@@ -984,26 +1005,28 @@ function getDifficultyScore(difficulty) {
 export async function getProblemWithOfficialDifficulty(leetCodeID) {
   try {
     const db = await openDB();
-    
+
     // Get user problem data
     const problemTx = db.transaction("problems", "readonly");
     const problemStore = problemTx.objectStore("problems");
     const problemIndex = problemStore.index("by_problem");
-    
+
     const userProblem = await new Promise((resolve, reject) => {
       const request = problemIndex.get(leetCodeID);
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(request.error);
     });
-    
+
     // Get official difficulty from standard_problems
     const standardProblem = await fetchProblemById(leetCodeID);
-    
+
     if (!standardProblem) {
-      console.warn(`⚠️ No standard problem found for LeetCode ID: ${leetCodeID}`);
+      console.warn(
+        `⚠️ No standard problem found for LeetCode ID: ${leetCodeID}`
+      );
       return userProblem; // Return user problem without official difficulty
     }
-    
+
     // Merge data: user problem data + official difficulty
     const mergedProblem = {
       ...userProblem,
@@ -1011,10 +1034,13 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
       tags: standardProblem.tags,
       title: standardProblem.title || userProblem?.ProblemDescription,
     };
-    
+
     return mergedProblem;
   } catch (error) {
-    console.error(`❌ Error getting problem with official difficulty for ID ${leetCodeID}:`, error);
+    console.error(
+      `❌ Error getting problem with official difficulty for ID ${leetCodeID}:`,
+      error
+    );
     return null;
   }
 }
@@ -1033,9 +1059,9 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
 export async function getProblemWithRetry(problemId, options = {}) {
   const {
     timeout = indexedDBRetry.quickTimeout,
-    operationName = 'getProblem',
-    priority = 'normal',
-    abortController = null
+    operationName = "getProblem",
+    priority = "normal",
+    abortController = null,
   } = options;
 
   return indexedDBRetry.executeWithRetry(
@@ -1059,7 +1085,7 @@ export async function getProblemWithRetry(problemId, options = {}) {
       operationName,
       priority,
       abortController,
-      deduplicationKey: `get_problem_${problemId}`
+      deduplicationKey: `get_problem_${problemId}`,
     }
   );
 }
@@ -1071,12 +1097,15 @@ export async function getProblemWithRetry(problemId, options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<boolean>} True if problem exists, false otherwise
  */
-export async function checkDatabaseForProblemWithRetry(problemId, options = {}) {
+export async function checkDatabaseForProblemWithRetry(
+  problemId,
+  options = {}
+) {
   const {
     timeout = indexedDBRetry.quickTimeout,
-    operationName = 'checkDatabaseForProblem',
-    priority = 'normal',
-    abortController = null
+    operationName = "checkDatabaseForProblem",
+    priority = "normal",
+    abortController = null,
   } = options;
 
   return indexedDBRetry.executeWithRetry(
@@ -1101,7 +1130,7 @@ export async function checkDatabaseForProblemWithRetry(problemId, options = {}) 
       operationName,
       priority,
       abortController,
-      deduplicationKey: `check_problem_${problemId}`
+      deduplicationKey: `check_problem_${problemId}`,
     }
   );
 }
@@ -1116,9 +1145,9 @@ export async function checkDatabaseForProblemWithRetry(problemId, options = {}) 
 export async function addProblemWithRetry(problemData, options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
-    operationName = 'addProblem',
-    priority = 'normal',
-    abortController = null
+    operationName = "addProblem",
+    priority = "normal",
+    abortController = null,
   } = options;
 
   return indexedDBRetry.executeWithRetry(
@@ -1129,10 +1158,12 @@ export async function addProblemWithRetry(problemData, options = {}) {
         "readwrite",
         async (tx, stores) => {
           const [problemStore] = stores;
-          
+
           // Get standard problem data
-          const standardProblem = await fetchProblemById(problemData.leetCodeID);
-          
+          const standardProblem = await fetchProblemById(
+            problemData.leetCodeID
+          );
+
           // Get current session from Chrome storage (this is external to transaction)
           let session = await new Promise((resolve) => {
             chrome.storage.local.get(["currentSession"], (result) => {
@@ -1154,17 +1185,18 @@ export async function addProblemWithRetry(problemData, options = {}) {
             difficulty: standardProblem?.difficulty || "Medium",
             box: 1, // Start in first Leitner box
             nextProblem: problemData.nextProblem || null,
-            sessionId: session.id
+            sessionId: session.id,
           };
 
           // Add problem to database
           return new Promise((resolve, reject) => {
             const request = problemStore.put(problemEntry);
-            request.onsuccess = () => resolve({
-              success: true,
-              problemId: problemEntry.leetCodeID,
-              data: problemEntry
-            });
+            request.onsuccess = () =>
+              resolve({
+                success: true,
+                problemId: problemEntry.leetCodeID,
+                data: problemEntry,
+              });
             request.onerror = () => reject(request.error);
           });
         },
@@ -1172,7 +1204,7 @@ export async function addProblemWithRetry(problemData, options = {}) {
           timeout,
           operationName,
           priority,
-          abortController
+          abortController,
         }
       );
     },
@@ -1181,7 +1213,7 @@ export async function addProblemWithRetry(problemData, options = {}) {
       operationName,
       priority,
       abortController,
-      retries: 2 // Fewer retries for write operations
+      retries: 2, // Fewer retries for write operations
     }
   );
 }
@@ -1196,9 +1228,9 @@ export async function addProblemWithRetry(problemData, options = {}) {
 export async function saveUpdatedProblemWithRetry(problem, options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
-    operationName = 'saveUpdatedProblem',
-    priority = 'normal',
-    abortController = null
+    operationName = "saveUpdatedProblem",
+    priority = "normal",
+    abortController = null,
   } = options;
 
   return indexedDBRetry.executeWithRetry(
@@ -1207,7 +1239,7 @@ export async function saveUpdatedProblemWithRetry(problem, options = {}) {
         timeout,
         operationName,
         priority,
-        abortController
+        abortController,
       });
     },
     {
@@ -1215,7 +1247,7 @@ export async function saveUpdatedProblemWithRetry(problem, options = {}) {
       operationName,
       priority,
       abortController,
-      retries: 2 // Fewer retries for write operations
+      retries: 2, // Fewer retries for write operations
     }
   );
 }
@@ -1229,9 +1261,9 @@ export async function saveUpdatedProblemWithRetry(problem, options = {}) {
 export async function countProblemsByBoxLevelWithRetry(options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
-    operationName = 'countProblemsByBoxLevel',
-    priority = 'low',
-    abortController = null
+    operationName = "countProblemsByBoxLevel",
+    priority = "low",
+    abortController = null,
   } = options;
 
   return indexedDBRetry.executeWithRetry(
@@ -1248,7 +1280,7 @@ export async function countProblemsByBoxLevelWithRetry(options = {}) {
 
       // Count problems by box level
       const boxCounts = [0, 0, 0, 0, 0]; // Boxes 0-4
-      problems.forEach(problem => {
+      problems.forEach((problem) => {
         const box = Math.min(problem.box || 1, 4); // Cap at box 4
         boxCounts[box]++;
       });
@@ -1260,7 +1292,7 @@ export async function countProblemsByBoxLevelWithRetry(options = {}) {
       operationName,
       priority,
       abortController,
-      deduplicationKey: 'count_problems_by_box'
+      deduplicationKey: "count_problems_by_box",
     }
   );
 }
@@ -1274,11 +1306,11 @@ export async function countProblemsByBoxLevelWithRetry(options = {}) {
 export async function fetchAllProblemsWithRetry(options = {}) {
   const {
     timeout = indexedDBRetry.bulkTimeout,
-    operationName = 'fetchAllProblems',
-    priority = 'low',
+    operationName = "fetchAllProblems",
+    priority = "low",
     abortController = null,
     streaming = false,
-    onProgress = null
+    onProgress = null,
   } = options;
 
   return indexedDBRetry.executeWithRetry(
@@ -1289,7 +1321,7 @@ export async function fetchAllProblemsWithRetry(options = {}) {
         priority,
         abortController,
         streaming,
-        onProgress
+        onProgress,
       });
     },
     {
@@ -1297,7 +1329,7 @@ export async function fetchAllProblemsWithRetry(options = {}) {
       operationName,
       priority,
       abortController,
-      retries: 3 // More retries for bulk operations
+      retries: 3, // More retries for bulk operations
     }
   );
 }
@@ -1309,12 +1341,15 @@ export async function fetchAllProblemsWithRetry(options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object|null>} Problem with official difficulty
  */
-export async function getProblemWithOfficialDifficultyWithRetry(leetCodeID, options = {}) {
+export async function getProblemWithOfficialDifficultyWithRetry(
+  leetCodeID,
+  options = {}
+) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
-    operationName = 'getProblemWithOfficialDifficulty',
-    priority = 'normal',
-    abortController = null
+    operationName = "getProblemWithOfficialDifficulty",
+    priority = "normal",
+    abortController = null,
   } = options;
 
   return indexedDBRetry.executeWithRetry(
@@ -1327,7 +1362,7 @@ export async function getProblemWithOfficialDifficultyWithRetry(leetCodeID, opti
       operationName,
       priority,
       abortController,
-      deduplicationKey: `problem_official_difficulty_${leetCodeID}`
+      deduplicationKey: `problem_official_difficulty_${leetCodeID}`,
     }
   );
 }

@@ -1,15 +1,15 @@
 /**
  * Error Reporting Service for CodeMaster
- * 
+ *
  * Manages error report collection, storage, and retrieval using IndexedDB
  * for comprehensive error tracking and user feedback collection.
  */
 
 // eslint-disable-next-line no-restricted-imports
-import { dbHelper } from '../db/index.js';
+import { dbHelper } from "../db/index.js";
 
 export class ErrorReportService {
-  static STORE_NAME = 'error_reports';
+  static STORE_NAME = "error_reports";
   static MAX_REPORTS = 100; // Keep last 100 error reports
 
   /**
@@ -17,46 +17,46 @@ export class ErrorReportService {
    */
   static async ensureErrorReportStore() {
     const db = await dbHelper.openDB();
-    
+
     // Check if store already exists
     if (!db.objectStoreNames.contains(this.STORE_NAME)) {
       // Need to close and reopen with higher version to add store
       db.close();
-      
+
       const currentVersion = db.version;
       const newVersion = currentVersion + 1;
-      
+
       return new Promise((resolve, reject) => {
         const request = indexedDB.open(dbHelper.dbName, newVersion);
-        
+
         request.onupgradeneeded = (event) => {
           const upgradeDB = event.target.result;
-          
+
           if (!upgradeDB.objectStoreNames.contains(this.STORE_NAME)) {
             const errorStore = upgradeDB.createObjectStore(this.STORE_NAME, {
-              keyPath: 'id',
-              autoIncrement: true
+              keyPath: "id",
+              autoIncrement: true,
             });
-            
+
             // Create indexes for efficient querying
-            errorStore.createIndex('by_timestamp', 'timestamp');
-            errorStore.createIndex('by_section', 'section');
-            errorStore.createIndex('by_error_type', 'errorType');
-            errorStore.createIndex('by_user_agent', 'userAgent');
+            errorStore.createIndex("by_timestamp", "timestamp");
+            errorStore.createIndex("by_section", "section");
+            errorStore.createIndex("by_error_type", "errorType");
+            errorStore.createIndex("by_user_agent", "userAgent");
           }
         };
-        
+
         request.onsuccess = (event) => {
           dbHelper.db = event.target.result;
           resolve(event.target.result);
         };
-        
+
         request.onerror = (event) => {
           reject(event.target.error);
         };
       });
     }
-    
+
     return db;
   }
 
@@ -68,23 +68,23 @@ export class ErrorReportService {
     message,
     stack,
     componentStack,
-    section = 'unknown',
+    section = "unknown",
     url = window.location.href,
     userAgent = navigator.userAgent,
     timestamp = new Date().toISOString(),
     userContext = {},
     reproductionSteps = [],
-    userFeedback = '',
-    errorType = 'javascript',
-    severity = 'medium'
+    userFeedback = "",
+    errorType = "javascript",
+    severity = "medium",
   }) {
     try {
       await this.ensureErrorReportStore();
       const db = await dbHelper.openDB();
-      
-      const transaction = db.transaction([this.STORE_NAME], 'readwrite');
+
+      const transaction = db.transaction([this.STORE_NAME], "readwrite");
       const store = transaction.objectStore(this.STORE_NAME);
-      
+
       const errorReport = {
         errorId,
         message,
@@ -100,11 +100,11 @@ export class ErrorReportService {
         errorType,
         severity,
         resolved: false,
-        reportedAt: new Date().toISOString()
+        reportedAt: new Date().toISOString(),
       };
-      
+
       const request = store.add(errorReport);
-      
+
       return new Promise((resolve, reject) => {
         request.onsuccess = () => {
           // Clean up old reports to prevent storage bloat
@@ -113,20 +113,19 @@ export class ErrorReportService {
         };
         request.onerror = () => reject(request.error);
       });
-      
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to store error report:', error);
-      
+      console.error("Failed to store error report:", error);
+
       // Fallback to localStorage if IndexedDB fails
       this.fallbackToLocalStorage({
         errorId,
         message,
         stack,
         section,
-        timestamp
+        timestamp,
       });
-      
+
       throw error;
     }
   }
@@ -139,54 +138,55 @@ export class ErrorReportService {
     section = null,
     errorType = null,
     since = null,
-    resolved = null
+    resolved = null,
   } = {}) {
     try {
       await this.ensureErrorReportStore();
       const db = await dbHelper.openDB();
-      
-      const transaction = db.transaction([this.STORE_NAME], 'readonly');
+
+      const transaction = db.transaction([this.STORE_NAME], "readonly");
       const store = transaction.objectStore(this.STORE_NAME);
-      
+
       let request;
       if (section) {
-        const index = store.index('by_section');
+        const index = store.index("by_section");
         request = index.getAll(section);
       } else if (errorType) {
-        const index = store.index('by_error_type');
+        const index = store.index("by_error_type");
         request = index.getAll(errorType);
       } else {
         request = store.getAll();
       }
-      
+
       return new Promise((resolve, reject) => {
         request.onsuccess = () => {
           let reports = request.result;
-          
+
           // Apply additional filters
           if (since) {
-            reports = reports.filter(report => new Date(report.timestamp) >= new Date(since));
+            reports = reports.filter(
+              (report) => new Date(report.timestamp) >= new Date(since)
+            );
           }
-          
+
           if (resolved !== null) {
-            reports = reports.filter(report => report.resolved === resolved);
+            reports = reports.filter((report) => report.resolved === resolved);
           }
-          
+
           // Sort by timestamp (newest first) and limit
           reports.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-          
+
           if (limit) {
             reports = reports.slice(0, limit);
           }
-          
+
           resolve(reports);
         };
         request.onerror = () => reject(request.error);
       });
-      
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to retrieve error reports:', error);
+      console.error("Failed to retrieve error reports:", error);
       return [];
     }
   }
@@ -194,16 +194,16 @@ export class ErrorReportService {
   /**
    * Mark an error report as resolved
    */
-  static async resolveErrorReport(reportId, resolution = '') {
+  static async resolveErrorReport(reportId, resolution = "") {
     try {
       await this.ensureErrorReportStore();
       const db = await dbHelper.openDB();
-      
-      const transaction = db.transaction([this.STORE_NAME], 'readwrite');
+
+      const transaction = db.transaction([this.STORE_NAME], "readwrite");
       const store = transaction.objectStore(this.STORE_NAME);
-      
+
       const getRequest = store.get(reportId);
-      
+
       return new Promise((resolve, reject) => {
         getRequest.onsuccess = () => {
           const report = getRequest.result;
@@ -211,20 +211,19 @@ export class ErrorReportService {
             report.resolved = true;
             report.resolution = resolution;
             report.resolvedAt = new Date().toISOString();
-            
+
             const updateRequest = store.put(report);
             updateRequest.onsuccess = () => resolve(report);
             updateRequest.onerror = () => reject(updateRequest.error);
           } else {
-            reject(new Error('Error report not found'));
+            reject(new Error("Error report not found"));
           }
         };
         getRequest.onerror = () => reject(getRequest.error);
       });
-      
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to resolve error report:', error);
+      console.error("Failed to resolve error report:", error);
       throw error;
     }
   }
@@ -236,12 +235,12 @@ export class ErrorReportService {
     try {
       await this.ensureErrorReportStore();
       const db = await dbHelper.openDB();
-      
-      const transaction = db.transaction([this.STORE_NAME], 'readwrite');
+
+      const transaction = db.transaction([this.STORE_NAME], "readwrite");
       const store = transaction.objectStore(this.STORE_NAME);
-      
+
       const getRequest = store.get(reportId);
-      
+
       return new Promise((resolve, reject) => {
         getRequest.onsuccess = () => {
           const report = getRequest.result;
@@ -249,20 +248,19 @@ export class ErrorReportService {
             report.userFeedback = feedback;
             report.reproductionSteps = reproductionSteps;
             report.feedbackAt = new Date().toISOString();
-            
+
             const updateRequest = store.put(report);
             updateRequest.onsuccess = () => resolve(report);
             updateRequest.onerror = () => reject(updateRequest.error);
           } else {
-            reject(new Error('Error report not found'));
+            reject(new Error("Error report not found"));
           }
         };
         getRequest.onerror = () => reject(getRequest.error);
       });
-      
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to add user feedback:', error);
+      console.error("Failed to add user feedback:", error);
       throw error;
     }
   }
@@ -274,39 +272,42 @@ export class ErrorReportService {
     try {
       const since = new Date();
       since.setDate(since.getDate() - days);
-      
-      const reports = await this.getErrorReports({ since: since.toISOString() });
-      
+
+      const reports = await this.getErrorReports({
+        since: since.toISOString(),
+      });
+
       const stats = {
         totalErrors: reports.length,
-        resolvedErrors: reports.filter(r => r.resolved).length,
+        resolvedErrors: reports.filter((r) => r.resolved).length,
         errorsBySection: {},
         errorsByType: {},
         errorsByDay: {},
-        topErrors: {}
+        topErrors: {},
       };
-      
-      reports.forEach(report => {
+
+      reports.forEach((report) => {
         // Count by section
-        stats.errorsBySection[report.section] = (stats.errorsBySection[report.section] || 0) + 1;
-        
+        stats.errorsBySection[report.section] =
+          (stats.errorsBySection[report.section] || 0) + 1;
+
         // Count by error type
-        stats.errorsByType[report.errorType] = (stats.errorsByType[report.errorType] || 0) + 1;
-        
+        stats.errorsByType[report.errorType] =
+          (stats.errorsByType[report.errorType] || 0) + 1;
+
         // Count by day
         const day = new Date(report.timestamp).toDateString();
         stats.errorsByDay[day] = (stats.errorsByDay[day] || 0) + 1;
-        
+
         // Count by error message for top errors
         const errorKey = report.message.substring(0, 100); // First 100 chars
         stats.topErrors[errorKey] = (stats.topErrors[errorKey] || 0) + 1;
       });
-      
+
       return stats;
-      
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to generate error statistics:', error);
+      console.error("Failed to generate error statistics:", error);
       return null;
     }
   }
@@ -317,22 +318,21 @@ export class ErrorReportService {
   static async cleanupOldReports() {
     try {
       const reports = await this.getErrorReports({ limit: null });
-      
+
       if (reports.length > this.MAX_REPORTS) {
         const excessReports = reports.slice(this.MAX_REPORTS);
         const db = await dbHelper.openDB();
-        
-        const transaction = db.transaction([this.STORE_NAME], 'readwrite');
+
+        const transaction = db.transaction([this.STORE_NAME], "readwrite");
         const store = transaction.objectStore(this.STORE_NAME);
-        
+
         for (const report of excessReports) {
           store.delete(report.id);
         }
       }
-      
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to cleanup old error reports:', error);
+      console.error("Failed to cleanup old error reports:", error);
     }
   }
 
@@ -341,52 +341,59 @@ export class ErrorReportService {
    */
   static fallbackToLocalStorage(errorData) {
     try {
-      const existingErrors = JSON.parse(localStorage.getItem('codemaster_errors') || '[]');
+      const existingErrors = JSON.parse(
+        localStorage.getItem("codemaster_errors") || "[]"
+      );
       existingErrors.push(errorData);
-      
+
       // Keep only last 10 errors in localStorage
       const recentErrors = existingErrors.slice(-10);
-      localStorage.setItem('codemaster_errors', JSON.stringify(recentErrors));
-      
+      localStorage.setItem("codemaster_errors", JSON.stringify(recentErrors));
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.warn('Failed to store error in localStorage:', error);
+      console.warn("Failed to store error in localStorage:", error);
     }
   }
 
   /**
    * Export error reports for external analysis
    */
-  static async exportErrorReports(format = 'json') {
+  static async exportErrorReports(format = "json") {
     try {
       const reports = await this.getErrorReports({ limit: null });
-      
-      if (format === 'json') {
+
+      if (format === "json") {
         return JSON.stringify(reports, null, 2);
-      } else if (format === 'csv') {
-        const headers = ['Timestamp', 'Section', 'Error Type', 'Message', 'Resolved', 'User Feedback'];
-        const csvRows = [headers.join(',')];
-        
-        reports.forEach(report => {
+      } else if (format === "csv") {
+        const headers = [
+          "Timestamp",
+          "Section",
+          "Error Type",
+          "Message",
+          "Resolved",
+          "User Feedback",
+        ];
+        const csvRows = [headers.join(",")];
+
+        reports.forEach((report) => {
           const row = [
             report.timestamp,
             report.section,
             report.errorType,
             `"${report.message.replace(/"/g, '""')}"`,
             report.resolved,
-            `"${(report.userFeedback || '').replace(/"/g, '""')}"`
+            `"${(report.userFeedback || "").replace(/"/g, '""')}"`,
           ];
-          csvRows.push(row.join(','));
+          csvRows.push(row.join(","));
         });
-        
-        return csvRows.join('\n');
+
+        return csvRows.join("\n");
       }
-      
+
       throw new Error(`Unsupported export format: ${format}`);
-      
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to export error reports:', error);
+      console.error("Failed to export error reports:", error);
       throw error;
     }
   }

@@ -23,7 +23,12 @@ import { HintInteractionService } from "../../../shared/services/hintInteraction
  * HintPanel - Real-time context-aware strategy hints during problem solving
  * Shows strategies based on current problem's tags
  */
-const HintPanel = ({ problemTags = [], problemId = null, isVisible = true, className = "" }) => {
+const HintPanel = ({
+  problemTags = [],
+  problemId = null,
+  isVisible = true,
+  className = "",
+}) => {
   const [hints, setHints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -64,19 +69,19 @@ const HintPanel = ({ problemTags = [], problemId = null, isVisible = true, class
     // Track the panel interaction
     try {
       await HintInteractionService.saveHintInteraction({
-        problemId: problemId || 'unknown',
-        hintId: 'hint-panel',
-        hintType: 'panel',
-        primaryTag: problemTags[0] || 'unknown',
+        problemId: problemId || "unknown",
+        hintId: "hint-panel",
+        hintType: "panel",
+        primaryTag: problemTags[0] || "unknown",
         relatedTag: problemTags.length > 1 ? problemTags[1] : null,
-        content: `Hint panel ${newExpandedState ? 'expanded' : 'collapsed'}`,
+        content: `Hint panel ${newExpandedState ? "expanded" : "collapsed"}`,
         problemTags: problemTags,
-        action: newExpandedState ? 'expand' : 'collapse',
+        action: newExpandedState ? "expand" : "collapse",
         sessionContext: {
           panelOpen: newExpandedState,
           totalHints: hints.length,
-          componentType: 'HintPanel',
-        }
+          componentType: "HintPanel",
+        },
       });
     } catch (error) {
       console.warn("Failed to track hint panel interaction:", error);

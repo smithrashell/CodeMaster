@@ -159,8 +159,8 @@ export function GradientSegmentedControlTimeLimit(props) {
       size="sm"
       data={[
         { label: "Auto", value: "Auto" },
-        { label: "Off", value: "off" }, 
-        { label: "Fixed", value: "Fixed" }
+        { label: "Off", value: "off" },
+        { label: "Fixed", value: "Fixed" },
       ]}
       value={props.value}
       onChange={props.onChange}

@@ -1,9 +1,9 @@
-import logger from '../utils/logger.js';
-import { CrashReporter } from './CrashReporter.js';
-import { AlertingService } from './AlertingService.js';
-import { UserActionTracker } from './UserActionTracker.js';
-import { ErrorReportService } from './ErrorReportService.js';
-import performanceMonitor from '../utils/PerformanceMonitor.js';
+import logger from "../utils/logger.js";
+import { CrashReporter } from "./CrashReporter.js";
+import { AlertingService } from "./AlertingService.js";
+import { UserActionTracker } from "./UserActionTracker.js";
+import { ErrorReportService } from "./ErrorReportService.js";
+import performanceMonitor from "../utils/PerformanceMonitor.js";
 
 /**
  * Production Monitoring Initializer
@@ -19,50 +19,55 @@ export class MonitoringInitializer {
    */
   static async initialize(config = {}) {
     if (this.isInitialized) {
-      logger.warn('Monitoring already initialized', { section: 'monitoring_init' });
+      logger.warn("Monitoring already initialized", {
+        section: "monitoring_init",
+      });
       return;
     }
 
     this.initializationStart = performance.now();
-    logger.info('Initializing production monitoring services...', { 
-      section: 'monitoring_init',
-      environment: process.env.NODE_ENV || 'development'
+    logger.info("Initializing production monitoring services...", {
+      section: "monitoring_init",
+      environment: process.env.NODE_ENV || "development",
     });
 
     try {
       const monitoringConfig = this._buildConfig(config);
-      
+
       // Initialize services in order
       await this._initializeErrorReporting(monitoringConfig);
       this._initializeCrashReporting(monitoringConfig);
       await this._initializeUserTracking(monitoringConfig);
       this._initializeAlerting(monitoringConfig);
       this._initializePerformanceMonitoring(monitoringConfig);
-      
+
       // Setup global error handlers
       this._setupGlobalErrorHandlers();
-      
+
       // Setup periodic health checks
       this._setupHealthChecks(monitoringConfig);
-      
+
       // Track initialization
       await this._trackInitialization();
-      
+
       const initTime = performance.now() - this.initializationStart;
       this.isInitialized = true;
-      
-      logger.info('Production monitoring initialized successfully', {
-        section: 'monitoring_init',
+
+      logger.info("Production monitoring initialized successfully", {
+        section: "monitoring_init",
         initializationTime: `${initTime.toFixed(2)}ms`,
-        services: Object.keys(this.services)
+        services: Object.keys(this.services),
       });
 
       return this.getMonitoringStatus();
-      
     } catch (error) {
-      logger.fatal('Failed to initialize production monitoring', {
-        section: 'monitoring_init'
-      }, error);
+      logger.fatal(
+        "Failed to initialize production monitoring",
+        {
+          section: "monitoring_init",
+        },
+        error
+      );
       throw error;
     }
   }
@@ -72,28 +77,28 @@ export class MonitoringInitializer {
    */
   static _buildConfig(userConfig) {
     const defaults = {
-      environment: process.env.NODE_ENV || 'development',
-      
+      environment: process.env.NODE_ENV || "development",
+
       // Error reporting config
       errorReporting: {
         enabled: true,
-        maxReports: 100
+        maxReports: 100,
       },
-      
+
       // Crash reporting config
       crashReporting: {
         enabled: true,
         enableReactIntegration: true,
-        enableResourceMonitoring: true
+        enableResourceMonitoring: true,
       },
-      
+
       // User tracking config
       userTracking: {
         enabled: true,
         batchSize: 50,
-        maxActions: 5000
+        maxActions: 5000,
       },
-      
+
       // Alerting config
       alerting: {
         enabled: true,
@@ -101,24 +106,24 @@ export class MonitoringInitializer {
           errorRate: 10,
           crashRate: 5,
           performanceDegraded: 2000,
-          memoryUsage: 100 * 1024 * 1024
+          memoryUsage: 100 * 1024 * 1024,
         },
-        channels: ['console', 'localStorage']
+        channels: ["console", "localStorage"],
       },
-      
+
       // Performance monitoring config
       performanceMonitoring: {
         enabled: true,
         slowQueryTime: 1000,
-        maxMetricsHistory: 1000
+        maxMetricsHistory: 1000,
       },
-      
+
       // Health check config
       healthCheck: {
         enabled: true,
         interval: 60000, // 1 minute
-        metrics: ['performance', 'errors', 'memory']
-      }
+        metrics: ["performance", "errors", "memory"],
+      },
     };
 
     return this._deepMerge(defaults, userConfig);
@@ -129,18 +134,24 @@ export class MonitoringInitializer {
    */
   static async _initializeErrorReporting(config) {
     if (!config.errorReporting.enabled) {
-      logger.debug('Error reporting disabled', { section: 'monitoring_init' });
+      logger.debug("Error reporting disabled", { section: "monitoring_init" });
       return;
     }
 
     try {
       await ErrorReportService.ensureErrorReportStore();
-      this.services.errorReporting = 'active';
-      logger.debug('Error reporting service initialized', { section: 'monitoring_init' });
+      this.services.errorReporting = "active";
+      logger.debug("Error reporting service initialized", {
+        section: "monitoring_init",
+      });
     } catch (error) {
-      logger.error('Failed to initialize error reporting', { 
-        section: 'monitoring_init' 
-      }, error);
+      logger.error(
+        "Failed to initialize error reporting",
+        {
+          section: "monitoring_init",
+        },
+        error
+      );
       throw error;
     }
   }
@@ -150,18 +161,24 @@ export class MonitoringInitializer {
    */
   static _initializeCrashReporting(config) {
     if (!config.crashReporting.enabled) {
-      logger.debug('Crash reporting disabled', { section: 'monitoring_init' });
+      logger.debug("Crash reporting disabled", { section: "monitoring_init" });
       return;
     }
 
     try {
       CrashReporter.initialize();
-      this.services.crashReporting = 'active';
-      logger.debug('Crash reporting service initialized', { section: 'monitoring_init' });
+      this.services.crashReporting = "active";
+      logger.debug("Crash reporting service initialized", {
+        section: "monitoring_init",
+      });
     } catch (error) {
-      logger.error('Failed to initialize crash reporting', { 
-        section: 'monitoring_init' 
-      }, error);
+      logger.error(
+        "Failed to initialize crash reporting",
+        {
+          section: "monitoring_init",
+        },
+        error
+      );
       // Don't throw - crash reporting is not critical for app functionality
     }
   }
@@ -171,29 +188,34 @@ export class MonitoringInitializer {
    */
   static async _initializeUserTracking(config) {
     if (!config.userTracking.enabled) {
-      logger.debug('User tracking disabled', { section: 'monitoring_init' });
+      logger.debug("User tracking disabled", { section: "monitoring_init" });
       return;
     }
 
     try {
       await UserActionTracker.ensureUserActionStore();
-      this.services.userTracking = 'active';
-      logger.debug('User action tracking initialized', { section: 'monitoring_init' });
-      
+      this.services.userTracking = "active";
+      logger.debug("User action tracking initialized", {
+        section: "monitoring_init",
+      });
+
       // Track that monitoring was initialized
       await UserActionTracker.trackAction({
-        action: 'monitoring_initialized',
+        action: "monitoring_initialized",
         category: UserActionTracker.CATEGORIES.SYSTEM_INTERACTION,
         context: {
           services: Object.keys(this.services),
-          environment: config.environment
-        }
+          environment: config.environment,
+        },
       });
-      
     } catch (error) {
-      logger.error('Failed to initialize user tracking', { 
-        section: 'monitoring_init' 
-      }, error);
+      logger.error(
+        "Failed to initialize user tracking",
+        {
+          section: "monitoring_init",
+        },
+        error
+      );
       // Don't throw - user tracking is not critical for app functionality
     }
   }
@@ -203,21 +225,27 @@ export class MonitoringInitializer {
    */
   static _initializeAlerting(config) {
     if (!config.alerting.enabled) {
-      logger.debug('Alerting disabled', { section: 'monitoring_init' });
+      logger.debug("Alerting disabled", { section: "monitoring_init" });
       return;
     }
 
     try {
       AlertingService.initialize({
         thresholds: config.alerting.thresholds,
-        channels: config.alerting.channels
+        channels: config.alerting.channels,
       });
-      this.services.alerting = 'active';
-      logger.debug('Alerting service initialized', { section: 'monitoring_init' });
+      this.services.alerting = "active";
+      logger.debug("Alerting service initialized", {
+        section: "monitoring_init",
+      });
     } catch (error) {
-      logger.error('Failed to initialize alerting', { 
-        section: 'monitoring_init' 
-      }, error);
+      logger.error(
+        "Failed to initialize alerting",
+        {
+          section: "monitoring_init",
+        },
+        error
+      );
       // Don't throw - alerting is not critical for app functionality
     }
   }
@@ -227,22 +255,28 @@ export class MonitoringInitializer {
    */
   static _initializePerformanceMonitoring(config) {
     if (!config.performanceMonitoring.enabled) {
-      logger.debug('Performance monitoring disabled', { section: 'monitoring_init' });
+      logger.debug("Performance monitoring disabled", {
+        section: "monitoring_init",
+      });
       return;
     }
 
     try {
       // Performance monitor is already a singleton, just verify it's working
       const summary = performanceMonitor.getPerformanceSummary();
-      this.services.performanceMonitoring = 'active';
-      logger.debug('Performance monitoring initialized', { 
-        section: 'monitoring_init',
-        uptime: `${summary.uptime}s`
+      this.services.performanceMonitoring = "active";
+      logger.debug("Performance monitoring initialized", {
+        section: "monitoring_init",
+        uptime: `${summary.uptime}s`,
       });
     } catch (error) {
-      logger.error('Failed to initialize performance monitoring', { 
-        section: 'monitoring_init' 
-      }, error);
+      logger.error(
+        "Failed to initialize performance monitoring",
+        {
+          section: "monitoring_init",
+        },
+        error
+      );
       // Don't throw - performance monitoring is not critical for app functionality
     }
   }
@@ -258,17 +292,21 @@ export class MonitoringInitializer {
       if (originalReactError) {
         originalReactError(error, errorInfo);
       }
-      
+
       // Log with our system
-      logger.fatal('React error boundary triggered', {
-        section: 'error_boundary',
-        componentStack: errorInfo.componentStack
-      }, error);
-      
+      logger.fatal(
+        "React error boundary triggered",
+        {
+          section: "error_boundary",
+          componentStack: errorInfo.componentStack,
+        },
+        error
+      );
+
       // Track user action
       UserActionTracker.trackError(error, {
-        context: 'react_error_boundary',
-        severity: 'high'
+        context: "react_error_boundary",
+        severity: "high",
       });
     };
 
@@ -277,16 +315,16 @@ export class MonitoringInitializer {
     console.error = (...args) => {
       // Call original console.error
       originalConsoleError.apply(console, args);
-      
+
       // Track significant console errors
-      if (args[0] && typeof args[0] === 'string' && args[0].includes('Error')) {
+      if (args[0] && typeof args[0] === "string" && args[0].includes("Error")) {
         UserActionTracker.trackAction({
-          action: 'console_error',
+          action: "console_error",
           category: UserActionTracker.CATEGORIES.ERROR_OCCURRENCE,
           context: {
             message: args[0].substring(0, 100),
-            source: 'console'
-          }
+            source: "console",
+          },
         });
       }
     };
@@ -306,11 +344,11 @@ export class MonitoringInitializer {
 
     // Store interval for cleanup
     this.services.healthCheckInterval = healthCheckInterval;
-    
-    logger.debug('Health checks scheduled', {
-      section: 'monitoring_init',
+
+    logger.debug("Health checks scheduled", {
+      section: "monitoring_init",
       interval: `${config.healthCheck.interval}ms`,
-      metrics: config.healthCheck.metrics
+      metrics: config.healthCheck.metrics,
     });
   }
 
@@ -320,37 +358,41 @@ export class MonitoringInitializer {
   static async _performHealthCheck(metrics) {
     try {
       const healthData = {};
-      
-      if (metrics.includes('performance')) {
+
+      if (metrics.includes("performance")) {
         healthData.performance = performanceMonitor.getSystemHealth();
       }
-      
-      if (metrics.includes('errors')) {
+
+      if (metrics.includes("errors")) {
         const errorStats = await ErrorReportService.getErrorStatistics(1); // Last day
         healthData.errors = {
           totalErrors: errorStats?.totalErrors || 0,
-          resolvedErrors: errorStats?.resolvedErrors || 0
+          resolvedErrors: errorStats?.resolvedErrors || 0,
         };
       }
-      
-      if (metrics.includes('memory')) {
-        healthData.memory = performance.memory ? {
-          used: performance.memory.usedJSHeapSize,
-          percentage: (performance.memory.usedJSHeapSize / performance.memory.jsHeapSizeLimit) * 100
-        } : null;
+
+      if (metrics.includes("memory")) {
+        healthData.memory = performance.memory
+          ? {
+              used: performance.memory.usedJSHeapSize,
+              percentage:
+                (performance.memory.usedJSHeapSize /
+                  performance.memory.jsHeapSizeLimit) *
+                100,
+            }
+          : null;
       }
-      
+
       // Log health status
       const overallHealth = this._calculateOverallHealth(healthData);
-      if (overallHealth !== 'good') {
+      if (overallHealth !== "good") {
         logger.warn(`System health check: ${overallHealth}`, {
-          section: 'health_check',
-          healthData
+          section: "health_check",
+          healthData,
         });
       }
-      
     } catch (error) {
-      logger.error('Health check failed', { section: 'health_check' }, error);
+      logger.error("Health check failed", { section: "health_check" }, error);
     }
   }
 
@@ -359,22 +401,22 @@ export class MonitoringInitializer {
    */
   static _calculateOverallHealth(healthData) {
     const issues = [];
-    
-    if (healthData.performance && healthData.performance === 'critical') {
-      issues.push('performance');
+
+    if (healthData.performance && healthData.performance === "critical") {
+      issues.push("performance");
     }
-    
+
     if (healthData.errors && healthData.errors.totalErrors > 10) {
-      issues.push('errors');
+      issues.push("errors");
     }
-    
+
     if (healthData.memory && healthData.memory.percentage > 80) {
-      issues.push('memory');
+      issues.push("memory");
     }
-    
-    if (issues.length > 1) return 'critical';
-    if (issues.length === 1) return 'warning';
-    return 'good';
+
+    if (issues.length > 1) return "critical";
+    if (issues.length === 1) return "warning";
+    return "good";
   }
 
   /**
@@ -383,23 +425,26 @@ export class MonitoringInitializer {
   static async _trackInitialization() {
     try {
       const initTime = performance.now() - this.initializationStart;
-      
+
       await UserActionTracker.trackAction({
-        action: 'monitoring_system_initialized',
+        action: "monitoring_system_initialized",
         category: UserActionTracker.CATEGORIES.SYSTEM_INTERACTION,
         context: {
           initializationTime: initTime,
           services: Object.keys(this.services),
-          environment: process.env.NODE_ENV || 'development'
+          environment: process.env.NODE_ENV || "development",
         },
         performance: {
           duration: initTime,
-          success: true
-        }
+          success: true,
+        },
       });
-      
     } catch (error) {
-      logger.warn('Failed to track initialization', { section: 'monitoring_init' }, error);
+      logger.warn(
+        "Failed to track initialization",
+        { section: "monitoring_init" },
+        error
+      );
     }
   }
 
@@ -409,11 +454,12 @@ export class MonitoringInitializer {
   static getMonitoringStatus() {
     return {
       initialized: this.isInitialized,
-      initializationTime: this.initializationStart ? 
-        performance.now() - this.initializationStart : null,
+      initializationTime: this.initializationStart
+        ? performance.now() - this.initializationStart
+        : null,
       services: this.services,
-      environment: process.env.NODE_ENV || 'development',
-      timestamp: new Date().toISOString()
+      environment: process.env.NODE_ENV || "development",
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -426,22 +472,23 @@ export class MonitoringInitializer {
       if (this.services.healthCheckInterval) {
         clearInterval(this.services.healthCheckInterval);
       }
-      
+
       // Flush remaining user actions
       UserActionTracker.flush();
-      
+
       // Clear alerting
       if (AlertingService.isActive) {
         AlertingService.setActive(false);
       }
-      
+
       this.isInitialized = false;
       this.services = {};
-      
-      logger.info('Monitoring services shutdown', { section: 'monitoring_init' });
-      
+
+      logger.info("Monitoring services shutdown", {
+        section: "monitoring_init",
+      });
     } catch (error) {
-      console.error('Error during monitoring shutdown:', error);
+      console.error("Error during monitoring shutdown:", error);
     }
   }
 
@@ -450,24 +497,28 @@ export class MonitoringInitializer {
    */
   static _deepMerge(target, source) {
     const output = { ...target };
-    
-    Object.keys(source).forEach(key => {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+
+    Object.keys(source).forEach((key) => {
+      if (
+        source[key] &&
+        typeof source[key] === "object" &&
+        !Array.isArray(source[key])
+      ) {
         output[key] = this._deepMerge(target[key] || {}, source[key]);
       } else {
         output[key] = source[key];
       }
     });
-    
+
     return output;
   }
 }
 
 // Auto-initialize in production
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
+if (typeof window !== "undefined" && process.env.NODE_ENV === "production") {
   // Initialize after DOM is loaded
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
       MonitoringInitializer.initialize();
     });
   } else {
@@ -476,8 +527,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
 }
 
 // Auto-shutdown on page unload
-if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
     MonitoringInitializer.shutdown();
   });
 }
