@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.14] - 2025-08-11
+
+### 🎨 Enhanced Theme System & Appearance Settings
+
+* **Comprehensive Appearance Customization**: Complete theme settings interface with cross-platform support
+  - **Enhanced Theme Provider**: Cross-platform theme synchronization between content page and dashboard with Chrome storage + localStorage fallback
+  - **Appearance Settings Component**: Font size, layout density, and animation preferences with intuitive controls
+  - **Extended CSS Variables**: Comprehensive theme system with 50+ CSS variables for consistent styling
+  - **Theme Toggle Integration**: Consolidated theme controls with Chrome extension storage integration
+  - **Dashboard Scroll Fix**: Proper scrolling behavior for content exceeding viewport height
+
 ## [0.10.13] - 2025-08-10
 
 ### 📚 Complete Documentation & Developer Onboarding System
