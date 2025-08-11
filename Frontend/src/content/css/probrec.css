@@ -371,7 +371,6 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-section {
-
   margin-bottom: 2px !important;
   padding: 0 4px !important;
 
@@ -589,7 +588,6 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-actions {
-
   margin-top: 12px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -740,7 +738,6 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   overflow: hidden !important;
 }
 
-
 /* ============================================================================
    COMPREHENSIVE TAG LAYOUT SOLUTIONS - Multiple Approaches for 2-Column Grid
    ============================================================================ */
@@ -755,11 +752,11 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   margin-bottom: 12px !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  
+
   /* Ensure container takes full width */
   min-width: 100% !important;
   max-width: 100% !important;
-  
+
   /* Reset any inherited flex properties */
   flex-direction: initial !important;
   flex-wrap: initial !important;
@@ -780,7 +777,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   min-width: 100% !important;
   max-width: 100% !important;
   box-sizing: border-box !important;
-  
+
   /* Force column layout for single column */
   align-content: stretch !important;
 }
@@ -789,7 +786,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 .tag-strategy-button {
   /* Grid layout properties - works with Solution 1 (CSS Grid) */
   grid-column: span 1 !important;
-  
+
   /* Flexbox layout properties - works with Solution 2 (Enhanced Flexbox) */
   width: 100% !important;
   min-width: 100% !important;
@@ -821,7 +818,9 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 /* LeetCode Badge Theme Styles */
 
 /* Light theme badge styling (default) */
-.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ) {
   /* Removed yellow background - keep only transform effect */
   color: var(--cm-text) !important;
   transform: translateY(-1px) !important;
@@ -855,7 +854,10 @@ body[data-theme="dark"] .tag-strategy-button {
   color: var(--cm-text) !important;
 }
 
-body[data-theme="dark"] .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+body[data-theme="dark"]
+  .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ) {
   /* Removed yellow background - keep only transform effect */
   color: var(--cm-text) !important;
   transform: translateY(-1px) !important;
@@ -1126,7 +1128,11 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid {
   box-sizing: border-box !important;
 }
 
-body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button {
+body
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button {
   grid-column: span 1 !important;
   width: auto !important;
   box-sizing: border-box !important;
@@ -1159,7 +1165,11 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
 }
 
 /* NUCLEAR OPTION: FORCE 2-COLUMN WITH MAXIMUM SPECIFICITY */
-html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+html
+  body
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   grid-gap: 0px !important;
@@ -1174,7 +1184,12 @@ html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-
   align-content: unset !important;
 }
 
-html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button {
+html
+  body
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button {
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
@@ -1198,10 +1213,14 @@ html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-
   .tag-strategy-simple-grid.use-flexbox,
   .tag-strategy-simple-grid.use-float,
   .tag-strategy-simple-grid.use-inline-block,
-  html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+  html
+    body
+    .problem-sidebar
+    .problem-sidebar-section.tag-strategy-container
+    .tag-strategy-simple-grid {
     grid-template-columns: 1fr !important;
   }
-  
+
   .tag-strategy-simple-grid.use-float .tag-strategy-button,
   .tag-strategy-simple-grid.use-inline-block .tag-strategy-button {
     width: 100% !important;
@@ -1297,7 +1316,7 @@ html body .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-
   .cd-sidenav__content {
     padding-bottom: 80px !important;
   }
-  
+
   .problem-sidebar-actions {
     position: sticky !important;
     bottom: 0 !important;
@@ -1360,14 +1379,20 @@ button[class*="tag-strategy"][type="button"] {
 */
 
 /* NUCLEAR SOLUTION: FORCE LARGE TAG BUTTONS - MAXIMUM SPECIFICITY */
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button {
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button {
   /* Force large button sizing */
   padding: 8px 16px !important;
   font-size: 13px !important;
   min-height: 40px !important;
   height: auto !important;
   line-height: 1.3 !important;
-  
+
   /* Override all width constraints */
   width: auto !important;
   min-width: 0 !important;
@@ -1375,32 +1400,42 @@ html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-st
   flex-basis: auto !important;
   flex-grow: 1 !important;
   flex-shrink: 0 !important;
-  
+
   /* Force proper display and sizing */
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   box-sizing: border-box !important;
-  
+
   /* Allow text wrapping for better display */
   white-space: normal !important;
   word-wrap: break-word !important;
   text-align: center !important;
-  
+
   /* Enhanced visual styling */
   font-weight: 600 !important;
   border-radius: 8px !important;
   transition: all 0.2s ease !important;
 }
 
-
 /* Override the responsive media query that forces single column */
 @media screen and (max-width: 220px) {
-  html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+  html
+    body
+    div.cd-sidenav
+    div.cd-sidenav__content
+    .problem-sidebar-section.tag-strategy-container
+    .tag-strategy-simple-grid {
     grid-template-columns: 1fr 1fr !important; /* Keep 2 columns even on narrow screens */
   }
-  
-  html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button {
+
+  html
+    body
+    div.cd-sidenav
+    div.cd-sidenav__content
+    .problem-sidebar-section.tag-strategy-container
+    .tag-strategy-simple-grid
+    .tag-strategy-button {
     width: auto !important;
     min-width: 0 !important;
     padding: 6px 12px !important; /* Adjusted padding for very narrow screens while still readable */
@@ -1408,9 +1443,13 @@ html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-st
   }
 }
 
-
 /* Tag Strategy Grid - Compact layout with theme-appropriate styling */
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 0px !important; /* Critical: No gap between grid items */
@@ -1419,9 +1458,25 @@ html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-st
   box-sizing: border-box !important;
 }
 
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"],
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button,
+body
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button[class*="tag-strategy-button"],
 .tag-strategy-simple-grid .tag-strategy-button[type="button"] {
   /* Smaller, more compact pill styling */
   width: auto !important;
@@ -1431,7 +1486,7 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
   margin: 4px !important; /* Even more margin to make separation obvious */
   min-height: 36px !important; /* Slightly taller for visibility */
   height: auto !important;
-  
+
   /* Typography - Compact but readable */
   font-size: 11px !important;
   font-weight: 500 !important;
@@ -1440,24 +1495,24 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
-  
+
   /* Pill shape with smaller radius */
   border-radius: 16px !important;
-  
+
   /* Layout */
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   box-sizing: border-box !important;
   cursor: pointer !important;
-  
+
   /* Transitions for smooth pill-to-tab animation */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  
+
   /* Position */
   position: relative !important;
   z-index: 1 !important;
-  
+
   /* Colors - theme integrated */
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
@@ -1465,10 +1520,35 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
 }
 
 /* NUCLEAR HOVER STATE: Maximum Specificity - Removed yellow background */
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-.tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+body
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button[class*="tag-strategy-button"]:hover:not(
+    .tag-strategy-button-expanded
+  ):not(.tag-strategy-no-hover),
+.tag-strategy-simple-grid
+  .tag-strategy-button[type="button"]:hover:not(
+    .tag-strategy-button-expanded
+  ):not(.tag-strategy-no-hover) {
   /* Removed yellow background - keep only transform and shadow effects */
   color: var(--cm-text) !important;
   transform: translateY(-1px) !important;
@@ -1476,9 +1556,25 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
 }
 
 /* NUCLEAR EXPANDED STATE: Transform to tab shape with maximum specificity */
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"],
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded,
+body
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[class*="tag-strategy-button"],
 .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
 .tag-strategy-button-expanded {
   /* TAB SHAPE: Rounded top corners, square bottom for seamless connection */
@@ -1487,25 +1583,41 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
   border: none !important;
   color: var(--cm-text) !important;
   font-weight: 600 !important;
-  
+
   /* Position for seamless connection - remove all margins */
   z-index: 2 !important;
   margin: 0px !important;
   margin-bottom: 0px !important; /* Critical: No gap between tab and content */
   position: relative !important;
-  
+
   /* Remove transform effects when expanded */
   transform: none !important;
   box-shadow: none !important;
-  
+
   /* Ensure tab connects perfectly to content */
   border-bottom: none !important;
 }
 
 /* NUCLEAR EXPANDED HOVER: Prevent hover effects on expanded buttons */
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
+body
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
 .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
 .tag-strategy-button-expanded:hover {
   transform: none !important;
@@ -1516,27 +1628,89 @@ body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-st
 }
 
 /* NUCLEAR DARK THEME: Maximum Specificity */
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"],
-body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button[type="button"] {
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button,
+html
+  body[data-theme="dark"]
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button,
+body[data-theme="dark"]
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button[class*="tag-strategy-button"],
+body[data-theme="dark"]
+  .tag-strategy-simple-grid
+  .tag-strategy-button[type="button"] {
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
   border: 1px solid var(--cm-link) !important;
 }
 
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button[type="button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+html
+  body[data-theme="dark"]
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+body[data-theme="dark"]
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button[class*="tag-strategy-button"]:hover:not(
+    .tag-strategy-button-expanded
+  ):not(.tag-strategy-no-hover),
+body[data-theme="dark"]
+  .tag-strategy-simple-grid
+  .tag-strategy-button[type="button"]:hover:not(
+    .tag-strategy-button-expanded
+  ):not(.tag-strategy-no-hover) {
   /* Removed yellow background for dark theme too */
   color: var(--cm-text) !important;
 }
 
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"],
-body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded,
+html
+  body[data-theme="dark"]
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded,
+body[data-theme="dark"]
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[class*="tag-strategy-button"],
+body[data-theme="dark"]
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[type="button"],
 body[data-theme="dark"] .tag-strategy-button-expanded {
   background-color: var(--cm-dropdown-bg) !important;
   border: none !important;
@@ -1547,10 +1721,28 @@ body[data-theme="dark"] .tag-strategy-button-expanded {
   border-radius: 8px 8px 0 0 !important;
 }
 
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-html body[data-theme="dark"] .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-body[data-theme="dark"] .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
-body[data-theme="dark"] .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
+html
+  body[data-theme="dark"]
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
+body[data-theme="dark"]
+  .problem-sidebar
+  .problem-sidebar-section
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
+body[data-theme="dark"]
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[type="button"]:hover,
 body[data-theme="dark"] .tag-strategy-button-expanded:hover {
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
@@ -1584,7 +1776,9 @@ body[data-theme="dark"] .tag-strategy-button-expanded:hover {
 }
 
 body[data-theme="dark"] .tag-strategy-hint-content {
-  background-color: var(--cm-dropdown-bg) !important; /* Use theme variable for consistency */
+  background-color: var(
+    --cm-dropdown-bg
+  ) !important; /* Use theme variable for consistency */
   border: none !important; /* No borders */
   border-radius: 0 10px 10px 10px !important; /* Match 10px radius */
   margin-top: 0px !important; /* No gap */
@@ -1611,12 +1805,12 @@ body[data-theme="dark"] .tag-strategy-hint-content {
   overflow-x: hidden !important;
   scroll-behavior: smooth !important;
   scrollbar-width: thin !important;
-  
+
   /* Ensure proper height and padding to prevent content cutoff */
   height: calc(100vh - 80px) !important;
   max-height: calc(100vh - 80px) !important;
   padding-bottom: 40px !important;
-  
+
   /* Enable smooth scrolling on webkit */
   -webkit-overflow-scrolling: touch !important;
 }
@@ -1625,19 +1819,19 @@ body[data-theme="dark"] .tag-strategy-hint-content {
 .tag-strategy-hint {
   /* Smooth expansion animation */
   animation: expandStrategyContent 0.3s ease-out !important;
-  
+
   /* Ensure proper spacing and no content blocking */
   margin-top: 0px !important;
   margin-bottom: 16px !important;
-  
+
   /* Full width within grid */
   grid-column: 1 / -1 !important;
   width: 100% !important;
-  
+
   /* Ensure visibility */
   position: relative !important;
   z-index: 1 !important;
-  
+
   /* Smooth scrolling target */
   scroll-margin-top: 20px !important;
 }
@@ -1697,8 +1891,20 @@ body[data-theme="dark"] .tag-strategy-hint-content {
 
 /* ===== NUCLEAR OVERRIDE: FORCE TAG BUTTON THEME COLORS ===== */
 /* Maximum specificity to override any existing rules */
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button,
 .cm-extension .tag-strategy-button,
 button.tag-strategy-button,
 [class*="tag-strategy-button"] {
@@ -1709,11 +1915,34 @@ button.tag-strategy-button,
 }
 
 /* NUCLEAR OVERRIDE: Hover states */
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-.cm-extension .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover),
-[class*="tag-strategy-button"]:hover:not(.tag-strategy-button-expanded):not(.tag-strategy-no-hover) {
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+.cm-extension
+  .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ),
+[class*="tag-strategy-button"]:hover:not(.tag-strategy-button-expanded):not(
+    .tag-strategy-no-hover
+  ) {
   /* Removed yellow background from this rule too */
   color: var(--cm-text) !important;
 }
@@ -1753,10 +1982,35 @@ body[data-theme="dark"] .tag-strategy-hint-content {
 }
 
 /* ULTRA NUCLEAR: Tag buttons with absolute maximum specificity */
-html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[type="button"],
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button"] {
+html
+  body[data-theme="light"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button,
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button[type="button"],
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button[class*="tag-strategy-button"] {
   padding: 8px 12px !important;
   margin: 4px !important;
   min-height: 36px !important;
@@ -1768,10 +2022,35 @@ html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sideb
 }
 
 /* ULTRA NUCLEAR: Expanded tab state with absolute maximum specificity */
-html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"],
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"] {
+html
+  body[data-theme="light"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded,
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[type="button"],
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[class*="tag-strategy-button"] {
   border-radius: 10px 10px 0px 0px !important; /* Updated for better connection */
   margin: 0px !important;
   margin-bottom: 0px !important;
@@ -1783,16 +2062,55 @@ html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sideb
 }
 
 /* ULTRA NUCLEAR: Remove hover effects on expanded/active tabs - Maximum Specificity */
-html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[type="button"]:hover,
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button-expanded:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html
+  body[data-theme="light"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[type="button"]:hover,
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded[class*="tag-strategy-button"]:hover,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button-expanded:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
 .cm-extension .tag-strategy-button-expanded:hover,
 button.tag-strategy-button-expanded:hover,
 [class*="tag-strategy-button-expanded"]:hover {
-  background-color: var(--cm-dropdown-bg) !important; /* Keep same background as non-hover */
+  background-color: var(
+    --cm-dropdown-bg
+  ) !important; /* Keep same background as non-hover */
   color: var(--cm-text) !important; /* Keep same text color */
   transform: none !important; /* No hover animation */
   box-shadow: none !important; /* No hover shadow */
@@ -1803,18 +2121,50 @@ button.tag-strategy-button-expanded:hover,
 }
 
 /* ULTIMATE NUCLEAR: Override the specific hover rule - NO YELLOW HOVER ON ANY EXPANDED TABS */
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button-expanded:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded:hover,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button-expanded:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded:hover,
 .cm-extension .tag-strategy-button-expanded:hover,
 button.tag-strategy-button-expanded:hover,
 [class*="tag-strategy-button-expanded"]:hover,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button.tag-strategy-button-expanded:hover,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[aria-expanded="true"]:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[aria-expanded="true"]:hover,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button.tag-strategy-button-expanded:hover,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button[aria-expanded="true"]:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  button[aria-expanded="true"]:hover,
 .cm-extension button[aria-expanded="true"]:hover,
 button[aria-expanded="true"]:hover,
 [class*="tag-strategy-button"][aria-expanded="true"]:hover {
-  background-color: var(--cm-dropdown-bg) !important; /* NO highlight color change */
+  background-color: var(
+    --cm-dropdown-bg
+  ) !important; /* NO highlight color change */
   color: var(--cm-text) !important; /* Keep same text color */
   border-radius: 10px 10px 0px 0px !important; /* Maintain tab shape */
   transform: none !important; /* No hover effects */
@@ -1822,13 +2172,37 @@ button[aria-expanded="true"]:hover,
 }
 
 /* MEGA NUCLEAR: Target expanded tabs by class AND aria-expanded attribute */
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button-expanded,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button-expanded,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button-expanded,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button-expanded,
 .cm-extension .tag-strategy-button-expanded,
 button.tag-strategy-button-expanded,
 [class*="tag-strategy-button-expanded"],
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[aria-expanded="true"],
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[aria-expanded="true"],
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button[aria-expanded="true"],
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  button[aria-expanded="true"],
 .cm-extension button[aria-expanded="true"],
 button[aria-expanded="true"],
 [class*="tag-strategy-button"][aria-expanded="true"] {
@@ -1841,17 +2215,55 @@ button[aria-expanded="true"],
 }
 
 /* ULTIMATE NUCLEAR: Override the exact hover rule that's causing yellow with maximum specificity */
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button.tag-strategy-button-expanded:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button.tag-strategy-button-expanded:hover,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button.tag-strategy-button-expanded:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button.tag-strategy-button-expanded:hover,
 .cm-extension .tag-strategy-button.tag-strategy-button-expanded:hover,
 button.tag-strategy-button.tag-strategy-button-expanded:hover,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button[aria-expanded="true"]:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[aria-expanded="true"]:hover,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button[aria-expanded="true"]:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button[aria-expanded="true"]:hover,
 .cm-extension .tag-strategy-button[aria-expanded="true"]:hover,
 button.tag-strategy-button[aria-expanded="true"]:hover,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button[class*="tag-strategy-button-expanded"]:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-button[class*="tag-strategy-button-expanded"]:hover {
-  background-color: var(--cm-dropdown-bg) !important; /* Override the yellow hover */
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button[class*="tag-strategy-button-expanded"]:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-button[class*="tag-strategy-button-expanded"]:hover {
+  background-color: var(
+    --cm-dropdown-bg
+  ) !important; /* Override the yellow hover */
   color: var(--cm-text) !important;
   border-radius: 10px 10px 0px 0px !important;
   transform: none !important;
@@ -1859,15 +2271,65 @@ html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-c
 }
 
 /* ABSOLUTE NUCLEAR: Direct override with maximum possible specificity */
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button:hover.tag-strategy-button-expanded,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button.tag-strategy-button:hover.tag-strategy-button-expanded,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-button[aria-expanded="true"]:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button.tag-strategy-button[aria-expanded="true"]:hover,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[class*="tag-strategy-button"]:hover.tag-strategy-button-expanded,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[class*="tag-strategy-button"]:hover.tag-strategy-button-expanded,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button[class*="tag-strategy-button"][aria-expanded="true"]:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid button[class*="tag-strategy-button"][aria-expanded="true"]:hover {
-  background-color: var(--cm-dropdown-bg) !important; /* Absolute override - NO YELLOW */
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button:hover.tag-strategy-button-expanded,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  button.tag-strategy-button:hover.tag-strategy-button-expanded,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-button[aria-expanded="true"]:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  button.tag-strategy-button[aria-expanded="true"]:hover,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button[class*="tag-strategy-button"]:hover.tag-strategy-button-expanded,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  button[class*="tag-strategy-button"]:hover.tag-strategy-button-expanded,
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button[class*="tag-strategy-button"][aria-expanded="true"]:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  button[class*="tag-strategy-button"][aria-expanded="true"]:hover {
+  background-color: var(
+    --cm-dropdown-bg
+  ) !important; /* Absolute override - NO YELLOW */
   color: var(--cm-text) !important;
 }
 
@@ -1883,9 +2345,23 @@ html body div.cm-sidenav .tag-strategy-no-hover:hover,
 html body .cm-extension .tag-strategy-no-hover:hover,
 html body div.cm-sidenav div.cm-sidenav__content .tag-strategy-no-hover:hover,
 html body .cm-extension .problem-sidebar .tag-strategy-no-hover:hover,
-html body div.cm-sidenav div.cm-sidenav__content div.problem-sidebar-section.tag-strategy-container div.tag-strategy-simple-grid button.tag-strategy-no-hover:hover,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid .tag-strategy-no-hover:hover {
-  background-color: var(--cm-dropdown-bg) !important; /* Force theme background */
+html
+  body
+  div.cm-sidenav
+  div.cm-sidenav__content
+  div.problem-sidebar-section.tag-strategy-container
+  div.tag-strategy-simple-grid
+  button.tag-strategy-no-hover:hover,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid
+  .tag-strategy-no-hover:hover {
+  background-color: var(
+    --cm-dropdown-bg
+  ) !important; /* Force theme background */
   color: var(--cm-text) !important; /* Force theme text */
   transform: none !important; /* No transforms */
   box-shadow: none !important; /* No shadows */
@@ -1895,10 +2371,31 @@ html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-c
 }
 
 /* ULTRA NUCLEAR: Force zero grid gap with maximum specificity */
-html body[data-theme="light"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid,
-html body[data-theme="dark"] div.cd-sidenav div.cd-sidenav__content .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid,
-html body .cm-extension .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid,
-html body div.cd-sidenav div.cd-sidenav__content .problem-sidebar .problem-sidebar-section.tag-strategy-container .tag-strategy-simple-grid {
+html
+  body[data-theme="light"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid,
+html
+  body[data-theme="dark"]
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid,
+html
+  body
+  .cm-extension
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid,
+html
+  body
+  div.cd-sidenav
+  div.cd-sidenav__content
+  .problem-sidebar
+  .problem-sidebar-section.tag-strategy-container
+  .tag-strategy-simple-grid {
   gap: 0px !important;
   grid-gap: 0px !important;
   column-gap: 0px !important;
@@ -1957,7 +2454,7 @@ button.tag-strategy-button-expanded,
   border-bottom: none !important;
   position: relative !important;
   z-index: 10 !important;
-  
+
   /* CRITICAL: Pill-to-tab transition - rounded top, square bottom */
   border-radius: 10px 10px 0px 0px !important; /* Better connection with 10px radius */
   background-color: var(--cm-dropdown-bg) !important;
@@ -1976,4 +2473,3 @@ button.tag-strategy-button-expanded,
   position: relative !important;
   z-index: 5 !important;
 }
-

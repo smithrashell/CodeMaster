@@ -195,7 +195,7 @@ describe("SessionService", () => {
       // Arrange
       const mockProblems = [
         { id: 1, title: "Two Sum", difficulty: "Easy" },
-        { id: 2, title: "Add Two Numbers", difficulty: "Medium" }
+        { id: 2, title: "Add Two Numbers", difficulty: "Medium" },
       ];
       ProblemService.createSession.mockResolvedValue(mockProblems);
       sessionDb.saveNewSessionToDB.mockResolvedValue();
@@ -211,7 +211,7 @@ describe("SessionService", () => {
           id: "test-uuid-123",
           status: "in_progress",
           problems: mockProblems,
-          attempts: []
+          attempts: [],
         })
       );
       expect(sessionDb.saveSessionToStorage).toHaveBeenCalled();
@@ -258,7 +258,7 @@ describe("SessionService", () => {
       // Arrange
       const mockSettings = { adaptiveSession: true };
       const mockProblems = [{ id: 1, title: "Problem 1" }];
-      
+
       StorageService.migrateSettingsToIndexedDB.mockResolvedValue(mockSettings);
       SessionService.resumeSession.mockResolvedValue(mockProblems);
 
@@ -276,7 +276,7 @@ describe("SessionService", () => {
       // Arrange
       const mockSettings = { adaptiveSession: true };
       const mockProblems = [{ id: 1, title: "Problem 1" }];
-      
+
       StorageService.migrateSettingsToIndexedDB.mockResolvedValue(mockSettings);
       SessionService.resumeSession.mockResolvedValue(null);
       SessionService.createNewSession.mockResolvedValue(mockProblems);
@@ -314,10 +314,10 @@ describe("SessionService", () => {
         id: "session-123",
         problems: [
           { leetCodeID: "problem-123", title: "Problem 1" },
-          { leetCodeID: "problem-456", title: "Problem 2" }
-        ]
+          { leetCodeID: "problem-456", title: "Problem 2" },
+        ],
       };
-      
+
       sessionDb.getLatestSession.mockResolvedValue(mockSession);
       sessionDb.saveSessionToStorage.mockResolvedValue();
 
@@ -328,7 +328,7 @@ describe("SessionService", () => {
       expect(sessionDb.getLatestSession).toHaveBeenCalled();
       expect(sessionDb.saveSessionToStorage).toHaveBeenCalledWith(
         expect.objectContaining({
-          problems: [{ leetCodeID: "problem-456", title: "Problem 2" }]
+          problems: [{ leetCodeID: "problem-456", title: "Problem 2" }],
         }),
         true
       );
@@ -355,11 +355,14 @@ describe("SessionService", () => {
       // Arrange
       const preSessionMap = new Map();
       const postSessionMap = new Map([
-        ["array", { mastered: false, totalAttempts: 3, decayScore: 0.9 }]
+        ["array", { mastered: false, totalAttempts: 3, decayScore: 0.9 }],
       ]);
 
       // Act
-      const result = SessionService.calculateMasteryDeltas(preSessionMap, postSessionMap);
+      const result = SessionService.calculateMasteryDeltas(
+        preSessionMap,
+        postSessionMap
+      );
 
       // Assert
       expect(result).toHaveLength(1);
@@ -370,21 +373,24 @@ describe("SessionService", () => {
         postMastered: false,
         masteredChanged: false,
         strengthDelta: 3,
-        decayDelta: expect.closeTo(-0.1, 5)
+        decayDelta: expect.closeTo(-0.1, 5),
       });
     });
 
     it("should calculate deltas for mastery progression", () => {
       // Arrange
       const preSessionMap = new Map([
-        ["array", { mastered: false, totalAttempts: 8, decayScore: 1.0 }]
+        ["array", { mastered: false, totalAttempts: 8, decayScore: 1.0 }],
       ]);
       const postSessionMap = new Map([
-        ["array", { mastered: true, totalAttempts: 12, decayScore: 1.0 }]
+        ["array", { mastered: true, totalAttempts: 12, decayScore: 1.0 }],
       ]);
 
       // Act
-      const result = SessionService.calculateMasteryDeltas(preSessionMap, postSessionMap);
+      const result = SessionService.calculateMasteryDeltas(
+        preSessionMap,
+        postSessionMap
+      );
 
       // Assert
       expect(result).toHaveLength(1);
@@ -395,21 +401,24 @@ describe("SessionService", () => {
         postMastered: true,
         masteredChanged: true,
         strengthDelta: 4,
-        decayDelta: 0
+        decayDelta: 0,
       });
     });
 
     it("should filter out deltas with no meaningful changes", () => {
       // Arrange
       const preSessionMap = new Map([
-        ["array", { mastered: true, totalAttempts: 10, decayScore: 1.0 }]
+        ["array", { mastered: true, totalAttempts: 10, decayScore: 1.0 }],
       ]);
       const postSessionMap = new Map([
-        ["array", { mastered: true, totalAttempts: 10, decayScore: 1.0 }]
+        ["array", { mastered: true, totalAttempts: 10, decayScore: 1.0 }],
       ]);
 
       // Act
-      const result = SessionService.calculateMasteryDeltas(preSessionMap, postSessionMap);
+      const result = SessionService.calculateMasteryDeltas(
+        preSessionMap,
+        postSessionMap
+      );
 
       // Assert
       expect(result).toHaveLength(0);
@@ -424,11 +433,7 @@ describe("SessionService", () => {
     it("should analyze difficulty distribution correctly", async () => {
       // Arrange
       const session = {
-        problems: [
-          { leetCodeID: 1 },
-          { leetCodeID: 2 },
-          { leetCodeID: 3 }
-        ]
+        problems: [{ leetCodeID: 1 }, { leetCodeID: 2 }, { leetCodeID: 3 }],
       };
 
       standardProblems.fetchProblemById
@@ -445,13 +450,15 @@ describe("SessionService", () => {
       expect(result.percentages.Medium).toBeCloseTo(33.33, 2);
       expect(result.percentages.Hard).toBeCloseTo(33.33, 2);
       expect(result.totalProblems).toBe(3);
-      expect(["Easy", "Medium", "Hard"]).toContain(result.predominantDifficulty);
+      expect(["Easy", "Medium", "Hard"]).toContain(
+        result.predominantDifficulty
+      );
     });
 
     it("should default to Medium when problem difficulty is not found", async () => {
       // Arrange
       const session = {
-        problems: [{ leetCodeID: 1 }]
+        problems: [{ leetCodeID: 1 }],
       };
 
       standardProblems.fetchProblemById.mockResolvedValue(null);
@@ -481,37 +488,43 @@ describe("SessionService", () => {
 
     it("should summarize session performance with all components", async () => {
       // Arrange
-      const session = { 
-        id: "test-session", 
+      const session = {
+        id: "test-session",
         problems: [{ leetCodeID: 1 }],
-        attempts: [{ problemId: 1, correct: true, timeSpent: 1200 }]
+        attempts: [{ problemId: 1, correct: true, timeSpent: 1200 }],
       };
 
       const mockPreTagMastery = [
-        { tag: "array", mastered: false, totalAttempts: 5 }
+        { tag: "array", mastered: false, totalAttempts: 5 },
       ];
       const mockPostTagMastery = [
-        { tag: "array", mastered: true, totalAttempts: 8 }
+        { tag: "array", mastered: true, totalAttempts: 8 },
       ];
       const mockPerformance = {
         accuracy: 0.8,
         avgTime: 1500,
         strongTags: ["array"],
-        weakTags: []
+        weakTags: [],
       };
 
       tagMasteryDb.getTagMastery
         .mockResolvedValueOnce(mockPreTagMastery)
         .mockResolvedValueOnce(mockPostTagMastery);
       sessionDb.getSessionPerformance.mockResolvedValue(mockPerformance);
-      SessionService.calculateMasteryDeltas.mockReturnValue([{
-        tag: "array", type: "updated", masteredChanged: true, postMastered: true
-      }]);
+      SessionService.calculateMasteryDeltas.mockReturnValue([
+        {
+          tag: "array",
+          type: "updated",
+          masteredChanged: true,
+          postMastered: true,
+        },
+      ]);
       SessionService.analyzeSessionDifficulty.mockResolvedValue({
-        counts: { Easy: 1, Medium: 0, Hard: 0 }
+        counts: { Easy: 1, Medium: 0, Hard: 0 },
       });
       SessionService.generateSessionInsights.mockReturnValue({
-        accuracy: "Good performance", nextActions: []
+        accuracy: "Good performance",
+        nextActions: [],
       });
 
       // Act
@@ -519,7 +532,9 @@ describe("SessionService", () => {
 
       // Assert
       expect(tagMasteryDb.getTagMastery).toHaveBeenCalledTimes(2);
-      expect(problemRelationships.updateProblemRelationships).toHaveBeenCalledWith(session);
+      expect(
+        problemRelationships.updateProblemRelationships
+      ).toHaveBeenCalledWith(session);
       expect(tagMasteryDb.calculateTagMastery).toHaveBeenCalled();
       expect(sessionAnalytics.storeSessionAnalytics).toHaveBeenCalled();
       expect(result).toMatchObject({
@@ -527,8 +542,8 @@ describe("SessionService", () => {
         performance: mockPerformance,
         masteryProgression: {
           newMasteries: 1,
-          decayedMasteries: 0
-        }
+          decayedMasteries: 0,
+        },
       });
     });
 
@@ -538,8 +553,9 @@ describe("SessionService", () => {
       tagMasteryDb.getTagMastery.mockRejectedValue(new Error("Database error"));
 
       // Act & Assert
-      await expect(SessionService.summarizeSessionPerformance(session))
-        .rejects.toThrow("Database error");
+      await expect(
+        SessionService.summarizeSessionPerformance(session)
+      ).rejects.toThrow("Database error");
     });
   });
 });

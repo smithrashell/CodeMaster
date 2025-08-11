@@ -1,6 +1,6 @@
 /**
  * Adaptive Limits Service for CodeMaster
- * 
+ *
  * This service implements adaptive time limits that adjust based on user performance,
  * while maintaining minimum interview standards and providing user customization options.
  */
@@ -13,26 +13,26 @@ import { StorageService } from "./storageService.js";
 // Default base limits (interview standards) in minutes
 const BASE_LIMITS = {
   Easy: 15,
-  Medium: 25, 
-  Hard: 40
+  Medium: 25,
+  Hard: 40,
 };
 
 // User preference modes (matching settings UI options)
 const LIMIT_MODES = {
-  AUTO: "Auto",               // Adaptive based on user performance  
-  OFF: "off",                // No time limits
-  FIXED: "Fixed",            // Fixed time based on user preference
+  AUTO: "Auto", // Adaptive based on user performance
+  OFF: "off", // No time limits
+  FIXED: "Fixed", // Fixed time based on user preference
   // Legacy support for old format
   FIXED_15: "15",
-  FIXED_20: "20", 
-  FIXED_30: "30"
+  FIXED_20: "20",
+  FIXED_30: "30",
 };
 
 // Default fixed time settings
 const DEFAULT_FIXED_TIMES = {
   Easy: 15,
   Medium: 20,
-  Hard: 30
+  Hard: 30,
 };
 
 export class AdaptiveLimitsService {
@@ -48,15 +48,23 @@ export class AdaptiveLimitsService {
    * @returns {Promise<Object>} Limit configuration
    */
   async getLimits(problemId) {
-    console.log("🔍 AdaptiveLimitsService.getLimits called with problemId:", problemId);
-    
+    console.log(
+      "🔍 AdaptiveLimitsService.getLimits called with problemId:",
+      problemId
+    );
+
     // Validate problemId
-    if (!problemId || (typeof problemId !== 'string' && typeof problemId !== 'number')) {
-      console.warn(`⚠️ Invalid problemId provided: ${problemId}, defaulting to Medium`);
+    if (
+      !problemId ||
+      (typeof problemId !== "string" && typeof problemId !== "number")
+    ) {
+      console.warn(
+        `⚠️ Invalid problemId provided: ${problemId}, defaulting to Medium`
+      );
       const difficulty = "Medium";
       return this.getDefaultLimits(difficulty);
     }
-    
+
     // First, get the official difficulty from standard_problems store
     let difficulty;
     try {
@@ -64,23 +72,31 @@ export class AdaptiveLimitsService {
       const standardProblem = await fetchProblemById(problemId);
       console.log("🔍 Standard problem result:", standardProblem);
       difficulty = standardProblem?.difficulty;
-      
+
       if (!difficulty) {
-        console.warn(`⚠️ No difficulty found for problem ${problemId}, defaulting to Medium`);
+        console.warn(
+          `⚠️ No difficulty found for problem ${problemId}, defaulting to Medium`
+        );
         difficulty = "Medium";
       } else {
         console.log("✅ Found difficulty:", difficulty);
       }
     } catch (error) {
-      console.error(`❌ Error fetching difficulty for problem ${problemId}:`, error);
+      console.error(
+        `❌ Error fetching difficulty for problem ${problemId}:`,
+        error
+      );
       difficulty = "Medium"; // Fallback
     }
     try {
-      console.log("🔍 AdaptiveLimitsService.getLimits called with:", { difficulty, problemId });
-      
+      console.log("🔍 AdaptiveLimitsService.getLimits called with:", {
+        difficulty,
+        problemId,
+      });
+
       const settings = await this.getUserSettings();
       console.log("🔍 Retrieved settings:", settings);
-      
+
       const mode = settings.limit || LIMIT_MODES.OFF; // Use existing settings.limit field
       console.log("🔍 Using limit mode:", mode);
 
@@ -95,7 +111,10 @@ export class AdaptiveLimitsService {
           const adaptiveLimit = await this.calculateAdaptiveLimit(difficulty);
           recommendedTime = adaptiveLimit;
           minimumTime = BASE_LIMITS[difficulty]; // Never go below interview standard
-          maximumTime = Math.max(adaptiveLimit * 1.5, BASE_LIMITS[difficulty] * 2);
+          maximumTime = Math.max(
+            adaptiveLimit * 1.5,
+            BASE_LIMITS[difficulty] * 2
+          );
           isAdaptive = true;
           break;
 
@@ -108,7 +127,9 @@ export class AdaptiveLimitsService {
 
         case LIMIT_MODES.FIXED:
           // Fixed time based on difficulty and user preference
-          const fixedTime = settings.fixedTimes?.[difficulty] || DEFAULT_FIXED_TIMES[difficulty];
+          const fixedTime =
+            settings.fixedTimes?.[difficulty] ||
+            DEFAULT_FIXED_TIMES[difficulty];
           recommendedTime = fixedTime;
           minimumTime = fixedTime;
           maximumTime = fixedTime * 1.5;
@@ -122,7 +143,7 @@ export class AdaptiveLimitsService {
           break;
 
         case LIMIT_MODES.FIXED_20:
-          // Legacy: Fixed 20 minutes for all difficulties  
+          // Legacy: Fixed 20 minutes for all difficulties
           recommendedTime = 20;
           minimumTime = 20;
           maximumTime = 20 * 1.5;
@@ -151,21 +172,22 @@ export class AdaptiveLimitsService {
         mode,
         isAdaptive,
         isUnlimited: mode === LIMIT_MODES.OFF,
-        baseTime: BASE_LIMITS[difficulty]
+        baseTime: BASE_LIMITS[difficulty],
       };
-      
+
       console.log("🔍 AdaptiveLimitsService returning:", {
         ...result,
         inputDifficulty: difficulty,
         settingsLimit: settings.limit,
-        modeMapping: {
-          [LIMIT_MODES.AUTO]: "Auto mode",
-          [LIMIT_MODES.OFF]: "Off mode", 
-          [LIMIT_MODES.FIXED]: "Fixed mode",
-          [LIMIT_MODES.FIXED_15]: "Legacy 15min",
-          [LIMIT_MODES.FIXED_20]: "Legacy 20min",
-          [LIMIT_MODES.FIXED_30]: "Legacy 30min"
-        }[mode] || "Unknown mode"
+        modeMapping:
+          {
+            [LIMIT_MODES.AUTO]: "Auto mode",
+            [LIMIT_MODES.OFF]: "Off mode",
+            [LIMIT_MODES.FIXED]: "Fixed mode",
+            [LIMIT_MODES.FIXED_15]: "Legacy 15min",
+            [LIMIT_MODES.FIXED_20]: "Legacy 20min",
+            [LIMIT_MODES.FIXED_30]: "Legacy 30min",
+          }[mode] || "Unknown mode",
       });
       return result;
     } catch (error) {
@@ -180,7 +202,7 @@ export class AdaptiveLimitsService {
         isAdaptive: false,
         isUnlimited: false,
         baseTime: BASE_LIMITS[difficulty],
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -199,7 +221,7 @@ export class AdaptiveLimitsService {
       mode: "fallback",
       isAdaptive: false,
       isUnlimited: false,
-      baseTime: BASE_LIMITS[difficulty]
+      baseTime: BASE_LIMITS[difficulty],
     };
   }
 
@@ -225,12 +247,12 @@ export class AdaptiveLimitsService {
     // Use percentile-based approach for more consistent limits
     let adaptiveLimit = Math.min(
       userPercentile75 * 1.1, // 10% buffer above 75th percentile
-      userAverage * 1.2       // Cap at 20% above average
+      userAverage * 1.2 // Cap at 20% above average
     );
 
     // Apply constraints
-    const minLimit = baseLimit * 0.8;  // Don't go more than 20% below base
-    const maxLimit = baseLimit * 1.8;  // Don't go more than 80% above base
+    const minLimit = baseLimit * 0.8; // Don't go more than 20% below base
+    const maxLimit = baseLimit * 1.8; // Don't go more than 80% above base
 
     adaptiveLimit = Math.max(minLimit, Math.min(adaptiveLimit, maxLimit));
 
@@ -240,7 +262,7 @@ export class AdaptiveLimitsService {
       userPercentile75,
       userAverage,
       adaptiveLimit,
-      attempts: performance.attempts
+      attempts: performance.attempts,
     });
 
     return adaptiveLimit;
@@ -258,9 +280,9 @@ export class AdaptiveLimitsService {
 
     try {
       const db = await dbHelper.openDB();
-      const transaction = db.transaction(['attempts'], 'readonly');
-      const store = transaction.objectStore('attempts');
-      
+      const transaction = db.transaction(["attempts"], "readonly");
+      const store = transaction.objectStore("attempts");
+
       const attempts = await new Promise((resolve, reject) => {
         const request = store.getAll();
         request.onsuccess = () => resolve(request.result);
@@ -270,17 +292,18 @@ export class AdaptiveLimitsService {
       // Filter attempts by difficulty and successful ones only
       const difficultyMap = { 1: "Easy", 2: "Medium", 3: "Hard" };
       const targetDifficulty = Object.keys(difficultyMap).find(
-        key => difficultyMap[key] === difficulty
+        (key) => difficultyMap[key] === difficulty
       );
 
       const relevantAttempts = attempts
-        .filter(attempt => 
-          attempt.Difficulty == targetDifficulty && 
-          attempt.Success && 
-          attempt.TimeSpent > 0 &&
-          attempt.TimeSpent < 14400 // Exclude outliers > 4 hours
+        .filter(
+          (attempt) =>
+            attempt.Difficulty == targetDifficulty &&
+            attempt.Success &&
+            attempt.TimeSpent > 0 &&
+            attempt.TimeSpent < 14400 // Exclude outliers > 4 hours
         )
-        .map(attempt => Number(attempt.TimeSpent))
+        .map((attempt) => Number(attempt.TimeSpent))
         .sort((a, b) => a - b);
 
       if (relevantAttempts.length === 0) {
@@ -288,16 +311,18 @@ export class AdaptiveLimitsService {
       }
 
       const performance = this.calculateStatistics(relevantAttempts);
-      
+
       // Cache the results for 1 hour
       if (!this.performanceCache) this.performanceCache = {};
       this.performanceCache[difficulty] = performance;
-      this.cacheExpiry = Date.now() + (60 * 60 * 1000); // 1 hour
+      this.cacheExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
 
       return performance;
-
     } catch (error) {
-      console.error(`❌ Error getting performance data for ${difficulty}:`, error);
+      console.error(
+        `❌ Error getting performance data for ${difficulty}:`,
+        error
+      );
       return this.getDefaultPerformance();
     }
   }
@@ -310,18 +335,20 @@ export class AdaptiveLimitsService {
   calculateStatistics(times) {
     const sorted = [...times].sort((a, b) => a - b);
     const count = sorted.length;
-    
+
     if (count === 0) return this.getDefaultPerformance();
 
     const sum = times.reduce((a, b) => a + b, 0);
     const average = sum / count;
-    
-    const median = count % 2 === 0
-      ? (sorted[Math.floor(count / 2) - 1] + sorted[Math.floor(count / 2)]) / 2
-      : sorted[Math.floor(count / 2)];
-    
+
+    const median =
+      count % 2 === 0
+        ? (sorted[Math.floor(count / 2) - 1] + sorted[Math.floor(count / 2)]) /
+          2
+        : sorted[Math.floor(count / 2)];
+
     const percentile75 = sorted[Math.floor(count * 0.75)];
-    const percentile90 = sorted[Math.floor(count * 0.90)];
+    const percentile90 = sorted[Math.floor(count * 0.9)];
 
     return {
       attempts: count,
@@ -331,7 +358,7 @@ export class AdaptiveLimitsService {
       percentile90: Math.round(percentile90),
       min: sorted[0],
       max: sorted[count - 1],
-      recent: times.slice(-10) // Last 10 attempts
+      recent: times.slice(-10), // Last 10 attempts
     };
   }
 
@@ -348,7 +375,7 @@ export class AdaptiveLimitsService {
       percentile90: 0,
       min: 0,
       max: 0,
-      recent: []
+      recent: [],
     };
   }
 
@@ -362,13 +389,13 @@ export class AdaptiveLimitsService {
     try {
       // Use existing StorageService to get settings
       const settings = await StorageService.getSettings();
-      
+
       this.userSettings = {
         limit: settings.limit || LIMIT_MODES.OFF,
         adaptive: settings.adaptive || true,
         sessionLength: settings.sessionLength || 5,
         reminder: settings.reminder || { value: false, label: "6" },
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
 
       return this.userSettings;
@@ -379,7 +406,7 @@ export class AdaptiveLimitsService {
         adaptive: true,
         sessionLength: 5,
         reminder: { value: false, label: "6" },
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
     }
   }
@@ -396,7 +423,7 @@ export class AdaptiveLimitsService {
       const updatedSettings = {
         ...currentSettings,
         ...newSettings,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
 
       // Save using existing StorageService
@@ -408,7 +435,6 @@ export class AdaptiveLimitsService {
 
       console.log("✅ Updated user limit settings:", updatedSettings);
       return result.status === "success";
-
     } catch (error) {
       console.error("❌ Error updating user settings:", error);
       return false;
@@ -423,19 +449,19 @@ export class AdaptiveLimitsService {
     const report = {
       timestamp: new Date().toISOString(),
       difficulties: {},
-      recommendations: []
+      recommendations: [],
     };
 
-    for (const difficulty of ['Easy', 'Medium', 'Hard']) {
+    for (const difficulty of ["Easy", "Medium", "Hard"]) {
       const performance = await this.getPerformanceData(difficulty);
       const limits = await this.getLimits(difficulty);
-      
+
       report.difficulties[difficulty] = {
         performance,
         limits,
         isDataSufficient: performance.attempts >= 5,
         avgTimeMinutes: AccurateTimer.secondsToMinutes(performance.average),
-        recommendedTimeMinutes: limits.recommendedTime
+        recommendedTimeMinutes: limits.recommendedTime,
       };
 
       // Generate recommendations
@@ -443,7 +469,9 @@ export class AdaptiveLimitsService {
         const avgMinutes = AccurateTimer.secondsToMinutes(performance.average);
         if (avgMinutes > limits.recommendedTime * 1.5) {
           report.recommendations.push(
-            `Consider more practice on ${difficulty} problems - average time (${Math.round(avgMinutes)}m) exceeds recommendations`
+            `Consider more practice on ${difficulty} problems - average time (${Math.round(
+              avgMinutes
+            )}m) exceeds recommendations`
           );
         } else if (avgMinutes < limits.recommendedTime * 0.7) {
           report.recommendations.push(

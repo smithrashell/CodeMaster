@@ -17,7 +17,7 @@ export class SmartPositioning {
    * @param {string} preferredPosition - Preferred position (top, bottom, left, right, center)
    * @returns {Object} Position object with coordinates and arrow placement
    */
-  calculatePosition(targetSelector, preferredPosition = 'auto') {
+  calculatePosition(targetSelector, preferredPosition = "auto") {
     if (!targetSelector) {
       return this.getCenterPosition();
     }
@@ -32,17 +32,17 @@ export class SmartPositioning {
       width: window.innerWidth,
       height: window.innerHeight,
       scrollX: window.scrollX,
-      scrollY: window.scrollY
+      scrollY: window.scrollY,
     };
 
     // If preferredPosition is auto, determine best position based on available space
-    if (preferredPosition === 'auto') {
+    if (preferredPosition === "auto") {
       preferredPosition = this.determineBestPosition(targetRect, viewport);
     }
 
     const position = this.calculatePositionForDirection(
-      targetRect, 
-      viewport, 
+      targetRect,
+      viewport,
       preferredPosition
     );
 
@@ -52,7 +52,7 @@ export class SmartPositioning {
     return {
       ...adjustedPosition,
       targetRect,
-      arrowDirection: this.getArrowDirection(adjustedPosition.placement)
+      arrowDirection: this.getArrowDirection(adjustedPosition.placement),
     };
   }
 
@@ -64,22 +64,27 @@ export class SmartPositioning {
       top: targetRect.top,
       bottom: viewport.height - targetRect.bottom,
       left: targetRect.left,
-      right: viewport.width - targetRect.right
+      right: viewport.width - targetRect.right,
     };
 
     // Prefer vertical positions if target is horizontally centered
-    const isHorizontallyCentered = targetRect.left > viewport.width * 0.25 && 
-                                   targetRect.right < viewport.width * 0.75;
+    const isHorizontallyCentered =
+      targetRect.left > viewport.width * 0.25 &&
+      targetRect.right < viewport.width * 0.75;
 
     if (isHorizontallyCentered) {
-      return spaces.bottom > this.cardHeight + this.padding ? 'bottom' : 
-             spaces.top > this.cardHeight + this.padding ? 'top' : 
-             spaces.right > this.cardWidth + this.padding ? 'right' : 'left';
+      return spaces.bottom > this.cardHeight + this.padding
+        ? "bottom"
+        : spaces.top > this.cardHeight + this.padding
+        ? "top"
+        : spaces.right > this.cardWidth + this.padding
+        ? "right"
+        : "left";
     }
 
     // For elements near edges, prefer the side with more space
     const maxSpace = Math.max(...Object.values(spaces));
-    return Object.keys(spaces).find(key => spaces[key] === maxSpace);
+    return Object.keys(spaces).find((key) => spaces[key] === maxSpace);
   }
 
   /**
@@ -88,33 +93,51 @@ export class SmartPositioning {
   calculatePositionForDirection(targetRect, viewport, direction) {
     const scrollOffset = {
       x: viewport.scrollX,
-      y: viewport.scrollY
+      y: viewport.scrollY,
     };
 
-    let top, left, placement = direction;
+    let top,
+      left,
+      placement = direction;
 
     switch (direction) {
-      case 'top':
+      case "top":
         top = targetRect.top + scrollOffset.y - this.cardHeight - this.padding;
-        left = targetRect.left + scrollOffset.x + (targetRect.width / 2) - (this.cardWidth / 2);
+        left =
+          targetRect.left +
+          scrollOffset.x +
+          targetRect.width / 2 -
+          this.cardWidth / 2;
         break;
 
-      case 'bottom':
+      case "bottom":
         top = targetRect.bottom + scrollOffset.y + this.padding;
-        left = targetRect.left + scrollOffset.x + (targetRect.width / 2) - (this.cardWidth / 2);
+        left =
+          targetRect.left +
+          scrollOffset.x +
+          targetRect.width / 2 -
+          this.cardWidth / 2;
         break;
 
-      case 'left':
-        top = targetRect.top + scrollOffset.y + (targetRect.height / 2) - (this.cardHeight / 2);
+      case "left":
+        top =
+          targetRect.top +
+          scrollOffset.y +
+          targetRect.height / 2 -
+          this.cardHeight / 2;
         left = targetRect.left + scrollOffset.x - this.cardWidth - this.padding;
         break;
 
-      case 'right':
-        top = targetRect.top + scrollOffset.y + (targetRect.height / 2) - (this.cardHeight / 2);
+      case "right":
+        top =
+          targetRect.top +
+          scrollOffset.y +
+          targetRect.height / 2 -
+          this.cardHeight / 2;
         left = targetRect.right + scrollOffset.x + this.padding;
         break;
 
-      case 'center':
+      case "center":
       default:
         return this.getCenterPosition();
     }
@@ -129,20 +152,26 @@ export class SmartPositioning {
     let { top, left, placement } = position;
     const scrollOffset = {
       x: viewport.scrollX,
-      y: viewport.scrollY
+      y: viewport.scrollY,
     };
 
     // Check and adjust horizontal boundaries
     if (left < scrollOffset.x + this.padding) {
       left = scrollOffset.x + this.padding;
-    } else if (left + this.cardWidth > scrollOffset.x + viewport.width - this.padding) {
+    } else if (
+      left + this.cardWidth >
+      scrollOffset.x + viewport.width - this.padding
+    ) {
       left = scrollOffset.x + viewport.width - this.cardWidth - this.padding;
     }
 
     // Check and adjust vertical boundaries
     if (top < scrollOffset.y + this.padding) {
       top = scrollOffset.y + this.padding;
-    } else if (top + this.cardHeight > scrollOffset.y + viewport.height - this.padding) {
+    } else if (
+      top + this.cardHeight >
+      scrollOffset.y + viewport.height - this.padding
+    ) {
       top = scrollOffset.y + viewport.height - this.cardHeight - this.padding;
     }
 
@@ -157,14 +186,14 @@ export class SmartPositioning {
       width: window.innerWidth,
       height: window.innerHeight,
       scrollX: window.scrollX,
-      scrollY: window.scrollY
+      scrollY: window.scrollY,
     };
 
     return {
-      top: viewport.scrollY + (viewport.height / 2) - (this.cardHeight / 2),
-      left: viewport.scrollX + (viewport.width / 2) - (this.cardWidth / 2),
-      placement: 'center',
-      arrowDirection: null
+      top: viewport.scrollY + viewport.height / 2 - this.cardHeight / 2,
+      left: viewport.scrollX + viewport.width / 2 - this.cardWidth / 2,
+      placement: "center",
+      arrowDirection: null,
     };
   }
 
@@ -173,11 +202,11 @@ export class SmartPositioning {
    */
   getArrowDirection(placement) {
     const directions = {
-      'top': 'down',
-      'bottom': 'up',
-      'left': 'right',
-      'right': 'left',
-      'center': null
+      top: "down",
+      bottom: "up",
+      left: "right",
+      right: "left",
+      center: null,
     };
     return directions[placement] || null;
   }
@@ -194,56 +223,68 @@ export class SmartPositioning {
       top: cardPosition.top,
       left: cardPosition.left,
       width: this.cardWidth,
-      height: this.cardHeight
+      height: this.cardHeight,
     };
 
     switch (arrowDirection) {
-      case 'up':
+      case "up":
         return {
           top: -this.arrowSize,
           left: Math.max(
             this.arrowSize,
             Math.min(
               cardRect.width - this.arrowSize * 2,
-              (targetRect.left + targetRect.width / 2) - cardRect.left - this.arrowSize
+              targetRect.left +
+                targetRect.width / 2 -
+                cardRect.left -
+                this.arrowSize
             )
-          )
+          ),
         };
 
-      case 'down':
+      case "down":
         return {
           top: cardRect.height,
           left: Math.max(
             this.arrowSize,
             Math.min(
               cardRect.width - this.arrowSize * 2,
-              (targetRect.left + targetRect.width / 2) - cardRect.left - this.arrowSize
+              targetRect.left +
+                targetRect.width / 2 -
+                cardRect.left -
+                this.arrowSize
             )
-          )
+          ),
         };
 
-      case 'left':
+      case "left":
         return {
           top: Math.max(
             this.arrowSize,
             Math.min(
               cardRect.height - this.arrowSize * 2,
-              (targetRect.top + targetRect.height / 2) - cardRect.top - this.arrowSize
+              targetRect.top +
+                targetRect.height / 2 -
+                cardRect.top -
+                this.arrowSize
             )
           ),
-          left: -this.arrowSize
+          left: -this.arrowSize,
         };
 
-      case 'right':
+      case "right":
         return {
           top: Math.max(
             this.arrowSize,
             Math.min(
               cardRect.height - this.arrowSize * 2,
-              (targetRect.top + targetRect.height / 2) - cardRect.top - this.arrowSize
+              targetRect.top +
+                targetRect.height / 2 -
+                cardRect.top -
+                this.arrowSize
             )
           ),
-          left: cardRect.width
+          left: cardRect.width,
         };
 
       default:
@@ -256,24 +297,24 @@ export class SmartPositioning {
    */
   getResponsiveConfig() {
     const width = window.innerWidth;
-    
+
     if (width < 480) {
       return {
         cardWidth: 260,
         cardHeight: 180,
-        padding: 10
+        padding: 10,
       };
     } else if (width < 768) {
       return {
         cardWidth: 280,
         cardHeight: 200,
-        padding: 15
+        padding: 15,
       };
     } else {
       return {
         cardWidth: 300,
         cardHeight: 220,
-        padding: 20
+        padding: 20,
       };
     }
   }

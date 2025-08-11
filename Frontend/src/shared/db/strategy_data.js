@@ -16,7 +16,7 @@ export async function getStrategyForTag(tag) {
   try {
     // eslint-disable-next-line no-console
     console.log(`📊 DB DEBUG: Starting ultra-fast query for tag "${tag}"`);
-    
+
     // Check cache first
     const cacheKey = tag.toLowerCase();
     const cached = strategyCache.get(cacheKey);
@@ -25,7 +25,7 @@ export async function getStrategyForTag(tag) {
       console.log(`💾 DB DEBUG: Using in-memory cache for "${tag}"`);
       return cached.data;
     }
-    
+
     const db = await openDB();
     if (!db) {
       console.warn(`⚠️ DB DEBUG: IndexedDB not available for "${tag}"`);
@@ -35,17 +35,19 @@ export async function getStrategyForTag(tag) {
     // Test with extended timeout to diagnose if operations complete
     const result = await new Promise((resolve) => {
       let completed = false;
-      
+
       // Long timeout to see if operation actually completes
       const timeout = setTimeout(() => {
         if (!completed) {
           completed = true;
           // eslint-disable-next-line no-console
-          console.log(`⚡ DB DEBUG: Database timeout for "${tag}" after 30s - resolving null`);
+          console.log(
+            `⚡ DB DEBUG: Database timeout for "${tag}" after 30s - resolving null`
+          );
           resolve(null);
         }
       }, 30000);
-      
+
       try {
         const transaction = db.transaction(["strategy_data"], "readonly");
         const store = transaction.objectStore("strategy_data");
@@ -55,17 +57,20 @@ export async function getStrategyForTag(tag) {
           if (!completed) {
             completed = true;
             clearTimeout(timeout);
-            
+
             const dbResult = event.target.result;
             // eslint-disable-next-line no-console
-            console.log(`⚡ DB DEBUG: Database success for "${tag}":`, dbResult ? 'FOUND' : 'NOT FOUND');
-            
+            console.log(
+              `⚡ DB DEBUG: Database success for "${tag}":`,
+              dbResult ? "FOUND" : "NOT FOUND"
+            );
+
             // Cache the result (including null results to prevent repeated queries)
             strategyCache.set(cacheKey, {
               data: dbResult || null,
-              expiry: Date.now() + CACHE_EXPIRY_TIME
+              expiry: Date.now() + CACHE_EXPIRY_TIME,
             });
-            
+
             resolve(dbResult || null);
           }
         };
@@ -76,14 +81,16 @@ export async function getStrategyForTag(tag) {
             completed = true;
             clearTimeout(timeout);
             // eslint-disable-next-line no-console
-            console.warn(`⚡ DB DEBUG: Database error for "${tag}" - resolving null`);
-            
+            console.warn(
+              `⚡ DB DEBUG: Database error for "${tag}" - resolving null`
+            );
+
             // Cache null result to prevent repeated failed queries
             strategyCache.set(cacheKey, {
               data: null,
-              expiry: Date.now() + (CACHE_EXPIRY_TIME / 10) // Shorter cache for errors
+              expiry: Date.now() + CACHE_EXPIRY_TIME / 10, // Shorter cache for errors
             });
-            
+
             resolve(null);
           }
         };
@@ -91,21 +98,25 @@ export async function getStrategyForTag(tag) {
         request.onerror = handleError;
         transaction.onerror = handleError;
         transaction.onabort = handleError;
-
       } catch (error) {
         if (!completed) {
           completed = true;
           clearTimeout(timeout);
-          console.warn(`⚡ DB DEBUG: Database exception for "${tag}":`, error.message);
+          console.warn(
+            `⚡ DB DEBUG: Database exception for "${tag}":`,
+            error.message
+          );
           resolve(null);
         }
       }
     });
-    
+
     return result;
-    
   } catch (error) {
-    console.warn(`⚡ DB DEBUG: Ultra-fast outer error for "${tag}":`, error.message);
+    console.warn(
+      `⚡ DB DEBUG: Ultra-fast outer error for "${tag}":`,
+      error.message
+    );
     return null;
   }
 }
@@ -139,7 +150,7 @@ export async function isStrategyDataLoaded() {
   try {
     const db = await openDB();
     if (!db) return false;
-    
+
     const tx = db.transaction("strategy_data", "readonly");
     const store = tx.objectStore("strategy_data");
     const request = store.count();
@@ -156,7 +167,10 @@ export async function isStrategyDataLoaded() {
       };
     });
   } catch (error) {
-    console.warn(`⚠️ DB DEBUG: Exception checking strategy data:`, error.message);
+    console.warn(
+      `⚠️ DB DEBUG: Exception checking strategy data:`,
+      error.message
+    );
     return false;
   }
 }
@@ -168,7 +182,7 @@ export async function isStrategyDataLoaded() {
 export async function insertStrategyData() {
   try {
     console.log("📊 Checking strategy data...");
-    
+
     const db = await openDB();
     const tx = db.transaction("strategy_data", "readwrite");
     const store = tx.objectStore("strategy_data");
@@ -215,7 +229,7 @@ export async function getAllStrategyTags() {
   try {
     // eslint-disable-next-line no-console
     console.log("🔍 DB DIAGNOSTIC: Getting all strategy tags...");
-    
+
     const db = await openDB();
     const tx = db.transaction("strategy_data", "readonly");
     const store = tx.objectStore("strategy_data");
@@ -224,17 +238,26 @@ export async function getAllStrategyTags() {
       const getAllRequest = store.getAll();
       getAllRequest.onsuccess = () => {
         // eslint-disable-next-line no-console
-        console.log("🔍 DB DIAGNOSTIC: GetAll request success, result count:", getAllRequest.result.length);
-        console.log("🔍 DB DIAGNOSTIC: First 5 strategies:", getAllRequest.result.slice(0, 5).map(s => s.tag));
+        console.log(
+          "🔍 DB DIAGNOSTIC: GetAll request success, result count:",
+          getAllRequest.result.length
+        );
+        console.log(
+          "🔍 DB DIAGNOSTIC: First 5 strategies:",
+          getAllRequest.result.slice(0, 5).map((s) => s.tag)
+        );
         resolve(getAllRequest.result);
       };
       getAllRequest.onerror = () => {
-        console.error("🔍 DB DIAGNOSTIC: GetAll request failed:", getAllRequest.error);
+        console.error(
+          "🔍 DB DIAGNOSTIC: GetAll request failed:",
+          getAllRequest.error
+        );
         reject(getAllRequest.error);
       };
     });
 
-    return allStrategies.map(strategy => strategy.tag);
+    return allStrategies.map((strategy) => strategy.tag);
   } catch (error) {
     console.error("❌ Error getting all strategy tags:", error);
     return [];

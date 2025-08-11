@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Card,
-  TextInput,
-  Table,
-  ScrollArea,
-  Button,
-} from "@mantine/core";
+import { Card, TextInput, Table, ScrollArea, Button } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 
 export default function SearchableTagTable({ tags = [], onSelect }) {

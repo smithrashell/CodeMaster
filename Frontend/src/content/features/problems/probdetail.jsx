@@ -16,7 +16,6 @@ import Separator from "../../../shared/components/ui/Separator";
 import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
 
-
 const ProbDetail = (isLoading) => {
   const { state: routeState } = useLocation();
   const { setIsAppOpen } = useNav();
@@ -149,12 +148,11 @@ const ProbDetail = (isLoading) => {
               </div>
             </div>
           </div>
-            {/* Status Section */}
-        <div className="problem-sidebar-section">
-          <div className="problem-sidebar-status-card">
-            <BrainIcon className="problem-sidebar-status-icon" />
-         
-          
+          {/* Status Section */}
+          <div className="problem-sidebar-section">
+            <div className="problem-sidebar-status-card">
+              <BrainIcon className="problem-sidebar-status-icon" />
+
               <div className="problem-sidebar-status-item">
                 <span className="problem-sidebar-status-label">
                   Last Solved:
@@ -162,10 +160,9 @@ const ProbDetail = (isLoading) => {
                 <span className="problem-sidebar-status-value">
                   {problemData?.lastSolved || "Never"}
                 </span>
-        
+              </div>
             </div>
           </div>
-        </div>
         </div>
 
         {/* Tags with Strategy Grid */}
@@ -178,9 +175,6 @@ const ProbDetail = (isLoading) => {
             problemTags={problemData?.tags || []}
           />
         )}
-
-
-      
 
         {/* Action Buttons */}
         <div className="problem-sidebar-actions">

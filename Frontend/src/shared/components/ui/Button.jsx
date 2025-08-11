@@ -5,13 +5,13 @@ import { Button as MantineButton } from "@mantine/core";
  * Unified Button component using Mantine Button with CodeMaster variants
  * Replaces the previous Tailwind-based button system
  */
-export function Button({ 
-  variant = "filled", 
-  size = "sm", 
-  color, 
-  children, 
+export function Button({
+  variant = "filled",
+  size = "sm",
+  color,
+  children,
   className,
-  ...props 
+  ...props
 }) {
   // Map common variants to Mantine equivalents
   const getMantineVariant = (v) => {
@@ -40,14 +40,12 @@ export function Button({
     return "blue"; // Default CodeMaster blue
   };
 
-
   return (
     <MantineButton
       variant={getMantineVariant(variant)}
       size={size}
       color={getMantineColor(variant, color)}
       className={className}
-
       {...props}
     >
       {children}

@@ -1,14 +1,10 @@
 .navbar {
-  background-color: light-dark(
-    var(--mantine-color-white),
-    var(--mantine-color-dark-6)
-  );
+  background-color: var(--cm-navbar-bg);
   height: 100vh;
   width: rem(300px);
   display: flex;
   flex-direction: column;
-  border-right: rem(1px) solid
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4));
+  border-right: rem(1px) solid var(--cm-navbar-border);
 }
 
 .wrapper {
@@ -18,20 +14,19 @@
 
 .aside {
   flex: 0 0 rem(60px);
-  background-color: var(--mantine-color-body);
+  background-color: var(--cm-navbar-aside-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-right: rem(1px) solid
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-7));
+  border-right: rem(1px) solid var(--cm-navbar-border);
 }
 
 .main {
   flex: 1;
-  background-color: light-dark(
-    var(--mantine-color-gray-0),
-    var(--mantine-color-dark-6)
-  );
+  background-color: var(--cm-navbar-main-bg);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .mainLink {
@@ -41,20 +36,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  color: var(--cm-link-color);
 
   &:hover {
-    background-color: light-dark(
-      var(--mantine-color-gray-0),
-      var(--mantine-color-dark-5)
-    );
+    background-color: var(--cm-link-hover-bg);
   }
 
   &[data-active] {
     &,
     &:hover {
-      background-color: var(--mantine-color-blue-light);
-      color: var(--mantine-color-blue-light-color);
+      background-color: var(--cm-link-active-bg);
+      color: var(--cm-link-active-color);
     }
   }
 }
@@ -62,12 +54,12 @@
 .title {
   font-family: Greycliff CF, var(--mantine-font-family);
   margin-bottom: var(--mantine-spacing-xl);
-  background-color: var(--mantine-color-body);
+  background-color: var(--cm-title-bg);
+  color: var(--cm-text);
   padding: var(--mantine-spacing-md);
   padding-top: rem(18px);
   height: rem(60px);
-  border-bottom: rem(1px) solid
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-7));
+  border-bottom: rem(1px) solid var(--cm-title-border);
 }
 
 .logo {
@@ -76,8 +68,7 @@
   justify-content: center;
   height: rem(60px);
   padding-top: var(--mantine-spacing-md);
-  border-bottom: rem(1px) solid
-    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-7));
+  border-bottom: rem(1px) solid var(--cm-title-border);
   margin-bottom: var(--mantine-spacing-xl);
 }
 
@@ -86,7 +77,7 @@
   text-decoration: none;
   border-top-right-radius: var(--mantine-radius-md);
   border-bottom-right-radius: var(--mantine-radius-md);
-  color: light-dark(var(--mantine-color-gray-7), var(--mantine-color-dark-0));
+  color: var(--cm-link-color);
   padding: 0 var(--mantine-spacing-md);
   font-size: var(--mantine-font-size-sm);
   margin-right: var(--mantine-spacing-md);
@@ -95,19 +86,16 @@
   line-height: rem(44px);
 
   &:hover {
-    background-color: light-dark(
-      var(--mantine-color-gray-1),
-      var(--mantine-color-dark-5)
-    );
-    color: light-dark(var(--mantine-color-dark), var(--mantine-color-light));
+    background-color: var(--cm-link-hover-bg);
+    color: var(--cm-link-hover-color);
   }
 
   &[data-active] {
     &,
     &:hover {
-      border-left-color: var(--mantine-color-blue-filled);
-      background-color: var(--mantine-color-blue-filled);
-      color: var(--mantine-color-white);
+      border-left-color: var(--cm-link-active-bg);
+      background-color: var(--cm-link-active-bg);
+      color: var(--cm-link-active-color);
     }
   }
 }

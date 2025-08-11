@@ -40,13 +40,13 @@ describe("HintInteractionService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockHintDb = require("../../db/hint_interactions");
     mockProblemsDb = require("../../db/problems");
-    
+
     // Reset performance mock
     mockPerformanceNow.mockImplementation(() => 1000);
-    
+
     // Set up default mock return values
     mockProblemsDb.getProblem.mockResolvedValue({
       id: "test-problem",
@@ -103,7 +103,7 @@ describe("HintInteractionService", () => {
       };
 
       mockHintDb.saveHintInteraction.mockResolvedValue(expectedInteraction);
-      
+
       // Act
       const result = await HintInteractionService.saveHintInteraction(
         interactionData,
@@ -121,7 +121,7 @@ describe("HintInteractionService", () => {
           problemDifficulty: "Medium",
         })
       );
-      
+
       expect(result.processingTime).toBeDefined();
       expect(result.id).toBeDefined();
     });
@@ -146,7 +146,9 @@ describe("HintInteractionService", () => {
       });
 
       // Act
-      const result = await HintInteractionService.saveHintInteraction(interactionData);
+      const result = await HintInteractionService.saveHintInteraction(
+        interactionData
+      );
 
       // Assert
       expect(chrome.storage.local.get).toHaveBeenCalledWith(
@@ -184,7 +186,9 @@ describe("HintInteractionService", () => {
       await HintInteractionService.saveHintInteraction(interactionData);
 
       // Assert
-      expect(mockProblemsDb.getProblem).toHaveBeenCalledWith("longest-substring");
+      expect(mockProblemsDb.getProblem).toHaveBeenCalledWith(
+        "longest-substring"
+      );
       expect(mockHintDb.saveHintInteraction).toHaveBeenCalledWith(
         expect.objectContaining({
           boxLevel: 3,
@@ -209,7 +213,9 @@ describe("HintInteractionService", () => {
       });
 
       // Act
-      const result = await HintInteractionService.saveHintInteraction(interactionData);
+      const result = await HintInteractionService.saveHintInteraction(
+        interactionData
+      );
 
       // Assert
       expect(result).toBeDefined();
@@ -236,7 +242,9 @@ describe("HintInteractionService", () => {
       mockHintDb.saveHintInteraction.mockRejectedValue(saveError);
 
       // Act
-      const result = await HintInteractionService.saveHintInteraction(interactionData);
+      const result = await HintInteractionService.saveHintInteraction(
+        interactionData
+      );
 
       // Assert
       expect(result).toEqual({
@@ -249,7 +257,7 @@ describe("HintInteractionService", () => {
     it.skip("should warn about slow performance", async () => {
       // Arrange
       const interactionData = { problemId: "slow-problem", action: "expand" };
-      
+
       // Mock slow operation (>10ms) - Use implementation that tracks calls
       let callCount = 0;
       mockPerformanceNow.mockImplementation(() => {
@@ -262,14 +270,16 @@ describe("HintInteractionService", () => {
         ...interactionData,
       });
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       // Act
-      const result = await HintInteractionService.saveHintInteraction(interactionData);
+      const result = await HintInteractionService.saveHintInteraction(
+        interactionData
+      );
 
       // Assert - The mock timing should work, but if not, verify the result structure
       expect(result.processingTime).toBeGreaterThan(0);
-      
+
       // If processing time > 10ms, console.warn should be called
       if (result.processingTime > 10) {
         expect(consoleSpy).toHaveBeenCalledWith(
@@ -294,7 +304,7 @@ describe("HintInteractionService", () => {
       };
 
       const interactionData2 = {
-        problemId: "problem-2", 
+        problemId: "problem-2",
         hintType: "contextual",
         primaryTag: "array",
         action: "expand",
@@ -314,7 +324,7 @@ describe("HintInteractionService", () => {
       const calls = mockHintDb.saveHintInteraction.mock.calls;
       const hintId1 = calls[0][0].id;
       const hintId2 = calls[1][0].id;
-      
+
       expect(hintId1).not.toEqual(hintId2);
       expect(hintId1).toMatch(/^hint_\d+_[a-z0-9]+$/);
       expect(hintId2).toMatch(/^hint_\d+_[a-z0-9]+$/);
@@ -355,7 +365,9 @@ describe("HintInteractionService", () => {
       mockHintDb.getInteractionsByProblem.mockResolvedValue(mockInteractions);
 
       // Act
-      const result = await HintInteractionService.getProblemAnalytics(problemId);
+      const result = await HintInteractionService.getProblemAnalytics(
+        problemId
+      );
 
       // Assert
       expect(result).toEqual({
@@ -370,7 +382,7 @@ describe("HintInteractionService", () => {
           contextual: 2,
           general: 1,
         },
-        engagementRate: 1/3, // 1 expand out of 3 total
+        engagementRate: 1 / 3, // 1 expand out of 3 total
         mostPopularHints: {
           "contextual-array": 2,
           "general-hash-table": 1,
@@ -401,7 +413,9 @@ describe("HintInteractionService", () => {
       mockHintDb.getInteractionsByProblem.mockResolvedValue([]);
 
       // Act
-      const result = await HintInteractionService.getProblemAnalytics(problemId);
+      const result = await HintInteractionService.getProblemAnalytics(
+        problemId
+      );
 
       // Assert
       expect(result).toEqual({
@@ -444,7 +458,9 @@ describe("HintInteractionService", () => {
       mockHintDb.getInteractionsBySession.mockResolvedValue(mockInteractions);
 
       // Act
-      const result = await HintInteractionService.getSessionAnalytics(sessionId);
+      const result = await HintInteractionService.getSessionAnalytics(
+        sessionId
+      );
 
       // Assert
       expect(result).toEqual({
@@ -533,7 +549,9 @@ describe("HintInteractionService", () => {
       ];
 
       mockHintDb.getAllInteractions.mockResolvedValue(mockInteractions);
-      mockHintDb.getInteractionStats.mockResolvedValue({ totalInteractions: 1 });
+      mockHintDb.getInteractionStats.mockResolvedValue({
+        totalInteractions: 1,
+      });
       mockHintDb.getHintEffectiveness.mockResolvedValue({});
 
       // Act
@@ -549,7 +567,7 @@ describe("HintInteractionService", () => {
       // Arrange
       const daysToKeep = 30;
       const deletedCount = 15;
-      
+
       mockHintDb.deleteOldInteractions.mockResolvedValue(deletedCount);
 
       // Act
@@ -559,7 +577,7 @@ describe("HintInteractionService", () => {
       expect(mockHintDb.deleteOldInteractions).toHaveBeenCalledWith(
         expect.any(Date)
       );
-      
+
       expect(result).toEqual({
         success: true,
         deletedCount: 15,
@@ -585,8 +603,9 @@ describe("HintInteractionService", () => {
       mockHintDb.deleteOldInteractions.mockRejectedValue(cleanupError);
 
       // Act & Assert
-      await expect(HintInteractionService.cleanupOldData(30))
-        .rejects.toThrow("Cleanup failed");
+      await expect(HintInteractionService.cleanupOldData(30)).rejects.toThrow(
+        "Cleanup failed"
+      );
     });
   });
 
@@ -597,8 +616,9 @@ describe("HintInteractionService", () => {
       mockHintDb.getInteractionsByProblem.mockRejectedValue(dbError);
 
       // Act & Assert
-      await expect(HintInteractionService.getProblemAnalytics("test"))
-        .rejects.toThrow("Database connection failed");
+      await expect(
+        HintInteractionService.getProblemAnalytics("test")
+      ).rejects.toThrow("Database connection failed");
     });
 
     it.skip("should handle malformed interaction data gracefully", async () => {
@@ -613,7 +633,9 @@ describe("HintInteractionService", () => {
       });
 
       // Act
-      const result = await HintInteractionService.saveHintInteraction(malformedData);
+      const result = await HintInteractionService.saveHintInteraction(
+        malformedData
+      );
 
       // Assert
       expect(result).toBeDefined();
@@ -624,8 +646,11 @@ describe("HintInteractionService", () => {
   describe("performance monitoring", () => {
     it.skip("should track processing time for all operations", async () => {
       // Arrange
-      const interactionData = { problemId: "performance-test", action: "expand" };
-      
+      const interactionData = {
+        problemId: "performance-test",
+        action: "expand",
+      };
+
       let timeCallCount = 0;
       mockPerformanceNow.mockImplementation(() => {
         timeCallCount++;
@@ -638,7 +663,9 @@ describe("HintInteractionService", () => {
       });
 
       // Act
-      const result = await HintInteractionService.saveHintInteraction(interactionData);
+      const result = await HintInteractionService.saveHintInteraction(
+        interactionData
+      );
 
       // Assert
       expect(mockPerformanceNow).toHaveBeenCalledTimes(2); // Start and end

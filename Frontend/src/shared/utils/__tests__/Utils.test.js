@@ -5,7 +5,7 @@
 
 // Mock uuid
 jest.mock("uuid", () => ({
-  v4: () => "test-uuid-123"
+  v4: () => "test-uuid-123",
 }));
 
 import {
@@ -13,11 +13,10 @@ import {
   createAttemptRecord,
   isDifficultyAllowed,
   deduplicateById,
-  clearOrRenameStoreField
+  clearOrRenameStoreField,
 } from "../Utils.js";
 
 describe("Utils Functions", () => {
-  
   describe("createAttemptRecord", () => {
     it("should create properly structured attempt record", () => {
       // Arrange
@@ -27,7 +26,7 @@ describe("Utils Functions", () => {
         Success: true,
         TimeSpent: 1800,
         AttemptDate: "2024-01-01T10:00:00Z",
-        Difficulty: 6
+        Difficulty: 6,
       };
 
       // Act
@@ -37,14 +36,14 @@ describe("Utils Functions", () => {
       expect(result).toEqual({
         id: "test-uuid-123",
         SessionID: undefined,
-        ProblemID: "prob-123", 
+        ProblemID: "prob-123",
         Success: true,
         AttemptDate: "2024-01-01T10:00:00Z",
         TimeSpent: 1800,
         Difficulty: 6,
-        Comments: ""
+        Comments: "",
       });
-      
+
       // Verify date format
       expect(new Date(result.AttemptDate)).toBeInstanceOf(Date);
     });
@@ -52,9 +51,9 @@ describe("Utils Functions", () => {
     it("should handle minimal attempt data", () => {
       // Arrange
       const attemptData = {
-        id: "test-uuid-456", 
+        id: "test-uuid-456",
         ProblemID: "prob-456",
-        Success: false
+        Success: false,
       };
 
       // Act
@@ -72,7 +71,7 @@ describe("Utils Functions", () => {
       const attemptData = {
         id: "test-uuid-789",
         Success: true,
-        TimeSpent: 900
+        TimeSpent: 900,
       };
 
       // Act
@@ -94,10 +93,14 @@ describe("Utils Functions", () => {
       const stability = 10;
 
       // Act
-      const score = calculateDecayScore(lastAttemptDate, successRate, stability);
+      const score = calculateDecayScore(
+        lastAttemptDate,
+        successRate,
+        stability
+      );
 
       // Assert
-      expect(typeof score).toBe('number');
+      expect(typeof score).toBe("number");
       expect(score).toBeGreaterThanOrEqual(0);
     });
 
@@ -109,7 +112,11 @@ describe("Utils Functions", () => {
       const stability = 10;
 
       // Act
-      const recentScore = calculateDecayScore(recentDate, successRate, stability);
+      const recentScore = calculateDecayScore(
+        recentDate,
+        successRate,
+        stability
+      );
       const oldScore = calculateDecayScore(oldDate, successRate, stability);
 
       // Assert
@@ -123,8 +130,10 @@ describe("Utils Functions", () => {
       const stability = 1;
 
       // Act & Assert
-      expect(() => calculateDecayScore(date, successRate, stability)).not.toThrow();
-      
+      expect(() =>
+        calculateDecayScore(date, successRate, stability)
+      ).not.toThrow();
+
       const score = calculateDecayScore(date, successRate, stability);
       expect(score).toBe(0); // Perfect success rate should give 0 decay
     });
@@ -168,7 +177,7 @@ describe("Utils Functions", () => {
         { id: "2", title: "Problem 2" },
         { id: "1", title: "Problem 1 Duplicate" },
         { id: "3", title: "Problem 3" },
-        { id: "2", title: "Problem 2 Duplicate" }
+        { id: "2", title: "Problem 2 Duplicate" },
       ];
 
       // Act
@@ -176,7 +185,7 @@ describe("Utils Functions", () => {
 
       // Assert
       expect(result).toHaveLength(3);
-      expect(result.map(p => p.id)).toEqual(["1", "2", "3"]);
+      expect(result.map((p) => p.id)).toEqual(["1", "2", "3"]);
       // Should keep first occurrence
       expect(result[0].title).toBe("Problem 1");
       expect(result[1].title).toBe("Problem 2");
@@ -195,7 +204,7 @@ describe("Utils Functions", () => {
       const problems = [
         { id: "1", title: "Problem 1" },
         { id: "2", title: "Problem 2" },
-        { id: "3", title: "Problem 3" }
+        { id: "3", title: "Problem 3" },
       ];
 
       // Act
@@ -212,7 +221,7 @@ describe("Utils Functions", () => {
         { id: null, title: "Problem with null ID" },
         { id: "1", title: "Problem 1" },
         { id: undefined, title: "Problem with undefined ID" },
-        { id: "1", title: "Problem 1 Duplicate" }
+        { id: "1", title: "Problem 1 Duplicate" },
       ];
 
       // Act
@@ -231,7 +240,7 @@ describe("Utils Functions", () => {
         ProblemID: null,
         Success: "maybe",
         TimeSpent: "very long",
-        extraField: "should be ignored"
+        extraField: "should be ignored",
       };
 
       // Act
@@ -256,10 +265,10 @@ describe("Utils Functions", () => {
       // Arrange
       const attemptData = {
         id: "preserve-test",
-        ProblemID: "prob-789", 
+        ProblemID: "prob-789",
         Success: true,
         Comments: "custom comment",
-        Difficulty: 7
+        Difficulty: 7,
       };
 
       // Act
@@ -280,23 +289,25 @@ describe("Utils Functions", () => {
         { id: "1", title: "Two Sum", difficulty: "Easy" },
         { id: "2", title: "Add Two Numbers", difficulty: "Medium" },
         { id: "1", title: "Two Sum (duplicate)", difficulty: "Easy" },
-        { id: "3", title: "Longest Substring", difficulty: "Hard" }
+        { id: "3", title: "Longest Substring", difficulty: "Hard" },
       ];
 
       const maxDifficulty = "Medium";
-      
+
       // Act
       const uniqueProblems = deduplicateById(duplicateProblems);
-      const allowedProblems = uniqueProblems.filter(p => 
+      const allowedProblems = uniqueProblems.filter((p) =>
         isDifficultyAllowed(p.difficulty, maxDifficulty)
       );
 
       // Assert
       expect(uniqueProblems).toHaveLength(3);
       expect(allowedProblems).toHaveLength(2); // Easy and Medium only
-      expect(allowedProblems.every(p => 
-        isDifficultyAllowed(p.difficulty, maxDifficulty)
-      )).toBe(true);
+      expect(
+        allowedProblems.every((p) =>
+          isDifficultyAllowed(p.difficulty, maxDifficulty)
+        )
+      ).toBe(true);
     });
 
     it("should handle complex decay calculations", () => {
@@ -304,16 +315,16 @@ describe("Utils Functions", () => {
       const testCases = [
         { days: 1, successRate: 0.9, stability: 5 },
         { days: 7, successRate: 0.7, stability: 10 },
-        { days: 30, successRate: 0.5, stability: 15 }
+        { days: 30, successRate: 0.5, stability: 15 },
       ];
 
       // Act & Assert
       testCases.forEach(({ days, successRate, stability }) => {
         const date = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
         const score = calculateDecayScore(date, successRate, stability);
-        
+
         expect(score).toBeGreaterThanOrEqual(0);
-        expect(typeof score).toBe('number');
+        expect(typeof score).toBe("number");
         expect(isFinite(score)).toBe(true);
       });
     });

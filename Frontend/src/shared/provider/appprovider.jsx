@@ -9,7 +9,7 @@ import { NavProvider } from "./navprovider";
 import ThemeProviderWrapper from "./themeprovider";
 // AppProviders.jsx
 export const AppProviders = ({ children }) => (
-  <MemoryRouter history={history}>
+  <MemoryRouter>
     <ThemeProviderWrapper>
       <PreviousRouteProvider>
         <NavProvider>{children}</NavProvider>

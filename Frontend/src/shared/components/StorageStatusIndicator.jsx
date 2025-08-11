@@ -1,40 +1,49 @@
 /**
  * Storage Status Indicator Component
- * 
+ *
  * Displays current storage health, mode, and provides quick access to storage management
  * features like cleanup, migration, and health monitoring.
  */
 
-import React, { useState, useEffect } from 'react';
-import { 
-  IconDatabase, 
-  IconAlertTriangle, 
-  IconCheck, 
-  IconX, 
+import React, { useState, useEffect } from "react";
+import {
+  IconDatabase,
+  IconAlertTriangle,
+  IconCheck,
+  IconX,
   IconRefresh,
   IconCloudUpload,
   IconHardDrive,
-  IconSettings
-} from '@tabler/icons-react';
-import { Tooltip, Badge, ActionIcon, Group, Text, Progress, Modal, Button } from '@mantine/core';
+  IconSettings,
+} from "@tabler/icons-react";
+import {
+  Tooltip,
+  Badge,
+  ActionIcon,
+  Group,
+  Text,
+  Progress,
+  Modal,
+  Button,
+} from "@mantine/core";
 
-import ResilientStorage from '../services/ResilientStorage.js';
-import StorageHealthMonitor from '../utils/storageHealth.js';
-import StorageCleanupManager from '../utils/storageCleanup.js';
+import ResilientStorage from "../services/ResilientStorage.js";
+import StorageHealthMonitor from "../utils/storageHealth.js";
+import StorageCleanupManager from "../utils/storageCleanup.js";
 
-export const StorageStatusIndicator = ({ 
-  showDetails = true, 
-  size = 'sm',
-  position = 'header' // 'header', 'settings', 'standalone'
+export const StorageStatusIndicator = ({
+  showDetails = true,
+  size = "sm",
+  position = "header", // 'header', 'settings', 'standalone'
 }) => {
   const [storageStatus, setStorageStatus] = useState({
-    mode: 'indexeddb_primary',
-    health: { overall: 'good' },
+    mode: "indexeddb_primary",
+    health: { overall: "good" },
     isIndexedDBAvailable: true,
     isChromeStorageAvailable: true,
-    quotaWarning: false
+    quotaWarning: false,
   });
-  
+
   const [showModal, setShowModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [cleanupRecommendations, setCleanupRecommendations] = useState(null);
@@ -42,7 +51,7 @@ export const StorageStatusIndicator = ({
   // Status monitoring
   useEffect(() => {
     updateStorageStatus();
-    
+
     // Set up periodic status updates
     const interval = setInterval(updateStorageStatus, 30000); // Every 30 seconds
     return () => clearInterval(interval);
@@ -52,14 +61,15 @@ export const StorageStatusIndicator = ({
     try {
       const status = await ResilientStorage.getStorageStatus();
       setStorageStatus(status);
-      
+
       // Get cleanup recommendations if quota warning
       if (status.quotaWarning) {
-        const recommendations = await StorageCleanupManager.getCleanupRecommendations();
+        const recommendations =
+          await StorageCleanupManager.getCleanupRecommendations();
         setCleanupRecommendations(recommendations);
       }
     } catch (error) {
-      console.error('Failed to update storage status:', error);
+      console.error("Failed to update storage status:", error);
     }
   };
 
@@ -74,52 +84,58 @@ export const StorageStatusIndicator = ({
       await StorageCleanupManager.emergencyCleanup();
       await updateStorageStatus();
     } catch (error) {
-      console.error('Emergency cleanup failed:', error);
+      console.error("Emergency cleanup failed:", error);
     }
   };
 
   // Status-based styling
   const getStatusColor = () => {
-    if (!storageStatus.isIndexedDBAvailable && !storageStatus.isChromeStorageAvailable) {
-      return 'red';
+    if (
+      !storageStatus.isIndexedDBAvailable &&
+      !storageStatus.isChromeStorageAvailable
+    ) {
+      return "red";
     }
     if (storageStatus.quotaWarning) {
-      return 'yellow';
+      return "yellow";
     }
-    if (storageStatus.mode === 'chrome_fallback') {
-      return 'orange';
+    if (storageStatus.mode === "chrome_fallback") {
+      return "orange";
     }
-    return 'green';
+    return "green";
   };
 
   const getStatusIcon = () => {
     const color = getStatusColor();
-    const iconSize = size === 'xs' ? 14 : size === 'sm' ? 16 : 20;
-    
-    if (color === 'red') {
+    const iconSize = size === "xs" ? 14 : size === "sm" ? 16 : 20;
+
+    if (color === "red") {
       return <IconX size={iconSize} color="red" />;
     }
-    if (color === 'yellow' || color === 'orange') {
+    if (color === "yellow" || color === "orange") {
       return <IconAlertTriangle size={iconSize} color={color} />;
     }
     return <IconCheck size={iconSize} color="green" />;
   };
 
   const getStatusText = () => {
-    if (!storageStatus.isIndexedDBAvailable && !storageStatus.isChromeStorageAvailable) {
-      return 'Storage Unavailable';
+    if (
+      !storageStatus.isIndexedDBAvailable &&
+      !storageStatus.isChromeStorageAvailable
+    ) {
+      return "Storage Unavailable";
     }
     if (storageStatus.quotaWarning) {
-      return 'Storage Nearly Full';
+      return "Storage Nearly Full";
     }
-    if (storageStatus.mode === 'chrome_fallback') {
-      return 'Fallback Mode';
+    if (storageStatus.mode === "chrome_fallback") {
+      return "Fallback Mode";
     }
-    return 'Storage Healthy';
+    return "Storage Healthy";
   };
 
   const getStorageIcon = () => {
-    if (storageStatus.mode === 'chrome_fallback') {
+    if (storageStatus.mode === "chrome_fallback") {
       return <IconCloudUpload size={16} />;
     }
     return <IconHardDrive size={16} />;
@@ -155,32 +171,24 @@ export const StorageStatusIndicator = ({
           <Text size="xs" color="dimmed">
             {getStatusText()}
           </Text>
-          <Badge 
-            size="xs" 
-            color={getStatusColor()}
-            variant="dot"
-          >
-            {storageStatus.mode.replace('_', ' ').toUpperCase()}
+          <Badge size="xs" color={getStatusColor()} variant="dot">
+            {storageStatus.mode.replace("_", " ").toUpperCase()}
           </Badge>
         </Group>
       </div>
-      <ActionIcon 
-        size="sm" 
-        variant="subtle"
-        onClick={() => setShowModal(true)}
-      >
+      <ActionIcon size="sm" variant="subtle" onClick={() => setShowModal(true)}>
         <IconSettings size={14} />
       </ActionIcon>
     </Group>
   );
 
   const renderStandaloneVersion = () => (
-    <div 
-      style={{ 
-        padding: '12px', 
+    <div
+      style={{
+        padding: "12px",
         border: `1px solid var(--mantine-color-${getStatusColor()}-3)`,
-        borderRadius: '8px',
-        backgroundColor: `var(--mantine-color-${getStatusColor()}-0)`
+        borderRadius: "8px",
+        backgroundColor: `var(--mantine-color-${getStatusColor()}-0)`,
       }}
     >
       <Group position="apart" mb="xs">
@@ -188,8 +196,8 @@ export const StorageStatusIndicator = ({
           {getStorageIcon()}
           <Text weight={500}>Storage System</Text>
         </Group>
-        <ActionIcon 
-          size="sm" 
+        <ActionIcon
+          size="sm"
           variant="subtle"
           loading={isRefreshing}
           onClick={handleRefresh}
@@ -197,12 +205,12 @@ export const StorageStatusIndicator = ({
           <IconRefresh size={14} />
         </ActionIcon>
       </Group>
-      
+
       <Group spacing="xs" mb="xs">
         {getStatusIcon()}
         <Text size="sm">{getStatusText()}</Text>
         <Badge size="sm" color={getStatusColor()}>
-          {storageStatus.mode.replace('_', ' ').toUpperCase()}
+          {storageStatus.mode.replace("_", " ").toUpperCase()}
         </Badge>
       </Group>
 
@@ -211,18 +219,22 @@ export const StorageStatusIndicator = ({
           <Text size="xs" color="dimmed" mb={4}>
             IndexedDB Usage
           </Text>
-          <Progress 
+          <Progress
             value={storageStatus.health.indexedDB.usagePercentage * 100}
-            color={storageStatus.health.indexedDB.usagePercentage > 0.8 ? 'red' : 'blue'}
+            color={
+              storageStatus.health.indexedDB.usagePercentage > 0.8
+                ? "red"
+                : "blue"
+            }
             size="sm"
           />
         </div>
       )}
 
       {showDetails && (
-        <Button 
-          size="xs" 
-          variant="subtle" 
+        <Button
+          size="xs"
+          variant="subtle"
           mt="xs"
           onClick={() => setShowModal(true)}
         >
@@ -239,7 +251,7 @@ export const StorageStatusIndicator = ({
       title="Storage System Status"
       size="lg"
     >
-      <StorageDetailModal 
+      <StorageDetailModal
         status={storageStatus}
         recommendations={cleanupRecommendations}
         onRefresh={updateStorageStatus}
@@ -250,55 +262,70 @@ export const StorageStatusIndicator = ({
 
   return (
     <>
-      {position === 'header' && renderHeaderVersion()}
-      {position === 'settings' && renderSettingsVersion()}
-      {position === 'standalone' && renderStandaloneVersion()}
+      {position === "header" && renderHeaderVersion()}
+      {position === "settings" && renderSettingsVersion()}
+      {position === "standalone" && renderStandaloneVersion()}
       {renderModal()}
     </>
   );
 };
 
 // Detailed modal component
-const StorageDetailModal = ({ 
-  status, 
-  recommendations, 
-  onRefresh, 
-  onEmergencyCleanup 
+const StorageDetailModal = ({
+  status,
+  recommendations,
+  onRefresh,
+  onEmergencyCleanup,
 }) => {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   const formatBytes = (bytes) => {
-    if (!bytes) return 'Unknown';
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    if (!bytes) return "Unknown";
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 10) / 10 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(1024, i)) * 10) / 10 + " " + sizes[i];
   };
 
   const renderOverview = () => (
     <div>
       <Group position="apart" mb="lg">
-        <Text weight={500} size="lg">Storage Overview</Text>
+        <Text weight={500} size="lg">
+          Storage Overview
+        </Text>
         <Button variant="subtle" size="sm" onClick={onRefresh}>
           <IconRefresh size={16} />
           Refresh
         </Button>
       </Group>
 
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: "20px" }}>
         <Group spacing="lg">
           <div>
-            <Text size="sm" color="dimmed">Current Mode</Text>
-            <Badge size="lg" color={status.mode === 'chrome_fallback' ? 'orange' : 'blue'}>
-              {status.mode?.replace('_', ' ').toUpperCase()}
+            <Text size="sm" color="dimmed">
+              Current Mode
+            </Text>
+            <Badge
+              size="lg"
+              color={status.mode === "chrome_fallback" ? "orange" : "blue"}
+            >
+              {status.mode?.replace("_", " ").toUpperCase()}
             </Badge>
           </div>
           <div>
-            <Text size="sm" color="dimmed">Overall Health</Text>
-            <Badge 
-              size="lg" 
-              color={status.health?.overall === 'excellent' ? 'green' : 
-                     status.health?.overall === 'good' ? 'blue' :
-                     status.health?.overall === 'warning' ? 'yellow' : 'red'}
+            <Text size="sm" color="dimmed">
+              Overall Health
+            </Text>
+            <Badge
+              size="lg"
+              color={
+                status.health?.overall === "excellent"
+                  ? "green"
+                  : status.health?.overall === "good"
+                  ? "blue"
+                  : status.health?.overall === "warning"
+                  ? "yellow"
+                  : "red"
+              }
             >
               {status.health?.overall?.toUpperCase()}
             </Badge>
@@ -307,28 +334,30 @@ const StorageDetailModal = ({
       </div>
 
       {/* IndexedDB Status */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: "20px" }}>
         <Group spacing="xs" mb="xs">
           <IconHardDrive size={16} />
           <Text weight={500}>IndexedDB</Text>
-          <Badge 
-            size="sm" 
-            color={status.isIndexedDBAvailable ? 'green' : 'red'}
+          <Badge
+            size="sm"
+            color={status.isIndexedDBAvailable ? "green" : "red"}
             variant="dot"
           >
-            {status.isIndexedDBAvailable ? 'Available' : 'Unavailable'}
+            {status.isIndexedDBAvailable ? "Available" : "Unavailable"}
           </Badge>
         </Group>
-        
+
         {status.health?.indexedDB?.quota && (
           <div>
             <Text size="xs" color="dimmed">
-              Used: {formatBytes(status.health.indexedDB.used)} / 
+              Used: {formatBytes(status.health.indexedDB.used)} /
               {formatBytes(status.health.indexedDB.quota)}
             </Text>
-            <Progress 
+            <Progress
               value={status.health.indexedDB.usagePercentage * 100}
-              color={status.health.indexedDB.usagePercentage > 0.8 ? 'red' : 'blue'}
+              color={
+                status.health.indexedDB.usagePercentage > 0.8 ? "red" : "blue"
+              }
               size="sm"
               mt={4}
             />
@@ -337,28 +366,32 @@ const StorageDetailModal = ({
       </div>
 
       {/* Chrome Storage Status */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: "20px" }}>
         <Group spacing="xs" mb="xs">
           <IconCloudUpload size={16} />
           <Text weight={500}>Chrome Storage</Text>
-          <Badge 
-            size="sm" 
-            color={status.isChromeStorageAvailable ? 'green' : 'red'}
+          <Badge
+            size="sm"
+            color={status.isChromeStorageAvailable ? "green" : "red"}
             variant="dot"
           >
-            {status.isChromeStorageAvailable ? 'Available' : 'Unavailable'}
+            {status.isChromeStorageAvailable ? "Available" : "Unavailable"}
           </Badge>
         </Group>
-        
+
         {status.health?.chromeStorage?.bytesInUse && (
           <div>
             <Text size="xs" color="dimmed">
-              Used: {formatBytes(status.health.chromeStorage.bytesInUse)} / 
+              Used: {formatBytes(status.health.chromeStorage.bytesInUse)} /
               {formatBytes(status.health.chromeStorage.quota)}
             </Text>
-            <Progress 
+            <Progress
               value={status.health.chromeStorage.usagePercentage * 100}
-              color={status.health.chromeStorage.usagePercentage > 0.8 ? 'red' : 'blue'}
+              color={
+                status.health.chromeStorage.usagePercentage > 0.8
+                  ? "red"
+                  : "blue"
+              }
               size="sm"
               mt={4}
             />
@@ -369,11 +402,7 @@ const StorageDetailModal = ({
       {/* Actions */}
       {status.quotaWarning && (
         <Group mt="lg">
-          <Button 
-            color="red" 
-            variant="light"
-            onClick={onEmergencyCleanup}
-          >
+          <Button color="red" variant="light" onClick={onEmergencyCleanup}>
             Emergency Cleanup
           </Button>
         </Group>
@@ -383,30 +412,39 @@ const StorageDetailModal = ({
 
   const renderRecommendations = () => (
     <div>
-      <Text weight={500} size="lg" mb="md">Cleanup Recommendations</Text>
-      
+      <Text weight={500} size="lg" mb="md">
+        Cleanup Recommendations
+      </Text>
+
       {recommendations ? (
         <div>
           {recommendations.indexedDB?.actions?.map((action, index) => (
-            <div 
-              key={index} 
-              style={{ 
-                padding: '12px', 
-                border: '1px solid var(--mantine-color-gray-3)',
-                borderRadius: '6px',
-                marginBottom: '8px'
+            <div
+              key={index}
+              style={{
+                padding: "12px",
+                border: "1px solid var(--mantine-color-gray-3)",
+                borderRadius: "6px",
+                marginBottom: "8px",
               }}
             >
               <Group position="apart">
                 <div>
-                  <Badge 
-                    size="sm" 
-                    color={action.priority === 'critical' ? 'red' : 
-                           action.priority === 'high' ? 'orange' : 'blue'}
+                  <Badge
+                    size="sm"
+                    color={
+                      action.priority === "critical"
+                        ? "red"
+                        : action.priority === "high"
+                        ? "orange"
+                        : "blue"
+                    }
                   >
                     {action.priority}
                   </Badge>
-                  <Text size="sm" mt={4}>{action.description}</Text>
+                  <Text size="sm" mt={4}>
+                    {action.description}
+                  </Text>
                 </div>
                 <Text size="xs" color="dimmed">
                   {action.estimatedSavings}
@@ -414,27 +452,34 @@ const StorageDetailModal = ({
               </Group>
             </div>
           ))}
-          
+
           {recommendations.chromeStorage?.actions?.map((action, index) => (
-            <div 
-              key={`chrome-${index}`} 
-              style={{ 
-                padding: '12px', 
-                border: '1px solid var(--mantine-color-gray-3)',
-                borderRadius: '6px',
-                marginBottom: '8px'
+            <div
+              key={`chrome-${index}`}
+              style={{
+                padding: "12px",
+                border: "1px solid var(--mantine-color-gray-3)",
+                borderRadius: "6px",
+                marginBottom: "8px",
               }}
             >
               <Group position="apart">
                 <div>
-                  <Badge 
-                    size="sm" 
-                    color={action.priority === 'critical' ? 'red' : 
-                           action.priority === 'high' ? 'orange' : 'blue'}
+                  <Badge
+                    size="sm"
+                    color={
+                      action.priority === "critical"
+                        ? "red"
+                        : action.priority === "high"
+                        ? "orange"
+                        : "blue"
+                    }
                   >
                     {action.priority}
                   </Badge>
-                  <Text size="sm" mt={4}>{action.description}</Text>
+                  <Text size="sm" mt={4}>
+                    {action.description}
+                  </Text>
                 </div>
                 <Text size="xs" color="dimmed">
                   {action.estimatedSavings}
@@ -452,24 +497,24 @@ const StorageDetailModal = ({
   return (
     <div>
       <Group spacing="lg" mb="lg">
-        <Button 
-          variant={activeTab === 'overview' ? 'filled' : 'subtle'}
+        <Button
+          variant={activeTab === "overview" ? "filled" : "subtle"}
           size="sm"
-          onClick={() => setActiveTab('overview')}
+          onClick={() => setActiveTab("overview")}
         >
           Overview
         </Button>
-        <Button 
-          variant={activeTab === 'recommendations' ? 'filled' : 'subtle'}
+        <Button
+          variant={activeTab === "recommendations" ? "filled" : "subtle"}
           size="sm"
-          onClick={() => setActiveTab('recommendations')}
+          onClick={() => setActiveTab("recommendations")}
         >
           Recommendations
         </Button>
       </Group>
 
-      {activeTab === 'overview' && renderOverview()}
-      {activeTab === 'recommendations' && renderRecommendations()}
+      {activeTab === "overview" && renderOverview()}
+      {activeTab === "recommendations" && renderRecommendations()}
     </div>
   );
 };

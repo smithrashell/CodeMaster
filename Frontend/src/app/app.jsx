@@ -1,7 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import {
-  BrowserRouter as Router,
+  MemoryRouter as Router,
   Routes,
   Route,
   Navigate,
@@ -47,6 +47,9 @@ import {
 import { shouldUseMockDashboard } from "./config/mockConfig.js";
 import { getMockDashboardStatistics } from "./services/mockDashboardService.js";
 function App() {
+  console.log("🚀 DASHBOARD APP INITIALIZED");
+  console.log("📍 Router: Using MemoryRouter for Chrome extension compatibility");
+  
   const [appState, setAppState] = useState(null);
   const [_showOnboarding, _setShowOnboarding] = useState(false);
 
@@ -144,7 +147,7 @@ function App() {
       }}
     >
       <ThemeProviderWrapper>
-        <Router>
+        <Router initialEntries={["/"]} initialIndex={0}>
           <div
             style={{
               display: "flex",
@@ -247,7 +250,7 @@ function App() {
                             section="Analytics - Tag Mastery"
                             fallback={DashboardErrorFallback}
                           >
-                            <TagMastery />
+                            <TagMastery appState={appState?.mastery} />
                           </ErrorBoundary>
                         }
                       />

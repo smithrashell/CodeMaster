@@ -1,26 +1,26 @@
 /**
  * IndexedDB Retry Service for CodeMaster
- * 
+ *
  * Provides robust retry logic, timeout handling, circuit breaker pattern,
  * request deduplication, and operation cancellation for IndexedDB operations.
- * 
+ *
  * Builds on patterns from chromeMessagingService.js and integrates with
  * existing ResilientStorage for comprehensive database reliability.
  */
 
-import ErrorReportService from './ErrorReportService.js';
+import ErrorReportService from "./ErrorReportService.js";
 
 export class IndexedDBRetryService {
   constructor() {
-    this.defaultTimeout = 10000; // 10 second timeout for most operations  
+    this.defaultTimeout = 10000; // 10 second timeout for most operations
     this.quickTimeout = 3000; // 3 seconds for quick operations
     this.bulkTimeout = 30000; // 30 seconds for bulk operations
     this.maxRetries = 4; // 5 total attempts (initial + 4 retries)
     this.baseRetryDelay = 100; // Base delay of 100ms
-    
+
     // Request deduplication
     this.activeRequests = new Map(); // Key: operation fingerprint, Value: Promise
-    
+
     // Circuit breaker state
     this.circuitBreaker = {
       failures: 0,
@@ -29,13 +29,13 @@ export class IndexedDBRetryService {
       failureThreshold: 10, // Increased threshold to be less sensitive
       resetTimeout: 60000, // 60 seconds - longer reset time
       halfOpenAttempts: 0,
-      maxHalfOpenAttempts: 3
+      maxHalfOpenAttempts: 3,
     };
-    
+
     // Network connectivity tracking
     this.isOnline = navigator.onLine;
     this.networkListeners = new Set();
-    
+
     this.setupNetworkListeners();
   }
 
@@ -44,8 +44,10 @@ export class IndexedDBRetryService {
    */
   setupNetworkListeners() {
     // Skip network listeners in service worker context (background scripts)
-    if (typeof window === 'undefined') {
-      console.log('🔧 IndexedDBRetryService: Skipping network listeners in service worker context');
+    if (typeof window === "undefined") {
+      console.log(
+        "🔧 IndexedDBRetryService: Skipping network listeners in service worker context"
+      );
       return;
     }
 
@@ -60,8 +62,8 @@ export class IndexedDBRetryService {
       this.notifyNetworkChange(false);
     };
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
   }
 
   /**
@@ -85,11 +87,11 @@ export class IndexedDBRetryService {
    * @param {boolean} isOnline - Current network status
    */
   notifyNetworkChange(isOnline) {
-    this.networkListeners.forEach(callback => {
+    this.networkListeners.forEach((callback) => {
       try {
         callback(isOnline);
       } catch (error) {
-        console.warn('Network listener error:', error);
+        console.warn("Network listener error:", error);
       }
     });
   }
@@ -104,41 +106,50 @@ export class IndexedDBRetryService {
     const {
       timeout = this.defaultTimeout,
       retries = this.maxRetries,
-      operationName = 'unknown',
+      operationName = "unknown",
       deduplicationKey = null,
       abortController = null,
-      priority = 'normal' // 'low', 'normal', 'high'
+      priority = "normal", // 'low', 'normal', 'high'
     } = options;
 
     // Check circuit breaker state
     if (this.isCircuitBreakerOpen()) {
-      throw new Error(`Circuit breaker is open for IndexedDB operations. Last failure: ${new Date(this.circuitBreaker.lastFailureTime)}`);
+      throw new Error(
+        `Circuit breaker is open for IndexedDB operations. Last failure: ${new Date(
+          this.circuitBreaker.lastFailureTime
+        )}`
+      );
     }
 
     // Check network connectivity
     if (!this.isOnline) {
-      throw new Error('Network is offline - IndexedDB operations may fail');
+      throw new Error("Network is offline - IndexedDB operations may fail");
     }
 
     // Handle request deduplication
     if (deduplicationKey) {
       if (this.activeRequests.has(deduplicationKey)) {
         // eslint-disable-next-line no-console
-        console.log(`🔄 INDEXEDDB RETRY: Deduplicating request for ${operationName}`);
+        console.log(
+          `🔄 INDEXEDDB RETRY: Deduplicating request for ${operationName}`
+        );
         return this.activeRequests.get(deduplicationKey);
       }
     }
 
     // Create operation promise
-    const operationPromise = this.executeOperationWithRetry(
-      operation,
-      { timeout, retries, operationName, abortController, priority }
-    );
+    const operationPromise = this.executeOperationWithRetry(operation, {
+      timeout,
+      retries,
+      operationName,
+      abortController,
+      priority,
+    });
 
     // Store for deduplication
     if (deduplicationKey) {
       this.activeRequests.set(deduplicationKey, operationPromise);
-      
+
       // Clean up after completion
       operationPromise.finally(() => {
         this.activeRequests.delete(deduplicationKey);
@@ -155,8 +166,9 @@ export class IndexedDBRetryService {
    * @returns {Promise<any>} Operation result
    */
   async executeOperationWithRetry(operation, options) {
-    const { timeout, retries, operationName, abortController, priority } = options;
-    
+    const { timeout, retries, operationName, abortController, priority } =
+      options;
+
     let lastError;
     const startTime = Date.now();
 
@@ -168,24 +180,40 @@ export class IndexedDBRetryService {
         }
 
         // eslint-disable-next-line no-console
-        console.log(`🔄 INDEXEDDB RETRY: Attempt ${attempt + 1}/${retries + 1} for ${operationName}`);
-        
-        const result = await this.executeWithTimeout(operation, timeout, abortController);
-        
+        console.log(
+          `🔄 INDEXEDDB RETRY: Attempt ${attempt + 1}/${
+            retries + 1
+          } for ${operationName}`
+        );
+
+        const result = await this.executeWithTimeout(
+          operation,
+          timeout,
+          abortController
+        );
+
         // Success - update circuit breaker
         this.recordSuccess();
-        
+
         if (attempt > 0) {
           // eslint-disable-next-line no-console
-          console.log(`✅ INDEXEDDB RETRY: Succeeded on attempt ${attempt + 1} for ${operationName} (${Date.now() - startTime}ms total)`);
+          console.log(
+            `✅ INDEXEDDB RETRY: Succeeded on attempt ${
+              attempt + 1
+            } for ${operationName} (${Date.now() - startTime}ms total)`
+          );
         }
 
         return result;
-
       } catch (error) {
         lastError = error;
         // eslint-disable-next-line no-console
-        console.warn(`⚠️ INDEXEDDB RETRY: Attempt ${attempt + 1}/${retries + 1} failed for ${operationName}:`, error.message);
+        console.warn(
+          `⚠️ INDEXEDDB RETRY: Attempt ${attempt + 1}/${
+            retries + 1
+          } failed for ${operationName}:`,
+          error.message
+        );
 
         // Record failure for circuit breaker
         this.recordFailure();
@@ -193,7 +221,9 @@ export class IndexedDBRetryService {
         // Don't retry on certain errors
         if (this.isNonRetryableError(error)) {
           // eslint-disable-next-line no-console
-          console.log(`❌ INDEXEDDB RETRY: Non-retryable error for ${operationName}, stopping retries`);
+          console.log(
+            `❌ INDEXEDDB RETRY: Non-retryable error for ${operationName}, stopping retries`
+          );
           break;
         }
 
@@ -206,7 +236,9 @@ export class IndexedDBRetryService {
         if (attempt < retries && !this.isCircuitBreakerOpen()) {
           const delay = this.calculateRetryDelay(attempt, priority);
           // eslint-disable-next-line no-console
-          console.log(`⏳ INDEXEDDB RETRY: Retrying ${operationName} in ${delay}ms...`);
+          console.log(
+            `⏳ INDEXEDDB RETRY: Retrying ${operationName} in ${delay}ms...`
+          );
           await this.sleep(delay);
         }
       }
@@ -214,14 +246,18 @@ export class IndexedDBRetryService {
 
     const totalTime = Date.now() - startTime;
     // eslint-disable-next-line no-console
-    console.error(`❌ INDEXEDDB RETRY: All ${retries + 1} attempts failed for ${operationName} (${totalTime}ms total)`);
+    console.error(
+      `❌ INDEXEDDB RETRY: All ${
+        retries + 1
+      } attempts failed for ${operationName} (${totalTime}ms total)`
+    );
 
     // Report critical failures
     ErrorReportService.reportError(lastError, {
       operation: operationName,
       attempts: retries + 1,
       totalTime,
-      circuitBreakerState: this.circuitBreaker
+      circuitBreakerState: this.circuitBreaker,
     });
 
     throw lastError;
@@ -253,26 +289,26 @@ export class IndexedDBRetryService {
         if (!completed) {
           completed = true;
           // clearTimeout(timer); // Commented out since timer is disabled
-          reject(new Error('IndexedDB operation cancelled'));
+          reject(new Error("IndexedDB operation cancelled"));
         }
       };
 
-      abortController?.signal.addEventListener('abort', onAbort);
+      abortController?.signal.addEventListener("abort", onAbort);
 
       try {
         const result = await operation();
-        
+
         if (!completed) {
           completed = true;
           // clearTimeout(timer); // Commented out since timer is disabled
-          abortController?.signal.removeEventListener('abort', onAbort);
+          abortController?.signal.removeEventListener("abort", onAbort);
           resolve(result);
         }
       } catch (error) {
         if (!completed) {
           completed = true;
           // clearTimeout(timer); // Commented out since timer is disabled
-          abortController?.signal.removeEventListener('abort', onAbort);
+          abortController?.signal.removeEventListener("abort", onAbort);
           reject(error);
         }
       }
@@ -285,22 +321,23 @@ export class IndexedDBRetryService {
    * @param {string} priority - Operation priority
    * @returns {number} Delay in milliseconds
    */
-  calculateRetryDelay(attempt, priority = 'normal') {
+  calculateRetryDelay(attempt, priority = "normal") {
     // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 1600ms
     const exponentialDelay = this.baseRetryDelay * Math.pow(2, attempt);
-    
+
     // Priority adjustments
     const priorityMultiplier = {
-      'high': 0.5,  // Faster retries for high priority
-      'normal': 1.0,
-      'low': 2.0    // Slower retries for low priority
+      high: 0.5, // Faster retries for high priority
+      normal: 1.0,
+      low: 2.0, // Slower retries for low priority
     };
 
     // Add jitter to prevent thundering herd
     const jitter = Math.random() * 0.3; // ±30% jitter
-    
-    const delay = exponentialDelay * (priorityMultiplier[priority] || 1.0) * (1 + jitter);
-    
+
+    const delay =
+      exponentialDelay * (priorityMultiplier[priority] || 1.0) * (1 + jitter);
+
     // Cap maximum delay
     return Math.min(delay, 5000);
   }
@@ -311,7 +348,7 @@ export class IndexedDBRetryService {
    * @returns {Promise} Sleep promise
    */
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -326,21 +363,24 @@ export class IndexedDBRetryService {
       /invalid.*key/i,
       /readonly.*transaction/i,
       /operation.*cancelled/i,
-      /aborted/i
+      /aborted/i,
     ];
 
-    return nonRetryablePatterns.some(pattern => pattern.test(error.message));
+    return nonRetryablePatterns.some((pattern) => pattern.test(error.message));
   }
 
   /**
    * Record successful operation for circuit breaker
    */
   recordSuccess() {
-    if (this.circuitBreaker.isOpen || this.circuitBreaker.halfOpenAttempts > 0) {
+    if (
+      this.circuitBreaker.isOpen ||
+      this.circuitBreaker.halfOpenAttempts > 0
+    ) {
       // Reset circuit breaker on success
       this.resetCircuitBreaker();
       // eslint-disable-next-line no-console
-      console.log('🔵 CIRCUIT BREAKER: Reset to closed state after success');
+      console.log("🔵 CIRCUIT BREAKER: Reset to closed state after success");
     }
   }
 
@@ -354,14 +394,16 @@ export class IndexedDBRetryService {
     if (this.circuitBreaker.failures >= this.circuitBreaker.failureThreshold) {
       this.circuitBreaker.isOpen = true;
       // eslint-disable-next-line no-console
-      console.warn(`🔴 CIRCUIT BREAKER: Opened after ${this.circuitBreaker.failures} failures`);
-      
+      console.warn(
+        `🔴 CIRCUIT BREAKER: Opened after ${this.circuitBreaker.failures} failures`
+      );
+
       // Schedule automatic reset
       setTimeout(() => {
         this.circuitBreaker.isOpen = false;
         this.circuitBreaker.halfOpenAttempts = 0;
         // eslint-disable-next-line no-console
-        console.log('🟡 CIRCUIT BREAKER: Entering half-open state');
+        console.log("🟡 CIRCUIT BREAKER: Entering half-open state");
       }, this.circuitBreaker.resetTimeout);
     }
   }
@@ -391,9 +433,11 @@ export class IndexedDBRetryService {
   getCircuitBreakerStatus() {
     return {
       ...this.circuitBreaker,
-      isHealthy: this.circuitBreaker.failures < this.circuitBreaker.failureThreshold,
-      timeSinceLastFailure: this.circuitBreaker.lastFailureTime ? 
-        Date.now() - this.circuitBreaker.lastFailureTime : null
+      isHealthy:
+        this.circuitBreaker.failures < this.circuitBreaker.failureThreshold,
+      timeSinceLastFailure: this.circuitBreaker.lastFailureTime
+        ? Date.now() - this.circuitBreaker.lastFailureTime
+        : null,
     };
   }
 
@@ -437,8 +481,8 @@ export class IndexedDBRetryService {
         quickTimeout: this.quickTimeout,
         bulkTimeout: this.bulkTimeout,
         maxRetries: this.maxRetries,
-        baseRetryDelay: this.baseRetryDelay
-      }
+        baseRetryDelay: this.baseRetryDelay,
+      },
     };
   }
 }

@@ -1,6 +1,14 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import { Container, Grid, Card, Title, Text, Button } from "@mantine/core";
+import { Container, Grid, Card, Title, Text, Button, Stack } from "@mantine/core";
+import ThemeToggle from "../../shared/components/ThemeToggle.jsx";
+import {
+  FontSizeSelector,
+  LayoutDensitySelector,
+  AnimationToggle,
+} from "../../shared/components/AppearanceControls.jsx";
+import { FocusAreasSelector } from "../components/settings/FocusAreasSelector.jsx";
+import MasteryDashboard from "../components/analytics/MasteryDashboard.jsx";
 import {
   LineChart,
   Line,
@@ -86,181 +94,52 @@ export function MistakeAnalysis() {
   return <h1>Common Errors & Improvements</h1>;
 }
 
-export function TagMastery() {
-  // Mock Data for Mastery Metrics
-  const tags = [
-    "Array",
-    "String",
-    "Hash Table",
-    "Dynamic Programming",
-    "Math",
-    "Sorting",
-    "Greedy",
-    "Depth-First Search",
-    "Binary Search",
-    "Database",
-    "Matrix",
-    "Tree",
-    "Breadth-First Search",
-    "Bit Manipulation",
-    "Two Pointers",
-    "Prefix Sum",
-    "Heap (Priority Queue)",
-    "Binary Tree",
-    "Simulation",
-    "Stack",
-    "Graph",
-    "Counting",
-    "Sliding Window",
-    "Design",
-    "Enumeration",
-    "Backtracking",
-    "Union Find",
-    "Linked List",
-    "Ordered Set",
-    "Number Theory",
-    "Monotonic Stack",
-    "Segment Tree",
-    "Trie",
-    "Bitmask",
-    "Combinatorics",
-    "Queue",
-    "Divide and Conquer",
-    "Recursion",
-    "Memoization",
-    "Binary Indexed Tree",
-    "Geometry",
-    "Binary Search Tree",
-    "Hash Function",
-    "String Matching",
-    "Topological Sort",
-    "Shortest Path",
-    "Rolling Hash",
-    "Game Theory",
-    "Interactive",
-    "Data Stream",
-    "Monotonic Queue",
-    "Brainteaser",
-    "Randomized",
-    "Merge Sort",
-    "Doubly-Linked List",
-    "Counting Sort",
-    "Iterator",
-    "Concurrency",
-    "Probability and Statistics",
-    "Quickselect",
-    "Suffix Array",
-    "Bucket Sort",
-    "Line Sweep",
-    "Minimum Spanning Tree",
-    "Shell",
-    "Reservoir Sampling",
-    "Strongly Connected Component",
-    "Eulerian Circuit",
-    "Radix Sort",
-    "Rejection Sampling",
-    "Biconnected Component",
-  ];
+export function TagMastery({ appState }) {
+  // Enhanced Tag Mastery with MasteryDashboard integration
+  // Use appState data when available, otherwise fall back to static mock data
+  const masteryData = appState || {
+    currentTier: "Core Concept",
+    masteredTags: ["array", "hash-table"],
+    allTagsInCurrentTier: [
+      "array", "hash-table", "string", "two-pointers", 
+      "binary-search", "sliding-window", "dynamic-programming",
+      "greedy", "stack", "queue", "heap", "tree", "graph"
+    ],
+    focusTags: ["string", "two-pointers", "dynamic-programming"],
+    tagsinTier: [
+      "array", "hash-table", "string", "two-pointers", 
+      "binary-search", "sliding-window"
+    ],
+    unmasteredTags: [
+      "string", "two-pointers", "binary-search", "sliding-window", 
+      "dynamic-programming", "greedy", "stack", "queue", "heap", "tree", "graph"
+    ],
+    masteryData: [
+      { tag: "array", totalAttempts: 15, successfulAttempts: 12 },
+      { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9 },
+      { tag: "string", totalAttempts: 8, successfulAttempts: 5 },
+      { tag: "two-pointers", totalAttempts: 6, successfulAttempts: 3 },
+      { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2 },
+      { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1 },
+      { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4 },
+      { tag: "greedy", totalAttempts: 5, successfulAttempts: 2 },
+      { tag: "stack", totalAttempts: 7, successfulAttempts: 4 },
+      { tag: "queue", totalAttempts: 4, successfulAttempts: 2 },
+      { tag: "heap", totalAttempts: 6, successfulAttempts: 2 },
+      { tag: "tree", totalAttempts: 9, successfulAttempts: 3 },
+      { tag: "graph", totalAttempts: 8, successfulAttempts: 2 }
+    ]
+  };
 
-  const masteryData = tags.map((tag, _index) => ({
-    tag,
-    mastery: Math.floor(Math.random() * 100), // Mock mastery percentage
-  }));
 
-  const heatmapData = tags.map((tag, _index) => ({
-    tag,
-    week1: Math.floor(Math.random() * 10),
-    week2: Math.floor(Math.random() * 10),
-    week3: Math.floor(Math.random() * 10),
-    week4: Math.floor(Math.random() * 10),
-  }));
-
-  const treemapData = tags.map((tag) => ({
-    name: tag,
-    size: Math.floor(Math.random() * 500) + 50,
-  }));
   return (
-    <Container size="lg" py="xl">
-      <Title order={2} mb="xl">
-        Tag Mastery Dashboard
+    <Container size="xl" py="md">
+      <Title order={2} mb="md" style={{ color: "var(--cm-text)" }}>
+        Tag Mastery Analytics
       </Title>
-
-      <Grid gutter="xl">
-        {/* Radar Chart - Category Mastery */}
-        <Grid.Col span={12} md={6}>
-          <Card shadow="sm" padding="lg">
-            <Title order={4} mb="sm">
-              Category Mastery
-            </Title>
-            <ResponsiveContainer width="100%" height={400}>
-              <RadarChart
-                cx="50%"
-                cy="50%"
-                outerRadius="80%"
-                data={masteryData}
-              >
-                <PolarGrid />
-                <PolarAngleAxis dataKey="tag" tick={{ fontSize: 10 }} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                <Radar
-                  name="Mastery"
-                  dataKey="mastery"
-                  stroke="#8884d8"
-                  fill="#8884d8"
-                  fillOpacity={0.6}
-                />
-                <Tooltip />
-              </RadarChart>
-            </ResponsiveContainer>
-          </Card>
-        </Grid.Col>
-
-        {/* Heatmap - Progress Over Time */}
-        <Grid.Col span={12} md={6}>
-          <Card shadow="sm" padding="lg">
-            <Title order={4} mb="sm">
-              Progress Over Time
-            </Title>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={heatmapData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="tag" tick={{ fontSize: 10 }} />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="week1" fill="#8884d8" />
-                <Bar dataKey="week2" fill="#82ca9d" />
-                <Bar dataKey="week3" fill="#ffc658" />
-                <Bar dataKey="week4" fill="#d88484" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </Grid.Col>
-      </Grid>
-
-      <Grid gutter="xl" mt="xl">
-        {/* Treemap - Problem Distribution */}
-        <Grid.Col span={12}>
-          <Card shadow="sm" padding="lg">
-            <Title order={4} mb="sm">
-              Problem Distribution Across Tags
-            </Title>
-            <ResponsiveContainer width="100%" height={500}>
-              <Treemap
-                width={400}
-                height={400}
-                data={treemapData}
-                dataKey="size"
-                stroke="#fff"
-                fill="#82ca9d"
-              >
-                {(nodeProps) => (
-                  <Rectangle {...nodeProps} fill="#82ca9d" stroke="#fff" />
-                )}
-              </Treemap>
-            </ResponsiveContainer>
-          </Card>
-        </Grid.Col>
-      </Grid>
+      
+      {/* Use the comprehensive MasteryDashboard component */}
+      <MasteryDashboard data={masteryData} />
     </Container>
   );
 }
@@ -381,11 +260,152 @@ export function Notifications() {
 }
 
 export function General() {
-  return <h1>General Settings</h1>;
+  return (
+    <Container size="md" p="xl">
+      <Title order={2} mb="xl" style={{ color: "var(--cm-text)" }}>
+        Learning Settings
+      </Title>
+      
+      <Stack gap="lg">
+        <FocusAreasSelector />
+      </Stack>
+    </Container>
+  );
 }
 
 export function Appearance() {
-  return <h1>Appearance Settings</h1>;
+  return (
+    <Container size="md" p="xl">
+      <Title order={2} mb="xl" style={{ color: "var(--cm-text)" }}>
+        Appearance Settings
+      </Title>
+
+      <Grid gutter="lg">
+        {/* Theme Selection */}
+        <Grid.Col span={12}>
+          <Card
+            shadow="sm"
+            p="lg"
+            style={{
+              backgroundColor: "var(--cm-card-bg)",
+              borderColor: "var(--cm-border)",
+            }}
+          >
+            <Text
+              weight={500}
+              size="lg"
+              mb="md"
+              style={{ color: "var(--cm-text)" }}
+            >
+              Theme
+            </Text>
+            <Text
+              size="sm"
+              color="dimmed"
+              mb="md"
+              style={{ color: "var(--cm-text-dimmed)" }}
+            >
+              Choose between light and dark themes. Changes will sync across the
+              content page and dashboard.
+            </Text>
+            <ThemeToggle />
+          </Card>
+        </Grid.Col>
+
+        {/* Font Size Settings */}
+        <Grid.Col span={12}>
+          <Card
+            shadow="sm"
+            p="lg"
+            style={{
+              backgroundColor: "var(--cm-card-bg)",
+              borderColor: "var(--cm-border)",
+            }}
+          >
+            <Text
+              weight={500}
+              size="lg"
+              mb="md"
+              style={{ color: "var(--cm-text)" }}
+            >
+              Font Size
+            </Text>
+            <Text
+              size="sm"
+              color="dimmed"
+              mb="md"
+              style={{ color: "var(--cm-text-dimmed)" }}
+            >
+              Adjust the text size for better readability.
+            </Text>
+            <FontSizeSelector />
+          </Card>
+        </Grid.Col>
+
+        {/* Layout Density */}
+        <Grid.Col span={12}>
+          <Card
+            shadow="sm"
+            p="lg"
+            style={{
+              backgroundColor: "var(--cm-card-bg)",
+              borderColor: "var(--cm-border)",
+            }}
+          >
+            <Text
+              weight={500}
+              size="lg"
+              mb="md"
+              style={{ color: "var(--cm-text)" }}
+            >
+              Layout Density
+            </Text>
+            <Text
+              size="sm"
+              color="dimmed"
+              mb="md"
+              style={{ color: "var(--cm-text-dimmed)" }}
+            >
+              Choose between compact or comfortable spacing for interface
+              elements.
+            </Text>
+            <LayoutDensitySelector />
+          </Card>
+        </Grid.Col>
+
+        {/* Animation Preferences */}
+        <Grid.Col span={12}>
+          <Card
+            shadow="sm"
+            p="lg"
+            style={{
+              backgroundColor: "var(--cm-card-bg)",
+              borderColor: "var(--cm-border)",
+            }}
+          >
+            <Text
+              weight={500}
+              size="lg"
+              mb="md"
+              style={{ color: "var(--cm-text)" }}
+            >
+              Animations
+            </Text>
+            <Text
+              size="sm"
+              color="dimmed"
+              mb="md"
+              style={{ color: "var(--cm-text-dimmed)" }}
+            >
+              Enable or disable animations and transitions for better
+              performance.
+            </Text>
+            <AnimationToggle />
+          </Card>
+        </Grid.Col>
+      </Grid>
+    </Container>
+  );
 }
 
 export function Accessibility() {

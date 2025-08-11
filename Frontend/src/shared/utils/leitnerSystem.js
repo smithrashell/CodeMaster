@@ -111,12 +111,14 @@ function reassessBoxLevel(problem, attempts) {
   }
 
   // Ensure lastAttemptDate is valid, fallback to current date if invalid
-  const lastAttemptDate = problem.lastAttemptDate ? new Date(problem.lastAttemptDate) : new Date();
+  const lastAttemptDate = problem.lastAttemptDate
+    ? new Date(problem.lastAttemptDate)
+    : new Date();
   if (isNaN(lastAttemptDate.getTime())) {
     // If still invalid, use current date
     lastAttemptDate.setTime(Date.now());
   }
-  
+
   const nextReviewDate = new Date(lastAttemptDate);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays);
   problem.ReviewSchedule = nextReviewDate.toISOString();
@@ -133,15 +135,16 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   // Enhanced time evaluation using soft limits
   let timePerformanceScore = 1.0; // Default neutral score
   let exceededTimeLimit = false;
-  
+
   if (useTimeLimits && attemptData) {
     // Get recommended time limits by difficulty (in minutes)
     const timeLimitsByDifficulty = { 1: 15, 2: 25, 3: 40 };
-    const recommendedTimeMinutes = timeLimitsByDifficulty[attemptData.Difficulty] || 25;
+    const recommendedTimeMinutes =
+      timeLimitsByDifficulty[attemptData.Difficulty] || 25;
     const recommendedTimeSeconds = recommendedTimeMinutes * 60;
-    
+
     const timeSpentSeconds = Number(attemptData.TimeSpent) || 0;
-    
+
     if (timeSpentSeconds <= recommendedTimeSeconds) {
       // Excellent time performance
       timePerformanceScore = 1.2;
@@ -156,11 +159,14 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
       timePerformanceScore = 0.6;
       exceededTimeLimit = true;
     }
-    
+
     // Factor in user intent if available
     if (attemptData.UserIntent === "stuck") {
       timePerformanceScore *= 0.9; // Slight penalty for getting stuck
-    } else if (attemptData.UserIntent === "solving" && attemptData.ExceededRecommendedTime) {
+    } else if (
+      attemptData.UserIntent === "solving" &&
+      attemptData.ExceededRecommendedTime
+    ) {
       timePerformanceScore *= 1.1; // Bonus for persistence
     }
   }
@@ -175,22 +181,34 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   AttemptStats.TotalAttempts++;
 
   // ----- BoxLevel and Attempt Stats Update with Graduated Scoring -----
-  if (attemptData && (attemptData.Success || (problem.CooldownStatus && attemptData.Success))) {
+  if (
+    attemptData &&
+    (attemptData.Success || (problem.CooldownStatus && attemptData.Success))
+  ) {
     problem.CooldownStatus = false;
     problem.ConsecutiveFailures = 0;
     AttemptStats.SuccessfulAttempts++;
-    
+
     // Graduated box level promotion based on time performance
     if (timePerformanceScore >= 1.2) {
       // Excellent performance - full promotion
-      problem.BoxLevel = Math.min(problem.BoxLevel + 1, boxIntervals.length - 1);
+      problem.BoxLevel = Math.min(
+        problem.BoxLevel + 1,
+        boxIntervals.length - 1
+      );
     } else if (timePerformanceScore >= 1.0) {
       // Good performance - normal promotion
-      problem.BoxLevel = Math.min(problem.BoxLevel + 1, boxIntervals.length - 1);
+      problem.BoxLevel = Math.min(
+        problem.BoxLevel + 1,
+        boxIntervals.length - 1
+      );
     } else if (timePerformanceScore >= 0.8) {
       // Acceptable but slow - half promotion (rounded down)
       const promotionAmount = Math.floor(0.5 + problem.BoxLevel * 0.1);
-      problem.BoxLevel = Math.min(problem.BoxLevel + promotionAmount, boxIntervals.length - 1);
+      problem.BoxLevel = Math.min(
+        problem.BoxLevel + promotionAmount,
+        boxIntervals.length - 1
+      );
     } else {
       // Success but very slow - maintain current level
       problem.BoxLevel = problem.BoxLevel;
@@ -202,11 +220,12 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
     // Graduated demotion based on time and effort
     if (problem.ConsecutiveFailures >= FAILURE_THRESHOLD) {
       problem.CooldownStatus = true;
-      
+
       // Softer demotion if user showed effort (time spent or indicated working)
-      const showedEffort = timePerformanceScore >= 0.8 || attemptData.UserIntent === "solving";
+      const showedEffort =
+        timePerformanceScore >= 0.8 || attemptData.UserIntent === "solving";
       const demotionAmount = showedEffort ? 0.5 : 1;
-      
+
       problem.BoxLevel = Math.max(problem.BoxLevel - demotionAmount, 1);
     }
   }
@@ -220,12 +239,12 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
     problem.Stability,
     attemptData ? attemptData.Success : false
   );
-  
+
   // Apply time performance bonus/penalty to stability
   if (attemptData && attemptData.Success) {
     stabilityAdjustment *= timePerformanceScore;
   }
-  
+
   problem.Stability = stabilityAdjustment;
 
   // Apply Stability multiplier to next review days
@@ -247,13 +266,15 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   }
   problem.AttemptStats = AttemptStats;
   console.info("attemptData.AttemptDate", attemptData?.AttemptDate);
-  
+
   // Ensure attemptDate is valid, fallback to current date if invalid
-  const attemptDate = attemptData?.AttemptDate ? new Date(attemptData.AttemptDate) : new Date();
+  const attemptDate = attemptData?.AttemptDate
+    ? new Date(attemptData.AttemptDate)
+    : new Date();
   if (isNaN(attemptDate.getTime())) {
     attemptDate.setTime(Date.now());
   }
-  
+
   const nextReviewDate = new Date(attemptDate);
   console.info("nextReviewDate", nextReviewDate);
   console.info("nextReviewDays", nextReviewDays);
@@ -266,19 +287,16 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
     "CalculateLeitnerBox - problem.ConsecutiveFailures",
     problem.ConsecutiveFailures
   );
-  console.info(
-    "Enhanced Leitner Calculation Results:",
-    {
-      nextReviewDays,
-      stability: problem.Stability,
-      boxLevel: problem.BoxLevel,
-      timePerformanceScore,
-      exceededTimeLimit,
-      userIntent: attemptData.UserIntent,
-      timeSpent: attemptData.TimeSpent,
-      success: attemptData.Success
-    }
-  );
+  console.info("Enhanced Leitner Calculation Results:", {
+    nextReviewDays,
+    stability: problem.Stability,
+    boxLevel: problem.BoxLevel,
+    timePerformanceScore,
+    exceededTimeLimit,
+    userIntent: attemptData.UserIntent,
+    timeSpent: attemptData.TimeSpent,
+    success: attemptData.Success,
+  });
 
   return problem;
 }

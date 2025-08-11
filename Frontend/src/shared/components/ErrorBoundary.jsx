@@ -1,14 +1,22 @@
 /**
  * ErrorBoundary Component for CodeMaster
- * 
+ *
  * React Error Boundary that catches JavaScript errors in component tree and displays
  * user-friendly fallback UI with recovery options instead of crashing the entire app.
  */
 
-import React from 'react';
-import { Container, Alert, Button, Text, Stack, Group, Code } from '@mantine/core';
-import { IconAlertTriangle, IconRefresh, IconBug } from '@tabler/icons-react';
-import ErrorReportService from '../services/ErrorReportService';
+import React from "react";
+import {
+  Container,
+  Alert,
+  Button,
+  Text,
+  Stack,
+  Group,
+  Code,
+} from "@mantine/core";
+import { IconAlertTriangle, IconRefresh, IconBug } from "@tabler/icons-react";
+import ErrorReportService from "../services/ErrorReportService";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -28,8 +36,10 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Generate unique error ID for tracking
-    const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+    const errorId = `error_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
     this.setState({
       error,
       errorInfo,
@@ -38,7 +48,7 @@ class ErrorBoundary extends React.Component {
 
     // Log error details to console for development
     // eslint-disable-next-line no-console
-    console.error('ErrorBoundary caught an error:', {
+    console.error("ErrorBoundary caught an error:", {
       errorId,
       error: error.message,
       stack: error.stack,
@@ -55,9 +65,9 @@ class ErrorBoundary extends React.Component {
   storeErrorContext = async (errorId, error, errorInfo) => {
     try {
       const userContext = {
-        userId: this.props.userId || 'anonymous',
-        sessionId: sessionStorage.getItem('codemaster_session_id'),
-        lastAction: sessionStorage.getItem('codemaster_last_action'),
+        userId: this.props.userId || "anonymous",
+        sessionId: sessionStorage.getItem("codemaster_session_id"),
+        lastAction: sessionStorage.getItem("codemaster_last_action"),
         currentRoute: window.location.pathname,
       };
 
@@ -67,59 +77,72 @@ class ErrorBoundary extends React.Component {
         message: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
-        section: this.props.section || 'unknown',
+        section: this.props.section || "unknown",
         url: window.location.href,
         userAgent: navigator.userAgent,
         timestamp: new Date().toISOString(),
         userContext,
-        errorType: 'react_component',
+        errorType: "react_component",
         severity: this.determineSeverity(error, this.props.section),
       });
     } catch (storageError) {
       // eslint-disable-next-line no-console
-      console.warn('Failed to store error context:', storageError);
-      
+      console.warn("Failed to store error context:", storageError);
+
       // Fallback to localStorage if IndexedDB fails
       try {
         const errorContext = {
           errorId,
           message: error.message,
           stack: error.stack,
-          section: this.props.section || 'unknown',
+          section: this.props.section || "unknown",
           timestamp: new Date().toISOString(),
         };
-        
-        const existingErrors = JSON.parse(localStorage.getItem('codemaster_errors') || '[]');
+
+        const existingErrors = JSON.parse(
+          localStorage.getItem("codemaster_errors") || "[]"
+        );
         existingErrors.push(errorContext);
         const recentErrors = existingErrors.slice(-10);
-        localStorage.setItem('codemaster_errors', JSON.stringify(recentErrors));
+        localStorage.setItem("codemaster_errors", JSON.stringify(recentErrors));
       } catch (fallbackError) {
         // eslint-disable-next-line no-console
-        console.warn('Failed to store error in localStorage fallback:', fallbackError);
+        console.warn(
+          "Failed to store error in localStorage fallback:",
+          fallbackError
+        );
       }
     }
   };
 
   determineSeverity = (error, section) => {
     // Determine error severity based on error type and section
-    const criticalSections = ['Timer', 'Database', 'Session'];
-    const highSections = ['Dashboard', 'Strategy System', 'Statistics'];
-    
-    if (criticalSections.some(s => section.includes(s))) {
-      return 'high';
-    } else if (highSections.some(s => section.includes(s))) {
-      return 'medium';
+    const criticalSections = ["Timer", "Database", "Session"];
+    const highSections = ["Dashboard", "Strategy System", "Statistics"];
+
+    if (criticalSections.some((s) => section.includes(s))) {
+      return "high";
+    } else if (highSections.some((s) => section.includes(s))) {
+      return "medium";
     }
-    
+
     // Check error message for severity indicators
     const errorMsg = error.message.toLowerCase();
-    if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('timeout')) {
-      return 'medium';
-    } else if (errorMsg.includes('memory') || errorMsg.includes('quota') || errorMsg.includes('permission')) {
-      return 'high';
+    if (
+      errorMsg.includes("network") ||
+      errorMsg.includes("fetch") ||
+      errorMsg.includes("timeout")
+    ) {
+      return "medium";
+    } else if (
+      errorMsg.includes("memory") ||
+      errorMsg.includes("quota") ||
+      errorMsg.includes("permission")
+    ) {
+      return "high";
     }
-    
-    return 'low';
+
+    return "low";
   };
 
   handleRetry = () => {
@@ -140,19 +163,19 @@ class ErrorBoundary extends React.Component {
     try {
       // Import the ErrorRecoveryUI component dynamically for feedback collection
       // const { ErrorRecoveryUI } = await import('./ErrorRecoveryUI');
-      
+
       // Show feedback collection modal
       const feedbackData = await this.showFeedbackModal();
-      
+
       if (feedbackData) {
         // Store additional user feedback with the error report
         await ErrorReportService.addUserFeedback(
-          this.state.errorId, 
+          this.state.errorId,
           feedbackData.feedback,
           feedbackData.reproductionSteps
         );
       }
-      
+
       if (this.props.onReportProblem) {
         this.props.onReportProblem({
           errorId: this.state.errorId,
@@ -162,18 +185,19 @@ class ErrorBoundary extends React.Component {
           userFeedback: feedbackData,
         });
       }
-      
+
       // Show success notification
-      const { showSuccessNotification } = await import('../utils/errorNotifications');
-      showSuccessNotification(
-        'Thank you for reporting this issue. We\'ll investigate and improve CodeMaster.',
-        { title: 'Problem Report Submitted' }
+      const { showSuccessNotification } = await import(
+        "../utils/errorNotifications"
       );
-      
+      showSuccessNotification(
+        "Thank you for reporting this issue. We'll investigate and improve CodeMaster.",
+        { title: "Problem Report Submitted" }
+      );
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.warn('Failed to submit problem report:', error);
-      
+      console.warn("Failed to submit problem report:", error);
+
       // Fallback: just call the prop handler if available
       if (this.props.onReportProblem) {
         this.props.onReportProblem({
@@ -191,14 +215,14 @@ class ErrorBoundary extends React.Component {
     // In a production app, this would show a proper modal dialog
     return new Promise((resolve) => {
       const feedback = prompt(
-        'Please describe what you were doing when this error occurred (optional):'
+        "Please describe what you were doing when this error occurred (optional):"
       );
-      
+
       const reproductionSteps = feedback ? [feedback] : [];
-      
+
       resolve({
-        feedback: feedback || '',
-        reproductionSteps
+        feedback: feedback || "",
+        reproductionSteps,
       });
     });
   };
@@ -206,8 +230,8 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       // Custom fallback UI
-      const { fallback: CustomFallback, section = 'Application' } = this.props;
-      
+      const { fallback: CustomFallback, section = "Application" } = this.props;
+
       if (CustomFallback) {
         return (
           <CustomFallback
@@ -233,10 +257,10 @@ class ErrorBoundary extends React.Component {
           >
             <Stack spacing="md">
               <Text size="sm">
-                Something went wrong in this section of CodeMaster. Don&apos;t worry - your data is safe
-                and this is just a temporary issue.
+                Something went wrong in this section of CodeMaster. Don&apos;t
+                worry - your data is safe and this is just a temporary issue.
               </Text>
-              
+
               {this.state.error && (
                 <Text size="xs" c="dimmed">
                   <strong>Error:</strong> {this.state.error.message}
@@ -258,12 +282,8 @@ class ErrorBoundary extends React.Component {
                 >
                   Try Again
                 </Button>
-                
-                <Button
-                  variant="light"
-                  size="sm"
-                  onClick={this.handleReload}
-                >
+
+                <Button variant="light" size="sm" onClick={this.handleReload}>
                   Reload Page
                 </Button>
 
@@ -279,9 +299,9 @@ class ErrorBoundary extends React.Component {
                 )}
               </Group>
 
-              {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details style={{ marginTop: '1rem' }}>
-                  <summary style={{ cursor: 'pointer', fontSize: '0.875rem' }}>
+              {process.env.NODE_ENV === "development" && this.state.error && (
+                <details style={{ marginTop: "1rem" }}>
+                  <summary style={{ cursor: "pointer", fontSize: "0.875rem" }}>
                     Developer Info (click to expand)
                   </summary>
                   <Code block size="xs" mt="xs">

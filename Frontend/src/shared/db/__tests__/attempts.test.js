@@ -9,31 +9,31 @@ import "fake-indexeddb/auto";
 // Mock all dependencies before importing
 jest.mock("../index.js", () => ({
   dbHelper: {
-    openDB: jest.fn()
-  }
+    openDB: jest.fn(),
+  },
 }));
 jest.mock("../problems.js", () => ({
   getProblem: jest.fn(),
-  saveUpdatedProblem: jest.fn()
+  saveUpdatedProblem: jest.fn(),
 }));
 jest.mock("../sessions.js", () => ({
   getOrCreateSession: jest.fn(),
   saveSessionToStorage: jest.fn(),
-  addOrUpdateProblemInSession: jest.fn()
+  addOrUpdateProblemInSession: jest.fn(),
 }));
 jest.mock("../../services/sessionService.js", () => ({
   SessionService: {
     checkAndCompleteSession: jest.fn(),
-    getOrCreateSession: jest.fn()
+    getOrCreateSession: jest.fn(),
   },
   sessionService: {
-    checkAndCompleteSession: jest.fn()
-  }
+    checkAndCompleteSession: jest.fn(),
+  },
 }));
 jest.mock("../../services/problemService.js", () => ({
   ProblemService: {
-    addOrUpdateProblemInSession: jest.fn()
-  }
+    addOrUpdateProblemInSession: jest.fn(),
+  },
 }));
 jest.mock("../../utils/leitnerSystem.js");
 jest.mock("../../utils/Utils.js");
@@ -41,18 +41,21 @@ jest.mock("../../utils/Utils.js");
 // Mock global functions used in attempts.js
 global.evaluateAttempts = jest.fn();
 
-
 import {
   addAttempt,
   getAttemptsByProblem,
   getAllAttempts,
   getMostRecentAttempt,
   saveAttempts,
-  updateProblemsWithAttemptStats
+  updateProblemsWithAttemptStats,
 } from "../attempts";
 import { dbHelper } from "../index.js";
 import { getProblem, saveUpdatedProblem } from "../problems.js";
-import { getOrCreateSession, saveSessionToStorage, addOrUpdateProblemInSession } from "../sessions.js";
+import {
+  getOrCreateSession,
+  saveSessionToStorage,
+  addOrUpdateProblemInSession,
+} from "../sessions.js";
 import { SessionService } from "../../services/sessionService.js";
 import { ProblemService } from "../../services/problemService.js";
 import { calculateLeitnerBox } from "../../utils/leitnerSystem.js";
@@ -70,23 +73,23 @@ describe("Attempts Database Operations", () => {
     // Setup mock database infrastructure
     mockIndex = {
       getAll: jest.fn(),
-      openCursor: jest.fn()
+      openCursor: jest.fn(),
     };
 
     mockObjectStore = {
       put: jest.fn(),
       getAll: jest.fn(),
-      index: jest.fn(() => mockIndex)
+      index: jest.fn(() => mockIndex),
     };
 
     mockTransaction = {
       objectStore: jest.fn(() => mockObjectStore),
       oncomplete: null,
-      onerror: null
+      onerror: null,
     };
 
     mockDB = {
-      transaction: jest.fn(() => mockTransaction)
+      transaction: jest.fn(() => mockTransaction),
     };
 
     dbHelper.openDB.mockResolvedValue(mockDB);
@@ -96,27 +99,35 @@ describe("Attempts Database Operations", () => {
       storage: {
         local: {
           get: jest.fn(),
-          set: jest.fn()
-        }
-      }
+          set: jest.fn(),
+        },
+      },
     };
   });
 
   describe("addAttempt", () => {
     beforeEach(() => {
-      getProblem.mockImplementation(() => Promise.resolve({ id: 1, title: "Test Problem" }));
-      calculateLeitnerBox.mockImplementation((problem) => Promise.resolve({ ...problem, boxLevel: 2 }));
-      createAttemptRecord.mockImplementation((data) => ({ 
-        id: "attempt-123", 
-        ...data, 
-        AttemptDate: new Date().toISOString() 
+      getProblem.mockImplementation(() =>
+        Promise.resolve({ id: 1, title: "Test Problem" })
+      );
+      calculateLeitnerBox.mockImplementation((problem) =>
+        Promise.resolve({ ...problem, boxLevel: 2 })
+      );
+      createAttemptRecord.mockImplementation((data) => ({
+        id: "attempt-123",
+        ...data,
+        AttemptDate: new Date().toISOString(),
       }));
       SessionService.checkAndCompleteSession = jest.fn();
-      SessionService.getOrCreateSession = jest.fn().mockResolvedValue({ id: "new-session-123", attempts: [] });
-      ProblemService.addOrUpdateProblemInSession = jest.fn().mockImplementation((session, problem, attemptId) => ({
-        ...session,
-        problems: [...(session.problems || []), problem]
-      }));
+      SessionService.getOrCreateSession = jest
+        .fn()
+        .mockResolvedValue({ id: "new-session-123", attempts: [] });
+      ProblemService.addOrUpdateProblemInSession = jest
+        .fn()
+        .mockImplementation((session, problem, attemptId) => ({
+          ...session,
+          problems: [...(session.problems || []), problem],
+        }));
     });
 
     it.skip("should add attempt successfully with existing session", async () => {
@@ -124,13 +135,13 @@ describe("Attempts Database Operations", () => {
       const mockSession = {
         id: "session-123",
         problems: [{ id: 1, title: "Test Problem" }],
-        attempts: []
+        attempts: [],
       };
       const attemptData = {
         ProblemID: 1,
         Success: true,
         TimeSpent: 1200,
-        id: "attempt-123"
+        id: "attempt-123",
       };
 
       chrome.storage.local.get.mockImplementation((keys, callback) => {
@@ -141,20 +152,20 @@ describe("Attempts Database Operations", () => {
       // Simplify the transaction mocking - mock successful completion
       const mockRequest = { onsuccess: null, onerror: null };
       mockObjectStore.put.mockReturnValue(mockRequest);
-      
+
       // Mock transaction completion
       mockTransaction.oncomplete = null;
       mockTransaction.onerror = null;
 
       // Act - Use Promise.resolve to handle the async mocking
       const resultPromise = addAttempt(attemptData);
-      
+
       // Trigger the async success callbacks
       setTimeout(() => {
         if (mockRequest.onsuccess) mockRequest.onsuccess();
         if (mockTransaction.oncomplete) mockTransaction.oncomplete();
       }, 10);
-      
+
       const result = await resultPromise;
 
       // Assert
@@ -186,7 +197,7 @@ describe("Attempts Database Operations", () => {
       // Arrange
       const attemptData = { ProblemID: 1 };
       const mockNewSession = { id: "new-session-123", attempts: [] };
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         callback({}); // No current session
       });
@@ -201,17 +212,20 @@ describe("Attempts Database Operations", () => {
 
       // Act
       const resultPromise = addAttempt(attemptData);
-      
+
       // Trigger callbacks after a short delay
       setTimeout(() => {
         if (mockRequest.onsuccess) mockRequest.onsuccess();
         if (mockTransaction.oncomplete) mockTransaction.oncomplete();
       }, 10);
-      
+
       await resultPromise;
 
       // Assert
-      expect(chrome.storage.local.get).toHaveBeenCalledWith(["currentSession"], expect.any(Function));
+      expect(chrome.storage.local.get).toHaveBeenCalledWith(
+        ["currentSession"],
+        expect.any(Function)
+      );
       expect(SessionService.getOrCreateSession).toHaveBeenCalled();
     }, 5000);
 
@@ -224,10 +238,14 @@ describe("Attempts Database Operations", () => {
         callback({ currentSession: mockSession });
       });
 
-      dbHelper.openDB.mockRejectedValue(new Error("Database connection failed"));
+      dbHelper.openDB.mockRejectedValue(
+        new Error("Database connection failed")
+      );
 
       // Act & Assert
-      await expect(addAttempt(attemptData)).rejects.toThrow("Database connection failed");
+      await expect(addAttempt(attemptData)).rejects.toThrow(
+        "Database connection failed"
+      );
     });
   });
 
@@ -237,13 +255,13 @@ describe("Attempts Database Operations", () => {
       const problemId = "problem-123";
       const mockAttempts = [
         { id: "attempt-1", problemId, Success: true, TimeSpent: 900 },
-        { id: "attempt-2", problemId, Success: false, TimeSpent: 1500 }
+        { id: "attempt-2", problemId, Success: false, TimeSpent: 1500 },
       ];
 
       mockIndex.getAll.mockImplementation(() => ({
         onsuccess: null,
         onerror: null,
-        result: mockAttempts
+        result: mockAttempts,
       }));
 
       // Simulate async callback
@@ -268,7 +286,7 @@ describe("Attempts Database Operations", () => {
       mockIndex.getAll.mockImplementation(() => ({
         onsuccess: null,
         onerror: null,
-        result: null
+        result: null,
       }));
 
       setTimeout(() => {
@@ -288,16 +306,19 @@ describe("Attempts Database Operations", () => {
       // Arrange
       mockIndex.getAll.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       setTimeout(() => {
         const request = mockIndex.getAll.mock.results[0].value;
-        if (request.onerror) request.onerror({ target: { error: new Error("DB Error") } });
+        if (request.onerror)
+          request.onerror({ target: { error: new Error("DB Error") } });
       }, 0);
 
       // Act & Assert
-      await expect(getAttemptsByProblem("problem-123")).rejects.toThrow("DB Error");
+      await expect(getAttemptsByProblem("problem-123")).rejects.toThrow(
+        "DB Error"
+      );
     });
   });
 
@@ -307,13 +328,13 @@ describe("Attempts Database Operations", () => {
       const mockAllAttempts = [
         { id: "attempt-1", problemId: "prob-1", Success: true },
         { id: "attempt-2", problemId: "prob-2", Success: false },
-        { id: "attempt-3", problemId: "prob-1", Success: true }
+        { id: "attempt-3", problemId: "prob-1", Success: true },
       ];
 
       mockObjectStore.getAll.mockImplementation(() => ({
         onsuccess: null,
         onerror: null,
-        result: mockAllAttempts
+        result: mockAllAttempts,
       }));
 
       setTimeout(() => {
@@ -336,7 +357,7 @@ describe("Attempts Database Operations", () => {
       mockObjectStore.getAll.mockImplementation(() => ({
         onsuccess: null,
         onerror: null,
-        result: []
+        result: [],
       }));
 
       setTimeout(() => {
@@ -361,21 +382,21 @@ describe("Attempts Database Operations", () => {
         id: "attempt-latest",
         problemId,
         Success: true,
-        AttemptDate: new Date().toISOString()
+        AttemptDate: new Date().toISOString(),
       };
 
       mockIndex.openCursor.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       setTimeout(() => {
         const request = mockIndex.openCursor.mock.results[0].value;
         if (request.onsuccess) {
-          request.onsuccess({ 
-            target: { 
-              result: { value: mockRecentAttempt } 
-            } 
+          request.onsuccess({
+            target: {
+              result: { value: mockRecentAttempt },
+            },
           });
         }
       }, 0);
@@ -394,21 +415,21 @@ describe("Attempts Database Operations", () => {
       const mockRecentAttempt = {
         id: "attempt-global-latest",
         Success: false,
-        AttemptDate: new Date().toISOString()
+        AttemptDate: new Date().toISOString(),
       };
 
       mockIndex.openCursor.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       setTimeout(() => {
         const request = mockIndex.openCursor.mock.results[0].value;
         if (request.onsuccess) {
-          request.onsuccess({ 
-            target: { 
-              result: { value: mockRecentAttempt } 
-            } 
+          request.onsuccess({
+            target: {
+              result: { value: mockRecentAttempt },
+            },
           });
         }
       }, 0);
@@ -426,7 +447,7 @@ describe("Attempts Database Operations", () => {
       // Arrange
       mockIndex.openCursor.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       setTimeout(() => {
@@ -449,12 +470,12 @@ describe("Attempts Database Operations", () => {
       // Arrange
       const attemptsToSave = [
         { id: "attempt-1", problemId: "prob-1", Success: true },
-        { id: "attempt-2", problemId: "prob-2", Success: false }
+        { id: "attempt-2", problemId: "prob-2", Success: false },
       ];
 
       mockObjectStore.put.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       // Simulate transaction completion
@@ -478,7 +499,7 @@ describe("Attempts Database Operations", () => {
 
       mockObjectStore.put.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       // Simulate error in put operation
@@ -490,7 +511,9 @@ describe("Attempts Database Operations", () => {
       }, 0);
 
       // Act & Assert
-      await expect(saveAttempts(attemptsToSave)).rejects.toBe("Error saving attempt: SAVE_ERROR");
+      await expect(saveAttempts(attemptsToSave)).rejects.toBe(
+        "Error saving attempt: SAVE_ERROR"
+      );
     });
 
     it("should handle transaction errors", async () => {
@@ -499,18 +522,22 @@ describe("Attempts Database Operations", () => {
 
       mockObjectStore.put.mockImplementation(() => ({
         onsuccess: null,
-        onerror: null
+        onerror: null,
       }));
 
       // Simulate transaction error
       setTimeout(() => {
         if (mockTransaction.onerror) {
-          mockTransaction.onerror({ target: { errorCode: "TRANSACTION_ERROR" } });
+          mockTransaction.onerror({
+            target: { errorCode: "TRANSACTION_ERROR" },
+          });
         }
       }, 10);
 
       // Act & Assert
-      await expect(saveAttempts(attemptsToSave)).rejects.toBe("Transaction error: TRANSACTION_ERROR");
+      await expect(saveAttempts(attemptsToSave)).rejects.toBe(
+        "Transaction error: TRANSACTION_ERROR"
+      );
     });
   });
 
@@ -523,19 +550,19 @@ describe("Attempts Database Operations", () => {
       // Arrange
       const mockAttempts = [
         { id: "attempt-1", problemId: "prob-1" },
-        { id: "attempt-2", problemId: "prob-2" }
+        { id: "attempt-2", problemId: "prob-2" },
       ];
 
       const mockUpdatedProblems = [
         { id: "prob-1", boxLevel: 3, totalAttempts: 5 },
-        { id: "prob-2", boxLevel: 1, totalAttempts: 2 }
+        { id: "prob-2", boxLevel: 1, totalAttempts: 2 },
       ];
 
       // Mock getAllAttempts to return attempts
       mockObjectStore.getAll.mockImplementation(() => ({
         onsuccess: null,
         onerror: null,
-        result: mockAttempts
+        result: mockAttempts,
       }));
 
       setTimeout(() => {
@@ -563,7 +590,7 @@ describe("Attempts Database Operations", () => {
       mockObjectStore.getAll.mockImplementation(() => ({
         onsuccess: null,
         onerror: null,
-        result: []
+        result: [],
       }));
 
       setTimeout(() => {
@@ -587,7 +614,7 @@ describe("Attempts Database Operations", () => {
       const corruptedAttemptData = {
         ProblemID: null, // Invalid problem ID
         Success: "maybe", // Invalid success value
-        TimeSpent: "fast" // Invalid time value
+        TimeSpent: "fast", // Invalid time value
       };
 
       chrome.storage.local.get.mockImplementation((keys, callback) => {
@@ -614,14 +641,16 @@ describe("Attempts Database Operations", () => {
     it("should handle Chrome storage failures", async () => {
       // Arrange
       const attemptData = { ProblemID: 1 };
-      
+
       chrome.storage.local.get.mockImplementation((keys, callback) => {
         // Simulate Chrome storage error
         throw new Error("Chrome storage unavailable");
       });
 
       // Act & Assert
-      await expect(addAttempt(attemptData)).rejects.toThrow("Chrome storage unavailable");
+      await expect(addAttempt(attemptData)).rejects.toThrow(
+        "Chrome storage unavailable"
+      );
     });
   });
 });

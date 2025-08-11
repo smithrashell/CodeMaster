@@ -20,8 +20,9 @@ describe("HintAnalyticsService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    mockHintInteractionService = require("../hintInteractionService").HintInteractionService;
+
+    mockHintInteractionService =
+      require("../hintInteractionService").HintInteractionService;
     mockHintDb = require("../../db/hint_interactions");
   });
 
@@ -67,7 +68,9 @@ describe("HintAnalyticsService", () => {
         },
       ];
 
-      mockHintInteractionService.getSystemAnalytics.mockResolvedValue(mockSystemAnalytics);
+      mockHintInteractionService.getSystemAnalytics.mockResolvedValue(
+        mockSystemAnalytics
+      );
       mockHintDb.getInteractionsByDateRange.mockResolvedValue(mockInteractions);
       mockHintDb.getInteractionsByHintType
         .mockResolvedValueOnce([]) // contextual
@@ -106,29 +109,33 @@ describe("HintAnalyticsService", () => {
       // Arrange
       const startDate = new Date("2024-01-01");
       const endDate = new Date("2024-01-31");
-      
+
       const options = { startDate, endDate, difficulty: "Medium" };
-      
+
       mockHintInteractionService.getSystemAnalytics.mockResolvedValue({
         overview: { totalInteractions: 10 },
         effectiveness: {},
       });
-      
+
       mockHintDb.getInteractionsByDateRange.mockResolvedValue([]);
       mockHintDb.getInteractionsByHintType.mockResolvedValue([]);
       mockHintDb.getInteractionsByDifficultyAndType.mockResolvedValue([]);
 
       // Act
-      const result = await HintAnalyticsService.generateEffectivenessReport(options);
+      const result = await HintAnalyticsService.generateEffectivenessReport(
+        options
+      );
 
       // Assert
-      expect(mockHintInteractionService.getSystemAnalytics).toHaveBeenCalledWith({
+      expect(
+        mockHintInteractionService.getSystemAnalytics
+      ).toHaveBeenCalledWith({
         startDate,
         endDate,
         difficulty: "Medium",
         hintType: null,
       });
-      
+
       expect(result.filters).toEqual({ difficulty: "Medium", hintType: null });
     });
 
@@ -144,7 +151,7 @@ describe("HintAnalyticsService", () => {
             totalInteractions: 50,
           },
           "general-Easy": {
-            hintType: "general", 
+            hintType: "general",
             difficulty: "Easy",
             engagementRate: 0.2, // Low engagement
             totalInteractions: 25,
@@ -152,7 +159,9 @@ describe("HintAnalyticsService", () => {
         },
       };
 
-      mockHintInteractionService.getSystemAnalytics.mockResolvedValue(mockSystemAnalytics);
+      mockHintInteractionService.getSystemAnalytics.mockResolvedValue(
+        mockSystemAnalytics
+      );
       mockHintDb.getInteractionsByDateRange.mockResolvedValue([]);
       mockHintDb.getInteractionsByHintType.mockResolvedValue([]);
       mockHintDb.getInteractionsByDifficultyAndType.mockResolvedValue([]);
@@ -162,22 +171,26 @@ describe("HintAnalyticsService", () => {
 
       // Assert
       const recommendations = result.recommendations;
-      
+
       // Should have high engagement recommendation
       expect(recommendations).toContainEqual(
         expect.objectContaining({
           type: "optimization",
           priority: "medium",
-          message: expect.stringContaining("contextual hints for Medium problems are highly effective"),
+          message: expect.stringContaining(
+            "contextual hints for Medium problems are highly effective"
+          ),
         })
       );
-      
+
       // Should have low engagement improvement recommendation
       expect(recommendations).toContainEqual(
         expect.objectContaining({
           type: "improvement",
           priority: "high",
-          message: expect.stringContaining("general hints for Easy problems have low engagement"),
+          message: expect.stringContaining(
+            "general hints for Easy problems have low engagement"
+          ),
         })
       );
     });
@@ -188,7 +201,7 @@ describe("HintAnalyticsService", () => {
         overview: { totalInteractions: 5 }, // Low sample size
         effectiveness: {},
       });
-      
+
       mockHintDb.getInteractionsByDateRange.mockResolvedValue([]);
       mockHintDb.getInteractionsByHintType.mockResolvedValue([]);
       mockHintDb.getInteractionsByDifficultyAndType.mockResolvedValue([]);
@@ -220,7 +233,7 @@ describe("HintAnalyticsService", () => {
           },
           "general-Medium": {
             hintType: "general",
-            difficulty: "Medium", 
+            difficulty: "Medium",
             engagementRate: 0.7,
             totalInteractions: 15,
             uniqueProblems: 6,
@@ -242,14 +255,16 @@ describe("HintAnalyticsService", () => {
         },
       };
 
-      mockHintInteractionService.getSystemAnalytics.mockResolvedValue(mockSystemAnalytics);
+      mockHintInteractionService.getSystemAnalytics.mockResolvedValue(
+        mockSystemAnalytics
+      );
 
       // Act
       const result = await HintAnalyticsService.getMostHelpfulHints();
 
       // Assert
       expect(result).toHaveLength(3); // Should exclude primer with <5 interactions
-      
+
       // Should be sorted by engagement rate
       expect(result[0]).toEqual({
         hintType: "contextual",
@@ -259,7 +274,7 @@ describe("HintAnalyticsService", () => {
         uniqueProblems: 8,
         score: expect.any(Number),
       });
-      
+
       expect(result[1]).toEqual({
         hintType: "general",
         difficulty: "Medium",
@@ -299,7 +314,7 @@ describe("HintAnalyticsService", () => {
         },
         {
           userAction: "expand",
-          timestamp: "2024-01-15T11:00:00Z", 
+          timestamp: "2024-01-15T11:00:00Z",
           sessionId: "session-1",
           problemId: "problem-1",
         },
@@ -312,7 +327,7 @@ describe("HintAnalyticsService", () => {
         {
           userAction: "copied",
           timestamp: "2024-01-15T13:00:00Z",
-          sessionId: "session-2", 
+          sessionId: "session-2",
           problemId: "problem-2",
         },
       ];
@@ -348,14 +363,14 @@ describe("HintAnalyticsService", () => {
         },
         // No return (single interaction)
         {
-          problemId: "problem-2", 
+          problemId: "problem-2",
           userAction: "expand",
           timestamp: "2024-01-15T11:00:00Z",
         },
         // Short session (same problem, close timestamps)
         {
           problemId: "problem-3",
-          userAction: "expand", 
+          userAction: "expand",
           timestamp: "2024-01-15T12:00:00Z",
         },
         {
@@ -410,15 +425,16 @@ describe("HintAnalyticsService", () => {
         .mockResolvedValueOnce(panelInteractions);
 
       // Act
-      const result = await HintAnalyticsService.getPresentationMethodEffectiveness();
+      const result =
+        await HintAnalyticsService.getPresentationMethodEffectiveness();
 
       // Assert
       expect(result.comparison).toEqual({
         contextual: {
           name: "Contextual Hints",
           totalInteractions: 3,
-          engagementRate: 2/3, // 2 expands out of 3 total
-          dismissalRate: 1/3, // 1 dismissed out of 3 total
+          engagementRate: 2 / 3, // 2 expands out of 3 total
+          dismissalRate: 1 / 3, // 1 dismissed out of 3 total
           uniqueProblems: 2, // p1, p2
           averageSessionsPerProblem: expect.any(Number),
         },
@@ -458,7 +474,8 @@ describe("HintAnalyticsService", () => {
       mockHintDb.getInteractionsByHintType.mockResolvedValue([]);
 
       // Act
-      const result = await HintAnalyticsService.getPresentationMethodEffectiveness();
+      const result =
+        await HintAnalyticsService.getPresentationMethodEffectiveness();
 
       // Assert
       expect(result.insights).toEqual(expect.any(Array));
@@ -493,8 +510,14 @@ describe("HintAnalyticsService", () => {
       ];
 
       // Act
-      const expandRate = HintAnalyticsService._calculateActionRate(interactions, "expand");
-      const collapseRate = HintAnalyticsService._calculateActionRate(interactions, "collapse");
+      const expandRate = HintAnalyticsService._calculateActionRate(
+        interactions,
+        "expand"
+      );
+      const collapseRate = HintAnalyticsService._calculateActionRate(
+        interactions,
+        "collapse"
+      );
 
       // Assert
       expect(expandRate).toBe(0.5); // 2 out of 4
@@ -514,11 +537,14 @@ describe("HintAnalyticsService", () => {
     it("should handle service errors gracefully", async () => {
       // Arrange
       const serviceError = new Error("Service unavailable");
-      mockHintInteractionService.getSystemAnalytics.mockRejectedValue(serviceError);
+      mockHintInteractionService.getSystemAnalytics.mockRejectedValue(
+        serviceError
+      );
 
       // Act & Assert
-      await expect(HintAnalyticsService.generateEffectivenessReport())
-        .rejects.toThrow("Service unavailable");
+      await expect(
+        HintAnalyticsService.generateEffectivenessReport()
+      ).rejects.toThrow("Service unavailable");
     });
 
     it("should handle database errors gracefully", async () => {
@@ -527,20 +553,25 @@ describe("HintAnalyticsService", () => {
       mockHintDb.getInteractionsByDateRange.mockRejectedValue(dbError);
 
       // Act & Assert
-      await expect(HintAnalyticsService.getEngagementAnalysis())
-        .rejects.toThrow("Database connection failed");
+      await expect(
+        HintAnalyticsService.getEngagementAnalysis()
+      ).rejects.toThrow("Database connection failed");
     });
 
     it("should handle malformed data gracefully", async () => {
       // Arrange
       const malformedInteractions = [
-        { /* missing required fields */ },
+        {
+          /* missing required fields */
+        },
         null,
         undefined,
         { userAction: "expand" }, // valid
       ];
 
-      mockHintDb.getInteractionsByDateRange.mockResolvedValue(malformedInteractions);
+      mockHintDb.getInteractionsByDateRange.mockResolvedValue(
+        malformedInteractions
+      );
 
       // Act
       const result = await HintAnalyticsService.getEngagementAnalysis();

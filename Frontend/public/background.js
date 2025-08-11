@@ -23,21 +23,21 @@ const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
 const getCachedResponse = (key) => {
   const item = responseCache.get(key);
   if (!item) return null;
-  
+
   if (Date.now() > item.expiry) {
     responseCache.delete(key);
     return null;
   }
-  
+
   return item.data;
 };
 
 const setCachedResponse = (key, data) => {
   responseCache.set(key, {
     data,
-    expiry: Date.now() + CACHE_EXPIRY
+    expiry: Date.now() + CACHE_EXPIRY,
   });
-  
+
   // Clean cache if it gets too large
   if (responseCache.size > 100) {
     const now = Date.now();
@@ -392,32 +392,43 @@ const handleRequest = async (request, sender, sendResponse) => {
       /** ──────────────── Limits & Problem Tracking ──────────────── **/
       case "getLimits":
         console.log("🔍 Getting adaptive limits for problem", request.id);
-        
-        console.log("🔍 Calling adaptiveLimitsService.getLimits with problemId:", request.id);
-        
-        adaptiveLimitsService.getLimits(request.id)
+
+        console.log(
+          "🔍 Calling adaptiveLimitsService.getLimits with problemId:",
+          request.id
+        );
+
+        adaptiveLimitsService
+          .getLimits(request.id)
           .then((limitsConfig) => {
-            console.log("✅ AdaptiveLimitsService returned successfully:", limitsConfig);
-            
+            console.log(
+              "✅ AdaptiveLimitsService returned successfully:",
+              limitsConfig
+            );
+
             if (!limitsConfig) {
               console.error("❌ AdaptiveLimitsService returned null/undefined");
               sendResponse({ error: "Service returned no data" });
               return;
             }
-            
+
             // Transform to match expected format
             const limits = {
               limit: limitsConfig.difficulty,
               Time: limitsConfig.recommendedTime,
               // Include additional adaptive data for timer component
-              adaptiveLimits: limitsConfig
+              adaptiveLimits: limitsConfig,
             };
-            
+
             console.log("🔍 Sending limits response:", limits);
             sendResponse({ limits });
           })
           .catch((error) => {
-            console.error("❌ Error getting adaptive limits:", error, error.stack);
+            console.error(
+              "❌ Error getting adaptive limits:",
+              error,
+              error.stack
+            );
             sendResponse({ error: "Failed to get limits: " + error.message });
           })
           .finally(finishRequest);
@@ -455,42 +466,67 @@ const handleRequest = async (request, sender, sendResponse) => {
       case "getStrategyForTag":
         const cacheKey = `strategy_${request.tag}`;
         const cachedStrategy = getCachedResponse(cacheKey);
-        
+
         if (cachedStrategy) {
-          console.log(`🔍 BACKGROUND DEBUG: Using cached strategy for "${request.tag}"`);
+          console.log(
+            `🔍 BACKGROUND DEBUG: Using cached strategy for "${request.tag}"`
+          );
           sendResponse(cachedStrategy);
           finishRequest();
           return true;
         }
-        
-        console.log(`🔍 BACKGROUND DEBUG: Getting strategy for tag "${request.tag}"`);
+
+        console.log(
+          `🔍 BACKGROUND DEBUG: Getting strategy for tag "${request.tag}"`
+        );
         (async () => {
           try {
-            console.log(`🔍 BACKGROUND DEBUG: Importing strategy_data.js for tag "${request.tag}"`);
-            const { getStrategyForTag } = await import("../src/shared/db/strategy_data.js");
-            console.log(`🔍 BACKGROUND DEBUG: Import successful, calling getStrategyForTag for "${request.tag}"`);
+            console.log(
+              `🔍 BACKGROUND DEBUG: Importing strategy_data.js for tag "${request.tag}"`
+            );
+            const { getStrategyForTag } = await import(
+              "../src/shared/db/strategy_data.js"
+            );
+            console.log(
+              `🔍 BACKGROUND DEBUG: Import successful, calling getStrategyForTag for "${request.tag}"`
+            );
             const strategy = await getStrategyForTag(request.tag);
-            console.log(`🔍 BACKGROUND DEBUG: Strategy result for "${request.tag}":`, strategy ? 'FOUND' : 'NOT FOUND');
-            
+            console.log(
+              `🔍 BACKGROUND DEBUG: Strategy result for "${request.tag}":`,
+              strategy ? "FOUND" : "NOT FOUND"
+            );
+
             const response = { status: "success", data: strategy };
             setCachedResponse(cacheKey, response);
             sendResponse(response);
-            console.log(`🔍 BACKGROUND DEBUG: Response sent for getStrategyForTag "${request.tag}"`);
+            console.log(
+              `🔍 BACKGROUND DEBUG: Response sent for getStrategyForTag "${request.tag}"`
+            );
           } catch (error) {
-            console.error(`❌ BACKGROUND DEBUG: Strategy error for "${request.tag}":`, error);
+            console.error(
+              `❌ BACKGROUND DEBUG: Strategy error for "${request.tag}":`,
+              error
+            );
             const errorResponse = { status: "error", error: error.message };
             sendResponse(errorResponse);
-            console.log(`🔍 BACKGROUND DEBUG: Error response sent for getStrategyForTag "${request.tag}"`);
+            console.log(
+              `🔍 BACKGROUND DEBUG: Error response sent for getStrategyForTag "${request.tag}"`
+            );
           }
         })().finally(finishRequest);
         return true;
 
       case "getStrategiesForTags":
-        console.log(`🎯 BACKGROUND: Getting strategies for tags:`, request.tags);
+        console.log(
+          `🎯 BACKGROUND: Getting strategies for tags:`,
+          request.tags
+        );
         (async () => {
           try {
-            const { getStrategyForTag } = await import("../src/shared/db/strategy_data.js");
-            
+            const { getStrategyForTag } = await import(
+              "../src/shared/db/strategy_data.js"
+            );
+
             const strategies = {};
             await Promise.all(
               request.tags.map(async (tag) => {
@@ -500,12 +536,18 @@ const handleRequest = async (request, sender, sendResponse) => {
                     strategies[tag] = strategy;
                   }
                 } catch (error) {
-                  console.error(`❌ BACKGROUND: Error getting strategy for "${tag}":`, error);
+                  console.error(
+                    `❌ BACKGROUND: Error getting strategy for "${tag}":`,
+                    error
+                  );
                 }
               })
             );
-            
-            console.log(`🎯 BACKGROUND: Bulk strategies result:`, Object.keys(strategies));
+
+            console.log(
+              `🎯 BACKGROUND: Bulk strategies result:`,
+              Object.keys(strategies)
+            );
             sendResponse({ status: "success", data: strategies });
           } catch (error) {
             console.error(`❌ BACKGROUND: Bulk strategies error:`, error);
@@ -515,20 +557,36 @@ const handleRequest = async (request, sender, sendResponse) => {
         return true;
 
       case "isStrategyDataLoaded":
-        console.log(`🔍 BACKGROUND DEBUG: Handling isStrategyDataLoaded request`);
+        console.log(
+          `🔍 BACKGROUND DEBUG: Handling isStrategyDataLoaded request`
+        );
         (async () => {
           try {
             console.log(`🔍 BACKGROUND DEBUG: Importing strategy_data.js...`);
-            const { isStrategyDataLoaded } = await import("../src/shared/db/strategy_data.js");
-            console.log(`🔍 BACKGROUND DEBUG: Import successful, calling function...`);
+            const { isStrategyDataLoaded } = await import(
+              "../src/shared/db/strategy_data.js"
+            );
+            console.log(
+              `🔍 BACKGROUND DEBUG: Import successful, calling function...`
+            );
             const loaded = await isStrategyDataLoaded();
-            console.log(`🔍 BACKGROUND DEBUG: Strategy data loaded result:`, loaded);
+            console.log(
+              `🔍 BACKGROUND DEBUG: Strategy data loaded result:`,
+              loaded
+            );
             sendResponse({ status: "success", data: loaded });
-            console.log(`🔍 BACKGROUND DEBUG: Response sent for isStrategyDataLoaded`);
+            console.log(
+              `🔍 BACKGROUND DEBUG: Response sent for isStrategyDataLoaded`
+            );
           } catch (error) {
-            console.error(`❌ BACKGROUND DEBUG: Strategy data check error:`, error);
+            console.error(
+              `❌ BACKGROUND DEBUG: Strategy data check error:`,
+              error
+            );
             sendResponse({ status: "error", error: error.message });
-            console.log(`🔍 BACKGROUND DEBUG: Error response sent for isStrategyDataLoaded`);
+            console.log(
+              `🔍 BACKGROUND DEBUG: Error response sent for isStrategyDataLoaded`
+            );
           }
         })().finally(finishRequest);
         return true;

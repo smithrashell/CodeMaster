@@ -5,13 +5,13 @@ import { Badge as MantineBadge } from "@mantine/core";
  * Unified Badge component using Mantine Badge with CodeMaster variants
  * Replaces the previous Tailwind-based badge system
  */
-export function Badge({ 
-  variant = "filled", 
-  color, 
+export function Badge({
+  variant = "filled",
+  color,
   size = "sm",
-  children, 
+  children,
   className,
-  ...props 
+  ...props
 }) {
   // Get exact hex colors matching original design
   const getInlineStyles = () => {
@@ -31,7 +31,7 @@ export function Badge({
   const getMantineColor = (v, c) => {
     switch (v) {
       case "easy":
-      case "medium": 
+      case "medium":
       case "hard":
         return "gray"; // Will be overridden by inline styles
       case "secondary":
@@ -61,7 +61,9 @@ export function Badge({
     return "";
   };
 
-  const combinedClassName = [className, getDifficultyClass()].filter(Boolean).join(" ");
+  const combinedClassName = [className, getDifficultyClass()]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <MantineBadge

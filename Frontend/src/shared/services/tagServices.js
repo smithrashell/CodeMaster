@@ -506,8 +506,119 @@ async function resetTagIndexForNewWindow() {
   }
 }
 
+/**
+ * Checks if user focus areas need to be updated due to mastery graduation
+ * @returns {Promise<Object>} Status of focus areas and suggested updates
+ */
+async function checkFocusAreasGraduation() {
+  try {
+    const settings = await StorageService.getSettings();
+    const userFocusAreas = settings.focusAreas || [];
+    
+    if (userFocusAreas.length === 0) {
+      return { needsUpdate: false, masteredTags: [], suggestions: [] };
+    }
+
+    const { masteredTags, allTagsInCurrentTier, masteryData } = await getCurrentLearningState();
+    
+    // Check which focus areas have been mastered
+    const masteredFocusAreas = userFocusAreas.filter(tag => 
+      masteredTags.includes(tag)
+    );
+
+    // Check if any focus areas are close to mastery (80%+)
+    const nearMasteryFocusAreas = userFocusAreas.filter(tag => {
+      const tagData = masteryData.find(m => m.tag === tag);
+      if (!tagData || tagData.totalAttempts === 0) return false;
+      const successRate = tagData.successfulAttempts / tagData.totalAttempts;
+      return successRate >= 0.8 && !masteredTags.includes(tag);
+    });
+
+    // Suggest new focus areas from current tier
+    const availableForFocus = allTagsInCurrentTier.filter(tag => 
+      !masteredTags.includes(tag) && 
+      !userFocusAreas.includes(tag)
+    );
+
+    const suggestions = availableForFocus.slice(0, 3); // Suggest up to 3 alternatives
+
+    const needsUpdate = masteredFocusAreas.length > 0;
+
+    if (needsUpdate) {
+      console.log(`🎓 Focus areas graduation detected: ${masteredFocusAreas.join(', ')} mastered`);
+    }
+
+    return {
+      needsUpdate,
+      masteredTags: masteredFocusAreas,
+      nearMasteryTags: nearMasteryFocusAreas,
+      suggestions,
+      currentFocusAreas: userFocusAreas,
+    };
+  } catch (error) {
+    console.error('Error checking focus areas graduation:', error);
+    return { needsUpdate: false, masteredTags: [], suggestions: [] };
+  }
+}
+
+/**
+ * Automatically graduates mastered focus areas and suggests replacements
+ * @returns {Promise<Object>} Updated focus areas and graduation report
+ */
+async function graduateFocusAreas() {
+  try {
+    const graduationStatus = await checkFocusAreasGraduation();
+    
+    if (!graduationStatus.needsUpdate) {
+      return { updated: false, report: graduationStatus };
+    }
+
+    const settings = await StorageService.getSettings();
+    const currentFocusAreas = settings.focusAreas || [];
+    
+    // Remove mastered tags from focus areas
+    const updatedFocusAreas = currentFocusAreas.filter(tag => 
+      !graduationStatus.masteredTags.includes(tag)
+    );
+
+    // Auto-add suggestions if we have space (max 3 total)
+    const spacesAvailable = 3 - updatedFocusAreas.length;
+    if (spacesAvailable > 0 && graduationStatus.suggestions.length > 0) {
+      const autoAddTags = graduationStatus.suggestions.slice(0, spacesAvailable);
+      updatedFocusAreas.push(...autoAddTags);
+      console.log(`🔄 Auto-added focus areas: ${autoAddTags.join(', ')}`);
+    }
+
+    // Save updated settings
+    const updatedSettings = {
+      ...settings,
+      focusAreas: updatedFocusAreas,
+    };
+    await StorageService.setSettings(updatedSettings);
+
+    console.log(`🎓 Graduated focus areas: ${graduationStatus.masteredTags.join(', ')}`);
+    console.log(`🎯 New focus areas: ${updatedFocusAreas.join(', ')}`);
+
+    return {
+      updated: true,
+      report: {
+        ...graduationStatus,
+        newFocusAreas: updatedFocusAreas,
+        autoAddedTags: updatedFocusAreas.filter(tag => 
+          graduationStatus.suggestions.includes(tag)
+        ),
+      }
+    };
+  } catch (error) {
+    console.error('Error graduating focus areas:', error);
+    return { updated: false, error: error.message };
+  }
+}
+
 // Export TagService after all functions are defined
 export const TagService = {
   getCurrentTier,
   getCurrentLearningState,
+  checkFocusAreasGraduation,
+  graduateFocusAreas,
 };
