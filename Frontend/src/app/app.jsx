@@ -6,7 +6,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { MantineProvider, Text } from "@mantine/core";
+import { Text } from "@mantine/core";
+import ThemeProviderWrapper from "../shared/provider/themeprovider";
 import { DoubleNavbar } from "../shared/components/DoubleNavbar";
 import ErrorBoundary from "../shared/components/ErrorBoundary";
 import { DashboardErrorFallback } from "../shared/components/ErrorFallback";
@@ -39,15 +40,26 @@ import {
 } from "./pages/mockup";
 import { useState, useEffect } from "react";
 import { useChromeMessage } from "../shared/hooks/useChromeMessage";
-import { checkOnboardingStatus, completeOnboarding } from "../shared/services/onboardingService";
+import {
+  checkOnboardingStatus,
+  completeOnboarding,
+} from "../shared/services/onboardingService";
+import { shouldUseMockDashboard } from "./config/mockConfig.js";
+import { getMockDashboardStatistics } from "./services/mockDashboardService.js";
 function App() {
   const [appState, setAppState] = useState(null);
   const [_showOnboarding, _setShowOnboarding] = useState(false);
 
-  // Check onboarding status on app initialization
+  // Check onboarding status on app initialization (skip in mock mode)
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
+        // Skip onboarding in development/mock mode
+        if (shouldUseMockDashboard()) {
+          _setShowOnboarding(false);
+          return;
+        }
+
         const status = await checkOnboardingStatus();
         _setShowOnboarding(!status.isCompleted);
       } catch (error) {
@@ -59,22 +71,54 @@ function App() {
     checkOnboarding();
   }, []);
 
-  // New approach using custom hook - non-blocking data fetch
+  // Initialize data based on mode (mock vs real)
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        if (shouldUseMockDashboard()) {
+          // Use mock data in development
+          // eslint-disable-next-line no-console
+          console.log("🎭 Using mock dashboard data");
+          const mockData = await getMockDashboardStatistics();
+          setAppState(mockData);
+        } else {
+          // Use real Chrome extension data in production
+          // This will be handled by the Chrome message hook below
+        }
+      } catch (error) {
+        console.error("Error initializing dashboard data:", error);
+        setAppState({ statistics: null, progress: null });
+      }
+    };
+
+    initializeData();
+  }, []);
+
+  // Chrome message hook for production data (conditionally used)
   const {
     data: _dashboardData,
     loading: _loading,
     error: _error,
-  } = useChromeMessage({ type: "getDashboardStatistics" }, [], {
-    onSuccess: (response) => {
-      console.info("Dashboard statistics received:", response.result);
-      setAppState(response.result);
-    },
-    onError: (error) => {
-      console.warn("Dashboard statistics failed:", error);
-      // Don't block the app if data fetch fails
-      setAppState({ statistics: null, progress: null });
-    },
-  });
+  } = useChromeMessage(
+    { type: "getDashboardStatistics" }, 
+    [], 
+    {
+      immediate: !shouldUseMockDashboard(), // Only immediate in production
+      onSuccess: (response) => {
+        if (!shouldUseMockDashboard()) {
+          console.info("Dashboard statistics received:", response.result);
+          setAppState(response.result);
+        }
+      },
+      onError: (error) => {
+        if (!shouldUseMockDashboard()) {
+          console.warn("Dashboard statistics failed:", error);
+          // Don't block the app if data fetch fails
+          setAppState({ statistics: null, progress: null });
+        }
+      },
+    }
+  );
 
   const _handleCompleteOnboarding = async () => {
     try {
@@ -96,40 +140,42 @@ function App() {
       onReportProblem={(errorData) => {
         // Store error report for dashboard issues
         // eslint-disable-next-line no-console
-        console.error('Dashboard Error Report:', errorData);
+        console.error("Dashboard Error Report:", errorData);
       }}
     >
-      <MantineProvider>
+      <ThemeProviderWrapper>
         <Router>
           <div
             style={{
               display: "flex",
-              height: "100vh",
-              width: "100vw",
-              minWidth: "100vw",
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
+              minHeight: "100vh",
+              width: "100%",
             }}
           >
             <ErrorBoundary section="Navigation" fallback={null}>
               <DoubleNavbar />
             </ErrorBoundary>
 
-
-            <main style={{ padding: "20px", flex: 1 }}>
+            <main
+              style={{
+                padding: "20px",
+                flex: 1,
+                overflowY: "auto",
+                maxHeight: "100vh",
+              }}
+            >
               {!appState ? (
                 <Text>Loading...</Text>
               ) : (
-                <ErrorBoundary section="Dashboard Content" fallback={DashboardErrorFallback}>
+                <ErrorBoundary
+                  section="Dashboard Content"
+                  fallback={DashboardErrorFallback}
+                >
                   <Routes>
                     <Route
                       path="/app.html"
                       element={<Navigate to="/stats" replace />}
                     />
-
 
                     {/* Dashboard */}
                     <Route path="/" element={<DashboardPage />}>
@@ -137,7 +183,10 @@ function App() {
                       <Route
                         path="stats"
                         element={
-                          <ErrorBoundary section="Statistics" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Statistics"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Stats appState={appState?.statistics} />
                           </ErrorBoundary>
                         }
@@ -145,65 +194,89 @@ function App() {
                       <Route
                         path="progress"
                         element={
-                          <ErrorBoundary section="Progress" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Progress"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Progress appState={appState?.progress} />
                           </ErrorBoundary>
                         }
                       />
-                      <Route 
-                        path="goals" 
+                      <Route
+                        path="goals"
                         element={
-                          <ErrorBoundary section="Goals" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Goals"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Goals />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
                     </Route>
 
                     {/* Analytics */}
                     <Route path="/analytics" element={<AnalyticsPage />}>
                       <Route index element={<Navigate to="trends" replace />} />
-                      <Route 
-                        path="trends" 
+                      <Route
+                        path="trends"
                         element={
-                          <ErrorBoundary section="Analytics - Trends" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Analytics - Trends"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Trends />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
                       <Route
                         path="mistake-analysis"
                         element={
-                          <ErrorBoundary section="Analytics - Mistake Analysis" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Analytics - Mistake Analysis"
+                            fallback={DashboardErrorFallback}
+                          >
                             <MistakeAnalysis />
                           </ErrorBoundary>
                         }
                       />
-                      <Route 
-                        path="tag-mastery" 
+                      <Route
+                        path="tag-mastery"
                         element={
-                          <ErrorBoundary section="Analytics - Tag Mastery" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Analytics - Tag Mastery"
+                            fallback={DashboardErrorFallback}
+                          >
                             <TagMastery />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
                     </Route>
 
                     {/* Sessions */}
                     <Route path="/sessions">
-                      <Route index element={<Navigate to="metrics" replace />} />
-                      <Route 
-                        path="session-metrics" 
+                      <Route
+                        index
+                        element={<Navigate to="metrics" replace />}
+                      />
+                      <Route
+                        path="session-metrics"
                         element={
-                          <ErrorBoundary section="Session Metrics" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Session Metrics"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Metrics />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
                       <Route
                         path="productivity-insights"
                         element={
-                          <ErrorBoundary section="Productivity Insights" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Productivity Insights"
+                            fallback={DashboardErrorFallback}
+                          >
                             <ProductivityInsights />
                           </ErrorBoundary>
                         }
@@ -212,78 +285,107 @@ function App() {
 
                     {/* Account */}
                     <Route path="/account" element={<AccountPage />}>
-                      <Route index element={<Navigate to="profile" replace />} />
-                      <Route 
-                        path="profile" 
+                      <Route
+                        index
+                        element={<Navigate to="profile" replace />}
+                      />
+                      <Route
+                        path="profile"
                         element={
-                          <ErrorBoundary section="Profile" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Profile"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Profile />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="notifications" 
+                      <Route
+                        path="notifications"
                         element={
-                          <ErrorBoundary section="Notifications" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Notifications"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Notifications />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
                       <Route path="settings" element={<SettingsPage />}>
-                        <Route 
-                          path="general" 
+                        <Route
+                          path="general"
                           element={
-                            <ErrorBoundary section="Settings - General" fallback={DashboardErrorFallback}>
+                            <ErrorBoundary
+                              section="Settings - General"
+                              fallback={DashboardErrorFallback}
+                            >
                               <General />
                             </ErrorBoundary>
-                          } 
+                          }
                         />
-                        <Route 
-                          path="appearance" 
+                        <Route
+                          path="appearance"
                           element={
-                            <ErrorBoundary section="Settings - Appearance" fallback={DashboardErrorFallback}>
+                            <ErrorBoundary
+                              section="Settings - Appearance"
+                              fallback={DashboardErrorFallback}
+                            >
                               <Appearance />
                             </ErrorBoundary>
-                          } 
+                          }
                         />
-                        <Route 
-                          path="accessibility" 
+                        <Route
+                          path="accessibility"
                           element={
-                            <ErrorBoundary section="Settings - Accessibility" fallback={DashboardErrorFallback}>
+                            <ErrorBoundary
+                              section="Settings - Accessibility"
+                              fallback={DashboardErrorFallback}
+                            >
                               <Accessibility />
                             </ErrorBoundary>
-                          } 
+                          }
                         />
                       </Route>
                     </Route>
 
-
                     {/* Flashcards / Review */}
                     <Route path="/review" element={<FlashcardPage />}>
-                      <Route index element={<Navigate to="flashcards" replace />} />
-                      <Route 
-                        path="flashcards" 
+                      <Route
+                        index
+                        element={<Navigate to="flashcards" replace />}
+                      />
+                      <Route
+                        path="flashcards"
                         element={
-                          <ErrorBoundary section="Flashcards" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Flashcards"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Flashcards />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="practice" 
+                      <Route
+                        path="practice"
                         element={
-                          <ErrorBoundary section="Practice" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Practice"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Practice />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
-                      <Route 
-                        path="review" 
+                      <Route
+                        path="review"
                         element={
-                          <ErrorBoundary section="Review" fallback={DashboardErrorFallback}>
+                          <ErrorBoundary
+                            section="Review"
+                            fallback={DashboardErrorFallback}
+                          >
                             <Review />
                           </ErrorBoundary>
-                        } 
+                        }
                       />
                     </Route>
                   </Routes>
@@ -292,9 +394,8 @@ function App() {
             </main>
           </div>
         </Router>
-      </MantineProvider>
+      </ThemeProviderWrapper>
     </ErrorBoundary>
-
   );
 }
 

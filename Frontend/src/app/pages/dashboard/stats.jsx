@@ -13,7 +13,8 @@ export function Stats({ appState }) {
   const [averageTime, setAverageTime] = useState(appState?.averageTime);
   const [successRate, setSuccessRate] = useState(appState?.successRate);
   const [allSessions, setAllSessions] = useState(appState?.allSessions);
-  const [contentOnboardingCompleted, setContentOnboardingCompleted] = useState(null);
+  const [contentOnboardingCompleted, setContentOnboardingCompleted] =
+    useState(null);
   const [accuracyData, setAccuracyData] = useState({
     weekly: null,
     monthly: null,
@@ -92,17 +93,17 @@ export function Stats({ appState }) {
   // };
   // Check if there's meaningful data to display
   // Show empty state for completely new users OR users who completed app onboarding but not content onboarding
-  const hasData = appState && (
-    (statistics?.totalSolved > 0) ||
-    (allSessions && allSessions.length > 0)
-  );
-  
+  const hasData =
+    appState &&
+    (statistics?.totalSolved > 0 || (allSessions && allSessions.length > 0));
+
   // Show "Start First Session" if no data OR content onboarding not completed
-  const showStartSessionButton = !hasData || (contentOnboardingCompleted === false);
+  const showStartSessionButton =
+    !hasData || contentOnboardingCompleted === false;
 
   const handleStartFirstSession = () => {
     // Navigate to the LeetCode content script or show guidance
-    window.open('https://leetcode.com/problems/', '_blank');
+    window.open("https://leetcode.com/problems/", "_blank");
   };
 
   return (
@@ -110,12 +111,9 @@ export function Stats({ appState }) {
       <Title order={2} mb="md">
         General Performance Summary
       </Title>
-      
+
       {showStartSessionButton ? (
-        <EmptyStateCard 
-          type="dashboard"
-          onAction={handleStartFirstSession}
-        />
+        <EmptyStateCard type="dashboard" onAction={handleStartFirstSession} />
       ) : (
         <>
           <Grid gutter="sm">
