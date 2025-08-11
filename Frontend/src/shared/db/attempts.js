@@ -49,7 +49,11 @@ export async function addAttempt(attemptData) {
     problem = await calculateLeitnerBox(problem, attemptData);
 
     // Add or update the problem in session
-    session = await ProblemService.addOrUpdateProblemInSession(session, problem, attemptData.id);
+    session = await ProblemService.addOrUpdateProblemInSession(
+      session,
+      problem,
+      attemptData.id
+    );
     await saveSessionToStorage(session, true);
 
     // Open a transaction for database operations

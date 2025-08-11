@@ -1,9 +1,20 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
+const webpack = require("webpack");
 
 module.exports = (env, argv) => {
   const isDev = argv.mode === "development";
+  
+  // Ensure NODE_ENV persists during watch mode rebuilds
+  const nodeEnv = isDev ? "development" : (argv.mode || "production");
+  
+  console.log("🔧 Webpack Config:", { 
+    mode: argv.mode, 
+    isDev, 
+    nodeEnv,
+    timestamp: new Date().toISOString() 
+  });
 
   return {
     entry: {
@@ -22,6 +33,9 @@ module.exports = (env, argv) => {
       ignored: /node_modules/,
     },
     plugins: [
+      new webpack.DefinePlugin({
+        "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+      }),
       new HtmlWebpackPlugin({
         template: "./src/app/app.html",
         filename: "app.html",

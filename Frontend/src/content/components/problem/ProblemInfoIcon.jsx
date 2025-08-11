@@ -7,40 +7,39 @@ import React, { useState } from "react";
  */
 const ProblemInfoIcon = ({ className = "" }) => {
   // Use minimal inline styles when cm-problem-info-icon class is present
-  const isCSSStyled = className.includes('cm-problem-info-icon');
-  
-  const baseStyles = isCSSStyled ? {
-    // Let CSS class handle most styling, only add essential inline styles
-    borderRadius: "50%",
-    backgroundColor: "var(--cm-info-icon-bg, #3b82f6)",
-    color: "white",
-    fontSize: "8px",
-    fontWeight: "bold",
-    border: "1px solid rgba(255, 255, 255, 0.2)",
-  } : {
-    // Full inline styles for standalone usage
-    width: 14,
-    height: 14,
-    borderRadius: "50%",
-    backgroundColor: "var(--cm-info-icon-bg, #3b82f6)",
-    color: "white",
-    fontSize: "8px",
-    fontWeight: "bold",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "default",
-    opacity: 0.9,
-    flexShrink: 0,
-    boxSizing: "border-box",
-    border: "1px solid rgba(255, 255, 255, 0.2)",
-  };
+  const isCSSStyled = className.includes("cm-problem-info-icon");
+
+  const baseStyles = isCSSStyled
+    ? {
+        // Let CSS class handle most styling, only add essential inline styles
+        borderRadius: "50%",
+        backgroundColor: "var(--cm-info-icon-bg, #3b82f6)",
+        color: "white",
+        fontSize: "8px",
+        fontWeight: "bold",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+      }
+    : {
+        // Full inline styles for standalone usage
+        width: 14,
+        height: 14,
+        borderRadius: "50%",
+        backgroundColor: "var(--cm-info-icon-bg, #3b82f6)",
+        color: "white",
+        fontSize: "8px",
+        fontWeight: "bold",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "default",
+        opacity: 0.9,
+        flexShrink: 0,
+        boxSizing: "border-box",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+      };
 
   return (
-    <div
-      className={className}
-      style={baseStyles}
-    >
+    <div className={className} style={baseStyles}>
       i
     </div>
   );

@@ -1,10 +1,10 @@
 /**
  * Centralized Error Notifications for CodeMaster
- * 
+ *
  * Replaces console-only error logging with user-facing notifications
  * and provides consistent error messaging across the application.
- * 
- * Note: This uses a simple DOM-based notification system until 
+ *
+ * Note: This uses a simple DOM-based notification system until
  * @mantine/notifications package can be installed.
  */
 
@@ -13,7 +13,7 @@ class NotificationManager {
   constructor() {
     this.container = null;
     this.notifications = new Map();
-    this.isBackgroundContext = typeof document === 'undefined';
+    this.isBackgroundContext = typeof document === "undefined";
     if (!this.isBackgroundContext) {
       this.init();
     }
@@ -24,11 +24,11 @@ class NotificationManager {
     if (this.isBackgroundContext) {
       return;
     }
-    
+
     // Create notification container if it doesn't exist
-    if (!document.getElementById('codemaster-notifications')) {
-      this.container = document.createElement('div');
-      this.container.id = 'codemaster-notifications';
+    if (!document.getElementById("codemaster-notifications")) {
+      this.container = document.createElement("div");
+      this.container.id = "codemaster-notifications";
       this.container.style.cssText = `
         position: fixed;
         top: 20px;
@@ -39,24 +39,25 @@ class NotificationManager {
       `;
       document.body.appendChild(this.container);
     } else {
-      this.container = document.getElementById('codemaster-notifications');
+      this.container = document.getElementById("codemaster-notifications");
     }
   }
 
   show(options) {
     // In background context, log to console instead of showing DOM notification
     if (this.isBackgroundContext) {
-      const { title = 'Notification', message = '', type = 'info' } = options;
-      const logMethod = type === 'error' ? 'error' : type === 'warning' ? 'warn' : 'log';
+      const { title = "Notification", message = "", type = "info" } = options;
+      const logMethod =
+        type === "error" ? "error" : type === "warning" ? "warn" : "log";
       console[logMethod](`[${type.toUpperCase()}] ${title}:`, message);
       return `background-${Date.now()}`;
     }
 
     const {
       id = `notification-${Date.now()}`,
-      title = 'Notification',
-      message = '',
-      type = 'info', // info, success, warning, error
+      title = "Notification",
+      message = "",
+      type = "info", // info, success, warning, error
       duration = 5000,
       persistent = false,
       actions = [],
@@ -80,8 +81,8 @@ class NotificationManager {
 
     // Animate in
     setTimeout(() => {
-      notification.style.transform = 'translateX(0)';
-      notification.style.opacity = '1';
+      notification.style.transform = "translateX(0)";
+      notification.style.opacity = "1";
     }, 10);
 
     // Auto-hide unless persistent
@@ -93,7 +94,7 @@ class NotificationManager {
   }
 
   createNotification({ id, title, message, type, actions }) {
-    const notification = document.createElement('div');
+    const notification = document.createElement("div");
     notification.id = id;
     notification.style.cssText = `
       background: white;
@@ -110,10 +111,11 @@ class NotificationManager {
       ${this.getTypeStyles(type)}
     `;
 
-    const header = document.createElement('div');
-    header.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;';
+    const header = document.createElement("div");
+    header.style.cssText =
+      "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;";
 
-    const titleEl = document.createElement('div');
+    const titleEl = document.createElement("div");
     titleEl.style.cssText = `
       font-weight: 600;
       font-size: 14px;
@@ -124,7 +126,7 @@ class NotificationManager {
     `;
     titleEl.innerHTML = `${this.getTypeIcon(type)} ${title}`;
 
-    const closeBtn = document.createElement('button');
+    const closeBtn = document.createElement("button");
     closeBtn.style.cssText = `
       background: none;
       border: none;
@@ -138,15 +140,16 @@ class NotificationManager {
       align-items: center;
       justify-content: center;
     `;
-    closeBtn.innerHTML = '×';
+    closeBtn.innerHTML = "×";
     closeBtn.onclick = () => this.hide(id);
 
     header.appendChild(titleEl);
     header.appendChild(closeBtn);
 
     if (message) {
-      const messageEl = document.createElement('div');
-      messageEl.style.cssText = 'font-size: 13px; color: #555; margin-bottom: 12px; line-height: 1.4;';
+      const messageEl = document.createElement("div");
+      messageEl.style.cssText =
+        "font-size: 13px; color: #555; margin-bottom: 12px; line-height: 1.4;";
       messageEl.textContent = message;
       notification.appendChild(header);
       notification.appendChild(messageEl);
@@ -156,14 +159,16 @@ class NotificationManager {
 
     // Add actions if provided
     if (actions && actions.length > 0) {
-      const actionsEl = document.createElement('div');
-      actionsEl.style.cssText = 'display: flex; gap: 8px; margin-top: 12px;';
-      
-      actions.forEach(action => {
-        const btn = document.createElement('button');
+      const actionsEl = document.createElement("div");
+      actionsEl.style.cssText = "display: flex; gap: 8px; margin-top: 12px;";
+
+      actions.forEach((action) => {
+        const btn = document.createElement("button");
         btn.style.cssText = `
-          background: ${action.primary ? this.getTypeColor(type) : 'transparent'};
-          color: ${action.primary ? 'white' : this.getTypeColor(type)};
+          background: ${
+            action.primary ? this.getTypeColor(type) : "transparent"
+          };
+          color: ${action.primary ? "white" : this.getTypeColor(type)};
           border: 1px solid ${this.getTypeColor(type)};
           padding: 6px 12px;
           border-radius: 4px;
@@ -178,7 +183,7 @@ class NotificationManager {
         };
         actionsEl.appendChild(btn);
       });
-      
+
       notification.appendChild(actionsEl);
     }
 
@@ -194,9 +199,9 @@ class NotificationManager {
 
     const notification = this.notifications.get(id);
     if (notification) {
-      notification.style.transform = 'translateX(100%)';
-      notification.style.opacity = '0';
-      
+      notification.style.transform = "translateX(100%)";
+      notification.style.opacity = "0";
+
       setTimeout(() => {
         if (notification.parentNode) {
           notification.parentNode.removeChild(notification);
@@ -216,30 +221,30 @@ class NotificationManager {
 
   getTypeStyles(type) {
     const styles = {
-      info: 'border-left: 4px solid #339af0;',
-      success: 'border-left: 4px solid #51cf66;',
-      warning: 'border-left: 4px solid #ffd43b;',
-      error: 'border-left: 4px solid #ff6b6b;',
+      info: "border-left: 4px solid #339af0;",
+      success: "border-left: 4px solid #51cf66;",
+      warning: "border-left: 4px solid #ffd43b;",
+      error: "border-left: 4px solid #ff6b6b;",
     };
     return styles[type] || styles.info;
   }
 
   getTypeColor(type) {
     const colors = {
-      info: '#339af0',
-      success: '#51cf66',
-      warning: '#fd7e14',
-      error: '#ff6b6b',
+      info: "#339af0",
+      success: "#51cf66",
+      warning: "#fd7e14",
+      error: "#ff6b6b",
     };
     return colors[type] || colors.info;
   }
 
   getTypeIcon(type) {
     const icons = {
-      info: '🔵',
-      success: '✅',
-      warning: '⚠️',
-      error: '❌',
+      info: "🔵",
+      success: "✅",
+      warning: "⚠️",
+      error: "❌",
     };
     return icons[type] || icons.info;
   }
@@ -251,15 +256,15 @@ const notifications = new NotificationManager();
 // Error notification functions
 export const showErrorNotification = (error, options = {}) => {
   const errorMessage = error instanceof Error ? error.message : String(error);
-  
+
   return notifications.show({
-    type: 'error',
-    title: 'Error',
+    type: "error",
+    title: "Error",
     message: errorMessage,
     duration: 8000,
     actions: [
       {
-        label: 'Dismiss',
+        label: "Dismiss",
         onClick: () => {},
       },
       ...(options.actions || []),
@@ -270,8 +275,8 @@ export const showErrorNotification = (error, options = {}) => {
 
 export const showWarningNotification = (message, options = {}) => {
   return notifications.show({
-    type: 'warning',
-    title: 'Warning',
+    type: "warning",
+    title: "Warning",
     message,
     duration: 6000,
     ...options,
@@ -280,8 +285,8 @@ export const showWarningNotification = (message, options = {}) => {
 
 export const showSuccessNotification = (message, options = {}) => {
   return notifications.show({
-    type: 'success',
-    title: 'Success',
+    type: "success",
+    title: "Success",
     message,
     duration: 4000,
     ...options,
@@ -290,8 +295,8 @@ export const showSuccessNotification = (message, options = {}) => {
 
 export const showInfoNotification = (message, options = {}) => {
   return notifications.show({
-    type: 'info',
-    title: 'Information',
+    type: "info",
+    title: "Information",
     message,
     duration: 5000,
     ...options,
@@ -302,16 +307,19 @@ export const showInfoNotification = (message, options = {}) => {
 export const handleServiceError = (serviceName, error, options = {}) => {
   // eslint-disable-next-line no-console
   console.error(`${serviceName} Error:`, error);
-  
+
   const userFriendlyMessages = {
-    DatabaseService: 'Unable to access your learning data. This is usually temporary.',
-    SessionService: 'Problem creating your study session. Please try again.',
-    TimerService: 'Timer functionality is temporarily unavailable.',
-    StrategyService: 'Strategy hints are currently unavailable.',
-    ChromeAPI: 'Connection to Chrome extension failed. Try refreshing the page.',
+    DatabaseService:
+      "Unable to access your learning data. This is usually temporary.",
+    SessionService: "Problem creating your study session. Please try again.",
+    TimerService: "Timer functionality is temporarily unavailable.",
+    StrategyService: "Strategy hints are currently unavailable.",
+    ChromeAPI:
+      "Connection to Chrome extension failed. Try refreshing the page.",
   };
 
-  const message = userFriendlyMessages[serviceName] || 
+  const message =
+    userFriendlyMessages[serviceName] ||
     `${serviceName} is temporarily unavailable. Please try again.`;
 
   return showErrorNotification(error, {
@@ -319,12 +327,12 @@ export const handleServiceError = (serviceName, error, options = {}) => {
     message,
     actions: [
       {
-        label: 'Retry',
+        label: "Retry",
         primary: true,
         onClick: options.onRetry,
       },
       {
-        label: 'Report Issue',
+        label: "Report Issue",
         onClick: options.onReport,
       },
     ],
@@ -338,25 +346,25 @@ export const handleDatabaseError = (operation, error, options = {}) => {
   console.error(`Database ${operation} Error:`, error);
 
   const messages = {
-    read: 'Unable to load your data. Your information is safe.',
-    write: 'Unable to save changes. Please try again.',
-    delete: 'Unable to delete item. Please try again.',
-    migrate: 'Database update failed. Your data remains safe.',
-    backup: 'Unable to create backup. Operation cancelled for safety.',
+    read: "Unable to load your data. Your information is safe.",
+    write: "Unable to save changes. Please try again.",
+    delete: "Unable to delete item. Please try again.",
+    migrate: "Database update failed. Your data remains safe.",
+    backup: "Unable to create backup. Operation cancelled for safety.",
   };
 
   return showErrorNotification(error, {
-    title: 'Data Access Issue',
-    message: messages[operation] || 'Database operation failed.',
-    persistent: operation === 'migrate' || operation === 'backup',
+    title: "Data Access Issue",
+    message: messages[operation] || "Database operation failed.",
+    persistent: operation === "migrate" || operation === "backup",
     actions: [
       {
-        label: 'Retry',
+        label: "Retry",
         primary: true,
         onClick: options.onRetry,
       },
       {
-        label: 'Report Issue',
+        label: "Report Issue",
         onClick: options.onReport,
       },
     ],
@@ -370,16 +378,17 @@ export const handleChromeAPIError = (apiName, error, options = {}) => {
   console.error(`Chrome ${apiName} API Error:`, error);
 
   return showErrorNotification(error, {
-    title: 'Extension Connection Issue',
-    message: 'Connection to CodeMaster extension failed. Try refreshing the page.',
+    title: "Extension Connection Issue",
+    message:
+      "Connection to CodeMaster extension failed. Try refreshing the page.",
     actions: [
       {
-        label: 'Refresh Page',
+        label: "Refresh Page",
         primary: true,
         onClick: () => window.location.reload(),
       },
       {
-        label: 'Report Issue',
+        label: "Report Issue",
         onClick: options.onReport,
       },
     ],
@@ -397,12 +406,12 @@ export const handleComponentError = (componentName, error, options = {}) => {
     message: `The ${componentName} feature encountered an issue. You can continue using other features.`,
     actions: [
       {
-        label: 'Reload Component',
+        label: "Reload Component",
         primary: true,
         onClick: options.onRetry,
       },
       {
-        label: 'Report Issue',
+        label: "Report Issue",
         onClick: options.onReport,
       },
     ],
@@ -413,10 +422,10 @@ export const handleComponentError = (componentName, error, options = {}) => {
 // Recovery notification
 export const showRecoveryNotification = (message, options = {}) => {
   return showSuccessNotification(message, {
-    title: 'Recovered',
+    title: "Recovered",
     actions: [
       {
-        label: 'Great!',
+        label: "Great!",
         primary: true,
         onClick: () => {},
       },
@@ -428,16 +437,18 @@ export const showRecoveryNotification = (message, options = {}) => {
 // Progress notifications for long operations
 export const showProgressNotification = (title, message, options = {}) => {
   return notifications.show({
-    type: 'info',
+    type: "info",
     title,
     message,
     persistent: true,
-    actions: options.cancelable ? [
-      {
-        label: 'Cancel',
-        onClick: options.onCancel,
-      },
-    ] : [],
+    actions: options.cancelable
+      ? [
+          {
+            label: "Cancel",
+            onClick: options.onCancel,
+          },
+        ]
+      : [],
     ...options,
   });
 };
@@ -455,11 +466,15 @@ export const notifyError = (error, context = {}) => {
   if (context.service) {
     return handleServiceError(context.service, error, context);
   } else if (context.database) {
-    return handleDatabaseError(context.operation || 'operation', error, context);
+    return handleDatabaseError(
+      context.operation || "operation",
+      error,
+      context
+    );
   } else if (context.component) {
     return handleComponentError(context.component, error, context);
   } else if (context.chromeAPI) {
-    return handleChromeAPIError(context.api || 'API', error, context);
+    return handleChromeAPIError(context.api || "API", error, context);
   } else {
     return showErrorNotification(error, context);
   }

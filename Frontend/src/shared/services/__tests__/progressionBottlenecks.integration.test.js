@@ -43,19 +43,20 @@ jest.mock("../tagServices.js", () => ({
   },
 }));
 
+jest.mock("../storageService.js", () => ({
+  StorageService: {
+    getSettings: jest.fn().mockResolvedValue({ focusAreas: [] }),
+    getSessionState: jest.fn(),
+    setSessionState: jest.fn(),
+    migrateSessionStateToIndexedDB: jest.fn().mockResolvedValue(null),
+  },
+}));
+
 jest.mock("../attemptsService.js", () => ({
   AttemptsService: {
     getMostRecentAttempt: jest.fn().mockResolvedValue({
       AttemptDate: new Date().toISOString(),
     }),
-  },
-}));
-
-jest.mock("../storageService.js", () => ({
-  StorageService: {
-    getSessionState: jest.fn(),
-    setSessionState: jest.fn(),
-    migrateSessionStateToIndexedDB: jest.fn().mockResolvedValue(null),
   },
 }));
 

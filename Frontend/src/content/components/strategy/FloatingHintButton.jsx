@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import {
   Tooltip,
   Stack,
@@ -17,7 +23,13 @@ import { HintInteractionService } from "../../../shared/services/hintInteraction
  * FloatingHintButton - Compact floating button that shows strategy hints in a popover
  * Better UX than inline panel - doesn't take up space until needed
  */
-const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClose, onHintClick }) => {
+const FloatingHintButton = ({
+  problemTags = [],
+  problemId = null,
+  onOpen,
+  onClose,
+  onHintClick,
+}) => {
   const [hints, setHints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,7 +39,7 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
 
   // Memoize the stringified tags to prevent effect from running on array reference changes
   const tagsString = useMemo(() => JSON.stringify(problemTags), [problemTags]);
-  
+
   // Load contextual hints when problem tags change
   useEffect(() => {
     if (problemTags.length > 0) {
@@ -61,30 +73,33 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
       (hint) => hint.type === "general" || hint.type === "pattern"
     );
     const contextual = hints.filter((hint) => hint.type === "contextual");
-    
+
     return {
       generalHints: general,
       contextualHints: contextual,
-      totalHints: hints.length
+      totalHints: hints.length,
     };
   }, [hints]);
 
   // Memoize button styles to prevent re-creation on every render
-  const buttonStyles = useMemo(() => ({
-    background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
-    border: "none",
-    borderRadius: "50%",
-    width: "32px", /* Reduced to match other toolbar icons */
-    height: "32px", /* Reduced to match other toolbar icons */
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    position: "relative",
-    margin: "0 4px",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-    transition: "all 0.2s ease",
-  }), []);
+  const buttonStyles = useMemo(
+    () => ({
+      background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
+      border: "none",
+      borderRadius: "50%",
+      width: "32px" /* Reduced to match other toolbar icons */,
+      height: "32px" /* Reduced to match other toolbar icons */,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      position: "relative",
+      margin: "0 4px",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+      transition: "all 0.2s ease",
+    }),
+    []
+  );
 
   // Memoize callback functions
   const handlePopoverClose = useCallback(() => {
@@ -113,57 +128,64 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
   }, [opened, onOpen, problemTags, hints.length]);
 
   // Handle hint expand/collapse toggle
-  const toggleHintExpansion = useCallback(async (hintId, hint, index, hintType) => {
-    const isCurrentlyExpanded = expandedHints.has(hintId);
-    
-    setExpandedHints(prev => {
-      const newSet = new Set(prev);
-      if (isCurrentlyExpanded) {
-        newSet.delete(hintId);
-      } else {
-        newSet.add(hintId);
-      }
-      return newSet;
-    });
+  const toggleHintExpansion = useCallback(
+    async (hintId, hint, index, hintType) => {
+      const isCurrentlyExpanded = expandedHints.has(hintId);
 
-    // Track the expand/collapse action
-    const hintClickData = {
-      problemId: problemId || 'unknown',
-      hintId,
-      hintType,
-      primaryTag: hint.primaryTag,
-      relatedTag: hint.relatedTag,
-      content: hint.tip,
-      relationshipScore: hint.relationshipScore || null,
-      timestamp: new Date().toISOString(),
-      problemTags: problemTags,
-      action: isCurrentlyExpanded ? 'collapse' : 'expand',
-      sessionContext: {
-        popoverOpen: opened,
-        totalHints: hints.length,
-        hintPosition: index,
-        expandedHintsCount: isCurrentlyExpanded ? expandedHints.size - 1 : expandedHints.size + 1
-      }
-    };
-    
-    // Save interaction to persistent storage
-    try {
-      await HintInteractionService.saveHintInteraction(hintClickData, {
-        totalHints: hints.length,
+      setExpandedHints((prev) => {
+        const newSet = new Set(prev);
+        if (isCurrentlyExpanded) {
+          newSet.delete(hintId);
+        } else {
+          newSet.add(hintId);
+        }
+        return newSet;
       });
-    } catch (error) {
-      console.warn("Failed to save hint interaction:", error);
-    }
-    
-    // Also call the callback for any additional handling
-    if (onHintClick) {
-      onHintClick(hintClickData);
-    }
-  }, [expandedHints, onHintClick, problemTags, hints.length, opened]);
+
+      // Track the expand/collapse action
+      const hintClickData = {
+        problemId: problemId || "unknown",
+        hintId,
+        hintType,
+        primaryTag: hint.primaryTag,
+        relatedTag: hint.relatedTag,
+        content: hint.tip,
+        relationshipScore: hint.relationshipScore || null,
+        timestamp: new Date().toISOString(),
+        problemTags: problemTags,
+        action: isCurrentlyExpanded ? "collapse" : "expand",
+        sessionContext: {
+          popoverOpen: opened,
+          totalHints: hints.length,
+          hintPosition: index,
+          expandedHintsCount: isCurrentlyExpanded
+            ? expandedHints.size - 1
+            : expandedHints.size + 1,
+        },
+      };
+
+      // Save interaction to persistent storage
+      try {
+        await HintInteractionService.saveHintInteraction(hintClickData, {
+          totalHints: hints.length,
+        });
+      } catch (error) {
+        console.warn("Failed to save hint interaction:", error);
+      }
+
+      // Also call the callback for any additional handling
+      if (onHintClick) {
+        onHintClick(hintClickData);
+      }
+    },
+    [expandedHints, onHintClick, problemTags, hints.length, opened]
+  );
 
   // Generate a unique hint ID
   const getHintId = useCallback((hint, index, hintType) => {
-    return `${hintType}-${hint.primaryTag}-${hint.relatedTag || 'general'}-${index}`;
+    return `${hintType}-${hint.primaryTag}-${
+      hint.relatedTag || "general"
+    }-${index}`;
   }, []);
 
   if (problemTags.length === 0) {
@@ -195,7 +217,9 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
             ref={buttonRef}
             onClick={handleButtonClick}
             style={buttonStyles}
-            aria-label={`${totalHints} strategy hints available. Click to view hints for ${problemTags.join(', ')}`}
+            aria-label={`${totalHints} strategy hints available. Click to view hints for ${problemTags.join(
+              ", "
+            )}`}
             aria-expanded={opened}
             aria-haspopup="dialog"
             onMouseEnter={(e) => {
@@ -207,7 +231,7 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
               e.target.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 handleButtonClick();
               }
@@ -293,9 +317,15 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
                   {contextualHints.map((hint, index) => {
                     const hintId = getHintId(hint, index, "contextual");
                     const isExpanded = expandedHints.has(hintId);
-                    
+
                     return (
-                      <div key={hintId} style={{ border: "1px solid #e9ecef", borderRadius: "6px" }}>
+                      <div
+                        key={hintId}
+                        style={{
+                          border: "1px solid #e9ecef",
+                          borderRadius: "6px",
+                        }}
+                      >
                         {/* Collapsed title row */}
                         <div
                           role="button"
@@ -306,45 +336,72 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
                             backgroundColor: isExpanded ? "#f8f9ff" : "#fafafa",
                             borderRadius: isExpanded ? "6px 6px 0 0" : "6px",
                             transition: "background-color 0.2s ease",
-                            borderBottom: isExpanded ? "1px solid #e6f3ff" : "none"
+                            borderBottom: isExpanded
+                              ? "1px solid #e6f3ff"
+                              : "none",
                           }}
-                          onClick={() => toggleHintExpansion(hintId, hint, index, "contextual")}
+                          onClick={() =>
+                            toggleHintExpansion(
+                              hintId,
+                              hint,
+                              index,
+                              "contextual"
+                            )
+                          }
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                            if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              toggleHintExpansion(hintId, hint, index, "contextual");
+                              toggleHintExpansion(
+                                hintId,
+                                hint,
+                                index,
+                                "contextual"
+                              );
                             }
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = isExpanded ? "#f0f6ff" : "#f0f6ff";
+                            e.currentTarget.style.backgroundColor = isExpanded
+                              ? "#f0f6ff"
+                              : "#f0f6ff";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = isExpanded ? "#f8f9ff" : "#fafafa";
+                            e.currentTarget.style.backgroundColor = isExpanded
+                              ? "#f8f9ff"
+                              : "#fafafa";
                           }}
-                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${hint.primaryTag} + ${hint.relatedTag} strategy hint`}
+                          aria-label={`${isExpanded ? "Collapse" : "Expand"} ${
+                            hint.primaryTag
+                          } + ${hint.relatedTag} strategy hint`}
                         >
-                          <Text 
-                            size="sm" 
+                          <Text
+                            size="sm"
                             fw={500}
                             c="dark"
-                            style={{ 
+                            style={{
                               textTransform: "capitalize",
-                              letterSpacing: "0.3px"
+                              letterSpacing: "0.3px",
                             }}
                           >
                             {hint.primaryTag} + {hint.relatedTag}
                           </Text>
                         </div>
-                        
+
                         {/* Expanded content */}
                         {isExpanded && (
-                          <div style={{
-                            padding: "12px 14px",
-                            backgroundColor: "#ffffff",
-                            borderRadius: "0 0 6px 6px",
-                            borderTop: "1px solid #f0f6ff"
-                          }}>
-                            <Text size="sm" lh={1.6} c="dark" style={{ lineHeight: "1.5" }}>
+                          <div
+                            style={{
+                              padding: "12px 14px",
+                              backgroundColor: "#ffffff",
+                              borderRadius: "0 0 6px 6px",
+                              borderTop: "1px solid #f0f6ff",
+                            }}
+                          >
+                            <Text
+                              size="sm"
+                              lh={1.6}
+                              c="dark"
+                              style={{ lineHeight: "1.5" }}
+                            >
                               {hint.tip}
                             </Text>
                           </div>
@@ -365,11 +422,21 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
                     General Strategies ({generalHints.length})
                   </Text>
                   {generalHints.map((hint, index) => {
-                    const hintId = getHintId(hint, index + contextualHints.length, hint.type || "general");
+                    const hintId = getHintId(
+                      hint,
+                      index + contextualHints.length,
+                      hint.type || "general"
+                    );
                     const isExpanded = expandedHints.has(hintId);
-                    
+
                     return (
-                      <div key={hintId} style={{ border: "1px solid #e9ecef", borderRadius: "6px" }}>
+                      <div
+                        key={hintId}
+                        style={{
+                          border: "1px solid #e9ecef",
+                          borderRadius: "6px",
+                        }}
+                      >
                         {/* Collapsed title row */}
                         <div
                           role="button"
@@ -380,46 +447,73 @@ const FloatingHintButton = ({ problemTags = [], problemId = null, onOpen, onClos
                             backgroundColor: isExpanded ? "#f9f9f9" : "#fafafa",
                             borderRadius: isExpanded ? "6px 6px 0 0" : "6px",
                             transition: "background-color 0.2s ease",
-                            borderBottom: isExpanded ? "1px solid #e9ecef" : "none"
+                            borderBottom: isExpanded
+                              ? "1px solid #e9ecef"
+                              : "none",
                           }}
-                          onClick={() => toggleHintExpansion(hintId, hint, index + contextualHints.length, hint.type || "general")}
+                          onClick={() =>
+                            toggleHintExpansion(
+                              hintId,
+                              hint,
+                              index + contextualHints.length,
+                              hint.type || "general"
+                            )
+                          }
                           onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
+                            if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
-                              toggleHintExpansion(hintId, hint, index + contextualHints.length, hint.type || "general");
+                              toggleHintExpansion(
+                                hintId,
+                                hint,
+                                index + contextualHints.length,
+                                hint.type || "general"
+                              );
                             }
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = "#f0f0f0";
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = isExpanded ? "#f9f9f9" : "#fafafa";
+                            e.currentTarget.style.backgroundColor = isExpanded
+                              ? "#f9f9f9"
+                              : "#fafafa";
                           }}
-                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${hint.primaryTag}${hint.relatedTag ? ` + ${hint.relatedTag}` : ''} strategy hint`}
+                          aria-label={`${isExpanded ? "Collapse" : "Expand"} ${
+                            hint.primaryTag
+                          }${
+                            hint.relatedTag ? ` + ${hint.relatedTag}` : ""
+                          } strategy hint`}
                         >
-                          <Text 
-                            size="sm" 
+                          <Text
+                            size="sm"
                             fw={500}
                             c="dark"
-                            style={{ 
+                            style={{
                               textTransform: "capitalize",
-                              letterSpacing: "0.3px"
+                              letterSpacing: "0.3px",
                             }}
                           >
                             {hint.primaryTag}
                             {hint.relatedTag && ` + ${hint.relatedTag}`}
                           </Text>
                         </div>
-                        
+
                         {/* Expanded content */}
                         {isExpanded && (
-                          <div style={{
-                            padding: "12px 14px",
-                            backgroundColor: "#ffffff",
-                            borderRadius: "0 0 6px 6px",
-                            borderTop: "1px solid #f0f0f0"
-                          }}>
-                            <Text size="sm" lh={1.6} c="dark" style={{ lineHeight: "1.5" }}>
+                          <div
+                            style={{
+                              padding: "12px 14px",
+                              backgroundColor: "#ffffff",
+                              borderRadius: "0 0 6px 6px",
+                              borderTop: "1px solid #f0f0f0",
+                            }}
+                          >
+                            <Text
+                              size="sm"
+                              lh={1.6}
+                              c="dark"
+                              style={{ lineHeight: "1.5" }}
+                            >
                               {hint.tip}
                             </Text>
                           </div>

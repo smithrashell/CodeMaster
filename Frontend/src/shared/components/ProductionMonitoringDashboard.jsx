@@ -1,19 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Text, Group, Stack, Badge, Grid, Progress, Button, Tabs } from '@mantine/core';
-import { 
-  IconActivity, 
-  IconAlertTriangle, 
-  IconBug, 
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  Text,
+  Group,
+  Stack,
+  Badge,
+  Grid,
+  Progress,
+  Button,
+  Tabs,
+} from "@mantine/core";
+import {
+  IconActivity,
+  IconAlertTriangle,
+  IconBug,
   IconChartLine,
   IconUser,
   IconServer,
-  IconRefresh
-} from '@tabler/icons-react';
-import { ErrorReportService } from '../services/ErrorReportService.js';
-import { UserActionTracker } from '../services/UserActionTracker.js';
-import performanceMonitor from '../utils/PerformanceMonitor.js';
-import { AlertingService } from '../services/AlertingService.js';
-import logger from '../utils/logger.js';
+  IconRefresh,
+} from "@tabler/icons-react";
+import { ErrorReportService } from "../services/ErrorReportService.js";
+import { UserActionTracker } from "../services/UserActionTracker.js";
+import performanceMonitor from "../utils/PerformanceMonitor.js";
+import { AlertingService } from "../services/AlertingService.js";
+import logger from "../utils/logger.js";
 
 /**
  * Production Monitoring Dashboard
@@ -25,7 +35,7 @@ export function ProductionMonitoringDashboard() {
     errors: null,
     userActions: null,
     alerts: null,
-    system: null
+    system: null,
   });
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -34,12 +44,12 @@ export function ProductionMonitoringDashboard() {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
+
       const [performance, errors, userActions, alerts] = await Promise.all([
         loadPerformanceData(),
         loadErrorData(),
         loadUserActionData(),
-        loadAlertData()
+        loadAlertData(),
       ]);
 
       const system = loadSystemData();
@@ -49,15 +59,18 @@ export function ProductionMonitoringDashboard() {
         errors,
         userActions,
         alerts,
-        system
+        system,
       });
-      
+
       setLastUpdated(new Date());
-      
     } catch (error) {
-      logger.error('Failed to load dashboard data', { 
-        section: 'monitoring_dashboard' 
-      }, error);
+      logger.error(
+        "Failed to load dashboard data",
+        {
+          section: "monitoring_dashboard",
+        },
+        error
+      );
     } finally {
       setLoading(false);
     }
@@ -68,16 +81,20 @@ export function ProductionMonitoringDashboard() {
     try {
       const summary = performanceMonitor.getPerformanceSummary();
       const queryStats = performanceMonitor.getQueryStatsByOperation();
-      
+
       return {
         summary,
         queryStats,
-        health: performanceMonitor.getSystemHealth()
+        health: performanceMonitor.getSystemHealth(),
       };
     } catch (error) {
-      logger.error('Failed to load performance data', { 
-        section: 'monitoring_dashboard' 
-      }, error);
+      logger.error(
+        "Failed to load performance data",
+        {
+          section: "monitoring_dashboard",
+        },
+        error
+      );
       return null;
     }
   };
@@ -87,17 +104,21 @@ export function ProductionMonitoringDashboard() {
     try {
       const [recentErrors, errorStats] = await Promise.all([
         ErrorReportService.getErrorReports({ limit: 10 }),
-        ErrorReportService.getErrorStatistics(7) // Last 7 days
+        ErrorReportService.getErrorStatistics(7), // Last 7 days
       ]);
-      
+
       return {
         recentErrors,
-        statistics: errorStats
+        statistics: errorStats,
       };
     } catch (error) {
-      logger.error('Failed to load error data', { 
-        section: 'monitoring_dashboard' 
-      }, error);
+      logger.error(
+        "Failed to load error data",
+        {
+          section: "monitoring_dashboard",
+        },
+        error
+      );
       return null;
     }
   };
@@ -107,17 +128,21 @@ export function ProductionMonitoringDashboard() {
     try {
       const [recentActions, analytics] = await Promise.all([
         UserActionTracker.getUserActions({ limit: 20 }),
-        UserActionTracker.getUserAnalytics(7) // Last 7 days
+        UserActionTracker.getUserAnalytics(7), // Last 7 days
       ]);
-      
+
       return {
         recentActions,
-        analytics
+        analytics,
       };
     } catch (error) {
-      logger.error('Failed to load user action data', { 
-        section: 'monitoring_dashboard' 
-      }, error);
+      logger.error(
+        "Failed to load user action data",
+        {
+          section: "monitoring_dashboard",
+        },
+        error
+      );
       return null;
     }
   };
@@ -127,9 +152,13 @@ export function ProductionMonitoringDashboard() {
     try {
       return AlertingService.getAlertStatistics();
     } catch (error) {
-      logger.error('Failed to load alert data', { 
-        section: 'monitoring_dashboard' 
-      }, error);
+      logger.error(
+        "Failed to load alert data",
+        {
+          section: "monitoring_dashboard",
+        },
+        error
+      );
       return null;
     }
   };
@@ -137,18 +166,20 @@ export function ProductionMonitoringDashboard() {
   // Load system data
   const loadSystemData = () => {
     try {
-      const memInfo = performance.memory ? {
-        used: performance.memory.usedJSHeapSize,
-        total: performance.memory.totalJSHeapSize,
-        limit: performance.memory.jsHeapSizeLimit
-      } : null;
+      const memInfo = performance.memory
+        ? {
+            used: performance.memory.usedJSHeapSize,
+            total: performance.memory.totalJSHeapSize,
+            limit: performance.memory.jsHeapSizeLimit,
+          }
+        : null;
 
       return {
         memory: memInfo,
         userAgent: navigator.userAgent,
         url: window.location.href,
         logLevel: logger.getLogLevel(),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
       return null;
@@ -158,16 +189,16 @@ export function ProductionMonitoringDashboard() {
   // Get health color based on status
   const getHealthColor = (health) => {
     const colors = {
-      good: 'green',
-      warning: 'yellow',
-      critical: 'red'
+      good: "green",
+      warning: "yellow",
+      critical: "red",
     };
-    return colors[health] || 'gray';
+    return colors[health] || "gray";
   };
 
   // Format memory usage
   const formatBytes = (bytes) => {
-    if (!bytes) return 'N/A';
+    if (!bytes) return "N/A";
     const mb = bytes / (1024 * 1024);
     return `${mb.toFixed(2)} MB`;
   };
@@ -183,7 +214,7 @@ export function ProductionMonitoringDashboard() {
 
   useEffect(() => {
     loadDashboardData();
-    
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(loadDashboardData, 30000);
     return () => clearInterval(interval);
@@ -201,16 +232,18 @@ export function ProductionMonitoringDashboard() {
     <Stack spacing="md">
       {/* Header */}
       <Group justify="space-between">
-        <Text size="xl" fw={600}>Production Monitoring Dashboard</Text>
+        <Text size="xl" fw={600}>
+          Production Monitoring Dashboard
+        </Text>
         <Group>
           {lastUpdated && (
             <Text size="sm" c="dimmed">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </Text>
           )}
-          <Button 
-            leftSection={<IconRefresh size={16} />} 
-            variant="light" 
+          <Button
+            leftSection={<IconRefresh size={16} />}
+            variant="light"
             size="sm"
             onClick={loadDashboardData}
             loading={loading}
@@ -225,7 +258,10 @@ export function ProductionMonitoringDashboard() {
           <Tabs.Tab value="overview" leftSection={<IconActivity size={16} />}>
             Overview
           </Tabs.Tab>
-          <Tabs.Tab value="performance" leftSection={<IconChartLine size={16} />}>
+          <Tabs.Tab
+            value="performance"
+            leftSection={<IconChartLine size={16} />}
+          >
             Performance
           </Tabs.Tab>
           <Tabs.Tab value="errors" leftSection={<IconBug size={16} />}>
@@ -234,7 +270,10 @@ export function ProductionMonitoringDashboard() {
           <Tabs.Tab value="users" leftSection={<IconUser size={16} />}>
             User Analytics
           </Tabs.Tab>
-          <Tabs.Tab value="alerts" leftSection={<IconAlertTriangle size={16} />}>
+          <Tabs.Tab
+            value="alerts"
+            leftSection={<IconAlertTriangle size={16} />}
+          >
             Alerts
           </Tabs.Tab>
           <Tabs.Tab value="system" leftSection={<IconServer size={16} />}>
@@ -249,39 +288,49 @@ export function ProductionMonitoringDashboard() {
               <Card withBorder>
                 <Group justify="space-between" mb="xs">
                   <Text fw={500}>System Health</Text>
-                  <Badge color={getHealthColor(dashboardData.performance?.health)}>
-                    {dashboardData.performance?.health || 'unknown'}
+                  <Badge
+                    color={getHealthColor(dashboardData.performance?.health)}
+                  >
+                    {dashboardData.performance?.health || "unknown"}
                   </Badge>
                 </Group>
                 <Text size="sm" c="dimmed" mb="md">
                   Overall system status and performance indicators
                 </Text>
-                
+
                 {dashboardData.performance?.summary && (
                   <Stack spacing="xs">
                     <Group justify="space-between">
                       <Text size="sm">Uptime</Text>
                       <Text size="sm" fw={500}>
-                        {formatDuration(dashboardData.performance.summary.uptime)}
+                        {formatDuration(
+                          dashboardData.performance.summary.uptime
+                        )}
                       </Text>
                     </Group>
                     <Group justify="space-between">
                       <Text size="sm">Queries</Text>
                       <Text size="sm" fw={500}>
-                        {dashboardData.performance.summary.systemMetrics.totalQueries}
+                        {
+                          dashboardData.performance.summary.systemMetrics
+                            .totalQueries
+                        }
                       </Text>
                     </Group>
                     <Group justify="space-between">
                       <Text size="sm">Error Rate</Text>
                       <Text size="sm" fw={500}>
-                        {dashboardData.performance.summary.systemMetrics.errorRate.toFixed(2)}%
+                        {dashboardData.performance.summary.systemMetrics.errorRate.toFixed(
+                          2
+                        )}
+                        %
                       </Text>
                     </Group>
                   </Stack>
                 )}
               </Card>
             </Grid.Col>
-            
+
             <Grid.Col span={6}>
               <Card withBorder>
                 <Group justify="space-between" mb="xs">
@@ -293,19 +342,24 @@ export function ProductionMonitoringDashboard() {
                 <Text size="sm" c="dimmed" mb="md">
                   Latest errors and user actions
                 </Text>
-                
+
                 {dashboardData.errors?.recentErrors && (
                   <Stack spacing="xs">
-                    {dashboardData.errors.recentErrors.slice(0, 3).map((error, index) => (
-                      <Group key={index} justify="space-between">
-                        <Text size="sm" lineClamp={1}>
-                          {error.message}
-                        </Text>
-                        <Badge size="sm" color={error.severity === 'high' ? 'red' : 'yellow'}>
-                          {error.severity}
-                        </Badge>
-                      </Group>
-                    ))}
+                    {dashboardData.errors.recentErrors
+                      .slice(0, 3)
+                      .map((error, index) => (
+                        <Group key={index} justify="space-between">
+                          <Text size="sm" lineClamp={1}>
+                            {error.message}
+                          </Text>
+                          <Badge
+                            size="sm"
+                            color={error.severity === "high" ? "red" : "yellow"}
+                          >
+                            {error.severity}
+                          </Badge>
+                        </Group>
+                      ))}
                   </Stack>
                 )}
               </Card>
@@ -313,14 +367,19 @@ export function ProductionMonitoringDashboard() {
 
             <Grid.Col span={12}>
               <Card withBorder>
-                <Text fw={500} mb="md">Quick Stats</Text>
+                <Text fw={500} mb="md">
+                  Quick Stats
+                </Text>
                 <Grid>
                   <Grid.Col span={3}>
                     <Stack align="center" spacing="xs">
                       <Text size="xl" fw={700} c="blue">
-                        {dashboardData.userActions?.analytics?.totalActions || 0}
+                        {dashboardData.userActions?.analytics?.totalActions ||
+                          0}
                       </Text>
-                      <Text size="sm" c="dimmed">User Actions</Text>
+                      <Text size="sm" c="dimmed">
+                        User Actions
+                      </Text>
                     </Stack>
                   </Grid.Col>
                   <Grid.Col span={3}>
@@ -328,7 +387,9 @@ export function ProductionMonitoringDashboard() {
                       <Text size="xl" fw={700} c="red">
                         {dashboardData.errors?.statistics?.totalErrors || 0}
                       </Text>
-                      <Text size="sm" c="dimmed">Total Errors</Text>
+                      <Text size="sm" c="dimmed">
+                        Total Errors
+                      </Text>
                     </Stack>
                   </Grid.Col>
                   <Grid.Col span={3}>
@@ -336,15 +397,22 @@ export function ProductionMonitoringDashboard() {
                       <Text size="xl" fw={700} c="orange">
                         {dashboardData.alerts?.total24h || 0}
                       </Text>
-                      <Text size="sm" c="dimmed">Alerts (24h)</Text>
+                      <Text size="sm" c="dimmed">
+                        Alerts (24h)
+                      </Text>
                     </Stack>
                   </Grid.Col>
                   <Grid.Col span={3}>
                     <Stack align="center" spacing="xs">
                       <Text size="xl" fw={700} c="green">
-                        {dashboardData.performance?.summary?.systemMetrics.averageQueryTime?.toFixed(0) || 0}ms
+                        {dashboardData.performance?.summary?.systemMetrics.averageQueryTime?.toFixed(
+                          0
+                        ) || 0}
+                        ms
                       </Text>
-                      <Text size="sm" c="dimmed">Avg Response</Text>
+                      <Text size="sm" c="dimmed">
+                        Avg Response
+                      </Text>
                     </Stack>
                   </Grid.Col>
                 </Grid>
@@ -358,35 +426,68 @@ export function ProductionMonitoringDashboard() {
           <Grid>
             <Grid.Col span={12}>
               <Card withBorder>
-                <Text fw={500} mb="md">Performance Metrics</Text>
+                <Text fw={500} mb="md">
+                  Performance Metrics
+                </Text>
                 {dashboardData.performance?.summary && (
                   <Grid>
                     <Grid.Col span={6}>
-                      <Text size="sm" mb="xs">Query Performance</Text>
+                      <Text size="sm" mb="xs">
+                        Query Performance
+                      </Text>
                       <Group justify="space-between" mb="xs">
-                        <Text size="xs" c="dimmed">Average Query Time</Text>
+                        <Text size="xs" c="dimmed">
+                          Average Query Time
+                        </Text>
                         <Text size="xs" fw={500}>
-                          {dashboardData.performance.summary.systemMetrics.averageQueryTime.toFixed(2)}ms
+                          {dashboardData.performance.summary.systemMetrics.averageQueryTime.toFixed(
+                            2
+                          )}
+                          ms
                         </Text>
                       </Group>
                       <Progress
-                        value={Math.min(dashboardData.performance.summary.systemMetrics.averageQueryTime / 20, 100)}
-                        color={dashboardData.performance.summary.systemMetrics.averageQueryTime > 1000 ? 'red' : 'blue'}
+                        value={Math.min(
+                          dashboardData.performance.summary.systemMetrics
+                            .averageQueryTime / 20,
+                          100
+                        )}
+                        color={
+                          dashboardData.performance.summary.systemMetrics
+                            .averageQueryTime > 1000
+                            ? "red"
+                            : "blue"
+                        }
                       />
                     </Grid.Col>
                     <Grid.Col span={6}>
-                      <Text size="sm" mb="xs">Memory Usage</Text>
+                      <Text size="sm" mb="xs">
+                        Memory Usage
+                      </Text>
                       <Group justify="space-between" mb="xs">
-                        <Text size="xs" c="dimmed">Current Usage</Text>
+                        <Text size="xs" c="dimmed">
+                          Current Usage
+                        </Text>
                         <Text size="xs" fw={500}>
                           {formatBytes(dashboardData.system?.memory?.used)}
                         </Text>
                       </Group>
                       <Progress
-                        value={dashboardData.system?.memory ? 
-                          (dashboardData.system.memory.used / dashboardData.system.memory.limit) * 100 : 0}
-                        color={dashboardData.system?.memory && 
-                          (dashboardData.system.memory.used / dashboardData.system.memory.limit) > 0.8 ? 'red' : 'blue'}
+                        value={
+                          dashboardData.system?.memory
+                            ? (dashboardData.system.memory.used /
+                                dashboardData.system.memory.limit) *
+                              100
+                            : 0
+                        }
+                        color={
+                          dashboardData.system?.memory &&
+                          dashboardData.system.memory.used /
+                            dashboardData.system.memory.limit >
+                            0.8
+                            ? "red"
+                            : "blue"
+                        }
                       />
                     </Grid.Col>
                   </Grid>
@@ -399,7 +500,9 @@ export function ProductionMonitoringDashboard() {
         {/* Errors Tab */}
         <Tabs.Panel value="errors">
           <Card withBorder>
-            <Text fw={500} mb="md">Error Reports</Text>
+            <Text fw={500} mb="md">
+              Error Reports
+            </Text>
             {dashboardData.errors?.recentErrors && (
               <Stack spacing="sm">
                 {dashboardData.errors.recentErrors.map((error) => (
@@ -408,12 +511,17 @@ export function ProductionMonitoringDashboard() {
                       <Text fw={500} size="sm" lineClamp={1}>
                         {error.message}
                       </Text>
-                      <Badge color={error.severity === 'high' ? 'red' : 'yellow'} size="sm">
+                      <Badge
+                        color={error.severity === "high" ? "red" : "yellow"}
+                        size="sm"
+                      >
                         {error.severity}
                       </Badge>
                     </Group>
                     <Group justify="space-between">
-                      <Text size="xs" c="dimmed">{error.section}</Text>
+                      <Text size="xs" c="dimmed">
+                        {error.section}
+                      </Text>
                       <Text size="xs" c="dimmed">
                         {new Date(error.timestamp).toLocaleString()}
                       </Text>
@@ -430,11 +538,15 @@ export function ProductionMonitoringDashboard() {
           <Grid>
             <Grid.Col span={12}>
               <Card withBorder>
-                <Text fw={500} mb="md">User Behavior Analytics</Text>
+                <Text fw={500} mb="md">
+                  User Behavior Analytics
+                </Text>
                 {dashboardData.userActions?.analytics && (
                   <Grid>
                     <Grid.Col span={6}>
-                      <Text size="sm" mb="xs">Activity Summary</Text>
+                      <Text size="sm" mb="xs">
+                        Activity Summary
+                      </Text>
                       <Stack spacing="xs">
                         <Group justify="space-between">
                           <Text size="sm">Total Actions</Text>
@@ -451,19 +563,28 @@ export function ProductionMonitoringDashboard() {
                         <Group justify="space-between">
                           <Text size="sm">Avg Session Time</Text>
                           <Text size="sm" fw={500}>
-                            {formatDuration(dashboardData.userActions.analytics.averageSessionTime)}
+                            {formatDuration(
+                              dashboardData.userActions.analytics
+                                .averageSessionTime
+                            )}
                           </Text>
                         </Group>
                       </Stack>
                     </Grid.Col>
                     <Grid.Col span={6}>
-                      <Text size="sm" mb="xs">Top Actions</Text>
+                      <Text size="sm" mb="xs">
+                        Top Actions
+                      </Text>
                       <Stack spacing="xs">
-                        {Object.entries(dashboardData.userActions.analytics.topActions)
+                        {Object.entries(
+                          dashboardData.userActions.analytics.topActions
+                        )
                           .slice(0, 5)
                           .map(([action, count]) => (
                             <Group key={action} justify="space-between">
-                              <Text size="sm" lineClamp={1}>{action}</Text>
+                              <Text size="sm" lineClamp={1}>
+                                {action}
+                              </Text>
                               <Badge size="sm">{count}</Badge>
                             </Group>
                           ))}
@@ -479,26 +600,35 @@ export function ProductionMonitoringDashboard() {
         {/* Alerts Tab */}
         <Tabs.Panel value="alerts">
           <Card withBorder>
-            <Text fw={500} mb="md">System Alerts</Text>
+            <Text fw={500} mb="md">
+              System Alerts
+            </Text>
             {dashboardData.alerts && (
               <Stack spacing="sm">
                 {dashboardData.alerts.recentAlerts?.map((alert, index) => (
                   <Card key={index} withBorder radius="sm" p="sm">
                     <Group justify="space-between" mb="xs">
-                      <Text fw={500} size="sm">{alert.title}</Text>
+                      <Text fw={500} size="sm">
+                        {alert.title}
+                      </Text>
                       <Badge color={getHealthColor(alert.severity)} size="sm">
                         {alert.severity}
                       </Badge>
                     </Group>
-                    <Text size="xs" c="dimmed" mb="xs">{alert.message}</Text>
+                    <Text size="xs" c="dimmed" mb="xs">
+                      {alert.message}
+                    </Text>
                     <Text size="xs" c="dimmed">
                       {new Date(alert.timestamp).toLocaleString()}
                     </Text>
                   </Card>
                 ))}
-                
-                {(!dashboardData.alerts.recentAlerts || dashboardData.alerts.recentAlerts.length === 0) && (
-                  <Text size="sm" c="dimmed" ta="center">No recent alerts</Text>
+
+                {(!dashboardData.alerts.recentAlerts ||
+                  dashboardData.alerts.recentAlerts.length === 0) && (
+                  <Text size="sm" c="dimmed" ta="center">
+                    No recent alerts
+                  </Text>
                 )}
               </Stack>
             )}
@@ -508,7 +638,9 @@ export function ProductionMonitoringDashboard() {
         {/* System Tab */}
         <Tabs.Panel value="system">
           <Card withBorder>
-            <Text fw={500} mb="md">System Information</Text>
+            <Text fw={500} mb="md">
+              System Information
+            </Text>
             {dashboardData.system && (
               <Stack spacing="sm">
                 <Group justify="space-between">
@@ -529,8 +661,12 @@ export function ProductionMonitoringDashboard() {
                 </Group>
                 <Group justify="space-between">
                   <Text size="sm">Environment</Text>
-                  <Badge color={process.env.NODE_ENV === 'production' ? 'green' : 'blue'}>
-                    {process.env.NODE_ENV || 'development'}
+                  <Badge
+                    color={
+                      process.env.NODE_ENV === "production" ? "green" : "blue"
+                    }
+                  >
+                    {process.env.NODE_ENV || "development"}
                   </Badge>
                 </Group>
               </Stack>

@@ -36,7 +36,7 @@ const generateMockSessions = (userType = "active") => {
         : 0.3;
 
     const successfulCount = Math.floor(problemsInSession * successRate);
-    const failedCount = problemsInSession - successfulCount;
+    const _failedCount = problemsInSession - successfulCount;
 
     // Create attempts for this session for DataAdapter
     const sessionAttempts = [];
@@ -308,6 +308,7 @@ const generatePromotionData = (granularity = "weekly") => {
  * Main mock data generator
  */
 export const generateMockData = (userType = "active") => {
+  // eslint-disable-next-line no-console
   console.log(`🎭 Generating mock data for user type: ${userType}`);
 
   const sessions = generateMockSessions(userType);
@@ -448,6 +449,7 @@ export const generateMockData = (userType = "active") => {
     ),
   };
 
+  // eslint-disable-next-line no-console
   console.log(`✅ Generated mock data:`, {
     sessions: sessions.length,
     attempts: attempts.length,

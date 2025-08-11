@@ -72,7 +72,7 @@ const ProbSubmission = () => {
     // Convert time from minutes to seconds for consistent database storage
     const timeInMinutes = Number(data.timeSpent) || 0;
     const timeInSeconds = AccurateTimer.minutesToSeconds(timeInMinutes);
-    
+
     const formData = {
       ...data,
       timeSpent: timeInSeconds, // Store as seconds
@@ -81,20 +81,20 @@ const ProbSubmission = () => {
       id: null,
       success: data.success.trim().toLowerCase() === "true",
       tags: routeState?.Tags || [],
-      
+
       // Enhanced time tracking from timer (if available)
       exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
       overageTime: routeState?.overageTime || 0,
       userIntent: routeState?.userIntent || "completed",
       timeWarningLevel: routeState?.timeWarningLevel || 0,
     };
-    
+
     console.log("📌 ProbSubmission data:", {
       originalTimeMinutes: timeInMinutes,
       timeInSeconds: timeInSeconds,
-      formData
+      formData,
     });
-    
+
     chrome.runtime.sendMessage({
       type: "addProblem",
       contentScriptData: formData,

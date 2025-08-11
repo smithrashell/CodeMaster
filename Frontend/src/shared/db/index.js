@@ -19,17 +19,21 @@ export const dbHelper = {
 
       request.onupgradeneeded = async (event) => {
         // eslint-disable-next-line no-console
-        console.log('📋 Database upgrade needed - creating safety backup...');
-        
+        console.log("📋 Database upgrade needed - creating safety backup...");
+
         // Create backup before any schema changes
         try {
-          if (event.oldVersion > 0) { // Only backup if upgrading existing database
+          if (event.oldVersion > 0) {
+            // Only backup if upgrading existing database
             await migrationSafety.createMigrationBackup();
             // eslint-disable-next-line no-console
-            console.log('✅ Safety backup created before upgrade');
+            console.log("✅ Safety backup created before upgrade");
           }
         } catch (error) {
-          console.error('⚠️ Backup creation failed, proceeding with upgrade:', error);
+          console.error(
+            "⚠️ Backup creation failed, proceeding with upgrade:",
+            error
+          );
         }
         const db = event.target.result;
 
@@ -71,22 +75,14 @@ export const dbHelper = {
         if (db.objectStoreNames.contains("problem_relationships")) {
           db.deleteObjectStore("problem_relationships");
         }
-        
-        let relationshipsStore = db.createObjectStore(
-          "problem_relationships",
-          { keyPath: "id", autoIncrement: true }
-        );
 
-        dbHelper.ensureIndex(
-          relationshipsStore,
-          "by_problemId1",
-          "problemId1"
-        );
-        dbHelper.ensureIndex(
-          relationshipsStore,
-          "by_problemId2",
-          "problemId2"
-        );
+        let relationshipsStore = db.createObjectStore("problem_relationships", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+
+        dbHelper.ensureIndex(relationshipsStore, "by_problemId1", "problemId1");
+        dbHelper.ensureIndex(relationshipsStore, "by_problemId2", "problemId2");
 
         // ✅ Ensure 'problems' store exists
         if (!db.objectStoreNames.contains("problems")) {
@@ -230,47 +226,95 @@ export const dbHelper = {
 
           // Core indexes for fast lookups
           dbHelper.ensureIndex(strategyDataStore, "by_tag", "tag");
-          dbHelper.ensureIndex(strategyDataStore, "by_patterns", "patterns", { multiEntry: true });
-          dbHelper.ensureIndex(strategyDataStore, "by_related", "related", { multiEntry: true });
+          dbHelper.ensureIndex(strategyDataStore, "by_patterns", "patterns", {
+            multiEntry: true,
+          });
+          dbHelper.ensureIndex(strategyDataStore, "by_related", "related", {
+            multiEntry: true,
+          });
 
           // eslint-disable-next-line no-console
           console.log("✅ Strategy data store created with optimized indexes!");
         } else {
           // Add new indexes to existing store if they don't exist
-          const strategyDataStore = event.target.transaction.objectStore("strategy_data");
-          
+          const strategyDataStore =
+            event.target.transaction.objectStore("strategy_data");
+
           if (!strategyDataStore.indexNames.contains("by_patterns")) {
-            strategyDataStore.createIndex("by_patterns", "patterns", { multiEntry: true });
+            strategyDataStore.createIndex("by_patterns", "patterns", {
+              multiEntry: true,
+            });
           }
           if (!strategyDataStore.indexNames.contains("by_related")) {
-            strategyDataStore.createIndex("by_related", "related", { multiEntry: true });
+            strategyDataStore.createIndex("by_related", "related", {
+              multiEntry: true,
+            });
           }
         }
 
         // ✅ **NEW: Ensure 'hint_interactions' store exists for usage analytics**
         if (!db.objectStoreNames.contains("hint_interactions")) {
-          let hintInteractionsStore = db.createObjectStore("hint_interactions", {
-            keyPath: "id",
-            autoIncrement: true,
-          });
+          let hintInteractionsStore = db.createObjectStore(
+            "hint_interactions",
+            {
+              keyPath: "id",
+              autoIncrement: true,
+            }
+          );
 
           // Core indexes for analytics queries
-          dbHelper.ensureIndex(hintInteractionsStore, "by_problem_id", "problemId");
-          dbHelper.ensureIndex(hintInteractionsStore, "by_session_id", "sessionId");
-          dbHelper.ensureIndex(hintInteractionsStore, "by_timestamp", "timestamp");
-          dbHelper.ensureIndex(hintInteractionsStore, "by_hint_type", "hintType");
-          dbHelper.ensureIndex(hintInteractionsStore, "by_user_action", "userAction");
-          dbHelper.ensureIndex(hintInteractionsStore, "by_difficulty", "problemDifficulty");
-          dbHelper.ensureIndex(hintInteractionsStore, "by_box_level", "boxLevel");
-          
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_problem_id",
+            "problemId"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_session_id",
+            "sessionId"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_timestamp",
+            "timestamp"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_hint_type",
+            "hintType"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_user_action",
+            "userAction"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_difficulty",
+            "problemDifficulty"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_box_level",
+            "boxLevel"
+          );
+
           // Composite indexes for advanced analytics
-          dbHelper.ensureIndex(hintInteractionsStore, "by_problem_and_action", ["problemId", "userAction"]);
-          dbHelper.ensureIndex(hintInteractionsStore, "by_hint_type_and_difficulty", ["hintType", "problemDifficulty"]);
+          dbHelper.ensureIndex(hintInteractionsStore, "by_problem_and_action", [
+            "problemId",
+            "userAction",
+          ]);
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_hint_type_and_difficulty",
+            ["hintType", "problemDifficulty"]
+          );
 
           // eslint-disable-next-line no-console
-          console.log("✅ Hint interactions store created for usage analytics!");
+          console.log(
+            "✅ Hint interactions store created for usage analytics!"
+          );
         }
-
       };
 
       request.onsuccess = (event) => {
@@ -307,21 +351,18 @@ export const dbHelper = {
   async openDBWithRetry(options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
-      operationName = 'openDB',
-      priority = 'high',
-      abortController = null
+      operationName = "openDB",
+      priority = "high",
+      abortController = null,
     } = options;
 
-    return indexedDBRetry.executeWithRetry(
-      () => this.openDB(),
-      {
-        timeout,
-        operationName,
-        priority,
-        abortController,
-        deduplicationKey: 'open_database'
-      }
-    );
+    return indexedDBRetry.executeWithRetry(() => this.openDB(), {
+      timeout,
+      operationName,
+      priority,
+      abortController,
+      deduplicationKey: "open_database",
+    });
   },
 
   /**
@@ -335,8 +376,8 @@ export const dbHelper = {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `getStore_${storeName}_${mode}`,
-      priority = 'normal',
-      abortController = null
+      priority = "normal",
+      abortController = null,
     } = options;
 
     return indexedDBRetry.executeWithRetry(
@@ -346,7 +387,7 @@ export const dbHelper = {
         operationName,
         priority,
         abortController,
-        deduplicationKey: `store_${storeName}_${mode}`
+        deduplicationKey: `store_${storeName}_${mode}`,
       }
     );
   },
@@ -362,42 +403,46 @@ export const dbHelper = {
   async executeTransaction(storeNames, mode, operation, options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
-      operationName = `transaction_${Array.isArray(storeNames) ? storeNames.join('_') : storeNames}_${mode}`,
-      priority = 'normal',
+      operationName = `transaction_${
+        Array.isArray(storeNames) ? storeNames.join("_") : storeNames
+      }_${mode}`,
+      priority = "normal",
       abortController = null,
-      deduplicationKey = null
+      deduplicationKey = null,
     } = options;
 
     return indexedDBRetry.executeWithRetry(
       async () => {
         const db = await this.openDB();
         const tx = db.transaction(storeNames, mode);
-        
+
         // Handle both single store and multiple stores
-        const stores = Array.isArray(storeNames) 
-          ? storeNames.map(name => tx.objectStore(name))
+        const stores = Array.isArray(storeNames)
+          ? storeNames.map((name) => tx.objectStore(name))
           : tx.objectStore(storeNames);
 
         return new Promise((resolve, reject) => {
           tx.oncomplete = () => resolve(tx.result);
           tx.onerror = () => reject(tx.error);
-          tx.onabort = () => reject(new Error('Transaction aborted'));
+          tx.onabort = () => reject(new Error("Transaction aborted"));
 
           // Execute the operation
           try {
             const result = operation(tx, stores);
-            
+
             // If operation returns a promise, wait for it
             if (result instanceof Promise) {
-              result.then(value => {
-                tx.result = value;
-                if (tx.readyState === 'active') {
-                  // Transaction will complete automatically
-                }
-              }).catch(error => {
-                tx.abort();
-                reject(error);
-              });
+              result
+                .then((value) => {
+                  tx.result = value;
+                  if (tx.readyState === "active") {
+                    // Transaction will complete automatically
+                  }
+                })
+                .catch((error) => {
+                  tx.abort();
+                  reject(error);
+                });
             } else {
               tx.result = result;
             }
@@ -412,7 +457,7 @@ export const dbHelper = {
         operationName,
         priority,
         abortController,
-        deduplicationKey
+        deduplicationKey,
       }
     );
   },
@@ -428,13 +473,13 @@ export const dbHelper = {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `getRecord_${storeName}`,
-      priority = 'normal',
-      abortController = null
+      priority = "normal",
+      abortController = null,
     } = options;
 
     return indexedDBRetry.executeWithRetry(
       async () => {
-        const store = await this.getStore(storeName, 'readonly');
+        const store = await this.getStore(storeName, "readonly");
         return new Promise((resolve, reject) => {
           const request = store.get(key);
           request.onsuccess = () => resolve(request.result);
@@ -446,7 +491,7 @@ export const dbHelper = {
         operationName,
         priority,
         abortController,
-        deduplicationKey: `get_${storeName}_${key}`
+        deduplicationKey: `get_${storeName}_${key}`,
       }
     );
   },
@@ -462,13 +507,13 @@ export const dbHelper = {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `putRecord_${storeName}`,
-      priority = 'normal',
-      abortController = null
+      priority = "normal",
+      abortController = null,
     } = options;
 
     return indexedDBRetry.executeWithRetry(
       async () => {
-        const store = await this.getStore(storeName, 'readwrite');
+        const store = await this.getStore(storeName, "readwrite");
         return new Promise((resolve, reject) => {
           const request = store.put(data);
           request.onsuccess = () => resolve(request.result);
@@ -479,7 +524,7 @@ export const dbHelper = {
         timeout,
         operationName,
         priority,
-        abortController
+        abortController,
       }
     );
   },
@@ -495,13 +540,13 @@ export const dbHelper = {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `deleteRecord_${storeName}`,
-      priority = 'normal',
-      abortController = null
+      priority = "normal",
+      abortController = null,
     } = options;
 
     return indexedDBRetry.executeWithRetry(
       async () => {
-        const store = await this.getStore(storeName, 'readwrite');
+        const store = await this.getStore(storeName, "readwrite");
         return new Promise((resolve, reject) => {
           const request = store.delete(key);
           request.onsuccess = () => resolve();
@@ -512,7 +557,7 @@ export const dbHelper = {
         timeout,
         operationName,
         priority,
-        abortController
+        abortController,
       }
     );
   },
@@ -528,13 +573,13 @@ export const dbHelper = {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `countRecords_${storeName}`,
-      priority = 'low',
-      abortController = null
+      priority = "low",
+      abortController = null,
     } = options;
 
     return indexedDBRetry.executeWithRetry(
       async () => {
-        const store = await this.getStore(storeName, 'readonly');
+        const store = await this.getStore(storeName, "readonly");
         return new Promise((resolve, reject) => {
           const request = store.count(range);
           request.onsuccess = () => resolve(request.result);
@@ -546,7 +591,7 @@ export const dbHelper = {
         operationName,
         priority,
         abortController,
-        deduplicationKey: `count_${storeName}_${range ? 'range' : 'all'}`
+        deduplicationKey: `count_${storeName}_${range ? "range" : "all"}`,
       }
     );
   },
@@ -562,24 +607,32 @@ export const dbHelper = {
     const {
       timeout = indexedDBRetry.bulkTimeout,
       operationName = `getAllRecords_${storeName}`,
-      priority = 'low',
+      priority = "low",
       abortController = null,
       limit = null,
       streaming = false,
-      onProgress = null
+      onProgress = null,
     } = options;
 
     return indexedDBRetry.executeWithRetry(
       async () => {
-        const store = await this.getStore(storeName, 'readonly');
-        
+        const store = await this.getStore(storeName, "readonly");
+
         if (streaming && onProgress) {
           // Streaming mode with progress callbacks
-          return this.streamRecords(store, range, limit, onProgress, abortController);
+          return this.streamRecords(
+            store,
+            range,
+            limit,
+            onProgress,
+            abortController
+          );
         } else {
           // Batch mode - get all at once
           return new Promise((resolve, reject) => {
-            const request = limit ? store.getAll(range, limit) : store.getAll(range);
+            const request = limit
+              ? store.getAll(range, limit)
+              : store.getAll(range);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
           });
@@ -590,7 +643,9 @@ export const dbHelper = {
         operationName,
         priority,
         abortController,
-        deduplicationKey: streaming ? null : `getAll_${storeName}_${range ? 'range' : 'all'}`
+        deduplicationKey: streaming
+          ? null
+          : `getAll_${storeName}_${range ? "range" : "all"}`,
       }
     );
   },
@@ -612,25 +667,25 @@ export const dbHelper = {
 
       request.onsuccess = (event) => {
         const cursor = event.target.result;
-        
+
         if (abortController?.signal.aborted) {
-          reject(new Error('Operation cancelled'));
+          reject(new Error("Operation cancelled"));
           return;
         }
 
         if (cursor && (!limit || count < limit)) {
           records.push(cursor.value);
           count++;
-          
+
           // Call progress callback every 100 records or at end
           if (count % 100 === 0 || count === limit) {
             try {
               onProgress(count, records.length);
             } catch (error) {
-              console.warn('Progress callback error:', error);
+              console.warn("Progress callback error:", error);
             }
           }
-          
+
           cursor.continue();
         } else {
           resolve(records);
@@ -663,8 +718,8 @@ export const dbHelper = {
       database: {
         name: this.dbName,
         version: this.version,
-        connected: !!this.db
-      }
+        connected: !!this.db,
+      },
     };
-  }
+  },
 };

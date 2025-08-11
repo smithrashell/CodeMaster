@@ -39,10 +39,10 @@ export const useStrategy = (problemTags = []) => {
   }, [problemTags, isDataLoaded]);
 
   const loadStrategyData = async () => {
-    const queryContext = performanceMonitor.startQuery('useStrategy_loadData', { 
-      tagCount: problemTags.length 
+    const queryContext = performanceMonitor.startQuery("useStrategy_loadData", {
+      tagCount: problemTags.length,
     });
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -55,8 +55,12 @@ export const useStrategy = (problemTags = []) => {
 
       setHints(contextualHints);
       setPrimers(tagPrimers);
-      
-      performanceMonitor.endQuery(queryContext, true, contextualHints.length + tagPrimers.length);
+
+      performanceMonitor.endQuery(
+        queryContext,
+        true,
+        contextualHints.length + tagPrimers.length
+      );
     } catch (err) {
       console.error("Error loading strategy data:", err);
       setError(err.message || "Failed to load strategy data");

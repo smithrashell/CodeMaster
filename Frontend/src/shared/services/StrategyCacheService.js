@@ -1,6 +1,6 @@
 /**
  * StrategyCacheService - High-performance caching layer for strategy system
- * 
+ *
  * Features:
  * - In-memory LRU cache with TTL-based expiration
  * - Request deduplication for concurrent calls
@@ -17,22 +17,22 @@ class StrategyCacheService {
       cacheMisses: 0,
       totalRequests: 0,
       averageQueryTime: 0,
-      memoryUsage: 0
+      memoryUsage: 0,
     };
-    
+
     // Cache configuration
     this.config = {
       maxSize: 100, // Maximum number of cached strategies
       ttl: 5 * 60 * 1000, // 5 minutes TTL
       cleanupInterval: 2 * 60 * 1000, // Cleanup every 2 minutes
-      timeout: 5000 // 5 second timeout for operations
+      timeout: 5000, // 5 second timeout for operations
     };
 
     // Start automatic cleanup
     this.startCleanupTimer();
-    
+
     // eslint-disable-next-line no-console
-    console.log('🚀 StrategyCacheService initialized with LRU cache');
+    console.log("🚀 StrategyCacheService initialized with LRU cache");
   }
 
   /**
@@ -70,18 +70,18 @@ class StrategyCacheService {
 
       try {
         const data = await requestPromise;
-        
+
         // Cache successful result
         this.setCacheEntry(cacheKey, data);
         this.performanceMetrics.cacheMisses++;
-        
+
         // eslint-disable-next-line no-console
         console.log(`💾 Cached new data for key: ${cacheKey}`);
         return data;
       } finally {
         // Clean up ongoing request
         this.ongoingRequests.delete(cacheKey);
-        
+
         // Update metrics
         const queryTime = performance.now() - startTime;
         this.updatePerformanceMetrics(queryTime);
@@ -90,10 +90,13 @@ class StrategyCacheService {
       // Return stale cache data if available on error
       const staleCache = this.getCacheEntry(cacheKey);
       if (staleCache) {
-        console.warn(`⚠️ Returning stale cache for ${cacheKey} due to error:`, error);
+        console.warn(
+          `⚠️ Returning stale cache for ${cacheKey} due to error:`,
+          error
+        );
         return staleCache.data;
       }
-      
+
       console.error(`❌ Cache miss and fetch failed for ${cacheKey}:`, error);
       throw error;
     }
@@ -111,13 +114,15 @@ class StrategyCacheService {
         reject(new Error(`Operation timed out after ${timeout}ms`));
       }, timeout);
 
-      fn().then((result) => {
-        clearTimeout(timeoutId);
-        resolve(result);
-      }).catch((error) => {
-        clearTimeout(timeoutId);
-        reject(error);
-      });
+      fn()
+        .then((result) => {
+          clearTimeout(timeoutId);
+          resolve(result);
+        })
+        .catch((error) => {
+          clearTimeout(timeoutId);
+          reject(error);
+        });
     });
   }
 
@@ -140,7 +145,7 @@ class StrategyCacheService {
       data,
       timestamp: Date.now(),
       accessTime: Date.now(),
-      accessCount: 1
+      accessCount: 1,
     };
 
     // Remove existing entry to update position
@@ -167,7 +172,7 @@ class StrategyCacheService {
     if (entry) {
       entry.accessTime = Date.now();
       entry.accessCount++;
-      
+
       // Move to end (most recently used)
       this.cache.delete(key);
       this.cache.set(key, entry);
@@ -189,17 +194,17 @@ class StrategyCacheService {
   evictLRU() {
     const entriesToRemove = Math.ceil(this.config.maxSize * 0.1); // Remove 10%
     const entries = Array.from(this.cache.entries());
-    
+
     // Sort by access time (oldest first)
-    entries.sort(([,a], [,b]) => a.accessTime - b.accessTime);
-    
+    entries.sort(([, a], [, b]) => a.accessTime - b.accessTime);
+
     for (let i = 0; i < entriesToRemove && entries.length > 0; i++) {
       const [key] = entries[i];
       this.cache.delete(key);
       // eslint-disable-next-line no-console
       console.log(`🗑️ Evicted LRU cache entry: ${key}`);
     }
-    
+
     this.updateMemoryUsage();
   }
 
@@ -239,7 +244,7 @@ class StrategyCacheService {
    */
   updatePerformanceMetrics(queryTime) {
     const { totalRequests, averageQueryTime } = this.performanceMetrics;
-    this.performanceMetrics.averageQueryTime = 
+    this.performanceMetrics.averageQueryTime =
       (averageQueryTime * (totalRequests - 1) + queryTime) / totalRequests;
   }
 
@@ -263,7 +268,7 @@ class StrategyCacheService {
    */
   invalidate(pattern) {
     const keysToDelete = [];
-    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+    const regex = typeof pattern === "string" ? new RegExp(pattern) : pattern;
 
     for (const key of this.cache.keys()) {
       if (regex.test(key)) {
@@ -271,14 +276,16 @@ class StrategyCacheService {
       }
     }
 
-    keysToDelete.forEach(key => {
+    keysToDelete.forEach((key) => {
       this.cache.delete(key);
       this.ongoingRequests.delete(key);
     });
 
     if (keysToDelete.length > 0) {
       // eslint-disable-next-line no-console
-      console.log(`🗑️ Invalidated ${keysToDelete.length} cache entries matching: ${pattern}`);
+      console.log(
+        `🗑️ Invalidated ${keysToDelete.length} cache entries matching: ${pattern}`
+      );
       this.updateMemoryUsage();
     }
   }
@@ -291,24 +298,31 @@ class StrategyCacheService {
   async preloadStrategies(tagCombinations, fetchFunction) {
     // eslint-disable-next-line no-console
     console.log(`🔄 Preloading ${tagCombinations.length} tag combinations...`);
-    
+
     const preloadPromises = tagCombinations.map(async (tags) => {
-      const cacheKey = `contextual_hints:${tags.sort().join(',')}:Medium`;
-      
+      const cacheKey = `contextual_hints:${tags.sort().join(",")}:Medium`;
+
       // Only preload if not already cached
       const cached = this.getCacheEntry(cacheKey);
       if (!cached || this.isExpired(cached)) {
         try {
-          await this.getCachedData(cacheKey, () => fetchFunction(tags, 'Medium'));
+          await this.getCachedData(cacheKey, () =>
+            fetchFunction(tags, "Medium")
+          );
         } catch (error) {
-          console.warn(`⚠️ Failed to preload strategies for ${tags.join(', ')}:`, error);
+          console.warn(
+            `⚠️ Failed to preload strategies for ${tags.join(", ")}:`,
+            error
+          );
         }
       }
     });
 
     await Promise.allSettled(preloadPromises);
     // eslint-disable-next-line no-console
-    console.log(`✅ Preloading completed for ${tagCombinations.length} combinations`);
+    console.log(
+      `✅ Preloading completed for ${tagCombinations.length} combinations`
+    );
   }
 
   /**
@@ -316,17 +330,26 @@ class StrategyCacheService {
    * @returns {Object} Performance and cache statistics
    */
   getStats() {
-    const hitRate = this.performanceMetrics.totalRequests > 0 
-      ? (this.performanceMetrics.cacheHits / this.performanceMetrics.totalRequests * 100).toFixed(2)
-      : 0;
+    const hitRate =
+      this.performanceMetrics.totalRequests > 0
+        ? (
+            (this.performanceMetrics.cacheHits /
+              this.performanceMetrics.totalRequests) *
+            100
+          ).toFixed(2)
+        : 0;
 
     return {
       ...this.performanceMetrics,
       hitRate: `${hitRate}%`,
       cacheSize: this.cache.size,
       maxSize: this.config.maxSize,
-      memoryUsageMB: (this.performanceMetrics.memoryUsage / 1024 / 1024).toFixed(2),
-      ongoingRequests: this.ongoingRequests.size
+      memoryUsageMB: (
+        this.performanceMetrics.memoryUsage /
+        1024 /
+        1024
+      ).toFixed(2),
+      ongoingRequests: this.ongoingRequests.size,
     };
   }
 
@@ -341,10 +364,10 @@ class StrategyCacheService {
       cacheMisses: 0,
       totalRequests: 0,
       averageQueryTime: 0,
-      memoryUsage: 0
+      memoryUsage: 0,
     };
     // eslint-disable-next-line no-console
-    console.log('🗑️ Cache cleared completely');
+    console.log("🗑️ Cache cleared completely");
   }
 
   /**
@@ -355,8 +378,8 @@ class StrategyCacheService {
    */
   static generateCacheKey(operation, ...params) {
     const key = params
-      .map(p => typeof p === 'object' ? JSON.stringify(p) : String(p))
-      .join(':');
+      .map((p) => (typeof p === "object" ? JSON.stringify(p) : String(p)))
+      .join(":");
     return `${operation}:${key}`;
   }
 }

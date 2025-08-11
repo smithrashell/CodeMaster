@@ -154,12 +154,12 @@
     min-width: 60px;
     min-height: 50px;
   }
-  
+
   #cm-timer {
     font-size: clamp(11px, 1.2vw, 14px);
     border-radius: clamp(4px, 0.8vw, 8px);
   }
-  
+
   .bread {
     padding: clamp(3px, 0.5vw, 5px);
     gap: clamp(2px, 0.3vw, 4px);

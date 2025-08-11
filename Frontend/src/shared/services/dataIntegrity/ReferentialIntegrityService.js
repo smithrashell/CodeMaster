@@ -1,31 +1,31 @@
 /**
  * Referential Integrity Service for CodeMaster
- * 
+ *
  * Enforces foreign key constraints and manages relationships between IndexedDB stores
  * to maintain data consistency across the application.
  */
 
-import { dbHelper } from '../../db/index.js';
-import DataIntegritySchemas from '../../utils/dataIntegrity/DataIntegritySchemas.js';
-import ErrorReportService from '../ErrorReportService.js';
+import { dbHelper } from "../../db/index.js";
+import DataIntegritySchemas from "../../utils/dataIntegrity/DataIntegritySchemas.js";
+import ErrorReportService from "../ErrorReportService.js";
 
 export class ReferentialIntegrityService {
   // Constraint violation types
   static VIOLATION_TYPES = {
-    ORPHANED_RECORD: 'orphaned_record',
-    MISSING_REFERENCE: 'missing_reference',
-    CIRCULAR_REFERENCE: 'circular_reference',
-    INVALID_REFERENCE: 'invalid_reference',
-    CONSTRAINT_VIOLATION: 'constraint_violation'
+    ORPHANED_RECORD: "orphaned_record",
+    MISSING_REFERENCE: "missing_reference",
+    CIRCULAR_REFERENCE: "circular_reference",
+    INVALID_REFERENCE: "invalid_reference",
+    CONSTRAINT_VIOLATION: "constraint_violation",
   };
 
   // Repair strategies
   static REPAIR_STRATEGIES = {
-    DELETE_ORPHAN: 'delete_orphan',
-    CREATE_REFERENCE: 'create_reference',
-    SET_NULL: 'set_null',
-    CASCADE_DELETE: 'cascade_delete',
-    MANUAL_REVIEW: 'manual_review'
+    DELETE_ORPHAN: "delete_orphan",
+    CREATE_REFERENCE: "create_reference",
+    SET_NULL: "set_null",
+    CASCADE_DELETE: "cascade_delete",
+    MANUAL_REVIEW: "manual_review",
   };
 
   static integrityCache = new Map();
@@ -42,10 +42,10 @@ export class ReferentialIntegrityService {
       includeOrphans = true,
       includeMissing = true,
       deepCheck = false,
-      useCache = true
+      useCache = true,
     } = options;
 
-    console.log('🔍 Starting comprehensive referential integrity check...');
+    console.log("🔍 Starting comprehensive referential integrity check...");
     const startTime = performance.now();
 
     const report = {
@@ -54,7 +54,7 @@ export class ReferentialIntegrityService {
         valid: true,
         violationCount: 0,
         storesChecked: 0,
-        constraintsChecked: 0
+        constraintsChecked: 0,
       },
       storeResults: {},
       violations: [],
@@ -62,30 +62,32 @@ export class ReferentialIntegrityService {
       performanceMetrics: {
         checkTime: 0,
         cacheHits: 0,
-        dbQueries: 0
-      }
+        dbQueries: 0,
+      },
     };
 
     try {
       const db = await dbHelper.openDB();
-      
+
       for (const storeName of stores) {
         if (!db.objectStoreNames.contains(storeName)) {
           console.warn(`Store '${storeName}' does not exist in database`);
           continue;
         }
 
-        console.log(`🔍 Checking referential integrity for store: ${storeName}`);
-        
+        console.log(
+          `🔍 Checking referential integrity for store: ${storeName}`
+        );
+
         const storeResult = await this.checkStoreReferentialIntegrity(
-          storeName, 
+          storeName,
           { includeOrphans, includeMissing, deepCheck, useCache }
         );
-        
+
         report.storeResults[storeName] = storeResult;
         report.overall.storesChecked++;
         report.overall.constraintsChecked += storeResult.constraintsChecked;
-        
+
         if (!storeResult.valid) {
           report.overall.valid = false;
           report.overall.violationCount += storeResult.violations.length;
@@ -93,8 +95,10 @@ export class ReferentialIntegrityService {
           report.repairSuggestions.push(...storeResult.repairSuggestions);
         }
 
-        report.performanceMetrics.cacheHits += storeResult.performanceMetrics.cacheHits;
-        report.performanceMetrics.dbQueries += storeResult.performanceMetrics.dbQueries;
+        report.performanceMetrics.cacheHits +=
+          storeResult.performanceMetrics.cacheHits;
+        report.performanceMetrics.dbQueries +=
+          storeResult.performanceMetrics.dbQueries;
       }
 
       const endTime = performance.now();
@@ -103,20 +107,25 @@ export class ReferentialIntegrityService {
       // Generate integrity score
       report.integrityScore = this.calculateIntegrityScore(report);
 
-      console.log(`✅ Referential integrity check completed in ${report.performanceMetrics.checkTime.toFixed(2)}ms`);
-      console.log(`📊 Integrity Score: ${report.integrityScore}% (${report.overall.violationCount} violations found)`);
+      console.log(
+        `✅ Referential integrity check completed in ${report.performanceMetrics.checkTime.toFixed(
+          2
+        )}ms`
+      );
+      console.log(
+        `📊 Integrity Score: ${report.integrityScore}% (${report.overall.violationCount} violations found)`
+      );
 
       return report;
-
     } catch (error) {
-      console.error('❌ Referential integrity check failed:', error);
+      console.error("❌ Referential integrity check failed:", error);
       report.overall.valid = false;
       report.error = {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       };
-      
-      await this.reportIntegrityError('check_all_integrity', error, report);
+
+      await this.reportIntegrityError("check_all_integrity", error, report);
       return report;
     }
   }
@@ -132,11 +141,11 @@ export class ReferentialIntegrityService {
       includeOrphans = true,
       includeMissing = true,
       deepCheck = false,
-      useCache = true
+      useCache = true,
     } = options;
 
     const cacheKey = `${storeName}_${JSON.stringify(options)}`;
-    
+
     // Check cache first
     if (useCache && this.integrityCache.has(cacheKey)) {
       const cached = this.integrityCache.get(cacheKey);
@@ -146,8 +155,8 @@ export class ReferentialIntegrityService {
           performanceMetrics: {
             ...cached.result.performanceMetrics,
             cacheHits: 1,
-            dbQueries: 0
-          }
+            dbQueries: 0,
+          },
         };
       }
     }
@@ -162,15 +171,18 @@ export class ReferentialIntegrityService {
       performanceMetrics: {
         checkTime: 0,
         cacheHits: 0,
-        dbQueries: 0
-      }
+        dbQueries: 0,
+      },
     };
 
     try {
-      const constraints = DataIntegritySchemas.getReferentialConstraints(storeName);
-      
+      const constraints =
+        DataIntegritySchemas.getReferentialConstraints(storeName);
+
       if (constraints.length === 0) {
-        console.log(`📝 No referential constraints defined for store: ${storeName}`);
+        console.log(
+          `📝 No referential constraints defined for store: ${storeName}`
+        );
         return result;
       }
 
@@ -180,38 +192,44 @@ export class ReferentialIntegrityService {
 
       for (const constraint of constraints) {
         result.constraintsChecked++;
-        console.log(`🔗 Checking constraint: ${storeName}.${constraint.field} -> ${constraint.references.store}.${constraint.references.field}`);
+        console.log(
+          `🔗 Checking constraint: ${storeName}.${constraint.field} -> ${constraint.references.store}.${constraint.references.field}`
+        );
 
         if (includeMissing) {
           const missingRefs = await this.findMissingReferences(
-            db, 
-            storeName, 
-            storeData, 
+            db,
+            storeName,
+            storeData,
             constraint,
             deepCheck
           );
-          
+
           if (missingRefs.length > 0) {
             result.valid = false;
             result.violations.push(...missingRefs);
-            result.repairSuggestions.push(...this.generateRepairSuggestions(missingRefs, constraint));
+            result.repairSuggestions.push(
+              ...this.generateRepairSuggestions(missingRefs, constraint)
+            );
           }
           result.performanceMetrics.dbQueries++;
         }
 
         if (includeOrphans) {
           const orphans = await this.findOrphanedRecords(
-            db, 
-            storeName, 
-            storeData, 
+            db,
+            storeName,
+            storeData,
             constraint,
             deepCheck
           );
-          
+
           if (orphans.length > 0) {
             result.valid = false;
             result.violations.push(...orphans);
-            result.repairSuggestions.push(...this.generateRepairSuggestions(orphans, constraint));
+            result.repairSuggestions.push(
+              ...this.generateRepairSuggestions(orphans, constraint)
+            );
           }
           result.performanceMetrics.dbQueries++;
         }
@@ -219,11 +237,17 @@ export class ReferentialIntegrityService {
 
       // Check for circular references if deep check is enabled
       if (deepCheck) {
-        const circularRefs = await this.findCircularReferences(db, storeName, storeData);
+        const circularRefs = await this.findCircularReferences(
+          db,
+          storeName,
+          storeData
+        );
         if (circularRefs.length > 0) {
           result.valid = false;
           result.violations.push(...circularRefs);
-          result.repairSuggestions.push(...this.generateRepairSuggestions(circularRefs));
+          result.repairSuggestions.push(
+            ...this.generateRepairSuggestions(circularRefs)
+          );
         }
         result.performanceMetrics.dbQueries++;
       }
@@ -235,21 +259,23 @@ export class ReferentialIntegrityService {
       if (useCache) {
         this.integrityCache.set(cacheKey, {
           timestamp: Date.now(),
-          result: { ...result }
+          result: { ...result },
         });
       }
 
       return result;
-
     } catch (error) {
       console.error(`❌ Store integrity check failed for ${storeName}:`, error);
       result.valid = false;
       result.error = {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       };
-      
-      await this.reportIntegrityError('check_store_integrity', error, { storeName, options });
+
+      await this.reportIntegrityError("check_store_integrity", error, {
+        storeName,
+        options,
+      });
       return result;
     }
   }
@@ -263,28 +289,45 @@ export class ReferentialIntegrityService {
    * @param {boolean} deepCheck - Whether to perform deep validation
    * @returns {Promise<Array>} - Array of violation objects
    */
-  static async findMissingReferences(db, storeName, storeData, constraint, deepCheck = false) {
+  static async findMissingReferences(
+    db,
+    storeName,
+    storeData,
+    constraint,
+    deepCheck = false
+  ) {
     const violations = [];
     const { field, references } = constraint;
     const { store: refStore, field: refField } = references;
 
     // Get referenced store data
     const referencedData = await this.getAllStoreData(db, refStore);
-    const referencedIds = new Set(referencedData.map(item => this.getFieldValue(item, refField)));
+    const referencedIds = new Set(
+      referencedData.map((item) => this.getFieldValue(item, refField))
+    );
 
     for (const record of storeData) {
       const foreignKeyValue = this.getFieldValue(record, field);
-      
+
       // Skip null/undefined references if not required
-      if (!constraint.required && (foreignKeyValue === null || foreignKeyValue === undefined)) {
+      if (
+        !constraint.required &&
+        (foreignKeyValue === null || foreignKeyValue === undefined)
+      ) {
         continue;
       }
 
       // Handle array of references (for nested structures)
-      const foreignKeyValues = Array.isArray(foreignKeyValue) ? foreignKeyValue : [foreignKeyValue];
+      const foreignKeyValues = Array.isArray(foreignKeyValue)
+        ? foreignKeyValue
+        : [foreignKeyValue];
 
       for (const fkValue of foreignKeyValues) {
-        if (fkValue !== null && fkValue !== undefined && !referencedIds.has(fkValue)) {
+        if (
+          fkValue !== null &&
+          fkValue !== undefined &&
+          !referencedIds.has(fkValue)
+        ) {
           const violation = {
             type: this.VIOLATION_TYPES.MISSING_REFERENCE,
             storeName,
@@ -293,8 +336,8 @@ export class ReferentialIntegrityService {
             value: fkValue,
             constraint,
             message: `Record references non-existent ${refStore}.${refField} = ${fkValue}`,
-            severity: constraint.required ? 'critical' : 'warning',
-            timestamp: new Date().toISOString()
+            severity: constraint.required ? "critical" : "warning",
+            timestamp: new Date().toISOString(),
           };
 
           if (deepCheck) {
@@ -319,23 +362,32 @@ export class ReferentialIntegrityService {
    * @param {boolean} deepCheck - Whether to perform deep validation
    * @returns {Promise<Array>} - Array of violation objects
    */
-  static async findOrphanedRecords(db, storeName, storeData, constraint, deepCheck = false) {
+  static async findOrphanedRecords(
+    db,
+    storeName,
+    storeData,
+    constraint,
+    deepCheck = false
+  ) {
     const violations = [];
-    
+
     // Find constraints where other stores reference this store
-    const reverseConstraints = this.findReverseConstraints(storeName, constraint);
-    
+    const reverseConstraints = this.findReverseConstraints(
+      storeName,
+      constraint
+    );
+
     for (const reverseConstraint of reverseConstraints) {
       const referencingStore = reverseConstraint.storeName;
       const referencingData = await this.getAllStoreData(db, referencingStore);
-      
+
       // Get all foreign key values that reference this store
       const referencedIds = new Set();
       for (const record of referencingData) {
         const fkValue = this.getFieldValue(record, reverseConstraint.field);
         if (fkValue !== null && fkValue !== undefined) {
           if (Array.isArray(fkValue)) {
-            fkValue.forEach(val => referencedIds.add(val));
+            fkValue.forEach((val) => referencedIds.add(val));
           } else {
             referencedIds.add(fkValue);
           }
@@ -344,8 +396,11 @@ export class ReferentialIntegrityService {
 
       // Find records in current store that are not referenced
       for (const record of storeData) {
-        const recordId = this.getFieldValue(record, constraint.references.field);
-        
+        const recordId = this.getFieldValue(
+          record,
+          constraint.references.field
+        );
+
         if (recordId && !referencedIds.has(recordId)) {
           const violation = {
             type: this.VIOLATION_TYPES.ORPHANED_RECORD,
@@ -355,8 +410,8 @@ export class ReferentialIntegrityService {
             value: recordId,
             referencingStore,
             message: `Record is not referenced by any ${referencingStore} records`,
-            severity: 'warning',
-            timestamp: new Date().toISOString()
+            severity: "warning",
+            timestamp: new Date().toISOString(),
           };
 
           if (deepCheck) {
@@ -381,9 +436,9 @@ export class ReferentialIntegrityService {
    */
   static async findCircularReferences(db, storeName, storeData) {
     const violations = [];
-    
+
     // Only check stores that might have circular references
-    if (!['problem_relationships', 'tag_relationships'].includes(storeName)) {
+    if (!["problem_relationships", "tag_relationships"].includes(storeName)) {
       return violations;
     }
 
@@ -395,15 +450,15 @@ export class ReferentialIntegrityService {
         // Found a cycle
         const cycleStart = path.indexOf(recordId);
         const cyclePath = path.slice(cycleStart).concat(recordId);
-        
+
         return {
           type: this.VIOLATION_TYPES.CIRCULAR_REFERENCE,
           storeName,
           recordId,
           path: cyclePath,
-          message: `Circular reference detected: ${cyclePath.join(' -> ')}`,
-          severity: 'warning',
-          timestamp: new Date().toISOString()
+          message: `Circular reference detected: ${cyclePath.join(" -> ")}`,
+          severity: "warning",
+          timestamp: new Date().toISOString(),
         };
       }
 
@@ -415,8 +470,12 @@ export class ReferentialIntegrityService {
       recursionStack.add(recordId);
 
       // Find related records based on store type
-      const relatedRecords = this.getRelatedRecords(storeData, recordId, storeName);
-      
+      const relatedRecords = this.getRelatedRecords(
+        storeData,
+        recordId,
+        storeName
+      );
+
       for (const relatedId of relatedRecords) {
         const violation = detectCycle(relatedId, [...path, recordId]);
         if (violation) {
@@ -454,7 +513,7 @@ export class ReferentialIntegrityService {
 
     for (const record of storeData) {
       switch (storeName) {
-        case 'problem_relationships':
+        case "problem_relationships":
           if (record.problemId1 === recordId) {
             relatedIds.push(record.problemId2);
           }
@@ -462,7 +521,7 @@ export class ReferentialIntegrityService {
             relatedIds.push(record.problemId1);
           }
           break;
-        case 'tag_relationships':
+        case "tag_relationships":
           if (record.id === recordId && record.parentTag) {
             relatedIds.push(record.parentTag);
           }
@@ -496,7 +555,7 @@ export class ReferentialIntegrityService {
             storeName,
             field: storeConstraint.field,
             references: storeConstraint.references,
-            required: storeConstraint.required
+            required: storeConstraint.required,
           });
         }
       }
@@ -521,19 +580,21 @@ export class ReferentialIntegrityService {
         case this.VIOLATION_TYPES.MISSING_REFERENCE:
           suggestion = {
             violationId: this.getViolationId(violation),
-            strategy: constraint?.required ? this.REPAIR_STRATEGIES.MANUAL_REVIEW : this.REPAIR_STRATEGIES.SET_NULL,
-            description: constraint?.required 
-              ? 'Manual review required - critical reference missing'
-              : 'Set foreign key to null',
+            strategy: constraint?.required
+              ? this.REPAIR_STRATEGIES.MANUAL_REVIEW
+              : this.REPAIR_STRATEGIES.SET_NULL,
+            description: constraint?.required
+              ? "Manual review required - critical reference missing"
+              : "Set foreign key to null",
             automated: !constraint?.required,
-            risk: constraint?.required ? 'high' : 'low',
+            risk: constraint?.required ? "high" : "low",
             action: {
-              type: 'update',
+              type: "update",
               storeName: violation.storeName,
               recordId: violation.recordId,
               field: violation.field,
-              newValue: constraint?.required ? undefined : null
-            }
+              newValue: constraint?.required ? undefined : null,
+            },
           };
           break;
 
@@ -541,14 +602,14 @@ export class ReferentialIntegrityService {
           suggestion = {
             violationId: this.getViolationId(violation),
             strategy: this.REPAIR_STRATEGIES.DELETE_ORPHAN,
-            description: 'Delete orphaned record (no references)',
+            description: "Delete orphaned record (no references)",
             automated: true,
-            risk: 'medium',
+            risk: "medium",
             action: {
-              type: 'delete',
+              type: "delete",
               storeName: violation.storeName,
-              recordId: violation.recordId
-            }
+              recordId: violation.recordId,
+            },
           };
           break;
 
@@ -556,14 +617,14 @@ export class ReferentialIntegrityService {
           suggestion = {
             violationId: this.getViolationId(violation),
             strategy: this.REPAIR_STRATEGIES.MANUAL_REVIEW,
-            description: 'Manual review required - circular reference detected',
+            description: "Manual review required - circular reference detected",
             automated: false,
-            risk: 'high',
+            risk: "high",
             action: {
-              type: 'manual',
+              type: "manual",
               storeName: violation.storeName,
-              cyclePath: violation.path
-            }
+              cyclePath: violation.path,
+            },
           };
           break;
 
@@ -571,9 +632,9 @@ export class ReferentialIntegrityService {
           suggestion = {
             violationId: this.getViolationId(violation),
             strategy: this.REPAIR_STRATEGIES.MANUAL_REVIEW,
-            description: 'Manual review required - unknown violation type',
+            description: "Manual review required - unknown violation type",
             automated: false,
-            risk: 'high'
+            risk: "high",
           };
           break;
       }
@@ -595,10 +656,14 @@ export class ReferentialIntegrityService {
       dryRun = false,
       automatedOnly = true,
       maxRepairs = 100,
-      createBackup = true
+      createBackup = true,
     } = options;
 
-    console.log(`🔧 Executing ${dryRun ? 'dry run' : 'actual'} repairs for ${suggestions.length} suggestions...`);
+    console.log(
+      `🔧 Executing ${dryRun ? "dry run" : "actual"} repairs for ${
+        suggestions.length
+      } suggestions...`
+    );
 
     const result = {
       attempted: 0,
@@ -606,7 +671,7 @@ export class ReferentialIntegrityService {
       failed: 0,
       skipped: 0,
       results: [],
-      backup: null
+      backup: null,
     };
 
     try {
@@ -618,16 +683,16 @@ export class ReferentialIntegrityService {
 
       const db = await dbHelper.openDB();
       const suitableRepairs = suggestions
-        .filter(s => !automatedOnly || s.automated)
+        .filter((s) => !automatedOnly || s.automated)
         .slice(0, maxRepairs);
 
       for (const suggestion of suitableRepairs) {
         try {
           result.attempted++;
-          
+
           const repairResult = await this.executeRepair(db, suggestion, dryRun);
           result.results.push(repairResult);
-          
+
           if (repairResult.success) {
             result.successful++;
             console.log(`✅ Repair successful: ${suggestion.description}`);
@@ -635,14 +700,13 @@ export class ReferentialIntegrityService {
             result.failed++;
             console.error(`❌ Repair failed: ${repairResult.error}`);
           }
-
         } catch (error) {
           result.failed++;
           result.results.push({
             violationId: suggestion.violationId,
             success: false,
             error: error.message,
-            suggestion
+            suggestion,
           });
           console.error(`❌ Repair exception:`, error);
         }
@@ -650,18 +714,22 @@ export class ReferentialIntegrityService {
 
       result.skipped = suggestions.length - result.attempted;
 
-      console.log(`🏁 Repair execution completed: ${result.successful} successful, ${result.failed} failed, ${result.skipped} skipped`);
+      console.log(
+        `🏁 Repair execution completed: ${result.successful} successful, ${result.failed} failed, ${result.skipped} skipped`
+      );
 
       return result;
-
     } catch (error) {
-      console.error('❌ Repair execution failed:', error);
+      console.error("❌ Repair execution failed:", error);
       result.error = {
         message: error.message,
-        stack: error.stack
+        stack: error.stack,
       };
-      
-      await this.reportIntegrityError('execute_repairs', error, { suggestions, options });
+
+      await this.reportIntegrityError("execute_repairs", error, {
+        suggestions,
+        options,
+      });
       return result;
     }
   }
@@ -675,27 +743,27 @@ export class ReferentialIntegrityService {
    */
   static async executeRepair(db, suggestion, dryRun = false) {
     const { action } = suggestion;
-    
+
     if (dryRun) {
       return {
         violationId: suggestion.violationId,
         success: true,
         dryRun: true,
         action: action.type,
-        description: `Would ${action.type} ${action.storeName} record`
+        description: `Would ${action.type} ${action.storeName} record`,
       };
     }
 
     switch (action.type) {
-      case 'update':
+      case "update":
         return await this.executeUpdateRepair(db, action);
-      case 'delete':
+      case "delete":
         return await this.executeDeleteRepair(db, action);
       default:
         return {
           violationId: suggestion.violationId,
           success: false,
-          error: `Unsupported repair action: ${action.type}`
+          error: `Unsupported repair action: ${action.type}`,
         };
     }
   }
@@ -708,19 +776,19 @@ export class ReferentialIntegrityService {
    */
   static async executeUpdateRepair(db, action) {
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([action.storeName], 'readwrite');
+      const transaction = db.transaction([action.storeName], "readwrite");
       const store = transaction.objectStore(action.storeName);
-      
+
       // Get the record first
       const getRequest = store.get(action.recordId);
-      
+
       getRequest.onsuccess = () => {
         const record = getRequest.result;
         if (!record) {
           resolve({
             violationId: action.violationId,
             success: false,
-            error: 'Record not found'
+            error: "Record not found",
           });
           return;
         }
@@ -731,14 +799,14 @@ export class ReferentialIntegrityService {
 
         // Save the updated record
         const putRequest = store.put(record);
-        
+
         putRequest.onsuccess = () => {
           resolve({
             violationId: action.violationId,
             success: true,
-            action: 'updated',
+            action: "updated",
             field: action.field,
-            newValue: action.newValue
+            newValue: action.newValue,
           });
         };
 
@@ -746,7 +814,7 @@ export class ReferentialIntegrityService {
           resolve({
             violationId: action.violationId,
             success: false,
-            error: putRequest.error?.message || 'Update failed'
+            error: putRequest.error?.message || "Update failed",
           });
         };
       };
@@ -755,7 +823,7 @@ export class ReferentialIntegrityService {
         resolve({
           violationId: action.violationId,
           success: false,
-          error: getRequest.error?.message || 'Failed to get record'
+          error: getRequest.error?.message || "Failed to get record",
         });
       };
     });
@@ -769,17 +837,17 @@ export class ReferentialIntegrityService {
    */
   static async executeDeleteRepair(db, action) {
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([action.storeName], 'readwrite');
+      const transaction = db.transaction([action.storeName], "readwrite");
       const store = transaction.objectStore(action.storeName);
-      
+
       const deleteRequest = store.delete(action.recordId);
-      
+
       deleteRequest.onsuccess = () => {
         resolve({
           violationId: action.violationId,
           success: true,
-          action: 'deleted',
-          recordId: action.recordId
+          action: "deleted",
+          recordId: action.recordId,
         });
       };
 
@@ -787,7 +855,7 @@ export class ReferentialIntegrityService {
         resolve({
           violationId: action.violationId,
           success: false,
-          error: deleteRequest.error?.message || 'Delete failed'
+          error: deleteRequest.error?.message || "Delete failed",
         });
       };
     });
@@ -800,14 +868,14 @@ export class ReferentialIntegrityService {
   static async createRepairBackup() {
     // This would integrate with the existing backup system
     const backupId = `integrity_repair_${Date.now()}`;
-    
+
     // For now, return a mock backup object
     // In production, this would call the actual backup service
     return {
       backupId,
       timestamp: new Date().toISOString(),
-      type: 'integrity_repair',
-      description: 'Backup created before referential integrity repairs'
+      type: "integrity_repair",
+      description: "Backup created before referential integrity repairs",
     };
   }
 
@@ -819,7 +887,7 @@ export class ReferentialIntegrityService {
   static calculateIntegrityScore(report) {
     const totalConstraints = report.overall.constraintsChecked;
     const violations = report.overall.violationCount;
-    
+
     if (totalConstraints === 0) {
       return 100; // Perfect score if no constraints to check
     }
@@ -828,10 +896,10 @@ export class ReferentialIntegrityService {
     let weightedViolations = 0;
     for (const violation of report.violations) {
       switch (violation.severity) {
-        case 'critical':
+        case "critical":
           weightedViolations += 3;
           break;
-        case 'warning':
+        case "warning":
           weightedViolations += 1;
           break;
         default:
@@ -842,8 +910,11 @@ export class ReferentialIntegrityService {
 
     // Calculate score (violations reduce score more than constraints)
     const maxPossibleScore = totalConstraints * 3; // Assuming all could be critical
-    const score = Math.max(0, ((maxPossibleScore - weightedViolations) / maxPossibleScore) * 100);
-    
+    const score = Math.max(
+      0,
+      ((maxPossibleScore - weightedViolations) / maxPossibleScore) * 100
+    );
+
     return Math.round(score);
   }
 
@@ -851,7 +922,7 @@ export class ReferentialIntegrityService {
 
   static async getAllStoreData(db, storeName) {
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([storeName], 'readonly');
+      const transaction = db.transaction([storeName], "readonly");
       const store = transaction.objectStore(storeName);
       const request = store.getAll();
 
@@ -862,53 +933,62 @@ export class ReferentialIntegrityService {
 
   static getFieldValue(record, fieldPath) {
     if (!fieldPath) return undefined;
-    
-    const fields = fieldPath.split('.');
+
+    const fields = fieldPath.split(".");
     let value = record;
-    
+
     for (const field of fields) {
-      if (value && typeof value === 'object') {
+      if (value && typeof value === "object") {
         value = value[field];
       } else {
         return undefined;
       }
     }
-    
+
     return value;
   }
 
   static setFieldValue(record, fieldPath, value) {
-    const fields = fieldPath.split('.');
+    const fields = fieldPath.split(".");
     let current = record;
-    
+
     for (let i = 0; i < fields.length - 1; i++) {
       if (!current[fields[i]]) {
         current[fields[i]] = {};
       }
       current = current[fields[i]];
     }
-    
+
     current[fields[fields.length - 1]] = value;
   }
 
   static getRecordId(record) {
     // Try common ID fields
-    return record.id || record.leetCodeID || record.tag || record.sessionId || 
-           record.backupId || record.problemId || 'unknown';
+    return (
+      record.id ||
+      record.leetCodeID ||
+      record.tag ||
+      record.sessionId ||
+      record.backupId ||
+      record.problemId ||
+      "unknown"
+    );
   }
 
   static getViolationId(violation) {
-    return `${violation.storeName}_${violation.type}_${violation.recordId}_${Date.now()}`;
+    return `${violation.storeName}_${violation.type}_${
+      violation.recordId
+    }_${Date.now()}`;
   }
 
   static sanitizeRecord(record) {
     // Return a safe preview of the record for logging
     const preview = {};
     for (const [key, value] of Object.entries(record)) {
-      if (typeof value === 'string' && value.length > 50) {
-        preview[key] = value.substring(0, 50) + '...';
+      if (typeof value === "string" && value.length > 50) {
+        preview[key] = value.substring(0, 50) + "...";
       } else if (Array.isArray(value) && value.length > 5) {
-        preview[key] = value.slice(0, 5).concat(['...']);
+        preview[key] = value.slice(0, 5).concat(["..."]);
       } else {
         preview[key] = value;
       }
@@ -919,16 +999,18 @@ export class ReferentialIntegrityService {
   static async reportIntegrityError(operation, error, context) {
     try {
       await ErrorReportService.storeErrorReport({
-        errorId: `integrity_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        errorId: `integrity_${Date.now()}_${Math.random()
+          .toString(36)
+          .substr(2, 9)}`,
         message: `Referential integrity ${operation} failed: ${error.message}`,
         stack: error.stack,
-        section: 'Data Integrity',
-        errorType: 'referential_integrity',
-        severity: 'high',
-        userContext: context
+        section: "Data Integrity",
+        errorType: "referential_integrity",
+        severity: "high",
+        userContext: context,
       });
     } catch (reportError) {
-      console.warn('Failed to report integrity error:', reportError);
+      console.warn("Failed to report integrity error:", reportError);
     }
   }
 
@@ -937,7 +1019,7 @@ export class ReferentialIntegrityService {
    */
   static clearCache() {
     this.integrityCache.clear();
-    console.log('🗑️ Referential integrity cache cleared');
+    console.log("🗑️ Referential integrity cache cleared");
   }
 
   /**
@@ -948,7 +1030,7 @@ export class ReferentialIntegrityService {
     return {
       size: this.integrityCache.size,
       timeout: this.cacheTimeout,
-      keys: Array.from(this.integrityCache.keys())
+      keys: Array.from(this.integrityCache.keys()),
     };
   }
 }

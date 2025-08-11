@@ -9,8 +9,8 @@ import "fake-indexeddb/auto";
 // Mock the database helper
 jest.mock("../index.js", () => ({
   dbHelper: {
-    openDB: jest.fn()
-  }
+    openDB: jest.fn(),
+  },
 }));
 
 import { calculateTagMastery, getTagMastery } from "../tag_mastery";
@@ -28,7 +28,7 @@ describe("TagMastery Calculation Algorithms", () => {
       const request = {
         onsuccess: null,
         onerror: null,
-        result: callCount++ === 0 ? userProblems : standardProblems
+        result: callCount++ === 0 ? userProblems : standardProblems,
       };
       // Simulate async callback
       setTimeout(() => {
@@ -45,18 +45,18 @@ describe("TagMastery Calculation Algorithms", () => {
     mockObjectStore = {
       getAll: jest.fn(),
       put: jest.fn(),
-      get: jest.fn()
+      get: jest.fn(),
     };
 
     mockTransaction = {
       objectStore: jest.fn(() => mockObjectStore),
       oncomplete: null,
       onerror: null,
-      onabort: null
+      onabort: null,
     };
 
     mockDB = {
-      transaction: jest.fn(() => mockTransaction)
+      transaction: jest.fn(() => mockTransaction),
     };
 
     dbHelper.openDB.mockResolvedValue(mockDB);
@@ -73,15 +73,13 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["array"],
           AttemptStats: {
             TotalAttempts: 10,
-            SuccessfulAttempts: 9
+            SuccessfulAttempts: 9,
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["array", "hash-table"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["array", "hash-table"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -92,7 +90,7 @@ describe("TagMastery Calculation Algorithms", () => {
         const request = {
           onsuccess: null,
           onerror: null,
-          result: data
+          result: data,
         };
         // Simulate async callback
         setTimeout(() => {
@@ -110,7 +108,7 @@ describe("TagMastery Calculation Algorithms", () => {
       await calculateTagMastery();
 
       // Assert
-      const arrayMastery = savedData.find(d => d.tag === "array");
+      const arrayMastery = savedData.find((d) => d.tag === "array");
       expect(arrayMastery).toBeDefined();
       expect(arrayMastery.totalAttempts).toBe(10);
       expect(arrayMastery.successfulAttempts).toBe(9);
@@ -125,15 +123,13 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["dynamic-programming"],
           AttemptStats: {
             TotalAttempts: 8,
-            SuccessfulAttempts: 6
+            SuccessfulAttempts: 6,
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["dynamic-programming"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["dynamic-programming"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -141,14 +137,14 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert
-      const dpMastery = savedData.find(d => d.tag === "dynamic-programming");
+      const dpMastery = savedData.find((d) => d.tag === "dynamic-programming");
       expect(dpMastery).toBeDefined();
       expect(dpMastery.totalAttempts).toBe(8);
       expect(dpMastery.successfulAttempts).toBe(6);
@@ -164,15 +160,13 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["graph"],
           AttemptStats: {
             TotalAttempts: 12,
-            SuccessfulAttempts: 9
+            SuccessfulAttempts: 9,
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["graph"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["graph"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -180,19 +174,21 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert
-      const graphMastery = savedData.find(d => d.tag === "graph");
+      const graphMastery = savedData.find((d) => d.tag === "graph");
       expect(graphMastery).toBeDefined();
       expect(graphMastery.totalAttempts).toBe(12);
       expect(graphMastery.successfulAttempts).toBe(9);
       expect(graphMastery.mastered).toBe(true); // Should be true due to moderate escape hatch
-      expect(graphMastery.successfulAttempts / graphMastery.totalAttempts).toBe(0.75); // 75%
+      expect(graphMastery.successfulAttempts / graphMastery.totalAttempts).toBe(
+        0.75
+      ); // 75%
     });
 
     it.skip("should activate heavy struggle escape hatch (60% threshold)", async () => {
@@ -203,15 +199,13 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["backtracking"],
           AttemptStats: {
             TotalAttempts: 20,
-            SuccessfulAttempts: 13 // 65% success rate
+            SuccessfulAttempts: 13, // 65% success rate
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["backtracking"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["backtracking"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -219,20 +213,25 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert
-      const backtrackingMastery = savedData.find(d => d.tag === "backtracking");
+      const backtrackingMastery = savedData.find(
+        (d) => d.tag === "backtracking"
+      );
       expect(backtrackingMastery).toBeDefined();
       expect(backtrackingMastery.totalAttempts).toBe(20);
       expect(backtrackingMastery.successfulAttempts).toBe(13);
       expect(backtrackingMastery.mastered).toBe(true); // Should be true due to heavy escape hatch
-      expect(backtrackingMastery.successfulAttempts / backtrackingMastery.totalAttempts).toBe(0.65); // 65%
-      
+      expect(
+        backtrackingMastery.successfulAttempts /
+          backtrackingMastery.totalAttempts
+      ).toBe(0.65); // 65%
+
       // Verify failed attempts count: 20 - 13 = 7 failed attempts
       // Note: The heavy escape is based on failed attempts >= 15, so this might not trigger
       // Let me adjust the test data
@@ -246,15 +245,13 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["backtracking"],
           AttemptStats: {
             TotalAttempts: 25,
-            SuccessfulAttempts: 15 // 60% success rate, 10 failed attempts
+            SuccessfulAttempts: 15, // 60% success rate, 10 failed attempts
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["backtracking"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["backtracking"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -262,14 +259,16 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert
-      const backtrackingMastery = savedData.find(d => d.tag === "backtracking");
+      const backtrackingMastery = savedData.find(
+        (d) => d.tag === "backtracking"
+      );
       expect(backtrackingMastery).toBeDefined();
       expect(backtrackingMastery.totalAttempts).toBe(25);
       expect(backtrackingMastery.successfulAttempts).toBe(15);
@@ -284,15 +283,13 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["tree"],
           AttemptStats: {
             TotalAttempts: 6,
-            SuccessfulAttempts: 3 // 50% success rate, only 6 attempts
+            SuccessfulAttempts: 3, // 50% success rate, only 6 attempts
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["tree"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["tree"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -300,14 +297,14 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert
-      const treeMastery = savedData.find(d => d.tag === "tree");
+      const treeMastery = savedData.find((d) => d.tag === "tree");
       expect(treeMastery).toBeDefined();
       expect(treeMastery.totalAttempts).toBe(6);
       expect(treeMastery.successfulAttempts).toBe(3);
@@ -323,15 +320,13 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["linked-list"],
           AttemptStats: {
             TotalAttempts: 5,
-            SuccessfulAttempts: 2 // 40% success rate
+            SuccessfulAttempts: 2, // 40% success rate
           },
-          lastAttemptDate: oldDate
-        }
+          lastAttemptDate: oldDate,
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["linked-list"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["linked-list"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -339,14 +334,14 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert
-      const linkedListMastery = savedData.find(d => d.tag === "linked-list");
+      const linkedListMastery = savedData.find((d) => d.tag === "linked-list");
       expect(linkedListMastery).toBeDefined();
       expect(linkedListMastery.decayScore).toBeGreaterThan(0); // Should have positive decay
       expect(linkedListMastery.mastered).toBe(false);
@@ -360,14 +355,14 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["array", "two-pointers", "hash-table"],
           AttemptStats: {
             TotalAttempts: 10,
-            SuccessfulAttempts: 8 // 80% success rate
+            SuccessfulAttempts: 8, // 80% success rate
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
+        },
       ];
 
       const standardProblems = [
-        { id: 1, tags: ["array", "two-pointers", "hash-table"] }
+        { id: 1, tags: ["array", "two-pointers", "hash-table"] },
       ];
 
       setupMockData(userProblems, standardProblems);
@@ -376,7 +371,7 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
@@ -384,17 +379,21 @@ describe("TagMastery Calculation Algorithms", () => {
 
       // Assert
       expect(savedData).toHaveLength(3); // Should have mastery records for all 3 tags
-      
-      const arrayMastery = savedData.find(d => d.tag === "array");
-      const twoPointersMastery = savedData.find(d => d.tag === "two-pointers");
-      const hashTableMastery = savedData.find(d => d.tag === "hash-table");
-      
+
+      const arrayMastery = savedData.find((d) => d.tag === "array");
+      const twoPointersMastery = savedData.find(
+        (d) => d.tag === "two-pointers"
+      );
+      const hashTableMastery = savedData.find((d) => d.tag === "hash-table");
+
       // All should have same stats since they come from same problem
-      [arrayMastery, twoPointersMastery, hashTableMastery].forEach(mastery => {
-        expect(mastery.totalAttempts).toBe(10);
-        expect(mastery.successfulAttempts).toBe(8);
-        expect(mastery.mastered).toBe(true); // 80% meets threshold
-      });
+      [arrayMastery, twoPointersMastery, hashTableMastery].forEach(
+        (mastery) => {
+          expect(mastery.totalAttempts).toBe(10);
+          expect(mastery.successfulAttempts).toBe(8);
+          expect(mastery.mastered).toBe(true); // 80% meets threshold
+        }
+      );
     });
 
     it.skip("should handle problems with no attempts gracefully", async () => {
@@ -403,7 +402,7 @@ describe("TagMastery Calculation Algorithms", () => {
 
       const standardProblems = [
         { id: 1, tags: ["math"] },
-        { id: 2, tags: ["string"] }
+        { id: 2, tags: ["string"] },
       ];
 
       setupMockData(userProblems, standardProblems);
@@ -412,22 +411,22 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert - Should create mastery records with zero attempts
-      const mathMastery = savedData.find(d => d.tag === "math");
-      const stringMastery = savedData.find(d => d.tag === "string");
-      
+      const mathMastery = savedData.find((d) => d.tag === "math");
+      const stringMastery = savedData.find((d) => d.tag === "string");
+
       expect(mathMastery).toBeDefined();
       expect(mathMastery.totalAttempts).toBe(0);
       expect(mathMastery.successfulAttempts).toBe(0);
       expect(mathMastery.mastered).toBe(false);
       expect(mathMastery.decayScore).toBe(1); // Default decay score
-      
+
       expect(stringMastery).toBeDefined();
       expect(stringMastery.totalAttempts).toBe(0);
       expect(stringMastery.successfulAttempts).toBe(0);
@@ -442,24 +441,24 @@ describe("TagMastery Calculation Algorithms", () => {
           tags: ["sliding-window"],
           AttemptStats: {
             TotalAttempts: 5,
-            SuccessfulAttempts: 4
+            SuccessfulAttempts: 4,
           },
-          lastAttemptDate: new Date("2024-01-15").toISOString()
+          lastAttemptDate: new Date("2024-01-15").toISOString(),
         },
         {
           id: 2,
           tags: ["sliding-window"],
           AttemptStats: {
             TotalAttempts: 7,
-            SuccessfulAttempts: 5
+            SuccessfulAttempts: 5,
           },
-          lastAttemptDate: new Date("2024-01-20").toISOString()
-        }
+          lastAttemptDate: new Date("2024-01-20").toISOString(),
+        },
       ];
 
       const standardProblems = [
         { id: 1, tags: ["sliding-window"] },
-        { id: 2, tags: ["sliding-window"] }
+        { id: 2, tags: ["sliding-window"] },
       ];
 
       setupMockData(userProblems, standardProblems);
@@ -468,14 +467,16 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act
       await calculateTagMastery();
 
       // Assert
-      const slidingWindowMastery = savedData.find(d => d.tag === "sliding-window");
+      const slidingWindowMastery = savedData.find(
+        (d) => d.tag === "sliding-window"
+      );
       expect(slidingWindowMastery).toBeDefined();
       expect(slidingWindowMastery.totalAttempts).toBe(12); // 5 + 7
       expect(slidingWindowMastery.successfulAttempts).toBe(9); // 4 + 5
@@ -486,7 +487,9 @@ describe("TagMastery Calculation Algorithms", () => {
   describe("Edge Cases and Error Handling", () => {
     it.skip("should handle database errors gracefully", async () => {
       // Arrange
-      dbHelper.openDB.mockRejectedValue(new Error("Database connection failed"));
+      dbHelper.openDB.mockRejectedValue(
+        new Error("Database connection failed")
+      );
 
       // Act & Assert
       await expect(() => calculateTagMastery()).not.toThrow();
@@ -499,21 +502,19 @@ describe("TagMastery Calculation Algorithms", () => {
         {
           id: 1,
           tags: "not-an-array", // Should be array
-          AttemptStats: null // Should be object
+          AttemptStats: null, // Should be object
         },
         {
           id: 2,
           // Missing tags entirely
           AttemptStats: {
             TotalAttempts: "5", // Should be number
-            SuccessfulAttempts: 3
-          }
-        }
+            SuccessfulAttempts: 3,
+          },
+        },
       ];
 
-      const standardProblems = [
-        { id: 1, tags: ["array"] }
-      ];
+      const standardProblems = [{ id: 1, tags: ["array"] }];
 
       setupMockData(userProblems, standardProblems);
 
@@ -521,7 +522,7 @@ describe("TagMastery Calculation Algorithms", () => {
       mockObjectStore.put.mockImplementation((data) => ({
         onsuccess: null,
         onerror: null,
-        result: savedData.push(data)
+        result: savedData.push(data),
       }));
 
       // Act

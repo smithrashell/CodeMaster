@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaPause, FaPlay, FaArrowRight } from "react-icons/fa";
 import { AiOutlineClear } from "react-icons/ai";
@@ -16,7 +22,7 @@ const TimerBanner = (props) => {
   const [countdownVisible, setCountdownVisible] = useState(false);
   const [countdownValue, setCountdownValue] = useState(null);
   const [displayTime, setDisplayTime] = useState(0); // For display purposes only
-  
+
   // Soft warning system states
   const [timeWarningLevel, setTimeWarningLevel] = useState(0); // 0=none, 1=75%, 2=100%, 3=150%
   const [showStillWorkingPrompt, setShowStillWorkingPrompt] = useState(false);
@@ -59,14 +65,13 @@ const TimerBanner = (props) => {
     // 2. Improve hint relevance algorithms
     // 3. Analyze user engagement patterns
     // 4. Build personalized hint recommendations
-    
     // Future: Send to analytics service or store locally
     // AnalyticsService.trackHintUsage(hintData);
   }, []);
 
   const toggleTimer = () => {
     if (!timerRef.current) return;
-    
+
     if (timerRef.current.isRunning) {
       handleStop();
     } else {
@@ -80,32 +85,34 @@ const TimerBanner = (props) => {
     loading,
     error,
   } = useChromeMessage(
-    state?.LeetCodeID ? { 
-      type: "getLimits", 
-      id: state.LeetCodeID
-    } : null,
+    state?.LeetCodeID
+      ? {
+          type: "getLimits",
+          id: state.LeetCodeID,
+        }
+      : null,
     [state?.LeetCodeID],
     {
       onSuccess: (response) => {
         // Adaptive limits received and processed
         const limitInMinutes = response.limits.Time;
         const limitInSeconds = AccurateTimer.minutesToSeconds(limitInMinutes);
-        
+
         // Check if we're in unlimited mode
         const adaptiveLimits = response.limits.adaptiveLimits;
         const unlimited = adaptiveLimits?.isUnlimited || limitInMinutes >= 999;
         setIsUnlimitedMode(unlimited);
-        
+
         // Always initialize timer as elapsed time counter (counting up from 0)
-        timerRef.current = new AccurateTimer(0); 
+        timerRef.current = new AccurateTimer(0);
         setDisplayTime(0);
-        
+
         // Store the recommended limit for reference/warnings but don't enforce it
         timerRef.current.recommendedLimit = limitInSeconds;
         timerRef.current.isUnlimited = unlimited;
-        
+
         // Timer initialized as elapsed time counter
-        
+
         // Adaptive limits configured
       },
     }
@@ -123,12 +130,12 @@ const TimerBanner = (props) => {
       intervalIdRef.current = setInterval(() => {
         const elapsedTime = timerRef.current.getElapsedTime();
         setDisplayTime(elapsedTime); // Always show elapsed time counting up
-        
+
         // Only show warnings if we have a recommended limit (not unlimited mode)
         if (!isUnlimitedMode && timerRef.current.recommendedLimit > 0) {
           const recommendedLimit = timerRef.current.recommendedLimit;
           const timeProgress = elapsedTime / recommendedLimit;
-          
+
           if (timeProgress >= 1.5 && timeWarningLevel < 3) {
             setTimeWarningLevel(3); // 150% - suggest moving on
           } else if (timeProgress >= 1.0 && timeWarningLevel < 2) {
@@ -187,7 +194,7 @@ const TimerBanner = (props) => {
 
     timerRef.current.pause();
     setIsTimerRunning(false);
-    
+
     if (intervalIdRef.current) {
       clearInterval(intervalIdRef.current);
       intervalIdRef.current = null;
@@ -205,25 +212,28 @@ const TimerBanner = (props) => {
     handleStop();
     if (state !== null && timerRef.current) {
       let problem = { ...state };
-      
+
       // Calculate accurate time spent using AccurateTimer
       const timeSpentInSeconds = timerRef.current.getElapsedTime();
-      const timeSpentInMinutes = AccurateTimer.secondsToMinutes(timeSpentInSeconds, 1);
+      const timeSpentInMinutes = AccurateTimer.secondsToMinutes(
+        timeSpentInSeconds,
+        1
+      );
       const totalTimeInSeconds = timerRef.current.totalTimeInSeconds;
       const overageTime = Math.max(0, timeSpentInSeconds - totalTimeInSeconds);
-      
+
       // Ensure minimum time of 1 minute for valid submissions
       problem["Time"] = Math.max(1, Math.round(timeSpentInMinutes));
-      
+
       // Enhanced time tracking for soft limits
       problem["timeSpentInSeconds"] = timeSpentInSeconds;
       problem["exceededRecommendedTime"] = exceededRecommendedTime;
       problem["overageTime"] = overageTime;
       problem["userIntent"] = userIntent;
       problem["timeWarningLevel"] = timeWarningLevel;
-      
+
       // Problem completion recorded
-      
+
       setOpen(false);
       navigate("/Probtime", { state: problem });
     }
@@ -231,17 +241,17 @@ const TimerBanner = (props) => {
 
   const handleReset = () => {
     if (!timerRef.current) return;
-    
+
     handleStop();
     timerRef.current.reset();
     setDisplayTime(0); // Always reset to 0 for elapsed time counter
-    
+
     // Reset warning states
     setTimeWarningLevel(0);
     setShowStillWorkingPrompt(false);
     setUserIntent("solving");
     setExceededRecommendedTime(false);
-    
+
     // Timer reset to 0
   };
 
@@ -265,7 +275,7 @@ const TimerBanner = (props) => {
       case 1:
         return "#FFA500"; // Orange
       case 2:
-        return "#FF6B47"; // Red-orange  
+        return "#FF6B47"; // Red-orange
       case 3:
         return "#FF4444"; // Red
       default:
@@ -304,9 +314,16 @@ const TimerBanner = (props) => {
           <div style={{ textAlign: "center", padding: "10px" }}>
             <p>You've exceeded the recommended interview time.</p>
             <p>How are you feeling about this problem?</p>
-            
-            <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "15px" }}>
-              <button 
+
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                justifyContent: "center",
+                marginTop: "15px",
+              }}
+            >
+              <button
                 onClick={handleStillWorking}
                 style={{
                   padding: "8px 12px",
@@ -314,12 +331,12 @@ const TimerBanner = (props) => {
                   color: "white",
                   border: "none",
                   borderRadius: "4px",
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Still Making Progress
               </button>
-              <button 
+              <button
                 onClick={handleStuck}
                 style={{
                   padding: "8px 12px",
@@ -327,12 +344,12 @@ const TimerBanner = (props) => {
                   color: "white",
                   border: "none",
                   borderRadius: "4px",
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 I'm Stuck
               </button>
-              <button 
+              <button
                 onClick={handleMoveOn}
                 style={{
                   padding: "8px 12px",
@@ -340,7 +357,7 @@ const TimerBanner = (props) => {
                   color: "white",
                   border: "none",
                   borderRadius: "4px",
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 Move On
@@ -365,30 +382,33 @@ const TimerBanner = (props) => {
 
       <div className="timer-banner-content">
         <TimeDisplay time={displayTime} toggleTimer={toggleTimer} />
-        
+
         {/* Mode indicator */}
-        <div style={{
-          fontSize: "11px",
-          textAlign: "center",
-          color: "#666666",
-          marginTop: "2px",
-          fontStyle: "italic"
-        }}>
-          {isUnlimitedMode 
-            ? "No guidance • Learn at your own pace" 
-            : "Elapsed time • Guidance enabled"
-          }
+        <div
+          style={{
+            fontSize: "11px",
+            textAlign: "center",
+            color: "#666666",
+            marginTop: "2px",
+            fontStyle: "italic",
+          }}
+        >
+          {isUnlimitedMode
+            ? "No guidance • Learn at your own pace"
+            : "Elapsed time • Guidance enabled"}
         </div>
-        
+
         {/* Warning message display (only for guided mode) */}
         {!isUnlimitedMode && getWarningMessage() && (
-          <div style={{
-            fontSize: "12px",
-            textAlign: "center",
-            color: getTimerColor(),
-            marginTop: "5px",
-            fontWeight: "bold"
-          }}>
+          <div
+            style={{
+              fontSize: "12px",
+              textAlign: "center",
+              color: getTimerColor(),
+              marginTop: "5px",
+              fontWeight: "bold",
+            }}
+          >
             {getWarningMessage()}
           </div>
         )}

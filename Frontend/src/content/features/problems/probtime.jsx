@@ -96,7 +96,7 @@ const ProbTime = () => {
     // Convert time to seconds for consistent storage
     const timeInMinutes = Number(data.timeSpent) || 0;
     const timeInSeconds = AccurateTimer.minutesToSeconds(timeInMinutes);
-    
+
     const formData = {
       ...data,
       timeSpent: timeInSeconds, // Store as seconds in database
@@ -105,20 +105,20 @@ const ProbTime = () => {
       id: null,
       success: data.success.trim().toLowerCase() === "true",
       tags: routeState.Tags || [],
-      
+
       // Enhanced time tracking from timer (if available)
       exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
       overageTime: routeState?.overageTime || 0,
       userIntent: routeState?.userIntent || "completed",
       timeWarningLevel: routeState?.timeWarningLevel || 0,
     };
-    
+
     console.log("📌 Form data being sent:", {
       originalTimeMinutes: timeInMinutes,
       timeInSeconds: timeInSeconds,
-      formData
+      formData,
     });
-    
+
     chrome.runtime.sendMessage(
       { type: "addProblem", contentScriptData: formData },
       function (response) {

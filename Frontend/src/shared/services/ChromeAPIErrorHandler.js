@@ -1,12 +1,15 @@
 /**
  * Chrome API Error Handler for CodeMaster
- * 
+ *
  * Provides robust error handling, retry mechanisms, and graceful degradation
  * for all Chrome extension API calls throughout the application.
  */
 
-import ErrorReportService from './ErrorReportService';
-import { showErrorNotification, handleChromeAPIError } from '../utils/errorNotifications';
+import ErrorReportService from "./ErrorReportService";
+import {
+  showErrorNotification,
+  handleChromeAPIError,
+} from "../utils/errorNotifications";
 
 export class ChromeAPIErrorHandler {
   static DEFAULT_RETRY_COUNT = 3;
@@ -21,36 +24,35 @@ export class ChromeAPIErrorHandler {
       maxRetries = this.DEFAULT_RETRY_COUNT,
       retryDelay = this.DEFAULT_RETRY_DELAY,
       timeout = this.DEFAULT_TIMEOUT,
-      showNotifications = true
+      showNotifications = true,
     } = options;
 
     let lastError = null;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const response = await this.sendMessageWithTimeout(message, timeout);
-        
+
         // Success - return response
         return response;
-        
       } catch (error) {
         lastError = error;
-        
+
         // Don't retry on final attempt
         if (attempt === maxRetries) break;
-        
+
         // Wait before retry with exponential backoff
         const delay = retryDelay * Math.pow(2, attempt);
         await this.sleep(delay);
       }
     }
-    
+
     // All retries failed - handle error
     const errorData = {
       message: message,
       error: lastError.message,
       attempts: maxRetries + 1,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     // Store error report
@@ -59,25 +61,30 @@ export class ChromeAPIErrorHandler {
         errorId: `chrome_api_${Date.now()}`,
         message: lastError.message,
         stack: lastError.stack,
-        section: 'Chrome API',
-        errorType: 'chrome_extension_api',
-        severity: 'high',
-        userContext: { messageType: message.action || 'unknown', attempts: maxRetries + 1 }
+        section: "Chrome API",
+        errorType: "chrome_extension_api",
+        severity: "high",
+        userContext: {
+          messageType: message.action || "unknown",
+          attempts: maxRetries + 1,
+        },
       });
     } catch (storageError) {
       // eslint-disable-next-line no-console
-      console.warn('Failed to store Chrome API error report:', storageError);
+      console.warn("Failed to store Chrome API error report:", storageError);
     }
 
     // Show user notification
     if (showNotifications) {
-      handleChromeAPIError('Runtime Message', lastError, {
+      handleChromeAPIError("Runtime Message", lastError, {
         onReport: () => this.showErrorReportDialog(errorData),
-        onRetry: () => this.sendMessageWithRetry(message, options)
+        onRetry: () => this.sendMessageWithRetry(message, options),
       });
     }
 
-    throw new Error(`Chrome API failed after ${maxRetries + 1} attempts: ${lastError.message}`);
+    throw new Error(
+      `Chrome API failed after ${maxRetries + 1} attempts: ${lastError.message}`
+    );
   }
 
   /**
@@ -87,13 +94,17 @@ export class ChromeAPIErrorHandler {
     return new Promise((resolve, reject) => {
       // Set timeout
       const timeoutId = setTimeout(() => {
-        reject(new Error('Chrome API timeout - background script may be unresponsive'));
+        reject(
+          new Error(
+            "Chrome API timeout - background script may be unresponsive"
+          )
+        );
       }, timeout);
 
       try {
         chrome.runtime.sendMessage(message, (response) => {
           clearTimeout(timeoutId);
-          
+
           // Check for Chrome runtime errors
           if (chrome.runtime.lastError) {
             reject(new Error(chrome.runtime.lastError.message));
@@ -120,7 +131,7 @@ export class ChromeAPIErrorHandler {
    */
   static async storageGetWithRetry(keys, options = {}) {
     const { maxRetries = 2, retryDelay = 500 } = options;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await new Promise((resolve, reject) => {
@@ -135,7 +146,7 @@ export class ChromeAPIErrorHandler {
       } catch (error) {
         if (attempt === maxRetries) {
           // Report storage error
-          this.reportStorageError('get', error, { keys });
+          this.reportStorageError("get", error, { keys });
           throw error;
         }
         await this.sleep(retryDelay);
@@ -148,7 +159,7 @@ export class ChromeAPIErrorHandler {
    */
   static async storageSetWithRetry(items, options = {}) {
     const { maxRetries = 2, retryDelay = 500 } = options;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await new Promise((resolve, reject) => {
@@ -162,7 +173,7 @@ export class ChromeAPIErrorHandler {
         });
       } catch (error) {
         if (attempt === maxRetries) {
-          this.reportStorageError('set', error, { items });
+          this.reportStorageError("set", error, { items });
           throw error;
         }
         await this.sleep(retryDelay);
@@ -175,7 +186,7 @@ export class ChromeAPIErrorHandler {
    */
   static async tabsQueryWithRetry(queryInfo, options = {}) {
     const { maxRetries = 2 } = options;
-    
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await new Promise((resolve, reject) => {
@@ -189,7 +200,7 @@ export class ChromeAPIErrorHandler {
         });
       } catch (error) {
         if (attempt === maxRetries) {
-          this.reportTabsError('query', error, { queryInfo });
+          this.reportTabsError("query", error, { queryInfo });
           throw error;
         }
         await this.sleep(500);
@@ -206,24 +217,26 @@ export class ChromeAPIErrorHandler {
         errorId: `chrome_storage_${Date.now()}`,
         message: error.message,
         stack: error.stack,
-        section: 'Chrome Storage API',
-        errorType: 'chrome_storage_api',
-        severity: 'medium',
-        userContext: { operation, ...context }
+        section: "Chrome Storage API",
+        errorType: "chrome_storage_api",
+        severity: "medium",
+        userContext: { operation, ...context },
       });
     } catch (storageError) {
       // eslint-disable-next-line no-console
-      console.error('Failed to report storage error:', storageError);
+      console.error("Failed to report storage error:", storageError);
     }
 
     showErrorNotification(error, {
-      title: 'Storage Access Issue',
+      title: "Storage Access Issue",
       message: `Failed to ${operation} extension data. Your changes may not be saved.`,
-      actions: [{
-        label: 'Retry',
-        primary: true,
-        onClick: () => window.location.reload()
-      }]
+      actions: [
+        {
+          label: "Retry",
+          primary: true,
+          onClick: () => window.location.reload(),
+        },
+      ],
     });
   }
 
@@ -236,14 +249,14 @@ export class ChromeAPIErrorHandler {
         errorId: `chrome_tabs_${Date.now()}`,
         message: error.message,
         stack: error.stack,
-        section: 'Chrome Tabs API',
-        errorType: 'chrome_tabs_api',
-        severity: 'low',
-        userContext: { operation, ...context }
+        section: "Chrome Tabs API",
+        errorType: "chrome_tabs_api",
+        severity: "low",
+        userContext: { operation, ...context },
       });
     } catch (storageError) {
       // eslint-disable-next-line no-console
-      console.error('Failed to report tabs error:', storageError);
+      console.error("Failed to report tabs error:", storageError);
     }
   }
 
@@ -254,18 +267,16 @@ export class ChromeAPIErrorHandler {
     // Simple implementation using browser APIs
     // In production, this would show a proper modal dialog
     const userDescription = prompt(
-      'Help us improve CodeMaster by describing what you were doing when this error occurred:'
+      "Help us improve CodeMaster by describing what you were doing when this error occurred:"
     );
-    
+
     if (userDescription) {
       // Store additional user feedback
-      ErrorReportService.addUserFeedback(
-        errorData.errorId,
-        userDescription,
-        ['Chrome API communication failure']
-      ).catch(error => {
+      ErrorReportService.addUserFeedback(errorData.errorId, userDescription, [
+        "Chrome API communication failure",
+      ]).catch((error) => {
         // eslint-disable-next-line no-console
-        console.warn('Failed to store user feedback:', error);
+        console.warn("Failed to store user feedback:", error);
       });
     }
   }
@@ -276,7 +287,7 @@ export class ChromeAPIErrorHandler {
   static areAPIsAvailable() {
     try {
       return !!(
-        typeof chrome !== 'undefined' &&
+        typeof chrome !== "undefined" &&
         chrome.runtime &&
         chrome.runtime.sendMessage
       );
@@ -293,13 +304,15 @@ export class ChromeAPIErrorHandler {
       return {
         id: chrome.runtime.id,
         version: chrome.runtime.getManifest().version,
-        context: chrome.runtime.getContexts ? 'service_worker' : 'background_page',
-        available: this.areAPIsAvailable()
+        context: chrome.runtime.getContexts
+          ? "service_worker"
+          : "background_page",
+        available: this.areAPIsAvailable(),
       };
     } catch (error) {
       return {
         available: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -308,7 +321,7 @@ export class ChromeAPIErrorHandler {
    * Utility method to sleep/wait
    */
   static sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -316,23 +329,30 @@ export class ChromeAPIErrorHandler {
    */
   static handleGracefulDegradation(feature, fallbackAction = null) {
     const message = `${feature} is temporarily unavailable. CodeMaster is running in limited mode.`;
-    
+
     showErrorNotification(new Error(message), {
-      title: 'Feature Unavailable',
-      message: 'Some features may be limited while the extension reconnects.',
+      title: "Feature Unavailable",
+      message: "Some features may be limited while the extension reconnects.",
       persistent: true,
-      actions: fallbackAction ? [{
-        label: 'Use Fallback',
-        primary: true,
-        onClick: fallbackAction
-      }, {
-        label: 'Refresh',
-        onClick: () => window.location.reload()
-      }] : [{
-        label: 'Refresh Page',
-        primary: true,
-        onClick: () => window.location.reload()
-      }]
+      actions: fallbackAction
+        ? [
+            {
+              label: "Use Fallback",
+              primary: true,
+              onClick: fallbackAction,
+            },
+            {
+              label: "Refresh",
+              onClick: () => window.location.reload(),
+            },
+          ]
+        : [
+            {
+              label: "Refresh Page",
+              primary: true,
+              onClick: () => window.location.reload(),
+            },
+          ],
     });
   }
 
@@ -341,17 +361,17 @@ export class ChromeAPIErrorHandler {
    */
   static async monitorExtensionHealth() {
     if (!this.areAPIsAvailable()) {
-      this.handleGracefulDegradation('Chrome Extension APIs');
+      this.handleGracefulDegradation("Chrome Extension APIs");
       return false;
     }
 
     try {
       // Simple health check by sending a ping message
-      await this.sendMessageWithTimeout({ action: 'ping' }, 2000);
+      await this.sendMessageWithTimeout({ action: "ping" }, 2000);
       return true;
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.warn('Chrome extension health check failed:', error);
+      console.warn("Chrome extension health check failed:", error);
       return false;
     }
   }

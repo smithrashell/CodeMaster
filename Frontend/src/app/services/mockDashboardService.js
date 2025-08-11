@@ -18,6 +18,7 @@ import { USER_SCENARIOS } from "../config/mockConfig.js";
 export async function getMockDashboardStatistics(
   userType = USER_SCENARIOS.ACTIVE_USER
 ) {
+  // eslint-disable-next-line no-console
   console.log(
     `🎭 Mock Dashboard Service: Generating data for ${userType} user`
   );
@@ -33,6 +34,12 @@ export async function getMockDashboardStatistics(
         averageTime: mockData.averageTime,
         successRate: mockData.successRate,
         allSessions: mockData.allSessions,
+        // Also expose at root level since Stats component expects them here
+        ...mockData.statistics,  // Spread statistics properties
+        // Ensure allSessions is directly accessible
+        allSessions: mockData.allSessions,
+        averageTime: mockData.averageTime,
+        successRate: mockData.successRate,
       },
       progress: {
         learningState: mockData.learningState,
@@ -41,11 +48,46 @@ export async function getMockDashboardStatistics(
         allProblems: mockData.allProblems,
         allSessions: mockData.allSessions,
       },
+      mastery: {
+        currentTier: mockData.learningState.currentTier || "Core Concept",
+        masteredTags: mockData.learningState.masteredTags || ["array", "hash-table"],
+        allTagsInCurrentTier: mockData.learningState.allTagsInCurrentTier || [
+          "array", "hash-table", "string", "two-pointers", 
+          "binary-search", "sliding-window", "dynamic-programming",
+          "greedy", "stack", "queue", "heap", "tree", "graph"
+        ],
+        focusTags: mockData.learningState.focusTags || ["string", "two-pointers", "dynamic-programming"],
+        tagsinTier: mockData.learningState.tagsinTier || [
+          "array", "hash-table", "string", "two-pointers", 
+          "binary-search", "sliding-window"
+        ],
+        unmasteredTags: mockData.learningState.unmasteredTags || [
+          "string", "two-pointers", "binary-search", "sliding-window", 
+          "dynamic-programming", "greedy", "stack", "queue", "heap", "tree", "graph"
+        ],
+        masteryData: mockData.learningState.masteryData || [
+          { tag: "array", totalAttempts: 15, successfulAttempts: 12 },
+          { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9 },
+          { tag: "string", totalAttempts: 8, successfulAttempts: 5 },
+          { tag: "two-pointers", totalAttempts: 6, successfulAttempts: 3 },
+          { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2 },
+          { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1 },
+          { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4 },
+          { tag: "greedy", totalAttempts: 5, successfulAttempts: 2 },
+          { tag: "stack", totalAttempts: 7, successfulAttempts: 4 },
+          { tag: "queue", totalAttempts: 4, successfulAttempts: 2 },
+          { tag: "heap", totalAttempts: 6, successfulAttempts: 2 },
+          { tag: "tree", totalAttempts: 9, successfulAttempts: 3 },
+          { tag: "graph", totalAttempts: 8, successfulAttempts: 2 }
+        ]
+      },
     };
 
+    // eslint-disable-next-line no-console
     console.log(
       `✅ Mock Dashboard Service: Generated statistics for ${mockData.allSessions.length} sessions, ${mockData.allProblems.length} problems`
     );
+    
 
     return result;
   } catch (error) {
@@ -70,8 +112,10 @@ export class MockDashboardService {
   setUserType(userType) {
     if (Object.values(USER_SCENARIOS).includes(userType)) {
       this.currentUserType = userType;
+      // eslint-disable-next-line no-console
       console.log(`🎭 Mock service user type changed to: ${userType}`);
     } else {
+      // eslint-disable-next-line no-console
       console.warn(
         `⚠️ Invalid user type: ${userType}. Using default: ${this.currentUserType}`
       );
@@ -161,6 +205,7 @@ export class MockDashboardService {
   reset() {
     this.currentUserType = USER_SCENARIOS.ACTIVE_USER;
     this.mockDelay = 500;
+    // eslint-disable-next-line no-console
     console.log("🎭 Mock Dashboard Service reset to defaults");
   }
 }

@@ -4,18 +4,22 @@ import ResilientStorage from "./ResilientStorage.js";
 const openDB = dbHelper.openDB;
 
 // Initialize ResilientStorage on first import
-ResilientStorage.initialize().catch(error => {
-  console.warn('ResilientStorage initialization failed:', error);
+ResilientStorage.initialize().catch((error) => {
+  console.warn("ResilientStorage initialization failed:", error);
 });
 
 export const StorageService = {
   // Generic key-value storage - now uses ResilientStorage for better reliability
   async set(key, value) {
     try {
-      await ResilientStorage.set(key, value, ResilientStorage.DATA_TYPE.CRITICAL);
+      await ResilientStorage.set(
+        key,
+        value,
+        ResilientStorage.DATA_TYPE.CRITICAL
+      );
       return { status: "success" };
     } catch (error) {
-      console.error('StorageService set failed:', error);
+      console.error("StorageService set failed:", error);
       // Fallback to direct Chrome storage
       return new Promise((resolve) => {
         chrome.storage.local.set({ [key]: value }, () =>
@@ -27,13 +31,18 @@ export const StorageService = {
 
   async get(key) {
     try {
-      const value = await ResilientStorage.get(key, ResilientStorage.DATA_TYPE.CRITICAL);
+      const value = await ResilientStorage.get(
+        key,
+        ResilientStorage.DATA_TYPE.CRITICAL
+      );
       return value;
     } catch (error) {
-      console.error('StorageService get failed:', error);
+      console.error("StorageService get failed:", error);
       // Fallback to direct Chrome storage
       return new Promise((resolve) => {
-        chrome.storage.local.get([key], (result) => resolve(result[key] || null));
+        chrome.storage.local.get([key], (result) =>
+          resolve(result[key] || null)
+        );
       });
     }
   },
@@ -43,7 +52,7 @@ export const StorageService = {
       await ResilientStorage.remove(key, ResilientStorage.DATA_TYPE.CRITICAL);
       return { status: "success" };
     } catch (error) {
-      console.error('StorageService remove failed:', error);
+      console.error("StorageService remove failed:", error);
       // Fallback to direct Chrome storage
       return new Promise((resolve) => {
         chrome.storage.local.remove(key, () => resolve({ status: "success" }));
@@ -54,11 +63,14 @@ export const StorageService = {
   // Settings - now uses ResilientStorage with IndexedDB primary and Chrome Storage fallback
   async getSettings() {
     try {
-      const settings = await ResilientStorage.get("user_settings", ResilientStorage.DATA_TYPE.CRITICAL);
+      const settings = await ResilientStorage.get(
+        "user_settings",
+        ResilientStorage.DATA_TYPE.CRITICAL
+      );
       if (settings && settings.data) {
         return settings.data;
       }
-      
+
       // Return default settings if none exist
       const defaultSettings = {
         theme: "light",
@@ -67,11 +79,15 @@ export const StorageService = {
         reminder: { value: false, label: "6" },
         numberofNewProblemsPerSession: 2,
         adaptive: true,
+        focusAreas: [],
       };
       return defaultSettings;
     } catch (error) {
-      console.error('Failed to get settings via ResilientStorage, falling back to direct IndexedDB:', error);
-      
+      console.error(
+        "Failed to get settings via ResilientStorage, falling back to direct IndexedDB:",
+        error
+      );
+
       // Fallback to direct IndexedDB access
       const db = await openDB();
       return new Promise((resolve, reject) => {
@@ -91,6 +107,7 @@ export const StorageService = {
               reminder: { value: false, label: "6" },
               numberofNewProblemsPerSession: 2,
               adaptive: true,
+              focusAreas: [],
             };
             resolve(defaultSettings);
           }
@@ -107,16 +124,23 @@ export const StorageService = {
         data: settings,
         lastUpdated: new Date().toISOString(),
       };
-      
-      await ResilientStorage.set("user_settings", settingsObject, ResilientStorage.DATA_TYPE.CRITICAL);
-      
+
+      await ResilientStorage.set(
+        "user_settings",
+        settingsObject,
+        ResilientStorage.DATA_TYPE.CRITICAL
+      );
+
       // Clear any cached settings in other services
       this.clearSettingsCache();
-      
+
       return { status: "success" };
     } catch (error) {
-      console.error('Failed to set settings via ResilientStorage, falling back to direct IndexedDB:', error);
-      
+      console.error(
+        "Failed to set settings via ResilientStorage, falling back to direct IndexedDB:",
+        error
+      );
+
       // Fallback to direct IndexedDB access
       const db = await openDB();
       return new Promise((resolve, reject) => {
@@ -143,11 +167,17 @@ export const StorageService = {
   // Session State - now uses ResilientStorage for better reliability
   async getSessionState(key = "session_state") {
     try {
-      const sessionState = await ResilientStorage.get(key, ResilientStorage.DATA_TYPE.CRITICAL);
+      const sessionState = await ResilientStorage.get(
+        key,
+        ResilientStorage.DATA_TYPE.CRITICAL
+      );
       return sessionState;
     } catch (error) {
-      console.error('Failed to get session state via ResilientStorage, falling back to direct IndexedDB:', error);
-      
+      console.error(
+        "Failed to get session state via ResilientStorage, falling back to direct IndexedDB:",
+        error
+      );
+
       // Fallback to direct IndexedDB access
       const db = await openDB();
       return new Promise((resolve, reject) => {
@@ -166,11 +196,18 @@ export const StorageService = {
   async setSessionState(key = "session_state", data) {
     try {
       const sessionStateObject = { id: key, ...data };
-      await ResilientStorage.set(key, sessionStateObject, ResilientStorage.DATA_TYPE.CRITICAL);
+      await ResilientStorage.set(
+        key,
+        sessionStateObject,
+        ResilientStorage.DATA_TYPE.CRITICAL
+      );
       return { status: "success" };
     } catch (error) {
-      console.error('Failed to set session state via ResilientStorage, falling back to direct IndexedDB:', error);
-      
+      console.error(
+        "Failed to set session state via ResilientStorage, falling back to direct IndexedDB:",
+        error
+      );
+
       // Fallback to direct IndexedDB access
       const db = await openDB();
       return new Promise((resolve, reject) => {
@@ -258,7 +295,7 @@ export const StorageService = {
   },
 
   // New ResilientStorage Integration Methods
-  
+
   /**
    * Get storage system status and health
    */
@@ -266,13 +303,13 @@ export const StorageService = {
     try {
       return await ResilientStorage.getStorageStatus();
     } catch (error) {
-      console.error('Failed to get storage status:', error);
+      console.error("Failed to get storage status:", error);
       return {
-        mode: 'unknown',
-        health: { overall: 'unavailable' },
+        mode: "unknown",
+        health: { overall: "unavailable" },
         isIndexedDBAvailable: false,
         isChromeStorageAvailable: false,
-        quotaWarning: false
+        quotaWarning: false,
       };
     }
   },
@@ -285,7 +322,7 @@ export const StorageService = {
       await ResilientStorage.switchToFallbackMode();
       return { status: "success", mode: "chrome_fallback" };
     } catch (error) {
-      console.error('Failed to switch to fallback mode:', error);
+      console.error("Failed to switch to fallback mode:", error);
       return { status: "error", error: error.message };
     }
   },
@@ -298,7 +335,7 @@ export const StorageService = {
       await ResilientStorage.switchToPrimaryMode();
       return { status: "success", mode: "indexeddb_primary" };
     } catch (error) {
-      console.error('Failed to switch to primary mode:', error);
+      console.error("Failed to switch to primary mode:", error);
       return { status: "error", error: error.message };
     }
   },
@@ -310,11 +347,11 @@ export const StorageService = {
     try {
       return await ResilientStorage.performHealthCheck();
     } catch (error) {
-      console.error('Storage health check failed:', error);
+      console.error("Storage health check failed:", error);
       return {
-        indexedDB: { available: false, status: 'unavailable' },
-        chromeStorage: { available: false, status: 'unavailable' },
-        overall: 'unavailable'
+        indexedDB: { available: false, status: "unavailable" },
+        chromeStorage: { available: false, status: "unavailable" },
+        overall: "unavailable",
       };
     }
   },
@@ -327,7 +364,7 @@ export const StorageService = {
       await ResilientStorage.createEmergencyBackup();
       return { status: "success" };
     } catch (error) {
-      console.error('Emergency backup failed:', error);
+      console.error("Emergency backup failed:", error);
       return { status: "error", error: error.message };
     }
   },
@@ -340,7 +377,7 @@ export const StorageService = {
       const result = await ResilientStorage.syncToFallback(options);
       return { status: "success", result };
     } catch (error) {
-      console.error('Sync to fallback failed:', error);
+      console.error("Sync to fallback failed:", error);
       return { status: "error", error: error.message };
     }
   },
@@ -353,7 +390,7 @@ export const StorageService = {
       const result = await ResilientStorage.restoreFromFallback(options);
       return { status: "success", result };
     } catch (error) {
-      console.error('Restore from fallback failed:', error);
+      console.error("Restore from fallback failed:", error);
       return { status: "error", error: error.message };
     }
   },
@@ -364,15 +401,15 @@ export const StorageService = {
   getStorageInfo() {
     return {
       resilientStorageEnabled: true,
-      currentMode: ResilientStorage.currentMode || 'unknown',
-      version: '1.0',
+      currentMode: ResilientStorage.currentMode || "unknown",
+      version: "1.0",
       features: [
-        'dual_storage_strategy',
-        'automatic_fallback',
-        'health_monitoring',
-        'data_synchronization',
-        'quota_management'
-      ]
+        "dual_storage_strategy",
+        "automatic_fallback",
+        "health_monitoring",
+        "data_synchronization",
+        "quota_management",
+      ],
     };
   },
 
@@ -382,22 +419,26 @@ export const StorageService = {
   clearSettingsCache() {
     try {
       // Clear AdaptiveLimitsService cache
-      if (typeof window !== 'undefined' && window.adaptiveLimitsService) {
+      if (typeof window !== "undefined" && window.adaptiveLimitsService) {
         window.adaptiveLimitsService.clearCache();
       }
-      
+
       // Try to clear cache via dynamic import to avoid circular dependencies
-      import('./adaptiveLimitsService.js').then(({ adaptiveLimitsService }) => {
-        if (adaptiveLimitsService && typeof adaptiveLimitsService.clearCache === 'function') {
-          adaptiveLimitsService.clearCache();
-          console.log('✅ Cleared AdaptiveLimitsService cache');
-        }
-      }).catch(error => {
-        console.warn('Could not clear AdaptiveLimitsService cache:', error);
-      });
-      
+      import("./adaptiveLimitsService.js")
+        .then(({ adaptiveLimitsService }) => {
+          if (
+            adaptiveLimitsService &&
+            typeof adaptiveLimitsService.clearCache === "function"
+          ) {
+            adaptiveLimitsService.clearCache();
+            console.log("✅ Cleared AdaptiveLimitsService cache");
+          }
+        })
+        .catch((error) => {
+          console.warn("Could not clear AdaptiveLimitsService cache:", error);
+        });
     } catch (error) {
-      console.warn('Error clearing settings cache:', error);
+      console.warn("Error clearing settings cache:", error);
     }
-  }
+  },
 };

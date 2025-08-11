@@ -1,10 +1,11 @@
-import { Container, Grid, Title } from "@mantine/core";
+import { Container, Grid, Title, Card, Stack, Text } from "@mantine/core";
 // Note: Recharts imports removed - add back as needed when charts are implemented
 import { useEffect, useState } from "react";
 import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
-import MasteryDashboard from "../../components/analytics/MasteryDashboard"; // eslint-disable-line no-unused-vars
+// MasteryDashboard moved to dedicated analytics section
 import { getPromotionDemotionData } from "../../components/analytics/generatePromotionDataFromSession";
 import { getProblemActivityData } from "../../../shared/utils/DataAdapter";
+// FocusAreasDisplay moved to Stats page
 export function Progress({ appState }) {
   console.info("Progress component - appState:", appState);
   const [boxLevelData, setBoxLevelData] = useState(appState.boxLevelData);
@@ -91,37 +92,33 @@ export function Progress({ appState }) {
           />
         </Grid.Col>
 
-        {/* Mastery Pie Chart */}
+        {/* Learning Progress Summary */}
         <Grid.Col span={6}>
-          {/* <MasteryDashboard data={learningState} /> */}
-          <div>MasteryDashboard - Coming Soon</div>
-          {/* <Card shadow="sm" p="lg">
-            <Text weight={500} size="lg">
-              Mastery Percentage
-            </Text>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={masteryData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={100}
-                  label
-                >
-                  {masteryData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </Card> */}
+          <Card withBorder p="lg" h="100%">
+            <Title order={4} mb="md">Learning Progress Summary</Title>
+            <Stack gap="md">
+              <div>
+                <Text size="sm" c="dimmed" mb="xs">Current Tier</Text>
+                <Text fw={500}>Core Concepts</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed" mb="xs">Active Problems</Text>
+                <Text fw={500}>{appState?.boxLevelData ? Object.values(appState.boxLevelData).reduce((a, b) => a + b, 0) : 0} problems in system</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed" mb="xs">Learning Status</Text>
+                <Text fw={500} c="blue">Active Learning Phase</Text>
+              </div>
+              <div>
+                <Text size="sm" c="dimmed" mb="xs">Next Review</Text>
+                <Text fw={500}>Problems ready for review</Text>
+              </div>
+            </Stack>
+          </Card>
         </Grid.Col>
       </Grid>
+
+      {/* Focus Areas moved to Stats page for better organization */}
 
       <Grid gutter="md" mt="md">
         {/* Promotion & Demotion */}

@@ -424,6 +424,10 @@ export async function buildAdaptiveSessionSettings() {
   const sessionStateKey = "session_state";
   const now = new Date();
 
+  // Get user focus areas from settings
+  const settings = await StorageService.getSettings();
+  const userFocusAreas = settings.focusAreas || [];
+
   // Try to migrate from Chrome storage first, then get from IndexedDB
   let sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
     (await StorageService.getSessionState(sessionStateKey)) || {
@@ -600,6 +604,7 @@ export async function buildAdaptiveSessionSettings() {
     numberOfNewProblems,
     currentAllowedTags: allowedTags,
     currentDifficultyCap: sessionState.currentDifficultyCap,
+    userFocusAreas,
     sessionState,
   };
 }

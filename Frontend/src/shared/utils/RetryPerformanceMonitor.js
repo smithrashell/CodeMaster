@@ -1,11 +1,11 @@
 /**
  * Retry Performance Monitor
- * 
+ *
  * Monitors performance impact of retry mechanisms and provides
  * optimization recommendations and performance metrics.
  */
 
-import indexedDBRetry from '../services/IndexedDBRetryService.js';
+import indexedDBRetry from "../services/IndexedDBRetryService.js";
 
 export class RetryPerformanceMonitor {
   constructor() {
@@ -18,9 +18,9 @@ export class RetryPerformanceMonitor {
       totalSuccesses: 0,
       totalFailures: 0,
       averageLatency: 0,
-      retryOverhead: 0
+      retryOverhead: 0,
     };
-    
+
     this.isEnabled = true;
     this.maxMetricsHistory = 1000; // Keep metrics for last 1000 operations
   }
@@ -47,7 +47,7 @@ export class RetryPerformanceMonitor {
       endTime: null,
       totalTime: null,
       result: null,
-      error: null
+      error: null,
     };
 
     return context;
@@ -65,20 +65,20 @@ export class RetryPerformanceMonitor {
     context.attempts = attemptNumber;
     context.hasRetries = attemptNumber > 1;
 
-    if (error?.message.includes('timeout')) {
+    if (error?.message.includes("timeout")) {
       context.wasTimeout = true;
     }
 
-    if (error?.message.includes('cancelled')) {
+    if (error?.message.includes("cancelled")) {
       context.wasCancelled = true;
     }
 
     this.globalStats.totalRetries++;
-    
+
     if (context.wasTimeout) {
       this.globalStats.totalTimeouts++;
     }
-    
+
     if (context.wasCancelled) {
       this.globalStats.totalCancellations++;
     }
@@ -99,7 +99,7 @@ export class RetryPerformanceMonitor {
     context.error = error;
 
     this.globalStats.totalOperations++;
-    
+
     if (error) {
       this.globalStats.totalFailures++;
     } else {
@@ -107,8 +107,10 @@ export class RetryPerformanceMonitor {
     }
 
     // Update average latency
-    this.globalStats.averageLatency = 
-      (this.globalStats.averageLatency * (this.globalStats.totalOperations - 1) + context.totalTime) / 
+    this.globalStats.averageLatency =
+      (this.globalStats.averageLatency *
+        (this.globalStats.totalOperations - 1) +
+        context.totalTime) /
       this.globalStats.totalOperations;
 
     // Calculate retry overhead
@@ -126,7 +128,7 @@ export class RetryPerformanceMonitor {
    */
   storeOperationMetrics(context) {
     const { operationName } = context;
-    
+
     if (!this.metrics.has(operationName)) {
       this.metrics.set(operationName, {
         operationName,
@@ -143,29 +145,29 @@ export class RetryPerformanceMonitor {
         p95Latency: 0,
         retryRate: 0,
         successRate: 0,
-        recentSamples: []
+        recentSamples: [],
       });
     }
 
     const metrics = this.metrics.get(operationName);
-    
+
     metrics.totalCalls++;
     metrics.totalTime += context.totalTime;
-    
+
     if (context.hasRetries) {
       metrics.totalRetries += context.attempts - 1;
     }
-    
+
     if (context.error) {
       metrics.failureCount++;
     } else {
       metrics.successCount++;
     }
-    
+
     if (context.wasTimeout) {
       metrics.timeoutCount++;
     }
-    
+
     if (context.wasCancelled) {
       metrics.cancellationCount++;
     }
@@ -174,7 +176,7 @@ export class RetryPerformanceMonitor {
     metrics.averageLatency = metrics.totalTime / metrics.totalCalls;
     metrics.minLatency = Math.min(metrics.minLatency, context.totalTime);
     metrics.maxLatency = Math.max(metrics.maxLatency, context.totalTime);
-    
+
     // Update rates
     metrics.retryRate = (metrics.totalRetries / metrics.totalCalls) * 100;
     metrics.successRate = (metrics.successCount / metrics.totalCalls) * 100;
@@ -204,29 +206,41 @@ export class RetryPerformanceMonitor {
    * @returns {Object} Performance statistics
    */
   getPerformanceStats() {
-    const operationStats = Array.from(this.metrics.values()).map(metrics => ({
+    const operationStats = Array.from(this.metrics.values()).map((metrics) => ({
       ...metrics,
-      recentSamples: undefined // Don't include raw samples in output
+      recentSamples: undefined, // Don't include raw samples in output
     }));
 
     return {
       global: {
         ...this.globalStats,
-        retryRate: this.globalStats.totalOperations > 0 
-          ? (this.globalStats.totalRetries / this.globalStats.totalOperations) * 100 
-          : 0,
-        successRate: this.globalStats.totalOperations > 0
-          ? (this.globalStats.totalSuccesses / this.globalStats.totalOperations) * 100
-          : 0,
-        timeoutRate: this.globalStats.totalOperations > 0
-          ? (this.globalStats.totalTimeouts / this.globalStats.totalOperations) * 100
-          : 0,
-        cancellationRate: this.globalStats.totalOperations > 0
-          ? (this.globalStats.totalCancellations / this.globalStats.totalOperations) * 100
-          : 0
+        retryRate:
+          this.globalStats.totalOperations > 0
+            ? (this.globalStats.totalRetries /
+                this.globalStats.totalOperations) *
+              100
+            : 0,
+        successRate:
+          this.globalStats.totalOperations > 0
+            ? (this.globalStats.totalSuccesses /
+                this.globalStats.totalOperations) *
+              100
+            : 0,
+        timeoutRate:
+          this.globalStats.totalOperations > 0
+            ? (this.globalStats.totalTimeouts /
+                this.globalStats.totalOperations) *
+              100
+            : 0,
+        cancellationRate:
+          this.globalStats.totalOperations > 0
+            ? (this.globalStats.totalCancellations /
+                this.globalStats.totalOperations) *
+              100
+            : 0,
       },
       operations: operationStats,
-      retryService: indexedDBRetry.getStatistics()
+      retryService: indexedDBRetry.getStatistics(),
     };
   }
 
@@ -241,60 +255,77 @@ export class RetryPerformanceMonitor {
     // Global recommendations
     if (stats.global.retryRate > 20) {
       recommendations.push({
-        severity: 'high',
-        type: 'retry_rate',
-        message: `High retry rate (${stats.global.retryRate.toFixed(1)}%) indicates potential database issues`,
-        suggestion: 'Check IndexedDB health, consider increasing operation timeouts, or investigate network connectivity'
+        severity: "high",
+        type: "retry_rate",
+        message: `High retry rate (${stats.global.retryRate.toFixed(
+          1
+        )}%) indicates potential database issues`,
+        suggestion:
+          "Check IndexedDB health, consider increasing operation timeouts, or investigate network connectivity",
       });
     }
 
     if (stats.global.timeoutRate > 10) {
       recommendations.push({
-        severity: 'medium',
-        type: 'timeout_rate', 
-        message: `High timeout rate (${stats.global.timeoutRate.toFixed(1)}%) suggests operations are taking too long`,
-        suggestion: 'Consider increasing default timeouts or optimizing database queries'
+        severity: "medium",
+        type: "timeout_rate",
+        message: `High timeout rate (${stats.global.timeoutRate.toFixed(
+          1
+        )}%) suggests operations are taking too long`,
+        suggestion:
+          "Consider increasing default timeouts or optimizing database queries",
       });
     }
 
     if (stats.global.averageLatency > 1000) {
       recommendations.push({
-        severity: 'medium',
-        type: 'latency',
-        message: `Average latency is high (${stats.global.averageLatency.toFixed(0)}ms)`,
-        suggestion: 'Profile slow operations and consider database optimization or caching'
+        severity: "medium",
+        type: "latency",
+        message: `Average latency is high (${stats.global.averageLatency.toFixed(
+          0
+        )}ms)`,
+        suggestion:
+          "Profile slow operations and consider database optimization or caching",
       });
     }
 
     // Operation-specific recommendations
-    stats.operations.forEach(op => {
+    stats.operations.forEach((op) => {
       if (op.retryRate > 25) {
         recommendations.push({
-          severity: 'high',
-          type: 'operation_retry_rate',
+          severity: "high",
+          type: "operation_retry_rate",
           operation: op.operationName,
-          message: `Operation "${op.operationName}" has high retry rate (${op.retryRate.toFixed(1)}%)`,
-          suggestion: 'Investigate specific issues with this operation type'
+          message: `Operation "${
+            op.operationName
+          }" has high retry rate (${op.retryRate.toFixed(1)}%)`,
+          suggestion: "Investigate specific issues with this operation type",
         });
       }
 
       if (op.p95Latency > 2000) {
         recommendations.push({
-          severity: 'medium',
-          type: 'operation_latency',
+          severity: "medium",
+          type: "operation_latency",
           operation: op.operationName,
-          message: `Operation "${op.operationName}" has high P95 latency (${op.p95Latency.toFixed(0)}ms)`,
-          suggestion: 'Consider optimizing this specific operation or increasing its timeout'
+          message: `Operation "${
+            op.operationName
+          }" has high P95 latency (${op.p95Latency.toFixed(0)}ms)`,
+          suggestion:
+            "Consider optimizing this specific operation or increasing its timeout",
         });
       }
 
       if (op.successRate < 90) {
         recommendations.push({
-          severity: 'high',
-          type: 'operation_success_rate',
+          severity: "high",
+          type: "operation_success_rate",
           operation: op.operationName,
-          message: `Operation "${op.operationName}" has low success rate (${op.successRate.toFixed(1)}%)`,
-          suggestion: 'This operation is failing frequently and needs investigation'
+          message: `Operation "${
+            op.operationName
+          }" has low success rate (${op.successRate.toFixed(1)}%)`,
+          suggestion:
+            "This operation is failing frequently and needs investigation",
         });
       }
     });
@@ -302,10 +333,11 @@ export class RetryPerformanceMonitor {
     // Circuit breaker recommendations
     if (stats.retryService.circuitBreaker.failures > 0) {
       recommendations.push({
-        severity: 'warning',
-        type: 'circuit_breaker',
+        severity: "warning",
+        type: "circuit_breaker",
         message: `Circuit breaker has ${stats.retryService.circuitBreaker.failures} recent failures`,
-        suggestion: 'Monitor database health and consider investigating underlying issues'
+        suggestion:
+          "Monitor database health and consider investigating underlying issues",
       });
     }
 
@@ -322,7 +354,7 @@ export class RetryPerformanceMonitor {
   generateReport() {
     const stats = this.getPerformanceStats();
     const recommendations = this.getRecommendations();
-    
+
     return {
       timestamp: new Date().toISOString(),
       summary: {
@@ -330,13 +362,26 @@ export class RetryPerformanceMonitor {
         averageLatency: Math.round(stats.global.averageLatency),
         successRate: Math.round(stats.global.successRate * 10) / 10,
         retryRate: Math.round(stats.global.retryRate * 10) / 10,
-        healthScore: this.calculateHealthScore(stats)
+        healthScore: this.calculateHealthScore(stats),
       },
       statistics: stats,
       recommendations,
-      topOperations: this.getTopOperationsByMetric(stats.operations, 'totalCalls', 10),
-      slowestOperations: this.getTopOperationsByMetric(stats.operations, 'p95Latency', 5),
-      leastReliableOperations: this.getTopOperationsByMetric(stats.operations, 'successRate', 5, true)
+      topOperations: this.getTopOperationsByMetric(
+        stats.operations,
+        "totalCalls",
+        10
+      ),
+      slowestOperations: this.getTopOperationsByMetric(
+        stats.operations,
+        "p95Latency",
+        5
+      ),
+      leastReliableOperations: this.getTopOperationsByMetric(
+        stats.operations,
+        "successRate",
+        5,
+        true
+      ),
     };
   }
 
@@ -347,27 +392,27 @@ export class RetryPerformanceMonitor {
    */
   calculateHealthScore(stats) {
     let score = 100;
-    
+
     // Deduct for high retry rate
     if (stats.global.retryRate > 10) {
       score -= Math.min(30, stats.global.retryRate * 1.5);
     }
-    
+
     // Deduct for low success rate
     if (stats.global.successRate < 95) {
       score -= (95 - stats.global.successRate) * 2;
     }
-    
+
     // Deduct for high timeout rate
     if (stats.global.timeoutRate > 5) {
       score -= Math.min(20, stats.global.timeoutRate * 2);
     }
-    
+
     // Deduct for circuit breaker issues
     if (stats.retryService.circuitBreaker.failures > 0) {
       score -= Math.min(15, stats.retryService.circuitBreaker.failures * 3);
     }
-    
+
     return Math.max(0, Math.round(score));
   }
 
@@ -381,14 +426,16 @@ export class RetryPerformanceMonitor {
    */
   getTopOperationsByMetric(operations, metric, limit = 5, ascending = false) {
     return operations
-      .filter(op => op.totalCalls > 0)
-      .sort((a, b) => ascending ? a[metric] - b[metric] : b[metric] - a[metric])
+      .filter((op) => op.totalCalls > 0)
+      .sort((a, b) =>
+        ascending ? a[metric] - b[metric] : b[metric] - a[metric]
+      )
       .slice(0, limit)
-      .map(op => ({
+      .map((op) => ({
         operationName: op.operationName,
         [metric]: op[metric],
         totalCalls: op.totalCalls,
-        successRate: Math.round(op.successRate * 10) / 10
+        successRate: Math.round(op.successRate * 10) / 10,
       }));
   }
 
@@ -405,7 +452,7 @@ export class RetryPerformanceMonitor {
       totalSuccesses: 0,
       totalFailures: 0,
       averageLatency: 0,
-      retryOverhead: 0
+      retryOverhead: 0,
     };
   }
 
@@ -426,7 +473,7 @@ export class RetryPerformanceMonitor {
       timestamp: new Date().toISOString(),
       globalStats: this.globalStats,
       operationMetrics: Array.from(this.metrics.values()),
-      retryServiceStats: indexedDBRetry.getStatistics()
+      retryServiceStats: indexedDBRetry.getStatistics(),
     };
   }
 
@@ -438,12 +485,12 @@ export class RetryPerformanceMonitor {
     if (data.globalStats) {
       this.globalStats = { ...this.globalStats, ...data.globalStats };
     }
-    
+
     if (data.operationMetrics) {
-      data.operationMetrics.forEach(metrics => {
+      data.operationMetrics.forEach((metrics) => {
         this.metrics.set(metrics.operationName, {
           ...metrics,
-          recentSamples: metrics.recentSamples || []
+          recentSamples: metrics.recentSamples || [],
         });
       });
     }
@@ -460,9 +507,9 @@ export const retryPerformanceMonitor = new RetryPerformanceMonitor();
  * @returns {Function} Wrapped function with monitoring
  */
 export function withRetryMonitoring(operationName, fn) {
-  return async function(...args) {
+  return async function (...args) {
     const context = retryPerformanceMonitor.startOperation(operationName);
-    
+
     try {
       const result = await fn.apply(this, args);
       retryPerformanceMonitor.endOperation(context, result);

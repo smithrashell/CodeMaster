@@ -1,19 +1,19 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MantineProvider } from '@mantine/core';
-import FloatingHintButton from '../FloatingHintButton';
-import HintPanel from '../HintPanel';
-import PrimerSection from '../PrimerSection';
+import React from "react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MantineProvider } from "@mantine/core";
+import FloatingHintButton from "../FloatingHintButton";
+import HintPanel from "../HintPanel";
+import PrimerSection from "../PrimerSection";
 
 // Mock the HintInteractionService
-jest.mock('../../../../shared/services/hintInteractionService', () => ({
+jest.mock("../../../../shared/services/hintInteractionService", () => ({
   HintInteractionService: {
     saveHintInteraction: jest.fn(),
   },
 }));
 
 // Mock the StrategyService
-jest.mock('../../../services/strategyService', () => ({
+jest.mock("../../../services/strategyService", () => ({
   __esModule: true,
   default: {
     getContextualHints: jest.fn(),
@@ -23,51 +23,50 @@ jest.mock('../../../services/strategyService', () => ({
 
 // Test wrapper component that provides required context
 const TestWrapper = ({ children }) => (
-  <MantineProvider>
-    {children}
-  </MantineProvider>
+  <MantineProvider>{children}</MantineProvider>
 );
 
-describe('Hint Component Tracking Integration', () => {
+describe("Hint Component Tracking Integration", () => {
   let mockHintInteractionService;
   let mockStrategyService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    mockHintInteractionService = require('../../../../shared/services/hintInteractionService').HintInteractionService;
-    mockStrategyService = require('../../../services/strategyService').default;
-    
+
+    mockHintInteractionService =
+      require("../../../../shared/services/hintInteractionService").HintInteractionService;
+    mockStrategyService = require("../../../services/strategyService").default;
+
     // Mock successful service responses
     mockHintInteractionService.saveHintInteraction.mockResolvedValue({
-      id: 'test-interaction-123',
+      id: "test-interaction-123",
       success: true,
     });
   });
 
-  describe('FloatingHintButton Integration', () => {
-    it('should track hint expansion interactions', async () => {
+  describe("FloatingHintButton Integration", () => {
+    it("should track hint expansion interactions", async () => {
       // Arrange
       const mockHints = [
         {
-          type: 'contextual',
-          primaryTag: 'array',
-          relatedTag: 'hash-table',
-          tip: 'Use hash map for O(1) lookups',
+          type: "contextual",
+          primaryTag: "array",
+          relatedTag: "hash-table",
+          tip: "Use hash map for O(1) lookups",
           relationshipScore: 0.85,
         },
         {
-          type: 'general',
-          primaryTag: 'array',
-          tip: 'Consider two pointers approach',
+          type: "general",
+          primaryTag: "array",
+          tip: "Consider two pointers approach",
         },
       ];
 
       mockStrategyService.getContextualHints.mockResolvedValue(mockHints);
 
       const mockOnHintClick = jest.fn();
-      const problemTags = ['array', 'hash-table'];
-      const problemId = 'two-sum';
+      const problemTags = ["array", "hash-table"];
+      const problemId = "two-sum";
 
       // Act
       render(
@@ -82,34 +81,40 @@ describe('Hint Component Tracking Integration', () => {
 
       // Wait for hints to load
       await waitFor(() => {
-        expect(mockStrategyService.getContextualHints).toHaveBeenCalledWith(problemTags);
+        expect(mockStrategyService.getContextualHints).toHaveBeenCalledWith(
+          problemTags
+        );
       });
 
       // Click the floating button to open popover
-      const hintButton = screen.getByRole('button', { name: /strategy hints available/i });
+      const hintButton = screen.getByRole("button", {
+        name: /strategy hints available/i,
+      });
       fireEvent.click(hintButton);
 
       // Wait for popover to open and find the first hint
       await waitFor(() => {
-        const firstHint = screen.getByText('array + hash-table');
+        const firstHint = screen.getByText("array + hash-table");
         expect(firstHint).toBeInTheDocument();
       });
 
       // Click on the first hint to expand it
-      const firstHintTitle = screen.getByText('array + hash-table');
+      const firstHintTitle = screen.getByText("array + hash-table");
       fireEvent.click(firstHintTitle);
 
       // Assert
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalledWith(
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalledWith(
           expect.objectContaining({
-            problemId: 'two-sum',
-            hintType: 'contextual',
-            primaryTag: 'array',
-            relatedTag: 'hash-table',
-            action: 'expand',
-            problemTags: ['array', 'hash-table'],
-            content: 'Use hash map for O(1) lookups',
+            problemId: "two-sum",
+            hintType: "contextual",
+            primaryTag: "array",
+            relatedTag: "hash-table",
+            action: "expand",
+            problemTags: ["array", "hash-table"],
+            content: "Use hash map for O(1) lookups",
             sessionContext: expect.objectContaining({
               popoverOpen: true,
               totalHints: 2,
@@ -125,20 +130,20 @@ describe('Hint Component Tracking Integration', () => {
       // Should also call the callback
       expect(mockOnHintClick).toHaveBeenCalledWith(
         expect.objectContaining({
-          action: 'expand',
-          hintType: 'contextual',
+          action: "expand",
+          hintType: "contextual",
         })
       );
     });
 
-    it('should track hint collapse interactions', async () => {
+    it("should track hint collapse interactions", async () => {
       // Arrange
       const mockHints = [
         {
-          type: 'contextual',
-          primaryTag: 'string',
-          relatedTag: 'sliding-window',
-          tip: 'Use sliding window technique',
+          type: "contextual",
+          primaryTag: "string",
+          relatedTag: "sliding-window",
+          tip: "Use sliding window technique",
         },
       ];
 
@@ -148,8 +153,8 @@ describe('Hint Component Tracking Integration', () => {
       render(
         <TestWrapper>
           <FloatingHintButton
-            problemTags={['string', 'sliding-window']}
-            problemId={'longest-substring'}
+            problemTags={["string", "sliding-window"]}
+            problemId={"longest-substring"}
           />
         </TestWrapper>
       );
@@ -159,59 +164,63 @@ describe('Hint Component Tracking Integration', () => {
       });
 
       // Open popover and expand hint
-      fireEvent.click(screen.getByRole('button', { name: /strategy hints available/i }));
-      
+      fireEvent.click(
+        screen.getByRole("button", { name: /strategy hints available/i })
+      );
+
       await waitFor(() => {
-        const hintTitle = screen.getByText('string + sliding-window');
+        const hintTitle = screen.getByText("string + sliding-window");
         expect(hintTitle).toBeInTheDocument();
       });
 
-      const hintTitle = screen.getByText('string + sliding-window');
-      
+      const hintTitle = screen.getByText("string + sliding-window");
+
       // First click - expand
       fireEvent.click(hintTitle);
-      
+
       // Clear previous calls
       mockHintInteractionService.saveHintInteraction.mockClear();
-      
-      // Second click - collapse  
+
+      // Second click - collapse
       fireEvent.click(hintTitle);
 
       // Assert
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalledWith(
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalledWith(
           expect.objectContaining({
-            action: 'collapse',
-            hintType: 'contextual',
+            action: "collapse",
+            hintType: "contextual",
           }),
           expect.any(Object)
         );
       });
     });
 
-    it('should handle tracking errors gracefully', async () => {
+    it("should handle tracking errors gracefully", async () => {
       // Arrange
       const mockHints = [
         {
-          type: 'general',
-          primaryTag: 'tree',
-          tip: 'Use DFS or BFS traversal',
+          type: "general",
+          primaryTag: "tree",
+          tip: "Use DFS or BFS traversal",
         },
       ];
 
       mockStrategyService.getContextualHints.mockResolvedValue(mockHints);
       mockHintInteractionService.saveHintInteraction.mockRejectedValue(
-        new Error('Database connection failed')
+        new Error("Database connection failed")
       );
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       // Act
       render(
         <TestWrapper>
           <FloatingHintButton
-            problemTags={['tree']}
-            problemId={'binary-tree-traversal'}
+            problemTags={["tree"]}
+            problemId={"binary-tree-traversal"}
           />
         </TestWrapper>
       );
@@ -220,18 +229,22 @@ describe('Hint Component Tracking Integration', () => {
         expect(mockStrategyService.getContextualHints).toHaveBeenCalled();
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /strategy hints available/i }));
-      
+      fireEvent.click(
+        screen.getByRole("button", { name: /strategy hints available/i })
+      );
+
       await waitFor(() => {
         // Get the clickable hint element (not the badge)
-        const hintTitle = screen.getByRole('button', { name: /expand tree strategy hint/i });
+        const hintTitle = screen.getByRole("button", {
+          name: /expand tree strategy hint/i,
+        });
         fireEvent.click(hintTitle);
       });
 
       // Assert - should log warning but not crash
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to save hint interaction:',
+          "Failed to save hint interaction:",
           expect.any(Error)
         );
       });
@@ -240,15 +253,15 @@ describe('Hint Component Tracking Integration', () => {
     });
   });
 
-  describe('HintPanel Integration', () => {
-    it('should track panel expand/collapse interactions', async () => {
+  describe("HintPanel Integration", () => {
+    it("should track panel expand/collapse interactions", async () => {
       // Arrange
       const mockHints = [
         {
-          type: 'contextual',
-          primaryTag: 'graph',
-          relatedTag: 'bfs',
-          tip: 'Use BFS for shortest path',
+          type: "contextual",
+          primaryTag: "graph",
+          relatedTag: "bfs",
+          tip: "Use BFS for shortest path",
         },
       ];
 
@@ -258,8 +271,8 @@ describe('Hint Component Tracking Integration', () => {
       render(
         <TestWrapper>
           <HintPanel
-            problemTags={['graph', 'bfs']}
-            problemId={'shortest-path'}
+            problemTags={["graph", "bfs"]}
+            problemId={"shortest-path"}
           />
         </TestWrapper>
       );
@@ -269,42 +282,46 @@ describe('Hint Component Tracking Integration', () => {
       });
 
       // Find and click the show/hide hints button
-      const toggleButton = screen.getByRole('button', { name: /show hints/i });
+      const toggleButton = screen.getByRole("button", { name: /show hints/i });
       fireEvent.click(toggleButton);
 
       // Assert
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalledWith(
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalledWith(
           expect.objectContaining({
-            problemId: 'shortest-path',
-            hintId: 'hint-panel',
-            hintType: 'panel',
-            primaryTag: 'graph',
-            relatedTag: 'bfs',
-            action: 'expand',
-            problemTags: ['graph', 'bfs'],
-            content: 'Hint panel expanded',
+            problemId: "shortest-path",
+            hintId: "hint-panel",
+            hintType: "panel",
+            primaryTag: "graph",
+            relatedTag: "bfs",
+            action: "expand",
+            problemTags: ["graph", "bfs"],
+            content: "Hint panel expanded",
             sessionContext: expect.objectContaining({
               panelOpen: true,
               totalHints: 1,
-              componentType: 'HintPanel',
+              componentType: "HintPanel",
             }),
           })
         );
       });
     });
 
-    it('should track collapse action when hiding hints', async () => {
+    it("should track collapse action when hiding hints", async () => {
       // Arrange
-      const mockHints = [{ type: 'general', primaryTag: 'dynamic-programming' }];
+      const mockHints = [
+        { type: "general", primaryTag: "dynamic-programming" },
+      ];
       mockStrategyService.getContextualHints.mockResolvedValue(mockHints);
 
       // Act
       render(
         <TestWrapper>
           <HintPanel
-            problemTags={['dynamic-programming']}
-            problemId={'coin-change'}
+            problemTags={["dynamic-programming"]}
+            problemId={"coin-change"}
           />
         </TestWrapper>
       );
@@ -313,44 +330,48 @@ describe('Hint Component Tracking Integration', () => {
         expect(mockStrategyService.getContextualHints).toHaveBeenCalled();
       });
 
-      const toggleButton = screen.getByRole('button', { name: /show hints/i });
-      
+      const toggleButton = screen.getByRole("button", { name: /show hints/i });
+
       // First click - expand
       fireEvent.click(toggleButton);
-      
+
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /hide hints/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: /hide hints/i })
+        ).toBeInTheDocument();
       });
 
       // Clear previous calls
       mockHintInteractionService.saveHintInteraction.mockClear();
-      
+
       // Second click - collapse
-      const hideButton = screen.getByRole('button', { name: /hide hints/i });
+      const hideButton = screen.getByRole("button", { name: /hide hints/i });
       fireEvent.click(hideButton);
 
       // Assert
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalledWith(
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalledWith(
           expect.objectContaining({
-            action: 'collapse',
-            content: 'Hint panel collapsed',
+            action: "collapse",
+            content: "Hint panel collapsed",
           })
         );
       });
     });
   });
 
-  describe('PrimerSection Integration', () => {
-    it('should track primer viewing interactions', async () => {
+  describe("PrimerSection Integration", () => {
+    it("should track primer viewing interactions", async () => {
       // Arrange
       const mockPrimers = [
         {
-          tag: 'binary-search',
-          overview: 'Efficient search algorithm for sorted arrays',
-          strategy: 'Divide search space in half repeatedly',
-          patterns: ['Binary Search', 'Two Pointers'],
-          related: ['array', 'sorting'],
+          tag: "binary-search",
+          overview: "Efficient search algorithm for sorted arrays",
+          strategy: "Divide search space in half repeatedly",
+          patterns: ["Binary Search", "Two Pointers"],
+          related: ["array", "sorting"],
         },
       ];
 
@@ -360,50 +381,54 @@ describe('Hint Component Tracking Integration', () => {
       render(
         <TestWrapper>
           <PrimerSection
-            problemTags={['binary-search']}
-            problemId={'search-insert-position'}
+            problemTags={["binary-search"]}
+            problemId={"search-insert-position"}
           />
         </TestWrapper>
       );
 
       // Assert - should track primer viewing automatically when loaded
       await waitFor(() => {
-        expect(mockStrategyService.getTagPrimers).toHaveBeenCalledWith(['binary-search']);
+        expect(mockStrategyService.getTagPrimers).toHaveBeenCalledWith([
+          "binary-search",
+        ]);
       });
 
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalledWith(
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalledWith(
           expect.objectContaining({
-            problemId: 'search-insert-position',
-            hintId: 'primer-section',
-            hintType: 'primer',
-            primaryTag: 'binary-search',
+            problemId: "search-insert-position",
+            hintId: "primer-section",
+            hintType: "primer",
+            primaryTag: "binary-search",
             relatedTag: null,
-            action: 'viewed',
-            problemTags: ['binary-search'],
-            content: 'Viewed primers for binary-search',
+            action: "viewed",
+            problemTags: ["binary-search"],
+            content: "Viewed primers for binary-search",
             sessionContext: expect.objectContaining({
               primerCount: 1,
-              componentType: 'PrimerSection',
-              tagsDisplayed: ['binary-search'],
+              componentType: "PrimerSection",
+              tagsDisplayed: ["binary-search"],
             }),
           })
         );
       });
     });
 
-    it('should track multiple tag primer viewing', async () => {
+    it("should track multiple tag primer viewing", async () => {
       // Arrange
       const mockPrimers = [
         {
-          tag: 'heap',
-          overview: 'Priority queue data structure',
-          strategy: 'Use heap for efficient min/max operations',
+          tag: "heap",
+          overview: "Priority queue data structure",
+          strategy: "Use heap for efficient min/max operations",
         },
         {
-          tag: 'greedy',
-          overview: 'Make locally optimal choices',
-          strategy: 'Choose best option at each step',
+          tag: "greedy",
+          overview: "Make locally optimal choices",
+          strategy: "Choose best option at each step",
         },
       ];
 
@@ -413,76 +438,80 @@ describe('Hint Component Tracking Integration', () => {
       render(
         <TestWrapper>
           <PrimerSection
-            problemTags={['heap', 'greedy']}
-            problemId={'merge-k-sorted-lists'}
+            problemTags={["heap", "greedy"]}
+            problemId={"merge-k-sorted-lists"}
           />
         </TestWrapper>
       );
 
       // Assert
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalledWith(
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalledWith(
           expect.objectContaining({
-            primaryTag: 'heap',
-            relatedTag: 'greedy',
-            content: 'Viewed primers for heap, greedy',
+            primaryTag: "heap",
+            relatedTag: "greedy",
+            content: "Viewed primers for heap, greedy",
             sessionContext: expect.objectContaining({
               primerCount: 2,
-              tagsDisplayed: ['heap', 'greedy'],
+              tagsDisplayed: ["heap", "greedy"],
             }),
           })
         );
       });
     });
 
-    it('should not track when primers fail to load', async () => {
+    it("should not track when primers fail to load", async () => {
       // Arrange
       mockStrategyService.getTagPrimers.mockRejectedValue(
-        new Error('Failed to load primers')
+        new Error("Failed to load primers")
       );
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation();
 
       // Act
       render(
         <TestWrapper>
           <PrimerSection
-            problemTags={['backtracking']}
-            problemId={'n-queens'}
+            problemTags={["backtracking"]}
+            problemId={"n-queens"}
           />
         </TestWrapper>
       );
 
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith(
-          'Error loading primers:',
+          "Error loading primers:",
           expect.any(Error)
         );
       });
 
       // Assert - should not call tracking service
-      expect(mockHintInteractionService.saveHintInteraction).not.toHaveBeenCalled();
+      expect(
+        mockHintInteractionService.saveHintInteraction
+      ).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
     });
 
-    it('should handle tracking failures gracefully', async () => {
+    it("should handle tracking failures gracefully", async () => {
       // Arrange
-      const mockPrimers = [{ tag: 'graph', overview: 'Graph algorithms' }];
-      
+      const mockPrimers = [{ tag: "graph", overview: "Graph algorithms" }];
+
       mockStrategyService.getTagPrimers.mockResolvedValue(mockPrimers);
       mockHintInteractionService.saveHintInteraction.mockRejectedValue(
-        new Error('Tracking service unavailable')
+        new Error("Tracking service unavailable")
       );
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
 
       // Act
       render(
         <TestWrapper>
           <PrimerSection
-            problemTags={['graph']}
-            problemId={'graph-traversal'}
+            problemTags={["graph"]}
+            problemId={"graph-traversal"}
           />
         </TestWrapper>
       );
@@ -490,25 +519,25 @@ describe('Hint Component Tracking Integration', () => {
       // Assert - should handle error gracefully
       await waitFor(() => {
         expect(consoleSpy).toHaveBeenCalledWith(
-          'Failed to track primer view:',
+          "Failed to track primer view:",
           expect.any(Error)
         );
       });
 
       // Should still display primers despite tracking failure
       await waitFor(() => {
-        expect(screen.getByText('graph')).toBeInTheDocument();
+        expect(screen.getByText("graph")).toBeInTheDocument();
       });
 
       consoleSpy.mockRestore();
     });
   });
 
-  describe('Cross-Component Integration', () => {
-    it('should generate unique hint IDs across components', async () => {
+  describe("Cross-Component Integration", () => {
+    it("should generate unique hint IDs across components", async () => {
       // Arrange
-      const mockHints = [{ type: 'general', primaryTag: 'sorting' }];
-      const mockPrimers = [{ tag: 'sorting', overview: 'Sorting algorithms' }];
+      const mockHints = [{ type: "general", primaryTag: "sorting" }];
+      const mockPrimers = [{ tag: "sorting", overview: "Sorting algorithms" }];
 
       mockStrategyService.getContextualHints.mockResolvedValue(mockHints);
       mockStrategyService.getTagPrimers.mockResolvedValue(mockPrimers);
@@ -517,17 +546,11 @@ describe('Hint Component Tracking Integration', () => {
       render(
         <TestWrapper>
           <FloatingHintButton
-            problemTags={['sorting']}
-            problemId={'merge-sort'}
+            problemTags={["sorting"]}
+            problemId={"merge-sort"}
           />
-          <HintPanel
-            problemTags={['sorting']}
-            problemId={'merge-sort'}
-          />
-          <PrimerSection
-            problemTags={['sorting']}
-            problemId={'merge-sort'}
-          />
+          <HintPanel problemTags={["sorting"]} problemId={"merge-sort"} />
+          <PrimerSection problemTags={["sorting"]} problemId={"merge-sort"} />
         </TestWrapper>
       );
 
@@ -538,57 +561,57 @@ describe('Hint Component Tracking Integration', () => {
       });
 
       // Trigger interactions
-      const hintButton = screen.getByRole('button', { name: /strategy hints available/i });
+      const hintButton = screen.getByRole("button", {
+        name: /strategy hints available/i,
+      });
       fireEvent.click(hintButton);
 
-      const panelButton = screen.getByRole('button', { name: /show hints/i });
+      const panelButton = screen.getByRole("button", { name: /show hints/i });
       fireEvent.click(panelButton);
 
       // Assert - each component should generate unique hint IDs
       await waitFor(() => {
         const calls = mockHintInteractionService.saveHintInteraction.mock.calls;
         expect(calls.length).toBeGreaterThanOrEqual(2);
-        
-        const hintIds = calls.map(call => call[0].hintId);
+
+        const hintIds = calls.map((call) => call[0].hintId);
         const uniqueHintIds = new Set(hintIds);
-        
+
         expect(uniqueHintIds.size).toBe(hintIds.length); // All IDs should be unique
       });
     });
 
-    it('should maintain consistent problem context across components', async () => {
+    it("should maintain consistent problem context across components", async () => {
       // Arrange
-      const mockHints = [{ type: 'contextual', primaryTag: 'divide-conquer' }];
-      const mockPrimers = [{ tag: 'divide-conquer', overview: 'Divide and conquer' }];
+      const mockHints = [{ type: "contextual", primaryTag: "divide-conquer" }];
+      const mockPrimers = [
+        { tag: "divide-conquer", overview: "Divide and conquer" },
+      ];
 
       mockStrategyService.getContextualHints.mockResolvedValue(mockHints);
       mockStrategyService.getTagPrimers.mockResolvedValue(mockPrimers);
 
-      const problemId = 'quick-sort';
-      const problemTags = ['divide-conquer'];
+      const problemId = "quick-sort";
+      const problemTags = ["divide-conquer"];
 
       // Act
       render(
         <TestWrapper>
-          <FloatingHintButton
-            problemTags={problemTags}
-            problemId={problemId}
-          />
-          <PrimerSection
-            problemTags={problemTags}
-            problemId={problemId}
-          />
+          <FloatingHintButton problemTags={problemTags} problemId={problemId} />
+          <PrimerSection problemTags={problemTags} problemId={problemId} />
         </TestWrapper>
       );
 
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalled();
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalled();
       });
 
       // Assert - all interactions should have consistent problem context
       const calls = mockHintInteractionService.saveHintInteraction.mock.calls;
-      
-      calls.forEach(call => {
+
+      calls.forEach((call) => {
         const interactionData = call[0];
         expect(interactionData.problemId).toBe(problemId);
         expect(interactionData.problemTags).toEqual(problemTags);
@@ -596,73 +619,87 @@ describe('Hint Component Tracking Integration', () => {
     });
   });
 
-  describe('Performance Considerations', () => {
-    it('should not block UI rendering when tracking fails', async () => {
+  describe("Performance Considerations", () => {
+    it("should not block UI rendering when tracking fails", async () => {
       // Arrange
       mockStrategyService.getContextualHints.mockResolvedValue([
-        { type: 'general', primaryTag: 'performance-test', tip: 'Use systematic approach for performance-test problems' }
+        {
+          type: "general",
+          primaryTag: "performance-test",
+          tip: "Use systematic approach for performance-test problems",
+        },
       ]);
-      
+
       // Simulate very slow tracking service
       mockHintInteractionService.saveHintInteraction.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 5000))
+        () => new Promise((resolve) => setTimeout(resolve, 5000))
       );
 
       // Act
       render(
         <TestWrapper>
           <FloatingHintButton
-            problemTags={['performance-test']}
-            problemId={'slow-tracking'}
+            problemTags={["performance-test"]}
+            problemId={"slow-tracking"}
           />
         </TestWrapper>
       );
 
       // Assert - UI should render immediately despite slow tracking
       await waitFor(() => {
-        const hintButton = screen.getByRole('button', { name: /strategy hints available/i });
+        const hintButton = screen.getByRole("button", {
+          name: /strategy hints available/i,
+        });
         expect(hintButton).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /strategy hints available/i }));
+      fireEvent.click(
+        screen.getByRole("button", { name: /strategy hints available/i })
+      );
 
       // Should be able to interact with UI immediately
       await waitFor(() => {
         // Use getAllByText and select the clickable hint (not the badge)
-        const hintTitles = screen.getAllByText('performance-test');
-        const clickableHint = hintTitles.find(el => el.tagName === 'P');
+        const hintTitles = screen.getAllByText("performance-test");
+        const clickableHint = hintTitles.find((el) => el.tagName === "P");
         expect(clickableHint).toBeInTheDocument();
         fireEvent.click(clickableHint);
       });
 
       // UI interaction should work even if tracking is still pending
-      expect(screen.getByText('Use systematic approach for performance-test problems')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Use systematic approach for performance-test problems"
+        )
+      ).toBeInTheDocument();
     });
 
-    it('should handle high-frequency interactions efficiently', async () => {
+    it("should handle high-frequency interactions efficiently", async () => {
       // Arrange
       mockStrategyService.getContextualHints.mockResolvedValue([
-        { type: 'contextual', primaryTag: 'rapid-fire', relatedTag: 'test' }
+        { type: "contextual", primaryTag: "rapid-fire", relatedTag: "test" },
       ]);
 
       // Act
       render(
         <TestWrapper>
           <FloatingHintButton
-            problemTags={['rapid-fire', 'test']}
-            problemId={'efficiency-test'}
+            problemTags={["rapid-fire", "test"]}
+            problemId={"efficiency-test"}
           />
         </TestWrapper>
       );
 
       await waitFor(() => {
-        const hintButton = screen.getByRole('button', { name: /strategy hints available/i });
+        const hintButton = screen.getByRole("button", {
+          name: /strategy hints available/i,
+        });
         fireEvent.click(hintButton);
       });
 
       await waitFor(() => {
-        const hintTitle = screen.getByText('rapid-fire + test');
-        
+        const hintTitle = screen.getByText("rapid-fire + test");
+
         // Rapid clicks to test performance
         for (let i = 0; i < 10; i++) {
           fireEvent.click(hintTitle);
@@ -671,7 +708,9 @@ describe('Hint Component Tracking Integration', () => {
 
       // Assert - should handle all interactions without errors
       await waitFor(() => {
-        expect(mockHintInteractionService.saveHintInteraction).toHaveBeenCalledTimes(10);
+        expect(
+          mockHintInteractionService.saveHintInteraction
+        ).toHaveBeenCalledTimes(10);
       });
     });
   });
