@@ -1,11 +1,11 @@
 /**
  * Data Integrity Dashboard Component
- * 
+ *
  * Provides a comprehensive interface for monitoring and managing data integrity,
  * including health status, integrity checks, repairs, and reconstruction operations.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -39,8 +39,8 @@ import {
   DialogActions,
   CircularProgress,
   IconButton,
-  Tooltip
-} from '@mui/material';
+  Tooltip,
+} from "@mui/material";
 import {
   CheckCircle,
   Warning,
@@ -53,14 +53,14 @@ import {
   Info,
   PlayArrow,
   Stop,
-  GetApp
-} from '@mui/icons-material';
+  GetApp,
+} from "@mui/icons-material";
 
 // Import integrity services
-import DataIntegrityCheckService from '../services/dataIntegrity/DataIntegrityCheckService.js';
-import ReferentialIntegrityService from '../services/dataIntegrity/ReferentialIntegrityService.js';
-import DataCorruptionRepair from '../services/dataIntegrity/DataCorruptionRepair.js';
-import DataReconstructionService from '../services/dataIntegrity/DataReconstructionService.js';
+import DataIntegrityCheckService from "../services/dataIntegrity/DataIntegrityCheckService.js";
+import ReferentialIntegrityService from "../services/dataIntegrity/ReferentialIntegrityService.js";
+import DataCorruptionRepair from "../services/dataIntegrity/DataCorruptionRepair.js";
+import DataReconstructionService from "../services/dataIntegrity/DataReconstructionService.js";
 
 const DataIntegrityDashboard = () => {
   // State management
@@ -87,10 +87,11 @@ const DataIntegrityDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const summary = await DataIntegrityCheckService.getIntegrityDashboardSummary();
+      const summary =
+        await DataIntegrityCheckService.getIntegrityDashboardSummary();
       setDashboardSummary(summary);
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      console.error("Failed to load dashboard data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -101,22 +102,22 @@ const DataIntegrityDashboard = () => {
       const status = DataIntegrityCheckService.getMonitoringStatus();
       setMonitoringEnabled(status.active);
     } catch (error) {
-      console.error('Failed to check monitoring status:', error);
+      console.error("Failed to check monitoring status:", error);
     }
   };
 
-  const runIntegrityCheck = async (checkType = 'full') => {
+  const runIntegrityCheck = async (checkType = "full") => {
     try {
       setIsRunningCheck(true);
       const result = await DataIntegrityCheckService.performIntegrityCheck({
         checkType,
-        priority: 'high',
-        saveToHistory: true
+        priority: "high",
+        saveToHistory: true,
       });
       setCheckResults(result);
       await loadDashboardData(); // Refresh summary
     } catch (error) {
-      console.error('Integrity check failed:', error);
+      console.error("Integrity check failed:", error);
     } finally {
       setIsRunningCheck(false);
     }
@@ -130,31 +131,33 @@ const DataIntegrityDashboard = () => {
         autoRepairSafe: true,
         createBackup: true,
         maxRepairs: 50,
-        ...options
+        ...options,
       });
       setRepairResults(result);
       await loadDashboardData(); // Refresh summary
     } catch (error) {
-      console.error('Corruption repair failed:', error);
+      console.error("Corruption repair failed:", error);
     } finally {
       setIsRunningRepair(false);
     }
   };
 
-  const runDataReconstruction = async (types = ['tag_mastery', 'problem_stats']) => {
+  const runDataReconstruction = async (
+    types = ["tag_mastery", "problem_stats"]
+  ) => {
     try {
       setIsRunningReconstruction(true);
       const result = await DataReconstructionService.reconstructData({
         types,
-        strategy: 'hybrid_approach',
+        strategy: "hybrid_approach",
         dryRun: false,
         createBackup: true,
-        preserveExisting: true
+        preserveExisting: true,
       });
       setReconstructionResults(result);
       await loadDashboardData(); // Refresh summary
     } catch (error) {
-      console.error('Data reconstruction failed:', error);
+      console.error("Data reconstruction failed:", error);
     } finally {
       setIsRunningReconstruction(false);
     }
@@ -168,32 +171,42 @@ const DataIntegrityDashboard = () => {
         DataIntegrityCheckService.startPeriodicMonitoring({
           quickCheckInterval: 5 * 60 * 1000, // 5 minutes
           fullCheckInterval: 24 * 60 * 60 * 1000, // 24 hours
-          autoRepair: false
+          autoRepair: false,
         });
       }
       setMonitoringEnabled(!monitoringEnabled);
     } catch (error) {
-      console.error('Failed to toggle monitoring:', error);
+      console.error("Failed to toggle monitoring:", error);
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'excellent': return 'success';
-      case 'good': return 'success';
-      case 'warning': return 'warning';
-      case 'critical': return 'error';
-      default: return 'info';
+      case "excellent":
+        return "success";
+      case "good":
+        return "success";
+      case "warning":
+        return "warning";
+      case "critical":
+        return "error";
+      default:
+        return "info";
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'excellent': return <CheckCircle color="success" />;
-      case 'good': return <CheckCircle color="success" />;
-      case 'warning': return <Warning color="warning" />;
-      case 'critical': return <Error color="error" />;
-      default: return <Info color="info" />;
+      case "excellent":
+        return <CheckCircle color="success" />;
+      case "good":
+        return <CheckCircle color="success" />;
+      case "warning":
+        return <Warning color="warning" />;
+      case "critical":
+        return <Error color="error" />;
+      default:
+        return <Info color="info" />;
     }
   };
 
@@ -204,7 +217,12 @@ const DataIntegrityDashboard = () => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
         <CircularProgress />
       </Box>
     );
@@ -212,19 +230,29 @@ const DataIntegrityDashboard = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
         <Typography variant="h4" component="h1">
           Data Integrity Dashboard
         </Typography>
         <Box>
           <FormControlLabel
-            control={<Switch checked={monitoringEnabled} onChange={toggleMonitoring} />}
+            control={
+              <Switch checked={monitoringEnabled} onChange={toggleMonitoring} />
+            }
             label="Auto Monitoring"
           />
           <IconButton onClick={loadDashboardData} sx={{ ml: 1 }}>
             <Refresh />
           </IconButton>
-          <IconButton onClick={() => setShowSettingsDialog(true)} sx={{ ml: 1 }}>
+          <IconButton
+            onClick={() => setShowSettingsDialog(true)}
+            sx={{ ml: 1 }}
+          >
             <Settings />
           </IconButton>
         </Box>
@@ -241,11 +269,14 @@ const DataIntegrityDashboard = () => {
                   Overall Status
                 </Typography>
               </Box>
-              <Typography variant="h3" color={getStatusColor(dashboardSummary?.status)}>
-                {dashboardSummary?.overallScore || 'N/A'}%
+              <Typography
+                variant="h3"
+                color={getStatusColor(dashboardSummary?.status)}
+              >
+                {dashboardSummary?.overallScore || "N/A"}%
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {dashboardSummary?.status || 'Unknown'}
+                {dashboardSummary?.status || "Unknown"}
               </Typography>
             </CardContent>
           </Card>
@@ -257,12 +288,17 @@ const DataIntegrityDashboard = () => {
               <Typography variant="h6" gutterBottom>
                 Recent Issues
               </Typography>
-              <Typography variant="h3" color={dashboardSummary?.recentIssues > 0 ? 'error' : 'success'}>
+              <Typography
+                variant="h3"
+                color={dashboardSummary?.recentIssues > 0 ? "error" : "success"}
+              >
                 {dashboardSummary?.recentIssues || 0}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Last check: {dashboardSummary?.lastCheck ? 
-                  new Date(dashboardSummary.lastCheck).toLocaleString() : 'Never'}
+                Last check:{" "}
+                {dashboardSummary?.lastCheck
+                  ? new Date(dashboardSummary.lastCheck).toLocaleString()
+                  : "Never"}
               </Typography>
             </CardContent>
           </Card>
@@ -290,20 +326,31 @@ const DataIntegrityDashboard = () => {
               <Typography variant="h6" gutterBottom>
                 Trend
               </Typography>
-              <Chip 
-                label={dashboardSummary?.trends?.trend || 'Unknown'}
+              <Chip
+                label={dashboardSummary?.trends?.trend || "Unknown"}
                 color={
-                  dashboardSummary?.trends?.trend === 'improving' ? 'success' :
-                  dashboardSummary?.trends?.trend === 'declining' ? 'error' : 'default'
+                  dashboardSummary?.trends?.trend === "improving"
+                    ? "success"
+                    : dashboardSummary?.trends?.trend === "declining"
+                    ? "error"
+                    : "default"
                 }
-                icon={dashboardSummary?.trends?.trend === 'improving' ? 
-                  <CheckCircle /> : dashboardSummary?.trends?.trend === 'declining' ? 
-                  <Warning /> : <Info />}
+                icon={
+                  dashboardSummary?.trends?.trend === "improving" ? (
+                    <CheckCircle />
+                  ) : dashboardSummary?.trends?.trend === "declining" ? (
+                    <Warning />
+                  ) : (
+                    <Info />
+                  )
+                }
               />
               <Typography variant="body2" color="text.secondary" mt={1}>
-                {dashboardSummary?.trends?.difference ? 
-                  `${dashboardSummary.trends.difference > 0 ? '+' : ''}${dashboardSummary.trends.difference}%` : 
-                  'No change'}
+                {dashboardSummary?.trends?.difference
+                  ? `${dashboardSummary.trends.difference > 0 ? "+" : ""}${
+                      dashboardSummary.trends.difference
+                    }%`
+                  : "No change"}
               </Typography>
             </CardContent>
           </Card>
@@ -312,7 +359,10 @@ const DataIntegrityDashboard = () => {
 
       {/* Main Content Tabs */}
       <Card>
-        <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => setActiveTab(newValue)}
+        >
           <Tab label="Integrity Checks" />
           <Tab label="Corruption Repair" />
           <Tab label="Data Reconstruction" />
@@ -326,23 +376,23 @@ const DataIntegrityDashboard = () => {
               <Button
                 variant="contained"
                 startIcon={<PlayArrow />}
-                onClick={() => runIntegrityCheck('full')}
+                onClick={() => runIntegrityCheck("full")}
                 disabled={isRunningCheck}
               >
-                {isRunningCheck ? 'Running Full Check...' : 'Run Full Check'}
+                {isRunningCheck ? "Running Full Check..." : "Run Full Check"}
               </Button>
               <Button
                 variant="outlined"
                 startIcon={<PlayArrow />}
-                onClick={() => runIntegrityCheck('quick')}
+                onClick={() => runIntegrityCheck("quick")}
                 disabled={isRunningCheck}
               >
-                {isRunningCheck ? 'Running...' : 'Quick Check'}
+                {isRunningCheck ? "Running..." : "Quick Check"}
               </Button>
               <Button
                 variant="outlined"
                 startIcon={<PlayArrow />}
-                onClick={() => runIntegrityCheck('referential')}
+                onClick={() => runIntegrityCheck("referential")}
                 disabled={isRunningCheck}
               >
                 Referential Only
@@ -364,39 +414,61 @@ const DataIntegrityDashboard = () => {
                   <Typography variant="h6">
                     Latest Check Results ({checkResults.checkType})
                   </Typography>
-                  <Chip 
-                    label={checkResults.overall.valid ? 'PASSED' : 'FAILED'}
-                    color={checkResults.overall.valid ? 'success' : 'error'}
+                  <Chip
+                    label={checkResults.overall.valid ? "PASSED" : "FAILED"}
+                    color={checkResults.overall.valid ? "success" : "error"}
                     sx={{ ml: 2 }}
                   />
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle2">Overall Score: {checkResults.overall.score}%</Typography>
-                      <Typography variant="body2">Errors: {checkResults.overall.errors}</Typography>
-                      <Typography variant="body2">Warnings: {checkResults.overall.warnings}</Typography>
-                      <Typography variant="body2">Check Time: {checkResults.performanceMetrics.totalTime.toFixed(2)}ms</Typography>
+                      <Typography variant="subtitle2">
+                        Overall Score: {checkResults.overall.score}%
+                      </Typography>
+                      <Typography variant="body2">
+                        Errors: {checkResults.overall.errors}
+                      </Typography>
+                      <Typography variant="body2">
+                        Warnings: {checkResults.overall.warnings}
+                      </Typography>
+                      <Typography variant="body2">
+                        Check Time:{" "}
+                        {checkResults.performanceMetrics.totalTime.toFixed(2)}ms
+                      </Typography>
                     </Grid>
                     <Grid item xs={12} md={6}>
-                      {checkResults.recommendations && checkResults.recommendations.length > 0 && (
-                        <>
-                          <Typography variant="subtitle2" gutterBottom>Recommendations:</Typography>
-                          {checkResults.recommendations.slice(0, 3).map((rec, index) => (
-                            <Alert key={index} severity={rec.priority === 'high' ? 'error' : 'warning'} sx={{ mb: 1 }}>
-                              <AlertTitle>{rec.title}</AlertTitle>
-                              {rec.description}
-                            </Alert>
-                          ))}
-                        </>
-                      )}
+                      {checkResults.recommendations &&
+                        checkResults.recommendations.length > 0 && (
+                          <>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Recommendations:
+                            </Typography>
+                            {checkResults.recommendations
+                              .slice(0, 3)
+                              .map((rec, index) => (
+                                <Alert
+                                  key={index}
+                                  severity={
+                                    rec.priority === "high"
+                                      ? "error"
+                                      : "warning"
+                                  }
+                                  sx={{ mb: 1 }}
+                                >
+                                  <AlertTitle>{rec.title}</AlertTitle>
+                                  {rec.description}
+                                </Alert>
+                              ))}
+                          </>
+                        )}
                     </Grid>
                   </Grid>
-                  
+
                   <Button
                     variant="outlined"
                     startIcon={<Info />}
-                    onClick={() => showDetails('Check Results', checkResults)}
+                    onClick={() => showDetails("Check Results", checkResults)}
                     sx={{ mt: 2 }}
                   >
                     View Full Details
@@ -418,7 +490,7 @@ const DataIntegrityDashboard = () => {
                 disabled={isRunningRepair}
                 color="warning"
               >
-                {isRunningRepair ? 'Running Repair...' : 'Detect & Repair'}
+                {isRunningRepair ? "Running Repair..." : "Detect & Repair"}
               </Button>
               <Button
                 variant="outlined"
@@ -442,35 +514,61 @@ const DataIntegrityDashboard = () => {
             {repairResults && (
               <Accordion>
                 <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant="h6">
-                    Latest Repair Results
-                  </Typography>
-                  <Chip 
-                    label={repairResults.overall.success ? 'SUCCESS' : 'FAILED'}
-                    color={repairResults.overall.success ? 'success' : 'error'}
+                  <Typography variant="h6">Latest Repair Results</Typography>
+                  <Chip
+                    label={repairResults.overall.success ? "SUCCESS" : "FAILED"}
+                    color={repairResults.overall.success ? "success" : "error"}
                     sx={{ ml: 2 }}
                   />
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle2">Corruption Detected: {repairResults.overall.corruptionDetected ? 'Yes' : 'No'}</Typography>
-                      <Typography variant="body2">Total Issues: {repairResults.overall.totalIssues}</Typography>
-                      <Typography variant="body2">Repairs Successful: {repairResults.overall.repairsSuccessful}</Typography>
-                      <Typography variant="body2">Repairs Failed: {repairResults.overall.repairsFailed}</Typography>
+                      <Typography variant="subtitle2">
+                        Corruption Detected:{" "}
+                        {repairResults.overall.corruptionDetected
+                          ? "Yes"
+                          : "No"}
+                      </Typography>
+                      <Typography variant="body2">
+                        Total Issues: {repairResults.overall.totalIssues}
+                      </Typography>
+                      <Typography variant="body2">
+                        Repairs Successful:{" "}
+                        {repairResults.overall.repairsSuccessful}
+                      </Typography>
+                      <Typography variant="body2">
+                        Repairs Failed: {repairResults.overall.repairsFailed}
+                      </Typography>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Typography variant="subtitle2">Performance:</Typography>
-                      <Typography variant="body2">Detection Time: {repairResults.performanceMetrics.detectionTime?.toFixed(2)}ms</Typography>
-                      <Typography variant="body2">Repair Time: {repairResults.performanceMetrics.repairTime?.toFixed(2)}ms</Typography>
-                      <Typography variant="body2">Total Time: {repairResults.performanceMetrics.totalTime?.toFixed(2)}ms</Typography>
+                      <Typography variant="body2">
+                        Detection Time:{" "}
+                        {repairResults.performanceMetrics.detectionTime?.toFixed(
+                          2
+                        )}
+                        ms
+                      </Typography>
+                      <Typography variant="body2">
+                        Repair Time:{" "}
+                        {repairResults.performanceMetrics.repairTime?.toFixed(
+                          2
+                        )}
+                        ms
+                      </Typography>
+                      <Typography variant="body2">
+                        Total Time:{" "}
+                        {repairResults.performanceMetrics.totalTime?.toFixed(2)}
+                        ms
+                      </Typography>
                     </Grid>
                   </Grid>
-                  
+
                   <Button
                     variant="outlined"
                     startIcon={<Info />}
-                    onClick={() => showDetails('Repair Results', repairResults)}
+                    onClick={() => showDetails("Repair Results", repairResults)}
                     sx={{ mt: 2 }}
                   >
                     View Full Details
@@ -492,12 +590,14 @@ const DataIntegrityDashboard = () => {
                 disabled={isRunningReconstruction}
                 color="secondary"
               >
-                {isRunningReconstruction ? 'Reconstructing...' : 'Reconstruct Data'}
+                {isRunningReconstruction
+                  ? "Reconstructing..."
+                  : "Reconstruct Data"}
               </Button>
               <Button
                 variant="outlined"
                 startIcon={<GetApp />}
-                onClick={() => runDataReconstruction(['tag_mastery'])}
+                onClick={() => runDataReconstruction(["tag_mastery"])}
                 disabled={isRunningReconstruction}
               >
                 Tag Mastery Only
@@ -505,7 +605,7 @@ const DataIntegrityDashboard = () => {
               <Button
                 variant="outlined"
                 startIcon={<GetApp />}
-                onClick={() => runDataReconstruction(['problem_stats'])}
+                onClick={() => runDataReconstruction(["problem_stats"])}
                 disabled={isRunningReconstruction}
               >
                 Problem Stats Only
@@ -527,32 +627,66 @@ const DataIntegrityDashboard = () => {
                   <Typography variant="h6">
                     Latest Reconstruction Results
                   </Typography>
-                  <Chip 
-                    label={reconstructionResults.overall.success ? 'SUCCESS' : 'FAILED'}
-                    color={reconstructionResults.overall.success ? 'success' : 'error'}
+                  <Chip
+                    label={
+                      reconstructionResults.overall.success
+                        ? "SUCCESS"
+                        : "FAILED"
+                    }
+                    color={
+                      reconstructionResults.overall.success
+                        ? "success"
+                        : "error"
+                    }
                     sx={{ ml: 2 }}
                   />
                 </AccordionSummary>
                 <AccordionDetails>
                   <Grid container spacing={2}>
                     <Grid item xs={12} md={6}>
-                      <Typography variant="subtitle2">Types Processed: {reconstructionResults.overall.typesProcessed}</Typography>
-                      <Typography variant="body2">Records Reconstructed: {reconstructionResults.overall.recordsReconstructed}</Typography>
-                      <Typography variant="body2">Records Skipped: {reconstructionResults.overall.recordsSkipped}</Typography>
-                      <Typography variant="body2">Errors: {reconstructionResults.overall.errors}</Typography>
+                      <Typography variant="subtitle2">
+                        Types Processed:{" "}
+                        {reconstructionResults.overall.typesProcessed}
+                      </Typography>
+                      <Typography variant="body2">
+                        Records Reconstructed:{" "}
+                        {reconstructionResults.overall.recordsReconstructed}
+                      </Typography>
+                      <Typography variant="body2">
+                        Records Skipped:{" "}
+                        {reconstructionResults.overall.recordsSkipped}
+                      </Typography>
+                      <Typography variant="body2">
+                        Errors: {reconstructionResults.overall.errors}
+                      </Typography>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Typography variant="subtitle2">Performance:</Typography>
-                      <Typography variant="body2">Total Time: {reconstructionResults.performanceMetrics.totalTime?.toFixed(2)}ms</Typography>
-                      <Typography variant="body2">Strategy: {reconstructionResults.strategy}</Typography>
-                      <Typography variant="body2">Dry Run: {reconstructionResults.dryRun ? 'Yes' : 'No'}</Typography>
+                      <Typography variant="body2">
+                        Total Time:{" "}
+                        {reconstructionResults.performanceMetrics.totalTime?.toFixed(
+                          2
+                        )}
+                        ms
+                      </Typography>
+                      <Typography variant="body2">
+                        Strategy: {reconstructionResults.strategy}
+                      </Typography>
+                      <Typography variant="body2">
+                        Dry Run: {reconstructionResults.dryRun ? "Yes" : "No"}
+                      </Typography>
                     </Grid>
                   </Grid>
-                  
+
                   <Button
                     variant="outlined"
                     startIcon={<Info />}
-                    onClick={() => showDetails('Reconstruction Results', reconstructionResults)}
+                    onClick={() =>
+                      showDetails(
+                        "Reconstruction Results",
+                        reconstructionResults
+                      )
+                    }
                     sx={{ mt: 2 }}
                   >
                     View Full Details
@@ -572,10 +706,15 @@ const DataIntegrityDashboard = () => {
       </Card>
 
       {/* Detail Dialog */}
-      <Dialog open={showDetailDialog} onClose={() => setShowDetailDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog
+        open={showDetailDialog}
+        onClose={() => setShowDetailDialog(false)}
+        maxWidth="lg"
+        fullWidth
+      >
         <DialogTitle>{detailDialogData?.title}</DialogTitle>
         <DialogContent>
-          <pre style={{ whiteSpace: 'pre-wrap', fontSize: '12px' }}>
+          <pre style={{ whiteSpace: "pre-wrap", fontSize: "12px" }}>
             {JSON.stringify(detailDialogData?.data, null, 2)}
           </pre>
         </DialogContent>
@@ -585,7 +724,10 @@ const DataIntegrityDashboard = () => {
       </Dialog>
 
       {/* Settings Dialog */}
-      <Dialog open={showSettingsDialog} onClose={() => setShowSettingsDialog(false)}>
+      <Dialog
+        open={showSettingsDialog}
+        onClose={() => setShowSettingsDialog(false)}
+      >
         <DialogTitle>Integrity Monitoring Settings</DialogTitle>
         <DialogContent>
           <Typography variant="body2" gutterBottom>
@@ -595,7 +737,12 @@ const DataIntegrityDashboard = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowSettingsDialog(false)}>Cancel</Button>
-          <Button onClick={() => setShowSettingsDialog(false)} variant="contained">Save</Button>
+          <Button
+            onClick={() => setShowSettingsDialog(false)}
+            variant="contained"
+          >
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
@@ -616,13 +763,14 @@ const HistoryView = () => {
     try {
       const checks = DataIntegrityCheckService.getCheckHistory(10);
       const repairs = DataCorruptionRepair.getRepairHistory(10);
-      const reconstructions = DataReconstructionService.getReconstructionHistory(10);
-      
+      const reconstructions =
+        DataReconstructionService.getReconstructionHistory(10);
+
       setCheckHistory(checks);
       setRepairHistory(repairs);
       setReconstructionHistory(reconstructions);
     } catch (error) {
-      console.error('Failed to load history:', error);
+      console.error("Failed to load history:", error);
     }
   };
 
@@ -631,7 +779,7 @@ const HistoryView = () => {
       <Typography variant="h6" gutterBottom>
         Operation History
       </Typography>
-      
+
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Typography>Integrity Checks ({checkHistory.length})</Typography>
@@ -651,17 +799,29 @@ const HistoryView = () => {
               <TableBody>
                 {checkHistory.map((check) => (
                   <TableRow key={check.checkId}>
-                    <TableCell>{new Date(check.timestamp).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {new Date(check.timestamp).toLocaleString()}
+                    </TableCell>
                     <TableCell>{check.checkType}</TableCell>
                     <TableCell>
-                      <Chip 
+                      <Chip
                         label={`${check.overall.score}%`}
                         size="small"
-                        color={check.overall.score >= 90 ? 'success' : check.overall.score >= 70 ? 'warning' : 'error'}
+                        color={
+                          check.overall.score >= 90
+                            ? "success"
+                            : check.overall.score >= 70
+                            ? "warning"
+                            : "error"
+                        }
                       />
                     </TableCell>
-                    <TableCell>{check.overall.errors + check.overall.warnings}</TableCell>
-                    <TableCell>{check.performanceMetrics.totalTime?.toFixed(0)}ms</TableCell>
+                    <TableCell>
+                      {check.overall.errors + check.overall.warnings}
+                    </TableCell>
+                    <TableCell>
+                      {check.performanceMetrics.totalTime?.toFixed(0)}ms
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -689,17 +849,24 @@ const HistoryView = () => {
               <TableBody>
                 {repairHistory.map((repair) => (
                   <TableRow key={repair.repairId}>
-                    <TableCell>{new Date(repair.timestamp).toLocaleString()}</TableCell>
                     <TableCell>
-                      <Chip 
-                        label={repair.overall.success ? 'Success' : 'Failed'}
+                      {new Date(repair.timestamp).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={repair.overall.success ? "Success" : "Failed"}
                         size="small"
-                        color={repair.overall.success ? 'success' : 'error'}
+                        color={repair.overall.success ? "success" : "error"}
                       />
                     </TableCell>
                     <TableCell>{repair.overall.totalIssues}</TableCell>
-                    <TableCell>{repair.overall.repairsSuccessful}/{repair.overall.repairsAttempted}</TableCell>
-                    <TableCell>{repair.performanceMetrics.totalTime?.toFixed(0)}ms</TableCell>
+                    <TableCell>
+                      {repair.overall.repairsSuccessful}/
+                      {repair.overall.repairsAttempted}
+                    </TableCell>
+                    <TableCell>
+                      {repair.performanceMetrics.totalTime?.toFixed(0)}ms
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -710,7 +877,9 @@ const HistoryView = () => {
 
       <Accordion>
         <AccordionSummary expandIcon={<ExpandMore />}>
-          <Typography>Reconstructions ({reconstructionHistory.length})</Typography>
+          <Typography>
+            Reconstructions ({reconstructionHistory.length})
+          </Typography>
         </AccordionSummary>
         <AccordionDetails>
           <TableContainer component={Paper}>
@@ -727,17 +896,30 @@ const HistoryView = () => {
               <TableBody>
                 {reconstructionHistory.map((reconstruction) => (
                   <TableRow key={reconstruction.reconstructionId}>
-                    <TableCell>{new Date(reconstruction.timestamp).toLocaleString()}</TableCell>
                     <TableCell>
-                      <Chip 
-                        label={reconstruction.overall.success ? 'Success' : 'Failed'}
+                      {new Date(reconstruction.timestamp).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={
+                          reconstruction.overall.success ? "Success" : "Failed"
+                        }
                         size="small"
-                        color={reconstruction.overall.success ? 'success' : 'error'}
+                        color={
+                          reconstruction.overall.success ? "success" : "error"
+                        }
                       />
                     </TableCell>
-                    <TableCell>{reconstruction.overall.typesProcessed}</TableCell>
-                    <TableCell>{reconstruction.overall.recordsReconstructed}</TableCell>
-                    <TableCell>{reconstruction.performanceMetrics.totalTime?.toFixed(0)}ms</TableCell>
+                    <TableCell>
+                      {reconstruction.overall.typesProcessed}
+                    </TableCell>
+                    <TableCell>
+                      {reconstruction.overall.recordsReconstructed}
+                    </TableCell>
+                    <TableCell>
+                      {reconstruction.performanceMetrics.totalTime?.toFixed(0)}
+                      ms
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

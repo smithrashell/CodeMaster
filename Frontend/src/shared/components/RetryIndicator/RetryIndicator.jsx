@@ -1,6 +1,6 @@
 /**
  * RetryIndicator Component
- * 
+ *
  * Provides visual feedback for retry operations including:
  * - Loading states with retry attempt count
  * - Network connectivity status
@@ -9,27 +9,52 @@
  * - Progress indicators for bulk operations
  */
 
-import React, { useState, useEffect } from 'react';
-import { Alert, Progress, Button, Group, Text, Badge, LoadingOverlay, Stack, ActionIcon, Tooltip } from '@mantine/core';
-import { IconWifi, IconWifiOff, IconAlertTriangle, IconX, IconRefresh, IconCircuitSwitchClosed, IconCircuitSwitchOpen } from '@tabler/icons-react';
-import indexedDBRetry from '../../services/IndexedDBRetryService.js';
-import styles from './RetryIndicator.module.css';
+import React, { useState, useEffect } from "react";
+import {
+  Alert,
+  Progress,
+  Button,
+  Group,
+  Text,
+  Badge,
+  LoadingOverlay,
+  Stack,
+  ActionIcon,
+  Tooltip,
+} from "@mantine/core";
+import {
+  IconWifi,
+  IconWifiOff,
+  IconAlertTriangle,
+  IconX,
+  IconRefresh,
+  IconCircuitSwitchClosed,
+  IconCircuitSwitchOpen,
+} from "@tabler/icons-react";
+import indexedDBRetry from "../../services/IndexedDBRetryService.js";
+import styles from "./RetryIndicator.module.css";
 
 /**
  * Main retry indicator component
  */
-export function RetryIndicator({ 
+export function RetryIndicator({
   isActive = false,
   operation = null,
   onCancel = null,
   showNetworkStatus = true,
   showCircuitBreaker = true,
-  className = '',
-  size = 'md'
+  className = "",
+  size = "md",
 }) {
-  const [networkStatus, setNetworkStatus] = useState(indexedDBRetry.getNetworkStatus());
-  const [circuitBreakerStatus, setCircuitBreakerStatus] = useState(indexedDBRetry.getCircuitBreakerStatus());
-  const [activeRequests, setActiveRequests] = useState(indexedDBRetry.getActiveRequestsCount());
+  const [networkStatus, setNetworkStatus] = useState(
+    indexedDBRetry.getNetworkStatus()
+  );
+  const [circuitBreakerStatus, setCircuitBreakerStatus] = useState(
+    indexedDBRetry.getCircuitBreakerStatus()
+  );
+  const [activeRequests, setActiveRequests] = useState(
+    indexedDBRetry.getActiveRequestsCount()
+  );
 
   // Update status periodically
   useEffect(() => {
@@ -63,18 +88,12 @@ export function RetryIndicator({
       <Stack spacing="xs">
         {/* Network Status */}
         {showNetworkStatus && (
-          <NetworkStatusIndicator 
-            isOnline={networkStatus}
-            size={size}
-          />
+          <NetworkStatusIndicator isOnline={networkStatus} size={size} />
         )}
 
         {/* Circuit Breaker Status */}
         {showCircuitBreaker && !circuitBreakerStatus.isHealthy && (
-          <CircuitBreakerIndicator 
-            status={circuitBreakerStatus}
-            size={size}
-          />
+          <CircuitBreakerIndicator status={circuitBreakerStatus} size={size} />
         )}
 
         {/* Active Operation */}
@@ -88,10 +107,7 @@ export function RetryIndicator({
 
         {/* Active Requests Count */}
         {activeRequests > 0 && (
-          <ActiveRequestsIndicator
-            count={activeRequests}
-            size={size}
-          />
+          <ActiveRequestsIndicator count={activeRequests} size={size} />
         )}
       </Stack>
     </div>
@@ -104,7 +120,7 @@ export function RetryIndicator({
 function NetworkStatusIndicator({ isOnline, size }) {
   if (isOnline) {
     return (
-      <Alert 
+      <Alert
         icon={<IconWifi size={16} />}
         color="green"
         variant="light"
@@ -116,7 +132,7 @@ function NetworkStatusIndicator({ isOnline, size }) {
   }
 
   return (
-    <Alert 
+    <Alert
       icon={<IconWifiOff size={16} />}
       color="red"
       variant="filled"
@@ -134,23 +150,28 @@ function NetworkStatusIndicator({ isOnline, size }) {
  */
 function CircuitBreakerIndicator({ status, size }) {
   const getStatusColor = () => {
-    if (status.isOpen) return 'red';
-    if (status.failures > 0) return 'yellow';
-    return 'green';
+    if (status.isOpen) return "red";
+    if (status.failures > 0) return "yellow";
+    return "green";
   };
 
   const getStatusText = () => {
-    if (status.isOpen) return 'Database operations temporarily disabled';
-    if (status.failures > 0) return `${status.failures} recent database failures`;
-    return 'Database operations healthy';
+    if (status.isOpen) return "Database operations temporarily disabled";
+    if (status.failures > 0)
+      return `${status.failures} recent database failures`;
+    return "Database operations healthy";
   };
 
   const getIcon = () => {
-    return status.isOpen ? <IconCircuitSwitchOpen size={16} /> : <IconCircuitSwitchClosed size={16} />;
+    return status.isOpen ? (
+      <IconCircuitSwitchOpen size={16} />
+    ) : (
+      <IconCircuitSwitchClosed size={16} />
+    );
   };
 
   return (
-    <Alert 
+    <Alert
       icon={getIcon()}
       color={getStatusColor()}
       variant={status.isOpen ? "filled" : "light"}
@@ -175,20 +196,21 @@ function CircuitBreakerIndicator({ status, size }) {
  */
 function OperationIndicator({ operation, onCancel, size }) {
   const {
-    name = 'Database operation',
+    name = "Database operation",
     attempt = 1,
     maxAttempts = 5,
     progress = null,
     stage = null,
     isRetrying = false,
-    error = null
+    error = null,
   } = operation;
 
-  const progressPercentage = maxAttempts > 1 ? ((attempt - 1) / (maxAttempts - 1)) * 100 : 0;
+  const progressPercentage =
+    maxAttempts > 1 ? ((attempt - 1) / (maxAttempts - 1)) * 100 : 0;
 
   return (
-    <Alert 
-      color={error ? "red" : (isRetrying ? "yellow" : "blue")}
+    <Alert
+      color={error ? "red" : isRetrying ? "yellow" : "blue"}
       variant="light"
       size={size}
     >
@@ -200,25 +222,24 @@ function OperationIndicator({ operation, onCancel, size }) {
               {stage && ` (${stage})`}
             </Text>
             <Text size="xs" color="dimmed">
-              {isRetrying 
+              {isRetrying
                 ? `Retry attempt ${attempt}/${maxAttempts}`
-                : `Attempt ${attempt}/${maxAttempts}`
-              }
+                : `Attempt ${attempt}/${maxAttempts}`}
             </Text>
           </div>
-          
+
           <Group spacing="xs">
             {isRetrying && (
               <ActionIcon size="sm" variant="subtle">
                 <IconRefresh size={14} className={styles.spinning} />
               </ActionIcon>
             )}
-            
+
             {onCancel && (
               <Tooltip label="Cancel operation">
-                <ActionIcon 
-                  size="sm" 
-                  color="red" 
+                <ActionIcon
+                  size="sm"
+                  color="red"
                   variant="subtle"
                   onClick={onCancel}
                 >
@@ -231,9 +252,9 @@ function OperationIndicator({ operation, onCancel, size }) {
 
         {/* Retry Progress Bar */}
         {maxAttempts > 1 && (
-          <Progress 
+          <Progress
             value={progressPercentage}
-            color={error ? "red" : (isRetrying ? "yellow" : "blue")}
+            color={error ? "red" : isRetrying ? "yellow" : "blue"}
             size="xs"
             striped={isRetrying}
             animate={isRetrying}
@@ -244,14 +265,14 @@ function OperationIndicator({ operation, onCancel, size }) {
         {progress && (
           <div>
             <Group position="apart" mb={4}>
-              <Text size="xs" color="dimmed">Progress</Text>
-              <Text size="xs" color="dimmed">{progress.percentage}%</Text>
+              <Text size="xs" color="dimmed">
+                Progress
+              </Text>
+              <Text size="xs" color="dimmed">
+                {progress.percentage}%
+              </Text>
             </Group>
-            <Progress 
-              value={progress.percentage}
-              color="blue"
-              size="xs"
-            />
+            <Progress value={progress.percentage} color="blue" size="xs" />
           </div>
         )}
 
@@ -272,12 +293,8 @@ function OperationIndicator({ operation, onCancel, size }) {
 function ActiveRequestsIndicator({ count, size }) {
   return (
     <Group spacing="xs">
-      <Badge 
-        color="blue" 
-        variant="light"
-        size={size}
-      >
-        {count} active request{count !== 1 ? 's' : ''}
+      <Badge color="blue" variant="light" size={size}>
+        {count} active request{count !== 1 ? "s" : ""}
       </Badge>
     </Group>
   );
@@ -286,14 +303,20 @@ function ActiveRequestsIndicator({ count, size }) {
 /**
  * Compact retry status badge for use in headers/toolbars
  */
-export function RetryStatusBadge({ 
+export function RetryStatusBadge({
   onClick = null,
   showCount = true,
-  className = '' 
+  className = "",
 }) {
-  const [networkStatus, setNetworkStatus] = useState(indexedDBRetry.getNetworkStatus());
-  const [circuitBreakerStatus, setCircuitBreakerStatus] = useState(indexedDBRetry.getCircuitBreakerStatus());
-  const [activeRequests, setActiveRequests] = useState(indexedDBRetry.getActiveRequestsCount());
+  const [networkStatus, setNetworkStatus] = useState(
+    indexedDBRetry.getNetworkStatus()
+  );
+  const [circuitBreakerStatus, setCircuitBreakerStatus] = useState(
+    indexedDBRetry.getCircuitBreakerStatus()
+  );
+  const [activeRequests, setActiveRequests] = useState(
+    indexedDBRetry.getActiveRequestsCount()
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -314,24 +337,26 @@ export function RetryStatusBadge({
   }, []);
 
   const getStatusColor = () => {
-    if (!networkStatus) return 'red';
-    if (circuitBreakerStatus.isOpen) return 'red';
-    if (circuitBreakerStatus.failures > 0) return 'yellow';
-    if (activeRequests > 0) return 'blue';
-    return 'green';
+    if (!networkStatus) return "red";
+    if (circuitBreakerStatus.isOpen) return "red";
+    if (circuitBreakerStatus.failures > 0) return "yellow";
+    if (activeRequests > 0) return "blue";
+    return "green";
   };
 
   const getStatusText = () => {
-    if (!networkStatus) return 'Offline';
-    if (circuitBreakerStatus.isOpen) return 'DB Error';
-    if (activeRequests > 0) return showCount ? `${activeRequests} Active` : 'Active';
-    return 'Healthy';
+    if (!networkStatus) return "Offline";
+    if (circuitBreakerStatus.isOpen) return "DB Error";
+    if (activeRequests > 0)
+      return showCount ? `${activeRequests} Active` : "Active";
+    return "Healthy";
   };
 
   const getIcon = () => {
     if (!networkStatus) return <IconWifiOff size={12} />;
     if (circuitBreakerStatus.isOpen) return <IconAlertTriangle size={12} />;
-    if (activeRequests > 0) return <IconRefresh size={12} className={styles.spinning} />;
+    if (activeRequests > 0)
+      return <IconRefresh size={12} className={styles.spinning} />;
     return <IconWifi size={12} />;
   };
 
@@ -341,7 +366,7 @@ export function RetryStatusBadge({
       variant="filled"
       size="sm"
       className={className}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      style={{ cursor: onClick ? "pointer" : "default" }}
       onClick={onClick}
       leftSection={getIcon()}
     >
@@ -353,14 +378,14 @@ export function RetryStatusBadge({
 /**
  * Hook for managing retry operations with UI feedback
  */
-export function useRetryOperation(operationName = 'Operation') {
+export function useRetryOperation(operationName = "Operation") {
   const [isActive, setIsActive] = useState(false);
   const [operation, setOperation] = useState(null);
   const [abortController, setAbortController] = useState(null);
 
   const startOperation = (options = {}) => {
     const controller = new AbortController();
-    
+
     setAbortController(controller);
     setIsActive(true);
     setOperation({
@@ -371,32 +396,35 @@ export function useRetryOperation(operationName = 'Operation') {
       stage: options.stage || null,
       isRetrying: false,
       error: null,
-      ...options
+      ...options,
     });
 
     return controller;
   };
 
   const updateOperation = (updates) => {
-    setOperation(prev => prev ? { ...prev, ...updates } : null);
+    setOperation((prev) => (prev ? { ...prev, ...updates } : null));
   };
 
   const finishOperation = (success = true, error = null) => {
     if (error) {
       updateOperation({ error: error.message, isRetrying: false });
     }
-    
-    setTimeout(() => {
-      setIsActive(false);
-      setOperation(null);
-      setAbortController(null);
-    }, success ? 1000 : 3000); // Show success briefly, errors longer
+
+    setTimeout(
+      () => {
+        setIsActive(false);
+        setOperation(null);
+        setAbortController(null);
+      },
+      success ? 1000 : 3000
+    ); // Show success briefly, errors longer
   };
 
   const cancelOperation = () => {
     if (abortController) {
       abortController.abort();
-      finishOperation(false, new Error('Operation cancelled by user'));
+      finishOperation(false, new Error("Operation cancelled by user"));
     }
   };
 
@@ -407,7 +435,7 @@ export function useRetryOperation(operationName = 'Operation') {
     startOperation,
     updateOperation,
     finishOperation,
-    cancelOperation
+    cancelOperation,
   };
 }
 

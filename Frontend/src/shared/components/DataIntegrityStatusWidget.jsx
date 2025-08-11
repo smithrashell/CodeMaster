@@ -1,11 +1,11 @@
 /**
  * Data Integrity Status Widget
- * 
+ *
  * A compact widget that displays current data integrity status and provides
  * quick access to integrity operations. Can be embedded in the main dashboard.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -19,8 +19,8 @@ import {
   Alert,
   LinearProgress,
   Menu,
-  MenuItem
-} from '@mui/material';
+  MenuItem,
+} from "@mui/material";
 import {
   CheckCircle,
   Warning,
@@ -30,17 +30,17 @@ import {
   MoreVert,
   PlayArrow,
   Build,
-  Visibility
-} from '@mui/icons-material';
+  Visibility,
+} from "@mui/icons-material";
 
-import DataIntegrityCheckService from '../services/dataIntegrity/DataIntegrityCheckService.js';
-import DataCorruptionRepair from '../services/dataIntegrity/DataCorruptionRepair.js';
+import DataIntegrityCheckService from "../services/dataIntegrity/DataIntegrityCheckService.js";
+import DataCorruptionRepair from "../services/dataIntegrity/DataCorruptionRepair.js";
 
-const DataIntegrityStatusWidget = ({ 
+const DataIntegrityStatusWidget = ({
   onViewDashboard = null,
   compact = false,
   autoRefresh = true,
-  refreshInterval = 300000 // 5 minutes
+  refreshInterval = 300000, // 5 minutes
 }) => {
   const [status, setStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +51,7 @@ const DataIntegrityStatusWidget = ({
 
   useEffect(() => {
     loadStatus();
-    
+
     // Set up auto-refresh
     let refreshTimer;
     if (autoRefresh) {
@@ -69,25 +69,25 @@ const DataIntegrityStatusWidget = ({
     try {
       setError(null);
       setIsLoading(true);
-      
+
       const [summary, monitoringStatus, checkHistory] = await Promise.all([
         DataIntegrityCheckService.getIntegrityDashboardSummary(),
         DataIntegrityCheckService.getMonitoringStatus(),
-        DataIntegrityCheckService.getCheckHistory(1)
+        DataIntegrityCheckService.getCheckHistory(1),
       ]);
 
       setStatus({
         ...summary,
         monitoring: monitoringStatus,
-        lastCheckResult: checkHistory[0] || null
+        lastCheckResult: checkHistory[0] || null,
       });
 
       if (checkHistory[0]) {
         setLastCheck(new Date(checkHistory[0].timestamp));
       }
     } catch (err) {
-      console.error('Failed to load integrity status:', err);
-      setError('Failed to load status');
+      console.error("Failed to load integrity status:", err);
+      setError("Failed to load status");
     } finally {
       setIsLoading(false);
     }
@@ -97,18 +97,18 @@ const DataIntegrityStatusWidget = ({
     try {
       setIsRunning(true);
       setError(null);
-      
+
       await DataIntegrityCheckService.performIntegrityCheck({
-        checkType: 'quick',
-        priority: 'medium',
-        saveToHistory: true
+        checkType: "quick",
+        priority: "medium",
+        saveToHistory: true,
       });
-      
+
       // Refresh status after check
       await loadStatus();
     } catch (err) {
-      console.error('Quick check failed:', err);
-      setError('Quick check failed');
+      console.error("Quick check failed:", err);
+      setError("Quick check failed");
     } finally {
       setIsRunning(false);
     }
@@ -118,90 +118,91 @@ const DataIntegrityStatusWidget = ({
     try {
       setIsRunning(true);
       setError(null);
-      
+
       await DataCorruptionRepair.detectAndRepairCorruption({
         dryRun: false,
         autoRepairSafe: true,
-        maxRepairs: 10
+        maxRepairs: 10,
       });
-      
+
       // Refresh status after repair
       await loadStatus();
       setMenuAnchor(null);
     } catch (err) {
-      console.error('Quick repair failed:', err);
-      setError('Quick repair failed');
+      console.error("Quick repair failed:", err);
+      setError("Quick repair failed");
     } finally {
       setIsRunning(false);
     }
   };
 
   const getStatusInfo = () => {
-    if (!status) return { color: 'default', icon: <Warning />, text: 'Unknown' };
+    if (!status)
+      return { color: "default", icon: <Warning />, text: "Unknown" };
 
     const score = status.overallScore;
-    
+
     if (score >= 95) {
-      return { 
-        color: 'success', 
-        icon: <CheckCircle />, 
-        text: 'Excellent',
-        description: 'Data integrity is excellent'
+      return {
+        color: "success",
+        icon: <CheckCircle />,
+        text: "Excellent",
+        description: "Data integrity is excellent",
       };
     } else if (score >= 85) {
-      return { 
-        color: 'success', 
-        icon: <CheckCircle />, 
-        text: 'Good',
-        description: 'Data integrity is good'
+      return {
+        color: "success",
+        icon: <CheckCircle />,
+        text: "Good",
+        description: "Data integrity is good",
       };
     } else if (score >= 70) {
-      return { 
-        color: 'warning', 
-        icon: <Warning />, 
-        text: 'Warning',
-        description: 'Some data integrity issues detected'
+      return {
+        color: "warning",
+        icon: <Warning />,
+        text: "Warning",
+        description: "Some data integrity issues detected",
       };
     } else {
-      return { 
-        color: 'error', 
-        icon: <Error />, 
-        text: 'Critical',
-        description: 'Critical data integrity issues need attention'
+      return {
+        color: "error",
+        icon: <Error />,
+        text: "Critical",
+        description: "Critical data integrity issues need attention",
       };
     }
   };
 
   const getTrendIndicator = () => {
     if (!status?.trends) return null;
-    
+
     const { trend, difference } = status.trends;
-    
+
     switch (trend) {
-      case 'improving':
+      case "improving":
         return (
-          <Chip 
-            size="small" 
-            label={`+${difference}%`} 
-            color="success" 
+          <Chip
+            size="small"
+            label={`+${difference}%`}
+            color="success"
             variant="outlined"
           />
         );
-      case 'declining':
+      case "declining":
         return (
-          <Chip 
-            size="small" 
-            label={`${difference}%`} 
-            color="error" 
+          <Chip
+            size="small"
+            label={`${difference}%`}
+            color="error"
             variant="outlined"
           />
         );
-      case 'stable':
+      case "stable":
         return (
-          <Chip 
-            size="small" 
-            label="Stable" 
-            color="default" 
+          <Chip
+            size="small"
+            label="Stable"
+            color="default"
             variant="outlined"
           />
         );
@@ -223,28 +224,44 @@ const DataIntegrityStatusWidget = ({
   if (compact) {
     return (
       <Card elevation={2}>
-        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
+        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+          >
             <Box display="flex" alignItems="center">
               {isLoading ? (
                 <CircularProgress size={20} />
               ) : (
                 <Tooltip title={statusInfo.description}>
-                  <Box color={statusInfo.color === 'success' ? 'success.main' : 
-                              statusInfo.color === 'warning' ? 'warning.main' : 
-                              statusInfo.color === 'error' ? 'error.main' : 'text.secondary'}>
+                  <Box
+                    color={
+                      statusInfo.color === "success"
+                        ? "success.main"
+                        : statusInfo.color === "warning"
+                        ? "warning.main"
+                        : statusInfo.color === "error"
+                        ? "error.main"
+                        : "text.secondary"
+                    }
+                  >
                     {statusInfo.icon}
                   </Box>
                 </Tooltip>
               )}
               <Typography variant="body2" sx={{ ml: 1 }}>
-                {isLoading ? 'Loading...' : `${status?.overallScore || 'N/A'}%`}
+                {isLoading ? "Loading..." : `${status?.overallScore || "N/A"}%`}
               </Typography>
             </Box>
-            
+
             <Box display="flex" alignItems="center">
               {getTrendIndicator()}
-              <IconButton size="small" onClick={loadStatus} disabled={isLoading || isRunning}>
+              <IconButton
+                size="small"
+                onClick={loadStatus}
+                disabled={isLoading || isRunning}
+              >
                 <Refresh fontSize="small" />
               </IconButton>
               {onViewDashboard && (
@@ -274,13 +291,18 @@ const DataIntegrityStatusWidget = ({
   return (
     <Card elevation={2}>
       <CardContent>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="flex-start"
+          mb={2}
+        >
           <Typography variant="h6" component="div">
             Data Integrity
           </Typography>
           <Box>
-            <IconButton 
-              size="small" 
+            <IconButton
+              size="small"
               onClick={handleMenuClick}
               disabled={isLoading || isRunning}
             >
@@ -296,14 +318,22 @@ const DataIntegrityStatusWidget = ({
         ) : (
           <>
             <Box display="flex" alignItems="center" mb={2}>
-              <Box color={statusInfo.color === 'success' ? 'success.main' : 
-                          statusInfo.color === 'warning' ? 'warning.main' : 
-                          statusInfo.color === 'error' ? 'error.main' : 'text.secondary'}>
+              <Box
+                color={
+                  statusInfo.color === "success"
+                    ? "success.main"
+                    : statusInfo.color === "warning"
+                    ? "warning.main"
+                    : statusInfo.color === "error"
+                    ? "error.main"
+                    : "text.secondary"
+                }
+              >
                 {statusInfo.icon}
               </Box>
               <Box ml={2}>
                 <Typography variant="h4" component="div">
-                  {status?.overallScore || 'N/A'}%
+                  {status?.overallScore || "N/A"}%
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   {statusInfo.text}
@@ -311,20 +341,30 @@ const DataIntegrityStatusWidget = ({
               </Box>
             </Box>
 
-            <Box display="flex" justifyContent="between" alignItems="center" mb={2}>
+            <Box
+              display="flex"
+              justifyContent="between"
+              alignItems="center"
+              mb={2}
+            >
               <Box>
                 <Typography variant="body2" color="text.secondary">
                   Issues: {status?.recentIssues || 0}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Monitoring: {status?.monitoring?.active ? 'Active' : 'Inactive'}
+                  Monitoring:{" "}
+                  {status?.monitoring?.active ? "Active" : "Inactive"}
                 </Typography>
               </Box>
               {getTrendIndicator()}
             </Box>
 
             {lastCheck && (
-              <Typography variant="caption" color="text.secondary" display="block">
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                display="block"
+              >
                 Last check: {lastCheck.toLocaleString()}
               </Typography>
             )}
@@ -375,7 +415,13 @@ const DataIntegrityStatusWidget = ({
         open={Boolean(menuAnchor)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => { runQuickCheck(); handleMenuClose(); }} disabled={isRunning}>
+        <MenuItem
+          onClick={() => {
+            runQuickCheck();
+            handleMenuClose();
+          }}
+          disabled={isRunning}
+        >
           <PlayArrow fontSize="small" sx={{ mr: 1 }} />
           Quick Check
         </MenuItem>
@@ -383,12 +429,22 @@ const DataIntegrityStatusWidget = ({
           <Build fontSize="small" sx={{ mr: 1 }} />
           Quick Repair
         </MenuItem>
-        <MenuItem onClick={() => { loadStatus(); handleMenuClose(); }}>
+        <MenuItem
+          onClick={() => {
+            loadStatus();
+            handleMenuClose();
+          }}
+        >
           <Refresh fontSize="small" sx={{ mr: 1 }} />
           Refresh Status
         </MenuItem>
         {onViewDashboard && (
-          <MenuItem onClick={() => { onViewDashboard(); handleMenuClose(); }}>
+          <MenuItem
+            onClick={() => {
+              onViewDashboard();
+              handleMenuClose();
+            }}
+          >
             <Visibility fontSize="small" sx={{ mr: 1 }} />
             Full Dashboard
           </MenuItem>

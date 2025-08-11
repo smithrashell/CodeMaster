@@ -48,19 +48,19 @@ const PrimerSection = ({
       if (tagPrimers && tagPrimers.length > 0) {
         try {
           await HintInteractionService.saveHintInteraction({
-            problemId: problemId || 'unknown',
-            hintId: 'primer-section',
-            hintType: 'primer',
-            primaryTag: problemTags[0] || 'unknown',
+            problemId: problemId || "unknown",
+            hintId: "primer-section",
+            hintType: "primer",
+            primaryTag: problemTags[0] || "unknown",
             relatedTag: problemTags.length > 1 ? problemTags[1] : null,
-            content: `Viewed primers for ${problemTags.join(', ')}`,
+            content: `Viewed primers for ${problemTags.join(", ")}`,
             problemTags: problemTags,
-            action: 'viewed',
+            action: "viewed",
             sessionContext: {
               primerCount: tagPrimers.length,
-              componentType: 'PrimerSection',
+              componentType: "PrimerSection",
               tagsDisplayed: problemTags,
-            }
+            },
           });
         } catch (trackingError) {
           console.warn("Failed to track primer view:", trackingError);

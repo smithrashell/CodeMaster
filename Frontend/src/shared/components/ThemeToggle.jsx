@@ -2,20 +2,13 @@
 import { useTheme } from "../provider/themeprovider";
 import { SegmentedControl, Group, rem } from "@mantine/core";
 import { IconSun, IconMoon } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
 import { useChromeMessage } from "../hooks/useChromeMessage";
 
 export default function ThemeToggle() {
   const { colorScheme, toggleColorScheme } = useTheme();
-  const isLight = colorScheme === "light";
-  const [theme, setTheme] = useState("light");
 
-  // New approach using custom hook
-  const {
-    data: settings,
-    loading,
-    error,
-  } = useChromeMessage({ type: "getSettings" }, [], {
+  // Load theme from Chrome storage
+  useChromeMessage({ type: "getSettings" }, [], {
     onSuccess: (response) => {
       const savedTheme = response?.theme || "light";
       if (savedTheme !== colorScheme) {
@@ -52,14 +45,18 @@ export default function ThemeToggle() {
         onChange={(newTheme) => {
           toggleColorScheme(newTheme);
 
-          // update settings in Chrome
-          chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-            const updatedSettings = { ...response, theme: newTheme };
-            chrome.runtime.sendMessage({
-              type: "setSettings",
-              message: updatedSettings,
+          // Update settings in Chrome or localStorage as fallback
+          if (typeof chrome !== "undefined" && chrome.runtime) {
+            chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
+              if (!chrome.runtime.lastError) {
+                const updatedSettings = { ...response, theme: newTheme };
+                chrome.runtime.sendMessage({
+                  type: "setSettings",
+                  message: updatedSettings,
+                });
+              }
             });
-          });
+          }
         }}
         data={options}
         radius="md"

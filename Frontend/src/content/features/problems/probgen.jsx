@@ -10,12 +10,10 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
   const [hovered, setHovered] = useState(false);
 
   return (
-
     <div className="cm-simple-problem-item-container">
       <div className="cm-simple-problem-item">
         <a
           href="#"
-
           onClick={(e) => {
             onLinkClick(problem);
             e.target.blur(); // Remove focus after click to prevent outline
@@ -26,13 +24,11 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
               }
             }, 0);
           }}
-
           className="cm-simple-problem-link"
         >
           {problem.problemDescription || problem.title}
         </a>
         <div className="cm-problem-badges">
-
           {/* Show problem selection reasoning if available - FIRST in badges */}
           {problem.selectionReason && (
             <div
@@ -85,7 +81,7 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
 };
 const ProbGen = () => {
   const [problems, setProblems] = useState([]);
-  const [announcement, setAnnouncement] = useState('');
+  const [announcement, setAnnouncement] = useState("");
 
   // New approach using custom hook
   useChromeMessage({ type: "getCurrentSession" }, [], {
@@ -102,17 +98,13 @@ const ProbGen = () => {
       `https://leetcode.com/problems/${problem.slug}/description/`;
   };
 
-
   return (
-
     <div id="cm-mySidenav" className="cm-sidenav problink">
       <Header title="Generator" />
       <div className="cm-sidenav__content ">
         {problems.length > 0 ? (
           <div className="cm-simple-problems-list">
             {problems.map((problem) => {
-
-
               const isNewProblem =
                 !problem.attempts || problem.attempts.length === 0;
 

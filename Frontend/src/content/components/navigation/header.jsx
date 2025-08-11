@@ -46,8 +46,8 @@ export default function Header({ title, onClose }) {
       height: "36px", // Match the close button height for perfect alignment
     },
     closeButton: {
-      height: "44px", /* Increased for WCAG AA touch target */
-      width: "44px", /* Increased for WCAG AA touch target */
+      height: "44px" /* Increased for WCAG AA touch target */,
+      width: "44px" /* Increased for WCAG AA touch target */,
       backgroundColor: "transparent",
       color: "var(--cm-text)",
       opacity: "0.7",
@@ -84,12 +84,14 @@ export default function Header({ title, onClose }) {
         aria-label={`Close ${title} panel`}
         title={`Close ${title} panel`}
         onKeyDown={(e) => {
-          if (e.key === 'Escape') {
+          if (e.key === "Escape") {
             handleClose();
           }
         }}
       >
-        <div style={styles.closeIcon} aria-hidden="true">×</div>
+        <div style={styles.closeIcon} aria-hidden="true">
+          ×
+        </div>
       </button>
     </header>
   );

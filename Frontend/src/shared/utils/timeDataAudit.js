@@ -1,22 +1,22 @@
 /**
  * Time Data Audit Utility for CodeMaster
- * 
+ *
  * This utility provides functions to audit and repair existing time data
  * in the database that may have been stored inconsistently before the
  * timer accuracy fixes were implemented.
  */
 
-import timeMigration from './timeMigration.js';
-import AccurateTimer from './AccurateTimer.js';
-import { dbHelper } from '../db/index.js';
+import timeMigration from "./timeMigration.js";
+import AccurateTimer from "./AccurateTimer.js";
+import { dbHelper } from "../db/index.js";
 
 /**
  * Comprehensive audit of all time-related data in the database
  * @returns {Promise<Object>} Audit report
  */
 export async function auditAllTimeData() {
-  console.log('🔍 Starting comprehensive time data audit...');
-  
+  console.log("🔍 Starting comprehensive time data audit...");
+
   const auditReport = {
     timestamp: new Date().toISOString(),
     attempts: null,
@@ -28,27 +28,24 @@ export async function auditAllTimeData() {
       zeroTimeRecords: 0,
       extremeTimeRecords: 0,
       averageTime: 0,
-      medianTime: 0
-    }
+      medianTime: 0,
+    },
   };
 
   try {
     // Audit attempts data
     const attemptsAudit = await auditAttemptsTimeData();
     auditReport.attempts = attemptsAudit;
-    
+
     // Compile issues and recommendations
-    auditReport.issues = [
-      ...attemptsAudit.issues,
-    ];
-    
+    auditReport.issues = [...attemptsAudit.issues];
+
     auditReport.recommendations = generateAuditRecommendations(auditReport);
-    
-    console.log('✅ Time data audit completed');
+
+    console.log("✅ Time data audit completed");
     return auditReport;
-    
   } catch (error) {
-    console.error('❌ Audit failed:', error);
+    console.error("❌ Audit failed:", error);
     auditReport.error = error.message;
     return auditReport;
   }
@@ -60,9 +57,9 @@ export async function auditAllTimeData() {
  */
 export async function auditAttemptsTimeData() {
   const db = await dbHelper.openDB();
-  const transaction = db.transaction(['attempts'], 'readonly');
-  const store = transaction.objectStore('attempts');
-  
+  const transaction = db.transaction(["attempts"], "readonly");
+  const store = transaction.objectStore("attempts");
+
   const attempts = await new Promise((resolve, reject) => {
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result);
@@ -75,71 +72,75 @@ export async function auditAttemptsTimeData() {
   const timeValues = [];
   let zeroTimeCount = 0;
   let extremeTimeCount = 0;
-  
+
   // Analyze each attempt
   attempts.forEach((attempt, index) => {
     const timeSpent = Number(attempt.TimeSpent) || 0;
     const attemptDate = attempt.AttemptDate;
     const problemId = attempt.ProblemID;
-    
+
     // Collect time values for statistics
     if (timeSpent > 0) {
       timeValues.push(timeSpent);
     }
-    
+
     // Check for zero or missing time
     if (timeSpent <= 0) {
       zeroTimeCount++;
       issues.push({
-        type: 'zero_time',
+        type: "zero_time",
         recordId: attempt.id,
         problemId: problemId,
         value: timeSpent,
         date: attemptDate,
-        severity: 'medium',
-        message: `Attempt has zero or negative time: ${timeSpent}`
+        severity: "medium",
+        message: `Attempt has zero or negative time: ${timeSpent}`,
       });
     }
-    
+
     // Check for extremely short time (< 10 seconds)
     else if (timeSpent < 10) {
       issues.push({
-        type: 'suspicious_short_time',
+        type: "suspicious_short_time",
         recordId: attempt.id,
         problemId: problemId,
         value: timeSpent,
         date: attemptDate,
-        severity: 'low',
-        message: `Suspiciously short time: ${timeSpent} seconds (${AccurateTimer.formatTime(timeSpent)})`
+        severity: "low",
+        message: `Suspiciously short time: ${timeSpent} seconds (${AccurateTimer.formatTime(
+          timeSpent
+        )})`,
       });
     }
-    
+
     // Check for extremely long time (> 4 hours)
     else if (timeSpent > 14400) {
       extremeTimeCount++;
       issues.push({
-        type: 'extreme_long_time',
+        type: "extreme_long_time",
         recordId: attempt.id,
         problemId: problemId,
         value: timeSpent,
         date: attemptDate,
-        severity: 'high',
-        message: `Extremely long time: ${timeSpent} seconds (${AccurateTimer.formatTime(timeSpent)})`
+        severity: "high",
+        message: `Extremely long time: ${timeSpent} seconds (${AccurateTimer.formatTime(
+          timeSpent
+        )})`,
       });
     }
-    
+
     // Check for suspicious "round" numbers that might indicate unit issues
     else if (timeSpent % 60 === 0 && timeSpent < 900) {
       const minutes = timeSpent / 60;
       if (minutes < 15 && Number.isInteger(minutes)) {
         issues.push({
-          type: 'possible_unit_confusion',
+          type: "possible_unit_confusion",
           recordId: attempt.id,
           problemId: problemId,
           value: timeSpent,
           date: attemptDate,
-          severity: 'low',
-          message: `Possible unit confusion: ${timeSpent} seconds = exactly ${minutes} minutes`
+          severity: "low",
+          message: `Possible unit confusion: ${timeSpent} seconds = exactly ${minutes} minutes`,
         });
       }
     }
@@ -147,10 +148,10 @@ export async function auditAttemptsTimeData() {
 
   // Calculate statistics
   const summary = calculateTimeStatistics(timeValues);
-  
+
   // Analyze time unit consistency
   const unitAnalysis = timeMigration.analyzeTimeUnits(attempts);
-  
+
   return {
     totalRecords: attempts.length,
     issues,
@@ -162,8 +163,8 @@ export async function auditAttemptsTimeData() {
       zeroTimeRecords: zeroTimeCount,
       extremeTimeRecords: extremeTimeCount,
       averageTime: summary.average,
-      medianTime: summary.median
-    }
+      medianTime: summary.median,
+    },
   };
 }
 
@@ -180,21 +181,24 @@ function calculateTimeStatistics(timeValues) {
       median: 0,
       min: 0,
       max: 0,
-      standardDeviation: 0
+      standardDeviation: 0,
     };
   }
 
   const sorted = [...timeValues].sort((a, b) => a - b);
   const sum = timeValues.reduce((a, b) => a + b, 0);
-  
+
   const average = sum / timeValues.length;
-  const median = sorted.length % 2 === 0
-    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
-    : sorted[Math.floor(sorted.length / 2)];
-  
-  const variance = timeValues.reduce((acc, val) => acc + Math.pow(val - average, 2), 0) / timeValues.length;
+  const median =
+    sorted.length % 2 === 0
+      ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+      : sorted[Math.floor(sorted.length / 2)];
+
+  const variance =
+    timeValues.reduce((acc, val) => acc + Math.pow(val - average, 2), 0) /
+    timeValues.length;
   const standardDeviation = Math.sqrt(variance);
-  
+
   return {
     count: timeValues.length,
     average: Math.round(average),
@@ -205,9 +209,9 @@ function calculateTimeStatistics(timeValues) {
     percentiles: {
       p25: sorted[Math.floor(sorted.length * 0.25)],
       p75: sorted[Math.floor(sorted.length * 0.75)],
-      p90: sorted[Math.floor(sorted.length * 0.90)],
-      p95: sorted[Math.floor(sorted.length * 0.95)]
-    }
+      p90: sorted[Math.floor(sorted.length * 0.9)],
+      p95: sorted[Math.floor(sorted.length * 0.95)],
+    },
   };
 }
 
@@ -219,52 +223,63 @@ function calculateTimeStatistics(timeValues) {
 function generateAuditRecommendations(auditReport) {
   const recommendations = [];
   const attempts = auditReport.attempts;
-  
+
   if (!attempts) return recommendations;
-  
+
   // Unit consistency recommendations
   if (attempts.unitAnalysis.confidence < 0.7) {
     recommendations.push(
-      `🔄 Time unit detection has low confidence (${Math.round(attempts.unitAnalysis.confidence * 100)}%). ` +
-      `Consider running data migration with manual unit specification.`
+      `🔄 Time unit detection has low confidence (${Math.round(
+        attempts.unitAnalysis.confidence * 100
+      )}%). ` +
+        `Consider running data migration with manual unit specification.`
     );
   }
-  
+
   // Data quality recommendations
-  const highSeverityIssues = attempts.issues.filter(i => i.severity === 'high').length;
+  const highSeverityIssues = attempts.issues.filter(
+    (i) => i.severity === "high"
+  ).length;
   if (highSeverityIssues > 0) {
     recommendations.push(
       `⚠️ Found ${highSeverityIssues} high-severity time data issues. ` +
-      `Review extremely long times (>4 hours) for potential data corruption.`
+        `Review extremely long times (>4 hours) for potential data corruption.`
     );
   }
-  
-  const zeroTimePercent = (attempts.summary.zeroTimeRecords / attempts.totalRecords) * 100;
+
+  const zeroTimePercent =
+    (attempts.summary.zeroTimeRecords / attempts.totalRecords) * 100;
   if (zeroTimePercent > 10) {
     recommendations.push(
       `📊 ${Math.round(zeroTimePercent)}% of attempts have zero time values. ` +
-      `This may indicate timer functionality issues or data collection problems.`
+        `This may indicate timer functionality issues or data collection problems.`
     );
   }
-  
+
   // Performance recommendations
-  const avgTimeMinutes = AccurateTimer.secondsToMinutes(attempts.timeStatistics.average);
+  const avgTimeMinutes = AccurateTimer.secondsToMinutes(
+    attempts.timeStatistics.average
+  );
   if (avgTimeMinutes > 60) {
     recommendations.push(
-      `⏱️ Average problem solving time is ${Math.round(avgTimeMinutes)} minutes. ` +
-      `This is higher than typical and may indicate data unit issues.`
+      `⏱️ Average problem solving time is ${Math.round(
+        avgTimeMinutes
+      )} minutes. ` +
+        `This is higher than typical and may indicate data unit issues.`
     );
   }
-  
+
   // Migration recommendations
-  const unitIssues = attempts.issues.filter(i => i.type === 'possible_unit_confusion').length;
+  const unitIssues = attempts.issues.filter(
+    (i) => i.type === "possible_unit_confusion"
+  ).length;
   if (unitIssues > attempts.totalRecords * 0.1) {
     recommendations.push(
       `🔧 Found ${unitIssues} records with possible unit confusion. ` +
-      `Consider running time data migration to standardize units.`
+        `Consider running time data migration to standardize units.`
     );
   }
-  
+
   return recommendations;
 }
 
@@ -278,18 +293,18 @@ export async function repairTimeData(options = {}) {
     dryRun = false,
     fixZeroTimes = false,
     fixExtremeTimes = false,
-    backupFirst = true
+    backupFirst = true,
   } = options;
 
-  console.log('🔧 Starting time data repair...');
-  
+  console.log("🔧 Starting time data repair...");
+
   const repairResults = {
     timestamp: new Date().toISOString(),
     backupId: null,
     repairedRecords: 0,
     errorRecords: 0,
     errors: [],
-    dryRun
+    dryRun,
   };
 
   try {
@@ -300,11 +315,11 @@ export async function repairTimeData(options = {}) {
 
     // Get current audit
     const audit = await auditAttemptsTimeData();
-    
+
     if (!dryRun) {
       const db = await dbHelper.openDB();
-      const transaction = db.transaction(['attempts'], 'readwrite');
-      const store = transaction.objectStore('attempts');
+      const transaction = db.transaction(["attempts"], "readwrite");
+      const store = transaction.objectStore("attempts");
 
       for (const issue of audit.issues) {
         try {
@@ -312,10 +327,10 @@ export async function repairTimeData(options = {}) {
           let newValue = null;
 
           // Decide what to fix based on options and issue type
-          if (fixZeroTimes && issue.type === 'zero_time') {
+          if (fixZeroTimes && issue.type === "zero_time") {
             shouldFix = true;
             newValue = 60; // Default to 1 minute for zero times
-          } else if (fixExtremeTimes && issue.type === 'extreme_long_time') {
+          } else if (fixExtremeTimes && issue.type === "extreme_long_time") {
             shouldFix = true;
             newValue = Math.min(issue.value, 14400); // Cap at 4 hours
           }
@@ -337,25 +352,26 @@ export async function repairTimeData(options = {}) {
               });
 
               repairResults.repairedRecords++;
-              console.log(`✅ Repaired record ${issue.recordId}: ${issue.value} → ${newValue}`);
+              console.log(
+                `✅ Repaired record ${issue.recordId}: ${issue.value} → ${newValue}`
+              );
             }
           }
         } catch (error) {
           repairResults.errorRecords++;
           repairResults.errors.push({
             recordId: issue.recordId,
-            error: error.message
+            error: error.message,
           });
           console.error(`❌ Failed to repair record ${issue.recordId}:`, error);
         }
       }
     }
 
-    console.log('✅ Time data repair completed');
+    console.log("✅ Time data repair completed");
     return repairResults;
-
   } catch (error) {
-    console.error('❌ Repair failed:', error);
+    console.error("❌ Repair failed:", error);
     repairResults.error = error.message;
     return repairResults;
   }
@@ -368,65 +384,77 @@ export async function repairTimeData(options = {}) {
  */
 export function generateAuditReport(auditResults) {
   const report = [];
-  
-  report.push('# CodeMaster Time Data Audit Report');
+
+  report.push("# CodeMaster Time Data Audit Report");
   report.push(`Generated: ${auditResults.timestamp}`);
-  report.push('');
-  
+  report.push("");
+
   if (auditResults.error) {
     report.push(`❌ Audit failed: ${auditResults.error}`);
-    return report.join('\n');
+    return report.join("\n");
   }
-  
+
   // Summary
   const attempts = auditResults.attempts;
-  report.push('## Summary');
+  report.push("## Summary");
   report.push(`- Total attempt records: ${attempts.totalRecords}`);
   report.push(`- Records with issues: ${attempts.issues.length}`);
   report.push(`- Zero time records: ${attempts.summary.zeroTimeRecords}`);
   report.push(`- Extreme time records: ${attempts.summary.extremeTimeRecords}`);
-  report.push(`- Average time: ${AccurateTimer.formatTime(attempts.timeStatistics.average)}`);
-  report.push(`- Median time: ${AccurateTimer.formatTime(attempts.timeStatistics.median)}`);
-  report.push('');
-  
+  report.push(
+    `- Average time: ${AccurateTimer.formatTime(
+      attempts.timeStatistics.average
+    )}`
+  );
+  report.push(
+    `- Median time: ${AccurateTimer.formatTime(attempts.timeStatistics.median)}`
+  );
+  report.push("");
+
   // Unit analysis
-  report.push('## Time Unit Analysis');
+  report.push("## Time Unit Analysis");
   report.push(`- Detected unit: ${attempts.unitAnalysis.unit}`);
-  report.push(`- Confidence: ${Math.round(attempts.unitAnalysis.confidence * 100)}%`);
-  report.push(`- Sample values: [${attempts.unitAnalysis.sampleValues?.join(', ') || 'none'}]`);
-  report.push('');
-  
+  report.push(
+    `- Confidence: ${Math.round(attempts.unitAnalysis.confidence * 100)}%`
+  );
+  report.push(
+    `- Sample values: [${
+      attempts.unitAnalysis.sampleValues?.join(", ") || "none"
+    }]`
+  );
+  report.push("");
+
   // Issues by severity
-  const highIssues = attempts.issues.filter(i => i.severity === 'high');
-  const mediumIssues = attempts.issues.filter(i => i.severity === 'medium');
-  const lowIssues = attempts.issues.filter(i => i.severity === 'low');
-  
+  const highIssues = attempts.issues.filter((i) => i.severity === "high");
+  const mediumIssues = attempts.issues.filter((i) => i.severity === "medium");
+  const lowIssues = attempts.issues.filter((i) => i.severity === "low");
+
   if (highIssues.length > 0) {
-    report.push('## High Severity Issues');
-    highIssues.slice(0, 10).forEach(issue => {
+    report.push("## High Severity Issues");
+    highIssues.slice(0, 10).forEach((issue) => {
       report.push(`- ${issue.message} (Record: ${issue.recordId})`);
     });
     if (highIssues.length > 10) {
       report.push(`... and ${highIssues.length - 10} more`);
     }
-    report.push('');
+    report.push("");
   }
-  
+
   // Recommendations
   if (auditResults.recommendations.length > 0) {
-    report.push('## Recommendations');
-    auditResults.recommendations.forEach(rec => {
+    report.push("## Recommendations");
+    auditResults.recommendations.forEach((rec) => {
       report.push(`- ${rec}`);
     });
-    report.push('');
+    report.push("");
   }
-  
-  return report.join('\n');
+
+  return report.join("\n");
 }
 
 export default {
   auditAllTimeData,
   auditAttemptsTimeData,
   repairTimeData,
-  generateAuditReport
+  generateAuditReport,
 };

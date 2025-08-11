@@ -7,11 +7,12 @@ import { DoubleNavbar } from "../../../shared/components/DoubleNavbar.jsx";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ContentOnboardingTour } from "../../components/onboarding";
-import { 
-  checkContentOnboardingStatus, 
+import {
+  checkContentOnboardingStatus,
   completeContentOnboarding,
-  getResumeStep 
+  getResumeStep,
 } from "../../../shared/services/onboardingService";
+import { shouldUseMockDashboard } from "../../../app/config/mockConfig.js";
 
 const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ const getProblemSlugFromUrl = (url) => {
 
 export default function Main() {
   console.log("🚀 CONTENT SCRIPT MAIN COMPONENT LOADED");
+  console.log("🎭 Mock dashboard mode:", shouldUseMockDashboard());
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isAppOpen, setIsAppOpen } = useNav();
@@ -68,6 +70,9 @@ export default function Main() {
   const [settings, setSettings] = useState(null);
   const [showContentOnboarding, setShowContentOnboarding] = useState(false);
   const [contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
+  
+  // DEVELOPMENT OVERRIDE: Completely disable content onboarding in development
+  const FORCE_DISABLE_ONBOARDING = shouldUseMockDashboard();
 
   // Function to fetch problem data based on the problem slug
   const fetchProblemData = (problemSlug) => {
@@ -136,33 +141,62 @@ export default function Main() {
   useEffect(() => {
     const checkContentOnboarding = async () => {
       try {
-        console.log("🔍 Checking content onboarding status...");
+        // Skip onboarding in development/mock mode - PRIORITY CHECK
+        if (shouldUseMockDashboard()) {
+          console.log("🎭 MOCK MODE: Skipping content onboarding completely");
+          setShowContentOnboarding(false);
+          setContentOnboardingStatus({ isCompleted: true }); // Set as completed to prevent any triggers
+          return;
+        }
+
+        console.log("🔍 PRODUCTION MODE: Checking content onboarding status...");
         const status = await checkContentOnboardingStatus();
-        console.log("📊 Content onboarding status:", status);
+        console.log("📊 Content onboarding status received:", {
+          isCompleted: status.isCompleted,
+          currentStep: status.currentStep,
+          lastActiveStep: status.lastActiveStep,
+          startedAt: status.startedAt
+        });
         setContentOnboardingStatus(status);
-        
+
         // Show onboarding tour if not completed - independent of data onboarding
         if (!status.isCompleted) {
-          console.log("✅ Content onboarding not completed, showing tour");
+          console.log("✅ Content onboarding not completed, preparing to show tour");
+          console.log(`⏰ Delay time: ${status.lastActiveStep ? 500 : 1000}ms`);
+          
           // Small delay to ensure the DOM is ready
           const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
           setTimeout(() => {
-            console.log("🚀 Setting showContentOnboarding to true");
+            console.log("🚀 TRIGGERING: Setting showContentOnboarding to true");
             setShowContentOnboarding(true);
           }, delayTime);
         } else {
-          console.log("⏭️ Content onboarding already completed");
+          console.log("⏭️ Content onboarding already completed - no action needed");
+          setShowContentOnboarding(false);
         }
       } catch (error) {
         console.error("❌ Error checking content onboarding status:", error);
-        // Fallback: show onboarding anyway for new users
-        console.log("🔄 Fallback: showing onboarding due to error");
+        
+        // STRENGTHENED: Always check mock mode first, even on error
+        if (shouldUseMockDashboard()) {
+          console.log("🎭 MOCK MODE ERROR HANDLER: Suppressing onboarding fallback completely");
+          setShowContentOnboarding(false);
+          setContentOnboardingStatus({ isCompleted: true }); // Prevent any future triggers
+          return;
+        }
+        
+        // Fallback: show onboarding anyway for new users (production only)
+        console.log("🔄 PRODUCTION ERROR FALLBACK: showing onboarding due to error");
         setTimeout(() => {
+          console.log("🚨 ERROR FALLBACK: Setting showContentOnboarding to true");
           setShowContentOnboarding(true);
         }, 1000);
       }
     };
 
+    console.log("🎬 Content onboarding useEffect triggered");
+    console.log("🎭 Mock mode status:", shouldUseMockDashboard());
+    
     // Run immediately - no longer dependent on data onboarding
     checkContentOnboarding();
   }, []); // Empty dependency array - run once on mount
@@ -314,7 +348,7 @@ export default function Main() {
                 <Link to="/ProbGen">Generator</Link>
                 <Link to="/ProbStat">Statistics</Link>
                 <Link to="/Settings">Settings</Link>
-{/* Problem Link - Only show when on a valid LeetCode problem page */}
+                {/* Problem Link - Only show when on a valid LeetCode problem page */}
                 {currentProblem && (
                   <Link
                     to="/ProbTime"
@@ -381,13 +415,22 @@ export default function Main() {
           </div>
         )}
       </div>
-      
+
       {/* Content Script Onboarding Tour */}
-      <ContentOnboardingTour
-        isVisible={showContentOnboarding}
-        onComplete={handleCompleteContentOnboarding}
-        onClose={handleCloseContentOnboarding}
-      />
+      {(() => {
+        console.log("🎯 ONBOARDING RENDER CHECK:", {
+          FORCE_DISABLE_ONBOARDING,
+          showContentOnboarding,
+          willRender: !FORCE_DISABLE_ONBOARDING
+        });
+        return !FORCE_DISABLE_ONBOARDING ? (
+          <ContentOnboardingTour
+            isVisible={showContentOnboarding}
+            onComplete={handleCompleteContentOnboarding}
+            onClose={handleCloseContentOnboarding}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }

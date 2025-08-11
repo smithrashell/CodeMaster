@@ -23,7 +23,7 @@ export class ChromeMessagingService {
       timeout = this.defaultTimeout,
       retries = this.maxRetries,
       cacheable = false,
-      cacheKey = null
+      cacheKey = null,
     } = options;
 
     // Check cache first if cacheable
@@ -36,26 +36,32 @@ export class ChromeMessagingService {
     }
 
     let lastError;
-    
+
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         const result = await this.sendSingleMessage(message, timeout);
-        
+
         // Cache successful responses if cacheable
         if (cacheable && cacheKey && result) {
           this.setCache(cacheKey, result);
         }
-        
+
         if (attempt > 0) {
-          console.log(`✅ CHROME MSG: Succeeded on retry ${attempt} for ${message.type}`);
+          console.log(
+            `✅ CHROME MSG: Succeeded on retry ${attempt} for ${message.type}`
+          );
         }
-        
+
         return result;
-        
       } catch (error) {
         lastError = error;
-        console.warn(`⚠️ CHROME MSG: Attempt ${attempt + 1}/${retries + 1} failed for ${message.type}:`, error.message);
-        
+        console.warn(
+          `⚠️ CHROME MSG: Attempt ${attempt + 1}/${retries + 1} failed for ${
+            message.type
+          }:`,
+          error.message
+        );
+
         // Don't retry on the last attempt
         if (attempt < retries) {
           const delay = this.retryDelay * Math.pow(2, attempt); // Exponential backoff
@@ -64,8 +70,10 @@ export class ChromeMessagingService {
         }
       }
     }
-    
-    console.error(`❌ CHROME MSG: All ${retries + 1} attempts failed for ${message.type}`);
+
+    console.error(
+      `❌ CHROME MSG: All ${retries + 1} attempts failed for ${message.type}`
+    );
     throw lastError;
   }
 
@@ -79,21 +87,29 @@ export class ChromeMessagingService {
     return new Promise((resolve, reject) => {
       // Extended timeout to test if operations can complete
       const timer = setTimeout(() => {
-        reject(new Error(`Message timeout after ${timeout}ms for type: ${message.type}`));
+        reject(
+          new Error(
+            `Message timeout after ${timeout}ms for type: ${message.type}`
+          )
+        );
       }, timeout);
 
       try {
         chrome.runtime.sendMessage(message, (response) => {
           clearTimeout(timer);
-          
+
           // Check for runtime errors
           if (chrome.runtime.lastError) {
-            reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+            reject(
+              new Error(
+                `Chrome runtime error: ${chrome.runtime.lastError.message}`
+              )
+            );
             return;
           }
 
           // Check for application-level errors
-          if (response && response.status === 'error') {
+          if (response && response.status === "error") {
             reject(new Error(`Application error: ${response.error}`));
             return;
           }
@@ -116,12 +132,12 @@ export class ChromeMessagingService {
   getFromCache(key) {
     const item = this.cache.get(key);
     if (!item) return null;
-    
+
     if (Date.now() > item.expiry) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return item.data;
   }
 
@@ -133,9 +149,9 @@ export class ChromeMessagingService {
   setCache(key, data) {
     this.cache.set(key, {
       data,
-      expiry: Date.now() + this.cacheExpiry
+      expiry: Date.now() + this.cacheExpiry,
     });
-    
+
     // Clean expired items periodically
     if (this.cache.size > 100) {
       this.cleanExpiredCache();
@@ -159,7 +175,7 @@ export class ChromeMessagingService {
    */
   clearCache() {
     this.cache.clear();
-    console.log('🧹 CHROME MSG: Cache cleared');
+    console.log("🧹 CHROME MSG: Cache cleared");
   }
 
   /**
@@ -168,7 +184,7 @@ export class ChromeMessagingService {
    * @returns {Promise}
    */
   sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
@@ -179,7 +195,7 @@ export class ChromeMessagingService {
     const now = Date.now();
     let expired = 0;
     let valid = 0;
-    
+
     for (const item of this.cache.values()) {
       if (now > item.expiry) {
         expired++;
@@ -187,12 +203,12 @@ export class ChromeMessagingService {
         valid++;
       }
     }
-    
+
     return {
       total: this.cache.size,
       valid,
       expired,
-      memoryUsage: this.estimateCacheSize()
+      memoryUsage: this.estimateCacheSize(),
     };
   }
 

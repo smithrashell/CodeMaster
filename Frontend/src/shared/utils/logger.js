@@ -1,4 +1,4 @@
-import { ErrorReportService } from '../services/ErrorReportService.js';
+import { ErrorReportService } from "../services/ErrorReportService.js";
 
 /**
  * Production-ready logging system with structured logging and level management
@@ -11,10 +11,10 @@ const LOG_LEVELS = {
   INFO: 2,
   WARN: 3,
   ERROR: 4,
-  FATAL: 5
+  FATAL: 5,
 };
 
-const LOG_LEVEL_NAMES = ['TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'];
+const LOG_LEVEL_NAMES = ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"];
 
 class ProductionLogger {
   constructor() {
@@ -28,9 +28,9 @@ class ProductionLogger {
    * Get appropriate log level for current environment
    */
   _getLogLevel() {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       return LOG_LEVELS.WARN; // Only warnings and above in production
-    } else if (process.env.NODE_ENV === 'test') {
+    } else if (process.env.NODE_ENV === "test") {
       return LOG_LEVELS.ERROR; // Reduce test output noise
     }
     return LOG_LEVELS.DEBUG; // Development mode
@@ -51,8 +51,8 @@ class ProductionLogger {
       userAgent: navigator.userAgent,
       url: window.location.href,
       timestamp: new Date().toISOString(),
-      version: '1.0.0', // Could be from package.json
-      environment: process.env.NODE_ENV || 'development'
+      version: "1.0.0", // Could be from package.json
+      environment: process.env.NODE_ENV || "development",
     };
   }
 
@@ -67,15 +67,15 @@ class ProductionLogger {
       message,
       context: {
         ...this.context,
-        ...context
-      }
+        ...context,
+      },
     };
 
     if (error) {
       logEntry.error = {
         message: error.message,
         stack: error.stack,
-        name: error.name
+        name: error.name,
       };
     }
 
@@ -131,13 +131,13 @@ class ProductionLogger {
         message: error.message,
         stack: error.stack,
         componentStack: logEntry.context.componentStack,
-        section: logEntry.context.section || 'unknown',
+        section: logEntry.context.section || "unknown",
         userContext: logEntry.context,
-        errorType: 'javascript',
-        severity: logEntry.level === 'FATAL' ? 'high' : 'medium'
+        errorType: "javascript",
+        severity: logEntry.level === "FATAL" ? "high" : "medium",
       });
     } catch (reportError) {
-      console.error('Failed to report error:', reportError);
+      console.error("Failed to report error:", reportError);
     }
   }
 
@@ -146,14 +146,19 @@ class ProductionLogger {
    */
   _storeCriticalLog(logEntry) {
     try {
-      const criticalLogs = JSON.parse(localStorage.getItem('codemaster_critical_logs') || '[]');
+      const criticalLogs = JSON.parse(
+        localStorage.getItem("codemaster_critical_logs") || "[]"
+      );
       criticalLogs.push(logEntry);
-      
+
       // Keep only last 50 critical logs
       const recentLogs = criticalLogs.slice(-50);
-      localStorage.setItem('codemaster_critical_logs', JSON.stringify(recentLogs));
+      localStorage.setItem(
+        "codemaster_critical_logs",
+        JSON.stringify(recentLogs)
+      );
     } catch (storageError) {
-      console.warn('Failed to store critical log:', storageError);
+      console.warn("Failed to store critical log:", storageError);
     }
   }
 
@@ -186,7 +191,7 @@ class ProductionLogger {
    * Set log level dynamically
    */
   setLogLevel(level) {
-    if (typeof level === 'string') {
+    if (typeof level === "string") {
       level = LOG_LEVELS[level.toUpperCase()];
     }
     if (level >= 0 && level <= 5) {

@@ -23,11 +23,14 @@ export const SessionService = {
    * @returns {Object} Comprehensive session performance summary
    */
   async summarizeSessionPerformance(session) {
-    const queryContext = performanceMonitor.startQuery('session_performance_summary', {
-      operation: 'session_creation',
-      sessionId: session.id,
-      attemptCount: session.attempts?.length || 0
-    });
+    const queryContext = performanceMonitor.startQuery(
+      "session_performance_summary",
+      {
+        operation: "session_creation",
+        sessionId: session.id,
+        attemptCount: session.attempts?.length || 0,
+      }
+    );
 
     console.info(`📊 Starting performance summary for session ${session.id}`);
 
@@ -112,8 +115,12 @@ export const SessionService = {
       console.info(
         `✅ Session performance summary completed for ${session.id}`
       );
-      
-      performanceMonitor.endQuery(queryContext, true, Object.keys(sessionSummary).length);
+
+      performanceMonitor.endQuery(
+        queryContext,
+        true,
+        Object.keys(sessionSummary).length
+      );
       return sessionSummary;
     } catch (error) {
       console.error(
@@ -189,8 +196,8 @@ export const SessionService = {
    * @returns {Promise<Array|null>} - Array of session problems or null on failure
    */
   async createNewSession() {
-    const queryContext = performanceMonitor.startQuery('createNewSession', {
-      operation: 'session_creation'
+    const queryContext = performanceMonitor.startQuery("createNewSession", {
+      operation: "session_creation",
     });
 
     try {
@@ -205,22 +212,26 @@ export const SessionService = {
         return null;
       }
 
-    const newSession = {
-      id: uuidv4(),
-      date: new Date().toISOString(),
-      status: "in_progress",
-      problems: problems,
-      attempts: [],
-    };
+      const newSession = {
+        id: uuidv4(),
+        date: new Date().toISOString(),
+        status: "in_progress",
+        problems: problems,
+        attempts: [],
+      };
 
-    console.info("📌 newSession:", newSession);
+      console.info("📌 newSession:", newSession);
 
-    await saveNewSessionToDB(newSession);
-    await saveSessionToStorage(newSession);
+      await saveNewSessionToDB(newSession);
+      await saveSessionToStorage(newSession);
 
-    console.info("✅ New session created and stored:", newSession);
-    performanceMonitor.endQuery(queryContext, true, newSession.problems.length);
-    return newSession.problems;
+      console.info("✅ New session created and stored:", newSession);
+      performanceMonitor.endQuery(
+        queryContext,
+        true,
+        newSession.problems.length
+      );
+      return newSession.problems;
     } catch (error) {
       performanceMonitor.endQuery(queryContext, false, 0, error);
       throw error;
@@ -322,9 +333,11 @@ export const SessionService = {
 
     for (const problem of session.problems) {
       // Get official difficulty from standard_problems
-      const standardProblem = await fetchProblemById(problem.leetCodeID || problem.id);
+      const standardProblem = await fetchProblemById(
+        problem.leetCodeID || problem.id
+      );
       const difficulty = standardProblem?.difficulty || "Medium";
-      
+
       if (Object.prototype.hasOwnProperty.call(difficultyCount, difficulty)) {
         difficultyCount[difficulty]++;
       }

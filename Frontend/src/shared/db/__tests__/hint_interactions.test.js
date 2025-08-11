@@ -28,7 +28,7 @@ describe("hint_interactions database module", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     // Create comprehensive mocks
     mockRequest = {
       onsuccess: null,
@@ -71,10 +71,10 @@ describe("hint_interactions database module", () => {
       };
 
       mockRequest.result = 123; // Mock auto-generated ID
-      
+
       // Act
       const savePromise = saveHintInteraction(interactionData);
-      
+
       // Simulate successful database operation
       setTimeout(() => {
         if (mockRequest.onsuccess) {
@@ -85,8 +85,13 @@ describe("hint_interactions database module", () => {
       const result = await savePromise;
 
       // Assert
-      expect(mockDB.transaction).toHaveBeenCalledWith("hint_interactions", "readwrite");
-      expect(mockTransaction.objectStore).toHaveBeenCalledWith("hint_interactions");
+      expect(mockDB.transaction).toHaveBeenCalledWith(
+        "hint_interactions",
+        "readwrite"
+      );
+      expect(mockTransaction.objectStore).toHaveBeenCalledWith(
+        "hint_interactions"
+      );
       expect(mockStore.add).toHaveBeenCalledWith(interactionData);
       expect(result).toEqual({ ...interactionData, id: 123 });
     });
@@ -98,7 +103,7 @@ describe("hint_interactions database module", () => {
 
       // Act
       const savePromise = saveHintInteraction(interactionData);
-      
+
       // Simulate database error
       setTimeout(() => {
         if (mockRequest.onerror) {
@@ -131,10 +136,10 @@ describe("hint_interactions database module", () => {
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const getPromise = getInteractionsByProblem(problemId);
-      
+
       // Simulate successful database operation
       setTimeout(() => {
         if (mockRequest.onsuccess) {
@@ -145,7 +150,10 @@ describe("hint_interactions database module", () => {
       const result = await getPromise;
 
       // Assert
-      expect(mockDB.transaction).toHaveBeenCalledWith("hint_interactions", "readonly");
+      expect(mockDB.transaction).toHaveBeenCalledWith(
+        "hint_interactions",
+        "readonly"
+      );
       expect(mockStore.index).toHaveBeenCalledWith("by_problem_id");
       expect(mockIndex.getAll).toHaveBeenCalledWith(problemId);
       expect(result).toEqual(mockInteractions);
@@ -165,10 +173,10 @@ describe("hint_interactions database module", () => {
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const getPromise = getInteractionsBySession(sessionId);
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -194,10 +202,10 @@ describe("hint_interactions database module", () => {
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const getPromise = getInteractionsByHintType(hintType);
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -223,10 +231,10 @@ describe("hint_interactions database module", () => {
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const getPromise = getInteractionsByAction(userAction);
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -253,10 +261,10 @@ describe("hint_interactions database module", () => {
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const getPromise = getInteractionsByDateRange(startDate, endDate);
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -291,10 +299,13 @@ describe("hint_interactions database module", () => {
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
-      const getPromise = getInteractionsByDifficultyAndType(difficulty, hintType);
-      
+      const getPromise = getInteractionsByDifficultyAndType(
+        difficulty,
+        hintType
+      );
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -304,7 +315,9 @@ describe("hint_interactions database module", () => {
       const result = await getPromise;
 
       // Assert
-      expect(mockStore.index).toHaveBeenCalledWith("by_hint_type_and_difficulty");
+      expect(mockStore.index).toHaveBeenCalledWith(
+        "by_hint_type_and_difficulty"
+      );
       expect(mockIndex.getAll).toHaveBeenCalledWith([hintType, difficulty]);
       expect(result).toEqual(mockInteractions);
     });
@@ -320,10 +333,10 @@ describe("hint_interactions database module", () => {
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const getPromise = getAllInteractions();
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -349,12 +362,12 @@ describe("hint_interactions database module", () => {
 
       // Act
       const deletePromise = deleteOldInteractions(cutoffDate);
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           // Simulate cursor iteration - first call with cursor
           mockRequest.onsuccess({ target: { result: mockCursor } });
-          
+
           // Immediately simulate second call with null (end of iteration)
           setTimeout(() => {
             mockRequest.onsuccess({ target: { result: null } });
@@ -397,15 +410,17 @@ describe("hint_interactions database module", () => {
           boxLevel: 1,
           problemId: "valid-parentheses",
           sessionId: "session-2",
-          timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+          timestamp: new Date(
+            Date.now() - 2 * 24 * 60 * 60 * 1000
+          ).toISOString(), // 2 days ago
         },
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const statsPromise = getInteractionStats();
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -453,7 +468,7 @@ describe("hint_interactions database module", () => {
         },
         {
           id: 2,
-          hintType: "contextual", 
+          hintType: "contextual",
           problemDifficulty: "Medium",
           userAction: "expand",
           problemId: "valid-parentheses",
@@ -461,17 +476,17 @@ describe("hint_interactions database module", () => {
         {
           id: 3,
           hintType: "contextual",
-          problemDifficulty: "Medium", 
+          problemDifficulty: "Medium",
           userAction: "dismissed",
           problemId: "two-sum",
         },
       ];
 
       mockRequest.result = mockInteractions;
-      
+
       // Act
       const effectivenessPromise = getHintEffectiveness();
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -487,7 +502,7 @@ describe("hint_interactions database module", () => {
         totalInteractions: 3,
         expansions: 2,
         dismissals: 1,
-        engagementRate: 2/3, // 2 expansions out of 3 total
+        engagementRate: 2 / 3, // 2 expansions out of 3 total
         uniqueProblems: 2,
       });
     });
@@ -501,16 +516,18 @@ describe("hint_interactions database module", () => {
       dbHelper.openDB.mockRejectedValue(dbError);
 
       // Act & Assert
-      await expect(getAllInteractions()).rejects.toThrow("Database connection failed");
+      await expect(getAllInteractions()).rejects.toThrow(
+        "Database connection failed"
+      );
     });
 
     it("should handle transaction errors", async () => {
       // Arrange
       const transactionError = new Error("Transaction failed");
-      
+
       // Act
       const savePromise = saveHintInteraction({ problemId: "test" });
-      
+
       setTimeout(() => {
         if (mockRequest.onerror) {
           mockRequest.onerror({ target: { error: transactionError } });
@@ -526,10 +543,10 @@ describe("hint_interactions database module", () => {
     it("should handle empty result sets", async () => {
       // Arrange
       mockRequest.result = [];
-      
+
       // Act
       const getPromise = getInteractionsByProblem("non-existent");
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -545,10 +562,10 @@ describe("hint_interactions database module", () => {
     it("should handle null/undefined inputs gracefully", async () => {
       // Arrange
       mockRequest.result = null;
-      
+
       // Act & Assert - should not throw errors
       const savePromise = saveHintInteraction(null);
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess();
@@ -568,7 +585,7 @@ describe("hint_interactions database module", () => {
 
       // Act
       const savePromise = saveHintInteraction(malformedData);
-      
+
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.result = 1;

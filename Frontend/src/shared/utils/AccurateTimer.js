@@ -1,6 +1,6 @@
 /**
  * AccurateTimer - A robust timer class for CodeMaster that standardizes time tracking
- * 
+ *
  * Key Features:
  * - All time operations use seconds as the base unit
  * - Proper start/pause/resume functionality using timestamps
@@ -15,7 +15,7 @@ class AccurateTimer {
     this.accumulatedTime = 0;
     this.isRunning = false;
     this.isPaused = false;
-    
+
     // For detection of tab sleep/wake issues
     this.lastTickTimestamp = null;
     this.maxTickDrift = 2000; // 2 seconds max drift before correction
@@ -29,7 +29,10 @@ class AccurateTimer {
   validateTime(timeInSeconds) {
     const time = Number(timeInSeconds);
     if (isNaN(time) || time < 0) {
-      console.warn('AccurateTimer: Invalid time value, defaulting to 0', timeInSeconds);
+      console.warn(
+        "AccurateTimer: Invalid time value, defaulting to 0",
+        timeInSeconds
+      );
       return 0;
     }
     return Math.floor(time); // Ensure integer seconds
@@ -41,7 +44,7 @@ class AccurateTimer {
    */
   start() {
     if (this.isRunning) {
-      console.warn('AccurateTimer: Timer already running');
+      console.warn("AccurateTimer: Timer already running");
       return false;
     }
 
@@ -49,8 +52,8 @@ class AccurateTimer {
     this.lastTickTimestamp = this.startTimestamp;
     this.isRunning = true;
     this.isPaused = false;
-    
-    console.log('AccurateTimer: Timer started');
+
+    console.log("AccurateTimer: Timer started");
     return true;
   }
 
@@ -60,19 +63,22 @@ class AccurateTimer {
    */
   pause() {
     if (!this.isRunning) {
-      console.warn('AccurateTimer: Cannot pause timer that is not running');
+      console.warn("AccurateTimer: Cannot pause timer that is not running");
       return false;
     }
 
     const now = Date.now();
     const elapsedMs = now - this.startTimestamp;
     this.accumulatedTime += Math.floor(elapsedMs / 1000);
-    
+
     this.isRunning = false;
     this.isPaused = true;
     this.startTimestamp = null;
-    
-    console.log('AccurateTimer: Timer paused, accumulated time:', this.accumulatedTime);
+
+    console.log(
+      "AccurateTimer: Timer paused, accumulated time:",
+      this.accumulatedTime
+    );
     return true;
   }
 
@@ -82,7 +88,7 @@ class AccurateTimer {
    */
   resume() {
     if (!this.isPaused) {
-      console.warn('AccurateTimer: Cannot resume timer that is not paused');
+      console.warn("AccurateTimer: Cannot resume timer that is not paused");
       return false;
     }
 
@@ -90,8 +96,8 @@ class AccurateTimer {
     this.lastTickTimestamp = this.startTimestamp;
     this.isRunning = true;
     this.isPaused = false;
-    
-    console.log('AccurateTimer: Timer resumed');
+
+    console.log("AccurateTimer: Timer resumed");
     return true;
   }
 
@@ -101,20 +107,20 @@ class AccurateTimer {
    */
   stop() {
     const finalTime = this.getElapsedTime();
-    
+
     // Preserve accumulated time when stopping (don't reset to 0)
     if (this.isRunning && this.startTimestamp) {
       const now = Date.now();
       const elapsedMs = now - this.startTimestamp;
       this.accumulatedTime += Math.floor(elapsedMs / 1000);
     }
-    
+
     this.startTimestamp = null;
     this.isRunning = false;
     this.isPaused = true; // Set as paused so elapsed time is preserved
     this.lastTickTimestamp = null;
-    
-    console.log('AccurateTimer: Timer stopped, final time:', finalTime);
+
+    console.log("AccurateTimer: Timer stopped, final time:", finalTime);
     return finalTime;
   }
 
@@ -124,23 +130,23 @@ class AccurateTimer {
    */
   reset(newTimeInSeconds = null) {
     const wasRunning = this.isRunning;
-    
+
     // Actually reset state completely
     this.startTimestamp = null;
     this.accumulatedTime = 0;
     this.isRunning = false;
     this.isPaused = false;
     this.lastTickTimestamp = null;
-    
+
     if (newTimeInSeconds !== null) {
       this.totalTimeInSeconds = this.validateTime(newTimeInSeconds);
     }
-    
+
     if (wasRunning) {
       this.start();
     }
-    
-    console.log('AccurateTimer: Timer reset to', this.totalTimeInSeconds);
+
+    console.log("AccurateTimer: Timer reset to", this.totalTimeInSeconds);
   }
 
   /**
@@ -149,13 +155,13 @@ class AccurateTimer {
    */
   getElapsedTime() {
     let currentElapsed = this.accumulatedTime;
-    
+
     if (this.isRunning && this.startTimestamp) {
       const now = Date.now();
       const currentSessionMs = now - this.startTimestamp;
       currentElapsed += Math.floor(currentSessionMs / 1000);
     }
-    
+
     return currentElapsed;
   }
 
@@ -174,7 +180,7 @@ class AccurateTimer {
    */
   setTotalTime(timeInSeconds) {
     this.totalTimeInSeconds = this.validateTime(timeInSeconds);
-    console.log('AccurateTimer: Total time set to', this.totalTimeInSeconds);
+    console.log("AccurateTimer: Total time set to", this.totalTimeInSeconds);
   }
 
   /**
@@ -196,7 +202,7 @@ class AccurateTimer {
       elapsedTime: this.getElapsedTime(),
       remainingTime: this.getRemainingTime(),
       totalTime: this.totalTimeInSeconds,
-      isTimeUp: this.isTimeUp()
+      isTimeUp: this.isTimeUp(),
     };
   }
 
@@ -209,8 +215,10 @@ class AccurateTimer {
     const validTime = Number(timeInSeconds) || 0;
     const minutes = Math.floor(Math.abs(validTime) / 60);
     const seconds = Math.floor(Math.abs(validTime) % 60);
-    
-    const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    const formattedTime = `${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
     return validTime < 0 ? `-${formattedTime}` : formattedTime;
   }
 
@@ -242,17 +250,17 @@ class AccurateTimer {
    * @param {string} unit - Expected unit ('seconds' or 'minutes')
    * @returns {number} Normalized time in seconds
    */
-  static normalizeTimeInput(input, unit = 'seconds') {
+  static normalizeTimeInput(input, unit = "seconds") {
     const numericValue = Number(input);
     if (isNaN(numericValue) || numericValue < 0) {
-      console.warn('AccurateTimer: Invalid time input, defaulting to 0', input);
+      console.warn("AccurateTimer: Invalid time input, defaulting to 0", input);
       return 0;
     }
 
-    if (unit === 'minutes') {
+    if (unit === "minutes") {
       return AccurateTimer.minutesToSeconds(numericValue);
     }
-    
+
     return Math.floor(Math.abs(numericValue));
   }
 
@@ -262,7 +270,7 @@ class AccurateTimer {
    * @param {string} unit - Time unit ('seconds' or 'minutes')
    * @returns {AccurateTimer} New timer instance
    */
-  static createFromTime(time, unit = 'seconds') {
+  static createFromTime(time, unit = "seconds") {
     const timeInSeconds = AccurateTimer.normalizeTimeInput(time, unit);
     return new AccurateTimer(timeInSeconds);
   }
@@ -275,17 +283,23 @@ class AccurateTimer {
    * @returns {number} Actual time spent in seconds
    */
   static calculateTimeSpent(originalLimitInSeconds, remainingTimeInSeconds) {
-    const limit = AccurateTimer.normalizeTimeInput(originalLimitInSeconds, 'seconds');
-    const remaining = AccurateTimer.normalizeTimeInput(remainingTimeInSeconds, 'seconds');
-    
+    const limit = AccurateTimer.normalizeTimeInput(
+      originalLimitInSeconds,
+      "seconds"
+    );
+    const remaining = AccurateTimer.normalizeTimeInput(
+      remainingTimeInSeconds,
+      "seconds"
+    );
+
     const timeSpent = Math.max(0, limit - remaining);
-    
-    console.log('AccurateTimer: Time calculation -', {
+
+    console.log("AccurateTimer: Time calculation -", {
       originalLimit: limit,
       remaining: remaining,
-      timeSpent: timeSpent
+      timeSpent: timeSpent,
     });
-    
+
     return timeSpent;
   }
 }

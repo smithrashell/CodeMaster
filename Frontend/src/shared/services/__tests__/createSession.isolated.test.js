@@ -266,7 +266,8 @@ describe("Session Creation Functions (Isolated)", () => {
       expect(mockGetDailyReviewSchedule).toHaveBeenCalledWith(1); // 40% of 4 = 1.6, floor = 1
       expect(mockFetchAdditionalProblems).toHaveBeenCalledWith(
         3, // 4 - 1 review problem
-        new Set([1]) // exclude IDs from existing problems
+        new Set([1]), // exclude IDs from existing problems
+        [] // userFocusAreas
       );
 
       expect(result).toBeDefined();
@@ -300,7 +301,7 @@ describe("Session Creation Functions (Isolated)", () => {
 
       // Assert
       expect(mockGetDailyReviewSchedule).toHaveBeenCalledWith(1); // 40% of 3 = 1.2, floor = 1
-      expect(mockFetchAdditionalProblems).toHaveBeenCalledWith(3, new Set([1]));
+      expect(mockFetchAdditionalProblems).toHaveBeenCalledWith(3, new Set([1]), []);
       expect(result).toBeDefined();
     });
   });

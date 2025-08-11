@@ -1,11 +1,11 @@
 /**
  * ErrorRecoveryUI Component for CodeMaster
- * 
+ *
  * Comprehensive error recovery interface with actionable steps,
  * diagnostic information, and progressive recovery options.
  */
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Modal,
   Button,
@@ -21,7 +21,7 @@ import {
   Card,
   Badge,
   Textarea,
-} from '@mantine/core';
+} from "@mantine/core";
 import {
   IconBug,
   IconRefresh,
@@ -30,7 +30,7 @@ import {
   IconClock,
   IconSend,
   IconClipboard,
-} from '@tabler/icons-react';
+} from "@tabler/icons-react";
 
 const ErrorRecoveryUI = ({
   opened,
@@ -44,7 +44,7 @@ const ErrorRecoveryUI = ({
   onReportProblem,
 }) => {
   // const [recoveryStep, setRecoveryStep] = useState(0);
-  const [reportText, setReportText] = useState('');
+  const [reportText, setReportText] = useState("");
   const [isRecovering, setIsRecovering] = useState(false);
   const [diagnosticsRun, setDiagnosticsRun] = useState(false);
   const [diagnosticResults, setDiagnosticResults] = useState({});
@@ -53,46 +53,46 @@ const ErrorRecoveryUI = ({
   const getRecoverySteps = () => {
     const baseSteps = [
       {
-        title: 'Quick Retry',
-        description: 'Try reloading the component that failed',
+        title: "Quick Retry",
+        description: "Try reloading the component that failed",
         action: onRetry,
         icon: IconRefresh,
-        color: 'blue',
+        color: "blue",
       },
       {
-        title: 'Clear Local Data',
-        description: 'Clear temporary data that might be causing issues',
-        action: () => runDiagnosticRecovery('clearTemp'),
+        title: "Clear Local Data",
+        description: "Clear temporary data that might be causing issues",
+        action: () => runDiagnosticRecovery("clearTemp"),
         icon: IconRefresh,
-        color: 'orange',
+        color: "orange",
       },
       {
-        title: 'Full Page Reload',
-        description: 'Reload the entire application to reset state',
+        title: "Full Page Reload",
+        description: "Reload the entire application to reset state",
         action: onReload,
         icon: IconRefresh,
-        color: 'red',
+        color: "red",
       },
     ];
 
     // Add section-specific recovery steps
-    if (section === 'Timer') {
+    if (section === "Timer") {
       baseSteps.splice(1, 0, {
-        title: 'Reset Timer State',
-        description: 'Clear timer data and restart with fresh state',
-        action: () => runDiagnosticRecovery('resetTimer'),
+        title: "Reset Timer State",
+        description: "Clear timer data and restart with fresh state",
+        action: () => runDiagnosticRecovery("resetTimer"),
         icon: IconClock,
-        color: 'green',
+        color: "green",
       });
     }
 
-    if (section === 'Dashboard') {
+    if (section === "Dashboard") {
       baseSteps.splice(1, 0, {
-        title: 'Refresh Dashboard Data',
-        description: 'Reload statistics and progress information',
-        action: () => runDiagnosticRecovery('refreshDashboard'),
+        title: "Refresh Dashboard Data",
+        description: "Reload statistics and progress information",
+        action: () => runDiagnosticRecovery("refreshDashboard"),
         icon: IconRefresh,
-        color: 'green',
+        color: "green",
       });
     }
 
@@ -101,35 +101,41 @@ const ErrorRecoveryUI = ({
 
   const runDiagnosticRecovery = async (type) => {
     setIsRecovering(true);
-    
+
     try {
       switch (type) {
-        case 'clearTemp':
+        case "clearTemp":
           // Clear temporary localStorage items
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('codemaster_temp_') || key.startsWith('temp_')) {
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith("codemaster_temp_") || key.startsWith("temp_")) {
               localStorage.removeItem(key);
             }
           });
-          setDiagnosticResults(prev => ({ ...prev, clearTemp: 'success' }));
+          setDiagnosticResults((prev) => ({ ...prev, clearTemp: "success" }));
           break;
 
-        case 'resetTimer':
+        case "resetTimer":
           // Clear timer-related storage
-          localStorage.removeItem('timer_state');
-          sessionStorage.removeItem('current_timer');
-          setDiagnosticResults(prev => ({ ...prev, resetTimer: 'success' }));
+          localStorage.removeItem("timer_state");
+          sessionStorage.removeItem("current_timer");
+          setDiagnosticResults((prev) => ({ ...prev, resetTimer: "success" }));
           break;
 
-        case 'refreshDashboard':
+        case "refreshDashboard":
           // Trigger dashboard data refresh
           try {
-            if (typeof chrome !== 'undefined' && chrome.runtime) {
-              chrome.runtime.sendMessage({ type: 'clearCache' });
+            if (typeof chrome !== "undefined" && chrome.runtime) {
+              chrome.runtime.sendMessage({ type: "clearCache" });
             }
-            setDiagnosticResults(prev => ({ ...prev, refreshDashboard: 'success' }));
+            setDiagnosticResults((prev) => ({
+              ...prev,
+              refreshDashboard: "success",
+            }));
           } catch (chromeError) {
-            setDiagnosticResults(prev => ({ ...prev, refreshDashboard: 'failed' }));
+            setDiagnosticResults((prev) => ({
+              ...prev,
+              refreshDashboard: "failed",
+            }));
           }
           break;
 
@@ -142,11 +148,10 @@ const ErrorRecoveryUI = ({
         setIsRecovering(false);
         if (onRetry) onRetry();
       }, 1000);
-
     } catch (recoveryError) {
       // eslint-disable-next-line no-console
-      console.error('Recovery action failed:', recoveryError);
-      setDiagnosticResults(prev => ({ ...prev, [type]: 'failed' }));
+      console.error("Recovery action failed:", recoveryError);
+      setDiagnosticResults((prev) => ({ ...prev, [type]: "failed" }));
       setIsRecovering(false);
     }
   };
@@ -157,35 +162,36 @@ const ErrorRecoveryUI = ({
 
     // Check localStorage availability
     try {
-      localStorage.setItem('test', 'test');
-      localStorage.removeItem('test');
-      results.localStorage = 'working';
+      localStorage.setItem("test", "test");
+      localStorage.removeItem("test");
+      results.localStorage = "working";
     } catch {
-      results.localStorage = 'failed';
+      results.localStorage = "failed";
     }
 
     // Check Chrome extension API
     try {
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        results.chromeAPI = 'available';
+      if (typeof chrome !== "undefined" && chrome.runtime) {
+        results.chromeAPI = "available";
       } else {
-        results.chromeAPI = 'unavailable';
+        results.chromeAPI = "unavailable";
       }
     } catch {
-      results.chromeAPI = 'failed';
+      results.chromeAPI = "failed";
     }
 
     // Check memory usage
     try {
       if (performance && performance.memory) {
         const memoryInfo = performance.memory;
-        const usedPercent = (memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize) * 100;
-        results.memory = usedPercent > 90 ? 'high' : 'normal';
+        const usedPercent =
+          (memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize) * 100;
+        results.memory = usedPercent > 90 ? "high" : "normal";
       } else {
-        results.memory = 'unknown';
+        results.memory = "unknown";
       }
     } catch {
-      results.memory = 'failed';
+      results.memory = "failed";
     }
 
     setDiagnosticResults(results);
@@ -196,17 +202,17 @@ const ErrorRecoveryUI = ({
 Error ID: ${errorId}
 Section: ${section}
 Timestamp: ${new Date().toISOString()}
-Error: ${error?.message || 'Unknown error'}
+Error: ${error?.message || "Unknown error"}
 URL: ${window.location.href}
 User Agent: ${navigator.userAgent}
 
-${reportText ? `User Description:\n${reportText}\n\n` : ''}Stack Trace:
-${error?.stack || 'No stack trace available'}`;
+${reportText ? `User Description:\n${reportText}\n\n` : ""}Stack Trace:
+${error?.stack || "No stack trace available"}`;
 
     navigator.clipboard.writeText(errorText).then(() => {
       // Could show a notification here
       // eslint-disable-next-line no-console
-      console.info('Error info copied to clipboard');
+      console.info("Error info copied to clipboard");
     });
   };
 
@@ -229,12 +235,17 @@ ${error?.stack || 'No stack trace available'}`;
 
     // Also store locally
     try {
-      const reports = JSON.parse(localStorage.getItem('codemaster_error_reports') || '[]');
+      const reports = JSON.parse(
+        localStorage.getItem("codemaster_error_reports") || "[]"
+      );
       reports.push(reportData);
-      localStorage.setItem('codemaster_error_reports', JSON.stringify(reports.slice(-5)));
+      localStorage.setItem(
+        "codemaster_error_reports",
+        JSON.stringify(reports.slice(-5))
+      );
     } catch (storageError) {
       // eslint-disable-next-line no-console
-      console.warn('Failed to store error report:', storageError);
+      console.warn("Failed to store error report:", storageError);
     }
 
     onClose();
@@ -258,9 +269,12 @@ ${error?.stack || 'No stack trace available'}`;
         {/* Error Overview */}
         <Alert color="red" variant="light">
           <Text size="sm" mb="xs">
-            <strong>What happened:</strong> {error?.message || 'An unexpected error occurred'}
+            <strong>What happened:</strong>{" "}
+            {error?.message || "An unexpected error occurred"}
           </Text>
-          <Badge size="xs" color="gray">Error ID: {errorId}</Badge>
+          <Badge size="xs" color="gray">
+            Error ID: {errorId}
+          </Badge>
         </Alert>
 
         {/* Recovery Progress */}
@@ -268,7 +282,9 @@ ${error?.stack || 'No stack trace available'}`;
           <Card withBorder p="md" bg="blue.0">
             <Group spacing="sm" mb="xs">
               <IconRefresh size="1rem" />
-              <Text size="sm" weight={500}>Running recovery...</Text>
+              <Text size="sm" weight={500}>
+                Running recovery...
+              </Text>
             </Group>
             <Progress value={100} animated color="blue" />
           </Card>
@@ -276,17 +292,28 @@ ${error?.stack || 'No stack trace available'}`;
 
         {/* Recovery Steps */}
         <div>
-          <Title order={5} mb="md">Recovery Options</Title>
+          <Title order={5} mb="md">
+            Recovery Options
+          </Title>
           <Stack spacing="sm">
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (
-                <Card key={index} withBorder p="md" style={{ cursor: 'pointer' }}>
+                <Card
+                  key={index}
+                  withBorder
+                  p="md"
+                  style={{ cursor: "pointer" }}
+                >
                   <Group spacing="md">
                     <Icon size="1.2rem" color={step.color} />
                     <div style={{ flex: 1 }}>
-                      <Text weight={500} size="sm">{step.title}</Text>
-                      <Text size="xs" c="dimmed">{step.description}</Text>
+                      <Text weight={500} size="sm">
+                        {step.title}
+                      </Text>
+                      <Text size="xs" c="dimmed">
+                        {step.description}
+                      </Text>
                     </div>
                     <Button
                       size="xs"
@@ -321,16 +348,20 @@ ${error?.stack || 'No stack trace available'}`;
                   disabled={diagnosticsRun}
                   leftIcon={<IconRefresh size="1rem" />}
                 >
-                  {diagnosticsRun ? 'Diagnostics Complete' : 'Run Diagnostics'}
+                  {diagnosticsRun ? "Diagnostics Complete" : "Run Diagnostics"}
                 </Button>
 
                 {diagnosticsRun && (
                   <List size="sm" spacing="xs">
                     <List.Item
                       icon={
-                        <IconCheck 
-                          size="1rem" 
-                          color={diagnosticResults.localStorage === 'working' ? 'green' : 'red'} 
+                        <IconCheck
+                          size="1rem"
+                          color={
+                            diagnosticResults.localStorage === "working"
+                              ? "green"
+                              : "red"
+                          }
                         />
                       }
                     >
@@ -338,9 +369,13 @@ ${error?.stack || 'No stack trace available'}`;
                     </List.Item>
                     <List.Item
                       icon={
-                        <IconCheck 
-                          size="1rem" 
-                          color={diagnosticResults.chromeAPI === 'available' ? 'green' : 'red'} 
+                        <IconCheck
+                          size="1rem"
+                          color={
+                            diagnosticResults.chromeAPI === "available"
+                              ? "green"
+                              : "red"
+                          }
                         />
                       }
                     >
@@ -348,9 +383,13 @@ ${error?.stack || 'No stack trace available'}`;
                     </List.Item>
                     <List.Item
                       icon={
-                        <IconCheck 
-                          size="1rem" 
-                          color={diagnosticResults.memory === 'normal' ? 'green' : 'orange'} 
+                        <IconCheck
+                          size="1rem"
+                          color={
+                            diagnosticResults.memory === "normal"
+                              ? "green"
+                              : "orange"
+                          }
                         />
                       }
                     >

@@ -16,11 +16,13 @@ import TimeGranularChartCard from "../charts/TimeGranularChartCard";
 // Mock functions (replace with getCurrentLearningState())
 const fetchMockData = (data) => {
   return {
-    currentTier: data.currentTier,
-    masteredTags: data.masteredTags,
-    allTagsInCurrentTier: data.allTagsInCurrentTier,
-    focusTags: data.focusTags,
-    masteryData: data.masteryData,
+    currentTier: data?.currentTier || "Core Concept",
+    masteredTags: data?.masteredTags || [],
+    allTagsInCurrentTier: data?.allTagsInCurrentTier || [],
+    focusTags: data?.focusTags || [],
+    masteryData: data?.masteryData || [],
+    unmasteredTags: data?.unmasteredTags || [],
+    tagsinTier: data?.tagsinTier || [],
   };
 };
 
@@ -38,7 +40,17 @@ export default function MasteryDashboard(props) {
     })();
   }, [props.data]);
 
-  if (!data) return <Text>Loading...</Text>;
+  if (!data) return <Text>Loading mastery data...</Text>;
+  
+  // Show empty state if no mastery data available
+  if (!data.masteryData || data.masteryData.length === 0) {
+    return (
+      <Card withBorder p="xl" style={{ textAlign: "center" }}>
+        <Text size="lg" fw={500} mb="sm">No Mastery Data Available</Text>
+        <Text c="dimmed">Complete some practice sessions to see your tag mastery analytics.</Text>
+      </Card>
+    );
+  }
 
   const getPieData = () => {
     if (selectedTag) {
@@ -49,10 +61,10 @@ export default function MasteryDashboard(props) {
       ];
     }
 
-    const mastered = data.masteryData.filter(
+    const mastered = (data?.masteryData || []).filter(
       (t) => t.successfulAttempts / t.totalAttempts >= 0.8
     ).length;
-    const unmastered = data.masteryData.length - mastered;
+    const unmastered = (data?.masteryData || []).length - mastered;
     return [
       { name: "Mastered", value: mastered },
       { name: "Unmastered", value: unmastered },
@@ -65,10 +77,10 @@ export default function MasteryDashboard(props) {
 
   // Helper: case-insensitive inclusion
   const isUnmastered = (tag) =>
-    data.unmasteredTags.map((t) => t.toLowerCase()).includes(tag.toLowerCase());
+    data?.unmasteredTags?.map((t) => t.toLowerCase()).includes(tag.toLowerCase()) || false;
 
   // SORT: unmastered first, then search match
-  const sortedMastery = [...data.masteryData].sort((a, b) => {
+  const sortedMastery = [...(data?.masteryData || [])].sort((a, b) => {
     const aPinned = isUnmastered(a.tag) ? -1 : 1;
     const bPinned = isUnmastered(b.tag) ? -1 : 1;
     if (aPinned !== bPinned) return aPinned - bPinned;
@@ -88,7 +100,7 @@ export default function MasteryDashboard(props) {
   );
 
   const currentTierTags = sortedMastery.filter((t) =>
-    data.tagsinTier.includes(t.tag)
+    (data?.tagsinTier || []).includes(t.tag)
   );
   const paginatedTierTags = currentTierTags.slice(
     currentPage * pageSize,
@@ -141,7 +153,7 @@ export default function MasteryDashboard(props) {
 
               const isUnmastered =
                 highlightUnmastered &&
-                data.unmasteredTags
+                data?.unmasteredTags || []
                   .map((t) => t.toLowerCase())
                   .includes(tagObj.tag.toLowerCase());
 

@@ -22,7 +22,7 @@
   --cm-menu-button-min-size: 32px;
   --cm-content-padding: clamp(8px, 2vw, 20px);
   --cm-responsive-gap: clamp(4px, 1vw, 12px);
-  
+
   /* Z-index Scale for Extension Components */
   --cm-z-base: 9000;
   --cm-z-timer: 9100;
@@ -206,7 +206,6 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   transform: none;
 }
 
-
 .cm-extension #homeIcon {
   background-color: var(--cm-btn-bg);
   color: var(--cm-btn-text);
@@ -324,7 +323,11 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   position: absolute;
   top: 0;
   left: 0;
-  width: clamp(var(--cm-sidebar-min-width), var(--cm-sidebar-preferred-width), var(--cm-sidebar-max-width));
+  width: clamp(
+    var(--cm-sidebar-min-width),
+    var(--cm-sidebar-preferred-width),
+    var(--cm-sidebar-max-width)
+  );
   height: 100vh;
   max-height: 100vh;
   padding: var(--cm-content-padding);
@@ -1041,7 +1044,9 @@ body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control {
   border-color: transparent !important;
 }
 
-body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control[data-active="true"] {
+body[data-theme="dark"]
+  .cm-extension
+  .mantine-SegmentedControl-control[data-active="true"] {
   background-color: #1f2937 !important; /* Darker gray for active state */
   color: #f3f4f6 !important; /* Light text for active */
   border-radius: 6px !important; /* Rounded corners for active button */
@@ -1051,7 +1056,10 @@ body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-label {
   color: #9ca3af !important; /* Light gray for inactive labels */
 }
 
-body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control[data-active="true"] .mantine-SegmentedControl-label {
+body[data-theme="dark"]
+  .cm-extension
+  .mantine-SegmentedControl-control[data-active="true"]
+  .mantine-SegmentedControl-label {
   color: #f3f4f6 !important; /* Light text for active labels */
 }
 
@@ -1065,7 +1073,10 @@ body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control svg {
 }
 
 /* Active state icons should be light colored */
-body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control[data-active="true"] svg {
+body[data-theme="dark"]
+  .cm-extension
+  .mantine-SegmentedControl-control[data-active="true"]
+  svg {
   color: #f3f4f6 !important; /* Light text for active icons */
   fill: #f3f4f6 !important;
   stroke: #f3f4f6 !important;
@@ -1255,10 +1266,8 @@ body[data-theme="dark"] .cm-extension .cm-strategy-locked-tag {
   color: #9ca3af !important;
 }
 
-
 /* Strategy Map Container Scrolling */
 .cm-extension .cm-sidenav .cm-sidenav__content {
-
   overflow-y: auto !important;
   max-height: calc(100vh - 80px) !important;
   padding-right: 8px !important;
@@ -1271,7 +1280,9 @@ body[data-theme="dark"] .cm-extension .cm-strategy-locked-tag {
   -ms-overflow-style: none; /* IE/Edge */
 }
 
-.cd-extension .cd-sidenav:not(.strategy-map) .cd-sidenav__content::-webkit-scrollbar {
+.cd-extension
+  .cd-sidenav:not(.strategy-map)
+  .cd-sidenav__content::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
 
@@ -1385,28 +1396,28 @@ body[data-theme="light"] .cm-extension .cm-strategy-locked-tag {
   min-height: 40px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
-  
+
   /* ENSURE PROPER LAYOUT */
   width: calc(50% - 6px) !important;
   min-width: calc(50% - 6px) !important;
   max-width: calc(50% - 6px) !important;
-  
+
   /* VISUAL ENHANCEMENTS */
   border-radius: 20px !important;
   transition: all 0.2s ease !important;
-  
+
   /* TEXT AND SPACING */
   line-height: 1.3 !important;
   text-align: center !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  
+
   /* Allow text wrapping to prevent cutoff */
   white-space: normal !important;
   word-wrap: break-word !important;
   overflow: visible !important;
-  
+
   /* PREVENT SIZE CONFLICTS */
   box-sizing: border-box !important;
   flex-shrink: 0 !important;
@@ -1419,11 +1430,11 @@ body[data-theme="light"] .cm-extension .cm-strategy-locked-tag {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 6px !important;
-  
+
   /* PROPER SPACING */
   margin-bottom: 12px !important;
   padding: 4px !important;
-  
+
   /* CONTAINER SIZING */
   width: 100% !important;
   max-width: 100% !important;
@@ -1527,12 +1538,12 @@ body[data-theme="light"] .cm-extension .tag-strategy-button:hover {
     --cm-menu-button-size: 38px;
     font-size: 13px;
   }
-  
+
   .cm-extension .cm-sidenav {
     --cm-sidebar-preferred-width: 24vw;
     --cm-sidebar-max-width: 300px;
   }
-  
+
   .cm-sidenav__content {
     padding-right: 6px;
   }
@@ -1544,7 +1555,7 @@ body[data-theme="light"] .cm-extension .tag-strategy-button:hover {
     --cm-menu-button-size: 44px;
     font-size: 15px;
   }
-  
+
   .cm-extension .cm-sidenav {
     --cm-sidebar-preferred-width: 22vw;
     --cm-sidebar-max-width: 350px;
@@ -1557,12 +1568,12 @@ body[data-theme="light"] .cm-extension .tag-strategy-button:hover {
     --cm-menu-button-size: 48px;
     font-size: 16px;
   }
-  
+
   .cm-extension .cm-sidenav {
     --cm-sidebar-preferred-width: 20vw;
     --cm-sidebar-max-width: 400px;
   }
-  
+
   /* Prevent excessive stretching on ultra-wide monitors */
   .cm-sidenav__content {
     max-width: 380px;
@@ -1576,11 +1587,11 @@ body[data-theme="light"] .cm-extension .tag-strategy-button:hover {
     min-width: 32px;
     min-height: 32px;
   }
-  
+
   .cm-extension .cm-sidenav {
     min-width: 240px;
   }
-  
+
   /* Ensure text remains readable at all zoom levels */
   .cm-extension {
     font-size: max(12px, 1rem);
@@ -1614,11 +1625,11 @@ body:has(.navbar) .cm-extension #cm-menuButton {
   .cm-extension #cm-menuButton {
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
   }
-  
+
   .cm-extension .cm-sidenav {
     border-width: 1px;
   }
-  
+
   /* Sharper text rendering */
   .cm-extension {
     -webkit-font-smoothing: antialiased;
