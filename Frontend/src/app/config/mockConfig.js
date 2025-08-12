@@ -25,8 +25,15 @@ export const shouldUseMockDashboard = () => {
   const hasStorageFlag = typeof window !== 'undefined' &&
     localStorage.getItem('cm-force-mock') === 'true';
     
+  // For dashboard development, be more permissive with mock mode
+  // Enable mock if we're not clearly in a production Chrome extension
+  const isProductionExtension = typeof window !== 'undefined' && 
+    window.location.href.includes('chrome-extension://') && 
+    process.env.NODE_ENV === 'production';
+  
   // Force enable for development - any of these conditions enable mock mode
-  const shouldMock = nodeEnvDev || isLocalhost || isFileProtocol || isExtensionDev || hasUrlFlag || hasStorageFlag;
+  // Also enable if we're NOT in a production extension (for standalone dashboard development)
+  const shouldMock = nodeEnvDev || isLocalhost || isFileProtocol || isExtensionDev || hasUrlFlag || hasStorageFlag || !isProductionExtension;
   
   console.log('🔧 MOCK CONFIG DEBUG:', {
     'process.env.NODE_ENV': process.env.NODE_ENV,
@@ -36,6 +43,7 @@ export const shouldUseMockDashboard = () => {
     'isExtensionDev': isExtensionDev,
     'hasUrlFlag': hasUrlFlag,
     'hasStorageFlag': hasStorageFlag,
+    'isProductionExtension': isProductionExtension,
     'finalDecision': shouldMock,
     'timestamp': new Date().toISOString()
   });

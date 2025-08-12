@@ -4,6 +4,86 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.20] - 2025-08-12
+
+### 🗂️ Navigation Restructure & Route Organization
+
+* **Major Navigation Overhaul**: Complete restructure of application navigation and routing system
+  - **Renamed Primary Routes**: Dashboard → Overview, Stats → Overview for clearer navigation
+  - **Flattened Route Structure**: Removed nested Account/Settings structure, promoted Settings to top-level navigation
+  - **New Route Organization**: 
+    - `/` Overview (formerly Dashboard/Stats)
+    - `/progress` Learning Progress & Goals  
+    - `/sessions` Session History & Productivity Insights
+    - `/strategy` Tag Mastery, Learning Path, Mistake Analysis
+    - `/settings` General, Appearance, Accessibility (formerly nested under Account)
+
+* **Component Cleanup & Optimization**: Removed unused components and streamlined imports
+  - **Removed Unused Routes**: AccountPage, FlashcardPage, Profile, Notifications, Flashcards, Practice, Review, Trends
+  - **Updated Navigation Labels**: Dashboard → Overview, Analytics split into Progress/Strategy
+  - **New Navigation Icons**: Added IconTrendingUp (Progress), IconTarget (Strategy) for better visual hierarchy
+
+### 🎯 Goal Management System
+
+* **Complete Goal Tracking Implementation**: Full-featured goal management with localStorage persistence
+  - **Goal Types**: Support for Problems Solved, Accuracy Rate, and Study Consistency goals
+  - **Progress Tracking**: Real-time progress calculation using actual app statistics
+  - **Goal Lifecycle**: Creation modal, active tracking, completion marking, and history
+  - **Local Storage**: Persistent goal storage across browser sessions
+  - **Multiple Timeframes**: Weekly and monthly goal setting options
+
+### 🛤️ Learning Path Visualization System
+
+* **Interactive Learning Path Component**: Complete SVG-based learning path visualization with intelligent strategy guidance
+  - **Visual Node System**: Color-coded focus tag nodes with real-time progress indicators (green ≥80%, yellow ≥40%, gray <40%)
+  - **Tag Relationship Mapping**: Dynamic visualization of how tags strengthen and unlock other learning areas
+  - **Smart Problem Recommendations**: Contextual problem suggestions based on tag relationships and difficulty progression
+  - **Strategy Intelligence Panel**: Click-interactive detailed learning strategies for each tag with problem-specific guidance
+  - **Mastery Progression Tracking**: Visual representation of learning efficiency and focus area impact on problem selection
+
+* **Enhanced Learning Analytics**: Advanced data integration for personalized learning insights
+  - **Focus Area Intelligence**: System prioritization explanation for active focus tags vs supportive learning areas
+  - **Learning Efficiency Metrics**: Performance categorization (Highly Efficient, Developing, Building Foundation)
+  - **Adaptive Recommendations**: Dynamic strategy suggestions based on current progress and mastery state
+
+### 📊 Session Analytics & Data Enhancements
+
+* **Comprehensive Session Tracking**: Enhanced session data collection and analysis capabilities
+  - **Session Enrichment**: Added duration (15-60min), accuracy (60-90%), and completion status to all session records
+  - **Problem-Level Breakdown**: Individual problem tracking within sessions with difficulty and success metrics
+  - **Productivity Intelligence**: Session analytics with completion rates, streak tracking, and optimal performance hours
+  - **Performance Insights**: Automatic insight generation based on session patterns and accuracy trends
+
+* **Enhanced Mastery Data Integration**: Improved learning state tracking and progress calculation
+  - **Progress Percentages**: Real-time calculation of mastery progress for each tag based on success rates
+  - **Focus Tag Integration**: Dynamic isFocus flags integrated with mastery data for intelligent problem selection
+  - **Session Analytics Pipeline**: Seamless data flow between session tracking and mastery progression analysis
+
+### ♿ Accessibility & User Experience Enhancements
+
+* **Comprehensive Accessibility System**: Full accessibility control panel with CSS-based enhancements
+  - **Enhanced Focus Indicators**: 3px blue outlines with box shadows for improved visibility
+  - **Larger Click Targets**: 44px minimum dimensions for all interactive elements (buttons, links, inputs)
+  - **Reduced Motion Support**: Animation and transition overrides for motion-sensitive users
+  - **Skip Navigation**: Skip-to-content link implementation for screen reader users
+
+* **Accessible Design Classes**: CSS utility classes for runtime accessibility adjustments
+  - **a11y-enhanced-focus**: Enhanced focus ring styling for keyboard navigation
+  - **a11y-large-targets**: Expanded clickable areas for motor accessibility
+  - **a11y-reduced-motion**: Motion reduction overrides for vestibular disorders
+
+### ⚙️ Development & Configuration Improvements
+
+* **Enhanced Mock Mode Detection**: Improved development experience with better mock mode logic
+  - **Production Extension Detection**: Smarter detection of production vs development Chrome extension environment
+  - **Development Mode Enhancements**: More permissive mock mode enabling for standalone dashboard development
+
+* **Mock Data Service Enhancements**: Realistic data generation for enhanced development and testing
+  - **Session Data Realism**: Authentic session duration, accuracy, and completion distributions
+  - **Enhanced Analytics Pipeline**: Structured data flow supporting new productivity and mastery analytics features
+
+---
+
 ## [0.10.19] - 2025-08-12
 
 ### 🎯 Dashboard Data Services Enhancement - Focus Area Analytics System
