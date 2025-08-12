@@ -21,22 +21,15 @@ import {
   DashboardPage,
   AnalyticsPage,
   SettingsPage,
-  AccountPage,
-  FlashcardPage,
   Goals,
-  Trends,
   MistakeAnalysis,
   TagMastery,
   Metrics,
   ProductivityInsights,
-  Profile,
-  Notifications,
+  LearningPath,
   General,
   Appearance,
   Accessibility,
-  Flashcards,
-  Practice,
-  Review,
 } from "./pages/mockup";
 import { useState, useEffect } from "react";
 import { useChromeMessage } from "../shared/hooks/useChromeMessage";
@@ -177,28 +170,33 @@ function App() {
                   <Routes>
                     <Route
                       path="/app.html"
-                      element={<Navigate to="/stats" replace />}
+                      element={<Navigate to="/overview" replace />}
                     />
 
-                    {/* Dashboard */}
+                    {/* Overview */}
                     <Route path="/" element={<DashboardPage />}>
-                      <Route index element={<Navigate to="stats" replace />} />
+                      <Route index element={<Navigate to="overview" replace />} />
                       <Route
-                        path="stats"
+                        path="overview"
                         element={
                           <ErrorBoundary
-                            section="Statistics"
+                            section="Overview"
                             fallback={DashboardErrorFallback}
                           >
                             <Stats appState={appState?.statistics} />
                           </ErrorBoundary>
                         }
                       />
+                    </Route>
+
+                    {/* Progress */}
+                    <Route path="/progress" element={<DashboardPage />}>
+                      <Route index element={<Navigate to="learning-progress" replace />} />
                       <Route
-                        path="progress"
+                        path="learning-progress"
                         element={
                           <ErrorBoundary
-                            section="Progress"
+                            section="Learning Progress"
                             fallback={DashboardErrorFallback}
                           >
                             <Progress appState={appState?.progress} />
@@ -212,64 +210,24 @@ function App() {
                             section="Goals"
                             fallback={DashboardErrorFallback}
                           >
-                            <Goals />
+                            <Goals appState={appState} />
                           </ErrorBoundary>
                         }
                       />
                     </Route>
 
-                    {/* Analytics */}
-                    <Route path="/analytics" element={<AnalyticsPage />}>
-                      <Route index element={<Navigate to="trends" replace />} />
-                      <Route
-                        path="trends"
-                        element={
-                          <ErrorBoundary
-                            section="Analytics - Trends"
-                            fallback={DashboardErrorFallback}
-                          >
-                            <Trends />
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="mistake-analysis"
-                        element={
-                          <ErrorBoundary
-                            section="Analytics - Mistake Analysis"
-                            fallback={DashboardErrorFallback}
-                          >
-                            <MistakeAnalysis />
-                          </ErrorBoundary>
-                        }
-                      />
-                      <Route
-                        path="tag-mastery"
-                        element={
-                          <ErrorBoundary
-                            section="Analytics - Tag Mastery"
-                            fallback={DashboardErrorFallback}
-                          >
-                            <TagMastery appState={appState?.mastery} />
-                          </ErrorBoundary>
-                        }
-                      />
-                    </Route>
 
                     {/* Sessions */}
-                    <Route path="/sessions">
+                    <Route path="/sessions" element={<DashboardPage />}>
+                      <Route index element={<Navigate to="session-history" replace />} />
                       <Route
-                        index
-                        element={<Navigate to="metrics" replace />}
-                      />
-                      <Route
-                        path="session-metrics"
+                        path="session-history"
                         element={
                           <ErrorBoundary
-                            section="Session Metrics"
+                            section="Session History"
                             fallback={DashboardErrorFallback}
                           >
-                            <Metrics />
+                            <Metrics appState={appState?.sessions} />
                           </ErrorBoundary>
                         }
                       />
@@ -280,117 +238,88 @@ function App() {
                             section="Productivity Insights"
                             fallback={DashboardErrorFallback}
                           >
-                            <ProductivityInsights />
+                            <ProductivityInsights appState={appState?.sessions} />
                           </ErrorBoundary>
                         }
                       />
                     </Route>
 
-                    {/* Account */}
-                    <Route path="/account" element={<AccountPage />}>
+                    {/* Strategy */}
+                    <Route path="/strategy" element={<DashboardPage />}>
+                      <Route index element={<Navigate to="tag-mastery" replace />} />
                       <Route
-                        index
-                        element={<Navigate to="profile" replace />}
-                      />
-                      <Route
-                        path="profile"
+                        path="tag-mastery"
                         element={
                           <ErrorBoundary
-                            section="Profile"
+                            section="Tag Mastery"
                             fallback={DashboardErrorFallback}
                           >
-                            <Profile />
+                            <TagMastery appState={appState?.mastery} />
                           </ErrorBoundary>
                         }
                       />
                       <Route
-                        path="notifications"
+                        path="learning-path"
                         element={
                           <ErrorBoundary
-                            section="Notifications"
+                            section="Learning Path"
                             fallback={DashboardErrorFallback}
                           >
-                            <Notifications />
+                            <LearningPath appState={appState?.mastery} />
                           </ErrorBoundary>
                         }
                       />
-                      <Route path="settings" element={<SettingsPage />}>
-                        <Route
-                          path="general"
-                          element={
-                            <ErrorBoundary
-                              section="Settings - General"
-                              fallback={DashboardErrorFallback}
-                            >
-                              <General />
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="appearance"
-                          element={
-                            <ErrorBoundary
-                              section="Settings - Appearance"
-                              fallback={DashboardErrorFallback}
-                            >
-                              <Appearance />
-                            </ErrorBoundary>
-                          }
-                        />
-                        <Route
-                          path="accessibility"
-                          element={
-                            <ErrorBoundary
-                              section="Settings - Accessibility"
-                              fallback={DashboardErrorFallback}
-                            >
-                              <Accessibility />
-                            </ErrorBoundary>
-                          }
-                        />
-                      </Route>
+                      <Route
+                        path="mistake-analysis"
+                        element={
+                          <ErrorBoundary
+                            section="Mistake Analysis"
+                            fallback={DashboardErrorFallback}
+                          >
+                            <MistakeAnalysis appState={appState} />
+                          </ErrorBoundary>
+                        }
+                      />
                     </Route>
 
-                    {/* Flashcards / Review */}
-                    <Route path="/review" element={<FlashcardPage />}>
+                    {/* Settings */}
+                    <Route path="/settings" element={<SettingsPage />}>
+                      <Route index element={<Navigate to="general" replace />} />
                       <Route
-                        index
-                        element={<Navigate to="flashcards" replace />}
-                      />
-                      <Route
-                        path="flashcards"
+                        path="general"
                         element={
                           <ErrorBoundary
-                            section="Flashcards"
+                            section="Settings - General"
                             fallback={DashboardErrorFallback}
                           >
-                            <Flashcards />
+                            <General />
                           </ErrorBoundary>
                         }
                       />
                       <Route
-                        path="practice"
+                        path="appearance"
                         element={
                           <ErrorBoundary
-                            section="Practice"
+                            section="Settings - Appearance"
                             fallback={DashboardErrorFallback}
                           >
-                            <Practice />
+                            <Appearance />
                           </ErrorBoundary>
                         }
                       />
                       <Route
-                        path="review"
+                        path="accessibility"
                         element={
                           <ErrorBoundary
-                            section="Review"
+                            section="Settings - Accessibility"
                             fallback={DashboardErrorFallback}
                           >
-                            <Review />
+                            <Accessibility />
                           </ErrorBoundary>
                         }
                       />
                     </Route>
+
                   </Routes>
                 </ErrorBoundary>
               )}

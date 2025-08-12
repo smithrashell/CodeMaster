@@ -27,17 +27,32 @@ export async function getMockDashboardStatistics(
     // Generate mock data based on user type
     const mockData = generateMockData(userType);
 
+    // Generate enhanced session analytics for new pages
+    const enhancedSessions = mockData.allSessions.map((session, index) => ({
+      ...session,
+      duration: Math.floor(Math.random() * 45) + 15, // 15-60 min sessions
+      accuracy: 0.6 + (Math.random() * 0.3), // 60-90% accuracy
+      completed: Math.random() > 0.1, // 90% completion rate
+      Date: new Date(Date.now() - (index * 24 * 60 * 60 * 1000)).toISOString(), // Spread over days
+      sessionId: `session_${index + 1}`,
+      problems: Array.from({ length: Math.floor(Math.random() * 8) + 3 }, (_, i) => ({
+        id: `problem_${index}_${i}`,
+        difficulty: ["Easy", "Medium", "Hard"][Math.floor(Math.random() * 3)],
+        solved: Math.random() > 0.25
+      }))
+    }));
+
     // Return data in the exact same structure as the real dashboard service
     const result = {
       statistics: {
         statistics: mockData.statistics,
         averageTime: mockData.averageTime,
         successRate: mockData.successRate,
-        allSessions: mockData.allSessions,
+        allSessions: enhancedSessions,
         // Also expose at root level since Stats component expects them here
         ...mockData.statistics,  // Spread statistics properties
         // Ensure allSessions is directly accessible
-        allSessions: mockData.allSessions,
+        allSessions: enhancedSessions,
         averageTime: mockData.averageTime,
         successRate: mockData.successRate,
       },
@@ -46,7 +61,32 @@ export async function getMockDashboardStatistics(
         boxLevelData: mockData.boxLevelData,
         allAttempts: mockData.allAttempts,
         allProblems: mockData.allProblems,
-        allSessions: mockData.allSessions,
+        allSessions: enhancedSessions,
+      },
+      sessions: {
+        allSessions: enhancedSessions,
+        recentSessions: enhancedSessions.slice(-10),
+        sessionAnalytics: enhancedSessions.map(session => ({
+          sessionId: session.sessionId,
+          completedAt: session.Date,
+          accuracy: Math.round(session.accuracy * 100) / 100,
+          avgTime: session.duration,
+          totalProblems: session.problems.length,
+          difficulty: session.problems.reduce((acc, p) => {
+            acc[p.difficulty] = (acc[p.difficulty] || 0) + 1;
+            return acc;
+          }, {}),
+          insights: [
+            session.accuracy > 0.8 ? "Great accuracy this session!" : "Focus on accuracy improvement",
+            session.duration > 45 ? "Long focused session - excellent!" : "Consider longer practice sessions"
+          ]
+        })),
+        productivityMetrics: {
+          averageSessionLength: Math.round(enhancedSessions.reduce((acc, s) => acc + s.duration, 0) / enhancedSessions.length),
+          completionRate: Math.round((enhancedSessions.filter(s => s.completed).length / enhancedSessions.length) * 100),
+          streakDays: 7,
+          bestPerformanceHour: "14:00"
+        }
       },
       mastery: {
         currentTier: mockData.learningState.currentTier || "Core Concept",
@@ -56,7 +96,7 @@ export async function getMockDashboardStatistics(
           "binary-search", "sliding-window", "dynamic-programming",
           "greedy", "stack", "queue", "heap", "tree", "graph"
         ],
-        focusTags: mockData.learningState.focusTags || ["string", "two-pointers", "dynamic-programming"],
+        focusTags: mockData.learningState.focusTags || ["array", "string", "two-pointers"],
         tagsinTier: mockData.learningState.tagsinTier || [
           "array", "hash-table", "string", "two-pointers", 
           "binary-search", "sliding-window"
@@ -66,20 +106,52 @@ export async function getMockDashboardStatistics(
           "dynamic-programming", "greedy", "stack", "queue", "heap", "tree", "graph"
         ],
         masteryData: mockData.learningState.masteryData || [
-          { tag: "array", totalAttempts: 15, successfulAttempts: 12 },
-          { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9 },
-          { tag: "string", totalAttempts: 8, successfulAttempts: 5 },
-          { tag: "two-pointers", totalAttempts: 6, successfulAttempts: 3 },
-          { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2 },
-          { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1 },
-          { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4 },
-          { tag: "greedy", totalAttempts: 5, successfulAttempts: 2 },
-          { tag: "stack", totalAttempts: 7, successfulAttempts: 4 },
-          { tag: "queue", totalAttempts: 4, successfulAttempts: 2 },
-          { tag: "heap", totalAttempts: 6, successfulAttempts: 2 },
-          { tag: "tree", totalAttempts: 9, successfulAttempts: 3 },
-          { tag: "graph", totalAttempts: 8, successfulAttempts: 2 }
-        ]
+          // Core Concepts - Focus tags with good progress
+          { tag: "array", totalAttempts: 15, successfulAttempts: 12, mastered: true, isFocus: true, progress: 85 },
+          { tag: "string", totalAttempts: 12, successfulAttempts: 8, mastered: false, isFocus: true, progress: 67 },
+          { tag: "two-pointers", totalAttempts: 8, successfulAttempts: 5, mastered: false, isFocus: true, progress: 63 },
+          
+          // Supporting concepts
+          { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9, mastered: true, isFocus: false, progress: 90 },
+          { tag: "math", totalAttempts: 5, successfulAttempts: 3, mastered: false, isFocus: false, progress: 60 },
+          
+          // Basic Techniques (in progress)
+          { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50 },
+          { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33 },
+          { tag: "stack", totalAttempts: 7, successfulAttempts: 4, mastered: false, isFocus: false, progress: 57 },
+          { tag: "queue", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50 },
+          
+          // Intermediate (just starting)
+          { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4, mastered: false, isFocus: false, progress: 33 },
+          { tag: "greedy", totalAttempts: 5, successfulAttempts: 2, mastered: false, isFocus: false, progress: 40 },
+          { tag: "heap", totalAttempts: 6, successfulAttempts: 2, mastered: false, isFocus: false, progress: 33 },
+          { tag: "tree", totalAttempts: 9, successfulAttempts: 3, mastered: false, isFocus: false, progress: 33 },
+          { tag: "backtracking", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33 },
+          
+          // Advanced (not started yet)
+          { tag: "graph", totalAttempts: 8, successfulAttempts: 2, mastered: false, isFocus: false, progress: 25 },
+          { tag: "trie", totalAttempts: 2, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0 },
+          { tag: "segment-tree", totalAttempts: 1, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0 },
+          { tag: "union-find", totalAttempts: 1, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0 }
+        ],
+        learningState: {
+          ...mockData.learningState,
+          // Ensure focus tags data is available at this level too
+          focusTags: ["array", "string", "two-pointers"],
+          masteryData: [
+            // Core Concepts - Focus tags with good progress
+            { tag: "array", totalAttempts: 15, successfulAttempts: 12, mastered: true, isFocus: true, progress: 85 },
+            { tag: "string", totalAttempts: 12, successfulAttempts: 8, mastered: false, isFocus: true, progress: 67 },
+            { tag: "two-pointers", totalAttempts: 8, successfulAttempts: 5, mastered: false, isFocus: true, progress: 63 },
+            
+            // Supporting concepts
+            { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9, mastered: true, isFocus: false, progress: 90 },
+            { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50 },
+            { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33 },
+            { tag: "stack", totalAttempts: 7, successfulAttempts: 4, mastered: false, isFocus: false, progress: 57 },
+            { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4, mastered: false, isFocus: false, progress: 33 }
+          ]
+        } // For Strategy/Learning Path page
       },
     };
 
