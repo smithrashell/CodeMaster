@@ -1,7 +1,9 @@
 const configFactory = require("./webpack.config");
 
 module.exports = (env, argv) => {
-  const baseConfig = configFactory(env, { mode: "development" });
+  // Ensure development mode is always set for dev config
+  const devArgv = { ...argv, mode: "development" };
+  const baseConfig = configFactory(env, devArgv);
 
   return {
     ...baseConfig,
