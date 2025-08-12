@@ -4,15 +4,19 @@ const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 const webpack = require("webpack");
 
 module.exports = (env, argv) => {
-  const isDev = argv.mode === "development";
+  // Force development mode if using webpack.dev.js
+  const isUsingDevConfig = process.env.npm_lifecycle_script && process.env.npm_lifecycle_script.includes('webpack.dev.js');
+  const isDev = argv.mode === "development" || isUsingDevConfig;
   
   // Ensure NODE_ENV persists during watch mode rebuilds
   const nodeEnv = isDev ? "development" : (argv.mode || "production");
   
   console.log("🔧 Webpack Config:", { 
     mode: argv.mode, 
+    isUsingDevConfig,
     isDev, 
     nodeEnv,
+    scriptName: process.env.npm_lifecycle_script,
     timestamp: new Date().toISOString() 
   });
 
