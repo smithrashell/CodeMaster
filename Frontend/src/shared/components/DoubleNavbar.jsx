@@ -8,32 +8,33 @@ import {
   IconUser,
   IconClock,
   IconSettings,
+  IconTrendingUp,
+  IconTarget,
 } from "@tabler/icons-react";
 import { MantineLogo } from "@mantinex/mantine-logo";
 import classes from "./css/DoubleNavbar.module.css";
 
 const mainLinksMockdata = [
-  { icon: IconGauge, label: "Dashboard", path: "/" },
-  { icon: IconDeviceDesktopAnalytics, label: "Analytics", path: "/analytics" },
+  { icon: IconGauge, label: "Overview", path: "/" },
+  { icon: IconTrendingUp, label: "Progress", path: "/progress" },
   { icon: IconClock, label: "Sessions", path: "/sessions" },
-  { icon: IconCards, label: "Flashcards", path: "/review" },
-  { icon: IconUser, label: "Account", path: "/account" },
+  { icon: IconTarget, label: "Strategy", path: "/strategy" },
+  { icon: IconSettings, label: "Settings", path: "/settings" },
 ];
 
 const subLinksData = {
-  "/": ["Stats", "Progress", "Goals"],
-  "/analytics": ["Trends", "Mistake Analysis", "Tag Mastery"],
-  "/sessions": ["Session Metrics", "Productivity Insights"],
-  "/review": ["Flashcards", "Practice", "Review"],
-  "/account": ["Profile", "Notifications", "Settings"],
-  "/account/settings": ["General", "Appearance", "Accessibility"],
+  "/": ["Overview"],
+  "/progress": ["Learning Progress", "Goals"],
+  "/sessions": ["Session History", "Productivity Insights"],
+  "/strategy": ["Tag Mastery", "Learning Path", "Mistake Analysis"],
+  "/settings": ["General", "Appearance", "Accessibility"],
 };
 
 export function DoubleNavbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [active, setActive] = useState("Dashboard");
+  const [active, setActive] = useState("Overview");
   const [activeLink, setActiveLink] = useState("/");
   const [showSettingsSubmenu, setShowSettingsSubmenu] = useState(false);
 
@@ -41,9 +42,8 @@ export function DoubleNavbar() {
     const splitPath = location.pathname.split("/");
     const mainPath = splitPath[1] === "" ? "/" : `/${splitPath[1]}`;
 
-    const resolvedMainPath = ["/stats", "/progress", "/goals"].includes(
-      mainPath
-    )
+    // Handle overview sub-routes
+    const resolvedMainPath = ["/overview"].includes(mainPath)
       ? "/"
       : mainPath;
 
@@ -57,11 +57,8 @@ export function DoubleNavbar() {
     }
 
     // Auto-expand settings if inside any settings sub-tab
-    if (
-      resolvedMainPath === "/account" &&
-      location.pathname.includes("/account/settings")
-    ) {
-      setShowSettingsSubmenu(true);
+    if (resolvedMainPath === "/settings") {
+      setShowSettingsSubmenu(false); // No longer using settings submenu since routes are flattened
     } else {
       setShowSettingsSubmenu(false);
     }
@@ -92,41 +89,6 @@ export function DoubleNavbar() {
   const currentSubLinks = subLinksData[activeLink] || [];
 
   const subLinks = currentSubLinks.map((subLink) => {
-    if (subLink === "Settings") {
-      return (
-        <div
-          key={subLink}
-          className={`${classes.settingsDropdownContainer} ${
-            showSettingsSubmenu ? classes.settingsOpen : ""
-          }`}
-        >
-          <div
-            className={classes.link}
-            onClick={() => setShowSettingsSubmenu(!showSettingsSubmenu)}
-          >
-            {subLink}
-          </div>
-          {showSettingsSubmenu && (
-            <div className={classes.settingsDropdown}>
-              {subLinksData["/account/settings"].map((setting) => (
-                <Link
-                  key={setting}
-                  to={`/account/settings/${setting.toLowerCase()}`}
-                  className={`${classes.subLink} ${
-                    location.pathname.includes(setting.toLowerCase())
-                      ? classes.activeSubLink
-                      : ""
-                  }`}
-                >
-                  {setting}
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
-
     const subLinkPath = `${activeLink === "/" ? "" : activeLink}/${subLink
       .toLowerCase()
       .replace(/\s+/g, "-")}`;
