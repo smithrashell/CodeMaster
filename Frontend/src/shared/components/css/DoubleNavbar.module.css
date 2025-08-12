@@ -19,6 +19,7 @@
   flex-direction: column;
   align-items: center;
   border-right: rem(1px) solid var(--cm-navbar-border);
+  padding-top: rem(8px);
 }
 
 .main {
@@ -37,6 +38,7 @@
   align-items: center;
   justify-content: center;
   color: var(--cm-link-color);
+  margin-bottom: rem(16px);
 
   &:hover {
     background-color: var(--cm-link-hover-bg);
