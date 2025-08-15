@@ -49,7 +49,7 @@ export const GenericErrorFallback = ({
 
         <Group spacing="sm">
           <Button
-            leftIcon={<IconRefresh size="1rem" />}
+            leftSection={<IconRefresh size="1rem" />}
             variant="filled"
             size="sm"
             onClick={onRetry}
@@ -63,7 +63,7 @@ export const GenericErrorFallback = ({
 
           {onReportProblem && (
             <Button
-              leftIcon={<IconBug size="1rem" />}
+              leftSection={<IconBug size="1rem" />}
               variant="subtle"
               size="sm"
               onClick={onReportProblem}
@@ -130,7 +130,7 @@ export const TimerErrorFallback = ({ onRetry, onReportProblem }) => (
 
         <Group spacing="sm">
           <Button
-            leftIcon={<IconClock size="1rem" />}
+            leftSection={<IconClock size="1rem" />}
             variant="filled"
             size="sm"
             onClick={onRetry}
@@ -140,7 +140,7 @@ export const TimerErrorFallback = ({ onRetry, onReportProblem }) => (
 
           {onReportProblem && (
             <Button
-              leftIcon={<IconBug size="1rem" />}
+              leftSection={<IconBug size="1rem" />}
               variant="outline"
               size="sm"
               onClick={onReportProblem}
@@ -171,7 +171,7 @@ export const StrategyErrorFallback = ({ onRetry, onReportProblem }) => (
 
         <Group spacing="sm">
           <Button
-            leftIcon={<IconRefresh size="1rem" />}
+            leftSection={<IconRefresh size="1rem" />}
             variant="filled"
             size="sm"
             onClick={onRetry}
@@ -181,7 +181,7 @@ export const StrategyErrorFallback = ({ onRetry, onReportProblem }) => (
 
           {onReportProblem && (
             <Button
-              leftIcon={<IconBug size="1rem" />}
+              leftSection={<IconBug size="1rem" />}
               variant="outline"
               size="sm"
               onClick={onReportProblem}
@@ -252,7 +252,7 @@ export const DashboardErrorFallback = ({
 
         <Group spacing="sm">
           <Button
-            leftIcon={<IconRefresh size="1rem" />}
+            leftSection={<IconRefresh size="1rem" />}
             variant="filled"
             size="sm"
             onClick={onRetry}
@@ -266,7 +266,7 @@ export const DashboardErrorFallback = ({
 
           {onReportProblem && (
             <Button
-              leftIcon={<IconBug size="1rem" />}
+              leftSection={<IconBug size="1rem" />}
               variant="subtle"
               size="sm"
               onClick={onReportProblem}

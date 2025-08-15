@@ -334,7 +334,7 @@ const FloatingHintButton = ({
                             padding: "10px 14px",
                             cursor: "pointer",
                             backgroundColor: isExpanded ? "#f8f9ff" : "#fafafa",
-                            borderRadius: isExpanded ? "6px 6px 0 0" : "6px",
+                            borderRadius: "6px",
                             transition: "background-color 0.2s ease",
                             borderBottom: isExpanded
                               ? "1px solid #e6f3ff"
@@ -445,7 +445,7 @@ const FloatingHintButton = ({
                             padding: "10px 14px",
                             cursor: "pointer",
                             backgroundColor: isExpanded ? "#f9f9f9" : "#fafafa",
-                            borderRadius: isExpanded ? "6px 6px 0 0" : "6px",
+                            borderRadius: "6px",
                             transition: "background-color 0.2s ease",
                             borderBottom: isExpanded
                               ? "1px solid #e9ecef"

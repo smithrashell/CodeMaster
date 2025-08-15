@@ -11,7 +11,14 @@ import { IconQuestionMark } from "@tabler/icons-react"; // or
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { useNav } from "../../../shared/provider/navprovider";
+
 const Settings = () => {
+  const { setIsAppOpen } = useNav();
+
+  const handleClose = () => {
+    setIsAppOpen(false);
+  };
   const [settings, setSettings] = useState(null);
   const [value, setValue] = useState(40);
   const useMock = false;
@@ -77,7 +84,7 @@ const Settings = () => {
 
   return (
     <div id="cm-mySidenav" className="cm-sidenav problink">
-      <Header title="Settings" />
+      <Header title="Settings" onClose={handleClose} />
 
       <div className="cm-sidenav__content ">
         {/* Adaptive Toggle */}
