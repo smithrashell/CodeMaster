@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNav } from "../../../shared/provider/navprovider";
-import Header from "../../components/navigation/header";
 import {
   ChevronLeftIcon,
   BarChart3Icon,
@@ -16,7 +15,7 @@ import Separator from "../../../shared/components/ui/Separator";
 import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
 
-const ProbDetail = (isLoading) => {
+const ProbDetail = ({ isLoading }) => {
   const { state: routeState } = useLocation();
   const { setIsAppOpen } = useNav();
   const navigate = useNavigate();
@@ -86,27 +85,20 @@ const ProbDetail = (isLoading) => {
 
   if (isLoading && !problemData.leetCodeID) {
     return (
-      <div id="cm-mySidenav" className="cm-sidenav problem-sidebar-view">
-        <Header title="Problem Details" onClose={handleClose} />
-        <div className="cm-sidenav__content">
-          <p
-            style={{
-              color: "var(--cm-text)",
-              textAlign: "center",
-              marginTop: "50px",
-            }}
-          >
-            Loading...
-          </p>
-        </div>
-      </div>
+      <p
+        style={{
+          color: "var(--cm-text)",
+          textAlign: "center",
+          marginTop: "50px",
+        }}
+      >
+        Loading...
+      </p>
     );
   }
 
   return (
-    <div id="cm-mySidenav" className="cm-sidenav problem-sidebar-view">
-      <Header title="Problem Details" onClose={handleClose} />
-
+    <>
       <div className="cm-sidenav__content">
         {/* Main Content Card */}
         <div className="problem-sidebar-card">
@@ -152,16 +144,16 @@ const ProbDetail = (isLoading) => {
           <div className="problem-sidebar-section">
             <div className="problem-sidebar-status-card">
               <BrainIcon className="problem-sidebar-status-icon" />
-
-              <div className="problem-sidebar-status-item">
                 <span className="problem-sidebar-status-label">
                   Last Solved:
                 </span>
+              <div className="problem-sidebar-status-item">
+               
                 <span className="problem-sidebar-status-value">
                   {problemData?.lastSolved || "Never"}
                 </span>
               </div>
-            </div>
+            </div> 
           </div>
         </div>
 
@@ -198,7 +190,7 @@ const ProbDetail = (isLoading) => {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

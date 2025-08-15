@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Header from "../../components/navigation/header";
+import { useNav } from "../../../shared/provider/navprovider";
 
 const StrategyMap = () => {
+  const { setIsAppOpen } = useNav();
+
+  const handleClose = () => {
+    setIsAppOpen(false);
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedTiers, setExpandedTiers] = useState(new Set());
@@ -71,7 +77,7 @@ const StrategyMap = () => {
   if (loading) {
     return (
       <div id="cm-mySidenav" className="cm-sidenav">
-        <Header title="Strategy Map" />
+        <Header title="Strategy Map" onClose={handleClose} />
         <div className="cm-sidenav__content">
           <div className="cm-stats-loading">
             <p>Loading strategy map...</p>
@@ -85,7 +91,7 @@ const StrategyMap = () => {
   if (error) {
     return (
       <div id="cm-mySidenav" className="cm-sidenav">
-        <Header title="Strategy Map" />
+        <Header title="Strategy Map" onClose={handleClose} />
         <div className="cm-sidenav__content">
           <div className="cm-stats-error">
             <p>⚠️ {error}</p>
@@ -103,7 +109,7 @@ const StrategyMap = () => {
 
   return (
     <div id="cm-mySidenav" className="cm-sidenav">
-      <Header title="Strategy Map" />
+      <Header title="Strategy Map" onClose={handleClose} />
       <div className="cm-sidenav__content">
         <div style={{ padding: "8px 12px" }}>
           {/* Current Tier Status */}

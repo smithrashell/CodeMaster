@@ -365,7 +365,7 @@ export function WelcomeModal({ opened, onClose, onComplete }) {
         <Group position="apart" mt="xl">
           <Button
             variant="subtle"
-            leftIcon={<IconChevronLeft size={16} />}
+            leftSection={<IconChevronLeft size={16} />}
             onClick={handlePrevious}
             disabled={currentStep === 0}
           >

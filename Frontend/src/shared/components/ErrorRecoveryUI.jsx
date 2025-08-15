@@ -125,7 +125,12 @@ const ErrorRecoveryUI = ({
           // Trigger dashboard data refresh
           try {
             if (typeof chrome !== "undefined" && chrome.runtime) {
-              chrome.runtime.sendMessage({ type: "clearCache" });
+              chrome.runtime.sendMessage({ type: "clearCache" }, (response) => {
+                // Check for errors to prevent "Unchecked runtime.lastError"
+                if (chrome.runtime.lastError) {
+                  console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+                }
+              });
             }
             setDiagnosticResults((prev) => ({
               ...prev,
@@ -346,7 +351,7 @@ ${error?.stack || "No stack trace available"}`;
                   size="sm"
                   onClick={runDiagnostics}
                   disabled={diagnosticsRun}
-                  leftIcon={<IconRefresh size="1rem" />}
+                  leftSection={<IconRefresh size="1rem" />}
                 >
                   {diagnosticsRun ? "Diagnostics Complete" : "Run Diagnostics"}
                 </Button>
@@ -420,7 +425,7 @@ ${error?.stack || "No stack trace available"}`;
 
                 <Group spacing="sm">
                   <Button
-                    leftIcon={<IconSend size="1rem" />}
+                    leftSection={<IconSend size="1rem" />}
                     onClick={handleReport}
                     size="sm"
                   >
@@ -428,7 +433,7 @@ ${error?.stack || "No stack trace available"}`;
                   </Button>
 
                   <Button
-                    leftIcon={<IconClipboard size="1rem" />}
+                    leftSection={<IconClipboard size="1rem" />}
                     variant="light"
                     onClick={copyErrorInfo}
                     size="sm"
