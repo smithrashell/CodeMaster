@@ -1,6 +1,7 @@
 // ProbTime.js
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useNav } from "../../../shared/provider/navprovider";
 import { useForm, Controller } from "react-hook-form";
 import Input from "@mui/material/Input";
 import MenuItem from "@mui/material/MenuItem";
@@ -58,6 +59,11 @@ const StyledSelect = styled(Select)({
 const ProbTime = () => {
   const { state: routeState, pathname } = useLocation();
   const navigate = useNavigate();
+  const { setIsAppOpen } = useNav();
+
+  const handleClose = () => {
+    setIsAppOpen(false);
+  };
   const [problemTitle, setProblemTitle] = useState("");
   const previousRoute = usePreviousRoute();
   const [loading, setLoading] = useState(false);
@@ -159,6 +165,7 @@ const ProbTime = () => {
         title={
           previousRoute == "/Timer" ? "Problem Submission" : "Problem Details"
         }
+        onClose={handleClose}
       />
       <div className="cm-sidenav__content">
         {previousRoute === "/Timer" ? (

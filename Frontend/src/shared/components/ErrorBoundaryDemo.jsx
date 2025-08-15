@@ -64,7 +64,7 @@ const InteractiveErrorTrigger = () => {
             size="xs"
             variant="outline"
             color="red"
-            leftIcon={<IconBug size="0.8rem" />}
+            leftSection={<IconBug size="0.8rem" />}
             onClick={() => triggerError("render")}
           >
             Render Error
@@ -74,7 +74,7 @@ const InteractiveErrorTrigger = () => {
             size="xs"
             variant="outline"
             color="orange"
-            leftIcon={<IconBug size="0.8rem" />}
+            leftSection={<IconBug size="0.8rem" />}
             onClick={() => triggerError("network")}
           >
             Network Error
@@ -84,7 +84,7 @@ const InteractiveErrorTrigger = () => {
             size="xs"
             variant="outline"
             color="yellow"
-            leftIcon={<IconBug size="0.8rem" />}
+            leftSection={<IconBug size="0.8rem" />}
             onClick={() => triggerError("memory")}
           >
             Memory Error
@@ -94,7 +94,7 @@ const InteractiveErrorTrigger = () => {
             size="xs"
             variant="filled"
             color="blue"
-            leftIcon={<IconRefresh size="0.8rem" />}
+            leftSection={<IconRefresh size="0.8rem" />}
             onClick={resetComponent}
           >
             Reset

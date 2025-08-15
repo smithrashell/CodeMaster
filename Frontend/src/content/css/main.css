@@ -104,8 +104,8 @@
   left: var(--cm-content-padding);
   z-index: var(--cm-z-menu-button);
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease,
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Removed color transition to prevent theme bleeding */
+  transition: background-color 0.3s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   transform: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
@@ -116,16 +116,11 @@
   transform: scale(1.05);
 }
 
-body[data-theme="dark"] .cm-extension #cm-menuButton:hover {
-  background-color: var(--cm-active-blue) !important;
-  color: var(--cm-btn-text) !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
+/* Force no hover background colors with high specificity */
+body[data-theme="dark"] .cm-extension #cm-menuButton:hover,
 body[data-theme="light"] .cm-extension #cm-menuButton:hover {
-  background-color: var(--cm-link-hover) !important;
-  color: var(--cm-btn-text) !important;
-  box-shadow: 0 4px 12px rgba(51, 65, 85, 0.3);
+  background-color: transparent !important;
+  /* Override any competing background colors */
 }
 
 /* Responsive positioning for narrow desktop screens */
@@ -160,7 +155,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   color: var(--cm-btn-text);
   cursor: pointer;
   z-index: 120;
-  transition: color 0.2s ease;
+  Removed color transition to prevent theme bleeding
 } */
 
 .cm-extension .cm-button--close {
@@ -173,7 +168,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   color: var(--cm-btn-text);
   cursor: pointer;
   z-index: 10000;
-  transition: color 0.2s ease;
+  /* Removed color transition to prevent theme bleeding */
   width: 44px; /* WCAG AA touch target */
   height: 44px; /* WCAG AA touch target */
   display: flex;
@@ -202,7 +197,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   left: 16px;
   z-index: 9999;
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease; /* Removed color transition to prevent theme bleeding */
   transform: none;
 }
 
@@ -223,7 +218,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   left: 16px;
   z-index: 9999;
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.3s ease; /* Removed color transition to prevent theme bleeding */
   transform: none;
 }
 .cm-left {
@@ -311,7 +306,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
 }
 
 #cm-mySidenav nav {
-  margin: 0px 30px;
+  margin: 0px 10px;
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -346,7 +341,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   width: 100%;
   height: calc(100vh - 80px);
   max-height: calc(100vh - 80px);
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -370,7 +365,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   color: var(--cm-link) !important;
   display: flex !important;
   align-items: center !important;
-  transition: color 0.3s ease, background-color 0.3s ease !important;
+  transition: background-color 0.3s ease !important; /* Removed color transition to prevent theme bleeding */
   text-align: left !important;
   width: 100% !important;
   border-radius: 8px !important;
@@ -385,7 +380,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   font-size: 18px !important;
   color: var(--cm-link) !important;
   display: block !important;
-  transition: color 0.3s ease, background-color 0.3s ease !important;
+  transition: background-color 0.3s ease !important; /* Removed color transition to prevent theme bleeding */
   border-radius: 6px !important;
   margin-bottom: 6px !important;
 }
@@ -433,7 +428,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   margin-top: 20px !important;
   width: 100% !important;
   cursor: pointer !important;
-  transition: color 0.3s ease, background-color 0.3s ease !important;
+  transition: background-color 0.3s ease !important; /* Removed color transition to prevent theme bleeding */
 }
 
 .cm-extension .mantine-Button-root:hover {
@@ -522,7 +517,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   display: flex;
   flex-direction: column;
   gap: 30px;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
 }
 
@@ -863,7 +858,7 @@ body[data-theme="dark"] .cm-extension .cm-retry-icon::after {
   font-weight: 600 !important;
   font-size: 14px !important;
   cursor: pointer !important;
-  transition: color 0.3s ease, background-color 0.3s ease !important;
+  transition: background-color 0.3s ease !important; /* Removed color transition to prevent theme bleeding */
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
@@ -884,7 +879,7 @@ body[data-theme="dark"] .cm-extension .cm-retry-icon::after {
   font-weight: 500 !important;
   font-size: 14px !important;
   cursor: pointer !important;
-  transition: color 0.3s ease, background-color 0.3s ease !important;
+  transition: background-color 0.3s ease !important; /* Removed color transition to prevent theme bleeding */
 }
 
 .cm-extension .cm-secondary-button:hover {
@@ -1086,23 +1081,44 @@ body[data-theme="dark"]
 .cm-extension .mantine-Group-root {
   margin-top: 16px !important;
   margin-bottom: 8px !important;
-  margin-left: 20px !important;
-  padding: 0 12px !important;
+  margin-left: 0px !important;
+  padding: 0 !important;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
 }
 
-/* CodeMaster Menu Button Blue Styling in Dark Mode */
+/* CodeMaster Menu Button Transparent Styling in Dark Mode */
 body[data-theme="dark"] #cm-menuButton {
-  background-color: #2563eb !important; /* Blue background */
-  color: white !important;
-  border: 1px solid #1d4ed8 !important;
-  transition: background-color 0.2s ease !important;
+  background-color: transparent !important; /* Transparent background */
+  border: none !important;
+      
+    transform: none;
+    box-shadow: 0 2px 8px rgba(106, 114, 233, 1);
+    backdrop-filter: blur(4px);
+
+  /* transition: background-color 0.2s ease !important; */
+  transition: background-color 0.3s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
+/* Dark Mode Color Logic: Black when closed, White when open */
+body[data-theme="dark"] .cm-app-closed #cm-menuButton {
+  color: black !important; /* Black logo when app is closed */
+  transition: color 0.3s ease !important; /* Smooth transition for color change */
+}
+
+body[data-theme="dark"] .cm-app-open #cm-menuButton {
+  color: white !important; /* White logo when app is open */
+  transition: color 0.3s ease !important; /* Smooth transition for color change */
+}
+/* 
 body[data-theme="dark"] #cm-menuButton:hover {
   background-color: #1d4ed8 !important; /* Darker blue on hover */
-  transform: translateY(-1px) !important;
+  /* transform: translateY(-1px) !important;
   box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
-}
+}  */
+
+*/
 
 .cm-sidenav {
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
@@ -1114,9 +1130,9 @@ body[data-theme="dark"] #cm-menuButton:hover {
   overflow: visible !important;
 }
 
-/* Override for problem sidebar to enable scrolling */
+/* Override for problem sidebar to match other sidebars */
 .cm-extension .cm-sidenav.problem-sidebar-view .cm-sidenav__content {
-  overflow-y: auto !important;
+  overflow-y: visible !important;
   overflow-x: visible !important;
   scroll-behavior: smooth !important;
   /* Enhanced scroll management */
@@ -1132,7 +1148,7 @@ body[data-theme="dark"] #cm-menuButton:hover {
 
 /* Strategy Map Styling */
 .cm-extension .strategy-map-card {
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 .cm-extension .strategy-map-card:hover {
@@ -1181,7 +1197,7 @@ body[data-theme="dark"] #cm-menuButton:hover {
   letter-spacing: 0.2px !important;
   display: inline-block !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 .cm-extension .cm-strategy-mastered-tag {
@@ -1195,7 +1211,7 @@ body[data-theme="dark"] #cm-menuButton:hover {
   text-transform: capitalize !important;
   display: inline-block !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 .cm-extension .cm-strategy-learning-tag {
@@ -1209,7 +1225,7 @@ body[data-theme="dark"] #cm-menuButton:hover {
   text-transform: capitalize !important;
   display: inline-block !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 .cm-extension .cm-strategy-available-tag {
@@ -1223,7 +1239,7 @@ body[data-theme="dark"] #cm-menuButton:hover {
   text-transform: capitalize !important;
   display: inline-block !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 .cm-extension .cm-strategy-locked-tag {
@@ -1237,7 +1253,7 @@ body[data-theme="dark"] #cm-menuButton:hover {
   display: inline-block !important;
   cursor: default !important;
   opacity: 0.6 !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 /* Hover effects for strategy tags */
@@ -1247,7 +1263,7 @@ body[data-theme="dark"] #cm-menuButton:hover {
 .cm-extension .cm-strategy-available-tag:hover {
   transform: translateY(-1px) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 /* Dark theme support for Strategy Map tags */
@@ -1268,14 +1284,14 @@ body[data-theme="dark"] .cm-extension .cm-strategy-locked-tag {
 
 /* Strategy Map Container Scrolling */
 .cm-extension .cm-sidenav .cm-sidenav__content {
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
   max-height: calc(100vh - 80px) !important;
   padding-right: 8px !important;
 }
 
 /* Hide scrollbar for main navigation unless content overflows */
 .cd-extension .cd-sidenav:not(.strategy-map) .cd-sidenav__content {
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
 }
@@ -1381,7 +1397,7 @@ body[data-theme="light"] .cm-extension .cm-strategy-locked-tag {
 /* Ensure sidebar content properly handles dynamic content */
 .cm-extension .cm-sidenav__content {
   /* Force proper scrolling behavior */
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
   overflow-x: hidden !important;
   /* Prevent content jumping */
   scroll-behavior: smooth !important;
@@ -1404,7 +1420,7 @@ body[data-theme="light"] .cm-extension .cm-strategy-locked-tag {
 
   /* VISUAL ENHANCEMENTS */
   border-radius: 20px !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 
   /* TEXT AND SPACING */
   line-height: 1.3 !important;

@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.21] - 2025-08-14
+
+### 🐛 Bug Fixes & UI Improvements
+
+**Problem Card Layout Fixes:**
+- **Fixed broken problem card layout** where elements were vertically stretched and scattered across the interface
+- **Implemented CSS Grid layout** for stats section to force proper horizontal alignment (Acceptance | Submissions side-by-side)
+- **Added nuclear CSS selectors** with maximum specificity to override conflicting layout styles
+- **Cleaned up problem card structure** with proper flexbox layout, consistent spacing, and improved component organization
+- **Streamlined component architecture** by removing unused Header component and simplifying JSX structure
+
+**Strategy Tag Visual Improvements:**
+- **Fixed blue glowing border issue** on expanded strategy tags that was causing text blurriness
+- **Replaced bright blue shadow** `rgba(59, 130, 246, 0.15)` with subtle neutral shadow `rgba(0, 0, 0, 0.1)`
+- **Improved text readability** by eliminating visual interference from glowing effects
+
+**CSS Cleanup & Performance Optimization:**
+- **Removed problematic `transition: all` properties** throughout CSS to prevent theme bleeding and performance issues
+- **Fixed overflow-y properties** for proper scrolling behavior in sidebar content areas
+- **Standardized spacing and sizing** across problem sidebar components for visual consistency
+- **Improved icon sizing consistency** using 16px standard instead of mixed 16px/20px icons
+- **Enhanced accessibility** with better contrast ratios and improved spacing for readability
+
+**Technical Details:**
+- `Frontend/src/content/css/probrec.css`: Major layout fixes, grid implementation, shadow adjustments, CSS cleanup
+- `Frontend/src/content/features/problems/probdetail.jsx`: Component structure simplification and JSX optimization
+
 ## [0.10.20] - 2025-08-12
 
 ### 🗂️ Navigation Restructure & Route Organization
