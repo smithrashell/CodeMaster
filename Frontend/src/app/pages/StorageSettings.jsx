@@ -126,7 +126,7 @@ export const StorageSettings = () => {
       <Group position="apart" mb="lg">
         <Title order={3}>Storage Overview</Title>
         <Button
-          leftIcon={<IconRefresh size={16} />}
+          leftSection={<IconRefresh size={16} />}
           variant="light"
           onClick={loadStorageData}
           loading={isLoading}
@@ -253,21 +253,21 @@ export const StorageSettings = () => {
         </Title>
         <Group>
           <Button
-            leftIcon={<IconTrash size={16} />}
+            leftSection={<IconTrash size={16} />}
             color="orange"
             onClick={() => setActiveTab("cleanup")}
           >
             Cleanup Storage
           </Button>
           <Button
-            leftIcon={<IconUpload size={16} />}
+            leftSection={<IconUpload size={16} />}
             color="blue"
             onClick={() => setActiveTab("migration")}
           >
             Migration Tools
           </Button>
           <Button
-            leftIcon={<IconDownload size={16} />}
+            leftSection={<IconDownload size={16} />}
             variant="light"
             onClick={() => alert("Export functionality coming soon")}
           >
@@ -490,7 +490,7 @@ export const StorageSettings = () => {
         </Title>
         <Group>
           <Button
-            leftIcon={<IconUpload size={16} />}
+            leftSection={<IconUpload size={16} />}
             onClick={async () => {
               try {
                 const result = await StorageMigrationService.migrateToChrome();
@@ -511,7 +511,7 @@ export const StorageSettings = () => {
             Backup to Chrome Storage
           </Button>
           <Button
-            leftIcon={<IconDownload size={16} />}
+            leftSection={<IconDownload size={16} />}
             color="blue"
             onClick={async () => {
               try {

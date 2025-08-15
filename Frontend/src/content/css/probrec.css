@@ -10,7 +10,7 @@
   flex-direction: column !important;
   gap: 4px !important;
   max-height: 320px !important;
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
 }
 
 .cm-extension .cd-simple-problem-item {
@@ -20,7 +20,7 @@
   padding: 4px 0 !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
   overflow: hidden !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -37,7 +37,7 @@
   flex: 1 !important;
   line-height: 1.3 !important;
   margin-right: 8px !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 .cm-extension .cd-simple-problem-item:hover .cd-simple-problem-link {
@@ -73,7 +73,7 @@
   font-size: 14px !important;
   flex: 1 !important;
   line-height: 1.3 !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
   min-width: 0 !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
@@ -186,7 +186,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   left: 0 !important;
   top: 0 !important;
   z-index: var(--cm-z-sidebar, 9200) !important;
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
   overflow-x: hidden !important;
   border-right: 1px solid var(--cm-dropdown-bg) !important;
   box-sizing: border-box !important;
@@ -233,7 +233,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   background: transparent !important;
   border: none !important;
   border-radius: 6px !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 .problem-sidebar-close-btn:hover {
@@ -250,26 +250,25 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   background-color: var(--cm-dropdown-bg) !important;
   border: 1px solid var(--cm-dropdown-bg) !important;
   border-radius: 8px !important;
-  padding: 6px !important;
-  margin: 2px 2px !important;
+  padding: 12px !important;
+  margin: 0 0 16px 0 !important;
   box-sizing: border-box !important;
-  max-width: calc(100% - 4px) !important;
-  width: calc(100% - 4px) !important;
-  min-height: 200px !important;
-  overflow: hidden !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  position: relative !important;
 }
 
 .problem-sidebar-card-header {
   display: flex !important;
   align-items: center !important;
-  gap: 8px !important;
+  justify-content: center !important;
+  gap: 6px !important;
   color: var(--cm-text) !important;
   opacity: 0.7 !important;
-  font-size: 14px !important;
-  margin-bottom: 8px !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  max-width: 100% !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
 }
 
 .problem-sidebar-back-icon {
@@ -279,31 +278,21 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 
 .problem-sidebar-card-title {
   font-weight: 600 !important;
-  font-size: 15px !important;
-  line-height: 1.3 !important;
+  font-size: 16px !important;
+  line-height: 1.2 !important;
   color: var(--cm-text) !important;
-  margin: 0 0 8px 0 !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  hyphens: auto !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
+  text-align: center !important;
+  margin: 0 !important;
 }
 
+
 .problem-sidebar-difficulty-badge {
-  font-weight: 700 !important;
-  font-size: 9px !important;
-  padding: 2px 6px !important;
-  border-radius: 9999px !important;
-  margin-bottom: 12px !important;
+  font-weight: 600 !important;
+  font-size: 10px !important;
+  padding: 3px 8px !important;
+  border-radius: 12px !important;
   display: inline-block !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  text-align: center !important;
+  align-self: center !important;
 }
 
 .problem-sidebar-separator {
@@ -313,61 +302,42 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   margin-bottom: 8px !important;
 }
 
-.problem-sidebar-stats {
-  display: flex !important;
-  justify-content: space-between !important;
-  align-items: flex-start !important;
-  font-size: 12px !important;
-  max-width: 100% !important;
+.problem-sidebar-card .problem-sidebar-stats {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 12px !important;
   width: 100% !important;
-  padding: 0 2px !important;
-  box-sizing: border-box !important;
-  gap: 6px !important;
+  align-items: center !important;
 }
 
-.problem-sidebar-stat {
+.problem-sidebar-card .problem-sidebar-stats .problem-sidebar-stat {
   display: flex !important;
-  align-items: flex-start !important;
+  flex-direction: row !important;
+  align-items: center !important;
   gap: 6px !important;
-  justify-content: flex-start !important;
-  box-sizing: border-box !important;
-  min-width: 0 !important;
-  flex: 1 !important;
-  max-width: calc(50% - 3px) !important;
 }
 
 .problem-sidebar-stat-icon {
-  height: 20px !important;
-  width: 20px !important;
-  min-width: 20px !important; /* Ensure minimum width */
-  min-height: 20px !important; /* Ensure minimum height */
+  height: 16px !important;
+  width: 16px !important;
+  min-width: 16px !important;
   color: var(--cm-text) !important;
-  opacity: 0.8 !important;
+  opacity: 0.7 !important;
   flex-shrink: 0 !important; /* Prevent icon from shrinking */
 }
 
 .problem-sidebar-stat-value {
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   color: var(--cm-text) !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  max-width: 100% !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  font-size: 11px !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
 }
 
 .problem-sidebar-stat-label {
   color: var(--cm-text) !important;
   opacity: 0.7 !important;
   font-size: 10px !important;
-  word-wrap: break-word !important;
-  overflow-wrap: break-word !important;
-  max-width: 100% !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
 }
 
 .problem-sidebar-section {
@@ -450,7 +420,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   /* Remove scaling to prevent gap issues */
   transform: none !important;
   transition: transform 0.2s ease-out !important;
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 .tag-strategy-hint.expanded .tag-strategy-hint-content {
@@ -524,27 +494,18 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 .problem-sidebar-status-card {
-  background-color: var(--cm-dropdown-bg) !important;
-  border: 1px solid var(--cm-dropdown-bg) !important;
-  border-radius: 8px !important;
-  padding: 8px !important;
   display: flex !important;
-  align-items: flex-start !important;
-  justify-content: flex-start !important;
+  align-items: center !important;
   gap: 8px !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  margin: 4px 0 !important;
+  padding: 4px 0 !important;
 }
 
 .problem-sidebar-status-icon {
-  height: 20px !important;
-  width: 20px !important;
-  min-width: 20px !important; /* Ensure minimum width */
-  min-height: 20px !important; /* Ensure minimum height */
+  height: 16px !important;
+  width: 16px !important;
+  min-width: 16px !important;
   color: var(--cm-text) !important;
-  opacity: 0.8 !important;
+  opacity: 0.7 !important;
   flex-shrink: 0 !important;
 }
 
@@ -731,8 +692,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 
 /* Override any Mantine or external component widths */
 .problem-sidebar .mantine-Badge-root,
-.problem-sidebar .mantine-Button-root,
-.problem-sidebar .mantine-Title-root {
+.problem-sidebar .mantine-Button-root {
   max-width: 100% !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
@@ -801,7 +761,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   font-size: 14px !important;
   font-weight: 500 !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
   text-align: center !important;
   min-height: 40px !important;
   line-height: 1.3 !important;
@@ -1236,7 +1196,7 @@ html
 /* CRITICAL SCROLLING FIXES - Prevent content overflow blocking */
 .problem-sidebar {
   /* Ensure proper scrolling behavior */
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
   overflow-x: hidden !important;
   /* Smooth scrolling for better UX */
   scroll-behavior: smooth !important;
@@ -1250,10 +1210,10 @@ html
   overflow-y: auto !important;
   overflow-x: hidden !important;
   /* Ensure full height usage with proper padding */
-  height: calc(100vh - 80px) !important;
-  max-height: calc(100vh - 80px) !important;
+  height: calc(100vh - 90px) !important;
+  max-height: calc(100vh - 90px) !important;
   /* Add padding to prevent content cutoff */
-  padding-bottom: 60px !important;
+  padding-bottom: 5px !important;
   /* Enable smooth scrolling */
   scroll-behavior: smooth !important;
   /* Fix webkit scrolling issues */
@@ -1308,13 +1268,13 @@ html
 .tag-strategy-button:hover {
   transform: translateY(-2px) scale(1.02) !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 /* PREVENT CONTENT CUTOFF ON SMALL SCREENS */
 @media screen and (max-height: 700px) {
   .cd-sidenav__content {
-    padding-bottom: 80px !important;
+    padding-bottom: 5px !important;
   }
 
   .problem-sidebar-actions {
@@ -1415,7 +1375,7 @@ html
   /* Enhanced visual styling */
   font-weight: 600 !important;
   border-radius: 8px !important;
-  transition: all 0.2s ease !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 /* Override the responsive media query that forces single column */
@@ -1507,7 +1467,7 @@ body
   cursor: pointer !important;
 
   /* Transitions for smooth pill-to-tab animation */
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 
   /* Position */
   position: relative !important;
@@ -1807,9 +1767,9 @@ body[data-theme="dark"] .tag-strategy-hint-content {
   scrollbar-width: thin !important;
 
   /* Ensure proper height and padding to prevent content cutoff */
-  height: calc(100vh - 80px) !important;
-  max-height: calc(100vh - 80px) !important;
-  padding-bottom: 40px !important;
+  height: calc(100vh - 90px) !important;
+  max-height: calc(100vh - 90px) !important;
+  padding-bottom: 5px !important;
 
   /* Enable smooth scrolling on webkit */
   -webkit-overflow-scrolling: touch !important;
@@ -1854,7 +1814,7 @@ body[data-theme="dark"] .tag-strategy-hint-content {
   height: 100vh !important;
   max-height: 100vh !important;
   overflow-x: hidden !important;
-  overflow-y: auto !important;
+  overflow-y: hidden !important;
   width: 100% !important;
   max-width: 320px !important;
 }
@@ -2018,7 +1978,7 @@ html
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
   border: none !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 /* ULTRA NUCLEAR: Expanded tab state with absolute maximum specificity */
@@ -2151,7 +2111,7 @@ html
   div.cm-sidenav__content
   div.problem-sidebar-section.tag-strategy-container
   div.tag-strategy-simple-grid
-  button[aria-expanded="true"]:hover,
+  .tag-strategy-simple-grid button[aria-expanded="true"]:hover,
 html
   body
   .cm-extension
@@ -2159,8 +2119,8 @@ html
   .problem-sidebar-section.tag-strategy-container
   .tag-strategy-simple-grid
   button[aria-expanded="true"]:hover,
-.cm-extension button[aria-expanded="true"]:hover,
-button[aria-expanded="true"]:hover,
+.cm-extension .tag-strategy-simple-grid button[aria-expanded="true"]:hover,
+.tag-strategy-simple-grid button[aria-expanded="true"]:hover,
 [class*="tag-strategy-button"][aria-expanded="true"]:hover {
   background-color: var(
     --cm-dropdown-bg
@@ -2195,7 +2155,7 @@ html
   div.cm-sidenav__content
   div.problem-sidebar-section.tag-strategy-container
   div.tag-strategy-simple-grid
-  button[aria-expanded="true"],
+  .tag-strategy-simple-grid button[aria-expanded="true"],
 html
   body
   .cm-extension
@@ -2203,8 +2163,8 @@ html
   .problem-sidebar-section.tag-strategy-container
   .tag-strategy-simple-grid
   button[aria-expanded="true"],
-.cm-extension button[aria-expanded="true"],
-button[aria-expanded="true"],
+.cm-extension .tag-strategy-simple-grid button[aria-expanded="true"],
+.tag-strategy-simple-grid button[aria-expanded="true"],
 [class*="tag-strategy-button"][aria-expanded="true"] {
   border-radius: 10px 10px 0px 0px !important; /* Tab shape when expanded */
   margin: 0px !important; /* No margins for seamless connection */
@@ -2473,3 +2433,33 @@ button.tag-strategy-button-expanded,
   position: relative !important;
   z-index: 5 !important;
 }
+
+/* Fix excessive empty space at bottom of sidebar */
+.cm-extension .cm-sidenav__content {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  height: calc(100vh - 90px) !important; /* Account for margin-top: 10px */
+  max-height: calc(100vh - 90px) !important;
+  padding-bottom: 5px !important; /* Minimal padding */
+  box-sizing: border-box !important;
+}
+
+/* NUCLEAR FIX: Force horizontal stats layout with maximum specificity */
+html body div.cm-sidenav__content div.problem-sidebar-card div.problem-sidebar-stats {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  grid-template-rows: 1fr !important;
+  gap: 16px !important;
+  width: 100% !important;
+  align-items: center !important;
+}
+
+html body div.cm-sidenav__content div.problem-sidebar-card div.problem-sidebar-stats div.problem-sidebar-stat {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 6px !important;
+  justify-content: flex-start !important;
+}
+
