@@ -309,13 +309,13 @@ input[type="submit"] {
 body {
   font-size: var(--cm-font-size-base, 14px);
   line-height: var(--cm-line-height-base, 1.5);
-  transition: var(--cm-transition-normal, all 0.2s ease);
+  /* Removed 'all' transition to prevent theme bleeding */
 }
 
 /* Enhanced spacing for cards and containers */
 .mantine-Card-root {
   padding: var(--cm-card-padding, 20px) !important;
-  transition: var(--cm-transition-normal) !important;
+  /* Removed transition to prevent theme bleeding */
 }
 
 .mantine-Container-root {
@@ -335,11 +335,4 @@ body {
   font-size: var(--cm-font-size-lg, 16px) !important;
 }
 
-/* Responsive animations */
-* {
-  transition: var(--cm-transition-normal);
-}
-
-*:hover {
-  transition: var(--cm-transition-fast);
-}
+/* Responsive animations - REMOVED global transitions to prevent theme bleeding */

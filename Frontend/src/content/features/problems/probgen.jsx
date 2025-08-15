@@ -4,6 +4,7 @@ import Header from "../../components/navigation/header";
 import { v4 as uuidv4 } from "uuid";
 import ProblemInfoIcon from "../../components/problem/ProblemInfoIcon";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { useNav } from "../../../shared/provider/navprovider";
 
 // Problem Item Component with expandable reason text
 const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
@@ -80,8 +81,13 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
   );
 };
 const ProbGen = () => {
+  const { setIsAppOpen } = useNav();
   const [problems, setProblems] = useState([]);
   const [announcement, setAnnouncement] = useState("");
+
+  const handleClose = () => {
+    setIsAppOpen(false);
+  };
 
   // New approach using custom hook
   useChromeMessage({ type: "getCurrentSession" }, [], {
@@ -100,7 +106,7 @@ const ProbGen = () => {
 
   return (
     <div id="cm-mySidenav" className="cm-sidenav problink">
-      <Header title="Generator" />
+      <Header title="Generator" onClose={handleClose} />
       <div className="cm-sidenav__content ">
         {problems.length > 0 ? (
           <div className="cm-simple-problems-list">
