@@ -25,6 +25,11 @@ export default function Header({ title, onClose }) {
       zIndex: 10,
       marginBottom: "4px",
     },
+    spacer: {
+      width: "48px",
+      height: "48px",
+      flexShrink: 0, // Prevent shrinking
+    },
     titleContainer: {
       flex: 1,
       display: "flex",
@@ -41,8 +46,8 @@ export default function Header({ title, onClose }) {
       margin: 0,
       textAlign: "center",
       lineHeight: "1.2",
-      display: "flex",
-      alignItems: "center",
+      display: "block", // Override Mantine's default display
+      width: "100%", // Force full width expansion
       height: "36px", // Match the close button height for perfect alignment
     },
     closeButton: {
@@ -70,9 +75,11 @@ export default function Header({ title, onClose }) {
   };
   return (
     <header style={styles.header} role="banner">
-      <a href="#main-content" className="cd-extension skip-to-content">
+      <a href="#main-content" className="cd-extension skip-to-content" style={{ position: 'absolute', left: '-10000px', width: '0', height: '0', overflow: 'hidden' }}>
         Skip to main content
       </a>
+      {/* Spacer as flex element - takes up menu button space */}
+      <div style={styles.spacer}></div>
       <div style={styles.titleContainer}>
         <Title order={1} style={styles.title} id="main-heading">
           {title}

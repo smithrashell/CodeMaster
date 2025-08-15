@@ -275,7 +275,7 @@ class ErrorBoundary extends React.Component {
 
               <Group spacing="sm" mt="md">
                 <Button
-                  leftIcon={<IconRefresh size="1rem" />}
+                  leftSection={<IconRefresh size="1rem" />}
                   variant="outline"
                   size="sm"
                   onClick={this.handleRetry}
@@ -289,7 +289,7 @@ class ErrorBoundary extends React.Component {
 
                 {this.props.onReportProblem && (
                   <Button
-                    leftIcon={<IconBug size="1rem" />}
+                    leftSection={<IconBug size="1rem" />}
                     variant="subtle"
                     size="sm"
                     onClick={this.handleReportProblem}

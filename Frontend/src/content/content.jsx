@@ -4,6 +4,7 @@ import App from "./App";
 
 // In content.jsx
 // content.jsx
+console.log("🚀 DEBUG: content.jsx EXECUTING", new Date().toISOString());
 
 // Select the body element
 const body = document.querySelector("body");
@@ -32,8 +33,11 @@ const initializeRoot = () => {
 
 // Function to render the React app
 const renderApp = () => {
+  console.log("🚀 CONTENT SCRIPT: Creating React root");
   initializeRoot();
+  console.log("🚀 CONTENT SCRIPT: Rendering App component");
   root.render(<App />);
 };
+
 
 renderApp();
