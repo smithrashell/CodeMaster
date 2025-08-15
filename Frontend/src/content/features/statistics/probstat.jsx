@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import Header from "../../components/navigation/header";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { useNav } from "../../../shared/provider/navprovider";
 
 const ProbStat = () => {
+  const { setIsAppOpen } = useNav();
+
+  const handleClose = () => {
+    setIsAppOpen(false);
+  };
   const [boxLevelData, setBoxLevelData] = useState({});
   const [error, setError] = useState(null);
 
@@ -35,7 +41,7 @@ const ProbStat = () => {
 
   return (
     <div id="cm-mySidenav" className="cm-sidenav">
-      <Header title="Statistics" />
+      <Header title="Statistics" onClose={handleClose} />
       <div className="cm-sidenav__content cd-stats-container">
         {loading ? (
           <div className="cm-stats-loading">

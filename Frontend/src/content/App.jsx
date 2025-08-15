@@ -1,8 +1,8 @@
 import "./css/main.css";
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import ProbStat from "./features/statistics/probstat";
-import Main from "./features/navigation/main";
+import Main, { Menubutton } from "./features/navigation/main";
 import ProbGen from "./features/problems/probgen";
 import ProbTime from "./features/problems/probtime";
 import StrategyMap from "./features/strategy/StrategyMap";
@@ -10,12 +10,32 @@ import Settings from "./features/settings/settings";
 import TimerBanner from "./components/timer/timercomponent";
 import "@mantine/core/styles.css";
 import { AppProviders } from "../shared/provider/appprovider";
+import { useNav } from "../shared/provider/navprovider";
 import ErrorBoundary from "../shared/components/ErrorBoundary";
 import {
   TimerErrorFallback,
   StrategyErrorFallback,
   GenericErrorFallback,
 } from "../shared/components/ErrorFallback";
+
+const MenuButtonContainer = () => {
+  const { pathname } = useLocation();
+  const { isAppOpen, setIsAppOpen } = useNav();
+
+  return (
+    <>
+      {pathname !== "/Timer" && (
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          <Menubutton
+            setIsAppOpen={setIsAppOpen}
+            isAppOpen={isAppOpen}
+            currPath={pathname}
+          />
+        </div>
+      )}
+    </>
+  );
+};
 
 const Router = () => {
   return (
@@ -29,13 +49,15 @@ const Router = () => {
       }}
     >
       <AppProviders>
+        <MenuButtonContainer />
         <Routes>
-          <Route index element={<Main />} />
-          <Route path="*" element={<Main />} />
-          <Route path="/" exact element={<Main />}>
+          <Route path="/" element={<Main />}>
             <Route
-              path="/Probtime"
-              exact
+              index
+              element={<div />} // Empty element for the main route
+            />
+            <Route
+              path="Probtime"
               element={
                 <ErrorBoundary
                   section="Problem Timer"
@@ -46,8 +68,7 @@ const Router = () => {
               }
             />
             <Route
-              path="/Probstat"
-              exact
+              path="Probstat"
               element={
                 <ErrorBoundary
                   section="Problem Statistics"
@@ -58,8 +79,7 @@ const Router = () => {
               }
             />
             <Route
-              path="/Probgen"
-              exact
+              path="Probgen"
               element={
                 <ErrorBoundary
                   section="Problem Generator"
@@ -70,8 +90,7 @@ const Router = () => {
               }
             />
             <Route
-              path="/Strategy"
-              exact
+              path="Strategy"
               element={
                 <ErrorBoundary
                   section="Strategy System"
@@ -82,8 +101,7 @@ const Router = () => {
               }
             />
             <Route
-              path="/Settings"
-              exact
+              path="Settings"
               element={
                 <ErrorBoundary
                   section="Settings"
@@ -94,13 +112,16 @@ const Router = () => {
               }
             />
             <Route
-              path="/Timer"
-              exact
+              path="Timer"
               element={
                 <ErrorBoundary section="Timer" fallback={TimerErrorFallback}>
                   <TimerBanner />
                 </ErrorBoundary>
               }
+            />
+            <Route
+              path="*"
+              element={<div />} // Catch-all within Main layout
             />
           </Route>
         </Routes>
