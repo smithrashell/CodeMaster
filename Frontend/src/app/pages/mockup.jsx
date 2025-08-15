@@ -8,6 +8,10 @@ import {
   AnimationToggle,
 } from "../../shared/components/AppearanceControls.jsx";
 import { FocusAreasSelector } from "../components/settings/FocusAreasSelector.jsx";
+import { AdaptiveSettingsCard } from "../components/settings/AdaptiveSettingsCard.jsx";
+import { TimerSettingsCard } from "../components/settings/TimerSettingsCard.jsx";
+import { DisplaySettingsCard } from "../components/settings/DisplaySettingsCard.jsx";
+import { SettingsExportImport } from "../components/settings/SettingsExportImport.jsx";
 import MasteryDashboard from "../components/analytics/MasteryDashboard.jsx";
 import TimeGranularChartCard from "../components/charts/TimeGranularChartCard";
 import {
@@ -1704,6 +1708,10 @@ export function General() {
       
       <Stack gap="lg">
         <FocusAreasSelector />
+        <AdaptiveSettingsCard />
+        <TimerSettingsCard />
+        <DisplaySettingsCard />
+        <SettingsExportImport />
       </Stack>
     </Container>
   );
