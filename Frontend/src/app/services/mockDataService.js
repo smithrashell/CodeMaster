@@ -269,6 +269,16 @@ const generateChartData = (
       const failed = attempted - passed;
 
       data.push({ name, attempted, passed, failed });
+    } else if (type === "efficiency") {
+      const problemsSolved = periodSessions.reduce(
+        (sum, s) => sum + s.successfulAttempts,
+        0
+      );
+      // Estimate hints used (roughly 1-3 hints per session)
+      const hintsUsed = periodSessions.length * (1 + Math.random() * 2);
+      const efficiency = hintsUsed > 0 ? Math.round((problemsSolved / hintsUsed) * 10) / 10 : 0;
+
+      data.push({ name, efficiency });
     }
   }
 
@@ -409,6 +419,36 @@ export const generateMockData = (userType = "active") => {
     ),
   };
 
+  // Calculate time accuracy (how close user estimates are to actual time)
+  const timeAccuracy = Math.floor(75 + Math.random() * 20); // 75-95% accuracy
+
+  // Generate hint usage data matching IndexedDB hint_interactions schema
+  const hintsUsed = {
+    total: Math.floor(Math.random() * 30) + 15, // 15-45 total hints
+    contextual: Math.floor(Math.random() * 20) + 10, // Most popular
+    general: Math.floor(Math.random() * 8) + 3,
+    primer: Math.floor(Math.random() * 5) + 2,
+  };
+
+  // Generate learning efficiency (problems solved per hint used)
+  const learningEfficiencyData = {
+    weekly: generateChartData(sessions, "efficiency", "weekly"),
+    monthly: generateChartData(sessions, "efficiency", "monthly"), 
+    yearly: generateChartData(sessions, "efficiency", "yearly"),
+  };
+
+  // Strategy success rate for Progress page
+  const strategySuccessRate = Math.floor(65 + Math.random() * 25); // 65-90%
+
+  // Timer behavior insight based on user type
+  const timerBehaviorInsights = {
+    new: "Still learning to estimate problem time",
+    beginner: "Improving at time management",
+    active: "Usually finishes within recommended time",
+    advanced: "Excellent time estimation skills",
+  };
+  const timerBehavior = timerBehaviorInsights[userType] || timerBehaviorInsights.active;
+
   // Generate chart data
   const accuracyData = {
     weekly: generateChartData(sessions, "accuracy", "weekly"),
@@ -447,6 +487,8 @@ export const generateMockData = (userType = "active") => {
       0,
       Math.floor(Math.random() * 3) + 1
     ),
+    strategySuccessRate,
+    timerBehavior,
   };
 
   // eslint-disable-next-line no-console
@@ -465,16 +507,23 @@ export const generateMockData = (userType = "active") => {
 
     // Calculated statistics
     statistics,
-    averageTime,
+    averageTime: { ...averageTime, timeAccuracy },
     successRate,
     boxLevelData,
     learningState: mockLearningState,
+
+    // New analytics data
+    hintsUsed,
+    strategySuccessRate,
+    timerBehavior,
+    timeAccuracy,
 
     // Chart data
     accuracyData,
     breakdownData,
     activityData,
     promotionData,
+    learningEfficiencyData,
   };
 };
 

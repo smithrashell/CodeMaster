@@ -1,13 +1,13 @@
 import "./css/main.css";
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import ProbStat from "./features/statistics/probstat";
+import ProbStat from "./features/statistics/ProblemStats";
 import Main, { Menubutton } from "./features/navigation/main";
-import ProbGen from "./features/problems/probgen";
-import ProbTime from "./features/problems/probtime";
+import ProbGen from "./features/problems/ProblemGenerator";
+import ProbTime from "./features/problems/ProblemTime";
 import StrategyMap from "./features/strategy/StrategyMap";
-import Settings from "./features/settings/settings";
-import TimerBanner from "./components/timer/timercomponent";
+import Settings from "./features/settings/Settings";
+import TimerBanner from "./components/timer/TimerComponent";
 import "@mantine/core/styles.css";
 import { AppProviders } from "../shared/provider/appprovider";
 import { useNav } from "../shared/provider/navprovider";
