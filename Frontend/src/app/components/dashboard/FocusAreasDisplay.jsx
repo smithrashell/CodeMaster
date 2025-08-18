@@ -89,6 +89,24 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
     return Math.round((tagData.successfulAttempts / tagData.totalAttempts) * 100);
   };
 
+  const getHintEffectiveness = (tagName) => {
+    const tagData = masteryData.find((tag) => tag.tag === tagName);
+    return tagData?.hintHelpfulness || "medium";
+  };
+
+  const getHintIcon = (effectiveness) => {
+    switch (effectiveness) {
+      case "high":
+        return "💡"; // Bright idea
+      case "medium":
+        return "📝"; // Note taking
+      case "low":
+        return "⚡"; // Quick/minimal help needed
+      default:
+        return "💡";
+    }
+  };
+
   const handleAutoGraduate = async () => {
     try {
       const result = await TagService.graduateFocusAreas();
@@ -177,6 +195,8 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
           const progress = getTagProgress(tag);
           const isMastered = masteredTags.includes(tag);
           const isNearMastery = graduationStatus?.nearMasteryTags?.includes(tag);
+          const hintEffectiveness = getHintEffectiveness(tag);
+          const hintIcon = getHintIcon(hintEffectiveness);
           
           return (
             <Grid.Col key={tag} span={4}>
@@ -194,9 +214,19 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
                   >
                     {tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " ")}
                   </Badge>
-                  <Text size="xs" fw={500} c="dimmed">
-                    {progress}%
-                  </Text>
+                  <Group gap="xs" align="center">
+                    <Tooltip 
+                      label={`Hints are ${hintEffectiveness}ly helpful for this topic`}
+                      position="top"
+                    >
+                      <Text size="xs" style={{ cursor: "help" }}>
+                        {hintIcon}
+                      </Text>
+                    </Tooltip>
+                    <Text size="xs" fw={500} c="dimmed">
+                      {progress}%
+                    </Text>
+                  </Group>
                 </Group>
                 
                 <Tooltip label={`${progress}% mastery - ${isMastered ? "Mastered" : isNearMastery ? "Near Mastery" : "In Progress"}`}>

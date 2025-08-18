@@ -55,6 +55,10 @@ export async function getMockDashboardStatistics(
         allSessions: enhancedSessions,
         averageTime: mockData.averageTime,
         successRate: mockData.successRate,
+        // Add new analytics data
+        hintsUsed: mockData.hintsUsed,
+        timeAccuracy: mockData.timeAccuracy,
+        learningEfficiencyData: mockData.learningEfficiencyData,
       },
       progress: {
         learningState: mockData.learningState,
@@ -62,6 +66,11 @@ export async function getMockDashboardStatistics(
         allAttempts: mockData.allAttempts,
         allProblems: mockData.allProblems,
         allSessions: enhancedSessions,
+        // Add new progress analytics
+        strategySuccessRate: mockData.strategySuccessRate,
+        timerBehavior: mockData.timerBehavior,
+        // Add promotion/demotion data for chart
+        promotionData: mockData.promotionData,
       },
       sessions: {
         allSessions: enhancedSessions,
@@ -107,32 +116,32 @@ export async function getMockDashboardStatistics(
         ],
         masteryData: mockData.learningState.masteryData || [
           // Core Concepts - Focus tags with good progress
-          { tag: "array", totalAttempts: 15, successfulAttempts: 12, mastered: true, isFocus: true, progress: 85 },
-          { tag: "string", totalAttempts: 12, successfulAttempts: 8, mastered: false, isFocus: true, progress: 67 },
-          { tag: "two-pointers", totalAttempts: 8, successfulAttempts: 5, mastered: false, isFocus: true, progress: 63 },
+          { tag: "array", totalAttempts: 15, successfulAttempts: 12, mastered: true, isFocus: true, progress: 85, hintHelpfulness: "high" },
+          { tag: "string", totalAttempts: 12, successfulAttempts: 8, mastered: false, isFocus: true, progress: 67, hintHelpfulness: "high" },
+          { tag: "two-pointers", totalAttempts: 8, successfulAttempts: 5, mastered: false, isFocus: true, progress: 63, hintHelpfulness: "medium" },
           
           // Supporting concepts
-          { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9, mastered: true, isFocus: false, progress: 90 },
-          { tag: "math", totalAttempts: 5, successfulAttempts: 3, mastered: false, isFocus: false, progress: 60 },
+          { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9, mastered: true, isFocus: false, progress: 90, hintHelpfulness: "low" },
+          { tag: "math", totalAttempts: 5, successfulAttempts: 3, mastered: false, isFocus: false, progress: 60, hintHelpfulness: "medium" },
           
           // Basic Techniques (in progress)
-          { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50 },
-          { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33 },
-          { tag: "stack", totalAttempts: 7, successfulAttempts: 4, mastered: false, isFocus: false, progress: 57 },
-          { tag: "queue", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50 },
+          { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50, hintHelpfulness: "high" },
+          { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33, hintHelpfulness: "high" },
+          { tag: "stack", totalAttempts: 7, successfulAttempts: 4, mastered: false, isFocus: false, progress: 57, hintHelpfulness: "medium" },
+          { tag: "queue", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50, hintHelpfulness: "medium" },
           
           // Intermediate (just starting)
-          { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4, mastered: false, isFocus: false, progress: 33 },
-          { tag: "greedy", totalAttempts: 5, successfulAttempts: 2, mastered: false, isFocus: false, progress: 40 },
-          { tag: "heap", totalAttempts: 6, successfulAttempts: 2, mastered: false, isFocus: false, progress: 33 },
-          { tag: "tree", totalAttempts: 9, successfulAttempts: 3, mastered: false, isFocus: false, progress: 33 },
-          { tag: "backtracking", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33 },
+          { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4, mastered: false, isFocus: false, progress: 33, hintHelpfulness: "high" },
+          { tag: "greedy", totalAttempts: 5, successfulAttempts: 2, mastered: false, isFocus: false, progress: 40, hintHelpfulness: "medium" },
+          { tag: "heap", totalAttempts: 6, successfulAttempts: 2, mastered: false, isFocus: false, progress: 33, hintHelpfulness: "high" },
+          { tag: "tree", totalAttempts: 9, successfulAttempts: 3, mastered: false, isFocus: false, progress: 33, hintHelpfulness: "high" },
+          { tag: "backtracking", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33, hintHelpfulness: "high" },
           
           // Advanced (not started yet)
-          { tag: "graph", totalAttempts: 8, successfulAttempts: 2, mastered: false, isFocus: false, progress: 25 },
-          { tag: "trie", totalAttempts: 2, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0 },
-          { tag: "segment-tree", totalAttempts: 1, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0 },
-          { tag: "union-find", totalAttempts: 1, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0 }
+          { tag: "graph", totalAttempts: 8, successfulAttempts: 2, mastered: false, isFocus: false, progress: 25, hintHelpfulness: "high" },
+          { tag: "trie", totalAttempts: 2, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0, hintHelpfulness: "high" },
+          { tag: "segment-tree", totalAttempts: 1, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0, hintHelpfulness: "high" },
+          { tag: "union-find", totalAttempts: 1, successfulAttempts: 0, mastered: false, isFocus: false, progress: 0, hintHelpfulness: "high" }
         ],
         learningState: {
           ...mockData.learningState,
@@ -140,18 +149,46 @@ export async function getMockDashboardStatistics(
           focusTags: ["array", "string", "two-pointers"],
           masteryData: [
             // Core Concepts - Focus tags with good progress
-            { tag: "array", totalAttempts: 15, successfulAttempts: 12, mastered: true, isFocus: true, progress: 85 },
-            { tag: "string", totalAttempts: 12, successfulAttempts: 8, mastered: false, isFocus: true, progress: 67 },
-            { tag: "two-pointers", totalAttempts: 8, successfulAttempts: 5, mastered: false, isFocus: true, progress: 63 },
+            { tag: "array", totalAttempts: 15, successfulAttempts: 12, mastered: true, isFocus: true, progress: 85, hintHelpfulness: "high" },
+            { tag: "string", totalAttempts: 12, successfulAttempts: 8, mastered: false, isFocus: true, progress: 67, hintHelpfulness: "high" },
+            { tag: "two-pointers", totalAttempts: 8, successfulAttempts: 5, mastered: false, isFocus: true, progress: 63, hintHelpfulness: "medium" },
             
             // Supporting concepts
-            { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9, mastered: true, isFocus: false, progress: 90 },
-            { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50 },
-            { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33 },
-            { tag: "stack", totalAttempts: 7, successfulAttempts: 4, mastered: false, isFocus: false, progress: 57 },
-            { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4, mastered: false, isFocus: false, progress: 33 }
+            { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9, mastered: true, isFocus: false, progress: 90, hintHelpfulness: "low" },
+            { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2, mastered: false, isFocus: false, progress: 50, hintHelpfulness: "high" },
+            { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1, mastered: false, isFocus: false, progress: 33, hintHelpfulness: "high" },
+            { tag: "stack", totalAttempts: 7, successfulAttempts: 4, mastered: false, isFocus: false, progress: 57, hintHelpfulness: "medium" },
+            { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4, mastered: false, isFocus: false, progress: 33, hintHelpfulness: "high" }
           ]
         } // For Strategy/Learning Path page
+      },
+      goals: {
+        learningPlan: {
+          cadence: {
+            sessionsPerWeek: 5,
+            sessionLength: 45,
+            flexibleSchedule: true
+          },
+          focus: {
+            primaryTags: ["Dynamic Programming", "Graph Theory"],
+            difficultyDistribution: { easy: 20, medium: 60, hard: 20 },
+            reviewRatio: 40
+          },
+          guardrails: {
+            minReviewRatio: 30,
+            maxNewProblems: 5,
+            difficultyCapEnabled: true,
+            maxDifficulty: "Medium",
+            hintLimitEnabled: false,
+            maxHintsPerProblem: 3
+          },
+          missions: [
+            { id: 1, title: "Complete 2 medium DP problems", progress: 1, target: 2, type: "skill", completed: false },
+            { id: 2, title: "Review 3 graph problems from Box 2", progress: 3, target: 3, type: "review", completed: true },
+            { id: 3, title: "Achieve 80% accuracy today", progress: 75, target: 80, type: "performance", completed: false },
+            { id: 4, title: "Use max 2 hints per problem", progress: 1, target: 3, type: "efficiency", completed: false }
+          ]
+        }
       },
     };
 

@@ -8,8 +8,14 @@
 /**
  * Check if mock dashboard should be used
  * Multiple detection methods for robust development mode detection
+ * INCLUDES FALLBACKS for when NODE_ENV gets stuck on production during development
  */
 export const shouldUseMockDashboard = () => {
+  // Manual override - check localStorage first for immediate control
+  if (typeof window !== 'undefined' && localStorage.getItem('cm-force-mock') === 'true') {
+    console.log('🔧 FORCED MOCK MODE via localStorage');
+    return true;
+  }
   const nodeEnvDev = process.env.NODE_ENV === 'development';
   const isLocalhost = typeof window !== 'undefined' && 
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
@@ -33,7 +39,12 @@ export const shouldUseMockDashboard = () => {
   
   // Force enable for development - any of these conditions enable mock mode
   // Also enable if we're NOT in a production extension (for standalone dashboard development)
+  // IMPORTANT: Default to mock mode unless we're clearly in production extension
   const shouldMock = nodeEnvDev || isLocalhost || isFileProtocol || isExtensionDev || hasUrlFlag || hasStorageFlag || !isProductionExtension;
+  
+  // Additional fallback: if we can't determine environment clearly, default to mock for development
+  const isUnclearEnvironment = !isProductionExtension && !nodeEnvDev;
+  const finalDecision = shouldMock || isUnclearEnvironment;
   
   console.log('🔧 MOCK CONFIG DEBUG:', {
     'process.env.NODE_ENV': process.env.NODE_ENV,
@@ -44,11 +55,13 @@ export const shouldUseMockDashboard = () => {
     'hasUrlFlag': hasUrlFlag,
     'hasStorageFlag': hasStorageFlag,
     'isProductionExtension': isProductionExtension,
-    'finalDecision': shouldMock,
+    'shouldMock': shouldMock,
+    'isUnclearEnvironment': isUnclearEnvironment,
+    'finalDecision': finalDecision,
     'timestamp': new Date().toISOString()
   });
   
-  return shouldMock;
+  return finalDecision;
 };
 
 /**
@@ -86,9 +99,34 @@ export const MOCK_DATA_CONFIG = {
   },
 };
 
+/**
+ * Helper functions for development
+ */
+export const enableMockMode = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('cm-force-mock', 'true');
+    console.log('🎭 Mock mode enabled! Reload the page to use mock data.');
+    console.log('💡 Run disableMockMode() to turn it off.');
+  }
+};
+
+export const disableMockMode = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('cm-force-mock');
+    console.log('🎭 Mock mode disabled! Reload the page to use real data.');
+  }
+};
+
+// Make functions available globally for easy development access
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  window.enableMockMode = enableMockMode;
+  window.disableMockMode = disableMockMode;
+}
+
 // Simple dev mode warning
 if (process.env.NODE_ENV === 'development') {
   console.warn('🎭 Development mock service active - UI testing data enabled');
+  console.warn('💡 If data is not showing, run enableMockMode() in console and reload');
 }
 
 export default {
