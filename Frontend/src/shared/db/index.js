@@ -3,7 +3,7 @@ import indexedDBRetry from "../services/IndexedDBRetryService.js";
 
 export const dbHelper = {
   dbName: "review",
-  version: 33, // 🚨 Increment version to trigger upgrade (hint interactions analytics)
+  version: 34, // 🚨 Increment version to trigger upgrade (hint interactions analytics)
   db: null,
 
   async openDB() {

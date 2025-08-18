@@ -63,7 +63,7 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
     } else {
       setExpandedTag(normalizedTag);
 
-      // Smart scrolling to prevent content blocking
+      // Enhanced scrolling to ensure content visibility
       setTimeout(() => {
         const hintElement = document.querySelector(".tag-strategy-hint");
         const sidebarContent = document.querySelector(
@@ -73,6 +73,7 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
           ".tag-strategy-button-expanded"
         );
         const problemCard = document.querySelector(".problem-sidebar-card");
+        const actionButtons = document.querySelector(".problem-sidebar-actions");
 
         if (hintElement && sidebarContent && expandedButton) {
           // Add expanded class for CSS animations
@@ -111,16 +112,31 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
               }
             }
 
-            // Strategy 2: Use scrollIntoView for better automatic positioning
+            // Strategy 2: Enhanced scrollIntoView with action button protection
             const expandedTagContainer = expandedButton.closest(
               ".tag-strategy-container"
             );
-            if (expandedTagContainer) {
-              expandedTagContainer.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-                inline: "nearest",
-              });
+            if (expandedTagContainer && actionButtons) {
+              // Calculate if we need to ensure action buttons remain visible
+              const containerRect = expandedTagContainer.getBoundingClientRect();
+              const actionButtonsRect = actionButtons.getBoundingClientRect();
+              const expandedContentHeight = hintRect.height;
+              
+              // If expanded content would push action buttons out of view
+              if (containerRect.bottom + expandedContentHeight > actionButtonsRect.top - 20) {
+                // Scroll to position the container higher to keep action buttons visible
+                expandedTagContainer.scrollIntoView({
+                  behavior: "smooth",
+                  block: "center",
+                  inline: "nearest",
+                });
+              } else {
+                expandedTagContainer.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                  inline: "nearest",
+                });
+              }
               return;
             }
 

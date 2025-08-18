@@ -38,13 +38,12 @@ export function DoubleNavbar() {
   const [showSettingsSubmenu, setShowSettingsSubmenu] = useState(false);
 
   useEffect(() => {
-    const splitPath = location.pathname.split("/");
+    const currentPath = location.pathname;
+    const splitPath = currentPath.split("/");
     const mainPath = splitPath[1] === "" ? "/" : `/${splitPath[1]}`;
 
-    // Handle overview sub-routes
-    const resolvedMainPath = ["/overview"].includes(mainPath)
-      ? "/"
-      : mainPath;
+    // Map current path to main navigation path
+    const resolvedMainPath = mainPath;
 
     const currentMainLink = mainLinksMockdata.find(
       (link) => link.path === resolvedMainPath
@@ -80,7 +79,7 @@ export function DoubleNavbar() {
         className={classes.mainLink}
         data-active={link.label === active || undefined}
       >
-        <link.icon style={{ width: rem(24), height: rem(24) }} stroke={1.5} />
+        <link.icon style={{ width: rem(32), height: rem(32) }} stroke={1.8} />
       </UnstyledButton>
     </Tooltip>
   ));
@@ -88,15 +87,21 @@ export function DoubleNavbar() {
   const currentSubLinks = subLinksData[activeLink] || [];
 
   const subLinks = currentSubLinks.map((subLink) => {
-    const subLinkPath = `${activeLink === "/" ? "" : activeLink}/${subLink
-      .toLowerCase()
-      .replace(/\s+/g, "-")}`;
+    // Generate sublink path - Overview goes directly to "/"
+    const subLinkPath = activeLink === "/" && subLink === "Overview" 
+      ? "/"
+      : `${activeLink === "/" ? "" : activeLink}/${subLink
+          .toLowerCase()
+          .replace(/\s+/g, "-")}`;
+
+    // Check if current path matches this sublink
+    const isActive = location.pathname === subLinkPath;
 
     return (
       <Link
         to={subLinkPath}
         className={classes.link}
-        data-active={location.pathname === subLinkPath || undefined}
+        data-active={isActive || undefined}
         key={subLink}
       >
         {subLink}

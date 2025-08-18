@@ -15,8 +15,9 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
+import { useThemeColors } from "../../../shared/hooks/useThemeColors";
 
-const PIE_COLORS = ["#82ca9d", "#8884d8", "#ffc658", "#ff7300", "#d0ed57"];
+// PIE_COLORS will be set dynamically using theme colors
 function isPromotionTrendShape(data) {
   const requiredKeys = ["weekly", "monthly", "yearly"];
   const requiredFields = ["name", "attempted", "passed", "failed"];
@@ -49,6 +50,17 @@ export default function TimeGranularChartCard({
   yAxisFormatter = (v) => v,
   tooltipFormatter = (v, n) => [v, n],
 }) {
+  const colors = useThemeColors();
+  
+  // Dynamic pie colors using theme-aware colors
+  const PIE_COLORS = [
+    colors.dataColors?.data1 || "#3b82f6",
+    colors.dataColors?.data2 || "#8b5cf6", 
+    colors.dataColors?.data3 || "#10b981",
+    colors.dataColors?.data4 || "#f59e0b",
+    colors.dataColors?.data5 || "#ef4444"
+  ];
+  
   const [noData, setNoData] = useState(false);
   const isTimeBased =
     typeof data === "object" &&
@@ -134,6 +146,8 @@ export default function TimeGranularChartCard({
 
       {isTimeBased && (
         <SegmentedControl
+          radius="md"
+          size="sm"
           value={view}
           onChange={setView}
           data={[
@@ -141,6 +155,7 @@ export default function TimeGranularChartCard({
             { label: "Monthly", value: "monthly" },
             { label: "Yearly", value: "yearly" },
           ]}
+          color={colors.info || '#3b82f6'}
           mb="md"
         />
       )}
@@ -148,31 +163,65 @@ export default function TimeGranularChartCard({
       <ResponsiveContainer width="100%" height={300}>
         {chartType === "line" ? (
           <LineChart data={currentData}>
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={yAxisFormatter} />
-            <Tooltip formatter={tooltipFormatter} />
-            <CartesianGrid stroke="#f5f5f5" />
+            <XAxis 
+              dataKey="name" 
+              tick={{ fill: colors.textSecondary || '#6b7280', fontSize: 12 }}
+              axisLine={{ stroke: colors.border || '#e5e7eb' }}
+            />
+            <YAxis 
+              tickFormatter={yAxisFormatter} 
+              tick={{ fill: colors.textSecondary || '#6b7280', fontSize: 12 }}
+              axisLine={{ stroke: colors.border || '#e5e7eb' }}
+            />
+            <Tooltip 
+              formatter={tooltipFormatter}
+              contentStyle={{
+                backgroundColor: colors.tooltipBg || '#ffffff',
+                border: `1px solid ${colors.tooltipBorder || '#e5e7eb'}`,
+                borderRadius: '6px',
+                color: colors.tooltipText || '#111827'
+              }}
+            />
+            <CartesianGrid stroke={colors.chartGrid || '#f3f4f6'} strokeOpacity={0.3} />
             {dataKeys.map((item, index) => (
               <Line
                 key={index}
                 type="monotone"
                 dataKey={item.key}
-                stroke={item.color || "#8884d8"}
-                strokeWidth={2}
+                stroke={item.color || colors.chartPrimary || '#3b82f6'}
+                strokeWidth={3}
+                dot={{ r: 4, fill: item.color || colors.chartPrimary || '#3b82f6' }}
+                activeDot={{ r: 6, fill: item.color || colors.chartPrimary || '#3b82f6' }}
               />
             ))}
           </LineChart>
         ) : chartType === "bar" ? (
           <BarChart data={currentData}>
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={yAxisFormatter} />
-            <Tooltip formatter={tooltipFormatter} />
-            <CartesianGrid stroke="#f5f5f5" />
+            <XAxis 
+              dataKey="name" 
+              tick={{ fill: colors.textSecondary || '#6b7280', fontSize: 12 }}
+              axisLine={{ stroke: colors.border || '#e5e7eb' }}
+            />
+            <YAxis 
+              tickFormatter={yAxisFormatter} 
+              tick={{ fill: colors.textSecondary || '#6b7280', fontSize: 12 }}
+              axisLine={{ stroke: colors.border || '#e5e7eb' }}
+            />
+            <Tooltip 
+              formatter={tooltipFormatter}
+              contentStyle={{
+                backgroundColor: colors.tooltipBg || '#ffffff',
+                border: `1px solid ${colors.tooltipBorder || '#e5e7eb'}`,
+                borderRadius: '6px',
+                color: colors.tooltipText || '#111827'
+              }}
+            />
+            <CartesianGrid stroke={colors.chartGrid || '#f3f4f6'} strokeOpacity={0.3} />
             {dataKeys.map((item, index) => (
               <Bar
                 key={index}
                 dataKey={item.key}
-                fill={item.color || "#8884d8"}
+                fill={item.color || colors.chartPrimary || '#3b82f6'}
                 stackId={dataKeys.length > 1 ? "a" : undefined}
               />
             ))}
