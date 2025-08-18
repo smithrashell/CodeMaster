@@ -3,8 +3,8 @@
   top: 0;
   left: 0;
   width: 100%;
-  background-color: #f4f4f4;
-  border-bottom: 2px solid #ccc;
+  background-color: var(--cm-timer-bg);
+  border-bottom: 2px solid var(--cm-timer-border);
   padding: 10px;
   z-index: var(--cm-z-base, 9000);
   display: flex;
@@ -21,16 +21,58 @@
 .timer-banner-header h1 {
   margin: 0;
   font-size: 1.5em;
+  color: var(--cm-timer-text);
 }
 
 .close-icon {
   margin-left: 10px;
   cursor: pointer;
+  color: var(--cm-timer-text);
 }
 
 .timer-banner-content {
   flex-grow: 1;
   text-align: center;
+  color: var(--cm-timer-text);
+}
+
+.still-working-prompt {
+  background-color: var(--cm-timer-bg);
+  color: var(--cm-timer-text);
+}
+
+/* Timer warning states */
+.timer-normal {
+  color: var(--cm-timer-text) !important;
+}
+
+.timer-warning-1 {
+  color: #FFA500 !important; /* Orange - 75% time */
+}
+
+.timer-warning-2 {
+  color: #FF6B47 !important; /* Red-orange - 100% time */
+}
+
+.timer-warning-3 {
+  color: #FF4444 !important; /* Red - 150% time */
+}
+
+/* Warning message styling */
+.timer-warning-message {
+  color: var(--cm-timer-text);
+}
+
+.timer-warning-message.warning-1 {
+  color: #FFA500;
+}
+
+.timer-warning-message.warning-2 {
+  color: #FF6B47;
+}
+
+.timer-warning-message.warning-3 {
+  color: #FF4444;
 }
 
 .timer-banner-controls {
@@ -42,6 +84,7 @@
 .timer-banner-controls svg {
   cursor: pointer;
   font-size: 1.5em;
+  color: var(--cm-timer-text);
 }
 
 .countdown-overlay {
