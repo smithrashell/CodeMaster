@@ -1,7 +1,7 @@
 .navbar {
   background-color: var(--cm-navbar-bg);
   height: 100vh;
-  width: rem(350px);
+  width: rem(360px);
   display: flex;
   flex-direction: column;
   border-right: rem(1px) solid var(--cm-navbar-border);
@@ -13,15 +13,15 @@
 }
 
 .aside {
-  width: 75px;
-  flex: 0 0 rem(110px);
+  width: 90px;
+  flex: 0 0 rem(120px);
   background-color: var(--cm-navbar-aside-bg);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   border-right: rem(1px) solid var(--cm-navbar-border);
-  padding-top: rem(8px);
+  padding-top: rem(12px);
 }
 
 .main {
@@ -33,23 +33,27 @@
 }
 
 .mainLink {
-  width: rem(48px);
-  height: rem(48px);
-  border-radius: var(--mantine-radius-md);
+  width: rem(60px);
+  height: rem(60px);
+  border-radius: var(--mantine-radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--cm-link-color);
-  margin-bottom: rem(20px);
+  margin-bottom: rem(16px);
   outline: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 
   &:hover {
     background-color: var(--cm-link-hover-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   &:focus {
     outline: none;
-    box-shadow: none;
+    box-shadow: 0 0 0 2px var(--cm-link-active-bg);
   }
 
   &[data-active] {
@@ -57,6 +61,8 @@
     &:hover {
       background-color: var(--cm-link-active-bg);
       color: var(--cm-link-active-color);
+      transform: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
   }
 }
