@@ -13,7 +13,7 @@ export default function MetricCard({ title, value, details }) {
   const [opened, { toggle }] = useDisclosure(false);
 
   return (
-    <Grid.Col span={4}>
+    <Grid.Col span={3}>
       <Card shadow="sm" p="lg" withBorder>
         <UnstyledButton onClick={toggle} sx={{ width: "100%" }}>
           <Group position="apart">

@@ -13,7 +13,7 @@ const TimeDisplay = ({ time, toggleTimer }) => {
     <div
       className="dail"
       style={{
-        color: "red",
+        color: "var(--cm-timer-text, #000000)",
         display: "flex",
         flexDirection: "row",
         justifyContent: "center",
@@ -21,6 +21,8 @@ const TimeDisplay = ({ time, toggleTimer }) => {
         cursor: "pointer", // Make it clear that this is clickable
       }}
       onClick={toggleTimer}
+      title="Click to start/pause timer"
+      aria-label="Click to start or pause timer"
     >
       <span>{min}</span>
       <p>min</p>
