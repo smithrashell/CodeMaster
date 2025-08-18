@@ -42,6 +42,34 @@
   --cm-chart-danger: #ef4444;
   --cm-chart-info: #8b5cf6;
   --cm-chart-secondary: #6b7280;
+
+  /* Semantic color variables for components */
+  --cm-success: #10b981;
+  --cm-warning: #f59e0b;
+  --cm-error: #ef4444;
+  --cm-accent: #3b82f6;
+  --cm-text-secondary: #6b7280;
+
+  /* Timer specific colors */
+  --cm-timer-bg: #ffffff;
+  --cm-timer-text: #000000;
+  --cm-timer-border: #cccccc;
+  
+  /* Text dimmed/muted colors - light mode */
+  --cm-text-dimmed: #6b7280;
+  --mantine-color-dimmed: #6b7280;
+
+  /* Table enhancement colors - light theme */
+  --cm-table-accent: #0891b2; /* cyan-700 */
+  --cm-table-accent-hover: #0ea5e9; /* cyan-500 hover tint */
+  --cm-table-mastery-good: #16a34a; /* green-600 */
+  --cm-table-mastery-medium: #b45309; /* amber-700 */
+  --cm-table-mastery-low: #b91c1c; /* red-700 */
+  --cm-table-progress-track: #e5e7eb; /* neutral track background */
+  --cm-table-header-border: rgba(0,0,0,0.08); /* hairline border */
+  --cm-table-row-hover: rgba(0,0,0,0.03); /* subtle row hover */
+  --cm-table-text-muted: #6b7280; /* muted text */
+  --cm-table-text-primary: #0f172a; /* primary text */
 }
 
 body {
@@ -125,7 +153,7 @@ body[data-theme="dark"] {
   --cm-navbar-border: #4b5563;
   --cm-navbar-aside-bg: #1f2937;
   --cm-navbar-main-bg: #374151;
-  --cm-link-color: #d1d5db;
+  --cm-link-color: #f3f4f6;
   --cm-link-hover-bg: #4b5563;
   --cm-link-hover-color: #ffffff;
   --cm-link-active-bg: #3b82f6;
@@ -143,7 +171,35 @@ body[data-theme="dark"] {
   --cm-chart-warning: #fbbf24;
   --cm-chart-danger: #f87171;
   --cm-chart-info: #a78bfa;
-  --cm-chart-secondary: #9ca3af;
+  --cm-chart-secondary: #d1d5db;
+
+  /* Semantic color variables for components - dark mode */
+  --cm-success: #34d399;
+  --cm-warning: #fbbf24;
+  --cm-error: #f87171;
+  --cm-accent: #60a5fa;
+  --cm-text-secondary: #e5e7eb;
+
+  /* Timer specific colors - dark mode */
+  --cm-timer-bg: #374151;
+  --cm-timer-text: #ffffff;
+  --cm-timer-border: #4b5563;
+  
+  /* Text dimmed/muted colors - dark mode */
+  --cm-text-dimmed: #d1d5db;
+  --mantine-color-dimmed: #d1d5db;
+
+  /* Table enhancement colors - dark theme */
+  --cm-table-accent: #22d3ee; /* cyan-400 */
+  --cm-table-accent-hover: #67e8f9; /* cyan-300 hover tint */
+  --cm-table-mastery-good: #22c55e; /* green-500 */
+  --cm-table-mastery-medium: #f59e0b; /* amber-500 */
+  --cm-table-mastery-low: #ef4444; /* red-500 */
+  --cm-table-progress-track: rgba(255,255,255,0.08); /* neutral track background */
+  --cm-table-header-border: rgba(255,255,255,0.10); /* hairline border */
+  --cm-table-row-hover: rgba(255,255,255,0.04); /* subtle row hover */
+  --cm-table-text-muted: #9fb0c3; /* muted text */
+  --cm-table-text-primary: #e8edf5; /* primary text */
 }
 
 /* ========== Apply Variables to Your CSS ========== */
@@ -315,6 +371,9 @@ body {
 /* Enhanced spacing for cards and containers */
 .mantine-Card-root {
   padding: var(--cm-card-padding, 20px) !important;
+  background-color: var(--cm-card-bg) !important;
+  color: var(--cm-text) !important;
+  border-color: var(--cm-border) !important;
   /* Removed transition to prevent theme bleeding */
 }
 
@@ -322,9 +381,18 @@ body {
   padding: var(--cm-section-padding, 24px) !important;
 }
 
-/* Enhanced text sizes */
+/* Enhanced text sizes and colors */
 .mantine-Text-root {
   font-size: var(--cm-font-size-base, 14px) !important;
+  color: var(--cm-text) !important;
+}
+
+.mantine-Text-root[data-c="dimmed"] {
+  color: var(--cm-text-dimmed) !important;
+}
+
+.mantine-Title-root {
+  color: var(--cm-text) !important;
 }
 
 .mantine-Title-root[data-order="1"] {
@@ -335,4 +403,294 @@ body {
   font-size: var(--cm-font-size-lg, 16px) !important;
 }
 
+/* Card specific overrides to ensure proper theming */
+.mantine-Card-root,
+[data-mantine-card],
+.mantine-Paper-root {
+  background-color: var(--cm-card-bg) !important;
+  color: var(--cm-text) !important;
+  border-color: var(--cm-border) !important;
+}
+
+/* Additional text elements within cards */
+.mantine-Card-root .mantine-Text-root,
+.mantine-Card-root .mantine-Title-root,
+.mantine-Paper-root .mantine-Text-root,
+.mantine-Paper-root .mantine-Title-root {
+  color: var(--cm-text) !important;
+}
+
+.mantine-Card-root .mantine-Text-root[data-c="dimmed"],
+.mantine-Paper-root .mantine-Text-root[data-c="dimmed"] {
+  color: var(--cm-text-dimmed) !important;
+}
+
+
+/* ScrollArea within tables */
+.mantine-ScrollArea-root {
+  background-color: var(--cm-card-bg) !important;
+}
+
+/* Custom Table Styles - Clean and Simple */
+.cm-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--cm-card-bg);
+  color: var(--cm-text);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--cm-border);
+}
+
+.cm-table-header th.cm-table-th {
+  background-color: var(--cm-navbar-aside-bg);
+  color: var(--cm-text);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 2px solid var(--cm-border);
+  border-right: 1px solid var(--cm-border);
+}
+
+.cm-table-header th.cm-table-th:last-child {
+  border-right: none;
+}
+
+.cm-table-body .cm-table-row {
+  background-color: var(--cm-card-bg);
+  transition: all 0.15s ease;
+  border-bottom: 1px solid var(--cm-border);
+}
+
+.cm-table-body .cm-table-row:nth-child(even) {
+  background-color: var(--cm-navbar-main-bg);
+}
+
+.cm-table-body .cm-table-row:hover {
+  background-color: var(--cm-link-hover-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cm-table-td {
+  padding: 16px 20px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  vertical-align: middle;
+  border-right: 1px solid var(--cm-border);
+}
+
+.cm-table-td:last-child {
+  border-right: none;
+}
+
+/* Primary data columns (Date, Duration, Problems, Accuracy) */
+.cm-table-td.cm-table-primary {
+  color: var(--cm-text);
+  font-weight: 500;
+}
+
+/* Secondary/Status column - dimmer text */
+.cm-table-td.cm-table-secondary {
+  color: var(--cm-text-secondary);
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* Status indicators */
+.cm-table-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cm-table-status.completed {
+  background-color: var(--cm-success);
+  color: white;
+}
+
+.cm-table-status.in-progress {
+  background-color: var(--cm-accent);
+  color: white;
+}
+
+/* Empty state */
+.cm-table-td.cm-table-empty {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--cm-text-secondary);
+  font-style: italic;
+}
+
+
 /* Responsive animations - REMOVED global transitions to prevent theme bleeding */
+
+/* ========= Enhanced Table Styling ========= */
+
+/* Enhanced table styles for MasteryDashboard */
+.cm-enhanced-table .mantine-Table-root {
+  background: transparent;
+}
+
+.cm-enhanced-table .mantine-Table-root thead th {
+  position: sticky !important;
+  top: 0 !important;
+  background: var(--cm-navbar-aside-bg) !important;
+  color: var(--cm-table-text-muted) !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid var(--cm-table-header-border) !important;
+  z-index: 1 !important;
+}
+
+.cm-enhanced-table .mantine-Table-root tbody tr {
+  transition: background 0.15s, box-shadow 0.15s !important;
+  cursor: pointer !important;
+}
+
+.cm-enhanced-table .mantine-Table-root tbody tr:hover {
+  background: var(--cm-table-row-hover) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.12) inset !important;
+}
+
+.cm-enhanced-table .mantine-Table-root td,
+.cm-enhanced-table .mantine-Table-root th {
+  border-color: var(--cm-table-header-border) !important;
+}
+
+/* Focus row accent */
+.cm-enhanced-table .cm-table-row-focus {
+  box-shadow: inset 2px 0 0 var(--cm-table-accent) !important;
+}
+
+/* Right-aligned numeric columns */
+.cm-enhanced-table .cm-table-cell-numeric {
+  text-align: right !important;
+}
+
+/* Enhanced badge styling */
+.cm-enhanced-table .cm-badge-focus {
+  color: var(--cm-table-accent) !important;
+  border: 1px solid var(--cm-table-accent) !important;
+  background: rgba(34,211,238,0.10) !important;
+}
+
+body[data-theme="dark"] .cm-enhanced-table .cm-badge-focus {
+  color: #a7f3ff !important;
+  border: 1px solid rgba(34,211,238,0.45) !important;
+  background: rgba(34,211,238,0.10) !important;
+}
+
+.cm-enhanced-table .cm-badge-practice {
+  color: var(--cm-table-mastery-medium) !important;
+  border: 1px solid var(--cm-table-mastery-medium) !important;
+  background: rgba(245,158,11,0.10) !important;
+}
+
+body[data-theme="dark"] .cm-enhanced-table .cm-badge-practice {
+  color: #fed7aa !important;
+  border: 1px solid rgba(245,158,11,0.45) !important;
+  background: rgba(245,158,11,0.12) !important;
+}
+
+/* Enhanced progress bars */
+.cm-enhanced-table .cm-progress-track {
+  background: var(--cm-table-progress-track) !important;
+}
+
+/* ========= SVG Text Override for Learning Path ========= */
+
+/* Force SVG text colors for dark mode */
+.svg-text-dark {
+  fill: #f8fafc !important;
+  color: #f8fafc !important;
+}
+
+.svg-text-light {
+  fill: #374151 !important;
+  color: #374151 !important;
+}
+
+/* Additional SVG text overrides */
+svg text.svg-text-dark {
+  fill: #f8fafc !important;
+}
+
+svg text.svg-text-light {
+  fill: #374151 !important;
+}
+
+/* Override Mantine Card text color for SVG elements */
+.mantine-Card-root svg text.svg-text-dark,
+.mantine-Paper-root svg text.svg-text-dark,
+[data-mantine-card] svg text.svg-text-dark {
+  fill: #f8fafc !important;
+  color: #f8fafc !important;
+}
+
+.mantine-Card-root svg text.svg-text-light,
+.mantine-Paper-root svg text.svg-text-light,
+[data-mantine-card] svg text.svg-text-light {
+  fill: #374151 !important;
+  color: #374151 !important;
+}
+
+/* Most specific override for all SVG text in cards */
+.mantine-Card-root svg text,
+.mantine-Paper-root svg text {
+  color: inherit !important;
+}
+
+/* Specific override for learning path card */
+.learning-path-card svg text {
+  color: unset !important;
+}
+
+.learning-path-card svg text.svg-text-dark {
+  fill: #f8fafc !important;
+  color: #f8fafc !important;
+}
+
+.learning-path-card svg text.svg-text-light {
+  fill: #374151 !important;
+  color: #374151 !important;
+}
+
+/* ========= Learning Path & Mistake Analysis Design Tokens ========= */
+
+/* Light theme design tokens */
+:root {
+  /* Enhanced surfaces */
+  --surface: #ffffff;
+  --panel: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #475569;
+
+  /* Enhanced accent colors */
+  --accent: #0ea5e9; /* cyan-500 */
+  --ok: #16a34a; /* green-600 */
+  --warn: #f59e0b; /* amber-500 */
+  --bad: #ef4444; /* red-500 */
+
+  /* Enhanced effects */
+  --hover: rgba(2,6,23,.04);
+  --shadow: 0 1px 2px rgba(2,6,23,.06), 0 8px 24px rgba(2,6,23,.06);
+}
+
+/* Dark theme design tokens */
+body[data-theme="dark"] {
+  --surface: var(--cm-card-bg);
+  --panel: #111827;
+  --border: var(--cm-border);
+  --text: var(--cm-text);
+  --muted: #9fb0c3;
+  --hover: rgba(255,255,255,.04);
+  --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.15);
+}
