@@ -14,6 +14,7 @@ import Badge from "../../../shared/components/ui/Badge";
 import Separator from "../../../shared/components/ui/Separator";
 import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
+import styles from "./ProblemCard.module.css";
 
 const ProbDetail = ({ isLoading }) => {
   const { state: routeState } = useLocation();
@@ -101,55 +102,55 @@ const ProbDetail = ({ isLoading }) => {
     <>
       <div className="cm-sidenav__content">
         {/* Main Content Card */}
-        <div className="problem-sidebar-card">
-          <div className="problem-sidebar-card-header">
-            <ChevronLeftIcon className="problem-sidebar-back-icon" />
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <ChevronLeftIcon className={styles.backIcon} />
             <span>
               Problem #{problemData?.leetCodeID || problemData?.id || "N/A"}
             </span>
           </div>
-          <h3 className="problem-sidebar-card-title">
+          <h3 className={styles.title}>
             {problemData?.ProblemDescription || problemData?.title || "N/A"}
           </h3>
           <Badge
-            className="problem-sidebar-difficulty-badge"
+            className={styles.difficultyBadge}
             variant={getDifficultyVariant(problemData?.difficulty)}
           >
             {problemData?.difficulty || "Unknown"}
           </Badge>
 
-          <Separator className="problem-sidebar-separator" />
+          <Separator className={styles.separator} />
 
-          <div className="problem-sidebar-stats">
-            <div className="problem-sidebar-stat">
-              <BarChart3Icon className="problem-sidebar-stat-icon" />
+          <div className={styles.stats}>
+            <div className={styles.stat}>
+              <BarChart3Icon className={styles.statIcon} />
               <div>
-                <div className="problem-sidebar-stat-value">
+                <div className={styles.statValue}>
                   {problemData?.acceptance || "N/A"}
                 </div>
-                <div className="problem-sidebar-stat-label">Acceptance</div>
+                <div className={styles.statLabel}>Acceptance</div>
               </div>
             </div>
-            <div className="problem-sidebar-stat">
-              <TrendingUpIcon className="problem-sidebar-stat-icon" />
+            <div className={styles.stat}>
+              <TrendingUpIcon className={styles.statIcon} />
               <div>
-                <div className="problem-sidebar-stat-value">
+                <div className={styles.statValue}>
                   {problemData?.submissions || "N/A"}
                 </div>
-                <div className="problem-sidebar-stat-label">Submissions</div>
+                <div className={styles.statLabel}>Submissions</div>
               </div>
             </div>
           </div>
           {/* Status Section */}
           <div className="problem-sidebar-section">
-            <div className="problem-sidebar-status-card">
-              <BrainIcon className="problem-sidebar-status-icon" />
-                <span className="problem-sidebar-status-label">
+            <div className={styles.statusCard}>
+              <BrainIcon className={styles.statusIcon} />
+                <span className={styles.statusLabel}>
                   Last Solved:
                 </span>
-              <div className="problem-sidebar-status-item">
-               
-                <span className="problem-sidebar-status-value">
+              <div className={styles.statusItem}>
+              
+                <span className={styles.statusValue}>
                   {problemData?.lastSolved || "Never"}
                 </span>
               </div>
@@ -168,13 +169,14 @@ const ProbDetail = ({ isLoading }) => {
           />
         )}
 
-        {/* Action Buttons */}
-        <div className="problem-sidebar-actions">
+        {/* Action Buttons - Positioned with better spacing */}
+        <div className="problem-sidebar-actions" style={{ marginTop: '6px' }}>
           <Button
             onClick={handleNewAttempt}
             className="problem-sidebar-primary-btn"
             variant="default"
             size="lg"
+            style={{ padding: '8px 16px', fontSize: '13px' }}
           >
             <PlayIcon className="problem-sidebar-btn-icon" />
             New Attempt
@@ -184,6 +186,7 @@ const ProbDetail = ({ isLoading }) => {
               variant="ghost"
               onClick={handleSkip}
               className="problem-sidebar-skip-btn"
+              style={{ padding: '6px 12px', fontSize: '12px' }}
             >
               Skip Problem
             </Button>

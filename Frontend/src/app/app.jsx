@@ -14,23 +14,22 @@ import { DashboardErrorFallback } from "../shared/components/ErrorFallback";
 import "@mantine/core/styles.css";
 import "../content/css/theme.css";
 import "../app/app.css";
-import { Progress } from "../app/pages/dashboard/progress";
-import { Stats } from "../app/pages/dashboard/stats";
+import { Progress } from "./pages/progress/learning-progress.jsx";
+import { Stats } from "./pages/overview.jsx";
 
 import {
   DashboardPage,
-  AnalyticsPage,
   SettingsPage,
-  Goals,
-  MistakeAnalysis,
-  TagMastery,
-  Metrics,
-  ProductivityInsights,
-  LearningPath,
-  General,
-  Appearance,
-  Accessibility,
 } from "./pages/mockup";
+import { MistakeAnalysis } from "./pages/strategy/mistake-analysis.jsx";
+import { TagMastery } from "./pages/strategy/tag-mastery.jsx";
+import { Metrics } from "./pages/sessions/session-history.jsx";
+import { ProductivityInsights } from "./pages/sessions/productivity-insights.jsx";
+import { LearningPath } from "./pages/strategy/learning-path.jsx";
+import { General } from "./pages/settings/general.jsx";
+import { Appearance } from "./pages/settings/appearance.jsx";
+import { Accessibility } from "./pages/settings/accessibility.jsx";
+import { Goals } from "./pages/progress/goals.jsx";
 import { useState, useEffect } from "react";
 import { useChromeMessage } from "../shared/hooks/useChromeMessage";
 import {
@@ -170,14 +169,13 @@ function App() {
                   <Routes>
                     <Route
                       path="/app.html"
-                      element={<Navigate to="/overview" replace />}
+                      element={<Navigate to="/" replace />}
                     />
 
                     {/* Overview */}
                     <Route path="/" element={<DashboardPage />}>
-                      <Route index element={<Navigate to="overview" replace />} />
-                      <Route
-                        path="overview"
+                      <Route 
+                        index 
                         element={
                           <ErrorBoundary
                             section="Overview"
@@ -188,6 +186,9 @@ function App() {
                         }
                       />
                     </Route>
+                    
+                    {/* Redirect /overview to / for compatibility */}
+                    <Route path="/overview" element={<Navigate to="/" replace />} />
 
                     {/* Progress */}
                     <Route path="/progress" element={<DashboardPage />}>
@@ -210,7 +211,7 @@ function App() {
                             section="Goals"
                             fallback={DashboardErrorFallback}
                           >
-                            <Goals appState={appState} />
+                            <Goals appState={appState?.goals} />
                           </ErrorBoundary>
                         }
                       />
