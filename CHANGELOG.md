@@ -4,6 +4,67 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.23] - 2025-08-18
+
+### 🎯 Major Dashboard Navigation & Analytics Overhaul
+
+**Complete Navigation Restructure:**
+- **Renamed Dashboard → Overview** with route restructuring from `/overview` to `/` for cleaner navigation
+- **Added 4 new major sections**: Progress, Sessions, Strategy, Settings with 10+ specialized pages
+- **Flattened navigation hierarchy** removing nested routes for better UX and faster access
+- **Created modular page architecture** replacing monolithic mockup structure with focused components
+
+**Advanced Learning Analytics Implementation:**
+- **New Learning Path Visualization** (`Frontend/src/app/components/learning/LearningPathVisualization.jsx`) - Interactive SVG network with 723 lines of pan/zoom/drag functionality
+- **Goal Tracking System** (`Frontend/src/app/pages/progress/goals.jsx`) with localStorage persistence and real-time progress calculation
+- **Productivity Insights Dashboard** (`Frontend/src/app/pages/sessions/productivity-insights.jsx`) with session analytics and performance metrics
+- **Mistake Analysis Page** (`Frontend/src/app/pages/strategy/mistake-analysis.jsx`) with learning efficiency categorization and strategy recommendations
+
+**Enhanced Dashboard Components:**
+- **Redesigned MasteryDashboard** with focus tag filtering, search functionality, pagination, and improved theme integration
+- **Enhanced TimeGranularChartCard** with dynamic theme-aware colors, better tooltips, and improved accessibility
+- **Improved FocusAreasDisplay** with hint effectiveness indicators (💡⚡📝) and learning insights
+- **Tag Mastery Analytics** with comprehensive mastery progression tracking and visual indicators
+
+**Architecture & Theme Improvements:**
+- **Created useThemeColors hook** (`Frontend/src/shared/hooks/useThemeColors.js`) for consistent chart component theme integration
+- **Enhanced CSS variables system** with improved dark mode support and component modularity
+- **Added CSS modules** (`Frontend/src/content/features/problems/ProblemCard.module.css`) for component isolation
+- **Removed deprecated components** (DataIntegrityDashboard, DataIntegrityStatusWidget) for cleaner architecture
+
+**Component Restructuring:**
+- **Renamed problem components** for better organization (probdetail.jsx → ProblemDetail.jsx, probgen.jsx → ProblemGenerator.jsx)
+- **Enhanced mock services** (`mockDashboardService.js`, `mockDataService.js`) for improved development workflow
+- **Improved separation of concerns** across dashboard architecture with modular design patterns
+
+**Files Modified:** 50 files, +6,437 insertions, -5,061 deletions
+
+## [0.10.22] - 2025-08-18
+
+### 🌗 Dark Mode Text Readability Fixes
+
+**Learning Path Visualization Dark Mode Improvements:**
+- **Fixed SVG text visibility** in dark mode by implementing theme-aware text colors with MutationObserver for reactive theme detection
+- **Updated legend and directions** at bottom of visualization to use CSS variables (`var(--cm-text)`, `var(--cm-text-secondary)`)
+- **Enhanced hover tooltips** with dynamic background and text colors that adapt to current theme
+- **Improved zoom control panel** styling with theme-aware background, border, and shadow properties
+- **Fixed Learning Efficiency Analytics cards** with proper RGBA background colors and improved text contrast
+- **Moved zoom controls** from top-right to bottom-right corner for better UX
+
+**Theme System Enhancements:**
+- **Created useThemeColors hook** (`Frontend/src/shared/hooks/useThemeColors.js`) for chart component theme integration
+- **Added SVG text override CSS rules** in theme.css with high-specificity selectors to handle Mantine Card component inheritance issues
+- **Enhanced CSS variable usage** across chart components for consistent theming
+
+**Files Modified:**
+- `Frontend/src/app/components/learning/LearningPathVisualization.jsx`: SVG theme detection, tooltip colors, zoom control positioning
+- `Frontend/src/app/pages/strategy/learning-path.jsx`: Legend colors, analytics card backgrounds
+- `Frontend/src/content/css/theme.css`: SVG text override styles
+- `Frontend/src/shared/hooks/useThemeColors.js`: New theme color resolution hook
+- `Frontend/src/app/components/charts/TimeGranularChartCard.js`: Theme color integration
+- `Frontend/src/app/components/tables/SelectedTagDetailCard.jsx`: Theme color updates
+- `Frontend/src/app/pages/strategy/mistake-analysis.jsx`: Theme consistency improvements
+
 ## [0.10.21] - 2025-08-14
 
 ### 🐛 Bug Fixes & UI Improvements

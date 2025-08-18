@@ -7,8 +7,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useThemeColors } from "../../../shared/hooks/useThemeColors";
 
 export default function SelectedTagDetailCard({ tag }) {
+  const colors = useThemeColors();
+  
   if (!tag) return null;
 
   const chartData = [
@@ -23,10 +26,24 @@ export default function SelectedTagDetailCard({ tag }) {
       </Text>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={chartData}>
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Bar dataKey="value" fill="#8884d8" />
+          <XAxis 
+            dataKey="name" 
+            tick={{ fill: colors.textSecondary || '#6b7280', fontSize: 12 }}
+            axisLine={{ stroke: colors.border || '#e5e7eb' }}
+          />
+          <YAxis 
+            tick={{ fill: colors.textSecondary || '#6b7280', fontSize: 12 }}
+            axisLine={{ stroke: colors.border || '#e5e7eb' }}
+          />
+          <Tooltip 
+            contentStyle={{
+              backgroundColor: colors.tooltipBg || '#ffffff',
+              border: `1px solid ${colors.tooltipBorder || '#e5e7eb'}`,
+              borderRadius: '6px',
+              color: colors.tooltipText || '#111827'
+            }}
+          />
+          <Bar dataKey="value" fill={colors.chartPrimary || '#3b82f6'} />
         </BarChart>
       </ResponsiveContainer>
       <Text size="sm" mt="sm">

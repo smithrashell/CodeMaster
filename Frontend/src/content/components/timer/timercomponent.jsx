@@ -6,9 +6,13 @@ import React, {
   useCallback,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FaPause, FaPlay, FaArrowRight } from "react-icons/fa";
-import { AiOutlineClear } from "react-icons/ai";
-import { GrClose, GrPowerReset } from "react-icons/gr";
+import { 
+  HiPlay, 
+  HiPause, 
+  HiArrowRight, 
+  HiXMark,
+  HiArrowPath
+} from "react-icons/hi2";
 import TimeDisplay from "../../../shared/components/timedisplay";
 import { FloatingHintButton } from "../strategy";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
@@ -259,27 +263,41 @@ const TimerBanner = (props) => {
   const getWarningMessage = () => {
     switch (timeWarningLevel) {
       case 1:
-        return "⏰ Approaching recommended time";
+        return "Approaching recommended time";
       case 2:
-        return "⏱️ Interview time exceeded - keep going if making progress";
+        return "Interview time exceeded - keep going if making progress";
       case 3:
-        return "🤔 Consider reviewing hints or moving to next problem";
+        return "Consider reviewing hints or moving to next problem";
       default:
         return null;
     }
   };
 
-  // Get timer color based on warning level
-  const getTimerColor = () => {
+  // Get timer CSS class based on warning level
+  const getTimerClass = () => {
     switch (timeWarningLevel) {
       case 1:
-        return "#FFA500"; // Orange
+        return "timer-warning-1";
       case 2:
-        return "#FF6B47"; // Red-orange
+        return "timer-warning-2";
       case 3:
-        return "#FF4444"; // Red
+        return "timer-warning-3";
       default:
-        return "#000000"; // Black
+        return "timer-normal";
+    }
+  };
+
+  // Get warning message CSS class based on warning level
+  const getWarningMessageClass = () => {
+    switch (timeWarningLevel) {
+      case 1:
+        return "timer-warning-message warning-1";
+      case 2:
+        return "timer-warning-message warning-2";
+      case 3:
+        return "timer-warning-message warning-3";
+      default:
+        return "timer-warning-message";
     }
   };
 
@@ -306,8 +324,13 @@ const TimerBanner = (props) => {
     return (
       <div className="timer-banner still-working-prompt">
         <div className="timer-banner-header">
-          <h1 style={{ color: getTimerColor() }}>Time Check</h1>
-          <GrClose onClick={handleClose} className="close-icon" />
+          <h1 className={getTimerClass()}>Time Check</h1>
+          <HiXMark 
+            onClick={handleClose} 
+            className="close-icon"
+            title="Close timer and return to menu"
+            aria-label="Close timer and return to menu"
+          />
         </div>
 
         <div className="timer-banner-content">
@@ -327,8 +350,8 @@ const TimerBanner = (props) => {
                 onClick={handleStillWorking}
                 style={{
                   padding: "8px 12px",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
+                  backgroundColor: "var(--cm-success, #4CAF50)",
+                  color: "var(--cm-btn-text, white)",
                   border: "none",
                   borderRadius: "4px",
                   cursor: "pointer",
@@ -340,8 +363,8 @@ const TimerBanner = (props) => {
                 onClick={handleStuck}
                 style={{
                   padding: "8px 12px",
-                  backgroundColor: "#FF9800",
-                  color: "white",
+                  backgroundColor: "var(--cm-warning, #FF9800)",
+                  color: "var(--cm-btn-text, white)",
                   border: "none",
                   borderRadius: "4px",
                   cursor: "pointer",
@@ -353,8 +376,8 @@ const TimerBanner = (props) => {
                 onClick={handleMoveOn}
                 style={{
                   padding: "8px 12px",
-                  backgroundColor: "#f44336",
-                  color: "white",
+                  backgroundColor: "var(--cm-error, #f44336)",
+                  color: "var(--cm-btn-text, white)",
                   border: "none",
                   borderRadius: "4px",
                   cursor: "pointer",
@@ -374,10 +397,15 @@ const TimerBanner = (props) => {
   return (
     <div className="timer-banner">
       <div className="timer-banner-header">
-        <h1 style={{ color: getTimerColor() }}>
+        <h1 className={getTimerClass()}>
           {isUnlimitedMode ? "Timer (No Limits)" : "Timer"}
         </h1>
-        <GrClose onClick={handleClose} className="close-icon" />
+        <HiXMark 
+          onClick={handleClose} 
+          className="close-icon"
+          title="Close timer and return to menu"
+          aria-label="Close timer and return to menu"
+        />
       </div>
 
       <div className="timer-banner-content">
@@ -388,7 +416,8 @@ const TimerBanner = (props) => {
           style={{
             fontSize: "11px",
             textAlign: "center",
-            color: "#666666",
+            color: "var(--cm-timer-text, #000000)",
+            opacity: 0.7,
             marginTop: "2px",
             fontStyle: "italic",
           }}
@@ -401,10 +430,10 @@ const TimerBanner = (props) => {
         {/* Warning message display (only for guided mode) */}
         {!isUnlimitedMode && getWarningMessage() && (
           <div
+            className={getWarningMessageClass()}
             style={{
               fontSize: "12px",
               textAlign: "center",
-              color: getTimerColor(),
               marginTop: "5px",
               fontWeight: "bold",
             }}
@@ -415,8 +444,12 @@ const TimerBanner = (props) => {
       </div>
 
       <div className="timer-banner-controls">
-        <GrPowerReset style={{ color: "black" }} onClick={handleReset} />
-        <AiOutlineClear style={{ color: "black" }} />
+        <HiArrowPath 
+          onClick={handleReset} 
+          title="Reset timer to 00:00"
+          aria-label="Reset timer to 00:00"
+          style={{ cursor: 'pointer' }}
+        />
         {/* Add hint button as part of timer controls */}
         {processedTags.length > 0 && (
           <div style={{ display: "flex", alignItems: "center" }}>
@@ -430,11 +463,26 @@ const TimerBanner = (props) => {
           </div>
         )}
         {isTimerRunning ? (
-          <FaPause style={{ color: "black" }} onClick={handleStop} />
+          <HiPause 
+            onClick={handleStop} 
+            title="Pause timer"
+            aria-label="Pause timer"
+            style={{ cursor: 'pointer' }}
+          />
         ) : (
-          <FaPlay style={{ color: "black" }} onClick={handleStart} />
+          <HiPlay 
+            onClick={handleStart} 
+            title="Start timer"
+            aria-label="Start timer"
+            style={{ cursor: 'pointer' }}
+          />
         )}
-        <FaArrowRight style={{ color: "black" }} onClick={handleComplete} />
+        <HiArrowRight 
+          onClick={handleComplete} 
+          title="Complete problem and submit"
+          aria-label="Complete problem and submit"
+          style={{ cursor: 'pointer' }}
+        />
       </div>
     </div>
   );
