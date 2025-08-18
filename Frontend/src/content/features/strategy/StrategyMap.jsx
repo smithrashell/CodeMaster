@@ -72,6 +72,34 @@ const StrategyMap = () => {
       newExpandedTiers.add(tierName);
     }
     setExpandedTiers(newExpandedTiers);
+
+    // Enhanced container height management for proper expansion
+    setTimeout(() => {
+      const sidebarContent = document.querySelector('.cm-sidenav__content');
+      const strategyContainer = document.querySelector('.tag-strategy-container');
+      
+      if (sidebarContent && strategyContainer) {
+        if (newExpandedTiers.size > 0) {
+          // Add expanded class for CSS targeting
+          sidebarContent.classList.add('strategy-expanded');
+          strategyContainer.classList.add('expanded');
+          
+          // Ensure container can expand to full height
+          sidebarContent.style.maxHeight = 'none';
+          sidebarContent.style.height = 'auto';
+          sidebarContent.style.overflowY = 'visible';
+        } else {
+          // Remove expanded class and restore height constraints
+          sidebarContent.classList.remove('strategy-expanded');
+          strategyContainer.classList.remove('expanded');
+          
+          // Restore scroll behavior for collapsed state
+          sidebarContent.style.maxHeight = '';
+          sidebarContent.style.height = '';
+          sidebarContent.style.overflowY = '';
+        }
+      }
+    }, 50); // Small delay to ensure DOM updates
   };
 
   if (loading) {

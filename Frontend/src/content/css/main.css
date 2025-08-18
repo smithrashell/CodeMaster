@@ -248,6 +248,12 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
     padding-top: 35px;
     gap: 10px;
   }
+  
+  /* Reduce padding for form containers on small screens */
+  .cm-extension .cm-sidenav__content:has(.form) {
+    padding-top: 25px !important;
+  }
+  
   .cm-extension .cm-sidenav a {
     font-size: 16px;
     padding: 10px 16px !important;
@@ -315,7 +321,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
 }
 
 .cm-extension .cm-sidenav {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: clamp(
@@ -325,6 +331,10 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   );
   height: 100vh;
   max-height: 100vh;
+  /* Prevent affecting page layout */
+  contain: layout size style;
+  /* Ensure sidebar doesn't compete with dropdown z-index */
+  z-index: 9000 !important;
   padding: var(--cm-content-padding);
   background-color: var(--cm-bg);
   border: 2px solid var(--cm-bg);
@@ -334,14 +344,16 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   z-index: var(--cm-z-sidebar);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
   box-sizing: border-box;
+  /* Ensure it doesn't cause horizontal scrolling */
+  overflow: hidden;
 }
 
 .cm-sidenav__content {
-  margin-top: 10px;
+  margin-top: 8px;
   width: 100%;
-  height: calc(100vh - 80px);
-  max-height: calc(100vh - 80px);
-  overflow-y: hidden;
+  height: calc(100vh - 70px);
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
   overflow-x: hidden;
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -350,7 +362,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   flex-direction: column;
   align-items: flex-start;
   box-sizing: border-box;
-  padding-right: 4px;
+  padding-right: 6px;
 }
 
 .cm-sidenav__content p {
@@ -425,7 +437,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   padding: 12px 24px !important;
   font-weight: 600 !important;
   font-size: 14px !important;
-  margin-top: 20px !important;
+  margin-top: 8px !important;
   width: 100% !important;
   cursor: pointer !important;
   transition: background-color 0.3s ease !important; /* Removed color transition to prevent theme bleeding */
@@ -443,17 +455,83 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   margin-top: 4px !important;
 }
 
-/* Form spacing improvements */
+/* Form spacing and layout improvements */
 .cm-extension .form {
-  gap: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  max-height: calc(100vh - 140px) !important;
+  overflow-y: auto !important;
+  padding: 12px 16px !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
 }
 
-.cm-extension .MuiFormLabel-root {
-  color: var(--cm-text) !important;
-  font-weight: 500 !important;
-  margin-bottom: 6px !important;
-  font-size: 14px !important;
+/* Specific optimization for forms inside sidebar content */
+.cm-extension .cm-sidenav__content .form {
+  max-height: calc(100vh - 160px) !important;
+  gap: 6px !important;
+  padding: 8px 12px !important;
+  /* CRITICAL: Ensure form inputs are interactable */
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1001 !important;  /* Higher than sidebar but lower than dropdown */
 }
+
+/* CRITICAL FIX: Ensure all form inputs can receive events */
+.cm-extension .cm-sidenav__content .form input,
+.cm-extension .cm-sidenav__content .form select,
+.cm-extension .cm-sidenav__content .form textarea {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1002 !important;  /* Higher than form but lower than dropdown */
+}
+
+/* Reduce sidebar padding when containing a form */
+.cm-extension .cm-sidenav__content:has(.form) {
+  padding-top: 8px !important;
+  padding-bottom: 4px !important;
+}
+
+/* Alternative selector for browsers that don't support :has() */
+.cm-extension .cm-sidenav.problink .cm-sidenav__content {
+  padding-top: 6px !important;
+  padding-bottom: 4px !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+
+/* Form labels now handled by custom SimpleLabel component */
+
+/* Problem Submission Form Container */
+.cm-extension .form input[type="submit"] {
+  background-color: var(--cm-active-blue) !important;
+  color: white !important;
+  border: none !important;
+  padding: 10px 20px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  margin-top: 6px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+/* Compact submit button in sidebar */
+.cm-extension .cm-sidenav__content .form input[type="submit"] {
+  padding: 8px 16px !important;
+  margin-top: 4px !important;
+  font-size: 12px !important;
+}
+
+.cm-extension .form input[type="submit"]:hover {
+  background-color: var(--cm-active-blue-hover, #2563eb) !important;
+}
+
+/* Material-UI Input/TextField styling removed - now using native HTML inputs */
+
+/* Material-UI cleanup - All Material-UI CSS removed since components replaced with native HTML */
+
 
 /* .error {
   outline: 1px solid red;
@@ -522,9 +600,17 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
 }
 
 /* Statistics Page Styling */
-.cm-extension .cm-stats-container {
-  margin: 20px !important;
+.cm-extension .cm-stats-container,
+.cm-extension .cd-stats-container {
+  margin: 20px auto !important;
   padding: 5px 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .cm-extension .cm-stats-loading {
@@ -584,7 +670,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
 }
 
 .cm-extension .cm-stats-hint {
-  margin-top: 20px !important;
+  margin-top: 8px !important;
   padding: 16px !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
   border-radius: 8px !important;
@@ -601,6 +687,15 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   margin-bottom: 6px !important;
   color: var(--cm-text) !important;
   font-size: 14px !important;
+}
+
+.cm-extension .cm-stats-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .cm-extension .cm-stats-summary {
@@ -637,6 +732,14 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   margin-top: 4px !important;
 }
 
+.cm-extension .cm-stats-breakdown {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 .cm-extension .cm-stats-breakdown h4 {
   color: var(--cm-text) !important;
   margin-bottom: 16px !important;
@@ -646,6 +749,11 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
 
 .cm-extension .cm-stat-row {
   margin-bottom: 16px !important;
+  width: 100% !important;
+  max-width: 280px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }
 
 .cm-extension .cm-stat-info {
@@ -653,6 +761,7 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   justify-content: space-between !important;
   align-items: center !important;
   margin-bottom: 6px !important;
+  width: 100% !important;
 }
 
 .cm-extension .cm-stat-level {
@@ -1125,20 +1234,49 @@ body[data-theme="dark"] #cm-menuButton:hover {
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
-/* Ensure dropdowns can appear above sidenav - but maintain scroll for problem sidebar */
+/* FORM CONTAINER FIX: Ensure form inputs are interactable */
 .cm-extension .cm-sidenav__content {
   overflow: visible !important;
+  pointer-events: auto !important;
+  position: relative !important;
 }
 
-/* Override for problem sidebar to match other sidebars */
-.cm-extension .cm-sidenav.problem-sidebar-view .cm-sidenav__content {
+/* Specific fix for problem submission forms */
+.cm-extension .cm-sidenav.problink .cm-sidenav__content {
   overflow-y: visible !important;
   overflow-x: visible !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 1000 !important;  /* Lower than dropdown z-index */
+}
+
+/* Override for problem sidebar to enable proper scrolling - HIGHEST PRIORITY */
+.cm-extension .cm-sidenav.problem-sidebar-view .cm-sidenav__content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   scroll-behavior: smooth !important;
   /* Enhanced scroll management */
   overscroll-behavior: contain !important;
-  scroll-padding-top: 20px !important;
-  scroll-padding-bottom: 20px !important;
+  scroll-padding-top: 15px !important;
+  scroll-padding-bottom: 15px !important;
+  /* Ensure proper height for scrolling */
+  max-height: calc(100vh - 60px) !important;
+  padding-right: 8px !important;
+  /* Force override any conflicting rules */
+  min-height: auto !important;
+  /* Center all content within the problem sidebar */
+  align-items: center !important;
+  text-align: center !important;
+}
+
+/* Override height constraints when strategy map content is expanded */
+.cm-extension .cm-sidenav.problem-sidebar-view .cm-sidenav__content:has(.expanded) {
+  /* Allow content to expand beyond viewport when strategy content is expanded */
+  max-height: none !important;
+  height: auto !important;
+  overflow-y: visible !important;
+  /* Maintain horizontal constraints */
+  overflow-x: hidden !important;
 }
 
 .cm-extension .cm-form-group {
@@ -1282,8 +1420,8 @@ body[data-theme="dark"] .cm-extension .cm-strategy-locked-tag {
   color: #9ca3af !important;
 }
 
-/* Strategy Map Container Scrolling */
-.cm-extension .cm-sidenav .cm-sidenav__content {
+/* Strategy Map Container Scrolling - DISABLED FOR FORM FIX */
+.cm-extension .cm-sidenav:not(.problink):not(.problem-sidebar-view) .cm-sidenav__content {
   overflow-y: hidden !important;
   max-height: calc(100vh - 80px) !important;
   padding-right: 8px !important;
@@ -1394,15 +1532,26 @@ body[data-theme="light"] .cm-extension .cm-strategy-locked-tag {
    ADDITIONAL TAG STRATEGY ENHANCEMENTS FOR SCROLL AND SIZE ISSUES
    ============================================================================ */
 
-/* Ensure sidebar content properly handles dynamic content */
-.cm-extension .cm-sidenav__content {
+/* Ensure sidebar content properly handles dynamic content - DISABLED FOR FORMS */
+.cm-extension .cm-sidenav:not(.problink):not(.problem-sidebar-view) .cm-sidenav__content {
   /* Force proper scrolling behavior */
   overflow-y: hidden !important;
   overflow-x: hidden !important;
   /* Prevent content jumping */
   scroll-behavior: smooth !important;
   /* Ensure proper height calculations */
-  min-height: calc(100vh - 80px) !important;
+  min-height: auto !important;
+}
+
+/* CRITICAL: Force scrolling for problem sidebar - maximum specificity */
+body .cm-extension .cm-sidenav.problem-sidebar-view .cm-sidenav__content {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  max-height: calc(100vh - 60px) !important;
+  scroll-behavior: smooth !important;
+  /* Center all content within the problem sidebar */
+  align-items: center !important;
+  text-align: center !important;
 }
 
 /* Enhanced tag button styling with maximum override power */
