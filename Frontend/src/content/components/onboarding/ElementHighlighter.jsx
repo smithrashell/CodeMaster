@@ -172,41 +172,43 @@ export function ElementHighlighter({
       )}
 
       {/* Add CSS animations */}
-      <style jsx>{`
-        @keyframes onboarding-pulse {
-          0% {
-            transform: scale(1);
-            opacity: 1;
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes onboarding-pulse {
+            0% {
+              transform: scale(1);
+              opacity: 1;
+            }
+            50% {
+              transform: scale(1.02);
+              opacity: 0.8;
+            }
+            100% {
+              transform: scale(1);
+              opacity: 1;
+            }
           }
-          50% {
-            transform: scale(1.02);
-            opacity: 0.8;
-          }
-          100% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
 
-        @keyframes onboarding-glow {
-          from {
-            box-shadow: 0 0 10px rgba(51, 154, 240, 0.5);
+          @keyframes onboarding-glow {
+            from {
+              box-shadow: 0 0 10px rgba(51, 154, 240, 0.5);
+            }
+            to {
+              box-shadow: 0 0 20px rgba(51, 154, 240, 0.8);
+            }
           }
-          to {
-            box-shadow: 0 0 20px rgba(51, 154, 240, 0.8);
-          }
-        }
 
-        @keyframes onboarding-bounce {
-          0%,
-          100% {
-            transform: translateY(0);
+          @keyframes onboarding-bounce {
+            0%,
+            100% {
+              transform: translateY(0);
+            }
+            50% {
+              transform: translateY(-8px);
+            }
           }
-          50% {
-            transform: translateY(-8px);
-          }
-        }
-      `}</style>
+        `
+      }} />
     </>
   );
 }

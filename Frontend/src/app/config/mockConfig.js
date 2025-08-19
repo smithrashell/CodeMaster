@@ -11,6 +11,13 @@
  * INCLUDES FALLBACKS for when NODE_ENV gets stuck on production during development
  */
 export const shouldUseMockDashboard = () => {
+  // Environment variable override - highest priority
+  if (process.env.USE_MOCK_SERVICE !== undefined) {
+    const useMock = process.env.USE_MOCK_SERVICE === 'true';
+    console.log('🔧 MOCK MODE via .env:', useMock);
+    return useMock;
+  }
+  
   // Manual override - check localStorage first for immediate control
   if (typeof window !== 'undefined' && localStorage.getItem('cm-force-mock') === 'true') {
     console.log('🔧 FORCED MOCK MODE via localStorage');
