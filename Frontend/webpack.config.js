@@ -2,6 +2,7 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
 const webpack = require("webpack");
+require("dotenv").config();
 
 module.exports = (env, argv) => {
   // Force development mode if using webpack.dev.js
@@ -39,6 +40,7 @@ module.exports = (env, argv) => {
     plugins: [
       new webpack.DefinePlugin({
         "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+        "process.env.USE_MOCK_SERVICE": JSON.stringify(process.env.USE_MOCK_SERVICE),
       }),
       new HtmlWebpackPlugin({
         template: "./src/app/app.html",

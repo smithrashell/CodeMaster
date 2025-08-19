@@ -38,6 +38,7 @@ import {
 } from "../shared/services/onboardingService";
 import { shouldUseMockDashboard } from "./config/mockConfig.js";
 import { getMockDashboardStatistics } from "./services/mockDashboardService.js";
+import { WelcomeModal } from "./components/onboarding/WelcomeModal.jsx";
 function App() {
   console.log("🚀 DASHBOARD APP INITIALIZED");
   console.log("📍 Router: Using MemoryRouter for Chrome extension compatibility");
@@ -45,16 +46,10 @@ function App() {
   const [appState, setAppState] = useState(null);
   const [_showOnboarding, _setShowOnboarding] = useState(false);
 
-  // Check onboarding status on app initialization (skip in mock mode)
+  // Check onboarding status on app initialization
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
-        // Skip onboarding in development/mock mode
-        if (shouldUseMockDashboard()) {
-          _setShowOnboarding(false);
-          return;
-        }
-
         const status = await checkOnboardingStatus();
         _setShowOnboarding(!status.isCompleted);
       } catch (error) {
@@ -327,6 +322,20 @@ function App() {
             </main>
           </div>
         </Router>
+        
+        {/* App Onboarding Modal */}
+        <WelcomeModal
+          opened={_showOnboarding}
+          onClose={() => _setShowOnboarding(false)}
+          onComplete={async () => {
+            try {
+              await completeOnboarding();
+              _setShowOnboarding(false);
+            } catch (error) {
+              console.error("Error completing onboarding:", error);
+            }
+          }}
+        />
       </ThemeProviderWrapper>
     </ErrorBoundary>
   );

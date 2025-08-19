@@ -373,7 +373,9 @@ export class ChromeMessagingDiagnostics {
     );
 
     try {
-      const request = indexedDB.open("review", 32);
+      // Import dbHelper to use correct version
+      const { dbHelper } = await import("../db/index.js");
+      const request = indexedDB.open(dbHelper.dbName, dbHelper.version);
 
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
