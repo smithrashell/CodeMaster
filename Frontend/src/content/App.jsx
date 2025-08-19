@@ -5,7 +5,6 @@ import ProbStat from "./features/statistics/ProblemStats";
 import Main, { Menubutton } from "./features/navigation/main";
 import ProbGen from "./features/problems/ProblemGenerator";
 import ProbTime from "./features/problems/ProblemTime";
-import StrategyMap from "./features/strategy/StrategyMap";
 import Settings from "./features/settings/Settings";
 import TimerBanner from "./components/timer/TimerComponent";
 import "@mantine/core/styles.css";
@@ -14,7 +13,6 @@ import { useNav } from "../shared/provider/navprovider";
 import ErrorBoundary from "../shared/components/ErrorBoundary";
 import {
   TimerErrorFallback,
-  StrategyErrorFallback,
   GenericErrorFallback,
 } from "../shared/components/ErrorFallback";
 
@@ -86,17 +84,6 @@ const Router = () => {
                   fallback={GenericErrorFallback}
                 >
                   <ProbGen />
-                </ErrorBoundary>
-              }
-            />
-            <Route
-              path="Strategy"
-              element={
-                <ErrorBoundary
-                  section="Strategy System"
-                  fallback={StrategyErrorFallback}
-                >
-                  <StrategyMap />
                 </ErrorBoundary>
               }
             />

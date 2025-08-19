@@ -7,9 +7,12 @@ import { DoubleNavbar } from "../../../shared/components/DoubleNavbar.jsx";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ContentOnboardingTour } from "../../components/onboarding";
+import { PageSpecificTour } from "../../components/onboarding/PageSpecificTour";
+import { usePageTour } from "../../components/onboarding/usePageTour";
 import {
   checkContentOnboardingStatus,
   completeContentOnboarding,
+  resetContentOnboarding,
   getResumeStep,
 } from "../../../shared/services/onboardingService";
 import { shouldUseMockDashboard } from "../../../app/config/mockConfig.js";
@@ -114,8 +117,11 @@ const Main = () => {
   const [showContentOnboarding, setShowContentOnboarding] = useState(false);
   const [contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
   
-  // DEVELOPMENT OVERRIDE: Completely disable content onboarding in development
-  const FORCE_DISABLE_ONBOARDING = shouldUseMockDashboard();
+  // Page-specific tour management
+  const { showTour: showPageTour, tourConfig: pageTourConfig, onTourComplete: handlePageTourComplete, onTourClose: handlePageTourClose } = usePageTour();
+  
+  // Content onboarding is now always enabled
+  const FORCE_DISABLE_ONBOARDING = false;
 
   // Function to fetch problem data based on the problem slug
   const fetchProblemData = useCallback((problemSlug) => {
@@ -204,62 +210,58 @@ const Main = () => {
   // Check content onboarding status with resume capability
   useEffect(() => {
     const checkContentOnboarding = async () => {
+      // Manual override for testing
+      if (typeof window !== 'undefined' && localStorage.getItem('force-content-onboarding') === 'true') {
+        console.log("🔧 MANUAL OVERRIDE: Forcing content onboarding to show");
+        setShowContentOnboarding(true);
+        return;
+      }
+      
       try {
-        // Skip onboarding in development/mock mode - PRIORITY CHECK
-        if (shouldUseMockDashboard()) {
-          console.log("🎭 MOCK MODE: Skipping content onboarding completely");
-          setShowContentOnboarding(false);
-          setContentOnboardingStatus({ isCompleted: true }); // Set as completed to prevent any triggers
-          return;
-        }
-
-        console.log("🔍 PRODUCTION MODE: Checking content onboarding status...");
         const status = await checkContentOnboardingStatus();
-        console.log("📊 Content onboarding status received:", {
-          isCompleted: status.isCompleted,
-          currentStep: status.currentStep,
-          lastActiveStep: status.lastActiveStep,
-          startedAt: status.startedAt
-        });
+        console.log("📊 Main: Content onboarding status received:", status);
         setContentOnboardingStatus(status);
 
-        // Show onboarding tour if not completed - independent of data onboarding
+        // Show onboarding tour if not completed
         if (!status.isCompleted) {
-          console.log("✅ Content onboarding not completed, preparing to show tour");
-          console.log(`⏰ Delay time: ${status.lastActiveStep ? 500 : 1000}ms`);
+          console.log("✅ Content onboarding will show - not completed", { 
+            isCompleted: status.isCompleted, 
+            currentStep: status.currentStep,
+            lastActiveStep: status.lastActiveStep 
+          });
           
           // Small delay to ensure the DOM is ready
           const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
           setTimeout(() => {
-            console.log("🚀 TRIGGERING: Setting showContentOnboarding to true");
+            console.log("🎯 Setting showContentOnboarding to true");
             setShowContentOnboarding(true);
           }, delayTime);
         } else {
-          console.log("⏭️ Content onboarding already completed - no action needed");
+          console.log("⏭️ Content onboarding already completed - will NOT show", {
+            isCompleted: status.isCompleted,
+            completedAt: status.completedAt,
+            currentStep: status.currentStep
+          });
           setShowContentOnboarding(false);
         }
       } catch (error) {
         console.error("❌ Error checking content onboarding status:", error);
         
-        // STRENGTHENED: Always check mock mode first, even on error
-        if (shouldUseMockDashboard()) {
-          console.log("🎭 MOCK MODE ERROR HANDLER: Suppressing onboarding fallback completely");
-          setShowContentOnboarding(false);
-          setContentOnboardingStatus({ isCompleted: true }); // Prevent any future triggers
-          return;
-        }
-        
-        // Fallback: show onboarding anyway for new users (production only)
-        console.log("🔄 PRODUCTION ERROR FALLBACK: showing onboarding due to error");
+        // Fallback: show onboarding anyway for new users
         setTimeout(() => {
-          console.log("🚨 ERROR FALLBACK: Setting showContentOnboarding to true");
           setShowContentOnboarding(true);
         }, 1000);
       }
     };
-
-    console.log("🎬 Content onboarding useEffect triggered");
-    console.log("🎭 Mock mode status:", shouldUseMockDashboard());
+    
+    // Quick test - uncomment this line to force show onboarding immediately
+    // setTimeout(() => setShowContentOnboarding(true), 2000); // DISABLED: Let completion logic control visibility
+    
+    // RESET CONTENT ONBOARDING - uncomment to reset and test (run once then comment out)
+    // setTimeout(async () => {
+    //   console.log("🔄 RESETTING content onboarding to fix database corruption...");
+    //   await resetContentOnboarding();
+    // }, 1000);
     
     // Run immediately - no longer dependent on data onboarding
     checkContentOnboarding();
@@ -476,6 +478,17 @@ const Main = () => {
           isVisible={showContentOnboarding}
           onComplete={handleCompleteContentOnboarding}
           onClose={handleCloseContentOnboarding}
+        />
+      )}
+
+      {/* Page-Specific Tours */}
+      {pageTourConfig && (
+        <PageSpecificTour
+          tourId={pageTourConfig.id}
+          tourSteps={pageTourConfig.steps}
+          isVisible={showPageTour}
+          onComplete={handlePageTourComplete}
+          onClose={handlePageTourClose}
         />
       )}
     </div>
