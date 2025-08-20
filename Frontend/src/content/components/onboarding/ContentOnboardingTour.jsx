@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   Text,
-  Button,
   Group,
   Stack,
   ThemeIcon,
@@ -10,6 +10,7 @@ import {
   Progress,
   ActionIcon,
 } from "@mantine/core";
+import { SimpleButton } from "../../../shared/components/ui/SimpleButton";
 import {
   IconTarget,
   IconX,
@@ -60,14 +61,15 @@ const TOUR_STEPS = [
     id: "cm-button-interactive",
     title: "Opening the Menu",
     content:
-      "Great! Now click the CM button to see your CodeMaster dashboard. The menu will appear on the right side.",
+      "Perfect! Now we'll automatically open the CodeMaster dashboard for you. The menu will appear on the right side.",
     target: "#cm-menuButton",
     position: "auto",
     highlightType: "pointer",
     screenKey: "cmButton",
     interactionType: null,
-    actionPrompt: "Click the CM button to continue",
+    actionPrompt: null,
     waitForInteraction: false,
+    autoTriggerSelector: "#cm-menuButton",
   },
   {
     id: "navigation-overview",
@@ -135,22 +137,25 @@ const TOUR_STEPS = [
     requiresMenuOpen: true,
   },
   {
-    id: "strategy-hints",
-    title: "Smart Strategy Hints",
+    id: "guided-navigation",
+    title: "Let's Explore the Problem Generator!",
     content:
-      "Look for strategy hint buttons on problem pages. They provide contextual help when you're stuck, without giving away the solution.",
+      "Ready to see CodeMaster in action? We'll take you to the Problem Generator where you can find personalized problem recommendations and see how the strategy system works. Click the button below to continue your guided tour.",
     target: null,
     position: "center",
     highlightType: null,
-    screenKey: "strategyHints",
+    screenKey: "guidedNavigation",
     interactionType: null,
     actionPrompt: null,
+    hasNavigationButton: true,
+    navigationRoute: "/ProbGen",
+    navigationText: "Go to Problem Generator",
   },
   {
     id: "completion",
-    title: "You're All Set!",
+    title: "You're Ready to Start!",
     content:
-      "CodeMaster will now adapt to your learning style as you solve problems. Click the CM button anytime to access these features. Happy coding!",
+      "You've seen CodeMaster's complete toolkit: smart problem selection, tailored strategies, and progressive hints. Click on any problem in the generator to experience the full system. Happy coding!",
     target: null,
     position: "center",
     highlightType: null,
@@ -161,13 +166,7 @@ const TOUR_STEPS = [
 ];
 
 export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
-  console.log("🎯 ContentOnboardingTour rendered, isVisible:", isVisible);
-  
-  // SAFETY CHECK: Don't render in mock mode even if isVisible is true
-  if (shouldUseMockDashboard()) {
-    console.log("🎭 SAFETY: ContentOnboardingTour blocked - mock mode active");
-    return null;
-  }
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [tourPosition, setTourPosition] = useState({ top: 0, left: 0 });
   const [arrowPosition, setArrowPosition] = useState(null);
@@ -275,7 +274,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
 
   // Interaction handling
   useEffect(() => {
-    if (!isWaitingForInteraction || !currentStepData.waitForInteraction) return;
+    if ((!isWaitingForInteraction || !currentStepData.waitForInteraction) && !currentStepData.waitForUserClick) return;
 
     const handleInteraction = (event) => {
       if (
@@ -283,14 +282,20 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         currentStepData.target &&
         event.target.closest(currentStepData.target)
       ) {
-        console.log("CM button clicked, proceeding to next step");
+        console.log("User interaction detected:", currentStepData.target);
         setIsWaitingForInteraction(false);
 
-        // For CM button click, wait for menu to actually open
+        // Special handling for different interaction types
         if (currentStepData.target === "#cm-menuButton") {
           setTimeout(() => {
             handleNext();
           }, 500); // Longer delay for menu animation
+        } else if (currentStepData.target === "a[href='/ProbGen']") {
+          // User clicked Problem Generator - complete the main tour
+          console.log("User clicked Problem Generator, completing main tour");
+          setTimeout(() => {
+            onComplete();
+          }, 300);
         } else {
           setTimeout(() => {
             handleNext();
@@ -312,6 +317,22 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
     };
   }, [isWaitingForInteraction, currentStepData, handleNext]);
 
+  const proceedToNextStep = useCallback(() => {
+    if (currentStep < TOUR_STEPS.length - 1) {
+      const nextStep = currentStep + 1;
+      setCurrentStep(nextStep);
+      
+      // Check if next step requires user interaction
+      if (TOUR_STEPS[nextStep]?.waitForUserClick) {
+        setIsWaitingForInteraction(true);
+      } else {
+        setIsWaitingForInteraction(false);
+      }
+    } else {
+      onComplete();
+    }
+  }, [currentStep, onComplete]);
+
   const handleNext = useCallback(async () => {
     // Update progress in database
     try {
@@ -324,17 +345,45 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       console.error("Error updating onboarding progress:", error);
     }
 
-    // Always proceed to next step - no more waiting for interactions
-    if (currentStep < TOUR_STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
-      setIsWaitingForInteraction(false);
-    } else {
-      onComplete();
+    // Auto-trigger UI element if specified
+    if (currentStepData.autoTriggerSelector) {
+      const targetElement = document.querySelector(currentStepData.autoTriggerSelector);
+      if (targetElement) {
+        console.log("Auto-triggering element:", currentStepData.autoTriggerSelector);
+        targetElement.click();
+        // Wait for UI to respond before proceeding
+        // Longer delay for navigation steps
+        const delay = currentStepData.id === 'problem-generator-demo' ? 1000 : 600;
+        setTimeout(() => {
+          proceedToNextStep();
+        }, delay);
+        return;
+      } else {
+        console.warn("Auto-trigger target not found:", currentStepData.autoTriggerSelector);
+      }
     }
-  }, [currentStep, currentStepData, onComplete]);
+
+    // Proceed normally if no auto-trigger
+    proceedToNextStep();
+  }, [currentStep, currentStepData, onComplete, proceedToNextStep]);
 
   const handlePrevious = () => {
     if (currentStep > 0) {
+      const currentStepData = TOUR_STEPS[currentStep];
+      const previousStepData = TOUR_STEPS[currentStep - 1];
+
+      // Reverse menu state changes when going back
+      if (currentStepData?.requiresMenuOpen && !previousStepData?.requiresMenuOpen) {
+        // Current step required menu open, previous doesn't - close the menu
+        const menuButton = document.querySelector("#cm-menuButton");
+        const menuElement = document.querySelector("#cm-mySidenav");
+        
+        if (menuButton && menuElement && !menuElement.classList.contains("cm-hidden")) {
+          console.log("🔙 Back button: Closing menu (reversing state)");
+          menuButton.click();
+        }
+      }
+
       setCurrentStep(currentStep - 1);
       setIsWaitingForInteraction(false);
     }
@@ -343,6 +392,17 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   const handleSkip = () => {
     onClose();
   };
+
+  const handleNavigation = useCallback(() => {
+    if (currentStepData.navigationRoute) {
+      console.log("Navigating to:", currentStepData.navigationRoute);
+      navigate(currentStepData.navigationRoute);
+      // Complete the tour after navigation
+      setTimeout(() => {
+        onComplete();
+      }, 300);
+    }
+  }, [currentStepData, navigate, onComplete]);
 
   // Check if current step should be shown (e.g., menu needs to be open)
   const shouldShowStep = () => {
@@ -369,8 +429,8 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         return <IconSettings size={18} />;
       case "timer-feature":
         return <IconClock size={18} />;
-      case "strategy-hints":
-        return <IconBulb size={18} />;
+      case "guided-navigation":
+        return <IconPlayerPlay size={18} />;
       case "completion":
         return <IconHeart size={18} />;
       default:
@@ -378,7 +438,9 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
     }
   };
 
-  if (!isVisible || !shouldShowStep()) return null;
+  if (!isVisible || !shouldShowStep()) {
+    return null;
+  }
 
   return (
     <>
@@ -464,10 +526,10 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
                 {getStepIcon()}
               </ThemeIcon>
               <div style={{ flex: 1 }}>
-                <Text weight={600} size="xs" mb={2} lineHeight={1.3}>
+                <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
                   {currentStepData.title}
                 </Text>
-                <Text size="xs" color="dimmed" lineHeight={1.3}>
+                <Text size="xs" color="dimmed" style={{ lineHeight: 1.3 }}>
                   {currentStepData.content}
                 </Text>
               </div>
@@ -485,131 +547,118 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
               >
                 <Group spacing="xs">
                   <IconClick size={12} color="#1976d2" />
-                  <Text size="xs" color="#1976d2" weight={500} lineHeight={1.2}>
+                  <Text size="xs" color="#1976d2" weight={500} style={{ lineHeight: 1.2 }}>
                     {currentStepData.actionPrompt}
                   </Text>
                 </Group>
               </div>
             )}
 
-            {/* Controls - Forced horizontal layout with flexbox */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "6px",
-                marginTop: "8px",
-                width: "100%",
-              }}
-            >
-              <Button
-                variant="subtle"
-                size="sm"
-                onClick={handlePrevious}
-                disabled={currentStep === 0}
-                styles={{
-                  root: {
-                    height: "28px",
-                    minHeight: "28px",
-                    padding: "0 12px",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    flex: "1",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                  inner: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                  label: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
+            {/* Controls - Navigation or Standard Layout */}
+            {currentStepData.hasNavigationButton ? (
+              // Navigation Button Layout
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "8px",
+                  marginTop: "8px",
+                  width: "100%",
                 }}
               >
-                <IconChevronLeft size={12} style={{ marginRight: 4 }} />
-                Back
-              </Button>
+                <SimpleButton
+                  variant="primary"
+                  size="md"
+                  onClick={handleNavigation}
+                  style={{ width: "100%" }}
+                >
+                  <IconChevronRight size={14} style={{ marginRight: 6 }} />
+                  {currentStepData.navigationText || "Continue"}
+                </SimpleButton>
+                
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    gap: "6px",
+                  }}
+                >
+                  <SimpleButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 0}
+                    style={{ flex: 1 }}
+                  >
+                    <IconChevronLeft size={12} style={{ marginRight: 4 }} />
+                    Back
+                  </SimpleButton>
 
-              <Button
-                size="sm"
-                onClick={handleNext}
-                disabled={false}
-                styles={{
-                  root: {
-                    height: "28px",
-                    minHeight: "28px",
-                    padding: "0 12px",
-                    fontSize: "12px",
-                    fontWeight: 500,
-                    flex: "1",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                  inner: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                  label: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
+                  <SimpleButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSkip}
+                    style={{ flex: 1 }}
+                  >
+                    Skip Tour
+                  </SimpleButton>
+                </div>
+              </div>
+            ) : (
+              // Standard Control Layout
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "6px",
+                  marginTop: "8px",
+                  width: "100%",
                 }}
               >
-                {currentStep === TOUR_STEPS.length - 1 ? (
-                  <>
-                    Finish
-                    <IconCheck size={12} style={{ marginLeft: 4 }} />
-                  </>
-                ) : (
-                  <>
-                    Next
-                    <IconChevronRight size={12} style={{ marginLeft: 4 }} />
-                  </>
-                )}
-              </Button>
+                <SimpleButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handlePrevious}
+                  disabled={currentStep === 0}
+                  style={{ flex: 1, minWidth: "70px" }}
+                >
+                  <IconChevronLeft size={12} style={{ marginRight: 4 }} />
+                  Back
+                </SimpleButton>
 
-              <Button
-                variant="subtle"
-                size="sm"
-                color="gray"
-                onClick={handleSkip}
-                styles={{
-                  root: {
-                    height: "28px",
-                    minHeight: "28px",
-                    padding: "0 8px",
-                    fontSize: "11px",
-                    fontWeight: 400,
-                    flex: "0 0 auto",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                  inner: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                  label: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  },
-                }}
-              >
-                Skip
-              </Button>
-            </div>
+                <SimpleButton
+                  variant="primary"
+                  size="sm"
+                  onClick={handleNext}
+                  disabled={false}
+                  style={{ flex: 1, minWidth: "80px" }}
+                >
+                  {currentStep === TOUR_STEPS.length - 1 ? (
+                    <>
+                      Finish
+                      <IconCheck size={12} style={{ marginLeft: 4 }} />
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <IconChevronRight size={12} style={{ marginLeft: 4 }} />
+                    </>
+                  )}
+                </SimpleButton>
+
+                <SimpleButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSkip}
+                  style={{ flexShrink: 0, minWidth: "50px" }}
+                >
+                  Skip
+                </SimpleButton>
+              </div>
+            )}
           </Stack>
         </Card>
       </div>

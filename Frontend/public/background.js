@@ -591,6 +591,42 @@ const handleRequest = async (request, sender, sendResponse) => {
         })().finally(finishRequest);
         return true;
 
+      /** ──────────────── Database Proxy ──────────────── **/
+      case "DATABASE_OPERATION":
+        (async () => {
+          try {
+            const { operation, params } = request;
+            const { getRecord, addRecord, updateRecord, deleteRecord, getAllFromStore } = await import("../src/shared/db/common.js");
+
+            let result;
+            switch (operation) {
+              case "getRecord":
+                result = await getRecord(params.storeName, params.id);
+                break;
+              case "addRecord":
+                result = await addRecord(params.storeName, params.record);
+                break;
+              case "updateRecord":
+                result = await updateRecord(params.storeName, params.id, params.record);
+                break;
+              case "deleteRecord":
+                result = await deleteRecord(params.storeName, params.id);
+                break;
+              case "getAllFromStore":
+                result = await getAllFromStore(params.storeName);
+                break;
+              default:
+                throw new Error(`Unknown database operation: ${operation}`);
+            }
+
+            sendResponse({ data: result });
+          } catch (error) {
+            console.error(`❌ Database proxy error:`, error);
+            sendResponse({ error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
       default:
         sendResponse({ error: "Unknown request type" });
         finishRequest();
