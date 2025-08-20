@@ -4,6 +4,56 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.24] - 2025-08-19
+
+### 🔧 Critical Database Context Management & Onboarding System Fixes
+
+**Database Architecture Overhaul:**
+- **Fixed IndexedDB Multiple Context Conflict** - Resolved duplicate database issue between background script and content script contexts
+- **Eliminated Version Conflicts** - Fixed hardcoded database version (32) in `ChromeMessagingDiagnostics.js` causing corruption with main database (version 34)
+- **Implemented Database Proxy System** - Created `DatabaseProxy` service (`Frontend/src/shared/services/databaseProxy.js`) for secure content script database operations
+- **Added Context-Aware Database Access** - All database operations now route through appropriate context (direct for background, proxy for content scripts)
+
+**Onboarding System Restoration:**
+- **Fixed Content Onboarding Triggering** - Resolved issue where content onboarding wouldn't show after app onboarding completion
+- **Enhanced Database Integrity Checks** - Added automatic repair of missing `pageProgress` properties and validation
+- **Improved Page-Specific Tours** - Updated timer tour with strategy menu highlighting and proper menu state management
+- **Added Back Button State Reversal** - Back button now properly closes menu when navigating backwards from steps that opened it
+
+**Technical Improvements:**
+- **Enhanced Tour Navigation** - Added guided navigation from main tour to Problem Generator with seamless handoff
+- **Fixed React Console Warnings** - Resolved `lineHeight` prop and `jsx` attribute warnings for cleaner development experience
+- **Comprehensive Debug Logging** - Added detailed logging system for database operations and onboarding flow debugging
+- **Database Reset Functionality** - Created `resetContentOnboarding()` function for development and troubleshooting
+
+**Architecture Benefits:**
+- **Single Database Instance** - Eliminated race conditions and data corruption from multiple IndexedDB contexts
+- **Consistent Data Flow** - All onboarding records properly synchronized across extension contexts  
+- **Future-Proof Design** - Prevents similar context conflicts and provides scalable database access pattern
+- **Enhanced Reliability** - Proper error handling and fallback mechanisms for database operations
+
+**Files Changed (16 files, 668 insertions, 1277 deletions):**
+
+**New Files Created:**
+- `Frontend/src/shared/services/databaseProxy.js` - Database proxy service for content script operations
+- `Frontend/src/content/components/onboarding/PageSpecificTour.jsx` - Page-specific tour component
+- `Frontend/src/content/components/onboarding/pageTourConfigs.js` - Tour configurations for different pages
+- `Frontend/src/content/components/onboarding/usePageTour.js` - React hook for page tour management
+- `Frontend/src/shared/components/ui/SimpleButton.jsx` - Reusable UI button component
+
+**Core System Files:**
+- `Frontend/public/background.js` - Added database proxy message handler (+36 lines)
+- `Frontend/src/shared/services/onboardingService.js` - Context-aware database access implementation (+226 lines)
+- `Frontend/src/content/features/navigation/main.jsx` - Enhanced onboarding flow control (+85 modifications)
+- `Frontend/src/content/components/onboarding/ContentOnboardingTour.jsx` - Tour improvements and navigation (+339 modifications)
+
+**Bug Fixes:**
+- `Frontend/src/shared/utils/ChromeMessagingDiagnostics.js` - Fixed hardcoded database version conflict
+- `Frontend/src/content/components/onboarding/ElementHighlighter.jsx` - Removed styled-jsx dependency, fixed React warnings
+- `Frontend/src/app/app.jsx` - Enhanced onboarding initialization (+23 modifications)
+
+---
+
 ## [0.10.23] - 2025-08-18
 
 ### 🎯 Major Dashboard Navigation & Analytics Overhaul
