@@ -102,6 +102,38 @@ export function ProductivityInsights() {
         title: "Most active",
         body: `${mostActive.time} has the highest session count (${mostActive.sessions}).`
       });
+
+      // Reflection insights
+      const reflectionData = appState?.reflectionData || {};
+      const reflectionsCount = reflectionData.reflectionsCount || 0;
+      const totalProblems = totalSessions * 3; // Assuming ~3 problems per session
+      const reflectionRate = totalProblems > 0 ? (reflectionsCount / totalProblems) * 100 : 0;
+
+      if (reflectionRate > 75) {
+        generatedInsights.push({
+          title: "Great reflection habit",
+          body: `${Math.round(reflectionRate)}% reflection rate shows strong learning mindset.`
+        });
+      } else if (reflectionRate > 25) {
+        generatedInsights.push({
+          title: "Growing reflection practice",
+          body: `${Math.round(reflectionRate)}% reflection rate - keep building this habit!`
+        });
+      } else if (totalProblems > 10) {
+        generatedInsights.push({
+          title: "Reflection opportunity",
+          body: `Try reflecting on challenging problems to accelerate learning.`
+        });
+      }
+
+      // Common reflection themes
+      if (reflectionData.commonThemes && reflectionData.commonThemes.length > 0) {
+        const topTheme = reflectionData.commonThemes[0];
+        generatedInsights.push({
+          title: "Learning pattern",
+          body: `Most common challenge: "${topTheme}" - focus area identified!`
+        });
+      }
     }
     
     setInsights(generatedInsights);
@@ -134,11 +166,12 @@ export function ProductivityInsights() {
         </Group>
 
         {/* KPI Strip - Slim hero section */}
-        <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
+        <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
           <SlimKPI title="Study Streak" value="7" sub="days" />
           <SlimKPI title="Sessions" value={totalSessions} sub={timeRange.toLowerCase()} />
           <SlimKPI title="Accuracy" value={`${avgAccuracy}%`} sub="average" />
           <SlimKPI title="Peak Hour" value={peakHour} sub="best time" />
+          <SlimKPI title="Reflection Rate" value={`${Math.round(((appState?.reflectionData?.reflectionsCount || 0) / Math.max(totalSessions * 3, 1)) * 100)}%`} sub="engagement" />
         </SimpleGrid>
 
         {/* Row 1: Key Insights and Recommendations - Two separate cards */}
