@@ -77,6 +77,7 @@
   overflow-wrap: break-word !important;
   white-space: normal !important;
   display: block !important;
+  text-align: left !important;
 }
 
 /* Problem link hover state */
