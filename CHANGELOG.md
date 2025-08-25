@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.26] - 2025-08-25
+
+### 🔗 Enhanced Pattern Discovery & Similar Problems System
+
+**Major Similar Problems Feature Implementation:**
+- **Enhanced Problem Generator** - Added intelligent similar problems display in Generator hover tooltips using existing 29,840+ relationship database entries
+- **ID Format Resolution** - Fixed critical ID mapping issue preventing similar problems from appearing (leetCodeID vs numeric ID mismatch)
+- **Duplicate Prevention** - Added smart filtering to prevent current problem from appearing in its own similar problems list
+- **Human-Readable Reasoning** - Transformed cryptic "New: Easy" selection reasons into clear explanations like "This introduces fundamental problem-solving patterns with Easy difficulty"
+
+**UI/UX Improvements:**
+- **Left-Aligned Layout** - Fixed text alignment in Generator for better readability, changed from center to left alignment
+- **Enhanced Visual Design** - Improved similar problems formatting with better spacing, typography, and visual hierarchy
+- **Interactive Hover Experience** - Smooth 200ms debounced hover with expandable sections showing reasoning and related problems
+- **Difficulty Badges** - Color-coded difficulty indicators (Easy: green, Medium: orange, Hard: red) with compact single-letter display
+- **Connection Indicators** - Added blue arrow (▸) bullets and relationship strength visualization
+
+**Backend Integration & Performance:**
+- **Comprehensive ID Mapping** - Intelligent conversion between leetCodeID, numeric IDs, and slug formats for robust problem lookups
+- **Optimized Database Queries** - Direct numeric ID relationships lookup with standard problems integration
+- **Smart Caching** - Problem similarity results cached to prevent repeated API calls during hover interactions
+- **Error Handling** - Graceful fallback states with encouraging "No patterns discovered yet" messaging
+
+**Pattern Recognition System:**
+- **Relationship Data Surfacing** - Successfully connected Generator to existing sophisticated problem relationship database (29K+ entries)  
+- **Connection Strength Display** - Similar problems sorted by relationship strength with truncated titles for compact display
+- **Learning Context Integration** - Pattern discovery integrated directly into problem selection workflow
+- **Contextual Learning** - Shows "why this problem" reasoning exactly when users are making problem selection decisions
+
+**Technical Architecture:**
+- **Enhanced Background Script** - Added `getSimilarProblems` Chrome messaging handler with comprehensive data mapping
+- **Standardized Problem Data** - Integration with `getAllStandardProblems` for authoritative problem information
+- **React Hook Integration** - Proper useCallback optimization for hover handlers with cleanup
+- **CSS Framework Updates** - Enhanced `.cm-simple-problem-link` styling for consistent left alignment
+
+**Files Changed (8 files, 502 insertions, 22 deletions):**
+
+**Core Feature Files:**
+- `Frontend/src/content/features/problems/ProblemGenerator.jsx` - Major enhancement with similar problems integration and human-readable reasoning (+183 lines)
+- `Frontend/public/background.js` - Added getSimilarProblems handler with ID mapping and relationship queries (+70 lines)
+- `Frontend/src/content/components/problem/WhyThisProblem.jsx` - Enhanced with pattern discovery integration (+120 lines)
+- `Frontend/src/app/services/dashboardService.js` - Extended analytics capabilities for pattern discovery support (+101 lines)
+
+**Supporting Files:**
+- `Frontend/src/content/css/probrec.css` - Added left text alignment for improved readability (+1 line)
+- `Frontend/src/content/features/problems/ProblemDetail.jsx` - Integration with enhanced pattern system (+1 line)
+- `Frontend/src/content/features/problems/ProblemSubmission.jsx` - Reflection system integration (+13 lines)
+- `Frontend/src/app/pages/sessions/productivity-insights.jsx` - Analytics integration for pattern insights (+35 lines)
+
+**🎯 User Impact:**
+Users now see intelligent similar problems recommendations directly in the Generator interface, with clear explanations of why problems were selected and how they connect to other problems in their learning journey. This transforms passive problem selection into active pattern recognition and learning path awareness.
+
+---
+
 ## [0.10.25] - 2025-08-25
 
 ### 🎯 UI/UX Improvements & Data Consistency Fixes
