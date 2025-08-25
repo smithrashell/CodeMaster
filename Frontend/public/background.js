@@ -732,6 +732,76 @@ const handleRequest = async (request, sender, sendResponse) => {
         finishRequest();
         return true;
 
+      case "getSimilarProblems":
+        (async () => {
+          try {
+            const { buildRelationshipMap } = await import("../src/shared/db/problem_relationships.js");
+            const { fetchAllProblems } = await import("../src/shared/db/problems.js");
+            const { getAllStandardProblems } = await import("../src/shared/db/standard_problems.js");
+            
+            // Get all data sources
+            const relationshipMap = await buildRelationshipMap();
+            const allUserProblems = await fetchAllProblems();
+            const standardProblems = await getAllStandardProblems();
+            
+            // Create comprehensive ID mapping from standard problems (the authoritative source)
+            const standardProblemsById = new Map(); // numeric id -> standard problem
+            const slugToStandardProblem = new Map(); // slug -> standard problem
+            const titleToStandardProblem = new Map(); // title -> standard problem
+            
+            standardProblems.forEach(problem => {
+              standardProblemsById.set(problem.id, problem);
+              if (problem.slug) {
+                slugToStandardProblem.set(problem.slug, problem);
+              }
+              if (problem.title) {
+                titleToStandardProblem.set(problem.title, problem);
+              }
+            });
+            
+            // Since we're now receiving numeric IDs directly from Generator, use them directly
+            const numericProblemId = parseInt(request.problemId);
+            
+            // Get similar problems from relationships using numeric ID
+            const relationships = relationshipMap.get(numericProblemId) || {};
+            
+            const similarProblems = [];
+            
+            // Sort by relationship strength and take top N
+            const sortedRelationships = Object.entries(relationships)
+              .sort(([,a], [,b]) => b - a) // Sort by strength descending
+              .slice(0, request.limit || 5);
+            
+            for (const [relatedNumericId, strength] of sortedRelationships) {
+              const relatedId = parseInt(relatedNumericId);
+              
+              // Skip if this is the same problem as the one we're getting similar problems for
+              if (relatedId === numericProblemId) {
+                continue;
+              }
+              
+              // Get standard problem data using numeric ID
+              const relatedStandardProblem = standardProblemsById.get(relatedId);
+              
+              if (relatedStandardProblem) {
+                similarProblems.push({
+                  id: relatedStandardProblem.id,
+                  title: relatedStandardProblem.title,
+                  difficulty: relatedStandardProblem.difficulty,
+                  slug: relatedStandardProblem.slug,
+                  strength: strength
+                });
+              }
+            }
+            
+            sendResponse({ similarProblems });
+          } catch (error) {
+            console.error("❌ getSimilarProblems error:", error);
+            sendResponse({ similarProblems: [] });
+          }
+        })().finally(finishRequest);
+        return true;
+
       /** ──────────────── Database Proxy ──────────────── **/
       case "DATABASE_OPERATION":
         (async () => {
