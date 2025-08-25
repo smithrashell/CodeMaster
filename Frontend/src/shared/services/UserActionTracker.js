@@ -4,6 +4,25 @@ import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { dbHelper } from "../db/index.js";
 
 /**
+ * Detect if we're running in a content script context
+ * Content scripts cannot access IndexedDB directly
+ */
+function isContentScriptContext() {
+  try {
+    return (
+      typeof chrome !== "undefined" && 
+      chrome.runtime && 
+      chrome.runtime.sendMessage &&
+      typeof document !== "undefined" &&
+      (window.location.protocol === "http:" || window.location.protocol === "https:") &&
+      !window.location.href.startsWith("chrome-extension://")
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * User Action Tracking Service for production analytics
  * Tracks user interactions and behaviors for insights and optimization
  */
@@ -25,53 +44,6 @@ export class UserActionTracker {
   static actionQueue = [];
   static isProcessing = false;
 
-  /**
-   * Initialize user action tracking store
-   */
-  static async ensureUserActionStore() {
-    const db = await dbHelper.openDB();
-
-    if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-      db.close();
-
-      const currentVersion = db.version;
-      const newVersion = currentVersion + 1;
-
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(dbHelper.dbName, newVersion);
-
-        request.onupgradeneeded = (event) => {
-          const upgradeDB = event.target.result;
-
-          if (!upgradeDB.objectStoreNames.contains(this.STORE_NAME)) {
-            const actionStore = upgradeDB.createObjectStore(this.STORE_NAME, {
-              keyPath: "id",
-              autoIncrement: true,
-            });
-
-            // Create indexes for efficient analytics queries
-            actionStore.createIndex("by_timestamp", "timestamp");
-            actionStore.createIndex("by_category", "category");
-            actionStore.createIndex("by_action", "action");
-            actionStore.createIndex("by_session", "sessionId");
-            actionStore.createIndex("by_user_agent", "userAgent");
-            actionStore.createIndex("by_url", "url");
-          }
-        };
-
-        request.onsuccess = (event) => {
-          dbHelper.db = event.target.result;
-          resolve(event.target.result);
-        };
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-      });
-    }
-
-    return db;
-  }
 
   /**
    * Track a user action with context
@@ -141,6 +113,15 @@ export class UserActionTracker {
       return;
     }
 
+    // Skip database operations in content script context
+    if (isContentScriptContext()) {
+      // eslint-disable-next-line no-console
+      console.warn("🚫 UserActionTracker: Skipping database operation in content script context");
+      // Clear the queue to prevent memory build-up
+      this.actionQueue = [];
+      return;
+    }
+
     this.isProcessing = true;
     const queryContext = performanceMonitor.startQuery(
       "batch_process_user_actions",
@@ -150,7 +131,6 @@ export class UserActionTracker {
     );
 
     try {
-      await this.ensureUserActionStore();
       const db = await dbHelper.openDB();
 
       const transaction = db.transaction([this.STORE_NAME], "readwrite");
@@ -206,7 +186,6 @@ export class UserActionTracker {
     sessionId = null,
   } = {}) {
     try {
-      await this.ensureUserActionStore();
       const db = await dbHelper.openDB();
 
       const transaction = db.transaction([this.STORE_NAME], "readonly");

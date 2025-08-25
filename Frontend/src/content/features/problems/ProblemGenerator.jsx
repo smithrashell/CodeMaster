@@ -92,10 +92,35 @@ const ProbGen = () => {
   // New approach using custom hook
   useChromeMessage({ type: "getCurrentSession" }, [], {
     onSuccess: (response) => {
+      console.log('🎯 ProblemGenerator received session response:', response);
+      
       if (response.session) {
-        setProblems(response.session);
+        // Validate session object structure
+        if (response.session.problems && Array.isArray(response.session.problems)) {
+          console.log('✅ Setting problems from session.problems:', response.session.problems.length, 'problems');
+          setProblems(response.session.problems);
+        } else {
+          console.warn('❌ Invalid session structure - missing problems array:', response.session);
+          setProblems([]);
+        }
+      } else {
+        console.warn('❌ No session received, creating new session...');
+        // Trigger session creation as fallback
+        chrome.runtime.sendMessage({ type: 'createOrResumeSession' }, (createResponse) => {
+          if (createResponse?.session?.problems) {
+            console.log('✅ Created session with problems:', createResponse.session.problems.length);
+            setProblems(createResponse.session.problems);
+          } else {
+            console.error('❌ Failed to create session:', createResponse);
+            setProblems([]);
+          }
+        });
       }
     },
+    onError: (error) => {
+      console.error('❌ ProblemGenerator session fetch error:', error);
+      setProblems([]);
+    }
   });
 
   const handleLinkClick = (problem) => {

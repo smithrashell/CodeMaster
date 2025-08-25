@@ -29,15 +29,13 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
 
   return (
     <div>
-      <Group position="center">
-        {/* Slider Toggle */}
-        <Switch
-          checked={currReminder?.enabled || false}
-          onChange={handleToggle}
-          size="md"
-          color={currReminder?.enabled ? "blue.5" : "gray.5"} // vivid blue when active
-        />
-      </Group>
+      {/* Reminder Toggle Switch */}
+      <Switch
+        checked={currReminder?.enabled || false}
+        onChange={handleToggle}
+        size="md"
+        color={currReminder?.enabled ? "blue.5" : "gray.5"} // vivid blue when active
+      />
 
       {/* Dropdown Select Component */}
       {currReminder?.enabled && (
@@ -53,6 +51,7 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
           onChange={handleSelectChange}
           withinPortal={false}
           dropdownPosition="bottom"
+          mt="sm"
           styles={{
             dropdown: {
               zIndex: 10000,
@@ -116,16 +115,19 @@ export function SliderMarksSessionLength(props) {
 }
 
 export function SliderMarksNewProblemsPerSession(props) {
-  console.log("props", props);
-  // Dynamically genrate Marks
+  // Dynamically generate Marks with proper validation
   const generateMarks = (max) => {
-    return Array.from({ length: max }, (_, index) => ({
+    // Ensure max is a valid positive number, default to 8 if invalid
+    const validMax = typeof max === 'number' && max > 0 ? max : 8;
+    return Array.from({ length: validMax }, (_, index) => ({
       value: index + 1,
       label: index + 1,
     }));
   };
 
-  const marks = generateMarks(props.max);
+  // Use validated max value
+  const validMax = typeof props.max === 'number' && props.max > 0 ? props.max : 8;
+  const marks = generateMarks(validMax);
   return (
     <div className={classes.sliderContainer}>
       <Slider
@@ -146,7 +148,7 @@ export function SliderMarksNewProblemsPerSession(props) {
         marks={marks}
         step={1}
         min={1}
-        max={props.max}
+        max={validMax}
         style={{ marginBottom: rem(10), width: "100%" }}
       />
     </div>

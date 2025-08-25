@@ -14,8 +14,20 @@ import { StorageService } from "./storageService.js";
 import { fetchProblemById } from "../db/standard_problems.js";
 import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
+import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
 
 export const SessionService = {
+  // Simple session creation timing control to prevent rapid consecutive creation
+  _lastSessionCreationTime: 0,
+  _sessionCreationCooldown: 30000, // 30 seconds cooldown between session creation attempts
+  
+  // Session creation mutex to prevent race conditions
+  _sessionCreationInProgress: false,
+  _sessionCreationPromise: null,
+  
+  // IndexedDB retry service for deduplication
+  _retryService: new IndexedDBRetryService(),
+
   /**
    * Centralizes session performance analysis and tracking.
    * Orchestrates tag mastery, problem relationships, and session metrics.
@@ -142,15 +154,16 @@ export const SessionService = {
       return false;
     }
 
-    // Get all attempts related to this session
+    // Get all attempts related to this session - handle multiple ID formats
     const attemptedProblemIds = new Set(
-      session.attempts.map((a) => a.problemId)
+      session.attempts.map((a) => a.problemId || a.leetCodeID || a.id)
     );
 
-    // Check if all scheduled problems have been attempted
-    const unattemptedProblems = session.problems.filter(
-      (problem) => !attemptedProblemIds.has(problem.id)
-    );
+    // Check if all scheduled problems have been attempted - handle multiple ID formats
+    const unattemptedProblems = session.problems.filter((problem) => {
+      const problemId = problem.id || problem.leetCodeID || problem.problemId;
+      return !attemptedProblemIds.has(problemId);
+    });
 
     console.info("📎 Unattempted Problems:", unattemptedProblems);
 
@@ -161,6 +174,15 @@ export const SessionService = {
 
       console.info(`✅ Session ${sessionId} marked as completed.`);
 
+      // ✅ Clear session cache since session status changed
+      try {
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+          chrome.runtime.sendMessage({ type: "clearSessionCache" });
+        }
+      } catch (error) {
+        console.warn("Failed to clear session cache:", error);
+      }
+
       // ✅ Run centralized session performance analysis
       await this.summarizeSessionPerformance(session);
     }
@@ -169,31 +191,34 @@ export const SessionService = {
 
   /**
    * Attempts to resume an existing in-progress session.
-   * @returns {Promise<Array|null>} - Array of remaining problems or null if no resumable session
+   * @returns {Promise<Object|null>} - Session object or null if no resumable session
    */
   async resumeSession() {
     const latestSession = await getLatestSession();
-    console.info("✅ latestSession:", latestSession);
 
     if (latestSession && latestSession.status === "in_progress") {
-      console.info("📌 Found ongoing session. Checking attempts...");
-
-      let problems = await this.checkAndCompleteSession(latestSession.id);
-      console.info("✅ Session completion check:", problems);
-
-      if (problems.length > 0) {
-        console.info("📌 Returning unattempted problems:", problems);
-        await saveSessionToStorage(latestSession);
-        return problems;
+      console.info("✅ Resuming existing session:", latestSession.id);
+      
+      // Add currentProblemIndex to track progress if missing
+      if (!latestSession.currentProblemIndex) {
+        latestSession.currentProblemIndex = 0;
       }
+      
+      await saveSessionToStorage(latestSession);
+      return latestSession; // Always resume in_progress sessions
     }
 
+    if (latestSession) {
+      console.error("❌❌❌ SESSION EXISTS BUT STATUS IS NOT in_progress:", latestSession.status);
+    } else {
+      console.error("❌❌❌ NO SESSION FOUND - will create new session");
+    }
     return null;
   },
 
   /**
    * Creates a new session with fresh problems.
-   * @returns {Promise<Array|null>} - Array of session problems or null on failure
+   * @returns {Promise<Object|null>} - Session object or null on failure
    */
   async createNewSession() {
     const queryContext = performanceMonitor.startQuery("createNewSession", {
@@ -218,12 +243,32 @@ export const SessionService = {
         status: "in_progress",
         problems: problems,
         attempts: [],
+        currentProblemIndex: 0, // Track current problem for dashboard
       };
 
       console.info("📌 newSession:", newSession);
 
-      await saveNewSessionToDB(newSession);
-      await saveSessionToStorage(newSession);
+      // Use retry service with deduplication for session creation
+      await this._retryService.executeWithRetry(
+        () => saveNewSessionToDB(newSession),
+        {
+          operationName: "saveNewSessionToDB",
+          deduplicationKey: `session-creation-${newSession.id}`,
+          timeout: this._retryService.quickTimeout
+        }
+      );
+      
+      await this._retryService.executeWithRetry(
+        () => saveSessionToStorage(newSession),
+        {
+          operationName: "saveSessionToStorage", 
+          deduplicationKey: `session-storage-${newSession.id}`,
+          timeout: this._retryService.quickTimeout
+        }
+      );
+
+      // Update session creation timestamp for cooldown management
+      this._lastSessionCreationTime = Date.now();
 
       console.info("✅ New session created and stored:", newSession);
       performanceMonitor.endQuery(
@@ -231,7 +276,7 @@ export const SessionService = {
         true,
         newSession.problems.length
       );
-      return newSession.problems;
+      return newSession; // Return full session object
     } catch (error) {
       performanceMonitor.endQuery(queryContext, false, 0, error);
       throw error;
@@ -242,7 +287,56 @@ export const SessionService = {
    * Retrieves an existing session or creates a new one if none exists.
    */
   async getOrCreateSession() {
-    console.info("📌 getOrCreateSession called");
+    console.error("🎯🎯🎯 getOrCreateSession called - DEBUGGING SESSION CREATION");
+    console.trace("📍 Session creation call stack:");  // Shows where this was called from
+    
+    // Check if session creation is already in progress
+    if (this._sessionCreationInProgress) {
+      console.info("🔒 Session creation already in progress, waiting for existing operation...");
+      if (this._sessionCreationPromise) {
+        return await this._sessionCreationPromise;
+      }
+    }
+    
+    // Set mutex lock
+    this._sessionCreationInProgress = true;
+    
+    // Store the promise so other calls can wait for it
+    this._sessionCreationPromise = this._doGetOrCreateSession();
+    
+    try {
+      const result = await this._sessionCreationPromise;
+      return result;
+    } finally {
+      // Release mutex lock
+      this._sessionCreationInProgress = false;
+      this._sessionCreationPromise = null;
+    }
+  },
+
+  async _doGetOrCreateSession() {
+    // Log current session state for debugging
+    const currentLatest = await getLatestSession();
+    console.info("🔍 Current latest session before getOrCreateSession:", currentLatest?.id, currentLatest?.status);
+
+    // Check if we're creating sessions too rapidly (prevent race conditions)
+    const now = Date.now();
+    const timeSinceLastCreation = now - this._lastSessionCreationTime;
+    
+    if (timeSinceLastCreation < this._sessionCreationCooldown) {
+      console.info(`🔄 Session creation cooldown active (${Math.round(timeSinceLastCreation / 1000)}s/${this._sessionCreationCooldown / 1000}s)`);
+      
+      // Instead of creating a new session, try to resume existing one
+      const resumedSession = await this.resumeSession();
+      if (resumedSession) {
+        return resumedSession;
+      }
+      
+      // If no resumable session, wait for cooldown to complete
+      const remainingCooldown = this._sessionCreationCooldown - timeSinceLastCreation;
+      console.info(`⏱️ Waiting ${Math.round(remainingCooldown / 1000)}s for session creation cooldown`);
+      await new Promise(resolve => setTimeout(resolve, remainingCooldown));
+    }
 
     const settings = await StorageService.migrateSettingsToIndexedDB();
     if (!settings) {
@@ -250,11 +344,14 @@ export const SessionService = {
       return null;
     }
 
-    const resumedProblems = await this.resumeSession();
-    if (resumedProblems) {
-      return resumedProblems;
+    const resumedSession = await this.resumeSession();
+    if (resumedSession) {
+      console.info("✅ Resuming existing session:", resumedSession.id);
+      return resumedSession;
     }
 
+    console.info("🆕 Creating new session - no resumable session found");
+    this._lastSessionCreationTime = now; // Update creation time
     return await this.createNewSession();
   },
 

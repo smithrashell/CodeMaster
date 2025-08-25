@@ -124,10 +124,10 @@ const generateMockAttempts = (sessions, userType = "active") => {
         Success: isSuccess,
         TimeSpent: Math.floor(timeSpent * 60), // Convert to seconds
         Difficulty: difficulty,
-        AttemptDate: session.date,
-        timestamp: new Date(session.date).getTime(),
+        AttemptDate: session.Date,
+        timestamp: new Date(session.Date).getTime(),
         // Additional fields that might be expected
-        AttemptDateTime: session.date,
+        AttemptDateTime: session.Date,
         problemId: problemId,
       });
     }
@@ -442,12 +442,52 @@ export const generateMockData = (userType = "active") => {
 
   // Timer behavior insight based on user type
   const timerBehaviorInsights = {
-    new: "Still learning to estimate problem time",
-    beginner: "Improving at time management",
-    active: "Usually finishes within recommended time",
-    advanced: "Excellent time estimation skills",
+    new: "Learning timing",
+    beginner: "Improving pace",
+    active: "On time",
+    advanced: "Excellent timing",
   };
   const timerBehavior = timerBehaviorInsights[userType] || timerBehaviorInsights.active;
+
+  // Timer percentage based on user type
+  const timerPercentageRanges = {
+    new: [45, 65],      // 45-65%
+    beginner: [60, 75], // 60-75%
+    active: [75, 90],   // 75-90%
+    advanced: [85, 95], // 85-95%
+  };
+  const [minPercent, maxPercent] = timerPercentageRanges[userType] || timerPercentageRanges.active;
+  const timerPercentage = Math.floor(Math.random() * (maxPercent - minPercent + 1)) + minPercent;
+
+  // Generate next review time (random time within next 24 hours)
+  const nextReviewHours = Math.floor(Math.random() * 24);
+  const nextReviewMinutes = Math.floor(Math.random() * 60);
+  const isToday = nextReviewHours < 12;
+  const reviewDate = new Date();
+  if (!isToday) reviewDate.setDate(reviewDate.getDate() + 1);
+  reviewDate.setHours(nextReviewHours, nextReviewMinutes, 0, 0);
+  
+  const formatTime = (date) => {
+    const options = { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true,
+      weekday: isToday ? undefined : 'short'
+    };
+    const timeStr = date.toLocaleTimeString('en-US', options);
+    return isToday ? `Today • ${timeStr}` : `${date.toLocaleDateString('en-US', { weekday: 'short' })} • ${timeStr}`;
+  };
+  const nextReviewTime = formatTime(reviewDate);
+
+  // Generate next review count based on user type
+  const reviewCountRanges = {
+    new: [5, 12],       // 5-12 problems
+    beginner: [8, 18],  // 8-18 problems
+    active: [12, 25],   // 12-25 problems
+    advanced: [15, 30], // 15-30 problems
+  };
+  const [minCount, maxCount] = reviewCountRanges[userType] || reviewCountRanges.active;
+  const nextReviewCount = Math.floor(Math.random() * (maxCount - minCount + 1)) + minCount;
 
   // Generate chart data
   const accuracyData = {
@@ -516,6 +556,9 @@ export const generateMockData = (userType = "active") => {
     hintsUsed,
     strategySuccessRate,
     timerBehavior,
+    timerPercentage,
+    nextReviewTime,
+    nextReviewCount,
     timeAccuracy,
 
     // Chart data

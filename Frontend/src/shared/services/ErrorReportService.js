@@ -8,57 +8,63 @@
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 
+/**
+ * Detect if we're running in a content script context
+ * Content scripts cannot access IndexedDB directly
+ */
+function isContentScriptContext() {
+  try {
+    return (
+      typeof chrome !== "undefined" && 
+      chrome.runtime && 
+      chrome.runtime.sendMessage &&
+      typeof document !== "undefined" &&
+      (window.location.protocol === "http:" || window.location.protocol === "https:") &&
+      !window.location.href.startsWith("chrome-extension://")
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
 export class ErrorReportService {
   static STORE_NAME = "error_reports";
   static MAX_REPORTS = 100; // Keep last 100 error reports
 
   /**
-   * Initialize error reports object store if it doesn't exist
+   * Get URL safely across different contexts (service worker, extension page, content script)
    */
-  static async ensureErrorReportStore() {
-    const db = await dbHelper.openDB();
-
-    // Check if store already exists
-    if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-      // Need to close and reopen with higher version to add store
-      db.close();
-
-      const currentVersion = db.version;
-      const newVersion = currentVersion + 1;
-
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(dbHelper.dbName, newVersion);
-
-        request.onupgradeneeded = (event) => {
-          const upgradeDB = event.target.result;
-
-          if (!upgradeDB.objectStoreNames.contains(this.STORE_NAME)) {
-            const errorStore = upgradeDB.createObjectStore(this.STORE_NAME, {
-              keyPath: "id",
-              autoIncrement: true,
-            });
-
-            // Create indexes for efficient querying
-            errorStore.createIndex("by_timestamp", "timestamp");
-            errorStore.createIndex("by_section", "section");
-            errorStore.createIndex("by_error_type", "errorType");
-            errorStore.createIndex("by_user_agent", "userAgent");
-          }
-        };
-
-        request.onsuccess = (event) => {
-          dbHelper.db = event.target.result;
-          resolve(event.target.result);
-        };
-
-        request.onerror = (event) => {
-          reject(event.target.error);
-        };
-      });
+  static getSafeUrl() {
+    try {
+      if (typeof window !== 'undefined' && window.location) {
+        return window.location.href;
+      } else if (typeof globalThis !== 'undefined' && globalThis.location) {
+        return globalThis.location.href;
+      } else if (typeof chrome !== 'undefined' && chrome.runtime) {
+        return `chrome-extension://${chrome.runtime.id}/background-script`;
+      }
+    } catch (error) {
+      console.warn('Failed to get URL:', error);
     }
-
-    return db;
+    return 'unknown-context';
   }
+
+  /**
+   * Get user agent safely across different contexts
+   */
+  static getSafeUserAgent() {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.userAgent) {
+        return navigator.userAgent;
+      } else if (typeof globalThis !== 'undefined' && globalThis.navigator) {
+        return globalThis.navigator.userAgent;
+      }
+    } catch (error) {
+      console.warn('Failed to get user agent:', error);
+    }
+    return 'unknown-user-agent';
+  }
+
 
   /**
    * Store an error report in IndexedDB
@@ -69,8 +75,8 @@ export class ErrorReportService {
     stack,
     componentStack,
     section = "unknown",
-    url = window.location.href,
-    userAgent = navigator.userAgent,
+    url = ErrorReportService.getSafeUrl(),
+    userAgent = ErrorReportService.getSafeUserAgent(),
     timestamp = new Date().toISOString(),
     userContext = {},
     reproductionSteps = [],
@@ -79,7 +85,13 @@ export class ErrorReportService {
     severity = "medium",
   }) {
     try {
-      await this.ensureErrorReportStore();
+      // Skip database operations in content script context
+      if (isContentScriptContext()) {
+        // eslint-disable-next-line no-console
+        console.warn("🚫 ErrorReportService: Skipping database operation in content script context");
+        return null;
+      }
+      
       const db = await dbHelper.openDB();
 
       const transaction = db.transaction([this.STORE_NAME], "readwrite");
@@ -141,7 +153,12 @@ export class ErrorReportService {
     resolved = null,
   } = {}) {
     try {
-      await this.ensureErrorReportStore();
+      // Skip database operations in content script context
+      if (isContentScriptContext()) {
+        console.warn("🚫 ErrorReportService: Skipping database operation in content script context");
+        return [];
+      }
+      
       const db = await dbHelper.openDB();
 
       const transaction = db.transaction([this.STORE_NAME], "readonly");
@@ -196,7 +213,12 @@ export class ErrorReportService {
    */
   static async resolveErrorReport(reportId, resolution = "") {
     try {
-      await this.ensureErrorReportStore();
+      // Skip database operations in content script context
+      if (isContentScriptContext()) {
+        console.warn("🚫 ErrorReportService: Skipping database operation in content script context");
+        return null;
+      }
+      
       const db = await dbHelper.openDB();
 
       const transaction = db.transaction([this.STORE_NAME], "readwrite");
@@ -233,7 +255,12 @@ export class ErrorReportService {
    */
   static async addUserFeedback(reportId, feedback, reproductionSteps = []) {
     try {
-      await this.ensureErrorReportStore();
+      // Skip database operations in content script context
+      if (isContentScriptContext()) {
+        console.warn("🚫 ErrorReportService: Skipping database operation in content script context");
+        return null;
+      }
+      
       const db = await dbHelper.openDB();
 
       const transaction = db.transaction([this.STORE_NAME], "readwrite");
@@ -317,6 +344,12 @@ export class ErrorReportService {
    */
   static async cleanupOldReports() {
     try {
+      // Skip database operations in content script context
+      if (isContentScriptContext()) {
+        console.warn("🚫 ErrorReportService: Skipping database operation in content script context");
+        return;
+      }
+      
       const reports = await this.getErrorReports({ limit: null });
 
       if (reports.length > this.MAX_REPORTS) {
@@ -360,6 +393,12 @@ export class ErrorReportService {
    */
   static async exportErrorReports(format = "json") {
     try {
+      // Skip database operations in content script context
+      if (isContentScriptContext()) {
+        console.warn("🚫 ErrorReportService: Skipping database operation in content script context");
+        return format === "json" ? "[]" : "";
+      }
+      
       const reports = await this.getErrorReports({ limit: null });
 
       if (format === "json") {

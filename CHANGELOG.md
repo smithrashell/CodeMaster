@@ -4,6 +4,68 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.25] - 2025-08-25
+
+### 🎯 UI/UX Improvements & Data Consistency Fixes
+
+**Dashboard & Goals Page Enhancements:**
+- **Fixed Focus Priorities Card Layout** - Increased card height to 700px to properly display all content without button cutoff
+- **Optimized Card Layout Spacing** - Combined difficulty distribution and review ratio controls into single row for better space utilization
+- **Enhanced Cadence Commitment Spacing** - Improved slider spacing and margins to prevent overlap with description text
+- **Fixed System Default Integration** - All Goals page cards now use proper system defaults instead of hardcoded mock data
+
+**Session Management Fixes:**
+- **Resolved Session Status Inconsistency** - Fixed issue where Session History showed "1 completed" while displaying "IN PROGRESS" sessions
+- **Implemented Consistent Session Validation** - Applied same completion criteria (`status === "completed" && hasAttempts`) across KPI cards and Recent Sessions table
+- **Enhanced Session Counting Logic** - Only completed sessions are now counted in Total Sessions metric for accurate reporting
+
+**Today's Missions System Overhaul:**
+- **Fixed Incorrect Mission Completion** - Resolved bug where missions showed as completed without user activity
+- **Added Real Progress Calculation** - Missions now reflect actual user progress from session and attempt data
+- **Implemented Dynamic Mission Generation** - Missions are generated based on real user state instead of stale cached data
+- **Enhanced Onboarding-Aware Missions** - Different mission types and difficulty for onboarding vs experienced users
+
+**Outcome Trends Data Loading:**
+- **Fixed Permanent Loading States** - Resolved "Loading..." states that never resolved in Outcome Trends & Soft Targets component
+- **Added Comprehensive Fallback Logic** - Graceful handling of missing statistics, sessions, or mastery data
+- **Enhanced Status Display** - Added "No data yet" states with appropriate messaging for new users
+- **Improved Error Handling** - Better degradation when expected data structures are unavailable
+
+**Settings Integration & System Defaults:**
+- **Enhanced SessionLimits Integration** - Proper onboarding-aware limits (4 new problems during onboarding, 8 after)
+- **Fixed Session Length Defaults** - Corrected hardcoded sessionLength from 45 to system default of 5
+- **Improved Settings Validation** - Better handling of missing or invalid settings with proper defaults
+- **Added Focus Areas Coordination** - Integration with system recommendations when user preferences unavailable
+
+**Technical Architecture:**
+- **Added SessionLimits Utility** - Centralized utility for onboarding-aware session constraints (`Frontend/src/shared/utils/sessionLimits.js`)
+- **Enhanced Data Loading Patterns** - Consistent data loading with fallbacks across dashboard components
+- **Improved Mission Generation Logic** - Real-time mission generation based on actual user progress data
+- **Better Error Boundaries** - Comprehensive error handling to prevent component crashes from missing data
+
+**Files Changed (8 files, 425 insertions, 187 deletions):**
+
+**Core Feature Files:**
+- `Frontend/src/app/pages/progress/goals.jsx` - Major refactor for real data integration and layout improvements (+312 lines)
+- `Frontend/src/app/pages/sessions/session-history.jsx` - Fixed session status consistency and KPI calculations (+45 lines)
+- `Frontend/src/app/components/settings/AdaptiveSettingsCard.jsx` - Enhanced settings validation and onboarding integration (+28 lines)
+- `Frontend/src/shared/components/nantine.jsx` - Improved slider component spacing and visual refinements (+15 lines)
+
+**New Utility Files:**
+- `Frontend/src/shared/utils/sessionLimits.js` - Centralized session limits with onboarding awareness (+85 lines, new file)
+
+**Configuration Updates:**
+- `Frontend/src/shared/services/storageService.js` - Enhanced default settings structure (+12 lines)
+
+**Bug Fixes:**
+- **Layout Issues** - Fixed card heights, spacing, and content overflow problems
+- **Data Consistency** - Eliminated discrepancies between different UI components showing same data
+- **Loading States** - Resolved permanent loading states with proper fallback mechanisms
+- **Mission Logic** - Fixed incorrect completion status and progress calculation
+- **Session Validation** - Consistent completion criteria across all session-related displays
+
+---
+
 ## [0.10.24] - 2025-08-19
 
 ### 🔧 Critical Database Context Management & Onboarding System Fixes
