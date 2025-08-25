@@ -5,7 +5,6 @@ import {
   Group,
   Badge,
   Button,
-  Stack,
   Tooltip,
   Alert,
   Progress,
@@ -19,7 +18,8 @@ import {
 } from "@tabler/icons-react";
 import { StorageService } from "../../../shared/services/storageService.js";
 import { TagService } from "../../../shared/services/tagServices.js";
-import { shouldUseMockDashboard } from "../../config/mockConfig.js";
+// Note: Mock vs real data is handled at the app level via appState
+// This component always uses real services when the app uses real data
 
 export function FocusAreasDisplay({ onNavigateToSettings }) {
   const [focusAreas, setFocusAreas] = useState([]);
@@ -32,45 +32,26 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
     try {
       setLoading(true);
 
-      if (shouldUseMockDashboard()) {
-        console.log("🎭 FOCUS AREAS DISPLAY: Using mock data");
-        
-        // Mock focus areas and data for development
-        const mockFocusAreas = ["string", "two-pointers", "dynamic-programming"];
-        const mockMasteryData = [
-          { tag: "string", totalAttempts: 5, successfulAttempts: 3 },
-          { tag: "two-pointers", totalAttempts: 4, successfulAttempts: 2 },
-          { tag: "dynamic-programming", totalAttempts: 6, successfulAttempts: 2 },
-        ];
-        const mockMasteredTags = [];
-        const mockGraduationStatus = null;
+      // Load focus areas from settings (always use real services)
+      const settings = await StorageService.getSettings();
+      const userFocusAreas = settings.focusAreas || [];
 
-        setFocusAreas(mockFocusAreas);
-        setMasteryData(mockMasteryData);
-        setMasteredTags(mockMasteredTags);
-        setGraduationStatus(mockGraduationStatus);
-      } else {
-        // Load focus areas from settings
-        const settings = await StorageService.getSettings();
-        const userFocusAreas = settings.focusAreas || [];
-
-        if (userFocusAreas.length === 0) {
-          setFocusAreas([]);
-          setLoading(false);
-          return;
-        }
-
-        // Get learning state data
-        const learningState = await TagService.getCurrentLearningState();
-        setMasteryData(learningState.masteryData || []);
-        setMasteredTags(learningState.masteredTags || []);
-
-        // Check for graduation status
-        const graduationCheck = await TagService.checkFocusAreasGraduation();
-        setGraduationStatus(graduationCheck);
-
-        setFocusAreas(userFocusAreas);
+      if (userFocusAreas.length === 0) {
+        setFocusAreas([]);
+        setLoading(false);
+        return;
       }
+
+      // Get learning state data
+      const learningState = await TagService.getCurrentLearningState();
+      setMasteryData(learningState.masteryData || []);
+      setMasteredTags(learningState.masteredTags || []);
+
+      // Check for graduation status
+      const graduationCheck = await TagService.checkFocusAreasGraduation();
+      setGraduationStatus(graduationCheck);
+
+      setFocusAreas(userFocusAreas);
     } catch (error) {
       console.error("Error loading focus areas data:", error);
       setFocusAreas([]);

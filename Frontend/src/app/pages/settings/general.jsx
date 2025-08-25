@@ -3,8 +3,8 @@ import { Container, Title, Stack } from "@mantine/core";
 import { FocusAreasSelector } from "../../components/settings/FocusAreasSelector.jsx";
 import { AdaptiveSettingsCard } from "../../components/settings/AdaptiveSettingsCard.jsx";
 import { TimerSettingsCard } from "../../components/settings/TimerSettingsCard.jsx";
-import { DisplaySettingsCard } from "../../components/settings/DisplaySettingsCard.jsx";
-import { SettingsExportImport } from "../../components/settings/SettingsExportImport.jsx";
+// TODO: Re-enable for future release when import/export is needed
+// import { SettingsExportImport } from "../../components/settings/SettingsExportImport.jsx";
 
 export function General() {
   return (
@@ -17,8 +17,8 @@ export function General() {
         <FocusAreasSelector />
         <AdaptiveSettingsCard />
         <TimerSettingsCard />
-        <DisplaySettingsCard />
-        <SettingsExportImport />
+        {/* TODO: Re-enable for future release when import/export is needed */}
+        {/* <SettingsExportImport /> */}
       </Stack>
     </Container>
   );

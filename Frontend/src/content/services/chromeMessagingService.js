@@ -5,7 +5,7 @@
 
 export class ChromeMessagingService {
   constructor() {
-    this.defaultTimeout = 8000; // 8 second timeout for slow conditions
+    this.defaultTimeout = 10000; // 10 second timeout for safety margin
     this.maxRetries = 3;
     this.retryDelay = 500; // Base retry delay in ms
     this.cache = new Map(); // Simple in-memory cache
