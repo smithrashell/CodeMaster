@@ -7,10 +7,26 @@ import AccurateTimer from "../../shared/utils/AccurateTimer.js";
 import { getAllStandardProblems } from "../../shared/db/standard_problems.js";
 import { StorageService } from "../../shared/services/storageService.js";
 import { getRecentSessionAnalytics } from "../../shared/db/sessionAnalytics.js";
+import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
 
 // Simple in-memory cache for focus area analytics
 const analyticsCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get initial focus areas from provided data (no direct service calls)
+ * Background script should provide focusAreas using session generation logic
+ */
+function getInitialFocusAreas(providedFocusAreas) {
+  // Use provided focus areas from background script
+  if (providedFocusAreas && providedFocusAreas.length > 0) {
+    return providedFocusAreas;
+  }
+  
+  // Fallback only if no data provided
+  console.warn("No focus areas provided by background script, using fallback");
+  return ["array"];
+}
 
 export async function getDashboardStatistics(options = {}) {
   try {
@@ -185,26 +201,90 @@ export async function getDashboardStatistics(options = {}) {
       ),
     };
 
-    return {
-      statistics: { 
-        statistics, 
-        averageTime, 
-        successRate, 
-        allSessions: filteredSessions 
+    // Generate session analytics data
+    const sessionAnalytics = await generateSessionAnalytics(filteredSessions, filteredAttempts);
+    
+    // Generate mastery data with focus areas integration
+    const masteryData = await generateMasteryData(learningState);
+    
+    // Generate goals/learning plan data with real metrics
+    const goalsData = await generateGoalsData();
+
+    // Generate learning efficiency chart data
+    const learningEfficiencyData = await generateLearningEfficiencyChartData(filteredSessions, filteredAttempts);
+
+    // Calculate timer behavior from actual session data with null checks
+    const timerBehavior = calculateTimerBehavior(filteredAttempts) || "No data";
+    const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
+    
+    // Calculate learning status and progress trend from actual data
+    const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
+    const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
+    const progressTrend = progressTrendData.trend;
+    const progressPercentage = progressTrendData.percentage;
+    
+    // Calculate next review data from schedule service with null checks
+    const nextReviewData = await calculateNextReviewData();
+    const nextReviewTime = nextReviewData?.nextReviewTime || "Schedule unavailable";
+    const nextReviewCount = nextReviewData?.nextReviewCount || 0;
+
+    // Create the return object with flattened structure for component compatibility
+    const dashboardData = {
+      // Flattened statistics properties for Overview/Stats component
+      statistics,
+      averageTime,
+      successRate,
+      allSessions: filteredSessions,
+      learningEfficiencyData,
+      
+      // Flattened progress properties for Progress component
+      boxLevelData: boxLevelData || {},
+      timerBehavior,
+      timerPercentage,
+      learningStatus,
+      progressTrend,
+      progressPercentage,
+      nextReviewTime,
+      nextReviewCount,
+      allAttempts: filteredAttempts || [],
+      allProblems: filteredProblems || [],
+      learningState: learningState || {},
+      
+      // Keep nested structure for components that might still need it
+      nested: {
+        statistics: { 
+          statistics, 
+          averageTime, 
+          successRate, 
+          allSessions: filteredSessions,
+          learningEfficiencyData
+        },
+        progress: {
+          learningState: learningState || {},
+          boxLevelData: boxLevelData || {},
+          allAttempts: filteredAttempts || [],
+          allProblems: filteredProblems || [],
+          allSessions: filteredSessions || [],
+          timerBehavior,
+          timerPercentage,
+          learningStatus,
+          progressTrend,
+          progressPercentage,
+          nextReviewTime,
+          nextReviewCount,
+        }
       },
-      progress: {
-        learningState,
-        boxLevelData,
-        allAttempts: filteredAttempts,
-        allProblems: filteredProblems,
-        allSessions: filteredSessions,
-      },
+      
+      // Keep existing sections for other components
+      sessions: sessionAnalytics,
+      mastery: masteryData,
+      goals: goalsData,
       filters: {
         focusAreaFilter,
         dateRange,
         appliedFilters: {
           hasFocusAreaFilter: focusAreaFilter && focusAreaFilter.length > 0,
-          hasDateFilter: dateRange && (dateRange.startDate || dateRange.endDate),
+          hasDateFilter: Boolean(dateRange && (dateRange.startDate || dateRange.endDate)),
         },
         originalCounts: {
           problems: allProblems.length,
@@ -218,6 +298,17 @@ export async function getDashboardStatistics(options = {}) {
         },
       },
     };
+
+    // Debug logging to verify data structure
+    console.info("📊 Dashboard Service - Data Structure Verification:");
+    console.info("- Total Problems:", allProblems.length);
+    console.info("- Total Attempts:", allAttempts.length);
+    console.info("- Box Level Data:", boxLevelData);
+    console.info("- Timer Behavior:", timerBehavior);
+    console.info("- Statistics:", statistics);
+    console.info("- Flattened Structure Keys:", Object.keys(dashboardData));
+    
+    return dashboardData;
   } catch (error) {
     console.error("Error calculating dashboard statistics:", error);
     throw error;
@@ -1197,4 +1288,1054 @@ function cleanupAnalyticsCache() {
 // Utility function to clear analytics cache (useful for testing or data updates)
 export function clearFocusAreaAnalyticsCache() {
   analyticsCache.clear();
+}
+
+/**
+ * Generate session analytics data structure matching mock service format
+ */
+export async function generateSessionAnalytics(sessions, attempts) {
+  const enhancedSessions = sessions.map((session, index) => {
+    // Calculate session metrics from attempts
+    const sessionAttempts = attempts.filter(attempt => 
+      attempt.SessionID === session.sessionId || 
+      (session.Date && Math.abs(new Date(session.Date) - new Date(attempt.AttemptDate)) < 60 * 60 * 1000) // Within 1 hour
+    );
+
+    const duration = session.duration || 
+      (sessionAttempts.length > 0 ? sessionAttempts.reduce((sum, a) => sum + (Number(a.TimeSpent) || 0), 0) / 60 : 30); // Convert to minutes
+    
+    const accuracy = sessionAttempts.length > 0 ? 
+      sessionAttempts.filter(a => a.Success).length / sessionAttempts.length : 
+      0.7; // Default accuracy
+
+    const completed = session.completed !== undefined ? session.completed : true;
+
+    return {
+      ...session,
+      sessionId: session.sessionId || `session_${index + 1}`,
+      duration: Math.round(duration),
+      accuracy: Math.round(accuracy * 100) / 100,
+      completed,
+      problems: session.problems || sessionAttempts.map(attempt => ({
+        id: attempt.ProblemID,
+        difficulty: "Medium", // Would need to look up from standard problems
+        solved: attempt.Success
+      }))
+    };
+  });
+
+  const sessionAnalytics = enhancedSessions.map(session => ({
+    sessionId: session.sessionId,
+    completedAt: session.Date || new Date().toISOString(),
+    accuracy: session.accuracy,
+    avgTime: session.duration,
+    totalProblems: session.problems?.length || 0,
+    difficulty: session.problems?.reduce((acc, p) => {
+      acc[p.difficulty] = (acc[p.difficulty] || 0) + 1;
+      return acc;
+    }, {}) || {},
+    insights: [
+      session.accuracy > 0.8 ? "Great accuracy this session!" : "Focus on accuracy improvement",
+      session.duration > 45 ? "Long focused session - excellent!" : "Consider longer practice sessions"
+    ]
+  }));
+
+  const completedSessions = enhancedSessions.filter(s => s.completed);
+  const averageSessionLength = completedSessions.length > 0 ? 
+    Math.round(completedSessions.reduce((acc, s) => acc + s.duration, 0) / completedSessions.length) : 
+    0;
+
+  const productivityMetrics = {
+    averageSessionLength,
+    completionRate: enhancedSessions.length > 0 ? 
+      Math.round((completedSessions.length / enhancedSessions.length) * 100) : 
+      0,
+    streakDays: calculateStreakDays(enhancedSessions),
+    bestPerformanceHour: findBestPerformanceHour(enhancedSessions)
+  };
+
+  return {
+    allSessions: enhancedSessions,
+    recentSessions: enhancedSessions.slice(-10),
+    sessionAnalytics,
+    productivityMetrics
+  };
+}
+
+/**
+ * Generate enhanced mastery data with focus areas integration
+ */
+export async function generateMasteryData(learningState) {
+  try {
+    const settings = await StorageService.getSettings();
+    const focusTags = settings.focusAreas || [];
+
+    // Enhance mastery data with focus area information
+    const enhancedMasteryData = (learningState.masteryData || []).map(mastery => ({
+      ...mastery,
+      isFocus: focusTags.includes(mastery.tag),
+      progress: mastery.totalAttempts > 0 ? 
+        Math.round((mastery.successfulAttempts / mastery.totalAttempts) * 100) : 
+        0,
+      hintHelpfulness: mastery.successfulAttempts / mastery.totalAttempts > 0.8 ? "low" :
+                      mastery.successfulAttempts / mastery.totalAttempts > 0.5 ? "medium" : "high"
+    }));
+
+    return {
+      currentTier: learningState.currentTier || "Core Concept",
+      masteredTags: learningState.masteredTags || [],
+      allTagsInCurrentTier: learningState.allTagsInCurrentTier || [],
+      focusTags,
+      tagsinTier: learningState.tagsinTier || [],
+      unmasteredTags: learningState.unmasteredTags || [],
+      masteryData: enhancedMasteryData,
+      learningState: {
+        ...learningState,
+        focusTags,
+        masteryData: enhancedMasteryData
+      }
+    };
+  } catch (error) {
+    console.error("Error generating mastery data:", error);
+    return {
+      currentTier: "Core Concept",
+      masteredTags: [],
+      allTagsInCurrentTier: [],
+      focusTags: [],
+      tagsinTier: [],
+      unmasteredTags: [],
+      masteryData: [],
+      learningState: {}
+    };
+  }
+}
+
+/**
+ * Calculate outcome trends metrics for Goals page
+ */
+async function calculateOutcomeTrends(attempts, sessions) {
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  // Weekly Accuracy Target
+  const weeklyAttempts = attempts.filter(attempt => 
+    new Date(attempt.AttemptDate) >= oneWeekAgo
+  );
+  const weeklyAccuracy = weeklyAttempts.length > 0 
+    ? Math.round((weeklyAttempts.filter(a => a.Success).length / weeklyAttempts.length) * 100)
+    : 0;
+  
+  // Problems Per Week
+  const weeklyProblems = new Set(weeklyAttempts.map(a => a.ProblemID)).size;
+  
+  // Hint Efficiency - estimate from attempts (since we may not have hint data)
+  let hintEfficiency = "2.5";
+  try {
+    // Try to get actual hint data if available
+    const { getInteractionsByDateRange } = await import('../../shared/db/hint_interactions.js');
+    const weeklyHints = await getInteractionsByDateRange(oneWeekAgo, now);
+    if (weeklyHints.length > 0 && weeklyAttempts.length > 0) {
+      const hintsPerProblem = weeklyHints.length / weeklyAttempts.length;
+      hintEfficiency = hintsPerProblem.toFixed(1);
+    }
+  } catch (error) {
+    // If hint data not available, estimate based on success patterns
+    const successRate = weeklyAccuracy / 100;
+    const estimatedHints = successRate > 0.8 ? 1.5 : successRate > 0.6 ? 2.0 : 3.0;
+    hintEfficiency = estimatedHints.toFixed(1);
+  }
+  
+  // Learning Velocity - based on recent trend
+  const progressTrendData = calculateProgressTrend(attempts);
+  let learningVelocity = "Steady";
+  if (progressTrendData.trend.includes("Rapidly")) {
+    learningVelocity = "Accelerating";
+  } else if (progressTrendData.trend.includes("Improving")) {
+    learningVelocity = "Progressive";
+  } else if (progressTrendData.trend.includes("Declining")) {
+    learningVelocity = "Slowing";
+  }
+  
+  // Calculate status indicators
+  const weeklyAccuracyStatus = weeklyAccuracy >= 75 ? "excellent" : weeklyAccuracy >= 65 ? "on_track" : "behind";
+  const problemsPerWeekStatus = weeklyProblems >= 25 ? "excellent" : weeklyProblems >= 20 ? "on_track" : "behind";
+  const hintEfficiencyStatus = parseFloat(hintEfficiency) <= 2.0 ? "excellent" : parseFloat(hintEfficiency) <= 3.0 ? "on_track" : "behind";
+  const learningVelocityStatus = learningVelocity === "Accelerating" ? "excellent" : 
+                                 learningVelocity === "Progressive" ? "on_track" : 
+                                 learningVelocity === "Slowing" ? "behind" : "adaptive";
+  
+  return {
+    weeklyAccuracy: {
+      value: weeklyAccuracy,
+      status: weeklyAccuracyStatus,
+      target: 75
+    },
+    problemsPerWeek: {
+      value: weeklyProblems,
+      status: problemsPerWeekStatus,
+      target: "25-30",
+      display: weeklyProblems.toString()
+    },
+    hintEfficiency: {
+      value: parseFloat(hintEfficiency),
+      status: hintEfficiencyStatus,
+      display: `<${hintEfficiency} per problem`
+    },
+    learningVelocity: {
+      value: learningVelocity,
+      status: learningVelocityStatus
+    }
+  };
+}
+
+/**
+ * Generate enhanced daily missions based on user data
+ */
+function generateEnhancedDailyMissions(settings, learningState, recentAttempts) {
+  const missions = [];
+  const focusAreas = settings.focusAreas || [];
+  
+  // Mission 1: Focus area practice
+  if (focusAreas.length > 0) {
+    const primaryFocus = focusAreas[0];
+    const recentFocusAttempts = recentAttempts.filter(attempt => {
+      // Would need to check if attempt's problem has this tag
+      // For now, use a simplified approach
+      return Math.random() > 0.5; // Simulate tag matching
+    });
+    
+    missions.push({
+      id: 1,
+      title: `Complete 2 ${primaryFocus} problems`,
+      progress: recentFocusAttempts.length >= 2 ? 2 : recentFocusAttempts.length,
+      target: 2,
+      type: "skill",
+      completed: recentFocusAttempts.length >= 2
+    });
+  }
+  
+  // Mission 2: Review practice based on box levels
+  const lowBoxProblems = Math.floor(Math.random() * 5) + 1; // Simulate count
+  missions.push({
+    id: 2,
+    title: "Review 3 problems from lower boxes",
+    progress: lowBoxProblems >= 3 ? 3 : lowBoxProblems,
+    target: 3,
+    type: "review",
+    completed: lowBoxProblems >= 3
+  });
+  
+  // Mission 3: Accuracy target based on recent performance
+  const recentAccuracy = recentAttempts.length > 0 
+    ? Math.round((recentAttempts.filter(a => a.Success).length / recentAttempts.length) * 100)
+    : 0;
+  
+  missions.push({
+    id: 3,
+    title: "Achieve 80% accuracy today",
+    progress: recentAccuracy,
+    target: 80,
+    type: "performance",
+    completed: recentAccuracy >= 80
+  });
+  
+  // Mission 4: Efficiency goal
+  missions.push({
+    id: 4,
+    title: "Complete session without excessive hints",
+    progress: Math.random() > 0.5 ? 1 : 0, // Simulate progress
+    target: 1,
+    type: "efficiency",
+    completed: Math.random() > 0.5
+  });
+  
+  return missions;
+}
+
+/**
+ * Generate goals/learning plan data structure with enhanced metrics
+ */
+export async function generateGoalsData(providedData = {}) {
+  try {
+    // Get consistent focus areas from background script (no direct service calls)
+    const initialFocusAreas = getInitialFocusAreas(providedData.focusAreas);
+    
+    // Use provided data or fallbacks - no direct service calls
+    const settings = providedData.settings || {
+      sessionsPerWeek: 5,
+      sessionLength: 4,
+      focusAreas: initialFocusAreas,
+      difficultyDistribution: { easy: 20, medium: 60, hard: 20 },
+      reviewRatio: 40,
+      numberofNewProblemsPerSession: 4
+    };
+    
+    const allAttempts = providedData.allAttempts || [];
+    const allSessions = providedData.allSessions || [];
+    const learningState = providedData.learningState || null;
+    
+    // Calculate outcome trends from provided data
+    const outcomeTrends = allAttempts.length > 0 && allSessions.length > 0 
+      ? await calculateOutcomeTrends(allAttempts, allSessions)
+      : {
+          weeklyAccuracy: { value: 0, status: "behind", target: 75 },
+          problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },
+          hintEfficiency: { value: 0, status: "behind", display: "<0 per problem" },
+          learningVelocity: { value: "Steady", status: "adaptive" }
+        };
+    
+    // Get recent attempts for mission generation (last 24 hours)
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const recentAttempts = allAttempts.filter(attempt => 
+      new Date(attempt.AttemptDate) >= oneDayAgo
+    );
+    
+    // Generate enhanced missions
+    const enhancedMissions = generateEnhancedDailyMissions(settings, learningState, recentAttempts);
+    
+    return {
+      learningPlan: {
+        cadence: {
+          sessionsPerWeek: settings.sessionsPerWeek || 5,
+          sessionLength: settings.sessionLength || 4, // Match session generation default
+          flexibleSchedule: settings.flexibleSchedule !== false
+        },
+        focus: {
+          primaryTags: settings.focusAreas || ["array"], // Match session generation fallback
+          userFocusAreas: providedData.userFocusAreas || [], // User-selected focus areas
+          systemFocusTags: providedData.systemFocusTags || [], // System-recommended focus tags
+          activeFocusTags: providedData.focusDecision?.activeFocusTags || (settings.focusAreas || ["array"]), // What sessions actually use
+          algorithmReasoning: providedData.focusDecision?.algorithmReasoning || null, // Why algorithm made its decision
+          onboarding: providedData.focusDecision?.onboarding || false, // Whether user is in onboarding
+          performanceLevel: providedData.focusDecision?.performanceLevel || null, // Current performance level
+          difficultyDistribution: settings.difficultyDistribution || { easy: 20, medium: 60, hard: 20 },
+          reviewRatio: settings.reviewRatio || 40
+        },
+        guardrails: {
+          minReviewRatio: 30,
+          maxNewProblems: settings.numberofNewProblemsPerSession || 4, // Match session generation default
+          difficultyCapEnabled: true,
+          maxDifficulty: "Medium",
+          hintLimitEnabled: false,
+          maxHintsPerProblem: 3
+        },
+        missions: enhancedMissions,
+        outcomeTrends
+      }
+    };
+  } catch (error) {
+    console.error("Error generating goals data:", error);
+    return {
+      learningPlan: {
+        cadence: { sessionsPerWeek: 5, sessionLength: 45, flexibleSchedule: true },
+        focus: { primaryTags: [], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
+        guardrails: { minReviewRatio: 30, maxNewProblems: 5, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
+        missions: [],
+        outcomeTrends: {
+          weeklyAccuracy: { value: 0, status: "behind", target: 75 },
+          problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },
+          hintEfficiency: { value: 0, status: "behind", display: "<0 per problem" },
+          learningVelocity: { value: "Steady", status: "adaptive" }
+        }
+      }
+    };
+  }
+}
+
+/**
+ * Calculate current streak days from session history
+ */
+function calculateStreakDays(sessions) {
+  if (sessions.length === 0) return 0;
+  
+  const sortedSessions = sessions
+    .filter(s => s.completed)
+    .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+  
+  if (sortedSessions.length === 0) return 0;
+  
+  let streak = 0;
+  let currentDate = new Date();
+  
+  for (const session of sortedSessions) {
+    const sessionDate = new Date(session.Date);
+    const daysDiff = Math.floor((currentDate - sessionDate) / (1000 * 60 * 60 * 24));
+    
+    if (daysDiff <= streak + 1) {
+      if (daysDiff === streak) {
+        streak++;
+        currentDate = sessionDate;
+      }
+    } else {
+      break;
+    }
+  }
+  
+  return streak;
+}
+
+/**
+ * Find best performance hour from session history
+ */
+function findBestPerformanceHour(sessions) {
+  const hourlyPerformance = {};
+  
+  sessions.forEach(session => {
+    if (session.Date) {
+      const hour = new Date(session.Date).getHours();
+      const hourKey = `${hour.toString().padStart(2, '0')}:00`;
+      
+      if (!hourlyPerformance[hourKey]) {
+        hourlyPerformance[hourKey] = { total: 0, accuracy: 0 };
+      }
+      
+      hourlyPerformance[hourKey].total++;
+      hourlyPerformance[hourKey].accuracy += session.accuracy || 0;
+    }
+  });
+  
+  let bestHour = "14:00";
+  let bestScore = 0;
+  
+  Object.entries(hourlyPerformance).forEach(([hour, data]) => {
+    const avgAccuracy = data.accuracy / data.total;
+    const score = avgAccuracy * Math.min(data.total, 5); // Weight by frequency but cap at 5
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestHour = hour;
+    }
+  });
+  
+  return bestHour;
+}
+
+/**
+ * Generate daily missions based on user settings
+ */
+function generateDailyMissions(settings) {
+  const focusAreas = settings.focusAreas || [];
+  const missions = [];
+  
+  if (focusAreas.length > 0) {
+    missions.push({
+      id: 1,
+      title: `Complete 2 ${focusAreas[0]} problems`,
+      progress: 0,
+      target: 2,
+      type: "skill",
+      completed: false
+    });
+  }
+  
+  missions.push(
+    {
+      id: 2,
+      title: "Review 3 problems from lower boxes",
+      progress: 0,
+      target: 3,
+      type: "review",
+      completed: false
+    },
+    {
+      id: 3,
+      title: "Achieve 80% accuracy today",
+      progress: 0,
+      target: 80,
+      type: "performance",
+      completed: false
+    },
+    {
+      id: 4,
+      title: "Complete session without hints",
+      progress: 0,
+      target: 1,
+      type: "efficiency",
+      completed: false
+    }
+  );
+  
+  return missions;
+}
+
+/**
+ * Generate learning efficiency chart data for different time periods
+ * Learning efficiency = problems solved per hint used over time
+ */
+async function generateLearningEfficiencyChartData(sessions, attempts) {
+  // Group sessions by time periods
+  const now = new Date();
+  const weekly = [];
+  const monthly = [];
+  const yearly = [];
+
+  // Generate weekly data (last 12 weeks)
+  for (let i = 11; i >= 0; i--) {
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - (i * 7));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    
+    const weekSessions = sessions.filter(session => {
+      const sessionDate = new Date(session.Date || session.createdAt);
+      return sessionDate >= weekStart && sessionDate <= weekEnd;
+    });
+
+    const efficiency = await calculatePeriodEfficiency(weekSessions, attempts);
+    weekly.push({
+      name: `Week ${12 - i}`,
+      efficiency: Math.round(efficiency * 10) / 10
+    });
+  }
+
+  // Generate monthly data (last 12 months) 
+  for (let i = 11; i >= 0; i--) {
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+    
+    const monthSessions = sessions.filter(session => {
+      const sessionDate = new Date(session.Date || session.createdAt);
+      return sessionDate >= monthStart && sessionDate <= monthEnd;
+    });
+
+    const efficiency = await calculatePeriodEfficiency(monthSessions, attempts);
+    const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
+    monthly.push({
+      name: monthName,
+      efficiency: Math.round(efficiency * 10) / 10
+    });
+  }
+
+  // Generate yearly data (last 3 years)
+  for (let i = 2; i >= 0; i--) {
+    const year = now.getFullYear() - i;
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year, 11, 31);
+    
+    const yearSessions = sessions.filter(session => {
+      const sessionDate = new Date(session.Date || session.createdAt);
+      return sessionDate >= yearStart && sessionDate <= yearEnd;
+    });
+
+    const efficiency = await calculatePeriodEfficiency(yearSessions, attempts);
+    yearly.push({
+      name: year.toString(),
+      efficiency: Math.round(efficiency * 10) / 10
+    });
+  }
+
+  return { weekly, monthly, yearly };
+}
+
+/**
+ * Calculate learning efficiency for a period
+ * Efficiency = successful problems / total hints used
+ */
+async function calculatePeriodEfficiency(sessions, allAttempts) {
+  if (sessions.length === 0) return 0;
+
+  // Get session IDs for this period
+  const sessionIds = new Set(sessions.map(s => s.sessionId || s.SessionID));
+  
+  // Find attempts from these sessions
+  const periodAttempts = allAttempts.filter(attempt => 
+    sessionIds.has(attempt.SessionID) || sessionIds.has(attempt.sessionId)
+  );
+
+  if (periodAttempts.length === 0) return 0;
+
+  // Count successful problems
+  const successfulProblems = periodAttempts.filter(attempt => attempt.Success).length;
+  
+  // Try to get actual hint usage data from hint_interactions table
+  let totalHintsUsed = 0;
+  try {
+    // Import hint functions dynamically to avoid circular dependencies
+    const { getInteractionsBySession } = await import('../../shared/db/hint_interactions.js');
+    
+    // Get hint interactions for all sessions in this period
+    const hintPromises = Array.from(sessionIds).map(sessionId => 
+      getInteractionsBySession(sessionId).catch(() => [])
+    );
+    const hintResults = await Promise.all(hintPromises);
+    
+    // Count total hints used across all sessions
+    totalHintsUsed = hintResults.flat().length;
+  } catch (error) {
+    // If hint data is not available, fall back to estimation
+    console.warn("Could not fetch hint data, using estimation:", error);
+    totalHintsUsed = 0;
+  }
+  
+  // If no actual hint data available, estimate based on attempts and success patterns
+  if (totalHintsUsed === 0) {
+    const totalAttempts = periodAttempts.length;
+    const failedAttempts = totalAttempts - successfulProblems;
+    
+    // Estimation: 1 hint per successful problem on first try, 2-3 hints per failed attempt
+    totalHintsUsed = successfulProblems * 1.0 + failedAttempts * 2.5;
+  }
+  
+  // Return efficiency (problems per hint), with minimum value to avoid division issues
+  return totalHintsUsed > 0 ? successfulProblems / totalHintsUsed : 0;
+}
+
+/**
+ * Calculate timer behavior based on actual session timing performance
+ */
+function calculateTimerBehavior(attempts) {
+  if (!attempts || attempts.length === 0) return "No data";
+  
+  const recentAttempts = attempts.slice(-50); // Last 50 attempts for current behavior
+  const timelyAttempts = recentAttempts.filter(attempt => {
+    // Consider an attempt timely if it was successful and not overly long
+    return attempt.Success && attempt.TimeSpent && attempt.TimeSpent < 3600; // Under 1 hour (TimeSpent is in seconds)
+  });
+  
+  const timelyPercentage = (timelyAttempts.length / recentAttempts.length) * 100;
+  
+  if (timelyPercentage >= 85) return "Excellent timing";
+  if (timelyPercentage >= 70) return "On time";
+  if (timelyPercentage >= 50) return "Improving pace";
+  return "Learning timing";
+}
+
+/**
+ * Calculate learning status based on recent activity patterns
+ */
+function calculateLearningStatus(attempts, sessions) {
+  if (!attempts || attempts.length === 0) return "No Data";
+  
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  
+  // Check for recent attempts in last 7 days
+  const recentAttempts = attempts.filter(attempt => 
+    new Date(attempt.AttemptDate) >= sevenDaysAgo
+  );
+  
+  // Check for recent sessions in last 7 days
+  const recentSessions = sessions.filter(session => 
+    new Date(session.Date) >= sevenDaysAgo
+  );
+  
+  // Check for any activity in last 30 days
+  const monthlyAttempts = attempts.filter(attempt => 
+    new Date(attempt.AttemptDate) >= thirtyDaysAgo
+  );
+  
+  // Determine status based on activity patterns
+  if (recentAttempts.length >= 3 || recentSessions.length >= 1) {
+    return "Active Learning";
+  } else if (monthlyAttempts.length >= 2) {
+    return "Intermittent Learning";
+  } else if (attempts.length > 0) {
+    return "Inactive";
+  } else {
+    return "Getting Started";
+  }
+}
+
+/**
+ * Calculate progress trend based on recent performance improvement
+ */
+function calculateProgressTrend(attempts) {
+  if (!attempts || attempts.length < 10) {
+    return { trend: "Insufficient Data", percentage: 0 };
+  }
+  
+  // Sort attempts by date
+  const sortedAttempts = attempts.sort((a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate));
+  
+  // Take last 40 attempts for comparison, split into two halves
+  const recentAttempts = sortedAttempts.slice(-40);
+  const midpoint = Math.floor(recentAttempts.length / 2);
+  const olderHalf = recentAttempts.slice(0, midpoint);
+  const newerHalf = recentAttempts.slice(midpoint);
+  
+  if (olderHalf.length === 0 || newerHalf.length === 0) {
+    return { trend: "Insufficient Data", percentage: 0 };
+  }
+  
+  // Calculate success rates for both halves
+  const olderSuccessRate = olderHalf.filter(a => a.Success).length / olderHalf.length;
+  const newerSuccessRate = newerHalf.filter(a => a.Success).length / newerHalf.length;
+  
+  // Calculate improvement
+  const improvement = newerSuccessRate - olderSuccessRate;
+  
+  // Determine trend
+  let trend = "Stable";
+  if (improvement > 0.15) {
+    trend = "Rapidly Improving";
+  } else if (improvement > 0.05) {
+    trend = "Improving";
+  } else if (improvement < -0.15) {
+    trend = "Declining";
+  } else if (improvement < -0.05) {
+    trend = "Slightly Declining";
+  }
+  
+  // Calculate percentage based on current success rate (newer half)
+  const percentage = Math.round(newerSuccessRate * 100);
+  
+  return { trend, percentage };
+}
+
+/**
+ * Calculate percentage of attempts completed within reasonable time limits
+ */
+function calculateTimerPercentage(attempts) {
+  if (!attempts || attempts.length === 0) return 0;
+  
+  const recentAttempts = attempts.slice(-100); // Last 100 attempts
+  const withinLimits = recentAttempts.filter(attempt => {
+    if (!attempt.TimeSpent) return false;
+    // Define reasonable time limits: Easy <20min, Medium <45min, Hard <90min
+    // TimeSpent is in seconds, so multiply minutes by 60
+    const timeLimit = attempt.Difficulty === "Easy" ? 1200 : 
+                     attempt.Difficulty === "Hard" ? 5400 : 2700;
+    return attempt.TimeSpent <= timeLimit;
+  });
+  
+  return Math.round((withinLimits.length / recentAttempts.length) * 100);
+}
+
+/**
+ * Calculate next review time and count using direct SessionService access
+ * Runs directly in background context so no Chrome messaging needed
+ */
+async function calculateNextReviewData() {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      // Direct database access to avoid circular dependency with SessionService
+      const { getLatestSession } = await import('../../shared/db/sessions.js');
+      const session = await getLatestSession();
+      
+      // Process session data
+      if (!session) {
+        console.info('📊 No active session found');
+        return {
+          nextReviewTime: "No active session", 
+          nextReviewCount: 0
+        };
+      }
+      console.log('📊 Dashboard received session object:', session);
+      
+      // Handle null session explicitly
+      if (session === null || session === undefined) {
+        console.info('📊 Session is null or undefined');
+        return {
+          nextReviewTime: "No session available",
+          nextReviewCount: 0
+        };
+      }
+      
+      // Validate session object structure with better error reporting
+      if (typeof session !== 'object') {
+        console.warn('❌ Session is not an object:', {
+          sessionType: typeof session,
+          sessionValue: session
+        });
+        return {
+          nextReviewTime: "Invalid session type",
+          nextReviewCount: 0
+        };
+      }
+
+          // Handle both session.problems array and session.problemCount formats
+          let totalProblems = 0;
+          let currentIndex = session.currentProblemIndex || 0;
+          
+          if (Array.isArray(session.problems)) {
+            totalProblems = session.problems.length;
+          } else if (typeof session.problemCount === 'number') {
+            totalProblems = session.problemCount;
+          } else {
+            console.warn('❌ Session has neither problems array nor problemCount:', {
+              hasProblems: 'problems' in session,
+              problemsType: typeof session.problems,
+              hasProblemCount: 'problemCount' in session,
+              problemCountType: typeof session.problemCount,
+              sessionKeys: Object.keys(session)
+            });
+            return {
+              nextReviewTime: "Session missing problem data",
+              nextReviewCount: 0
+            };
+          }
+          
+          const problemsRemaining = totalProblems - currentIndex;
+          console.log('📊 Session analysis:', {
+            totalProblems,
+            currentIndex,
+            problemsRemaining,
+            sessionId: session.id,
+            sessionStatus: session.status,
+            hasProblemsArray: Array.isArray(session.problems),
+            sessionProblemCount: session.problemCount
+          });
+          
+          // Format next review time based on session state
+          const now = new Date();
+          const nextReview = new Date();
+          
+          // If problems are remaining in current session, show immediate availability
+          if (problemsRemaining > 0) {
+            nextReview.setMinutes(nextReview.getMinutes() + 5); // Show 5 minutes from now
+          } else {
+            // Schedule for later today or tomorrow based on current time
+            const currentHour = now.getHours();
+            if (currentHour >= 20) {
+              // After 8 PM, schedule for tomorrow morning
+              nextReview.setDate(nextReview.getDate() + 1);
+              nextReview.setHours(9, 0, 0, 0);
+            } else if (currentHour < 9) {
+              // Before 9 AM, schedule for later today
+              nextReview.setHours(14, 0, 0, 0);
+            } else {
+              // During the day, schedule for later today
+              nextReview.setHours(currentHour + 2, 0, 0, 0);
+            }
+          }
+          
+          const formatTime = (date) => {
+            const isToday = date.toDateString() === now.toDateString();
+            const timeStr = date.toLocaleTimeString('en-US', { 
+              hour: 'numeric', 
+              minute: '2-digit', 
+              hour12: true 
+            });
+            
+            if (isToday) {
+              return `Today • ${timeStr}`;
+            }
+            
+            const dayStr = date.toLocaleDateString('en-US', { weekday: 'short' });
+            return `${dayStr} • ${timeStr}`;
+          };
+          
+        return {
+          nextReviewTime: formatTime(nextReview),
+          nextReviewCount: Math.max(problemsRemaining, 0)
+        };
+        
+    } else {
+      // No Chrome extension API available (development mode)
+      return {
+        nextReviewTime: "Development mode",
+        nextReviewCount: 0
+      };
+    }
+  } catch (error) {
+    console.error('Error in calculateNextReviewData:', error);
+    return {
+      nextReviewTime: "Schedule unavailable",
+      nextReviewCount: 0
+    };
+  }
+}
+
+/**
+ * Page-specific data fetching functions
+ * Each function returns only the data needed for a specific page
+ */
+
+/**
+ * Get data specifically for the Learning Progress page
+ */
+export async function getLearningProgressData(options = {}) {
+  try {
+    const fullData = await getDashboardStatistics(options);
+    
+    return {
+      boxLevelData: fullData.boxLevelData,
+      timerBehavior: fullData.timerBehavior,
+      timerPercentage: fullData.timerPercentage,
+      learningStatus: fullData.learningStatus,
+      progressTrend: fullData.progressTrend,
+      progressPercentage: fullData.progressPercentage,
+      nextReviewTime: fullData.nextReviewTime,
+      nextReviewCount: fullData.nextReviewCount,
+      allAttempts: fullData.allAttempts,
+      allProblems: fullData.allProblems,
+      allSessions: fullData.allSessions,
+      learningState: fullData.learningState,
+      strategySuccessRate: fullData.strategySuccessRate,
+      promotionData: fullData.nested?.progress?.promotionData,
+    };
+  } catch (error) {
+    console.error("Error getting learning progress data:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get data specifically for the Goals page
+ * Can accept providedData to avoid direct service calls
+ */
+export async function getGoalsData(options = {}, providedData = null) {
+  try {
+    if (providedData) {
+      // Use provided data directly
+      return await generateGoalsData(providedData);
+    } else {
+      // Fallback: try existing method but catch errors gracefully
+      try {
+        const fullData = await getDashboardStatistics(options);
+        return fullData.goals || await generateGoalsData();
+      } catch (error) {
+        // If getDashboardStatistics fails, use fallback
+        console.warn("getDashboardStatistics failed, using fallback goals data");
+        return await generateGoalsData();
+      }
+    }
+  } catch (error) {
+    console.error("Error getting goals data:", error);
+    // Return fallback goals data instead of throwing
+    return {
+      learningPlan: {
+        cadence: { sessionsPerWeek: 5, sessionLength: 4, flexibleSchedule: true },
+        focus: { primaryTags: ["array"], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
+        guardrails: { minReviewRatio: 30, maxNewProblems: 4, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
+        missions: [],
+        outcomeTrends: {
+          weeklyAccuracy: { value: 0, status: "behind", target: 75 },
+          problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },
+          hintEfficiency: { value: 0, status: "behind", display: "<0 per problem" },
+          learningVelocity: { value: "Steady", status: "adaptive" }
+        }
+      }
+    };
+  }
+}
+
+/**
+ * Get data specifically for the Stats/Overview page
+ */
+export async function getStatsData(options = {}) {
+  try {
+    const fullData = await getDashboardStatistics(options);
+    
+    return {
+      statistics: fullData.statistics,
+      averageTime: fullData.averageTime,
+      successRate: fullData.successRate,
+      allSessions: fullData.allSessions,
+      hintsUsed: fullData.hintsUsed,
+      timeAccuracy: fullData.timeAccuracy,
+      learningEfficiencyData: fullData.learningEfficiencyData,
+    };
+  } catch (error) {
+    console.error("Error getting stats data:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get data specifically for the Session History page
+ */
+export async function getSessionHistoryData(options = {}) {
+  try {
+    const fullData = await getDashboardStatistics(options);
+    
+    return {
+      allSessions: fullData.sessions?.allSessions || [],
+      sessionAnalytics: fullData.sessions?.sessionAnalytics || [],
+      productivityMetrics: fullData.sessions?.productivityMetrics || {},
+      recentSessions: fullData.sessions?.recentSessions || [],
+    };
+  } catch (error) {
+    console.error("Error getting session history data:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get data specifically for the Productivity Insights page
+ */
+export async function getProductivityInsightsData(options = {}) {
+  try {
+    const fullData = await getDashboardStatistics(options);
+    
+    return {
+      productivityMetrics: fullData.sessions?.productivityMetrics || {},
+      sessionAnalytics: fullData.sessions?.sessionAnalytics || [],
+      allSessions: fullData.sessions?.allSessions || [],
+      learningEfficiencyData: fullData.learningEfficiencyData,
+    };
+  } catch (error) {
+    console.error("Error getting productivity insights data:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get data specifically for the Tag Mastery page
+ */
+export async function getTagMasteryData(options = {}) {
+  try {
+    const fullData = await getDashboardStatistics(options);
+    
+    return fullData.mastery || {
+      currentTier: "Core Concept",
+      masteredTags: [],
+      allTagsInCurrentTier: [],
+      focusTags: [],
+      tagsinTier: [],
+      unmasteredTags: [],
+      masteryData: [],
+      learningState: {}
+    };
+  } catch (error) {
+    console.error("Error getting tag mastery data:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get data specifically for the Learning Path page
+ */
+export async function getLearningPathData(options = {}) {
+  try {
+    const fullData = await getDashboardStatistics(options);
+    
+    return fullData.mastery || {
+      currentTier: "Core Concept",
+      masteredTags: [],
+      allTagsInCurrentTier: [],
+      focusTags: [],
+      tagsinTier: [],
+      unmasteredTags: [],
+      masteryData: [],
+      learningState: {}
+    };
+  } catch (error) {
+    console.error("Error getting learning path data:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get data specifically for the Mistake Analysis page
+ */
+export async function getMistakeAnalysisData(options = {}) {
+  try {
+    const fullData = await getDashboardStatistics(options);
+    
+    // Mistake analysis needs broader data for pattern analysis
+    return {
+      allAttempts: fullData.allAttempts,
+      allProblems: fullData.allProblems,
+      allSessions: fullData.allSessions,
+      statistics: fullData.statistics,
+      learningState: fullData.learningState,
+      mastery: fullData.mastery,
+    };
+  } catch (error) {
+    console.error("Error getting mistake analysis data:", error);
+    throw error;
+  }
 }

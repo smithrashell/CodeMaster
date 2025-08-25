@@ -26,9 +26,9 @@ const getMasteryColor = (pct) => (pct >= 80 ? "var(--cm-table-mastery-good)" : p
 // map mastery → mantine color names for badges
 const getMantineMasteryColor = (pct) => (pct >= 80 ? "green" : pct >= 50 ? "yellow" : "red");
 
-/* ---------- mock adapter (same as yours) ---------- */
-const fetchMockData = (data) => ({
-  currentTier: data?.currentTier || "Core Concepts",
+/* ---------- data adapter with service-based defaults ---------- */
+const normalizeData = (data) => ({
+  currentTier: data?.currentTier || null,
   masteredTags: data?.masteredTags || [],
   allTagsInCurrentTier: data?.allTagsInCurrentTier || [],
   focusTags: data?.focusTags || [],
@@ -46,7 +46,7 @@ export default function MasteryDashboard(props) {
   const pageSize = 10;
 
   useEffect(() => {
-    setData(fetchMockData(props.data));
+    setData(normalizeData(props.data));
   }, [props.data]);
 
   if (!data) return <Text>Loading mastery data...</Text>;

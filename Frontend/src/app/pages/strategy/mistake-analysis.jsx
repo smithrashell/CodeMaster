@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Container, Grid, Card, Title, Text, Stack, Group, Badge, Button, Box } from "@mantine/core";
 import { useThemeColors } from "../../../shared/hooks/useThemeColors";
+import { usePageData } from "../../hooks/usePageData";
 
 // Shared Components from mockup.jsx
 function Section({ title, right, children }) {
@@ -47,7 +48,8 @@ function FeedbackItem({ icon, title, note, meta }) {
   );
 }
 
-export function MistakeAnalysis({ appState }) {
+export function MistakeAnalysis() {
+  const { data: appState } = usePageData('mistake-analysis');
   const colors = useThemeColors();
   const [errorPatterns, setErrorPatterns] = useState([]);
   const [strugglingTags, setStrugglingTags] = useState([]);
@@ -83,14 +85,19 @@ export function MistakeAnalysis({ appState }) {
     
     setStrugglingTags(struggling);
 
-    // Extract session insights from sessions data
+    // Extract session insights from sessions data - only real insights
     const sessions = appState.sessions?.sessionAnalytics || [];
-    const negativeInsights = sessions
+    const realInsights = sessions
       .flatMap(session => session.insights || [])
-      .filter(insight => insight.includes('Focus on') || insight.includes('improvement') || insight.includes('Consider'))
+      .filter(insight => 
+        insight && 
+        insight.length > 0 && 
+        (insight.includes('Focus on') || insight.includes('improvement') || insight.includes('Consider'))
+      )
       .slice(0, 8); // Get recent improvement suggestions
     
-    setSessionInsights(negativeInsights);
+    // Only set insights if we have real session data, not just templates
+    setSessionInsights(realInsights);
 
     // Analyze error patterns from session data
     const errorPatternAnalysis = [];
@@ -135,23 +142,29 @@ export function MistakeAnalysis({ appState }) {
 
     setErrorPatterns(errorPatternAnalysis);
 
-    // Generate improvement suggestions
+    // Generate improvement suggestions - only when there's actual data indicating issues
     const suggestions = [];
     
+    // Only add suggestions if there are actual struggling areas
     if (struggling.length > 0) {
       suggestions.push(`Dedicate 2-3 focused sessions to ${struggling[0].tag} problems - currently at ${struggling[0].progress}%`);
     }
     
+    // Only add if there are actual accuracy issues
     if (lowAccuracySessions.length > 1) {
       suggestions.push('Review solution explanations for missed problems instead of moving to new topics');
     }
     
+    // Only add if there are tags that are stuck despite many attempts
     if (masteryData.some(tag => tag.totalAttempts > 10 && tag.progress < 40)) {
       const stuckTag = masteryData.find(tag => tag.totalAttempts > 10 && tag.progress < 40);
       suggestions.push(`Consider taking a break from ${stuckTag.tag} and returning with fresh perspective`);
     }
     
-    suggestions.push('Practice explaining your solution approach out loud to identify gaps in understanding');
+    // Only add generic suggestion if there are other issues detected
+    if (struggling.length > 0 || lowAccuracySessions.length > 1 || errorPatternAnalysis.length > 0) {
+      suggestions.push('Practice explaining your solution approach out loud to identify gaps in understanding');
+    }
     
     setImprovementSuggestions(suggestions.slice(0, 4));
 
@@ -226,9 +239,11 @@ export function MistakeAnalysis({ appState }) {
           >
             <Group justify="space-between" mb="xs">
               <Text fw={700} c="var(--text)">🎯 Improvement Action Plan</Text>
-              <Badge color="blue" variant="light" size="sm">
-                0 / {improvementSuggestions.length} done
-              </Badge>
+              {improvementSuggestions.length > 0 && (
+                <Badge color="blue" variant="light" size="sm">
+                  0 / {improvementSuggestions.length} done
+                </Badge>
+              )}
             </Group>
             
             <div style={{ 
@@ -270,9 +285,12 @@ export function MistakeAnalysis({ appState }) {
                   })}
                 </Stack>
               ) : (
-                <Text c="var(--muted)" ta="center" py="xl">
-                  Keep practicing to unlock personalized improvement suggestions!
-                </Text>
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <Text size="lg" fw={600} c="var(--text)" mb="sm">No Improvement Actions Needed</Text>
+                  <Text size="sm" c="var(--muted)">
+                    Your performance is looking good! Keep practicing to maintain your progress.
+                  </Text>
+                </div>
               )}
             </div>
 

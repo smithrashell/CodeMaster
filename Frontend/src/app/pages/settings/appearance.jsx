@@ -1,143 +1,88 @@
 import React from "react";
-import { Container, Title, Grid, Card, Text } from "@mantine/core";
+import { Container, Title, Grid, Card, Text, Stack } from "@mantine/core";
 import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
 import {
   FontSizeSelector,
   LayoutDensitySelector,
   AnimationToggle,
 } from "../../../shared/components/AppearanceControls.jsx";
+// TODO: Re-enable for future release
+// import { DisplaySettingsCard } from "../../components/settings/DisplaySettingsCard.jsx";
 
 export function Appearance() {
   return (
     <Container size="md" p="xl">
-      <Title order={2} mb="xl" style={{ color: "var(--cm-text)" }}>
+      <Title order={2} mb="xl">
         Appearance Settings
       </Title>
 
-      <Grid gutter="lg">
+      <Stack gap="lg">
         {/* Theme Selection */}
-        <Grid.Col span={12}>
-          <Card
-            shadow="sm"
-            p="lg"
-            style={{
-              backgroundColor: "var(--cm-card-bg)",
-              borderColor: "var(--cm-border)",
-            }}
-          >
-            <Text
-              weight={500}
-              size="lg"
-              mb="md"
-              style={{ color: "var(--cm-text)" }}
-            >
-              Theme
-            </Text>
-            <Text
-              size="sm"
-              color="dimmed"
-              mb="md"
-              style={{ color: "var(--cm-text-dimmed)" }}
-            >
-              Choose between light and dark themes. Changes will sync across the
-              content page and dashboard.
-            </Text>
+        <Card withBorder p="lg" radius="md">
+          <Stack gap="md">
+            <div>
+              <Text fw={500} size="lg" mb="xs">
+                Theme
+              </Text>
+              <Text size="sm" c="dimmed">
+                Choose between light and dark themes. Changes will sync across the
+                content page and dashboard.
+              </Text>
+            </div>
             <ThemeToggle />
-          </Card>
-        </Grid.Col>
+          </Stack>
+        </Card>
 
         {/* Font Size Settings */}
-        <Grid.Col span={12}>
-          <Card
-            shadow="sm"
-            p="lg"
-            style={{
-              backgroundColor: "var(--cm-card-bg)",
-              borderColor: "var(--cm-border)",
-            }}
-          >
-            <Text
-              weight={500}
-              size="lg"
-              mb="md"
-              style={{ color: "var(--cm-text)" }}
-            >
-              Font Size
-            </Text>
-            <Text
-              size="sm"
-              color="dimmed"
-              mb="md"
-              style={{ color: "var(--cm-text-dimmed)" }}
-            >
-              Adjust the text size for better readability.
-            </Text>
+        <Card withBorder p="lg" radius="md">
+          <Stack gap="md">
+            <div>
+              <Text fw={500} size="lg" mb="xs">
+                Font Size
+              </Text>
+              <Text size="sm" c="dimmed">
+                Adjust the text size for better readability.
+              </Text>
+            </div>
             <FontSizeSelector />
-          </Card>
-        </Grid.Col>
+          </Stack>
+        </Card>
 
         {/* Layout Density */}
-        <Grid.Col span={12}>
-          <Card
-            shadow="sm"
-            p="lg"
-            style={{
-              backgroundColor: "var(--cm-card-bg)",
-              borderColor: "var(--cm-border)",
-            }}
-          >
-            <Text
-              weight={500}
-              size="lg"
-              mb="md"
-              style={{ color: "var(--cm-text)" }}
-            >
-              Layout Density
-            </Text>
-            <Text
-              size="sm"
-              color="dimmed"
-              mb="md"
-              style={{ color: "var(--cm-text-dimmed)" }}
-            >
-              Choose between compact or comfortable spacing for interface
-              elements.
-            </Text>
+        <Card withBorder p="lg" radius="md">
+          <Stack gap="md">
+            <div>
+              <Text fw={500} size="lg" mb="xs">
+                Layout Density
+              </Text>
+              <Text size="sm" c="dimmed">
+                Choose between compact or comfortable spacing for interface
+                elements.
+              </Text>
+            </div>
             <LayoutDensitySelector />
-          </Card>
-        </Grid.Col>
+          </Stack>
+        </Card>
 
         {/* Animation Preferences */}
-        <Grid.Col span={12}>
-          <Card
-            shadow="sm"
-            p="lg"
-            style={{
-              backgroundColor: "var(--cm-card-bg)",
-              borderColor: "var(--cm-border)",
-            }}
-          >
-            <Text
-              weight={500}
-              size="lg"
-              mb="md"
-              style={{ color: "var(--cm-text)" }}
-            >
-              Animations
-            </Text>
-            <Text
-              size="sm"
-              color="dimmed"
-              mb="md"
-              style={{ color: "var(--cm-text-dimmed)" }}
-            >
-              Enable or disable animations and transitions for better
-              performance.
-            </Text>
+        <Card withBorder p="lg" radius="md">
+          <Stack gap="md">
+            <div>
+              <Text fw={500} size="lg" mb="xs">
+                Animations
+              </Text>
+              <Text size="sm" c="dimmed">
+                Enable or disable animations and transitions for better
+                performance.
+              </Text>
+            </div>
             <AnimationToggle />
-          </Card>
-        </Grid.Col>
-      </Grid>
+          </Stack>
+        </Card>
+
+        {/* TODO: Re-enable Display Settings for future release */}
+        {/* <DisplaySettingsCard /> */}
+      </Stack>
     </Container>
   );
 }

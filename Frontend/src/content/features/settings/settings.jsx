@@ -1,17 +1,17 @@
 import "../../css/main.css";
-import React, { useState, useEffect } from "react";
-import { Label, Button, Title, Switch, Tooltip, Group } from "@mantine/core";
+import { useState, useEffect } from "react";
+import { Button } from "@mantine/core";
 import {
   SliderMarksSessionLength,
   SliderMarksNewProblemsPerSession,
   GradientSegmentedControlTimeLimit,
   ToggleSelectRemainders,
 } from "../../../shared/components/nantine.jsx";
-import { IconQuestionMark } from "@tabler/icons-react"; // or
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useNav } from "../../../shared/provider/navprovider";
+import SessionLimits from "../../../shared/utils/sessionLimits.js";
 
 const Settings = () => {
   const { setIsAppOpen } = useNav();
@@ -20,7 +20,7 @@ const Settings = () => {
     setIsAppOpen(false);
   };
   const [settings, setSettings] = useState(null);
-  const [value, setValue] = useState(40);
+  const [maxNewProblems, setMaxNewProblems] = useState(8);
   const useMock = false;
   const MOCK_SETTINGS = {
     adaptive: true, // try false to test toggling
@@ -35,9 +35,9 @@ const Settings = () => {
 
   // New approach using custom hook
   const {
-    data: chromeSettings,
-    loading,
-    error,
+    data: _chromeSettings,
+    loading: _loading,
+    error: _error,
   } = useChromeMessage(!useMock ? { type: "getSettings" } : null, [], {
     onSuccess: (response) => {
       if (response) {
@@ -51,34 +51,51 @@ const Settings = () => {
   // Handle mock settings
   useEffect(() => {
     if (useMock) {
-      console.log("🔧 Using MOCK_SETTINGS");
       setSettings(MOCK_SETTINGS);
     }
-  }, []);
+  }, [useMock, MOCK_SETTINGS]);
+
+  // Update max new problems dynamically when settings change
+  useEffect(() => {
+    const updateMaxNewProblems = async () => {
+      try {
+        const sessionState = await chrome.runtime.sendMessage({ type: "getSessionState" });
+        const newMax = SessionLimits.getMaxNewProblems(sessionState, settings?.sessionLength);
+        setMaxNewProblems(newMax);
+      } catch (error) {
+        console.error('Settings.jsx: Failed to get session state, using fallback limits:', error);
+        // Fallback to default if session state unavailable
+        const fallbackMax = SessionLimits.getMaxNewProblems(null, settings?.sessionLength);
+        setMaxNewProblems(fallbackMax);
+      }
+    };
+
+    if (settings) {
+      updateMaxNewProblems();
+    }
+  }, [settings]); // Re-run when settings change
 
   const handleSave = (settings) => {
     chrome.runtime.sendMessage(
       { type: "setSettings", message: settings },
       (response) => {
-        console.log("Settings saved:", response);
-
         // Clear any cached settings to ensure fresh data on next read
         chrome.runtime.sendMessage(
           { type: "clearSettingsCache" },
-          (cacheResponse) => {
-            console.log("Settings cache cleared:", cacheResponse);
+          () => {
+            // Settings cache cleared
           }
         );
 
         // Notify user of successful save
         if (response?.status === "success") {
-          console.log("✅ Settings successfully updated and cache cleared");
+          // Settings successfully updated and cache cleared
         }
       }
     );
   };
 
-  const toggleAdaptive = (value) => {
+  const _toggleAdaptive = (value) => {
     setSettings((prev) => ({ ...prev, adaptive: value }));
   };
 
@@ -109,14 +126,14 @@ const Settings = () => {
             <div className="cm-form-group">
               <label>New Problems Per Session</label>
               <SliderMarksNewProblemsPerSession
-                value={settings?.numberofNewProblemsPerSession}
+                value={Math.min(settings?.numberofNewProblemsPerSession || 1, maxNewProblems)}
                 onChange={(value) =>
                   setSettings({
                     ...settings,
                     numberofNewProblemsPerSession: value,
                   })
                 }
-                max={settings?.sessionLength}
+                max={maxNewProblems}
               />
             </div>
           </>

@@ -2,7 +2,6 @@ import ProblemRelationshipService from "../../shared/services/problemRelationshi
 import strategyCacheService from "../../shared/services/StrategyCacheService.js";
 import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
 import chromeMessaging from "./chromeMessagingService.js";
-import emergencyStrategy from "../../shared/utils/EmergencyStrategyBypass.js";
 
 // Fallback strategy data when database is unavailable
 const FALLBACK_STRATEGIES = {
@@ -154,7 +153,7 @@ export class StrategyService {
           tag: tag,
         },
         {
-          timeout: 8000, // Increased timeout for slow network conditions
+          timeout: 10000, // 10 second timeout for safety margin
           retries: 2, // Fewer retries for faster response
           cacheable: true,
           cacheKey: `strategy_${tag.toLowerCase()}`,
@@ -163,7 +162,6 @@ export class StrategyService {
 
       if (dbResult) {
         // eslint-disable-next-line no-console
-        console.log(`🔍 CONTENT: Background script result for "${tag}": FOUND`);
         performanceMonitor.endQuery(
           queryContext,
           true,
@@ -187,18 +185,6 @@ export class StrategyService {
         return fallback;
       }
 
-      // Try emergency bypass system as final fallback
-      // eslint-disable-next-line no-console
-      console.log(`🚨 CONTENT: Using emergency bypass for tag "${tag}"`);
-      const emergencyResult = emergencyStrategy.getEmergencyStrategy(tag);
-      if (emergencyResult) {
-        performanceMonitor.endQuery(
-          queryContext,
-          true,
-          JSON.stringify(emergencyResult).length
-        );
-        return emergencyResult;
-      }
 
       // eslint-disable-next-line no-console
       console.log(
@@ -228,27 +214,6 @@ export class StrategyService {
         return fallback;
       }
 
-      // Try emergency bypass as last resort
-      try {
-        // eslint-disable-next-line no-console
-        console.log(
-          `🚨 CONTENT: Using emergency bypass for tag "${tag}" (after error)`
-        );
-        const emergencyResult = emergencyStrategy.getEmergencyStrategy(tag);
-        if (emergencyResult) {
-          performanceMonitor.endQuery(
-            queryContext,
-            true,
-            JSON.stringify(emergencyResult).length
-          );
-          return emergencyResult;
-        }
-      } catch (emergencyError) {
-        console.error(
-          `💥 CONTENT: Emergency bypass failed for "${tag}":`,
-          emergencyError
-        );
-      }
 
       performanceMonitor.endQuery(queryContext, false, 0, error);
       return null;
@@ -406,11 +371,6 @@ export class StrategyService {
       const strategiesData = await this.getStrategiesForTags(problemTags);
 
       // eslint-disable-next-line no-console
-      console.log("🔍 HINT DEBUG: Retrieved strategies data:", strategiesData);
-      console.log(
-        "🔍 HINT DEBUG: Available strategy keys:",
-        Object.keys(strategiesData)
-      );
 
       const difficultyConfig =
         HINT_CONFIG.DIFFICULTY_CONFIG[difficulty] ||
@@ -477,7 +437,6 @@ export class StrategyService {
       // Then, create general hints for individual tags
       for (const tag of problemTags) {
         // eslint-disable-next-line no-console
-        console.log(`🔍 HINT DEBUG: Processing general hint for tag: "${tag}"`);
 
         const strategy = strategiesData[tag];
 
@@ -503,21 +462,11 @@ export class StrategyService {
           );
         } else {
           // eslint-disable-next-line no-console
-          console.log(`❌ HINT DEBUG: No strategy found for tag "${tag}"`);
         }
       }
 
       // eslint-disable-next-line no-console
-      console.log("🔍 HINT DEBUG: Final hints array:", hints);
-      console.log(
-        "🔍 HINT DEBUG: Difficulty config max hints:",
-        difficultyConfig.maxHints
-      );
-
       const finalHints = hints.slice(0, difficultyConfig.maxHints);
-
-      // eslint-disable-next-line no-console
-      console.log("🔍 HINT DEBUG: Returning hints:", finalHints);
 
       return finalHints;
     } catch (error) {
@@ -761,111 +710,6 @@ export class StrategyService {
     }
   }
 
-  /**
-   * Simple test method to verify system
-   * @returns {Promise<Object>} Test results
-   */
-  static async testSystem() {
-    // eslint-disable-next-line no-console
-    console.log("🧪 SYSTEM TEST: Starting comprehensive system test...");
-
-    const results = {
-      databaseConnectable: false,
-      storeExists: true, // Assuming it exists since we use onboarding
-      currentCount: 0,
-      sampleData: null,
-      fallbackAvailable: Object.keys(FALLBACK_STRATEGIES).length,
-      tagsList: [],
-      directDBTest: null,
-      cacheTest: null,
-    };
-
-    try {
-      // Test 1: Check if data is loaded via background script
-      // eslint-disable-next-line no-console
-      console.log("🧪 CONTENT TEST 1: Checking if strategy data is loaded...");
-      const response = await chrome.runtime.sendMessage({
-        type: "isStrategyDataLoaded",
-      });
-      if (response.status === "success") {
-        results.databaseConnectable = true;
-        results.currentCount = response.data ? "LOADED" : "EMPTY";
-        const loaded = response.data;
-
-        // Test 2: Get sample strategy via background script
-        if (loaded) {
-          // eslint-disable-next-line no-console
-          console.log(
-            "🧪 CONTENT TEST 2: Testing strategy retrieval via background script..."
-          );
-          try {
-            const strategyResponse = await chrome.runtime.sendMessage({
-              type: "getStrategyForTag",
-              tag: "array",
-            });
-
-            if (strategyResponse.status === "success") {
-              results.directDBTest = strategyResponse.data;
-              // eslint-disable-next-line no-console
-              console.log(
-                "🧪 CONTENT: Background strategy test result:",
-                results.directDBTest ? "SUCCESS" : "NULL"
-              );
-            } else {
-              results.directDBTest = { error: strategyResponse.error };
-            }
-          } catch (strategyError) {
-            console.error("❌ CONTENT: Strategy test failed:", strategyError);
-            results.directDBTest = { error: strategyError.message };
-          }
-
-          // Test 3: Cache service test
-          // eslint-disable-next-line no-console
-          console.log("🧪 CONTENT TEST 3: Testing through service layer...");
-          try {
-            results.cacheTest = await this.getStrategyForTag("array");
-            // eslint-disable-next-line no-console
-            console.log(
-              "🧪 CONTENT: Service layer test result:",
-              results.cacheTest ? "SUCCESS" : "NULL"
-            );
-          } catch (cacheError) {
-            console.error("❌ CONTENT: Service layer test failed:", cacheError);
-            results.cacheTest = { error: cacheError.message };
-          }
-        }
-      } else {
-        results.error = response.error;
-      }
-    } catch (error) {
-      console.error("❌ System test error:", error);
-      results.error = error.message;
-    }
-
-    // eslint-disable-next-line no-console
-    console.log("🔍 System Test Results:", results);
-    return results;
-  }
-
-  /**
-   * Manual database reset and reinitialize (for debugging)
-   */
-  static async debugReset() {
-    try {
-      // eslint-disable-next-line no-console
-      console.log(
-        "🔄 CONTENT DEBUG: Database reset handled by background script onboarding..."
-      );
-
-      // eslint-disable-next-line no-console
-      console.log("🔄 CONTENT DEBUG: Reset complete, running test...");
-
-      return await this.testSystem();
-    } catch (error) {
-      console.error("❌ CONTENT: Debug reset failed:", error);
-      return { error: error.message };
-    }
-  }
 }
 
 // Pre-warm cache with commonly used strategies
@@ -911,231 +755,10 @@ StrategyService.initializeStrategyData()
     console.error("❌ Strategy initialization failed, using fallbacks:", error);
   });
 
-// Expose debugging and management methods
+// Expose cache and performance utilities
 StrategyService.cache = strategyCacheService;
 StrategyService.performance = performanceMonitor;
-StrategyService.test = StrategyService.testSystem;
 StrategyService.messaging = chromeMessaging;
 
-// Debug utilities with hint analytics
-StrategyService.debug = {
-  getCacheStats: () => chromeMessaging.getCacheStats(),
-  clearCache: () => chromeMessaging.clearCache(),
-  preWarm: preWarmCache,
-  testTags: COMMON_TAGS,
-
-  async quickTest() {
-    console.log("🧪 Quick strategy system test...");
-    const start = Date.now();
-
-    try {
-      const result = await StrategyService.getStrategyForTag("array");
-      const duration = Date.now() - start;
-
-      console.log(
-        `✅ Quick test completed in ${duration}ms:`,
-        result ? "SUCCESS" : "NULL"
-      );
-      return { success: true, duration, result: !!result };
-    } catch (error) {
-      const duration = Date.now() - start;
-      console.error(`❌ Quick test failed in ${duration}ms:`, error);
-      return { success: false, duration, error: error.message };
-    }
-  },
-
-  async diagnoseMessaging() {
-    console.log("🔍 Running deep Chrome messaging diagnostics...");
-    const diagnostics = new ChromeMessagingDiagnostics();
-    const results = await diagnostics.runFullDiagnostics();
-
-    console.log("🔍 DIAGNOSTIC RESULTS:");
-    console.table(results.tests);
-    console.log("📋 RECOMMENDATIONS:", results.recommendations);
-
-    return results;
-  },
-
-  async testDirectDB() {
-    console.log("🔍 Testing direct database access...");
-    const diagnostics = new ChromeMessagingDiagnostics();
-    return await diagnostics.testDirectDBAccess();
-  },
-
-  // 📊 HINT ANALYTICS DEBUG FUNCTIONS
-  async getHintStats() {
-    try {
-      console.log("📊 Loading hint interaction statistics...");
-      const { HintInteractionService } = await import(
-        "../../shared/services/hintInteractionService.js"
-      );
-      const stats = await HintInteractionService.getSystemAnalytics();
-
-      console.log("📊 HINT INTERACTION STATS:");
-      console.table(stats.overview);
-      console.log("📈 EFFECTIVENESS BY HINT TYPE:", stats.effectiveness);
-
-      return stats;
-    } catch (error) {
-      console.error("❌ Error loading hint stats:", error);
-      return { error: error.message };
-    }
-  },
-
-  async generateHintReport() {
-    try {
-      console.log("📋 Generating comprehensive hint effectiveness report...");
-      const { HintAnalyticsService } = await import(
-        "../../shared/services/hintAnalyticsService.js"
-      );
-      const report = await HintAnalyticsService.generateEffectivenessReport();
-
-      console.log("📋 HINT EFFECTIVENESS REPORT:");
-      console.log("━".repeat(50));
-      console.log(
-        `📊 Summary (${report.dateRange.start.split("T")[0]} to ${
-          report.dateRange.end.split("T")[0]
-        })`
-      );
-      console.log(
-        `   • Total Interactions: ${report.summary.totalInteractions}`
-      );
-      console.log(`   • Unique Problems: ${report.summary.uniqueProblems}`);
-      console.log(`   • Unique Sessions: ${report.summary.uniqueSessions}`);
-      console.log(
-        `   • Avg Engagement Rate: ${(
-          report.summary.averageEngagementRate * 100
-        ).toFixed(1)}%`
-      );
-      console.log("━".repeat(50));
-
-      if (report.recommendations.length > 0) {
-        console.log("💡 RECOMMENDATIONS:");
-        report.recommendations.forEach((rec, i) => {
-          console.log(
-            `   ${i + 1}. [${rec.priority.toUpperCase()}] ${rec.message}`
-          );
-        });
-        console.log("━".repeat(50));
-      }
-
-      if (report.insights.length > 0) {
-        console.log("🔍 KEY INSIGHTS:");
-        report.insights.forEach((insight, i) => {
-          console.log(`   ${i + 1}. ${insight}`);
-        });
-      }
-
-      return report;
-    } catch (error) {
-      console.error("❌ Error generating hint report:", error);
-      return { error: error.message };
-    }
-  },
-
-  async getMostHelpfulHints() {
-    try {
-      console.log("🏆 Finding most helpful hints...");
-      const { HintAnalyticsService } = await import(
-        "../../shared/services/hintAnalyticsService.js"
-      );
-      const helpful = await HintAnalyticsService.getMostHelpfulHints();
-
-      console.log("🏆 TOP PERFORMING HINTS:");
-      console.table(helpful);
-
-      return helpful;
-    } catch (error) {
-      console.error("❌ Error getting helpful hints:", error);
-      return { error: error.message };
-    }
-  },
-
-  async getEngagementAnalysis() {
-    try {
-      console.log("📈 Analyzing user engagement patterns...");
-      const { HintAnalyticsService } = await import(
-        "../../shared/services/hintAnalyticsService.js"
-      );
-      const engagement = await HintAnalyticsService.getEngagementAnalysis();
-
-      console.log("📈 ENGAGEMENT ANALYSIS:");
-      console.log(`   Total Interactions: ${engagement.totalInteractions}`);
-      console.log("   Action Distribution:");
-      Object.entries(engagement.engagementMetrics).forEach(([action, rate]) => {
-        console.log(`     ${action}: ${(rate * 100).toFixed(1)}%`);
-      });
-
-      if (engagement.dropOffPoints) {
-        console.log("   Drop-off Points:");
-        Object.entries(engagement.dropOffPoints).forEach(([point, count]) => {
-          console.log(`     ${point}: ${count}`);
-        });
-      }
-
-      return engagement;
-    } catch (error) {
-      console.error("❌ Error analyzing engagement:", error);
-      return { error: error.message };
-    }
-  },
-
-  async cleanupOldData(days = 90) {
-    try {
-      console.log(
-        `🧹 Cleaning up hint interaction data older than ${days} days...`
-      );
-      const { HintInteractionService } = await import(
-        "../../shared/services/hintInteractionService.js"
-      );
-      const result = await HintInteractionService.cleanupOldData(days);
-
-      console.log(
-        `✅ Cleanup complete: ${result.deletedCount} old interactions removed`
-      );
-      return result;
-    } catch (error) {
-      console.error("❌ Error cleaning up data:", error);
-      return { error: error.message };
-    }
-  },
-
-  // Quick access functions for common analytics
-  async hintOverview() {
-    console.log("📊 QUICK HINT OVERVIEW:");
-    console.log("Loading analytics...");
-
-    try {
-      const [stats, helpful, engagement] = await Promise.all([
-        this.getHintStats(),
-        this.getMostHelpfulHints(),
-        this.getEngagementAnalysis(),
-      ]);
-
-      console.log("━".repeat(60));
-      console.log("📊 HINT SYSTEM OVERVIEW");
-      console.log("━".repeat(60));
-      console.log(
-        `📈 Total Interactions: ${stats.overview?.totalInteractions || "N/A"}`
-      );
-      console.log(
-        `🎯 Most Effective: ${helpful[0]?.hintType || "N/A"} (${
-          helpful[0]?.engagementRate || "N/A"
-        })`
-      );
-      console.log(
-        `📱 Expand Rate: ${(
-          engagement.engagementMetrics?.expandRate * 100 || 0
-        ).toFixed(1)}%`
-      );
-      console.log("━".repeat(60));
-
-      return { stats, helpful, engagement };
-    } catch (error) {
-      console.error("❌ Error loading overview:", error);
-      return { error: error.message };
-    }
-  },
-};
 
 export default StrategyService;

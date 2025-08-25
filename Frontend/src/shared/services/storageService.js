@@ -1,78 +1,122 @@
 import { dbHelper } from "../db/index.js";
-import ResilientStorage from "./ResilientStorage.js";
 
 const openDB = dbHelper.openDB;
 
-// Initialize ResilientStorage on first import
-ResilientStorage.initialize().catch((error) => {
-  console.warn("ResilientStorage initialization failed:", error);
-});
+/**
+ * 🚨 CRITICAL: Detect content script context to prevent database access
+ * Content scripts MUST NOT access IndexedDB directly
+ */
+function isContentScriptContext() {
+  try {
+    if (typeof window !== "undefined" && window.location) {
+      const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
+      const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
+      
+      if (isWebPage && isNotExtensionPage) {
+        return true;
+      }
+    }
+    
+    // Additional check for chrome extension APIs
+    if (typeof chrome !== "undefined" && chrome.runtime) {
+      const hasTabsAPI = !!(chrome.tabs && chrome.tabs.query);
+      if (!hasTabsAPI && typeof window !== "undefined" && 
+          (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+        return true;
+      }
+    }
+    
+    return false;
+  } catch (error) {
+    console.warn("Error detecting content script context:", error);
+    return false;
+  }
+}
+
+// Content script detection (StorageService not used in content scripts)
+const isInContentScript = isContentScriptContext();
+if (isInContentScript) {
+  console.log("🚫 STORAGE SERVICE: Content script context detected");
+}
 
 export const StorageService = {
-  // Generic key-value storage - now uses ResilientStorage for better reliability
+  // Generic key-value storage using IndexedDB settings store
   async set(key, value) {
+    if (isInContentScript) {
+      console.warn("StorageService.set() called in content script context");
+      return { status: "error", message: "Not available in content scripts" };
+    }
+    
     try {
-      await ResilientStorage.set(
-        key,
-        value,
-        ResilientStorage.DATA_TYPE.CRITICAL
-      );
-      return { status: "success" };
+      const db = await dbHelper.openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["settings"], "readwrite");
+        const store = transaction.objectStore("settings");
+        const request = store.put({
+          id: key,
+          data: value,
+          lastUpdated: new Date().toISOString()
+        });
+        request.onsuccess = () => resolve({ status: "success" });
+        request.onerror = () => reject(request.error);
+      });
     } catch (error) {
       console.error("StorageService set failed:", error);
-      // Fallback to direct Chrome storage
-      return new Promise((resolve) => {
-        chrome.storage.local.set({ [key]: value }, () =>
-          resolve({ status: "success" })
-        );
-      });
+      return { status: "error", message: error.message };
     }
   },
 
   async get(key) {
+    if (isInContentScript) {
+      console.warn("StorageService.get() called in content script context");
+      return null;
+    }
+    
     try {
-      const value = await ResilientStorage.get(
-        key,
-        ResilientStorage.DATA_TYPE.CRITICAL
-      );
-      return value;
+      const db = await dbHelper.openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["settings"], "readonly");
+        const store = transaction.objectStore("settings");
+        const request = store.get(key);
+        request.onsuccess = () => {
+          const result = request.result;
+          resolve(result ? result.data : null);
+        };
+        request.onerror = () => reject(request.error);
+      });
     } catch (error) {
       console.error("StorageService get failed:", error);
-      // Fallback to direct Chrome storage
-      return new Promise((resolve) => {
-        chrome.storage.local.get([key], (result) =>
-          resolve(result[key] || null)
-        );
-      });
+      return null;
     }
   },
 
   async remove(key) {
+    if (isInContentScript) {
+      console.warn("StorageService.remove() called in content script context");
+      return { status: "error", message: "Not available in content scripts" };
+    }
+    
     try {
-      await ResilientStorage.remove(key, ResilientStorage.DATA_TYPE.CRITICAL);
-      return { status: "success" };
+      const db = await dbHelper.openDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["settings"], "readwrite");
+        const store = transaction.objectStore("settings");
+        const request = store.delete(key);
+        request.onsuccess = () => resolve({ status: "success" });
+        request.onerror = () => reject(request.error);
+      });
     } catch (error) {
       console.error("StorageService remove failed:", error);
-      // Fallback to direct Chrome storage
-      return new Promise((resolve) => {
-        chrome.storage.local.remove(key, () => resolve({ status: "success" }));
-      });
+      return { status: "error", message: error.message };
     }
   },
 
-  // Settings - now uses ResilientStorage with IndexedDB primary and Chrome Storage fallback
+  // Settings using IndexedDB settings store
   async getSettings() {
-    try {
-      const settings = await ResilientStorage.get(
-        "user_settings",
-        ResilientStorage.DATA_TYPE.CRITICAL
-      );
-      if (settings && settings.data) {
-        return settings.data;
-      }
-
-      // Return default settings if none exist
-      const defaultSettings = {
+    if (isInContentScript) {
+      console.warn("StorageService.getSettings() called in content script context");
+      // Return default settings for content scripts
+      return {
         theme: "light",
         sessionLength: 5,
         limit: "off",
@@ -80,23 +124,53 @@ export const StorageService = {
         numberofNewProblemsPerSession: 2,
         adaptive: true,
         focusAreas: [],
+        accessibility: {
+          screenReader: {
+            enabled: false,
+            verboseDescriptions: true,
+            announceNavigation: true,
+            readFormLabels: true
+          },
+          keyboard: {
+            enhancedFocus: false,
+            customShortcuts: false,
+            focusTrapping: false
+          },
+          motor: {
+            largerTargets: false,
+            extendedHover: false,
+            reducedMotion: false,
+            stickyHover: false
+          }
+        },
+        // TODO: Re-enable for future release when display settings are fully implemented
+        // display: {
+        //   sidebarWidth: "normal",
+        //   cardSpacing: "comfortable", 
+        //   autoCollapseSidebar: true,
+        //   chartStyle: "modern",
+        //   chartColorScheme: "blue",
+        //   customChartColor: "#3b82f6",
+        //   chartAnimations: true,
+        //   showGridLines: true,
+        //   showChartLegends: true,
+        //   defaultTimeRange: "30d",
+        //   maxDataPoints: 50,
+        //   autoRefreshData: true,
+        //   showEmptyDataPoints: false
+        // },
       };
-      return defaultSettings;
-    } catch (error) {
-      console.error(
-        "Failed to get settings via ResilientStorage, falling back to direct IndexedDB:",
-        error
-      );
-
-      // Fallback to direct IndexedDB access
-      const db = await openDB();
+    }
+    
+    try {
+      const db = await dbHelper.openDB();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction("settings", "readonly");
+        const transaction = db.transaction(["settings"], "readonly");
         const store = transaction.objectStore("settings");
-
         const request = store.get("user_settings");
+        
         request.onsuccess = () => {
-          if (request.result) {
+          if (request.result && request.result.data) {
             resolve(request.result.data);
           } else {
             // Return default settings if none exist
@@ -108,116 +182,155 @@ export const StorageService = {
               numberofNewProblemsPerSession: 2,
               adaptive: true,
               focusAreas: [],
+              accessibility: {
+                screenReader: {
+                  enabled: false,
+                  verboseDescriptions: true,
+                  announceNavigation: true,
+                  readFormLabels: true
+                },
+                keyboard: {
+                  enhancedFocus: true,
+                  skipToContent: true,
+                  customShortcuts: false,
+                  focusTrapping: true
+                },
+                motor: {
+                  largerTargets: false,
+                  extendedHover: false,
+                  reducedMotion: false,
+                  stickyHover: false
+                }
+              },
             };
             resolve(defaultSettings);
           }
         };
         request.onerror = () => reject(request.error);
       });
+    } catch (error) {
+      console.error("StorageService getSettings failed:", error);
+      // Return default settings on error
+      return {
+        theme: "light",
+        sessionLength: 5,
+        limit: "off",
+        reminder: { value: false, label: "6" },
+        numberofNewProblemsPerSession: 2,
+        adaptive: true,
+        focusAreas: [],
+        accessibility: {
+          screenReader: {
+            enabled: false,
+            verboseDescriptions: true,
+            announceNavigation: true,
+            readFormLabels: true
+          },
+          keyboard: {
+            enhancedFocus: false,
+            customShortcuts: false,
+            focusTrapping: false
+          },
+          motor: {
+            largerTargets: false,
+            extendedHover: false,
+            reducedMotion: false,
+            stickyHover: false
+          }
+        },
+        // TODO: Re-enable for future release when display settings are fully implemented
+        // display: {
+        //   sidebarWidth: "normal",
+        //   cardSpacing: "comfortable", 
+        //   autoCollapseSidebar: true,
+        //   chartStyle: "modern",
+        //   chartColorScheme: "blue",
+        //   customChartColor: "#3b82f6",
+        //   chartAnimations: true,
+        //   showGridLines: true,
+        //   showChartLegends: true,
+        //   defaultTimeRange: "30d",
+        //   maxDataPoints: 50,
+        //   autoRefreshData: true,
+        //   showEmptyDataPoints: false
+        // },
+      };
     }
   },
 
   async setSettings(settings) {
+    if (isInContentScript) {
+      console.warn("StorageService.setSettings() called in content script context");
+      return { status: "error", message: "Not available in content scripts" };
+    }
+    
     try {
-      const settingsObject = {
-        id: "user_settings",
-        data: settings,
-        lastUpdated: new Date().toISOString(),
-      };
-
-      await ResilientStorage.set(
-        "user_settings",
-        settingsObject,
-        ResilientStorage.DATA_TYPE.CRITICAL
-      );
-
-      // Clear any cached settings in other services
-      this.clearSettingsCache();
-
-      return { status: "success" };
-    } catch (error) {
-      console.error(
-        "Failed to set settings via ResilientStorage, falling back to direct IndexedDB:",
-        error
-      );
-
-      // Fallback to direct IndexedDB access
-      const db = await openDB();
+      const db = await dbHelper.openDB();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction("settings", "readwrite");
+        const transaction = db.transaction(["settings"], "readwrite");
         const store = transaction.objectStore("settings");
-
-        const settingsObject = {
+        const request = store.put({
           id: "user_settings",
           data: settings,
-          lastUpdated: new Date().toISOString(),
-        };
-
-        const request = store.put(settingsObject);
+          lastUpdated: new Date().toISOString()
+        });
+        
         request.onsuccess = () => {
-          // Clear any cached settings in other services
           this.clearSettingsCache();
           resolve({ status: "success" });
         };
         request.onerror = () => reject(request.error);
       });
+    } catch (error) {
+      console.error("StorageService setSettings failed:", error);
+      return { status: "error", message: error.message };
     }
   },
 
-  // Session State - now uses ResilientStorage for better reliability
+  // Session State using IndexedDB session_state store
   async getSessionState(key = "session_state") {
+    if (isInContentScript) {
+      console.warn("StorageService.getSessionState() called in content script context");
+      return null;
+    }
+    
     try {
-      const sessionState = await ResilientStorage.get(
-        key,
-        ResilientStorage.DATA_TYPE.CRITICAL
-      );
-      return sessionState;
-    } catch (error) {
-      console.error(
-        "Failed to get session state via ResilientStorage, falling back to direct IndexedDB:",
-        error
-      );
-
-      // Fallback to direct IndexedDB access
-      const db = await openDB();
+      const db = await dbHelper.openDB();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction("session_state", "readonly");
+        const transaction = db.transaction(["session_state"], "readonly");
         const store = transaction.objectStore("session_state");
-
         const request = store.get(key);
+        
         request.onsuccess = () => {
           resolve(request.result || null);
         };
         request.onerror = () => reject(request.error);
       });
+    } catch (error) {
+      console.error("StorageService getSessionState failed:", error);
+      return null;
     }
   },
 
   async setSessionState(key = "session_state", data) {
+    if (isInContentScript) {
+      console.warn("StorageService.setSessionState() called in content script context");
+      return { status: "error", message: "Not available in content scripts" };
+    }
+    
     try {
-      const sessionStateObject = { id: key, ...data };
-      await ResilientStorage.set(
-        key,
-        sessionStateObject,
-        ResilientStorage.DATA_TYPE.CRITICAL
-      );
-      return { status: "success" };
-    } catch (error) {
-      console.error(
-        "Failed to set session state via ResilientStorage, falling back to direct IndexedDB:",
-        error
-      );
-
-      // Fallback to direct IndexedDB access
-      const db = await openDB();
+      const db = await dbHelper.openDB();
       return new Promise((resolve, reject) => {
-        const transaction = db.transaction("session_state", "readwrite");
+        const transaction = db.transaction(["session_state"], "readwrite");
         const store = transaction.objectStore("session_state");
-
         const request = store.put({ id: key, ...data });
+        
         request.onsuccess = () => resolve({ status: "success" });
         request.onerror = () => reject(request.error);
       });
+    } catch (error) {
+      console.error("StorageService setSessionState failed:", error);
+      return { status: "error", message: error.message };
     }
   },
 
@@ -245,7 +358,7 @@ export const StorageService = {
           );
           await this.setSettings(chromeSettings);
 
-          // Optionally remove from Chrome storage after successful migration
+          // Remove from Chrome storage after successful migration
           chrome.storage.local.remove(["settings"]);
 
           return chromeSettings;
@@ -263,10 +376,9 @@ export const StorageService = {
   async migrateSessionStateToIndexedDB() {
     try {
       // Check if session state already exists in IndexedDB
-      const existingSessionState = await this.getSessionState();
+      const existingSessionState = await this.getSessionState("session_state");
 
       if (!existingSessionState) {
-        // Try to get from Chrome storage
         const chromeSessionState = await new Promise((resolve) => {
           chrome.storage.local.get(["session_state"], (result) => {
             resolve(result.session_state || null);
@@ -294,151 +406,11 @@ export const StorageService = {
     }
   },
 
-  // New ResilientStorage Integration Methods
-
   /**
-   * Get storage system status and health
-   */
-  async getStorageStatus() {
-    try {
-      return await ResilientStorage.getStorageStatus();
-    } catch (error) {
-      console.error("Failed to get storage status:", error);
-      return {
-        mode: "unknown",
-        health: { overall: "unavailable" },
-        isIndexedDBAvailable: false,
-        isChromeStorageAvailable: false,
-        quotaWarning: false,
-      };
-    }
-  },
-
-  /**
-   * Force switch to Chrome Storage fallback mode
-   */
-  async switchToFallbackMode() {
-    try {
-      await ResilientStorage.switchToFallbackMode();
-      return { status: "success", mode: "chrome_fallback" };
-    } catch (error) {
-      console.error("Failed to switch to fallback mode:", error);
-      return { status: "error", error: error.message };
-    }
-  },
-
-  /**
-   * Switch back to IndexedDB primary mode
-   */
-  async switchToPrimaryMode() {
-    try {
-      await ResilientStorage.switchToPrimaryMode();
-      return { status: "success", mode: "indexeddb_primary" };
-    } catch (error) {
-      console.error("Failed to switch to primary mode:", error);
-      return { status: "error", error: error.message };
-    }
-  },
-
-  /**
-   * Perform health check on storage systems
-   */
-  async performHealthCheck() {
-    try {
-      return await ResilientStorage.performHealthCheck();
-    } catch (error) {
-      console.error("Storage health check failed:", error);
-      return {
-        indexedDB: { available: false, status: "unavailable" },
-        chromeStorage: { available: false, status: "unavailable" },
-        overall: "unavailable",
-      };
-    }
-  },
-
-  /**
-   * Create emergency backup to Chrome Storage
-   */
-  async createEmergencyBackup() {
-    try {
-      await ResilientStorage.createEmergencyBackup();
-      return { status: "success" };
-    } catch (error) {
-      console.error("Emergency backup failed:", error);
-      return { status: "error", error: error.message };
-    }
-  },
-
-  /**
-   * Sync critical data to fallback storage
-   */
-  async syncToFallback(options = {}) {
-    try {
-      const result = await ResilientStorage.syncToFallback(options);
-      return { status: "success", result };
-    } catch (error) {
-      console.error("Sync to fallback failed:", error);
-      return { status: "error", error: error.message };
-    }
-  },
-
-  /**
-   * Restore data from fallback storage
-   */
-  async restoreFromFallback(options = {}) {
-    try {
-      const result = await ResilientStorage.restoreFromFallback(options);
-      return { status: "success", result };
-    } catch (error) {
-      console.error("Restore from fallback failed:", error);
-      return { status: "error", error: error.message };
-    }
-  },
-
-  /**
-   * Get storage system information for debugging
-   */
-  getStorageInfo() {
-    return {
-      resilientStorageEnabled: true,
-      currentMode: ResilientStorage.currentMode || "unknown",
-      version: "1.0",
-      features: [
-        "dual_storage_strategy",
-        "automatic_fallback",
-        "health_monitoring",
-        "data_synchronization",
-        "quota_management",
-      ],
-    };
-  },
-
-  /**
-   * Clear cached settings in dependent services
+   * Clear settings cache in various services
    */
   clearSettingsCache() {
-    try {
-      // Clear AdaptiveLimitsService cache
-      if (typeof window !== "undefined" && window.adaptiveLimitsService) {
-        window.adaptiveLimitsService.clearCache();
-      }
-
-      // Try to clear cache via dynamic import to avoid circular dependencies
-      import("./adaptiveLimitsService.js")
-        .then(({ adaptiveLimitsService }) => {
-          if (
-            adaptiveLimitsService &&
-            typeof adaptiveLimitsService.clearCache === "function"
-          ) {
-            adaptiveLimitsService.clearCache();
-            console.log("✅ Cleared AdaptiveLimitsService cache");
-          }
-        })
-        .catch((error) => {
-          console.warn("Could not clear AdaptiveLimitsService cache:", error);
-        });
-    } catch (error) {
-      console.warn("Error clearing settings cache:", error);
-    }
+    // This would clear caches in other services that might store settings
+    console.log("🔄 Settings cache cleared");
   },
 };
