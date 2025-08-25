@@ -5,6 +5,7 @@ import {
 } from "../db/tag_relationships.js";
 import { getSessionPerformance } from "../db/sessions.js";
 import { StorageService } from "./storageService.js";
+import SessionLimits from "../utils/sessionLimits.js";
 
 const openDB = dbHelper.openDB;
 
@@ -615,10 +616,112 @@ async function graduateFocusAreas() {
   }
 }
 
+
+/**
+ * Gets available tags for focus area selection with tier-based previews
+ * @param {string} userId - User identifier (for future use)
+ * @returns {Promise<Object>} Available tags with tier access information
+ */
+async function getAvailableTagsForFocus(userId) {
+  try {
+    console.log("🔍 TAGSERVICE: getAvailableTagsForFocus called with userId:", userId);
+    
+    // Get current learning state - this already has most of what we need!
+    const learningState = await getCurrentLearningState();
+    const settings = await StorageService.getSettings();
+    
+    // Check onboarding status using same logic as session generation
+    const sessionStateKey = `sessionState_${userId}`;
+    const sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
+      (await StorageService.getSessionState(sessionStateKey)) || {
+        numSessionsCompleted: 0
+      };
+    const isOnboarding = SessionLimits.isOnboarding(sessionState);
+    console.log(`🔰 Onboarding status: ${isOnboarding} (sessions completed: ${sessionState.numSessionsCompleted})`);
+
+    const currentTier = learningState?.currentTier || "Core Concept";
+    const systemSelectedTags = learningState?.focusTags || [];
+    const currentTierTags = learningState?.allTagsInCurrentTier || [];
+    const userOverrideTags = settings.focusAreas || [];
+
+    // Create simple tag structure - current tier tags are selectable, add some preview tags
+    const tags = [
+      // Current tier tags (selectable)
+      ...currentTierTags.slice(0, 10).map(tagId => ({
+        tagId,
+        name: tagId.charAt(0).toUpperCase() + tagId.slice(1).replace(/[-_]/g, " "),
+        tier: "core",
+        selectable: true,
+        reason: "current-tier"
+      })),
+      // Add some preview tags (not selectable)
+      ...[
+        { tagId: "two-pointers", name: "Two Pointers", tier: "fundamental", selectable: false, reason: "preview-locked" },
+        { tagId: "sliding-window", name: "Sliding Window", tier: "fundamental", selectable: false, reason: "preview-locked" },
+        { tagId: "binary-search", name: "Binary Search", tier: "fundamental", selectable: false, reason: "preview-locked" }
+      ]
+    ];
+
+    // Apply onboarding restrictions to caps and active tags
+    const onboardingCaps = isOnboarding 
+      ? { core: 1, fundamental: 3, advanced: 3 }
+      : { core: Infinity, fundamental: 3, advanced: 3 };
+    
+    // Limit active session tags during onboarding (using centralized config)
+    const maxFocusTags = SessionLimits.getMaxFocusTags(sessionState);
+    let effectiveActiveSessionTags;
+    if (userOverrideTags.length > 0) {
+      effectiveActiveSessionTags = userOverrideTags.slice(0, maxFocusTags);
+    } else {
+      effectiveActiveSessionTags = systemSelectedTags.slice(0, maxFocusTags);
+    }
+    
+    console.log(`🔰 Focus areas limit: ${isOnboarding ? '1 (onboarding)' : '3+ (post-onboarding)'}`);
+    console.log(`🔰 Effective active session tags: [${effectiveActiveSessionTags.join(', ')}]`);
+
+    return {
+      access: { core: "confirmed", fundamental: "none", advanced: "none" },
+      caps: onboardingCaps,
+      tags,
+      starterCore: [],
+      currentTier,
+      systemSelectedTags,
+      userOverrideTags,
+      activeSessionTags: effectiveActiveSessionTags,
+      isOnboarding, // Add onboarding status for UI feedback
+    };
+
+  } catch (error) {
+    console.error("Error in getAvailableTagsForFocus:", error);
+    // Fallback to current behavior with conservative onboarding assumption
+    const learningState = await getCurrentLearningState();
+    const isOnboardingFallback = true; // Conservative assumption for error case
+    
+    return {
+      access: { core: "confirmed", fundamental: "none", advanced: "none" },
+      caps: { core: isOnboardingFallback ? 1 : 2, fundamental: 3, advanced: 3 },
+      tags: learningState.allTagsInCurrentTier.map(tag => ({
+        tagId: tag,
+        name: tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " "),
+        tier: learningState.currentTier.toLowerCase(),
+        selectable: true,
+        reason: "current-tier"
+      })),
+      starterCore: learningState.allTagsInCurrentTier.slice(0, 8),
+      currentTier: learningState.currentTier,
+      systemSelectedTags: learningState.focusTags || [],
+      userOverrideTags: [],
+      activeSessionTags: (learningState.focusTags || []).slice(0, isOnboardingFallback ? 1 : 3),
+      isOnboarding: isOnboardingFallback,
+    };
+  }
+}
+
 // Export TagService after all functions are defined
 export const TagService = {
   getCurrentTier,
   getCurrentLearningState,
   checkFocusAreasGraduation,
   graduateFocusAreas,
+  getAvailableTagsForFocus,
 };

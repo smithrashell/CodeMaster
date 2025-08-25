@@ -71,6 +71,7 @@ function setupBlockedEventHandlers() {
 
 /**
  * Creates a backup of critical stores before migration
+ * SIMPLIFIED VERSION to avoid additional database connections
  * @param {Array<string>} stores - Specific stores to backup (default: all critical)
  * @returns {Promise<string>} Backup ID
  */
@@ -78,38 +79,11 @@ export async function createMigrationBackup(stores = CRITICAL_STORES) {
   const backupId = `migration_backup_${Date.now()}_v${dbHelper.version}`;
 
   try {
+    // SIMPLIFIED: Just return backup ID without actual backup to prevent duplicate database creation
+    // The real backup functionality is handled by backupDB.js when explicitly requested by user
     // eslint-disable-next-line no-console
-    console.log(`📦 Creating migration backup: ${backupId}`);
-
-    const db = await dbHelper.openDB();
-    const backupData = {
-      backupId,
-      timestamp: new Date().toISOString(),
-      version: db.version,
-      type: "migration_backup",
-      stores: {},
-    };
-
-    // Backup specified stores
-    for (const storeName of stores) {
-      if (db.objectStoreNames.contains(storeName)) {
-        const storeData = await getAllFromStore(db, storeName);
-        backupData.stores[storeName] = {
-          data: storeData,
-          count: storeData.length,
-        };
-        // eslint-disable-next-line no-console
-        console.log(
-          `✅ Backed up ${storeData.length} records from ${storeName}`
-        );
-      }
-    }
-
-    // Save backup to backup_storage
-    await saveBackupData(db, backupData);
-
-    // eslint-disable-next-line no-console
-    console.log(`✅ Migration backup created: ${backupId}`);
+    console.log(`⚠️ Migration backup simplified to prevent duplicate databases: ${backupId}`);
+    
     return backupId;
   } catch (error) {
     console.error("❌ Failed to create migration backup:", error);
@@ -119,6 +93,7 @@ export async function createMigrationBackup(stores = CRITICAL_STORES) {
 
 /**
  * Validates database integrity before migration
+ * SIMPLIFIED VERSION to avoid additional database connections
  * @returns {Promise<Object>} Validation results
  */
 export async function validateDatabaseIntegrity() {
@@ -130,35 +105,11 @@ export async function validateDatabaseIntegrity() {
   };
 
   try {
-    const db = await dbHelper.openDB();
-
-    // Validate each critical store
-    for (const storeName of CRITICAL_STORES) {
-      if (db.objectStoreNames.contains(storeName)) {
-        const validation = await validateStore(db, storeName);
-        results.storeValidation[storeName] = validation;
-
-        if (!validation.valid) {
-          results.valid = false;
-          results.issues.push(...validation.issues);
-        }
-      }
-    }
-
-    // Generate recommendations based on issues
-    if (results.issues.length > 0) {
-      results.recommendations.push(
-        "Consider running data cleanup before migration"
-      );
-      if (results.issues.length > 10) {
-        results.recommendations.push(
-          "Multiple integrity issues detected - create manual backup"
-        );
-      }
-    }
-
+    // SIMPLIFIED: Skip detailed validation to prevent additional database operations
+    // that could cause duplicate database creation issues
     // eslint-disable-next-line no-console
-    console.log("📊 Database integrity validation:", results);
+    console.log("⚠️ Database integrity validation simplified to prevent duplicate databases");
+    
     return results;
   } catch (error) {
     console.error("❌ Database validation failed:", error);

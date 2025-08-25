@@ -74,13 +74,14 @@ export function getAccuracyTrendData(sessions, range = "weekly") {
   }
 
   sessions.forEach((session) => {
-    // Validate session structure
-    if (!session || !session.Date) {
+    // Validate session structure - handle both Date and date properties
+    const sessionDate = session.Date || session.date;
+    if (!session || !sessionDate) {
       console.warn("Session missing Date property:", session);
       return;
     }
 
-    const key = getGroupKey(session.Date, range);
+    const key = getGroupKey(sessionDate, range);
     // Skip sessions with invalid dates
     if (!key) return;
 
@@ -128,12 +129,24 @@ export function getAccuracyTrendData(sessions, range = "weekly") {
 export function getAttemptBreakdownData(sessions, range = "weekly") {
   const problemMap = {};
 
+  // Validate sessions input
+  if (!Array.isArray(sessions)) {
+    console.warn(
+      "Invalid sessions array provided to getAttemptBreakdownData:",
+      sessions
+    );
+    return [];
+  }
+
   sessions.forEach((session) => {
+    // Handle both Date and date properties for consistency
+    const sessionDate = session.Date || session.date;
+    
     session.attempts.forEach((attempt) => {
       if (!problemMap[attempt.problemId]) {
         problemMap[attempt.problemId] = [];
       }
-      problemMap[attempt.problemId].push({ ...attempt, date: session.Date });
+      problemMap[attempt.problemId].push({ ...attempt, date: sessionDate });
     });
   });
 
@@ -178,8 +191,24 @@ export function getAttemptBreakdownData(sessions, range = "weekly") {
 export function getProblemActivityData(sessions, range = "weekly") {
   const grouped = {};
 
+  // Validate sessions input
+  if (!Array.isArray(sessions)) {
+    console.warn(
+      "Invalid sessions array provided to getProblemActivityData:",
+      sessions
+    );
+    return [];
+  }
+
   sessions.forEach((session) => {
-    const key = getGroupKey(session.Date, range);
+    // Handle both Date and date properties for consistency
+    const sessionDate = session.Date || session.date;
+    if (!sessionDate) {
+      console.warn("Session missing Date property in getProblemActivityData:", session);
+      return;
+    }
+    
+    const key = getGroupKey(sessionDate, range);
     if (!grouped[key]) grouped[key] = { attempted: 0, passed: 0, failed: 0 };
 
     session.attempts.forEach((attempt) => {
