@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Container, Grid, Card, Title, Text, Button, Stack, ScrollArea, Group, SimpleGrid, Select, Badge, Divider, rem, Box } from "@mantine/core";
 import { IconBulb, IconTrendingUp, IconTarget, IconClock } from "@tabler/icons-react";
+import { usePageData } from "../../hooks/usePageData";
 import {
   LineChart,
   Line,
@@ -22,7 +23,8 @@ import {
 } from "recharts";
 import LearningPathVisualization from "../../components/learning/LearningPathVisualization.jsx";
 
-export function LearningPath({ appState }) {
+export function LearningPath() {
+  const { data: appState } = usePageData('learning-path');
   const [pathData, setPathData] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
@@ -55,23 +57,10 @@ export function LearningPath({ appState }) {
       isFocus: tag.isFocus !== undefined ? tag.isFocus : focusTags.includes(tag.tag)
     })).sort((a, b) => b.progress - a.progress);
 
-    setPathData(progressionData);
-
     console.log("Learning Path - final progressionData:", progressionData);
 
-    // Fallback: If no mastery data found, create sample data for visualization testing
-    if (progressionData.length === 0) {
-      console.warn("Learning Path - No mastery data found, using fallback sample data");
-      const fallbackData = [
-        { tag: 'array', progress: 85, attempts: 15, mastered: false, isFocus: true },
-        { tag: 'string', progress: 70, attempts: 12, mastered: false, isFocus: true },
-        { tag: 'hash-table', progress: 60, attempts: 8, mastered: false, isFocus: false },
-        { tag: 'two-pointers', progress: 45, attempts: 6, mastered: false, isFocus: false },
-        { tag: 'binary-search', progress: 30, attempts: 4, mastered: false, isFocus: false },
-        { tag: 'dynamic-programming', progress: 15, attempts: 2, mastered: false, isFocus: false }
-      ];
-      setPathData(fallbackData);
-    }
+    // Set progression data - empty array is valid state for new users
+    setPathData(progressionData);
 
     // Generate recommendations
     const recs = [];
@@ -106,10 +95,32 @@ export function LearningPath({ appState }) {
               borderRadius: '8px',
               marginBottom: '16px'
             }}>
-              <LearningPathVisualization 
-                pathData={pathData} 
-                onNodeClick={(tag) => setSelectedTag(tag)}
-              />
+              {pathData.length === 0 ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '100%',
+                  textAlign: 'center'
+                }}>
+                  <Text size="lg" fw={600} mb="md" c="var(--cm-text)">No Learning Progress Yet</Text>
+                  <Text size="sm" c="dimmed" mb="lg">
+                    Complete some coding sessions to see your learning path visualization.
+                  </Text>
+                  <Button 
+                    variant="light" 
+                    onClick={() => window.open("https://leetcode.com/problems/", "_blank")}
+                  >
+                    Start Your First Session
+                  </Button>
+                </div>
+              ) : (
+                <LearningPathVisualization 
+                  pathData={pathData} 
+                  onNodeClick={(tag) => setSelectedTag(tag)}
+                />
+              )}
             </div>
             
             {/* Legend and Interactive Controls */}

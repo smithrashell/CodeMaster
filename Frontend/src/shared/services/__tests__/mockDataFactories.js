@@ -12,6 +12,7 @@ if (process.env.NODE_ENV === "test") {
     it("should export factory functions", () => {
       expect(typeof MockDataFactories.createMockSession).toBe("function");
       expect(typeof MockDataFactories.createMockProblem).toBe("function");
+      expect(typeof MockDataFactories.createMasteryData).toBe("function");
     });
   });
 }
@@ -162,6 +163,26 @@ export const MockDataFactories = {
       };
       return mastery;
     }, {});
+  },
+
+  /**
+   * Creates mastery data array for testing
+   * @param {Array} tags - Tags to create mastery data for
+   * @returns {Array} Array of mastery data objects
+   */
+  createMasteryData: (tags = ["array", "string", "hash-table"]) => {
+    return tags.map((tag, index) => ({
+      tag,
+      totalAttempts: 10 + index * 5,
+      successfulAttempts: 6 + index * 3,
+      averageTime: 240 + index * 30,
+      mastered: index > 0,
+      masteryScore: 0.6 + index * 0.1,
+      decayScore: 1.0 - index * 0.05,
+      lastAttemptDate: new Date(
+        Date.now() - index * 24 * 60 * 60 * 1000
+      ).toISOString(),
+    }));
   },
 
   /**

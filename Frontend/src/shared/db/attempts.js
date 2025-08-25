@@ -88,6 +88,14 @@ export async function addAttempt(attemptData) {
     await checkAndCompleteSession(session.id);
 
     console.log("Attempt added and problem updated successfully");
+    
+    // Notify UI to refresh focus area eligibility
+    try {
+      window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
+    } catch (err) {
+      // Silent fail - window might not be available in background context
+    }
+    
     return { message: "Attempt added and problem updated successfully" };
   } catch (error) {
     console.error("Error in addAttempt function:", error);
