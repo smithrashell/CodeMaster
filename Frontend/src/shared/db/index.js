@@ -1,33 +1,165 @@
 import migrationSafety from "./migrationSafety.js";
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
+// Import database debugger to install global interceptor
+import "../utils/DatabaseDebugger.js";
+
+/**
+ * Enhanced context detection for debugging
+ */
+function getExecutionContext() {
+  const context = {
+    timestamp: new Date().toISOString(),
+    location: typeof window !== 'undefined' ? window.location.href : 'no-window',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 100) : 'no-navigator',
+    chromeRuntime: typeof chrome !== 'undefined' && chrome.runtime ? 'available' : 'unavailable',
+    chromeExtension: typeof chrome !== 'undefined' && chrome.extension ? 'available' : 'unavailable',
+    documentState: typeof document !== 'undefined' ? document.readyState : 'no-document',
+    contextType: 'unknown'
+  };
+  
+  try {
+    if (typeof window !== 'undefined') {
+      if (window.location.protocol === 'chrome-extension:') {
+        context.contextType = 'extension-page';
+      } else if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        context.contextType = 'content-script-or-web-page';
+      } else {
+        context.contextType = 'other-protocol';
+      }
+    } else {
+      context.contextType = 'no-window-context';
+    }
+    
+    // Try to determine if this is background script vs content script
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      if (chrome.runtime.getBackgroundPage) {
+        context.contextType += '-background-script';
+      } else if (chrome.tabs && chrome.tabs.query) {
+        context.contextType += '-with-tabs-api';
+      }
+    }
+  } catch (error) {
+    context.error = error.message;
+  }
+  
+  return context;
+}
+
+/**
+ * Get stack trace for debugging
+ */
+function getStackTrace() {
+  const error = new Error();
+  const stack = error.stack || '';
+  return stack.split('\n').slice(2).join('\n'); // Remove Error and getStackTrace from stack
+}
 
 export const dbHelper = {
   dbName: "review",
-  version: 34, // 🚨 Increment version to trigger upgrade (hint interactions analytics)
+  version: 35, // 🚨 Reverted from 36 - index recreation caused database issues
   db: null,
 
   async openDB() {
+    const context = getExecutionContext();
+    const stack = getStackTrace();
+    
+    // 🚨 CRITICAL SAFETY NET: Block database access from content scripts
+    // BUT allow access from marked background script context
+    console.group('🔍 DATABASE ACCESS CONTROL');
+    console.log('📍 Context Detection:', {
+      hasGlobalThis: typeof globalThis !== 'undefined',
+      isBackgroundContext: typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT,
+      hasWindow: typeof window !== 'undefined',
+      hasChrome: typeof chrome !== 'undefined',
+      contextType: context.contextType
+    });
+    
+    if (typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT) {
+      console.log('✅ DATABASE ACCESS: Allowed from marked background script context');
+      console.groupEnd();
+    } else if (typeof window !== "undefined" && window.location) {
+      const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
+      const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
+      
+      console.log('📍 Window Context Check:', {
+        protocol: window.location.protocol,
+        href: window.location.href.substring(0, 100),
+        isWebPage,
+        isNotExtensionPage
+      });
+      
+      if (isWebPage && isNotExtensionPage) {
+        console.groupEnd();
+        const error = new Error(`🚫 DATABASE ACCESS BLOCKED: Content scripts cannot access IndexedDB directly. Context: ${context.contextType}, URL: ${context.location}`);
+        console.error(error.message);
+        console.error('📚 Blocked Call Stack:', stack);
+        throw error;
+      }
+      console.log('✅ DATABASE ACCESS: Extension page context allowed');
+      console.groupEnd();
+    } else {
+      console.log('✅ DATABASE ACCESS: No window context, allowing (likely service worker)');
+      console.groupEnd();
+    }
+    
+    // Additional safety check for chrome extension context
+    // BUT allow access from marked background script context
+    if (typeof chrome !== "undefined" && chrome.runtime && !(typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT)) {
+      const hasTabsAPI = !!(chrome.tabs && chrome.tabs.query);
+      console.log('🔍 Chrome Extension Context Check:', {
+        hasChromeRuntime: !!(chrome.runtime),
+        hasTabsAPI,
+        isBackgroundContext: typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT
+      });
+      
+      if (!hasTabsAPI && typeof window !== "undefined" && 
+          (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+        const error = new Error(`🚫 DATABASE ACCESS BLOCKED: Detected content script context without tabs API. Context: ${context.contextType}`);
+        console.error(error.message);
+        throw error;
+      }
+    }
+    
+    // DEBUGGING: Log every database open attempt with full context
+    console.group(`🔍 DATABASE DEBUG: openDB() called from ${context.contextType}`);
+    console.log('📍 Context:', context);
+    console.log('📚 Call Stack:', stack);
+    
     if (dbHelper.db) {
+      console.log('✅ Returning cached database connection');
+      console.groupEnd();
       return dbHelper.db; // Return cached database if already opened
     }
+    
+    console.warn('🚨 CREATING NEW DATABASE CONNECTION - This should only happen ONCE!');
+    console.groupEnd();
 
     // Initialize migration safety system
     migrationSafety.initializeMigrationSafety();
 
     return new Promise((resolve, reject) => {
+      // DEBUGGING: Log the actual IndexedDB.open call
+      console.group(`💾 INDEXEDDB OPEN: Opening ${dbHelper.dbName} v${dbHelper.version}`);
+      console.log('🕐 Time:', new Date().toISOString());
+      console.log('📍 Context:', context.contextType);
+      console.log('🌐 Location:', context.location);
+      
       const request = indexedDB.open(dbHelper.dbName, dbHelper.version);
+      console.log('📨 IndexedDB request created:', request);
+      console.groupEnd();
 
       request.onupgradeneeded = async (event) => {
         // eslint-disable-next-line no-console
         console.log("📋 Database upgrade needed - creating safety backup...");
 
+        // TEMPORARY: Disable migration backup to prevent duplicate database creation
         // Create backup before any schema changes
         try {
           if (event.oldVersion > 0) {
             // Only backup if upgrading existing database
-            await migrationSafety.createMigrationBackup();
+            // await migrationSafety.createMigrationBackup(); // DISABLED temporarily
             // eslint-disable-next-line no-console
-            console.log("✅ Safety backup created before upgrade");
+            console.log("⚠️ Migration backup disabled to prevent duplicate databases");
           }
         } catch (error) {
           console.error(
@@ -115,7 +247,7 @@ export const dbHelper = {
 
         // Ensure required indexes exist
         if (!sessionsStore.indexNames.contains("by_date")) {
-          sessionsStore.createIndex("by_date", "Date", { unique: false });
+          sessionsStore.createIndex("by_date", "date", { unique: false });
         }
 
         // eslint-disable-next-line no-console
@@ -315,12 +447,57 @@ export const dbHelper = {
             "✅ Hint interactions store created for usage analytics!"
           );
         }
+
+        // ✅ **NEW: Ensure 'user_actions' store exists for user action tracking**
+        if (!db.objectStoreNames.contains("user_actions")) {
+          let userActionsStore = db.createObjectStore("user_actions", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+
+          // Create indexes for efficient analytics queries
+          dbHelper.ensureIndex(userActionsStore, "by_timestamp", "timestamp");
+          dbHelper.ensureIndex(userActionsStore, "by_category", "category");
+          dbHelper.ensureIndex(userActionsStore, "by_action", "action");
+          dbHelper.ensureIndex(userActionsStore, "by_session", "sessionId");
+          dbHelper.ensureIndex(userActionsStore, "by_user_agent", "userAgent");
+          dbHelper.ensureIndex(userActionsStore, "by_url", "url");
+
+          // eslint-disable-next-line no-console
+          console.log("✅ User actions store created for tracking!");
+        }
+
+        // ✅ **NEW: Ensure 'error_reports' store exists for error reporting**
+        if (!db.objectStoreNames.contains("error_reports")) {
+          let errorReportsStore = db.createObjectStore("error_reports", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+
+          // Create indexes for efficient querying
+          dbHelper.ensureIndex(errorReportsStore, "by_timestamp", "timestamp");
+          dbHelper.ensureIndex(errorReportsStore, "by_section", "section");
+          dbHelper.ensureIndex(errorReportsStore, "by_error_type", "errorType");
+          dbHelper.ensureIndex(errorReportsStore, "by_user_agent", "userAgent");
+
+          // eslint-disable-next-line no-console
+          console.log("✅ Error reports store created for error tracking!");
+        }
       };
 
       request.onsuccess = (event) => {
         dbHelper.db = event.target.result;
-        // eslint-disable-next-line no-console
-        console.log("✅ DB opened successfully (dbHelper working)");
+        
+        // DEBUGGING: Log successful database connection
+        console.group('🎉 DATABASE OPENED SUCCESSFULLY');
+        console.log('🕐 Time:', new Date().toISOString());
+        console.log('📍 Context:', context.contextType);
+        console.log('🆔 Database Name:', dbHelper.db.name);
+        console.log('📄 Version:', dbHelper.db.version);
+        console.log('📊 Object Stores:', Array.from(dbHelper.db.objectStoreNames));
+        console.log('🧵 Call Stack:', stack.split('\n')[0]); // Just first line of stack
+        console.groupEnd();
+        
         resolve(dbHelper.db);
       };
 
