@@ -11,6 +11,8 @@ import {
   IconTrendingUp,
   IconTarget,
 } from "@tabler/icons-react";
+// TODO: Re-enable for display settings feature
+// import { useChromeMessage } from "../hooks/useChromeMessage";
 import classes from "./css/DoubleNavbar.module.css";
 
 const mainLinksMockdata = [
@@ -36,6 +38,36 @@ export function DoubleNavbar() {
   const [active, setActive] = useState("Overview");
   const [activeLink, setActiveLink] = useState("/");
   const [showSettingsSubmenu, setShowSettingsSubmenu] = useState(false);
+  
+  // TODO: Re-enable for display settings feature
+  // const [sidebarWidth, setSidebarWidth] = useState("normal");
+  
+  // // Load display settings for sidebar width
+  // const { data: displaySettings } = useChromeMessage({ type: "getSettings" }, [], {
+  //   onSuccess: (response) => {
+  //     if (response?.display?.sidebarWidth) {
+  //       setSidebarWidth(response.display.sidebarWidth);
+  //     }
+  //   },
+  // });
+
+  // // Calculate dynamic navbar width based on setting
+  // const getNavbarWidth = () => {
+  //   switch (sidebarWidth) {
+  //     case "narrow": return "280px";  // 200px + 80px for aside
+  //     case "wide": return "380px";    // 300px + 80px for aside  
+  //     default: return "360px";        // 250px + 80px for aside (normal)
+  //   }
+  // };
+
+  // // Calculate dynamic main section width 
+  // const getMainSectionWidth = () => {
+  //   switch (sidebarWidth) {
+  //     case "narrow": return "200px";  // Main section width
+  //     case "wide": return "300px";    // Main section width
+  //     default: return "250px";        // Main section width (normal)
+  //   }
+  // };
 
   useEffect(() => {
     const currentPath = location.pathname;

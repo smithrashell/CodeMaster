@@ -1,4 +1,5 @@
 import { dbHelper } from "../db/index.js";
+import SessionLimits from "./sessionLimits.js";
 // import { v4 as uuidv4 } from "uuid"; // Commented out - uncomment when needed
 
 const openDB = dbHelper.openDB;
@@ -120,7 +121,7 @@ export function getDifficultyAllowanceForTag(data = null) {
   if (
     !data ||
     typeof data.totalAttempts !== "number" ||
-    data.totalAttempts < 3
+    data.totalAttempts < SessionLimits.getMinAttemptsForExperienced()
   ) {
     return { Easy: 1.0, Medium: 0.8, Hard: 0 };
   }

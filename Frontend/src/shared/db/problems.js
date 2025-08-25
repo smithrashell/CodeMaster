@@ -5,6 +5,7 @@ import { AttemptsService } from "../services/attemptsService.js";
 import { getAllStandardProblems } from "./standard_problems.js";
 import { fetchProblemById } from "./standard_problems.js";
 import { TagService } from "../services/tagServices.js";
+import FocusCoordinationService from "../services/focusCoordinationService.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 import { v4 as uuidv4 } from "uuid";
 import { getAllowedDifficulties } from "../utils/Utils.js";
@@ -477,7 +478,9 @@ export async function fetchAllProblems() {
 export async function fetchAdditionalProblems(
   numNewProblems,
   excludeIds = new Set(),
-  userFocusAreas = []
+  userFocusAreas = [],
+  currentAllowedTags = [],
+  userId = "session_state" // Default to session_state for backward compatibility
 ) {
   try {
     const { masteryData, focusTags, allTagsInCurrentTier } =
@@ -485,29 +488,23 @@ export async function fetchAdditionalProblems(
     const allProblems = await getAllStandardProblems();
     const ladders = await getPatternLadders();
 
-    console.log("🧠 Starting intelligent problem selection...");
-    console.log("🧠 Focus Tags:", focusTags);
-    console.log("🧠 User Focus Areas:", userFocusAreas);
-    console.log("🧠 Needed problems:", numNewProblems);
+    // 🎯 Get coordinated focus decision (integrates all systems)
+    const focusDecision = await FocusCoordinationService.getFocusDecision(userId);
+    
+    // Use coordinated focus decision for enhanced focus tags
+    const enhancedFocusTags = focusDecision.activeFocusTags;
 
-    // Create enhanced focus tags that prioritize user selections
-    const enhancedFocusTags = [...focusTags];
-    if (userFocusAreas.length > 0) {
-      // Boost user-selected tags by moving them to the front
-      const userSelectedTags = userFocusAreas.filter(tag => 
-        allTagsInCurrentTier.includes(tag)
-      );
-      if (userSelectedTags.length > 0) {
-        // Remove user selected tags from their current positions
-        const systemTags = focusTags.filter(tag => 
-          !userSelectedTags.includes(tag)
-        );
-        // Put user selected tags first with system tags following
-        enhancedFocusTags.splice(0, enhancedFocusTags.length, 
-          ...userSelectedTags, ...systemTags);
-        console.log("🎯 Enhanced focus tags (user priority):", enhancedFocusTags);
-      }
-    }
+    console.log("🧠 Starting intelligent problem selection...");
+    console.log("🎯 Focus Coordination Service decision:", {
+      activeFocusTags: enhancedFocusTags,
+      reasoning: focusDecision.algorithmReasoning,
+      userPreferences: focusDecision.userPreferences,
+      systemRecommendation: focusDecision.systemRecommendation
+    });
+    console.log("🧠 Needed problems:", numNewProblems);
+    
+    // Backward compatibility logging
+    console.log("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
 
     // Get tag relationships for expansion
     const tagRelationships = await getTagRelationships();

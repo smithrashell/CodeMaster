@@ -17,7 +17,7 @@ export class ChromeAPIErrorHandler {
   static DEFAULT_TIMEOUT = 10000;
 
   /**
-   * Wrapper for chrome.runtime.sendMessage with retry logic
+   * Wrapper for chrome.runtime.sendMessage with retry logic and health checks
    */
   static async sendMessageWithRetry(message, options = {}) {
     const {
@@ -31,18 +31,34 @@ export class ChromeAPIErrorHandler {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
+        // On connection failures after first attempt, try health check first
+        if (attempt > 0 && lastError?.message?.includes('Could not establish connection')) {
+          console.log(`🔄 RETRY ${attempt}: Attempting health check before retry...`);
+          try {
+            const healthCheck = await this.sendMessageWithTimeout({ type: 'HEALTH_CHECK' }, 5000);
+            console.log('💚 SERVICE WORKER: Health check passed:', healthCheck);
+          } catch (healthError) {
+            console.warn('❌ SERVICE WORKER: Health check failed, continuing with retry:', healthError.message);
+          }
+        }
+
         const response = await this.sendMessageWithTimeout(message, timeout);
 
         // Success - return response
         return response;
       } catch (error) {
         lastError = error;
+        console.warn(`⚠️ RETRY ${attempt + 1}/${maxRetries + 1}: ${error.message}`);
 
         // Don't retry on final attempt
         if (attempt === maxRetries) break;
 
-        // Wait before retry with exponential backoff
-        const delay = retryDelay * Math.pow(2, attempt);
+        // Wait before retry with exponential backoff + jitter
+        const baseDelay = retryDelay * Math.pow(2, attempt);
+        const jitter = Math.random() * 500; // Add up to 500ms random jitter
+        const delay = baseDelay + jitter;
+        
+        console.log(`⏱️ RETRY: Waiting ${Math.round(delay)}ms before attempt ${attempt + 2}`);
         await this.sleep(delay);
       }
     }

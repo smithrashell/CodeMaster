@@ -1,8 +1,58 @@
-import React, { useState, useEffect } from "react";
-import { Container, Title, Text, Stack, Card } from "@mantine/core";
+import React, { useState, useEffect, useMemo } from "react";
+import { Container, Title, Text, Stack, Card, Alert, Button, Group, Tooltip } from "@mantine/core";
+import { IconAccessible, IconKeyboard, IconHandFinger, IconInfoCircle } from "@tabler/icons-react";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { SettingsResetButton } from "../../components/settings/SettingsResetButton.jsx";
+
+// Settings Save Hook for Accessibility
+function useAccessibilitySettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
+  return async (settings) => {
+    if (!settings) return;
+
+    setIsSaving(true);
+    setSaveStatus(null);
+
+    try {
+      const currentSettings = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
+          resolve(response || {});
+        });
+      });
+
+      const updatedSettings = {
+        ...currentSettings,
+        accessibility: settings
+      };
+
+      chrome.runtime.sendMessage(
+        { type: "setSettings", message: updatedSettings },
+        (response) => {
+          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (cacheResponse) => {
+            if (chrome.runtime.lastError) {
+              console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+            }
+          });
+
+          if (response?.status === "success") {
+            setSaveStatus({ type: "success", message: "Accessibility settings saved successfully!" });
+            setHasChanges(false);
+          } else {
+            setSaveStatus({ type: "error", message: "Failed to save accessibility settings." });
+          }
+        }
+      );
+    } catch (error) {
+      console.error("AccessibilitySettings: Error saving settings:", error);
+      setSaveStatus({ type: "error", message: "Failed to save accessibility settings." });
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveStatus(null), 3000);
+    }
+  };
+}
 
 export function Accessibility() {
-  const [settings, setSettings] = useState({
+  const DEFAULT_ACCESSIBILITY_SETTINGS = useMemo(() => ({
     screenReader: {
       enabled: false,
       verboseDescriptions: true,
@@ -10,10 +60,9 @@ export function Accessibility() {
       readFormLabels: true
     },
     keyboard: {
-      enhancedFocus: true,
-      skipToContent: true,
+      enhancedFocus: false,
       customShortcuts: false,
-      focusTrapping: true
+      focusTrapping: false
     },
     motor: {
       largerTargets: false,
@@ -21,48 +70,84 @@ export function Accessibility() {
       reducedMotion: false,
       stickyHover: false
     }
+  }), []);
+
+  const [settings, setSettings] = useState(DEFAULT_ACCESSIBILITY_SETTINGS);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+
+  // Load settings using Chrome message hook
+  const {
+    data: _chromeSettings,
+    loading,
+    error,
+  } = useChromeMessage({ type: "getSettings" }, [], {
+    onSuccess: (response) => {
+      if (response?.accessibility) {
+        setSettings({ ...DEFAULT_ACCESSIBILITY_SETTINGS, ...response.accessibility });
+      } else {
+        setSettings(DEFAULT_ACCESSIBILITY_SETTINGS);
+      }
+    },
   });
 
-  // Load settings from localStorage on component mount
+  // Use accessibility settings save hook
+  const handleSave = useAccessibilitySettingsSave(setSaveStatus, setHasChanges, setIsSaving);
+
+  // Cleanup any existing accessibility classes on mount
   useEffect(() => {
-    const savedSettings = localStorage.getItem('accessibilitySettings');
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
-    }
+    const root = document.documentElement;
+    // Remove all accessibility classes initially
+    root.classList.remove(
+      'a11y-large-targets',
+      'a11y-reduced-motion', 
+      'a11y-extended-hover',
+      'a11y-sticky-hover',
+      'a11y-enhanced-focus'
+    );
   }, []);
 
-  // Save settings to localStorage whenever they change
+  // Apply CSS classes whenever settings change
   useEffect(() => {
-    localStorage.setItem('accessibilitySettings', JSON.stringify(settings));
+    // Skip if settings are empty (initial load)
+    if (!settings || Object.keys(settings).length === 0) return;
     
     // Apply CSS classes based on settings
     const root = document.documentElement;
     
     // Motor accessibility
-    if (settings.motor.largerTargets) {
+    if (settings?.motor?.largerTargets) {
       root.classList.add('a11y-large-targets');
     } else {
       root.classList.remove('a11y-large-targets');
     }
     
-    if (settings.motor.reducedMotion) {
+    if (settings?.motor?.reducedMotion) {
       root.classList.add('a11y-reduced-motion');
     } else {
       root.classList.remove('a11y-reduced-motion');
     }
     
-    if (settings.motor.extendedHover) {
+    if (settings?.motor?.extendedHover) {
       root.classList.add('a11y-extended-hover');
     } else {
       root.classList.remove('a11y-extended-hover');
     }
 
+    if (settings?.motor?.stickyHover) {
+      root.classList.add('a11y-sticky-hover');
+    } else {
+      root.classList.remove('a11y-sticky-hover');
+    }
+
     // Keyboard navigation
-    if (settings.keyboard.enhancedFocus) {
+    if (settings?.keyboard?.enhancedFocus) {
       root.classList.add('a11y-enhanced-focus');
     } else {
       root.classList.remove('a11y-enhanced-focus');
     }
+
 
   }, [settings]);
 
@@ -70,10 +155,24 @@ export function Accessibility() {
     setSettings(prev => ({
       ...prev,
       [category]: {
-        ...prev[category],
+        ...prev?.[category],
         [setting]: value
       }
     }));
+    setHasChanges(true);
+    setSaveStatus(null);
+  };
+
+  // Reset accessibility settings to defaults
+  const handleReset = async () => {
+    setSettings(DEFAULT_ACCESSIBILITY_SETTINGS);
+    setHasChanges(true);
+    setSaveStatus({ type: "success", message: "Accessibility settings reset to defaults!" });
+    
+    // Auto-save after reset
+    setTimeout(() => {
+      handleSave(DEFAULT_ACCESSIBILITY_SETTINGS);
+    }, 500);
   };
 
   const SettingToggle = ({ title, description, category, setting, value }) => (
@@ -126,30 +225,65 @@ export function Accessibility() {
     </div>
   );
 
+  if (loading) {
+    return (
+      <Container size="md" p="xl">
+        <Title order={1} fw={700} mb="md" style={{ fontSize: '1.75rem', color: 'var(--cm-text)' }}>Accessibility Settings</Title>
+        <Text size="sm" c="dimmed">Loading accessibility settings...</Text>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container size="md" p="xl">
+        <Title order={1} fw={700} mb="md" style={{ fontSize: '1.75rem', color: 'var(--cm-text)' }}>Accessibility Settings</Title>
+        <Alert color="red" variant="light">
+          Failed to load accessibility settings. Please refresh the page.
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container size="md" p="xl">
-      <Title order={1} fw={700} mb="md" style={{ fontSize: '1.75rem', color: 'var(--cm-text)' }}>Accessibility Settings</Title>
-      <Text size="md" mb="xl" style={{ color: 'var(--cm-text-secondary)', opacity: 0.8, lineHeight: 1.5 }}>
-        Configure accessibility features to improve your experience with the application
-      </Text>
+      <Title order={2} mb="xl">
+        Accessibility Settings
+      </Title>
 
-      <Stack spacing="xl">
+      {/* Save Status */}
+      {saveStatus && (
+        <Alert 
+          color={saveStatus.type === "success" ? "green" : "red"} 
+          variant="light"
+          mb="lg"
+        >
+          {saveStatus.message}
+        </Alert>
+      )}
+
+      <Stack gap="lg">
         {/* Screen Reader Support */}
         <Card withBorder p="lg" radius="md">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', padding: '8px 0', borderBottom: '2px solid var(--cm-border)', backgroundColor: 'var(--cm-card-bg)' }}>
-            <Text size="xl" mr="md">🔊</Text>
-            <div>
-              <Title order={3} fw={600} style={{ fontSize: '1.2rem', marginBottom: '4px', color: 'var(--cm-text)' }}>Screen Reader Support</Title>
-              <Text size="sm" style={{ color: 'var(--cm-text-secondary)', opacity: 0.8 }}>Enhanced compatibility with screen reading software</Text>
+          <Stack gap="md">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <IconAccessible size={20} />
+              <Title order={4}>Screen Reader Support</Title>
+              <Tooltip label="Enhanced compatibility with screen reading software">
+                <IconInfoCircle size={16} style={{ cursor: "help" }} />
+              </Tooltip>
             </div>
-          </div>
+
+            <Text size="sm" c="dimmed">
+              Configure screen reader optimizations for better accessibility.
+            </Text>
 
           <SettingToggle
             title="Enable Screen Reader Optimizations"
             description="Adds ARIA labels and descriptions throughout the interface"
             category="screenReader"
             setting="enabled"
-            value={settings.screenReader.enabled}
+            value={settings?.screenReader?.enabled || false}
           />
 
           <SettingToggle
@@ -157,7 +291,7 @@ export function Accessibility() {
             description="Provides detailed descriptions of charts, graphs, and complex elements"
             category="screenReader"
             setting="verboseDescriptions"
-            value={settings.screenReader.verboseDescriptions}
+            value={settings?.screenReader?.verboseDescriptions ?? true}
           />
 
           <SettingToggle
@@ -165,7 +299,7 @@ export function Accessibility() {
             description="Announces page changes and navigation events"
             category="screenReader"
             setting="announceNavigation"
-            value={settings.screenReader.announceNavigation}
+            value={settings?.screenReader?.announceNavigation ?? true}
           />
 
           <SettingToggle
@@ -173,42 +307,41 @@ export function Accessibility() {
             description="Ensures all form inputs have clear, readable labels"
             category="screenReader"
             setting="readFormLabels"
-            value={settings.screenReader.readFormLabels}
+            value={settings?.screenReader?.readFormLabels ?? true}
           />
+          </Stack>
         </Card>
 
         {/* Keyboard Navigation */}
         <Card withBorder p="lg" radius="md">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', padding: '8px 0', borderBottom: '2px solid var(--cm-border)', backgroundColor: 'var(--cm-card-bg)' }}>
-            <Text size="xl" mr="md">⌨️</Text>
-            <div>
-              <Title order={3} fw={600} style={{ fontSize: '1.2rem', marginBottom: '4px', color: 'var(--cm-text)' }}>Keyboard Navigation</Title>
-              <Text size="sm" style={{ color: 'var(--cm-text-secondary)', opacity: 0.8 }}>Improved keyboard accessibility and navigation</Text>
+          <Stack gap="md">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <IconKeyboard size={20} />
+              <Title order={4}>Keyboard Navigation</Title>
+              <Tooltip label="Improved keyboard accessibility and navigation">
+                <IconInfoCircle size={16} style={{ cursor: "help" }} />
+              </Tooltip>
             </div>
-          </div>
+
+            <Text size="sm" c="dimmed">
+              Configure keyboard navigation enhancements for better accessibility.
+            </Text>
 
           <SettingToggle
             title="Enhanced Focus Indicators"
             description="Makes keyboard focus more visible with stronger borders and colors"
             category="keyboard"
             setting="enhancedFocus"
-            value={settings.keyboard.enhancedFocus}
+            value={settings?.keyboard?.enhancedFocus || false}
           />
 
-          <SettingToggle
-            title="Skip to Content Link"
-            description="Adds a 'Skip to main content' link for faster navigation"
-            category="keyboard"
-            setting="skipToContent"
-            value={settings.keyboard.skipToContent}
-          />
 
           <SettingToggle
             title="Focus Trapping in Modals"
             description="Keeps keyboard focus within modal dialogs and popups"
             category="keyboard"
             setting="focusTrapping"
-            value={settings.keyboard.focusTrapping}
+            value={settings?.keyboard?.focusTrapping || false}
           />
 
           <SettingToggle
@@ -216,26 +349,32 @@ export function Accessibility() {
             description="Enables additional keyboard shortcuts for common actions"
             category="keyboard"
             setting="customShortcuts"
-            value={settings.keyboard.customShortcuts}
+            value={settings?.keyboard?.customShortcuts || false}
           />
+          </Stack>
         </Card>
 
         {/* Motor Accessibility */}
         <Card withBorder p="lg" radius="md">
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px', padding: '8px 0', borderBottom: '2px solid var(--cm-border)', backgroundColor: 'var(--cm-card-bg)' }}>
-            <Text size="xl" mr="md">🖱️</Text>
-            <div>
-              <Title order={3} fw={600} style={{ fontSize: '1.2rem', marginBottom: '4px', color: 'var(--cm-text)' }}>Motor Accessibility</Title>
-              <Text size="sm" style={{ color: 'var(--cm-text-secondary)', opacity: 0.8 }}>Features for users with motor impairments</Text>
+          <Stack gap="md">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <IconHandFinger size={20} />
+              <Title order={4}>Motor Accessibility</Title>
+              <Tooltip label="Features for users with motor impairments">
+                <IconInfoCircle size={16} style={{ cursor: "help" }} />
+              </Tooltip>
             </div>
-          </div>
+
+            <Text size="sm" c="dimmed">
+              Configure motor accessibility features for easier interaction.
+            </Text>
 
           <SettingToggle
             title="Larger Click Targets"
             description="Increases the size of buttons and clickable elements"
             category="motor"
             setting="largerTargets"
-            value={settings.motor.largerTargets}
+            value={settings?.motor?.largerTargets || false}
           />
 
           <SettingToggle
@@ -243,7 +382,7 @@ export function Accessibility() {
             description="Keeps hover states visible longer before they disappear"
             category="motor"
             setting="extendedHover"
-            value={settings.motor.extendedHover}
+            value={settings?.motor?.extendedHover || false}
           />
 
           <SettingToggle
@@ -251,7 +390,7 @@ export function Accessibility() {
             description="Minimizes animations and transitions that may cause discomfort"
             category="motor"
             setting="reducedMotion"
-            value={settings.motor.reducedMotion}
+            value={settings?.motor?.reducedMotion || false}
           />
 
           <SettingToggle
@@ -259,21 +398,42 @@ export function Accessibility() {
             description="Hover effects remain until explicitly dismissed"
             category="motor"
             setting="stickyHover"
-            value={settings.motor.stickyHover}
+            value={settings?.motor?.stickyHover || false}
           />
+          </Stack>
         </Card>
 
-        {/* Help Section */}
-        <Card withBorder p="lg" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', color: 'var(--cm-text)' }}>
-          <Title order={4} mb="md">Need Additional Help?</Title>
-          <Text size="sm" mb="md">
-            If you need additional accessibility accommodations or encounter any barriers 
-            while using this application, please don't hesitate to reach out for support.
-          </Text>
-          <Text size="xs" c="dimmed">
-            These settings are saved locally and will persist across browser sessions.
-            You may need to refresh the page for some changes to take full effect.
-          </Text>
+        {/* Action Buttons */}
+        <Card withBorder p="lg" radius="md">
+          <Stack gap="md">
+            <Group justify="space-between">
+              <SettingsResetButton
+                onReset={handleReset}
+                disabled={loading || isSaving}
+                settingsType="accessibility settings"
+                variant="subtle"
+              />
+              
+              <Button
+                onClick={() => handleSave(settings)}
+                loading={isSaving}
+                disabled={!hasChanges || loading}
+                size="sm"
+              >
+                Save Accessibility Settings
+              </Button>
+            </Group>
+            
+            <Title order={4}>Need Additional Help?</Title>
+            <Text size="sm">
+              If you need additional accessibility accommodations or encounter any barriers 
+              while using this application, please don't hesitate to reach out for support.
+            </Text>
+            <Text size="xs" c="dimmed">
+              These settings are saved securely and will persist across browser sessions.
+              You may need to refresh the page for some changes to take full effect.
+            </Text>
+          </Stack>
         </Card>
       </Stack>
     </Container>
