@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrainIcon } from "../../../shared/components/ui/Icons";
 import { ReasonTypeIcon } from "./ProblemInfoIcon";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 
 /**
  * WhyThisProblem Component
@@ -11,13 +12,55 @@ const WhyThisProblem = ({
   selectionReason,
   problemTags = [],
   className = "",
+  currentProblemId = null,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [similarProblems, setSimilarProblems] = useState([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
 
   // Don't render if no selection reason provided
   if (!selectionReason) {
     return null;
   }
+
+  // Fetch similar problems when expanded
+  useEffect(() => {
+    const fetchSimilarProblems = async () => {
+      if (isExpanded && currentProblemId && !loadingSimilar && similarProblems.length === 0) {
+        console.log('🔗 Fetching similar problems for:', currentProblemId);
+        setLoadingSimilar(true);
+        try {
+          // Use Chrome messaging to get similar problems
+          chrome.runtime.sendMessage({
+            type: 'getSimilarProblems',
+            problemId: currentProblemId,
+            limit: 3
+          }, (response) => {
+            console.log('🔗 Similar problems response:', response);
+            if (response?.similarProblems) {
+              setSimilarProblems(response.similarProblems);
+              console.log('🔗 Set similar problems:', response.similarProblems.length);
+            } else {
+              console.log('🔗 No similar problems found in response');
+            }
+            setLoadingSimilar(false);
+          });
+        } catch (error) {
+          console.error('❌ Error fetching similar problems:', error);
+          setLoadingSimilar(false);
+        }
+      } else {
+        console.log('🔗 Skipping similar problems fetch:', {
+          isExpanded,
+          currentProblemId,
+          loadingSimilar,
+          similarProblemsLength: similarProblems.length
+        });
+      }
+    };
+
+    fetchSimilarProblems();
+  }, [isExpanded, currentProblemId]);
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
@@ -345,6 +388,81 @@ const WhyThisProblem = ({
               {getLearningTip(selectionReason.type)}
             </div>
           </div>
+
+          {/* Similar Problems Section */}
+          {currentProblemId && (
+            <div
+              style={{
+                marginTop: "12px",
+                padding: "12px",
+                backgroundColor: "rgba(255, 255, 255, 0.05)",
+                borderRadius: "8px",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "rgba(255, 255, 255, 0.95)",
+                  marginBottom: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                🔗 <span>Problems Like This</span>
+              </div>
+
+              {loadingSimilar && (
+                <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.6)" }}>
+                  Finding similar problems...
+                </div>
+              )}
+
+              {!loadingSimilar && similarProblems.length > 0 && (
+                <div style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.8)" }}>
+                  {similarProblems.map((problem, index) => (
+                    <div
+                      key={problem.id || index}
+                      style={{
+                        padding: "6px 0",
+                        borderBottom: index < similarProblems.length - 1 ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <span style={{ fontSize: "10px" }}>•</span>
+                      <span style={{ flex: 1 }}>
+                        {problem.title || problem.problemDescription}
+                      </span>
+                      {problem.difficulty && (
+                        <span
+                          style={{
+                            fontSize: "10px",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            backgroundColor: problem.difficulty === 'Easy' ? '#10b981' : 
+                                           problem.difficulty === 'Hard' ? '#ef4444' : '#f59e0b',
+                            color: 'white',
+                          }}
+                        >
+                          {problem.difficulty}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!loadingSimilar && similarProblems.length === 0 && currentProblemId && (
+                <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.6)" }}>
+                  No similar problems found yet. Keep practicing to build connections!
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
