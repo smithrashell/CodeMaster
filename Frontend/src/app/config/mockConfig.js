@@ -7,68 +7,27 @@
 
 /**
  * Check if mock dashboard should be used
- * Multiple detection methods for robust development mode detection
- * INCLUDES FALLBACKS for when NODE_ENV gets stuck on production during development
+ * Simplified to prioritize .env configuration with minimal fallbacks
  */
 export const shouldUseMockDashboard = () => {
-  // Environment variable override - highest priority
+  // Primary control: Environment variable from .env file
   if (process.env.USE_MOCK_SERVICE !== undefined) {
     const useMock = process.env.USE_MOCK_SERVICE === 'true';
-    console.log('🔧 MOCK MODE via .env:', useMock);
+    console.log('🔧 MOCK MODE via .env:', useMock ? '🎭 MOCK DATA' : '✅ REAL DATA');
     return useMock;
   }
   
-  // Manual override - check localStorage first for immediate control
+  // Developer override: localStorage for debugging (temporary override)
   if (typeof window !== 'undefined' && localStorage.getItem('cm-force-mock') === 'true') {
-    console.log('🔧 FORCED MOCK MODE via localStorage');
+    console.log('🔧 DEVELOPER OVERRIDE: 🎭 FORCED MOCK MODE via localStorage');
+    console.log('💡 Run disableMockMode() to turn off');
     return true;
   }
-  const nodeEnvDev = process.env.NODE_ENV === 'development';
-  const isLocalhost = typeof window !== 'undefined' && 
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-  const isFileProtocol = typeof window !== 'undefined' && 
-    window.location.protocol === 'file:';
-  const isExtensionDev = typeof window !== 'undefined' && 
-    window.location.href.includes('chrome-extension://') &&
-    (window.location.hostname === 'localhost' || !window.location.hostname);
   
-  // Manual override - check for URL parameter or localStorage flag
-  const hasUrlFlag = typeof window !== 'undefined' && 
-    (window.location.search.includes('mock=true') || window.location.hash.includes('mock=true'));
-  const hasStorageFlag = typeof window !== 'undefined' &&
-    localStorage.getItem('cm-force-mock') === 'true';
-    
-  // For dashboard development, be more permissive with mock mode
-  // Enable mock if we're not clearly in a production Chrome extension
-  const isProductionExtension = typeof window !== 'undefined' && 
-    window.location.href.includes('chrome-extension://') && 
-    process.env.NODE_ENV === 'production';
-  
-  // Force enable for development - any of these conditions enable mock mode
-  // Also enable if we're NOT in a production extension (for standalone dashboard development)
-  // IMPORTANT: Default to mock mode unless we're clearly in production extension
-  const shouldMock = nodeEnvDev || isLocalhost || isFileProtocol || isExtensionDev || hasUrlFlag || hasStorageFlag || !isProductionExtension;
-  
-  // Additional fallback: if we can't determine environment clearly, default to mock for development
-  const isUnclearEnvironment = !isProductionExtension && !nodeEnvDev;
-  const finalDecision = shouldMock || isUnclearEnvironment;
-  
-  console.log('🔧 MOCK CONFIG DEBUG:', {
-    'process.env.NODE_ENV': process.env.NODE_ENV,
-    'nodeEnvDev': nodeEnvDev,
-    'isLocalhost': isLocalhost, 
-    'isFileProtocol': isFileProtocol,
-    'isExtensionDev': isExtensionDev,
-    'hasUrlFlag': hasUrlFlag,
-    'hasStorageFlag': hasStorageFlag,
-    'isProductionExtension': isProductionExtension,
-    'shouldMock': shouldMock,
-    'isUnclearEnvironment': isUnclearEnvironment,
-    'finalDecision': finalDecision,
-    'timestamp': new Date().toISOString()
-  });
-  
-  return finalDecision;
+  // Fallback: If no .env setting, default to false (real data)
+  // This ensures production-like behavior when configuration is missing
+  console.log('⚠️ No USE_MOCK_SERVICE in .env, defaulting to real data');
+  return false;
 };
 
 /**

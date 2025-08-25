@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from "uuid";
 import { TagService } from "../services/tagServices.js";
 import { StorageService } from "../services/storageService.js";
 import { AttemptsService } from "../services/attemptsService.js";
+import FocusCoordinationService from "../services/focusCoordinationService.js";
+import SessionLimits from "../utils/sessionLimits.js";
 
 const openDB = dbHelper.openDB;
 
@@ -29,14 +31,30 @@ export const getLatestSession = async () => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("sessions", "readonly");
     const store = transaction.objectStore("sessions");
-    const index = store.index("by_date");
-
-    const request = index.openCursor(null, "prev"); // Get latest session
+    
+    // Use reliable getAll method to avoid index issues
+    const request = store.getAll();
     request.onsuccess = (event) => {
-      const cursor = event.target.result;
-      resolve(cursor ? cursor.value : null);
+      const allSessions = event.target.result || [];
+      
+      if (allSessions.length === 0) {
+        resolve(null);
+        return;
+      }
+      
+      // Sort by date (newest first) - handle both 'date' and 'Date' properties
+      const sortedSessions = allSessions.sort((a, b) => {
+        const dateA = new Date(a.date || a.Date || 0);
+        const dateB = new Date(b.date || b.Date || 0);
+        return dateB - dateA;
+      });
+      const result = sortedSessions[0];
+      resolve(result);
     };
-    request.onerror = (e) => reject(e.target.error);
+    request.onerror = (e) => {
+      console.error("❌ getLatestSession() error:", e.target.error);
+      reject(e.target.error);
+    };
   });
 };
 
@@ -149,284 +167,29 @@ export const saveSessionToStorage = async (session, updateDatabase = false) => {
   });
 };
 
-export const recreateSessions = async () => {
-  const db = await openDB();
+// ❌ REMOVED: Legacy session reconstruction function
+// This function was causing false "completed" sessions to appear in the UI
+// by reconstructing sessions from raw attempt data. Modern sessions are now
+// properly created through SessionService.createNewSession() with correct
+// status tracking and completion flow.
+//
+// export const recreateSessions = async () => { ... }
+//
+// If you need to migrate old data, run this function once manually,
+// then remove it to prevent ongoing interference with modern session tracking.
 
-  const transaction = db.transaction(
-    ["attempts", "problems", "sessions"],
-    "readonly"
-  );
-  const attemptStore = transaction.objectStore("attempts");
-  const problemStore = transaction.objectStore("problems");
-
-  // Pull all attempts & problems
-  const attempts = await new Promise((resolve, reject) => {
-    const request = attemptStore.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-
-  const problems = await new Promise((resolve, reject) => {
-    const request = problemStore.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-
-  console.log("📥 Total Attempts:", attempts.length);
-  console.log("📚 Total Problems:", problems.length);
-
-  const sessions = [];
-
-  /** ------------------------ **/
-  /** 1. Handle attempts WITH SessionID **/
-  /** ------------------------ **/
-
-  const sessionMap = new Map();
-
-  attempts.forEach((attempt) => {
-    if (attempt.SessionID) {
-      const sessionId = attempt.SessionID;
-      if (!sessionMap.has(sessionId)) {
-        sessionMap.set(sessionId, []);
-      }
-      sessionMap.get(sessionId).push(attempt);
-    }
-  });
-
-  console.log(
-    "📦 Found sessions to rebuild (with SessionID):",
-    sessionMap.size
-  );
-
-  for (let [sessionId, sessionAttempts] of sessionMap.entries()) {
-    const problemIds = [
-      ...new Set(sessionAttempts.map((a) => String(a.ProblemID))),
-    ];
-    const sessionProblems = problems.filter((problem) =>
-      problemIds.includes(String(problem.id))
-    );
-
-    const isCompleted = sessionProblems.every((problem) =>
-      sessionAttempts.some((attempt) => attempt.ProblemID === problem.id)
-    );
-
-    const cleanedAttempts = sessionAttempts.map((attempt) => ({
-      attemptId: attempt.AttemptID || uuidv4(),
-      problemId: attempt.ProblemID,
-      success: attempt.Success,
-      timeSpent: attempt.TimeSpent,
-      AttemptDate: attempt.AttemptDate,
-    }));
-
-    const sortedAttempts = [...cleanedAttempts].sort(
-      (a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate)
-    );
-
-    const sessionDate =
-      sortedAttempts[0]?.AttemptDate || new Date().toISOString();
-
-    const session = {
-      id: sessionId,
-      Date: sessionDate,
-      attempts: cleanedAttempts.map(({ AttemptDate, ...rest }) => rest),
-      problems: sessionProblems,
-      status: isCompleted ? "completed" : "in_progress",
-    };
-
-    console.log("🔁 Rebuilt session:", sessionId);
-    console.log(
-      "➡️ Problems in session:",
-      sessionProblems.map((p) => p.id)
-    );
-    console.log(
-      "🧪 Attempts in session:",
-      cleanedAttempts.map((a) => a.problemId)
-    );
-
-    sessions.push(session);
-  }
-
-  /** ------------------------ **/
-  /** 2. Handle attempts WITHOUT SessionID **/
-  /** ------------------------ **/
-
-  const attemptsWithoutSessionID = attempts.filter((a) => !a.SessionID);
-
-  console.log(
-    "🧩 Orphan attempts without SessionID:",
-    attemptsWithoutSessionID.length
-  );
-
-  const dateMap = new Map();
-
-  attemptsWithoutSessionID.forEach((attempt) => {
-    let dateValue;
-    if (attempt.AttemptDate && !isNaN(new Date(attempt.AttemptDate))) {
-      dateValue = new Date(attempt.AttemptDate);
-    } else {
-      console.warn("⚠️ Missing or invalid AttemptDate:", attempt);
-      dateValue = new Date();
-    }
-
-    const dateKey = dateValue.toISOString().split("T")[0];
-
-    if (!dateMap.has(dateKey)) {
-      dateMap.set(dateKey, []);
-    }
-    dateMap.get(dateKey).push(attempt);
-  });
-
-  for (let [dateKey, dateAttempts] of dateMap.entries()) {
-    const sessionId = uuidv4();
-
-    const problemIds = [
-      ...new Set(dateAttempts.map((a) => String(a.ProblemID))),
-    ];
-    const sessionProblems = problems.filter((problem) =>
-      problemIds.includes(String(problem.id))
-    );
-
-    const cleanedAttempts = dateAttempts.map((attempt) => ({
-      attemptId: attempt.AttemptID || uuidv4(),
-      problemId: attempt.ProblemID,
-      success: attempt.Success,
-      timeSpent: attempt.TimeSpent,
-      AttemptDate: attempt.AttemptDate,
-    }));
-
-    const sortedAttempts = [...cleanedAttempts].sort(
-      (a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate)
-    );
-
-    const sessionDate =
-      sortedAttempts[0]?.AttemptDate || `${dateKey}T00:00:00.000Z`;
-
-    const session = {
-      id: sessionId,
-      Date: sessionDate,
-      attempts: cleanedAttempts.map(({ AttemptDate, ...rest }) => rest),
-      problems: sessionProblems,
-      status: "completed",
-    };
-
-    console.log("🆕 Created new session from orphaned attempts on", dateKey);
-    console.log(
-      "➡️ Problems:",
-      sessionProblems.map((p) => p.id)
-    );
-    console.log(
-      "🧪 Attempts:",
-      cleanedAttempts.map((a) => a.problemId)
-    );
-
-    sessions.push(session);
-  }
-
-  /** ------------------------ **/
-  /** 3. Save sessions **/
-  /** ------------------------ **/
-
-  await Promise.all(sessions.map((session) => updateSessionInDB(session)));
-
-  console.log("✅ Rebuilt and stored all sessions:", sessions.length);
-  return sessions;
-};
-
-// export async function getSessionPerformance() {
-//   const db = await openDB();
-
-//   // 1️⃣ Fetch all sessions
-//   const sessionStore = db
-//     .transaction("sessions", "readonly")
-//     .objectStore("sessions");
-//   const sessionRequest = sessionStore.getAll();
-//   const sessions = await new Promise((resolve, reject) => {
-//     sessionRequest.onsuccess = () => resolve(sessionRequest.result);
-//     sessionRequest.onerror = () => reject(sessionRequest.error);
-//   });
-
-//   // 2️⃣ Fetch ALL problems (user-specific)
-//   const problemStore = db
-//     .transaction("problems", "readonly")
-//     .objectStore("problems");
-//   const allProblemRequest = problemStore.getAll();
-//   const allProblems = await new Promise((resolve, reject) => {
-//     allProblemRequest.onsuccess = () => resolve(allProblemRequest.result);
-//     allProblemRequest.onerror = () => reject(allProblemRequest.error);
-//   });
-//   console.log("🔍 allProblems:", allProblems);
-//   const problemMap = new Map(allProblems.map((p) => [p.id, p])); // User's problems
-
-//   // 3️⃣ Fetch ALL standard problems
-//   const standardProblemStore = db
-//     .transaction("standard_problems", "readonly")
-//     .objectStore("standard_problems");
-//   const allStandardRequest = standardProblemStore.getAll();
-//   const allStandardProblems = await new Promise((resolve, reject) => {
-//     allStandardRequest.onsuccess = () => resolve(allStandardRequest.result);
-//     allStandardRequest.onerror = () => reject(allStandardRequest.error);
-//   });
-//   console.log("🔍 allStandardProblems:", allStandardProblems);
-//   const standardProblemMap = new Map(
-//     allStandardProblems.map((p) => [p.id, p])
-//   ); // leetCodeID based
-// console.log("🔍 standardProblemMap Keys:", [...standardProblemMap.keys()]);
-//   // 4️⃣ Initialize aggregation
-//   const performance = {
-//     Easy: { attempts: 0, correct: 0 },
-//     Medium: { attempts: 0, correct: 0 },
-//     Hard: { attempts: 0, correct: 0 },
-//   };
-
-//   // 5️⃣ Loop sessions
-//   for (let session of sessions) {
-//     if (!session.attempts) continue;
-
-//     for (let attempt of session.attempts) {
-//       console.log("🔍 attempt:", attempt);
-//       const problemEntry = problemMap.get(attempt.problemId);
-//    console.log("🔍 problemEntry:", problemEntry);
-//       if (!problemEntry) {
-//         console.warn(
-//           `⚠️ Problem not found in problemMap: ${attempt.ProblemID}`
-//         );
-//         continue;
-//       }
-
-//       const standardProblem = standardProblemMap.get(problemEntry.leetCodeID);
-//       console.log("🔍 standardProblem:", standardProblem);
-//       if (!standardProblem) {
-//         console.warn(
-//           `⚠️ Standard problem not found for leetCodeID: ${problemEntry.leetCodeID}`
-//         );
-//         continue;
-//       }
-
-//       if (standardProblem && standardProblem.difficulty) {
-//         const difficulty = standardProblem.difficulty; // "Easy", "Medium", "Hard"
-//         if (performance[difficulty]) {
-//           performance[difficulty].attempts += 1;
-//           if (attempt.success) {
-//             performance[difficulty].correct += 1;
-//           }
-//         }
-//       }
-//     }
-//   }
-
-//   console.log("📊 Aggregated Session Performance:", performance);
-
-//   return performance;
-// }
 
 export async function buildAdaptiveSessionSettings() {
-  const { focusTags } = await TagService.getCurrentTier();
   const sessionStateKey = "session_state";
   const now = new Date();
 
-  // Get user focus areas from settings
+  // Get focus decision from coordination service (integrates all systems)
+  const focusDecision = await FocusCoordinationService.getFocusDecision(sessionStateKey);
+  
+  // Get additional system data still needed for session building
+  const { focusTags } = await TagService.getCurrentTier();
   const settings = await StorageService.getSettings();
-  const userFocusAreas = settings.focusAreas || [];
+  const userFocusAreas = focusDecision.userPreferences;
 
   // Try to migrate from Chrome storage first, then get from IndexedDB
   let sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
@@ -453,18 +216,48 @@ export async function buildAdaptiveSessionSettings() {
       },
     };
 
-  const onboarding = sessionState.numSessionsCompleted < 3;
   const performance = sessionState.lastPerformance || {};
   const accuracy = performance.accuracy ?? 0.5;
   const efficiencyScore = performance.efficiencyScore ?? 0.5;
 
-  // Default values
+  // Default values with onboarding-aware user preference integration
   let sessionLength = 4;
   let numberOfNewProblems = 4;
-  let allowedTags =
-    focusTags && focusTags.length > 0 ? focusTags.slice(0, 1) : ["array"];
+  
+  // 🎯 Use coordinated focus decision (handles onboarding, performance, user preferences)
+  let allowedTags = focusDecision.activeFocusTags;
+  const onboarding = focusDecision.onboarding;
+  
+  console.log(`🎯 Focus Coordination Service decision:`, {
+    activeFocusTags: allowedTags,
+    reasoning: focusDecision.algorithmReasoning,
+    onboarding: focusDecision.onboarding,
+    performanceLevel: focusDecision.performanceLevel
+  });
 
-  if (!onboarding) {
+  if (onboarding) {
+    // 🔰 Onboarding mode: Apply user preferences with safety constraints
+    console.log("🔰 Onboarding mode: Applying user preferences with safety caps");
+    
+    // Apply user session length preference with dynamic onboarding cap
+    const userSessionLength = settings.sessionLength;
+    const maxSessionLength = SessionLimits.getMaxSessionLength(sessionState);
+    if (userSessionLength && userSessionLength > 0) {
+      sessionLength = Math.min(userSessionLength, maxSessionLength);
+      console.log(`🔰 User session length preference applied: ${userSessionLength} → capped at ${sessionLength} for onboarding`);
+    }
+    
+    // Apply user new problems cap with dynamic onboarding limit  
+    const userMaxNewProblems = settings.numberofNewProblemsPerSession;
+    const maxNewProblems = SessionLimits.getMaxNewProblems(sessionState);
+    if (userMaxNewProblems && userMaxNewProblems > 0) {
+      numberOfNewProblems = Math.min(userMaxNewProblems, maxNewProblems);
+      console.log(`🔰 User new problems preference applied: ${userMaxNewProblems} → capped at ${numberOfNewProblems} for onboarding`);
+    }
+    
+    // Focus tags already handled by coordination service
+    console.log(`🔰 Focus tags from coordination service: [${allowedTags.join(', ')}] (${focusDecision.reasoning})`);
+  } else if (!onboarding) {
     // 🧠 Time gap since last session
     let gapInDays = 999;
     const lastAttempt = await AttemptsService.getMostRecentAttempt();
@@ -473,13 +266,20 @@ export async function buildAdaptiveSessionSettings() {
       gapInDays = (now - lastTime) / (1000 * 60 * 60 * 24);
     }
 
-    sessionLength = computeSessionLength(accuracy, efficiencyScore);
+    // Calculate adaptive session length
+    const adaptiveSessionLength = computeSessionLength(accuracy, efficiencyScore);
+    
+    // Apply user preference blending (70% adaptive, 30% user preference)
+    const userPreferredLength = settings.sessionLength;
+    sessionLength = applySessionLengthPreference(adaptiveSessionLength, userPreferredLength);
 
+    // Apply performance-based constraints
     if (gapInDays > 4 || accuracy < 0.5) {
       sessionLength = Math.min(sessionLength, 5);
+      console.log(`🛡️ Performance constraint applied: Session length capped at 5 due to gap (${gapInDays.toFixed(1)} days) or low accuracy (${(accuracy * 100).toFixed(1)}%)`);
     }
 
-    // Scale new problems
+    // Scale new problems based on performance
     if (accuracy >= 0.85) {
       numberOfNewProblems = Math.min(5, Math.floor(sessionLength / 2));
     } else if (accuracy < 0.6) {
@@ -488,26 +288,25 @@ export async function buildAdaptiveSessionSettings() {
       numberOfNewProblems = Math.floor(sessionLength * 0.3);
     }
 
-    // 🏷️ Progressive tag exposure within focus window
-    const tagCount = calculateTagIndexProgression(
-      accuracy,
-      efficiencyScore,
-      sessionState.tagIndex,
-      focusTags.length,
-      sessionState
-    );
-    allowedTags =
-      focusTags && focusTags.length > 0
-        ? focusTags.slice(0, tagCount)
-        : ["array", "hash table"];
+    // Apply user-defined cap for new problems (from Goals page guardrails)
+    const userMaxNewProblems = settings.numberofNewProblemsPerSession;
+    if (userMaxNewProblems && userMaxNewProblems > 0) {
+      const originalNewProblems = numberOfNewProblems;
+      numberOfNewProblems = Math.min(numberOfNewProblems, userMaxNewProblems);
+      if (originalNewProblems !== numberOfNewProblems) {
+        console.log(`🛡️ User guardrail applied: New problems capped from ${originalNewProblems} to ${numberOfNewProblems}`);
+      }
+    }
 
-    // Update tagIndex for next session
+    // 🏷️ Focus tags already determined by coordination service
+    // (Coordination service integrates performance-based expansion with user preferences)
+    const tagCount = allowedTags.length;
+    
+    // Update tagIndex for backward compatibility with existing systems
     sessionState.tagIndex = tagCount - 1; // Convert from count to index
 
     console.log(
-      `🏷️ Tag exposure: ${tagCount}/${focusTags.length} focus tags (tagIndex: ${
-        sessionState.tagIndex
-      }, accuracy: ${(accuracy * 100).toFixed(1)}%)`
+      `🏷️ Tag exposure from coordination service: ${tagCount}/${focusTags.length} focus tags (coordinated: [${allowedTags.join(', ')}], accuracy: ${(accuracy * 100).toFixed(1)}%)`
     );
 
     // 🔓 Session-based escape hatch detection and activation
@@ -546,9 +345,17 @@ export async function buildAdaptiveSessionSettings() {
     }
 
     // Progressive difficulty cap unlocking with escape hatch threshold
+    // Apply user difficulty ceiling (from Goals page guardrails)
+    const userMaxDifficulty = settings.maxDifficulty || "Hard";
+    const getDifficultyOrder = (difficulty) => {
+      const order = { "Easy": 1, "Medium": 2, "Hard": 3 };
+      return order[difficulty] || 1;
+    };
+    
     if (
       accuracy >= promotionThreshold &&
-      sessionState.currentDifficultyCap === "Easy"
+      sessionState.currentDifficultyCap === "Easy" &&
+      getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")
     ) {
       sessionState.currentDifficultyCap = "Medium";
       escapeHatches.lastDifficultyPromotion = now.toISOString();
@@ -564,7 +371,8 @@ export async function buildAdaptiveSessionSettings() {
       }
     } else if (
       accuracy >= promotionThreshold &&
-      sessionState.currentDifficultyCap === "Medium"
+      sessionState.currentDifficultyCap === "Medium" &&
+      getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")
     ) {
       sessionState.currentDifficultyCap = "Hard";
       escapeHatches.lastDifficultyPromotion = now.toISOString();
@@ -578,6 +386,11 @@ export async function buildAdaptiveSessionSettings() {
       } else {
         console.log("🎯 Difficulty cap upgraded: Medium → Hard");
       }
+    } else if (
+      accuracy >= promotionThreshold &&
+      getDifficultyOrder(sessionState.currentDifficultyCap) < getDifficultyOrder(userMaxDifficulty)
+    ) {
+      console.log(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.currentDifficultyCap}, Max allowed: ${userMaxDifficulty}`);
     }
 
     // Track sessions without promotion for debugging
@@ -589,6 +402,10 @@ export async function buildAdaptiveSessionSettings() {
   }
 
   sessionState.lastSessionDate = now.toISOString();
+  
+  // Update session state using coordination service to avoid conflicts
+  sessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
+  
   await StorageService.setSessionState(sessionStateKey, sessionState);
 
   console.log("🧠 Adaptive Session Config:", {
@@ -617,6 +434,28 @@ function computeSessionLength(accuracy, efficiencyScore) {
 
   // Scale from 3 to 12 problems based on performance
   return Math.round(3 + composite * 9); // [3, 12]
+}
+
+/**
+ * Blend user session length preference with adaptive calculation
+ * Uses 70% adaptive intelligence, 30% user preference for optimal balance
+ */
+function applySessionLengthPreference(adaptiveLength, userPreferredLength) {
+  if (!userPreferredLength || userPreferredLength <= 0) {
+    return adaptiveLength; // Use pure adaptive if no valid preference
+  }
+  
+  // Blend: 70% adaptive intelligence, 30% user preference
+  const blended = Math.round(adaptiveLength * 0.7 + userPreferredLength * 0.3);
+  
+  // Keep within adaptive system bounds (3-12 problems)
+  const result = Math.max(3, Math.min(12, blended));
+  
+  if (result !== adaptiveLength) {
+    console.log(`🎛️ Session length blended: Adaptive ${adaptiveLength} + User ${userPreferredLength} = ${result}`);
+  }
+  
+  return result;
 }
 
 export async function getSessionPerformance({

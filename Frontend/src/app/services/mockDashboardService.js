@@ -42,35 +42,59 @@ export async function getMockDashboardStatistics(
       }))
     }));
 
-    // Return data in the exact same structure as the real dashboard service
+    // Return data in the exact same flattened structure as the updated real dashboard service
     const result = {
-      statistics: {
-        statistics: mockData.statistics,
-        averageTime: mockData.averageTime,
-        successRate: mockData.successRate,
-        allSessions: enhancedSessions,
-        // Also expose at root level since Stats component expects them here
-        ...mockData.statistics,  // Spread statistics properties
-        // Ensure allSessions is directly accessible
-        allSessions: enhancedSessions,
-        averageTime: mockData.averageTime,
-        successRate: mockData.successRate,
-        // Add new analytics data
-        hintsUsed: mockData.hintsUsed,
-        timeAccuracy: mockData.timeAccuracy,
-        learningEfficiencyData: mockData.learningEfficiencyData,
-      },
-      progress: {
-        learningState: mockData.learningState,
-        boxLevelData: mockData.boxLevelData,
-        allAttempts: mockData.allAttempts,
-        allProblems: mockData.allProblems,
-        allSessions: enhancedSessions,
-        // Add new progress analytics
-        strategySuccessRate: mockData.strategySuccessRate,
-        timerBehavior: mockData.timerBehavior,
-        // Add promotion/demotion data for chart
-        promotionData: mockData.promotionData,
+      // Flattened statistics properties for Overview/Stats component
+      statistics: mockData.statistics,
+      averageTime: mockData.averageTime,
+      successRate: mockData.successRate,
+      allSessions: enhancedSessions,
+      hintsUsed: mockData.hintsUsed,
+      timeAccuracy: mockData.timeAccuracy,
+      learningEfficiencyData: mockData.learningEfficiencyData,
+      
+      // Flattened progress properties for Progress component
+      boxLevelData: mockData.boxLevelData,
+      timerBehavior: mockData.timerBehavior,
+      timerPercentage: mockData.timerPercentage,
+      learningStatus: mockData.learningStatus || "Active Learning",
+      progressTrend: mockData.progressTrend || "Improving",
+      progressPercentage: mockData.progressPercentage || 75,
+      nextReviewTime: mockData.nextReviewTime,
+      nextReviewCount: mockData.nextReviewCount,
+      allAttempts: mockData.allAttempts,
+      allProblems: mockData.allProblems,
+      learningState: mockData.learningState,
+      strategySuccessRate: mockData.strategySuccessRate,
+      promotionData: mockData.promotionData,
+      
+      // Keep nested structure for components that might still need it
+      nested: {
+        statistics: {
+          statistics: mockData.statistics,
+          averageTime: mockData.averageTime,
+          successRate: mockData.successRate,
+          allSessions: enhancedSessions,
+          hintsUsed: mockData.hintsUsed,
+          timeAccuracy: mockData.timeAccuracy,
+          learningEfficiencyData: mockData.learningEfficiencyData,
+        },
+        progress: {
+          learningState: mockData.learningState,
+          boxLevelData: mockData.boxLevelData,
+          allAttempts: mockData.allAttempts,
+          allProblems: mockData.allProblems,
+          allSessions: enhancedSessions,
+          strategySuccessRate: mockData.strategySuccessRate,
+          timerBehavior: mockData.timerBehavior,
+          timerPercentage: mockData.timerPercentage,
+          learningStatus: mockData.learningStatus || "Active Learning",
+          progressTrend: mockData.progressTrend || "Improving",
+          progressPercentage: mockData.progressPercentage || 75,
+          nextReviewTime: mockData.nextReviewTime,
+          nextReviewCount: mockData.nextReviewCount,
+          promotionData: mockData.promotionData,
+        }
       },
       sessions: {
         allSessions: enhancedSessions,
@@ -187,10 +211,25 @@ export async function getMockDashboardStatistics(
             { id: 2, title: "Review 3 graph problems from Box 2", progress: 3, target: 3, type: "review", completed: true },
             { id: 3, title: "Achieve 80% accuracy today", progress: 75, target: 80, type: "performance", completed: false },
             { id: 4, title: "Use max 2 hints per problem", progress: 1, target: 3, type: "efficiency", completed: false }
-          ]
+          ],
+          outcomeTrends: {
+            weeklyAccuracy: { value: 78, status: "excellent", target: 75 },
+            problemsPerWeek: { value: 23, status: "behind", target: "25-30", display: "23" },
+            hintEfficiency: { value: 1.8, status: "excellent", display: "<1.8 per problem" },
+            learningVelocity: { value: "Progressive", status: "on_track" }
+          }
         }
       },
     };
+
+    // Debug logging to verify flattened data structure
+    console.info("🎭 Mock Dashboard Service - Data Structure Verification:");
+    console.info("- Statistics at root:", !!result.statistics);
+    console.info("- Box Level Data at root:", !!result.boxLevelData);
+    console.info("- Timer Behavior at root:", result.timerBehavior);
+    console.info("- All Sessions length:", result.allSessions?.length);
+    console.info("- All Problems length:", result.allProblems?.length);
+    console.info("- Flattened Structure Keys:", Object.keys(result).filter(key => key !== 'nested'));
 
     // eslint-disable-next-line no-console
     console.log(
@@ -322,12 +361,134 @@ export class MockDashboardService {
 // Create singleton instance for easy use
 export const mockDashboardService = new MockDashboardService();
 
+/**
+ * Page-specific mock data functions
+ * Each function returns only the data needed for a specific page
+ */
+
+/**
+ * Get mock data specifically for the Learning Progress page
+ */
+export async function getMockLearningProgressData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  
+  return {
+    boxLevelData: fullData.boxLevelData,
+    timerBehavior: fullData.timerBehavior,
+    timerPercentage: fullData.timerPercentage,
+    learningStatus: fullData.learningStatus,
+    progressTrend: fullData.progressTrend,
+    progressPercentage: fullData.progressPercentage,
+    nextReviewTime: fullData.nextReviewTime,
+    nextReviewCount: fullData.nextReviewCount,
+    allAttempts: fullData.allAttempts,
+    allProblems: fullData.allProblems,
+    allSessions: fullData.allSessions,
+    learningState: fullData.learningState,
+    strategySuccessRate: fullData.strategySuccessRate,
+    promotionData: fullData.promotionData,
+  };
+}
+
+/**
+ * Get mock data specifically for the Goals page
+ */
+export async function getMockGoalsData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  return fullData.goals;
+}
+
+/**
+ * Get mock data specifically for the Stats/Overview page
+ */
+export async function getMockStatsData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  
+  return {
+    statistics: fullData.statistics,
+    averageTime: fullData.averageTime,
+    successRate: fullData.successRate,
+    allSessions: fullData.allSessions,
+    hintsUsed: fullData.hintsUsed,
+    timeAccuracy: fullData.timeAccuracy,
+    learningEfficiencyData: fullData.learningEfficiencyData,
+  };
+}
+
+/**
+ * Get mock data specifically for the Session History page
+ */
+export async function getMockSessionHistoryData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  
+  return {
+    allSessions: fullData.sessions?.allSessions || [],
+    sessionAnalytics: fullData.sessions?.sessionAnalytics || [],
+    productivityMetrics: fullData.sessions?.productivityMetrics || {},
+    recentSessions: fullData.sessions?.recentSessions || [],
+  };
+}
+
+/**
+ * Get mock data specifically for the Productivity Insights page
+ */
+export async function getMockProductivityInsightsData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  
+  return {
+    productivityMetrics: fullData.sessions?.productivityMetrics || {},
+    sessionAnalytics: fullData.sessions?.sessionAnalytics || [],
+    allSessions: fullData.sessions?.allSessions || [],
+    learningEfficiencyData: fullData.learningEfficiencyData,
+  };
+}
+
+/**
+ * Get mock data specifically for the Tag Mastery page
+ */
+export async function getMockTagMasteryData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  return fullData.mastery;
+}
+
+/**
+ * Get mock data specifically for the Learning Path page
+ */
+export async function getMockLearningPathData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  return fullData.mastery;
+}
+
+/**
+ * Get mock data specifically for the Mistake Analysis page
+ */
+export async function getMockMistakeAnalysisData(userType = USER_SCENARIOS.ACTIVE_USER) {
+  const fullData = await getMockDashboardStatistics(userType);
+  
+  return {
+    allAttempts: fullData.allAttempts,
+    allProblems: fullData.allProblems,
+    allSessions: fullData.allSessions,
+    statistics: fullData.statistics,
+    learningState: fullData.learningState,
+    mastery: fullData.mastery,
+  };
+}
+
 // Export user scenarios for easy access
 export { USER_SCENARIOS };
 
 // Default export maintains compatibility
 export default {
   getMockDashboardStatistics,
+  getMockLearningProgressData,
+  getMockGoalsData,
+  getMockStatsData,
+  getMockSessionHistoryData,
+  getMockProductivityInsightsData,
+  getMockTagMasteryData,
+  getMockLearningPathData,
+  getMockMistakeAnalysisData,
   MockDashboardService,
   mockDashboardService,
   USER_SCENARIOS,

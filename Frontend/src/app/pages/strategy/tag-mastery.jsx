@@ -1,5 +1,6 @@
 import React from "react";
-import { Container, Grid, Card, Title, Text, Group } from "@mantine/core";
+import { Container, Grid, Card, Title, Text, Group, Button } from "@mantine/core";
+import { usePageData } from "../../hooks/usePageData";
 import MasteryDashboard from "../../components/analytics/MasteryDashboard.jsx";
 
 // Shared Components from mockup.jsx
@@ -30,48 +31,19 @@ function Kpis({ items }) {
   );
 }
 
-export function TagMastery({ appState }) {
-  // Enhanced Tag Mastery with MasteryDashboard integration
-  // Use appState data when available, otherwise fall back to static mock data
-  const masteryData = appState || {
-    currentTier: "Core Concept",
-    masteredTags: ["array", "hash-table"],
-    allTagsInCurrentTier: [
-      "array", "hash-table", "string", "two-pointers", 
-      "binary-search", "sliding-window", "dynamic-programming",
-      "greedy", "stack", "queue", "heap", "tree", "graph"
-    ],
-    focusTags: ["string", "two-pointers", "dynamic-programming"],
-    tagsinTier: [
-      "array", "hash-table", "string", "two-pointers", 
-      "binary-search", "sliding-window"
-    ],
-    unmasteredTags: [
-      "string", "two-pointers", "binary-search", "sliding-window", 
-      "dynamic-programming", "greedy", "stack", "queue", "heap", "tree", "graph"
-    ],
-    masteryData: [
-      { tag: "array", totalAttempts: 15, successfulAttempts: 12 },
-      { tag: "hash-table", totalAttempts: 10, successfulAttempts: 9 },
-      { tag: "string", totalAttempts: 8, successfulAttempts: 5 },
-      { tag: "two-pointers", totalAttempts: 6, successfulAttempts: 3 },
-      { tag: "binary-search", totalAttempts: 4, successfulAttempts: 2 },
-      { tag: "sliding-window", totalAttempts: 3, successfulAttempts: 1 },
-      { tag: "dynamic-programming", totalAttempts: 12, successfulAttempts: 4 },
-      { tag: "greedy", totalAttempts: 5, successfulAttempts: 2 },
-      { tag: "stack", totalAttempts: 7, successfulAttempts: 4 },
-      { tag: "queue", totalAttempts: 4, successfulAttempts: 2 },
-      { tag: "heap", totalAttempts: 6, successfulAttempts: 2 },
-      { tag: "tree", totalAttempts: 9, successfulAttempts: 3 },
-      { tag: "graph", totalAttempts: 8, successfulAttempts: 2 }
-    ]
-  };
+export function TagMastery() {
+  const { data: appState } = usePageData('tag-mastery');
+  // Use real mastery data from services
+  const masteryData = appState || {};
+  
+  // Check if we have actual data to display
+  const hasData = masteryData.masteryData && masteryData.masteryData.length > 0;
 
-  // Calculate mastery status KPIs
-  const pathData = masteryData.masteryData.map(tag => ({
+  // Calculate mastery status KPIs only if we have data
+  const pathData = hasData ? masteryData.masteryData.map(tag => ({
     ...tag,
     progress: tag.totalAttempts > 0 ? Math.round((tag.successfulAttempts / tag.totalAttempts) * 100) : 0
-  }));
+  })) : [];
 
   const masteredCount = pathData.filter(t => t.progress >= 80).length;
   const inProgressCount = pathData.filter(t => t.progress >= 30 && t.progress < 80).length;
@@ -91,13 +63,30 @@ export function TagMastery({ appState }) {
         Tag Mastery Analytics
       </Title>
       
-      {/* Mastery Status KPI Grid */}
-      <Section title="Mastery Status" style={{ marginBottom: '1rem' }}>
-        <Kpis items={kpiData} />
-      </Section>
-      
-      {/* Use the comprehensive MasteryDashboard component */}
-      <MasteryDashboard data={masteryData} />
+      {hasData ? (
+        <>
+          {/* Mastery Status KPI Grid */}
+          <Section title="Mastery Status" style={{ marginBottom: '1rem' }}>
+            <Kpis items={kpiData} />
+          </Section>
+          
+          {/* Use the comprehensive MasteryDashboard component */}
+          <MasteryDashboard data={masteryData} />
+        </>
+      ) : (
+        <Card withBorder p="xl" style={{ textAlign: 'center' }}>
+          <Text size="lg" fw={600} mb="md" c="var(--cm-text)">No Tag Mastery Data Yet</Text>
+          <Text size="sm" c="dimmed" mb="lg">
+            Complete some coding sessions to see your tag mastery progress and analytics.
+          </Text>
+          <Button 
+            variant="light" 
+            onClick={() => window.open("https://leetcode.com/problems/", "_blank")}
+          >
+            Start Your First Session
+          </Button>
+        </Card>
+      )}
     </Container>
   );
 }
