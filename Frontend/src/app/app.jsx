@@ -6,7 +6,6 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { Text } from "@mantine/core";
 import ThemeProviderWrapper from "../shared/provider/themeprovider";
 import { DoubleNavbar } from "../shared/components/DoubleNavbar";
 import ErrorBoundary from "../shared/components/ErrorBoundary";
@@ -14,6 +13,7 @@ import { DashboardErrorFallback } from "../shared/components/ErrorFallback";
 import "@mantine/core/styles.css";
 import "../content/css/theme.css";
 import "../app/app.css";
+import "./styles/accessibility.css";
 import { Progress } from "./pages/progress/learning-progress.jsx";
 import { Stats } from "./pages/overview.jsx";
 
@@ -31,19 +31,15 @@ import { Appearance } from "./pages/settings/appearance.jsx";
 import { Accessibility } from "./pages/settings/accessibility.jsx";
 import { Goals } from "./pages/progress/goals.jsx";
 import { useState, useEffect } from "react";
-import { useChromeMessage } from "../shared/hooks/useChromeMessage";
 import {
   checkOnboardingStatus,
   completeOnboarding,
 } from "../shared/services/onboardingService";
-import { shouldUseMockDashboard } from "./config/mockConfig.js";
-import { getMockDashboardStatistics } from "./services/mockDashboardService.js";
 import { WelcomeModal } from "./components/onboarding/WelcomeModal.jsx";
 function App() {
   console.log("🚀 DASHBOARD APP INITIALIZED");
   console.log("📍 Router: Using MemoryRouter for Chrome extension compatibility");
   
-  const [appState, setAppState] = useState(null);
   const [_showOnboarding, _setShowOnboarding] = useState(false);
 
   // Check onboarding status on app initialization
@@ -60,55 +56,6 @@ function App() {
 
     checkOnboarding();
   }, []);
-
-  // Initialize data based on mode (mock vs real)
-  useEffect(() => {
-    const initializeData = async () => {
-      try {
-        if (shouldUseMockDashboard()) {
-          // Use mock data in development
-          // eslint-disable-next-line no-console
-          console.log("🎭 Using mock dashboard data");
-          const mockData = await getMockDashboardStatistics();
-          setAppState(mockData);
-        } else {
-          // Use real Chrome extension data in production
-          // This will be handled by the Chrome message hook below
-        }
-      } catch (error) {
-        console.error("Error initializing dashboard data:", error);
-        setAppState({ statistics: null, progress: null });
-      }
-    };
-
-    initializeData();
-  }, []);
-
-  // Chrome message hook for production data (conditionally used)
-  const {
-    data: _dashboardData,
-    loading: _loading,
-    error: _error,
-  } = useChromeMessage(
-    { type: "getDashboardStatistics" }, 
-    [], 
-    {
-      immediate: !shouldUseMockDashboard(), // Only immediate in production
-      onSuccess: (response) => {
-        if (!shouldUseMockDashboard()) {
-          console.info("Dashboard statistics received:", response.result);
-          setAppState(response.result);
-        }
-      },
-      onError: (error) => {
-        if (!shouldUseMockDashboard()) {
-          console.warn("Dashboard statistics failed:", error);
-          // Don't block the app if data fetch fails
-          setAppState({ statistics: null, progress: null });
-        }
-      },
-    }
-  );
 
   const _handleCompleteOnboarding = async () => {
     try {
@@ -135,6 +82,11 @@ function App() {
     >
       <ThemeProviderWrapper>
         <Router initialEntries={["/"]} initialIndex={0}>
+          {/* Skip to Content Link for Accessibility */}
+          <a href="#main-content" className="skip-to-content">
+            Skip to main content
+          </a>
+          
           <div
             style={{
               display: "flex",
@@ -147,6 +99,7 @@ function App() {
             </ErrorBoundary>
 
             <main
+              id="main-content"
               style={{
                 padding: "20px",
                 flex: 1,
@@ -154,14 +107,11 @@ function App() {
                 maxHeight: "100vh",
               }}
             >
-              {!appState ? (
-                <Text>Loading...</Text>
-              ) : (
-                <ErrorBoundary
-                  section="Dashboard Content"
-                  fallback={DashboardErrorFallback}
-                >
-                  <Routes>
+              <ErrorBoundary
+                section="Dashboard Content"
+                fallback={DashboardErrorFallback}
+              >
+                <Routes>
                     <Route
                       path="/app.html"
                       element={<Navigate to="/" replace />}
@@ -176,7 +126,7 @@ function App() {
                             section="Overview"
                             fallback={DashboardErrorFallback}
                           >
-                            <Stats appState={appState?.statistics} />
+                            <Stats />
                           </ErrorBoundary>
                         }
                       />
@@ -195,7 +145,7 @@ function App() {
                             section="Learning Progress"
                             fallback={DashboardErrorFallback}
                           >
-                            <Progress appState={appState?.progress} />
+                            <Progress />
                           </ErrorBoundary>
                         }
                       />
@@ -206,7 +156,7 @@ function App() {
                             section="Goals"
                             fallback={DashboardErrorFallback}
                           >
-                            <Goals appState={appState?.goals} />
+                            <Goals />
                           </ErrorBoundary>
                         }
                       />
@@ -223,7 +173,7 @@ function App() {
                             section="Session History"
                             fallback={DashboardErrorFallback}
                           >
-                            <Metrics appState={appState?.sessions} />
+                            <Metrics />
                           </ErrorBoundary>
                         }
                       />
@@ -234,7 +184,7 @@ function App() {
                             section="Productivity Insights"
                             fallback={DashboardErrorFallback}
                           >
-                            <ProductivityInsights appState={appState?.sessions} />
+                            <ProductivityInsights />
                           </ErrorBoundary>
                         }
                       />
@@ -250,7 +200,7 @@ function App() {
                             section="Tag Mastery"
                             fallback={DashboardErrorFallback}
                           >
-                            <TagMastery appState={appState?.mastery} />
+                            <TagMastery />
                           </ErrorBoundary>
                         }
                       />
@@ -261,7 +211,7 @@ function App() {
                             section="Learning Path"
                             fallback={DashboardErrorFallback}
                           >
-                            <LearningPath appState={appState?.mastery} />
+                            <LearningPath />
                           </ErrorBoundary>
                         }
                       />
@@ -272,7 +222,7 @@ function App() {
                             section="Mistake Analysis"
                             fallback={DashboardErrorFallback}
                           >
-                            <MistakeAnalysis appState={appState} />
+                            <MistakeAnalysis />
                           </ErrorBoundary>
                         }
                       />
@@ -316,9 +266,8 @@ function App() {
                       />
                     </Route>
 
-                  </Routes>
-                </ErrorBoundary>
-              )}
+                </Routes>
+              </ErrorBoundary>
             </main>
           </div>
         </Router>

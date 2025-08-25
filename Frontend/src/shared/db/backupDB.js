@@ -1,33 +1,12 @@
 import { dbHelper } from "./index.js";
 
 /**
- * Opens the backup database (backupDB)
- * @returns {Promise<IDBDatabase>} - The opened IndexedDB instance.
+ * Opens the main database instead of separate backup database
+ * @returns {Promise<IDBDatabase>} - The opened main IndexedDB instance.
  */
 export async function openBackupDB() {
-  return new Promise((resolve, reject) => {
-    console.log("📌 Opening backupDB...");
-    const request = indexedDB.open("backupDB", 2);
-
-    request.onupgradeneeded = (event) => {
-      console.log("📌 Upgrading backupDB...");
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains("backup_storage")) {
-        db.createObjectStore("backup_storage", { keyPath: "id" });
-        console.log("✅ Created 'backup_storage' object store.");
-      }
-    };
-
-    request.onsuccess = (event) => {
-      console.log("✅ backupDB opened successfully.");
-      resolve(event.target.result);
-    };
-
-    request.onerror = (event) => {
-      console.error("❌ Error opening backupDB:", event.target.error);
-      reject(event.target.error);
-    };
-  });
+  console.log("📌 Using main database for backup operations...");
+  return await dbHelper.openDB();
 }
 
 /**
@@ -61,19 +40,19 @@ async function fetchAllFromStore(db, storeName) {
 
 async function saveBackupToIndexedDB(backupData) {
   try {
-    console.log("📌 Saving backup inside backupDB...");
-    const backupDB = await openBackupDB();
-    const transaction = backupDB.transaction(["backup_storage"], "readwrite");
+    console.log("📌 Saving backup to main database backup_storage store...");
+    const db = await dbHelper.openDB();
+    const transaction = db.transaction(["backup_storage"], "readwrite");
     const backupStore = transaction.objectStore("backup_storage");
 
     await new Promise((resolve, reject) => {
       const request = backupStore.put({
-        id: "latestBackup",
+        backupId: "latestBackup", // Use backupId to match main database schema
         timestamp: new Date().toISOString(),
         data: backupData,
       });
       request.onsuccess = () => {
-        console.log("✅ Backup saved successfully in IndexedDB.");
+        console.log("✅ Backup saved successfully to main database.");
         resolve();
       };
       request.onerror = () => {
@@ -84,7 +63,7 @@ async function saveBackupToIndexedDB(backupData) {
 
     // 🔹 **Immediately Read Back & Log**
     console.log("📌 Verifying backup after save...");
-    const verifyTransaction = backupDB.transaction(
+    const verifyTransaction = db.transaction(
       ["backup_storage"],
       "readonly"
     );
@@ -98,7 +77,7 @@ async function saveBackupToIndexedDB(backupData) {
       console.error("❌ Error verifying backup:", verifyRequest.error);
     };
   } catch (error) {
-    console.error("❌ Error saving backup to IndexedDB:", error);
+    console.error("❌ Error saving backup to main database:", error);
     throw error;
   }
 }
@@ -156,10 +135,10 @@ export async function backupIndexedDB() {
  */
 export async function getBackupFile() {
   try {
-    console.log("📌 Retrieving backup from IndexedDB...");
+    console.log("📌 Retrieving backup from main database...");
 
-    const backupDB = await openBackupDB();
-    const transaction = backupDB.transaction(["backup_storage"], "readonly");
+    const db = await dbHelper.openDB();
+    const transaction = db.transaction(["backup_storage"], "readonly");
     const store = transaction.objectStore("backup_storage");
 
     return new Promise((resolve, reject) => {
@@ -168,16 +147,16 @@ export async function getBackupFile() {
       request.onsuccess = (event) => {
         const result = event.target.result;
         if (!result) {
-          console.warn("❌ No backup found in 'backup_storage'.");
+          console.warn("❌ No backup found in main database backup_storage store.");
           resolve(null); // Prevent errors from propagating
         } else {
-          console.log("✅ Retrieved backup:", result);
+          console.log("✅ Retrieved backup from main database:", result);
           resolve(result.data);
         }
       };
 
       request.onerror = (event) => {
-        console.error("❌ Error retrieving backup:", event.target.error);
+        console.error("❌ Error retrieving backup from main database:", event.target.error);
         reject(event.target.error);
       };
     });

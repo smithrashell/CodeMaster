@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Container, Grid, Card, Title, Text, Stack, Group, SimpleGrid, Select, Badge, Divider, rem } from "@mantine/core";
 import { IconBulb, IconTrendingUp, IconTarget, IconClock } from "@tabler/icons-react";
+import { usePageData } from "../../hooks/usePageData";
 import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
 
 // Reusable Slim KPI Card Component
@@ -16,16 +17,47 @@ function SlimKPI({ title, value, sub }) {
   );
 }
 
-export function ProductivityInsights({ appState }) {
+export function ProductivityInsights() {
+  const { data: appState, loading, error, refresh } = usePageData('productivity-insights');
   const [productivityData, setProductivityData] = useState([]);
   const [insights, setInsights] = useState([]);
   const [timeRange, setTimeRange] = useState("Last 7 days");
 
+  // Function to filter sessions based on time range
+  const filterSessionsByTimeRange = (sessions, timeRange) => {
+    const now = new Date();
+    let startDate;
+    
+    switch (timeRange) {
+      case "Last 7 days":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "Last 30 days":
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "Quarter to date":
+        // Get start of current quarter
+        const quarter = Math.floor(now.getMonth() / 3);
+        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+        break;
+      case "All time":
+        return sessions; // No filtering for "All time"
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+    
+    return sessions.filter(session => {
+      const sessionDate = new Date(session.Date || session.date);
+      return sessionDate >= startDate;
+    });
+  };
+
   useEffect(() => {
     if (!appState) return;
 
-    // Process productivity patterns from session data
-    const sessions = appState.allSessions || [];
+    // Get all sessions and apply time range filter
+    const allSessions = appState.allSessions || [];
+    const sessions = filterSessionsByTimeRange(allSessions, timeRange);
     
     // Group sessions by hour to find peak productivity times
     const hourlyPerformance = {};
@@ -73,7 +105,7 @@ export function ProductivityInsights({ appState }) {
     }
     
     setInsights(generatedInsights);
-  }, [appState]);
+  }, [appState, timeRange]); // Add timeRange dependency
 
   const totalSessions = productivityData.reduce((sum, d) => sum + d.sessions, 0);
   const avgAccuracy = productivityData.length > 0 
@@ -104,7 +136,7 @@ export function ProductivityInsights({ appState }) {
         {/* KPI Strip - Slim hero section */}
         <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="sm">
           <SlimKPI title="Study Streak" value="7" sub="days" />
-          <SlimKPI title="Sessions" value={totalSessions} sub="this week" />
+          <SlimKPI title="Sessions" value={totalSessions} sub={timeRange.toLowerCase()} />
           <SlimKPI title="Accuracy" value={`${avgAccuracy}%`} sub="average" />
           <SlimKPI title="Peak Hour" value={peakHour} sub="best time" />
         </SimpleGrid>

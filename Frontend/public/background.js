@@ -1,16 +1,51 @@
 import { StorageService } from "../src/shared/services/storageService.js";
 import { ProblemService } from "../src/shared/services/problemService.js";
 import { SessionService } from "../src/shared/services/sessionService.js";
-///import { ScheduleService } from "../src/shared/services/scheduleService.js";
 import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { TagService } from "../src/shared/services/tagServices.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
 import { connect } from "chrome-extension-hot-reload";
 import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
-import { getDashboardStatistics } from "../src/app/services/dashboardService.js";
+import { getStrategyForTag } from "../src/shared/db/strategy_data.js";
+import { 
+  getDashboardStatistics,
+  getFocusAreaAnalytics,
+  getLearningProgressData,
+  getGoalsData,
+  getStatsData,
+  getSessionHistoryData,
+  getProductivityInsightsData,
+  getTagMasteryData,
+  getLearningPathData,
+  getMistakeAnalysisData,
+  clearFocusAreaAnalyticsCache
+} from "../src/app/services/dashboardService.js";
+import FocusCoordinationService from "../src/shared/services/focusCoordinationService.js";
 
 connect(); // handles app and popup
+
+// Mark this as background script context for database access
+if (typeof globalThis !== 'undefined') {
+  globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
+}
+
+// Service Worker Lifecycle Management for Manifest V3
+// Add proper installation and activation handlers
+self.addEventListener('install', (event) => {
+  console.log('🔧 SERVICE WORKER: Installing background script...');
+  // Skip waiting to activate immediately
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('🔧 SERVICE WORKER: Activated background script...');
+  // Claim all clients immediately
+  event.waitUntil(self.clients.claim());
+});
+
+// Add startup message to confirm service worker is running
+console.log('🚀 SERVICE WORKER: Background script loaded and ready for messages');
 
 let activeRequests = {};
 let requestQueue = [];
@@ -135,7 +170,11 @@ const getStrategyMapData = async () => {
 };
 
 const handleRequest = async (request, sender, sendResponse) => {
-  const requestId = `${request.type}-${sender.tab?.id || "background"}`;
+  // Generate unique request ID, including tag parameter for strategy requests
+  let requestId = `${request.type}-${sender.tab?.id || "background"}`;
+  if (request.type === "getStrategyForTag" && request.tag) {
+    requestId = `${request.type}-${request.tag}-${sender.tab?.id || "background"}`;
+  }
 
   if (activeRequests[requestId]) return;
   activeRequests[requestId] = true;
@@ -214,6 +253,12 @@ const handleRequest = async (request, sender, sendResponse) => {
         StorageService.clearSettingsCache();
         sendResponse({ status: "success" });
         finishRequest();
+        return true;
+
+      case "getSessionState":
+        StorageService.getSessionState("session_state")
+          .then(sendResponse)
+          .finally(finishRequest);
         return true;
 
       /** ──────────────── Problems Management ──────────────── **/
@@ -329,14 +374,6 @@ const handleRequest = async (request, sender, sendResponse) => {
         //   sendResponse({
         //     backgroundScriptData: "Error rebuilding problem relationships",
         //   })})
-        // recreateSessions().then(() => {
-        //   sendResponse({ message: "Sessions recreated" });
-        // }).catch((error) => {
-        //   console.error("Error recreating sessions:", error);
-        //   sendResponse({
-        //     backgroundScriptData: "Error recreating sessions",
-        //   });
-        // })
         // addStabilityToProblems().then(() => {
         //   sendResponse({ message: "Stability added to problems" });
         // }).catch((error) => {
@@ -365,13 +402,6 @@ const handleRequest = async (request, sender, sendResponse) => {
         //    remove: ["ladderPreview"],
         //  }).catch(error => console.log(error))
         //  console.log("result", result)
-        // console.log("🔍 getSessionPerformance");
-        // const { unmasteredTags } = await getCurrentLearningState();
-        // await getSessionPerformance({
-        //   recentSessionsLimit: 5,
-        //   unmasteredTags,
-        // });
-        // console.log("performance", performance);
         SessionService.getOrCreateSession()
           .then((session) => {
             console.log("getCurrentSession - session:", session);
@@ -444,9 +474,9 @@ const handleRequest = async (request, sender, sendResponse) => {
       /** ──────────────── Dashboard Management ──────────────── **/
       case "getDashboardStatistics":
         console.log("getDashboardStatistics!!!");
-        getDashboardStatistics()
+        getDashboardStatistics(request.options || {})
           .then((result) => sendResponse({ result }))
-          .catch((error) => sendResponse({ error }))
+          .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
 
@@ -482,13 +512,7 @@ const handleRequest = async (request, sender, sendResponse) => {
         (async () => {
           try {
             console.log(
-              `🔍 BACKGROUND DEBUG: Importing strategy_data.js for tag "${request.tag}"`
-            );
-            const { getStrategyForTag } = await import(
-              "../src/shared/db/strategy_data.js"
-            );
-            console.log(
-              `🔍 BACKGROUND DEBUG: Import successful, calling getStrategyForTag for "${request.tag}"`
+              `🔍 BACKGROUND DEBUG: Getting strategy for tag "${request.tag}" (static import)`
             );
             const strategy = await getStrategyForTag(request.tag);
             console.log(
@@ -523,10 +547,6 @@ const handleRequest = async (request, sender, sendResponse) => {
         );
         (async () => {
           try {
-            const { getStrategyForTag } = await import(
-              "../src/shared/db/strategy_data.js"
-            );
-
             const strategies = {};
             await Promise.all(
               request.tags.map(async (tag) => {
@@ -591,6 +611,127 @@ const handleRequest = async (request, sender, sendResponse) => {
         })().finally(finishRequest);
         return true;
 
+      /** ──────────────── Dashboard Data Handlers ──────────────── **/
+      case "getLearningProgressData":
+        getLearningProgressData(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getGoalsData":
+        (async () => {
+          try {
+            // 🎯 Get coordinated focus decision (unified data source)
+            const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
+            const settings = await StorageService.getSettings();
+            
+            // Use coordinated focus decision for consistency
+            const focusAreas = focusDecision.activeFocusTags;
+            const userFocusAreas = focusDecision.userPreferences;
+            const systemFocusTags = focusDecision.systemRecommendation;
+            
+            console.log("🎯 Goals data using coordination service:", {
+              focusAreas,
+              userFocusAreas, 
+              systemFocusTags,
+              reasoning: focusDecision.algorithmReasoning
+            });
+            
+            const result = await getGoalsData(request.options || {}, { 
+              settings, 
+              focusAreas,
+              userFocusAreas,
+              systemFocusTags,
+              focusDecision // Pass full decision for additional context
+            });
+            sendResponse({ result });
+          } catch (error) {
+            console.error("❌ Error in getGoalsData handler:", error);
+            sendResponse({ error: error.message });
+          }
+        })()
+          .finally(finishRequest);
+        return true;
+
+      case "getStatsData":
+        getStatsData(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getSessionHistoryData":
+        getSessionHistoryData(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getProductivityInsightsData":
+        getProductivityInsightsData(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getTagMasteryData":
+        getTagMasteryData(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getLearningPathData":
+        getLearningPathData(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getMistakeAnalysisData":
+        getMistakeAnalysisData(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getFocusAreaAnalytics":
+        getFocusAreaAnalytics(request.options || {})
+          .then((result) => sendResponse({ result }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getAvailableTagsForFocus":
+        console.log("🔍 BACKGROUND: Starting getAvailableTagsForFocus with userId:", request.userId);
+        TagService.getAvailableTagsForFocus(request.userId)
+          .then((result) => {
+            console.log("🔍 BACKGROUND: TagService returned result:", result);
+            console.log("🔍 BACKGROUND: Sending response with result");
+            sendResponse({ result });
+          })
+          .catch((error) => {
+            console.error("❌ BACKGROUND: TagService error:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(() => {
+            console.log("🔍 BACKGROUND: Finishing request");
+            finishRequest();
+          });
+        return true;
+
+      case "clearFocusAreaAnalyticsCache":
+        try {
+          clearFocusAreaAnalyticsCache();
+          sendResponse({ result: "Cache cleared successfully" });
+        } catch (error) {
+          console.error("❌ clearFocusAreaAnalyticsCache error:", error);
+          sendResponse({ error: error.message });
+        }
+        finishRequest();
+        return true;
+
       /** ──────────────── Database Proxy ──────────────── **/
       case "DATABASE_OPERATION":
         (async () => {
@@ -648,6 +789,18 @@ chrome.action.onClicked.addListener((tab) => {
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("🔍 BACKGROUND DEBUG: Received request:", request.type, request);
+
+  // Add health check handler for service worker diagnostics
+  if (request.type === 'HEALTH_CHECK') {
+    console.log('💚 SERVICE WORKER: Health check received');
+    sendResponse({ 
+      status: 'healthy', 
+      timestamp: Date.now(),
+      activeRequests: Object.keys(activeRequests).length,
+      queueLength: requestQueue.length 
+    });
+    return true;
+  }
 
   requestQueue.push({ request, sender, sendResponse });
   if (!isProcessing) processNextRequest();
