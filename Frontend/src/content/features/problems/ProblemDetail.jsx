@@ -166,6 +166,7 @@ const ProbDetail = ({ isLoading }) => {
           <WhyThisProblem
             selectionReason={routeState.problemData.selectionReason}
             problemTags={problemData?.tags || []}
+            currentProblemId={problemData?.leetCodeID || routeState?.problemData?.leetCodeID}
           />
         )}
 
