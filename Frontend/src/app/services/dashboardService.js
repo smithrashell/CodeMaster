@@ -2260,16 +2260,117 @@ export async function getProductivityInsightsData(options = {}) {
   try {
     const fullData = await getDashboardStatistics(options);
     
+    // Calculate reflection data
+    const reflectionData = await calculateReflectionInsights(fullData);
+    
     return {
       productivityMetrics: fullData.sessions?.productivityMetrics || {},
       sessionAnalytics: fullData.sessions?.sessionAnalytics || [],
       allSessions: fullData.sessions?.allSessions || [],
       learningEfficiencyData: fullData.learningEfficiencyData,
+      reflectionData: reflectionData,
     };
   } catch (error) {
     console.error("Error getting productivity insights data:", error);
     throw error;
   }
+}
+
+/**
+ * Calculate reflection insights from attempt data
+ */
+async function calculateReflectionInsights(dashboardData) {
+  try {
+    const allAttempts = dashboardData.attempts || [];
+    
+    // Count attempts with reflections (non-empty comments field)
+    const attemptsWithReflections = allAttempts.filter(attempt => 
+      attempt.Comments && attempt.Comments.trim().length > 0
+    );
+    
+    const reflectionsCount = attemptsWithReflections.length;
+    const totalAttempts = allAttempts.length;
+    const reflectionRate = totalAttempts > 0 ? (reflectionsCount / totalAttempts) * 100 : 0;
+    
+    // Analyze common themes in reflections
+    const commonThemes = analyzeReflectionThemes(attemptsWithReflections);
+    
+    // Calculate reflection quality metrics
+    const avgReflectionLength = reflectionsCount > 0 
+      ? attemptsWithReflections.reduce((sum, attempt) => sum + attempt.Comments.length, 0) / reflectionsCount
+      : 0;
+    
+    // Correlation with performance
+    const reflectionPerformanceCorrelation = calculateReflectionPerformanceCorrelation(
+      attemptsWithReflections, 
+      allAttempts
+    );
+    
+    return {
+      reflectionsCount,
+      totalAttempts,
+      reflectionRate: Math.round(reflectionRate * 10) / 10,
+      commonThemes: commonThemes.slice(0, 3), // Top 3 themes
+      avgReflectionLength: Math.round(avgReflectionLength),
+      performanceCorrelation: reflectionPerformanceCorrelation
+    };
+  } catch (error) {
+    console.error("Error calculating reflection insights:", error);
+    return {
+      reflectionsCount: 0,
+      totalAttempts: 0,
+      reflectionRate: 0,
+      commonThemes: [],
+      avgReflectionLength: 0,
+      performanceCorrelation: 0
+    };
+  }
+}
+
+/**
+ * Analyze common themes in reflection text
+ */
+function analyzeReflectionThemes(attemptsWithReflections) {
+  const themeKeywords = {
+    'time-management': ['time', 'slow', 'fast', 'rushed', 'deadline'],
+    'algorithm-understanding': ['algorithm', 'approach', 'logic', 'understand', 'concept'],
+    'implementation': ['code', 'syntax', 'bug', 'error', 'implementation'],
+    'problem-analysis': ['analysis', 'breakdown', 'edge case', 'constraint', 'requirement'],
+    'pattern-recognition': ['pattern', 'similar', 'seen before', 'template', 'approach']
+  };
+  
+  const themeCounts = {};
+  
+  attemptsWithReflections.forEach(attempt => {
+    const reflection = attempt.Comments.toLowerCase();
+    
+    Object.entries(themeKeywords).forEach(([theme, keywords]) => {
+      const hasTheme = keywords.some(keyword => reflection.includes(keyword));
+      if (hasTheme) {
+        themeCounts[theme] = (themeCounts[theme] || 0) + 1;
+      }
+    });
+  });
+  
+  return Object.entries(themeCounts)
+    .sort(([,a], [,b]) => b - a)
+    .map(([theme, count]) => ({
+      theme: theme.replace('-', ' '),
+      count,
+      percentage: Math.round((count / attemptsWithReflections.length) * 100)
+    }));
+}
+
+/**
+ * Calculate correlation between reflection practice and performance
+ */
+function calculateReflectionPerformanceCorrelation(attemptsWithReflections, allAttempts) {
+  if (attemptsWithReflections.length === 0) return 0;
+  
+  const reflectionSuccessRate = attemptsWithReflections.filter(a => a.Success).length / attemptsWithReflections.length;
+  const overallSuccessRate = allAttempts.filter(a => a.Success).length / allAttempts.length;
+  
+  return Math.round((reflectionSuccessRate - overallSuccessRate) * 100);
 }
 
 /**
