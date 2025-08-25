@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import "../../css/probrec.css";
 import Header from "../../components/navigation/header";
 import { v4 as uuidv4 } from "uuid";
@@ -6,9 +6,86 @@ import ProblemInfoIcon from "../../components/problem/ProblemInfoIcon";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useNav } from "../../../shared/provider/navprovider";
 
+// Convert cryptic reasoning text to human-readable explanations
+const getHumanReadableReason = (shortText) => {
+  if (!shortText) return "Selected for your learning progression";
+  
+  // Handle common patterns
+  if (shortText.toLowerCase().includes("new") && shortText.toLowerCase().includes("easy")) {
+    return "This introduces fundamental problem-solving patterns with Easy difficulty";
+  }
+  if (shortText.toLowerCase().includes("new") && shortText.toLowerCase().includes("medium")) {
+    return "This builds on your foundation with Medium-level challenges";
+  }
+  if (shortText.toLowerCase().includes("new") && shortText.toLowerCase().includes("hard")) {
+    return "This advances your skills with Hard-level problem complexity";
+  }
+  if (shortText.toLowerCase().includes("review")) {
+    return "This reinforces previously learned concepts based on spaced repetition";
+  }
+  if (shortText.toLowerCase().includes("weakness")) {
+    return "This targets an area where you can improve your performance";
+  }
+  if (shortText.toLowerCase().includes("mastery")) {
+    return "This helps solidify your understanding of key patterns";
+  }
+  
+  // Fallback for unrecognized patterns
+  return `Selected because: ${shortText}`;
+};
+
 // Problem Item Component with expandable reason text
 const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
   const [hovered, setHovered] = useState(false);
+  const [similarProblems, setSimilarProblems] = useState([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [similarProblemsCache, setSimilarProblemsCache] = useState(null);
+
+  // Debounced similar problems fetching
+  const fetchSimilarProblems = useCallback(
+    (problemId) => {
+      if (!problemId || similarProblemsCache || loadingSimilar) return;
+
+      setLoadingSimilar(true);
+      try {
+        chrome.runtime.sendMessage({
+          type: 'getSimilarProblems',
+          problemId: problemId,
+          limit: 3
+        }, (response) => {
+          if (response?.similarProblems) {
+            setSimilarProblems(response.similarProblems);
+            setSimilarProblemsCache(response.similarProblems);
+          }
+          setLoadingSimilar(false);
+        });
+      } catch (error) {
+        console.error('Error fetching similar problems:', error);
+        setLoadingSimilar(false);
+      }
+    },
+    [similarProblemsCache, loadingSimilar]
+  );
+
+  // Handle hover with debouncing
+  const handleMouseEnter = useCallback(() => {
+    setHovered(true);
+    
+    // Fetch similar problems if we have a problem ID and haven't cached them yet
+    if (problem?.id && !similarProblemsCache && !loadingSimilar) {
+      // Small delay to avoid fetching on quick hovers
+      const timeoutId = setTimeout(() => {
+        fetchSimilarProblems(problem.id);
+      }, 200);
+      
+      // Store timeout ID for potential cleanup
+      return () => clearTimeout(timeoutId);
+    }
+  }, [problem?.id, similarProblemsCache, loadingSimilar, fetchSimilarProblems]);
+
+  const handleMouseLeave = useCallback(() => {
+    setHovered(false);
+  }, []);
 
   return (
     <div className="cm-simple-problem-item-container">
@@ -33,8 +110,8 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
           {/* Show problem selection reasoning if available - FIRST in badges */}
           {problem.selectionReason && (
             <div
-              onMouseEnter={() => setHovered(true)}
-              onMouseLeave={() => setHovered(false)}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
               className="cm-problem-info-icon"
             >
               <ProblemInfoIcon className="cm-problem-info-icon" />
@@ -51,19 +128,20 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
         </div>
       </div>
 
-      {/* Expandable reason text - matches AdaptiveSessionToggle pattern */}
+      {/* Expandable content - reason text and similar problems */}
       {problem.selectionReason && (
         <div
           style={{
-            maxHeight: hovered ? "60px" : "0px",
+            maxHeight: hovered ? "120px" : "0px",
             opacity: hovered ? 1 : 0,
             overflow: "hidden",
             transition: "all 0.3s ease",
           }}
         >
-          <p
+          {/* Existing reason text */}
+          <div
             style={{
-              maxWidth: "200px",
+              maxWidth: "240px",
               margin: 0,
               fontSize: "0.75rem",
               color: "var(--cm-text, #ffffff)",
@@ -71,10 +149,89 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
               wordWrap: "break-word",
               overflowWrap: "anywhere",
               padding: "4px 0",
+              borderBottom: (similarProblems.length > 0 || loadingSimilar) ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+              marginBottom: (similarProblems.length > 0 || loadingSimilar) ? "6px" : "0",
+              textAlign: "left",
             }}
           >
-            {problem.selectionReason.shortText}
-          </p>
+            <strong>🎯 Selected because:</strong> {getHumanReadableReason(problem.selectionReason.shortText)}
+          </div>
+
+          {/* Similar Problems Section */}
+          {(similarProblems.length > 0 || loadingSimilar) && (
+            <div
+              style={{
+                fontSize: "0.7rem",
+                color: "var(--cm-text, #ffffff)",
+                opacity: 0.9,
+                padding: "2px 0",
+              }}
+            >
+              <div style={{ textAlign: "left" ,fontWeight: "bold", marginBottom: "2px", fontSize: "0.7rem" }}>
+                🔗 Similar Problems:
+              </div>
+              
+              {loadingSimilar && (
+                <div style={{ fontSize: "0.7rem", color: "rgba(7, 7, 7, 0.6)", fontStyle: "italic" }}>
+                  Finding similar problems...
+                </div>
+              )}
+
+              {similarProblems.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
+                  {similarProblems.slice(0, 2).map((similar, index) => (
+                    <div
+                      key={similar.id || index}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        fontSize: "0.65rem",
+                        padding: "1px 0",
+                      }}
+                    >
+                  
+                      <span style={{ 
+                        flex: 1, 
+                        textAlign: "left",
+                        lineHeight: "1.2",
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }}>
+                        {(similar.title || similar.problemDescription || '').substring(0, 30)}
+                        {(similar.title || similar.problemDescription || '').length > 30 ? '...' : ''}
+                      </span>
+                      {similar.difficulty && (
+                        <span
+                          style={{
+                            fontSize: "0.55rem",
+                            padding: "2px 4px",
+                            borderRadius: "3px",
+                            backgroundColor: similar.difficulty === 'Easy' ? '#10b981' : 
+                                           similar.difficulty === 'Hard' ? '#ef4444' : '#f59e0b',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            flexShrink: 0,
+                          }}
+                        >
+                          {similar.difficulty.substring(0, 1)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!loadingSimilar && similarProblems.length === 0 && hovered && (
+                <div style={{ fontSize: "0.6rem", color: "rgba(255, 255, 255, 0.6)", fontStyle: "italic" }}>
+                  🌱 No patterns discovered yet<br/>
+                  Complete more problems to build connections!
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -83,7 +240,7 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
 const ProbGen = () => {
   const { setIsAppOpen } = useNav();
   const [problems, setProblems] = useState([]);
-  const [announcement, setAnnouncement] = useState("");
+  const [_announcement, _setAnnouncement] = useState("");
 
   const handleClose = () => {
     setIsAppOpen(false);
@@ -92,26 +249,20 @@ const ProbGen = () => {
   // New approach using custom hook
   useChromeMessage({ type: "getCurrentSession" }, [], {
     onSuccess: (response) => {
-      console.log('🎯 ProblemGenerator received session response:', response);
       
       if (response.session) {
         // Validate session object structure
         if (response.session.problems && Array.isArray(response.session.problems)) {
-          console.log('✅ Setting problems from session.problems:', response.session.problems.length, 'problems');
           setProblems(response.session.problems);
         } else {
-          console.warn('❌ Invalid session structure - missing problems array:', response.session);
           setProblems([]);
         }
       } else {
-        console.warn('❌ No session received, creating new session...');
         // Trigger session creation as fallback
         chrome.runtime.sendMessage({ type: 'createOrResumeSession' }, (createResponse) => {
           if (createResponse?.session?.problems) {
-            console.log('✅ Created session with problems:', createResponse.session.problems.length);
             setProblems(createResponse.session.problems);
           } else {
-            console.error('❌ Failed to create session:', createResponse);
             setProblems([]);
           }
         });

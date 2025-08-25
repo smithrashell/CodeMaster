@@ -82,13 +82,13 @@ const SimpleInput = ({ value, onChange, disabled, ...props }) => (
   />
 );
 
-const SimpleTextArea = ({ value, onChange, ...props }) => (
+const SimpleTextArea = ({ value, onChange, placeholder, ...props }) => (
   <textarea
     value={value || ''}
     onChange={onChange}
     className="cm-simple-textarea"
     rows={3}
-    placeholder="Enter your comments here"
+    placeholder={placeholder || "Enter your comments here"}
     style={{
       width: '100%',
       maxWidth: '100%',
@@ -323,11 +323,16 @@ const ProbSubmission = () => {
       {errors.difficulty && (
         <FormHelperText error>{errors.difficulty.message}</FormHelperText>
       )}
-      <FormLabel icon={IconMessageCircle}>Comments</FormLabel>
+      <FormLabel icon={IconMessageCircle}>Reflection</FormLabel>
       <Controller
         name="comments"
         control={control}
-        render={({ field }) => <SimpleTextArea {...field} />}
+        render={({ field }) => (
+          <SimpleTextArea 
+            {...field} 
+            placeholder="Why was this challenging? What did you learn? What patterns did you notice?"
+          />
+        )}
       />
       <button 
         type="submit"
