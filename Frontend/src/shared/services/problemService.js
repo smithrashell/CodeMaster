@@ -21,6 +21,7 @@ import {
 import { ScheduleService } from "./scheduleService.js";
 import { TagService } from "./tagServices.js";
 import { StorageService } from "./storageService.js";
+import SessionLimits from "../utils/sessionLimits.js";
 import { buildAdaptiveSessionSettings } from "../db/sessions.js";
 import { calculateDecayScore } from "../utils/Utils.js";
 import { ProblemReasoningService } from "../../content/services/problemReasoningService.js";
@@ -171,8 +172,12 @@ export const ProblemService = {
 
     const sessionProblems = [];
 
-    // **Step 1: Review Problems (40% of session)**
-    const reviewTarget = Math.floor(sessionLength * 0.4);
+    // **Step 1: Review Problems (user-configurable ratio)**
+    const settings = await StorageService.getSettings();
+    const reviewRatio = (settings.reviewRatio || 40) / 100; // Default to 40% if not set
+    const reviewTarget = Math.floor(sessionLength * reviewRatio);
+    console.log(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
+    
     const reviewProblems = await getDailyReviewSchedule(reviewTarget);
     sessionProblems.push(...reviewProblems);
 
@@ -180,14 +185,16 @@ export const ProblemService = {
       `🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`
     );
 
-    // **Step 2: New Problems (60% of session) - Split between focus and expansion**
+    // **Step 2: New Problems (remaining session) - Split between focus and expansion**
     const newProblemsNeeded = sessionLength - sessionProblems.length;
 
     if (newProblemsNeeded > 0) {
       const newProblems = await fetchAdditionalProblems(
         newProblemsNeeded,
         excludeIds,
-        userFocusAreas
+        userFocusAreas,
+        currentAllowedTags,
+        "session_state" // Pass userId for coordination service
       );
 
       sessionProblems.push(...newProblems);
@@ -297,14 +304,17 @@ export const ProblemService = {
       };
     }
 
-    // Identify weak tags (below 70% accuracy)
+    // Get centralized threshold for experienced vs new tags
+    const minAttempts = SessionLimits.getMinAttemptsForExperienced();
+
+    // Identify weak tags (below 70% accuracy with sufficient attempts)
     const weakTags = tagMasteryData
-      .filter((tm) => tm.successRate < 0.7 && tm.totalAttempts >= 3)
+      .filter((tm) => tm.successRate < 0.7 && tm.totalAttempts >= minAttempts)
       .map((tm) => tm.tag.toLowerCase());
 
-    // Identify new tags (less than 3 attempts)
+    // Identify new tags (using centralized threshold)
     const newTags = tagMasteryData
-      .filter((tm) => tm.totalAttempts < 3)
+      .filter((tm) => tm.totalAttempts < minAttempts)
       .map((tm) => tm.tag.toLowerCase());
 
     // Build accuracy mapping

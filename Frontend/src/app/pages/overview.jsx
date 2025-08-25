@@ -1,5 +1,7 @@
-import { Container, Grid, Title } from "@mantine/core";
+import { Container, Grid, Title, Text, Button, Group } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { IconRefresh } from "@tabler/icons-react";
 import MetricCard from "../components/analytics/MetricCard";
 import TimeGranularChartCard from "../components/charts/TimeGranularChartCard";
 import { EmptyStateCard } from "../components/onboarding/EmptyStateCard";
@@ -10,8 +12,11 @@ import {
 import { checkContentOnboardingStatus } from "../../shared/services/onboardingService.js";
 import { shouldUseMockDashboard } from "../config/mockConfig.js";
 import { FocusAreasDisplay } from "../components/dashboard/FocusAreasDisplay.jsx";
+import { usePageData } from "../hooks/usePageData";
 
-export function Stats({ appState }) {
+export function Stats() {
+  const { data: appState, loading, error, refresh } = usePageData('stats');
+  const navigate = useNavigate();
   const [statistics, setStatistics] = useState(appState?.statistics);
   const [averageTime, setAverageTime] = useState(appState?.averageTime);
   const [successRate, setSuccessRate] = useState(appState?.successRate);
@@ -46,7 +51,15 @@ export function Stats({ appState }) {
   }, []);
 
   useEffect(() => {
-    console.info("props", appState);
+    console.info("📊 Overview received appState:", appState);
+    console.info("📊 Overview appState analysis:", {
+      hasAppState: !!appState,
+      hasStatistics: !!appState?.statistics,
+      totalSolved: appState?.statistics?.statistics?.totalSolved,
+      hasAllSessions: !!appState?.allSessions,
+      allSessionsLength: appState?.allSessions?.length,
+      contentOnboardingCompleted
+    });
     if (appState) {
       setStatistics(appState.statistics);
       setAverageTime(appState.averageTime);
@@ -55,47 +68,115 @@ export function Stats({ appState }) {
       setHintsUsed(appState.hintsUsed);
       setLearningEfficiencyData(appState.learningEfficiencyData);
 
-      const weekly = getAccuracyTrendData(appState.allSessions, "weekly");
-      const monthly = getAccuracyTrendData(appState.allSessions, "monthly");
-      const yearly = getAccuracyTrendData(appState.allSessions, "yearly");
+      // Safety check for allSessions before calling DataAdapter functions
+      if (appState.allSessions && Array.isArray(appState.allSessions)) {
+        const weekly = getAccuracyTrendData(appState.allSessions, "weekly");
+        const monthly = getAccuracyTrendData(appState.allSessions, "monthly");
+        const yearly = getAccuracyTrendData(appState.allSessions, "yearly");
 
-      setAccuracyData({ weekly, monthly, yearly });
+        setAccuracyData({ weekly, monthly, yearly });
 
-      const weeklyBreakdown = getAttemptBreakdownData(
-        appState.allSessions,
-        "weekly"
-      );
-      const monthlyBreakdown = getAttemptBreakdownData(
-        appState.allSessions,
-        "monthly"
-      );
-      const yearlyBreakdown = getAttemptBreakdownData(
-        appState.allSessions,
-        "yearly"
-      );
+        const weeklyBreakdown = getAttemptBreakdownData(
+          appState.allSessions,
+          "weekly"
+        );
+        const monthlyBreakdown = getAttemptBreakdownData(
+          appState.allSessions,
+          "monthly"
+        );
+        const yearlyBreakdown = getAttemptBreakdownData(
+          appState.allSessions,
+          "yearly"
+        );
 
-      setBreakdownData({
-        weekly: weeklyBreakdown,
-        monthly: monthlyBreakdown,
-        yearly: yearlyBreakdown,
-      });
+        setBreakdownData({
+          weekly: weeklyBreakdown,
+          monthly: monthlyBreakdown,
+          yearly: yearlyBreakdown,
+        });
+      } else {
+        console.warn("allSessions is not available or not an array:", appState.allSessions);
+        setAccuracyData({ weekly: [], monthly: [], yearly: [] });
+        setBreakdownData({ weekly: [], monthly: [], yearly: [] });
+      }
     }
   }, [appState]);
 
-  const hasData =
-    appState && (statistics?.totalSolved > 0 || (allSessions && allSessions.length > 0));
+  // Enhanced data detection logic - check multiple data sources
+  const hasData = appState && (
+    // Check multiple statistics properties
+    (statistics?.totalSolved > 0) ||
+    (statistics?.statistics?.totalSolved > 0) ||
+    // Check multiple session sources
+    (allSessions && allSessions.length > 0) ||
+    (appState.allSessions && appState.allSessions.length > 0) ||
+    // Check for any problem/attempt data
+    (appState.allProblems && appState.allProblems.length > 0) ||
+    (appState.allAttempts && appState.allAttempts.length > 0)
+  );
+
   const showStartSessionButton =
-    (!hasData || contentOnboardingCompleted === false) && !shouldUseMockDashboard();
+    (contentOnboardingCompleted === false) && !shouldUseMockDashboard();
+
+  // Comprehensive debug logging for data detection
+  console.info("🔍 Data Detection Debug:", {
+    appState: !!appState,
+    statistics: statistics,
+    'statistics.totalSolved': statistics?.totalSolved,
+    'statistics.statistics': statistics?.statistics,
+    'statistics.statistics.totalSolved': statistics?.statistics?.totalSolved,
+    allSessions: allSessions?.length,
+    'appState.allSessions': appState?.allSessions?.length,
+    'appState.allProblems': appState?.allProblems?.length,
+    'appState.allAttempts': appState?.allAttempts?.length,
+    hasData,
+    contentOnboardingCompleted,
+    shouldUseMock: shouldUseMockDashboard(),
+    showStartSessionButton,
+    'Final Decision': showStartSessionButton ? 'SHOW ONBOARDING MODAL' : 'SHOW DASHBOARD DATA'
+  });
 
   const handleStartFirstSession = () => {
     window.open("https://leetcode.com/problems/", "_blank");
   };
 
+  // Handle loading and error states after all hooks are called
+  if (loading) {
+    return (
+      <Container size="xl" p="md">
+        <Title order={2} mb="md">Dashboard Overview</Title>
+        <Text>Loading statistics...</Text>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container size="xl" p="md">
+        <Title order={2} mb="md">Dashboard Overview</Title>
+        <Text color="red">Error loading statistics: {error.message}</Text>
+        <Button leftSection={<IconRefresh size={16} />} onClick={refresh} mt="md">
+          Retry
+        </Button>
+      </Container>
+    );
+  }
+
   return (
     <Container size="xl" p="md">
-      <Title order={2} mb="md">
-        General Performance Summary
-      </Title>
+      <Group justify="space-between" mb="md">
+        <Title order={2}>
+          General Performance Summary
+        </Title>
+        <Button 
+          leftSection={<IconRefresh size={16} />} 
+          variant="light" 
+          onClick={refresh}
+          size="sm"
+        >
+          Refresh
+        </Button>
+      </Group>
 
       {showStartSessionButton ? (
         <EmptyStateCard type="dashboard" onAction={handleStartFirstSession} />
@@ -149,11 +230,7 @@ export function Stats({ appState }) {
           <Grid gutter="md" mt="md">
             <Grid.Col span={12}>
               <FocusAreasDisplay 
-                onNavigateToSettings={() => {
-                  // Navigate to settings - this would be handled by router in real app
-                  // eslint-disable-next-line no-console
-                  console.log("Navigate to focus areas settings");
-                }}
+                onNavigateToSettings={() => navigate("/settings/general")}
               />
             </Grid.Col>
           </Grid>

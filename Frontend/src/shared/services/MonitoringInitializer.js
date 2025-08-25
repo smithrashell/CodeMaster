@@ -139,7 +139,7 @@ export class MonitoringInitializer {
     }
 
     try {
-      await ErrorReportService.ensureErrorReportStore();
+      // Error report store is now created in the main database schema
       this.services.errorReporting = "active";
       logger.debug("Error reporting service initialized", {
         section: "monitoring_init",
@@ -193,7 +193,7 @@ export class MonitoringInitializer {
     }
 
     try {
-      await UserActionTracker.ensureUserActionStore();
+      // User action store is now created in the main database schema
       this.services.userTracking = "active";
       logger.debug("User action tracking initialized", {
         section: "monitoring_init",
@@ -514,15 +514,109 @@ export class MonitoringInitializer {
   }
 }
 
-// Auto-initialize in production
+/**
+ * Detect if we're running in a content script context
+ * Content scripts MUST NOT access IndexedDB directly and should not initialize monitoring
+ * This detection is CRITICAL to prevent duplicate database creation
+ */
+function isContentScriptContext() {
+  try {
+    // 🚨 CRITICAL: Multiple layers of detection to ensure we catch content scripts
+    
+    // Layer 1: URL-based detection - content scripts run on web pages
+    if (typeof window !== "undefined" && window.location) {
+      const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
+      const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
+      
+      if (isWebPage && isNotExtensionPage) {
+        console.log("🚫 CONTENT SCRIPT DETECTED: Web page URL detected", window.location.href);
+        return true;
+      }
+    }
+    
+    // Layer 2: Chrome API availability check - content scripts lack certain APIs
+    if (typeof chrome !== "undefined" && chrome.runtime) {
+      // Content scripts don't have access to chrome.tabs API
+      const hasTabsAPI = !!(chrome.tabs && chrome.tabs.query);
+      // Content scripts don't have access to chrome.management API  
+      const hasManagementAPI = !!(chrome.management && chrome.management.getSelf);
+      // Content scripts don't have access to chrome.storage.local directly in some contexts
+      const hasStorageAPI = !!(chrome.storage && chrome.storage.local);
+      
+      // If we're missing critical background/popup APIs, likely a content script
+      if (!hasTabsAPI || !hasManagementAPI) {
+        console.log("🚫 CONTENT SCRIPT DETECTED: Missing extension APIs", {
+          hasTabsAPI,
+          hasManagementAPI,
+          hasStorageAPI
+        });
+        return true;
+      }
+    }
+    
+    // Layer 3: Document injection detection - content scripts inject into existing pages
+    if (typeof document !== "undefined") {
+      // Content scripts inject into pages that already have content
+      const hasExistingContent = document.body && document.body.children.length > 1;
+      const hasLeetCodeElements = document.querySelector('[data-track-load]') || 
+                                  document.querySelector('.content-wrapper') ||
+                                  document.querySelector('#app') ||
+                                  document.title.includes('LeetCode');
+      
+      if (hasExistingContent && hasLeetCodeElements) {
+        console.log("🚫 CONTENT SCRIPT DETECTED: LeetCode page elements found");
+        return true;
+      }
+    }
+    
+    // Layer 4: Execution context check - content scripts have different global context
+    if (typeof window !== "undefined") {
+      // Extension pages have chrome-extension:// protocol
+      if (window.location.protocol === "chrome-extension:") {
+        console.log("✅ EXTENSION PAGE DETECTED: chrome-extension:// protocol");
+        return false;
+      }
+      
+      // Background scripts often don't have a visible document
+      if (document.visibilityState === "hidden" && window.location.href === "about:blank") {
+        console.log("✅ BACKGROUND SCRIPT DETECTED: Hidden document");
+        return false;
+      }
+    }
+    
+    // If we're here with chrome.runtime but on a web page, it's definitely a content script
+    if (typeof chrome !== "undefined" && chrome.runtime && 
+        typeof window !== "undefined" && 
+        (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+      console.log("🚫 CONTENT SCRIPT DETECTED: chrome.runtime on web page");
+      return true;
+    }
+    
+    // Default: if we can't determine, err on the side of caution
+    console.log("🔍 CONTEXT DETECTION: Defaulting to false (allow monitoring)");
+    return false;
+    
+  } catch (error) {
+    // If there's an error checking, assume we're not in content script to be safe
+    console.warn("⚠️ Error in content script detection, defaulting to false:", error);
+    return false;
+  }
+}
+
+// Auto-initialize in production, but NOT in content scripts
 if (typeof window !== "undefined" && process.env.NODE_ENV === "production") {
-  // Initialize after DOM is loaded
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      MonitoringInitializer.initialize();
-    });
+  if (isContentScriptContext()) {
+    // eslint-disable-next-line no-console
+    console.log("🚫 MonitoringInitializer: Skipping initialization in content script context to prevent duplicate databases");
   } else {
-    MonitoringInitializer.initialize();
+    // Initialize after DOM is loaded for background scripts and app contexts
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        MonitoringInitializer.initialize();
+      });
+    } else {
+      MonitoringInitializer.initialize();
+    }
   }
 }
 

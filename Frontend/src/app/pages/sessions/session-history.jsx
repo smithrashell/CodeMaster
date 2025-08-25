@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Container, Grid, Card, Title, Text, Stack, ScrollArea, Group, SimpleGrid, Select, Badge } from "@mantine/core";
+import { usePageData } from "../../hooks/usePageData";
 import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
 
 // Reusable Slim KPI Card Component
@@ -15,17 +16,51 @@ function SlimKPI({ title, value, sub }) {
   );
 }
 
-export function Metrics({ appState }) {
+export function Metrics() {
+  const { data: appState, loading, error, refresh } = usePageData('session-history');
   const [sessionData, setSessionData] = useState([]);
   const [recentSessions, setRecentSessions] = useState([]);
   const [timeRange, setTimeRange] = useState("Last 7 days");
 
+  // Function to filter sessions based on time range
+  const filterSessionsByTimeRange = (sessions, timeRange) => {
+    const now = new Date();
+    let startDate;
+    
+    switch (timeRange) {
+      case "Last 7 days":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "Last 30 days":
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "Quarter to date":
+        // Get start of current quarter
+        const quarter = Math.floor(now.getMonth() / 3);
+        startDate = new Date(now.getFullYear(), quarter * 3, 1);
+        break;
+      case "All time":
+        return sessions; // No filtering for "All time"
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+    
+    return sessions.filter(session => {
+      const sessionDate = new Date(session.Date || session.date);
+      return sessionDate >= startDate;
+    });
+  };
+
   useEffect(() => {
     if (!appState) return;
 
-    // Process session analytics for charts
-    const sessions = appState.allSessions || [];
-    const processedData = sessions.slice(-14).map((session, index) => ({
+    // Get all sessions and apply time range filter
+    const allSessions = appState.allSessions || [];
+    const filteredSessions = filterSessionsByTimeRange(allSessions, timeRange);
+    
+    // Process filtered sessions for charts (limit to last 14 for chart readability)
+    const sessionsForChart = filteredSessions.slice(-14);
+    const processedData = sessionsForChart.map((session, index) => ({
       name: `Day ${index + 1}`,
       length: session.duration || Math.floor(Math.random() * 30) + 30, // Fallback to mock if no duration
       accuracy: Math.round((session.accuracy || 0.75) * 100),
@@ -33,21 +68,35 @@ export function Metrics({ appState }) {
     }));
 
     setSessionData(processedData);
-    setRecentSessions(sessions.slice(-10)); // Last 10 sessions for table
-  }, [appState]);
+    // Use filtered sessions for recent sessions table (limit to last 10 for table)
+    setRecentSessions(filteredSessions.slice(-10));
+  }, [appState, timeRange]); // Add timeRange dependency
 
   const sessionLengthData = sessionData;
   const accuracyData = sessionData.map(d => ({ name: d.name, accuracy: d.accuracy }));
   
-  // Calculate KPI values
-  const totalSessions = recentSessions.length || 0;
-  const avgAccuracy = sessionData.length > 0 
-    ? Math.round(sessionData.reduce((acc, s) => acc + s.accuracy, 0) / sessionData.length) 
+  // Calculate KPI values from filtered data
+  const filteredSessionsForKPI = appState?.allSessions 
+    ? filterSessionsByTimeRange(appState.allSessions, timeRange) 
+    : [];
+  
+  // Only count sessions that are actually completed (same logic as Recent Sessions table)
+  const completedSessions = filteredSessionsForKPI.filter(session => {
+    const hasAttempts = session.attempts && session.attempts.length > 0;
+    return (session.status === "completed" || session.completed === true) && hasAttempts;
+  });
+  
+  const totalSessions = completedSessions.length || 0;
+  // Calculate averages based on completed sessions for accuracy
+  const avgAccuracy = completedSessions.length > 0 
+    ? Math.round(completedSessions.reduce((acc, session) => acc + ((session.accuracy || 0) * 100), 0) / completedSessions.length) 
     : 0;
-  const avgDuration = sessionData.length > 0 
-    ? Math.round(sessionData.reduce((acc, s) => acc + s.length, 0) / sessionData.length) 
+  
+  const avgDuration = completedSessions.length > 0 
+    ? Math.round(completedSessions.reduce((acc, session) => acc + (session.duration || 0), 0) / completedSessions.length) 
     : 0;
-  const totalProblems = sessionData.reduce((acc, s) => acc + (s.problems || 0), 0);
+  
+  const totalProblems = completedSessions.reduce((acc, session) => acc + (session.problems?.length || 0), 0);
 
   return (
     <Container size="xl" p="md">
@@ -148,19 +197,29 @@ export function Metrics({ appState }) {
                 </tr>
               </thead>
               <tbody className="cm-table-body">
-                {recentSessions.map((session, index) => (
-                  <tr key={session.sessionId || index} className="cm-table-row">
-                    <td className="cm-table-td cm-table-primary">{new Date(session.Date || Date.now()).toLocaleDateString()}</td>
-                    <td className="cm-table-td cm-table-primary">{session.duration || 'N/A'} min</td>
-                    <td className="cm-table-td cm-table-primary">{session.problems?.length || 0}</td>
-                    <td className="cm-table-td cm-table-primary">{Math.round((session.accuracy || 0.75) * 100)}%</td>
-                    <td className="cm-table-td cm-table-secondary">
-                      <span className={`cm-table-status ${session.completed ? 'completed' : 'in-progress'}`}>
-                        {session.completed ? "Completed" : "In Progress"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {recentSessions.map((session, index) => {
+                  const hasAttempts = session.attempts && session.attempts.length > 0;
+                  const isCompleted = (session.status === "completed" || session.completed === true) && hasAttempts;
+                  const sessionDate = session.Date || session.date || Date.now();
+                  
+                  return (
+                    <tr key={session.sessionId || session.id || index} className="cm-table-row">
+                      <td className="cm-table-td cm-table-primary">{new Date(sessionDate).toLocaleDateString()}</td>
+                      <td className="cm-table-td cm-table-primary">
+                        {isCompleted ? (session.duration || 'N/A') + ' min' : 'Ongoing'}
+                      </td>
+                      <td className="cm-table-td cm-table-primary">{session.problems?.length || 0}</td>
+                      <td className="cm-table-td cm-table-primary">
+                        {isCompleted ? `${Math.round((session.accuracy || 0) * 100)}%` : '—'}
+                      </td>
+                      <td className="cm-table-td cm-table-secondary">
+                        <span className={`cm-table-status ${isCompleted ? 'completed' : 'in-progress'}`}>
+                          {isCompleted ? "Completed" : "In Progress"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {recentSessions.length === 0 && (
                   <tr className="cm-table-row">
                     <td colSpan={5} className="cm-table-td cm-table-empty">
