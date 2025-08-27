@@ -1,8 +1,9 @@
-import { Switch, Select, Group, Slider, rem } from "@mantine/core";
+import { Switch, Group, Slider, rem } from "@mantine/core";
 import { IconPoint, IconGripHorizontal } from "@tabler/icons-react";
 import { SegmentedControl } from "@mantine/core";
 import classes from "./css/SliderMarks.module.css";
 import React, { useState, useEffect } from "react";
+import SimpleSelect from "./ui/SimpleSelect";
 
 export function ToggleSelectRemainders({ reminder, onChange }) {
   const [currReminder, setCurrReminder] = useState(
@@ -39,25 +40,25 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
 
       {/* Dropdown Select Component */}
       {currReminder?.enabled && (
-        <Select
-          label="Reminder Frequency"
-          placeholder="Select frequency"
-          value={currReminder?.time}
-          data={[
-            { value: "6", label: "Every 6 hours" },
-            { value: "12", label: "Every 12 hours" },
-            { value: "24", label: "Once a day" },
-          ]}
-          onChange={handleSelectChange}
-          withinPortal={false}
-          dropdownPosition="bottom"
-          mt="sm"
-          styles={{
-            dropdown: {
-              zIndex: 10000,
-            },
-          }}
-        />
+        <div style={{ marginTop: '8px' }}>
+          <label style={{ 
+            display: 'block', 
+            fontSize: '13px', 
+            fontWeight: '500', 
+            color: 'var(--cm-text)', 
+            marginBottom: '4px' 
+          }}>
+            Reminder Frequency
+          </label>
+          <SimpleSelect
+            value={currReminder?.time}
+            onChange={(e) => handleSelectChange(e.target.value)}
+          >
+            <option value="6">Every 6 hours</option>
+            <option value="12">Every 12 hours</option>
+            <option value="24">Once a day</option>
+          </SimpleSelect>
+        </div>
       )}
     </div>
   );

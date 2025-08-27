@@ -35,6 +35,18 @@ const TimerBanner = (props) => {
   const [isUnlimitedMode, setIsUnlimitedMode] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
+  // Interview signal tracking
+  const [interviewSignals, setInterviewSignals] = useState({
+    timeToFirstPlanMs: null,
+    timeToFirstKeystroke: null,
+    hintsUsed: 0,
+    hintsRequestedTimes: [],
+    approachChosen: null,
+    stallReasons: []
+  });
+  const [hasFirstPlan, setHasFirstPlan] = useState(false);
+  const [hasFirstKeystroke, setHasFirstKeystroke] = useState(false);
+
   const { pathname, state } = useLocation();
   const navigate = useNavigate();
 
@@ -53,6 +65,80 @@ const TimerBanner = (props) => {
     return state?.Tags ? state.Tags.map((tag) => tag.toLowerCase().trim()) : [];
   }, [state?.Tags]);
 
+  // Memoize interview configuration to prevent re-renders
+  const interviewConfig = useMemo(() => {
+    return state?.interviewConfig || null;
+  }, [state?.interviewConfig]);
+
+  const sessionType = useMemo(() => {
+    return state?.sessionType || null;
+  }, [state?.sessionType]);
+
+  // Determine UI mode from interview configuration
+  const uiMode = useMemo(() => {
+    if (!interviewConfig || sessionType === 'standard') {
+      return 'full-support';
+    }
+    return interviewConfig.uiMode || 'full-support';
+  }, [interviewConfig, sessionType]);
+
+  // Calculate interview-specific time limits
+  const calculateInterviewTimeLimit = useCallback((standardLimitInMinutes, problemDifficulty) => {
+    if (!interviewConfig?.timing || sessionType === 'standard') {
+      return standardLimitInMinutes * 60; // Return in seconds
+    }
+
+    // Use interview mode thresholds if available
+    if (interviewConfig.timing.thresholds && problemDifficulty) {
+      const thresholdInMs = interviewConfig.timing.thresholds[problemDifficulty];
+      if (thresholdInMs) {
+        return Math.floor(thresholdInMs / 1000); // Convert ms to seconds
+      }
+    }
+
+    // Apply interview timing multiplier
+    const multiplier = interviewConfig.timing.multiplier || 1.0;
+    return Math.floor(standardLimitInMinutes * 60 * multiplier);
+  }, [interviewConfig, sessionType]);
+
+  // Interview signal tracking functions
+  const recordFirstPlan = useCallback(() => {
+    if (!hasFirstPlan && timerRef.current?.isRunning) {
+      const timeToFirstPlan = timerRef.current.getElapsedTime() * 1000; // Convert to milliseconds
+      setHasFirstPlan(true);
+      setInterviewSignals(prev => ({
+        ...prev,
+        timeToFirstPlanMs: timeToFirstPlan
+      }));
+      console.log("🎯 First plan recorded:", timeToFirstPlan + "ms");
+    }
+  }, [hasFirstPlan]);
+
+  const recordFirstKeystroke = useCallback(() => {
+    if (!hasFirstKeystroke && timerRef.current?.isRunning) {
+      const timeToFirstKeystroke = timerRef.current.getElapsedTime() * 1000; // Convert to milliseconds
+      setHasFirstKeystroke(true);
+      setInterviewSignals(prev => ({
+        ...prev,
+        timeToFirstKeystroke: timeToFirstKeystroke
+      }));
+      console.log("⌨️ First keystroke recorded:", timeToFirstKeystroke + "ms");
+    }
+  }, [hasFirstKeystroke]);
+
+  // Listen for keyboard events to capture first keystroke
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Only record if we're in an interview mode and timer is running
+      if (sessionType && sessionType !== 'standard' && timerRef.current?.isRunning) {
+        recordFirstKeystroke();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [recordFirstKeystroke, sessionType]);
+
   // Memoize callback functions to prevent re-renders
   const handleHintOpen = useCallback((data) => {
     // Track popover open event for analytics
@@ -63,15 +149,20 @@ const TimerBanner = (props) => {
   }, []);
 
   const handleHintClick = useCallback((hintData) => {
-    // Track individual hint clicks for usage analytics
-    // This data can be used to:
-    // 1. Understand which strategies are most helpful
-    // 2. Improve hint relevance algorithms
-    // 3. Analyze user engagement patterns
-    // 4. Build personalized hint recommendations
-    // Future: Send to analytics service or store locally
+    // Track individual hint clicks for usage analytics and interview signals
+    if (sessionType && sessionType !== 'standard' && timerRef.current?.isRunning) {
+      const currentTime = timerRef.current.getElapsedTime() * 1000; // Convert to milliseconds
+      setInterviewSignals(prev => ({
+        ...prev,
+        hintsUsed: prev.hintsUsed + 1,
+        hintsRequestedTimes: [...prev.hintsRequestedTimes, currentTime]
+      }));
+      console.log("💡 Hint used in interview mode at:", currentTime + "ms");
+    }
+
+    // Original analytics tracking
     // AnalyticsService.trackHintUsage(hintData);
-  }, []);
+  }, [sessionType]);
 
   const toggleTimer = () => {
     if (!timerRef.current) return;
@@ -100,24 +191,33 @@ const TimerBanner = (props) => {
       onSuccess: (response) => {
         // Adaptive limits received and processed
         const limitInMinutes = response.limits.Time;
-        const limitInSeconds = AccurateTimer.minutesToSeconds(limitInMinutes);
+        const standardLimitInSeconds = AccurateTimer.minutesToSeconds(limitInMinutes);
 
-        // Check if we're in unlimited mode
+        // Get problem difficulty for interview time calculation
+        const problemDifficulty = state?.Difficulty;
+
+        // Calculate interview-adjusted time limit
+        const adjustedLimitInSeconds = calculateInterviewTimeLimit(limitInMinutes, problemDifficulty);
+
+        // Check if we're in unlimited mode (standard mode or no interview config)
         const adaptiveLimits = response.limits.adaptiveLimits;
-        const unlimited = adaptiveLimits?.isUnlimited || limitInMinutes >= 999;
+        const isStandardUnlimited = adaptiveLimits?.isUnlimited || limitInMinutes >= 999;
+        const isInterviewMode = sessionType && sessionType !== 'standard';
+        const unlimited = !isInterviewMode && isStandardUnlimited;
+
         setIsUnlimitedMode(unlimited);
 
         // Always initialize timer as elapsed time counter (counting up from 0)
         timerRef.current = new AccurateTimer(0);
         setDisplayTime(0);
 
-        // Store the recommended limit for reference/warnings but don't enforce it
-        timerRef.current.recommendedLimit = limitInSeconds;
+        // Store the appropriate limit for reference/warnings
+        timerRef.current.recommendedLimit = isInterviewMode ? adjustedLimitInSeconds : standardLimitInSeconds;
         timerRef.current.isUnlimited = unlimited;
+        timerRef.current.isInterviewMode = isInterviewMode;
+        timerRef.current.interviewConfig = interviewConfig;
 
-        // Timer initialized as elapsed time counter
-
-        // Adaptive limits configured
+        // Timer initialized with interview-aware limits
       },
     }
   );
@@ -135,24 +235,48 @@ const TimerBanner = (props) => {
         const elapsedTime = timerRef.current.getElapsedTime();
         setDisplayTime(elapsedTime); // Always show elapsed time counting up
 
+        // Handle interview mode hard cutoffs
+        if (timerRef.current.isInterviewMode && 
+            timerRef.current.interviewConfig?.timing?.hardCutoff) {
+          const recommendedLimit = timerRef.current.recommendedLimit;
+          if (elapsedTime >= recommendedLimit) {
+            // Hard cutoff - automatically complete the problem
+            handleComplete();
+            return;
+          }
+        }
+
         // Only show warnings if we have a recommended limit (not unlimited mode)
         if (!isUnlimitedMode && timerRef.current.recommendedLimit > 0) {
           const recommendedLimit = timerRef.current.recommendedLimit;
           const timeProgress = elapsedTime / recommendedLimit;
 
-          if (timeProgress >= 1.5 && timeWarningLevel < 3) {
-            setTimeWarningLevel(3); // 150% - suggest moving on
-          } else if (timeProgress >= 1.0 && timeWarningLevel < 2) {
-            setTimeWarningLevel(2); // 100% - exceeded recommended time
+          // Adjust warning thresholds for interview mode
+          const isInterviewMode = timerRef.current.isInterviewMode;
+          const warnThreshold1 = isInterviewMode ? 0.6 : 0.75; // Earlier warnings in interview
+          const warnThreshold2 = isInterviewMode ? 0.8 : 1.0;  // Earlier final warning
+          const warnThreshold3 = isInterviewMode ? 1.0 : 1.5;  // Hard stop vs continue
+
+          if (timeProgress >= warnThreshold3 && timeWarningLevel < 3) {
+            setTimeWarningLevel(3); // Final warning or hard cutoff
+          } else if (timeProgress >= warnThreshold2 && timeWarningLevel < 2) {
+            setTimeWarningLevel(2); // Approaching limit or exceeded
             setExceededRecommendedTime(true);
-            setShowStillWorkingPrompt(true);
-          } else if (timeProgress >= 0.75 && timeWarningLevel < 1) {
-            setTimeWarningLevel(1); // 75% - approaching recommended time
+            if (!isInterviewMode) {
+              setShowStillWorkingPrompt(true); // Only show prompt for non-interview
+            }
+          } else if (timeProgress >= warnThreshold1 && timeWarningLevel < 1) {
+            setTimeWarningLevel(1); // Approaching recommended time
           }
 
           // Show notification when recommended time is reached
           if (Math.floor(elapsedTime) === recommendedLimit && elapsedTime > 0) {
-            startCountdown();
+            if (isInterviewMode && timerRef.current.interviewConfig?.timing?.hardCutoff) {
+              // Don't show countdown for hard cutoff modes - will auto-complete
+              startCountdown();
+            } else {
+              startCountdown();
+            }
           }
         }
       }, 1000);
@@ -236,6 +360,22 @@ const TimerBanner = (props) => {
       problem["userIntent"] = userIntent;
       problem["timeWarningLevel"] = timeWarningLevel;
 
+      // Add interview signals if this is an interview session
+      if (sessionType && sessionType !== 'standard') {
+        const finalInterviewSignals = {
+          ...interviewSignals,
+          // Calculate hint pressure: hints per second
+          hintPressure: timeSpentInSeconds > 0 ? interviewSignals.hintsUsed / timeSpentInSeconds : 0,
+          // Calculate transfer accuracy (will be set later based on success)
+          transferAccuracy: null, // This will be calculated in the submission flow
+          // Calculate speed delta (will be calculated against baselines later)
+          speedDelta: null, // This will be calculated against tag baselines
+        };
+
+        problem["interviewSignals"] = finalInterviewSignals;
+        console.log("🎯 Interview signals captured:", finalInterviewSignals);
+      }
+
       // Problem completion recorded
 
       setOpen(false);
@@ -261,29 +401,52 @@ const TimerBanner = (props) => {
 
   // Get warning message based on current warning level
   const getWarningMessage = () => {
+    const isInterviewMode = sessionType && sessionType !== 'standard';
+    const hasHardCutoff = interviewConfig?.timing?.hardCutoff;
+
     switch (timeWarningLevel) {
       case 1:
-        return "Approaching recommended time";
+        return isInterviewMode ? "Interview time halfway point" : "Approaching recommended time";
       case 2:
+        if (isInterviewMode) {
+          return hasHardCutoff ? "Interview time almost up - wrap up your solution" : "Interview time exceeded - finish up";
+        }
         return "Interview time exceeded - keep going if making progress";
       case 3:
+        if (isInterviewMode) {
+          return hasHardCutoff ? "Interview time limit reached" : "Interview time well exceeded - move on";
+        }
         return "Consider reviewing hints or moving to next problem";
       default:
         return null;
     }
   };
 
-  // Get timer CSS class based on warning level
+  // Get timer CSS class based on warning level and UI mode
   const getTimerClass = () => {
+    let baseClass;
     switch (timeWarningLevel) {
       case 1:
-        return "timer-warning-1";
+        baseClass = "timer-warning-1";
+        break;
       case 2:
-        return "timer-warning-2";
+        baseClass = "timer-warning-2";
+        break;
       case 3:
-        return "timer-warning-3";
+        baseClass = "timer-warning-3";
+        break;
       default:
-        return "timer-normal";
+        baseClass = "timer-normal";
+    }
+
+    // Apply UI mode modifiers
+    switch (uiMode) {
+      case 'pressure-indicators':
+        return `${baseClass} timer-pressure`;
+      case 'minimal-clean':
+        return `${baseClass} timer-minimal`;
+      default:
+        return baseClass;
     }
   };
 
@@ -398,7 +561,9 @@ const TimerBanner = (props) => {
     <div className="timer-banner">
       <div className="timer-banner-header">
         <h1 className={getTimerClass()}>
-          {isUnlimitedMode ? "Timer (No Limits)" : "Timer"}
+          {sessionType && sessionType !== 'standard' 
+            ? `Interview Timer (${sessionType === 'interview-like' ? 'Practice' : 'Full Interview'})`
+            : isUnlimitedMode ? "Timer (No Limits)" : "Timer"}
         </h1>
         <HiXMark 
           onClick={handleClose} 
@@ -422,7 +587,9 @@ const TimerBanner = (props) => {
             fontStyle: "italic",
           }}
         >
-          {isUnlimitedMode
+          {sessionType && sessionType !== 'standard'
+            ? `Interview Mode • ${interviewConfig?.timing?.hardCutoff ? 'Hard time limits' : 'Soft guidance'}`
+            : isUnlimitedMode
             ? "No guidance • Learn at your own pace"
             : "Elapsed time • Guidance enabled"}
         </div>
@@ -450,6 +617,27 @@ const TimerBanner = (props) => {
           aria-label="Reset timer to 00:00"
           style={{ cursor: 'pointer' }}
         />
+        {/* Interview mode: First Plan button */}
+        {sessionType && sessionType !== 'standard' && !hasFirstPlan && isTimerRunning && (
+          <button
+            onClick={recordFirstPlan}
+            className="first-plan-button"
+            style={{
+              padding: "4px 8px",
+              fontSize: "10px",
+              backgroundColor: "var(--cm-success, #4CAF50)",
+              color: "var(--cm-btn-text, white)",
+              border: "none",
+              borderRadius: "3px",
+              cursor: "pointer",
+              margin: "0 5px"
+            }}
+            title="Click when you have your approach planned out"
+          >
+            Got Plan!
+          </button>
+        )}
+
         {/* Add hint button as part of timer controls */}
         {processedTags.length > 0 && (
           <div style={{ display: "flex", alignItems: "center" }}>
@@ -459,6 +647,9 @@ const TimerBanner = (props) => {
               onOpen={handleHintOpen}
               onClose={handleHintClose}
               onHintClick={handleHintClick}
+              interviewConfig={interviewConfig}
+              sessionType={sessionType}
+              uiMode={uiMode}
             />
           </div>
         )}

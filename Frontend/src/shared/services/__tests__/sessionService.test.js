@@ -2,6 +2,7 @@ import { SessionService } from "../sessionService";
 import {
   getSessionById,
   getLatestSession,
+  getLatestSessionByType,
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
@@ -157,14 +158,14 @@ describe("SessionService", () => {
         attempts: [{ problemId: 1 }],
       };
 
-      getLatestSession.mockResolvedValue(mockSession);
+      getLatestSessionByType.mockResolvedValue(mockSession);
       saveSessionToStorage.mockResolvedValue();
 
       // Act
       const result = await SessionService.resumeSession();
 
       // Assert
-      expect(getLatestSession).toHaveBeenCalled();
+      expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
       expect(saveSessionToStorage).toHaveBeenCalledWith(mockSession);
       expect(result).toEqual(expect.objectContaining({
         id: "resume-session-123",
@@ -177,13 +178,13 @@ describe("SessionService", () => {
 
     it("should return null when no in-progress session exists", async () => {
       // Arrange
-      getLatestSession.mockResolvedValue(null);
+      getLatestSessionByType.mockResolvedValue(null);
 
       // Act
       const result = await SessionService.resumeSession();
 
       // Assert
-      expect(getLatestSession).toHaveBeenCalled();
+      expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
       expect(result).toBeNull();
     });
 
@@ -196,13 +197,13 @@ describe("SessionService", () => {
         attempts: [{ problemId: 1 }, { problemId: 2 }],
       };
 
-      getLatestSession.mockResolvedValue(mockSession);
+      getLatestSessionByType.mockResolvedValue(null); // Should return null for completed sessions
 
       // Act
       const result = await SessionService.resumeSession();
 
       // Assert
-      expect(getLatestSession).toHaveBeenCalled();
+      expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
       expect(result).toBeNull();
     });
   });
