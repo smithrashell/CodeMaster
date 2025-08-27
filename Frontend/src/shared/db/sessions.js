@@ -5,6 +5,7 @@ import { StorageService } from "../services/storageService.js";
 import { AttemptsService } from "../services/attemptsService.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 import SessionLimits from "../utils/sessionLimits.js";
+import { InterviewService } from "../services/interviewService.js";
 
 const openDB = dbHelper.openDB;
 
@@ -25,6 +26,7 @@ export const getSessionById = async (sessionId) => {
 
 /**
  * Fetches the latest session by date.
+ * @deprecated Use getLatestSessionByType() for better performance
  */
 export const getLatestSession = async () => {
   const db = await openDB();
@@ -53,6 +55,62 @@ export const getLatestSession = async () => {
     };
     request.onerror = (e) => {
       console.error("❌ getLatestSession() error:", e.target.error);
+      reject(e.target.error);
+    };
+  });
+};
+
+/**
+ * Efficiently fetches the latest session by type and/or status using database indexes.
+ * This is much more efficient than getLatestSession() as it uses cursors instead of loading all data.
+ * 
+ * @param {string|null} sessionType - Filter by session type ('standard', 'interview-like', 'full-interview', etc.)
+ * @param {string|null} status - Filter by status ('in_progress', 'completed', etc.)
+ * @returns {Promise<Object|null>} Latest matching session or null if none found
+ */
+export const getLatestSessionByType = async (sessionType = null, status = null) => {
+  console.info(`🔍 getLatestSessionByType ENTRY: sessionType=${sessionType}, status=${status}`);
+  
+  const db = await openDB();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("sessions", "readonly");
+    const store = transaction.objectStore("sessions");
+    
+    // Normalize sessionType - treat null/undefined as 'standard' 
+    const normalizedSessionType = sessionType || 'standard';
+    
+    // Use appropriate index based on whether status is specified
+    let index, keyRange;
+    if (status) {
+      // Use composite index for sessionType + status queries
+      index = store.index("by_sessionType_status");
+      keyRange = IDBKeyRange.only([normalizedSessionType, status]);
+    } else {
+      // Use sessionType index for type-only queries  
+      index = store.index("by_sessionType");
+      keyRange = IDBKeyRange.only(normalizedSessionType);
+    }
+    
+    // Open cursor in reverse order (latest first) for efficiency
+    const request = index.openCursor(keyRange, "prev");
+    
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        const session = cursor.value;
+        
+        console.info(`✅ Found matching ${normalizedSessionType} session: ${session.id?.substring(0,8)}... status=${session.status}`);
+        resolve(session);
+        return;
+      } else {
+        console.info(`❌ No matching ${normalizedSessionType} session found with status=${status || 'any'}`);
+        resolve(null);
+      }
+    };
+    
+    request.onerror = (e) => {
+      console.error("❌ getLatestSessionByType() error:", e.target.error);
       reject(e.target.error);
     };
   });
@@ -224,6 +282,15 @@ export async function buildAdaptiveSessionSettings() {
   let sessionLength = 4;
   let numberOfNewProblems = 4;
   
+  // 🎯 Get interview insights for adaptive learning integration
+  const interviewInsights = await InterviewService.getInterviewInsightsForAdaptiveLearning();
+  console.log(`🎯 Interview insights for adaptive learning:`, {
+    hasData: interviewInsights.hasInterviewData,
+    transferAccuracy: interviewInsights.transferAccuracy,
+    speedDelta: interviewInsights.speedDelta,
+    recommendations: interviewInsights.recommendations
+  });
+  
   // 🎯 Use coordinated focus decision (handles onboarding, performance, user preferences)
   let allowedTags = focusDecision.activeFocusTags;
   const onboarding = focusDecision.onboarding;
@@ -273,6 +340,29 @@ export async function buildAdaptiveSessionSettings() {
     const userPreferredLength = settings.sessionLength;
     sessionLength = applySessionLengthPreference(adaptiveSessionLength, userPreferredLength);
 
+    // 🎯 Apply interview insights to session parameters
+    if (interviewInsights.hasInterviewData) {
+      const recs = interviewInsights.recommendations;
+      
+      // Adjust session length based on interview transfer performance
+      if (recs.sessionLengthAdjustment !== 0) {
+        const originalLength = sessionLength;
+        sessionLength = Math.max(3, Math.min(8, sessionLength + recs.sessionLengthAdjustment));
+        console.log(`🎯 Interview insight: Session length adjusted from ${originalLength} to ${sessionLength} (transfer accuracy: ${(interviewInsights.transferAccuracy * 100).toFixed(1)}%)`);
+      }
+      
+      // Handle difficulty adjustment by modifying escape hatch thresholds
+      if (recs.difficultyAdjustment !== 0) {
+        if (recs.difficultyAdjustment < 0) {
+          // Poor interview transfer - be more conservative with difficulty
+          console.log(`🎯 Interview insight: Conservative difficulty due to poor transfer (${(interviewInsights.transferAccuracy * 100).toFixed(1)}% accuracy)`);
+        } else if (recs.difficultyAdjustment > 0) {
+          // Excellent interview transfer - can be more aggressive
+          console.log(`🎯 Interview insight: Aggressive difficulty due to strong transfer (${(interviewInsights.transferAccuracy * 100).toFixed(1)}% accuracy)`);
+        }
+      }
+    }
+
     // Apply performance-based constraints
     if (gapInDays > 4 || accuracy < 0.5) {
       sessionLength = Math.min(sessionLength, 5);
@@ -298,9 +388,46 @@ export async function buildAdaptiveSessionSettings() {
       }
     }
 
+    // 🎯 Apply interview insights to new problems count
+    if (interviewInsights.hasInterviewData && interviewInsights.recommendations.newProblemsAdjustment !== 0) {
+      const originalNewProblems = numberOfNewProblems;
+      numberOfNewProblems = Math.max(0, numberOfNewProblems + interviewInsights.recommendations.newProblemsAdjustment);
+      console.log(`🎯 Interview insight: New problems adjusted from ${originalNewProblems} to ${numberOfNewProblems} (transfer performance: ${(interviewInsights.transferAccuracy * 100).toFixed(1)}%)`);
+    }
+
     // 🏷️ Focus tags already determined by coordination service
     // (Coordination service integrates performance-based expansion with user preferences)
-    const tagCount = allowedTags.length;
+    let tagCount = allowedTags.length;
+    
+    // 🎯 Apply interview insights to focus tag selection
+    if (interviewInsights.hasInterviewData) {
+      const recs = interviewInsights.recommendations;
+      const focusWeight = recs.focusTagsWeight;
+      
+      if (focusWeight < 1.0) {
+        // Poor interview transfer - focus more narrowly on weak tags
+        const weakTags = recs.weakTags || [];
+        if (weakTags.length > 0) {
+          const weakTagsInFocus = allowedTags.filter(tag => weakTags.includes(tag));
+          if (weakTagsInFocus.length > 0) {
+            const originalTags = [...allowedTags];
+            allowedTags = weakTagsInFocus.slice(0, Math.max(2, Math.ceil(tagCount * focusWeight)));
+            console.log(`🎯 Interview insight: Focusing on weak tags [${allowedTags.join(', ')}] (was [${originalTags.join(', ')}]) due to poor transfer`);
+          }
+        }
+      } else if (focusWeight > 1.0) {
+        // Good interview transfer - can explore more tags
+        const additionalTags = focusTags.filter(tag => !allowedTags.includes(tag));
+        const tagsToAdd = Math.floor((focusWeight - 1.0) * tagCount);
+        if (additionalTags.length > 0 && tagsToAdd > 0) {
+          const originalTags = [...allowedTags];
+          allowedTags = [...allowedTags, ...additionalTags.slice(0, tagsToAdd)];
+          console.log(`🎯 Interview insight: Expanding tags [${allowedTags.join(', ')}] (was [${originalTags.join(', ')}]) due to strong transfer`);
+        }
+      }
+      
+      tagCount = allowedTags.length; // Update count after interview adjustments
+    }
     
     // Update tagIndex for backward compatibility with existing systems
     sessionState.tagIndex = tagCount - 1; // Convert from count to index

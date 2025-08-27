@@ -27,6 +27,16 @@ export class ChromeAPIErrorHandler {
       showNotifications = true,
     } = options;
 
+    // Debug logging to identify which message is failing
+    console.log(`🔍 ChromeAPIErrorHandler: Sending message`, {
+      type: message?.type || 'unknown',
+      action: message?.action || 'unknown', 
+      messageKeys: Object.keys(message || {}),
+      timeout,
+      maxRetries,
+      ...(message?.sessionType && { sessionType: message.sessionType }) // Log session type for debugging
+    });
+
     let lastError = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -48,7 +58,11 @@ export class ChromeAPIErrorHandler {
         return response;
       } catch (error) {
         lastError = error;
-        console.warn(`⚠️ RETRY ${attempt + 1}/${maxRetries + 1}: ${error.message}`);
+        console.warn(`⚠️ RETRY ${attempt + 1}/${maxRetries + 1}: ${error.message}`, {
+          messageType: message?.type || 'unknown',
+          errorType: error.name || 'unknown',
+          errorMessage: error.message
+        });
 
         // Don't retry on final attempt
         if (attempt === maxRetries) break;
@@ -127,8 +141,32 @@ export class ChromeAPIErrorHandler {
             return;
           }
 
-          // Check for response errors
-          if (response && response.error) {
+          // Log emergency session responses for debugging
+          if (response && response.isEmergencyResponse) {
+            console.warn('🚑 ChromeAPIErrorHandler: Received emergency response:', {
+              type: message?.type,
+              error: response.error,
+              duration: response.duration,
+              hasSession: !!response.session
+            });
+          }
+
+          // Enhanced error detection for session-related issues
+          if (response && response.error && !response.isEmergencyResponse) {
+            // Add context for session timeout errors
+            if (message.type === 'getOrCreateSession' && 
+                response.error.includes('timeout')) {
+              const sessionError = new Error(response.error);
+              sessionError.context = {
+                messageType: message.type,
+                sessionType: message.sessionType,
+                isSessionTimeout: true,
+                suggestion: 'This may be due to session type mismatch. Try refreshing or check interview mode settings.'
+              };
+              reject(sessionError);
+              return;
+            }
+            
             reject(new Error(response.error));
             return;
           }

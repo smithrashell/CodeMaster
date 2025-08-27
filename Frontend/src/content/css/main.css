@@ -31,7 +31,33 @@
   --cm-z-dropdown: 9400;
   --cm-z-overlay: 9500;
   --cm-z-modal: 9600;
-  --cm-z-tooltip: 9700;
+  --cm-z-tooltip: 10002;
+}
+
+/* Force tooltip visibility above everything */
+.cm-extension .cm-force-tooltip-visible,
+.mantine-Tooltip-tooltip.cm-force-tooltip-visible,
+div.cm-force-tooltip-visible {
+  z-index: 99999 !important;
+  position: fixed !important;
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 4px !important;
+  padding: 8px 12px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  pointer-events: none !important;
+  white-space: normal !important;
+  max-width: 400px !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  line-height: 1.4 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: block !important;
+  transform: translateZ(0) !important; /* Force hardware acceleration */
 }
 
 /* ===== 2. BASE EXTENSION STYLES ===== */
@@ -1060,60 +1086,7 @@ body[data-theme="dark"] .cm-extension {
   color: var(--cm-text) !important;
 }
 
-/* Mantine Select dropdown fixes */
-.cm-extension .mantine-Select-dropdown {
-  z-index: 10001 !important;
-  background-color: var(--cm-dropdown-bg) !important;
-  border: 1px solid var(--cm-link) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
-}
-
-.cm-extension .mantine-Select-item {
-  color: var(--cm-dropdown-color) !important;
-  background-color: transparent !important;
-  padding: 8px 12px !important;
-}
-
-.cm-extension .mantine-Select-item[data-selected] {
-  background-color: white !important;
-  color: #333 !important;
-}
-
-.cm-extension .mantine-Select-item:hover {
-  background-color: white !important;
-  color: #333 !important;
-}
-
-.cm-extension .mantine-Select-input {
-  background-color: white !important;
-  color: #333 !important;
-  border-color: var(--cm-link) !important;
-}
-
-/* Dark mode specific fixes */
-body[data-theme="dark"] .cm-extension .mantine-Select-dropdown {
-  background-color: #374151 !important;
-}
-
-body[data-theme="dark"] .cm-extension .mantine-Select-item {
-  color: #f8fafc !important;
-  background-color: transparent !important;
-}
-
-body[data-theme="dark"] .cm-extension .mantine-Select-item[data-selected] {
-  background-color: white !important;
-  color: #333 !important;
-}
-
-body[data-theme="dark"] .cm-extension .mantine-Select-item:hover {
-  background-color: white !important;
-  color: #333 !important;
-}
-
-body[data-theme="dark"] .cm-extension .mantine-Select-input {
-  background-color: white !important;
-  color: #333 !important;
-}
+/* SimpleSelect styling handled inline with CSS variables */
 
 body[data-theme="dark"] .cm-extension p {
   color: var(--cm-text) !important;
@@ -1123,6 +1096,48 @@ body[data-theme="dark"] .cm-extension span {
   color: inherit !important;
 }
 
+/* Light mode statistics text fixes */
+body[data-theme="light"] .cm-extension .cm-stats-empty h3 {
+  color: #334155 !important; /* Dark gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stats-empty p {
+  color: #475569 !important; /* Medium gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stats-hint p {
+  color: #475569 !important; /* Medium gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stats-hint li {
+  color: #334155 !important; /* Dark gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stats-summary h3 {
+  color: #334155 !important; /* Dark gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stats-breakdown h4 {
+  color: #334155 !important; /* Dark gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stat-level {
+  color: #334155 !important; /* Dark gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stat-count {
+  color: #475569 !important; /* Medium gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-stat-label {
+  color: #475569 !important; /* Medium gray for light mode */
+}
+
+body[data-theme="light"] .cm-extension .cm-loading-state p {
+  color: #334155 !important; /* Dark gray for light mode */
+}
+
+/* Dark mode statistics text (existing) */
 body[data-theme="dark"] .cm-extension .cm-stats-empty h3 {
   color: #f8fafc !important;
 }
@@ -1148,23 +1163,46 @@ body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control {
   border-color: transparent !important;
 }
 
+/* Settings page segment controls - bright blue */
 body[data-theme="dark"]
   .cm-extension
+  .cm-form-group
   .mantine-SegmentedControl-control[data-active="true"] {
-  background-color: #1f2937 !important; /* Darker gray for active state */
-  color: #f3f4f6 !important; /* Light text for active */
+  background-color: #2563eb !important; /* Bright blue like Adaptive Sessions toggle */
+  color: white !important; /* White text on blue background */
   border-radius: 6px !important; /* Rounded corners for active button */
+}
+
+/* Theme toggle - preserve original dark styling */
+body[data-theme="dark"]
+  .cm-extension
+  .mantine-Group-root
+  .mantine-SegmentedControl-control[data-active="true"] {
+  background-color: #1f2937 !important; /* Original dark gray for theme toggle */
+  color: #f3f4f6 !important; /* Original light text */
+  border-radius: 6px !important;
 }
 
 body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-label {
   color: #9ca3af !important; /* Light gray for inactive labels */
 }
 
+/* Settings page active label colors - white on blue */
 body[data-theme="dark"]
   .cm-extension
+  .cm-form-group
   .mantine-SegmentedControl-control[data-active="true"]
   .mantine-SegmentedControl-label {
-  color: #f3f4f6 !important; /* Light text for active labels */
+  color: white !important; /* White text for active labels on blue background */
+}
+
+/* Theme toggle active label colors - original styling */
+body[data-theme="dark"]
+  .cm-extension
+  .mantine-Group-root
+  .mantine-SegmentedControl-control[data-active="true"]
+  .mantine-SegmentedControl-label {
+  color: #f3f4f6 !important; /* Original light gray text for theme toggle */
 }
 
 /* Theme Toggle Dark Mode Icon Colors */
@@ -1176,12 +1214,24 @@ body[data-theme="dark"] .cm-extension .mantine-SegmentedControl-control svg {
   stroke: #9ca3af !important;
 }
 
-/* Active state icons should be light colored */
+/* Settings page active icons - white on blue */
 body[data-theme="dark"]
   .cm-extension
+  .cm-form-group
   .mantine-SegmentedControl-control[data-active="true"]
   svg {
-  color: #f3f4f6 !important; /* Light text for active icons */
+  color: white !important; /* White icons on blue background */
+  fill: white !important;
+  stroke: white !important;
+}
+
+/* Theme toggle active icons - original styling */
+body[data-theme="dark"]
+  .cm-extension
+  .mantine-Group-root
+  .mantine-SegmentedControl-control[data-active="true"]
+  svg {
+  color: #f3f4f6 !important; /* Original light gray for theme toggle icons */
   fill: #f3f4f6 !important;
   stroke: #f3f4f6 !important;
 }
@@ -1306,7 +1356,12 @@ body[data-theme="dark"] #cm-menuButton:hover {
 }
 
 .cm-extension .mantine-Text-root {
-  color: var(--cm-text) !important;
+  color: #334155 !important;
+}
+
+/* Dark theme support for Mantine Text */
+body[data-theme="dark"] .cm-extension .mantine-Text-root {
+  color: #f8fafc !important;
 }
 
 .cm-extension .mantine-Progress-root {
