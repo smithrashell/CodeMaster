@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import StrategyService from "../../services/strategyService";
+import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
 /**
  * TagStrategyGrid Component
@@ -7,11 +8,24 @@ import StrategyService from "../../services/strategyService";
  * Displays problem tags in a 3-column grid layout with inline strategy hints.
  * Only one tag's strategy can be expanded at a time, appearing directly below
  * the tag's row. Replaces the separate ExpandablePrimerSection.
+ * 
+ * Interview mode aware: respects interview constraints for primer/strategy access.
  */
-const TagStrategyGrid = ({ problemTags, className = "" }) => {
+const TagStrategyGrid = ({ 
+  problemTags, 
+  problemId, 
+  className = "",
+  interviewConfig = null,
+  sessionType = null 
+}) => {
   const [expandedTag, setExpandedTag] = useState(null);
   const [strategies, setStrategies] = useState({});
   const [loading, setLoading] = useState(false);
+
+  // Interview mode logic
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+  const primersAvailable = !isInterviewMode || (interviewConfig?.primers?.available !== false);
+  const primersEncouraged = !isInterviewMode || (interviewConfig?.primers?.encouraged !== false);
 
   // Handle problem tags updates
   useEffect(() => {
@@ -49,8 +63,37 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
     }
   }, [problemTags]);
 
-  const handleTagClick = (tag) => {
+  const handleTagClick = async (tag) => {
     const normalizedTag = tag.toLowerCase().trim();
+    const isExpanding = expandedTag !== normalizedTag;
+    
+    // Check interview mode constraints
+    if (isExpanding && !primersAvailable) {
+      console.log(`🚫 Tag Strategy: Primers not available in ${sessionType} mode`);
+      return; // Block expansion in interview modes that don't allow primers
+    }
+    
+    console.log(`🏷️ Tag Strategy: ${isExpanding ? 'Expanded' : 'Collapsed'} "${tag}" strategy`);
+
+    // Track interaction when expanding strategy
+    if (isExpanding) {
+      console.log(`🏷️ Tracking tag strategy view: ${tag}`);
+      try {
+        await HintInteractionService.saveHintInteraction({
+          problemId: problemId || "unknown",
+          hintType: "primer", 
+          primaryTag: normalizedTag,
+          content: `Viewed strategy for ${tag} tag`,
+          action: "expand",
+          sessionContext: {
+            componentType: "TagStrategyGrid",
+            expandedTag: normalizedTag
+          }
+        });
+      } catch (error) {
+        console.warn("Failed to track tag strategy view:", error);
+      }
+    }
 
     // Toggle expansion: if same tag clicked, collapse; if different tag, expand new one
     if (expandedTag === normalizedTag) {
@@ -259,6 +302,19 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
           Tags{" "}
           {Object.keys(strategies).length > 0 &&
             `(${Object.keys(strategies).length} strategies)`}
+          {isInterviewMode && !primersAvailable && (
+            <span 
+              className="interview-constraint-indicator"
+              style={{
+                fontSize: "10px",
+                color: "var(--cm-error, #f44336)",
+                marginLeft: "5px",
+                fontWeight: "normal"
+              }}
+            >
+              • Strategies disabled in interview mode
+            </span>
+          )}
         </span>
       </div>
 
@@ -279,13 +335,19 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
                   isExpanded
                     ? "tag-strategy-button-expanded tag-strategy-no-hover"
                     : ""
-                }`}
+                } ${!primersAvailable ? "tag-strategy-disabled" : ""}`}
                 onClick={() => handleTagClick(tag)}
                 type="button"
                 aria-expanded={isExpanded}
-                aria-label={`Toggle strategy for ${tag} tag`}
-                style={
-                  isExpanded
+                aria-label={primersAvailable 
+                  ? `Toggle strategy for ${tag} tag` 
+                  : `${tag} tag - strategies disabled in interview mode`}
+                disabled={!primersAvailable}
+                title={!primersAvailable 
+                  ? `Strategies are not available in ${sessionType} mode` 
+                  : `Click to view ${tag} strategy`}
+                style={{
+                  ...(isExpanded
                     ? {
                         backgroundColor: "var(--cm-dropdown-bg)",
                         color: "var(--cm-text)",
@@ -293,10 +355,21 @@ const TagStrategyGrid = ({ problemTags, className = "" }) => {
                         margin: "0px",
                         border: "none",
                       }
-                    : {}
-                }
+                    : {}),
+                  ...((!primersAvailable)
+                    ? {
+                        opacity: 0.6,
+                        cursor: "not-allowed",
+                        backgroundColor: "var(--cm-disabled-bg, #f5f5f5)",
+                        color: "var(--cm-disabled-text, #999)"
+                      }
+                    : {})
+                }}
               >
                 {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                {!primersAvailable && !primersEncouraged && (
+                  <span style={{ marginLeft: "4px", fontSize: "10px" }}>🚫</span>
+                )}
               </button>
 
               {/* Show expanded strategy content after the row containing the expanded tag */}

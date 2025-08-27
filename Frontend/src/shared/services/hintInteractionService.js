@@ -7,7 +7,6 @@ import {
   getHintEffectiveness,
   deleteOldInteractions,
 } from "../db/hint_interactions.js";
-import { getProblem } from "../db/problems.js";
 
 /**
  * Service for managing hint interactions and analytics
@@ -58,17 +57,19 @@ export class HintInteractionService {
         }
       }
 
-      // Try to get problem context for box level and difficulty
-      if (interactionData.problemId) {
-        try {
-          const problem = await getProblem(interactionData.problemId);
-          if (problem) {
-            boxLevel = problem.box || 1;
-            problemDifficulty = problem.difficulty || "Medium";
-          }
-        } catch (error) {
-          console.warn("Could not retrieve problem context:", error);
-        }
+      // Use problem context from enriched data (provided by background script) or fallback values
+      if (interactionData.boxLevel !== undefined) {
+        boxLevel = interactionData.boxLevel;
+      }
+      if (interactionData.problemDifficulty) {
+        problemDifficulty = interactionData.problemDifficulty;
+      }
+      // Additional fallback from sessionContext if available
+      if (!interactionData.boxLevel && sessionContext.boxLevel) {
+        boxLevel = sessionContext.boxLevel;
+      }
+      if (!interactionData.problemDifficulty && sessionContext.problemDifficulty) {
+        problemDifficulty = sessionContext.problemDifficulty;
       }
 
       // Build the complete interaction record
@@ -110,29 +111,14 @@ export class HintInteractionService {
         processingTime: null, // Will be set below
       };
 
-      // Save to database
-      const savedInteraction = await saveHintInteraction(completeInteraction);
+      // Save to database - route through background script if in content script context
+      const savedInteraction = await this._saveInteractionWithContext(completeInteraction, sessionContext);
 
       // Record processing time for performance monitoring
       const processingTime = performance.now() - startTime;
       savedInteraction.processingTime = processingTime;
 
-      // Log success (keep verbose for initial implementation)
-      // eslint-disable-next-line no-console
-      console.log("💾 Hint interaction saved successfully:", {
-        id: savedInteraction.id,
-        hintType: savedInteraction.hintType,
-        action: savedInteraction.userAction,
-        processingTime: `${processingTime.toFixed(2)}ms`,
-      });
-
-      // Performance warning if too slow
-      if (processingTime > 10) {
-        console.warn(
-          "⚠️ Hint interaction save took longer than 10ms:",
-          processingTime.toFixed(2) + "ms"
-        );
-      }
+      // Keep only error logging for debugging - removed verbose success logging for performance
 
       return savedInteraction;
     } catch (error) {
@@ -438,5 +424,81 @@ export class HintInteractionService {
     }
 
     return insights;
+  }
+
+  /**
+   * Save interaction with context detection - routes through background script if in content script
+   * @param {Object} interactionData - Complete interaction data
+   * @param {Object} sessionContext - Session context information
+   * @returns {Promise<Object>} - Saved interaction record
+   * @private
+   */
+  static async _saveInteractionWithContext(interactionData, sessionContext) {
+    // Detect if we're running in a content script context
+    const isContentScript = this._isContentScriptContext();
+
+    if (isContentScript) {
+      // eslint-disable-next-line no-console
+      console.log("🔄 Routing hint interaction through background script");
+      
+      // Use Chrome messaging to route through background script
+      return new Promise((resolve, reject) => {
+        if (typeof chrome === 'undefined' || !chrome.runtime) {
+          reject(new Error('Chrome extension API not available'));
+          return;
+        }
+
+        // Use longer timeout for hint interactions due to IndexedDB operations
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Hint interaction save timeout - background script may be busy'));
+        }, 15000); // 15 second timeout for IndexedDB operations
+
+        chrome.runtime.sendMessage({
+          type: "saveHintInteraction",
+          data: interactionData,
+          sessionContext: sessionContext
+        }, (response) => {
+          clearTimeout(timeoutId);
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response.error) {
+            reject(new Error(response.error));
+          } else {
+            resolve(response.interaction);
+          }
+        });
+      });
+    } else {
+      // eslint-disable-next-line no-console
+      console.log("💾 Direct database save (background/dashboard context)");
+      
+      // Direct database access (background script or dashboard context)
+      return await saveHintInteraction(interactionData);
+    }
+  }
+
+  /**
+   * Detect if we're running in a content script context
+   * @returns {boolean} - True if content script, false if background/dashboard
+   * @private
+   */
+  static _isContentScriptContext() {
+    try {
+      // Content scripts have window object and run on web pages
+      if (typeof window !== 'undefined' && window.location) {
+        // Check if we're on a web page (not extension page)
+        const protocol = window.location.protocol;
+        const isWebPage = protocol === 'http:' || protocol === 'https:';
+        const isNotExtensionPage = !window.location.href.startsWith('chrome-extension://');
+        
+        return isWebPage && isNotExtensionPage;
+      }
+      
+      // Background scripts don't have window object
+      return false;
+    } catch (error) {
+      // If any error in detection, assume content script for safety
+      return true;
+    }
   }
 }

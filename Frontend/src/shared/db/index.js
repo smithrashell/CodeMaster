@@ -56,7 +56,7 @@ function getStackTrace() {
 
 export const dbHelper = {
   dbName: "review",
-  version: 35, // 🚨 Reverted from 36 - index recreation caused database issues
+  version: 36, // 🆙 Upgraded for sessionType index support
   db: null,
 
   async openDB() {
@@ -248,6 +248,16 @@ export const dbHelper = {
         // Ensure required indexes exist
         if (!sessionsStore.indexNames.contains("by_date")) {
           sessionsStore.createIndex("by_date", "date", { unique: false });
+        }
+        
+        // Add index for interview sessions
+        if (!sessionsStore.indexNames.contains("by_sessionType")) {
+          sessionsStore.createIndex("by_sessionType", "sessionType", { unique: false });
+        }
+        
+        // Add composite index for efficient sessionType + status queries
+        if (!sessionsStore.indexNames.contains("by_sessionType_status")) {
+          sessionsStore.createIndex("by_sessionType_status", ["sessionType", "status"], { unique: false });
         }
 
         // eslint-disable-next-line no-console
