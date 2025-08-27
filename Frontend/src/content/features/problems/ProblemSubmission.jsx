@@ -4,52 +4,13 @@ import { useForm, Controller } from "react-hook-form";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
 import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
 import { IconHash, IconTarget, IconClock, IconBolt, IconMessageCircle } from "@tabler/icons-react";
+import SimpleSelect from "../../../shared/components/ui/SimpleSelect";
 
-// Enhanced styled select component for Chrome extension
-const SimpleSelect = ({ value, onChange, children, error, ...props }) => (
-  <select
-    value={value}
-    onChange={onChange}
-    className="cm-simple-select"
-    style={{
-      width: '100%',
-      maxWidth: '100%',
-      padding: '6px 8px',
-      boxSizing: 'border-box',
-      backgroundColor: 'var(--cm-card-bg)',
-      color: 'var(--cm-text)',
-      border: error ? '2px solid #ef4444' : '1px solid var(--cm-border)',
-      borderRadius: '6px',
-      fontSize: '13px',
-      outline: 'none',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-      appearance: 'none', // Remove default styling
-      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-      backgroundPosition: 'right 8px center',
-      backgroundRepeat: 'no-repeat',
-      backgroundSize: '16px',
-      paddingRight: '32px'
-    }}
-    onFocus={(e) => {
-      e.target.style.borderColor = error ? '#ef4444' : 'var(--cm-active-blue)';
-      e.target.style.boxShadow = error 
-        ? '0 0 0 3px rgba(239, 68, 68, 0.1)' 
-        : '0 0 0 3px rgba(37, 99, 235, 0.1)';
-    }}
-    onBlur={(e) => {
-      e.target.style.borderColor = error ? '#ef4444' : 'var(--cm-border)';
-      e.target.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
-    }}
-    {...props}
-  >
-    {children}
-  </select>
-);
+// Using shared SimpleSelect component
 
-const SimpleInput = ({ value, onChange, disabled, ...props }) => (
+const SimpleInput = React.forwardRef(({ value, onChange, disabled, ...props }, ref) => (
   <input
+    ref={ref}
     type="text"
     value={value || ''}
     onChange={onChange}
@@ -80,10 +41,13 @@ const SimpleInput = ({ value, onChange, disabled, ...props }) => (
     }}
     {...props}
   />
-);
+));
 
-const SimpleTextArea = ({ value, onChange, placeholder, ...props }) => (
+SimpleInput.displayName = 'SimpleInput';
+
+const SimpleTextArea = React.forwardRef(({ value, onChange, placeholder, ...props }, ref) => (
   <textarea
+    ref={ref}
     value={value || ''}
     onChange={onChange}
     className="cm-simple-textarea"
@@ -116,7 +80,9 @@ const SimpleTextArea = ({ value, onChange, placeholder, ...props }) => (
     }}
     {...props}
   />
-);
+));
+
+SimpleTextArea.displayName = 'SimpleTextArea';
 
 const FormLabel = ({ children, required, icon: IconComponent }) => (
   <label

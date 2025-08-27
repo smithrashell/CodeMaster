@@ -44,8 +44,6 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   const isMainMenu = currPath === "/";
 
   const handleClick = () => {
-    console.log("🔘 MENU BUTTON CLICKED:", { isAppOpen, isMainMenu, timestamp: new Date().toISOString() });
-    
     if (isAppOpen && !isMainMenu) {
       navigate("/");
     } else {
@@ -401,13 +399,13 @@ const Main = () => {
             <div className="cm-sidenav__content">
               <nav id="nav">
                 {/* <Link to="/Strategy">Strategy Map</Link> */}
-                <Link to="/ProbGen">Generator</Link>
-                <Link to="/ProbStat">Statistics</Link>
+                <Link to="/Probgen">Generator</Link>
+                <Link to="/Probstat">Statistics</Link>
                 <Link to="/Settings">Settings</Link>
                 {/* Problem Link - Only show when on a valid LeetCode problem page */}
                 {currentProblem && (
                   <Link
-                    to="/ProbTime"
+                    to="/Probtime"
                     state={{ problemData, problemFound }}
                     onClick={(e) => {
                       if (!problemData || loading) {
