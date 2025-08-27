@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BrainIcon } from "../../../shared/components/ui/Icons";
 import { ReasonTypeIcon } from "./ProblemInfoIcon";
-import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 
 /**
  * WhyThisProblem Component
@@ -63,6 +62,7 @@ const WhyThisProblem = ({
   }, [isExpanded, currentProblemId]);
 
   const handleToggle = () => {
+    console.log(`📖 Strategy: ${isExpanded ? 'Collapsed' : 'Expanded'} "${selectionReason.type}" for problem ${currentProblemId}`);
     setIsExpanded(!isExpanded);
   };
 
