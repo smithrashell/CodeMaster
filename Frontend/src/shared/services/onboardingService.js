@@ -484,10 +484,13 @@ export async function resetContentOnboarding() {
 // Page-specific tour functions
 export async function checkPageTourStatus(pageId) {
   try {
+    console.log(`🔍 ONBOARDING DEBUG: Checking tour status for page: ${pageId}`);
     const contentOnboardingRecord = await checkContentOnboardingStatus();
+    console.log(`📊 ONBOARDING DEBUG: Retrieved onboarding record:`, contentOnboardingRecord);
     
     // Initialize pageProgress if it doesn't exist
     if (!contentOnboardingRecord.pageProgress) {
+      console.log(`🔧 ONBOARDING DEBUG: Initializing missing pageProgress for ${pageId}`);
       contentOnboardingRecord.pageProgress = {
         probgen: false,
         probtime: false,
@@ -496,9 +499,13 @@ export async function checkPageTourStatus(pageId) {
         settings: false,
       };
       await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
+      console.log(`✅ ONBOARDING DEBUG: pageProgress initialized`);
     }
     
-    return contentOnboardingRecord.pageProgress[pageId] || false;
+    const isCompleted = contentOnboardingRecord.pageProgress[pageId] || false;
+    console.log(`📋 ONBOARDING DEBUG: Page ${pageId} completion status: ${isCompleted}`);
+    console.log(`📋 ONBOARDING DEBUG: All page statuses:`, contentOnboardingRecord.pageProgress);
+    return isCompleted;
   } catch (error) {
     console.error(`❌ Error checking page tour status for ${pageId}:`, error);
     return false; // Default to not completed if error
@@ -507,10 +514,15 @@ export async function checkPageTourStatus(pageId) {
 
 export async function markPageTourCompleted(pageId) {
   try {
+    console.log(`🎯 ONBOARDING DEBUG: Marking page tour completed for: ${pageId}`);
+    console.log(`📞 ONBOARDING DEBUG: Using ${isContentScript ? 'databaseProxy' : 'direct DB'} context`);
+    
     const contentOnboardingRecord = await checkContentOnboardingStatus();
+    console.log(`📊 ONBOARDING DEBUG: Current record before update:`, contentOnboardingRecord);
     
     // Initialize pageProgress if it doesn't exist
     if (!contentOnboardingRecord.pageProgress) {
+      console.log(`🔧 ONBOARDING DEBUG: Initializing pageProgress for completion`);
       contentOnboardingRecord.pageProgress = {
         probgen: false,
         probtime: false,
@@ -521,14 +533,19 @@ export async function markPageTourCompleted(pageId) {
     }
     
     // Mark the specific page tour as completed
+    const previousStatus = contentOnboardingRecord.pageProgress[pageId];
     contentOnboardingRecord.pageProgress[pageId] = true;
     contentOnboardingRecord.lastActiveStep = `page_${pageId}_completed`;
     
+    console.log(`📝 ONBOARDING DEBUG: ${pageId} status changed from ${previousStatus} to true`);
+    console.log(`📝 ONBOARDING DEBUG: Updated pageProgress:`, contentOnboardingRecord.pageProgress);
+    console.log(`💾 ONBOARDING DEBUG: Attempting to save to database...`);
+    
     await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
-    console.log(`✅ Page tour completed for: ${pageId}`);
+    console.log(`✅ ONBOARDING DEBUG: Page tour completed and saved for: ${pageId}`);
     return contentOnboardingRecord;
   } catch (error) {
-    console.error(`❌ Error marking page tour completed for ${pageId}:`, error);
+    console.error(`❌ ONBOARDING DEBUG: Error marking page tour completed for ${pageId}:`, error);
     throw error;
   }
 }
@@ -569,4 +586,149 @@ export async function resetAllPageTours() {
     console.error("❌ Error resetting all page tours:", error);
     throw error;
   }
+}
+
+// Debug Console Commands
+// Available in browser console for testing onboarding system
+
+/**
+ * Debug: Check onboarding status for all pages
+ * Usage: await window.debugOnboarding.checkAllPagesStatus()
+ */
+export async function debugCheckAllPagesStatus() {
+  try {
+    const pages = ['probgen', 'probtime', 'timer', 'probstat', 'settings'];
+    const results = {};
+    
+    console.log(`🔍 ONBOARDING AUDIT: Checking status for all ${pages.length} pages...`);
+    
+    for (const pageId of pages) {
+      try {
+        const status = await checkPageTourStatus(pageId);
+        results[pageId] = status;
+        console.log(`📋 ${pageId}: ${status ? '✅ Completed' : '❌ Not completed'}`);
+      } catch (error) {
+        results[pageId] = `ERROR: ${error.message}`;
+        console.error(`❌ Error checking ${pageId}:`, error);
+      }
+    }
+    
+    console.log(`📊 ONBOARDING AUDIT SUMMARY:`, results);
+    return results;
+  } catch (error) {
+    console.error(`❌ Error in debugCheckAllPagesStatus:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Debug: Get complete onboarding record
+ * Usage: await window.debugOnboarding.getFullRecord()
+ */
+export async function debugGetFullOnboardingRecord() {
+  try {
+    console.log(`📊 ONBOARDING DEBUG: Retrieving full onboarding record...`);
+    const record = await checkContentOnboardingStatus();
+    console.log(`📋 Full onboarding record:`, record);
+    return record;
+  } catch (error) {
+    console.error(`❌ Error getting full onboarding record:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Debug: Test page tour completion
+ * Usage: await window.debugOnboarding.testComplete('timer')
+ */
+export async function debugTestPageCompletion(pageId) {
+  try {
+    console.log(`🧪 ONBOARDING TEST: Testing completion for page: ${pageId}`);
+    
+    // Check initial status
+    const initialStatus = await checkPageTourStatus(pageId);
+    console.log(`📋 Initial status for ${pageId}: ${initialStatus}`);
+    
+    // Mark as completed
+    await markPageTourCompleted(pageId);
+    
+    // Verify completion
+    const finalStatus = await checkPageTourStatus(pageId);
+    console.log(`📋 Final status for ${pageId}: ${finalStatus}`);
+    
+    const success = finalStatus === true;
+    console.log(`🧪 TEST RESULT: ${success ? '✅ PASSED' : '❌ FAILED'} - ${pageId} completion persistence`);
+    
+    return {
+      pageId,
+      initialStatus,
+      finalStatus,
+      success,
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error(`❌ Error testing page completion for ${pageId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Debug: Test all pages completion
+ * Usage: await window.debugOnboarding.testAllPages()
+ */
+export async function debugTestAllPagesCompletion() {
+  try {
+    const pages = ['probgen', 'probtime', 'timer', 'probstat', 'settings'];
+    const results = [];
+    
+    console.log(`🧪 ONBOARDING TEST SUITE: Testing completion persistence for all ${pages.length} pages...`);
+    
+    for (const pageId of pages) {
+      try {
+        const result = await debugTestPageCompletion(pageId);
+        results.push(result);
+      } catch (error) {
+        results.push({
+          pageId,
+          error: error.message,
+          success: false,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+    
+    const passedTests = results.filter(r => r.success).length;
+    const failedTests = results.filter(r => !r.success).length;
+    
+    console.log(`🧪 TEST SUITE COMPLETE: ${passedTests} passed, ${failedTests} failed`);
+    console.log(`📊 Detailed Results:`, results);
+    
+    return {
+      summary: { passed: passedTests, failed: failedTests, total: results.length },
+      results
+    };
+  } catch (error) {
+    console.error(`❌ Error in test suite:`, error);
+    throw error;
+  }
+}
+
+// Initialize debug console commands
+if (typeof window !== 'undefined') {
+  window.debugOnboarding = {
+    checkAllPagesStatus: debugCheckAllPagesStatus,
+    getFullRecord: debugGetFullOnboardingRecord,
+    testComplete: debugTestPageCompletion,
+    testAllPages: debugTestAllPagesCompletion,
+    resetAllTours: resetAllPageTours,
+    resetPage: resetPageTour
+  };
+  console.log(`🛠️ ONBOARDING DEBUG: Console commands available at window.debugOnboarding`);
+  console.log(`📚 Available commands:
+    - await window.debugOnboarding.checkAllPagesStatus()  // Check status of all pages
+    - await window.debugOnboarding.getFullRecord()        // Get complete record
+    - await window.debugOnboarding.testComplete('timer')  // Test specific page
+    - await window.debugOnboarding.testAllPages()         // Test all pages
+    - await window.debugOnboarding.resetAllTours()        // Reset all tours
+    - await window.debugOnboarding.resetPage('timer')     // Reset specific page`);
 }

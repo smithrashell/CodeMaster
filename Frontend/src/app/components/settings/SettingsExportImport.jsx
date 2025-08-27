@@ -12,6 +12,11 @@ const SETTINGS_SCHEMA = {
   limit: "string",
   reminder: "object",
   
+  // Interview settings
+  interviewMode: "string",
+  interviewReadinessThreshold: "number",
+  interviewFrequency: "string",
+  
   // Focus areas
   focusAreas: "object",
   
@@ -53,6 +58,28 @@ function validateSettings(settings) {
       }
     }
   });
+  
+  // Validate interview mode specific values
+  if (Object.prototype.hasOwnProperty.call(settings, "interviewMode")) {
+    const validModes = ["disabled", "interview-like", "full-interview"];
+    if (!validModes.includes(settings.interviewMode)) {
+      errors.push(`Interview mode must be one of: ${validModes.join(", ")}`);
+    }
+  }
+  
+  if (Object.prototype.hasOwnProperty.call(settings, "interviewReadinessThreshold")) {
+    const threshold = settings.interviewReadinessThreshold;
+    if (typeof threshold === "number" && (threshold < 0 || threshold > 1)) {
+      warnings.push("Interview readiness threshold should be between 0 and 1");
+    }
+  }
+  
+  if (Object.prototype.hasOwnProperty.call(settings, "interviewFrequency")) {
+    const validFrequencies = ["manual", "weekly", "after-mastery"];
+    if (!validFrequencies.includes(settings.interviewFrequency)) {
+      warnings.push(`Interview frequency should be one of: ${validFrequencies.join(", ")}`);
+    }
+  }
   
   // Check for suspicious properties that might indicate malicious content
   const suspiciousKeys = ["script", "eval", "function", "__proto__", "constructor", "prototype"];
@@ -301,7 +328,10 @@ export function SettingsExportImport() {
           maxDataPoints: 50,
           autoRefreshData: true,
           showEmptyDataPoints: false
-        }
+        },
+        interviewMode: "disabled",
+        interviewReadinessThreshold: 0.8,
+        interviewFrequency: "manual"
       };
       
       chrome.runtime.sendMessage(
