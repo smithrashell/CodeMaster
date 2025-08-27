@@ -140,6 +140,30 @@ const { data, loading, error, refresh } = usePageData('page-type');
 3. **Performance Issues**: Check console for timing logs and database query performance
 4. **Mock Data Issues**: Use browser console: `enableMockMode()` and reload
 
+## Performance Guidelines
+
+### Import Strategy
+- **NEVER use dynamic imports** (`await import()`) in performance-critical paths
+- Dynamic imports add 2-3ms overhead per call and should be avoided in:
+  - Background script message handlers
+  - Hint interaction systems
+  - Real-time UI operations
+- **Use static imports** at the top of files for all production code
+- Reserve dynamic imports only for code-splitting large components that aren't performance-critical
+
+### Chrome Extension Performance
+- **Cache module references** in background script on startup
+- **Avoid repeated IndexedDB queries** - cache frequently accessed data
+- **Minimize Chrome messaging round trips** - batch operations when possible
+- **Remove verbose console.log statements** in production code
+- Keep hint interactions and UI operations under 5ms target
+
+### Database Operations
+- **Batch IndexedDB operations** when possible
+- **Cache problem/session context** rather than querying per interaction
+- **Use efficient IndexedDB indexes** for frequent queries
+- **Avoid blocking the main thread** with large database operations
+
 ## Development Notes
 
 - Uses Webpack for bundling with separate dev/prod configurations

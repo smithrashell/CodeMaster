@@ -47,7 +47,7 @@ export function calculateDecayScore(lastAttemptDate, successRate, stability) {
 }
 
 export function createAttemptRecord(attemptData) {
-  return {
+  const baseRecord = {
     id: attemptData.id,
     SessionID: attemptData.SessionID,
     ProblemID: attemptData.ProblemID,
@@ -57,6 +57,23 @@ export function createAttemptRecord(attemptData) {
     Difficulty: attemptData.Difficulty,
     Comments: attemptData.Comments || "",
   };
+
+  // Add interview signals if present
+  if (attemptData.interviewSignals) {
+    baseRecord.interviewSignals = {
+      transferAccuracy: attemptData.interviewSignals.transferAccuracy,
+      speedDelta: attemptData.interviewSignals.speedDelta,
+      hintPressure: attemptData.interviewSignals.hintPressure,
+      timeToFirstPlanMs: attemptData.interviewSignals.timeToFirstPlanMs,
+      timeToFirstKeystroke: attemptData.interviewSignals.timeToFirstKeystroke,
+      hintsUsed: attemptData.interviewSignals.hintsUsed,
+      hintsRequestedTimes: attemptData.interviewSignals.hintsRequestedTimes || [],
+      approachChosen: attemptData.interviewSignals.approachChosen,
+      stallReasons: attemptData.interviewSignals.stallReasons || []
+    };
+  }
+
+  return baseRecord;
 }
 
 /**
