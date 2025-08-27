@@ -5,6 +5,7 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
+import { useTheme } from "../../../shared/provider/themeprovider";
 import {
   Tooltip,
   Stack,
@@ -29,16 +30,74 @@ const FloatingHintButton = ({
   onOpen,
   onClose,
   onHintClick,
+  interviewConfig = null,
+  sessionType = null,
+  uiMode = 'full-support',
 }) => {
   const [hints, setHints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [opened, setOpened] = useState(false);
   const [expandedHints, setExpandedHints] = useState(new Set());
+  const [hintsUsed, setHintsUsed] = useState(0); // Track hints used in this session
   const buttonRef = useRef(null);
+
+  // Get current theme
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
+  // Theme-aware colors - matching timer component colors exactly
+  const themeColors = useMemo(() => ({
+    light: {
+      buttonBg: {
+        collapsed: "#ffffff",  // Match timer background
+        expanded: "#ffffff",   // Match timer background
+        hover: "#f8f9ff"      // Subtle blue tint on hover
+      },
+      buttonBorder: "#cccccc", // Match timer border
+      expandedBg: "#ffffff",   // Match timer background
+      expandedBorder: "#cccccc", // Match timer border
+      containerBorder: "#cccccc", // Match timer border
+      text: "#000000"         // Match timer text
+    },
+    dark: {
+      buttonBg: {
+        collapsed: "#374151",  // Match timer background
+        expanded: "#374151",   // Match timer background
+        hover: "#4b5563"      // Slightly lighter on hover (matches timer border)
+      },
+      buttonBorder: "#4b5563", // Match timer border
+      expandedBg: "#374151",   // Match timer background
+      expandedBorder: "#4b5563", // Match timer border
+      containerBorder: "#4b5563", // Match timer border
+      text: "#ffffff"         // Match timer text
+    }
+  }), []);
+
+  const colors = isDark ? themeColors.dark : themeColors.light;
 
   // Memoize the stringified tags to prevent effect from running on array reference changes
   const tagsString = useMemo(() => JSON.stringify(problemTags), [problemTags]);
+
+  // Memoize interview restrictions to prevent re-renders
+  const interviewRestrictions = useMemo(() => {
+    if (!interviewConfig || !sessionType || sessionType === 'standard') {
+      return { hintsAllowed: true, maxHints: null, hintsAvailable: true };
+    }
+
+    const maxHints = interviewConfig.hints?.max ?? null;
+    const hintsAllowed = maxHints === null || maxHints > 0;
+    const hintsAvailable = hintsAllowed && (maxHints === null || hintsUsed < maxHints);
+
+    return {
+      hintsAllowed,
+      maxHints,
+      hintsAvailable,
+      hintsRemaining: maxHints === null ? null : Math.max(0, maxHints - hintsUsed),
+      isInterviewMode: true,
+      sessionType,
+    };
+  }, [interviewConfig, sessionType, hintsUsed]);
 
   // Load contextual hints when problem tags change
   useEffect(() => {
@@ -82,24 +141,45 @@ const FloatingHintButton = ({
   }, [hints]);
 
   // Memoize button styles to prevent re-creation on every render
-  const buttonStyles = useMemo(
-    () => ({
-      background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
+  const buttonStyles = useMemo(() => {
+    let baseStyles = {
       border: "none",
       borderRadius: "50%",
-      width: "32px" /* Reduced to match other toolbar icons */,
-      height: "32px" /* Reduced to match other toolbar icons */,
+      width: "32px",
+      height: "32px", 
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       cursor: "pointer",
       position: "relative",
       margin: "0 4px",
-      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
       transition: "all 0.2s ease",
-    }),
-    []
-  );
+    };
+
+    // Apply UI mode-specific styling
+    switch (uiMode) {
+      case 'minimal-clean':
+        return {
+          ...baseStyles,
+          background: "#6b7280", // Muted gray
+          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+        };
+      case 'pressure-indicators':
+        return {
+          ...baseStyles,
+          background: !interviewRestrictions.hintsAvailable 
+            ? "#ef4444" // Red when no hints left
+            : "linear-gradient(135deg, #f59e0b, #d97706)", // Orange gradient
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+        };
+      default: // full-support
+        return {
+          ...baseStyles,
+          background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
+          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+        };
+    }
+  }, [uiMode, interviewRestrictions.hintsAvailable]);
 
   // Memoize callback functions
   const handlePopoverClose = useCallback(() => {
@@ -132,12 +212,22 @@ const FloatingHintButton = ({
     async (hintId, hint, index, hintType) => {
       const isCurrentlyExpanded = expandedHints.has(hintId);
 
+      // Check interview restrictions before expanding hints
+      if (!isCurrentlyExpanded && !interviewRestrictions.hintsAvailable) {
+        // Don't allow expanding if hints are not available in interview mode
+        return;
+      }
+
       setExpandedHints((prev) => {
         const newSet = new Set(prev);
         if (isCurrentlyExpanded) {
           newSet.delete(hintId);
         } else {
           newSet.add(hintId);
+          // Increment hints used when expanding (viewing) a hint in interview mode
+          if (interviewRestrictions.isInterviewMode) {
+            setHintsUsed(prevUsed => prevUsed + 1);
+          }
         }
         return newSet;
       });
@@ -178,7 +268,7 @@ const FloatingHintButton = ({
         onHintClick(hintClickData);
       }
     },
-    [expandedHints, onHintClick, problemTags, hints.length, opened]
+    [expandedHints, onHintClick, problemTags, hints.length, opened, interviewRestrictions]
   );
 
   // Generate a unique hint ID
@@ -188,7 +278,8 @@ const FloatingHintButton = ({
     }-${index}`;
   }, []);
 
-  if (problemTags.length === 0) {
+  // Don't render if no tags or if hints are completely disabled in interview mode
+  if (problemTags.length === 0 || !interviewRestrictions.hintsAllowed) {
     return null;
   }
 
@@ -196,30 +287,36 @@ const FloatingHintButton = ({
     <Popover
       opened={opened}
       onClose={handlePopoverClose}
-      width={350}
+      width={uiMode === 'minimal-clean' ? 300 : 350}
       position="bottom"
       withArrow
       withinPortal
-      shadow="md"
+      shadow={uiMode === 'minimal-clean' ? "sm" : "md"}
       styles={{
         dropdown: {
           maxHeight: "80vh",
           overflowY: "auto",
+          backgroundColor: colors.expandedBg, // Force override Mantine defaults with timer colors
+          borderColor: colors.containerBorder, // Match timer border
+          border: `1px solid ${colors.containerBorder}`, // Ensure border is applied
+          color: colors.text, // Set text color to match timer
         },
       }}
     >
       <Popover.Target>
         <Tooltip
-          label={`${totalHints} strategy hints available`}
+          label={interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
+            ? `${interviewRestrictions.hintsRemaining} of ${interviewRestrictions.maxHints} hints remaining (Interview Mode)`
+            : `${totalHints} strategy hints available`}
           position="top"
         >
           <button
             ref={buttonRef}
             onClick={handleButtonClick}
             style={buttonStyles}
-            aria-label={`${totalHints} strategy hints available. Click to view hints for ${problemTags.join(
-              ", "
-            )}`}
+            aria-label={interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
+              ? `${interviewRestrictions.hintsRemaining} of ${interviewRestrictions.maxHints} hints remaining in Interview Mode. Click to view hints for ${problemTags.join(", ")}`
+              : `${totalHints} strategy hints available. Click to view hints for ${problemTags.join(", ")}`}
             aria-expanded={opened}
             aria-haspopup="dialog"
             onMouseEnter={(e) => {
@@ -238,11 +335,12 @@ const FloatingHintButton = ({
             }}
           >
             <IconBulb size={16} color="white" />
-            {totalHints > 0 && (
+            {(totalHints > 0 || interviewRestrictions.isInterviewMode) && (
               <Badge
                 size="xs"
                 variant="filled"
-                color="red"
+                color={!interviewRestrictions.hintsAvailable ? "gray" : 
+                       interviewRestrictions.isInterviewMode ? "orange" : "red"}
                 style={{
                   position: "absolute",
                   top: -4,
@@ -254,7 +352,9 @@ const FloatingHintButton = ({
                   lineHeight: "16px",
                 }}
               >
-                {totalHints}
+                {interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
+                  ? interviewRestrictions.hintsRemaining
+                  : totalHints}
               </Badge>
             )}
           </button>
@@ -267,9 +367,14 @@ const FloatingHintButton = ({
           <Group justify="space-between" mb="sm">
             <Group gap="xs">
               <IconBulb size={20} color="#ffd43b" />
-              <Text fw={600} size="sm">
+              <Text fw={600} size="sm" c={colors.text}>
                 Strategy Hints
               </Text>
+              {interviewRestrictions.isInterviewMode && (
+                <Badge size="xs" color="orange" variant="light">
+                  Interview Mode
+                </Badge>
+              )}
             </Group>
             <Group gap="xs">
               {problemTags.map((tag) => (
@@ -280,10 +385,24 @@ const FloatingHintButton = ({
             </Group>
           </Group>
 
+          {/* Interview restrictions warning */}
+          {interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null && (
+            <Alert
+              color="orange"
+              variant="light"
+              mb="sm"
+              styles={{ body: { fontSize: '12px' } }}
+            >
+              {interviewRestrictions.hintsAvailable 
+                ? `${interviewRestrictions.hintsRemaining} hints remaining in this interview session`
+                : 'No hints remaining in this interview session'}
+            </Alert>
+          )}
+
           {loading && (
             <Group justify="center" p="md">
               <Loader size="sm" />
-              <Text size="sm" c="dimmed">
+              <Text size="sm" c={colors.text} style={{ opacity: 0.7 }}>
                 Loading...
               </Text>
             </Group>
@@ -301,7 +420,7 @@ const FloatingHintButton = ({
           )}
 
           {!loading && !error && hints.length === 0 && (
-            <Text size="sm" c="dimmed" ta="center" p="md">
+            <Text size="sm" c={colors.text} ta="center" p="md" style={{ opacity: 0.7 }}>
               No strategy hints available.
             </Text>
           )}
@@ -311,7 +430,7 @@ const FloatingHintButton = ({
               {/* Contextual hints (higher priority) */}
               {contextualHints.length > 0 && (
                 <>
-                  <Text size="xs" fw={500} c="blue" tt="uppercase" mb="xs">
+                  <Text size="xs" fw={500} c={colors.text} tt="uppercase" mb="xs" style={{ opacity: 0.8 }}>
                     Multi-Tag Strategies ({contextualHints.length})
                   </Text>
                   {contextualHints.map((hint, index) => {
@@ -322,7 +441,7 @@ const FloatingHintButton = ({
                       <div
                         key={hintId}
                         style={{
-                          border: "1px solid #e9ecef",
+                          border: `1px solid ${colors.containerBorder}`,
                           borderRadius: "6px",
                         }}
                       >
@@ -332,24 +451,27 @@ const FloatingHintButton = ({
                           tabIndex={0}
                           style={{
                             padding: "10px 14px",
-                            cursor: "pointer",
-                            backgroundColor: isExpanded ? "#f8f9ff" : "#fafafa",
+                            cursor: interviewRestrictions.hintsAvailable ? "pointer" : "not-allowed",
+                            backgroundColor: isExpanded ? colors.buttonBg.expanded : colors.buttonBg.collapsed,
                             borderRadius: "6px",
                             transition: "background-color 0.2s ease",
                             borderBottom: isExpanded
-                              ? "1px solid #e6f3ff"
+                              ? `1px solid ${colors.buttonBorder}`
                               : "none",
+                            opacity: !interviewRestrictions.hintsAvailable ? 0.5 : 1,
                           }}
-                          onClick={() =>
-                            toggleHintExpansion(
-                              hintId,
-                              hint,
-                              index,
-                              "contextual"
-                            )
-                          }
+                          onClick={() => {
+                            if (interviewRestrictions.hintsAvailable) {
+                              toggleHintExpansion(
+                                hintId,
+                                hint,
+                                index,
+                                "contextual"
+                              );
+                            }
+                          }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
+                            if ((e.key === "Enter" || e.key === " ") && interviewRestrictions.hintsAvailable) {
                               e.preventDefault();
                               toggleHintExpansion(
                                 hintId,
@@ -360,14 +482,12 @@ const FloatingHintButton = ({
                             }
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = isExpanded
-                              ? "#f0f6ff"
-                              : "#f0f6ff";
+                            e.currentTarget.style.backgroundColor = colors.buttonBg.hover;
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = isExpanded
-                              ? "#f8f9ff"
-                              : "#fafafa";
+                              ? colors.buttonBg.expanded
+                              : colors.buttonBg.collapsed;
                           }}
                           aria-label={`${isExpanded ? "Collapse" : "Expand"} ${
                             hint.primaryTag
@@ -376,10 +496,10 @@ const FloatingHintButton = ({
                           <Text
                             size="sm"
                             fw={500}
-                            c="dark"
                             style={{
                               textTransform: "capitalize",
                               letterSpacing: "0.3px",
+                              color: colors.text
                             }}
                           >
                             {hint.primaryTag} + {hint.relatedTag}
@@ -391,16 +511,18 @@ const FloatingHintButton = ({
                           <div
                             style={{
                               padding: "12px 14px",
-                              backgroundColor: "#ffffff",
+                              backgroundColor: colors.expandedBg,
                               borderRadius: "0 0 6px 6px",
-                              borderTop: "1px solid #f0f6ff",
+                              borderTop: `1px solid ${colors.expandedBorder}`,
                             }}
                           >
                             <Text
                               size="sm"
                               lh={1.6}
-                              c="dark"
-                              style={{ lineHeight: "1.5" }}
+                              style={{ 
+                                lineHeight: "1.5",
+                                color: colors.text
+                              }}
                             >
                               {hint.tip}
                             </Text>
@@ -418,14 +540,14 @@ const FloatingHintButton = ({
                   {contextualHints.length > 0 && (
                     <div style={{ height: "8px" }} />
                   )}
-                  <Text size="xs" fw={500} c="gray" tt="uppercase" mb="xs">
+                  <Text size="xs" fw={500} c={colors.text} tt="uppercase" mb="xs" style={{ opacity: 0.8 }}>
                     General Strategies ({generalHints.length})
                   </Text>
                   {generalHints.map((hint, index) => {
                     const hintId = getHintId(
                       hint,
                       index + contextualHints.length,
-                      hint.type || "general"
+                      "contextual"
                     );
                     const isExpanded = expandedHints.has(hintId);
 
@@ -433,7 +555,7 @@ const FloatingHintButton = ({
                       <div
                         key={hintId}
                         style={{
-                          border: "1px solid #e9ecef",
+                          border: `1px solid ${colors.containerBorder}`,
                           borderRadius: "6px",
                         }}
                       >
@@ -443,40 +565,43 @@ const FloatingHintButton = ({
                           tabIndex={0}
                           style={{
                             padding: "10px 14px",
-                            cursor: "pointer",
-                            backgroundColor: isExpanded ? "#f9f9f9" : "#fafafa",
+                            cursor: interviewRestrictions.hintsAvailable ? "pointer" : "not-allowed",
+                            backgroundColor: isExpanded ? colors.buttonBg.expanded : colors.buttonBg.collapsed,
                             borderRadius: "6px",
                             transition: "background-color 0.2s ease",
                             borderBottom: isExpanded
-                              ? "1px solid #e9ecef"
+                              ? `1px solid ${colors.buttonBorder}`
                               : "none",
+                            opacity: !interviewRestrictions.hintsAvailable ? 0.5 : 1,
                           }}
-                          onClick={() =>
-                            toggleHintExpansion(
-                              hintId,
-                              hint,
-                              index + contextualHints.length,
-                              hint.type || "general"
-                            )
-                          }
+                          onClick={() => {
+                            if (interviewRestrictions.hintsAvailable) {
+                              toggleHintExpansion(
+                                hintId,
+                                hint,
+                                index + contextualHints.length,
+                                "contextual"
+                              );
+                            }
+                          }}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
+                            if ((e.key === "Enter" || e.key === " ") && interviewRestrictions.hintsAvailable) {
                               e.preventDefault();
                               toggleHintExpansion(
                                 hintId,
                                 hint,
                                 index + contextualHints.length,
-                                hint.type || "general"
+                                "contextual"
                               );
                             }
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = "#f0f0f0";
+                            e.currentTarget.style.backgroundColor = colors.buttonBg.hover;
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = isExpanded
-                              ? "#f9f9f9"
-                              : "#fafafa";
+                              ? colors.buttonBg.expanded
+                              : colors.buttonBg.collapsed;
                           }}
                           aria-label={`${isExpanded ? "Collapse" : "Expand"} ${
                             hint.primaryTag
@@ -487,10 +612,10 @@ const FloatingHintButton = ({
                           <Text
                             size="sm"
                             fw={500}
-                            c="dark"
                             style={{
                               textTransform: "capitalize",
                               letterSpacing: "0.3px",
+                              color: colors.text
                             }}
                           >
                             {hint.primaryTag}
@@ -503,16 +628,18 @@ const FloatingHintButton = ({
                           <div
                             style={{
                               padding: "12px 14px",
-                              backgroundColor: "#ffffff",
+                              backgroundColor: colors.expandedBg,
                               borderRadius: "0 0 6px 6px",
-                              borderTop: "1px solid #f0f0f0",
+                              borderTop: `1px solid ${colors.expandedBorder}`,
                             }}
                           >
                             <Text
                               size="sm"
                               lh={1.6}
-                              c="dark"
-                              style={{ lineHeight: "1.5" }}
+                              style={{ 
+                                lineHeight: "1.5",
+                                color: colors.text
+                              }}
                             >
                               {hint.tip}
                             </Text>

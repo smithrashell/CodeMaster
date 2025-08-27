@@ -42,6 +42,11 @@ const ProbDetail = ({ isLoading }) => {
     lastSolved: routeState?.problemData?.lastSolved || "Never",
   };
 
+  // Extract interview mode information
+  const interviewConfig = routeState?.problemData?.interviewConstraints || null;
+  const sessionType = routeState?.problemData?.sessionType || null;
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+
   // DEBUG: Log problem data and route state
   console.log("🔍 ProbDetail routeState:", routeState);
   console.log("🔍 ProbDetail problemData:", problemData);
@@ -61,6 +66,8 @@ const ProbDetail = ({ isLoading }) => {
         LeetCodeID: problemData.leetCodeID,
         Description: problemData.ProblemDescription,
         Tags: problemData.tags,
+        interviewConfig: interviewConfig,
+        sessionType: sessionType,
       },
     });
   };
@@ -84,6 +91,72 @@ const ProbDetail = ({ isLoading }) => {
     return "default";
   };
 
+  // Interview Mode Banner Component
+  const InterviewModeBanner = () => {
+    if (!isInterviewMode) return null;
+
+    const modeDisplayName = sessionType === 'interview-like' ? 'Interview Practice' : 
+                           sessionType === 'full-interview' ? 'Full Interview' : 
+                           'Interview Mode';
+    
+    const constraints = [];
+    if (interviewConfig?.hints?.max !== null && interviewConfig?.hints?.max !== undefined) {
+      constraints.push(`${interviewConfig.hints.max} hint${interviewConfig.hints.max !== 1 ? 's' : ''} max`);
+    }
+    if (interviewConfig?.timing?.hardCutoff) {
+      constraints.push('hard time limits');
+    }
+    if (interviewConfig?.primers?.available === false) {
+      constraints.push('no strategy guides');
+    }
+
+    const bannerStyle = {
+      backgroundColor: sessionType === 'full-interview' ? '#fef2f2' : '#fff7ed', // Light red or orange
+      border: `1px solid ${sessionType === 'full-interview' ? '#fecaca' : '#fed7aa'}`,
+      borderRadius: '8px',
+      padding: '12px 16px',
+      margin: '12px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    };
+
+    const iconStyle = {
+      fontSize: '16px',
+      color: sessionType === 'full-interview' ? '#dc2626' : '#ea580c'
+    };
+
+    const textStyle = {
+      fontSize: '13px',
+      color: sessionType === 'full-interview' ? '#7f1d1d' : '#9a3412',
+      fontWeight: '500'
+    };
+
+    const constraintStyle = {
+      fontSize: '11px',
+      color: sessionType === 'full-interview' ? '#991b1b' : '#c2410c',
+      marginLeft: '4px'
+    };
+
+    return (
+      <div style={bannerStyle}>
+        <span style={iconStyle}>
+          {sessionType === 'full-interview' ? '🎯' : '💪'}
+        </span>
+        <div>
+          <div style={textStyle}>
+            {modeDisplayName} Mode Active
+          </div>
+          {constraints.length > 0 && (
+            <div style={constraintStyle}>
+              {constraints.join(' • ')}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (isLoading && !problemData.leetCodeID) {
     return (
       <p
@@ -101,6 +174,9 @@ const ProbDetail = ({ isLoading }) => {
   return (
     <>
       <div className="cm-sidenav__content">
+        {/* Interview Mode Banner */}
+        <InterviewModeBanner />
+
         {/* Main Content Card */}
         <div className={styles.card}>
           <div className={styles.header}>
@@ -159,7 +235,12 @@ const ProbDetail = ({ isLoading }) => {
         </div>
 
         {/* Tags with Strategy Grid */}
-        <TagStrategyGrid problemTags={problemData?.tags || []} />
+        <TagStrategyGrid 
+          problemTags={problemData?.tags || []} 
+          problemId={problemData?.leetCodeID || problemData?.id}
+          interviewConfig={interviewConfig}
+          sessionType={sessionType}
+        />
 
         {/* Why This Problem Section - Show reasoning for problem selection */}
         {routeState?.problemData?.selectionReason && (

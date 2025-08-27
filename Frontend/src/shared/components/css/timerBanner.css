@@ -101,3 +101,54 @@
   font-size: 8rem;
   z-index: var(--cm-z-overlay, 9500);
 }
+
+/* UI Mode Specific Styles */
+
+/* Pressure indicators mode - enhanced visual feedback */
+.timer-pressure {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+.timer-pressure.timer-warning-2,
+.timer-pressure.timer-warning-3 {
+  animation: urgent-pulse 1s ease-in-out infinite;
+}
+
+/* Minimal clean mode - subdued appearance */
+.timer-minimal {
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+.timer-minimal.timer-warning-1 {
+  color: #9ca3af !important; /* Muted warning */
+}
+
+.timer-minimal.timer-warning-2 {
+  color: #6b7280 !important; /* More muted */
+}
+
+.timer-minimal.timer-warning-3 {
+  color: #4b5563 !important; /* Very muted */
+}
+
+/* Animations */
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes urgent-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
