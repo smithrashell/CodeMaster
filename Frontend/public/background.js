@@ -4,10 +4,12 @@ import { SessionService } from "../src/shared/services/sessionService.js";
 import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { TagService } from "../src/shared/services/tagServices.js";
+import { HintInteractionService } from "../src/shared/services/hintInteractionService.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
 import { connect } from "chrome-extension-hot-reload";
 import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
 import { getStrategyForTag } from "../src/shared/db/strategy_data.js";
+import { getProblem } from "../src/shared/db/problems.js";
 import { 
   getDashboardStatistics,
   getFocusAreaAnalytics,
@@ -19,9 +21,11 @@ import {
   getTagMasteryData,
   getLearningPathData,
   getMistakeAnalysisData,
-  clearFocusAreaAnalyticsCache
+  clearFocusAreaAnalyticsCache,
+  getInterviewAnalyticsData
 } from "../src/app/services/dashboardService.js";
 import FocusCoordinationService from "../src/shared/services/focusCoordinationService.js";
+import { InterviewService } from "../src/shared/services/interviewService.js";
 
 connect(); // handles app and popup
 
@@ -45,11 +49,62 @@ self.addEventListener('activate', (event) => {
 });
 
 // Add startup message to confirm service worker is running
+// Track background script startup time for health monitoring
+global.backgroundStartTime = Date.now();
 console.log('🚀 SERVICE WORKER: Background script loaded and ready for messages');
+
+// Emergency cleanup on background script startup
+console.log('🔧 Performing startup cleanup...');
+// Clear any potential mutex locks from previous instance
+setTimeout(() => {
+  // Import SessionService and reset mutex if available
+  if (typeof SessionService !== 'undefined' && SessionService.resetSessionCreationMutex) {
+    const resetResult = SessionService.resetSessionCreationMutex();
+    console.log('🔧 Startup mutex reset:', resetResult);
+  }
+  
+  // Clear request queue from potential previous instance
+  activeRequests = {};
+  requestQueue = [];
+  isProcessing = false;
+  
+  console.log('✅ Background script startup cleanup completed');
+}, 100); // Small delay to ensure imports are loaded
+
+// Helper function to add timeout protection to async operations
+const withTimeout = (promise, timeoutMs, operationName = 'Operation') => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`${operationName} timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+};
 
 let activeRequests = {};
 let requestQueue = [];
 let isProcessing = false;
+
+// Simplified background script health monitoring
+const backgroundScriptHealth = {
+  startTime: Date.now(),
+  requestCount: 0,
+  
+  recordRequest() {
+    this.requestCount++;
+  },
+  
+  getHealthReport() {
+    const uptime = Date.now() - this.startTime;
+    return {
+      uptime,
+      requestCount: this.requestCount,
+      activeRequests: Object.keys(activeRequests).length,
+      queueLength: requestQueue.length,
+      isProcessing
+    };
+  }
+};
 
 // Add response caching to prevent repeated expensive queries
 const responseCache = new Map();
@@ -84,17 +139,97 @@ const setCachedResponse = (key, data) => {
   }
 };
 
+// Universal cache key generation for different request types
+const generateCacheKey = (request) => {
+  switch (request.type) {
+    // Problem-related operations
+    case 'getProblemByDescription': 
+      return `problem_slug_${request.slug}`;
+    case 'saveHintInteraction': 
+      return request.data?.problemId ? `problem_ctx_${request.data.problemId}` : null;
+    
+    // Dashboard data operations
+    case 'getStatsData': 
+      return `stats_${request.timeframe || 'all'}`;
+    case 'getSessionHistoryData': 
+      return `sessions_${JSON.stringify(request.filters || {})}`;
+    case 'getTagMasteryData': 
+      return `mastery_${request.timeframe || 'current'}`;
+    case 'getLearningProgressData': 
+      return `progress_${request.period || 'all'}`;
+    case 'getProductivityInsightsData': 
+      return `productivity_${request.period || 'all'}`;
+    case 'getLearningPathData': 
+      return `learning_path_${request.filters || 'all'}`;
+    case 'getMistakeAnalysisData': 
+      return `mistakes_${request.period || 'all'}`;
+    case 'getInterviewAnalyticsData': 
+      return `interview_${request.period || 'all'}`;
+    
+    // Strategy operations
+    case 'getStrategyForTag': 
+      return `strategy_${request.tag}`;
+    
+    // Settings operations (short TTL)
+    case 'getSettings': 
+      return `settings_${request.key || 'all'}`;
+    case 'getStorage': 
+      return `storage_${request.key}`;
+    
+    // Non-cacheable operations (return null)
+    case 'setSettings':
+    case 'setStorage': 
+    case 'removeStorage':
+    case 'addProblem':
+    case 'backupIndexedDB':
+    case 'createSession':
+    default: 
+      return null; // Not cacheable
+  }
+};
+
+// Universal cache wrapper for all background script requests
+const handleRequest = async (request, sender, sendResponse) => {
+  const cacheKey = generateCacheKey(request);
+  
+  // Check cache for cacheable requests
+  if (cacheKey) {
+    const cached = getCachedResponse(cacheKey);
+    if (cached) {
+      console.log(`🔥 Cache HIT: ${request.type} - ${cacheKey}`);
+      sendResponse(cached);
+      return;
+    }
+    console.log(`💾 Cache MISS: ${request.type} - ${cacheKey}`);
+  }
+  
+  // For non-cacheable requests or cache misses, execute original handler
+  // Wrap sendResponse to capture responses for caching
+  let capturedResponse = null;
+  const wrappedSendResponse = (response) => {
+    capturedResponse = response;
+    
+    // Cache successful responses for cacheable requests
+    if (cacheKey && response && !response.error) {
+      setCachedResponse(cacheKey, response);
+      console.log(`✅ Cached: ${request.type} - ${cacheKey}`);
+    }
+    
+    sendResponse(response);
+  };
+  
+  // Execute original handler with wrapped sendResponse
+  return handleRequestOriginal(request, sender, wrappedSendResponse);
+};
+
 const processNextRequest = () => {
   if (requestQueue.length === 0) {
-    console.log("🔍 BACKGROUND DEBUG: Queue empty, stopping processing");
     isProcessing = false;
     return;
   }
   isProcessing = true;
   const { request, sender, sendResponse } = requestQueue.shift();
-  console.log("🔍 BACKGROUND DEBUG: Processing request:", request.type);
   handleRequest(request, sender, sendResponse).finally(() => {
-    console.log("🔍 BACKGROUND DEBUG: Finished processing:", request.type);
     processNextRequest();
   });
 };
@@ -169,7 +304,11 @@ const getStrategyMapData = async () => {
   }
 };
 
-const handleRequest = async (request, sender, sendResponse) => {
+const handleRequestOriginal = async (request, sender, sendResponse) => {
+  // Record request for health monitoring
+  backgroundScriptHealth.recordRequest();
+  const requestStartTime = Date.now();
+  
   // Generate unique request ID, including tag parameter for strategy requests
   let requestId = `${request.type}-${sender.tab?.id || "background"}`;
   if (request.type === "getStrategyForTag" && request.tag) {
@@ -178,8 +317,17 @@ const handleRequest = async (request, sender, sendResponse) => {
 
   if (activeRequests[requestId]) return;
   activeRequests[requestId] = true;
+  
   const finishRequest = () => {
     delete activeRequests[requestId];
+    const duration = Date.now() - requestStartTime;
+    
+    // Record timeout if request took too long
+    if (duration > 10000) { // 10 second threshold
+      backgroundScriptHealth.recordTimeout(duration);
+      console.warn(`⏰ Slow request detected: ${request.type} took ${duration}ms`);
+    }
+    
     processNextRequest();
   };
 
@@ -292,6 +440,14 @@ const handleRequest = async (request, sender, sendResponse) => {
           .catch(() => sendResponse({ error: "Failed to add problem" }))
           .finally(finishRequest);
         return true;
+
+      case "skipProblem":
+        console.log("⏭️ Skipping problem:", request.consentScriptData?.leetCodeID || "unknown");
+        // Acknowledge the skip request - no additional processing needed
+        sendResponse({ message: "Problem skipped successfully" });
+        finishRequest();
+        return true;
+
       case "getAllProblems":
         ProblemService.getAllProblems()
           .then(sendResponse)
@@ -307,7 +463,72 @@ const handleRequest = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
+      case "getOrCreateSession":
+        const startTime = Date.now();
+        
+        // Check if we should show interview banner instead of auto-creating session
+        if (!request.sessionType) {
+          try {
+            const settings = await StorageService.getSettings();
+            if (settings?.interviewMode && 
+                settings.interviewMode !== 'disabled' && 
+                settings.interviewFrequency === 'manual') {
+              // Return null to trigger banner display
+              sendResponse({ session: null });
+              finishRequest();
+              return true;
+            }
+          } catch (error) {
+            console.error('Error checking settings for banner logic:', error);
+            // Continue with fallback behavior
+          }
+        }
+        
+        // Use explicit sessionType or default to standard (DO NOT auto-trigger interview sessions)
+        const sessionType = request.sessionType || 'standard';
+        
+        // Add timeout monitoring
+        const timeoutId = setTimeout(() => {
+          const elapsed = Date.now() - startTime;
+          console.error(`⏰ getOrCreateSession TIMEOUT after ${elapsed}ms for ${sessionType}`);
+        }, 30000);
+        
+        withTimeout(
+          SessionService.getOrCreateSession(sessionType),
+          25000, // 25 second timeout for session creation
+          `SessionService.getOrCreateSession(${sessionType})`
+        )
+          .then((session) => {
+            clearTimeout(timeoutId);
+            const duration = Date.now() - startTime;
+            
+            sendResponse({
+              session: session,
+              backgroundScriptData: `${sessionType} session retrieved in ${duration}ms`,
+            });
+          })
+          .catch((error) => {
+            const duration = Date.now() - startTime;
+            console.error(`❌ Error in getOrCreateSession after ${duration}ms:`, error);
+            
+            sendResponse({
+              session: null,
+              backgroundScriptData: `Failed to create session`,
+              error: `Session creation failed: ${error.message}`,
+              duration: duration,
+              isEmergencyResponse: true
+            });
+          })
+          .finally(() => {
+            clearTimeout(timeoutId);
+            finishRequest();
+          });
+        return true;
+
       case "getCurrentSession":
+        // DEPRECATED: Use getOrCreateSession instead 
+        // Kept for backward compatibility
+        console.warn("⚠️ getCurrentSession is deprecated, use getOrCreateSession instead");
         // const fileUrl = chrome.runtime.getURL("LeetCode_Tags_Combined.json");
         // console.log("updateStandardProblems");
         // updateStandardProblemsFromData(leetCodeProblems)
@@ -402,7 +623,18 @@ const handleRequest = async (request, sender, sendResponse) => {
         //    remove: ["ladderPreview"],
         //  }).catch(error => console.log(error))
         //  console.log("result", result)
-        SessionService.getOrCreateSession()
+        StorageService.getSettings()
+          .then(async (settings) => {
+            console.log("getCurrentSession - checking interview mode:", settings?.interviewMode, "frequency:", settings?.interviewFrequency);
+            
+            // Determine session type based on settings
+            let sessionType = 'standard';
+            if (settings?.interviewMode && settings.interviewMode !== "disabled") {
+              sessionType = settings.interviewMode;
+            }
+            
+            return SessionService.getOrCreateSession(sessionType);
+          })
           .then((session) => {
             console.log("getCurrentSession - session:", session);
             sendResponse({
@@ -414,6 +646,106 @@ const handleRequest = async (request, sender, sendResponse) => {
             sendResponse({
               error: "Failed to get current session",
               session: [],
+            });
+          })
+          .finally(finishRequest);
+        return true;
+
+      /** ──────────────── Interview Session Handlers (REMOVED - use getOrCreateSession with sessionType) ──────────────── **/
+
+      case "checkInterviewFrequency":
+        console.log("🕐 Checking interview frequency requirements");
+        StorageService.getSettings()
+          .then(async (settings) => {
+            const shouldCreate = await SessionService.shouldCreateInterviewSession(
+              settings?.interviewFrequency, 
+              settings?.interviewMode
+            );
+            
+            if (shouldCreate && settings?.interviewMode && settings?.interviewMode !== "disabled") {
+              console.log(`Creating interview session based on ${settings.interviewFrequency} frequency`);
+              return SessionService.createInterviewSession(settings.interviewMode);
+            }
+            
+            console.log(`No interview session needed for ${settings?.interviewFrequency} frequency`);
+            return null;
+          })
+          .then((session) => {
+            sendResponse({ 
+              session,
+              backgroundScriptData: session ? "Frequency-based interview session created" : "No interview session needed"
+            });
+          })
+          .catch((error) => {
+            console.error("❌ Failed to check interview frequency:", error);
+            sendResponse({ 
+              error: "Failed to check interview frequency",
+              session: null
+            });
+          })
+          .finally(finishRequest);
+        return true;
+
+      case "getInterviewReadiness":
+        console.log("🎯 Assessing interview readiness");
+        InterviewService.assessInterviewReadiness()
+          .then((readiness) => {
+            console.log("✅ Interview readiness assessed:", readiness);
+            sendResponse(readiness);
+          })
+          .catch((error) => {
+            console.error("❌ Failed to assess interview readiness:", error);
+            // Safe fallback for development
+            sendResponse({
+              interviewLikeUnlocked: true,
+              fullInterviewUnlocked: true,
+              reasoning: "Fallback mode - all modes available",
+              metrics: { accuracy: 0, masteredTagsCount: 0, totalTags: 0, transferReadinessScore: 0 }
+            });
+          })
+          .finally(finishRequest);
+        return true;
+
+      // NOTE: startInterviewSession removed - use getOrCreateSession with explicit sessionType instead
+
+      case "getInterviewAnalytics":
+        console.log("🎯 Getting interview analytics");
+        getInterviewAnalyticsData(request.filters)
+          .then((analyticsData) => {
+            console.log("✅ Interview analytics retrieved:", analyticsData);
+            sendResponse({ 
+              ...analyticsData,
+              backgroundScriptData: "Interview analytics retrieved from dashboard service"
+            });
+          })
+          .catch((error) => {
+            console.error("❌ Failed to get interview analytics:", error);
+            sendResponse({ 
+              analytics: [],
+              metrics: {},
+              recommendations: [],
+              error: "Failed to get interview analytics"
+            });
+          })
+          .finally(finishRequest);
+        return true;
+
+      case "completeInterviewSession":
+        console.log(`🎯 Completing interview session ${request.sessionId}`);
+        SessionService.checkAndCompleteInterviewSession(request.sessionId)
+          .then((result) => {
+            console.log("✅ Interview session completion result:", result);
+            sendResponse({ 
+              completed: result === true,
+              unattemptedProblems: Array.isArray(result) ? result : [],
+              backgroundScriptData: "Interview session completion handled"
+            });
+          })
+          .catch((error) => {
+            console.error("❌ Failed to complete interview session:", error);
+            sendResponse({ 
+              error: "Failed to complete interview session",
+              completed: false
             });
           })
           .finally(finishRequest);
@@ -478,6 +810,21 @@ const handleRequest = async (request, sender, sendResponse) => {
           .then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
+        return true;
+
+      /** ──────────────── Background Script Health & Management ──────────────── **/
+      case "backgroundScriptHealth":
+        const healthReport = backgroundScriptHealth.getHealthReport();
+        console.log("🏥 Background script health check:", healthReport);
+        sendResponse({ status: "success", data: healthReport });
+        finishRequest();
+        return true;
+        
+      case "emergencyReset":
+        console.warn("🚑 Emergency reset requested from content script");
+        backgroundScriptHealth.emergencyReset();
+        sendResponse({ status: "success", message: "Emergency reset completed" });
+        finishRequest();
         return true;
 
       /** ──────────────── Strategy Map Data ──────────────── **/
@@ -696,6 +1043,63 @@ const handleRequest = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
+      /** ──────────────── Hint Interaction Database Operations ──────────────── **/
+      case "saveHintInteraction":
+        console.log("💾 Saving hint interaction from content script");
+        
+        // Get problem context in background script first to avoid IndexedDB access in content script
+        (async () => {
+          let enrichedData = { ...request.data };
+          
+          if (request.data.problemId) {
+            try {
+              const problem = await getProblem(request.data.problemId);
+              if (problem) {
+                enrichedData.boxLevel = problem.box || 1;
+                enrichedData.problemDifficulty = problem.difficulty || "Medium";
+                console.log("✅ Enriched hint interaction with problem context:", {
+                  problemId: problem.id,
+                  boxLevel: enrichedData.boxLevel,
+                  difficulty: enrichedData.problemDifficulty
+                });
+              }
+            } catch (error) {
+              console.warn("Could not enrich with problem context:", error);
+              // Continue with fallback values - no problem context but interaction still saved
+            }
+          }
+          
+          return HintInteractionService.saveHintInteraction(enrichedData, request.sessionContext || {});
+        })()
+          .then((interaction) => sendResponse({ interaction }))
+          .catch((error) => {
+            console.error("❌ Background script failed to save hint interaction:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+
+      case "getInteractionsByProblem":
+        HintInteractionService.getInteractionsByProblem(request.problemId)
+          .then((interactions) => sendResponse({ interactions }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getInteractionsBySession":
+        HintInteractionService.getInteractionsBySession(request.sessionId)
+          .then((interactions) => sendResponse({ interactions }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getInteractionStats":
+        HintInteractionService.getInteractionStats(request.filters || {})
+          .then((stats) => sendResponse({ stats }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
       case "getFocusAreaAnalytics":
         getFocusAreaAnalytics(request.options || {})
           .then((result) => sendResponse({ result }))
@@ -807,6 +1211,7 @@ const handleRequest = async (request, sender, sendResponse) => {
         (async () => {
           try {
             const { operation, params } = request;
+            console.log(`📊 DATABASE_OPERATION: ${operation} on ${params.storeName}`, params);
             const { getRecord, addRecord, updateRecord, deleteRecord, getAllFromStore } = await import("../src/shared/db/common.js");
 
             let result;
@@ -818,7 +1223,9 @@ const handleRequest = async (request, sender, sendResponse) => {
                 result = await addRecord(params.storeName, params.record);
                 break;
               case "updateRecord":
+                console.log(`📝 Updating record ${params.id} in ${params.storeName}:`, params.record);
                 result = await updateRecord(params.storeName, params.id, params.record);
+                console.log(`✅ Update completed for ${params.id}:`, result);
                 break;
               case "deleteRecord":
                 result = await deleteRecord(params.storeName, params.id);
@@ -830,9 +1237,10 @@ const handleRequest = async (request, sender, sendResponse) => {
                 throw new Error(`Unknown database operation: ${operation}`);
             }
 
+            console.log(`📊 DATABASE_OPERATION result:`, result);
             sendResponse({ data: result });
           } catch (error) {
-            console.error(`❌ Database proxy error:`, error);
+            console.error(`❌ Database proxy error for ${request.operation}:`, error);
             sendResponse({ error: error.message });
           }
         })().finally(finishRequest);
@@ -851,24 +1259,57 @@ const handleRequest = async (request, sender, sendResponse) => {
 
 const contentPorts = {};
 
-chrome.action.onClicked.addListener((tab) => {
-  // Open your React application in a new tab
-
-  chrome.tabs.create({ url: "app.html" });
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    // Check for existing dashboard tabs first
+    const existingTabs = await chrome.tabs.query({ url: chrome.runtime.getURL("app.html") });
+    
+    if (existingTabs.length > 0) {
+      // Focus the existing dashboard tab instead of creating a new one
+      const existingTab = existingTabs[0];
+      console.log("📱 Focusing existing dashboard tab:", existingTab.id);
+      
+      // Update and focus the existing tab
+      await chrome.tabs.update(existingTab.id, { active: true });
+      
+      // Move to the window containing the tab if needed
+      if (existingTab.windowId) {
+        await chrome.windows.update(existingTab.windowId, { focused: true });
+      }
+    } else {
+      // No existing dashboard tab found, create a new one
+      console.log("📱 Creating new dashboard tab");
+      chrome.tabs.create({ url: "app.html" });
+    }
+  } catch (error) {
+    console.error("❌ Error handling dashboard tab:", error);
+    // Fallback: create new tab anyway
+    chrome.tabs.create({ url: "app.html" });
+  }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log("🔍 BACKGROUND DEBUG: Received request:", request.type, request);
 
-  // Add health check handler for service worker diagnostics
+  // Enhanced health check handler for service worker diagnostics
   if (request.type === 'HEALTH_CHECK') {
     console.log('💚 SERVICE WORKER: Health check received');
-    sendResponse({ 
+    const healthData = {
       status: 'healthy', 
       timestamp: Date.now(),
       activeRequests: Object.keys(activeRequests).length,
-      queueLength: requestQueue.length 
-    });
+      queueLength: requestQueue.length,
+      isProcessing: isProcessing,
+      uptime: Date.now() - (global.backgroundStartTime || Date.now()),
+      memory: performance.memory ? {
+        used: Math.round(performance.memory.usedJSHeapSize / 1024 / 1024),
+        total: Math.round(performance.memory.totalJSHeapSize / 1024 / 1024),
+        limit: Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024)
+      } : null,
+      activeRequestTypes: Object.keys(activeRequests)
+    };
+    console.log('📊 SERVICE WORKER Health Details:', healthData);
+    sendResponse(healthData);
     return true;
   }
 
