@@ -39,13 +39,6 @@ const customTheme = createTheme({
         },
       }),
     },
-    Text: {
-      styles: () => ({
-        root: {
-          color: "var(--cm-text)",
-        },
-      }),
-    },
     Title: {
       styles: () => ({
         root: {
