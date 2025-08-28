@@ -164,6 +164,45 @@ const { data, loading, error, refresh } = usePageData('page-type');
 - **Use efficient IndexedDB indexes** for frequent queries
 - **Avoid blocking the main thread** with large database operations
 
+## Database Access Rules
+
+**CRITICAL**: All service/database access MUST go through the background script using Chrome messaging. This is the same pattern that other pages follow.
+
+### Prohibited Direct Access
+- **NEVER** import and use database services directly from dashboard pages (e.g., `import { HintInteractionService }`)
+- **NEVER** access `src/shared/db/` modules directly from UI components
+- **NEVER** call IndexedDB operations directly from content scripts or dashboard pages
+
+### Required Chrome Messaging Pattern
+All database operations must follow this flow:
+```
+Dashboard/UI → ChromeAPIErrorHandler.sendMessageWithRetry() → Background Script → Database Service → IndexedDB
+```
+
+### How to Add New Database Operations
+1. Create function in `src/app/services/dashboardService.js` and export it
+2. Import the function in `public/background.js`  
+3. Add message handler case: `case "newOperation": newFunction(request.options).then().catch().finally()`
+4. UI calls via: `ChromeAPIErrorHandler.sendMessageWithRetry({ type: 'newOperation' })`
+
+### Examples of Correct Usage
+```javascript
+// ✅ CORRECT - Dashboard page
+const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+  type: 'getHintAnalyticsData',
+  filters: { startDate, endDate }
+});
+
+// ❌ INCORRECT - Dashboard page  
+const analytics = await HintInteractionService.getSystemAnalytics(); // NEVER DO THIS
+```
+
+This architecture ensures:
+- Consistent error handling and retry logic
+- Proper Chrome extension security model
+- Centralized database access control
+- Better performance through background script caching
+
 ## Development Notes
 
 - Uses Webpack for bundling with separate dev/prod configurations

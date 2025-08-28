@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.28] - 2025-08-27
+
+### 📊 Real Hint Analytics Integration (#131)
+
+**Feature Implementation - Dashboard Hint Analytics:**
+- **Real Data Integration** - Replaced mock hint usage data with real analytics from `HintInteractionService.getSystemAnalytics()`
+- **Architecture Correction** - Fixed Chrome messaging approach by integrating hint analytics directly into `getDashboardStatistics()`
+- **Performance Optimization** - Eliminated unnecessary Chrome messaging overhead and connection failures
+- **Database Access Pattern** - Follows CodeMaster architecture with background script database access via dynamic imports
+
+**Technical Details:**
+- **Data Source** - Dashboard now displays actual hint interaction counts from `hint_interactions` database
+- **Data Structure** - Transforms analytics into UI-friendly format: `{ total, contextual, general, primer }`
+- **Background Integration** - Hint analytics processed in background script context alongside other dashboard statistics
+- **Error Handling** - Graceful fallback to default values if hint analytics unavailable
+
+**Files Modified:**
+- `src/app/services/dashboardService.js` - Integrated real hint analytics into `getDashboardStatistics()`
+- `public/background.js` - Removed unnecessary `getHintAnalyticsData` Chrome message handler
+- `CLAUDE.md` - Enhanced database access rules documentation
+
 ## [0.10.27] - 2025-08-27
 
 ### 🚀 Universal Background Script Cache System & Performance Optimization
