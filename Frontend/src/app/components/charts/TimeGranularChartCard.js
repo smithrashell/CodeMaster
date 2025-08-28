@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { Card, Text, SegmentedControl } from "@mantine/core";
 import {
   ResponsiveContainer,
@@ -18,7 +18,8 @@ import {
 import { useThemeColors } from "../../../shared/hooks/useThemeColors";
 
 // PIE_COLORS will be set dynamically using theme colors
-function isPromotionTrendShape(data) {
+// Utility function for performance (removed memo to avoid React Hooks issue)
+const isPromotionTrendShape = (data) => {
   const requiredKeys = ["weekly", "monthly", "yearly"];
   const requiredFields = ["name", "attempted", "passed", "failed"];
 
@@ -40,9 +41,9 @@ function isPromotionTrendShape(data) {
   }
 
   return true;
-}
+};
 
-export default function TimeGranularChartCard({
+function TimeGranularChartCard({
   title,
   data,
   chartType = "line", // can now be "line", "bar", or "pie"
@@ -52,54 +53,55 @@ export default function TimeGranularChartCard({
 }) {
   const colors = useThemeColors();
   
-  // Dynamic pie colors using theme-aware colors
-  const PIE_COLORS = [
+  // Memoized pie colors for performance
+  const PIE_COLORS = useMemo(() => [
     colors.dataColors?.data1 || "#3b82f6",
     colors.dataColors?.data2 || "#8b5cf6", 
     colors.dataColors?.data3 || "#10b981",
     colors.dataColors?.data4 || "#f59e0b",
     colors.dataColors?.data5 || "#ef4444"
-  ];
+  ], [colors.dataColors]);
   
   const [noData, setNoData] = useState(false);
-  const isTimeBased =
+  
+  // Memoize data type detection for performance
+  const isTimeBased = useMemo(() => 
     typeof data === "object" &&
     !Array.isArray(data) &&
-    (data?.weekly || data?.monthly || data?.yearly);
+    (data?.weekly || data?.monthly || data?.yearly),
+    [data]
+  );
 
   const [view, setView] = useState("weekly");
 
-  const currentData = isTimeBased
-    ? data?.[view] ?? []
-    : Array.isArray(data)
-    ? data
-    : [];
-
-  useEffect(() => {
-    if (!data || typeof data !== "object") {
-      setNoData(true);
-      return;
+  // Memoize current data processing
+  const currentData = useMemo(() => {
+    if (isTimeBased) {
+      return data?.[view] ?? [];
     }
+    return Array.isArray(data) ? data : [];
+  }, [data, view, isTimeBased]);
 
-    const series = isTimeBased
-      ? data[view] ?? []
-      : Array.isArray(data)
-      ? data
-      : [];
+  // Memoize data validation for better performance
+  const hasValidData = useMemo(() => {
+    if (!data || typeof data !== "object") return false;
 
-    if (!Array.isArray(series) || series.length === 0) {
-      setNoData(true);
-      return;
-    }
+    const series = currentData;
+    if (!Array.isArray(series) || series.length === 0) return false;
 
-    const hasValidData = series.some((item) =>
+    return series.some((item) =>
       dataKeys.some(
         (keyObj) => typeof item[keyObj.key] === "number" && item[keyObj.key] > 0
       )
     );
-
+  }, [data, currentData, dataKeys]);
+  
+  // Memoize promotion trend detection
+  const isPromotionTrend = useMemo(() => isPromotionTrendShape(data), [data]);
+  
+  useEffect(() => {
     setNoData(!hasValidData);
-  }, [data, view, dataKeys, isTimeBased]);
+  }, [hasValidData]);
 
   if (noData) {
     return (
@@ -135,7 +137,7 @@ export default function TimeGranularChartCard({
       </Card>
     );
   }
-  if (isPromotionTrendShape(data)) {
+  if (isPromotionTrend) {
     // Debug: currentData processing for promotion trends
   }
   return (
@@ -250,3 +252,24 @@ export default function TimeGranularChartCard({
     </Card>
   );
 }
+
+// Memoized export with custom comparison for better performance
+export default memo(TimeGranularChartCard, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  if (prevProps.title !== nextProps.title) return false;
+  if (prevProps.chartType !== nextProps.chartType) return false;
+  if (prevProps.yAxisFormatter !== nextProps.yAxisFormatter) return false;
+  if (prevProps.tooltipFormatter !== nextProps.tooltipFormatter) return false;
+  
+  // Deep compare dataKeys array
+  if (prevProps.dataKeys.length !== nextProps.dataKeys.length) return false;
+  for (let i = 0; i < prevProps.dataKeys.length; i++) {
+    if (prevProps.dataKeys[i].key !== nextProps.dataKeys[i].key ||
+        prevProps.dataKeys[i].color !== nextProps.dataKeys[i].color) {
+      return false;
+    }
+  }
+  
+  // Deep compare data (most expensive, so do last)
+  return JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data);
+});
