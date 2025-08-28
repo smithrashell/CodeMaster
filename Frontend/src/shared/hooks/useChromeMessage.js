@@ -2,6 +2,66 @@ import { useState, useEffect, useRef } from "react";
 import { showErrorNotification } from "../utils/errorNotifications";
 import ChromeAPIErrorHandler from "../services/ChromeAPIErrorHandler";
 
+// Smart cache with TTL for dashboard performance optimization
+const messageCache = new Map();
+const pendingRequests = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes for real-time balance
+
+// Cache utilities
+const getCacheKey = (request) => {
+  return JSON.stringify({
+    type: request?.type,
+    options: request?.options,
+    // Include other relevant properties for cache key
+    ...Object.fromEntries(
+      Object.entries(request || {}).filter(([key]) => 
+        !['timestamp', 'id'].includes(key)
+      )
+    )
+  });
+};
+
+const getCachedResponse = (cacheKey) => {
+  const cached = messageCache.get(cacheKey);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (now - cached.timestamp > CACHE_TTL) {
+    messageCache.delete(cacheKey);
+    return null;
+  }
+  
+  return cached.data;
+};
+
+const setCachedResponse = (cacheKey, data) => {
+  messageCache.set(cacheKey, {
+    data,
+    timestamp: Date.now()
+  });
+  
+  // Prevent memory leaks - keep only last 50 cache entries
+  if (messageCache.size > 50) {
+    const firstKey = messageCache.keys().next().value;
+    messageCache.delete(firstKey);
+  }
+};
+
+// Clear cache utility for manual refresh
+export const clearChromeMessageCache = (requestType) => {
+  if (requestType) {
+    // Clear specific request type caches
+    for (const [key, value] of messageCache.entries()) {
+      if (key.includes(`"type":"${requestType}"`)) {
+        messageCache.delete(key);
+      }
+    }
+  } else {
+    // Clear all cache
+    messageCache.clear();
+  }
+};
+
 // Performance monitoring for dashboard telemetry
 const performanceLogger = {
   logTiming: (request, duration, success, retryCount = 0) => {
@@ -81,7 +141,7 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
     immediate = true,
     onSuccess,
     onError,
-    maxRetries = 3,
+    maxRetries = 2, // Reduced from 3 to match content script pattern
     retryDelay = 1000,
     timeout = 10000,
     showNotifications = true,
@@ -110,9 +170,41 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
     };
   }, []);
 
-  // Enhanced message sending with retry logic and timing metrics
-  const sendMessage = async (currentRetryCount = 0) => {
+  // Enhanced message sending with retry logic, caching, and deduplication
+  const sendMessage = async (currentRetryCount = 0, bypassCache = false) => {
     if (!isMountedRef.current) return;
+
+    const cacheKey = getCacheKey(request);
+    
+    // Check cache first (unless bypassing for manual refresh)
+    if (!bypassCache) {
+      const cachedData = getCachedResponse(cacheKey);
+      if (cachedData) {
+        console.info(`🚀 Cache hit for ${request?.type}`);
+        setData(cachedData);
+        setLoading(false);
+        setError(null);
+        if (onSuccess) onSuccess(cachedData);
+        return;
+      }
+    }
+    
+    // Request deduplication - check for pending identical request
+    if (pendingRequests.has(cacheKey)) {
+      console.info(`⏳ Deduplicating request for ${request?.type}`);
+      try {
+        const result = await pendingRequests.get(cacheKey);
+        if (!isMountedRef.current) return;
+        setData(result);
+        setLoading(false);
+        setError(null);
+        if (onSuccess) onSuccess(result);
+        return;
+      } catch (error) {
+        // Will be handled by the original request
+        return;
+      }
+    }
 
     setLoading(true);
     setError(null);
@@ -120,18 +212,25 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
 
     // Start timing measurement
     const startTime = performance.now();
+    
+    // Create promise for request deduplication
+    const requestPromise = ChromeAPIErrorHandler.sendMessageWithRetry(
+      request,
+      {
+        maxRetries: maxRetries - currentRetryCount,
+        retryDelay,
+        timeout,
+        showNotifications: false, // We'll handle notifications here
+      }
+    );
+    
+    pendingRequests.set(cacheKey, requestPromise);
 
     try {
-      // Use the ChromeAPIErrorHandler for robust message sending
-      const response = await ChromeAPIErrorHandler.sendMessageWithRetry(
-        request,
-        {
-          maxRetries: maxRetries - currentRetryCount,
-          retryDelay,
-          timeout,
-          showNotifications: false, // We'll handle notifications here
-        }
-      );
+      const response = await requestPromise;
+      
+      // Clean up pending request
+      pendingRequests.delete(cacheKey);
 
       if (!isMountedRef.current) return;
 
@@ -144,6 +243,9 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
         performanceLogger.logSlowRequest(request, duration);
       }
 
+      // Cache successful response
+      setCachedResponse(cacheKey, response);
+
       // Success case
       setData(response);
       setLoading(false);
@@ -151,6 +253,9 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
       setRetryCount(currentRetryCount);
       if (onSuccess) onSuccess(response);
     } catch (error) {
+      // Clean up pending request
+      pendingRequests.delete(cacheKey);
+      
       if (!isMountedRef.current) return;
 
       // Calculate duration and log failure metrics
@@ -198,10 +303,17 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
     }
   };
 
-  // Manual retry function
+  // Manual retry function with cache bypass
   const retry = () => {
     setRetryCount(0);
-    sendMessage();
+    // Clear cache for this specific request type on manual retry
+    clearChromeMessageCache(request?.type);
+    sendMessage(0, true); // Bypass cache on manual retry
+  };
+  
+  // Refetch function for external use (e.g., refresh button)
+  const refetch = () => {
+    retry();
   };
 
   useEffect(() => {
@@ -214,6 +326,7 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
     loading,
     error,
     retry,
+    refetch,
     isRetrying,
     retryCount,
   };
