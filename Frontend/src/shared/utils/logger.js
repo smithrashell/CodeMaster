@@ -45,14 +45,23 @@ class ProductionLogger {
 
   /**
    * Get application context for structured logging
+   * Handles both browser and service worker contexts
    */
   _getAppContext() {
+    // Detect service worker context (no window object)
+    const isServiceWorker = typeof window === 'undefined';
+    const isExtension = typeof chrome !== 'undefined' && chrome.runtime;
+    
     return {
-      userAgent: navigator.userAgent,
-      url: window.location.href,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 
+                 isExtension ? 'Chrome-Extension-ServiceWorker' : 'ServiceWorker',
+      url: isServiceWorker ? 
+           (isExtension ? `chrome-extension://${chrome.runtime.id}/background` : 'service-worker://') : 
+           window.location.href,
       timestamp: new Date().toISOString(),
       version: "1.0.0", // Could be from package.json
       environment: process.env.NODE_ENV || "development",
+      context: isServiceWorker ? 'service-worker' : 'browser'
     };
   }
 
