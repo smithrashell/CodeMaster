@@ -4,6 +4,115 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.29] - 2025-08-28
+
+### 🔔 **Desktop-Only Habit Reminder System**
+
+**Revolutionary Smart Habit Formation - Desktop Notifications Only:**
+- **🖥️ Desktop-Only Design** - Habit reminders trigger **only desktop notifications**, never in-app notifications, providing gentle nudges when users are NOT actively engaged with Codemaster
+- **🧠 Smart Pattern Analysis** - Comprehensive session pattern analysis including streak calculation, cadence detection, weekly progress tracking, and learning phase awareness
+- **⏰ Intelligent Timing** - Chrome alarm system with daily 6 PM consistency checks, smart timing based on user's practice patterns, and escalating gentleness for re-engagement
+
+**Smart Reminder Types (Desktop Only):**
+- **🔥 Streak Protection** - Alerts when streaks ≥3 days are at risk (user's typical gap + 1 day)
+- **📅 Cadence Nudges** - Reminds users when deviating from established practice rhythm ("You usually practice every 2 days — it's been 3")
+- **🎯 Weekly Goal Context** - Mid-week (Wednesday) and weekend (Saturday) check-ins when <50% goal completion
+- **👋 Re-engagement Prompts** - Escalating gentleness: 1 week (friendly) → 2 weeks (supportive) → 1 month (gentle, no pressure)
+
+**Advanced Pattern Analysis Engine:**
+- **Circuit Breaker Protection** - Automatic fallback to basic logic if enhanced features fail, with 5-minute recovery timeout
+- **Learning Phase Intelligence** - Sophisticated detection requiring 5+ sessions and 2+ weeks data for reliable pattern analysis
+- **Progressive Confidence Scoring** - Session count + consistency factors determine reliability (high/medium/low confidence thresholds)
+- **Smart Cadence Detection** - Identifies daily, every-other-day, weekly patterns with variance analysis
+
+**Production-Ready Safety:**
+- **Conservative Defaults** - All reminder types disabled by default for safe prerelease deployment
+- **Daily Limit Enforcement** - Maximum 1 desktop notification per day to prevent spam
+- **Chrome API Safety** - Comprehensive availability checks with graceful degradation when APIs unavailable
+- **Priority-Based Alerts** - Shows only highest priority alert when multiple conditions met
+
+**Enhanced Settings UI:**
+- **Smart Learning Phase UX** - Toggle disabled and grayed out until 5+ sessions completed
+- **Clean Progressive Disclosure** - Learning indicators only during learning phase, disappear when ready
+- **Streamlined Interface** - Removed manual override checkboxes for cleaner, more intuitive experience
+
+**Files Modified:**
+- `Frontend/src/shared/services/AlertingService.js` - Added 6 desktop notification methods with Chrome API integration
+- `Frontend/src/shared/services/sessionService.js` - Added comprehensive habit analysis engine with circuit breaker pattern
+- `Frontend/public/background.js` - Chrome alarm system, notification handlers, and consistency check endpoints  
+- `Frontend/src/shared/components/nantine.jsx` - Smart learning phase UI with disabled toggle logic
+- `Frontend/src/shared/utils/logger.js` - Service worker compatibility fixes
+
+**Design Philosophy:**
+This implements the optimal habit reminder strategy: **desktop-only notifications** that engage users when they're NOT already using the app, avoiding redundant in-app notifications that would interrupt active sessions. Perfect balance of gentle encouragement without intrusion.
+
+### 🛠️ Chrome API Compatibility Hotfix
+
+**Issue Resolution - Background Script Stability:**
+- **Chrome API Safety Checks** - Added comprehensive availability checks for `chrome.alarms`, `chrome.notifications`, and `chrome.storage` APIs
+- **Deferred Initialization** - Moved Chrome API listener registration to safe initialization functions to prevent undefined access errors
+- **Graceful Degradation** - System now works properly even when Chrome APIs are temporarily unavailable during service worker startup
+- **Enhanced Error Handling** - Added defensive programming patterns with detailed logging for Chrome API failures
+
+**Technical Fixes:**
+- **API Availability Guards** - All Chrome API calls now wrapped with `chrome?.api?.method` optional chaining
+- **Safe Initialization Pattern** - Chrome alarm listeners and notification handlers set up only after API availability confirmation
+- **Fallback Modes** - Reminder system degrades gracefully when Chrome APIs are unavailable vs. throwing undefined errors
+- **Comprehensive Logging** - Clear console warnings when APIs are unavailable to aid debugging
+
+**Root Cause Fixed:**
+- Background script was attempting to access `chrome.alarms.onAlarm` immediately at script load time
+- Chrome Manifest V3 service workers don't guarantee immediate API availability 
+- API timing issues caused `Cannot read properties of undefined (reading 'onAlarm')` errors
+
+**Files Modified:**
+- `public/background.js` - Added Chrome API safety checks throughout consistency reminder system
+
+
+### 🔔 Session Consistency & Habit-Based Reminder System (#130)
+
+**Feature Implementation - Smart Habit Formation:**
+- **Smart Reminder Types** - Replaced time-based reminders with habit-focused notifications: streak alerts, cadence nudges, weekly goals, and re-engagement prompts
+- **Pattern Analysis Engine** - Added comprehensive session pattern analysis including streak calculation, cadence detection, and weekly progress tracking
+- **Chrome Alarms Integration** - Daily consistency check at 6 PM with intelligent notification scheduling based on user's practice patterns
+- **Prerelease Safety Controls** - Conservative defaults with all reminder types disabled, maximum 1 notification per day, and comprehensive error handling
+
+**Smart Timing Logic:**
+- **Streak Protection** - Only alerts when streaks ≥3 days are at risk based on user's typical practice gap + 1 day
+- **Cadence Awareness** - Reminds users when they deviate from their established practice rhythm (e.g., "You usually practice every 2 days — it's been 3")
+- **Weekly Goal Context** - Mid-week (Wednesday) and weekend (Saturday) check-ins only when <50% goal completion
+- **Gentle Re-engagement** - Escalating gentleness: 1 week (friendly), 2 weeks (supportive), 1 month (no pressure)
+
+**Technical Architecture:**
+- **SessionService Extensions** - Added getCurrentStreak(), getTypicalCadence(), getWeeklyProgress(), and comprehensive checkConsistencyAlerts() methods
+- **AlertingService Enhancement** - Added consistency-specific alert types with snoozing, dismissal, and routing capabilities  
+- **Background Script Integration** - Chrome alarms system with notification click handlers and analytics tracking
+- **Settings UI Transformation** - Replaced frequency dropdown with intuitive checkbox options for each reminder type
+
+**Prerelease Safety Measures:**
+- **Opt-in by Default** - All reminder types disabled initially for safe rollout
+- **Daily Limits** - Maximum 1 notification per day with automatic 10-minute timeout
+- **Pattern Requirements** - Minimum session history required before generating recommendations
+- **Double-Safe Guards** - Multiple validation layers prevent notification spam or inappropriate timing
+
+**Files Added/Modified:**
+- `src/shared/components/nantine.jsx` - Transformed ToggleSelectRemainders with habit-focused UI
+- `src/shared/services/sessionService.js` - Added 400+ lines of pattern analysis and consistency checking
+- `src/shared/services/AlertingService.js` - Added 350+ lines of consistency alert handling with routing
+- `public/background.js` - Added 300+ lines Chrome alarms system with notification management
+- `public/manifest.json` - Added notifications and alarms permissions
+
+**User Experience:**
+- **Respectful Timing** - Notifications respect user's natural practice rhythms vs. aggressive hourly spam
+- **Contextual Messages** - Personal, relevant messages based on actual user patterns and progress
+- **Easy Control** - Granular on/off controls for each reminder type with clear explanations
+- **One-Click Action** - Notification clicks route directly to session generation or dashboard
+
+**Analytics & Monitoring:**
+- **Effectiveness Tracking** - Click-through rates, dismissal patterns, and engagement metrics
+- **Pattern Learning** - System learns from user responses to improve timing recommendations
+- **Safety Monitoring** - Comprehensive logging for notification frequency and user interaction patterns
+
 ## [0.10.28] - 2025-08-27
 
 ### 📊 Real Hint Analytics Integration (#131)
