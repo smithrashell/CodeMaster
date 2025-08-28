@@ -6,11 +6,30 @@ import {
   Collapse,
   UnstyledButton,
   Group,
+  Skeleton,
 } from "@mantine/core";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 
-export default function MetricCard({ title, value, details }) {
+export default function MetricCard({ title, value, details, loading = false }) {
   const [opened, { toggle }] = useDisclosure(false);
+  
+  if (loading) {
+    return (
+      <Grid.Col span={3}>
+        <Card shadow="sm" p="lg" withBorder>
+          <div>
+            <Skeleton height={20} width="70%" mb={8} />
+            <Skeleton height={28} width="50%" mb={16} />
+          </div>
+          <div>
+            <Skeleton height={12} mb={4} />
+            <Skeleton height={12} mb={4} />
+            <Skeleton height={12} width="80%" />
+          </div>
+        </Card>
+      </Grid.Col>
+    );
+  }
 
   return (
     <Grid.Col span={3}>
@@ -30,7 +49,7 @@ export default function MetricCard({ title, value, details }) {
         </UnstyledButton>
 
         <Collapse in={opened} mt="md">
-          {details.map((item, index) => (
+          {details?.map((item, index) => (
             <Group key={index} position="apart">
               <Text size="sm" color="dimmed">
                 {item.label}
@@ -39,7 +58,7 @@ export default function MetricCard({ title, value, details }) {
                 {item.value}
               </Text>
             </Group>
-          ))}
+          )) || []}
         </Collapse>
       </Card>
     </Grid.Col>
