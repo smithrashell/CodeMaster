@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   Text,
-  MultiSelect,
   Group,
   Badge,
   Button,
@@ -540,7 +539,7 @@ export function FocusAreasSelector() {
                     </Text>
                   </Stack>
                 </Alert>
-                <MultiSelect
+                <CustomMultiSelect
                   label="Select Starter Focus Areas (up to 2 tags)"
                   placeholder="Choose Core Concepts to start with..."
                   data={starterMultiSelectData}
@@ -551,34 +550,6 @@ export function FocusAreasSelector() {
                   clearable
                   disabled={loading || saving}
                   description="These Core Concepts will have 1.2x higher weight in your first sessions"
-                  styles={{
-                    dropdown: {
-                      zIndex: 1000,
-                      backgroundColor: 'white !important',
-                      border: '1px solid #ccc !important',
-                      color: 'black !important',
-                    },
-                    item: {
-                      backgroundColor: 'white !important',
-                      color: 'black !important',
-                      '&:hover': {
-                        backgroundColor: '#f8f9fa !important',
-                        color: 'black !important',
-                      },
-                      '&[data-hovered]': {
-                        backgroundColor: '#f8f9fa !important',
-                        color: 'black !important',
-                      },
-                      '&[data-selected]': {
-                        backgroundColor: '#e7f5ff !important',
-                        color: '#1c7ed6 !important',
-                      },
-                      '&[data-selected]:hover, &[data-selected][data-hovered]': {
-                        backgroundColor: '#d0ebff !important',
-                        color: '#1c7ed6 !important',
-                      }
-                    }
-                  }}
                 />
               </Stack>
             );

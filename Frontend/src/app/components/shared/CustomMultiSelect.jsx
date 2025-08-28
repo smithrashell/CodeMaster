@@ -103,11 +103,11 @@ const CustomMultiSelect = ({
           }
         }}
         style={{
-          border: opened ? '1px solid #228be6' : '1px solid #ced4da',
+          border: opened ? '1px solid var(--mantine-color-blue-6)' : '1px solid var(--mantine-color-default-border)',
           borderRadius: '4px',
           padding: '6px 12px',
           minHeight: '36px',
-          backgroundColor: disabled ? '#f8f9fa' : 'white',
+          backgroundColor: disabled ? 'var(--mantine-color-gray-1)' : 'var(--mantine-color-body)',
           cursor: disabled ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -116,17 +116,17 @@ const CustomMultiSelect = ({
           position: 'relative',
           transition: 'border-color 0.15s ease-in-out',
           ':hover': {
-            borderColor: disabled ? '#ced4da' : '#adb5bd'
+            borderColor: disabled ? 'var(--mantine-color-default-border)' : 'var(--mantine-color-gray-4)'
           }
         }}
         onMouseEnter={(e) => {
           if (!disabled && !opened) {
-            e.target.style.borderColor = '#adb5bd';
+            e.target.style.borderColor = 'var(--mantine-color-gray-4)';
           }
         }}
         onMouseLeave={(e) => {
           if (!disabled && !opened) {
-            e.target.style.borderColor = '#ced4da';
+            e.target.style.borderColor = 'var(--mantine-color-default-border)';
           }
         }}
       >
@@ -134,30 +134,32 @@ const CustomMultiSelect = ({
         {value.map(val => (
           <Badge
             key={val}
-            variant="light"
-            color="gray"
             size="sm"
             rightSection={
               !disabled && clearable ? (
                 <ActionIcon
                   size="xs"
-                  color="gray"
                   radius="xl"
                   variant="transparent"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRemoveItem(val);
                   }}
-                  style={{ marginLeft: '4px' }}
+                  style={{ 
+                    marginLeft: '4px',
+                    '&:hover': {
+                      backgroundColor: 'var(--mantine-color-gray-2)'
+                    }
+                  }}
                 >
-                  <IconX size={10} />
+                  <IconX size={10} style={{ color: 'var(--mantine-color-gray-6)' }} />
                 </ActionIcon>
               ) : null
             }
             style={{
-              backgroundColor: '#f8f9fa',
-              color: '#495057',
-              border: '1px solid #e9ecef'
+              backgroundColor: 'var(--mantine-color-blue-0)',
+              color: 'var(--mantine-color-blue-9)',
+              border: '1px solid var(--mantine-color-blue-3)'
             }}
           >
             {getLabelForValue(val)}
@@ -211,14 +213,18 @@ const CustomMultiSelect = ({
           <ActionIcon
             size="sm"
             variant="subtle"
-            color="gray"
             onClick={(e) => {
               e.stopPropagation();
               handleClearAll();
             }}
-            style={{ marginLeft: '4px' }}
+            style={{ 
+              marginLeft: '4px',
+              '&:hover': {
+                backgroundColor: 'var(--mantine-color-gray-2)'
+              }
+            }}
           >
-            <IconX size={14} />
+            <IconX size={14} style={{ color: 'var(--mantine-color-gray-6)' }} />
           </ActionIcon>
         )}
       </Box>
@@ -236,8 +242,8 @@ const CustomMultiSelect = ({
             marginTop: 0,
             maxHeight: '200px',
             overflowY: 'auto',
-            backgroundColor: 'white',
-            border: '1px solid #ccc'
+            backgroundColor: 'var(--mantine-color-body)',
+            border: '1px solid var(--mantine-color-default-border)'
           }}
         >
           {Object.keys(groupedData).length === 0 ? (
@@ -267,7 +273,7 @@ const CustomMultiSelect = ({
                           padding: '8px 12px',
                           borderRadius: '6px',
                           cursor: isDisabled ? 'not-allowed' : 'pointer',
-                          backgroundColor: hoveredItem === item.value && !isDisabled ? '#f8f9fa' : 'transparent',
+                          backgroundColor: hoveredItem === item.value && !isDisabled ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                           opacity: isDisabled ? 0.6 : 1,
                           transition: 'background-color 0.2s ease'
                         }}
@@ -293,7 +299,7 @@ const CustomMultiSelect = ({
                             >
                               <IconCheck
                                 size={14}
-                                color="#228be6"
+                                color="var(--mantine-color-blue-6)"
                                 stroke={2.5}
                               />
                             </Box>
