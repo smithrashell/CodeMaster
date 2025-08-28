@@ -149,25 +149,27 @@ const generateCacheKey = (request) => {
     case 'saveHintInteraction': 
       return request.data?.problemId ? `problem_ctx_${request.data.problemId}` : null;
     
-    // Dashboard data operations
+    // Dashboard data operations - simplified keys since no filters are passed
     case 'getStatsData': 
-      return `stats_${request.timeframe || 'all'}`;
+      return 'stats_data';
     case 'getSessionHistoryData': 
-      return `sessions_${JSON.stringify(request.filters || {})}`;
+      return 'sessions_data';
     case 'getTagMasteryData': 
-      return `mastery_${request.timeframe || 'current'}`;
+      return 'mastery_data';
     case 'getLearningProgressData': 
-      return `progress_${request.period || 'all'}`;
+      return 'progress_data';
     case 'getProductivityInsightsData': 
-      return `productivity_${request.period || 'all'}`;
+      return 'productivity_data';
     case 'getLearningPathData': 
-      return `learning_path_${request.filters || 'all'}`;
+      return 'learning_path_data';
     case 'getMistakeAnalysisData': 
-      return `mistakes_${request.period || 'all'}`;
+      return 'mistakes_data';
     case 'getInterviewAnalyticsData': 
-      return `interview_${request.period || 'all'}`;
+      return 'interview_data';
     case 'getHintAnalyticsData': 
-      return `hints_${request.timeframe || 'all'}`;
+      return 'hints_data';
+    case 'getFocusAreasData':
+      return `focus_areas_data`;
     
     // Strategy operations
     case 'getStrategyForTag': 
@@ -186,6 +188,7 @@ const generateCacheKey = (request) => {
     case 'addProblem':
     case 'backupIndexedDB':
     case 'createSession':
+    case 'graduateFocusAreas':
     default: 
       return null; // Not cacheable
   }
@@ -1052,6 +1055,65 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
               confidenceScore: 0,
               dataSpanDays: 0
             });
+          }
+        })()
+          .finally(finishRequest);
+        return true;
+
+      case "getFocusAreasData":
+        (async () => {
+          try {
+            const { StorageService } = await import("../src/shared/services/storageService.js");
+            const { TagService } = await import("../src/shared/services/tagServices.js");
+            
+            // Load focus areas from settings with fallback
+            const settings = await StorageService.getSettings();
+            let focusAreas = settings.focusAreas || [];
+            
+            // Provide fallback focus areas if none configured (like content script pattern)
+            if (focusAreas.length === 0) {
+              focusAreas = ["array", "hash table", "string", "dynamic programming", "tree"];
+              console.log("🔄 BACKGROUND: Using fallback focus areas");
+            }
+            
+            // Get learning state data
+            const learningState = await TagService.getCurrentLearningState();
+            
+            // Check for graduation status
+            const graduationStatus = await TagService.checkFocusAreasGraduation();
+            
+            sendResponse({ 
+              result: {
+                focusAreas,
+                masteryData: learningState.masteryData || [],
+                masteredTags: learningState.masteredTags || [],
+                graduationStatus
+              }
+            });
+          } catch (error) {
+            console.error("❌ Error in getFocusAreasData handler:", error);
+            sendResponse({ 
+              result: { 
+                focusAreas: [],
+                masteryData: [],
+                masteredTags: [],
+                graduationStatus: null
+              }
+            });
+          }
+        })()
+          .finally(finishRequest);
+        return true;
+
+      case "graduateFocusAreas":
+        (async () => {
+          try {
+            const { TagService } = await import("../src/shared/services/tagServices.js");
+            const result = await TagService.graduateFocusAreas();
+            sendResponse({ result });
+          } catch (error) {
+            console.error("❌ Error in graduateFocusAreas handler:", error);
+            sendResponse({ error: error.message });
           }
         })()
           .finally(finishRequest);

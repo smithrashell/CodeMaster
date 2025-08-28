@@ -16,10 +16,8 @@ import {
   IconSettings,
   IconInfoCircle,
 } from "@tabler/icons-react";
-import { StorageService } from "../../../shared/services/storageService.js";
-import { TagService } from "../../../shared/services/tagServices.js";
-// Note: Mock vs real data is handled at the app level via appState
-// This component always uses real services when the app uses real data
+import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+// Note: Fixed to use Chrome messaging pattern like other dashboard components
 
 export function FocusAreasDisplay({ onNavigateToSettings }) {
   const [focusAreas, setFocusAreas] = useState([]);
@@ -32,26 +30,26 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
     try {
       setLoading(true);
 
-      // Load focus areas from settings (always use real services)
-      const settings = await StorageService.getSettings();
-      const userFocusAreas = settings.focusAreas || [];
-
+      // Use Chrome messaging pattern to get focus areas data
+      const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'getFocusAreasData'
+      });
+      
+      const data = response?.result || {};
+      
+      const userFocusAreas = data.focusAreas || [];
       if (userFocusAreas.length === 0) {
         setFocusAreas([]);
         setLoading(false);
         return;
       }
 
-      // Get learning state data
-      const learningState = await TagService.getCurrentLearningState();
-      setMasteryData(learningState.masteryData || []);
-      setMasteredTags(learningState.masteredTags || []);
-
-      // Check for graduation status
-      const graduationCheck = await TagService.checkFocusAreasGraduation();
-      setGraduationStatus(graduationCheck);
-
+      // Set data from background script response
+      setMasteryData(data.masteryData || []);
+      setMasteredTags(data.masteredTags || []);
+      setGraduationStatus(data.graduationStatus || null);
       setFocusAreas(userFocusAreas);
+      
     } catch (error) {
       console.error("Error loading focus areas data:", error);
       setFocusAreas([]);
@@ -90,8 +88,12 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
 
   const handleAutoGraduate = async () => {
     try {
-      const result = await TagService.graduateFocusAreas();
-      if (result.updated) {
+      // Use Chrome messaging pattern for graduation
+      const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'graduateFocusAreas'
+      });
+      
+      if (response?.result?.updated) {
         await loadFocusAreasData(); // Refresh data
       }
     } catch (error) {
