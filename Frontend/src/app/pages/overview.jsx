@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { IconRefresh } from "@tabler/icons-react";
 import MetricCard from "../components/analytics/MetricCard";
 import TimeGranularChartCard from "../components/charts/TimeGranularChartCard";
+import ChartSkeleton from "../components/charts/ChartSkeleton";
 import { EmptyStateCard } from "../components/onboarding/EmptyStateCard";
 import {
   getAccuracyTrendData,
@@ -144,8 +145,44 @@ export function Stats() {
   if (loading) {
     return (
       <Container size="xl" p="md">
-        <Title order={2} mb="md">Dashboard Overview</Title>
-        <Text>Loading statistics...</Text>
+        <Group justify="space-between" mb="md">
+          <Title order={2}>
+            General Performance Summary
+          </Title>
+          <Button 
+            leftSection={<IconRefresh size={16} />} 
+            variant="light" 
+            onClick={refresh}
+            size="sm"
+            loading
+          >
+            Refresh
+          </Button>
+        </Group>
+
+        {/* Loading skeletons */}
+        <Grid gutter="sm">
+          <MetricCard loading={true} />
+          <MetricCard loading={true} />
+          <MetricCard loading={true} />
+          <MetricCard loading={true} />
+        </Grid>
+        
+        {/* Focus Areas Skeleton - Full Width Second Row */}
+        <Grid gutter="md" mt="md">
+          <Grid.Col span={12}>
+            <ChartSkeleton title="Focus Areas" height={200} />
+          </Grid.Col>
+        </Grid>
+
+        <Grid gutter="md" mt="md">
+          <Grid.Col span={6}>
+            <ChartSkeleton title="Accuracy Trend" />
+          </Grid.Col>
+          <Grid.Col span={6}>
+            <ChartSkeleton title="Learning Efficiency" />
+          </Grid.Col>
+        </Grid>
       </Container>
     );
   }
@@ -183,7 +220,7 @@ export function Stats() {
       ) : (
         <>
           <Grid gutter="sm">
-            {/* Summary Cards */}
+            {/* Summary Cards with progressive loading */}
             <MetricCard
               title="Total Problems Solved"
               value={statistics?.totalSolved ?? 0}
@@ -192,6 +229,7 @@ export function Stats() {
                 { label: "In Progress", value: statistics?.inProgress ?? 0 },
                 { label: "New", value: statistics?.new ?? 0 },
               ]}
+              loading={loading}
             />
 
             <MetricCard
@@ -203,6 +241,7 @@ export function Stats() {
                 { label: "Hard", value: averageTime?.Hard ?? 0 },
                 { label: "Time Accuracy", value: `${averageTime?.timeAccuracy ?? 0}%` },
               ]}
+              loading={loading}
             />
 
             <MetricCard
@@ -213,6 +252,7 @@ export function Stats() {
                 { label: "Medium", value: successRate?.Medium ?? 0 },
                 { label: "Hard", value: successRate?.Hard ?? 0 },
               ]}
+              loading={loading}
             />
 
             <MetricCard
@@ -223,6 +263,7 @@ export function Stats() {
                 { label: "General", value: hintsUsed?.general ?? 0 },
                 { label: "Primer", value: hintsUsed?.primer ?? 0 },
               ]}
+              loading={loading}
             />
           </Grid>
           
@@ -237,24 +278,32 @@ export function Stats() {
 
           <Grid gutter="md" mt="md">
             <Grid.Col span={6}>
-              <TimeGranularChartCard
-                title="Accuracy Trend"
-                chartType="line"
-                data={accuracyData}
-                dataKeys={[{ key: "accuracy", color: "#8884d8" }]}
-                yAxisFormatter={(val) => `${val}%`}
-                tooltipFormatter={(val) => `${val}%`}
-              />
+              {loading ? (
+                <ChartSkeleton title="Accuracy Trend" />
+              ) : (
+                <TimeGranularChartCard
+                  title="Accuracy Trend"
+                  chartType="line"
+                  data={accuracyData}
+                  dataKeys={[{ key: "accuracy", color: "#8884d8" }]}
+                  yAxisFormatter={(val) => `${val}%`}
+                  tooltipFormatter={(val) => `${val}%`}
+                />
+              )}
             </Grid.Col>
             <Grid.Col span={6}>
-              <TimeGranularChartCard
-                title="Learning Efficiency"
-                chartType="line"
-                data={learningEfficiencyData}
-                dataKeys={[{ key: "efficiency", color: "#82ca9d" }]}
-                yAxisFormatter={(val) => `${val}`}
-                tooltipFormatter={(val) => `${val} problems per hint`}
-              />
+              {loading ? (
+                <ChartSkeleton title="Learning Efficiency" />
+              ) : (
+                <TimeGranularChartCard
+                  title="Learning Efficiency"
+                  chartType="line"
+                  data={learningEfficiencyData}
+                  dataKeys={[{ key: "efficiency", color: "#82ca9d" }]}
+                  yAxisFormatter={(val) => `${val}`}
+                  tooltipFormatter={(val) => `${val} problems per hint`}
+                />
+              )}
             </Grid.Col>
           </Grid>
         </>
