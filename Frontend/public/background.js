@@ -5,6 +5,7 @@ import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsServ
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { TagService } from "../src/shared/services/tagServices.js";
 import { HintInteractionService } from "../src/shared/services/hintInteractionService.js";
+import { AlertingService } from "../src/shared/services/AlertingService.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
 import { connect } from "chrome-extension-hot-reload";
 import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
@@ -165,6 +166,8 @@ const generateCacheKey = (request) => {
       return `mistakes_${request.period || 'all'}`;
     case 'getInterviewAnalyticsData': 
       return `interview_${request.period || 'all'}`;
+    case 'getHintAnalyticsData': 
+      return `hints_${request.timeframe || 'all'}`;
     
     // Strategy operations
     case 'getStrategyForTag': 
@@ -1029,6 +1032,31 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
+      case "getLearningStatus":
+        (async () => {
+          try {
+            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const cadenceData = await SessionService.getTypicalCadence();
+            
+            sendResponse({
+              totalSessions: cadenceData.totalSessions || 0,
+              learningPhase: cadenceData.learningPhase || true,
+              confidenceScore: cadenceData.confidenceScore || 0,
+              dataSpanDays: cadenceData.dataSpanDays || 0
+            });
+          } catch (error) {
+            console.error("❌ Error in getLearningStatus handler:", error);
+            sendResponse({
+              totalSessions: 0,
+              learningPhase: true,
+              confidenceScore: 0,
+              dataSpanDays: 0
+            });
+          }
+        })()
+          .finally(finishRequest);
+        return true;
+
       case "getLearningPathData":
         getLearningPathData(request.options || {})
           .then((result) => sendResponse({ result }))
@@ -1044,6 +1072,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Hint Interaction Database Operations ──────────────── **/
+
       case "saveHintInteraction":
         console.log("💾 Saving hint interaction from content script");
         
@@ -1246,6 +1275,99 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         })().finally(finishRequest);
         return true;
 
+      /** ──────────────── Session Consistency & Habits ──────────────── **/
+      case "getSessionPatterns":
+        console.log("🔍 Getting session patterns for consistency analysis");
+        (async () => {
+          try {
+            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            
+            const [currentStreak, cadence, weeklyProgress] = await Promise.all([
+              SessionService.getCurrentStreak(),
+              SessionService.getTypicalCadence(),
+              SessionService.getWeeklyProgress()
+            ]);
+            
+            const patterns = {
+              currentStreak,
+              cadence,
+              weeklyProgress,
+              lastUpdated: new Date().toISOString()
+            };
+            
+            console.log("✅ Session patterns retrieved:", patterns);
+            sendResponse({ result: patterns });
+          } catch (error) {
+            console.error("❌ Error getting session patterns:", error);
+            sendResponse({ error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "checkConsistencyAlerts":
+        console.log("🔔 Checking consistency alerts for reminders");
+        (async () => {
+          try {
+            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const { StorageService } = await import("../src/shared/services/storageService.js");
+            
+            // Get user's reminder settings
+            const settings = await StorageService.getSettings();
+            const reminderSettings = settings?.reminder || { enabled: false };
+            
+            console.log("🔍 Using reminder settings:", reminderSettings);
+            
+            // Run comprehensive consistency check
+            const consistencyCheck = await SessionService.checkConsistencyAlerts(reminderSettings);
+            
+            console.log(`✅ Consistency check complete: ${consistencyCheck.alerts?.length || 0} alerts`);
+            sendResponse({ result: consistencyCheck });
+          } catch (error) {
+            console.error("❌ Error checking consistency alerts:", error);
+            sendResponse({ 
+              result: { 
+                hasAlerts: false, 
+                reason: "check_failed", 
+                alerts: [],
+                error: error.message 
+              }
+            });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "getStreakRiskTiming":
+        console.log("🔥 Getting streak risk timing analysis");
+        (async () => {
+          try {
+            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const streakTiming = await SessionService.getStreakRiskTiming();
+            
+            console.log("✅ Streak risk timing retrieved:", streakTiming);
+            sendResponse({ result: streakTiming });
+          } catch (error) {
+            console.error("❌ Error getting streak risk timing:", error);
+            sendResponse({ error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "getReEngagementTiming":
+        console.log("👋 Getting re-engagement timing analysis");
+        (async () => {
+          try {
+            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const reEngagementTiming = await SessionService.getReEngagementTiming();
+            
+            console.log("✅ Re-engagement timing retrieved:", reEngagementTiming);
+            sendResponse({ result: reEngagementTiming });
+          } catch (error) {
+            console.error("❌ Error getting re-engagement timing:", error);
+            sendResponse({ error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
       default:
         sendResponse({ error: "Unknown request type" });
         finishRequest();
@@ -1318,3 +1440,448 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   return true; // Keep response channel open
 });
+
+/** ──────────────── Session Consistency Alarm System ──────────────── **/
+
+// Initialize consistency check alarm on startup
+chrome.runtime.onStartup.addListener(() => {
+  console.log("🚀 Background script startup - initializing consistency system");
+  initializeConsistencySystem();
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("🚀 Extension installed/updated - initializing consistency system");
+  initializeConsistencySystem();
+});
+
+/**
+ * Initialize the complete consistency system with API safety checks
+ */
+function initializeConsistencySystem() {
+  try {
+    console.log("🔧 Initializing consistency system with API safety checks...");
+    
+    // Set up alarm listener
+    setupAlarmListener();
+    
+    // Set up notification click handlers
+    setupNotificationClickHandlers();
+    
+    // Initialize alarms if API is available
+    if (typeof chrome !== 'undefined' && chrome?.alarms) {
+      initializeConsistencyAlarm();
+    } else {
+      console.warn("⚠️ Chrome alarms API not available - using fallback mode");
+    }
+    
+    console.log("✅ Consistency system initialization complete");
+  } catch (error) {
+    console.error("❌ Error initializing consistency system:", error);
+    console.warn("⚠️ Some consistency features may not work properly");
+  }
+}
+
+/**
+ * Initialize the daily consistency check alarm with Chrome API safety checks
+ * Runs once per day at 6 PM to check for reminder conditions
+ */
+async function initializeConsistencyAlarm() {
+  try {
+    // Check Chrome alarms API availability
+    if (!chrome?.alarms?.create || !chrome?.alarms?.clear) {
+      console.warn("⚠️ Chrome alarms API methods not available - skipping alarm creation");
+      return;
+    }
+
+    // Clear any existing alarm first
+    await chrome.alarms.clear('consistency-check');
+    console.log("🗑️ Cleared existing consistency alarm");
+    
+    // Create new daily alarm at 6 PM (18:00)
+    const now = new Date();
+    const targetTime = new Date();
+    targetTime.setHours(18, 0, 0, 0); // 6 PM today
+    
+    // If it's already past 6 PM today, set for tomorrow
+    if (now >= targetTime) {
+      targetTime.setDate(targetTime.getDate() + 1);
+    }
+    
+    const delayInMinutes = (targetTime.getTime() - now.getTime()) / (1000 * 60);
+    
+    await chrome.alarms.create('consistency-check', {
+      delayInMinutes: delayInMinutes,
+      periodInMinutes: 24 * 60 // 24 hours = 1440 minutes
+    });
+    
+    console.log(`⏰ Consistency alarm created - next check in ${Math.round(delayInMinutes)} minutes at ${targetTime.toLocaleString()}`);
+  } catch (error) {
+    console.error("❌ Error initializing consistency alarm:", error);
+    console.warn("⚠️ Alarm creation failed - consistency reminders will not work until extension is reloaded");
+  }
+}
+
+/**
+ * Handle alarm triggers - with Chrome API availability check
+ */
+function setupAlarmListener() {
+  if (typeof chrome !== 'undefined' && chrome?.alarms?.onAlarm) {
+    chrome.alarms.onAlarm.addListener(async (alarm) => {
+      console.log(`⏰ Alarm triggered: ${alarm.name}`);
+      
+      if (alarm.name === 'consistency-check') {
+        console.log("🔔 Running daily consistency check...");
+        await performConsistencyCheck();
+      }
+    });
+    console.log("✅ Chrome alarms listener registered successfully");
+  } else {
+    console.warn("⚠️ Chrome alarms API not available - notification scheduling disabled");
+  }
+}
+
+/**
+ * Perform the daily consistency check and show notifications if needed
+ * This is the main function that determines what reminders to show
+ */
+async function performConsistencyCheck() {
+  try {
+    console.log("🔍 Starting consistency check at", new Date().toLocaleString());
+    
+    // Get user settings to check if reminders are enabled
+    const { StorageService } = await import("../src/shared/services/storageService.js");
+    const settings = await StorageService.getSettings();
+    
+    // CONSERVATIVE DEFAULT: All reminder types disabled by default for prerelease safety
+    const reminderSettings = settings?.reminder || { 
+      enabled: false,
+      streakAlerts: false,
+      cadenceNudges: false,
+      weeklyGoals: false,
+      reEngagement: false
+    };
+    
+    console.log("📋 Reminder settings:", reminderSettings);
+    
+    if (!reminderSettings?.enabled) {
+      console.log("⏸️ Reminders disabled - skipping consistency check");
+      return;
+    }
+    
+    // PRERELEASE SAFETY: Double-check that at least one reminder type is enabled
+    const hasAnyReminderEnabled = reminderSettings.streakAlerts || 
+                                   reminderSettings.cadenceNudges || 
+                                   reminderSettings.weeklyGoals || 
+                                   reminderSettings.reEngagement;
+    
+    if (!hasAnyReminderEnabled) {
+      console.log("⏸️ No specific reminder types enabled - skipping consistency check");
+      return;
+    }
+    
+    // Run the comprehensive consistency check
+    const { SessionService } = await import("../src/shared/services/sessionService.js");
+    const consistencyCheck = await SessionService.checkConsistencyAlerts(reminderSettings);
+    
+    console.log(`📊 Consistency check result: ${consistencyCheck.alerts?.length || 0} alerts found`);
+    
+    if (consistencyCheck.hasAlerts && consistencyCheck.alerts.length > 0) {
+      // PRERELEASE SAFETY: Check if we already sent a notification today
+      const lastNotificationDate = await getLastNotificationDate();
+      const today = new Date().toDateString();
+      
+      if (lastNotificationDate === today) {
+        console.log("🚫 Already sent notification today - respecting daily limit");
+        return;
+      }
+      
+      // Show the highest priority alert (limit to 1 notification per day)
+      const highestPriorityAlert = getHighestPriorityAlert(consistencyCheck.alerts);
+      await showConsistencyNotification(highestPriorityAlert);
+      
+      // Record notification date for daily limit enforcement
+      await recordNotificationDate(today);
+    } else {
+      console.log("✅ No consistency alerts needed - user is on track");
+    }
+    
+    // Log analytics for tracking
+    logConsistencyCheckAnalytics(consistencyCheck);
+    
+  } catch (error) {
+    console.error("❌ Error during consistency check:", error);
+  }
+}
+
+/**
+ * Get the highest priority alert from the list
+ * Priority order: high -> medium -> low
+ */
+function getHighestPriorityAlert(alerts) {
+  const priorityOrder = { high: 3, medium: 2, low: 1 };
+  
+  return alerts.reduce((highest, current) => {
+    const currentPriority = priorityOrder[current.priority] || 0;
+    const highestPriority = priorityOrder[highest.priority] || 0;
+    
+    return currentPriority > highestPriority ? current : highest;
+  });
+}
+
+/**
+ * PRERELEASE SAFETY: Get the last notification date to enforce daily limits
+ * @returns {Promise<string|null>} Last notification date string or null
+ */
+async function getLastNotificationDate() {
+  try {
+    if (!chrome?.storage?.local?.get) {
+      console.warn("⚠️ Chrome storage API not available - cannot check last notification date");
+      return null;
+    }
+    
+    const result = await chrome.storage.local.get(['lastNotificationDate']);
+    return result.lastNotificationDate || null;
+  } catch (error) {
+    console.error("Error getting last notification date:", error);
+    return null;
+  }
+}
+
+/**
+ * PRERELEASE SAFETY: Record notification date for daily limit enforcement
+ * @param {string} dateString - Date string to record
+ */
+async function recordNotificationDate(dateString) {
+  try {
+    if (!chrome?.storage?.local?.set) {
+      console.warn("⚠️ Chrome storage API not available - cannot record notification date");
+      return;
+    }
+    
+    await chrome.storage.local.set({ lastNotificationDate: dateString });
+    console.log(`📝 Recorded notification date: ${dateString}`);
+  } catch (error) {
+    console.error("Error recording notification date:", error);
+  }
+}
+
+/**
+ * Show browser notification for consistency reminder with Chrome API safety checks
+ * @param {Object} alert - The alert object with message and data
+ */
+async function showConsistencyNotification(alert) {
+  try {
+    console.log("📢 Routing consistency notification to AlertingService:", alert.type);
+    
+    // Route to appropriate AlertingService method based on alert type
+    switch (alert.type) {
+      case "streak_alert":
+        AlertingService.sendStreakAlert(
+          alert.data?.currentStreak || 0,
+          alert.data?.daysSince || 0
+        );
+        break;
+        
+      case "cadence_nudge":
+        AlertingService.sendCadenceNudge(
+          alert.data?.typicalCadence || "daily",
+          alert.data?.daysSince || 0
+        );
+        break;
+        
+      case "weekly_goal":
+        AlertingService.sendWeeklyGoalReminder({
+          completedSessions: alert.data?.completedSessions || 0,
+          targetSessions: alert.data?.targetSessions || 3,
+          remainingDays: alert.data?.remainingDays || 0
+        });
+        break;
+        
+      case "re_engagement":
+        AlertingService.sendReEngagementPrompt(
+          alert.data?.daysSince || 0,
+          alert.data?.lastActivity || "session"
+        );
+        break;
+        
+      default:
+        console.warn(`Unknown alert type: ${alert.type}, using generic re-engagement`);
+        AlertingService.sendReEngagementPrompt(
+          alert.data?.daysSince || 0,
+          "session"
+        );
+        break;
+    }
+    
+    console.log(`✅ Consistency notification sent via AlertingService: ${alert.type}`);
+    
+  } catch (error) {
+    console.error("❌ Error showing consistency notification:", error);
+    console.warn("⚠️ Notification display failed - consistency reminders may not appear");
+  }
+}
+
+/**
+ * Handle notification clicks - route to appropriate action with Chrome API safety
+ */
+function setupNotificationClickHandlers() {
+  if (chrome?.notifications?.onClicked) {
+    chrome.notifications.onClicked.addListener(async (notificationId) => {
+      console.log(`🖱️ Notification clicked: ${notificationId}`);
+      
+      if (notificationId.startsWith('consistency-')) {
+        try {
+          // Get notification data (with API safety check)
+          if (chrome?.storage?.local?.get) {
+            const result = await chrome.storage.local.get(`notification_${notificationId}`);
+            const notificationData = result[`notification_${notificationId}`];
+            
+            if (notificationData) {
+              console.log("📝 Notification data:", notificationData);
+              
+              // Route to dashboard or session generation
+              await routeToSession(notificationData);
+              
+              // Clean up notification data (with API safety checks)
+              if (chrome?.notifications?.clear && chrome?.storage?.local?.remove) {
+                await chrome.notifications.clear(notificationId);
+                await chrome.storage.local.remove(`notification_${notificationId}`);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("❌ Error handling notification click:", error);
+        }
+      }
+    });
+  }
+
+  if (chrome?.notifications?.onButtonClicked) {
+    chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
+      console.log(`🖱️ Notification button clicked: ${notificationId}, button: ${buttonIndex}`);
+      
+      if (notificationId.startsWith('consistency-')) {
+        try {
+          if (buttonIndex === 0) { // "Start Session" button
+            if (chrome?.storage?.local?.get) {
+              const result = await chrome.storage.local.get(`notification_${notificationId}`);
+              const notificationData = result[`notification_${notificationId}`];
+              
+              if (notificationData) {
+                await routeToSession(notificationData);
+              }
+            }
+          }
+          // Button 1 is "Later" - just dismiss the notification
+          
+          // Clean up (with API safety checks)
+          if (chrome?.notifications?.clear && chrome?.storage?.local?.remove) {
+            await chrome.notifications.clear(notificationId);
+            await chrome.storage.local.remove(`notification_${notificationId}`);
+          }
+        } catch (error) {
+          console.error("❌ Error handling notification button click:", error);
+        }
+      }
+    });
+  }
+
+  if (chrome?.notifications?.onClicked || chrome?.notifications?.onButtonClicked) {
+    console.log("✅ Notification click handlers registered successfully");
+  } else {
+    console.warn("⚠️ Chrome notifications click handlers not available - notifications will not be interactive");
+  }
+}
+
+/**
+ * Route user to appropriate session/dashboard page
+ * @param {Object} notificationData - Data about the notification type
+ */
+async function routeToSession(notificationData) {
+  try {
+    console.log("🚀 Routing to session from notification:", notificationData.type);
+    
+    // Try to find existing dashboard tab first
+    const dashboardTabs = await chrome.tabs.query({ url: chrome.runtime.getURL("app.html") });
+    
+    if (dashboardTabs.length > 0) {
+      // Focus existing dashboard tab
+      const dashboardTab = dashboardTabs[0];
+      await chrome.tabs.update(dashboardTab.id, { active: true });
+      await chrome.windows.update(dashboardTab.windowId, { focused: true });
+      console.log("📱 Focused existing dashboard tab");
+    } else {
+      // Create new dashboard tab
+      await chrome.tabs.create({ url: "app.html" });
+      console.log("📱 Created new dashboard tab");
+    }
+    
+    // Log analytics for notification engagement
+    logNotificationEngagement(notificationData);
+    
+  } catch (error) {
+    console.error("❌ Error routing to session:", error);
+  }
+}
+
+/**
+ * Log consistency check analytics for tracking system effectiveness
+ * @param {Object} consistencyCheck - The consistency check result
+ */
+function logConsistencyCheckAnalytics(consistencyCheck) {
+  try {
+    const analyticsEvent = {
+      type: "consistency_check_completed",
+      timestamp: new Date().toISOString(),
+      hasAlerts: consistencyCheck.hasAlerts,
+      alertCount: consistencyCheck.alerts?.length || 0,
+      alertTypes: consistencyCheck.alerts?.map(a => a.type) || [],
+      reason: consistencyCheck.reason
+    };
+    
+    console.log("📊 Consistency check analytics:", analyticsEvent);
+    
+    // Store in Chrome storage for dashboard analytics
+    chrome.storage.local.get(["consistencyAnalytics"], (result) => {
+      const analytics = result.consistencyAnalytics || [];
+      analytics.push(analyticsEvent);
+      
+      // Keep only last 30 consistency checks
+      const recentAnalytics = analytics.slice(-30);
+      chrome.storage.local.set({ consistencyAnalytics: recentAnalytics });
+    });
+    
+  } catch (error) {
+    console.warn("Warning: Could not log consistency analytics:", error);
+  }
+}
+
+/**
+ * Log notification engagement for effectiveness tracking
+ * @param {Object} notificationData - The notification data
+ */
+function logNotificationEngagement(notificationData) {
+  try {
+    const engagementEvent = {
+      type: "notification_engaged",
+      timestamp: new Date().toISOString(),
+      notificationType: notificationData.type,
+      createdAt: notificationData.createdAt
+    };
+    
+    console.log("📊 Notification engagement:", engagementEvent);
+    
+    // Store in Chrome storage for tracking click-through rates
+    chrome.storage.local.get(["notificationEngagement"], (result) => {
+      const engagement = result.notificationEngagement || [];
+      engagement.push(engagementEvent);
+      
+      // Keep only last 50 engagement events
+      const recentEngagement = engagement.slice(-50);
+      chrome.storage.local.set({ notificationEngagement: recentEngagement });
+    });
+    
+  } catch (error) {
+    console.warn("Warning: Could not log notification engagement:", error);
+  }
+}
