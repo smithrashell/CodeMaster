@@ -12,7 +12,7 @@ import {
 } from "../utils/errorNotifications";
 
 export class ChromeAPIErrorHandler {
-  static DEFAULT_RETRY_COUNT = 3;
+  static DEFAULT_RETRY_COUNT = 2; // Reduced from 3 to match content script pattern
   static DEFAULT_RETRY_DELAY = 1000;
   static DEFAULT_TIMEOUT = 10000;
 

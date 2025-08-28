@@ -194,7 +194,9 @@ describe('Dashboard Integration Tests', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      // Check for skeleton loading elements instead of text
+      const skeletons = document.querySelectorAll('[class*="mantine-Skeleton"]');
+      expect(skeletons.length).toBeGreaterThan(0);
     });
 
     it('should handle error state correctly', () => {
@@ -355,7 +357,9 @@ describe('Dashboard Integration Tests', () => {
         </TestWrapper>
       );
 
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      // Check for skeleton loading elements instead of text
+      const skeletons = document.querySelectorAll('[class*="mantine-Skeleton"]');
+      expect(skeletons.length).toBeGreaterThan(0);
       
       // In a real scenario, this would timeout and show error
       // This tests the loading state handling
