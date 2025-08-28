@@ -18,7 +18,9 @@
     "scripting",
     "storage",
     "debugger",
-    "downloads"
+    "downloads",
+    "notifications",
+    "alarms"
   ],
   "background": {
     "service_worker": "background.js"
