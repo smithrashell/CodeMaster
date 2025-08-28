@@ -1,5 +1,55 @@
 import { getWeek, format, startOfISOWeek, addWeeks } from "date-fns";
 
+// Memoization cache for performance optimization
+const dataCache = new Map();
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes for chart data
+
+// Create cache key from sessions data and range
+const createCacheKey = (sessions, range, functionName) => {
+  if (!Array.isArray(sessions)) return null;
+  
+  // Create a hash based on sessions data structure and range
+  const sessionHash = sessions.reduce((hash, session, index) => {
+    const sessionDate = session.Date || session.date;
+    const attemptsCount = session.attempts?.length || 0;
+    return hash + sessionDate + attemptsCount + index;
+  }, '');
+  
+  return `${functionName}_${range}_${sessionHash.length}_${sessions.length}`;
+};
+
+// Get from cache if valid
+const getCachedResult = (cacheKey) => {
+  if (!cacheKey) return null;
+  
+  const cached = dataCache.get(cacheKey);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (now - cached.timestamp > CACHE_TTL) {
+    dataCache.delete(cacheKey);
+    return null;
+  }
+  
+  return cached.data;
+};
+
+// Set cache result
+const setCachedResult = (cacheKey, data) => {
+  if (!cacheKey) return;
+  
+  dataCache.set(cacheKey, {
+    data,
+    timestamp: Date.now()
+  });
+  
+  // Prevent memory leaks - keep only last 20 cache entries
+  if (dataCache.size > 20) {
+    const firstKey = dataCache.keys().next().value;
+    dataCache.delete(firstKey);
+  }
+};
+
 // --- Parse labels to real Date objects ---
 function parseWeekLabel(label) {
   const [year, weekStr] = label.split("-W");
@@ -62,6 +112,13 @@ function getGroupKey(dateStr, range = "weekly") {
 
 // --- Accuracy Trend (still session-based) ---
 export function getAccuracyTrendData(sessions, range = "weekly") {
+  // Check cache first for performance
+  const cacheKey = createCacheKey(sessions, range, 'getAccuracyTrendData');
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+  
   const grouped = {};
 
   // Validate sessions input
@@ -122,11 +179,23 @@ export function getAccuracyTrendData(sessions, range = "weekly") {
     .filter(Boolean); // ✅ Remove 0-accuracy rows
 
   // ✅ SORT IT PROPERLY
-  return sortByLabel(raw, range);
+  const result = sortByLabel(raw, range);
+  
+  // Cache the result for better performance
+  setCachedResult(cacheKey, result);
+  
+  return result;
 }
 
 // --- Retry-aware Attempt Breakdown ---
 export function getAttemptBreakdownData(sessions, range = "weekly") {
+  // Check cache first for performance
+  const cacheKey = createCacheKey(sessions, range, 'getAttemptBreakdownData');
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+  
   const problemMap = {};
 
   // Validate sessions input
@@ -185,10 +254,22 @@ export function getAttemptBreakdownData(sessions, range = "weekly") {
       ...val,
     }));
 
-  return sortByLabel(result, range);
+  const finalResult = sortByLabel(result, range);
+  
+  // Cache the result for better performance
+  setCachedResult(cacheKey, finalResult);
+  
+  return finalResult;
 }
 
 export function getProblemActivityData(sessions, range = "weekly") {
+  // Check cache first for performance
+  const cacheKey = createCacheKey(sessions, range, 'getProblemActivityData');
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+  
   const grouped = {};
 
   // Validate sessions input
@@ -237,5 +318,10 @@ export function getProblemActivityData(sessions, range = "weekly") {
       ...val,
     }));
 
-  return sortByLabel(result, range);
+  const finalResult = sortByLabel(result, range);
+  
+  // Cache the result for better performance
+  setCachedResult(cacheKey, finalResult);
+  
+  return finalResult;
 }

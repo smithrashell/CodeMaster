@@ -8,6 +8,9 @@ import { getAllStandardProblems } from "../../shared/db/standard_problems.js";
 import { StorageService } from "../../shared/services/storageService.js";
 import { getRecentSessionAnalytics } from "../../shared/db/sessionAnalytics.js";
 import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
+import { HintInteractionService } from "../../shared/services/hintInteractionService.js";
+import { getInteractionsBySession } from "../../shared/db/hint_interactions.js";
+import { getLatestSession } from "../../shared/db/sessions.js";
 
 // Simple in-memory cache for focus area analytics
 const analyticsCache = new Map();
@@ -17,15 +20,24 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
  * Get initial focus areas from provided data (no direct service calls)
  * Background script should provide focusAreas using session generation logic
  */
+// Default focus areas fallback data (similar to content script pattern)
+const DEFAULT_FOCUS_AREAS = [
+  "array", 
+  "hash table", 
+  "string", 
+  "dynamic programming",
+  "tree"
+];
+
 function getInitialFocusAreas(providedFocusAreas) {
   // Use provided focus areas from background script
   if (providedFocusAreas && providedFocusAreas.length > 0) {
     return providedFocusAreas;
   }
   
-  // Fallback only if no data provided
-  console.warn("No focus areas provided by background script, using fallback");
-  return ["array"];
+  // Enhanced fallback with multiple common focus areas (like content script pattern)
+  console.warn("No focus areas provided by background script, using enhanced fallback");
+  return DEFAULT_FOCUS_AREAS;
 }
 
 export async function getDashboardStatistics(options = {}) {
@@ -233,7 +245,6 @@ export async function getDashboardStatistics(options = {}) {
     try {
       console.log("🔍 Dashboard: Getting hint analytics directly from service...");
       
-      const { HintInteractionService } = await import('../../shared/services/hintInteractionService.js');
       const analytics = await HintInteractionService.getSystemAnalytics({});
       
       // Transform analytics data to match expected UI structure
@@ -1899,8 +1910,7 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
   // Try to get actual hint usage data from hint_interactions table
   let totalHintsUsed = 0;
   try {
-    // Import hint functions dynamically to avoid circular dependencies
-    const { getInteractionsBySession } = await import('../../shared/db/hint_interactions.js');
+    // Use static import for hint functions
     
     // Get hint interactions for all sessions in this period
     const hintPromises = Array.from(sessionIds).map(sessionId => 
@@ -2059,7 +2069,6 @@ async function calculateNextReviewData() {
   try {
     if (typeof chrome !== 'undefined' && chrome.runtime) {
       // Direct database access to avoid circular dependency with SessionService
-      const { getLatestSession } = await import('../../shared/db/sessions.js');
       const session = await getLatestSession();
       
       // Process session data
@@ -2260,25 +2269,37 @@ export async function getGoalsData(options = {}, providedData = null) {
   }
 }
 
+// Default dashboard statistics (similar to content script fallback pattern)
+const DEFAULT_STATS = {
+  statistics: { totalSolved: 0, mastered: 0, inProgress: 0, new: 0 },
+  averageTime: { overall: 0, Easy: 0, Medium: 0, Hard: 0, timeAccuracy: 0 },
+  successRate: { overall: 0, Easy: 0, Medium: 0, Hard: 0 },
+  allSessions: [],
+  hintsUsed: { total: 0, contextual: 0, general: 0, primer: 0 },
+  timeAccuracy: 0,
+  learningEfficiencyData: { weekly: [], monthly: [], yearly: [] }
+};
+
 /**
- * Get data specifically for the Stats/Overview page
+ * Get data specifically for the Stats/Overview page with fallback
  */
 export async function getStatsData(options = {}) {
   try {
     const fullData = await getDashboardStatistics(options);
     
     return {
-      statistics: fullData.statistics,
-      averageTime: fullData.averageTime,
-      successRate: fullData.successRate,
-      allSessions: fullData.allSessions,
-      hintsUsed: fullData.hintsUsed,
-      timeAccuracy: fullData.timeAccuracy,
-      learningEfficiencyData: fullData.learningEfficiencyData,
+      statistics: fullData.statistics || DEFAULT_STATS.statistics,
+      averageTime: fullData.averageTime || DEFAULT_STATS.averageTime,
+      successRate: fullData.successRate || DEFAULT_STATS.successRate,
+      allSessions: fullData.allSessions || DEFAULT_STATS.allSessions,
+      hintsUsed: fullData.hintsUsed || DEFAULT_STATS.hintsUsed,
+      timeAccuracy: fullData.timeAccuracy || DEFAULT_STATS.timeAccuracy,
+      learningEfficiencyData: fullData.learningEfficiencyData || DEFAULT_STATS.learningEfficiencyData,
     };
   } catch (error) {
-    console.error("Error getting stats data:", error);
-    throw error;
+    console.error("Error getting stats data, using fallback:", error);
+    // Return fallback data instead of throwing (like content script pattern)
+    return DEFAULT_STATS;
   }
 }
 
