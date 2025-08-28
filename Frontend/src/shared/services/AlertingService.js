@@ -507,6 +507,535 @@ export class AlertingService {
     localStorage.removeItem("codemaster_alerts");
     logger.info("All alerts cleared", { section: "alerting" });
   }
+
+  /**
+   * Session Consistency Alert Methods
+   * These methods handle habit-based reminders and consistency notifications
+   */
+
+  /**
+   * Trigger a streak protection alert
+   * @param {number} streakDays - Current streak length
+   * @param {number} daysSince - Days since last session
+   */
+  static triggerStreakAlert(streakDays, daysSince) {
+    this.queueAlert({
+      type: "streak_protection",
+      severity: "warning",
+      title: "Practice Streak at Risk",
+      message: `Don't break your ${streakDays}-day streak! It's been ${daysSince} days since your last session.`,
+      category: "consistency",
+      data: {
+        streakDays,
+        daysSince,
+        alertType: "streak_protection",
+        priority: "high"
+      },
+      actions: [
+        {
+          label: "Start Quick Session",
+          handler: () => this.routeToSession("streak_recovery")
+        },
+        {
+          label: "Remind Me Later",
+          handler: () => this.snoozeAlert("streak_protection", 2 * 60 * 60 * 1000) // 2 hours
+        }
+      ]
+    });
+  }
+
+  /**
+   * Trigger a cadence nudge alert
+   * @param {number} typicalGap - User's typical gap between sessions
+   * @param {number} actualGap - Current gap since last session
+   */
+  static triggerCadenceAlert(typicalGap, actualGap) {
+    this.queueAlert({
+      type: "cadence_nudge",
+      severity: "info",
+      title: "Practice Cadence Reminder",
+      message: `You usually practice every ${Math.round(typicalGap)} days — it's been ${Math.floor(actualGap)}. Ready for a quick session?`,
+      category: "consistency",
+      data: {
+        typicalGap,
+        actualGap,
+        alertType: "cadence_nudge",
+        priority: "medium"
+      },
+      actions: [
+        {
+          label: "Start Session",
+          handler: () => this.routeToSession("cadence_practice")
+        },
+        {
+          label: "Skip Today",
+          handler: () => this.dismissAlert("cadence_nudge")
+        }
+      ]
+    });
+  }
+
+  /**
+   * Trigger a weekly goal reminder alert
+   * @param {number} completed - Sessions completed this week
+   * @param {number} goal - Weekly session goal
+   * @param {number} daysLeft - Days remaining in week
+   * @param {boolean} isMidWeek - Whether it's Wednesday (mid-week check)
+   */
+  static triggerWeeklyGoalAlert(completed, goal, daysLeft, isMidWeek) {
+    const progressPercent = Math.round((completed / goal) * 100);
+    const isWeekend = daysLeft <= 2;
+    
+    let message;
+    if (isMidWeek) {
+      message = `Halfway through the week! You've completed ${completed} of ${goal} sessions (${progressPercent}%).`;
+    } else if (isWeekend) {
+      message = `Weekend check: ${daysLeft} days left to hit your ${goal}-session goal. You're at ${completed}/${goal}.`;
+    } else {
+      message = `Weekly progress: ${completed} of ${goal} sessions completed (${progressPercent}%).`;
+    }
+
+    this.queueAlert({
+      type: "weekly_goal",
+      severity: progressPercent < 30 ? "warning" : "info",
+      title: "Weekly Goal Update",
+      message,
+      category: "consistency",
+      data: {
+        completed,
+        goal,
+        daysLeft,
+        progressPercent,
+        isMidWeek,
+        isWeekend,
+        alertType: "weekly_goal",
+        priority: "low"
+      },
+      actions: [
+        {
+          label: "Practice Now",
+          handler: () => this.routeToSession("weekly_goal")
+        },
+        {
+          label: "View Progress",
+          handler: () => this.routeToProgress()
+        }
+      ]
+    });
+  }
+
+  /**
+   * Trigger a re-engagement alert for users who haven't practiced recently
+   * @param {number} daysSince - Days since last session
+   * @param {string} messageType - Type of re-engagement message (friendly_weekly, supportive_biweekly, gentle_monthly)
+   */
+  static triggerReEngagementAlert(daysSince, messageType) {
+    const messages = {
+      friendly_weekly: {
+        title: "Ready to Jump Back In?",
+        message: "It's been a week since your last session. Your coding progress is waiting for you!",
+        severity: "info"
+      },
+      supportive_biweekly: {
+        title: "No Pressure - We're Here",
+        message: "Take your time! When you're ready, start with just one problem to get back into the flow.",
+        severity: "info"
+      },
+      gentle_monthly: {
+        title: "Your Coding Journey Continues",
+        message: "We're here when you want to continue your coding journey. No rush, no pressure.",
+        severity: "info"
+      }
+    };
+
+    const messageConfig = messages[messageType] || messages.friendly_weekly;
+
+    this.queueAlert({
+      type: "re_engagement",
+      severity: messageConfig.severity,
+      title: messageConfig.title,
+      message: messageConfig.message,
+      category: "consistency",
+      data: {
+        daysSince,
+        messageType,
+        alertType: "re_engagement",
+        priority: "low"
+      },
+      actions: [
+        {
+          label: "Start Easy Session",
+          handler: () => this.routeToSession("re_engagement")
+        },
+        {
+          label: "View Dashboard",
+          handler: () => this.routeToDashboard()
+        }
+      ]
+    });
+  }
+
+  /**
+   * Handle generic consistency alerts from background script
+   * @param {Array} alerts - Array of alert objects from consistency check
+   */
+  static handleConsistencyAlerts(alerts) {
+    if (!alerts || alerts.length === 0) return;
+
+    alerts.forEach(alert => {
+      switch (alert.type) {
+        case "streak_alert":
+          this.triggerStreakAlert(
+            alert.data?.currentStreak || 0,
+            alert.data?.daysSince || 0
+          );
+          break;
+        
+        case "cadence_nudge":
+          this.triggerCadenceAlert(
+            alert.data?.typicalGap || 2,
+            alert.data?.actualGap || 3
+          );
+          break;
+        
+        case "weekly_goal":
+          this.triggerWeeklyGoalAlert(
+            alert.data?.completed || 0,
+            alert.data?.goal || 3,
+            alert.data?.daysLeft || 0,
+            alert.data?.isMidWeek || false
+          );
+          break;
+        
+        case "re_engagement":
+          this.triggerReEngagementAlert(
+            alert.data?.daysSinceLastSession || 7,
+            alert.data?.messageType || "friendly_weekly"
+          );
+          break;
+        
+        default:
+          console.warn(`Unknown consistency alert type: ${alert.type}`);
+      }
+    });
+  }
+
+  /**
+   * Navigation helper methods for consistency alerts
+   */
+
+  /**
+   * Route to session generation with context
+   * @param {string} context - Context for why the session is being started
+   */
+  static routeToSession(context) {
+    try {
+      console.log(`🚀 Routing to session generation - context: ${context}`);
+      
+      // Try to use existing navigation service if available
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: 'navigate',
+          route: '/session-generator',
+          context: context
+        });
+      } else if (window.location) {
+        // Fallback for web context
+        window.location.hash = '/session-generator';
+      }
+    } catch (error) {
+      console.error("Error routing to session:", error);
+      this.fallbackRoute();
+    }
+  }
+
+  /**
+   * Route to progress/dashboard page
+   */
+  static routeToProgress() {
+    try {
+      console.log("📊 Routing to progress dashboard");
+      
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: 'navigate',
+          route: '/progress'
+        });
+      } else if (window.location) {
+        window.location.hash = '/progress';
+      }
+    } catch (error) {
+      console.error("Error routing to progress:", error);
+      this.fallbackRoute();
+    }
+  }
+
+  /**
+   * Route to main dashboard
+   */
+  static routeToDashboard() {
+    try {
+      console.log("🏠 Routing to main dashboard");
+      
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: 'navigate',
+          route: '/'
+        });
+      } else if (window.location) {
+        window.location.hash = '/';
+      }
+    } catch (error) {
+      console.error("Error routing to dashboard:", error);
+      this.fallbackRoute();
+    }
+  }
+
+  /**
+   * Fallback routing when other methods fail
+   */
+  static fallbackRoute() {
+    if (window.location) {
+      // Try to reload current page or go to dashboard
+      window.location.reload();
+    }
+  }
+
+  /**
+   * Snooze an alert for a specified duration
+   * @param {string} alertType - Type of alert to snooze
+   * @param {number} duration - Duration in milliseconds
+   */
+  static snoozeAlert(alertType, duration) {
+    console.log(`😴 Snoozing ${alertType} alert for ${duration / 1000 / 60} minutes`);
+    
+    // Store snooze info in localStorage
+    const snoozeKey = `alert_snooze_${alertType}`;
+    const snoozeUntil = Date.now() + duration;
+    
+    try {
+      localStorage.setItem(snoozeKey, snoozeUntil.toString());
+      
+      // Set timeout to clear snooze
+      setTimeout(() => {
+        localStorage.removeItem(snoozeKey);
+        console.log(`⏰ Snooze cleared for ${alertType}`);
+      }, duration);
+      
+    } catch (error) {
+      console.error("Error setting alert snooze:", error);
+    }
+  }
+
+  /**
+   * Check if an alert type is currently snoozed
+   * @param {string} alertType - Type of alert to check
+   * @returns {boolean} Whether the alert is snoozed
+   */
+  static isAlertSnoozed(alertType) {
+    const snoozeKey = `alert_snooze_${alertType}`;
+    
+    try {
+      const snoozeUntil = localStorage.getItem(snoozeKey);
+      if (!snoozeUntil) return false;
+      
+      const snoozeTime = parseInt(snoozeUntil, 10);
+      const isStillSnoozed = Date.now() < snoozeTime;
+      
+      if (!isStillSnoozed) {
+        // Snooze expired, clean up
+        localStorage.removeItem(snoozeKey);
+      }
+      
+      return isStillSnoozed;
+    } catch (error) {
+      console.error("Error checking alert snooze:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Dismiss an alert without snoozing
+   * @param {string} alertType - Type of alert to dismiss
+   */
+  static dismissAlert(alertType) {
+    console.log(`✖️ Dismissing ${alertType} alert`);
+    
+    // Remove from queue if present
+    this.alertQueue = this.alertQueue.filter(alert => alert.type !== alertType);
+    
+    // Log dismissal for analytics
+    try {
+      const dismissalEvent = {
+        type: "alert_dismissed",
+        alertType,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Store dismissal analytics
+      const dismissals = JSON.parse(localStorage.getItem("alert_dismissals") || "[]");
+      dismissals.push(dismissalEvent);
+      
+      // Keep only last 50 dismissals
+      const recentDismissals = dismissals.slice(-50);
+      localStorage.setItem("alert_dismissals", JSON.stringify(recentDismissals));
+      
+    } catch (error) {
+      console.warn("Could not log alert dismissal:", error);
+    }
+  }
+
+  // ===== HABIT-BASED REMINDER NOTIFICATIONS =====
+  // Desktop-only notifications for re-engagement and habit formation
+
+  /**
+   * Send streak alert desktop notification
+   * @param {number} currentStreak - Current streak count
+   * @param {number} daysSince - Days since last session
+   */
+  static sendStreakAlert(currentStreak, daysSince) {
+    if (typeof chrome === "undefined" || !chrome?.notifications) {
+      console.warn("Chrome notifications API not available");
+      return;
+    }
+
+    const message = currentStreak > 0 
+      ? `Your ${currentStreak}-day streak is at risk! It's been ${daysSince} days since your last session.`
+      : `Let's start building your coding streak! It's been ${daysSince} days since your last session.`;
+
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "/icon48.png",
+      title: "🔥 Coding Streak Alert",
+      message,
+      buttons: [
+        { title: "Start Session" },
+        { title: "Remind Later" }
+      ]
+    });
+
+    console.log(`🔥 Sent streak alert notification: ${currentStreak} streak, ${daysSince} days`);
+  }
+
+  /**
+   * Send cadence nudge desktop notification
+   * @param {string} typicalCadence - User's typical coding cadence
+   * @param {number} daysSince - Days since last session
+   */
+  static sendCadenceNudge(typicalCadence, daysSince) {
+    if (typeof chrome === "undefined" || !chrome?.notifications) {
+      console.warn("Chrome notifications API not available");
+      return;
+    }
+
+    const message = `You typically code ${typicalCadence}. It's been ${daysSince} days since your last session.`;
+
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "/icon48.png",
+      title: "⏰ Coding Routine Reminder",
+      message,
+      buttons: [
+        { title: "Quick Session" },
+        { title: "Schedule Later" }
+      ]
+    });
+
+    console.log(`⏰ Sent cadence nudge: ${typicalCadence}, ${daysSince} days`);
+  }
+
+  /**
+   * Send weekly goal reminder desktop notification
+   * @param {Object} weeklyProgress - Weekly progress data
+   */
+  static sendWeeklyGoalReminder(weeklyProgress) {
+    if (typeof chrome === "undefined" || !chrome?.notifications) {
+      console.warn("Chrome notifications API not available");
+      return;
+    }
+
+    const { completedSessions, targetSessions, remainingDays } = weeklyProgress;
+    const remaining = Math.max(0, targetSessions - completedSessions);
+
+    const message = remaining > 0
+      ? `${remaining} sessions remaining to hit your weekly goal! ${remainingDays} days left.`
+      : `🎉 Weekly goal achieved! You've completed ${completedSessions} sessions this week.`;
+
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "/icon48.png",
+      title: "📊 Weekly Goal Update",
+      message,
+      buttons: remaining > 0 
+        ? [{ title: "Start Session" }, { title: "Adjust Goal" }]
+        : [{ title: "View Progress" }, { title: "Set Next Goal" }]
+    });
+
+    console.log(`📊 Sent weekly goal reminder: ${completedSessions}/${targetSessions}, ${remainingDays} days left`);
+  }
+
+  /**
+   * Send re-engagement prompt desktop notification
+   * @param {number} daysSince - Days since last activity
+   * @param {string} lastActivity - Description of last activity
+   */
+  static sendReEngagementPrompt(daysSince, lastActivity = "session") {
+    if (typeof chrome === "undefined" || !chrome?.notifications) {
+      console.warn("Chrome notifications API not available");
+      return;
+    }
+
+    let message, title;
+
+    if (daysSince <= 3) {
+      title = "👋 Ready for another session?";
+      message = `It's been ${daysSince} days since your last ${lastActivity}. Keep the momentum going!`;
+    } else if (daysSince <= 7) {
+      title = "🚀 Let's get back to coding";
+      message = `It's been ${daysSince} days since your last ${lastActivity}. A quick session can rebuild your rhythm.`;
+    } else {
+      title = "💪 Time to restart your coding journey";
+      message = `It's been ${daysSince} days since your last ${lastActivity}. Every expert was once a beginner - let's begin again!`;
+    }
+
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "/icon48.png",
+      title,
+      message,
+      buttons: [
+        { title: "Start Learning" },
+        { title: "Not Now" }
+      ]
+    });
+
+    console.log(`👋 Sent re-engagement prompt: ${daysSince} days since ${lastActivity}`);
+  }
+
+  /**
+   * Send focus area recommendation desktop notification
+   * @param {string} focusArea - Recommended focus area
+   * @param {string} reason - Reason for recommendation
+   */
+  static sendFocusAreaReminder(focusArea, reason) {
+    if (typeof chrome === "undefined" || !chrome?.notifications) {
+      console.warn("Chrome notifications API not available");
+      return;
+    }
+
+    chrome.notifications.create({
+      type: "basic",
+      iconUrl: "/icon48.png",
+      title: "🎯 Focus Area Suggestion",
+      message: `Time to work on ${focusArea}. ${reason}`,
+      buttons: [
+        { title: "Practice Now" },
+        { title: "Change Focus" }
+      ]
+    });
+
+    console.log(`🎯 Sent focus area reminder: ${focusArea} - ${reason}`);
+  }
 }
 
 export default AlertingService;
