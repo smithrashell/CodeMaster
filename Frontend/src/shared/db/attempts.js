@@ -4,10 +4,12 @@ import { getProblem, saveUpdatedProblem } from "./problems.js";
 import { saveSessionToStorage } from "./sessions.js";
 import { ProblemService } from "../services/problemService.js";
 import { calculateLeitnerBox } from "../utils/leitnerSystem.js";
-import { SessionService } from "../services/sessionService.js";
 import { createAttemptRecord } from "../utils/Utils.js";
 
-const checkAndCompleteSession = SessionService.checkAndCompleteSession;
+const checkAndCompleteSession = async (...args) => {
+  const { SessionService } = await import("../services/sessionService.js");
+  return SessionService.checkAndCompleteSession(...args);
+};
 
 const openDB = dbHelper.openDB;
 
