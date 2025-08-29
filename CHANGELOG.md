@@ -4,6 +4,47 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [0.10.31] - 2025-08-29
+
+### 🔄 **Session Stall Detection & Recovery System**
+
+**Complete Session Lifecycle Management:**
+- **🕒 Intelligent Stall Detection** - Automatic detection of stalled/abandoned sessions with interview-aware thresholds (3 hours for interview sessions, 6 hours for regular sessions)
+- **🔄 Session Regeneration Banner** - Clean, accessible UI banner (`SessionRegenerationBanner`) that appears when sessions become stale, providing "Generate New Session" functionality with user-friendly messaging
+- **🎯 Smart Session Attribution** - SessionAttributionEngine intelligently routes problem attempts to appropriate sessions (guided vs tracking), preventing session limbo states
+- **📈 Tracking Session Lifecycle** - Automatic tracking session rotation based on optimal parameters: 12 attempts max, 2-hour inactivity threshold, 4 topic categories max
+
+**Interview Session Continuity:**
+- **⏱️ Interview-Specific Thresholds** - Specialized staleness detection for interview sessions with shorter 3-hour thresholds due to time-sensitive practice nature
+- **🎭 Interview Mode Recovery** - Session regeneration support for both interview-like and full-interview modes maintaining practice flow continuity
+- **📊 Interview State Classification** - Dedicated classification system: `interview_active`, `interview_stale`, `interview_abandoned`
+
+**Focus System Integration:**
+- **🧠 Focus Determination** - Integration with FocusCoordinationService for tracking session completion, ensuring learning continuity through focus data capture
+- **📚 Learning Pattern Preservation** - Session completion with focus recommendations maintains adaptive learning flow even when sessions are abandoned
+- **🔗 Retroactive Problem Assignment** - Problems attempted outside session flow are intelligently assigned to most appropriate session context
+
+**Advanced Session Management:**
+- **⚡ Auto-Expiry System** - Tracking sessions automatically complete with focus determination when rotation criteria are met (inactivity, attempt limits, topic coherence)
+- **🛡️ Error Handling & Failsafes** - Comprehensive error handling with failsafe session creation when attribution fails
+- **🔄 Activity Tracking** - LastActivityTime updates ensure accurate staleness calculations and session lifecycle management
+
+**Technical Implementation:**
+- **Session Classification Engine** - `sessionService.js:780-860` with interview-aware thresholds and comprehensive state management
+- **Attribution Engine** - `attemptsService.js` SessionAttributionEngine with focus integration and optimal parameter calculations
+- **UI Components** - `ProblemGenerator.jsx:11-44` SessionRegenerationBanner with improved layout and accessibility
+- **Background Processing** - Enhanced background script handlers for session refresh and classification
+
+**Files Enhanced:**
+- `Frontend/src/content/features/problems/ProblemGenerator.jsx` - Added SessionRegenerationBanner component with stale session detection
+- `Frontend/src/shared/services/sessionService.js` - Enhanced classifySessionState() with interview-aware thresholds and comprehensive classification
+- `Frontend/src/shared/services/attemptsService.js` - Complete SessionAttributionEngine with FocusCoordinationService integration
+- `Frontend/public/background.js` - Enhanced session handling with refresh functionality and classification support
+- `Frontend/src/shared/services/__tests__/sessionAttribution.integration.test.js` - Comprehensive test suite (9 tests) covering all attribution logic
+
+**User Experience Impact:**
+This system eliminates the frustrating "dead zone" where users get stuck with stale sessions, ensuring continuous adaptive learning flow. The intelligent session recovery maintains learning momentum while providing clear, accessible regeneration options when sessions become inactive.
+
 ## [0.10.30] - 2025-08-28
 
 ### ⚡ **Dashboard Performance Optimization System**

@@ -487,9 +487,15 @@ export const SessionService = {
   async resumeSession(sessionType = null) {
     console.info(`🔍 resumeSession ENTRY: sessionType=${sessionType}`);
     
-    // Use efficient query to find in-progress session of specific type
-    console.info(`🔍 Calling getLatestSessionByType(${sessionType}, "in_progress")...`);
-    const latestSession = await getLatestSessionByType(sessionType, "in_progress");
+    // Look for both in_progress and draft sessions (guided sessions can be in draft status)
+    console.info(`🔍 Calling getLatestSessionByType for in_progress sessions...`);
+    let latestSession = await getLatestSessionByType(sessionType, "in_progress");
+    
+    // If no in_progress session, look for draft sessions (for guided sessions)
+    if (!latestSession) {
+      console.info(`🔍 No in_progress session found, checking for draft sessions...`);
+      latestSession = await getLatestSessionByType(sessionType, "draft");
+    }
     console.info(`🔍 resumeSession getLatestSessionByType result:`, {
       found: !!latestSession,
       id: latestSession?.id,
@@ -528,16 +534,18 @@ export const SessionService = {
   /**
    * Creates a new session with fresh problems.
    * @param {string} sessionType - Session type ('standard', 'interview-like', 'full-interview')
+   * @param {string} status - Initial status ('in_progress' for user-initiated, 'draft' for auto-generated)
    * @returns {Promise<Object|null>} - Session object or null on failure
    */
-  async createNewSession(sessionType = 'standard') {
+  async createNewSession(sessionType = 'standard', status = 'in_progress') {
     const queryContext = performanceMonitor.startQuery("createNewSession", {
       operation: "session_creation",
-      sessionType
+      sessionType,
+      initialStatus: status
     });
 
     try {
-      console.info(`📌 Creating new ${sessionType} session...`);
+      console.info(`📌 Creating new ${sessionType} session with status: ${status}`);
 
       // Use appropriate service based on session type
       console.info(`🎯 SESSION SERVICE: Creating ${sessionType} session`);
@@ -573,7 +581,10 @@ export const SessionService = {
       const newSession = {
         id: uuidv4(),
         date: new Date().toISOString(),
-        status: "in_progress",
+        status: status, // Use provided status (draft or in_progress)
+        origin: "generator", // Always generator for guided sessions
+        startedBy: status === 'draft' ? "auto_inferred" : "user_action",
+        lastActivityTime: new Date().toISOString(),
         problems: problems,
         attempts: [],
         currentProblemIndex: 0,
@@ -753,10 +764,345 @@ export const SessionService = {
     console.info(`🆕 Creating new ${sessionType} session - no resumable session found`);
     this._lastSessionCreationTime = now; // Update creation time
     
-    // Use single session creation path for all session types
-    const newSession = await this.createNewSession(sessionType);
+    // Generated/Guided sessions should start as draft - they only become in_progress after first problem completion
+    const newSession = await this.createNewSession(sessionType, 'draft');
     
     console.info(`✅ New session created:`, newSession?.id);
+    return newSession;
+  },
+
+  // Removed getDraftSession and startSession - sessions auto-start immediately now
+
+  /**
+   * Multi-factor session classification for intelligent cleanup
+   * Determines session health and appropriate actions based on multiple factors
+   */
+  classifySessionState(session) {
+    const now = Date.now();
+    const lastActivity = new Date(session.lastActivityTime || session.date);
+    const hoursStale = (now - lastActivity.getTime()) / (1000 * 60 * 60);
+    
+    const attemptCount = session.attempts?.length || 0;
+    const totalProblems = session.problems?.length || 0;
+    const progressRatio = totalProblems > 0 ? attemptCount / totalProblems : 0;
+    
+    // Get attempts that match session problems vs independent attempts
+    const sessionProblemsAttempted = session.attempts?.filter(attempt => 
+      session.problems?.some(p => 
+        p.id === attempt.problemId || 
+        p.leetCodeID === attempt.problemId ||
+        p.problemId === attempt.problemId
+      )
+    ).length || 0;
+    const outsideSessionAttempts = attemptCount - sessionProblemsAttempted;
+    
+    console.log(`🔍 Classifying session ${session.id}:`, {
+      origin: session.origin,
+      status: session.status,
+      hoursStale: Math.round(hoursStale * 10) / 10,
+      attemptCount,
+      sessionProblemsAttempted,
+      outsideSessionAttempts,
+      progressRatio: Math.round(progressRatio * 100) / 100
+    });
+    
+    // Active sessions - use interview-aware thresholds
+    const activeThreshold = (session.sessionType === 'interview-like' || session.sessionType === 'full-interview') ? 3 : 6;
+    if (hoursStale < activeThreshold || session.status === "completed") {
+      return "active";
+    }
+    
+    // Interview session classification - different thresholds for time-sensitive practice
+    if (session.sessionType && (session.sessionType === 'interview-like' || session.sessionType === 'full-interview')) {
+      // Interview sessions have shorter staleness thresholds due to their time-sensitive nature
+      if (hoursStale > 3) {
+        if (attemptCount === 0 && hoursStale > 6) {
+          return 'interview_abandoned';
+        }
+        return 'interview_stale';
+      }
+      return 'interview_active';
+    }
+    
+    // Tracking session classification
+    if (session.origin === 'tracking') {
+      // Updated tracking session parameters: 4-6 hours active time
+      if (hoursStale > 6) {
+        return 'tracking_stale';
+      }
+      return 'tracking_active';
+    }
+    
+    // Guided session classification
+    if (session.origin === 'generator') {
+      // Draft sessions should rarely exist now - they auto-start, but clean up old ones
+      if (session.status === 'draft' && hoursStale > 2) {
+        return 'draft_expired';
+      }
+      
+      // Sessions with no attempts that are old
+      if (attemptCount === 0 && hoursStale > 24) {
+        return 'abandoned_at_start';
+      }
+      
+      // Nearly complete sessions
+      if (progressRatio >= 0.8 && hoursStale > 12) {
+        return 'auto_complete_candidate';
+      }
+      
+      // Sessions with progress but stalled
+      if (attemptCount > 0 && hoursStale > 48) {
+        return 'stalled_with_progress';
+      }
+      
+      // Detect "tracking-only" usage pattern - guided session but all attempts are outside
+      if (outsideSessionAttempts > 0 && sessionProblemsAttempted === 0 && hoursStale > 12) {
+        return 'tracking_only_user';
+      }
+    }
+    
+    return 'unclear';
+  },
+
+  /**
+   * Detect all stalled sessions using classification
+   */
+  async detectStalledSessions() {
+    console.info('🔍 Detecting stalled sessions...');
+    
+    const allSessions = await this.getAllSessionsFromDB();
+    const stalledSessions = [];
+    
+    for (const session of allSessions) {
+      const classification = this.classifySessionState(session);
+      
+      if (!['active', 'unclear'].includes(classification)) {
+        stalledSessions.push({
+          session,
+          classification,
+          action: this.getRecommendedAction(classification)
+        });
+      }
+    }
+    
+    console.info(`Found ${stalledSessions.length} stalled sessions:`, 
+      stalledSessions.map(s => `${s.session.id.substring(0,8)}:${s.classification}`)
+    );
+    
+    return stalledSessions;
+  },
+
+  /**
+   * Get recommended action for each classification
+   */
+  getRecommendedAction(classification) {
+    const actions = {
+      'draft_expired': 'expire',
+      'abandoned_at_start': 'expire', 
+      'auto_complete_candidate': 'auto_complete',
+      'stalled_with_progress': 'flag_for_user_choice',
+      'tracking_stale': 'create_new_tracking',
+      'tracking_only_user': 'refresh_guided_session',
+      // Interview-specific actions
+      'interview_stale': 'flag_for_user_choice', // Show regeneration banner
+      'interview_abandoned': 'expire' // Clean up abandoned interview sessions
+    };
+    
+    return actions[classification] || 'no_action';
+  },
+
+  /**
+   * Helper to get all sessions from database
+   */
+  async getAllSessionsFromDB() {
+    const db = await import('../db/index.js').then(m => m.default);
+    const transaction = db.transaction(['sessions'], 'readonly');
+    const store = transaction.objectStore('sessions');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  },
+
+  /**
+   * Generate adaptive session from recent tracking attempts
+   * Used to create personalized guided sessions based on actual usage patterns
+   * Now creates sessions that auto-start when accessed
+   */
+  async generateSessionFromTrackingActivity(recentAttempts) {
+    console.info(`🎯 Generating session from ${recentAttempts.length} recent tracking attempts`);
+    
+    // Analyze attempt patterns to build adaptive config
+    const problemIds = [...new Set(recentAttempts.map(a => a.problemId))];
+    const difficulties = recentAttempts.map(a => a.difficulty || 'Medium');
+    const tags = recentAttempts.flatMap(a => a.tags || []);
+    
+    // Build difficulty distribution
+    const difficultyCount = difficulties.reduce((acc, d) => {
+      acc[d] = (acc[d] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Build tag frequency for focus areas
+    const tagFrequency = tags.reduce((acc, tag) => {
+      acc[tag] = (acc[tag] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const topTags = Object.entries(tagFrequency)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 3)
+      .map(([tag]) => tag);
+    
+    console.info('Tracking activity analysis:', {
+      uniqueProblems: problemIds.length,
+      topDifficulty: Object.keys(difficultyCount).reduce((a, b) => 
+        difficultyCount[a] > difficultyCount[b] ? a : b
+      ),
+      topTags
+    });
+    
+    // Use existing adaptive session logic but seed with tracking patterns
+    const adaptiveConfig = {
+      sessionLength: Math.min(Math.max(5, problemIds.length), 12), // 5-12 problems (optimal range)
+      difficultyDistribution: difficultyCount,
+      focusAreas: topTags,
+      seedFromAttempts: problemIds
+    };
+    
+    // Generate problems using existing ProblemService logic
+    const sessionProblems = await ProblemService.createSessionWithConfig(adaptiveConfig);
+    
+    const generatedSession = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      ...sessionProblems,
+      status: 'in_progress', // Auto-start generated sessions
+      origin: 'generator',
+      startedBy: 'auto_inferred', // Generated from tracking patterns
+      lastActivityTime: new Date().toISOString(),
+      attempts: [],
+      currentProblemIndex: 0,
+      sessionType: 'standard',
+      metadata: {
+        generatedFromTracking: true,
+        sourceAttempts: problemIds,
+        analysisData: {
+          attemptCount: recentAttempts.length,
+          uniqueProblems: problemIds.length,
+          topDifficulty: Object.keys(difficultyCount).reduce((a, b) => 
+            difficultyCount[a] > difficultyCount[b] ? a : b
+          ),
+          topTags
+        }
+      }
+    };
+    
+    await saveNewSessionToDB(generatedSession);
+    console.info(`🆕 Generated in_progress session from tracking: ${generatedSession.id}`);
+    
+    return generatedSession;
+  },
+
+  /**
+   * Check if we should generate a session from recent tracking activity
+   * Called periodically to monitor for auto-generation opportunities
+   */
+  async checkAndGenerateFromTracking() {
+    console.info('🔍 Checking for session generation opportunities from tracking activity');
+    
+    try {
+      // Get recent attempts from tracking sessions (last 48 hours)
+      const recentAttempts = await this.getRecentTrackingAttempts(48);
+      
+      if (recentAttempts.length < 4) {
+        console.info(`Not enough tracking activity: ${recentAttempts.length} attempts (need ≥4)`);
+        return null;
+      }
+      
+      // Check if there's already an active session to avoid creating duplicates
+      const existingSession = await this.resumeSession('standard');
+      if (existingSession) {
+        console.info('Active session already exists, skipping auto-generation');
+        return null;
+      }
+      
+      // Generate session from tracking patterns
+      const generatedSession = await this.generateSessionFromTrackingActivity(recentAttempts);
+      
+      console.info('✅ Auto-generated guided session from tracking activity');
+      return generatedSession;
+      
+    } catch (error) {
+      console.error('❌ Failed to check/generate session from tracking:', error);
+      return null;
+    }
+  },
+
+  /**
+   * Get recent attempts from tracking sessions within specified hours
+   */
+  async getRecentTrackingAttempts(withinHours = 48) {
+    const cutoffTime = new Date(Date.now() - (withinHours * 60 * 60 * 1000));
+    
+    const db = await import('../db/index.js').then(m => m.default);
+    const transaction = db.transaction(['attempts', 'sessions'], 'readonly');
+    const attemptStore = transaction.objectStore('attempts');
+    const sessionStore = transaction.objectStore('sessions');
+    
+    // Get all attempts within time window
+    const allAttempts = await new Promise((resolve, reject) => {
+      const request = attemptStore.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Get all sessions to identify tracking sessions
+    const allSessions = await new Promise((resolve, reject) => {
+      const request = sessionStore.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    
+    // Filter to tracking sessions
+    const trackingSessionIds = new Set(
+      allSessions
+        .filter(s => s.origin === 'tracking')
+        .map(s => s.id)
+    );
+    
+    // Filter attempts to recent tracking attempts only
+    const recentTrackingAttempts = allAttempts.filter(attempt => {
+      const attemptDate = new Date(attempt.date);
+      return attemptDate >= cutoffTime && 
+             trackingSessionIds.has(attempt.SessionID);
+    });
+    
+    console.info(`Found ${recentTrackingAttempts.length} recent tracking attempts`);
+    return recentTrackingAttempts;
+  },
+
+  /**
+   * Refresh/regenerate current session with new problems
+   */
+  async refreshSession(sessionType = 'standard', forceNew = false) {
+    console.info(`🔄 Refreshing ${sessionType} session (forceNew: ${forceNew})`);
+    
+    // Mark current session as expired if it exists
+    const currentSession = await this.resumeSession(sessionType);
+    if (currentSession && forceNew) {
+      currentSession.status = 'expired';
+      currentSession.lastActivityTime = new Date().toISOString();
+      await updateSessionInDB(currentSession);
+      console.info(`Marked session ${currentSession.id} as expired`);
+    }
+    
+    // Create fresh session
+    const newSession = await this.createNewSession(sessionType);
+    console.info(`✅ Created fresh ${sessionType} session: ${newSession.id}`);
+    
     return newSession;
   },
 

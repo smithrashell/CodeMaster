@@ -7,6 +7,76 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useNav } from "../../../shared/provider/navprovider";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
 
+// Session Regeneration Banner Component
+const SessionRegenerationBanner = ({ onRegenerateSession }) => {
+  return (
+    <div className="cm-session-regeneration-banner" style={{
+      backgroundColor: 'rgba(251, 146, 60, 0.1)',
+      border: '2px solid #f59e0b',
+      borderRadius: '8px',
+      padding: '10px 10px',
+      margin: '0 0 16px 0',
+      display: 'flex',
+      flexDirection: "column",
+      alignItems: 'center',
+      gap: '16px',
+      minWidth: '300px'
+    }}>
+      <div style={{ 
+        flex: 1,
+        minWidth: '200px',
+        maxWidth: 'none'
+      }}>
+        <div style={{ 
+          fontWeight: 'bold', 
+          color: '#f59e0b',
+          fontSize: '14px',
+          marginBottom: '6px',
+          lineHeight: '1.2',
+          whiteSpace: 'nowrap'
+        }}>
+          Session Inactive
+        </div>
+        <div style={{ 
+          fontSize: '12px', 
+          color: 'var(--cm-text-secondary, #888)',
+          lineHeight: '1.5',
+          marginBottom: '2px',
+          wordWrap: 'break-word',
+          overflowWrap: 'normal'
+        }}>
+          Your session has been inactive. 
+          Generate fresh problems?
+        </div>
+      </div>
+      <button
+        onClick={onRegenerateSession}
+        style={{
+          padding: '8px 14px',
+          backgroundColor: '#f59e0b',
+          border: 'none',
+          borderRadius: '6px',
+          color: 'white',
+          fontSize: '12px',
+          fontWeight: '500',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          whiteSpace: 'nowrap',
+          flexShrink: 0
+        }}
+        onMouseOver={(e) => {
+          e.target.style.backgroundColor = '#d97706';
+        }}
+        onMouseOut={(e) => {
+          e.target.style.backgroundColor = '#f59e0b';
+        }}
+      >
+        Generate New Session
+      </button>
+    </div>
+  );
+};
+
 // Interview Mode Banner Component
 const InterviewModeBanner = ({ sessionType, interviewConfig: _interviewConfig }) => {
   if (!sessionType || sessionType === 'standard') return null;
@@ -351,6 +421,8 @@ const ProbGen = () => {
   const [settings, setSettings] = useState(null);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [showInterviewBanner, setShowInterviewBanner] = useState(false);
+  const [showRegenerationBanner, setShowRegenerationBanner] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   
   // Session creation tracking to prevent duplicates
   const sessionCreationAttempted = useRef(false);
@@ -394,10 +466,23 @@ const ProbGen = () => {
       });
       
       // Process the response just like the useChromeMessage onSuccess handler
+      console.log('🔍 handleInterviewChoice API Response:', {
+        hasSession: !!response.session,
+        sessionId: response.session?.id?.substring(0, 8),
+        sessionType: response.session?.sessionType,
+        isSessionStale: response.isSessionStale,
+        lastActivityTime: response.session?.lastActivityTime
+      });
+      
       if (response.session) {
         const { problems: sessionProblems, ...restOfSession } = response.session;
         setProblems(sessionProblems || []);
         setSessionData(restOfSession);
+        
+        // IMPORTANT: Set regeneration banner state for direct API calls
+        console.log('🎯 handleInterviewChoice - Setting regeneration banner state:', response.isSessionStale || false);
+        setShowRegenerationBanner(response.isSessionStale || false);
+        
         sessionCreationAttempted.current = true;
       }
     } catch (error) {
@@ -417,6 +502,43 @@ const ProbGen = () => {
       });
       
       // Process the response just like the useChromeMessage onSuccess handler
+      console.log('🔍 handleRegularChoice API Response:', {
+        hasSession: !!response.session,
+        sessionId: response.session?.id?.substring(0, 8),
+        sessionType: response.session?.sessionType,
+        isSessionStale: response.isSessionStale,
+        lastActivityTime: response.session?.lastActivityTime
+      });
+      
+      if (response.session) {
+        const { problems: sessionProblems, ...restOfSession } = response.session;
+        setProblems(sessionProblems || []);
+        setSessionData(restOfSession);
+        
+        // IMPORTANT: Set regeneration banner state for direct API calls
+        console.log('🎯 handleRegularChoice - Setting regeneration banner state:', response.isSessionStale || false);
+        setShowRegenerationBanner(response.isSessionStale || false);
+        
+        sessionCreationAttempted.current = true;
+      }
+    } catch (error) {
+      console.error("Failed to create standard session:", error);
+      setShowInterviewBanner(true); // Show banner again on error
+    }
+  };
+
+  // Handle session regeneration
+  const handleRegenerateSession = async () => {
+    setIsRegenerating(true);
+    setShowRegenerationBanner(false);
+    
+    try {
+      // Call refresh session to create a fresh session
+      const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "refreshSession",
+        sessionType: sessionData?.sessionType || 'standard'
+      });
+      
       if (response.session) {
         const { problems: sessionProblems, ...restOfSession } = response.session;
         setProblems(sessionProblems || []);
@@ -424,8 +546,11 @@ const ProbGen = () => {
         sessionCreationAttempted.current = true;
       }
     } catch (error) {
-      console.error("Failed to create standard session:", error);
-      setShowInterviewBanner(true); // Show banner again on error
+      console.error("Failed to regenerate session:", error);
+      // Show regeneration banner again on error
+      setShowRegenerationBanner(true);
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -446,26 +571,38 @@ const ProbGen = () => {
     {
       immediate: false, // Wait for manual trigger after settings are confirmed loaded
       onSuccess: (response) => {
+        console.log('🔍 ProblemGenerator API Response:', {
+          hasSession: !!response.session,
+          sessionId: response.session?.id?.substring(0, 8),
+          sessionType: response.session?.sessionType,
+          isSessionStale: response.isSessionStale,
+          lastActivityTime: response.session?.lastActivityTime,
+          backgroundScriptData: response.backgroundScriptData
+        });
+        
         if (response.session) {
-          // Store full session data for interview mode detection
+          // Store session data and show problems immediately for both draft and in_progress
           setSessionData(response.session);
           
-          // If we got a session, hide any interview banner that might be showing
-          setShowInterviewBanner(false);
+          // Check if session is stale - hide regeneration banner if session is fresh
+          console.log('🎯 Setting regeneration banner state:', response.isSessionStale || false);
+          setShowRegenerationBanner(response.isSessionStale || false);
           
-          // Validate session object structure
+          // Show problems immediately for any session with problems
           if (response.session.problems && Array.isArray(response.session.problems)) {
             setProblems(response.session.problems);
           } else {
             setProblems([]);
           }
+          setShowInterviewBanner(false);
           
-          // Reset session creation flag after successful session creation
+          // Reset session creation flag after successful session retrieval
           sessionCreationAttempted.current = false;
         } else {
           // No existing session found - check if we should show banner
           setProblems([]);
           setSessionData(null);
+          setShowRegenerationBanner(false); // No session means no staleness
           
           // Only show banner if interview mode is manual and no session was found
           if (settings?.interviewMode && 
@@ -480,6 +617,7 @@ const ProbGen = () => {
         
         setProblems([]);
         setSessionData(null);
+        setShowRegenerationBanner(false); // Hide regeneration banner on error
         
         // Reset session creation flag on error to allow retry
         sessionCreationAttempted.current = false;
@@ -527,6 +665,9 @@ const ProbGen = () => {
   const [_manualSessionTypeOverride, _setManualSessionTypeOverride] = useState(null);
 
   const handleLinkClick = (problem) => {
+    // Hide regeneration banner when user clicks a problem (session reactivated)
+    setShowRegenerationBanner(false);
+    
     window.location.href =
       problem.LeetCodeAddress ||
       `https://leetcode.com/problems/${problem.slug}/description/`;
@@ -542,20 +683,28 @@ const ProbGen = () => {
           interviewConfig={sessionData?.interviewConfig}
         />
         
-        {settingsLoading || (settingsLoaded && sessionLoading) ? (
+        {/* Session Regeneration Banner - shows for stale sessions */}
+        {console.log('🎯 Render check - showRegenerationBanner:', showRegenerationBanner, 'sessionData:', sessionData?.id?.substring(0,8))}
+        {showRegenerationBanner && (
+          <SessionRegenerationBanner 
+            onRegenerateSession={handleRegenerateSession}
+          />
+        )}
+        
+        {settingsLoading || (settingsLoaded && sessionLoading) || isRegenerating ? (
           <div style={{ 
             textAlign: 'center', 
             padding: '20px', 
             color: 'var(--cm-text-secondary)' 
           }}>
-            {settingsLoading ? '⏳ Loading settings...' : '🎯 Loading session...'}
-            {settingsLoaded && sessionLoading && (
+            {settingsLoading ? '⏳ Loading settings...' : isRegenerating ? '🔄 Regenerating session...' : '🎯 Loading session...'}
+            {settingsLoaded && (sessionLoading || isRegenerating) && (
               <div style={{ 
                 fontSize: '12px', 
                 marginTop: '8px', 
                 opacity: 0.7 
               }}>
-                Using {settings?.interviewMode === 'disabled' ? 'standard' : settings?.interviewMode || 'standard'} mode
+                {isRegenerating ? 'Creating fresh problems...' : `Using ${settings?.interviewMode === 'disabled' ? 'standard' : settings?.interviewMode || 'standard'} mode`}
               </div>
             )}
           </div>
