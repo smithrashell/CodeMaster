@@ -2673,3 +2673,231 @@ export async function getInterviewAnalyticsData(options = {}) {
   }
 }
 
+/**
+ * Get separated analytics for guided vs tracking sessions
+ * Provides comprehensive metrics for both session types
+ */
+export async function getSessionMetrics(options = {}) {
+  try {
+    const { range = 30 } = options;
+    const cutoffDate = new Date(Date.now() - (range * 24 * 60 * 60 * 1000));
+    
+    const sessions = await getAllSessions();
+    const attempts = await getAllAttempts();
+    
+    // Filter sessions by date range if specified
+    const recentSessions = sessions.filter(session => 
+      new Date(session.date) >= cutoffDate
+    );
+    
+    // Separate sessions by origin
+    const guidedSessions = recentSessions.filter(s => s.origin === 'generator');
+    const trackingSessions = recentSessions.filter(s => s.origin === 'tracking');
+    
+    // Get attempts for each session type
+    const guidedSessionIds = new Set(guidedSessions.map(s => s.id));
+    const trackingSessionIds = new Set(trackingSessions.map(s => s.id));
+    
+    const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.SessionID));
+    const trackingAttempts = attempts.filter(a => trackingSessionIds.has(a.SessionID));
+    
+    // Calculate metrics for guided sessions
+    const guidedMetrics = calculateSessionTypeMetrics(guidedSessions, guidedAttempts, 'guided');
+    
+    // Calculate metrics for tracking sessions  
+    const trackingMetrics = calculateSessionTypeMetrics(trackingSessions, trackingAttempts, 'tracking');
+    
+    // Calculate transfer metrics (tracking → guided adoption)
+    const transferMetrics = calculateTransferMetrics(sessions, attempts);
+    
+    // Calculate session health metrics
+    const healthMetrics = await calculateSessionHealthMetrics(sessions);
+    
+    return {
+      guided: guidedMetrics,
+      tracking: trackingMetrics,
+      transfer: transferMetrics,
+      health: healthMetrics,
+      overall: {
+        totalSessions: recentSessions.length,
+        totalAttempts: guidedAttempts.length + trackingAttempts.length,
+        avgSessionLength: calculateAverageSessionLength([...guidedSessions, ...trackingSessions]),
+        sessionDistribution: {
+          guided: Math.round((guidedSessions.length / Math.max(1, recentSessions.length)) * 100),
+          tracking: Math.round((trackingSessions.length / Math.max(1, recentSessions.length)) * 100)
+        }
+      }
+    };
+    
+  } catch (error) {
+    console.error("Error in getSessionMetrics:", error);
+    throw error;
+  }
+}
+
+/**
+ * Calculate detailed metrics for a specific session type
+ */
+function calculateSessionTypeMetrics(sessions, attempts, type) {
+  const completedSessions = sessions.filter(s => s.status === 'completed');
+  const activeSessions = sessions.filter(s => s.status === 'in_progress');
+  const draftSessions = sessions.filter(s => s.status === 'draft');
+  
+  // Success rate calculation
+  const successfulAttempts = attempts.filter(a => a.Success === true || a.Success === 1);
+  const successRate = attempts.length > 0 ? 
+    Math.round((successfulAttempts.length / attempts.length) * 100) : 0;
+  
+  // Average session length
+  const avgSessionLength = calculateAverageSessionLength(sessions);
+  
+  // Problems per session
+  const avgProblemsPerSession = sessions.length > 0 ?
+    Math.round(attempts.length / sessions.length * 10) / 10 : 0;
+  
+  // Session completion rate (for guided sessions)
+  const completionRate = type === 'guided' && sessions.length > 0 ?
+    Math.round((completedSessions.length / sessions.length) * 100) : null;
+  
+  // Time-based metrics
+  const totalTimeSpent = attempts.reduce((sum, a) => sum + (a.TimeSpent || 0), 0);
+  const avgTimePerProblem = attempts.length > 0 ?
+    Math.round(totalTimeSpent / attempts.length) : 0;
+  
+  return {
+    totalSessions: sessions.length,
+    sessionsByStatus: {
+      completed: completedSessions.length,
+      active: activeSessions.length,
+      draft: draftSessions.length
+    },
+    completionRate,
+    totalAttempts: attempts.length,
+    successRate,
+    avgSessionLength,
+    avgProblemsPerSession,
+    avgTimePerProblem,
+    totalTimeSpent: Math.round(totalTimeSpent / 60), // Convert to minutes
+    recentActivity: getRecentActivity(sessions, attempts)
+  };
+}
+
+/**
+ * Calculate transfer metrics (tracking → guided session adoption)
+ */
+function calculateTransferMetrics(sessions, attempts) {
+  // Find users who have both tracking and guided sessions
+  const hasTracking = sessions.some(s => s.origin === 'tracking');
+  const hasGuided = sessions.some(s => s.origin === 'generator');
+  
+  if (!hasTracking) {
+    return {
+      hasTrackingActivity: false,
+      transferRate: 0,
+      generatedFromTracking: 0,
+      recommendations: ['Start solving problems independently to unlock personalized guided sessions']
+    };
+  }
+  
+  if (!hasGuided) {
+    const trackingAttempts = attempts.filter(a => 
+      sessions.find(s => s.id === a.SessionID && s.origin === 'tracking')
+    );
+    
+    return {
+      hasTrackingActivity: true,
+      transferRate: 0,
+      trackingAttempts: trackingAttempts.length,
+      recommendations: trackingAttempts.length >= 4 ? 
+        ['You have enough tracking activity to generate a personalized guided session'] :
+        [`Solve ${4 - trackingAttempts.length} more problems independently to unlock guided sessions`]
+    };
+  }
+  
+  // Count auto-generated sessions
+  const autoGeneratedSessions = sessions.filter(s => 
+    s.origin === 'generator' && s.startedBy === 'auto_inferred'
+  );
+  
+  const transferRate = sessions.length > 0 ?
+    Math.round((autoGeneratedSessions.length / sessions.length) * 100) : 0;
+  
+  return {
+    hasTrackingActivity: true,
+    hasGuidedActivity: true,
+    transferRate,
+    generatedFromTracking: autoGeneratedSessions.length,
+    totalSessions: sessions.length,
+    recommendations: transferRate > 0 ?
+      ['Great! The system is learning from your independent practice'] :
+      ['Try solving more problems independently to improve session personalization']
+  };
+}
+
+/**
+ * Calculate session health metrics using classification system
+ */
+async function calculateSessionHealthMetrics(sessions) {
+  try {
+    // This would typically call the background script to classify sessions
+    // For now, we'll simulate the classification
+    const stalledCount = sessions.filter(session => {
+      const now = Date.now();
+      const lastActivity = new Date(session.lastActivityTime || session.date);
+      const hoursStale = (now - lastActivity.getTime()) / (1000 * 60 * 60);
+      
+      return hoursStale > 24 && session.status !== 'completed';
+    }).length;
+    
+    const healthyCount = sessions.length - stalledCount;
+    
+    return {
+      totalSessions: sessions.length,
+      healthyCount,
+      stalledCount,
+      healthScore: sessions.length > 0 ? 
+        Math.round((healthyCount / sessions.length) * 100) : 100,
+      needsCleanup: stalledCount > 0
+    };
+    
+  } catch (error) {
+    console.error("Error calculating session health:", error);
+    return {
+      totalSessions: sessions.length,
+      healthyCount: sessions.length,
+      stalledCount: 0,
+      healthScore: 100,
+      needsCleanup: false
+    };
+  }
+}
+
+/**
+ * Calculate average session length in problems
+ */
+function calculateAverageSessionLength(sessions) {
+  if (sessions.length === 0) return 0;
+  
+  const totalProblems = sessions.reduce((sum, session) => 
+    sum + (session.problems?.length || 0), 0
+  );
+  
+  return Math.round((totalProblems / sessions.length) * 10) / 10;
+}
+
+/**
+ * Get recent activity for a session type
+ */
+function getRecentActivity(sessions, attempts) {
+  const last7Days = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+  
+  const recentSessions = sessions.filter(s => new Date(s.date) >= last7Days);
+  const recentAttempts = attempts.filter(a => new Date(a.date) >= last7Days);
+  
+  return {
+    sessionsLast7Days: recentSessions.length,
+    attemptsLast7Days: recentAttempts.length,
+    avgDailyActivity: Math.round(recentAttempts.length / 7 * 10) / 10
+  };
+}
+
