@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import  { useState } from "react";
 import Header from "../../components/navigation/header";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useNav } from "../../../shared/provider/navprovider";
@@ -14,9 +14,9 @@ const ProbStat = () => {
 
   // New approach using custom hook
   const {
-    data: statisticsData,
+    data: _statisticsData,
     loading,
-    error: hookError,
+    error: _hookError,
   } = useChromeMessage({ type: "countProblemsByBoxLevel" }, [], {
     onSuccess: (response) => {
       if (response && response.status === "success") {
@@ -27,7 +27,7 @@ const ProbStat = () => {
         setError("Failed to load statistics. Please try refreshing.");
       }
     },
-    onError: (errorMsg) => {
+    onError: (_errorMsg) => {
       console.error("Failed to get problem count by box level");
       setError("Failed to load statistics. Please try refreshing.");
     },

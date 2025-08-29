@@ -10,7 +10,7 @@
 
 import { TagService } from './tagServices.js';
 import { StorageService } from './storageService.js';
-import { detectApplicableEscapeHatches, calculateAdjustedThreshold } from '../utils/escapeHatchUtils.js';
+import { detectApplicableEscapeHatches} from '../utils/escapeHatchUtils.js';
 
 /**
  * Configuration constants for focus coordination

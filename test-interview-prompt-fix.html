@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Interview Prompt Fix</title>
+</head>
+<body>
+    <h1>Interview Prompt Timing Fix Test</h1>
+    
+    <div style="background: #ffeeee; padding: 15px; margin: 10px 0; border-left: 4px solid #cc0000;">
+        <h3>🐛 Original Issue:</h3>
+        <p>Interview prompt didn't show because of race condition:</p>
+        <ul>
+            <li><code>getCurrentSession</code> ran before <code>getSettings</code> completed</li>
+            <li><code>settings</code> was null during interview frequency check</li>
+            <li>Regular session created instead of showing prompt</li>
+        </ul>
+    </div>
+
+    <div style="background: #eeffee; padding: 15px; margin: 10px 0; border-left: 4px solid #00cc00;">
+        <h3>✅ Fix Applied:</h3>
+        <ul>
+            <li>Added <code>settingsLoaded</code> state to track when settings are ready</li>
+            <li>Made <code>getCurrentSession</code> depend on <code>[settingsLoaded]</code></li>
+            <li>Added loading state: "⏳ Loading settings..."</li>
+            <li>Session logic only runs after settings are confirmed loaded</li>
+        </ul>
+    </div>
+
+    <div>
+        <h2>Test Steps:</h2>
+        <ol>
+            <li><strong>Setup:</strong>
+                <ul>
+                    <li>Set interview mode to "interview-like" or "full-interview"</li>
+                    <li>Set interview frequency to "manual"</li>
+                    <li>Clear all sessions from database</li>
+                </ul>
+            </li>
+            <li><strong>Navigate to Problem Generator page</strong></li>
+            <li><strong>Expected behavior:</strong>
+                <ul>
+                    <li>Brief "⏳ Loading settings..." message</li>
+                    <li>Then interview prompt modal appears</li>
+                    <li>Choose "Interview Mode" or "Regular Practice"</li>
+                    <li>Session created based on choice</li>
+                </ul>
+            </li>
+        </ol>
+    </div>
+
+    <div>
+        <h2>Console Commands for Testing:</h2>
+        <pre style="background: #f5f5f5; padding: 10px; border-radius: 5px;">
+// 1. Clear all sessions to force new session creation
+chrome.runtime.sendMessage({action: "clearAllSessions"}, console.log);
+
+// 2. Set interview mode to manual  
+chrome.runtime.sendMessage({
+    action: "updateSettings", 
+    settings: {
+        interviewMode: "interview-like",
+        interviewFrequency: "manual"
+    }
+}, response => console.log("Settings updated:", response));
+
+// 3. Check current settings
+chrome.runtime.sendMessage({action: "getSettings"}, response => {
+    console.log("Current settings:");
+    console.log("- Interview mode:", response?.interviewMode);  
+    console.log("- Interview frequency:", response?.interviewFrequency);
+});
+
+// 4. Navigate to Problem Generator page and observe:
+// - Should see "Loading settings..." briefly
+// - Then interview prompt modal should appear
+        </pre>
+    </div>
+
+    <div style="background: #fffacd; padding: 15px; margin: 10px 0; border-left: 4px solid #ddd;">
+        <h3>⚠️ If Still Not Working:</h3>
+        <p>Check browser console for:</p>
+        <ul>
+            <li>Settings loading completion logs</li>
+            <li>Session creation timing logs</li>  
+            <li>Interview frequency check results</li>
+        </ul>
+        <p>The fix ensures proper timing: <strong>Settings → Session Logic → Prompt (if applicable)</strong></p>
+    </div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import React from "react";
+
 import { render, screen, waitFor } from "@testing-library/react";
 import { useChromeMessage } from "./useChromeMessage";
 
@@ -208,12 +208,5 @@ describe("useChromeMessage Hook", () => {
   });
 });
 
-// Manual test helper for browser console testing
-export const runManualTests = () => {
-  console.info("🧪 Testing enhanced useChromeMessage hook...");
-  console.info(
-    "✅ Use Jest tests for automated testing. Check test results above."
-  );
-};
 
 export default TestComponent;

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Mistake Analysis Card Expansion Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: height 0.3s ease;
+        }
+        
+        .card.first-row {
+            height: 400px; /* Default height for first row when collapsed */
+        }
+        
+        .card.second-row {
+            height: 600px; /* Default height for second row when collapsed */
+        }
+        
+        .card.expanded {
+            height: auto !important; /* Remove height constraints when expanded */
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .badge {
+            background: #007bff;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+        
+        .card-content {
+            flex: 1;
+            margin-bottom: 8px;
+        }
+        
+        .card.collapsed .card-content {
+            overflow-y: auto;
+        }
+        
+        .card.expanded .card-content {
+            overflow-y: visible;
+        }
+        
+        .item {
+            padding: 8px;
+            margin: 4px 0;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        
+        .show-more-btn {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        .show-more-btn:hover {
+            background: #0056b3;
+        }
+        
+        .status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mistake Analysis Card Expansion Fix Test</h1>
+    <div class="status" id="status">Status: All cards collapsed with default heights</div>
+    
+    <div class="grid">
+        <!-- First Row Cards (400px default) -->
+        <div class="card first-row collapsed" id="card1">
+            <div class="card-header">
+                <span class="card-title">🎯 Improvement Action Plan</span>
+                <span class="badge">0 / 6 done</span>
+            </div>
+            <div class="card-content">
+                <div class="item">1. Focus on understanding graph traversal patterns</div>
+                <div class="item">2. Practice explaining solutions out loud</div>
+                <div class="item">3. Review solution explanations for missed problems</div>
+                <div class="item">4. Dedicated session for dynamic programming</div>
+                <div class="item">5. Take a break from binary trees and return with fresh perspective</div>
+                <div class="item">6. Build solid foundation with Easy problems first</div>
+                <div class="item">7. Focus on two-pointer technique patterns</div>
+                <div class="item">8. Practice time complexity analysis</div>
+                <div class="item">9. Work on sliding window problems</div>
+                <div class="item">10. Review backtracking fundamentals</div>
+            </div>
+            <button class="show-more-btn" onclick="toggleCard('card1')">Show More</button>
+        </div>
+        
+        <div class="card first-row collapsed" id="card2">
+            <div class="card-header">
+                <span class="card-title">🔍 Error Patterns Detected</span>
+            </div>
+            <div class="card-content">
+                <div class="item">🚨 <strong>Accuracy Issue:</strong> 4 recent sessions with accuracy below 70%<br><small>💡 Focus on understanding problem patterns rather than speed</small></div>
+                <div class="item">⚠️ <strong>Progression Issue:</strong> Attempting advanced problems before mastering fundamentals<br><small>💡 Build a solid foundation with Easy and Medium problems first</small></div>
+                <div class="item">ℹ️ <strong>Focus Issue:</strong> Short sessions with low accuracy detected<br><small>💡 Longer, focused practice sessions tend to improve learning retention</small></div>
+                <div class="item">⚠️ <strong>Time Management:</strong> Spending too long on single problems<br><small>💡 Set time limits and move to solutions when stuck</small></div>
+                <div class="item">🚨 <strong>Pattern Recognition:</strong> Missing common algorithmic patterns<br><small>💡 Study problem patterns before attempting solutions</small></div>
+            </div>
+            <button class="show-more-btn" onclick="toggleCard('card2')">Show More</button>
+        </div>
+        
+        <!-- Second Row Cards (600px default) -->
+        <div class="card second-row collapsed" id="card3">
+            <div class="card-header">
+                <span class="card-title">📉 Areas Needing Focus</span>
+            </div>
+            <div class="card-content">
+                <div style="margin-bottom: 16px;">
+                    <h4 style="color: #dc3545; margin: 0 0 8px 0;">Needs Attention</h4>
+                    <div class="item">Graph (25% success) - 3/12 solved</div>
+                    <div class="item">Dynamic Programming (18% success) - 2/11 solved</div>
+                    <div class="item">Binary Tree (22% success) - 4/18 solved</div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <h4 style="color: #fd7e14; margin: 0 0 8px 0;">Watch List</h4>
+                    <div class="item">Two Pointers (45% success) - 9/20 solved</div>
+                    <div class="item">Sliding Window (38% success) - 6/16 solved</div>
+                    <div class="item">Backtracking (42% success) - 8/19 solved</div>
+                </div>
+                <div>
+                    <h4 style="color: #28a745; margin: 0 0 8px 0;">Improving</h4>
+                    <div class="item">Array (68% success) - 27/40 solved</div>
+                    <div class="item">String (72% success) - 18/25 solved</div>
+                    <div class="item">Hash Table (65% success) - 13/20 solved</div>
+                    <div class="item">Stack (70% success) - 14/20 solved</div>
+                    <div class="item">Queue (58% success) - 11/19 solved</div>
+                </div>
+            </div>
+            <button class="show-more-btn" onclick="toggleCard('card3')">Show More</button>
+        </div>
+        
+        <div class="card second-row collapsed" id="card4">
+            <div class="card-header">
+                <span class="card-title">💭 Recent Session Feedback</span>
+            </div>
+            <div class="card-content">
+                <div class="item">💬 <strong>Focus Recommendation:</strong> Consider reviewing solution explanations<br><small>Session 1</small></div>
+                <div class="item">⚡ <strong>Performance Insight:</strong> Your timing on medium problems improved<br><small>Session 2</small></div>
+                <div class="item">⏱️ <strong>Timing Analysis:</strong> Spending optimal time per problem<br><small>Session 3</small></div>
+                <div class="item">🎯 <strong>Strategy Suggestion:</strong> Focus on pattern recognition first<br><small>Session 4</small></div>
+                <div class="item">📈 <strong>Progress Update:</strong> Array mastery increased to 68%<br><small>Session 5</small></div>
+                <div class="item">🔍 <strong>Pattern Detection:</strong> Good use of two-pointer technique<br><small>Session 6</small></div>
+                <div class="item">💬 <strong>Focus Recommendation:</strong> Practice explaining solutions aloud<br><small>Session 7</small></div>
+                <div class="item">⚡ <strong>Performance Insight:</strong> Accuracy improved on graph problems<br><small>Session 8</small></div>
+            </div>
+            <button class="show-more-btn" onclick="toggleCard('card4')">Show More</button>
+        </div>
+    </div>
+    
+    <div style="margin-top: 30px; text-align: center;">
+        <h3>Test Instructions:</h3>
+        <ul style="text-align: left; max-width: 800px; margin: 0 auto;">
+            <li><strong>First Row Cards:</strong> Should start at 400px height when collapsed</li>
+            <li><strong>Second Row Cards:</strong> Should start at 600px height when collapsed</li>
+            <li><strong>Click "Show More":</strong> Cards should expand to show ALL content without scroll bars</li>
+            <li><strong>Click "Show Less":</strong> Cards should return to their default heights (400px/600px)</li>
+            <li><strong>Verify:</strong> No scroll bars appear when expanded - content should be fully visible</li>
+        </ul>
+    </div>
+
+    <script>
+        const cardStates = {
+            card1: false,
+            card2: false,
+            card3: false,
+            card4: false
+        };
+
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            const button = card.querySelector('.show-more-btn');
+            const content = card.querySelector('.card-content');
+            const status = document.getElementById('status');
+            
+            cardStates[cardId] = !cardStates[cardId];
+            
+            if (cardStates[cardId]) {
+                // Expand
+                card.classList.remove('collapsed');
+                card.classList.add('expanded');
+                button.textContent = 'Show Less';
+                content.style.overflowY = 'visible';
+            } else {
+                // Collapse
+                card.classList.remove('expanded');
+                card.classList.add('collapsed');
+                button.textContent = 'Show More';
+                content.style.overflowY = 'auto';
+            }
+            
+            // Update status
+            const expandedCount = Object.values(cardStates).filter(state => state).length;
+            if (expandedCount === 0) {
+                status.textContent = 'Status: All cards collapsed with default heights';
+                status.style.background = '#28a745';
+            } else {
+                status.textContent = `Status: ${expandedCount} card(s) expanded - should show full content without scroll bars`;
+                status.style.background = '#007bff';
+            }
+        }
+        
+        // Test the functionality on page load
+        setTimeout(() => {
+            console.log('Test page loaded successfully');
+            console.log('Card 1 (first row): Should be 400px height when collapsed');
+            console.log('Card 2 (first row): Should be 400px height when collapsed');
+            console.log('Card 3 (second row): Should be 600px height when collapsed');
+            console.log('Card 4 (second row): Should be 600px height when collapsed');
+        }, 100);
+    </script>
+</body>
+</html>

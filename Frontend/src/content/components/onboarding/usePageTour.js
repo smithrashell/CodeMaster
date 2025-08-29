@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
@@ -55,14 +56,14 @@ export function usePageTour() {
         const isCompleted = await isPageTourCompleted(pageId);
         if (isCompleted) {
           // Tour already seen
-          console.log(`⏭️ Page tour already completed for: ${pageId}`);
+          logger.info(`⏭️ Page tour already completed for: ${pageId}`);
           setActiveTour(null);
           setShowTour(false);
           return;
         }
 
         // Show tour for this page
-        console.log(`🎯 Showing page tour for: ${pageId}`);
+        logger.info(`🎯 Showing page tour for: ${pageId}`);
         setActiveTour(tourConfig);
         
         // Small delay to ensure page elements are rendered
@@ -70,7 +71,7 @@ export function usePageTour() {
           setShowTour(true);
         }, 500);
       } catch (error) {
-        console.error(`❌ Error checking page tour status for ${pageId}:`, error);
+        logger.error(`❌ Error checking page tour status for ${pageId}:`, error);
         // On error, don't show tour to avoid potential issues
         setActiveTour(null);
         setShowTour(false);
@@ -82,11 +83,11 @@ export function usePageTour() {
 
   const handleTourComplete = useCallback(async () => {
     if (activeTour) {
-      console.log(`✅ Page tour completed: ${activeTour.id}`);
+      logger.info(`✅ Page tour completed: ${activeTour.id}`);
       try {
         await markPageTourCompleted(getPageIdFromPath(pathname));
       } catch (error) {
-        console.error(`❌ Error marking page tour completed:`, error);
+        logger.error(`❌ Error marking page tour completed:`, error);
         // Continue with UI update even if database update fails
       }
       setShowTour(false);
@@ -95,7 +96,7 @@ export function usePageTour() {
   }, [activeTour, pathname, getPageIdFromPath]);
 
   const handleTourClose = useCallback(() => {
-    console.log(`❌ Page tour closed: ${activeTour?.id}`);
+    logger.info(`❌ Page tour closed: ${activeTour?.id}`);
     setShowTour(false);
     setActiveTour(null);
     // Note: We don't mark as completed when closed/skipped

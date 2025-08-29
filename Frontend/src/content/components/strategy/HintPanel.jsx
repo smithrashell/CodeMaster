@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   Text,
@@ -41,9 +41,9 @@ const HintPanel = ({
     } else {
       setHints([]);
     }
-  }, [problemTags]);
+  }, [problemTags, loadHints]);
 
-  const loadHints = async () => {
+  const loadHints = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -59,7 +59,7 @@ const HintPanel = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [problemTags]);
 
   // Track panel expand/collapse actions
   const handlePanelToggle = async () => {

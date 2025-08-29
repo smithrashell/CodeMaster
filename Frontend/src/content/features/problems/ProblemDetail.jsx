@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNav } from "../../../shared/provider/navprovider";
 import {
   ChevronLeftIcon,
   BarChart3Icon,
   TrendingUpIcon,
-  TagIcon,
   PlayIcon,
   BrainIcon,
 } from "../../../shared/components/ui/Icons";

@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Text, Group, ActionIcon } from '@mantine/core';
 import { IconZoomIn, IconZoomOut, IconHome, IconLock, IconLockOpen } from '@tabler/icons-react';
-import { useThemeColors } from '../../../shared/hooks/useThemeColors';
 
 // LearningPathVisualization Component - Interactive Network Learning Path with Pan/Zoom/Drag
 export function LearningPathVisualization({ pathData, onNodeClick }) {
-  const colors = useThemeColors();
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -473,7 +471,6 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
       label.style.fill = textColor + ' !important';
       label.style.color = textColor + ' !important';
       label.setAttribute('class', isDarkMode ? 'svg-text-dark' : 'svg-text-light');
-      console.log('LearningPath: Setting label color to', textColor, 'isDarkMode:', isDarkMode);
       label.setAttribute('pointer-events', 'none');
       label.textContent = tag.tag;
       nodeGroup.appendChild(label);

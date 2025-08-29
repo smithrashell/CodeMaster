@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonious Banner Colors</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #dceefb;
+            color: #334155;
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .banner-example {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .label {
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        /* OLD: Clashing colors */
+        .old-banner {
+            background-color: rgba(250, 189, 34, 0.1);
+            width: 100%;
+            margin: 16px 0;
+        }
+        
+        .old-banner .text {
+            text-align: center;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .old-buttons {
+            display: flex;
+            width: 100%;
+        }
+        
+        .old-yes {
+            flex: 1;
+            padding: 12px;
+            background-color: rgba(34, 197, 94, 0.8);
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .old-no {
+            flex: 1;
+            padding: 12px;
+            background-color: rgba(239, 68, 68, 0.8);
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        /* NEW: Harmonious colors */
+        .new-banner {
+            background-color: rgba(96, 125, 139, 0.08);
+            width: 100%;
+            margin: 16px 0;
+            border: 1px solid rgba(96, 125, 139, 0.15);
+        }
+        
+        .new-banner .text {
+            text-align: center;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        .new-buttons {
+            display: flex;
+            width: 100%;
+        }
+        
+        .new-yes {
+            flex: 1;
+            padding: 12px;
+            background-color: rgba(59, 130, 246, 0.9);
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .new-yes:hover {
+            background-color: rgba(59, 130, 246, 1);
+        }
+        
+        .new-no {
+            flex: 1;
+            padding: 12px;
+            background-color: rgba(107, 114, 128, 0.8);
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .new-no:hover {
+            background-color: rgba(107, 114, 128, 0.9);
+        }
+        
+        .analysis {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-top: 20px;
+        }
+        
+        .color-swatch {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            margin-right: 8px;
+            vertical-align: middle;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .bad { color: #dc2626; }
+        .good { color: #059669; }
+    </style>
+</head>
+<body>
+    <h1>🎨 Harmonious Color Scheme</h1>
+    
+    <div class="comparison">
+        <div class="banner-example">
+            <div class="label bad">❌ OLD: Clashing Colors</div>
+            <div class="old-banner">
+                <div class="text">
+                    In interview-like mode, would you like to start an interview session?
+                </div>
+                <div class="old-buttons">
+                    <button class="old-yes">Yes</button>
+                    <button class="old-no">No</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="banner-example">
+            <div class="label good">✅ NEW: Harmonious Colors</div>
+            <div class="new-banner">
+                <div class="text">
+                    In interview-like mode, would you like to start an interview session?
+                </div>
+                <div class="new-buttons">
+                    <button class="new-yes">Yes</button>
+                    <button class="new-no">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="analysis">
+        <h2>🎯 Color Harmony Analysis</h2>
+        
+        <h3>Problems with Old Colors:</h3>
+        <ul class="bad">
+            <li><span class="color-swatch" style="background: rgba(250, 189, 34, 0.4);"></span>Bright yellow background clashed with blue app theme</li>
+            <li><span class="color-swatch" style="background: rgba(34, 197, 94, 0.8);"></span>Neon green was too saturated and jarring</li>
+            <li><span class="color-swatch" style="background: rgba(239, 68, 68, 0.8);"></span>Bright red was aggressive and attention-grabbing</li>
+            <li>Overall felt like external component, not native to app</li>
+        </ul>
+        
+        <h3>New Harmonious Colors:</h3>
+        <ul class="good">
+            <li><span class="color-swatch" style="background: rgba(96, 125, 139, 0.08);"></span><strong>Background:</strong> Subtle blue-gray that complements app's light blue theme</li>
+            <li><span class="color-swatch" style="background: rgba(96, 125, 139, 0.15);"></span><strong>Border:</strong> Gentle definition without harsh contrast</li>
+            <li><span class="color-swatch" style="background: rgba(59, 130, 246, 0.9);"></span><strong>Yes Button:</strong> Professional blue that feels trustworthy</li>
+            <li><span class="color-swatch" style="background: rgba(107, 114, 128, 0.8);"></span><strong>No Button:</strong> Neutral gray that's subtle, not alarming</li>
+        </ul>
+        
+        <h3>Design Psychology:</h3>
+        <div style="margin: 16px 0; padding: 12px; background: #f8fafc; border-radius: 6px;">
+            <strong>Before:</strong> Bright colors demanded attention and felt intrusive<br>
+            <strong>After:</strong> Calm, professional colors that integrate seamlessly with app design
+        </div>
+        
+        <h3>Color Relationships:</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 16px 0;">
+            <div style="padding: 12px; background: #dceefb; border-radius: 6px; text-align: center;">
+                <strong>App Background</strong><br>
+                <code>#dceefb</code>
+            </div>
+            <div style="padding: 12px; background: rgba(96, 125, 139, 0.08); border-radius: 6px; text-align: center; border: 1px solid rgba(96, 125, 139, 0.15);">
+                <strong>Banner Background</strong><br>
+                <code>rgba(96, 125, 139, 0.08)</code>
+            </div>
+            <div style="padding: 12px; background: rgba(59, 130, 246, 0.9); color: white; border-radius: 6px; text-align: center;">
+                <strong>Yes Button</strong><br>
+                <code>rgba(59, 130, 246, 0.9)</code>
+            </div>
+            <div style="padding: 12px; background: rgba(107, 114, 128, 0.8); color: white; border-radius: 6px; text-align: center;">
+                <strong>No Button</strong><br>
+                <code>rgba(107, 114, 128, 0.8)</code>
+            </div>
+        </div>
+        
+        <p><strong>Result:</strong> The banner now feels like a natural part of your app, with colors that work in harmony rather than fighting for attention.</p>
+    </div>
+
+    <script>
+        console.log('🎨 Banner colors adjusted for perfect harmony!');
+    </script>
+</body>
+</html>

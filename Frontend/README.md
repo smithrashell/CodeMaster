@@ -9,16 +9,17 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 ### Core Documentation
 
 - **[Development Commands & Architecture](CLAUDE.md)** - Project setup, build commands, and core architecture overview
-- **[Chrome API Usage Analysis](CHROME_API_USAGE_ANALYSIS.md)** - Detailed analysis of Chrome extension API patterns
-- **[Project Overview](PROJECT_OVERVIEW.md)** - High-level project vision and current v0.9.5 status
-- **[Complete IndexedDB Schema](INDEXEDDB_SCHEMA.md)** - Comprehensive database structure (13 stores)
+- **[Chrome API Usage Analysis](docs/architecture/CHROME_API_USAGE_ANALYSIS.md)** - Detailed analysis of Chrome extension API patterns
+- **[Project Overview](docs/architecture/PROJECT_OVERVIEW.md)** - High-level project vision and current v0.9.5 status
+- **[Complete IndexedDB Schema](docs/architecture/INDEXEDDB_SCHEMA.md)** - Comprehensive database structure (13 stores)
 - **[Changelog](../CHANGELOG.md)** - Recent changes including v0.9.5 useChromeMessage hook refactoring
 
 ### Technical Deep-Dives
 
-- **[Hook Implementation Planning](HOOKS_IMPLEMENTATION_PLANNING.md)** - Hook development strategy and patterns
-- **[useChromeMessage Hook Plan](USECHROMEMESSAGE_PLAN.md)** - Detailed hook implementation and migration guide
-- **[Component Refactoring Audit](COMPONENT_REFACTORING_AUDIT.md)** - Component analysis and refactoring strategy
+- **[Hook Implementation Planning](docs/implementation/HOOKS_IMPLEMENTATION_PLANNING.md)** - Hook development strategy and patterns
+- **[useChromeMessage Hook Plan](docs/planning/USECHROMEMESSAGE_PLAN.md)** - Detailed hook implementation and migration guide
+- **[Component Refactoring Audit](docs/implementation/COMPONENT_REFACTORING_AUDIT.md)** - Component analysis and refactoring strategy
+- **[Naming Conventions](docs/implementation/NAMING_CONVENTIONS.md)** - File naming standards and import patterns
 
 ### Service & Database Documentation
 
@@ -26,6 +27,21 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 - **[Database Layer](src/shared/db/README.md)**: `src/shared/db/` - IndexedDB utilities and schema management
 - **Utilities**: `src/shared/utils/` - Helper functions and algorithms
 - **Components**: `src/shared/components/` - Reusable UI components with Mantine integration
+
+### Troubleshooting & Planning
+
+- **[Emergency Fixes](docs/troubleshooting/EMERGENCY_FIX.md)** - Critical issue resolution procedures
+- **[File Changes Summary](docs/troubleshooting/FILE_CHANGES_SUMMARY.md)** - Change tracking and impact analysis
+- **[Retry Usage Examples](docs/troubleshooting/RETRY_USAGE_EXAMPLES.md)** - Error handling patterns
+- **[Session Change Tracking](docs/planning/SESSION_CHANGE_TRACKING.md)** - Session system development planning
+- **[Dashboard Data Structure Audit](docs/planning/DASHBOARD_DATA_STRUCTURE_AUDIT.md)** - Data flow analysis
+
+### Development Tools
+
+Development testing utilities are located in `dev-tools/`:
+- Test HTML files for feature validation
+- Performance testing tools  
+- Mock service validation utilities
 
 _This document outlines patterns, conventions, and guidelines for maintaining scalable and consistent code across all system layers._
 

@@ -120,11 +120,11 @@ export async function clearOrRenameStoreField(
       }
 
       tx.oncomplete = () => {
-        console.log(`✅ Updated all records in ${storeName}`);
+        // Updated all records in storeName
         resolve();
       };
       tx.onerror = () => {
-        console.error(`❌ Failed updating ${storeName}:`, tx.error);
+        // Failed updating storeName
         reject(tx.error);
       };
     };
@@ -173,12 +173,7 @@ export function getDifficultyAllowanceForTag(data = null) {
     allowance.Hard = 0.4; // Low confidence
   }
 
-  console.log(
-    `🎯 Difficulty allowance for tag (${attempts} attempts, ${(
-      successRate * 100
-    ).toFixed(1)}% success):`,
-    allowance
-  );
+  // Debug output removed
 
   return allowance;
 }

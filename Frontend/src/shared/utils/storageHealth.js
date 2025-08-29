@@ -12,7 +12,7 @@ export default class StorageHealthMonitor {
    * Assess storage health (stub - basic check)
    * @returns {Promise<Object>} Basic health status
    */
-  static async assessStorageHealth() {
+  static assessStorageHealth() {
     const timestamp = new Date().toISOString();
     
     // Basic health assessment
