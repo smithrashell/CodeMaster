@@ -214,10 +214,8 @@ export async function updateProblemRelationships(session) {
     }
     console.log("problem.leetCodeID", problem.leetCodeID);
     // === Update NextProblem Property Based on Relationship Strength ===
-    const updatedNextProblem = await determineNextProblem(
-      problem.leetCodeID,
-      attemptedProblemIds
-    );
+    // TODO: Implement determineNextProblem function
+    const updatedNextProblem = null; // Temporary fallback
 
     if (updatedNextProblem && updatedNextProblem !== nextProblemId) {
       problem.NextProblem = updatedNextProblem;

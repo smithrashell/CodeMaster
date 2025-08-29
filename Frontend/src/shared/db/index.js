@@ -65,8 +65,7 @@ export const dbHelper = {
     
     // 🚨 CRITICAL SAFETY NET: Block database access from content scripts
     // BUT allow access from marked background script context
-    console.group('🔍 DATABASE ACCESS CONTROL');
-    console.log('📍 Context Detection:', {
+    console.log('🔍 DATABASE ACCESS CONTROL', {
       hasGlobalThis: typeof globalThis !== 'undefined',
       isBackgroundContext: typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT,
       hasWindow: typeof window !== 'undefined',
@@ -76,7 +75,6 @@ export const dbHelper = {
     
     if (typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT) {
       console.log('✅ DATABASE ACCESS: Allowed from marked background script context');
-      console.groupEnd();
     } else if (typeof window !== "undefined" && window.location) {
       const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
       const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
@@ -96,10 +94,8 @@ export const dbHelper = {
         throw error;
       }
       console.log('✅ DATABASE ACCESS: Extension page context allowed');
-      console.groupEnd();
     } else {
       console.log('✅ DATABASE ACCESS: No window context, allowing (likely service worker)');
-      console.groupEnd();
     }
     
     // Additional safety check for chrome extension context
@@ -121,18 +117,17 @@ export const dbHelper = {
     }
     
     // DEBUGGING: Log every database open attempt with full context
-    console.group(`🔍 DATABASE DEBUG: openDB() called from ${context.contextType}`);
-    console.log('📍 Context:', context);
-    console.log('📚 Call Stack:', stack);
+    console.log(`🔍 DATABASE DEBUG: openDB() called from ${context.contextType}`, {
+      executionContext: context,
+      callStack: stack
+    });
     
     if (dbHelper.db) {
-      console.log('✅ Returning cached database connection');
-      console.groupEnd();
+      console.debug('✅ Returning cached database connection');
       return dbHelper.db; // Return cached database if already opened
     }
     
-    console.warn('🚨 CREATING NEW DATABASE CONNECTION - This should only happen ONCE!');
-    console.groupEnd();
+    console.log('🚨 CREATING NEW DATABASE CONNECTION - This should only happen ONCE!');
 
     // Initialize migration safety system
     migrationSafety.initializeMigrationSafety();
@@ -140,16 +135,16 @@ export const dbHelper = {
     return new Promise((resolve, reject) => {
       // DEBUGGING: Log the actual IndexedDB.open call
       console.group(`💾 INDEXEDDB OPEN: Opening ${dbHelper.dbName} v${dbHelper.version}`);
-      console.log('🕐 Time:', new Date().toISOString());
-      console.log('📍 Context:', context.contextType);
-      console.log('🌐 Location:', context.location);
+      console.info('🕐 Time:', new Date().toISOString());
+      console.log('📍 Database connection context:', {
+        contextType: context.contextType,
+        location: context.location
+      });
       
       const request = indexedDB.open(dbHelper.dbName, dbHelper.version);
-      console.log('📨 IndexedDB request created:', request);
-      console.groupEnd();
+      console.debug('📨 IndexedDB request created');
 
       request.onupgradeneeded = async (event) => {
-        // eslint-disable-next-line no-console
         console.log("📋 Database upgrade needed - creating safety backup...");
 
         // TEMPORARY: Disable migration backup to prevent duplicate database creation
@@ -159,7 +154,7 @@ export const dbHelper = {
             // Only backup if upgrading existing database
             // await migrationSafety.createMigrationBackup(); // DISABLED temporarily
             // eslint-disable-next-line no-console
-            console.log("⚠️ Migration backup disabled to prevent duplicate databases");
+            console.info("⚠️ Migration backup disabled to prevent duplicate databases");
           }
         } catch (error) {
           console.error(
@@ -274,7 +269,7 @@ export const dbHelper = {
         }
 
         // eslint-disable-next-line no-console
-        console.log("Sessions store configured safely!");
+        console.info("Sessions store configured safely!");
         // ✅ Ensure 'standard_problems' store exists
         if (!db.objectStoreNames.contains("standard_problems")) {
           let standardProblemsStore = db.createObjectStore(
@@ -317,7 +312,7 @@ export const dbHelper = {
         }
 
         // eslint-disable-next-line no-console
-        console.log("Database upgrade completed");
+        console.info("Database upgrade completed");
 
         // ✅ **NEW: Ensure 'tag_mastery' store exists**
         if (!db.objectStoreNames.contains("tag_mastery")) {
@@ -335,7 +330,7 @@ export const dbHelper = {
           });
 
           // eslint-disable-next-line no-console
-          console.log("Settings store created!");
+          console.info("Settings store created!");
         }
         //add a index on classification
 
@@ -370,7 +365,7 @@ export const dbHelper = {
           );
 
           // eslint-disable-next-line no-console
-          console.log("✅ Session analytics store created!");
+          console.info("✅ Session analytics store created!");
         }
 
         // ✅ **NEW: Ensure 'strategy_data' store exists with optimized indexes**
@@ -389,7 +384,7 @@ export const dbHelper = {
           });
 
           // eslint-disable-next-line no-console
-          console.log("✅ Strategy data store created with optimized indexes!");
+          console.info("✅ Strategy data store created with optimized indexes!");
         } else {
           // Add new indexes to existing store if they don't exist
           const strategyDataStore =
@@ -466,7 +461,7 @@ export const dbHelper = {
           );
 
           // eslint-disable-next-line no-console
-          console.log(
+          console.info(
             "✅ Hint interactions store created for usage analytics!"
           );
         }
@@ -487,7 +482,7 @@ export const dbHelper = {
           dbHelper.ensureIndex(userActionsStore, "by_url", "url");
 
           // eslint-disable-next-line no-console
-          console.log("✅ User actions store created for tracking!");
+          console.info("✅ User actions store created for tracking!");
         }
 
         // ✅ **NEW: Ensure 'error_reports' store exists for error reporting**
@@ -504,7 +499,7 @@ export const dbHelper = {
           dbHelper.ensureIndex(errorReportsStore, "by_user_agent", "userAgent");
 
           // eslint-disable-next-line no-console
-          console.log("✅ Error reports store created for error tracking!");
+          console.info("✅ Error reports store created for error tracking!");
         }
       };
 
@@ -513,12 +508,12 @@ export const dbHelper = {
         
         // DEBUGGING: Log successful database connection
         console.group('🎉 DATABASE OPENED SUCCESSFULLY');
-        console.log('🕐 Time:', new Date().toISOString());
-        console.log('📍 Context:', context.contextType);
-        console.log('🆔 Database Name:', dbHelper.db.name);
-        console.log('📄 Version:', dbHelper.db.version);
-        console.log('📊 Object Stores:', Array.from(dbHelper.db.objectStoreNames));
-        console.log('🧵 Call Stack:', stack.split('\n')[0]); // Just first line of stack
+        console.info('🕐 Time:', new Date().toISOString());
+        console.info('📍 Context:', context.contextType);
+        console.info('🆔 Database Name:', dbHelper.db.name);
+        console.info('📄 Version:', dbHelper.db.version);
+        console.info('📊 Object Stores:', Array.from(dbHelper.db.objectStoreNames));
+        console.info('🧵 Call Stack:', stack.split('\n')[0]); // Just first line of stack
         console.groupEnd();
         
         resolve(dbHelper.db);

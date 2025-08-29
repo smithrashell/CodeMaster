@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
-import { Container, Grid, Card, Title, Text, Button, Stack, ScrollArea, Group, SimpleGrid, Select, Badge, Divider, rem, Box } from "@mantine/core";
-import { IconBulb, IconTrendingUp, IconTarget, IconClock } from "@tabler/icons-react";
-import ThemeToggle from "../../shared/components/ThemeToggle.jsx";
-import {
-  FontSizeSelector,
-  LayoutDensitySelector,
-  AnimationToggle,
-} from "../../shared/components/AppearanceControls.jsx";
-import { FocusAreasSelector } from "../components/settings/FocusAreasSelector.jsx";
-import { AdaptiveSettingsCard } from "../components/settings/AdaptiveSettingsCard.jsx";
-import { TimerSettingsCard } from "../components/settings/TimerSettingsCard.jsx";
-import { DisplaySettingsCard } from "../components/settings/DisplaySettingsCard.jsx";
-import { SettingsExportImport } from "../components/settings/SettingsExportImport.jsx";
-import MasteryDashboard from "../components/analytics/MasteryDashboard.jsx";
-import TimeGranularChartCard from "../components/charts/TimeGranularChartCard";
+import { Container, Grid, Card, Title, Text, Button, Stack, Group, Box } from "@mantine/core";
 import {
   LineChart,
   Line,
@@ -22,21 +8,12 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Treemap,
-  Rectangle,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
+  Legend,
 } from "recharts";
 
 // Shared Components for Learning Path & Mistake Analysis
-function Section({ title, right, children }) {
+function _Section({ title, right, children }) {
   return (
     <Card withBorder radius="md" p="md" style={{ background: "var(--surface)", boxShadow: "var(--shadow)" }}>
       <Group justify="space-between" mb="xs">
@@ -48,7 +25,7 @@ function Section({ title, right, children }) {
   );
 }
 
-function Kpis({ items }) {
+function _Kpis({ items }) {
   return (
     <Grid gutter="sm">
       {items.map((k) => (
@@ -63,7 +40,7 @@ function Kpis({ items }) {
   );
 }
 
-function FeedbackItem({ icon, title, note, meta }) {
+function _FeedbackItem({ icon, title, note, meta }) {
   return (
     <Card withBorder radius="md" p="sm" style={{ background: "var(--surface)" }}>
       <Group align="flex-start" gap="sm">
@@ -172,23 +149,26 @@ export function Goals({ appState }) {
     const startDate = new Date(goal.startDate || goal.createdAt);
     
     switch (goal.type) {
-      case 'problems':
+      case 'problems': {
         // Use recent problem count from statistics
         const recentProblems = appState.statistics.totalProblems || 0;
         return Math.min((recentProblems / goal.target) * 100, 100);
+      }
       
-      case 'accuracy':
+      case 'accuracy': {
         // Use current accuracy from statistics
         const currentAccuracy = (appState.statistics.successRate || 0) * 100;
         return Math.min((currentAccuracy / goal.target) * 100, 100);
+      }
       
-      case 'consistency':
+      case 'consistency': {
         // Calculate based on session frequency
         const totalSessions = appState.statistics.totalSessions || 0;
         const daysActive = Math.max(Math.ceil((now - startDate) / (1000 * 60 * 60 * 24)), 1);
         const sessionsPerDay = totalSessions / daysActive;
         const targetSessionsPerDay = goal.target / (goal.timeframe === 'weekly' ? 7 : 30);
         return Math.min((sessionsPerDay / targetSessionsPerDay) * 100, 100);
+      }
       
       default:
         return 0;

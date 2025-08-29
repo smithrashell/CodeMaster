@@ -53,7 +53,7 @@ export const codeMasterTheme = createTheme({
   components: {
     // Only keep essential overrides for our custom components
     AppShell: {
-      styles: (theme) => ({
+      styles: (_theme) => ({
         main: {
           paddingLeft: 0,
           paddingRight: 0,
@@ -63,7 +63,7 @@ export const codeMasterTheme = createTheme({
     
     // Ensure proper text colors in dark mode
     Text: {
-      styles: (theme) => ({
+      styles: (_theme) => ({
         root: {
           color: 'var(--cm-text)',
         },
@@ -71,7 +71,7 @@ export const codeMasterTheme = createTheme({
     },
     
     Title: {
-      styles: (theme) => ({
+      styles: (_theme) => ({
         root: {
           color: 'var(--cm-text)',
         },
@@ -79,7 +79,7 @@ export const codeMasterTheme = createTheme({
     },
     
     Card: {
-      styles: (theme) => ({
+      styles: (_theme) => ({
         root: {
           backgroundColor: 'var(--cm-card-bg)',
           color: 'var(--cm-text)',
@@ -89,7 +89,7 @@ export const codeMasterTheme = createTheme({
     },
     
     MultiSelect: {
-      styles: (theme) => ({
+      styles: (_theme) => ({
         input: {
           backgroundColor: 'var(--cm-dropdown-bg)',
           color: 'var(--cm-dropdown-color)',
@@ -112,7 +112,7 @@ export const codeMasterTheme = createTheme({
   },
 
   // Global styles - minimal to avoid layout conflicts
-  globalStyles: (theme) => ({
+  globalStyles: (_theme) => ({
     // Let existing app.css and theme.css handle all styling
   }),
 

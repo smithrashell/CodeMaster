@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Container, Grid, Card, Title, Text, Button, Stack, ScrollArea, Group, SimpleGrid, Select, Badge, Divider, rem, Box } from "@mantine/core";
-import { IconBulb, IconTrendingUp, IconTarget, IconClock } from "@tabler/icons-react";
+import logger, { debug } from "../../../shared/utils/logger.js";
+import { Container, Grid, Card, Title, Text, Button, Stack, Group } from "@mantine/core";
 import { usePageData } from "../../hooks/usePageData";
 import {
   LineChart,
@@ -9,31 +9,21 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  Treemap,
-  Rectangle,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
 } from "recharts";
 import LearningPathVisualization from "../../components/learning/LearningPathVisualization.jsx";
 
 export function LearningPath() {
   const { data: appState } = usePageData('learning-path');
   const [pathData, setPathData] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
+  const [_recommendations, setRecommendations] = useState([]);
   const [selectedTag, setSelectedTag] = useState(null);
 
   useEffect(() => {
     if (!appState) return;
 
     // Debug: Check appState structure for data availability
-    // console.log("Learning Path - appState structure:", appState);
+    // logger.info("Learning Path - appState structure:", appState);
 
     // Use mastery data directly from appState which now includes progress and isFocus
     const masteryData = appState.mastery?.masteryData || appState.learningState?.masteryData || appState.progress?.learningState?.masteryData || [];
@@ -41,7 +31,7 @@ export function LearningPath() {
     const unmasteredTags = appState.mastery?.unmasteredTags || appState.learningState?.unmasteredTags || appState.progress?.learningState?.unmasteredTags || [];
 
     // Debug: Check extracted data
-    console.log("Learning Path - extracted data:", { 
+    debug("Learning Path - extracted data", { 
       masteryDataLength: masteryData.length,
       masteryData: masteryData,
       focusTags: focusTags,
@@ -57,7 +47,7 @@ export function LearningPath() {
       isFocus: tag.isFocus !== undefined ? tag.isFocus : focusTags.includes(tag.tag)
     })).sort((a, b) => b.progress - a.progress);
 
-    console.log("Learning Path - final progressionData:", progressionData);
+    debug("Learning Path - final progressionData", { progressionData });
 
     // Set progression data - empty array is valid state for new users
     setPathData(progressionData);
@@ -215,7 +205,7 @@ export function LearningPath() {
                   {(() => {
                     const tagData = pathData.find(t => t.tag === selectedTag);
                     const progress = tagData?.progress || 0;
-                    const attempts = tagData?.attempts || 0;
+                    const _attempts = tagData?.attempts || 0;
                     
                     return (
                       <>
@@ -295,7 +285,7 @@ export function LearningPath() {
                             style={{ backgroundColor: '#3b82f6', border: 'none' }}
                             onClick={() => {
                               // Simulated practice session start
-                              console.log(`Starting focused practice session for ${selectedTag}`);
+                              logger.info(`Starting focused practice session for ${selectedTag}`);
                               alert(`🎯 Launching ${selectedTag} practice session!\n\nSystem will prioritize problems that strengthen this skill and prepare you for the next level.`);
                             }}
                           >

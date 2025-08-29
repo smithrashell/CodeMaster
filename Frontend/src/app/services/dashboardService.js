@@ -11,6 +11,7 @@ import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.j
 import { HintInteractionService } from "../../shared/services/hintInteractionService.js";
 import { getInteractionsBySession } from "../../shared/db/hint_interactions.js";
 import { getLatestSession } from "../../shared/db/sessions.js";
+import logger from "../../shared/utils/logger.js";
 
 // Simple in-memory cache for focus area analytics
 const analyticsCache = new Map();
@@ -36,7 +37,7 @@ function getInitialFocusAreas(providedFocusAreas) {
   }
   
   // Enhanced fallback with multiple common focus areas (like content script pattern)
-  console.warn("No focus areas provided by background script, using enhanced fallback");
+  logger.warn("No focus areas provided by background script", { context: 'focus_areas_fallback' });
   return DEFAULT_FOCUS_AREAS;
 }
 
@@ -243,7 +244,7 @@ export async function getDashboardStatistics(options = {}) {
     // Get real hint analytics data directly from HintInteractionService
     let hintsUsed = { total: 0, contextual: 0, general: 0, primer: 0 };
     try {
-      console.log("🔍 Dashboard: Getting hint analytics directly from service...");
+      logger.info("Getting hint analytics directly from service", { context: 'dashboard_hints' });
       
       const analytics = await HintInteractionService.getSystemAnalytics({});
       
@@ -259,9 +260,9 @@ export async function getDashboardStatistics(options = {}) {
         });
       }
       
-      console.log("✅ Dashboard: Successfully got hint analytics", hintsUsed);
+      logger.info("Successfully retrieved hint analytics", { hintsUsed, context: 'dashboard_hints' });
     } catch (error) {
-      console.error("❌ Dashboard: Failed to get hint analytics:", error);
+      logger.error("Failed to get hint analytics", { error, context: 'dashboard_hints' });
       // Keep fallback values
     }
 
@@ -342,17 +343,17 @@ export async function getDashboardStatistics(options = {}) {
     };
 
     // Debug logging to verify data structure
-    console.info("📊 Dashboard Service - Data Structure Verification:");
-    console.info("- Total Problems:", allProblems.length);
-    console.info("- Total Attempts:", allAttempts.length);
-    console.info("- Box Level Data:", boxLevelData);
-    console.info("- Timer Behavior:", timerBehavior);
-    console.info("- Statistics:", statistics);
-    console.info("- Flattened Structure Keys:", Object.keys(dashboardData));
+    logger.info("Dashboard Service - Data Structure Verification", { context: 'data_verification' });
+    logger.info("Data verification", { totalProblems: allProblems.length, context: 'data_verification' });
+    logger.info("Data verification", { totalAttempts: allAttempts.length, context: 'data_verification' });
+    logger.info("Data verification", { boxLevelData, context: 'data_verification' });
+    logger.info("Data verification", { timerBehavior, context: 'data_verification' });
+    logger.info("Data verification", { statistics, context: 'data_verification' });
+    logger.info("- Flattened Structure Keys:", Object.keys(dashboardData));
     
     return dashboardData;
   } catch (error) {
-    console.error("Error calculating dashboard statistics:", error);
+    logger.error("Error calculating dashboard statistics:", error);
     throw error;
   }
 }
@@ -523,7 +524,7 @@ export async function getFocusAreaAnalytics(options = {}) {
 
     return result;
   } catch (error) {
-    console.error("Error calculating focus area analytics:", error);
+    logger.error("Error calculating focus area analytics:", error);
     throw error;
   }
 }
@@ -1438,7 +1439,7 @@ export async function generateMasteryData(learningState) {
       }
     };
   } catch (error) {
-    console.error("Error generating mastery data:", error);
+    logger.error("Error generating mastery data:", error);
     return {
       currentTier: "Core Concept",
       masteredTags: [],
@@ -1474,11 +1475,9 @@ async function calculateOutcomeTrends(attempts, sessions) {
   let hintEfficiency = "2.5";
   try {
     // Get real hint analytics data with date filtering
-    const hintAnalyticsData = await getHintAnalyticsDataForDashboard({
-      hintFilters: {
-        startDate: oneWeekAgo.toISOString(),
-        endDate: now.toISOString()
-      }
+    const hintAnalyticsData = await HintInteractionService.getSystemAnalytics({
+      startDate: oneWeekAgo.toISOString(),
+      endDate: now.toISOString()
     });
     
     if (hintAnalyticsData?.analytics?.overview?.totalInteractions && weeklyAttempts.length > 0) {
@@ -1497,7 +1496,7 @@ async function calculateOutcomeTrends(attempts, sessions) {
       hintEfficiency = estimatedHints.toFixed(1);
     }
   } catch (error) {
-    console.warn("Could not get hint analytics for goals page, using fallback estimation:", error);
+    logger.warn("Could not get hint analytics for goals page, using fallback estimation:", error);
     // If hint data not available, estimate based on success patterns
     const successRate = weeklyAccuracy / 100;
     const estimatedHints = successRate > 0.8 ? 1.5 : successRate > 0.6 ? 2.0 : 3.0;
@@ -1684,7 +1683,7 @@ export async function generateGoalsData(providedData = {}) {
       }
     };
   } catch (error) {
-    console.error("Error generating goals data:", error);
+    logger.error("Error generating goals data:", error);
     return {
       learningPlan: {
         cadence: { sessionsPerWeek: 5, sessionLength: 45, flexibleSchedule: true },
@@ -1922,7 +1921,7 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
     totalHintsUsed = hintResults.flat().length;
   } catch (error) {
     // If hint data is not available, fall back to estimation
-    console.warn("Could not fetch hint data, using estimation:", error);
+    logger.warn("Could not fetch hint data, using estimation:", error);
     totalHintsUsed = 0;
   }
   
@@ -2073,17 +2072,17 @@ async function calculateNextReviewData() {
       
       // Process session data
       if (!session) {
-        console.info('📊 No active session found');
+        logger.info('📊 No active session found');
         return {
           nextReviewTime: "No active session", 
           nextReviewCount: 0
         };
       }
-      console.log('📊 Dashboard received session object:', session);
+      logger.info('📊 Dashboard received session object:', session);
       
       // Handle null session explicitly
       if (session === null || session === undefined) {
-        console.info('📊 Session is null or undefined');
+        logger.info('📊 Session is null or undefined');
         return {
           nextReviewTime: "No session available",
           nextReviewCount: 0
@@ -2092,7 +2091,7 @@ async function calculateNextReviewData() {
       
       // Validate session object structure with better error reporting
       if (typeof session !== 'object') {
-        console.warn('❌ Session is not an object:', {
+        logger.warn('❌ Session is not an object:', {
           sessionType: typeof session,
           sessionValue: session
         });
@@ -2111,7 +2110,7 @@ async function calculateNextReviewData() {
           } else if (typeof session.problemCount === 'number') {
             totalProblems = session.problemCount;
           } else {
-            console.warn('❌ Session has neither problems array nor problemCount:', {
+            logger.warn('❌ Session has neither problems array nor problemCount:', {
               hasProblems: 'problems' in session,
               problemsType: typeof session.problems,
               hasProblemCount: 'problemCount' in session,
@@ -2125,7 +2124,7 @@ async function calculateNextReviewData() {
           }
           
           const problemsRemaining = totalProblems - currentIndex;
-          console.log('📊 Session analysis:', {
+          logger.info('📊 Session analysis:', {
             totalProblems,
             currentIndex,
             problemsRemaining,
@@ -2187,7 +2186,7 @@ async function calculateNextReviewData() {
       };
     }
   } catch (error) {
-    console.error('Error in calculateNextReviewData:', error);
+    logger.error('Error in calculateNextReviewData:', error);
     return {
       nextReviewTime: "Schedule unavailable",
       nextReviewCount: 0
@@ -2224,7 +2223,7 @@ export async function getLearningProgressData(options = {}) {
       promotionData: fullData.nested?.progress?.promotionData,
     };
   } catch (error) {
-    console.error("Error getting learning progress data:", error);
+    logger.error("Error getting learning progress data:", error);
     throw error;
   }
 }
@@ -2245,12 +2244,12 @@ export async function getGoalsData(options = {}, providedData = null) {
         return fullData.goals || await generateGoalsData();
       } catch (error) {
         // If getDashboardStatistics fails, use fallback
-        console.warn("getDashboardStatistics failed, using fallback goals data");
+        logger.warn("getDashboardStatistics failed, using fallback goals data");
         return await generateGoalsData();
       }
     }
   } catch (error) {
-    console.error("Error getting goals data:", error);
+    logger.error("Error getting goals data:", error);
     // Return fallback goals data instead of throwing
     return {
       learningPlan: {
@@ -2297,7 +2296,7 @@ export async function getStatsData(options = {}) {
       learningEfficiencyData: fullData.learningEfficiencyData || DEFAULT_STATS.learningEfficiencyData,
     };
   } catch (error) {
-    console.error("Error getting stats data, using fallback:", error);
+    logger.error("Error getting stats data, using fallback:", error);
     // Return fallback data instead of throwing (like content script pattern)
     return DEFAULT_STATS;
   }
@@ -2317,7 +2316,7 @@ export async function getSessionHistoryData(options = {}) {
       recentSessions: fullData.sessions?.recentSessions || [],
     };
   } catch (error) {
-    console.error("Error getting session history data:", error);
+    logger.error("Error getting session history data:", error);
     throw error;
   }
 }
@@ -2340,7 +2339,7 @@ export async function getProductivityInsightsData(options = {}) {
       reflectionData: reflectionData,
     };
   } catch (error) {
-    console.error("Error getting productivity insights data:", error);
+    logger.error("Error getting productivity insights data:", error);
     throw error;
   }
 }
@@ -2384,7 +2383,7 @@ async function calculateReflectionInsights(dashboardData) {
       performanceCorrelation: reflectionPerformanceCorrelation
     };
   } catch (error) {
-    console.error("Error calculating reflection insights:", error);
+    logger.error("Error calculating reflection insights:", error);
     return {
       reflectionsCount: 0,
       totalAttempts: 0,
@@ -2460,7 +2459,7 @@ export async function getTagMasteryData(options = {}) {
       learningState: {}
     };
   } catch (error) {
-    console.error("Error getting tag mastery data:", error);
+    logger.error("Error getting tag mastery data:", error);
     throw error;
   }
 }
@@ -2483,7 +2482,7 @@ export async function getLearningPathData(options = {}) {
       learningState: {}
     };
   } catch (error) {
-    console.error("Error getting learning path data:", error);
+    logger.error("Error getting learning path data:", error);
     throw error;
   }
 }
@@ -2505,14 +2504,14 @@ export async function getMistakeAnalysisData(options = {}) {
       mastery: fullData.mastery,
     };
   } catch (error) {
-    console.error("Error getting mistake analysis data:", error);
+    logger.error("Error getting mistake analysis data:", error);
     throw error;
   }
 }
 
 export async function getInterviewAnalyticsData(options = {}) {
   try {
-    console.log("🎯 Getting interview analytics data...");
+    logger.info("🎯 Getting interview analytics data...");
     
     const allSessions = await getAllSessions();
     const allAttempts = await getAllAttempts();
@@ -2522,7 +2521,7 @@ export async function getInterviewAnalyticsData(options = {}) {
       session.sessionType && session.sessionType !== 'standard'
     );
     
-    console.log(`Found ${interviewSessions.length} interview sessions`);
+    logger.info(`Found ${interviewSessions.length} interview sessions`);
     
     if (interviewSessions.length === 0) {
       return {
@@ -2668,7 +2667,7 @@ export async function getInterviewAnalyticsData(options = {}) {
     };
     
   } catch (error) {
-    console.error("Error in getInterviewAnalyticsData:", error);
+    logger.error("Error in getInterviewAnalyticsData:", error);
     throw error;
   }
 }
@@ -2730,7 +2729,7 @@ export async function getSessionMetrics(options = {}) {
     };
     
   } catch (error) {
-    console.error("Error in getSessionMetrics:", error);
+    logger.error("Error in getSessionMetrics:", error);
     throw error;
   }
 }
@@ -2861,7 +2860,7 @@ async function calculateSessionHealthMetrics(sessions) {
     };
     
   } catch (error) {
-    console.error("Error calculating session health:", error);
+    logger.error("Error calculating session health:", error);
     return {
       totalSessions: sessions.length,
       healthyCount: sessions.length,

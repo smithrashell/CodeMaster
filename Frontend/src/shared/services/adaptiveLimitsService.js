@@ -5,6 +5,7 @@
  * while maintaining minimum interview standards and providing user customization options.
  */
 
+import logger from "../utils/logger.js";
 import { dbHelper } from "../db/index.js";
 import { fetchProblemById } from "../db/standard_problems.js";
 import AccurateTimer from "../utils/AccurateTimer.js";
@@ -48,7 +49,7 @@ export class AdaptiveLimitsService {
    * @returns {Promise<Object>} Limit configuration
    */
   async getLimits(problemId) {
-    console.log(
+    logger.info(
       "🔍 AdaptiveLimitsService.getLimits called with problemId:",
       problemId
     );
@@ -58,7 +59,7 @@ export class AdaptiveLimitsService {
       !problemId ||
       (typeof problemId !== "string" && typeof problemId !== "number")
     ) {
-      console.warn(
+      logger.warn(
         `⚠️ Invalid problemId provided: ${problemId}, defaulting to Medium`
       );
       const difficulty = "Medium";
@@ -68,37 +69,37 @@ export class AdaptiveLimitsService {
     // First, get the official difficulty from standard_problems store
     let difficulty;
     try {
-      console.log("🔍 Fetching standard problem for ID:", problemId);
+      logger.info("🔍 Fetching standard problem for ID:", problemId);
       const standardProblem = await fetchProblemById(problemId);
-      console.log("🔍 Standard problem result:", standardProblem);
+      logger.info("🔍 Standard problem result:", standardProblem);
       difficulty = standardProblem?.difficulty;
 
       if (!difficulty) {
-        console.warn(
+        logger.warn(
           `⚠️ No difficulty found for problem ${problemId}, defaulting to Medium`
         );
         difficulty = "Medium";
       } else {
-        console.log("✅ Found difficulty:", difficulty);
+        logger.info("✅ Found difficulty:", difficulty);
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ Error fetching difficulty for problem ${problemId}:`,
         error
       );
       difficulty = "Medium"; // Fallback
     }
     try {
-      console.log("🔍 AdaptiveLimitsService.getLimits called with:", {
+      logger.info("🔍 AdaptiveLimitsService.getLimits called with:", {
         difficulty,
         problemId,
       });
 
       const settings = await this.getUserSettings();
-      console.log("🔍 Retrieved settings:", settings);
+      logger.info("🔍 Retrieved settings:", settings);
 
       const mode = settings.limit || LIMIT_MODES.OFF; // Use existing settings.limit field
-      console.log("🔍 Using limit mode:", mode);
+      logger.info("🔍 Using limit mode:", mode);
 
       let recommendedTime;
       let minimumTime;
@@ -106,7 +107,7 @@ export class AdaptiveLimitsService {
       let isAdaptive = false;
 
       switch (mode) {
-        case LIMIT_MODES.AUTO:
+        case LIMIT_MODES.AUTO: {
           // Adaptive mode - calculate based on user performance
           const adaptiveLimit = await this.calculateAdaptiveLimit(difficulty);
           recommendedTime = adaptiveLimit;
@@ -117,6 +118,7 @@ export class AdaptiveLimitsService {
           );
           isAdaptive = true;
           break;
+        }
 
         case LIMIT_MODES.OFF:
           // No limits mode - set very high values
@@ -125,7 +127,7 @@ export class AdaptiveLimitsService {
           maximumTime = 999;
           break;
 
-        case LIMIT_MODES.FIXED:
+        case LIMIT_MODES.FIXED: {
           // Fixed time based on difficulty and user preference
           const fixedTime =
             settings.fixedTimes?.[difficulty] ||
@@ -134,6 +136,7 @@ export class AdaptiveLimitsService {
           minimumTime = fixedTime;
           maximumTime = fixedTime * 1.5;
           break;
+        }
 
         case LIMIT_MODES.FIXED_15:
           // Legacy: Fixed 15 minutes for all difficulties
@@ -175,7 +178,7 @@ export class AdaptiveLimitsService {
         baseTime: BASE_LIMITS[difficulty],
       };
 
-      console.log("🔍 AdaptiveLimitsService returning:", {
+      logger.info("🔍 AdaptiveLimitsService returning:", {
         ...result,
         inputDifficulty: difficulty,
         settingsLimit: settings.limit,
@@ -191,7 +194,7 @@ export class AdaptiveLimitsService {
       });
       return result;
     } catch (error) {
-      console.error("❌ Error getting adaptive limits:", error);
+      logger.error("❌ Error getting adaptive limits:", error);
       // Fallback to base limits
       return {
         difficulty,
@@ -256,7 +259,7 @@ export class AdaptiveLimitsService {
 
     adaptiveLimit = Math.max(minLimit, Math.min(adaptiveLimit, maxLimit));
 
-    console.log(`📊 Adaptive limit calculation for ${difficulty}:`, {
+    logger.info(`📊 Adaptive limit calculation for ${difficulty}:`, {
       baseLimit,
       userMedian,
       userPercentile75,
@@ -319,7 +322,7 @@ export class AdaptiveLimitsService {
 
       return performance;
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ Error getting performance data for ${difficulty}:`,
         error
       );
@@ -400,7 +403,7 @@ export class AdaptiveLimitsService {
 
       return this.userSettings;
     } catch (error) {
-      console.error("❌ Error getting user settings:", error);
+      logger.error("❌ Error getting user settings:", error);
       return {
         limit: LIMIT_MODES.OFF,
         adaptive: true,
@@ -433,10 +436,10 @@ export class AdaptiveLimitsService {
       this.userSettings = null;
       this.performanceCache = null;
 
-      console.log("✅ Updated user limit settings:", updatedSettings);
+      logger.info("✅ Updated user limit settings:", updatedSettings);
       return result.status === "success";
     } catch (error) {
-      console.error("❌ Error updating user settings:", error);
+      logger.error("❌ Error updating user settings:", error);
       return false;
     }
   }

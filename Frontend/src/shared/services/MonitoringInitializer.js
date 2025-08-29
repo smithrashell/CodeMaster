@@ -289,8 +289,8 @@ export class MonitoringInitializer {
     const originalReportReactError = window.reportReactError;
     window.reportReactError = (error, errorInfo) => {
       // Call original handler if exists
-      if (originalReactError) {
-        originalReactError(error, errorInfo);
+      if (originalReportReactError) {
+        originalReportReactError(error, errorInfo);
       }
 
       // Log with our system

@@ -37,9 +37,6 @@ import {
 } from "../shared/services/onboardingService";
 import { WelcomeModal } from "./components/onboarding/WelcomeModal.jsx";
 function App() {
-  console.log("🚀 DASHBOARD APP INITIALIZED");
-  console.log("📍 Router: Using MemoryRouter for Chrome extension compatibility");
-  
   const [_showOnboarding, _setShowOnboarding] = useState(false);
 
   // Check onboarding status on app initialization
@@ -49,7 +46,7 @@ function App() {
         const status = await checkOnboardingStatus();
         _setShowOnboarding(!status.isCompleted);
       } catch (error) {
-        console.error("Error checking onboarding status:", error);
+        // Error checking onboarding status
         _setShowOnboarding(false);
       }
     };
@@ -62,7 +59,7 @@ function App() {
       await completeOnboarding();
       _setShowOnboarding(false);
     } catch (error) {
-      console.error("Error completing onboarding:", error);
+      // Error completing onboarding
     }
   };
 
@@ -74,10 +71,10 @@ function App() {
     <ErrorBoundary
       section="Dashboard Application"
       fallback={DashboardErrorFallback}
-      onReportProblem={(errorData) => {
+      onReportProblem={(_errorData) => {
         // Store error report for dashboard issues
         // eslint-disable-next-line no-console
-        console.error("Dashboard Error Report:", errorData);
+        // Dashboard error reported
       }}
     >
       <ThemeProviderWrapper>
@@ -281,7 +278,7 @@ function App() {
               await completeOnboarding();
               _setShowOnboarding(false);
             } catch (error) {
-              console.error("Error completing onboarding:", error);
+              // Error completing onboarding
             }
           }}
         />

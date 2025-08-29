@@ -15,7 +15,6 @@ import { dbHelper } from "../db/index.js";
  * @returns {Promise<Object>} Audit report
  */
 export async function auditAllTimeData() {
-  console.log("🔍 Starting comprehensive time data audit...");
 
   const auditReport = {
     timestamp: new Date().toISOString(),
@@ -42,7 +41,6 @@ export async function auditAllTimeData() {
 
     auditReport.recommendations = generateAuditRecommendations(auditReport);
 
-    console.log("✅ Time data audit completed");
     return auditReport;
   } catch (error) {
     console.error("❌ Audit failed:", error);
@@ -66,7 +64,6 @@ export async function auditAttemptsTimeData() {
     request.onerror = () => reject(request.error);
   });
 
-  console.log(`📊 Analyzing ${attempts.length} attempt records...`);
 
   const issues = [];
   const timeValues = [];
@@ -74,7 +71,7 @@ export async function auditAttemptsTimeData() {
   let extremeTimeCount = 0;
 
   // Analyze each attempt
-  attempts.forEach((attempt, index) => {
+  attempts.forEach((attempt, _index) => {
     const timeSpent = Number(attempt.TimeSpent) || 0;
     const attemptDate = attempt.AttemptDate;
     const problemId = attempt.ProblemID;
@@ -296,7 +293,6 @@ export async function repairTimeData(options = {}) {
     backupFirst = true,
   } = options;
 
-  console.log("🔧 Starting time data repair...");
 
   const repairResults = {
     timestamp: new Date().toISOString(),
@@ -352,9 +348,6 @@ export async function repairTimeData(options = {}) {
               });
 
               repairResults.repairedRecords++;
-              console.log(
-                `✅ Repaired record ${issue.recordId}: ${issue.value} → ${newValue}`
-              );
             }
           }
         } catch (error) {
@@ -368,7 +361,6 @@ export async function repairTimeData(options = {}) {
       }
     }
 
-    console.log("✅ Time data repair completed");
     return repairResults;
   } catch (error) {
     console.error("❌ Repair failed:", error);
@@ -426,8 +418,8 @@ export function generateAuditReport(auditResults) {
 
   // Issues by severity
   const highIssues = attempts.issues.filter((i) => i.severity === "high");
-  const mediumIssues = attempts.issues.filter((i) => i.severity === "medium");
-  const lowIssues = attempts.issues.filter((i) => i.severity === "low");
+  const _mediumIssues = attempts.issues.filter((i) => i.severity === "medium");
+  const _lowIssues = attempts.issues.filter((i) => i.severity === "low");
 
   if (highIssues.length > 0) {
     report.push("## High Severity Issues");

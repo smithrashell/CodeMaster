@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Navigation Test - Stats & Progress Pages</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            margin: 20px 0; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 4px; 
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+        }
+        .success { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460; 
+        }
+        .warning { 
+            background: #fff3cd; 
+            border: 1px solid #ffeaa7; 
+            color: #856404; 
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 8px;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #1e7e34; }
+        .navigation-steps {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .step-box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .step-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 11px;
+            margin: 10px 0;
+        }
+        .troubleshooting {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧭 Navigation Test - Stats & Progress Pages</h1>
+        <p>This test helps you access the Stats and Progress pages that should now be working with mock data.</p>
+        
+        <div class="status info">
+            <strong>🎭 Mock Mode Active:</strong> The app should skip onboarding and load directly to the dashboard with mock data.
+        </div>
+
+        <div class="test-section">
+            <h3>Step 1: Open the App</h3>
+            <p>Click the button below to open the dashboard app:</p>
+            <a href="./Frontend/dist/app.html" target="_blank" class="btn btn-success">🚀 Open Dashboard App</a>
+            
+            <div class="status warning">
+                <strong>If you see "Loading Dashboard..." for more than 3 seconds:</strong><br>
+                Open browser console (F12) and look for error messages or debug logs.
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Step 2: Check What You Should See</h3>
+            <div class="navigation-steps">
+                <div class="step-box">
+                    <div class="step-title">✅ Expected: Navigation Sidebar</div>
+                    <ul>
+                        <li>Left sidebar with navigation menu</li>
+                        <li>"Stats" link (should be selected by default)</li>
+                        <li>"Progress" link</li>
+                        <li>Other navigation items</li>
+                    </ul>
+                </div>
+                
+                <div class="step-box">
+                    <div class="step-title">✅ Expected: Main Content</div>
+                    <ul>
+                        <li>Should show "Stats" page by default</li>
+                        <li>Mock data charts and statistics</li>
+                        <li>🎭 MOCK badge in top-right corner</li>
+                        <li>No loading screens or errors</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Step 3: Test Navigation</h3>
+            <p>Once the app loads, test these navigation paths:</p>
+            
+            <div class="status success">
+                <strong>Direct Links (Click these after opening the app):</strong><br><br>
+                <a href="./Frontend/dist/app.html#/stats" target="_blank" class="btn">📊 Stats Page</a>
+                <a href="./Frontend/dist/app.html#/progress" target="_blank" class="btn">📈 Progress Page</a>
+            </div>
+
+            <p><strong>OR use the sidebar navigation:</strong></p>
+            <ol>
+                <li>Click "Stats" in the left sidebar</li>
+                <li>Click "Progress" in the left sidebar</li>
+                <li>Try clicking between them</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>What Each Page Should Show</h3>
+            
+            <h4>📊 Stats Page</h4>
+            <div class="status success">
+                Should display various charts and statistics with mock data:
+                <ul>
+                    <li>Overall statistics (total solved, mastered, etc.)</li>
+                    <li>Performance metrics charts</li>
+                    <li>Success rate breakdowns</li>
+                    <li>Time-based analytics</li>
+                </ul>
+            </div>
+
+            <h4>📈 Progress Page (The one we just fixed!)</h4>
+            <div class="status success">
+                Should display 4 components:
+                <ul>
+                    <li><strong>Box Distribution</strong> - Bar chart of problems across boxes 1-7</li>
+                    <li><strong>Mastery Dashboard</strong> - "Coming Soon" placeholder</li>
+                    <li><strong>Promotion & Demotion Trends</strong> - Line chart with time controls</li>
+                    <li><strong>Problem Activity Over Time</strong> - Stacked bar chart</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="troubleshooting">
+            <h3>🔧 Troubleshooting</h3>
+            
+            <h4>If you still see "Loading Dashboard...":</h4>
+            <pre>
+Check browser console for these logs:
+✅ Should see:
+- "🎭 Mock mode: Skipping onboarding"
+- "🔄 Dashboard data effect triggered - useMockData: true"
+- "🎭 Using mock dashboard data"
+- "📊 Loading mock data with userType: active"
+- "✅ Mock data loaded successfully: {...}"
+
+❌ Should NOT see:
+- Onboarding database errors
+- "Error loading dashboard data"
+- Network/Chrome extension errors
+            </pre>
+
+            <h4>If navigation doesn't work:</h4>
+            <ul>
+                <li>Check if the sidebar is visible</li>
+                <li>Try the direct links provided above</li>
+                <li>Check console for routing errors</li>
+                <li>Refresh the page and try again</li>
+            </ul>
+
+            <h4>If charts show "No Data to display":</h4>
+            <ul>
+                <li>Check console for data processing errors</li>
+                <li>Look for mock data generation logs</li>
+                <li>Verify mock mode is active (🎭 badge visible)</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>Expected Console Logs</h3>
+            <p>When everything works correctly, you should see these in the browser console:</p>
+            <pre>
+🎭 Mock mode: Skipping onboarding
+🔄 Dashboard data effect triggered - useMockData: true
+🎭 Using mock dashboard data
+📊 Loading mock data with userType: active
+🎭 Generating mock data for user type: active
+✅ Generated mock data: {sessions: 50, attempts: 500+, problems: 150+}
+✅ Mock Dashboard Service: Generated statistics for 50 sessions, 150+ problems
+✅ Mock data loaded successfully: {statistics: {...}, progress: {...}}
+
+Progress component - appState: {boxLevelData: {...}, allAttempts: [...], ...}
+Processing appState: {hasBoxLevelData: true, hasAllAttempts: true, ...}
+Box level data processed: [{name: 'Box 1', count: 30}, {name: 'Box 2', count: 25}, ...]
+✅ weekly promotion data: [{name: 'Week 1', promotions: 5, demotions: 2}, ...]
+All data processed successfully
+            </pre>
+        </div>
+    </div>
+
+    <script>
+        // Log for testing
+        console.log('🧭 Navigation test ready - Click the buttons to test the app');
+        
+        // Add click handlers for better UX
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    console.log('Opening:', this.href || this.textContent);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

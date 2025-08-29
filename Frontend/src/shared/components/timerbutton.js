@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
-import { navigate } from "react-router-dom"; // Import from `react-router-dom` if needed
+import  { useState} from "react";
 
 const TimerButton = () => {
   const [time, setTime] = useState(0);
