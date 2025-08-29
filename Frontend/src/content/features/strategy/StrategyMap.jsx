@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import logger from "../../../shared/utils/logger.js";
+import  { useState, useEffect } from "react";
 import Header from "../../components/navigation/header";
 import { useNav } from "../../../shared/provider/navprovider";
 
@@ -21,14 +22,14 @@ const StrategyMap = () => {
       chrome.runtime.sendMessage({ type: "getStrategyMapData" }, (response) => {
         if (response && response.status === "success") {
           const data = response.data;
-          console.log("🗺️ Strategy Map data:", data);
+          logger.info("🗺️ Strategy Map data:", data);
 
           setTierData(data.tierData || {});
           setFocusTags(data.focusTags || []);
           setCurrentTier(data.currentTier || "Core Concept");
           setError(null);
         } else {
-          console.error("❌ Failed to get Strategy Map data:", response?.error);
+          logger.error("❌ Failed to get Strategy Map data:", response?.error);
           setError("Failed to load strategy map data. Please try refreshing.");
 
           // Fallback to empty data structure
@@ -268,7 +269,16 @@ const StrategyMap = () => {
                       e.target.style.backgroundColor =
                         "rgba(255, 255, 255, 0.1)";
                     }}
+                    onFocus={(e) => {
+                      e.target.style.opacity = "1";
+                      e.target.style.backgroundColor =
+                        "rgba(255, 255, 255, 0.1)";
+                    }}
                     onMouseOut={(e) => {
+                      e.target.style.opacity = "0.8";
+                      e.target.style.backgroundColor = "transparent";
+                    }}
+                    onBlur={(e) => {
                       e.target.style.opacity = "0.8";
                       e.target.style.backgroundColor = "transparent";
                     }}
@@ -295,7 +305,16 @@ const StrategyMap = () => {
                       e.target.style.backgroundColor =
                         "rgba(255, 255, 255, 0.1)";
                     }}
+                    onFocus={(e) => {
+                      e.target.style.opacity = "1";
+                      e.target.style.backgroundColor =
+                        "rgba(255, 255, 255, 0.1)";
+                    }}
                     onMouseOut={(e) => {
+                      e.target.style.opacity = "0.8";
+                      e.target.style.backgroundColor = "transparent";
+                    }}
+                    onBlur={(e) => {
                       e.target.style.opacity = "0.8";
                       e.target.style.backgroundColor = "transparent";
                     }}

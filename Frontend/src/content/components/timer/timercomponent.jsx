@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import React, {
   useState,
   useEffect,
@@ -110,7 +111,7 @@ const TimerBanner = (props) => {
         ...prev,
         timeToFirstPlanMs: timeToFirstPlan
       }));
-      console.log("🎯 First plan recorded:", timeToFirstPlan + "ms");
+      logger.info("🎯 First plan recorded:", timeToFirstPlan + "ms");
     }
   }, [hasFirstPlan]);
 
@@ -122,7 +123,7 @@ const TimerBanner = (props) => {
         ...prev,
         timeToFirstKeystroke: timeToFirstKeystroke
       }));
-      console.log("⌨️ First keystroke recorded:", timeToFirstKeystroke + "ms");
+      logger.info("⌨️ First keystroke recorded:", timeToFirstKeystroke + "ms");
     }
   }, [hasFirstKeystroke]);
 
@@ -157,7 +158,7 @@ const TimerBanner = (props) => {
         hintsUsed: prev.hintsUsed + 1,
         hintsRequestedTimes: [...prev.hintsRequestedTimes, currentTime]
       }));
-      console.log("💡 Hint used in interview mode at:", currentTime + "ms");
+      logger.info("💡 Hint used in interview mode at:", currentTime + "ms");
     }
 
     // Original analytics tracking
@@ -224,7 +225,7 @@ const TimerBanner = (props) => {
 
   const handleStart = () => {
     if (!timerRef.current) {
-      console.error("❌ Timer not initialized");
+      logger.error("❌ Timer not initialized");
       return;
     }
 
@@ -373,7 +374,7 @@ const TimerBanner = (props) => {
         };
 
         problem["interviewSignals"] = finalInterviewSignals;
-        console.log("🎯 Interview signals captured:", finalInterviewSignals);
+        logger.info("🎯 Interview signals captured:", finalInterviewSignals);
       }
 
       // Problem completion recorded
@@ -498,7 +499,7 @@ const TimerBanner = (props) => {
 
         <div className="timer-banner-content">
           <div style={{ textAlign: "center", padding: "10px" }}>
-            <p>You've exceeded the recommended interview time.</p>
+            <p>You&apos;ve exceeded the recommended interview time.</p>
             <p>How are you feeling about this problem?</p>
 
             <div
@@ -533,7 +534,7 @@ const TimerBanner = (props) => {
                   cursor: "pointer",
                 }}
               >
-                I'm Stuck
+                I&apos;m Stuck
               </button>
               <button
                 onClick={handleMoveOn}

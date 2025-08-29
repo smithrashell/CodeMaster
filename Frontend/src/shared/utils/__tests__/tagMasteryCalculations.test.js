@@ -195,9 +195,9 @@ describe("Tag Mastery Calculation Logic", () => {
     });
 
     it("should activate with 65% accuracy and 15+ failed attempts", () => {
-      const result = calculateMasteryStatus(30, 19.5); // 65% with 10.5 failed attempts - need more failed
-      const result2 = calculateMasteryStatus(25, 15); // 60% with 10 failed - need more attempts
-      const result3 = calculateMasteryStatus(40, 26); // 65% with 14 failed - need one more failed
+      const _result = calculateMasteryStatus(30, 19.5); // 65% with 10.5 failed attempts - need more failed
+      const _result2 = calculateMasteryStatus(25, 15); // 60% with 10 failed - need more attempts
+      const _result3 = calculateMasteryStatus(40, 26); // 65% with 14 failed - need one more failed
       const result4 = calculateMasteryStatus(41, 26); // ~63% with 15 failed attempts
 
       expect(result4.mastered).toBe(true);
@@ -215,7 +215,7 @@ describe("Tag Mastery Calculation Logic", () => {
 
     it("should not activate with 60% accuracy but only 14 failed attempts", () => {
       const result = calculateMasteryStatus(24, 14.4); // 60% with 9.6 failed attempts (not enough)
-      const result2 = calculateMasteryStatus(39, 23.4); // 60% with 15.6 failed, but round to 14 failed
+      const _result2 = calculateMasteryStatus(39, 23.4); // 60% with 15.6 failed, but round to 14 failed
 
       expect(result.escapeHatchActivated).toBe(false);
     });

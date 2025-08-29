@@ -1,5 +1,6 @@
 import { getDatabase } from "../../shared/db/index.js";
-import { addLimit } from "../../shared/db/limit.js";
+import { addLimit, getMostRecentLimit } from "../../shared/db/limit.js";
+import logger from "../../shared/utils/logger.js";
 
 export const RatingService = {
   updateProblemsWithRatings,
@@ -49,7 +50,7 @@ async function updateProblemsWithRatings() {
     // Check if new limits need to be set
     await checkAndUpdateLimits(attempts, db);
   } catch (error) {
-    console.error("Error updating problem ratings:", error);
+    logger.error("Error updating problem ratings:", error);
   }
 }
 
@@ -78,7 +79,7 @@ async function saveAllToStore(db, storeName, items) {
 
     items.forEach((item) => {
       store.put(item).onerror = (event) => {
-        console.error(`Error saving to ${storeName}:`, event.target.error);
+        logger.error(`Error saving to ${storeName}:`, event.target.error);
         reject(event.target.error);
       };
     });
@@ -145,9 +146,9 @@ async function checkAndUpdateLimits(attempts, db) {
   ) {
     const newLimits = await calculateLimits(attempts, db);
     await addLimit(newLimits);
-    console.log("New limits added:", newLimits);
+    logger.info("New limits added:", newLimits);
   } else {
-    console.log("Recent limit is still valid; no update needed.");
+    logger.info("Recent limit is still valid; no update needed.");
   }
 }
 

@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import logger from "../../../shared/utils/logger.js";
+import { useState, useCallback, useEffect, useRef } from "react";
 import "../../css/probrec.css";
 import Header from "../../components/navigation/header";
 import { v4 as uuidv4 } from "uuid";
@@ -67,7 +68,13 @@ const SessionRegenerationBanner = ({ onRegenerateSession }) => {
         onMouseOver={(e) => {
           e.target.style.backgroundColor = '#d97706';
         }}
+        onFocus={(e) => {
+          e.target.style.backgroundColor = '#d97706';
+        }}
         onMouseOut={(e) => {
+          e.target.style.backgroundColor = '#f59e0b';
+        }}
+        onBlur={(e) => {
           e.target.style.backgroundColor = '#f59e0b';
         }}
       >
@@ -234,7 +241,7 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
           setLoadingSimilar(false);
         });
       } catch (error) {
-        console.error('Error fetching similar problems:', error);
+        logger.error('Error fetching similar problems:', error);
         setLoadingSimilar(false);
       }
     },
@@ -264,8 +271,8 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
   return (
     <div className="cm-simple-problem-item-container">
       <div className="cm-simple-problem-item">
-        <a
-          href="#"
+        <button
+          type="button"
           onClick={(e) => {
             onLinkClick(problem);
             e.target.blur(); // Remove focus after click to prevent outline
@@ -277,9 +284,17 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
             }, 0);
           }}
           className="cm-simple-problem-link"
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            padding: 0, 
+            cursor: 'pointer',
+            textAlign: 'left',
+            width: '100%'
+          }}
         >
           {problem.problemDescription || problem.title}
-        </a>
+        </button>
         <div className="cm-problem-badges">
           {/* Show problem selection reasoning if available - FIRST in badges */}
           {problem.selectionReason && (
@@ -445,7 +460,7 @@ const ProbGen = () => {
       setSettingsLoaded(true);
     },
     onError: (error) => {
-      console.error("Failed to load settings:", error);
+      logger.error("Failed to load settings:", error);
       setSettingsLoaded(true); // Still mark as loaded even on error
     }
   });
@@ -466,7 +481,7 @@ const ProbGen = () => {
       });
       
       // Process the response just like the useChromeMessage onSuccess handler
-      console.log('🔍 handleInterviewChoice API Response:', {
+      logger.info('🔍 handleInterviewChoice API Response:', {
         hasSession: !!response.session,
         sessionId: response.session?.id?.substring(0, 8),
         sessionType: response.session?.sessionType,
@@ -480,13 +495,13 @@ const ProbGen = () => {
         setSessionData(restOfSession);
         
         // IMPORTANT: Set regeneration banner state for direct API calls
-        console.log('🎯 handleInterviewChoice - Setting regeneration banner state:', response.isSessionStale || false);
+        logger.info('🎯 handleInterviewChoice - Setting regeneration banner state:', response.isSessionStale || false);
         setShowRegenerationBanner(response.isSessionStale || false);
         
         sessionCreationAttempted.current = true;
       }
     } catch (error) {
-      console.error("Failed to create interview session:", error);
+      logger.error("Failed to create interview session:", error);
       setShowInterviewBanner(true); // Show banner again on error
     }
   };
@@ -502,7 +517,7 @@ const ProbGen = () => {
       });
       
       // Process the response just like the useChromeMessage onSuccess handler
-      console.log('🔍 handleRegularChoice API Response:', {
+      logger.info('🔍 handleRegularChoice API Response:', {
         hasSession: !!response.session,
         sessionId: response.session?.id?.substring(0, 8),
         sessionType: response.session?.sessionType,
@@ -516,13 +531,13 @@ const ProbGen = () => {
         setSessionData(restOfSession);
         
         // IMPORTANT: Set regeneration banner state for direct API calls
-        console.log('🎯 handleRegularChoice - Setting regeneration banner state:', response.isSessionStale || false);
+        logger.info('🎯 handleRegularChoice - Setting regeneration banner state:', response.isSessionStale || false);
         setShowRegenerationBanner(response.isSessionStale || false);
         
         sessionCreationAttempted.current = true;
       }
     } catch (error) {
-      console.error("Failed to create standard session:", error);
+      logger.error("Failed to create standard session:", error);
       setShowInterviewBanner(true); // Show banner again on error
     }
   };
@@ -546,7 +561,7 @@ const ProbGen = () => {
         sessionCreationAttempted.current = true;
       }
     } catch (error) {
-      console.error("Failed to regenerate session:", error);
+      logger.error("Failed to regenerate session:", error);
       // Show regeneration banner again on error
       setShowRegenerationBanner(true);
     } finally {
@@ -571,7 +586,7 @@ const ProbGen = () => {
     {
       immediate: false, // Wait for manual trigger after settings are confirmed loaded
       onSuccess: (response) => {
-        console.log('🔍 ProblemGenerator API Response:', {
+        logger.info('🔍 ProblemGenerator API Response:', {
           hasSession: !!response.session,
           sessionId: response.session?.id?.substring(0, 8),
           sessionType: response.session?.sessionType,
@@ -585,7 +600,7 @@ const ProbGen = () => {
           setSessionData(response.session);
           
           // Check if session is stale - hide regeneration banner if session is fresh
-          console.log('🎯 Setting regeneration banner state:', response.isSessionStale || false);
+          logger.info('🎯 Setting regeneration banner state:', response.isSessionStale || false);
           setShowRegenerationBanner(response.isSessionStale || false);
           
           // Show problems immediately for any session with problems
@@ -613,7 +628,7 @@ const ProbGen = () => {
         }
       },
       onError: (error) => {
-        console.error('ProblemGenerator session fetch error:', error);
+        logger.error('ProblemGenerator session fetch error:', error);
         
         setProblems([]);
         setSessionData(null);
@@ -684,7 +699,7 @@ const ProbGen = () => {
         />
         
         {/* Session Regeneration Banner - shows for stale sessions */}
-        {console.log('🎯 Render check - showRegenerationBanner:', showRegenerationBanner, 'sessionData:', sessionData?.id?.substring(0,8))}
+        {logger.info('🎯 Render check - showRegenerationBanner:', showRegenerationBanner, 'sessionData:', sessionData?.id?.substring(0,8))}
         {showRegenerationBanner && (
           <SessionRegenerationBanner 
             onRegenerateSession={handleRegenerateSession}
@@ -774,7 +789,13 @@ const ProbGen = () => {
                   onMouseOver={(e) => {
                     e.target.style.backgroundColor = 'rgba(59, 130, 246, 1)';
                   }}
+                  onFocus={(e) => {
+                    e.target.style.backgroundColor = 'rgba(59, 130, 246, 1)';
+                  }}
                   onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.9)';
+                  }}
+                  onBlur={(e) => {
                     e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.9)';
                   }}
                 >
@@ -797,7 +818,13 @@ const ProbGen = () => {
                   onMouseOver={(e) => {
                     e.target.style.backgroundColor = 'rgba(107, 114, 128, 0.9)';
                   }}
+                  onFocus={(e) => {
+                    e.target.style.backgroundColor = 'rgba(107, 114, 128, 0.9)';
+                  }}
                   onMouseOut={(e) => {
+                    e.target.style.backgroundColor = 'rgba(107, 114, 128, 0.8)';
+                  }}
+                  onBlur={(e) => {
                     e.target.style.backgroundColor = 'rgba(107, 114, 128, 0.8)';
                   }}
                 >

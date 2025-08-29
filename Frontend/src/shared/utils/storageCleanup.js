@@ -11,7 +11,7 @@ export default class StorageCleanupManager {
    * @param {number} daysOld - Days threshold
    * @returns {Promise<Object>} Cleanup result
    */
-  static async cleanupOldData(daysOld = 30) {
+  static cleanupOldData(_daysOld = 30) {
     return {
       deletedCount: 0,
       freedBytes: 0,
@@ -23,7 +23,7 @@ export default class StorageCleanupManager {
    * Get cleanup recommendations (stub)
    * @returns {Promise<Array>} Recommendations array
    */
-  static async getCleanupRecommendations() {
+  static getCleanupRecommendations() {
     return [];
   }
 }

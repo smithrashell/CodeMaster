@@ -1,6 +1,6 @@
 import "../../css/main.css";
 import { useState, useEffect } from "react";
-import { Button, Text, Alert, SegmentedControl, Tooltip } from "@mantine/core";
+import { Button, SegmentedControl, Tooltip } from "@mantine/core";
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
 import {
   SliderMarksSessionLength,
@@ -11,84 +11,14 @@ import {
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
 import SessionLimits from "../../../shared/utils/sessionLimits.js";
-
-// Interview Readiness Hook (copied from AdaptiveSettingsCard)
-function useInterviewReadiness(settings) {
-  const [readiness, setReadiness] = useState({
-    interviewLikeUnlocked: true, // Default to true for better UX
-    fullInterviewUnlocked: true, // Default to true for better UX
-    reasoning: "Loading interview capabilities..."
-  });
-
-  useEffect(() => {
-    const checkReadiness = async () => {
-      console.log("🎯 Content Settings - Checking interview readiness...", { settings: !!settings });
-      
-      try {
-        if (typeof chrome !== "undefined" && chrome.runtime) {
-          console.log("🎯 Content Settings - Chrome runtime available, sending message...");
-          
-          // Set timeout to prevent hanging
-          const timeout = setTimeout(() => {
-            console.log("🎯 Content Settings - Interview readiness check timed out, using fallback");
-            setReadiness({
-              interviewLikeUnlocked: true,
-              fullInterviewUnlocked: true,
-              reasoning: "Timeout - interview features available"
-            });
-          }, 3000);
-          
-          chrome.runtime.sendMessage(
-            { type: "getInterviewReadiness" },
-            (response) => {
-              clearTimeout(timeout);
-              console.log("🎯 Content Settings - Interview readiness response:", response, "Error:", chrome.runtime.lastError);
-              if (response && !chrome.runtime.lastError) {
-                setReadiness(response);
-              } else {
-                console.log("🎯 Content Settings - Using development fallback for interview readiness");
-                // Fallback for development/testing
-                setReadiness({
-                  interviewLikeUnlocked: true, // Allow testing
-                  fullInterviewUnlocked: true, // Allow testing
-                  reasoning: "Development mode - all modes unlocked"
-                });
-              }
-            }
-          );
-        } else {
-          console.log("🎯 Content Settings - Chrome runtime not available, using fallback");
-          // Direct fallback when no Chrome runtime
-          setReadiness({
-            interviewLikeUnlocked: true,
-            fullInterviewUnlocked: true,
-            reasoning: "Browser mode - interview features available for testing"
-          });
-        }
-      } catch (error) {
-        console.warn("🎯 Content Settings - Interview readiness check failed:", error);
-        // Fallback readiness
-        setReadiness({
-          interviewLikeUnlocked: true,
-          fullInterviewUnlocked: true,
-          reasoning: "Error fallback - interview features available"
-        });
-      }
-    };
-
-    if (settings) {
-      checkReadiness();
-    }
-  }, [settings]);
-
-  return readiness;
-}
+import { component, debug, system } from "../../../shared/utils/logger.js";
 
 // Interview Mode Controls Component (copied from AdaptiveSettingsCard)
 function InterviewModeControls({ settings, updateSettings, interviewReadiness }) {
-  console.log("🎯 Content Settings - InterviewModeControls rendering with:", { 
+  component("InterviewModeControls", "🎯 Rendering with data", { 
     hasSettings: !!settings, 
     interviewMode: settings?.interviewMode,
     readiness: interviewReadiness 
@@ -121,9 +51,9 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
   if (!settings) {
     return (
       <div className="cm-form-group">
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>
           <IconTrophy size={14} />
-          Interview Mode
+          Interview Mode</div>
           <Tooltip 
             label="Loading interview settings..." 
             withArrow 
@@ -144,9 +74,9 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
 
   return (
     <div className="cm-form-group">
-      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>
         <IconTrophy size={14} />
-        Interview Mode
+        Interview Mode</div>
         <Tooltip 
           label="Interview practice modes to test skill transfer under pressure"
           withArrow
@@ -162,9 +92,9 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
       <SegmentedControl
         value={currentMode}
         onChange={(value) => {
-          console.log("🎯 Interview mode change:", value);
+          component("InterviewModeControls", "🎯 Interview mode change", { value });
           const updatedSettings = { ...settings, interviewMode: value };
-          console.log("🎯 Updated settings:", updatedSettings);
+          debug("🎯 Updated settings", updatedSettings);
           updateSettings(updatedSettings);
         }}
         data={getInterviewModeData().map(item => ({
@@ -204,8 +134,8 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
       {currentMode !== "disabled" && (
         <>
           <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e0e0e0' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
-              📅 Interview Frequency
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
+              📅 Interview Frequency</div>
               <Tooltip 
                 label="When should interview sessions be automatically suggested?"
                 withArrow 
@@ -221,9 +151,9 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
             <SegmentedControl
               value={settings?.interviewFrequency || "manual"}
               onChange={(value) => {
-                console.log("🎯 Interview frequency change:", value);
+                component("InterviewModeControls", "🎯 Interview frequency change", { value });
                 const updatedSettings = { ...settings, interviewFrequency: value };
-                console.log("🎯 Updated settings:", updatedSettings);
+                debug("🎯 Updated settings", updatedSettings);
                 updateSettings(updatedSettings);
               }}
               data={[
@@ -246,8 +176,8 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
           {/* Readiness Threshold - Show only for level-up frequency */}
           {settings?.interviewFrequency === "level-up" && (
             <div style={{ marginTop: '12px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
-                🎯 Readiness Threshold
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
+                🎯 Readiness Threshold</div>
                 <Tooltip 
                   label="Minimum performance score needed before suggesting Full Interview mode"
                   withArrow 
@@ -332,7 +262,7 @@ const Settings = () => {
   const interviewReadiness = useInterviewReadiness(settings);
   
   // Debug settings loading
-  console.log("🔧 Content Settings state:", { 
+  system("🔧 Content Settings state", { 
     hasSettings: !!settings, 
     interviewMode: settings?.interviewMode,
     interviewReadiness 
@@ -467,7 +397,7 @@ const Settings = () => {
         {!workingSettings.adaptive && (
           <>
             <div className="cm-form-group">
-              <label>Session Length</label>
+              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Session Length</div>
               <SliderMarksSessionLength
                 value={workingSettings.sessionLength}
                 onChange={(value) =>
@@ -477,7 +407,7 @@ const Settings = () => {
             </div>
 
             <div className="cm-form-group">
-              <label>New Problems Per Session</label>
+              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>New Problems Per Session</div>
               <SliderMarksNewProblemsPerSession
                 value={Math.min(workingSettings.numberofNewProblemsPerSession || 1, maxNewProblems)}
                 onChange={(value) =>
@@ -493,7 +423,7 @@ const Settings = () => {
         )}
 
         <div className="cm-form-group">
-          <label>Time Limits</label>
+          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Time Limits</div>
           <GradientSegmentedControlTimeLimit
             value={workingSettings.limit}
             onChange={(value) => setSettings({ ...workingSettings, limit: value })}
@@ -504,7 +434,7 @@ const Settings = () => {
         <InterviewModeControls 
           settings={workingSettings} 
           updateSettings={(newSettings) => {
-            console.log("🎯 Settings update requested:", newSettings);
+            component("Settings", "🎯 Settings update requested", newSettings);
             setSettings(newSettings);
             // Auto-save interview settings changes
             handleSave(newSettings);
@@ -513,7 +443,7 @@ const Settings = () => {
         />
 
         <div className="cm-form-group">
-          <label>Reminders</label>
+          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Reminders</div>
           <ToggleSelectRemainders
             reminder={workingSettings.reminder}
             onChange={(updatedReminder) =>

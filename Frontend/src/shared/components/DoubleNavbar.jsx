@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from "react";
+import  { useState, useEffect } from "react";
 import { Tooltip, UnstyledButton, Title, rem } from "@mantine/core";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   IconGauge,
-  IconDeviceDesktopAnalytics,
-  IconCards,
-  IconUser,
   IconClock,
   IconSettings,
   IconTrendingUp,

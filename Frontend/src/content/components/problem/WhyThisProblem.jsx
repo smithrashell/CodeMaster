@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useEffect } from "react";
 import { BrainIcon } from "../../../shared/components/ui/Icons";
 import { ReasonTypeIcon } from "./ProblemInfoIcon";
@@ -26,7 +27,7 @@ const WhyThisProblem = ({
   useEffect(() => {
     const fetchSimilarProblems = async () => {
       if (isExpanded && currentProblemId && !loadingSimilar && similarProblems.length === 0) {
-        console.log('🔗 Fetching similar problems for:', currentProblemId);
+        logger.info('🔗 Fetching similar problems for:', currentProblemId);
         setLoadingSimilar(true);
         try {
           // Use Chrome messaging to get similar problems
@@ -35,21 +36,21 @@ const WhyThisProblem = ({
             problemId: currentProblemId,
             limit: 3
           }, (response) => {
-            console.log('🔗 Similar problems response:', response);
+            logger.info('🔗 Similar problems response:', response);
             if (response?.similarProblems) {
               setSimilarProblems(response.similarProblems);
-              console.log('🔗 Set similar problems:', response.similarProblems.length);
+              logger.info('🔗 Set similar problems:', response.similarProblems.length);
             } else {
-              console.log('🔗 No similar problems found in response');
+              logger.info('🔗 No similar problems found in response');
             }
             setLoadingSimilar(false);
           });
         } catch (error) {
-          console.error('❌ Error fetching similar problems:', error);
+          logger.error('❌ Error fetching similar problems:', error);
           setLoadingSimilar(false);
         }
       } else {
-        console.log('🔗 Skipping similar problems fetch:', {
+        logger.info('🔗 Skipping similar problems fetch:', {
           isExpanded,
           currentProblemId,
           loadingSimilar,
@@ -59,10 +60,10 @@ const WhyThisProblem = ({
     };
 
     fetchSimilarProblems();
-  }, [isExpanded, currentProblemId]);
+  }, [isExpanded, currentProblemId, loadingSimilar, similarProblems.length]);
 
   const handleToggle = () => {
-    console.log(`📖 Strategy: ${isExpanded ? 'Collapsed' : 'Expanded'} "${selectionReason.type}" for problem ${currentProblemId}`);
+    logger.info(`📖 Strategy: ${isExpanded ? 'Collapsed' : 'Expanded'} "${selectionReason.type}" for problem ${currentProblemId}`);
     setIsExpanded(!isExpanded);
   };
 

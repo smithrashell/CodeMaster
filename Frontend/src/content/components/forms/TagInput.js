@@ -159,7 +159,6 @@ export default function TagInput({ setTags }) {
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            autoFocus
             style={{
               width: "100%",
               padding: "6px",
@@ -178,7 +177,15 @@ export default function TagInput({ setTags }) {
       ) : (
         <p
           style={{ cursor: "pointer", color: "#ffffff", marginBottom: "8px" }}
+          role="button"
+          tabIndex={0}
           onClick={() => setIsInputVisible(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsInputVisible(true);
+            }
+          }}
         >
           + Add Tag
         </p>

@@ -13,7 +13,7 @@ import {
   createAttemptRecord,
   isDifficultyAllowed,
   deduplicateById,
-  clearOrRenameStoreField,
+  _clearOrRenameStoreField,
 } from "../Utils.js";
 
 describe("Utils Functions", () => {

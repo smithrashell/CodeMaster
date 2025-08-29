@@ -16,6 +16,7 @@ import {
   getResumeStep,
 } from "../../../shared/services/onboardingService";
 import { shouldUseMockDashboard } from "../../../app/config/mockConfig.js";
+import logger from "../../../shared/utils/logger.js";
 
 // Inline SVG Logo Component
 const CodeMasterLogo = ({ size = 32, style = {} }) => (
@@ -94,12 +95,12 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
 
 // Function to extract the problem slug from the URL
 const getProblemSlugFromUrl = (url) => {
-  const match = url.match(/problems\/([^\/]+)\/?/);
+  const match = url.match(/problems\/([^/]+)\/?/);
   return match ? match[1] : null; // Return the problem slug or null if no match
 };
 
 const Main = () => {
-  console.log("🚀 MAIN COMPONENT MOUNTED - This should only happen once!", new Date().toISOString());
+  logger.info("🚀 MAIN COMPONENT MOUNTED - This should only happen once!", new Date().toISOString());
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { isAppOpen, setIsAppOpen } = useNav();
@@ -131,15 +132,15 @@ const Main = () => {
     const title =
       problemTitleFormatted.charAt(0).toUpperCase() +
       problemTitleFormatted.slice(1);
-    // console.log("Slug", problemSlug);
-    // console.log("Problem Title:", title);
+    // logger.info("Slug", problemSlug);
+    // logger.info("Problem Title:", title);
     setProblemTitle(title);
 
     setLoading(true);
 
     // Add timeout and error handling for Chrome runtime messaging
     const messageTimeout = setTimeout(() => {
-      console.warn("⚠️ Chrome message timeout - continuing without problem data");
+      logger.warn("⚠️ Chrome message timeout - continuing without problem data");
       setLoading(false);
       setProblemData(null);
       setProblemFound(false);
@@ -156,7 +157,7 @@ const Main = () => {
         
         // Check for Chrome runtime errors
         if (chrome.runtime.lastError) {
-          console.warn("⚠️ Chrome runtime error:", chrome.runtime.lastError.message);
+          logger.warn("⚠️ Chrome runtime error:", chrome.runtime.lastError.message);
           setLoading(false);
           setProblemData(null);
           setProblemFound(false);
@@ -164,7 +165,7 @@ const Main = () => {
         }
         
         if (response?.error) {
-          console.error("❌ Error in getProblemByDescription", response.error);
+          logger.error("❌ Error in getProblemByDescription", response.error);
           setProblemData(null);
           setProblemFound(false);
           setLoading(false);
@@ -172,11 +173,11 @@ const Main = () => {
         }
         
         if (response?.problem) {
-          console.log("✅ Problem found: ", response.problem);
+          logger.info("✅ Problem found: ", response.problem);
           setProblemFound(response.found);
           setProblemData(response.problem);
         } else {
-          console.warn("⚠️ No problem found");
+          logger.warn("⚠️ No problem found");
           setProblemData(null);
           setProblemFound(false);
         }
@@ -192,7 +193,7 @@ const Main = () => {
   } = useChromeMessage({ type: "onboardingUserIfNeeded" }, [], {
     onSuccess: (response) => {
       if (response) {
-        console.log("onboardingUserIfNeeded", response);
+        logger.info("onboardingUserIfNeeded", response);
       }
     },
   });
@@ -201,7 +202,7 @@ const Main = () => {
 
   useEffect(() => {
     // Run the initial data fetch once when the component mounts
-    console.log("Current problem slug:", currentProblem);
+    logger.info("Current problem slug:", currentProblem);
     fetchProblemData(currentProblem);
   }, []); // Empty dependency array ensures it only runs once on mount
 
@@ -210,19 +211,19 @@ const Main = () => {
     const checkContentOnboarding = async () => {
       // Manual override for testing
       if (typeof window !== 'undefined' && localStorage.getItem('force-content-onboarding') === 'true') {
-        console.log("🔧 MANUAL OVERRIDE: Forcing content onboarding to show");
+        logger.info("🔧 MANUAL OVERRIDE: Forcing content onboarding to show");
         setShowContentOnboarding(true);
         return;
       }
       
       try {
         const status = await checkContentOnboardingStatus();
-        console.log("📊 Main: Content onboarding status received:", status);
+        logger.info("📊 Main: Content onboarding status received:", status);
         setContentOnboardingStatus(status);
 
         // Show onboarding tour if not completed
         if (!status.isCompleted) {
-          console.log("✅ Content onboarding will show - not completed", { 
+          logger.info("✅ Content onboarding will show - not completed", { 
             isCompleted: status.isCompleted, 
             currentStep: status.currentStep,
             lastActiveStep: status.lastActiveStep 
@@ -231,11 +232,11 @@ const Main = () => {
           // Small delay to ensure the DOM is ready
           const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
           setTimeout(() => {
-            console.log("🎯 Setting showContentOnboarding to true");
+            logger.info("🎯 Setting showContentOnboarding to true");
             setShowContentOnboarding(true);
           }, delayTime);
         } else {
-          console.log("⏭️ Content onboarding already completed - will NOT show", {
+          logger.info("⏭️ Content onboarding already completed - will NOT show", {
             isCompleted: status.isCompleted,
             completedAt: status.completedAt,
             currentStep: status.currentStep
@@ -243,7 +244,7 @@ const Main = () => {
           setShowContentOnboarding(false);
         }
       } catch (error) {
-        console.error("❌ Error checking content onboarding status:", error);
+        logger.error("❌ Error checking content onboarding status:", error);
         
         // Fallback: show onboarding anyway for new users
         setTimeout(() => {
@@ -257,7 +258,7 @@ const Main = () => {
     
     // RESET CONTENT ONBOARDING - uncomment to reset and test (run once then comment out)
     // setTimeout(async () => {
-    //   console.log("🔄 RESETTING content onboarding to fix database corruption...");
+    //   logger.info("🔄 RESETTING content onboarding to fix database corruption...");
     //   await resetContentOnboarding();
     // }, 1000);
     
@@ -268,40 +269,40 @@ const Main = () => {
   // Function to handle URL changes after initial load  
   const handleUrlChange = useCallback(() => {
     const newProblemSlug = getProblemSlugFromUrl(window.location.href);
-    console.log("🌐 URL CHANGED - New problem slug:", newProblemSlug);
-    console.log("🌐 Current problem slug:", currentProblem);
+    logger.info("🌐 URL CHANGED - New problem slug:", newProblemSlug);
+    logger.info("🌐 Current problem slug:", currentProblem);
 
     // Only trigger updates if the problem slug changes
     if (newProblemSlug && newProblemSlug !== currentProblem) {
-      console.log("🔄 Problem changed, updating data...");
+      logger.info("🔄 Problem changed, updating data...");
       setCurrentProblem(newProblemSlug); // Update the current problem slug
       fetchProblemData(newProblemSlug); // Fetch new problem data
 
       // Navigation logic removed to prevent potential loops
       // The MemoryRouter should handle internal navigation
-      console.log("📍 Current internal route:", pathname);
+      logger.info("📍 Current internal route:", pathname);
     }
   }, [currentProblem, fetchProblemData, pathname]);
   const backupIndexedDB = async () => {
     try {
-      console.log("📌 Sending backup request to background script...");
+      logger.info("📌 Sending backup request to background script...");
       chrome.runtime.sendMessage({ type: "getBackupFile" }, (response) => {
         if (chrome.runtime.lastError) {
-          console.error("❌ Runtime Error:", chrome.runtime.lastError.message);
+          logger.error("❌ Runtime Error:", chrome.runtime.lastError.message);
           return;
         }
         if (!response || response.error) {
-          console.error("❌ Backup Error:", response?.error || "No response");
+          logger.error("❌ Backup Error:", response?.error || "No response");
           return;
         }
 
-        console.log(
+        logger.info(
           "✅ Backup data retrieved:",
           response.backup,
           Object.keys(response.backup)
         );
-        // response.backup.forEach((property) => { console.log(property); });
-        console.log("✅ Backup data retrieved:", Object.keys(response.backup));
+        // response.backup.forEach((property) => { logger.info(property); });
+        logger.info("✅ Backup data retrieved:", Object.keys(response.backup));
 
         if (!response.backup) {
           alert("❌ Backup file is empty.");
@@ -326,20 +327,20 @@ const Main = () => {
         a.download = `IndexedDB_Backup_${new Date().toISOString()}.json`;
         document.body.appendChild(a);
         a.click(() => {
-          console.log("✅ Backup file downloaded.");
+          logger.info("✅ Backup file downloaded.");
         });
         document.body.removeChild(a);
 
-        console.log("✅ Backup file downloaded.");
+        logger.info("✅ Backup file downloaded.");
       });
     } catch (error) {
-      console.error("❌ Error downloading backup:", error);
+      logger.error("❌ Error downloading backup:", error);
     }
   };
 
   // Use browser events to detect URL changes
   useEffect(() => {
-    console.log("🔧 SETTING UP URL CHANGE LISTENERS");
+    logger.info("🔧 SETTING UP URL CHANGE LISTENERS");
     // Monkey-patch pushState and replaceState to detect changes
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
@@ -360,7 +361,7 @@ const Main = () => {
 
     // Cleanup on component unmount
     return () => {
-      console.log("🧹 CLEANING UP URL CHANGE LISTENERS");
+      logger.info("🧹 CLEANING UP URL CHANGE LISTENERS");
       window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
       window.removeEventListener("popstate", handleUrlChange);
@@ -375,7 +376,7 @@ const Main = () => {
       setShowContentOnboarding(false);
       setContentOnboardingStatus((prev) => ({ ...prev, isCompleted: true }));
     } catch (error) {
-      console.error("Error completing content onboarding:", error);
+      logger.error("Error completing content onboarding:", error);
     }
   }, []);
 

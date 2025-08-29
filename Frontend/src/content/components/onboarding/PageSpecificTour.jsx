@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
@@ -30,7 +31,7 @@ import { smartPositioning } from "./SmartPositioning";
  * Supports different tour configurations for different routes.
  */
 export function PageSpecificTour({ 
-  tourId, 
+  tourId: _tourId, 
   tourSteps, 
   isVisible, 
   onComplete, 
@@ -126,7 +127,7 @@ export function PageSpecificTour({
         const menuElement = document.querySelector("#cm-mySidenav");
         
         if (menuButton && menuElement && !menuElement.classList.contains("cm-hidden")) {
-          console.log("🔙 Back button: Closing menu (reversing state)");
+          logger.info("🔙 Back button: Closing menu (reversing state)");
           menuButton.click();
         }
       }

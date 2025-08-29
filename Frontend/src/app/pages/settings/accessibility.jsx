@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useEffect, useMemo } from "react";
 import { Container, Title, Text, Stack, Card, Alert, Button, Group, Tooltip } from "@mantine/core";
 import { IconAccessible, IconKeyboard, IconHandFinger, IconInfoCircle } from "@tabler/icons-react";
@@ -27,9 +28,9 @@ function useAccessibilitySettingsSave(setSaveStatus, setHasChanges, setIsSaving)
       chrome.runtime.sendMessage(
         { type: "setSettings", message: updatedSettings },
         (response) => {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (cacheResponse) => {
+          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_cacheResponse) => {
             if (chrome.runtime.lastError) {
-              console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+              logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
             }
           });
 
@@ -42,7 +43,7 @@ function useAccessibilitySettingsSave(setSaveStatus, setHasChanges, setIsSaving)
         }
       );
     } catch (error) {
-      console.error("AccessibilitySettings: Error saving settings:", error);
+      logger.error("AccessibilitySettings: Error saving settings:", error);
       setSaveStatus({ type: "error", message: "Failed to save accessibility settings." });
     } finally {
       setIsSaving(false);
@@ -188,12 +189,15 @@ export function Accessibility() {
         <Text fw={600} size="md" style={{ color: 'var(--cm-text)', marginBottom: '6px', fontSize: '0.95rem' }}>{title}</Text>
         <Text size="sm" style={{ color: 'var(--cm-text-secondary)', opacity: 0.7, lineHeight: 1.4 }}>{description}</Text>
       </div>
-      <label style={{ 
-        position: 'relative', 
-        width: '48px', 
-        height: '24px', 
-        cursor: 'pointer' 
-      }}>
+      <label 
+        style={{ 
+          position: 'relative', 
+          width: '48px', 
+          height: '24px', 
+          cursor: 'pointer' 
+        }}
+        aria-label={`Toggle ${title}`}
+      >
         <input
           type="checkbox"
           checked={value}
@@ -427,7 +431,7 @@ export function Accessibility() {
             <Title order={4}>Need Additional Help?</Title>
             <Text size="sm">
               If you need additional accessibility accommodations or encounter any barriers 
-              while using this application, please don't hesitate to reach out for support.
+              while using this application, please don&apos;t hesitate to reach out for support.
             </Text>
             <Text size="xs" c="dimmed">
               These settings are saved securely and will persist across browser sessions.

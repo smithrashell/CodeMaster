@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Test</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #00ff00;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #000;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .log {
+            background: #111;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .error { color: #ff4444; }
+        .success { color: #44ff44; }
+        .warning { color: #ffaa00; }
+        .info { color: #4488ff; }
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔍 API Debug Test</h1>
+        <p>Test the actual API response to debug why the regeneration banner isn't showing.</p>
+        
+        <button onclick="testGetOrCreateSession()">Test getOrCreateSession API</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+        
+        <div id="logs"></div>
+    </div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(logDiv);
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testGetOrCreateSession() {
+            log('🔍 Testing getOrCreateSession API...', 'info');
+            
+            try {
+                // Test if we're in a Chrome extension context
+                if (typeof chrome === 'undefined' || !chrome.runtime) {
+                    log('❌ Not in Chrome extension context - cannot test API', 'error');
+                    return;
+                }
+
+                log('📡 Sending getOrCreateSession message...', 'info');
+                
+                chrome.runtime.sendMessage({
+                    type: "getOrCreateSession"
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        log('❌ Chrome runtime error: ' + chrome.runtime.lastError.message, 'error');
+                        return;
+                    }
+                    
+                    log('✅ API Response received:', 'success');
+                    log(JSON.stringify(response, null, 2), 'info');
+                    
+                    // Analyze the response
+                    if (response.session) {
+                        const session = response.session;
+                        log('📊 Session Analysis:', 'warning');
+                        log(`   Session ID: ${session.id?.substring(0, 8)}`, 'info');
+                        log(`   Session Type: ${session.sessionType}`, 'info');
+                        log(`   Status: ${session.status}`, 'info');
+                        log(`   Last Activity: ${session.lastActivityTime}`, 'info');
+                        log(`   Created: ${session.date}`, 'info');
+                        log(`   Attempts: ${session.attempts?.length || 0}`, 'info');
+                        log(`   Problems: ${session.problems?.length || 0}`, 'info');
+                        
+                        // Check staleness flag
+                        log('🎯 Staleness Check:', 'warning');
+                        log(`   isSessionStale: ${response.isSessionStale}`, response.isSessionStale ? 'warning' : 'info');
+                        
+                        if (response.isSessionStale) {
+                            log('✅ Session is marked as stale - banner SHOULD show', 'success');
+                        } else {
+                            log('❌ Session is NOT marked as stale - banner will NOT show', 'error');
+                        }
+                        
+                        // Calculate hours stale manually
+                        if (session.lastActivityTime) {
+                            const lastActivity = new Date(session.lastActivityTime);
+                            const hoursStale = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60);
+                            log(`   Hours since last activity: ${hoursStale.toFixed(1)}`, 'info');
+                            
+                            const expectedThreshold = (session.sessionType === 'interview-like' || session.sessionType === 'full-interview') ? 3 : 6;
+                            log(`   Expected threshold: ${expectedThreshold} hours`, 'info');
+                            
+                            if (hoursStale > expectedThreshold) {
+                                log(`✅ Manual check: Session SHOULD be stale (${hoursStale.toFixed(1)}h > ${expectedThreshold}h)`, 'success');
+                            } else {
+                                log(`❌ Manual check: Session should NOT be stale (${hoursStale.toFixed(1)}h ≤ ${expectedThreshold}h)`, 'error');
+                            }
+                        }
+                        
+                    } else {
+                        log('❌ No session in response', 'error');
+                    }
+                    
+                    log('📝 Background Script Data: ' + (response.backgroundScriptData || 'none'), 'info');
+                });
+                
+            } catch (error) {
+                log('❌ Error testing API: ' + error.message, 'error');
+            }
+        }
+
+        // Auto-run test when page loads if in extension context
+        window.addEventListener('load', () => {
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                log('🚀 Extension context detected - ready to test', 'success');
+            } else {
+                log('⚠️ Not in extension context - open this in the Chrome extension', 'warning');
+            }
+        });
+    </script>
+</body>
+</html>

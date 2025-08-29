@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import { useState, useEffect } from "react";
 import { Card, Text, Title, Button, Stack, Alert, Group, SegmentedControl, Tooltip, Slider } from "@mantine/core";
 import { IconSettings, IconInfoCircle, IconTrophy, IconClock, IconCalendar } from "@tabler/icons-react";
@@ -9,6 +10,7 @@ import {
 } from "../../../shared/components/nantine.jsx";
 import AdaptiveSessionToggle from "../../../content/features/settings/AdaptiveSessionToggle.js";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { SettingsResetButton } from "./SettingsResetButton.jsx";
 import SessionLimits from "../../../shared/utils/sessionLimits.js";
 
@@ -45,85 +47,9 @@ function SessionControls({ settings, updateSettings, maxNewProblems }) {
   );
 }
 
-// Interview Readiness Hook
-function useInterviewReadiness(settings) {
-  const [readiness, setReadiness] = useState({
-    interviewLikeUnlocked: true, // Default to true for better UX
-    fullInterviewUnlocked: true, // Default to true for better UX
-    reasoning: "Loading interview capabilities..."
-  });
-
-  useEffect(() => {
-    const checkReadiness = async () => {
-      console.log("🎯 Checking interview readiness...", { settings: !!settings });
-      
-      try {
-        if (typeof chrome !== "undefined" && chrome.runtime) {
-          console.log("🎯 Chrome runtime available, sending message...");
-          
-          // Set timeout to prevent hanging
-          const timeout = setTimeout(() => {
-            console.log("🎯 Interview readiness check timed out, using fallback");
-            setReadiness({
-              interviewLikeUnlocked: true,
-              fullInterviewUnlocked: true,
-              reasoning: "Timeout - interview features available"
-            });
-          }, 3000);
-          
-          chrome.runtime.sendMessage(
-            { type: "getInterviewReadiness" },
-            (response) => {
-              clearTimeout(timeout);
-              console.log("🎯 Interview readiness response:", response, "Error:", chrome.runtime.lastError);
-              if (response && !chrome.runtime.lastError) {
-                setReadiness(response);
-              } else {
-                console.log("🎯 Using development fallback for interview readiness");
-                // Fallback for development/testing
-                setReadiness({
-                  interviewLikeUnlocked: true, // Allow testing
-                  fullInterviewUnlocked: true, // Allow testing
-                  reasoning: "Development mode - all modes unlocked"
-                });
-              }
-            }
-          );
-        } else {
-          console.log("🎯 Chrome runtime not available, using fallback");
-          // Direct fallback when no Chrome runtime
-          setReadiness({
-            interviewLikeUnlocked: true,
-            fullInterviewUnlocked: true,
-            reasoning: "Browser mode - interview features available for testing"
-          });
-        }
-      } catch (error) {
-        console.warn("🎯 Interview readiness check failed:", error);
-        // Fallback readiness
-        setReadiness({
-          interviewLikeUnlocked: true,
-          fullInterviewUnlocked: true,
-          reasoning: "Error fallback - interview features available"
-        });
-      }
-    };
-
-    if (settings) {
-      checkReadiness();
-    }
-  }, [settings]);
-
-  return readiness;
-}
 
 // Interview Mode Controls Component
-function InterviewModeControls({ settings, updateSettings, interviewReadiness }) {
-  console.log("🎯 InterviewModeControls rendering with:", { 
-    hasSettings: !!settings, 
-    interviewMode: settings?.interviewMode,
-    readiness: interviewReadiness 
-  });
+function InterviewModeControls({ settings, updateSettings, _interviewReadiness }) {
   
   const getInterviewModeData = () => [
     { 
@@ -304,7 +230,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
 
 // Settings Save Hook
 function useSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
-  return async (settings) => {
+  return (settings) => {
     if (!settings) return;
 
     setIsSaving(true);
@@ -314,14 +240,10 @@ function useSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       chrome.runtime.sendMessage(
         { type: "setSettings", message: settings },
         (response) => {
-          // eslint-disable-next-line no-console
-          console.log("AdaptiveSettingsCard: Settings saved:", response);
 
           chrome.runtime.sendMessage(
             { type: "clearSettingsCache" },
-            (cacheResponse) => {
-              // eslint-disable-next-line no-console
-              console.log("AdaptiveSettingsCard: Settings cache cleared:", cacheResponse);
+            (_cacheResponse) => {
             }
           );
 
@@ -335,7 +257,7 @@ function useSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       );
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error("AdaptiveSettingsCard: Error saving settings:", error);
+      logger.error("AdaptiveSettingsCard: Error saving settings:", error);
       setSaveStatus({ type: "error", message: "Failed to save settings. Please try again." });
     } finally {
       setIsSaving(false);
@@ -363,7 +285,7 @@ export function AdaptiveSettingsCard() {
         setSettings(response);
       } else {
         // eslint-disable-next-line no-console
-        console.warn("No settings received, using defaults.");
+        logger.warn("No settings received, using defaults.");
       }
     },
   });
@@ -371,14 +293,6 @@ export function AdaptiveSettingsCard() {
   // Check interview readiness
   const interviewReadiness = useInterviewReadiness(settings);
   
-  // Debug settings loading
-  console.log("🔧 AdaptiveSettingsCard state:", { 
-    hasSettings: !!settings, 
-    loading, 
-    error, 
-    interviewMode: settings?.interviewMode,
-    interviewReadiness 
-  });
 
   // Always ensure settings exist for form controls
   const workingSettings = settings || {
@@ -398,10 +312,6 @@ export function AdaptiveSettingsCard() {
   // Ensure settings have proper default values for sessionLength and interview mode
   useEffect(() => {
     if (settings && (typeof settings.sessionLength !== 'number' || !settings.interviewMode)) {
-      console.log("🔧 Initializing missing interview settings:", { 
-        sessionLength: settings.sessionLength, 
-        interviewMode: settings.interviewMode 
-      });
       
       const defaultSettings = {
         adaptive: true,
@@ -421,7 +331,6 @@ export function AdaptiveSettingsCard() {
       
       // Only update if the sessionLength or interviewMode is actually missing/invalid
       if (settings.sessionLength !== defaultSettings.sessionLength || !settings.interviewMode) {
-        console.log("🔧 Setting default interview settings:", defaultSettings);
         setSettings(defaultSettings);
       }
     }
@@ -458,7 +367,7 @@ export function AdaptiveSettingsCard() {
   }, [settings]);
 
   // Reset settings to defaults
-  const handleReset = async () => {
+  const handleReset = () => {
     const defaultSettings = {
       adaptive: true,
       sessionLength: 8,

@@ -7,6 +7,7 @@
 
 import { generateMockData } from "./mockDataService.js";
 import { USER_SCENARIOS } from "../config/mockConfig.js";
+import logger from "../../shared/utils/logger.js";
 
 /**
  * Mock version of getDashboardStatistics that returns the same data structure
@@ -18,10 +19,7 @@ import { USER_SCENARIOS } from "../config/mockConfig.js";
 export async function getMockDashboardStatistics(
   userType = USER_SCENARIOS.ACTIVE_USER
 ) {
-  // eslint-disable-next-line no-console
-  console.log(
-    `🎭 Mock Dashboard Service: Generating data for ${userType} user`
-  );
+  logger.info("Generating mock dashboard data", { userType, context: 'mock_service' });
 
   try {
     // Generate mock data based on user type
@@ -223,23 +221,24 @@ export async function getMockDashboardStatistics(
     };
 
     // Debug logging to verify flattened data structure
-    console.info("🎭 Mock Dashboard Service - Data Structure Verification:");
-    console.info("- Statistics at root:", !!result.statistics);
-    console.info("- Box Level Data at root:", !!result.boxLevelData);
-    console.info("- Timer Behavior at root:", result.timerBehavior);
-    console.info("- All Sessions length:", result.allSessions?.length);
-    console.info("- All Problems length:", result.allProblems?.length);
-    console.info("- Flattened Structure Keys:", Object.keys(result).filter(key => key !== 'nested'));
+    logger.info("Mock Dashboard Service - Data Structure Verification", { context: 'mock_verification' });
+    logger.info("Mock data verification", { hasStatistics: !!result.statistics, context: 'mock_verification' });
+    logger.info("Mock data verification", { hasBoxLevelData: !!result.boxLevelData, context: 'mock_verification' });
+    logger.info("Mock data verification", { timerBehavior: result.timerBehavior, context: 'mock_verification' });
+    logger.info("Mock data verification", { sessionsCount: result.allSessions?.length, context: 'mock_verification' });
+    logger.info("Mock data verification", { problemsCount: result.allProblems?.length, context: 'mock_verification' });
+    logger.info("Mock data verification", { structureKeys: Object.keys(result).filter(key => key !== 'nested'), context: 'mock_verification' });
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `✅ Mock Dashboard Service: Generated statistics for ${mockData.allSessions.length} sessions, ${mockData.allProblems.length} problems`
-    );
+    logger.info("Mock Dashboard Service statistics generated", { 
+      sessionsCount: mockData.allSessions.length, 
+      problemsCount: mockData.allProblems.length,
+      context: 'mock_service'
+    });
     
 
     return result;
   } catch (error) {
-    console.error("❌ Error generating mock dashboard statistics:", error);
+    logger.error("Error generating mock dashboard statistics", { error, context: 'mock_service' });
     throw error;
   }
 }
@@ -260,13 +259,9 @@ export class MockDashboardService {
   setUserType(userType) {
     if (Object.values(USER_SCENARIOS).includes(userType)) {
       this.currentUserType = userType;
-      // eslint-disable-next-line no-console
-      console.log(`🎭 Mock service user type changed to: ${userType}`);
+      logger.info("Mock service user type changed", { userType, context: 'mock_service' });
     } else {
-      // eslint-disable-next-line no-console
-      console.warn(
-        `⚠️ Invalid user type: ${userType}. Using default: ${this.currentUserType}`
-      );
+      logger.warn("Invalid user type provided", { userType, defaultType: this.currentUserType, context: 'mock_service' });
     }
   }
 
@@ -354,7 +349,7 @@ export class MockDashboardService {
     this.currentUserType = USER_SCENARIOS.ACTIVE_USER;
     this.mockDelay = 500;
     // eslint-disable-next-line no-console
-    console.log("🎭 Mock Dashboard Service reset to defaults");
+    logger.info("Mock Dashboard Service reset to defaults", { context: 'mock_service' });
   }
 }
 

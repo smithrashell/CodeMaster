@@ -1,0 +1,290 @@
+{
+  "main": {
+    "id": "63604cab66b38da5",
+    "type": "split",
+    "children": [
+      {
+        "id": "c491125d9e723422",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "506c9664467a8f03",
+            "type": "leaf",
+            "pinned": true,
+            "state": {
+              "type": "kanban",
+              "state": {
+                "file": "Board/Code Master.md",
+                "kanbanViewState": {
+                  "kanban-plugin": "board",
+                  "list-collapse": [
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false
+                  ]
+                }
+              },
+              "pinned": true,
+              "icon": "lucide-ghost",
+              "title": "kanban"
+            }
+          },
+          {
+            "id": "0f87d3b3aa00dea4",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Board/Current UI.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Current UI"
+            }
+          },
+          {
+            "id": "a2b8cdf2c2323030",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Board/Git/Git Pr Template.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Git Pr Template"
+            }
+          },
+          {
+            "id": "fdf478d137e7efc2",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Board/Git/Commit Messages.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Commit Messages"
+            }
+          },
+          {
+            "id": "00425def08aed27d",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Resources/Deployment/Deployment.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Deployment"
+            }
+          },
+          {
+            "id": "5926d64f1dfce072",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Resources/Sessions/Sessions.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Sessions"
+            }
+          }
+        ],
+        "currentTab": 3
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "af4b7d6544e51c59",
+    "type": "split",
+    "children": [
+      {
+        "id": "b2dde8ccecb702a1",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8b8ac14850c22ff2",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "8a790a9a836cc78c",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "380e69159e311bee",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 305.5
+  },
+  "right": {
+    "id": "ddca3773f382db58",
+    "type": "split",
+    "children": [
+      {
+        "id": "87c2d58783a2c86d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0698bb1ec2e810af",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Resources/Problem Relationships/Weighted graphs.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Weighted graphs"
+            }
+          },
+          {
+            "id": "5963ff439408c654",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Resources/Problem Relationships/Weighted graphs.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Weighted graphs"
+            }
+          },
+          {
+            "id": "8ab9294b2ac63884",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "e46cf2b1ca12795d",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Resources/Problem Relationships/Weighted graphs.md"
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Weighted graphs"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "bases:Create new base": false,
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "fdf478d137e7efc2",
+  "lastOpenFiles": [
+    "Resources/Deployment/Deployment.md",
+    "Board/Current UI.md",
+    "Board/Git/Git Pr Template.md",
+    "Resources/Sessions/Sessions.md",
+    "Board/Git/Commit Messages.md",
+    "Board/Code Master.md",
+    "README.md",
+    "Quick Reference.md",
+    "Pasted image 20250219133652.png",
+    "IndexedDB Store Summary.md",
+    "Board/Git/Git Issue template.md",
+    "Resources/Dashboard/Outline.md",
+    "Resources/Dashboard/Dashboard.md",
+    "Resources/Statistics/Stat.md",
+    "Resources/Statistics/Statistics.md",
+    "Resources/StrategyMap/Technical Specs.md",
+    "Resources/StrategyMap/User Experience.md",
+    "Resources/StrategyMap/Implementation.md",
+    "Resources/StrategyMap/Feature Idea.md",
+    "Resources/Sessions/sessions overview.md",
+    "Resources/Sessions/No Stability adjustments over time.md",
+    "Resources/Sessions/Exhausting Tag Mastery In Session.md",
+    "Resources/Review Schedule/Leitner System Implementation/Sodo Randomness.md",
+    "Resources/Review Schedule/Leitner System Implementation/Forgetting Curve Integration.md",
+    "Resources/Review Schedule/Leitner System Implementation/Leitner System Implementation.md",
+    "Resources/Review Schedule/Adaptive Sessions.md",
+    "Resources/Review Schedule/Learning Algorithm FSRS.md",
+    "Resources/StrategyMap",
+    "Resources/Mock up/Mockup1.png",
+    "Board/Git",
+    "Resources/UI and Theme",
+    "Resources/Bugs",
+    "Board",
+    "New folder",
+    "Resources/Dashboard",
+    "Resources/Deployment",
+    "Resources/Review Reminder",
+    "Resources/Review Schedule"
+  ]
+}
