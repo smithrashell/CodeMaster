@@ -23,7 +23,8 @@ import {
   getLearningPathData,
   getMistakeAnalysisData,
   clearFocusAreaAnalyticsCache,
-  getInterviewAnalyticsData
+  getInterviewAnalyticsData,
+  getSessionMetrics
 } from "../src/app/services/dashboardService.js";
 import FocusCoordinationService from "../src/shared/services/focusCoordinationService.js";
 import { InterviewService } from "../src/shared/services/interviewService.js";
@@ -508,8 +509,23 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
             clearTimeout(timeoutId);
             const duration = Date.now() - startTime;
             
+            // Check if session is stale
+            let isSessionStale = false;
+            if (session) {
+              const classification = SessionService.classifySessionState(session);
+              isSessionStale = !['active', 'unclear'].includes(classification);
+              console.log('🔍 Background: Session staleness check:', {
+                sessionId: session.id?.substring(0, 8),
+                sessionType: session.sessionType,
+                classification: classification,
+                isSessionStale: isSessionStale,
+                lastActivityTime: session.lastActivityTime
+              });
+            }
+            
             sendResponse({
               session: session,
+              isSessionStale: isSessionStale,
               backgroundScriptData: `${sessionType} session retrieved in ${duration}ms`,
             });
           })
@@ -529,6 +545,38 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
             clearTimeout(timeoutId);
             finishRequest();
           });
+        return true;
+
+      case "refreshSession":
+        console.log("🔄 Refreshing session:", request.sessionType || 'standard');
+        const refreshStartTime = Date.now();
+        
+        withTimeout(
+          SessionService.refreshSession(request.sessionType || 'standard', true), // forceNew = true
+          20000, // 20 second timeout for refresh
+          `SessionService.refreshSession(${request.sessionType || 'standard'})`
+        )
+          .then((session) => {
+            const refreshDuration = Date.now() - refreshStartTime;
+            console.log("✅ Session refreshed in", refreshDuration + "ms");
+            
+            sendResponse({
+              session: session,
+              isSessionStale: false, // Fresh session is never stale
+              backgroundScriptData: `Session refreshed in ${refreshDuration}ms`,
+            });
+          })
+          .catch((error) => {
+            const refreshDuration = Date.now() - refreshStartTime;
+            console.error(`❌ Error refreshing session after ${refreshDuration}ms:`, error);
+            
+            sendResponse({
+              session: null,
+              backgroundScriptData: `Failed to refresh session`,
+              error: `Session refresh failed: ${error.message}`,
+            });
+          })
+          .finally(finishRequest);
         return true;
 
       case "getCurrentSession":
@@ -653,6 +701,104 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
               error: "Failed to get current session",
               session: [],
             });
+          })
+          .finally(finishRequest);
+        return true;
+
+      /** ──────────────── Session Stall Detection & Management ──────────────── **/
+      case "manualSessionCleanup":
+        console.log("🧹 Manual session cleanup triggered");
+        cleanupStalledSessions()
+          .then((result) => {
+            console.log("✅ Manual cleanup completed:", result);
+            sendResponse({ result });
+          })
+          .catch((error) => {
+            console.error("❌ Manual cleanup failed:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+
+      // Removed startDraftSession and refreshSession handlers - sessions auto-start now
+
+      // Removed getDraftSession handler - drafts auto-start immediately now
+
+      case "getSessionAnalytics":
+        console.log("📊 Getting session analytics");
+        (async () => {
+          try {
+            const stalledSessions = await SessionService.detectStalledSessions();
+            const cleanupAnalytics = await new Promise(resolve => {
+              chrome.storage.local.get(["sessionCleanupAnalytics"], (result) => {
+                resolve(result.sessionCleanupAnalytics || []);
+              });
+            });
+
+            const response = {
+              stalledSessions: stalledSessions.length,
+              stalledByType: stalledSessions.reduce((acc, s) => {
+                acc[s.classification] = (acc[s.classification] || 0) + 1;
+                return acc;
+              }, {}),
+              recentCleanups: cleanupAnalytics.slice(-5)
+            };
+
+            console.log("✅ Session analytics:", response);
+            sendResponse(response);
+          } catch (error) {
+            console.error("❌ Failed to get session analytics:", error);
+            sendResponse({ error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "classifyAllSessions":
+        console.log("🔍 Classifying all sessions");
+        (async () => {
+          try {
+            const sessions = await SessionService.getAllSessionsFromDB();
+            const classifications = sessions.map(session => ({
+              id: session.id.substring(0, 8),
+              origin: session.origin,
+              status: session.status,
+              classification: SessionService.classifySessionState(session),
+              lastActivity: session.lastActivityTime || session.date
+            }));
+            
+            console.log(`✅ Classified ${classifications.length} sessions`);
+            sendResponse({ classifications });
+          } catch (error) {
+            console.error("❌ Failed to classify sessions:", error);
+            sendResponse({ error: error.message });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "generateSessionFromTracking":
+        console.log("🎯 Manual session generation from tracking triggered");
+        SessionService.checkAndGenerateFromTracking()
+          .then((session) => {
+            console.log(session ? "✅ Session generated" : "📝 No session generated");
+            sendResponse({ session });
+          })
+          .catch((error) => {
+            console.error("❌ Failed to generate session from tracking:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+
+      case "getSessionMetrics":
+        console.log("📊 Getting separated session metrics");
+        getSessionMetrics(request.options || {})
+          .then((result) => {
+            console.log("✅ Session metrics retrieved");
+            sendResponse({ result });
+          })
+          .catch((error) => {
+            console.error("❌ Failed to get session metrics:", error);
+            sendResponse({ error: error.message });
           })
           .finally(finishRequest);
         return true;
@@ -1947,3 +2093,197 @@ function logNotificationEngagement(notificationData) {
     console.warn("Warning: Could not log notification engagement:", error);
   }
 }
+
+/** ──────────────── Session Cleanup Jobs ──────────────── **/
+
+/**
+ * Clean up stalled and abandoned sessions based on intelligent classification
+ * Runs periodically to maintain session health
+ */
+async function cleanupStalledSessions() {
+  console.log('🧹 Starting session cleanup job...');
+  
+  try {
+    const stalledSessions = await SessionService.detectStalledSessions();
+    
+    if (stalledSessions.length === 0) {
+      console.log('✅ No stalled sessions found');
+      return { cleaned: 0, actions: [] };
+    }
+    
+    const actions = [];
+    
+    for (const { session, classification, action } of stalledSessions) {
+      const sessionId = session.id.substring(0, 8);
+      console.log(`🔧 Processing ${sessionId}: ${classification} -> ${action}`);
+      
+      try {
+        switch (action) {
+          case 'expire':
+            session.status = 'expired';
+            session.lastActivityTime = new Date().toISOString();
+            await SessionService.updateSessionInDB(session);
+            console.log(`⏰ Expired session ${sessionId}`);
+            actions.push(`expired:${sessionId}`);
+            break;
+            
+          case 'auto_complete':
+            session.status = 'completed';
+            session.lastActivityTime = new Date().toISOString();
+            await SessionService.updateSessionInDB(session);
+            
+            // Run performance analysis for completed sessions
+            await SessionService.summarizeSessionPerformance(session);
+            console.log(`✅ Auto-completed session ${sessionId}`);
+            actions.push(`completed:${sessionId}`);
+            break;
+            
+          case 'create_new_tracking':
+            // Mark old tracking session as completed
+            session.status = 'completed';
+            await SessionService.updateSessionInDB(session);
+            
+            // No need to create new tracking here - SAE will do it on next attempt
+            console.log(`🔄 Marked tracking session ${sessionId} for replacement`);
+            actions.push(`tracking_replaced:${sessionId}`);
+            break;
+            
+          case 'refresh_guided_session':
+            // For tracking-only users, mark their guided session for refresh
+            // This will be picked up by auto-generation logic
+            session.metadata = { 
+              ...session.metadata, 
+              needsRefreshFromTracking: true,
+              markedAt: new Date().toISOString()
+            };
+            await SessionService.updateSessionInDB(session);
+            console.log(`🎯 Flagged guided session ${sessionId} for tracking-based refresh`);
+            actions.push(`flagged_for_refresh:${sessionId}`);
+            break;
+            
+          case 'flag_for_user_choice':
+            // Add metadata for UI to show user options
+            session.metadata = { 
+              ...session.metadata, 
+              stalledDetected: true,
+              stalledAt: new Date().toISOString(),
+              classification: classification
+            };
+            await SessionService.updateSessionInDB(session);
+            console.log(`🏃 Flagged session ${sessionId} for user decision`);
+            actions.push(`user_choice:${sessionId}`);
+            break;
+            
+          default:
+            console.log(`❓ No action for ${sessionId}:${classification}`);
+        }
+      } catch (error) {
+        console.error(`❌ Error processing session ${sessionId}:`, error);
+        actions.push(`error:${sessionId}`);
+      }
+    }
+    
+    console.log(`✅ Session cleanup completed: ${actions.length} actions taken`);
+    
+    // Log cleanup analytics
+    logSessionCleanupAnalytics(stalledSessions, actions);
+    
+    return { cleaned: actions.length, actions };
+    
+  } catch (error) {
+    console.error('❌ Session cleanup job failed:', error);
+    return { cleaned: 0, actions: [], error: error.message };
+  }
+}
+
+/**
+ * Log session cleanup analytics for monitoring
+ */
+function logSessionCleanupAnalytics(stalledSessions, actions) {
+  try {
+    const cleanupEvent = {
+      type: "session_cleanup_completed",
+      timestamp: new Date().toISOString(),
+      stalledCount: stalledSessions.length,
+      actionsCount: actions.length,
+      classifications: stalledSessions.reduce((acc, s) => {
+        acc[s.classification] = (acc[s.classification] || 0) + 1;
+        return acc;
+      }, {}),
+      actions: actions.reduce((acc, action) => {
+        const [type] = action.split(':');
+        acc[type] = (acc[type] || 0) + 1;
+        return acc;
+      }, {})
+    };
+    
+    console.log("📊 Session cleanup analytics:", cleanupEvent);
+    
+    // Store for dashboard monitoring
+    chrome.storage.local.get(["sessionCleanupAnalytics"], (result) => {
+      const analytics = result.sessionCleanupAnalytics || [];
+      analytics.push(cleanupEvent);
+      
+      // Keep last 15 cleanup events
+      const recentAnalytics = analytics.slice(-15);
+      chrome.storage.local.set({ sessionCleanupAnalytics: recentAnalytics });
+    });
+    
+  } catch (error) {
+    console.warn("Warning: Could not log cleanup analytics:", error);
+  }
+}
+
+/**
+ * Schedule periodic session cleanup
+ * Runs every 6 hours to maintain session health
+ */
+function scheduleSessionCleanup() {
+  const CLEANUP_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+  
+  console.log('🕐 Scheduling session cleanup job every 6 hours');
+  
+  // Initial cleanup after 5 minutes (let extension settle)
+  setTimeout(() => {
+    cleanupStalledSessions().catch(error => 
+      console.error('Initial session cleanup failed:', error)
+    );
+  }, 5 * 60 * 1000);
+  
+  // Regular cleanup every 6 hours
+  setInterval(() => {
+    cleanupStalledSessions().catch(error => 
+      console.error('Periodic session cleanup failed:', error)
+    );
+  }, CLEANUP_INTERVAL);
+}
+
+// Start session cleanup scheduling
+scheduleSessionCleanup();
+
+/**
+ * Auto-generate sessions from tracking activity
+ * Runs every 12 hours to check for session generation opportunities
+ */
+function scheduleAutoGeneration() {
+  const AUTO_GEN_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
+  
+  console.log('🎯 Scheduling auto-generation job every 12 hours');
+  
+  // Initial check after 10 minutes (let extension settle)
+  setTimeout(() => {
+    SessionService.checkAndGenerateFromTracking().catch(error => 
+      console.error('Initial auto-generation failed:', error)
+    );
+  }, 10 * 60 * 1000);
+  
+  // Regular auto-generation every 12 hours
+  setInterval(() => {
+    SessionService.checkAndGenerateFromTracking().catch(error => 
+      console.error('Periodic auto-generation failed:', error)
+    );
+  }, AUTO_GEN_INTERVAL);
+}
+
+// Start auto-generation scheduling
+scheduleAutoGeneration();
