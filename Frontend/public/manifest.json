@@ -1,7 +1,7 @@
 {
-  "name": "react-codeDaemon",
-  "version": "1.0",
-  "description": "test",
+  "name": "CodeMaster - Algorithm Learning Assistant",
+  "version": "1.0.0",
+  "description": "Master algorithms with personalized spaced repetition, pattern ladders, and adaptive sessions. Track progress on LeetCode with intelligent learning analytics.",
   "manifest_version": 3,
   "action": {},
   "icons": {
