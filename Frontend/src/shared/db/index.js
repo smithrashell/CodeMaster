@@ -260,6 +260,19 @@ export const dbHelper = {
           sessionsStore.createIndex("by_sessionType_status", ["sessionType", "status"], { unique: false });
         }
 
+        // Add indexes for session attribution and staleness detection
+        if (!sessionsStore.indexNames.contains("by_origin")) {
+          sessionsStore.createIndex("by_origin", "origin", { unique: false });
+        }
+        
+        if (!sessionsStore.indexNames.contains("by_lastActivityTime")) {
+          sessionsStore.createIndex("by_lastActivityTime", "lastActivityTime", { unique: false });
+        }
+        
+        if (!sessionsStore.indexNames.contains("by_origin_status")) {
+          sessionsStore.createIndex("by_origin_status", ["origin", "status"], { unique: false });
+        }
+
         // eslint-disable-next-line no-console
         console.log("Sessions store configured safely!");
         // ✅ Ensure 'standard_problems' store exists
