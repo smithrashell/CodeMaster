@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
@@ -51,7 +52,7 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
       setFocusAreas(userFocusAreas);
       
     } catch (error) {
-      console.error("Error loading focus areas data:", error);
+      logger.error("Error loading focus areas data:", error);
       setFocusAreas([]);
     } finally {
       setLoading(false);
@@ -97,7 +98,7 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
         await loadFocusAreasData(); // Refresh data
       }
     } catch (error) {
-      console.error("Error auto-graduating focus areas:", error);
+      logger.error("Error auto-graduating focus areas:", error);
     }
   };
 

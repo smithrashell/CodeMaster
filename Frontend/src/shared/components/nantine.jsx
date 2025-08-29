@@ -1,9 +1,9 @@
-import { Switch, Group, Slider, rem } from "@mantine/core";
+import { Switch, Slider, rem } from "@mantine/core";
 import { IconPoint, IconGripHorizontal } from "@tabler/icons-react";
 import { SegmentedControl } from "@mantine/core";
 import classes from "./css/SliderMarks.module.css";
-import React, { useState, useEffect } from "react";
-import SimpleSelect from "./ui/SimpleSelect";
+import  { useState, useEffect } from "react";
+
 
 export function ToggleSelectRemainders({ reminder, onChange }) {
   // State to track learning progress for UI feedback

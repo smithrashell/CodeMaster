@@ -28,6 +28,7 @@ import { ProblemReasoningService } from "../../content/services/problemReasoning
 import { getTagMastery } from "../db/tag_mastery.js";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { InterviewService } from "./interviewService.js";
+import logger from "../utils/logger.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
 const getDailyReviewSchedule = ScheduleService.getDailyReviewSchedule;
@@ -56,17 +57,17 @@ export const ProblemService = {
     );
 
     try {
-      console.log("📌 ProblemService: Searching for problem:", description);
+      logger.info("📌 ProblemService: Searching for problem:", description);
 
       // 1️⃣ Try fetching from `Standard_Problems` store
       const problem = await getProblemFromStandardProblems(slug);
 
       if (problem) {
-        console.log("✅ Problem found in 'Standard_Problems' store:", problem);
+        logger.info("✅ Problem found in 'Standard_Problems' store:", problem);
         //  2️⃣  Check if problem exists in `problems` store
         const problemInProblems = await checkDatabaseForProblem(problem.id);
         if (problemInProblems) {
-          console.log(
+          logger.info(
             "✅ Returning Problem found in 'problems' store:",
             problemInProblems
           );
@@ -74,16 +75,16 @@ export const ProblemService = {
           return { problem: problemInProblems, found: true }; // ✅ Found in problems store
         }
       } else {
-        console.warn("❌ Problem not found in any store.");
+        logger.warn("❌ Problem not found in any store.");
         performanceMonitor.endQuery(queryContext, true, 0);
         return { problem: null, found: false }; // ❌ No problem found
       }
 
-      console.warn(
+      logger.warn(
         "⚠️ Problem not found in 'problems' store. returning problem from 'Standard_Problems' store"
       );
 
-      console.log(
+      logger.info(
         "✅ Returning problem found in  'standard_problems':",
         problem
       );
@@ -110,13 +111,13 @@ export const ProblemService = {
    * @returns {Promise<Object>} - The added/updated problem.
    */
   async addOrUpdateProblem(contentScriptData) {
-    console.log("📌 addOrUpdateProblem called");
+    logger.info("📌 addOrUpdateProblem called");
 
     const problem = await checkDatabaseForProblem(
       Number(contentScriptData.leetCodeID)
     );
 
-    console.log("✅ problemExists:", problem);
+    logger.info("✅ problemExists:", problem);
     if (problem) {
       return await AttemptsService.addAttempt(
         {
@@ -151,25 +152,25 @@ export const ProblemService = {
   // NEW: Interview session creation (additive, doesn't modify existing flow)
   async createInterviewSession(mode) {
     try {
-      console.log(`🎯 PROBLEM SERVICE: Creating interview session in ${mode} mode`);
+      logger.info(`🎯 PROBLEM SERVICE: Creating interview session in ${mode} mode`);
       
       // Get interview session configuration from InterviewService
-      console.log("🎯 Calling InterviewService.createInterviewSession");
+      logger.info("🎯 Calling InterviewService.createInterviewSession");
       const interviewConfig = await InterviewService.createInterviewSession(mode);
-      console.log("🎯 InterviewService returned config:", {
+      logger.info("🎯 InterviewService returned config:", {
         hasConfig: !!interviewConfig,
         sessionLength: interviewConfig?.sessionLength,
         hasCriteria: !!interviewConfig?.selectionCriteria
       });
       
       // Use interview-specific problem selection
-      console.log("🎯 Calling fetchAndAssembleInterviewProblems");
+      logger.info("🎯 Calling fetchAndAssembleInterviewProblems");
       const problems = await this.fetchAndAssembleInterviewProblems(
         interviewConfig.sessionLength,
         interviewConfig.selectionCriteria,
         mode
       );
-      console.log("🎯 fetchAndAssembleInterviewProblems returned:", {
+      logger.info("🎯 fetchAndAssembleInterviewProblems returned:", {
         problemCount: problems?.length,
         firstProblem: problems?.[0]?.title
       });
@@ -183,7 +184,7 @@ export const ProblemService = {
         createdAt: interviewConfig.createdAt
       };
       
-      console.log("🎯 PROBLEM SERVICE: Returning interview session data:", {
+      logger.info("🎯 PROBLEM SERVICE: Returning interview session data:", {
         problemCount: result.problems?.length,
         sessionType: result.sessionType,
         hasConfig: !!result.interviewConfig
@@ -191,9 +192,9 @@ export const ProblemService = {
       
       return result;
     } catch (error) {
-      console.error("🎯 ERROR creating interview session:", error);
+      logger.error("🎯 ERROR creating interview session:", error);
       // Fallback to standard session if interview creation fails
-      console.log("🎯 Falling back to standard session creation");
+      logger.info("🎯 Falling back to standard session creation");
       const fallbackProblems = await this.createSession();
       return {
         problems: fallbackProblems,
@@ -219,9 +220,9 @@ export const ProblemService = {
     currentDifficultyCap,
     userFocusAreas = []
   ) {
-    console.log("🎯 Starting intelligent session assembly...");
-    console.log("🎯 Session length:", sessionLength);
-    console.log("🎯 New problems target:", numberOfNewProblems);
+    logger.info("🎯 Starting intelligent session assembly...");
+    logger.info("🎯 Session length:", sessionLength);
+    logger.info("🎯 New problems target:", numberOfNewProblems);
 
     const allProblems = await fetchAllProblems();
     const excludeIds = new Set(allProblems.map((p) => p.leetCodeID));
@@ -232,12 +233,12 @@ export const ProblemService = {
     const settings = await StorageService.getSettings();
     const reviewRatio = (settings.reviewRatio || 40) / 100; // Default to 40% if not set
     const reviewTarget = Math.floor(sessionLength * reviewRatio);
-    console.log(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
+    logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
     
     const reviewProblems = await getDailyReviewSchedule(reviewTarget);
     sessionProblems.push(...reviewProblems);
 
-    console.log(
+    logger.info(
       `🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`
     );
 
@@ -254,7 +255,7 @@ export const ProblemService = {
       );
 
       sessionProblems.push(...newProblems);
-      console.log(
+      logger.info(
         `🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems`
       );
     }
@@ -270,7 +271,7 @@ export const ProblemService = {
         .slice(0, fallbackNeeded);
 
       sessionProblems.push(...fallbackProblems);
-      console.log(`🔄 Added ${fallbackProblems.length} fallback problems`);
+      logger.info(`🔄 Added ${fallbackProblems.length} fallback problems`);
     }
 
     // **Step 4: Final session composition**
@@ -291,15 +292,15 @@ export const ProblemService = {
       }
     );
 
-    console.log(`🎯 Final session composition:`);
-    console.log(
+    logger.info(`🎯 Final session composition:`);
+    logger.info(
       `   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`
     );
-    console.log(`   🔄 Review problems: ${reviewProblems.length}`);
-    console.log(
+    logger.info(`   🔄 Review problems: ${reviewProblems.length}`);
+    logger.info(
       `   🆕 New problems: ${sessionWithReasons.length - reviewProblems.length}`
     );
-    console.log(
+    logger.info(
       `   🧠 Problems with reasoning: ${
         sessionWithReasons.filter((p) => p.selectionReason).length
       }`
@@ -311,8 +312,8 @@ export const ProblemService = {
   // NEW: Interview-specific problem fetching (additive, doesn't modify existing)
   async fetchAndAssembleInterviewProblems(sessionLength, selectionCriteria, mode) {
     try {
-      console.log(`🎯 Assembling interview session for ${mode} mode...`);
-      console.log("🎯 Session length:", sessionLength);
+      logger.info(`🎯 Assembling interview session for ${mode} mode...`);
+      logger.info("🎯 Session length:", sessionLength);
       
       if (mode === 'standard') {
         // For standard mode, fall back to regular session assembly
@@ -337,7 +338,7 @@ export const ProblemService = {
       });
 
       if (availableProblems.length === 0) {
-        console.warn("No problems found matching interview criteria, falling back to all problems");
+        logger.warn("No problems found matching interview criteria, falling back to all problems");
         availableProblems = allProblems;
       }
 
@@ -399,11 +400,11 @@ export const ProblemService = {
         }
       }));
 
-      console.log(`🎯 Interview session assembled: ${interviewProblems.length} problems`);
+      logger.info(`🎯 Interview session assembled: ${interviewProblems.length} problems`);
       return interviewProblems;
       
     } catch (error) {
-      console.error("Error assembling interview problems:", error);
+      logger.error("Error assembling interview problems:", error);
       // Fallback to standard session
       const settings = await buildAdaptiveSessionSettings();
       return this.fetchAndAssembleSessionProblems(
@@ -434,7 +435,7 @@ export const ProblemService = {
    */
   async addProblemReasoningToSession(problems, sessionContext) {
     try {
-      console.log(
+      logger.info(
         `🧠 Adding reasoning to ${problems.length} problems in session`
       );
 
@@ -450,14 +451,14 @@ export const ProblemService = {
           userPerformance
         );
 
-      console.log(
+      logger.info(
         `✅ Added reasoning to ${
           problemsWithReasons.filter((p) => p.selectionReason).length
         } problems`
       );
       return problemsWithReasons;
     } catch (error) {
-      console.error("❌ Error adding problem reasoning to session:", error);
+      logger.error("❌ Error adding problem reasoning to session:", error);
       // Return original problems if reasoning fails
       return problems;
     }
@@ -527,7 +528,7 @@ export const ProblemService = {
         curr.id === existingProblem.id ? problem : curr
       );
       session.problems = updatedproblems;
-      console.log("✅updatedSession", session);
+      logger.info("✅updatedSession", session);
     }
     return session;
   },
@@ -621,7 +622,7 @@ ProblemService.addOrUpdateProblemWithRetry = async function (
   } = options;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Adding/updating problem with retry logic:",
       contentScriptData
     );
@@ -634,7 +635,7 @@ ProblemService.addOrUpdateProblemWithRetry = async function (
       operationName: "ProblemService.addOrUpdateProblem",
     });
 
-    console.log("✅ Problem added/updated successfully with retry:", result);
+    logger.info("✅ Problem added/updated successfully with retry:", result);
 
     if (sendResponse) {
       sendResponse({
@@ -646,7 +647,7 @@ ProblemService.addOrUpdateProblemWithRetry = async function (
 
     return result;
   } catch (error) {
-    console.error("❌ Error adding/updating problem:", error);
+    logger.error("❌ Error adding/updating problem:", error);
 
     if (sendResponse) {
       sendResponse({
@@ -678,7 +679,7 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
   } = options;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Searching for problem with retry logic:",
       description
     );
@@ -687,7 +688,7 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
     const problem = await getProblemFromStandardProblems(slug);
 
     if (problem) {
-      console.log("✅ Problem found in 'Standard_Problems' store:", problem);
+      logger.info("✅ Problem found in 'Standard_Problems' store:", problem);
 
       // 2️⃣ Check if problem exists in `problems` store using retry logic
       const problemInProblems = await checkDatabaseForProblemWithRetry(
@@ -701,7 +702,7 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
       );
 
       if (problemInProblems) {
-        console.log("✅ Problem found in 'problems' store with retry");
+        logger.info("✅ Problem found in 'problems' store with retry");
 
         // Get the full problem data with retry
         const fullProblem = await getProblemWithRetry(problem.id, {
@@ -714,18 +715,18 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
         return { problem: fullProblem, found: true };
       }
     } else {
-      console.warn("❌ Problem not found in any store.");
+      logger.warn("❌ Problem not found in any store.");
       return { problem: null, found: false };
     }
 
-    console.warn(
+    logger.warn(
       "⚠️ Problem not found in 'problems' store. returning problem from 'Standard_Problems' store"
     );
-    console.log("✅ Returning problem found in 'standard_problems':", problem);
+    logger.info("✅ Returning problem found in 'standard_problems':", problem);
 
     return { problem, found: true };
   } catch (error) {
-    console.error("❌ Error in getProblemByDescriptionWithRetry:", error);
+    logger.error("❌ Error in getProblemByDescriptionWithRetry:", error);
     throw error;
   }
 };
@@ -745,7 +746,7 @@ ProblemService.getAllProblemsWithRetry = async function (options = {}) {
   } = options;
 
   try {
-    console.log("📌 ProblemService: Fetching all problems with retry logic");
+    logger.info("📌 ProblemService: Fetching all problems with retry logic");
 
     const problems = await fetchAllProblemsWithRetry({
       timeout,
@@ -756,10 +757,10 @@ ProblemService.getAllProblemsWithRetry = async function (options = {}) {
       operationName: "ProblemService.getAllProblems",
     });
 
-    console.log(`✅ Fetched ${problems.length} problems with retry logic`);
+    logger.info(`✅ Fetched ${problems.length} problems with retry logic`);
     return problems;
   } catch (error) {
-    console.error("❌ Error fetching all problems with retry:", error);
+    logger.error("❌ Error fetching all problems with retry:", error);
     throw error;
   }
 };
@@ -775,7 +776,7 @@ ProblemService.countProblemsByBoxLevelWithRetry = async function (
   const { timeout = 5000, priority = "low", abortController = null } = options;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Counting problems by box level with retry logic"
     );
 
@@ -786,10 +787,10 @@ ProblemService.countProblemsByBoxLevelWithRetry = async function (
       operationName: "ProblemService.countProblemsByBoxLevel",
     });
 
-    console.log("✅ Box level counts with retry:", counts);
+    logger.info("✅ Box level counts with retry:", counts);
     return counts;
   } catch (error) {
-    console.error("❌ Error counting problems by box level with retry:", error);
+    logger.error("❌ Error counting problems by box level with retry:", error);
     throw error;
   }
 };
@@ -823,7 +824,7 @@ ProblemService.generateSessionWithRetry = async function (
   } = params;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Generating session with retry logic",
       params
     );
@@ -878,7 +879,7 @@ ProblemService.generateSessionWithRetry = async function (
       .sort((a, b) => new Date(a.review) - new Date(b.review)) // Sort by review date
       .slice(0, sessionLength);
 
-    console.log(
+    logger.info(
       `✅ Generated session with ${selectedProblems.length} problems using retry logic`
     );
 
@@ -889,9 +890,9 @@ ProblemService.generateSessionWithRetry = async function (
     return selectedProblems;
   } catch (error) {
     if (error.message.includes("cancelled")) {
-      console.log("🚫 Session generation cancelled:", error.message);
+      logger.info("🚫 Session generation cancelled:", error.message);
     } else {
-      console.error("❌ Error generating session with retry:", error);
+      logger.error("❌ Error generating session with retry:", error);
     }
     throw error;
   }

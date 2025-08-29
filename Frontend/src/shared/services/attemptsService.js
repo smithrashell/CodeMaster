@@ -1,13 +1,12 @@
 import { dbHelper } from "../db/index.js";
-import { attempts, getMostRecentAttempt } from "../db/attempts.js";
-import { getProblem, saveUpdatedProblem } from "../db/problems.js";
+import {  getMostRecentAttempt } from "../db/attempts.js";
 import { SessionService } from "../services/sessionService.js";
 import { calculateLeitnerBox } from "../utils/leitnerSystem";
 import { createAttemptRecord } from "../utils/Utils.js";
-import { problemService } from "./problemService.js";
 import { saveSessionToStorage, updateSessionInDB } from "../db/sessions.js";
 import { ProblemService } from "./problemService.js";
 import FocusCoordinationService from "./focusCoordinationService.js";
+import { debug, success, system } from "../utils/logger.js";
 
 const openDB = dbHelper.openDB;
 const checkAndCompleteSession = SessionService.checkAndCompleteSession;
@@ -88,13 +87,13 @@ class SessionAttributionEngine {
   static shouldRotateTrackingSession(session, hoursStale, attemptCount) {
     // Inactivity threshold: 2+ hours gap starts new session
     if (hoursStale >= 2) {
-      console.log(`🔄 Rotating tracking session: ${hoursStale.toFixed(1)}h inactivity`);
+      system(`🔄 Rotating tracking session: ${hoursStale.toFixed(1)}h inactivity`);
       return true;
     }
     
     // Attempt limit: 12 attempts max (soft limit before rotation)
     if (attemptCount >= 12) {
-      console.log(`🔄 Rotating tracking session: ${attemptCount} attempts reached limit`);
+      system(`🔄 Rotating tracking session: ${attemptCount} attempts reached limit`);
       return true;
     }
     
@@ -102,7 +101,7 @@ class SessionAttributionEngine {
     const sessionDate = new Date(session.date);
     const today = new Date();
     if (sessionDate.toDateString() !== today.toDateString()) {
-      console.log('🔄 Rotating tracking session: Daily boundary crossed');
+      system('🔄 Rotating tracking session: Daily boundary crossed');
       return true;
     }
     
@@ -115,7 +114,7 @@ class SessionAttributionEngine {
     });
     
     if (uniqueTags.size > 4) {
-      console.log(`🔄 Rotating tracking session: ${uniqueTags.size} different topics (max 4)`);
+      system(`🔄 Rotating tracking session: ${uniqueTags.size} different topics (max 4)`);
       return true;
     }
     
@@ -128,7 +127,7 @@ class SessionAttributionEngine {
    */
   static async completeTrackingSessionWithFocus(session) {
     try {
-      console.log(`🎯 Completing tracking session ${session.id} with focus determination`);
+      system(`🎯 Completing tracking session ${session.id} with focus determination`);
       
       // Only complete sessions that have attempts and aren't already completed
       if (!session.attempts?.length || session.status === 'completed') {
@@ -156,7 +155,7 @@ class SessionAttributionEngine {
       await SessionService.updateSessionInDB(updatedSession);
       await saveSessionToStorage(updatedSession, true);
       
-      console.log(`✅ Completed tracking session ${session.id} with focus:`, completionData.sessionFocus.recommendedTags);
+      success(`✅ Completed tracking session ${session.id} with focus`, { recommendedTags: completionData.sessionFocus.recommendedTags });
       
     } catch (error) {
       console.error('Error completing tracking session with focus:', error);
@@ -192,7 +191,7 @@ class SessionAttributionEngine {
     await SessionService.saveNewSessionToDB(trackingSession);
     await saveSessionToStorage(trackingSession);
     
-    console.log('🆕 Created optimized tracking session:', trackingSession.id);
+    success('🆕 Created optimized tracking session', { sessionId: trackingSession.id });
     return trackingSession;
   }
   
@@ -209,7 +208,7 @@ class SessionAttributionEngine {
    * Attach attempt to guided session
    */
   static async attachToGuidedSession(session, attemptData, problem) {
-    console.log('📚 Attaching to guided session:', session.id);
+    debug('📚 Attaching to guided session', { sessionId: session.id });
     
     // If this is a draft session, transition it to in_progress on first attempt
     if (session.status === 'draft') {

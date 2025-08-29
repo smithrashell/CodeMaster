@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useEffect, useCallback } from "react";
 import StrategyService from "../../services/strategyService";
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
@@ -57,7 +58,7 @@ const TagStrategyGrid = ({
       setStrategies(strategiesMap);
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.error("Error loading strategies:", err);
+      logger.error("Error loading strategies:", err);
     } finally {
       setLoading(false);
     }
@@ -69,15 +70,15 @@ const TagStrategyGrid = ({
     
     // Check interview mode constraints
     if (isExpanding && !primersAvailable) {
-      console.log(`🚫 Tag Strategy: Primers not available in ${sessionType} mode`);
+      logger.info(`🚫 Tag Strategy: Primers not available in ${sessionType} mode`);
       return; // Block expansion in interview modes that don't allow primers
     }
     
-    console.log(`🏷️ Tag Strategy: ${isExpanding ? 'Expanded' : 'Collapsed'} "${tag}" strategy`);
+    logger.info(`🏷️ Tag Strategy: ${isExpanding ? 'Expanded' : 'Collapsed'} "${tag}" strategy`);
 
     // Track interaction when expanding strategy
     if (isExpanding) {
-      console.log(`🏷️ Tracking tag strategy view: ${tag}`);
+      logger.info(`🏷️ Tracking tag strategy view: ${tag}`);
       try {
         await HintInteractionService.saveHintInteraction({
           problemId: problemId || "unknown",
@@ -91,7 +92,7 @@ const TagStrategyGrid = ({
           }
         });
       } catch (error) {
-        console.warn("Failed to track tag strategy view:", error);
+        logger.warn("Failed to track tag strategy view:", error);
       }
     }
 
@@ -278,7 +279,7 @@ const TagStrategyGrid = ({
 
   if (!problemTags || problemTags.length === 0) {
     // eslint-disable-next-line no-console
-    console.log("🏷️ TagStrategyGrid: Rendering 'No tags available' message");
+    logger.info("🏷️ TagStrategyGrid: Rendering 'No tags available' message");
     return (
       <div className={`problem-sidebar-section ${className}`}>
         <div className="problem-sidebar-section-header">

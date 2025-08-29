@@ -212,7 +212,7 @@ function ThemeProviderWrapper({ children }) {
           chrome.runtime.sendMessage({
             type: "setSettings",
             message: updatedSettings,
-          }, (response) => {
+          }, (_response) => {
             // Check for errors to prevent "Unchecked runtime.lastError"
             if (chrome.runtime.lastError) {
               console.warn("Theme settings save failed:", chrome.runtime.lastError.message);

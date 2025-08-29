@@ -17,7 +17,7 @@ function SlimKPI({ title, value, sub }) {
 }
 
 export function Metrics() {
-  const { data: appState, loading, error, refresh } = usePageData('session-history');
+  const { data: appState, loading: _loading, error: _error, refresh: _refresh } = usePageData('session-history');
   const [sessionData, setSessionData] = useState([]);
   const [recentSessions, setRecentSessions] = useState([]);
   const [timeRange, setTimeRange] = useState("Last 7 days");
@@ -34,11 +34,12 @@ export function Metrics() {
       case "Last 30 days":
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         break;
-      case "Quarter to date":
+      case "Quarter to date": {
         // Get start of current quarter
         const quarter = Math.floor(now.getMonth() / 3);
         startDate = new Date(now.getFullYear(), quarter * 3, 1);
         break;
+      }
       case "All time":
         return sessions; // No filtering for "All time"
       default:
@@ -145,7 +146,7 @@ export function Metrics() {
                   data={sessionLengthData}
                   dataKeys={[{ key: "length", color: "#8884d8" }]}
                   yAxisFormatter={(v) => `${v} min`}
-                  tooltipFormatter={(value, name) => [`${value} minutes`, "Duration"]}
+                  tooltipFormatter={(value, _name) => [`${value} minutes`, "Duration"]}
                 />
               </div>
             </Card>
@@ -172,7 +173,7 @@ export function Metrics() {
                   data={accuracyData}
                   dataKeys={[{ key: "accuracy", color: "#82ca9d" }]}
                   yAxisFormatter={(v) => `${v}%`}
-                  tooltipFormatter={(value, name) => [`${value}%`, "Accuracy"]}
+                  tooltipFormatter={(value, _name) => [`${value}%`, "Accuracy"]}
                 />
               </div>
             </Card>

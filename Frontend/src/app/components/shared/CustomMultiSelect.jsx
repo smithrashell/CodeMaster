@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Text, Input, Paper, Checkbox, Group, Badge, ActionIcon, Stack } from '@mantine/core';
+import { debug } from '../../../shared/utils/logger.js';
+import { Box, Text, Paper, Group, ActionIcon, Stack, Badge } from '@mantine/core';
 import { IconChevronDown, IconX, IconCheck } from '@tabler/icons-react';
 
 const CustomMultiSelect = ({ 
@@ -78,10 +79,10 @@ const CustomMultiSelect = ({
   };
 
   // Debug logging
-  console.log("🔍 CustomMultiSelect: value prop:", value);
-  console.log("🔍 CustomMultiSelect: data prop:", data);
-  console.log("🔍 CustomMultiSelect: value type:", typeof value);
-  console.log("🔍 CustomMultiSelect: value isArray:", Array.isArray(value));
+  debug("🔍 CustomMultiSelect: value prop", { value });
+  debug("🔍 CustomMultiSelect: data prop", { data });
+  debug("🔍 CustomMultiSelect: value type", { type: typeof value });
+  debug("🔍 CustomMultiSelect: value isArray", { isArray: Array.isArray(value) });
 
   return (
     <Box ref={dropdownRef} style={{ position: 'relative' }}>
@@ -263,7 +264,7 @@ const CustomMultiSelect = ({
                     const isSelected = value.includes(item.value);
                     const isDisabled = !isSelected && maxValues && value.length >= maxValues;
                     
-                    console.log(`🔍 CustomMultiSelect: Item ${item.value} - isSelected: ${isSelected}, value array:`, value);
+                    debug(`🔍 CustomMultiSelect: Item ${item.value} - isSelected: ${isSelected}`, { valueArray: value });
                     
                     return (
                       <Box

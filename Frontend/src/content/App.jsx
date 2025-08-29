@@ -1,3 +1,4 @@
+import logger from "../shared/utils/logger.js";
 import "./css/main.css";
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
@@ -25,7 +26,7 @@ const MenuButtonContainer = () => {
   React.useEffect(() => {
     const checkBackgroundScriptHealth = () => {
       const healthCheckTimeout = setTimeout(() => {
-        console.warn("🚨 Background script health check timeout - script may be unresponsive");
+        logger.warn("🚨 Background script health check timeout - script may be unresponsive");
         setBackgroundScriptHealthy(false);
       }, 3000); // 3 second timeout for health check
 
@@ -33,12 +34,12 @@ const MenuButtonContainer = () => {
         clearTimeout(healthCheckTimeout);
         
         if (chrome.runtime.lastError) {
-          console.error("❌ Background script health check failed:", chrome.runtime.lastError);
+          logger.error("❌ Background script health check failed:", chrome.runtime.lastError);
           setBackgroundScriptHealthy(false);
         } else if (response?.status === "success") {
           setBackgroundScriptHealthy(true);
         } else {
-          console.warn("⚠️ Background script health check returned unexpected response:", response);
+          logger.warn("⚠️ Background script health check returned unexpected response:", response);
           setBackgroundScriptHealthy(false);
         }
       });
@@ -68,15 +69,31 @@ const MenuButtonContainer = () => {
       fontSize: '12px',
       fontWeight: 'bold'
     }}>
-      <div onClick={() => {
-        console.warn("🚑 Emergency reset triggered by user");
-        chrome.runtime.sendMessage({ type: "emergencyReset" }, (response) => {
-          if (response?.status === "success") {
-            console.log("✅ Emergency reset completed, reloading page...");
-            window.location.reload();
+      <div 
+        role="button"
+        tabIndex={0}
+        onClick={() => {
+          logger.warn("🚑 Emergency reset triggered by user");
+          chrome.runtime.sendMessage({ type: "emergencyReset" }, (response) => {
+            if (response?.status === "success") {
+              logger.info("✅ Emergency reset completed, reloading page...");
+              window.location.reload();
+            }
+          });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            logger.warn("🚑 Emergency reset triggered by user");
+            chrome.runtime.sendMessage({ type: "emergencyReset" }, (response) => {
+              if (response?.status === "success") {
+                logger.info("✅ Emergency reset completed, reloading page...");
+                window.location.reload();
+              }
+            });
           }
-        });
-      }}>
+        }}
+      >
         🚑 Reset Extension
       </div>
     </div>
@@ -127,7 +144,7 @@ const Router = () => {
       onReportProblem={(errorData) => {
         // Store error report for content script issues
         // eslint-disable-next-line no-console
-        console.error("Content Script Error Report:", errorData);
+        logger.error("Content Script Error Report:", errorData);
       }}
     >
       <AppProviders>

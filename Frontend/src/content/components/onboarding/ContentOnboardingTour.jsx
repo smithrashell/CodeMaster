@@ -31,6 +31,7 @@ import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
 import { updateContentOnboardingStep } from "../../../shared/services/onboardingService";
 import { shouldUseMockDashboard } from "../../../app/config/mockConfig.js";
+import logger from "../../../shared/utils/logger.js";
 
 const TOUR_STEPS = [
   {
@@ -224,7 +225,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       setMenuOpenState(isOpen);
 
       // Debug logging
-      console.log("Menu state check:", { isOpen, element: !!menuElement });
+      logger.info("Menu state check:", { isOpen, element: !!menuElement });
     };
 
     // Check immediately and set up observer
@@ -282,7 +283,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         currentStepData.target &&
         event.target.closest(currentStepData.target)
       ) {
-        console.log("User interaction detected:", currentStepData.target);
+        logger.info("User interaction detected:", currentStepData.target);
         setIsWaitingForInteraction(false);
 
         // Special handling for different interaction types
@@ -292,7 +293,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           }, 500); // Longer delay for menu animation
         } else if (currentStepData.target === "a[href='/ProbGen']") {
           // User clicked Problem Generator - complete the main tour
-          console.log("User clicked Problem Generator, completing main tour");
+          logger.info("User clicked Problem Generator, completing main tour");
           setTimeout(() => {
             onComplete();
           }, 300);
@@ -306,7 +307,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
 
     // Also add escape hatch - allow manual proceed after 5 seconds
     const escapeTimer = setTimeout(() => {
-      console.log("Interaction timeout, allowing manual proceed");
+      logger.info("Interaction timeout, allowing manual proceed");
       setIsWaitingForInteraction(false);
     }, 5000);
 
@@ -315,7 +316,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       document.removeEventListener("click", handleInteraction, true);
       clearTimeout(escapeTimer);
     };
-  }, [isWaitingForInteraction, currentStepData, handleNext]);
+  }, [isWaitingForInteraction, currentStepData, handleNext, onComplete]);
 
   const proceedToNextStep = useCallback(() => {
     if (currentStep < TOUR_STEPS.length - 1) {
@@ -342,14 +343,14 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         currentStepData.interactionType
       );
     } catch (error) {
-      console.error("Error updating onboarding progress:", error);
+      logger.error("Error updating onboarding progress:", error);
     }
 
     // Auto-trigger UI element if specified
     if (currentStepData.autoTriggerSelector) {
       const targetElement = document.querySelector(currentStepData.autoTriggerSelector);
       if (targetElement) {
-        console.log("Auto-triggering element:", currentStepData.autoTriggerSelector);
+        logger.info("Auto-triggering element:", currentStepData.autoTriggerSelector);
         targetElement.click();
         // Wait for UI to respond before proceeding
         // Longer delay for navigation steps
@@ -359,13 +360,13 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         }, delay);
         return;
       } else {
-        console.warn("Auto-trigger target not found:", currentStepData.autoTriggerSelector);
+        logger.warn("Auto-trigger target not found:", currentStepData.autoTriggerSelector);
       }
     }
 
     // Proceed normally if no auto-trigger
     proceedToNextStep();
-  }, [currentStep, currentStepData, onComplete, proceedToNextStep]);
+  }, [currentStep, currentStepData, proceedToNextStep]);
 
   const handlePrevious = () => {
     if (currentStep > 0) {
@@ -379,7 +380,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         const menuElement = document.querySelector("#cm-mySidenav");
         
         if (menuButton && menuElement && !menuElement.classList.contains("cm-hidden")) {
-          console.log("🔙 Back button: Closing menu (reversing state)");
+          logger.info("🔙 Back button: Closing menu (reversing state)");
           menuButton.click();
         }
       }
@@ -395,7 +396,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
 
   const handleNavigation = useCallback(() => {
     if (currentStepData.navigationRoute) {
-      console.log("Navigating to:", currentStepData.navigationRoute);
+      logger.info("Navigating to:", currentStepData.navigationRoute);
       navigate(currentStepData.navigationRoute);
       // Complete the tour after navigation
       setTimeout(() => {

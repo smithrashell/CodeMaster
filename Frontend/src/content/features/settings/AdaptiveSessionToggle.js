@@ -1,13 +1,7 @@
 import "../../css/main.css";
-import React, { useState, useEffect } from "react";
-import { Label, Button, Title, Switch, Tooltip, Group } from "@mantine/core";
-import {
-  SliderMarksSessionLength,
-  SliderMarksNewProblemsPerSession,
-  GradientSegmentedControlTimeLimit,
-  ToggleSelectRemainders,
-} from "../../../shared/components/nantine.jsx";
-import { IconQuestionMark } from "@tabler/icons-react"; // or
+import  { useState } from "react";
+import {  Switch } from "@mantine/core";
+
 
 const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
   const [hovered, setHovered] = useState(false);
@@ -22,11 +16,11 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
           maxWidth: "100%",
         }}
       >
-        <label
+        <div
           style={{ fontSize: "1rem", fontWeight: 500, color: "var(--cm-text)" }}
         >
           Adaptive Sessions
-        </label>
+        </div>
 
         <div
           onMouseEnter={() => setHovered(true)}

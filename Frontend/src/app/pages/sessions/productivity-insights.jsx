@@ -18,7 +18,7 @@ function SlimKPI({ title, value, sub }) {
 }
 
 export function ProductivityInsights() {
-  const { data: appState, loading, error, refresh } = usePageData('productivity-insights');
+  const { data: appState, loading: _loading, error: _error, refresh: _refresh } = usePageData('productivity-insights');
   const [productivityData, setProductivityData] = useState([]);
   const [insights, setInsights] = useState([]);
   const [timeRange, setTimeRange] = useState("Last 7 days");
@@ -35,11 +35,12 @@ export function ProductivityInsights() {
       case "Last 30 days":
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         break;
-      case "Quarter to date":
+      case "Quarter to date": {
         // Get start of current quarter
         const quarter = Math.floor(now.getMonth() / 3);
         startDate = new Date(now.getFullYear(), quarter * 3, 1);
         break;
+      }
       case "All time":
         return sessions; // No filtering for "All time"
       default:
@@ -137,7 +138,7 @@ export function ProductivityInsights() {
     }
     
     setInsights(generatedInsights);
-  }, [appState, timeRange]); // Add timeRange dependency
+  }, [appState, timeRange, totalSessions]); // Add timeRange and totalSessions dependencies
 
   const totalSessions = productivityData.reduce((sum, d) => sum + d.sessions, 0);
   const avgAccuracy = productivityData.length > 0 

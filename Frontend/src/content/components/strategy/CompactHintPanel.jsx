@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Card,
   Text,
@@ -36,9 +36,9 @@ const CompactHintPanel = ({ problemTags = [], className = "" }) => {
     } else {
       setHints([]);
     }
-  }, [problemTags]);
+  }, [problemTags, loadHints]);
 
-  const loadHints = async () => {
+  const loadHints = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -55,7 +55,7 @@ const CompactHintPanel = ({ problemTags = [], className = "" }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [problemTags]);
 
   if (problemTags.length === 0) {
     return null;

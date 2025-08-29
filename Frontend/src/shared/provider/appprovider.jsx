@@ -1,5 +1,5 @@
 import "../../content/css/main.css";
-import React, { useState, useContext, createContext, useEffect } from "react";
+import React from "react";
 import { MemoryRouter } from "react-router-dom";
 
 import { PreviousRouteProvider } from "./PreviousRouteProvider";

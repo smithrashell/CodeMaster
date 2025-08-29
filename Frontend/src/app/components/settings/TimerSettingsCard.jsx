@@ -1,5 +1,6 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useMemo } from "react";
-import { Card, Text, Title, Stack, Switch, Select, Slider, Alert, Button, Group, Tooltip } from "@mantine/core";
+import { Card, Text, Title, Stack, Switch, Slider, Alert, Button, Group, Tooltip, Select } from "@mantine/core";
 import { IconClock, IconInfoCircle } from "@tabler/icons-react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { SettingsResetButton } from "./SettingsResetButton.jsx";
@@ -197,10 +198,10 @@ function useTimerSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       chrome.runtime.sendMessage(
         { type: "setSettings", message: updatedSettings },
         (response) => {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (response) => {
+          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_cacheResponse) => {
             // Check for errors to prevent "Unchecked runtime.lastError"
             if (chrome.runtime.lastError) {
-              console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+              logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
             }
           });
 
@@ -214,7 +215,7 @@ function useTimerSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       );
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error("TimerSettingsCard: Error saving settings:", error);
+      logger.error("TimerSettingsCard: Error saving settings:", error);
       setSaveStatus({ type: "error", message: "Failed to save timer settings." });
     } finally {
       setIsSaving(false);
@@ -266,7 +267,7 @@ export function TimerSettingsCard() {
   const handleSave = useTimerSettingsSave(setSaveStatus, setHasChanges, setIsSaving);
 
   // Reset timer settings to defaults
-  const handleReset = async () => {
+  const handleReset = () => {
     setSettings(DEFAULT_TIMER_SETTINGS);
     setHasChanges(true);
     setSaveStatus({ type: "success", message: "Timer settings reset to defaults!" });

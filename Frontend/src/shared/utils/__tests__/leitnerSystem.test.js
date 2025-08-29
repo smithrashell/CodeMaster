@@ -306,7 +306,7 @@ describe("Leitner System", () => {
 
       // Mock cursor behavior
       let cursorCallCount = 0;
-      mockIndex.openCursor.mockImplementation((range, direction) => ({
+      mockIndex.openCursor.mockImplementation((_range, _direction) => ({
         onsuccess: null,
         onerror: null,
       }));
@@ -417,7 +417,7 @@ describe("Leitner System", () => {
         { boxLevel: 8, expectedMinInterval: 120 },
       ];
 
-      testCases.forEach(({ boxLevel, expectedMinInterval }) => {
+      testCases.forEach(({ boxLevel, _expectedMinInterval }) => {
         const problem = { id: "test", boxLevel, title: "Test" };
         const attempts = Array(boxLevel)
           .fill()
