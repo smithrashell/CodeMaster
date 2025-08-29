@@ -1,5 +1,5 @@
 import { dbHelper } from "./index.js";
-import { isDifficultyAllowed, deduplicateById } from "../utils/Utils.js";
+
 import { AttemptsService } from "../services/attemptsService.js";
 
 import { getAllStandardProblems } from "./standard_problems.js";
@@ -8,14 +8,27 @@ import { TagService } from "../services/tagServices.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 import { v4 as uuidv4 } from "uuid";
-import { getAllowedDifficulties } from "../utils/Utils.js";
+
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { getTagRelationships } from "./tag_relationships.js";
+
+// Import session functions (use dynamic import to avoid circular dependencies)
+const getOrCreateSession = async () => {
+  const { SessionService } = await import("../services/sessionService.js");
+  return SessionService.getOrCreateSession();
+};
+
+const saveSessionToStorage = async (session) => {
+  const { saveSessionToStorage } = await import("./sessions.js");
+  return saveSessionToStorage(session);
+};
+
 const openDB = dbHelper.openDB;
 
 // Import retry service for enhanced database operations
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
+import logger from "../utils/logger.js";
 
 /**
  * Fetches a set of problems based on difficulty level.
@@ -104,7 +117,7 @@ import indexedDBRetry from "../services/IndexedDBRetryService.js";
 
 //         // If the NextProblem exists in the problems store, skip it
 //         if (nextProblemExists) {
-//           console.log(
+//           logger.info(
 //             `Skipping NextProblem ${nextProblemId} (already attempted).`
 //           );
 //           continue;
@@ -136,7 +149,7 @@ import indexedDBRetry from "../services/IndexedDBRetryService.js";
 
 //     // If no additional problems are found, break to avoid infinite loops
 //     if (additionalNextProblemIds.length === 0) {
-//       console.warn("No additional NextProblems meet the criteria.");
+//       logger.warn("No additional NextProblems meet the criteria.");
 //       break;
 //     }
 //   }
@@ -147,7 +160,7 @@ import indexedDBRetry from "../services/IndexedDBRetryService.js";
 //     validatedNextProblemIds.slice(0, limit)
 //   );
 
-//   console.log(
+//   logger.info(
 //     `Pulled ${nextProblems.length} problems from NextProblem.`,
 //     nextProblems
 //   );
@@ -250,10 +263,10 @@ export async function saveUpdatedProblem(problem) {
  * @returns {Promise<Object|null>} - The problem object or null if not found.
  */
 export async function getProblemByDescription(description, slug) {
-  console.log("📌 getProblemByDescription called with:", description);
+  logger.info("📌 getProblemByDescription called with:", description);
 
   if (!description) {
-    console.error("❌ Error: No description provided.");
+    logger.error("❌ Error: No description provided.");
     return null;
   }
 
@@ -263,12 +276,12 @@ export async function getProblemByDescription(description, slug) {
     const store = transaction.objectStore("problems");
 
     if (!store.indexNames.contains("by_ProblemDescription")) {
-      console.error("❌ Error: Index 'by_ProblemDescription' does not exist.");
+      logger.error("❌ Error: Index 'by_ProblemDescription' does not exist.");
       reject("Index missing: by_ProblemDescription");
       return;
     }
 
-    console.log("📌 Using index 'by_ProblemDescription' to fetch problem...");
+    logger.info("📌 Using index 'by_ProblemDescription' to fetch problem...");
     const index = store.index("by_ProblemDescription");
 
     // Ensure the description is stored in lowercase
@@ -277,16 +290,16 @@ export async function getProblemByDescription(description, slug) {
     request.onsuccess = (event) => {
       const result = event.target.result;
       if (result) {
-        console.log("✅ Problem found:", result);
+        logger.info("✅ Problem found:", result);
         resolve(result);
       } else {
-        console.warn("⚠️ Problem not found for description:", description);
+        logger.warn("⚠️ Problem not found for description:", description);
         resolve(false);
       }
     };
 
     request.onerror = (event) => {
-      console.error("❌ Error fetching problem:", event.target.error);
+      logger.error("❌ Error fetching problem:", event.target.error);
       reject(event.target.error);
     };
   });
@@ -343,10 +356,10 @@ export async function addProblem(problemData) {
 
       Tags: problemData.tags || [],
     };
-    console.log("Adding problem:", problem);
+    logger.info("Adding problem:", problem);
     const request = store.add(problem);
     transaction.oncomplete = async function () {
-      console.log("Problem added successfully:", problem);
+      logger.info("Problem added successfully:", problem);
 
       const attemptData = {
         id: attemptId,
@@ -375,17 +388,17 @@ export async function addProblem(problemData) {
         }
 
         await AttemptsService.addAttempt(attemptData, problem);
-        console.log("✅ Attempt and problem added successfully.");
+        logger.info("✅ Attempt and problem added successfully.");
       } catch (error) {
-        console.error("❌ Error adding attempt:", error);
+        logger.error("❌ Error adding attempt:", error);
       }
     };
 
     request.onerror = function (event) {
-      console.error("Error adding problem:", event.target.error);
+      logger.error("Error adding problem:", event.target.error);
     };
   } catch (error) {
-    console.error("Error in addProblem function:", error);
+    logger.error("Error in addProblem function:", error);
   }
 }
 
@@ -430,16 +443,16 @@ export async function checkDatabaseForProblem(problemId) {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
     const index = store.index("by_problem");
-    console.log("🔍 problemId:", problemId);
+    logger.info("🔍 problemId:", problemId);
     const request = index.get(problemId);
 
     // return true if problem is found, false otherwise
     request.onsuccess = () => {
-      console.log("✅ Problem found in database:", request.result);
+      logger.info("✅ Problem found in database:", request.result);
       resolve(request.result);
     };
     request.onerror = () => {
-      console.error("❌ Error checking database for problem:", request.error);
+      logger.error("❌ Error checking database for problem:", request.error);
 
       reject(request.error);
     };
@@ -466,7 +479,7 @@ export async function fetchAllProblems() {
     };
 
     cursorRequest.onerror = function (event) {
-      console.error(
+      logger.error(
         "❌ Error fetching problems from IndexedDB:",
         event.target.error
       );
@@ -494,17 +507,17 @@ export async function fetchAdditionalProblems(
     // Use coordinated focus decision for enhanced focus tags
     const enhancedFocusTags = focusDecision.activeFocusTags;
 
-    console.log("🧠 Starting intelligent problem selection...");
-    console.log("🎯 Focus Coordination Service decision:", {
+    logger.info("🧠 Starting intelligent problem selection...");
+    logger.info("🎯 Focus Coordination Service decision:", {
       activeFocusTags: enhancedFocusTags,
       reasoning: focusDecision.algorithmReasoning,
       userPreferences: focusDecision.userPreferences,
       systemRecommendation: focusDecision.systemRecommendation
     });
-    console.log("🧠 Needed problems:", numNewProblems);
+    logger.info("🧠 Needed problems:", numNewProblems);
     
     // Backward compatibility logging
-    console.log("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
+    logger.info("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
 
     // Get tag relationships for expansion
     const tagRelationships = await getTagRelationships();
@@ -528,7 +541,7 @@ export async function fetchAdditionalProblems(
     const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
     const primaryTag = enhancedFocusTags[0]; // Highest priority tag (user selection or system recommendation)
 
-    console.log(
+    logger.info(
       `🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`
     );
     const primaryProblems = await selectProblemsForTag(
@@ -548,7 +561,7 @@ export async function fetchAdditionalProblems(
     const expansionCount = numNewProblems - selectedProblems.length;
     if (expansionCount > 0 && enhancedFocusTags.length > 1) {
       const expansionTag = enhancedFocusTags[1]; // Use next highest priority tag for expansion
-      console.log(
+      logger.info(
         `🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`
       );
 
@@ -573,15 +586,15 @@ export async function fetchAdditionalProblems(
       selectedProblems.push(...expansionProblems);
       expansionProblems.forEach((p) => usedProblemIds.add(p.id));
 
-      console.log(
+      logger.info(
         `🔗 Added ${expansionProblems.length} problems from expansion tag: ${expansionTag}`
       );
     }
 
-    console.log(`🎯 Selected ${selectedProblems.length} problems for learning`);
+    logger.info(`🎯 Selected ${selectedProblems.length} problems for learning`);
     return selectedProblems;
   } catch (error) {
-    console.error("❌ Error in fetchAdditionalProblems():", error);
+    logger.error("❌ Error in fetchAdditionalProblems():", error);
     return [];
   }
 }
@@ -627,13 +640,13 @@ async function getProblemSequenceScore(
         }
 
         let weightedAvgStrength = count > 0 ? totalStrength / count : 0;
-        console.log(
+        logger.info(
           `🎯 Final sequenceScore for Problem ${problemId}:`,
           weightedAvgStrength
         );
         resolve(weightedAvgStrength);
       } else {
-        console.warn(`⚠️ No relationships found for problem ${problemId}`);
+        logger.warn(`⚠️ No relationships found for problem ${problemId}`);
         resolve(0);
       }
     };
@@ -656,7 +669,7 @@ async function getProblemSequenceScore(
 //   // 🔹 Callback to update `attemptedProblems`
 //   const updateAttemptedCallback = (newProblem) => {
 //     attemptedProblems.add(newProblem);
-//     console.log(`📝 Updated attemptedProblems:`, attemptedProblems);
+//     logger.info(`📝 Updated attemptedProblems:`, attemptedProblems);
 //   };
 
 //   let maxRetries = 3; // 🔹 Prevents infinite loops
@@ -688,7 +701,7 @@ async function getProblemSequenceScore(
 //           continue;
 //         }
 
-//         console.log(`✅ NextProblem Selected: ${nextProblemId}`);
+//         logger.info(`✅ NextProblem Selected: ${nextProblemId}`);
 //         attemptedProblems.add(nextProblemId); // ✅ Ensure problem is not chosen again
 
 //         // ✅ Fetch NextProblem details from `standard_problems`
@@ -716,7 +729,7 @@ async function getProblemSequenceScore(
 //     }
 
 //     if (validatedNextProblemIds.length === 0) {
-//       console.warn(
+//       logger.warn(
 //         "⚠️ No additional NextProblems meet the criteria. Retrying..."
 //       );
 //     }
@@ -724,7 +737,7 @@ async function getProblemSequenceScore(
 
 //   // ✅ Exit early if no problems found after retries
 //   if (validatedNextProblemIds.length === 0) {
-//     console.error(
+//     logger.error(
 //       "❌ Could not find additional NextProblems after retries. Exiting."
 //     );
 //     return [];
@@ -736,7 +749,7 @@ async function getProblemSequenceScore(
 //     validatedNextProblemIds.slice(0, countNeeded)
 //   );
 
-//   console.log(
+//   logger.info(
 //     `✅ Pulled ${nextProblems.length} problems from NextProblem.`,
 //     nextProblems
 //   );
@@ -770,7 +783,7 @@ export async function addStabilityToProblems() {
           };
         });
 
-        console.log("🔍 Attempts:", attempts);
+        logger.info("🔍 Attempts:", attempts);
 
         // Sort attempts by date (assuming attemptDate exists)
         attempts.sort(
@@ -794,12 +807,12 @@ export async function addStabilityToProblems() {
       }
 
       transaction.oncomplete = () => {
-        console.log("✅ Stability added/updated for all problems.");
+        logger.info("✅ Stability added/updated for all problems.");
         resolve();
       };
 
       transaction.onerror = (err) => {
-        console.error("❌ Transaction failed:", err);
+        logger.error("❌ Transaction failed:", err);
         reject(err);
       };
     };
@@ -829,7 +842,7 @@ export async function updateProblemsWithRating() {
     standardProblems.forEach((problem) => {
       difficultyMap[problem.id] = problem.difficulty;
     });
-    console.log("🔍 difficultyMap:", difficultyMap);
+    logger.info("🔍 difficultyMap:", difficultyMap);
     const transaction = db.transaction(["problems"], "readwrite");
     const problemStore = transaction.objectStore("problems");
 
@@ -840,8 +853,8 @@ export async function updateProblemsWithRating() {
 
       for (let problem of problems) {
         const difficulty = difficultyMap[problem.leetCodeID];
-        console.log("🔍 difficulty:", difficulty);
-        console.log("🔍 problem:", problem.leetCodeID);
+        logger.info("🔍 difficulty:", difficulty);
+        logger.info("🔍 problem:", problem.leetCodeID);
         if (difficulty) {
           problem.Rating = difficulty;
           problemStore.put(problem);
@@ -850,14 +863,14 @@ export async function updateProblemsWithRating() {
     };
 
     transaction.oncomplete = () => {
-      console.log("✅ All problems updated with ratings.");
+      logger.info("✅ All problems updated with ratings.");
     };
 
     transaction.onerror = (event) => {
-      console.error("❌ Transaction error:", event.target.error);
+      logger.error("❌ Transaction error:", event.target.error);
     };
   } catch (error) {
-    console.error("❌ Error updating problems with ratings:", error);
+    logger.error("❌ Error updating problems with ratings:", error);
   }
 }
 
@@ -914,7 +927,7 @@ async function selectProblemsForTag(
   allTagsInCurrentTier,
   usedProblemIds
 ) {
-  console.log(`🎯 Selecting ${count} problems for tag: ${tag}`);
+  logger.info(`🎯 Selecting ${count} problems for tag: ${tag}`);
 
   const ladder = ladders?.[tag]?.problems || [];
   const allTagsInCurrentTierSet = new Set(allTagsInCurrentTier);
@@ -950,7 +963,7 @@ async function selectProblemsForTag(
       return b.allowanceWeight - a.allowanceWeight;
     });
 
-  console.log(
+  logger.info(
     `🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`
   );
 
@@ -970,7 +983,7 @@ async function selectProblemsForTag(
     }
   }
 
-  console.log(`🎯 Selected ${selectedProblems.length} problems for ${tag}`);
+  logger.info(`🎯 Selected ${selectedProblems.length} problems for ${tag}`);
   return selectedProblems;
 }
 
@@ -1018,7 +1031,7 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
     const standardProblem = await fetchProblemById(leetCodeID);
 
     if (!standardProblem) {
-      console.warn(
+      logger.warn(
         `⚠️ No standard problem found for LeetCode ID: ${leetCodeID}`
       );
       return userProblem; // Return user problem without official difficulty
@@ -1034,7 +1047,7 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
 
     return mergedProblem;
   } catch (error) {
-    console.error(
+    logger.error(
       `❌ Error getting problem with official difficulty for ID ${leetCodeID}:`,
       error
     );

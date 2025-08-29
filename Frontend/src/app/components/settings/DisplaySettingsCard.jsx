@@ -1,5 +1,6 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useMemo } from "react";
-import { Card, Text, Title, Stack, Select, SegmentedControl, Switch, ColorPicker, Alert, Button, Group, Tooltip, Slider } from "@mantine/core";
+import { Card, Text, Title, Stack, SegmentedControl, Switch, ColorPicker, Alert, Button, Group, Tooltip, Slider, Select } from "@mantine/core";
 import { IconChartBar, IconInfoCircle } from "@tabler/icons-react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { SettingsResetButton } from "./SettingsResetButton.jsx";
@@ -301,10 +302,10 @@ function useDisplaySettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       chrome.runtime.sendMessage(
         { type: "setSettings", message: updatedSettings },
         (response) => {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (response) => {
+          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_cacheResponse) => {
             // Check for errors to prevent "Unchecked runtime.lastError"
             if (chrome.runtime.lastError) {
-              console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+              logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
             }
           });
 
@@ -318,7 +319,7 @@ function useDisplaySettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       );
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error("DisplaySettingsCard: Error saving settings:", error);
+      logger.error("DisplaySettingsCard: Error saving settings:", error);
       setSaveStatus({ type: "error", message: "Failed to save display settings." });
     } finally {
       setIsSaving(false);
@@ -368,7 +369,7 @@ export function DisplaySettingsCard() {
   const handleSave = useDisplaySettingsSave(setSaveStatus, setHasChanges, setIsSaving);
 
   // Reset display settings to defaults
-  const handleReset = async () => {
+  const handleReset = () => {
     setSettings(DEFAULT_DISPLAY_SETTINGS);
     setHasChanges(true);
     setSaveStatus({ type: "success", message: "Display settings reset to defaults!" });

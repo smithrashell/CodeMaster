@@ -5,7 +5,7 @@
  * diagnostic information, and progressive recovery options.
  */
 
-import React, { useState } from "react";
+import{ useState } from "react";
 import {
   Modal,
   Button,
@@ -125,7 +125,7 @@ const ErrorRecoveryUI = ({
           // Trigger dashboard data refresh
           try {
             if (typeof chrome !== "undefined" && chrome.runtime) {
-              chrome.runtime.sendMessage({ type: "clearCache" }, (response) => {
+              chrome.runtime.sendMessage({ type: "clearCache" }, (_response) => {
                 // Check for errors to prevent "Unchecked runtime.lastError"
                 if (chrome.runtime.lastError) {
                   console.warn("Clear cache failed:", chrome.runtime.lastError.message);

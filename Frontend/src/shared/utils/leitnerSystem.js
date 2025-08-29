@@ -7,7 +7,7 @@ import { dbHelper } from "../db/index.js";
 
 const openDB = dbHelper.openDB;
 
-async function evaluateAttempts(problem) {
+export async function evaluateAttempts(problem) {
   const db = await openDB();
   const problemId = problem.id;
   console.info("evaluateAttempt - problemId and problem", problemId, problem);
@@ -210,8 +210,8 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
         boxIntervals.length - 1
       );
     } else {
-      // Success but very slow - maintain current level
-      problem.BoxLevel = problem.BoxLevel;
+      // Success but very slow - maintain current level (no change needed)
+      // problem.BoxLevel remains unchanged
     }
   } else {
     problem.ConsecutiveFailures++;

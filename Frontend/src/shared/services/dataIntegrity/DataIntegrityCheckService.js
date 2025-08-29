@@ -11,6 +11,7 @@ import DataIntegritySchemas from "../../utils/dataIntegrity/DataIntegritySchemas
 import { dbHelper } from "../../db/index.js";
 import StorageHealthMonitor from "../../utils/storageHealth.js";
 import ErrorReportService from "../ErrorReportService.js";
+import logger from "../../utils/logger.js";
 
 export class DataIntegrityCheckService {
   // Check types
@@ -58,7 +59,7 @@ export class DataIntegrityCheckService {
       generateReport = true,
     } = options;
 
-    console.log(
+    logger.info(
       `🔍 Starting ${checkType} data integrity check for ${stores.length} stores...`
     );
     const checkStartTime = performance.now();
@@ -99,7 +100,7 @@ export class DataIntegrityCheckService {
         ].includes(checkType)
       ) {
         const schemaStartTime = performance.now();
-        console.log("📋 Running schema validation...");
+        logger.info("📋 Running schema validation...");
 
         report.results.schema = await this.performSchemaValidation(stores, {
           priority,
@@ -124,7 +125,7 @@ export class DataIntegrityCheckService {
         )
       ) {
         const refStartTime = performance.now();
-        console.log("🔗 Running referential integrity check...");
+        logger.info("🔗 Running referential integrity check...");
 
         report.results.referential =
           await ReferentialIntegrityService.checkAllReferentialIntegrity({
@@ -153,7 +154,7 @@ export class DataIntegrityCheckService {
         )
       ) {
         const businessStartTime = performance.now();
-        console.log("🧠 Running business logic validation...");
+        logger.info("🧠 Running business logic validation...");
 
         report.results.businessLogic =
           await this.performBusinessLogicValidation(stores, { priority });
@@ -172,7 +173,7 @@ export class DataIntegrityCheckService {
       // Storage health check
       if (includePerformanceMetrics && checkType !== this.CHECK_TYPES.QUICK) {
         const healthStartTime = performance.now();
-        console.log("💾 Running storage health check...");
+        logger.info("💾 Running storage health check...");
 
         report.results.storageHealth =
           await StorageHealthMonitor.assessStorageHealth();
@@ -197,12 +198,12 @@ export class DataIntegrityCheckService {
       // Update last check timestamp
       this.lastCheck.set(checkType, Date.now());
 
-      console.log(
+      logger.info(
         `✅ Data integrity check completed in ${report.performanceMetrics.totalTime.toFixed(
           2
         )}ms`
       );
-      console.log(
+      logger.info(
         `📊 Overall Score: ${report.overall.score}% (${report.overall.errors} errors, ${report.overall.warnings} warnings)`
       );
 
@@ -213,7 +214,7 @@ export class DataIntegrityCheckService {
 
       return report;
     } catch (error) {
-      console.error("❌ Data integrity check failed:", error);
+      logger.error("❌ Data integrity check failed:", error);
       report.overall.valid = false;
       report.error = {
         message: error.message,
@@ -257,12 +258,12 @@ export class DataIntegrityCheckService {
 
     for (const storeName of stores) {
       if (!db.objectStoreNames.contains(storeName)) {
-        console.warn(`Schema validation: Store '${storeName}' does not exist`);
+        logger.warn(`Schema validation: Store '${storeName}' does not exist`);
         continue;
       }
 
       const storeStartTime = performance.now();
-      console.log(`📋 Validating schema for store: ${storeName}`);
+      logger.info(`📋 Validating schema for store: ${storeName}`);
 
       try {
         const storeData = await this.getAllStoreData(db, storeName);
@@ -322,11 +323,11 @@ export class DataIntegrityCheckService {
         result.performanceMetrics.storeBreakdown[storeName] =
           storeEndTime - storeStartTime;
 
-        console.log(
+        logger.info(
           `✅ ${storeName}: ${storeResult.recordCount} records, ${storeResult.errors.length} errors, ${storeResult.warnings.length} warnings`
         );
       } catch (error) {
-        console.error(
+        logger.error(
           `❌ Schema validation failed for store ${storeName}:`,
           error
         );
@@ -793,13 +794,13 @@ export class DataIntegrityCheckService {
       autoRepair = false,
     } = config;
 
-    console.log("🕐 Starting periodic data integrity monitoring...");
+    logger.info("🕐 Starting periodic data integrity monitoring...");
 
     // Quick checks (schema validation only)
     if (!this.monitoringIntervals.has("quick")) {
       const quickInterval = setInterval(async () => {
         try {
-          console.log("⚡ Running quick integrity check...");
+          logger.info("⚡ Running quick integrity check...");
           const result = await this.performIntegrityCheck({
             checkType: this.CHECK_TYPES.QUICK,
             priority: this.PRIORITIES.LOW,
@@ -807,18 +808,18 @@ export class DataIntegrityCheckService {
           });
 
           if (!result.overall.valid && result.overall.errors > 0) {
-            console.warn(
+            logger.warn(
               `⚠️ Quick check found ${result.overall.errors} errors`
             );
             await this.notifyIntegrityIssues("quick_check", result);
           }
         } catch (error) {
-          console.error("❌ Quick integrity check failed:", error);
+          logger.error("❌ Quick integrity check failed:", error);
         }
       }, quickCheckInterval);
 
       this.monitoringIntervals.set("quick", quickInterval);
-      console.log(
+      logger.info(
         `✅ Quick checks scheduled every ${
           quickCheckInterval / 1000 / 60
         } minutes`
@@ -829,7 +830,7 @@ export class DataIntegrityCheckService {
     if (!this.monitoringIntervals.has("full")) {
       const fullInterval = setInterval(async () => {
         try {
-          console.log("🔍 Running full integrity check...");
+          logger.info("🔍 Running full integrity check...");
           const result = await this.performIntegrityCheck({
             checkType: this.CHECK_TYPES.FULL,
             priority: this.PRIORITIES.MEDIUM,
@@ -837,7 +838,7 @@ export class DataIntegrityCheckService {
           });
 
           if (result.overall.score < 80) {
-            console.warn(`⚠️ Full check score: ${result.overall.score}%`);
+            logger.warn(`⚠️ Full check score: ${result.overall.score}%`);
             await this.notifyIntegrityIssues("full_check", result);
           }
 
@@ -849,7 +850,7 @@ export class DataIntegrityCheckService {
               );
 
             if (safeRepairs.length > 0) {
-              console.log(
+              logger.info(
                 `🔧 Auto-repairing ${safeRepairs.length} low-risk issues...`
               );
               await ReferentialIntegrityService.executeRepairs(safeRepairs, {
@@ -859,34 +860,34 @@ export class DataIntegrityCheckService {
             }
           }
         } catch (error) {
-          console.error("❌ Full integrity check failed:", error);
+          logger.error("❌ Full integrity check failed:", error);
         }
       }, fullCheckInterval);
 
       this.monitoringIntervals.set("full", fullInterval);
-      console.log(
+      logger.info(
         `✅ Full checks scheduled every ${
           fullCheckInterval / 1000 / 60 / 60
         } hours`
       );
     }
 
-    console.log("✅ Periodic integrity monitoring started");
+    logger.info("✅ Periodic integrity monitoring started");
   }
 
   /**
    * Stop periodic monitoring
    */
   static stopPeriodicMonitoring() {
-    console.log("🛑 Stopping periodic integrity monitoring...");
+    logger.info("🛑 Stopping periodic integrity monitoring...");
 
     for (const [type, interval] of this.monitoringIntervals) {
       clearInterval(interval);
-      console.log(`✅ Stopped ${type} monitoring`);
+      logger.info(`✅ Stopped ${type} monitoring`);
     }
 
     this.monitoringIntervals.clear();
-    console.log("✅ All periodic monitoring stopped");
+    logger.info("✅ All periodic monitoring stopped");
   }
 
   /**
@@ -1012,14 +1013,14 @@ export class DataIntegrityCheckService {
         },
       });
     } catch (error) {
-      console.warn("Failed to report critical integrity issues:", error);
+      logger.warn("Failed to report critical integrity issues:", error);
     }
   }
 
   static async notifyIntegrityIssues(checkType, result) {
     // This could integrate with notification systems
     // For now, just console logging
-    console.warn(`🚨 Integrity issues detected in ${checkType}:`, {
+    logger.warn(`🚨 Integrity issues detected in ${checkType}:`, {
       score: result.overall.score,
       errors: result.overall.errors,
       warnings: result.overall.warnings,
@@ -1040,7 +1041,7 @@ export class DataIntegrityCheckService {
         userContext: context,
       });
     } catch (reportError) {
-      console.warn("Failed to report integrity system error:", reportError);
+      logger.warn("Failed to report integrity system error:", reportError);
     }
   }
 
@@ -1121,7 +1122,7 @@ export class DataIntegrityCheckService {
     checkType = this.CHECK_TYPES.FULL,
     options = {}
   ) {
-    console.log(`🔧 Manual integrity check triggered: ${checkType}`);
+    logger.info(`🔧 Manual integrity check triggered: ${checkType}`);
 
     return await this.performIntegrityCheck({
       checkType,

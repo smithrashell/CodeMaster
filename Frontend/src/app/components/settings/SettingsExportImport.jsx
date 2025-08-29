@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import React, { useState, useRef } from "react";
 import { Card, Text, Title, Stack, Button, Group, Alert, FileInput, Modal } from "@mantine/core";
 import { IconDownload, IconUpload, IconFileCode, IconInfoCircle, IconCheck, IconX } from "@tabler/icons-react";
@@ -216,7 +217,7 @@ export function SettingsExportImport() {
       setExportStatus({ type: "success", message: "Settings exported successfully!" });
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error("Export error:", error);
+      logger.error("Export error:", error);
       setExportStatus({ type: "error", message: "Failed to export settings." });
     } finally {
       setIsExporting(false);
@@ -261,7 +262,7 @@ export function SettingsExportImport() {
   };
 
   // Confirm and perform import
-  const handleImportConfirm = async () => {
+  const handleImportConfirm = () => {
     try {
       const { settings } = validationModal;
       
@@ -269,10 +270,10 @@ export function SettingsExportImport() {
       chrome.runtime.sendMessage(
         { type: "setSettings", message: settings },
         (response) => {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (response) => {
+          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_response) => {
             // Check for errors to prevent "Unchecked runtime.lastError"
             if (chrome.runtime.lastError) {
-              console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+              logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
             }
           });
           
@@ -294,7 +295,7 @@ export function SettingsExportImport() {
       
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error("Import error:", error);
+      logger.error("Import error:", error);
       setImportStatus({ type: "error", message: "Failed to import settings." });
     }
     
@@ -302,7 +303,7 @@ export function SettingsExportImport() {
   };
 
   // Global reset handler
-  const handleGlobalReset = async () => {
+  const handleGlobalReset = () => {
     try {
       const defaultSettings = {
         adaptive: true,
@@ -337,10 +338,10 @@ export function SettingsExportImport() {
       chrome.runtime.sendMessage(
         { type: "setSettings", message: defaultSettings },
         (response) => {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (response) => {
+          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_response) => {
             // Check for errors to prevent "Unchecked runtime.lastError"
             if (chrome.runtime.lastError) {
-              console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+              logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
             }
           });
           
@@ -354,7 +355,7 @@ export function SettingsExportImport() {
       );
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error("Global reset error:", error);
+      logger.error("Global reset error:", error);
       setImportStatus({ type: "error", message: "Failed to reset settings." });
     }
     

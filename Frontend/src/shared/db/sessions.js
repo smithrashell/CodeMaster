@@ -6,6 +6,7 @@ import { AttemptsService } from "../services/attemptsService.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 import SessionLimits from "../utils/sessionLimits.js";
 import { InterviewService } from "../services/interviewService.js";
+import logger from "../utils/logger.js";
 
 const openDB = dbHelper.openDB;
 
@@ -54,7 +55,7 @@ export const getLatestSession = async () => {
       resolve(result);
     };
     request.onerror = (e) => {
-      console.error("❌ getLatestSession() error:", e.target.error);
+      logger.error("❌ getLatestSession() error:", e.target.error);
       reject(e.target.error);
     };
   });
@@ -69,7 +70,7 @@ export const getLatestSession = async () => {
  * @returns {Promise<Object|null>} Latest matching session or null if none found
  */
 export const getLatestSessionByType = async (sessionType = null, status = null) => {
-  console.info(`🔍 getLatestSessionByType ENTRY: sessionType=${sessionType}, status=${status}`);
+  logger.info(`🔍 getLatestSessionByType ENTRY: sessionType=${sessionType}, status=${status}`);
   
   const db = await openDB();
   
@@ -100,17 +101,17 @@ export const getLatestSessionByType = async (sessionType = null, status = null) 
       if (cursor) {
         const session = cursor.value;
         
-        console.info(`✅ Found matching ${normalizedSessionType} session: ${session.id?.substring(0,8)}... status=${session.status}`);
+        logger.info(`✅ Found matching ${normalizedSessionType} session: ${session.id?.substring(0,8)}... status=${session.status}`);
         resolve(session);
         return;
       } else {
-        console.info(`❌ No matching ${normalizedSessionType} session found with status=${status || 'any'}`);
+        logger.info(`❌ No matching ${normalizedSessionType} session found with status=${status || 'any'}`);
         resolve(null);
       }
     };
     
     request.onerror = (e) => {
-      console.error("❌ getLatestSessionByType() error:", e.target.error);
+      logger.error("❌ getLatestSessionByType() error:", e.target.error);
       reject(e.target.error);
     };
   });
@@ -124,7 +125,7 @@ export const saveNewSessionToDB = async (session) => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("sessions", "readwrite");
     const store = transaction.objectStore("sessions");
-    console.log("session", session);
+    logger.info("session", session);
     const request = store.add(session);
     request.onsuccess = () => resolve(session);
     request.onerror = () => reject(request.error);
@@ -151,13 +152,13 @@ export const updateSessionInDB = async (session) => {
  * Implements graceful degradation when Chrome APIs are unavailable.
  */
 export const saveSessionToStorage = async (session, updateDatabase = false) => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     try {
       // Check if Chrome API is available
       if (typeof chrome !== "undefined" && chrome?.storage?.local?.set) {
         chrome.storage.local.set({ currentSession: session }, async () => {
           if (chrome.runtime?.lastError) {
-            console.warn("Chrome storage error:", chrome.runtime.lastError);
+            logger.warn("Chrome storage error:", chrome.runtime.lastError);
             // Continue with IndexedDB update even if Chrome storage fails
           }
 
@@ -165,7 +166,7 @@ export const saveSessionToStorage = async (session, updateDatabase = false) => {
             try {
               await updateSessionInDB(session);
             } catch (error) {
-              console.warn(
+              logger.warn(
                 "IndexedDB update failed after Chrome storage save:",
                 error
               );
@@ -176,49 +177,52 @@ export const saveSessionToStorage = async (session, updateDatabase = false) => {
         });
       } else {
         // Chrome API unavailable - log warning and continue
-        console.warn(
+        logger.warn(
           "Chrome storage API unavailable, skipping session storage to Chrome"
         );
 
         // Still update IndexedDB if requested
         if (updateDatabase) {
-          try {
-            await updateSessionInDB(session);
-            console.info(
-              "Session saved to IndexedDB (Chrome storage unavailable)"
-            );
-          } catch (error) {
-            console.error(
-              "Both Chrome storage and IndexedDB unavailable:",
-              error
-            );
-            reject(new Error("No storage mechanism available"));
-            return;
-          }
+          updateSessionInDB(session)
+            .then(() => {
+              logger.info(
+                "Session saved to IndexedDB (Chrome storage unavailable)"
+              );
+              resolve();
+            })
+            .catch((error) => {
+              logger.error(
+                "Both Chrome storage and IndexedDB unavailable:",
+                error
+              );
+              reject(new Error("No storage mechanism available"));
+            });
+          return;
         }
 
         // Resolve even without Chrome storage - system can continue
         resolve();
       }
     } catch (error) {
-      console.error("Error in saveSessionToStorage:", error);
+      logger.error("Error in saveSessionToStorage:", error);
 
       // Try IndexedDB as fallback
       if (updateDatabase) {
-        try {
-          await updateSessionInDB(session);
-          console.info("Fallback to IndexedDB successful");
-          resolve();
-        } catch (dbError) {
-          console.error("All storage mechanisms failed:", {
-            chromeError: error,
-            dbError,
+        updateSessionInDB(session)
+          .then(() => {
+            logger.info("Fallback to IndexedDB successful");
+            resolve();
+          })
+          .catch((dbError) => {
+            logger.error("All storage mechanisms failed:", {
+              chromeError: error,
+              dbError,
+            });
+            reject(new Error("All storage mechanisms unavailable"));
           });
-          reject(new Error("All storage mechanisms unavailable"));
-        }
       } else {
         // No fallback requested, but don't fail the entire operation
-        console.warn("Chrome storage failed, but continuing without storage");
+        logger.warn("Chrome storage failed, but continuing without storage");
         resolve();
       }
     }
@@ -284,7 +288,7 @@ export async function buildAdaptiveSessionSettings() {
   
   // 🎯 Get interview insights for adaptive learning integration
   const interviewInsights = await InterviewService.getInterviewInsightsForAdaptiveLearning();
-  console.log(`🎯 Interview insights for adaptive learning:`, {
+  logger.info(`🎯 Interview insights for adaptive learning:`, {
     hasData: interviewInsights.hasInterviewData,
     transferAccuracy: interviewInsights.transferAccuracy,
     speedDelta: interviewInsights.speedDelta,
@@ -295,7 +299,7 @@ export async function buildAdaptiveSessionSettings() {
   let allowedTags = focusDecision.activeFocusTags;
   const onboarding = focusDecision.onboarding;
   
-  console.log(`🎯 Focus Coordination Service decision:`, {
+  logger.info(`🎯 Focus Coordination Service decision:`, {
     activeFocusTags: allowedTags,
     reasoning: focusDecision.algorithmReasoning,
     onboarding: focusDecision.onboarding,
@@ -304,14 +308,14 @@ export async function buildAdaptiveSessionSettings() {
 
   if (onboarding) {
     // 🔰 Onboarding mode: Apply user preferences with safety constraints
-    console.log("🔰 Onboarding mode: Applying user preferences with safety caps");
+    logger.info("🔰 Onboarding mode: Applying user preferences with safety caps");
     
     // Apply user session length preference with dynamic onboarding cap
     const userSessionLength = settings.sessionLength;
     const maxSessionLength = SessionLimits.getMaxSessionLength(sessionState);
     if (userSessionLength && userSessionLength > 0) {
       sessionLength = Math.min(userSessionLength, maxSessionLength);
-      console.log(`🔰 User session length preference applied: ${userSessionLength} → capped at ${sessionLength} for onboarding`);
+      logger.info(`🔰 User session length preference applied: ${userSessionLength} → capped at ${sessionLength} for onboarding`);
     }
     
     // Apply user new problems cap with dynamic onboarding limit  
@@ -319,11 +323,11 @@ export async function buildAdaptiveSessionSettings() {
     const maxNewProblems = SessionLimits.getMaxNewProblems(sessionState);
     if (userMaxNewProblems && userMaxNewProblems > 0) {
       numberOfNewProblems = Math.min(userMaxNewProblems, maxNewProblems);
-      console.log(`🔰 User new problems preference applied: ${userMaxNewProblems} → capped at ${numberOfNewProblems} for onboarding`);
+      logger.info(`🔰 User new problems preference applied: ${userMaxNewProblems} → capped at ${numberOfNewProblems} for onboarding`);
     }
     
     // Focus tags already handled by coordination service
-    console.log(`🔰 Focus tags from coordination service: [${allowedTags.join(', ')}] (${focusDecision.reasoning})`);
+    logger.info(`🔰 Focus tags from coordination service: [${allowedTags.join(', ')}] (${focusDecision.reasoning})`);
   } else if (!onboarding) {
     // 🧠 Time gap since last session
     let gapInDays = 999;
@@ -348,17 +352,17 @@ export async function buildAdaptiveSessionSettings() {
       if (recs.sessionLengthAdjustment !== 0) {
         const originalLength = sessionLength;
         sessionLength = Math.max(3, Math.min(8, sessionLength + recs.sessionLengthAdjustment));
-        console.log(`🎯 Interview insight: Session length adjusted from ${originalLength} to ${sessionLength} (transfer accuracy: ${(interviewInsights.transferAccuracy * 100).toFixed(1)}%)`);
+        logger.info(`🎯 Interview insight: Session length adjusted from ${originalLength} to ${sessionLength} (transfer accuracy: ${(interviewInsights.transferAccuracy * 100).toFixed(1)}%)`);
       }
       
       // Handle difficulty adjustment by modifying escape hatch thresholds
       if (recs.difficultyAdjustment !== 0) {
         if (recs.difficultyAdjustment < 0) {
           // Poor interview transfer - be more conservative with difficulty
-          console.log(`🎯 Interview insight: Conservative difficulty due to poor transfer (${(interviewInsights.transferAccuracy * 100).toFixed(1)}% accuracy)`);
+          logger.info(`🎯 Interview insight: Conservative difficulty due to poor transfer (${(interviewInsights.transferAccuracy * 100).toFixed(1)}% accuracy)`);
         } else if (recs.difficultyAdjustment > 0) {
           // Excellent interview transfer - can be more aggressive
-          console.log(`🎯 Interview insight: Aggressive difficulty due to strong transfer (${(interviewInsights.transferAccuracy * 100).toFixed(1)}% accuracy)`);
+          logger.info(`🎯 Interview insight: Aggressive difficulty due to strong transfer (${(interviewInsights.transferAccuracy * 100).toFixed(1)}% accuracy)`);
         }
       }
     }
@@ -366,7 +370,7 @@ export async function buildAdaptiveSessionSettings() {
     // Apply performance-based constraints
     if (gapInDays > 4 || accuracy < 0.5) {
       sessionLength = Math.min(sessionLength, 5);
-      console.log(`🛡️ Performance constraint applied: Session length capped at 5 due to gap (${gapInDays.toFixed(1)} days) or low accuracy (${(accuracy * 100).toFixed(1)}%)`);
+      logger.info(`🛡️ Performance constraint applied: Session length capped at 5 due to gap (${gapInDays.toFixed(1)} days) or low accuracy (${(accuracy * 100).toFixed(1)}%)`);
     }
 
     // Scale new problems based on performance
@@ -384,7 +388,7 @@ export async function buildAdaptiveSessionSettings() {
       const originalNewProblems = numberOfNewProblems;
       numberOfNewProblems = Math.min(numberOfNewProblems, userMaxNewProblems);
       if (originalNewProblems !== numberOfNewProblems) {
-        console.log(`🛡️ User guardrail applied: New problems capped from ${originalNewProblems} to ${numberOfNewProblems}`);
+        logger.info(`🛡️ User guardrail applied: New problems capped from ${originalNewProblems} to ${numberOfNewProblems}`);
       }
     }
 
@@ -392,7 +396,7 @@ export async function buildAdaptiveSessionSettings() {
     if (interviewInsights.hasInterviewData && interviewInsights.recommendations.newProblemsAdjustment !== 0) {
       const originalNewProblems = numberOfNewProblems;
       numberOfNewProblems = Math.max(0, numberOfNewProblems + interviewInsights.recommendations.newProblemsAdjustment);
-      console.log(`🎯 Interview insight: New problems adjusted from ${originalNewProblems} to ${numberOfNewProblems} (transfer performance: ${(interviewInsights.transferAccuracy * 100).toFixed(1)}%)`);
+      logger.info(`🎯 Interview insight: New problems adjusted from ${originalNewProblems} to ${numberOfNewProblems} (transfer performance: ${(interviewInsights.transferAccuracy * 100).toFixed(1)}%)`);
     }
 
     // 🏷️ Focus tags already determined by coordination service
@@ -412,7 +416,7 @@ export async function buildAdaptiveSessionSettings() {
           if (weakTagsInFocus.length > 0) {
             const originalTags = [...allowedTags];
             allowedTags = weakTagsInFocus.slice(0, Math.max(2, Math.ceil(tagCount * focusWeight)));
-            console.log(`🎯 Interview insight: Focusing on weak tags [${allowedTags.join(', ')}] (was [${originalTags.join(', ')}]) due to poor transfer`);
+            logger.info(`🎯 Interview insight: Focusing on weak tags [${allowedTags.join(', ')}] (was [${originalTags.join(', ')}]) due to poor transfer`);
           }
         }
       } else if (focusWeight > 1.0) {
@@ -422,7 +426,7 @@ export async function buildAdaptiveSessionSettings() {
         if (additionalTags.length > 0 && tagsToAdd > 0) {
           const originalTags = [...allowedTags];
           allowedTags = [...allowedTags, ...additionalTags.slice(0, tagsToAdd)];
-          console.log(`🎯 Interview insight: Expanding tags [${allowedTags.join(', ')}] (was [${originalTags.join(', ')}]) due to strong transfer`);
+          logger.info(`🎯 Interview insight: Expanding tags [${allowedTags.join(', ')}] (was [${originalTags.join(', ')}]) due to strong transfer`);
         }
       }
       
@@ -432,7 +436,7 @@ export async function buildAdaptiveSessionSettings() {
     // Update tagIndex for backward compatibility with existing systems
     sessionState.tagIndex = tagCount - 1; // Convert from count to index
 
-    console.log(
+    logger.info(
       `🏷️ Tag exposure from coordination service: ${tagCount}/${focusTags.length} focus tags (coordinated: [${allowedTags.join(', ')}], accuracy: ${(accuracy * 100).toFixed(1)}%)`
     );
 
@@ -465,7 +469,7 @@ export async function buildAdaptiveSessionSettings() {
 
       if (!escapeHatches.activatedEscapeHatches.includes("session-based")) {
         escapeHatches.activatedEscapeHatches.push("session-based");
-        console.log(
+        logger.info(
           "🔓 Session-based escape hatch ACTIVATED: Lowering difficulty promotion threshold from 90% to 80%"
         );
       }
@@ -490,11 +494,11 @@ export async function buildAdaptiveSessionSettings() {
       escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
 
       if (escapeHatchActivated) {
-        console.log(
+        logger.info(
           "🎯 Difficulty cap upgraded via ESCAPE HATCH: Easy → Medium (80% threshold)"
         );
       } else {
-        console.log("🎯 Difficulty cap upgraded: Easy → Medium");
+        logger.info("🎯 Difficulty cap upgraded: Easy → Medium");
       }
     } else if (
       accuracy >= promotionThreshold &&
@@ -507,17 +511,17 @@ export async function buildAdaptiveSessionSettings() {
       escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
 
       if (escapeHatchActivated) {
-        console.log(
+        logger.info(
           "🎯 Difficulty cap upgraded via ESCAPE HATCH: Medium → Hard (80% threshold)"
         );
       } else {
-        console.log("🎯 Difficulty cap upgraded: Medium → Hard");
+        logger.info("🎯 Difficulty cap upgraded: Medium → Hard");
       }
     } else if (
       accuracy >= promotionThreshold &&
       getDifficultyOrder(sessionState.currentDifficultyCap) < getDifficultyOrder(userMaxDifficulty)
     ) {
-      console.log(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.currentDifficultyCap}, Max allowed: ${userMaxDifficulty}`);
+      logger.info(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.currentDifficultyCap}, Max allowed: ${userMaxDifficulty}`);
     }
 
     // Track sessions without promotion for debugging
@@ -535,7 +539,7 @@ export async function buildAdaptiveSessionSettings() {
   
   await StorageService.setSessionState(sessionStateKey, sessionState);
 
-  console.log("🧠 Adaptive Session Config:", {
+  logger.info("🧠 Adaptive Session Config:", {
     sessionLength,
     numberOfNewProblems,
     allowedTags,
@@ -579,7 +583,7 @@ function applySessionLengthPreference(adaptiveLength, userPreferredLength) {
   const result = Math.max(3, Math.min(12, blended));
   
   if (result !== adaptiveLength) {
-    console.log(`🎛️ Session length blended: Adaptive ${adaptiveLength} + User ${userPreferredLength} = ${result}`);
+    logger.info(`🎛️ Session length blended: Adaptive ${adaptiveLength} + User ${userPreferredLength} = ${result}`);
   }
   
   return result;
@@ -590,7 +594,7 @@ export async function getSessionPerformance({
   daysBack = null,
   unmasteredTags = [],
 } = {}) {
-  console.log("🔍 getSessionPerformance", unmasteredTags);
+  logger.info("🔍 getSessionPerformance", unmasteredTags);
   const db = await openDB();
   const unmasteredTagSet = new Set(unmasteredTags);
 
@@ -617,7 +621,7 @@ export async function getSessionPerformance({
     allSessions.sort((a, b) => new Date(a.Date) - new Date(b.Date));
     sessions = allSessions.slice(-recentSessionsLimit);
   }
-  console.log("🔍 sessions", sessions);
+  logger.info("🔍 sessions", sessions);
   const performance = {
     Easy: { attempts: 0, correct: 0, time: 0 },
     Medium: { attempts: 0, correct: 0, time: 0 },
@@ -665,7 +669,7 @@ export async function getSessionPerformance({
   // 🧠 Derive strong + weak tags
   const strongTags = [];
   const weakTags = [];
-  console.log("unmasteredTagSet", unmasteredTagSet);
+  logger.info("unmasteredTagSet", unmasteredTagSet);
   for (let tag in tagStats) {
     if (!unmasteredTagSet.has(tag)) continue;
 
@@ -673,7 +677,7 @@ export async function getSessionPerformance({
     const acc = correct / attempts;
 
     // Optional: Debug line
-    console.log(
+    logger.info(
       `🧪 Evaluating ${tag} — acc: ${acc.toFixed(
         2
       )},correct: ${correct}, attempts: ${attempts}`
@@ -791,14 +795,14 @@ function calculateTagIndexProgression(
     tagCount < focusTagsLength
   ) {
     tagCount = Math.min(tagCount + 2, focusTagsLength); // Jump 2 tags if excellent performance or stuck
-    console.log(
+    logger.info(
       `🏷️ Tag expansion: +2 tags (${
         canExpandQuickly ? "excellent performance" : "stagnation fallback"
       })`
     );
   } else if (canExpandToNext && tagCount < focusTagsLength) {
     tagCount = Math.min(tagCount + 1, focusTagsLength); // Add 1 tag if good performance
-    console.log(
+    logger.info(
       `🏷️ Tag expansion: +1 tag (good ${
         hasGoodAccuracy ? "accuracy" : "efficiency"
       })`
@@ -821,7 +825,7 @@ function calculateTagIndexProgression(
   // Never exceed focus window size or go below 1
   const finalCount = Math.min(Math.max(1, tagCount), focusTagsLength);
 
-  console.log(
+  logger.info(
     `🏷️ Tag progression: index=${currentTagIndex} → count=${finalCount}/${focusTagsLength} (accuracy: ${(
       accuracy * 100
     ).toFixed(1)}%, efficiency: ${(efficiencyScore * 100).toFixed(1)}%)`

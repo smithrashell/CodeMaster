@@ -9,6 +9,8 @@
     "format": "prettier --write \"**/*.+(js|jsx|json|css|md)\"",
     "dev": "webpack --watch --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js",
+    "build:analyze": "webpack --config webpack.prod.js --analyze",
+    "build:stats": "webpack --config webpack.prod.js --json > webpack-stats.json",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -88,6 +90,7 @@
     "monaco-editor-webpack-plugin": "^7.0.1",
     "prettier": "^2.8.8",
     "webpack": "^5.98.0",
+    "webpack-bundle-analyzer": "^4.10.2",
     "webpack-cli": "^5.1.4",
     "webpack-merge": "^5.10.0",
     "ws": "^8.18.1"

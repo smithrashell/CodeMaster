@@ -31,7 +31,7 @@ export function Stats() {
     monthly: null,
     yearly: null,
   });
-  const [breakdownData, setBreakdownData] = useState({
+  const [_breakdownData, setBreakdownData] = useState({
     weekly: null,
     monthly: null,
     yearly: null,
@@ -101,7 +101,7 @@ export function Stats() {
         setBreakdownData({ weekly: [], monthly: [], yearly: [] });
       }
     }
-  }, [appState]);
+  }, [appState, contentOnboardingCompleted]);
 
   // Enhanced data detection logic - check multiple data sources
   const hasData = appState && (

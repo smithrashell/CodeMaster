@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import logger, { debug } from "../../../shared/utils/logger.js";
 import {
   Card,
   Text,
@@ -10,7 +11,6 @@ import {
   Tooltip,
   Stack,
   Title,
-  Divider,
 } from "@mantine/core";
 import CustomMultiSelect from "../shared/CustomMultiSelect";
 import {
@@ -46,49 +46,49 @@ export function FocusAreasSelector() {
 
   // Log when focusAvailability state changes
   useEffect(() => {
-    console.log("🔍 LIFECYCLE: focusAvailability state changed to:", focusAvailability);
-    console.log("🔍 LIFECYCLE: focusAvailability.starterCore after state change:", focusAvailability?.starterCore);
-    console.log("🔍 LIFECYCLE: focusAvailability.tags after state change:", focusAvailability?.tags);
+    debug("🔍 LIFECYCLE: focusAvailability state changed", { focusAvailability });
+    debug("🔍 LIFECYCLE: focusAvailability starterCore after change", { starterCore: focusAvailability?.starterCore });
+    debug("🔍 LIFECYCLE: focusAvailability tags after change", { tags: focusAvailability?.tags });
   }, [focusAvailability]);
 
   const loadData = useCallback(async () => {
-    console.log("🔍 LIFECYCLE: loadData called");
-    console.log("🔍 LIFECYCLE: Current focusAvailability state:", focusAvailability);
+    debug("🔍 LIFECYCLE: loadData called");
+    debug("🔍 LIFECYCLE: Current focusAvailability state", { focusAvailability });
     setLoading(true);
     setError(null);
     
     try {
       // Load available tags for focus (current + preview) via new message handler
-      console.log("🔍 FocusAreasSelector: Calling getAvailableTagsForFocus...");
+      debug("🔍 FocusAreasSelector: Calling getAvailableTagsForFocus");
       const focusData = await new Promise((resolve) => {
         chrome.runtime.sendMessage({ type: "getAvailableTagsForFocus", userId: "default" }, (response) => {
-          console.log("🔍 FocusAreasSelector: Response received:", response);
+          debug("🔍 FocusAreasSelector: Response received", { response });
           if (response?.result) {
-            console.log("🔍 FocusAreasSelector: Response result:", response.result);
+            debug("🔍 FocusAreasSelector: Response result", { result: response.result });
             resolve(response.result);
           } else {
-            console.error("❌ Error from getAvailableTagsForFocus:", response?.error);
+            logger.error("❌ Error from getAvailableTagsForFocus:", response?.error);
             resolve(null);
           }
         });
       });
 
       if (focusData) {
-        console.log("✅ FocusAreasSelector: Setting focusData state:", focusData);
-        console.log("🔍 LIFECYCLE: About to call setFocusAvailability with:", focusData);
-        console.log("🔍 LIFECYCLE: focusData.starterCore:", focusData.starterCore);
-        console.log("🔍 LIFECYCLE: focusData.tags:", focusData.tags);
+        debug("✅ FocusAreasSelector: Setting focusData state", { focusData });
+        debug("🔍 LIFECYCLE: About to call setFocusAvailability", { focusData });
+        debug("🔍 LIFECYCLE: focusData starterCore", { starterCore: focusData.starterCore });
+        debug("🔍 LIFECYCLE: focusData tags", { tags: focusData.tags });
         setFocusAvailability(focusData);
         setCurrentTier(focusData.currentTier || "Unknown");
         
         // Set custom mode if user has overrides, otherwise use system selection
         setShowCustomMode(focusData.userOverrideTags && focusData.userOverrideTags.length > 0);
-        console.log("🔍 FocusAreasSelector: showCustomMode set to:", focusData.userOverrideTags && focusData.userOverrideTags.length > 0);
+        debug("🔍 FocusAreasSelector: showCustomMode set", { showCustomMode: focusData.userOverrideTags && focusData.userOverrideTags.length > 0 });
         
         // Extract available tags for backward compatibility
         const selectableTags = focusData.tags.filter(tag => tag.selectable).map(tag => tag.tagId);
         setAvailableTags(selectableTags);
-        console.log("🔍 FocusAreasSelector: Available tags set:", selectableTags);
+        debug("🔍 FocusAreasSelector: Available tags set", { selectableTags });
       } else {
         // Fallback to original method
         const learningState = await new Promise((resolve) => {
@@ -121,12 +121,12 @@ export function FocusAreasSelector() {
       setSelectedFocusAreas(activeFocusAreas);
       setHasChanges(false);
     } catch (err) {
-      console.error("Error loading focus areas data:", err);
+      logger.error("Error loading focus areas data:", err);
       setError("Failed to load learning data. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [focusAvailability]);
 
   useEffect(() => {
     loadData();
@@ -190,7 +190,7 @@ export function FocusAreasSelector() {
         }
       );
     } catch (err) {
-      console.error("Error saving focus areas:", err);
+      logger.error("Error saving focus areas:", err);
       setError("Failed to save focus areas. Please try again.");
     } finally {
       setSaving(false);
@@ -222,7 +222,7 @@ export function FocusAreasSelector() {
         }
       );
     } catch (err) {
-      console.error("Error resetting focus areas:", err);
+      logger.error("Error resetting focus areas:", err);
       setError("Failed to reset focus areas. Please try again.");
     }
   };
@@ -235,14 +235,14 @@ export function FocusAreasSelector() {
 
   const getTagOptions = () => {
     try {
-      console.log("🔍 getTagOptions called, focusAvailability:", focusAvailability);
+      debug("🔍 getTagOptions called", { focusAvailability });
       
       // ALWAYS return a safe object, even if everything fails
-      const safeReturn = { selectableOptions: [], previewTags: [] };
+      const _safeReturn = { selectableOptions: [], previewTags: [] };
       
       if (!focusAvailability || !focusAvailability.tags || !Array.isArray(focusAvailability.tags)) {
         // Fallback to original logic
-        console.log("🔍 FocusAreasSelector: No focusAvailability.tags, using fallback");
+        debug("🔍 FocusAreasSelector: No focusAvailability tags, using fallback");
         
         // Ensure availableTags and masteredTags are arrays
         const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
@@ -254,15 +254,15 @@ export function FocusAreasSelector() {
           label: tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " "),
         }));
         
-        console.log("🔍 FocusAreasSelector: Using fallback logic, selectableOptions:", mapped);
+        debug("🔍 FocusAreasSelector: Using fallback logic", { selectableOptions: mapped });
         return { selectableOptions: Array.isArray(mapped) ? mapped : [], previewTags: [] };
       }
       
       // Separate selectable tags from preview tags for better UX
-      console.log("🔍 FocusAreasSelector: focusAvailability.tags:", focusAvailability.tags);
+      debug("🔍 FocusAreasSelector: focusAvailability tags", { tags: focusAvailability.tags });
       
       const selectableTags = focusAvailability.tags.filter(tag => tag && tag.selectable) || [];
-      console.log("🔍 FocusAreasSelector: selectableTags:", selectableTags);
+      debug("🔍 FocusAreasSelector: selectableTags", { selectableTags });
       
       const selectableOptions = selectableTags.map(tag => ({
           value: tag.tagId || '',
@@ -271,7 +271,7 @@ export function FocusAreasSelector() {
                  tag.tier === "fundamental" ? "Fundamental Techniques" :
                  "Advanced Techniques"
         })) || [];
-      console.log("🔍 FocusAreasSelector: selectableOptions for MultiSelect:", selectableOptions);
+      debug("🔍 FocusAreasSelector: selectableOptions for MultiSelect", { selectableOptions });
       
       // Preview tags shown separately below
       const previewTags = focusAvailability.tags
@@ -289,7 +289,7 @@ export function FocusAreasSelector() {
       };
       
     } catch (error) {
-      console.error("❌ Error in getTagOptions:", error);
+      logger.error("❌ Error in getTagOptions:", error);
       // Always return safe arrays even on error
       return { selectableOptions: [], previewTags: [] };
     }
@@ -486,12 +486,12 @@ export function FocusAreasSelector() {
         {(() => {
           const tagOptionsResult = getTagOptions() || {};
           const { selectableOptions = [], previewTags = [] } = tagOptionsResult;
-          console.log("🔍 Render: tagOptionsResult:", tagOptionsResult);
-          console.log("🔍 Render: selectableOptions after destructuring:", selectableOptions);
+          debug("🔍 Render: tagOptionsResult", { tagOptionsResult });
+          debug("🔍 Render: selectableOptions after destructuring", { selectableOptions });
           
           // Additional safety check - ensure arrays are valid
           if (!Array.isArray(selectableOptions)) {
-            console.error("❌ Render guard: selectableOptions is not an array:", selectableOptions);
+            logger.error("❌ Render guard: selectableOptions is not an array:", selectableOptions);
             return <Alert color="red">Error loading focus areas. Please reload the page.</Alert>;
           }
           
@@ -499,33 +499,33 @@ export function FocusAreasSelector() {
           // In system mode, show as read-only preview
           
           // Handle brand new users with starter pack
-          console.log("🔍 RENDER: Checking starter pack condition");
-          console.log("🔍 RENDER: focusAvailability:", focusAvailability);
-          console.log("🔍 RENDER: focusAvailability?.starterCore:", focusAvailability?.starterCore);
-          console.log("🔍 RENDER: typeof focusAvailability?.starterCore:", typeof focusAvailability?.starterCore);
-          console.log("🔍 RENDER: Array.isArray(focusAvailability?.starterCore):", Array.isArray(focusAvailability?.starterCore));
+          debug("🔍 RENDER: Checking starter pack condition");
+          debug("🔍 RENDER: focusAvailability", { focusAvailability });
+          debug("🔍 RENDER: focusAvailability starterCore", { starterCore: focusAvailability?.starterCore });
+          debug("🔍 RENDER: typeof focusAvailability starterCore", { type: typeof focusAvailability?.starterCore });
+          debug("🔍 RENDER: Array.isArray(focusAvailability starterCore)", { isArray: Array.isArray(focusAvailability?.starterCore) });
           
           if (focusAvailability?.starterCore?.length > 0) {
-            console.log("🔍 RENDER: Entering starter pack branch");
+            debug("🔍 RENDER: Entering starter pack branch");
             
             // Prepare starter core data with detailed logging
             const starterCoreArray = focusAvailability?.starterCore || [];
-            console.log("🔍 RENDER: starterCoreArray (after || []):", starterCoreArray);
-            console.log("🔍 RENDER: starterCoreArray type:", typeof starterCoreArray);
-            console.log("🔍 RENDER: starterCoreArray isArray:", Array.isArray(starterCoreArray));
+            debug("🔍 RENDER: starterCoreArray (after || [])", { starterCoreArray });
+            debug("🔍 RENDER: starterCoreArray type", { type: typeof starterCoreArray });
+            debug("🔍 RENDER: starterCoreArray isArray", { isArray: Array.isArray(starterCoreArray) });
             
             let starterMultiSelectData;
             try {
               starterMultiSelectData = starterCoreArray.map(tag => {
-                console.log("🔍 RENDER: Mapping starter tag:", tag, "type:", typeof tag);
+                debug("🔍 RENDER: Mapping starter tag", { tag, type: typeof tag });
                 return {
                   value: tag,
                   label: tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " ")
                 };
               });
-              console.log("🔍 RENDER: starterMultiSelectData result:", starterMultiSelectData);
+              debug("🔍 RENDER: starterMultiSelectData result", { starterMultiSelectData });
             } catch (error) {
-              console.error("❌ RENDER: Error mapping starterCore data:", error);
+              logger.error("❌ RENDER: Error mapping starterCore data:", error);
               starterMultiSelectData = [];
             }
             
@@ -565,15 +565,15 @@ export function FocusAreasSelector() {
             );
           }
           
-          console.log("🔍 RENDER: About to render main MultiSelect");
-          console.log("🔍 RENDER: selectableOptions before main MultiSelect:", selectableOptions);
-          console.log("🔍 RENDER: selectableOptions type:", typeof selectableOptions);
-          console.log("🔍 RENDER: selectableOptions isArray:", Array.isArray(selectableOptions));
-          console.log("🔍 RENDER: selectableOptions length:", selectableOptions?.length);
+          debug("🔍 RENDER: About to render main MultiSelect");
+          debug("🔍 RENDER: selectableOptions before main MultiSelect", { selectableOptions });
+          debug("🔍 RENDER: selectableOptions type", { type: typeof selectableOptions });
+          debug("🔍 RENDER: selectableOptions isArray", { isArray: Array.isArray(selectableOptions) });
+          debug("🔍 RENDER: selectableOptions length", { length: selectableOptions?.length });
           
-          console.log("🔍 RENDER: selectedFocusAreas value:", selectedFocusAreas);
-          console.log("🔍 RENDER: selectedFocusAreas type:", typeof selectedFocusAreas);
-          console.log("🔍 RENDER: selectedFocusAreas isArray:", Array.isArray(selectedFocusAreas));
+          debug("🔍 RENDER: selectedFocusAreas value", { selectedFocusAreas });
+          debug("🔍 RENDER: selectedFocusAreas type", { type: typeof selectedFocusAreas });
+          debug("🔍 RENDER: selectedFocusAreas isArray", { isArray: Array.isArray(selectedFocusAreas) });
           
           return (
             <Stack gap="md">

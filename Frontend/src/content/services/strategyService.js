@@ -2,6 +2,8 @@ import ProblemRelationshipService from "../../shared/services/problemRelationshi
 import strategyCacheService from "../../shared/services/StrategyCacheService.js";
 import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
 import chromeMessaging from "./chromeMessagingService.js";
+import { success, debug, data, system } from "../../shared/utils/logger.js";
+import logger from "../../shared/utils/logger.js";
 
 // Fallback strategy data when database is unavailable
 const FALLBACK_STRATEGIES = {
@@ -96,10 +98,7 @@ export class StrategyService {
    */
   static async initializeStrategyData() {
     try {
-      // eslint-disable-next-line no-console
-      console.log(
-        "🔧 CONTENT: Starting strategy data initialization via robust messaging..."
-      );
+      system("🔧 CONTENT: Starting strategy data initialization via robust messaging");
 
       const isLoaded = await chromeMessaging.sendMessage(
         {
@@ -114,19 +113,15 @@ export class StrategyService {
       );
 
       if (isLoaded) {
-        // eslint-disable-next-line no-console
-        console.log("✅ CONTENT: Strategy data already loaded");
+        success("✅ CONTENT: Strategy data already loaded");
         return true;
       }
 
-      // eslint-disable-next-line no-console
-      console.log(
-        "📊 CONTENT: Strategy data initialization handled by background script onboarding..."
-      );
+      data("📊 CONTENT: Strategy data initialization handled by background script onboarding");
 
       return true;
     } catch (error) {
-      console.error("❌ CONTENT: Error initializing strategy data:", error);
+      logger.error("❌ CONTENT: Error initializing strategy data:", error);
       return false;
     }
   }
@@ -143,7 +138,7 @@ export class StrategyService {
 
     try {
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         `🔍 CONTENT: Getting strategy for tag: "${tag}" via robust messaging`
       );
 
@@ -174,7 +169,7 @@ export class StrategyService {
       const fallback = FALLBACK_STRATEGIES[tag.toLowerCase()];
       if (fallback) {
         // eslint-disable-next-line no-console
-        console.log(
+        logger.info(
           `🔄 CONTENT: Using local fallback strategy for tag "${tag}"`
         );
         performanceMonitor.endQuery(
@@ -187,14 +182,14 @@ export class StrategyService {
 
 
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         `❌ CONTENT: No strategy found for "${tag}" (all fallbacks exhausted)`
       );
 
       performanceMonitor.endQuery(queryContext, true, 0);
       return null;
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ CONTENT: Error getting strategy for tag "${tag}":`,
         error
       );
@@ -203,7 +198,7 @@ export class StrategyService {
       const fallback = FALLBACK_STRATEGIES[tag.toLowerCase()];
       if (fallback) {
         // eslint-disable-next-line no-console
-        console.log(
+        logger.info(
           `🔄 CONTENT: Using local fallback strategy for tag "${tag}" (after error)`
         );
         performanceMonitor.endQuery(
@@ -240,22 +235,20 @@ export class StrategyService {
         cacheKey,
         async () => {
           // eslint-disable-next-line no-console
-          console.log("📋 Loading strategies for tags (parallel):", tags);
+          data("📋 Loading strategies for tags (parallel)", { tags });
 
           // Process all tags in parallel
           const strategyPromises = tags.map(async (tag) => {
             try {
               const strategy = await this.getStrategyForTag(tag);
               if (strategy) {
-                // eslint-disable-next-line no-console
-                console.log(`✅ Loaded strategy for [${tag}]`);
+                success(`✅ Loaded strategy for [${tag}]`);
                 return { tag, strategy };
               }
-              // eslint-disable-next-line no-console
-              console.log(`❌ No strategy found for [${tag}]`);
+              debug(`❌ No strategy found for [${tag}]`);
               return null;
             } catch (error) {
-              console.error(`❌ Error loading strategy for [${tag}]:`, error);
+              logger.error(`❌ Error loading strategy for [${tag}]:`, error);
               return null;
             }
           });
@@ -271,7 +264,7 @@ export class StrategyService {
           });
 
           // eslint-disable-next-line no-console
-          console.log(
+          logger.info(
             "📋 Final strategies loaded (parallel):",
             Object.keys(strategies)
           );
@@ -286,7 +279,7 @@ export class StrategyService {
       );
       return result;
     } catch (error) {
-      console.error("❌ Error getting strategies for tags:", error);
+      logger.error("❌ Error getting strategies for tags:", error);
       performanceMonitor.endQuery(queryContext, false, 0, error);
       return {};
     }
@@ -317,7 +310,7 @@ export class StrategyService {
       }
 
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         `🧠 Starting intelligent hint selection for ${difficulty} problem with tags:`,
         problemTags
       );
@@ -343,7 +336,7 @@ export class StrategyService {
       performanceMonitor.endQuery(queryContext, true, result.length);
       return result;
     } catch (error) {
-      console.error("❌ Error getting contextual hints:", error);
+      logger.error("❌ Error getting contextual hints:", error);
       performanceMonitor.endQuery(queryContext, false, 0, error);
       return [];
     }
@@ -363,7 +356,7 @@ export class StrategyService {
   ) {
     try {
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         "🔍 HINT DEBUG: Starting buildOptimalHintSelection with tags:",
         problemTags
       );
@@ -377,7 +370,7 @@ export class StrategyService {
         HINT_CONFIG.DIFFICULTY_CONFIG["Medium"];
 
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         `🎯 Building ${difficulty}-aware hint selection using natural cutoff tiers`
       );
 
@@ -387,7 +380,7 @@ export class StrategyService {
       // First, create contextual hints for multi-tag combinations
       if (problemTags.length > 1) {
         // eslint-disable-next-line no-console
-        console.log(
+        logger.info(
           `🔍 HINT DEBUG: Creating contextual hints for ${problemTags.length} tags`
         );
 
@@ -425,7 +418,7 @@ export class StrategyService {
 
               hints.push(contextualHint);
               // eslint-disable-next-line no-console
-              console.log(
+              logger.info(
                 `✅ HINT DEBUG: Added contextual hint for "${primaryTag}" + "${relatedTag}":`,
                 contextualHint
               );
@@ -456,7 +449,7 @@ export class StrategyService {
 
           hints.push(generalHint);
           // eslint-disable-next-line no-console
-          console.log(
+          logger.info(
             `✅ HINT DEBUG: Added general hint for "${tag}":`,
             generalHint
           );
@@ -470,7 +463,7 @@ export class StrategyService {
 
       return finalHints;
     } catch (error) {
-      console.error("❌ Error building optimal hint selection:", error);
+      logger.error("❌ Error building optimal hint selection:", error);
       return [];
     }
   }
@@ -580,7 +573,7 @@ export class StrategyService {
     try {
       // BYPASS CACHE TEMPORARILY - Direct call to test background script communication
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         `🔍 CONTENT: Getting primer for tag "${tag}" (cache bypassed)`
       );
 
@@ -588,7 +581,7 @@ export class StrategyService {
 
       if (!strategyData) {
         // eslint-disable-next-line no-console
-        console.log(`❌ CONTENT: No strategy data found for tag "${tag}"`);
+        logger.info(`❌ CONTENT: No strategy data found for tag "${tag}"`);
         performanceMonitor.endQuery(queryContext, true, 0);
         return null;
       }
@@ -602,7 +595,7 @@ export class StrategyService {
       };
 
       // eslint-disable-next-line no-console
-      console.log(`✅ CONTENT: Created primer for tag "${tag}":`, result);
+      logger.info(`✅ CONTENT: Created primer for tag "${tag}":`, result);
 
       performanceMonitor.endQuery(
         queryContext,
@@ -611,7 +604,7 @@ export class StrategyService {
       );
       return result;
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ CONTENT: Error getting primer for tag "${tag}":`,
         error
       );
@@ -633,7 +626,7 @@ export class StrategyService {
     try {
       // BYPASS CACHE TEMPORARILY - Direct parallel processing to test background script communication
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         `🔍 CONTENT: Getting primers for ${tags.length} tags (cache bypassed):`,
         tags
       );
@@ -643,7 +636,7 @@ export class StrategyService {
         try {
           return await this.getTagPrimer(tag);
         } catch (error) {
-          console.error(
+          logger.error(
             `❌ CONTENT: Error getting primer for tag "${tag}":`,
             error
           );
@@ -655,7 +648,7 @@ export class StrategyService {
       const result = primers.filter((primer) => primer !== null);
 
       // eslint-disable-next-line no-console
-      console.log(
+      logger.info(
         `✅ CONTENT: Got ${result.length} primers out of ${tags.length} tags:`,
         result.map((p) => p.tag)
       );
@@ -663,7 +656,7 @@ export class StrategyService {
       performanceMonitor.endQuery(queryContext, true, result.length);
       return result;
     } catch (error) {
-      console.error("❌ CONTENT: Error getting tag primers:", error);
+      logger.error("❌ CONTENT: Error getting tag primers:", error);
       performanceMonitor.endQuery(queryContext, false, 0, error);
       return [];
     }
@@ -682,14 +675,14 @@ export class StrategyService {
       if (response.status === "success") {
         return response.data;
       } else {
-        console.error(
+        logger.error(
           "❌ CONTENT: Background script error checking data status:",
           response.error
         );
         return false;
       }
     } catch (error) {
-      console.error("❌ CONTENT: Error checking strategy data:", error);
+      logger.error("❌ CONTENT: Error checking strategy data:", error);
       return false;
     }
   }
@@ -702,10 +695,10 @@ export class StrategyService {
     try {
       // For now, return fallback tags as this method isn't used in the main flow
       // Could add a background script handler if needed later
-      console.warn("⚠️ CONTENT: getAllStrategyTags using fallback data only");
+      logger.warn("⚠️ CONTENT: getAllStrategyTags using fallback data only");
       return Object.keys(FALLBACK_STRATEGIES);
     } catch (error) {
-      console.error("❌ CONTENT: Error getting all strategy tags:", error);
+      logger.error("❌ CONTENT: Error getting all strategy tags:", error);
       return [];
     }
   }
@@ -724,24 +717,24 @@ const COMMON_TAGS = [
 
 const preWarmCache = async () => {
   try {
-    console.log("🔥 CONTENT: Pre-warming strategy cache for common tags...");
+    logger.info("🔥 CONTENT: Pre-warming strategy cache for common tags...");
 
     // Fire and forget - don't wait for these
     COMMON_TAGS.forEach(async (tag) => {
       try {
         await StrategyService.getStrategyForTag(tag);
       } catch (error) {
-        console.warn(`⚠️ Pre-warm failed for ${tag}:`, error.message);
+        logger.warn(`⚠️ Pre-warm failed for ${tag}:`, error.message);
       }
     });
 
-    console.log(
+    logger.info(
       "🔥 CONTENT: Pre-warm cache initiated for",
       COMMON_TAGS.length,
       "common tags"
     );
   } catch (error) {
-    console.warn("⚠️ Pre-warm cache failed:", error);
+    logger.warn("⚠️ Pre-warm cache failed:", error);
   }
 };
 
@@ -752,7 +745,7 @@ StrategyService.initializeStrategyData()
     setTimeout(preWarmCache, 1000); // Delay to avoid blocking main thread
   })
   .catch((error) => {
-    console.error("❌ Strategy initialization failed, using fallbacks:", error);
+    logger.error("❌ Strategy initialization failed, using fallbacks:", error);
   });
 
 // Expose cache and performance utilities

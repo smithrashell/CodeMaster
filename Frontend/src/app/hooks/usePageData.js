@@ -75,13 +75,13 @@ export function usePageData(pageType, options = {}) {
       immediate: !shouldUseMockDashboard(),
       onSuccess: (response) => {
         if (!shouldUseMockDashboard()) {
-          console.info(`📊 ${pageType} data received:`, response.result);
+          // Page data received
           setData(response.result);
           setLoading(false);
         }
       },
       onError: (error) => {
-        console.error(`❌ ${pageType} data error:`, error);
+        // Page data error
         setError(error);
         setLoading(false);
       },
@@ -94,12 +94,11 @@ export function usePageData(pageType, options = {}) {
       if (shouldUseMockDashboard()) {
         try {
           setLoading(true);
-          console.log(`🎭 Using mock data for ${pageType}`);
           const mockData = await config.mockFunction();
           setData(mockData);
           setError(null);
         } catch (error) {
-          console.error(`Error loading mock data for ${pageType}:`, error);
+          // Mock data loading error
           setError(error);
         } finally {
           setLoading(false);
@@ -108,7 +107,7 @@ export function usePageData(pageType, options = {}) {
     };
 
     initializeMockData();
-  }, [pageType, config.mockFunction]);
+  }, [pageType, config]);
 
   // Refresh function
   const refresh = async () => {

@@ -1,3 +1,4 @@
+import logger from "../../../shared/utils/logger.js";
 import { Container, Grid, Title, Card, Text, Select, Slider, Switch, Badge, Group, Button, Stack, ScrollArea } from "@mantine/core";
 // TODO: Re-enable when edit tags dialog is fixed
 // import CustomMultiSelect from "../../components/shared/CustomMultiSelect";
@@ -65,7 +66,7 @@ export function Goals() {
   useEffect(() => {
     if (appState?.learningPlan) {
       // Update cadence settings with real user data, maintaining system defaults as fallbacks
-      setCadenceSettings(prev => ({
+      setCadenceSettings(_prev => ({
         sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek || 5,
         sessionLength: appState.learningPlan.cadence?.sessionLength || 5,
         flexibleSchedule: appState.learningPlan.cadence?.flexibleSchedule ?? true
@@ -84,7 +85,7 @@ export function Goals() {
       const sessionState = getSessionState();
       const sessionLimits = SessionLimits.getSessionLimits(sessionState);
       
-      setGuardrails(prev => ({
+      setGuardrails(_prev => ({
         minReviewRatio: appState.learningPlan.guardrails?.minReviewRatio || 30,
         maxNewProblems: sessionLimits.maxNewProblems, // Onboarding-aware: 4 during onboarding, 8 after
         difficultyCapEnabled: sessionLimits.isOnboarding, // Enable difficulty cap during onboarding
@@ -135,7 +136,7 @@ export function Goals() {
         }
       });
     }
-  }, [appState, isOnboarding]);
+  }, [appState, isOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Helper functions for status determination
   const getAccuracyStatus = (accuracy) => {
@@ -253,15 +254,15 @@ export function Goals() {
     return appState?.statistics?.averageHints || 0;
   };
 
-  const getTodaysReviewProblems = (appState) => {
-    const today = new Date().toDateString();
+  const getTodaysReviewProblems = (_appState) => {
+    const _today = new Date().toDateString();
     // Count problems solved today that were review problems
     // This would need integration with session data to identify review vs new problems
     // For now, return 0 as we don't have detailed session breakdown
     return 0;
   };
 
-  const getSkillProgress = (appState, focusTag) => {
+  const getSkillProgress = (_appState, _focusTag) => {
     // Count problems solved in the specific focus area
     // This would need integration with attempt data filtered by tag
     // For now, return 0 as we don't have tag-specific attempt data easily accessible
@@ -381,7 +382,7 @@ export function Goals() {
         if (response?.status === "success") {
           chrome.runtime.sendMessage({ type: "clearSettingsCache" });
         } else {
-          console.error("Failed to save settings");
+          logger.error("Failed to save settings");
         }
       }
     );

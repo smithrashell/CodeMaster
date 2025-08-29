@@ -149,49 +149,6 @@ function getCallStack() {
   return stack.split('\n').slice(3).join('\n'); // Remove Error, getCallStack, and indexedDB.open from stack
 }
 
-/**
- * Get database creation log
- */
-export function getDatabaseCreationLog() {
-  return [...dbCreationLog];
-}
-
-/**
- * Clear database creation log
- */
-export function clearDatabaseCreationLog() {
-  dbCreationLog = [];
-}
-
-/**
- * Get database creation summary
- */
-export function getDatabaseCreationSummary() {
-  const summary = {};
-  
-  dbCreationLog.forEach(attempt => {
-    const key = attempt.databaseName;
-    if (!summary[key]) {
-      summary[key] = {
-        databaseName: key,
-        attemptCount: 0,
-        contexts: new Set(),
-        timestamps: []
-      };
-    }
-    
-    summary[key].attemptCount++;
-    summary[key].contexts.add(attempt.context.type);
-    summary[key].timestamps.push(attempt.timestamp);
-  });
-  
-  // Convert Sets to arrays for JSON serialization
-  Object.values(summary).forEach(db => {
-    db.contexts = Array.from(db.contexts);
-  });
-  
-  return summary;
-}
 
 // Auto-install debugger when this module is imported
 if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {

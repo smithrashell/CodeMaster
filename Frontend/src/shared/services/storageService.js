@@ -1,6 +1,6 @@
 import { dbHelper } from "../db/index.js";
 
-const openDB = dbHelper.openDB;
+
 
 /**
  * 🚨 CRITICAL: Detect content script context to prevent database access

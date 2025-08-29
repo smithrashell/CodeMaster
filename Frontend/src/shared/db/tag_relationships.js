@@ -244,7 +244,7 @@ export async function getNextFiveTagsFromNextTier(masteryData) {
     const tierTags = await new Promise((resolve, reject) => {
       tierRequest.onsuccess = () =>
         resolve(tierRequest.result.map((tag) => tag.id));
-      tierRequest.onerror = () => reject(request.error);
+      tierRequest.onerror = () => reject(tierRequest.error);
     });
 
     // Get new tags that are NOT in tag_mastery

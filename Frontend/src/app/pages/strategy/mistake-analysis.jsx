@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Grid, Card, Title, Text, Stack, Group, Badge, Button, Box } from "@mantine/core";
 import { useThemeColors } from "../../../shared/hooks/useThemeColors";
 import { usePageData } from "../../hooks/usePageData";

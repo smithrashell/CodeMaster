@@ -7,6 +7,7 @@
 
 import DataIntegritySchemas from "./DataIntegritySchemas.js";
 import ErrorReportService from "../../services/ErrorReportService.js";
+import logger from "../logger.js";
 
 export class SchemaValidator {
   // Validation result severity levels
@@ -144,7 +145,7 @@ export class SchemaValidator {
 
     for (let i = 0; i < dataArray.length; i++) {
       if (reportProgress && i % 100 === 0) {
-        console.log(`Validating batch progress: ${i}/${dataArray.length}`);
+        logger.info("Validation batch progress", { progress: i, total: dataArray.length, context: 'schema_validation' });
       }
 
       const itemResult = this.validateData(storeName, dataArray[i], options);
@@ -161,13 +162,10 @@ export class SchemaValidator {
         batchResult.valid = false;
 
         if (stopOnFirstError || batchResult.summary.errors >= maxErrors) {
-          console.warn(
-            `Stopping batch validation: ${
-              stopOnFirstError
-                ? "first error encountered"
-                : "max errors reached"
-            }`
-          );
+          logger.warn("Stopping batch validation", { 
+            reason: stopOnFirstError ? "first error encountered" : "max errors reached",
+            context: 'schema_validation'
+          });
           break;
         }
       }
@@ -874,7 +872,7 @@ export class SchemaValidator {
         },
       });
     } catch (reportError) {
-      console.warn("Failed to report validation errors:", reportError);
+      logger.warn("Failed to report validation errors", { error: reportError, context: 'schema_validation' });
     }
   }
 

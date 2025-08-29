@@ -20,9 +20,6 @@ import TimeGranularChartCard from "../charts/TimeGranularChartCard";
 
 /* ---------- helpers ---------- */
 
-// map mastery → color based on new color scheme
-const getMasteryColor = (pct) => (pct >= 80 ? "var(--cm-table-mastery-good)" : pct >= 50 ? "var(--cm-table-mastery-medium)" : "var(--cm-table-mastery-low)");
-
 // map mastery → mantine color names for badges
 const getMantineMasteryColor = (pct) => (pct >= 80 ? "green" : pct >= 50 ? "yellow" : "red");
 
