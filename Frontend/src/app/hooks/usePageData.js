@@ -12,6 +12,70 @@ import {
   getMockMistakeAnalysisData,
 } from "../services/mockDashboardService.js";
 
+// Page configuration mapping
+const getPageConfig = () => ({
+  'learning-progress': {
+    mockFunction: getMockLearningProgressData,
+    messageType: 'getLearningProgressData'
+  },
+  'goals': {
+    mockFunction: getMockGoalsData,
+    messageType: 'getGoalsData'
+  },
+  'stats': {
+    mockFunction: getMockStatsData,
+    messageType: 'getStatsData'
+  },
+  'session-history': {
+    mockFunction: getMockSessionHistoryData,
+    messageType: 'getSessionHistoryData'
+  },
+  'productivity-insights': {
+    mockFunction: getMockProductivityInsightsData,
+    messageType: 'getProductivityInsightsData'
+  },
+  'tag-mastery': {
+    mockFunction: getMockTagMasteryData,
+    messageType: 'getTagMasteryData'
+  },
+  'learning-path': {
+    mockFunction: getMockLearningPathData,
+    messageType: 'getLearningPathData'
+  },
+  'mistake-analysis': {
+    mockFunction: getMockMistakeAnalysisData,
+    messageType: 'getMistakeAnalysisData'
+  }
+});
+
+// Mock data loading helper
+const loadMockData = async (config, setData, setLoading, setError) => {
+  try {
+    setLoading(true);
+    const mockData = await config.mockFunction();
+    setData(mockData);
+    setError(null);
+  } catch (error) {
+    setError(error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Chrome message handlers
+const createChromeMessageHandlers = (setData, setLoading, setError) => ({
+  onSuccess: (response) => {
+    if (!shouldUseMockDashboard()) {
+      setData(response.result);
+      setLoading(false);
+    }
+  },
+  onError: (error) => {
+    setError(error);
+    setLoading(false);
+  }
+});
+
 /**
  * Custom hook for page-specific data fetching
  * Automatically handles mock vs real service selection
@@ -21,41 +85,7 @@ export function usePageData(pageType, options = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Map page types to mock functions and Chrome message types
-  const pageConfig = {
-    'learning-progress': {
-      mockFunction: getMockLearningProgressData,
-      messageType: 'getLearningProgressData'
-    },
-    'goals': {
-      mockFunction: getMockGoalsData,
-      messageType: 'getGoalsData'
-    },
-    'stats': {
-      mockFunction: getMockStatsData,
-      messageType: 'getStatsData'
-    },
-    'session-history': {
-      mockFunction: getMockSessionHistoryData,
-      messageType: 'getSessionHistoryData'
-    },
-    'productivity-insights': {
-      mockFunction: getMockProductivityInsightsData,
-      messageType: 'getProductivityInsightsData'
-    },
-    'tag-mastery': {
-      mockFunction: getMockTagMasteryData,
-      messageType: 'getTagMasteryData'
-    },
-    'learning-path': {
-      mockFunction: getMockLearningPathData,
-      messageType: 'getLearningPathData'
-    },
-    'mistake-analysis': {
-      mockFunction: getMockMistakeAnalysisData,
-      messageType: 'getMistakeAnalysisData'
-    }
-  };
+  const pageConfig = getPageConfig();
 
   const config = pageConfig[pageType];
   if (!config) {
@@ -73,18 +103,7 @@ export function usePageData(pageType, options = {}) {
     [], 
     {
       immediate: !shouldUseMockDashboard(),
-      onSuccess: (response) => {
-        if (!shouldUseMockDashboard()) {
-          // Page data received
-          setData(response.result);
-          setLoading(false);
-        }
-      },
-      onError: (error) => {
-        // Page data error
-        setError(error);
-        setLoading(false);
-      },
+      ...createChromeMessageHandlers(setData, setLoading, setError)
     }
   );
 
@@ -92,17 +111,7 @@ export function usePageData(pageType, options = {}) {
   useEffect(() => {
     const initializeMockData = async () => {
       if (shouldUseMockDashboard()) {
-        try {
-          setLoading(true);
-          const mockData = await config.mockFunction();
-          setData(mockData);
-          setError(null);
-        } catch (error) {
-          // Mock data loading error
-          setError(error);
-        } finally {
-          setLoading(false);
-        }
+        await loadMockData(config, setData, setLoading, setError);
       }
     };
 
@@ -112,18 +121,8 @@ export function usePageData(pageType, options = {}) {
   // Refresh function
   const refresh = async () => {
     if (shouldUseMockDashboard()) {
-      try {
-        setLoading(true);
-        const mockData = await config.mockFunction();
-        setData(mockData);
-        setError(null);
-      } catch (error) {
-        setError(error);
-      } finally {
-        setLoading(false);
-      }
+      await loadMockData(config, setData, setLoading, setError);
     } else {
-      // Use Chrome message refetch
       chromeRefetch();
     }
   };
