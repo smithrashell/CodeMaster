@@ -97,20 +97,20 @@ const getProblemSlugFromUrl = (url) => {
 
 const Main = () => {
   logger.info("🚀 MAIN COMPONENT MOUNTED - This should only happen once!", new Date().toISOString());
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { pathname } = useLocation();
   const { isAppOpen, setIsAppOpen } = useNav();
   const [problemTitle, setProblemTitle] = useState("");
   const [problemFound, setProblemFound] = useState(false);
   const [loading, setLoading] = useState(false);
   const [problemData, setProblemData] = useState(null);
-  const [theme, setTheme] = useState("light");
+  const [_theme, _setTheme] = useState("light");
   const [currentProblem, setCurrentProblem] = useState(
     getProblemSlugFromUrl(window.location.href)
   ); // Initialize with the current URL slug
-  const [settings, setSettings] = useState(null);
+  const [_settings, _setSettings] = useState(null);
   const [showContentOnboarding, setShowContentOnboarding] = useState(false);
-  const [contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
+  const [_contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
   
   // Page-specific tour management
   const { showTour: showPageTour, tourConfig: pageTourConfig, onTourComplete: handlePageTourComplete, onTourClose: handlePageTourClose } = usePageTour();
@@ -183,9 +183,9 @@ const Main = () => {
   }, []);
   // New approach using custom hook
   const {
-    data: onboardingData,
-    loading: onboardingLoading,
-    error: onboardingError,
+    data: _onboardingData,
+    loading: _onboardingLoading,
+    error: _onboardingError,
   } = useChromeMessage({ type: "onboardingUserIfNeeded" }, [], {
     onSuccess: (response) => {
       if (response) {
@@ -279,7 +279,7 @@ const Main = () => {
       logger.info("📍 Current internal route:", pathname);
     }
   }, [currentProblem, fetchProblemData, pathname]);
-  const backupIndexedDB = async () => {
+  const _backupIndexedDB = async () => {
     try {
       logger.info("📌 Sending backup request to background script...");
       chrome.runtime.sendMessage({ type: "getBackupFile" }, (response) => {
@@ -381,7 +381,7 @@ const Main = () => {
   }, []);
 
   const shouldShowNav = pathname === "/";
-  const hideBackup = true;
+  const _hideBackup = true;
   
   return (
     <div className={`cm-app-container ${isAppOpen ? "cm-app-open" : "cm-app-closed"}`}>
