@@ -1,4 +1,3 @@
-import ProblemRelationshipService from "../../shared/services/problemRelationshipService.js";
 import strategyCacheService from "../../shared/services/StrategyCacheService.js";
 import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
 import chromeMessaging from "./chromeMessagingService.js";
