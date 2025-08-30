@@ -132,7 +132,7 @@ export class MonitoringInitializer {
   /**
    * Initialize error reporting service
    */
-  static async _initializeErrorReporting(config) {
+  static _initializeErrorReporting(config) {
     if (!config.errorReporting.enabled) {
       logger.debug("Error reporting disabled", { section: "monitoring_init" });
       return;

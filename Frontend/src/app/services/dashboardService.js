@@ -529,7 +529,7 @@ export async function getFocusAreaAnalytics(options = {}) {
   }
 }
 
-async function calculateFocusAreaPerformance(focusAreas, attempts, allProblems, problemTagsMap, standardProblemsMap) {
+function calculateFocusAreaPerformance(focusAreas, attempts, allProblems, problemTagsMap, standardProblemsMap) {
   const performance = {};
 
   for (const focusArea of focusAreas) {
@@ -669,7 +669,7 @@ function calculateImprovementVelocity(attempts) {
   return isNaN(slope) ? 0 : slope * 100; // Convert to percentage points
 }
 
-async function calculateFocusAreaProgress(focusAreas, _sessions, attempts, _allProblems, problemTagsMap, learningState) {
+function calculateFocusAreaProgress(focusAreas, _sessions, attempts, _allProblems, problemTagsMap, learningState) {
   const progressTracking = {};
 
   // Group sessions by time periods
@@ -888,7 +888,7 @@ function calculateCurrentStreak(attempts) {
   return currentStreak;
 }
 
-async function calculateFocusAreaEffectiveness(focusAreas, performance, progressTracking, learningState) {
+function calculateFocusAreaEffectiveness(focusAreas, performance, progressTracking, learningState) {
   const effectiveness = {};
 
   for (const focusArea of focusAreas) {
@@ -1336,7 +1336,7 @@ export function clearFocusAreaAnalyticsCache() {
 /**
  * Generate session analytics data structure matching mock service format
  */
-export async function generateSessionAnalytics(sessions, attempts) {
+export function generateSessionAnalytics(sessions, attempts) {
   const enhancedSessions = sessions.map((session, index) => {
     // Calculate session metrics from attempts
     const sessionAttempts = attempts.filter(attempt => 
@@ -2347,7 +2347,7 @@ export async function getProductivityInsightsData(options = {}) {
 /**
  * Calculate reflection insights from attempt data
  */
-async function calculateReflectionInsights(dashboardData) {
+function calculateReflectionInsights(dashboardData) {
   try {
     const allAttempts = dashboardData.attempts || [];
     
@@ -2836,7 +2836,7 @@ function calculateTransferMetrics(sessions, attempts) {
 /**
  * Calculate session health metrics using classification system
  */
-async function calculateSessionHealthMetrics(sessions) {
+function calculateSessionHealthMetrics(sessions) {
   try {
     // This would typically call the background script to classify sessions
     // For now, we'll simulate the classification
