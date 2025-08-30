@@ -325,7 +325,7 @@ export const dbHelper = {
 
         // ✅ **NEW: Ensure 'settings' store exists**
         if (!db.objectStoreNames.contains("settings")) {
-          let settingsStore = db.createObjectStore("settings", {
+          let _settingsStore = db.createObjectStore("settings", {
             keyPath: "id",
           });
 

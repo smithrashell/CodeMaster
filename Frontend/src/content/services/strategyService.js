@@ -351,7 +351,7 @@ export class StrategyService {
   static async buildOptimalHintSelection(
     problemTags,
     difficulty = "Medium",
-    problemId = null
+    _problemId = null
   ) {
     try {
       // eslint-disable-next-line no-console
