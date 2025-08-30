@@ -38,7 +38,7 @@ const dbUpdate = async (storeName, id, record) => {
   return await updateRecord(storeName, id, record);
 };
 
-const dbGetAll = async (storeName) => {
+const _dbGetAll = async (storeName) => {
   if (isContentScript) {
     return await databaseProxy.getAllFromStore(storeName);
   }
