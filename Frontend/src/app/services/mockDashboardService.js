@@ -322,7 +322,7 @@ export class MockDashboardService {
   /**
    * Get mock data for specific chart components
    */
-  async getChartData(chartType, userType = null) {
+  getChartData(chartType, userType = null) {
     const targetUserType = userType || this.currentUserType;
     const mockData = generateMockData(targetUserType);
 
