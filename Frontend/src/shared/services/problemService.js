@@ -518,7 +518,7 @@ export const ProblemService = {
    * @param {string} attemptId - The attempt ID.
    * @returns {Object} - The updated session object.
    */
-  async addOrUpdateProblemInSession(session, problem, attemptId) {
+  async addOrUpdateProblemInSession(session, problem, _attemptId) {
     const existingProblem = findProblemInSession(session, problem);
 
     if (existingProblem) {
@@ -547,7 +547,7 @@ const findProblemInSession = (session, problemData) => {
  * @param {Array} array - The array to shuffle.
  * @returns {Array} - The shuffled array.
  */
-const shuffleArray = (array) => {
+const _shuffleArray = (array) => {
   let shuffled = array.slice();
   for (let i = shuffled.length - 1; i > 0; i--) {
     let j = Math.floor(Math.random() * (i + 1));
@@ -815,7 +815,7 @@ ProblemService.generateSessionWithRetry = async function (
     sessionLength = 5,
     difficulty = "Medium",
     tags = [],
-    includeReview = true,
+    _includeReview = true,
     streaming = false,
     onProgress = null,
     timeout = 20000,

@@ -148,7 +148,7 @@ export class InterviewService {
    * @param {Object} options - Additional options
    * @returns {Promise<Array>} Interview session problems
    */
-  static async createInterviewSession(mode, options = {}) {
+  static async createInterviewSession(mode, _options = {}) {
     const config = this.getInterviewConfig(mode);
     const settings = await StorageService.getSettings();
     
@@ -305,7 +305,7 @@ export class InterviewService {
    * @param {Object} tagBaselines - Tag performance baselines
    * @returns {number} Speed delta (negative = faster, positive = slower)
    */
-  static calculateSpeedDelta(attempts, tagBaselines) {
+  static calculateSpeedDelta(attempts, _tagBaselines) {
     const validAttempts = attempts.filter(a => 
       a.timeSpent && 
       a.interviewSignals && 
