@@ -199,12 +199,6 @@ const ProbSubmission = () => {
     <form 
       onSubmit={handleSubmit(onSubmit)} 
       className="form"
-      onClick={() => console.log("🔍 Form container clicked")}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          console.log("🔍 Form container activated via keyboard");
-        }
-      }}
       style={{ 
         pointerEvents: 'auto',
         padding: '2px',
