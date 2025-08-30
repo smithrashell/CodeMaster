@@ -9,7 +9,7 @@ export function ElementHighlighter({
   highlightType = "spotlight",
   isActive = false,
 }) {
-  const [targetElement, setTargetElement] = useState(null);
+  const [_targetElement, setTargetElement] = useState(null);
   const [elementRect, setElementRect] = useState(null);
 
   useEffect(() => {
