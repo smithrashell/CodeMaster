@@ -56,7 +56,7 @@ export class DataIntegrityCheckService {
       includePerformanceMetrics = true,
       priority = this.PRIORITIES.MEDIUM,
       saveToHistory = true,
-      generateReport = true,
+      _generateReport = true,
     } = options;
 
     logger.info(

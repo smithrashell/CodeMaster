@@ -81,7 +81,7 @@ function ThemeProviderWrapper({ children }) {
   const [animationsEnabled, setAnimationsEnabled] = useState(
     DEFAULT_THEME_SETTINGS.animationsEnabled
   );
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [_isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
   // Log provider lifecycle

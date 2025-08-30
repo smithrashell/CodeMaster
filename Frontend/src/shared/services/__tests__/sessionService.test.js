@@ -6,14 +6,10 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
-  getSessionPerformance,
 } from "../../db/sessions";
 import { updateProblemRelationships } from "../../db/problem_relationships";
-import { calculateTagMastery, getTagMastery } from "../../db/tag_mastery";
-import { storeSessionAnalytics } from "../../db/sessionAnalytics";
-import { fetchProblemById } from "../../db/standard_problems";
+import { calculateTagMastery } from "../../db/tag_mastery";
 import { ProblemService } from "../problemService";
-import { StorageService } from "../storageService";
 
 // Mock the database modules
 jest.mock("../../db/sessions");
@@ -190,7 +186,7 @@ describe("SessionService", () => {
 
     it("should return null when session is completed", async () => {
       // Arrange
-      const mockSession = {
+      const _mockSession = {
         id: "completed-session",
         status: "completed",
         problems: [1, 2],
