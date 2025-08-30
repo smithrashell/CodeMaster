@@ -73,9 +73,9 @@ function setupBlockedEventHandlers() {
  * Creates a backup of critical stores before migration
  * SIMPLIFIED VERSION to avoid additional database connections
  * @param {Array<string>} stores - Specific stores to backup (default: all critical)
- * @returns {Promise<string>} Backup ID
+ * @returns {string} Backup ID
  */
-export async function createMigrationBackup(_stores = CRITICAL_STORES) {
+export function createMigrationBackup(_stores = CRITICAL_STORES) {
   const backupId = `migration_backup_${Date.now()}_v${dbHelper.version}`;
 
   try {
@@ -94,9 +94,9 @@ export async function createMigrationBackup(_stores = CRITICAL_STORES) {
 /**
  * Validates database integrity before migration
  * SIMPLIFIED VERSION to avoid additional database connections
- * @returns {Promise<Object>} Validation results
+ * @returns {Object} Validation results
  */
-export async function validateDatabaseIntegrity() {
+export function validateDatabaseIntegrity() {
   const results = {
     valid: true,
     issues: [],

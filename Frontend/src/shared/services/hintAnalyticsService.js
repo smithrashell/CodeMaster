@@ -261,7 +261,7 @@ export class HintAnalyticsService {
     return patterns;
   }
 
-  static async _generateRecommendations(analytics) {
+  static _generateRecommendations(analytics) {
     const recommendations = [];
 
     // Analyze effectiveness data for recommendations
