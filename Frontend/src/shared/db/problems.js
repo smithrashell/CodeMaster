@@ -277,7 +277,7 @@ export async function getProblemByDescription(description, _slug) {
 
     if (!store.indexNames.contains("by_ProblemDescription")) {
       logger.error("❌ Error: Index 'by_ProblemDescription' does not exist.");
-      reject("Index missing: by_ProblemDescription");
+      reject(new Error("Index missing: by_ProblemDescription"));
       return;
     }
 
