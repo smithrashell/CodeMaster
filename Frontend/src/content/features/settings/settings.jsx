@@ -447,7 +447,7 @@ const Settings = () => {
           <ToggleSelectRemainders
             reminder={workingSettings.reminder}
             onChange={(updatedReminder) =>
-              setSettings((prevSettings) => ({
+              setSettings((_prevSettings) => ({
                 ...workingSettings,
                 reminder: { ...workingSettings.reminder, ...updatedReminder },
               }))
