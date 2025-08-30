@@ -1,10 +1,10 @@
 import  { useState} from "react";
 
 const TimerButton = () => {
-  const [time, setTime] = useState(0);
-  const [content, setContent] = useState("");
+  const [time, _setTime] = useState(0);
+  const [content, _setContent] = useState("");
   const [timerRunning, setTimerRunning] = useState(false);
-  const [limit, setLimit] = useState(0);
+  const [limit, _setLimit] = useState(0);
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
 
