@@ -29,7 +29,7 @@ export async function buildProblemRelationships() {
   let { problemGraph, removedRelationships } =
     calculateAndTrimProblemRelationships(relationshipConfig);
   console.log("problems2", problems);
-  let { updatedProblemGraph, updatedRemovedRelationships } =
+  let { updatedProblemGraph, updatedRemovedRelationships: _updatedRemovedRelationships } =
     restoreMissingProblemRelationships({
       problems,
       problemGraph,
