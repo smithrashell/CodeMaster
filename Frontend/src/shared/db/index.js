@@ -664,7 +664,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<any>} Record data or null
    */
-  async getRecord(storeName, key, options = {}) {
+  getRecord(storeName, key, options = {}) {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `getRecord_${storeName}`,
@@ -698,7 +698,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<any>} Record key
    */
-  async putRecord(storeName, data, options = {}) {
+  putRecord(storeName, data, options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `putRecord_${storeName}`,
@@ -731,7 +731,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<void>}
    */
-  async deleteRecord(storeName, key, options = {}) {
+  deleteRecord(storeName, key, options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `deleteRecord_${storeName}`,
@@ -764,7 +764,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<number>} Record count
    */
-  async countRecords(storeName, range = null, options = {}) {
+  countRecords(storeName, range = null, options = {}) {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `countRecords_${storeName}`,
@@ -798,7 +798,7 @@ export const dbHelper = {
    * @param {Object} options - Retry and streaming configuration
    * @returns {Promise<Array>} All records
    */
-  async getAllRecords(storeName, range = null, options = {}) {
+  getAllRecords(storeName, range = null, options = {}) {
     const {
       timeout = indexedDBRetry.bulkTimeout,
       operationName = `getAllRecords_${storeName}`,
