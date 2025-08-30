@@ -51,7 +51,7 @@ const setCachedResponse = (cacheKey, data) => {
 export const clearChromeMessageCache = (requestType) => {
   if (requestType) {
     // Clear specific request type caches
-    for (const [key, value] of messageCache.entries()) {
+    for (const [key, _value] of messageCache.entries()) {
       if (key.includes(`"type":"${requestType}"`)) {
         messageCache.delete(key);
       }
