@@ -59,7 +59,7 @@ const TimerBanner = (_props) => {
   // Use AccurateTimer for all time operations
   const timerRef = useRef(null);
   const intervalIdRef = useRef(null);
-  const previousURLRef = useRef(currentURL);
+  const _previousURLRef = useRef(_currentURL);
 
   // Memoize processed problem tags to prevent re-renders
   const processedTags = useMemo(() => {
@@ -129,7 +129,7 @@ const TimerBanner = (_props) => {
 
   // Listen for keyboard events to capture first keystroke
   useEffect(() => {
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (_event) => {
       // Only record if we're in an interview mode and timer is running
       if (sessionType && sessionType !== 'standard' && timerRef.current?.isRunning) {
         recordFirstKeystroke();
@@ -141,15 +141,15 @@ const TimerBanner = (_props) => {
   }, [recordFirstKeystroke, sessionType]);
 
   // Memoize callback functions to prevent re-renders
-  const handleHintOpen = useCallback((data) => {
+  const handleHintOpen = useCallback((_data) => {
     // Track popover open event for analytics
   }, []);
 
-  const handleHintClose = useCallback((data) => {
+  const handleHintClose = useCallback((_data) => {
     // Track popover close event for analytics
   }, []);
 
-  const handleHintClick = useCallback((hintData) => {
+  const handleHintClick = useCallback((_hintData) => {
     // Track individual hint clicks for usage analytics and interview signals
     if (sessionType && sessionType !== 'standard' && timerRef.current?.isRunning) {
       const currentTime = timerRef.current.getElapsedTime() * 1000; // Convert to milliseconds
@@ -177,9 +177,9 @@ const TimerBanner = (_props) => {
 
   // Initialize timer when limits are received
   const {
-    data: limitsData,
-    loading,
-    error,
+    data: _limitsData,
+    loading: _loading,
+    error: _error,
   } = useChromeMessage(
     state?.LeetCodeID
       ? {
