@@ -406,7 +406,7 @@ export class DataIntegrityCheckService {
       const attempts = await this.getAllStoreData(db, "attempts");
 
       const problemsWithAttempts = new Set(attempts.map((a) => a.problemId));
-      const problemsInDb = new Set(problems.map((p) => p.leetCodeID));
+      const _problemsInDb = new Set(problems.map((p) => p.leetCodeID));
 
       // Find problems with attempts but zero attempt stats
       for (const problem of problems) {
@@ -790,7 +790,7 @@ export class DataIntegrityCheckService {
     const {
       quickCheckInterval = this.INTERVALS.FREQUENT,
       fullCheckInterval = this.INTERVALS.DAILY,
-      realTimeInterval = this.INTERVALS.REAL_TIME,
+      _realTimeInterval = this.INTERVALS.REAL_TIME,
       autoRepair = false,
     } = config;
 
