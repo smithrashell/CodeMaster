@@ -83,7 +83,7 @@ export class ChromeMessagingService {
    * @param {number} timeout - Timeout in milliseconds
    * @returns {Promise<any>} Response data
    */
-  async sendSingleMessage(message, timeout) {
+  sendSingleMessage(message, timeout) {
     return new Promise((resolve, reject) => {
       // Extended timeout to test if operations can complete
       const timer = setTimeout(() => {
