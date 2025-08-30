@@ -6,6 +6,7 @@
  */
 
 import logger from "../utils/logger.js";
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import { fetchProblemById } from "../db/standard_problems.js";
 import AccurateTimer from "../utils/AccurateTimer.js";

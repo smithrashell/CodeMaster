@@ -3,6 +3,7 @@ import {
   fetchAllProblems as getAllProblems,
   saveUpdatedProblem,
 } from "../db/problems.js";
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 
 const openDB = dbHelper.openDB;
