@@ -690,7 +690,7 @@ export class StrategyService {
    * Get all available strategy tags
    * @returns {string[]} Array of all tag names with strategy data
    */
-  static async getAllStrategyTags() {
+  static getAllStrategyTags() {
     try {
       // For now, return fallback tags as this method isn't used in the main flow
       // Could add a background script handler if needed later
@@ -714,7 +714,7 @@ const COMMON_TAGS = [
   "dynamic programming",
 ];
 
-const preWarmCache = async () => {
+const preWarmCache = () => {
   try {
     logger.info("🔥 CONTENT: Pre-warming strategy cache for common tags...");
 
