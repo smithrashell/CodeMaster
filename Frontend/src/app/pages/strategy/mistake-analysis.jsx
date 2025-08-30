@@ -50,7 +50,7 @@ function FeedbackItem({ icon, title, note, meta }) {
 
 export function MistakeAnalysis() {
   const { data: appState } = usePageData('mistake-analysis');
-  const colors = useThemeColors();
+  const _colors = useThemeColors();
   const [errorPatterns, setErrorPatterns] = useState([]);
   const [strugglingTags, setStrugglingTags] = useState([]);
   const [sessionInsights, setSessionInsights] = useState([]);
