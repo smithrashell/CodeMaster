@@ -599,7 +599,7 @@ export async function fetchAdditionalProblems(
   }
 }
 
-async function getProblemSequenceScore(
+async function _getProblemSequenceScore(
   problemId,
   unmasteredTagSet,
   tierTagSet
