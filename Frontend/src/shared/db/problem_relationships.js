@@ -38,7 +38,7 @@ export const weakenProblemRelationship = async (problemId1, _problemId2) => {
         store.put(entry);
         resolve(entry);
       } else {
-        reject("No relationship found");
+        reject(new Error("No relationship found"));
       }
     };
     request.onerror = () => reject(request.error);
