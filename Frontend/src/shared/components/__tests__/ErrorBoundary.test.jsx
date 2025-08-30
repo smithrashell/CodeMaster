@@ -10,7 +10,6 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MantineProvider } from "@mantine/core";
 import ErrorBoundary from "../ErrorBoundary";
-import ErrorReportService from "../../services/ErrorReportService";
 
 // Mock the error notification system
 jest.mock("../../utils/errorNotifications", () => ({

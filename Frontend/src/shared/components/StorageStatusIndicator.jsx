@@ -7,7 +7,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  IconDatabase,
   IconAlertTriangle,
   IconCheck,
   IconX,
