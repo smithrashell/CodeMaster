@@ -3,7 +3,6 @@ import "../../css/theme.css";
 import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
 import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
 import { useNav } from "../../../shared/provider/navprovider.jsx";
-import { DoubleNavbar } from "../../../shared/components/DoubleNavbar.jsx";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ContentOnboardingTour } from "../../components/onboarding";
@@ -12,10 +11,7 @@ import { usePageTour } from "../../components/onboarding/usePageTour";
 import {
   checkContentOnboardingStatus,
   completeContentOnboarding,
-  resetContentOnboarding,
-  getResumeStep,
 } from "../../../shared/services/onboardingService";
-import { shouldUseMockDashboard } from "../../../app/config/mockConfig.js";
 import logger from "../../../shared/utils/logger.js";
 
 // Inline SVG Logo Component
