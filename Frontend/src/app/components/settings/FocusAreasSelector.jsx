@@ -44,6 +44,100 @@ export function FocusAreasSelector() {
   const [error, setError] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // Helper functions
+  const getTagMasteryProgress = (tagName) => {
+    const tagData = masteryData.find((tag) => tag.tag === tagName);
+    if (!tagData || tagData.totalAttempts === 0) return 0;
+    return Math.round((tagData.successfulAttempts / tagData.totalAttempts) * 100);
+  };
+
+  const getTagOptions = () => {
+    try {
+      debug("🔍 getTagOptions called", { focusAvailability });
+      
+      if (!focusAvailability || !focusAvailability.tags || !Array.isArray(focusAvailability.tags)) {
+        debug("🔍 FocusAreasSelector: No focusAvailability tags, using fallback");
+        
+        const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
+        const safeMasteredTags = Array.isArray(masteredTags) ? masteredTags : [];
+        
+        const filtered = safeAvailableTags.filter((tag) => !safeMasteredTags.includes(tag));
+        const mapped = filtered.map((tag) => ({
+          value: tag,
+          label: tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " "),
+        }));
+        
+        return { selectableOptions: Array.isArray(mapped) ? mapped : [], previewTags: [] };
+      }
+
+      const selectableOptions = [];
+      const previewTags = [];
+      
+      if (Array.isArray(focusAvailability.tags)) {
+        focusAvailability.tags.forEach((tagInfo) => {
+          const tagName = typeof tagInfo === 'string' ? tagInfo : tagInfo?.tag;
+          if (!tagName) return;
+          
+          const isSelectable = typeof tagInfo === 'string' || (tagInfo?.reason !== 'preview-locked');
+          const progress = getTagMasteryProgress(tagName);
+          
+          const option = {
+            value: tagName,
+            label: tagName.charAt(0).toUpperCase() + tagName.slice(1).replace(/[-_]/g, " "),
+            reason: typeof tagInfo === 'object' ? tagInfo.reason : 'available',
+            progress,
+          };
+          
+          if (isSelectable) {
+            selectableOptions.push(option);
+          } else {
+            previewTags.push(option);
+          }
+        });
+      }
+      
+      return { selectableOptions: Array.isArray(selectableOptions) ? selectableOptions : [], previewTags: Array.isArray(previewTags) ? previewTags : [] };
+    } catch (error) {
+      logger.error("Error in getTagOptions", error);
+      return { selectableOptions: [], previewTags: [] };
+    }
+  };
+
+  const renderSelectedTagBadges = () => {
+    if (!Array.isArray(selectedFocusAreas) || selectedFocusAreas.length === 0) {
+      return (
+        <Text size="sm" c="dimmed">
+          No focus areas selected
+        </Text>
+      );
+    }
+
+    return (
+      <Group gap="xs">
+        {selectedFocusAreas.map((tag) => {
+          const progress = getTagMasteryProgress(tag);
+          return (
+            <Tooltip
+              key={tag}
+              label={`${tag}: ${progress}% mastery`}
+              position="top"
+            >
+              <Badge
+                variant="light"
+                color={progress >= 70 ? "green" : progress >= 40 ? "blue" : "gray"}
+                leftSection={
+                  progress >= 70 ? <IconTrophy size={12} /> : null
+                }
+              >
+                {tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " ")}
+              </Badge>
+            </Tooltip>
+          );
+        })}
+      </Group>
+    );
+  };
+
   // Log when focusAvailability state changes
   useEffect(() => {
     debug("🔍 LIFECYCLE: focusAvailability state changed", { focusAvailability });
@@ -227,108 +321,6 @@ export function FocusAreasSelector() {
     }
   };
 
-  const getTagMasteryProgress = (tagName) => {
-    const tagData = masteryData.find((tag) => tag.tag === tagName);
-    if (!tagData || tagData.totalAttempts === 0) return 0;
-    return Math.round((tagData.successfulAttempts / tagData.totalAttempts) * 100);
-  };
-
-  const getTagOptions = () => {
-    try {
-      debug("🔍 getTagOptions called", { focusAvailability });
-      
-      // ALWAYS return a safe object, even if everything fails
-      const _safeReturn = { selectableOptions: [], previewTags: [] };
-      
-      if (!focusAvailability || !focusAvailability.tags || !Array.isArray(focusAvailability.tags)) {
-        // Fallback to original logic
-        debug("🔍 FocusAreasSelector: No focusAvailability tags, using fallback");
-        
-        // Ensure availableTags and masteredTags are arrays
-        const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
-        const safeMasteredTags = Array.isArray(masteredTags) ? masteredTags : [];
-        
-        const filtered = safeAvailableTags.filter((tag) => !safeMasteredTags.includes(tag));
-        const mapped = filtered.map((tag) => ({
-          value: tag,
-          label: tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " "),
-        }));
-        
-        debug("🔍 FocusAreasSelector: Using fallback logic", { selectableOptions: mapped });
-        return { selectableOptions: Array.isArray(mapped) ? mapped : [], previewTags: [] };
-      }
-      
-      // Separate selectable tags from preview tags for better UX
-      debug("🔍 FocusAreasSelector: focusAvailability tags", { tags: focusAvailability.tags });
-      
-      const selectableTags = focusAvailability.tags.filter(tag => tag && tag.selectable) || [];
-      debug("🔍 FocusAreasSelector: selectableTags", { selectableTags });
-      
-      const selectableOptions = selectableTags.map(tag => ({
-          value: tag.tagId || '',
-          label: tag.reason === "preview-unlocked" ? `${tag.name || 'Unknown'} (Preview)` : (tag.name || 'Unknown'),
-          group: tag.tier === "core" ? "Core Concepts" : 
-                 tag.tier === "fundamental" ? "Fundamental Techniques" :
-                 "Advanced Techniques"
-        })) || [];
-      debug("🔍 FocusAreasSelector: selectableOptions for MultiSelect", { selectableOptions });
-      
-      // Preview tags shown separately below
-      const previewTags = focusAvailability.tags
-        .filter(tag => tag && tag.reason === "preview-locked")
-        .map(tag => ({
-          tagId: tag.tagId || '',
-          name: tag.name || 'Unknown',
-          tier: tag.tier || 'unknown',
-          reason: tag.reason || 'preview-locked'
-        })) || [];
-      
-      return { 
-        selectableOptions: Array.isArray(selectableOptions) ? selectableOptions : [], 
-        previewTags: Array.isArray(previewTags) ? previewTags : [] 
-      };
-      
-    } catch (error) {
-      logger.error("❌ Error in getTagOptions:", error);
-      // Always return safe arrays even on error
-      return { selectableOptions: [], previewTags: [] };
-    }
-  };
-
-  const renderSelectedTagBadges = () => {
-    if (selectedFocusAreas.length === 0) {
-      return (
-        <Text size="sm" c="dimmed">
-          No focus areas selected. System will use adaptive tag selection.
-        </Text>
-      );
-    }
-
-    return (
-      <Group gap="xs">
-        {selectedFocusAreas.map((tag) => {
-          const progress = getTagMasteryProgress(tag);
-          const isMastered = masteredTags.includes(tag);
-          
-          return (
-            <Tooltip 
-              key={tag} 
-              label={`${progress}% mastery (${isMastered ? "Mastered" : "In Progress"})`}
-            >
-              <Badge
-                color={isMastered ? "green" : progress >= 80 ? "yellow" : progress >= 60 ? "blue" : "gray"}
-                variant="light"
-                leftSection={isMastered ? <IconTrophy size={12} /> : null}
-              >
-                {tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " ")}
-                {!isMastered && ` (${progress}%)`}
-              </Badge>
-            </Tooltip>
-          );
-        })}
-      </Group>
-    );
-  };
 
   if (loading) {
     return (
