@@ -916,9 +916,9 @@ function normalizeTags(tags) {
  * @param {array} allProblems - All standard problems
  * @param {array} allTagsInCurrentTier - Tags in current tier
  * @param {Set} usedProblemIds - Already used problem IDs
- * @returns {Promise<Array>} Selected problems
+ * @returns {Array} Selected problems
  */
-async function selectProblemsForTag(
+function selectProblemsForTag(
   tag,
   count,
   difficultyAllowance,
@@ -1066,7 +1066,7 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object|null>} Problem data or null
  */
-export async function getProblemWithRetry(problemId, options = {}) {
+export function getProblemWithRetry(problemId, options = {}) {
   const {
     timeout = indexedDBRetry.quickTimeout,
     operationName = "getProblem",
@@ -1107,7 +1107,7 @@ export async function getProblemWithRetry(problemId, options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<boolean>} True if problem exists, false otherwise
  */
-export async function checkDatabaseForProblemWithRetry(
+export function checkDatabaseForProblemWithRetry(
   problemId,
   options = {}
 ) {
@@ -1152,7 +1152,7 @@ export async function checkDatabaseForProblemWithRetry(
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object>} Result of add operation
  */
-export async function addProblemWithRetry(problemData, options = {}) {
+export function addProblemWithRetry(problemData, options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
     operationName = "addProblem",
@@ -1235,7 +1235,7 @@ export async function addProblemWithRetry(problemData, options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object>} Save result
  */
-export async function saveUpdatedProblemWithRetry(problem, options = {}) {
+export function saveUpdatedProblemWithRetry(problem, options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
     operationName = "saveUpdatedProblem",
@@ -1268,7 +1268,7 @@ export async function saveUpdatedProblemWithRetry(problem, options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Array>} Box level counts
  */
-export async function countProblemsByBoxLevelWithRetry(options = {}) {
+export function countProblemsByBoxLevelWithRetry(options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
     operationName = "countProblemsByBoxLevel",
@@ -1313,7 +1313,7 @@ export async function countProblemsByBoxLevelWithRetry(options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Array>} All problems
  */
-export async function fetchAllProblemsWithRetry(options = {}) {
+export function fetchAllProblemsWithRetry(options = {}) {
   const {
     timeout = indexedDBRetry.bulkTimeout,
     operationName = "fetchAllProblems",
@@ -1351,7 +1351,7 @@ export async function fetchAllProblemsWithRetry(options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object|null>} Problem with official difficulty
  */
-export async function getProblemWithOfficialDifficultyWithRetry(
+export function getProblemWithOfficialDifficultyWithRetry(
   leetCodeID,
   options = {}
 ) {
