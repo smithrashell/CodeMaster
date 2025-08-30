@@ -161,7 +161,7 @@ export class AlertingService {
   /**
    * Check performance health metrics
    */
-  static async checkPerformanceHealth() {
+  static checkPerformanceHealth() {
     try {
       const summary = performanceMonitor.getPerformanceSummary();
 
@@ -270,7 +270,7 @@ export class AlertingService {
   /**
    * Check crash patterns for systemic issues
    */
-  static async checkCrashPatterns() {
+  static checkCrashPatterns() {
     try {
       // This would integrate with CrashReporter if available
       if (window.CrashReporter) {
