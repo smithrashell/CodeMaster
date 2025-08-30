@@ -32,8 +32,8 @@ describe("ProblemService", () => {
   describe("getProblemByDescription", () => {
     beforeEach(() => {
       // Functions are already mocked via jest.mock() - just clear them
-      (standardProblems.getProblemFromStandardProblems as jest.Mock).mockClear();
-      (problemsDb.checkDatabaseForProblem as jest.Mock).mockClear();
+      standardProblems.getProblemFromStandardProblems.mockClear();
+      problemsDb.checkDatabaseForProblem.mockClear();
     });
 
     it("should return problem from problems store when found in both stores", async () => {
@@ -119,9 +119,9 @@ describe("ProblemService", () => {
   describe("addOrUpdateProblem", () => {
     beforeEach(() => {
       // Functions are already mocked via jest.mock() - just clear them
-      (problemsDb.checkDatabaseForProblem as jest.Mock).mockClear();
-      (problemsDb.addProblem as jest.Mock).mockClear();
-      (AttemptsService.addAttempt as jest.Mock).mockClear();
+      problemsDb.checkDatabaseForProblem.mockClear();
+      problemsDb.addProblem.mockClear();
+      AttemptsService.addAttempt.mockClear();
     });
 
     it("should add attempt when problem exists", async () => {
@@ -178,7 +178,7 @@ describe("ProblemService", () => {
 
   describe("createSession", () => {
     beforeEach(() => {
-      sessionsDb.buildAdaptiveSessionSettings = jest.fn();
+      sessionsDb.buildAdaptiveSessionSettings.mockClear();
       jest.spyOn(ProblemService, "fetchAndAssembleSessionProblems");
     });
 
@@ -221,8 +221,8 @@ describe("ProblemService", () => {
       jest.clearAllMocks();
 
       // Setup database mocks
-      problemsDb.fetchAllProblems = jest.fn();
-      problemsDb.fetchAdditionalProblems = jest.fn();
+      problemsDb.fetchAllProblems.mockClear();
+      problemsDb.fetchAdditionalProblems.mockClear();
       ScheduleService.getDailyReviewSchedule = jest.fn();
 
       // Setup reasoning service spy
@@ -383,7 +383,7 @@ describe("ProblemService", () => {
 
   describe("addProblemReasoningToSession", () => {
     beforeEach(() => {
-      tagMasteryDb.getTagMastery = jest.fn();
+      tagMasteryDb.getTagMastery.mockClear();
       ProblemReasoningService.generateSessionReasons = jest.fn();
       jest.spyOn(ProblemService, "buildUserPerformanceContext");
 
@@ -524,7 +524,7 @@ describe("ProblemService Retry-Enabled Methods", () => {
 
   describe("addOrUpdateProblemWithRetry", () => {
     beforeEach(() => {
-      problemsDb.addProblemWithRetry = jest.fn();
+      problemsDb.addProblemWithRetry.mockClear();
     });
 
     it("should successfully add problem with retry logic", async () => {
@@ -588,9 +588,9 @@ describe("ProblemService Retry-Enabled Methods", () => {
 
   describe("getProblemByDescriptionWithRetry", () => {
     beforeEach(() => {
-      standardProblems.getProblemFromStandardProblems = jest.fn();
-      problemsDb.checkDatabaseForProblemWithRetry = jest.fn();
-      problemsDb.getProblemWithRetry = jest.fn();
+      standardProblems.getProblemFromStandardProblems.mockClear();
+      problemsDb.checkDatabaseForProblemWithRetry.mockClear();
+      problemsDb.getProblemWithRetry.mockClear();
     });
 
     it("should find problem with retry logic", async () => {
@@ -639,7 +639,7 @@ describe("ProblemService Retry-Enabled Methods", () => {
 
   describe("getAllProblemsWithRetry", () => {
     beforeEach(() => {
-      problemsDb.fetchAllProblemsWithRetry = jest.fn();
+      problemsDb.fetchAllProblemsWithRetry.mockClear();
     });
 
     it("should fetch all problems with retry configuration", async () => {
