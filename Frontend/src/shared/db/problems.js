@@ -262,7 +262,7 @@ export async function saveUpdatedProblem(problem) {
  * @param {string} description - The problem description.
  * @returns {Promise<Object|null>} - The problem object or null if not found.
  */
-export async function getProblemByDescription(description, slug) {
+export async function getProblemByDescription(description, _slug) {
   logger.info("📌 getProblemByDescription called with:", description);
 
   if (!description) {
@@ -466,7 +466,7 @@ export async function fetchAllProblems() {
   const cursorRequest = objectStore.openCursor();
   const problems = [];
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     cursorRequest.onsuccess = function (event) {
       const cursor = event.target.result;
 
