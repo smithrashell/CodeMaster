@@ -55,7 +55,7 @@ const ProbDetail = ({ isLoading }) => {
     setShowSkip(!routeState?.problemFound);
   }, [routeState?.problemFound]);
 
-  const handleClose = () => {
+  const _handleClose = () => {
     setIsAppOpen(false);
   };
 
