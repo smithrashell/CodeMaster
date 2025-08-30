@@ -23,6 +23,7 @@ import {
   reassessBoxLevel,
   evaluateAttempts,
 } from "../leitnerSystem.js";
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
 import { updateStabilityFSRS } from "../../db/problems.js";
 

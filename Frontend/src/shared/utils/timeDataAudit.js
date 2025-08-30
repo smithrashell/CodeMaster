@@ -8,6 +8,7 @@
 
 import timeMigration from "./timeMigration.js";
 import AccurateTimer from "./AccurateTimer.js";
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 
 /**
