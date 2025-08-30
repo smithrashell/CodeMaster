@@ -17,7 +17,7 @@ export async function getProblemFromStandardProblems(slug) {
 
       if (!objectStore.indexNames.contains("by_slug")) {
         logger.error("❌ Index 'by_slug' not found in 'standard_problems'.");
-        return reject("Index 'by_slug' not found.");
+        return reject(new Error("Index 'by_slug' not found."));
       }
 
       const index = objectStore.index("by_slug");
@@ -43,7 +43,7 @@ export async function getProblemFromStandardProblems(slug) {
           "❌ Error querying standard_problems:",
           event.target.error
         );
-        reject("Failed to retrieve the problem: " + event.target.error);
+        reject(new Error("Failed to retrieve the problem: " + event.target.error));
       };
     });
   } catch (error) {
@@ -88,7 +88,7 @@ export async function updateStandardProblemsFromData(problems) {
 
       transaction.onerror = (event) => {
         logger.error("❌ Transaction failed:", event.target.error);
-        reject("Transaction failed: " + event.target.error);
+        reject(new Error("Transaction failed: " + event.target.error));
       };
     });
   } catch (error) {
@@ -139,7 +139,7 @@ export async function updateStandardProblems(jsonFilePath) {
 
       transaction.onerror = (event) => {
         logger.error("❌ Transaction error:", event.target.error);
-        reject("Transaction failed: " + event.target.error);
+        reject(new Error("Transaction failed: " + event.target.error));
       };
     });
   } catch (error) {
