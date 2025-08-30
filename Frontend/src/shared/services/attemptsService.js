@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import {  getMostRecentAttempt } from "../db/attempts.js";
 import { SessionService } from "../services/sessionService.js";

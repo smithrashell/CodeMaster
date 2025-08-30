@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import { getTagRelationships } from "../db/tag_relationships.js";
 import { getTagMastery } from "../db/tag_mastery.js";

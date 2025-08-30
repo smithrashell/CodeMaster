@@ -3,6 +3,7 @@
  * Handles problem-to-problem similarity data for enhanced hint selection
  */
 
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 
 /**
