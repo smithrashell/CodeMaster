@@ -134,7 +134,7 @@ async function calculateLimits(attempts) {
     Hard: Math.max(newLimits.hard + buffer, idealLimits.hard),
   };
 
-  await saveAllToStore(db, "limits", [limitObject]);
+  await saveAllToStore("limits", [limitObject]);
   return limitObject;
 }
 
