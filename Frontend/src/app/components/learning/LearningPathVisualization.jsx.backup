@@ -1,0 +1,644 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Text, Group, ActionIcon } from '@mantine/core';
+import { IconZoomIn, IconZoomOut, IconHome, IconLock, IconLockOpen } from '@tabler/icons-react';
+
+// LearningPathVisualization Component - Interactive Network Learning Path with Pan/Zoom/Drag
+export function LearningPathVisualization({ pathData, onNodeClick }) {
+  const svgRef = useRef(null);
+  const containerRef = useRef(null);
+  const [hoveredNode, setHoveredNode] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // Pan/Zoom State
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 800, height: 480 });
+  const [zoom, setZoom] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
+  const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
+  const [draggedNode, setDraggedNode] = useState(null);
+  const [nodePositions, setNodePositions] = useState({});
+  const [hoveredConnection, setHoveredConnection] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState(null);
+  const [isNodesLocked, setIsNodesLocked] = useState(true);
+
+  // Define tag relationships and positions for the network layout with weights
+  const tagRelationships = React.useMemo(() => ({
+    'array': { 
+      prerequisites: [], 
+      unlocks: [
+        { tag: 'hash-table', weight: 85, description: 'Arrays are fundamental for hash table implementations' },
+        { tag: 'two-pointers', weight: 90, description: 'Array manipulation is core to two-pointer techniques' }
+      ], 
+      position: { x: 100, y: 200 } 
+    },
+    'hash-table': { 
+      prerequisites: ['array'], 
+      unlocks: [
+        { tag: 'string', weight: 75, description: 'Hash tables optimize string processing algorithms' },
+        { tag: 'dynamic-programming', weight: 60, description: 'Hash tables help memoization in DP solutions' }
+      ], 
+      position: { x: 250, y: 150 } 
+    },
+    'two-pointers': { 
+      prerequisites: ['array'], 
+      unlocks: [
+        { tag: 'binary-search', weight: 70, description: 'Two pointers help understand binary search mechanics' },
+        { tag: 'sliding-window', weight: 95, description: 'Sliding window is an advanced two-pointer pattern' }
+      ], 
+      position: { x: 250, y: 250 } 
+    },
+    'string': { 
+      prerequisites: ['hash-table'], 
+      unlocks: [
+        { tag: 'dynamic-programming', weight: 80, description: 'String DP problems are common and build on string fundamentals' }
+      ], 
+      position: { x: 400, y: 100 } 
+    },
+    'binary-search': { 
+      prerequisites: ['two-pointers'], 
+      unlocks: [
+        { tag: 'tree', weight: 85, description: 'Binary search concepts apply directly to tree traversal' }
+      ], 
+      position: { x: 400, y: 200 } 
+    },
+    'sliding-window': { 
+      prerequisites: ['two-pointers'], 
+      unlocks: [
+        { tag: 'dynamic-programming', weight: 65, description: 'Some DP problems use sliding window optimizations' }
+      ], 
+      position: { x: 400, y: 300 } 
+    },
+    'dynamic-programming': { 
+      prerequisites: ['string', 'hash-table', 'sliding-window'], 
+      unlocks: [
+        { tag: 'graph', weight: 75, description: 'Graph DP problems combine both concepts effectively' }
+      ], 
+      position: { x: 550, y: 200 } 
+    },
+    'stack': { 
+      prerequisites: [], 
+      unlocks: [
+        { tag: 'tree', weight: 80, description: 'Stack-based tree traversal is essential for tree mastery' },
+        { tag: 'graph', weight: 70, description: 'DFS in graphs commonly uses stack data structure' }
+      ], 
+      position: { x: 100, y: 350 } 
+    },
+    'queue': { 
+      prerequisites: ['stack'], 
+      unlocks: [
+        { tag: 'tree', weight: 75, description: 'BFS tree traversal requires queue understanding' },
+        { tag: 'graph', weight: 85, description: 'BFS graph algorithms are queue-dependent' }
+      ], 
+      position: { x: 250, y: 350 } 
+    },
+    'tree': { 
+      prerequisites: ['binary-search', 'stack'], 
+      unlocks: [
+        { tag: 'graph', weight: 90, description: 'Trees are specialized graphs - direct skill transfer' }
+      ], 
+      position: { x: 400, y: 400 } 
+    },
+    'graph': { 
+      prerequisites: ['dynamic-programming', 'tree', 'queue'], 
+      unlocks: [], 
+      position: { x: 700, y: 300 } 
+    }
+  }), []);
+
+  // Initialize node positions with tag relationships data
+  useEffect(() => {
+    const positions = {};
+    Object.entries(tagRelationships).forEach(([tag, data]) => {
+      positions[tag] = { ...data.position };
+    });
+    setNodePositions(positions);
+  }, [tagRelationships]);
+
+  // Track theme changes for reactive background updates
+  useEffect(() => {
+    const updateTheme = () => {
+      const currentDarkMode = document.body.getAttribute('data-theme') === 'dark';
+      setIsDarkMode(currentDarkMode);
+    };
+
+    // Initial theme detection
+    updateTheme();
+
+    // Listen for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          updateTheme();
+        }
+      });
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Pan/Zoom Event Handlers
+  const handleMouseDown = useCallback((e) => {
+    const startPos = { x: e.clientX, y: e.clientY };
+    setDragStartPos(startPos);
+    setIsDragging(false);
+    
+    if (e.target.closest('.node-group') && !isNodesLocked) {
+      // Node dragging (only when unlocked)
+      const nodeTag = e.target.closest('.node-group').dataset.tag;
+      setDraggedNode(nodeTag);
+      setLastPanPoint(startPos);
+    } else if (!e.target.closest('.node-group')) {
+      // Canvas panning (only when not clicking on a node)
+      setIsPanning(true);
+      setLastPanPoint(startPos);
+    }
+    e.preventDefault();
+  }, [isNodesLocked]);
+
+  const handleMouseMove = useCallback((e) => {
+    // Calculate total distance from start to determine if this is a drag
+    if (dragStartPos && (draggedNode || isPanning)) {
+      const totalDistance = Math.sqrt(
+        Math.pow(e.clientX - dragStartPos.x, 2) + 
+        Math.pow(e.clientY - dragStartPos.y, 2)
+      );
+      
+      // Only mark as dragging if moved more than 8 pixels AND we're in a drag operation
+      if (totalDistance > 8) {
+        setIsDragging(true);
+      }
+    }
+    
+    if (draggedNode) {
+      // Node dragging
+      const dx = (e.clientX - lastPanPoint.x) / zoom;
+      const dy = (e.clientY - lastPanPoint.y) / zoom;
+      
+      setNodePositions(prev => ({
+        ...prev,
+        [draggedNode]: {
+          x: prev[draggedNode].x + dx,
+          y: prev[draggedNode].y + dy
+        }
+      }));
+      
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+    } else if (isPanning) {
+      // Canvas panning
+      const dx = (e.clientX - lastPanPoint.x) / zoom;
+      const dy = (e.clientY - lastPanPoint.y) / zoom;
+      
+      setViewBox(prev => ({
+        ...prev,
+        x: prev.x - dx,
+        y: prev.y - dy
+      }));
+      
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+    }
+  }, [draggedNode, isPanning, lastPanPoint, zoom, dragStartPos]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+    setDraggedNode(null);
+    setDragStartPos(null);
+    // Reset dragging flag after a short delay to allow click events to process first
+    setTimeout(() => {
+      setIsDragging(false);
+    }, 50);
+  }, []);
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+    const newZoom = Math.min(Math.max(zoom * zoomFactor, 0.1), 3);
+    
+    // Note: Future enhancement could center zoom on mouse position
+    
+    setZoom(newZoom);
+    setViewBox(prev => ({
+      ...prev,
+      width: 800 / newZoom,
+      height: 480 / newZoom
+    }));
+  }, [zoom]);
+
+  // Zoom Controls
+  const handleZoomIn = useCallback(() => {
+    const newZoom = Math.min(zoom * 1.2, 3);
+    setZoom(newZoom);
+    setViewBox(prev => ({
+      ...prev,
+      width: 800 / newZoom,
+      height: 480 / newZoom
+    }));
+  }, [zoom]);
+
+  const handleZoomOut = useCallback(() => {
+    const newZoom = Math.max(zoom * 0.8, 0.1);
+    setZoom(newZoom);
+    setViewBox(prev => ({
+      ...prev,
+      width: 800 / newZoom,
+      height: 480 / newZoom
+    }));
+  }, [zoom]);
+
+  const handleResetView = useCallback(() => {
+    setZoom(1);
+    setViewBox({ x: 0, y: 0, width: 800, height: 480 });
+  }, []);
+
+  // Toggle node lock/unlock
+  const handleToggleNodesLock = useCallback(() => {
+    setIsNodesLocked(prev => !prev);
+  }, []);
+
+  // Attach global event listeners
+  useEffect(() => {
+    const handleGlobalMouseMove = (e) => handleMouseMove(e);
+    const handleGlobalMouseUp = () => handleMouseUp();
+
+    if (isPanning || draggedNode) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isPanning, draggedNode, handleMouseMove, handleMouseUp]);
+
+  // Render SVG content
+  useEffect(() => {
+    if (!pathData || pathData.length === 0 || !svgRef.current) return;
+
+    const svg = svgRef.current;
+    svg.innerHTML = '';
+
+    const svgElement = svg;
+    svgElement.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
+
+    // Draw connections first (so they appear behind nodes)
+    Object.entries(tagRelationships).forEach(([_tag, data]) => {
+      data.unlocks.forEach(unlockData => {
+        const unlockedTag = typeof unlockData === 'string' ? unlockData : unlockData.tag;
+        const connectionWeight = typeof unlockData === 'object' ? unlockData.weight : 70;
+        const connectionDescription = typeof unlockData === 'object' ? unlockData.description : 'Learning connection';
+        
+        const fromPos = nodePositions[_tag] || data.position;
+        const toPos = nodePositions[unlockedTag] || tagRelationships[unlockedTag]?.position;
+        
+        if (fromPos && toPos) {
+          const connectionId = `${_tag}->${unlockedTag}`;
+          
+          // Create arrow marker for the connection
+          let defs = svg.querySelector('defs');
+          if (!defs) {
+            defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            svg.appendChild(defs);
+          }
+          
+          // Create unique marker for this connection weight
+          const markerId = `arrowhead-${connectionWeight}`;
+          if (!svg.querySelector(`#${markerId}`)) {
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', markerId);
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+            marker.setAttribute('markerUnits', 'strokeWidth');
+            
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            // Color arrow based on connection weight
+            const arrowColor = connectionWeight >= 85 ? '#10b981' : 
+                             connectionWeight >= 70 ? '#3b82f6' : 
+                             connectionWeight >= 60 ? '#f59e0b' : '#ef4444';
+            polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+            polygon.setAttribute('fill', arrowColor);
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+          }
+          
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', fromPos.x + 30);
+          line.setAttribute('y1', fromPos.y + 15);
+          line.setAttribute('x2', toPos.x + 30);
+          line.setAttribute('y2', toPos.y + 15);
+          
+          // Style line based on connection weight
+          const lineColor = connectionWeight >= 85 ? '#10b981' : 
+                           connectionWeight >= 70 ? '#3b82f6' : 
+                           connectionWeight >= 60 ? '#f59e0b' : '#ef4444';
+          const lineWidth = connectionWeight >= 85 ? '3' : 
+                           connectionWeight >= 70 ? '2.5' : 
+                           connectionWeight >= 60 ? '2' : '1.5';
+          
+          line.setAttribute('stroke', lineColor);
+          line.setAttribute('stroke-width', lineWidth);
+          line.setAttribute('marker-end', `url(#${markerId})`);
+          line.setAttribute('data-connection', connectionId);
+          line.setAttribute('data-weight', connectionWeight);
+          line.setAttribute('data-description', connectionDescription);
+          line.style.cursor = 'pointer';
+          line.style.opacity = hoveredConnection === connectionId ? '1' : '0.7';
+          
+          // Add connection interaction
+          line.addEventListener('mouseenter', () => {
+            setHoveredConnection(connectionId);
+            line.style.opacity = '1';
+            line.style.strokeWidth = `${parseFloat(lineWidth) + 0.5}`;
+          });
+          
+          line.addEventListener('mouseleave', () => {
+            setHoveredConnection(null);
+            line.style.opacity = '0.7';
+            line.style.strokeWidth = lineWidth;
+          });
+          
+          svg.appendChild(line);
+        }
+      });
+    });
+
+    // Draw nodes
+    pathData.forEach(tag => {
+      if (!tagRelationships[tag.slug]) return;
+
+      const position = nodePositions[tag.slug] || tagRelationships[tag.slug].position;
+      const nodeData = tagRelationships[tag.slug];
+      
+      // Create node group
+      const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      nodeGroup.classList.add('node-group');
+      nodeGroup.setAttribute('data-tag', tag.slug);
+      nodeGroup.style.cursor = 'pointer';
+
+      // Create node circle
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', position.x + 30);
+      circle.setAttribute('cy', position.y + 15);
+      circle.setAttribute('r', hoveredNode === tag.slug ? '22' : '20');
+      
+      // Style based on tag status
+      let fillColor = '#e5e7eb'; // default gray
+      let strokeColor = '#9ca3af';
+      
+      if (tag.status === 'mastered') {
+        fillColor = '#10b981'; // green
+        strokeColor = '#059669';
+      } else if (tag.status === 'in-progress') {
+        fillColor = '#3b82f6'; // blue
+        strokeColor = '#1d4ed8';
+      } else if (tag.status === 'available') {
+        fillColor = '#f59e0b'; // orange
+        strokeColor = '#d97706';
+      }
+      
+      circle.setAttribute('fill', fillColor);
+      circle.setAttribute('stroke', strokeColor);
+      circle.setAttribute('stroke-width', '2');
+      circle.style.transition = 'all 0.2s ease';
+
+      // Create text label
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', position.x + 30);
+      text.setAttribute('y', position.y + 20);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '11');
+      text.setAttribute('font-weight', '600');
+      text.setAttribute('fill', 'white');
+      text.setAttribute('font-family', 'system-ui, -apple-system, sans-serif');
+      text.style.pointerEvents = 'none';
+      text.style.userSelect = 'none';
+      
+      // Truncate text if too long
+      const displayName = tag.name.length > 8 ? tag.name.substring(0, 8) + '...' : tag.name;
+      text.textContent = displayName;
+
+      // Add hover effects
+      nodeGroup.addEventListener('mouseenter', () => {
+        if (!isDragging) {
+          setHoveredNode(tag.slug);
+          circle.setAttribute('r', '22');
+          circle.style.filter = 'brightness(1.1)';
+        }
+      });
+
+      nodeGroup.addEventListener('mouseleave', () => {
+        if (!isDragging) {
+          setHoveredNode(null);
+          circle.setAttribute('r', '20');
+          circle.style.filter = 'brightness(1)';
+        }
+      });
+
+      // Handle node clicks (only if not dragging)
+      nodeGroup.addEventListener('click', () => {
+        if (!isDragging && onNodeClick) {
+          onNodeClick(tag);
+        }
+      });
+
+      nodeGroup.appendChild(circle);
+      nodeGroup.appendChild(text);
+      svg.appendChild(nodeGroup);
+    });
+  }, [pathData, tagRelationships, nodePositions, viewBox, hoveredNode, hoveredConnection, isDragging, onNodeClick]);
+
+  if (!pathData || pathData.length === 0) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '480px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: isDarkMode ? '#1a202c' : '#f7fafc',
+        borderRadius: '8px',
+        border: `1px solid ${isDarkMode ? '#2d3748' : '#e2e8f0'}`
+      }}>
+        <Text c={isDarkMode ? '#a0aec0' : '#718096'}>Loading learning path...</Text>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '480px' }}>
+      {/* Control Panel */}
+      <Group
+        gap="xs"
+        style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          background: isDarkMode ? 'rgba(26, 32, 44, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+          padding: '6px',
+          borderRadius: '8px',
+          backdropFilter: 'blur(8px)',
+          border: `1px solid ${isDarkMode ? '#2d3748' : '#e2e8f0'}`,
+          zIndex: 10
+        }}
+      >
+        <ActionIcon
+          variant="subtle"
+          size="sm"
+          onClick={handleZoomIn}
+          title="Zoom In"
+          c={isDarkMode ? '#e2e8f0' : '#2d3748'}
+        >
+          <IconZoomIn size={16} />
+        </ActionIcon>
+        
+        <ActionIcon
+          variant="subtle"
+          size="sm"
+          onClick={handleZoomOut}
+          title="Zoom Out"
+          c={isDarkMode ? '#e2e8f0' : '#2d3748'}
+        >
+          <IconZoomOut size={16} />
+        </ActionIcon>
+        
+        <ActionIcon
+          variant="subtle"
+          size="sm"
+          onClick={handleResetView}
+          title="Reset View"
+          c={isDarkMode ? '#e2e8f0' : '#2d3748'}
+        >
+          <IconHome size={16} />
+        </ActionIcon>
+        
+        <ActionIcon
+          variant="subtle"
+          size="sm"
+          onClick={handleToggleNodesLock}
+          title={isNodesLocked ? "Unlock Node Dragging" : "Lock Node Dragging"}
+          c={isDarkMode ? '#e2e8f0' : '#2d3748'}
+          style={{
+            background: isNodesLocked ? 'transparent' : 'rgba(59, 130, 246, 0.1)',
+            border: isNodesLocked ? 'none' : '1px solid rgba(59, 130, 246, 0.3)'
+          }}
+        >
+          {isNodesLocked ? <IconLock size={16} /> : <IconLockOpen size={16} />}
+        </ActionIcon>
+      </Group>
+
+      {/* Main SVG Canvas */}
+      <svg
+        ref={svgRef}
+        width="100%"
+        height="100%"
+        style={{
+          background: isDarkMode 
+            ? 'linear-gradient(135deg, #1a202c 0%, #2d3748 100%)' 
+            : 'linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)',
+          borderRadius: '8px',
+          border: `1px solid ${isDarkMode ? '#2d3748' : '#e2e8f0'}`,
+          cursor: isPanning ? 'grabbing' : 'grab'
+        }}
+        onMouseDown={handleMouseDown}
+        onWheel={handleWheel}
+      />
+
+      {/* Connection Tooltip */}
+      {hoveredConnection && (
+        <div style={{
+          position: 'absolute',
+          bottom: '16px',
+          left: '16px',
+          background: isDarkMode ? 'rgba(26, 32, 44, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          padding: '12px',
+          borderRadius: '8px',
+          backdropFilter: 'blur(8px)',
+          border: `1px solid ${isDarkMode ? '#2d3748' : '#e2e8f0'}`,
+          maxWidth: '280px',
+          zIndex: 12,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+        }}>
+          {(() => {
+            const [from, to] = hoveredConnection.split('->');
+            
+            // Find connection data
+            const fromTagData = tagRelationships[from];
+            const connectionData = fromTagData?.unlocks.find(unlock => 
+              (typeof unlock === 'object' ? unlock.tag : unlock) === to
+            );
+            
+            if (connectionData) {
+              const getWeightColor = (weight) => {
+                if (weight >= 85) return '#10b981'; // strong - green
+                if (weight >= 70) return '#3b82f6'; // medium - blue  
+                if (weight >= 60) return '#f59e0b'; // weak - orange
+                return '#ef4444'; // very weak - red
+              };
+              
+              const getWeightLabel = (weight) => {
+                if (weight >= 85) return 'Very Strong';
+                if (weight >= 70) return 'Strong';
+                if (weight >= 60) return 'Moderate';
+                return 'Weak';
+              };
+              
+              return (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Text size="sm" fw={600} c={isDarkMode ? '#f8fafc' : '#1a202c'}>
+                      {from} → {to}
+                    </Text>
+                    <div style={{ 
+                      backgroundColor: getWeightColor(connectionData.weight),
+                      color: 'white',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: 600
+                    }}>
+                      {connectionData.weight}%
+                    </div>
+                  </div>
+                  <Text size="xs" c={isDarkMode ? '#e5e7eb' : '#4a5568'} fw={500} mb="xs">
+                    Connection Strength: {getWeightLabel(connectionData.weight)}
+                  </Text>
+                  <Text size="xs" c={isDarkMode ? '#d1d5db' : '#718096'} style={{ lineHeight: '1.4' }}>
+                    {connectionData.description}
+                  </Text>
+                </>
+              );
+            }
+            return <Text size="xs">Loading connection info...</Text>;
+          })()}
+        </div>
+      )}
+
+
+      {/* Pan/Zoom Indicator */}
+      {(isPanning || draggedNode) && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(59, 130, 246, 0.9)',
+          color: 'white',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '11px',
+          pointerEvents: 'none',
+          zIndex: 15
+        }}>
+          {isPanning ? 'Panning...' : 'Moving node...'}
+        </div>
+      )}
+    </div>
+  );
+}
