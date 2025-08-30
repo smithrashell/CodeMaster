@@ -183,7 +183,7 @@ const StrategyMap = () => {
                 }}
               >
                 {focusTags.map((tag) => {
-                  const tagData = Object.values(tierData)
+                  const _tagData = Object.values(tierData)
                     .flat()
                     .find((t) => t.tag === tag);
                   return (
@@ -254,6 +254,14 @@ const StrategyMap = () => {
                 {!expandedTiers.has(tierName) && tags.length > 3 && (
                   <span
                     onClick={() => toggleTierExpansion(tierName)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleTierExpansion(tierName);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     style={{
                       fontSize: "10px",
                       color: "var(--cm-link)",
@@ -290,6 +298,14 @@ const StrategyMap = () => {
                 {expandedTiers.has(tierName) && tags.length > 3 && (
                   <span
                     onClick={() => toggleTierExpansion(tierName)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleTierExpansion(tierName);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                     style={{
                       fontSize: "10px",
                       color: "var(--cm-link)",
