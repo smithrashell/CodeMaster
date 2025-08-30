@@ -30,7 +30,6 @@ import {
 import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
 import { updateContentOnboardingStep } from "../../../shared/services/onboardingService";
-import { shouldUseMockDashboard } from "../../../app/config/mockConfig.js";
 import logger from "../../../shared/utils/logger.js";
 
 const TOUR_STEPS = [

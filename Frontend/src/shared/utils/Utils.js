@@ -96,7 +96,7 @@ export async function clearOrRenameStoreField(
 
     const request = store.getAll();
 
-    request.onsuccess = async () => {
+    request.onsuccess = () => {
       const records = request.result;
 
       for (const record of records) {
