@@ -22,7 +22,7 @@ export const addProblemRelationship = async (
   });
 };
 
-export const weakenProblemRelationship = async (problemId1, problemId2) => {
+export const weakenProblemRelationship = async (problemId1, _problemId2) => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("problem_relationships", "readwrite");
