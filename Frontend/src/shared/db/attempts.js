@@ -191,13 +191,13 @@ export async function saveAttempts(attempts) {
     attempts.forEach((attempt) => {
       const request = store.put(attempt);
       request.onerror = (event) => {
-        reject("Error saving attempt: " + event.target.errorCode);
+        reject(new Error("Error saving attempt: " + event.target.errorCode));
       };
     });
 
     transaction.oncomplete = () => resolve();
     transaction.onerror = (event) =>
-      reject("Transaction error: " + event.target.errorCode);
+      reject(new Error("Transaction error: " + event.target.errorCode));
   });
 }
 
