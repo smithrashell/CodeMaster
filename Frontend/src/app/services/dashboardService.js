@@ -1455,7 +1455,7 @@ export async function generateMasteryData(learningState) {
 /**
  * Calculate outcome trends metrics for Goals page
  */
-async function calculateOutcomeTrends(attempts, sessions) {
+async function calculateOutcomeTrends(attempts, _sessions) {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   
@@ -1555,7 +1555,7 @@ function generateEnhancedDailyMissions(settings, learningState, recentAttempts) 
   // Mission 1: Focus area practice
   if (focusAreas.length > 0) {
     const primaryFocus = focusAreas[0];
-    const recentFocusAttempts = recentAttempts.filter(attempt => {
+    const recentFocusAttempts = recentAttempts.filter(_attempt => {
       // Would need to check if attempt's problem has this tag
       // For now, use a simplified approach
       return Math.random() > 0.5; // Simulate tag matching
@@ -1771,7 +1771,7 @@ function findBestPerformanceHour(sessions) {
 /**
  * Generate daily missions based on user settings
  */
-function generateDailyMissions(settings) {
+function _generateDailyMissions(settings) {
   const focusAreas = settings.focusAreas || [];
   const missions = [];
   
@@ -2508,7 +2508,7 @@ export async function getMistakeAnalysisData(options = {}) {
   }
 }
 
-export async function getInterviewAnalyticsData(options = {}) {
+export async function getInterviewAnalyticsData(_options = {}) {
   try {
     logger.info("🎯 Getting interview analytics data...");
     
