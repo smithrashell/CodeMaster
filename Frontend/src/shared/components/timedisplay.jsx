@@ -22,6 +22,14 @@ const TimeDisplay = ({ time, toggleTimer }) => {
         cursor: "pointer", // Make it clear that this is clickable
       }}
       onClick={toggleTimer}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleTimer();
+        }
+      }}
+      role="button"
+      tabIndex={0}
       title="Click to start/pause timer"
       aria-label="Click to start or pause timer"
     >
