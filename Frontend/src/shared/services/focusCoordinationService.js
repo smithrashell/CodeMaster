@@ -190,7 +190,7 @@ export class FocusCoordinationService {
    * @param {Object} escapeHatches - Escape hatch results
    * @returns {number} Optimal tag count
    */
-  static calculateOptimalTagCount(performance, escapeHatches) {
+  static calculateOptimalTagCount(performance, _escapeHatches) {
     const { accuracy, efficiency } = performance;
     
     // Start with base count
