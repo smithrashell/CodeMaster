@@ -9,7 +9,7 @@ import FocusCoordinationService from "./focusCoordinationService.js";
 import { debug, success, system } from "../utils/logger.js";
 
 const openDB = dbHelper.openDB;
-const checkAndCompleteSession = SessionService.checkAndCompleteSession;
+const _checkAndCompleteSession = SessionService.checkAndCompleteSession;
 
 /**
  * Session Attribution Engine - Routes attempts to appropriate sessions
