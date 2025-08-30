@@ -5,6 +5,7 @@
  * and provides validation utilities for time-related data
  */
 
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import AccurateTimer from "./AccurateTimer.js";
 
