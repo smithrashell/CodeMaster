@@ -14,9 +14,9 @@ import logger from "../../shared/utils/logger.js";
  * as the real service but with generated mock data.
  *
  * @param {string} userType - Type of user scenario to simulate
- * @returns {Promise<Object>} Mock dashboard statistics in expected format
+ * @returns {Object} Mock dashboard statistics in expected format
  */
-export async function getMockDashboardStatistics(
+export function getMockDashboardStatistics(
   userType = USER_SCENARIOS.ACTIVE_USER
 ) {
   logger.info("Generating mock dashboard data", { userType, context: 'mock_service' });

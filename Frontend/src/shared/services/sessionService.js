@@ -1415,7 +1415,7 @@ export const SessionService = {
         return this._analyzeCadence(sessions);
       },
       // Fallback to simple legacy logic
-      async () => {
+      () => {
         // Using fallback cadence analysis
         return {
           averageGapDays: 2,

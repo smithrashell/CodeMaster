@@ -7,7 +7,6 @@ import AccurateTimer from "../../shared/utils/AccurateTimer.js";
 import { getAllStandardProblems } from "../../shared/db/standard_problems.js";
 import { StorageService } from "../../shared/services/storageService.js";
 import { getRecentSessionAnalytics } from "../../shared/db/sessionAnalytics.js";
-import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
 import { HintInteractionService } from "../../shared/services/hintInteractionService.js";
 import { getInteractionsBySession } from "../../shared/db/hint_interactions.js";
 import { getLatestSession } from "../../shared/db/sessions.js";
