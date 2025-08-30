@@ -18,11 +18,6 @@ const WhyThisProblem = ({
   const [similarProblems, setSimilarProblems] = useState([]);
   const [loadingSimilar, setLoadingSimilar] = useState(false);
 
-  // Don't render if no selection reason provided
-  if (!selectionReason) {
-    return null;
-  }
-
   // Fetch similar problems when expanded
   useEffect(() => {
     const fetchSimilarProblems = async () => {
@@ -61,6 +56,11 @@ const WhyThisProblem = ({
 
     fetchSimilarProblems();
   }, [isExpanded, currentProblemId, loadingSimilar, similarProblems.length]);
+
+  // Don't render if no selection reason provided
+  if (!selectionReason) {
+    return null;
+  }
 
   const handleToggle = () => {
     logger.info(`📖 Strategy: ${isExpanded ? 'Collapsed' : 'Expanded'} "${selectionReason.type}" for problem ${currentProblemId}`);
@@ -322,6 +322,14 @@ const WhyThisProblem = ({
       <div
         className="problem-sidebar-section-header"
         onClick={handleToggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+          }
+        }}
+        role="button"
+        tabIndex={0}
         style={{ cursor: "pointer", userSelect: "none" }}
       >
         {reasonIcon.component}
