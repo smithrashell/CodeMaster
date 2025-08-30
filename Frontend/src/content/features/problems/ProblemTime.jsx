@@ -6,7 +6,6 @@ import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider
 import ProbSubmission from "../problems/ProblemSubmission";
 import ProbDetail from "../problems/ProblemDetail";
 import Header from "../../components/navigation/header.jsx";
-import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
 
 
 const ProbTime = () => {
@@ -18,7 +17,7 @@ const ProbTime = () => {
     setIsAppOpen(false);
   };
   const previousRoute = usePreviousRoute();
-  const [loading, setLoading] = useState(false);
+  const [loading, _setLoading] = useState(false);
 
   // Note: This component only renders ProbSubmission or ProbDetail
   // All form functionality is handled by those components
@@ -36,7 +35,7 @@ const ProbTime = () => {
     previousRoute === "/Timer"
   );
 
-  const onSkip = () => {
+  const _onSkip = () => {
     chrome.runtime.sendMessage(
       { type: "skipProblem", consentScriptData: routeState.problemData },
       function (response) {
