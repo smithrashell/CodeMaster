@@ -759,7 +759,7 @@ export async function getAllSessions() {
  * @param {object} sessionState - Session state for tracking stagnation
  * @returns {number} Number of tags to include from focus window
  */
-function calculateTagIndexProgression(
+function _calculateTagIndexProgression(
   accuracy,
   efficiencyScore,
   currentTagIndex,

@@ -4,7 +4,7 @@ const TimerButton = () => {
   const [time, _setTime] = useState(0);
   const [content, _setContent] = useState("");
   const [timerRunning, setTimerRunning] = useState(false);
-  const [limit, _setLimit] = useState(0);
+  const [_limit, _setLimit] = useState(0);
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
 
