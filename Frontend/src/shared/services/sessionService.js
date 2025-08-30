@@ -16,7 +16,6 @@ import { fetchProblemById } from "../db/standard_problems.js";
 import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
-import { InterviewService } from "./interviewService.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -454,7 +453,7 @@ export const SessionService = {
   async getTagPerformanceBaselines() {
     try {
       // Get recent session performance data to establish baselines
-      const recentPerformance = await getSessionPerformance({ 
+      const _recentPerformance = await getSessionPerformance({ 
         recentSessionsLimit: 10 
       });
       
