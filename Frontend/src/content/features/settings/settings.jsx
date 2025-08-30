@@ -53,7 +53,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
       <div className="cm-form-group">
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>
           <IconTrophy size={14} />
-          Interview Mode</div>
+          Interview Mode
           <Tooltip 
             label="Loading interview settings..." 
             withArrow 
@@ -64,7 +64,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
           >
             <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
           </Tooltip>
-        </label>
+        </div>
         <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px', fontSize: '12px', color: '#666' }}>
           ⏳ Loading...
         </div>
@@ -76,7 +76,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
     <div className="cm-form-group">
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>
         <IconTrophy size={14} />
-        Interview Mode</div>
+        Interview Mode
         <Tooltip 
           label="Interview practice modes to test skill transfer under pressure"
           withArrow
@@ -87,7 +87,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
         >
           <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
         </Tooltip>
-      </label>
+      </div>
 
       <SegmentedControl
         value={currentMode}
@@ -135,7 +135,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
         <>
           <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e0e0e0' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
-              📅 Interview Frequency</div>
+              📅 Interview Frequency
               <Tooltip 
                 label="When should interview sessions be automatically suggested?"
                 withArrow 
@@ -146,7 +146,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
               >
                 <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
               </Tooltip>
-            </label>
+            </div>
 
             <SegmentedControl
               value={settings?.interviewFrequency || "manual"}
@@ -177,7 +177,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
           {settings?.interviewFrequency === "level-up" && (
             <div style={{ marginTop: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
-                🎯 Readiness Threshold</div>
+                🎯 Readiness Threshold
                 <Tooltip 
                   label="Minimum performance score needed before suggesting Full Interview mode"
                   withArrow 
@@ -191,7 +191,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
                 >
                   <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
                 </Tooltip>
-              </label>
+              </div>
 
               <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
