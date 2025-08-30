@@ -313,7 +313,7 @@ export async function getProblemByDescription(description, _slug) {
 export async function addProblem(problemData) {
   try {
     const db = await openDB();
-    const standardProblem = await fetchProblemById(problemData.leetCodeID);
+    const _standardProblem = await fetchProblemById(problemData.leetCodeID);
 
     let session = await new Promise((resolve) => {
       chrome.storage.local.get(["currentSession"], (result) => {
@@ -491,12 +491,12 @@ export async function fetchAllProblems() {
 export async function fetchAdditionalProblems(
   numNewProblems,
   excludeIds = new Set(),
-  userFocusAreas = [],
-  currentAllowedTags = [],
+  _userFocusAreas = [],
+  _currentAllowedTags = [],
   userId = "session_state" // Default to session_state for backward compatibility
 ) {
   try {
-    const { masteryData, focusTags, allTagsInCurrentTier } =
+    const { masteryData, _focusTags, allTagsInCurrentTier } =
       await TagService.getCurrentLearningState();
     const allProblems = await getAllStandardProblems();
     const ladders = await getPatternLadders();
@@ -520,7 +520,7 @@ export async function fetchAdditionalProblems(
     logger.info("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
 
     // Get tag relationships for expansion
-    const tagRelationships = await getTagRelationships();
+    const _tagRelationships = await getTagRelationships();
 
     // Calculate difficulty allowances for all tags
     const tagDifficultyAllowances = {};

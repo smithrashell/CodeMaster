@@ -1,5 +1,4 @@
 import { dbHelper } from "./index.js";
-import { v4 as uuidv4 } from "uuid";
 import { TagService } from "../services/tagServices.js";
 import { StorageService } from "../services/storageService.js";
 import { AttemptsService } from "../services/attemptsService.js";

@@ -1,5 +1,5 @@
 import { dbHelper } from "./index.js";
-import { openBackupDB, getBackupFile as getBackupFileFromBackupDB } from "./backupDB.js";
+import { getBackupFile as getBackupFileFromBackupDB } from "./backupDB.js";
 
 export async function getBackupFile() {
   // Use the backup function from backupDB.js to maintain consistency
