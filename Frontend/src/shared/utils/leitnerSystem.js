@@ -310,7 +310,6 @@ async function updateProblemsWithAttemptStats() {
 }
 
 export {
-  evaluateAttempts,
   reassessBoxLevel,
   calculateLeitnerBox,
   updateProblemsWithAttemptStats,
