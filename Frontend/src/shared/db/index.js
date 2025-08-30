@@ -519,7 +519,7 @@ export const dbHelper = {
         resolve(dbHelper.db);
       };
 
-      request.onerror = (event) => reject(`❌ DB Error: ${event.target.error}`);
+      request.onerror = (event) => reject(new Error(`❌ DB Error: ${event.target.error}`));
     });
   },
 
