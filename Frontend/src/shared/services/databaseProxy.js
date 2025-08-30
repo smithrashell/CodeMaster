@@ -13,7 +13,7 @@ export class DatabaseProxy {
   /**
    * Proxy database operation to background script
    */
-  async proxyDatabaseOperation(operation, params = {}) {
+  proxyDatabaseOperation(operation, params = {}) {
     if (!this.isContentScript) {
       throw new Error('DatabaseProxy should only be used in content scripts');
     }
@@ -42,35 +42,35 @@ export class DatabaseProxy {
   /**
    * Get a record from the database
    */
-  async getRecord(storeName, id) {
+  getRecord(storeName, id) {
     return this.proxyDatabaseOperation('getRecord', { storeName, id });
   }
 
   /**
    * Add a record to the database
    */
-  async addRecord(storeName, record) {
+  addRecord(storeName, record) {
     return this.proxyDatabaseOperation('addRecord', { storeName, record });
   }
 
   /**
    * Update a record in the database
    */
-  async updateRecord(storeName, id, record) {
+  updateRecord(storeName, id, record) {
     return this.proxyDatabaseOperation('updateRecord', { storeName, id, record });
   }
 
   /**
    * Delete a record from the database
    */
-  async deleteRecord(storeName, id) {
+  deleteRecord(storeName, id) {
     return this.proxyDatabaseOperation('deleteRecord', { storeName, id });
   }
 
   /**
    * Get all records from a store
    */
-  async getAllFromStore(storeName) {
+  getAllFromStore(storeName) {
     return this.proxyDatabaseOperation('getAllFromStore', { storeName });
   }
 }
