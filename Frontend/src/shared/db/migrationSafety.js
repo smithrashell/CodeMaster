@@ -421,7 +421,7 @@ function getAllFromStore(db, storeName) {
   });
 }
 
-function saveBackupData(db, backupData) {
+function _saveBackupData(db, backupData) {
   const transaction = db.transaction(["backup_storage"], "readwrite");
   const backupStore = transaction.objectStore("backup_storage");
 
