@@ -34,7 +34,7 @@ export function DoubleNavbar() {
 
   const [active, setActive] = useState("Overview");
   const [activeLink, setActiveLink] = useState("/");
-  const [showSettingsSubmenu, setShowSettingsSubmenu] = useState(false);
+  const [_showSettingsSubmenu, setShowSettingsSubmenu] = useState(false);
   
   // TODO: Re-enable for display settings feature
   // const [sidebarWidth, setSidebarWidth] = useState("normal");
