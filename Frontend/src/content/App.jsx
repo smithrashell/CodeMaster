@@ -105,7 +105,7 @@ const MenuButtonContainer = () => {
       {pathname !== "/Timer" && (
         <ErrorBoundary
           section="Menu Button"
-          fallback={({ error, resetError }) => (
+          fallback={({ error: _error, resetError }) => (
             <div style={{ 
               display: "flex", 
               flexDirection: "row",
