@@ -326,7 +326,7 @@ export const ProblemService = {
       }
 
       // Interview modes use specialized problem selection
-      const allProblems = await problems.getAllProblems();
+      const allProblems = await fetchAllProblems();
       let availableProblems = allProblems.filter(problem => {
         // Filter to problems that have the required tags
         const problemTags = problem.Tags || [];
