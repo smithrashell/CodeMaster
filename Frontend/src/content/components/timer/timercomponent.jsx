@@ -20,9 +20,9 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import AccurateTimer from "../../../shared/utils/AccurateTimer";
 import "../../../shared/components/css/timerBanner.css";
 
-const TimerBanner = (props) => {
-  const [problemTitle, setProblemTitle] = useState("");
-  const [currentURL, setCurrentURL] = useState(window.location.href);
+const TimerBanner = (_props) => {
+  const [_problemTitle, _setProblemTitle] = useState("");
+  const [_currentURL, _setCurrentURL] = useState(window.location.href);
   const [open, setOpen] = useState(true);
   const [countdownVisible, setCountdownVisible] = useState(false);
   const [countdownValue, setCountdownValue] = useState(null);
@@ -48,7 +48,7 @@ const TimerBanner = (props) => {
   const [hasFirstPlan, setHasFirstPlan] = useState(false);
   const [hasFirstKeystroke, setHasFirstKeystroke] = useState(false);
 
-  const { pathname, state } = useLocation();
+  const { pathname: _pathname, state } = useLocation();
   const navigate = useNavigate();
 
   // Timer state management
