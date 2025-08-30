@@ -44,3 +44,21 @@ export async function updateRecord(storeName, id, record) {
     request.onerror = () => reject(request.error);
   });
 }
+
+export async function saveAllToStore(storeName, items) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(storeName, "readwrite");
+    const store = transaction.objectStore(storeName);
+
+    items.forEach((item) => {
+      store.put(item).onerror = (event) => {
+        reject(event.target.error);
+      };
+    });
+
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = (event) =>
+      reject(new Error(`Transaction error in ${storeName}: ${event.target.error}`));
+  });
+}
