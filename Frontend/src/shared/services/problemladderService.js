@@ -117,6 +117,9 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       allowedClassifications,
     });
 
+    // Default ladder size for pattern ladder generation
+    const ladderSize = 9;
+
     const ladder = buildLadder({
       validProblems,
       problemCounts: entry.problemCounts || {},
@@ -132,7 +135,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     });
 
     const existing = tagMasteryRecords.find((t) => t.tag === tag) || { tag };
-    await upsertTagMastery({
+    await TagService.upsertTagMastery({
       ...existing,
       coreLadder: ladder,
     });
