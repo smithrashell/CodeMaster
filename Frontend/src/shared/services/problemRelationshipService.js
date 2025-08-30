@@ -210,7 +210,7 @@ export class ProblemRelationshipService {
   static calculateRelationshipBonuses(
     currentTags,
     tagAnalysis,
-    similarProblems
+    _similarProblems
   ) {
     const bonuses = new Map();
     const { tagWeightedScore } = tagAnalysis;
