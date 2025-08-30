@@ -161,15 +161,15 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
       {/* Smart Reminder Type Options */}
       {currReminder?.enabled && !learningStatus.learningPhase && (
         <div style={{ marginTop: '12px', marginLeft: '8px' }}>
-          <label style={{ 
+          <div style={{ 
             display: 'block', 
             fontSize: '13px', 
             fontWeight: '500', 
             color: 'var(--cm-text)', 
             marginBottom: '8px' 
-          }}>
+          }} role="heading" aria-level="4">
             Reminder Types
-          </label>
+          </div>
           
           {/* Streak Alerts */}
           <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center' }}>
