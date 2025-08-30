@@ -31,8 +31,9 @@ describe("ProblemService", () => {
 
   describe("getProblemByDescription", () => {
     beforeEach(() => {
-      standardProblems.getProblemFromStandardProblems = jest.fn();
-      problemsDb.checkDatabaseForProblem = jest.fn();
+      // Functions are already mocked via jest.mock() - just clear them
+      (standardProblems.getProblemFromStandardProblems as jest.Mock).mockClear();
+      (problemsDb.checkDatabaseForProblem as jest.Mock).mockClear();
     });
 
     it("should return problem from problems store when found in both stores", async () => {
@@ -117,9 +118,10 @@ describe("ProblemService", () => {
 
   describe("addOrUpdateProblem", () => {
     beforeEach(() => {
-      problemsDb.checkDatabaseForProblem = jest.fn();
-      problemsDb.addProblem = jest.fn();
-      AttemptsService.addAttempt = jest.fn();
+      // Functions are already mocked via jest.mock() - just clear them
+      (problemsDb.checkDatabaseForProblem as jest.Mock).mockClear();
+      (problemsDb.addProblem as jest.Mock).mockClear();
+      (AttemptsService.addAttempt as jest.Mock).mockClear();
     });
 
     it("should add attempt when problem exists", async () => {
