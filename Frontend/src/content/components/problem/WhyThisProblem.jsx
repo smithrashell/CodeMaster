@@ -10,7 +10,7 @@ import { ReasonTypeIcon } from "./ProblemInfoIcon";
  */
 const WhyThisProblem = ({
   selectionReason,
-  problemTags = [],
+  problemTags: _problemTags = [],
   className = "",
   currentProblemId = null,
 }) => {
