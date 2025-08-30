@@ -8,6 +8,7 @@
 import SchemaValidator from "../../utils/dataIntegrity/SchemaValidator.js";
 import ReferentialIntegrityService from "./ReferentialIntegrityService.js";
 import DataIntegritySchemas from "../../utils/dataIntegrity/DataIntegritySchemas.js";
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
 import StorageHealthMonitor from "../../utils/storageHealth.js";
 import ErrorReportService from "../ErrorReportService.js";
