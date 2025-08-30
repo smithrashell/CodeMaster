@@ -63,7 +63,7 @@ export function MistakeAnalysis() {
   const [showMoreActions, setShowMoreActions] = useState(false);
   
   // Dynamic height calculation for cards
-  const getCardHeight = (isExpanded, itemCount, baseItemHeight = 60) => {
+  const getCardHeight = (isExpanded, itemCount, _baseItemHeight = 60) => {
     // When expanded, return 'auto' to allow natural content height without limits
     if (isExpanded) {
       return 'auto';
@@ -170,25 +170,11 @@ export function MistakeAnalysis() {
 
   }, [appState]);
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'high': return colors.chartDanger || '#ef4444';
-      case 'medium': return colors.chartWarning || '#f59e0b';
-      case 'low': return colors.chartSuccess || '#10b981';
-      default: return colors.textSecondary || '#6b7280';
-    }
-  };
-
-  const getProgressColor = (progress) => {
-    if (progress >= 70) return colors.chartSuccess || '#10b981';
-    if (progress >= 50) return colors.chartWarning || '#f59e0b';
-    return colors.chartDanger || '#ef4444';
-  };
 
   // Group struggling tags by severity
   const needsAttention = strugglingTags.filter(t => t.progress < 30);
   const watchList = strugglingTags.filter(t => t.progress >= 30 && t.progress < 50);
-  const healthy = strugglingTags.filter(t => t.progress >= 50);
+  const _healthy = strugglingTags.filter(t => t.progress >= 50);
 
   return (
     <Container size="lg" p="xl">
