@@ -175,7 +175,7 @@ export default function TagInput({ setTags }) {
           />
         </div>
       ) : (
-        <p
+        <div
           style={{ cursor: "pointer", color: "#ffffff", marginBottom: "8px" }}
           role="button"
           tabIndex={0}
@@ -188,7 +188,7 @@ export default function TagInput({ setTags }) {
           }}
         >
           + Add Tag
-        </p>
+        </div>
       )}
     </div>
   );
