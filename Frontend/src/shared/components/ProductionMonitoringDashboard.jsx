@@ -202,6 +202,244 @@ import { PerformanceTab } from './monitoring/PerformanceTab.jsx';
 import { ErrorsTab } from './monitoring/ErrorsTab.jsx';
 
 /**
+ * User Analytics Tab Component
+ */
+const UserAnalyticsTab = ({ userActions, formatDuration }) => (
+  <Grid>
+    <Grid.Col span={12}>
+      <Card withBorder>
+        <Text fw={500} mb="md">
+          User Behavior Analytics
+        </Text>
+        {userActions?.analytics && (
+          <Grid>
+            <Grid.Col span={6}>
+              <Text size="sm" mb="xs">
+                Activity Summary
+              </Text>
+              <Stack spacing="xs">
+                <Group justify="space-between">
+                  <Text size="sm">Total Actions</Text>
+                  <Text size="sm" fw={500}>
+                    {userActions.analytics.totalActions}
+                  </Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm">Unique Sessions</Text>
+                  <Text size="sm" fw={500}>
+                    {userActions.analytics.uniqueSessions}
+                  </Text>
+                </Group>
+                <Group justify="space-between">
+                  <Text size="sm">Avg Session Time</Text>
+                  <Text size="sm" fw={500}>
+                    {formatDuration(userActions.analytics.averageSessionTime)}
+                  </Text>
+                </Group>
+              </Stack>
+            </Grid.Col>
+            <Grid.Col span={6}>
+              <Text size="sm" mb="xs">
+                Top Actions
+              </Text>
+              <Stack spacing="xs">
+                {Object.entries(userActions.analytics.topActions)
+                  .slice(0, 5)
+                  .map(([action, count]) => (
+                    <Group key={action} justify="space-between">
+                      <Text size="sm" lineClamp={1}>
+                        {action}
+                      </Text>
+                      <Badge size="sm">{count}</Badge>
+                    </Group>
+                  ))}
+              </Stack>
+            </Grid.Col>
+          </Grid>
+        )}
+      </Card>
+    </Grid.Col>
+  </Grid>
+);
+
+/**
+ * Alerts Tab Component
+ */
+const AlertsTab = ({ alerts, getHealthColor }) => (
+  <Card withBorder>
+    <Text fw={500} mb="md">
+      System Alerts
+    </Text>
+    {alerts && (
+      <Stack spacing="sm">
+        {alerts.recentAlerts?.map((alert, index) => (
+          <Card key={index} withBorder radius="sm" p="sm">
+            <Group justify="space-between" mb="xs">
+              <Text fw={500} size="sm">
+                {alert.title}
+              </Text>
+              <Badge color={getHealthColor(alert.severity)} size="sm">
+                {alert.severity}
+              </Badge>
+            </Group>
+            <Text size="xs" c="dimmed" mb="xs">
+              {alert.message}
+            </Text>
+            <Text size="xs" c="dimmed">
+              {new Date(alert.timestamp).toLocaleString()}
+            </Text>
+          </Card>
+        ))}
+
+        {(!alerts.recentAlerts || alerts.recentAlerts.length === 0) && (
+          <Text size="sm" c="dimmed" ta="center">
+            No recent alerts
+          </Text>
+        )}
+      </Stack>
+    )}
+  </Card>
+);
+
+/**
+ * System Tab Component
+ */
+const SystemTab = ({ system, formatBytes }) => (
+  <Card withBorder>
+    <Text fw={500} mb="md">
+      System Information
+    </Text>
+    {system && (
+      <Stack spacing="sm">
+        <Group justify="space-between">
+          <Text size="sm">Log Level</Text>
+          <Badge>{system.logLevel}</Badge>
+        </Group>
+        <Group justify="space-between">
+          <Text size="sm">Memory Limit</Text>
+          <Text size="sm" fw={500}>
+            {formatBytes(system.memory?.limit)}
+          </Text>
+        </Group>
+        <Group justify="space-between">
+          <Text size="sm">Current URL</Text>
+          <Text size="sm" fw={500} lineClamp={1}>
+            {system.url}
+          </Text>
+        </Group>
+        <Group justify="space-between">
+          <Text size="sm">Environment</Text>
+          <Badge color={process.env.NODE_ENV === "production" ? "green" : "blue"}>
+            {process.env.NODE_ENV || "development"}
+          </Badge>
+        </Group>
+      </Stack>
+    )}
+  </Card>
+);
+
+/**
+ * Dashboard Header Component
+ */
+const DashboardHeader = ({ lastUpdated, loadDashboardData, loading }) => (
+  <Group justify="space-between">
+    <Text size="xl" fw={600}>
+      Production Monitoring Dashboard
+    </Text>
+    <Group>
+      {lastUpdated && (
+        <Text size="sm" c="dimmed">
+          Last updated: {lastUpdated.toLocaleTimeString()}
+        </Text>
+      )}
+      <Button
+        leftSection={<IconRefresh size={16} />}
+        variant="light"
+        size="sm"
+        onClick={loadDashboardData}
+        loading={loading}
+      >
+        Refresh
+      </Button>
+    </Group>
+  </Group>
+);
+
+/**
+ * Tabs Navigation Component
+ */
+const TabsNavigation = () => (
+  <Tabs.List>
+    <Tabs.Tab value="overview" leftSection={<IconActivity size={16} />}>
+      Overview
+    </Tabs.Tab>
+    <Tabs.Tab value="performance" leftSection={<IconChartLine size={16} />}>
+      Performance
+    </Tabs.Tab>
+    <Tabs.Tab value="errors" leftSection={<IconBug size={16} />}>
+      Errors
+    </Tabs.Tab>
+    <Tabs.Tab value="users" leftSection={<IconUser size={16} />}>
+      User Analytics
+    </Tabs.Tab>
+    <Tabs.Tab value="alerts" leftSection={<IconAlertTriangle size={16} />}>
+      Alerts
+    </Tabs.Tab>
+    <Tabs.Tab value="system" leftSection={<IconServer size={16} />}>
+      System
+    </Tabs.Tab>
+  </Tabs.List>
+);
+
+/**
+ * Tab panels component
+ */
+const TabPanels = ({ dashboardData, getHealthColor, formatBytes, formatDuration }) => (
+  <>
+    <Tabs.Panel value="overview">
+      <OverviewTab 
+        dashboardData={dashboardData} 
+        getHealthColor={getHealthColor} 
+        formatBytes={formatBytes} 
+      />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="performance">
+      <PerformanceTab 
+        dashboardData={dashboardData} 
+        getHealthColor={getHealthColor} 
+        formatDuration={formatDuration} 
+      />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="errors">
+      <ErrorsTab dashboardData={dashboardData} />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="users">
+      <UserAnalyticsTab 
+        userActions={dashboardData.userActions}
+        formatDuration={formatDuration}
+      />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="alerts">
+      <AlertsTab 
+        alerts={dashboardData.alerts}
+        getHealthColor={getHealthColor}
+      />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="system">
+      <SystemTab 
+        system={dashboardData.system}
+        formatBytes={formatBytes}
+      />
+    </Tabs.Panel>
+  </>
+);
+
+/**
  * Production Monitoring Dashboard
  * Comprehensive view of system health, errors, performance, and user analytics
  */
@@ -280,217 +518,20 @@ export function ProductionMonitoringDashboard() {
 
   return (
     <Stack spacing="md">
-      {/* Header */}
-      <Group justify="space-between">
-        <Text size="xl" fw={600}>
-          Production Monitoring Dashboard
-        </Text>
-        <Group>
-          {lastUpdated && (
-            <Text size="sm" c="dimmed">
-              Last updated: {lastUpdated.toLocaleTimeString()}
-            </Text>
-          )}
-          <Button
-            leftSection={<IconRefresh size={16} />}
-            variant="light"
-            size="sm"
-            onClick={loadDashboardData}
-            loading={loading}
-          >
-            Refresh
-          </Button>
-        </Group>
-      </Group>
+      <DashboardHeader 
+        lastUpdated={lastUpdated}
+        loadDashboardData={loadDashboardData}
+        loading={loading}
+      />
 
       <Tabs defaultValue="overview">
-        <Tabs.List>
-          <Tabs.Tab value="overview" leftSection={<IconActivity size={16} />}>
-            Overview
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="performance"
-            leftSection={<IconChartLine size={16} />}
-          >
-            Performance
-          </Tabs.Tab>
-          <Tabs.Tab value="errors" leftSection={<IconBug size={16} />}>
-            Errors
-          </Tabs.Tab>
-          <Tabs.Tab value="users" leftSection={<IconUser size={16} />}>
-            User Analytics
-          </Tabs.Tab>
-          <Tabs.Tab
-            value="alerts"
-            leftSection={<IconAlertTriangle size={16} />}
-          >
-            Alerts
-          </Tabs.Tab>
-          <Tabs.Tab value="system" leftSection={<IconServer size={16} />}>
-            System
-          </Tabs.Tab>
-        </Tabs.List>
-
-        <Tabs.Panel value="overview">
-          <OverviewTab 
-            dashboardData={dashboardData} 
-            getHealthColor={getHealthColor} 
-            formatBytes={formatBytes} 
-          />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="performance">
-          <PerformanceTab 
-            dashboardData={dashboardData} 
-            getHealthColor={getHealthColor} 
-            formatDuration={formatDuration} 
-          />
-        </Tabs.Panel>
-
-        <Tabs.Panel value="errors">
-          <ErrorsTab dashboardData={dashboardData} />
-        </Tabs.Panel>
-
-        {/* User Analytics Tab */}
-        <Tabs.Panel value="users">
-          <Grid>
-            <Grid.Col span={12}>
-              <Card withBorder>
-                <Text fw={500} mb="md">
-                  User Behavior Analytics
-                </Text>
-                {dashboardData.userActions?.analytics && (
-                  <Grid>
-                    <Grid.Col span={6}>
-                      <Text size="sm" mb="xs">
-                        Activity Summary
-                      </Text>
-                      <Stack spacing="xs">
-                        <Group justify="space-between">
-                          <Text size="sm">Total Actions</Text>
-                          <Text size="sm" fw={500}>
-                            {dashboardData.userActions.analytics.totalActions}
-                          </Text>
-                        </Group>
-                        <Group justify="space-between">
-                          <Text size="sm">Unique Sessions</Text>
-                          <Text size="sm" fw={500}>
-                            {dashboardData.userActions.analytics.uniqueSessions}
-                          </Text>
-                        </Group>
-                        <Group justify="space-between">
-                          <Text size="sm">Avg Session Time</Text>
-                          <Text size="sm" fw={500}>
-                            {formatDuration(
-                              dashboardData.userActions.analytics
-                                .averageSessionTime
-                            )}
-                          </Text>
-                        </Group>
-                      </Stack>
-                    </Grid.Col>
-                    <Grid.Col span={6}>
-                      <Text size="sm" mb="xs">
-                        Top Actions
-                      </Text>
-                      <Stack spacing="xs">
-                        {Object.entries(
-                          dashboardData.userActions.analytics.topActions
-                        )
-                          .slice(0, 5)
-                          .map(([action, count]) => (
-                            <Group key={action} justify="space-between">
-                              <Text size="sm" lineClamp={1}>
-                                {action}
-                              </Text>
-                              <Badge size="sm">{count}</Badge>
-                            </Group>
-                          ))}
-                      </Stack>
-                    </Grid.Col>
-                  </Grid>
-                )}
-              </Card>
-            </Grid.Col>
-          </Grid>
-        </Tabs.Panel>
-
-        {/* Alerts Tab */}
-        <Tabs.Panel value="alerts">
-          <Card withBorder>
-            <Text fw={500} mb="md">
-              System Alerts
-            </Text>
-            {dashboardData.alerts && (
-              <Stack spacing="sm">
-                {dashboardData.alerts.recentAlerts?.map((alert, index) => (
-                  <Card key={index} withBorder radius="sm" p="sm">
-                    <Group justify="space-between" mb="xs">
-                      <Text fw={500} size="sm">
-                        {alert.title}
-                      </Text>
-                      <Badge color={getHealthColor(alert.severity)} size="sm">
-                        {alert.severity}
-                      </Badge>
-                    </Group>
-                    <Text size="xs" c="dimmed" mb="xs">
-                      {alert.message}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                      {new Date(alert.timestamp).toLocaleString()}
-                    </Text>
-                  </Card>
-                ))}
-
-                {(!dashboardData.alerts.recentAlerts ||
-                  dashboardData.alerts.recentAlerts.length === 0) && (
-                  <Text size="sm" c="dimmed" ta="center">
-                    No recent alerts
-                  </Text>
-                )}
-              </Stack>
-            )}
-          </Card>
-        </Tabs.Panel>
-
-        {/* System Tab */}
-        <Tabs.Panel value="system">
-          <Card withBorder>
-            <Text fw={500} mb="md">
-              System Information
-            </Text>
-            {dashboardData.system && (
-              <Stack spacing="sm">
-                <Group justify="space-between">
-                  <Text size="sm">Log Level</Text>
-                  <Badge>{dashboardData.system.logLevel}</Badge>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm">Memory Limit</Text>
-                  <Text size="sm" fw={500}>
-                    {formatBytes(dashboardData.system.memory?.limit)}
-                  </Text>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm">Current URL</Text>
-                  <Text size="sm" fw={500} lineClamp={1}>
-                    {dashboardData.system.url}
-                  </Text>
-                </Group>
-                <Group justify="space-between">
-                  <Text size="sm">Environment</Text>
-                  <Badge
-                    color={
-                      process.env.NODE_ENV === "production" ? "green" : "blue"
-                    }
-                  >
-                    {process.env.NODE_ENV || "development"}
-                  </Badge>
-                </Group>
-              </Stack>
-            )}
-          </Card>
-        </Tabs.Panel>
+        <TabsNavigation />
+        <TabPanels 
+          dashboardData={dashboardData}
+          getHealthColor={getHealthColor}
+          formatBytes={formatBytes}
+          formatDuration={formatDuration}
+        />
       </Tabs>
     </Stack>
   );

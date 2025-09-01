@@ -95,6 +95,249 @@ const getProblemSlugFromUrl = (url) => {
   return match ? match[1] : null; // Return the problem slug or null if no match
 };
 
+// Helper function to handle Chrome runtime messaging for problem data
+const sendProblemMessage = (title, problemSlug, setProblemData, setProblemFound, setLoading) => {
+  const messageTimeout = setTimeout(() => {
+    logger.warn("⚠️ Chrome message timeout - continuing without problem data");
+    setLoading(false);
+    setProblemData(null);
+    setProblemFound(false);
+  }, 5000);
+
+  chrome.runtime.sendMessage(
+    {
+      type: "getProblemByDescription",
+      description: title,
+      slug: problemSlug,
+    },
+    (response) => {
+      clearTimeout(messageTimeout);
+      setLoading(false);
+      
+      // Check for Chrome runtime errors
+      if (chrome.runtime.lastError) {
+        logger.warn("⚠️ Chrome runtime error:", chrome.runtime.lastError.message);
+        setProblemData(null);
+        setProblemFound(false);
+        return;
+      }
+      
+      if (response?.error) {
+        logger.error("❌ Error in getProblemByDescription", response.error);
+        setProblemData(null);
+        setProblemFound(false);
+        return;
+      }
+      
+      if (response?.problem) {
+        logger.info("✅ Problem found: ", response.problem);
+        setProblemFound(response.found);
+        setProblemData(response.problem);
+        return;
+      }
+      
+      logger.warn("⚠️ No problem found");
+      setProblemData(null);
+      setProblemFound(false);
+    }
+  );
+};
+
+// Helper function to check content onboarding status
+const performContentOnboardingCheck = async (setShowContentOnboarding, setContentOnboardingStatus) => {
+  // Manual override for testing
+  if (typeof window !== 'undefined' && localStorage.getItem('force-content-onboarding') === 'true') {
+    logger.info("🔧 MANUAL OVERRIDE: Forcing content onboarding to show");
+    setShowContentOnboarding(true);
+    return;
+  }
+  
+  try {
+    const status = await checkContentOnboardingStatus();
+    logger.info("📊 Main: Content onboarding status received:", status);
+    setContentOnboardingStatus(status);
+
+    // Show onboarding tour if not completed
+    if (status.isCompleted) {
+      logger.info("⏭️ Content onboarding already completed - will NOT show", {
+        isCompleted: status.isCompleted,
+        completedAt: status.completedAt,
+        currentStep: status.currentStep
+      });
+      setShowContentOnboarding(false);
+      return;
+    }
+    
+    logger.info("✅ Content onboarding will show - not completed", { 
+      isCompleted: status.isCompleted, 
+      currentStep: status.currentStep,
+      lastActiveStep: status.lastActiveStep 
+    });
+    
+    // Small delay to ensure the DOM is ready
+    const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
+    setTimeout(() => {
+      logger.info("🎯 Setting showContentOnboarding to true");
+      setShowContentOnboarding(true);
+    }, delayTime);
+  } catch (error) {
+    logger.error("❌ Error checking content onboarding status:", error);
+    
+    // Fallback: show onboarding anyway for new users
+    setTimeout(() => {
+      setShowContentOnboarding(true);
+    }, 1000);
+  }
+};
+
+// Helper function to setup URL change listeners
+const setupUrlChangeListeners = (handleUrlChange) => {
+  logger.info("🔧 SETTING UP URL CHANGE LISTENERS");
+  // Monkey-patch pushState and replaceState to detect changes
+  const originalPushState = window.history.pushState;
+  const originalReplaceState = window.history.replaceState;
+
+  window.history.pushState = function (...args) {
+    originalPushState.apply(window.history, args);
+    window.dispatchEvent(new Event("locationchange"));
+  };
+
+  window.history.replaceState = function (...args) {
+    originalReplaceState.apply(window.history, args);
+    window.dispatchEvent(new Event("locationchange"));
+  };
+
+  // Listen for popstate and locationchange events
+  window.addEventListener("popstate", handleUrlChange);
+  window.addEventListener("locationchange", handleUrlChange);
+
+  // Return cleanup function
+  return () => {
+    logger.info("🧹 CLEANING UP URL CHANGE LISTENERS");
+    window.history.pushState = originalPushState;
+    window.history.replaceState = originalReplaceState;
+    window.removeEventListener("popstate", handleUrlChange);
+    window.removeEventListener("locationchange", handleUrlChange);
+  };
+};
+
+// Helper component for problem link rendering
+const ProblemLink = ({ currentProblem, problemData, problemFound, loading, problemTitle }) => {
+  if (!currentProblem) return null;
+
+  const getLinkClassName = () => {
+    if (!problemData || loading) return "link-disabled";
+    if (loading) return "nav-link-loading";
+    return "";
+  };
+
+  const getLinkTitle = () => {
+    if (loading) return "Loading problem data...";
+    if (!problemData) return "Problem data not available";
+    if (problemData && problemFound) return "Start a new attempt on this problem";
+    return "Add this problem to your collection";
+  };
+
+  const getLinkContent = () => {
+    if (loading) return "Loading...";
+    
+    if (problemData && problemFound) {
+      return (
+        <>
+          <span className="cm-nav-icon cm-retry-icon"></span>New Attempt
+        </>
+      );
+    }
+    
+    if (problemData && !problemFound) {
+      return (
+        <>
+          <span className="cm-nav-icon cm-plus-icon"></span>New Problem
+        </>
+      );
+    }
+    
+    return (
+      <>
+        <span className="cm-nav-icon cm-problem-icon"></span>
+        {problemTitle || currentProblem}
+      </>
+    );
+  };
+
+  return (
+    <Link
+      to="/Probtime"
+      state={{ problemData, problemFound }}
+      onClick={(e) => {
+        if (!problemData || loading) {
+          e.preventDefault();
+        }
+      }}
+      className={getLinkClassName()}
+      title={getLinkTitle()}
+    >
+      {getLinkContent()}
+    </Link>
+  );
+};
+
+// Helper component for navigation sidebar
+const NavigationSidebar = ({ isAppOpen, setIsAppOpen, currentProblem, problemData, problemFound, loading, problemTitle }) => {
+  return (
+    <div
+      id="cm-mySidenav"
+      className={isAppOpen ? "cm-sidenav" : "cm-sidenav cm-hidden"}
+    >
+      <Header title="CodeMaster" onClose={() => setIsAppOpen(false)} />
+      <div className="cm-sidenav__content">
+        <nav id="nav">
+          <Link to="/Probgen">Generator</Link>
+          <Link to="/Probstat">Statistics</Link>
+          <Link to="/Settings">Settings</Link>
+          <ProblemLink 
+            currentProblem={currentProblem}
+            problemData={problemData}
+            problemFound={problemFound}
+            loading={loading}
+            problemTitle={problemTitle}
+          />
+        </nav>
+        <ThemeToggle />
+      </div>
+    </div>
+  );
+};
+
+// Helper custom hook to create fetchProblemData callback
+const useFetchProblemData = (setProblemTitle, setLoading, setProblemData, setProblemFound) => {
+  return useCallback((problemSlug) => {
+    if (!problemSlug) {
+      return; // No valid problem slug, do nothing
+    }
+
+    const problemTitleFormatted = problemSlug.replace(/-/g, " ");
+    const title =
+      problemTitleFormatted.charAt(0).toUpperCase() +
+      problemTitleFormatted.slice(1);
+    setProblemTitle(title);
+
+    setLoading(true);
+    sendProblemMessage(title, problemSlug, setProblemData, setProblemFound, setLoading);
+  }, [setProblemTitle, setLoading, setProblemData, setProblemFound]);
+};
+
+// Helper hook for onboarding message
+const useOnboardingMessage = () => {
+  return useChromeMessage({ type: "onboardingUserIfNeeded" }, [], {
+    onSuccess: (response) => {
+      if (response) {
+        logger.info("onboardingUserIfNeeded", response);
+      }
+    },
+  });
+};
+
 const Main = () => {
   logger.info("🚀 MAIN COMPONENT MOUNTED - This should only happen once!", new Date().toISOString());
   const _navigate = useNavigate();
@@ -119,80 +362,14 @@ const Main = () => {
   const FORCE_DISABLE_ONBOARDING = false;
 
   // Function to fetch problem data based on the problem slug
-  const fetchProblemData = useCallback((problemSlug) => {
-    if (!problemSlug) {
-      return; // No valid problem slug, do nothing
-    }
-
-    const problemTitleFormatted = problemSlug.replace(/-/g, " ");
-    const title =
-      problemTitleFormatted.charAt(0).toUpperCase() +
-      problemTitleFormatted.slice(1);
-    // logger.info("Slug", problemSlug);
-    // logger.info("Problem Title:", title);
-    setProblemTitle(title);
-
-    setLoading(true);
-
-    // Add timeout and error handling for Chrome runtime messaging
-    const messageTimeout = setTimeout(() => {
-      logger.warn("⚠️ Chrome message timeout - continuing without problem data");
-      setLoading(false);
-      setProblemData(null);
-      setProblemFound(false);
-    }, 5000);
-
-    chrome.runtime.sendMessage(
-      {
-        type: "getProblemByDescription",
-        description: title,
-        slug: problemSlug,
-      },
-      (response) => {
-        clearTimeout(messageTimeout);
-        
-        // Check for Chrome runtime errors
-        if (chrome.runtime.lastError) {
-          logger.warn("⚠️ Chrome runtime error:", chrome.runtime.lastError.message);
-          setLoading(false);
-          setProblemData(null);
-          setProblemFound(false);
-          return;
-        }
-        
-        if (response?.error) {
-          logger.error("❌ Error in getProblemByDescription", response.error);
-          setProblemData(null);
-          setProblemFound(false);
-          setLoading(false);
-          return;
-        }
-        
-        if (response?.problem) {
-          logger.info("✅ Problem found: ", response.problem);
-          setProblemFound(response.found);
-          setProblemData(response.problem);
-        } else {
-          logger.warn("⚠️ No problem found");
-          setProblemData(null);
-          setProblemFound(false);
-        }
-        setLoading(false);
-      }
-    );
-  }, []);
+  const fetchProblemData = useFetchProblemData(setProblemTitle, setLoading, setProblemData, setProblemFound);
+  
   // New approach using custom hook
   const {
     data: _onboardingData,
     loading: _onboardingLoading,
     error: _onboardingError,
-  } = useChromeMessage({ type: "onboardingUserIfNeeded" }, [], {
-    onSuccess: (response) => {
-      if (response) {
-        logger.info("onboardingUserIfNeeded", response);
-      }
-    },
-  });
+  } = useOnboardingMessage();
 
   // // UseEffect to handle initial data fetch on component mount
 
@@ -204,51 +381,6 @@ const Main = () => {
 
   // Check content onboarding status with resume capability
   useEffect(() => {
-    const checkContentOnboarding = async () => {
-      // Manual override for testing
-      if (typeof window !== 'undefined' && localStorage.getItem('force-content-onboarding') === 'true') {
-        logger.info("🔧 MANUAL OVERRIDE: Forcing content onboarding to show");
-        setShowContentOnboarding(true);
-        return;
-      }
-      
-      try {
-        const status = await checkContentOnboardingStatus();
-        logger.info("📊 Main: Content onboarding status received:", status);
-        setContentOnboardingStatus(status);
-
-        // Show onboarding tour if not completed
-        if (!status.isCompleted) {
-          logger.info("✅ Content onboarding will show - not completed", { 
-            isCompleted: status.isCompleted, 
-            currentStep: status.currentStep,
-            lastActiveStep: status.lastActiveStep 
-          });
-          
-          // Small delay to ensure the DOM is ready
-          const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
-          setTimeout(() => {
-            logger.info("🎯 Setting showContentOnboarding to true");
-            setShowContentOnboarding(true);
-          }, delayTime);
-        } else {
-          logger.info("⏭️ Content onboarding already completed - will NOT show", {
-            isCompleted: status.isCompleted,
-            completedAt: status.completedAt,
-            currentStep: status.currentStep
-          });
-          setShowContentOnboarding(false);
-        }
-      } catch (error) {
-        logger.error("❌ Error checking content onboarding status:", error);
-        
-        // Fallback: show onboarding anyway for new users
-        setTimeout(() => {
-          setShowContentOnboarding(true);
-        }, 1000);
-      }
-    };
-    
     // Quick test - uncomment this line to force show onboarding immediately
     // setTimeout(() => setShowContentOnboarding(true), 2000); // DISABLED: Let completion logic control visibility
     
@@ -259,7 +391,7 @@ const Main = () => {
     // }, 1000);
     
     // Run immediately - no longer dependent on data onboarding
-    checkContentOnboarding();
+    performContentOnboardingCheck(setShowContentOnboarding, setContentOnboardingStatus);
   }, []); // Empty dependency array - run once on mount
 
   // Function to handle URL changes after initial load  
@@ -279,90 +411,11 @@ const Main = () => {
       logger.info("📍 Current internal route:", pathname);
     }
   }, [currentProblem, fetchProblemData, pathname]);
-  const _backupIndexedDB = () => {
-    try {
-      logger.info("📌 Sending backup request to background script...");
-      chrome.runtime.sendMessage({ type: "getBackupFile" }, (response) => {
-        if (chrome.runtime.lastError) {
-          logger.error("❌ Runtime Error:", chrome.runtime.lastError.message);
-          return;
-        }
-        if (!response || response.error) {
-          logger.error("❌ Backup Error:", response?.error || "No response");
-          return;
-        }
-
-        logger.info(
-          "✅ Backup data retrieved:",
-          response.backup,
-          Object.keys(response.backup)
-        );
-        // response.backup.forEach((property) => { logger.info(property); });
-        logger.info("✅ Backup data retrieved:", Object.keys(response.backup));
-
-        if (!response.backup) {
-          alert("❌ Backup file is empty.");
-          return;
-        }
-
-        const backupBlob = new Blob(
-          [
-            JSON.stringify(
-              response.backup.stores.standard_problems.data,
-              null,
-              2
-            ),
-          ],
-          {
-            type: "application/json",
-          }
-        );
-
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(backupBlob);
-        a.download = `IndexedDB_Backup_${new Date().toISOString()}.json`;
-        document.body.appendChild(a);
-        a.click(() => {
-          logger.info("✅ Backup file downloaded.");
-        });
-        document.body.removeChild(a);
-
-        logger.info("✅ Backup file downloaded.");
-      });
-    } catch (error) {
-      logger.error("❌ Error downloading backup:", error);
-    }
-  };
 
   // Use browser events to detect URL changes
   useEffect(() => {
-    logger.info("🔧 SETTING UP URL CHANGE LISTENERS");
-    // Monkey-patch pushState and replaceState to detect changes
-    const originalPushState = window.history.pushState;
-    const originalReplaceState = window.history.replaceState;
-
-    window.history.pushState = function (...args) {
-      originalPushState.apply(window.history, args);
-      window.dispatchEvent(new Event("locationchange"));
-    };
-
-    window.history.replaceState = function (...args) {
-      originalReplaceState.apply(window.history, args);
-      window.dispatchEvent(new Event("locationchange"));
-    };
-
-    // Listen for popstate and locationchange events
-    window.addEventListener("popstate", handleUrlChange);
-    window.addEventListener("locationchange", handleUrlChange);
-
-    // Cleanup on component unmount
-    return () => {
-      logger.info("🧹 CLEANING UP URL CHANGE LISTENERS");
-      window.history.pushState = originalPushState;
-      window.history.replaceState = originalReplaceState;
-      window.removeEventListener("popstate", handleUrlChange);
-      window.removeEventListener("locationchange", handleUrlChange);
-    };
+    const cleanup = setupUrlChangeListeners(handleUrlChange);
+    return cleanup;
   }, [handleUrlChange]); // Use memoized function
 
   // Content onboarding handlers
@@ -388,82 +441,15 @@ const Main = () => {
       <div style={{ display: isAppOpen ? "block" : "none" }}>
         <Outlet />
         {shouldShowNav && (
-          <div
-            id="cm-mySidenav"
-            className={isAppOpen ? "cm-sidenav" : "cm-sidenav cm-hidden"}
-          >
-            <Header title="CodeMaster" onClose={() => setIsAppOpen(false)} />
-            <div className="cm-sidenav__content">
-              <nav id="nav">
-                {/* <Link to="/Strategy">Strategy Map</Link> */}
-                <Link to="/Probgen">Generator</Link>
-                <Link to="/Probstat">Statistics</Link>
-                <Link to="/Settings">Settings</Link>
-                {/* Problem Link - Only show when on a valid LeetCode problem page */}
-                {currentProblem && (
-                  <Link
-                    to="/Probtime"
-                    state={{ problemData, problemFound }}
-                    onClick={(e) => {
-                      if (!problemData || loading) {
-                        e.preventDefault(); // Prevent navigation if problemData is not ready
-                      }
-                    }}
-                    className={`${
-                      !problemData || loading
-                        ? "link-disabled"
-                        : loading
-                        ? "nav-link-loading"
-                        : ""
-                    }`}
-                    title={
-                      loading
-                        ? "Loading problem data..."
-                        : !problemData
-                        ? "Problem data not available"
-                        : problemData && problemFound
-                        ? "Start a new attempt on this problem"
-                        : "Add this problem to your collection"
-                    }
-                  >
-                    {loading ? (
-                      "Loading..."
-                    ) : problemData && problemFound ? (
-                      <>
-                        <span className="cm-nav-icon cm-retry-icon"></span>New
-                        Attempt
-                      </>
-                    ) : problemData && !problemFound ? (
-                      <>
-                        <span className="cm-nav-icon cm-plus-icon"></span>New
-                        Problem
-                      </>
-                    ) : (
-                      <>
-                        <span className="cm-nav-icon cm-problem-icon"></span>
-                        {problemTitle || currentProblem}
-                      </>
-                    )}
-                  </Link>
-                )}
-
-                {/* <div style={{ display: "flex", flexDirection: "column" }}>
-                <button
-                  style={{
-                    marginTop: "10px",
-                    backgroundColor: "green",
-                    color: "white",
-                  }}
-                  onClick={backupIndexedDB}
-                >
-                  Restore
-                </button>
-              </div> */}
-              </nav>
-
-              <ThemeToggle />
-            </div>
-          </div>
+          <NavigationSidebar
+            isAppOpen={isAppOpen}
+            setIsAppOpen={setIsAppOpen}
+            currentProblem={currentProblem}
+            problemData={problemData}
+            problemFound={problemFound}
+            loading={loading}
+            problemTitle={problemTitle}
+          />
         )}
       </div>
 
