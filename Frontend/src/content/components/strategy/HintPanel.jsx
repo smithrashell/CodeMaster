@@ -19,6 +19,44 @@ import {
 import StrategyService from "../../services/strategyService";
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
+// Helper component for rendering panel content
+const PanelContent = ({ loading, error, hints, isExpanded }) => (
+  <Collapse in={isExpanded}>
+    {loading && (
+      <Group justify="center" p="md">
+        <Loader size="sm" />
+        <Text size="sm" c="dimmed">
+          Loading strategy hints...
+        </Text>
+      </Group>
+    )}
+
+    {error && (
+      <Alert
+        icon={<IconInfoCircle size={16} />}
+        color="red"
+        variant="light"
+        mb="sm"
+      >
+        {error}
+      </Alert>
+    )}
+
+    {!loading && !error && hints.length === 0 && (
+      <Text size="sm" c="dimmed" ta="center" p="md">
+        No strategy hints available for these tags.
+      </Text>
+    )}
+
+    {!loading && !error && hints.length > 0 && (
+      <HintsSections 
+        contextualHints={hints.filter((hint) => hint.type === "contextual")} 
+        generalHints={hints.filter((hint) => hint.type === "general")} 
+      />
+    )}
+  </Collapse>
+);
+
 /**
  * HintPanel - Real-time context-aware strategy hints during problem solving
  * Shows strategies based on current problem's tags
@@ -92,9 +130,6 @@ const HintPanel = ({
     return null;
   }
 
-  const generalHints = hints.filter((hint) => hint.type === "general");
-  const contextualHints = hints.filter((hint) => hint.type === "contextual");
-
   return (
     <Card
       shadow="sm"
@@ -133,37 +168,12 @@ const HintPanel = ({
         </Button>
       </Group>
 
-      <Collapse in={isExpanded}>
-        {loading && (
-          <Group justify="center" p="md">
-            <Loader size="sm" />
-            <Text size="sm" c="dimmed">
-              Loading strategy hints...
-            </Text>
-          </Group>
-        )}
-
-        {error && (
-          <Alert
-            icon={<IconInfoCircle size={16} />}
-            color="red"
-            variant="light"
-            mb="sm"
-          >
-            {error}
-          </Alert>
-        )}
-
-        {!loading && !error && hints.length === 0 && (
-          <Text size="sm" c="dimmed" ta="center" p="md">
-            No strategy hints available for these tags.
-          </Text>
-        )}
-
-        {!loading && !error && hints.length > 0 && (
-          <HintsSections contextualHints={contextualHints} generalHints={generalHints} />
-        )}
-      </Collapse>
+      <PanelContent 
+        loading={loading}
+        error={error}
+        hints={hints}
+        isExpanded={isExpanded}
+      />
     </Card>
   );
 };

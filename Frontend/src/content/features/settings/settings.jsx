@@ -242,54 +242,35 @@ const InterviewFrequencyControls = ({ settings, updateSettings }) => (
   </>
 );
 
-const Settings = () => {
-  const { setIsAppOpen } = useNav();
-
-  const handleClose = () => {
-    setIsAppOpen(false);
-  };
+// Custom hook for settings management
+const useSettingsState = () => {
   const [settings, setSettings] = useState(null);
   const [maxNewProblems, setMaxNewProblems] = useState(8);
   const useMock = false;
+  
   const MOCK_SETTINGS = useMemo(() => ({
-    adaptive: true, // try false to test toggling
+    adaptive: true,
     sessionLength: 8,
     numberofNewProblemsPerSession: 3,
     limit: "Auto",
-    reminder: {
-      enabled: true,
-      time: "12",
-    },
-    // Interview-specific defaults for mock
+    reminder: { enabled: true, time: "12" },
     interviewMode: "disabled",
     interviewReadinessThreshold: 0.8,
     interviewFrequency: "manual",
   }), []);
 
-  // Check interview readiness
-  const interviewReadiness = useInterviewReadiness(settings);
-  
-  // Debug settings loading
-  system("🔧 Content Settings state", { 
-    hasSettings: !!settings, 
-    interviewMode: settings?.interviewMode,
-    interviewReadiness 
-  });
-
-  // New approach using custom hook
-  const {
-    data: _chromeSettings,
-    loading: _loading,
-    error: _error,
-  } = useChromeMessage(!useMock ? { type: "getSettings" } : null, [], {
-    onSuccess: (response) => {
-      if (response) {
-        setSettings(response);
-      } else {
-        console.warn("No settings received, using defaults.");
-      }
-    },
-  });
+  // Settings loading
+  const { data: _chromeSettings, loading: _loading, error: _error } = useChromeMessage(
+    !useMock ? { type: "getSettings" } : null, [], {
+      onSuccess: (response) => {
+        if (response) {
+          setSettings(response);
+        } else {
+          console.warn("No settings received, using defaults.");
+        }
+      },
+    }
+  );
 
   // Handle mock settings
   useEffect(() => {
@@ -298,26 +279,20 @@ const Settings = () => {
     }
   }, [useMock, MOCK_SETTINGS]);
 
-  // Ensure settings have proper default values for interview mode
+  // Initialize interview settings
   useEffect(() => {
     if (settings && !settings.interviewMode) {
-      console.log("🔧 Content Settings - Initializing missing interview settings:", { 
-        interviewMode: settings.interviewMode 
-      });
-      
       const defaultSettings = {
         ...settings,
         interviewMode: "disabled",
         interviewReadinessThreshold: 0.8,
         interviewFrequency: "manual",
       };
-      
-      console.log("🔧 Content Settings - Setting default interview settings:", defaultSettings);
       setSettings(defaultSettings);
     }
   }, [settings]);
 
-  // Update max new problems dynamically when settings change
+  // Update max new problems
   useEffect(() => {
     const updateMaxNewProblems = async () => {
       try {
@@ -325,8 +300,6 @@ const Settings = () => {
         const newMax = SessionLimits.getMaxNewProblems(sessionState, settings?.sessionLength);
         setMaxNewProblems(newMax);
       } catch (error) {
-        console.error('Settings.jsx: Failed to get session state, using fallback limits:', error);
-        // Fallback to default if session state unavailable
         const fallbackMax = SessionLimits.getMaxNewProblems(null, settings?.sessionLength);
         setMaxNewProblems(fallbackMax);
       }
@@ -335,43 +308,14 @@ const Settings = () => {
     if (settings) {
       updateMaxNewProblems();
     }
-  }, [settings]); // Re-run when settings change
+  }, [settings]);
 
-  const handleSave = (settings) => {
-    chrome.runtime.sendMessage(
-      { type: "setSettings", message: settings },
-      (response) => {
-        // Clear any cached settings to ensure fresh data on next read
-        chrome.runtime.sendMessage(
-          { type: "clearSettingsCache" },
-          () => {
-            // Settings cache cleared
-          }
-        );
+  return { settings, setSettings, maxNewProblems, _loading, _error };
+};
 
-        // Notify user of successful save
-        if (response?.status === "success") {
-          // Settings successfully updated and cache cleared
-        }
-      }
-    );
-  };
-
-  const _toggleAdaptive = (value) => {
-    setSettings((prev) => ({ ...prev, adaptive: value }));
-  };
-
-  // Debug logging
-  console.log("🔧 Settings component render:", { 
-    settings, 
-    hasSettings: !!settings,
-    loading: _loading,
-    error: _error,
-    useMock
-  });
-
-  // Always ensure settings exist, even if empty
-  const workingSettings = settings || {
+// Helper to get working settings
+const getWorkingSettings = (settings) => {
+  return settings || {
     adaptive: true,
     sessionLength: 8,
     numberofNewProblemsPerSession: 3,
@@ -381,6 +325,44 @@ const Settings = () => {
     interviewReadinessThreshold: 0.7,
     interviewFrequency: "manual"
   };
+};
+
+// Helper to save settings
+const saveSettings = (settings) => {
+  chrome.runtime.sendMessage(
+    { type: "setSettings", message: settings },
+    (response) => {
+      chrome.runtime.sendMessage({ type: "clearSettingsCache" }, () => {});
+      if (response?.status === "success") {
+        // Settings successfully updated and cache cleared
+      }
+    }
+  );
+};
+
+const Settings = () => {
+  const { setIsAppOpen } = useNav();
+  const { settings, setSettings, maxNewProblems, _loading, _error } = useSettingsState();
+  const interviewReadiness = useInterviewReadiness(settings);
+  
+  const handleClose = () => {
+    setIsAppOpen(false);
+  };
+
+  // Debug settings loading
+  system("🔧 Content Settings state", { 
+    hasSettings: !!settings, 
+    interviewMode: settings?.interviewMode,
+    interviewReadiness 
+  });
+
+  const handleSave = saveSettings;
+
+  const _toggleAdaptive = (value) => {
+    setSettings((prev) => ({ ...prev, adaptive: value }));
+  };
+
+  const workingSettings = getWorkingSettings(settings);
 
   return (
     <div id="cm-mySidenav" className="cm-sidenav problink">
