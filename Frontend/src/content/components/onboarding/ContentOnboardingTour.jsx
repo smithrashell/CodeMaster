@@ -32,6 +32,172 @@ import { smartPositioning } from "./SmartPositioning";
 import { updateContentOnboardingStep } from "../../../shared/services/onboardingService";
 import logger from "../../../shared/utils/logger.js";
 
+// Tour Card Header Component
+const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => (
+  <Group position="apart" mb="xs">
+    <Badge color="blue" variant="light" size="xs">
+      {currentStep + 1} of {totalSteps}
+    </Badge>
+    <ActionIcon variant="subtle" size="xs" onClick={onSkip}>
+      <IconX size={12} />
+    </ActionIcon>
+  </Group>
+);
+
+// Tour Card Content Component  
+const TourCardContent = ({ currentStepData, getStepIcon }) => (
+  <Group spacing="xs" align="flex-start">
+    <ThemeIcon color="blue" variant="light" size="sm" mt={1}>
+      {getStepIcon()}
+    </ThemeIcon>
+    <div style={{ flex: 1 }}>
+      <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
+        {currentStepData.title}
+      </Text>
+      <Text size="xs" color="dimmed" style={{ lineHeight: 1.3 }}>
+        {currentStepData.content}
+      </Text>
+    </div>
+  </Group>
+);
+
+// Action Prompt Component
+const ActionPrompt = ({ actionPrompt }) => (
+  <div
+    style={{
+      padding: "4px 8px",
+      backgroundColor: "#e3f2fd",
+      borderRadius: "4px",
+      border: "1px solid #90caf9",
+    }}
+  >
+    <Group spacing="xs">
+      <IconClick size={12} color="#1976d2" />
+      <Text size="xs" color="#1976d2" weight={500} style={{ lineHeight: 1.2 }}>
+        {actionPrompt}
+      </Text>
+    </Group>
+  </div>
+);
+
+// Navigation Controls Component
+const NavigationControls = ({ 
+  currentStepData, 
+  currentStep, 
+  totalSteps, 
+  handleNavigation, 
+  handlePrevious, 
+  handleSkip, 
+  handleNext 
+}) => {
+  if (currentStepData.hasNavigationButton) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          marginTop: "8px",
+          width: "100%",
+        }}
+      >
+        <SimpleButton
+          variant="primary"
+          size="md"
+          onClick={handleNavigation}
+          style={{ width: "100%" }}
+        >
+          <IconChevronRight size={14} style={{ marginRight: 6 }} />
+          {currentStepData.navigationText || "Continue"}
+        </SimpleButton>
+        
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+            gap: "6px",
+          }}
+        >
+          <SimpleButton
+            variant="ghost"
+            size="sm"
+            onClick={handlePrevious}
+            disabled={currentStep === 0}
+            style={{ flex: 1 }}
+          >
+            <IconChevronLeft size={12} style={{ marginRight: 4 }} />
+            Back
+          </SimpleButton>
+
+          <SimpleButton
+            variant="ghost"
+            size="sm"
+            onClick={handleSkip}
+            style={{ flex: 1 }}
+          >
+            Skip Tour
+          </SimpleButton>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "6px",
+        marginTop: "8px",
+        width: "100%",
+      }}
+    >
+      <SimpleButton
+        variant="ghost"
+        size="sm"
+        onClick={handlePrevious}
+        disabled={currentStep === 0}
+        style={{ flex: 1, minWidth: "70px" }}
+      >
+        <IconChevronLeft size={12} style={{ marginRight: 4 }} />
+        Back
+      </SimpleButton>
+
+      <SimpleButton
+        variant="primary"
+        size="sm"
+        onClick={handleNext}
+        disabled={false}
+        style={{ flex: 1, minWidth: "80px" }}
+      >
+        {currentStep === totalSteps - 1 ? (
+          <>
+            Finish
+            <IconCheck size={12} style={{ marginLeft: 4 }} />
+          </>
+        ) : (
+          <>
+            Next
+            <IconChevronRight size={12} style={{ marginLeft: 4 }} />
+          </>
+        )}
+      </SimpleButton>
+
+      <SimpleButton
+        variant="ghost"
+        size="sm"
+        onClick={handleSkip}
+        style={{ flexShrink: 0, minWidth: "50px" }}
+      >
+        Skip
+      </SimpleButton>
+    </div>
+  );
+};
+
 const TOUR_STEPS = [
   {
     id: "welcome",
@@ -235,64 +401,8 @@ const useMenuStateMonitoring = (isVisible) => {
   return menuOpenState;
 };
 
-export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
-  const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
-
-  const currentStepData = TOUR_STEPS[currentStep];
-  
-  // Use extracted hooks
-  const { tourPosition, arrowPosition } = useTourPositioning(isVisible, currentStepData, currentStep);
-  const menuOpenState = useMenuStateMonitoring(isVisible);
-
-
-
-  // Interaction handling
-  useEffect(() => {
-    if ((!isWaitingForInteraction || !currentStepData.waitForInteraction) && !currentStepData.waitForUserClick) return;
-
-    const handleInteraction = (event) => {
-      if (
-        currentStepData.interactionType === "click" &&
-        currentStepData.target &&
-        event.target.closest(currentStepData.target)
-      ) {
-        logger.info("User interaction detected:", currentStepData.target);
-        setIsWaitingForInteraction(false);
-
-        // Special handling for different interaction types
-        if (currentStepData.target === "#cm-menuButton") {
-          setTimeout(() => {
-            handleNext();
-          }, 500); // Longer delay for menu animation
-        } else if (currentStepData.target === "a[href='/ProbGen']") {
-          // User clicked Problem Generator - complete the main tour
-          logger.info("User clicked Problem Generator, completing main tour");
-          setTimeout(() => {
-            onComplete();
-          }, 300);
-        } else {
-          setTimeout(() => {
-            handleNext();
-          }, 300);
-        }
-      }
-    };
-
-    // Also add escape hatch - allow manual proceed after 5 seconds
-    const escapeTimer = setTimeout(() => {
-      logger.info("Interaction timeout, allowing manual proceed");
-      setIsWaitingForInteraction(false);
-    }, 5000);
-
-    document.addEventListener("click", handleInteraction, true); // Use capture phase
-    return () => {
-      document.removeEventListener("click", handleInteraction, true);
-      clearTimeout(escapeTimer);
-    };
-  }, [isWaitingForInteraction, currentStepData, handleNext, onComplete]);
-
+// Custom hook for tour navigation logic
+const useTourNavigation = (currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete, onClose, navigate }) => {
   const proceedToNextStep = useCallback(() => {
     if (currentStep < TOUR_STEPS.length - 1) {
       const nextStep = currentStep + 1;
@@ -307,9 +417,11 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
     } else {
       onComplete();
     }
-  }, [currentStep, onComplete]);
+  }, [currentStep, onComplete, setCurrentStep, setIsWaitingForInteraction]);
 
   const handleNext = useCallback(async () => {
+    const currentStepData = TOUR_STEPS[currentStep];
+    
     // Update progress in database
     try {
       await updateContentOnboardingStep(
@@ -341,7 +453,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
 
     // Proceed normally if no auto-trigger
     proceedToNextStep();
-  }, [currentStep, currentStepData, proceedToNextStep]);
+  }, [currentStep, proceedToNextStep]);
 
   const handlePrevious = () => {
     if (currentStep > 0) {
@@ -370,6 +482,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   };
 
   const handleNavigation = useCallback(() => {
+    const currentStepData = TOUR_STEPS[currentStep];
     if (currentStepData.navigationRoute) {
       logger.info("Navigating to:", currentStepData.navigationRoute);
       navigate(currentStepData.navigationRoute);
@@ -378,43 +491,167 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         onComplete();
       }, 300);
     }
-  }, [currentStepData, navigate, onComplete]);
+  }, [currentStep, navigate, onComplete]);
 
-  // Check if current step should be shown (e.g., menu needs to be open)
-  const shouldShowStep = () => {
-    if (currentStepData.requiresMenuOpen && !menuOpenState) {
-      return false;
+  return {
+    handleNext,
+    handlePrevious,
+    handleSkip,
+    handleNavigation,
+    proceedToNextStep
+  };
+};
+
+// Helper function to handle user interactions
+const createUserInteractionHandler = (currentStepData, setIsWaitingForInteraction, handleNext, onComplete) => {
+  return (event) => {
+    if (
+      currentStepData.interactionType === "click" &&
+      currentStepData.target &&
+      event.target.closest(currentStepData.target)
+    ) {
+      logger.info("User interaction detected:", currentStepData.target);
+      setIsWaitingForInteraction(false);
+
+      // Special handling for different interaction types
+      if (currentStepData.target === "#cm-menuButton") {
+        setTimeout(() => {
+          handleNext();
+        }, 500); // Longer delay for menu animation
+      } else if (currentStepData.target === "a[href='/ProbGen']") {
+        // User clicked Problem Generator - complete the main tour
+        logger.info("User clicked Problem Generator, completing main tour");
+        setTimeout(() => {
+          onComplete();
+        }, 300);
+      } else {
+        setTimeout(() => {
+          handleNext();
+        }, 300);
+      }
     }
-    return true;
+  };
+};
+
+// Helper function to get step icon
+const getStepIcon = (stepId) => {
+  switch (stepId) {
+    case "welcome":
+      return <IconBrain size={18} />;
+    case "cm-button-intro":
+    case "cm-button-interactive":
+      return <IconTarget size={18} />;
+    case "navigation-overview":
+      return <IconMenu2 size={18} />;
+    case "generator-feature":
+      return <IconBulb size={18} />;
+    case "statistics-feature":
+      return <IconChartBar size={18} />;
+    case "settings-feature":
+      return <IconSettings size={18} />;
+    case "timer-feature":
+      return <IconClock size={18} />;
+    case "guided-navigation":
+      return <IconPlayerPlay size={18} />;
+    case "completion":
+      return <IconHeart size={18} />;
+    default:
+      return <IconTarget size={18} />;
+  }
+};
+
+// Helper function to check if step should be shown
+const shouldShowStep = (currentStepData, menuOpenState) => {
+  if (currentStepData.requiresMenuOpen && !menuOpenState) {
+    return false;
+  }
+  return true;
+};
+
+// Helper function to get arrow styles based on direction
+const getArrowStyles = (direction) => {
+  const baseStyles = {
+    position: "absolute",
+    width: 0,
+    height: 0,
+    zIndex: 1001,
   };
 
-  const getStepIcon = () => {
-    switch (currentStepData.id) {
-      case "welcome":
-        return <IconBrain size={18} />;
-      case "cm-button-intro":
-      case "cm-button-interactive":
-        return <IconTarget size={18} />;
-      case "navigation-overview":
-        return <IconMenu2 size={18} />;
-      case "generator-feature":
-        return <IconBulb size={18} />;
-      case "statistics-feature":
-        return <IconChartBar size={18} />;
-      case "settings-feature":
-        return <IconSettings size={18} />;
-      case "timer-feature":
-        return <IconClock size={18} />;
-      case "guided-navigation":
-        return <IconPlayerPlay size={18} />;
-      case "completion":
-        return <IconHeart size={18} />;
-      default:
-        return <IconTarget size={18} />;
-    }
-  };
+  switch (direction) {
+    case "up":
+      return {
+        ...baseStyles,
+        borderLeft: "8px solid transparent",
+        borderRight: "8px solid transparent",
+        borderBottom: "8px solid white",
+        filter: "drop-shadow(0 -2px 4px rgba(0,0,0,0.1))",
+      };
+    case "down":
+      return {
+        ...baseStyles,
+        borderLeft: "8px solid transparent",
+        borderRight: "8px solid transparent",
+        borderTop: "8px solid white",
+        filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
+      };
+    case "left":
+      return {
+        ...baseStyles,
+        borderTop: "8px solid transparent",
+        borderBottom: "8px solid transparent",
+        borderRight: "8px solid white",
+        filter: "drop-shadow(-2px 0 4px rgba(0,0,0,0.1))",
+      };
+    case "right":
+      return {
+        ...baseStyles,
+        borderTop: "8px solid transparent",
+        borderBottom: "8px solid transparent",
+        borderLeft: "8px solid white",
+        filter: "drop-shadow(2px 0 4px rgba(0,0,0,0.1))",
+      };
+    default:
+      return baseStyles;
+  }
+};
 
-  if (!isVisible || !shouldShowStep()) {
+export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
+
+  const currentStepData = TOUR_STEPS[currentStep];
+  
+  // Use extracted hooks
+  const { tourPosition, arrowPosition } = useTourPositioning(isVisible, currentStepData, currentStep);
+  const menuOpenState = useMenuStateMonitoring(isVisible);
+  const { handleNext, handlePrevious, handleSkip, handleNavigation } = useTourNavigation(
+    currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete, onClose, navigate }
+  );
+  useEffect(() => {
+    if ((!isWaitingForInteraction || !currentStepData.waitForInteraction) && !currentStepData.waitForUserClick) return;
+
+    const handleInteraction = createUserInteractionHandler(
+      currentStepData, 
+      setIsWaitingForInteraction, 
+      handleNext, 
+      onComplete
+    );
+
+    // Also add escape hatch - allow manual proceed after 5 seconds
+    const escapeTimer = setTimeout(() => {
+      logger.info("Interaction timeout, allowing manual proceed");
+      setIsWaitingForInteraction(false);
+    }, 5000);
+
+    document.addEventListener("click", handleInteraction, true); // Use capture phase
+    return () => {
+      document.removeEventListener("click", handleInteraction, true);
+      clearTimeout(escapeTimer);
+    };
+  }, [isWaitingForInteraction, currentStepData, handleNext, onComplete]);
+
+  if (!isVisible || !shouldShowStep(currentStepData, menuOpenState)) {
     return null;
   }
 
@@ -442,50 +679,21 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
         {arrowPosition && (
           <div
             style={{
-              position: "absolute",
               top: arrowPosition.top,
               left: arrowPosition.left,
-              width: 0,
-              height: 0,
               zIndex: 10001,
-              ...(arrowPosition.direction === "up" && {
-                borderLeft: "8px solid transparent",
-                borderRight: "8px solid transparent",
-                borderBottom: "8px solid white",
-                filter: "drop-shadow(0 -2px 4px rgba(0,0,0,0.1))",
-              }),
-              ...(arrowPosition.direction === "down" && {
-                borderLeft: "8px solid transparent",
-                borderRight: "8px solid transparent",
-                borderTop: "8px solid white",
-                filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
-              }),
-              ...(arrowPosition.direction === "left" && {
-                borderTop: "8px solid transparent",
-                borderBottom: "8px solid transparent",
-                borderRight: "8px solid white",
-                filter: "drop-shadow(-2px 0 4px rgba(0,0,0,0.1))",
-              }),
-              ...(arrowPosition.direction === "right" && {
-                borderTop: "8px solid transparent",
-                borderBottom: "8px solid transparent",
-                borderLeft: "8px solid white",
-                filter: "drop-shadow(2px 0 4px rgba(0,0,0,0.1))",
-              }),
+              ...getArrowStyles(arrowPosition.direction),
             }}
           />
         )}
 
         <Card shadow="lg" padding="sm" withBorder radius="md">
-          {/* Header - More compact */}
-          <Group position="apart" mb="xs">
-            <Badge color="blue" variant="light" size="xs">
-              {currentStep + 1} of {TOUR_STEPS.length}
-            </Badge>
-            <ActionIcon variant="subtle" size="xs" onClick={handleSkip}>
-              <IconX size={12} />
-            </ActionIcon>
-          </Group>
+          {/* Header */}
+          <TourCardHeader 
+            currentStep={currentStep} 
+            totalSteps={TOUR_STEPS.length} 
+            onSkip={handleSkip} 
+          />
 
           {/* Progress Bar */}
           <Progress
@@ -495,146 +703,28 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
             color="blue"
           />
 
-          {/* Content - More compact layout */}
+          {/* Content */}
           <Stack spacing="xs">
-            <Group spacing="xs" align="flex-start">
-              <ThemeIcon color="blue" variant="light" size="sm" mt={1}>
-                {getStepIcon()}
-              </ThemeIcon>
-              <div style={{ flex: 1 }}>
-                <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
-                  {currentStepData.title}
-                </Text>
-                <Text size="xs" color="dimmed" style={{ lineHeight: 1.3 }}>
-                  {currentStepData.content}
-                </Text>
-              </div>
-            </Group>
+            <TourCardContent 
+              currentStepData={currentStepData} 
+              getStepIcon={() => getStepIcon(currentStepData.id)} 
+            />
 
-            {/* Action Prompt - More compact */}
+            {/* Action Prompt */}
             {currentStepData.actionPrompt && (
-              <div
-                style={{
-                  padding: "4px 8px",
-                  backgroundColor: "#e3f2fd",
-                  borderRadius: "4px",
-                  border: "1px solid #90caf9",
-                }}
-              >
-                <Group spacing="xs">
-                  <IconClick size={12} color="#1976d2" />
-                  <Text size="xs" color="#1976d2" weight={500} style={{ lineHeight: 1.2 }}>
-                    {currentStepData.actionPrompt}
-                  </Text>
-                </Group>
-              </div>
+              <ActionPrompt actionPrompt={currentStepData.actionPrompt} />
             )}
 
-            {/* Controls - Navigation or Standard Layout */}
-            {currentStepData.hasNavigationButton ? (
-              // Navigation Button Layout
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px",
-                  marginTop: "8px",
-                  width: "100%",
-                }}
-              >
-                <SimpleButton
-                  variant="primary"
-                  size="md"
-                  onClick={handleNavigation}
-                  style={{ width: "100%" }}
-                >
-                  <IconChevronRight size={14} style={{ marginRight: 6 }} />
-                  {currentStepData.navigationText || "Continue"}
-                </SimpleButton>
-                
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    gap: "6px",
-                  }}
-                >
-                  <SimpleButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={handlePrevious}
-                    disabled={currentStep === 0}
-                    style={{ flex: 1 }}
-                  >
-                    <IconChevronLeft size={12} style={{ marginRight: 4 }} />
-                    Back
-                  </SimpleButton>
-
-                  <SimpleButton
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSkip}
-                    style={{ flex: 1 }}
-                  >
-                    Skip Tour
-                  </SimpleButton>
-                </div>
-              </div>
-            ) : (
-              // Standard Control Layout
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "6px",
-                  marginTop: "8px",
-                  width: "100%",
-                }}
-              >
-                <SimpleButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePrevious}
-                  disabled={currentStep === 0}
-                  style={{ flex: 1, minWidth: "70px" }}
-                >
-                  <IconChevronLeft size={12} style={{ marginRight: 4 }} />
-                  Back
-                </SimpleButton>
-
-                <SimpleButton
-                  variant="primary"
-                  size="sm"
-                  onClick={handleNext}
-                  disabled={false}
-                  style={{ flex: 1, minWidth: "80px" }}
-                >
-                  {currentStep === TOUR_STEPS.length - 1 ? (
-                    <>
-                      Finish
-                      <IconCheck size={12} style={{ marginLeft: 4 }} />
-                    </>
-                  ) : (
-                    <>
-                      Next
-                      <IconChevronRight size={12} style={{ marginLeft: 4 }} />
-                    </>
-                  )}
-                </SimpleButton>
-
-                <SimpleButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleSkip}
-                  style={{ flexShrink: 0, minWidth: "50px" }}
-                >
-                  Skip
-                </SimpleButton>
-              </div>
-            )}
+            {/* Navigation Controls */}
+            <NavigationControls 
+              currentStepData={currentStepData}
+              currentStep={currentStep}
+              totalSteps={TOUR_STEPS.length}
+              handleNavigation={handleNavigation}
+              handlePrevious={handlePrevious}
+              handleSkip={handleSkip}
+              handleNext={handleNext}
+            />
           </Stack>
         </Card>
       </div>
