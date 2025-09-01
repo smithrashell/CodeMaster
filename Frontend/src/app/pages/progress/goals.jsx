@@ -10,24 +10,25 @@ import SessionLimits from "../../../shared/utils/sessionLimits.js";
 
 const SECTION_HEIGHT = 700; // Increased to 700px for extra spacious cards
 
-export function Goals() {
-  const { data: appState, loading, error, refresh } = usePageData('goals');
-  const navigate = useNavigate();
-  
-  // Initialize with system defaults - will be updated with real data via useEffect
-  const [cadenceSettings, setCadenceSettings] = useState({
+// Custom hooks for Goals page state management
+const useCadenceSettings = () => {
+  return useState({
     sessionsPerWeek: 5, // System default
     sessionLength: 5, // System default (was incorrectly hardcoded as 45)
     flexibleSchedule: true // System default for adaptive mode
   });
+};
 
-  const [focusPriorities, setFocusPriorities] = useState({
+const useFocusPriorities = () => {
+  return useState({
     primaryTags: [], // Empty until loaded from user settings/system recommendations
     difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, // System default distribution
     reviewRatio: 40 // System default review ratio
   });
+};
 
-  const [guardrails, setGuardrails] = useState({
+const useGuardrails = () => {
+  return useState({
     minReviewRatio: 30, // System default
     maxNewProblems: 8, // System default (will be adjusted for onboarding)
     difficultyCapEnabled: false, // System default - no artificial difficulty cap
@@ -35,10 +36,117 @@ export function Goals() {
     hintLimitEnabled: false, // System default - no artificial hint limits
     maxHintsPerProblem: 0 // System default - unlimited hints
   });
+};
 
-  const [dailyMissions, setDailyMissions] = useState([
+const useDailyMissions = () => {
+  return useState([
     // Will be populated with real missions generated from user progress
   ]);
+};
+
+// Helper function to calculate outcome trends from app state
+const calculateOutcomeTrends = (appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus) => {
+  const accuracyValue = appState.statistics?.successRate?.overall ? 
+    Math.round(appState.statistics.successRate.overall * 100) : 0;
+  
+  const sessionsCount = appState.sessions?.allSessions?.length || 0;
+  const hintEfficiency = appState.statistics?.averageHints || 0;
+  const currentTier = appState.mastery?.currentTier || "Getting Started";
+  
+  return {
+    weeklyAccuracy: {
+      value: accuracyValue,
+      status: accuracyValue > 0 ? getAccuracyStatus(accuracyValue / 100) : "no_data",
+      target: 75
+    },
+    problemsPerWeek: {
+      value: sessionsCount,
+      status: sessionsCount > 0 ? getProblemsStatus(sessionsCount) : "no_data",
+      target: "25-30",
+      display: sessionsCount > 0 ? `${sessionsCount}` : "No sessions yet"
+    },
+    hintEfficiency: {
+      value: hintEfficiency,
+      status: hintEfficiency > 0 ? getHintEfficiencyStatus(hintEfficiency) : "no_data",
+      display: hintEfficiency > 0 ? 
+        `${hintEfficiency.toFixed(1)} per problem` : 
+        "No data yet"
+    },
+    learningVelocity: {
+      value: currentTier,
+      status: "adaptive"
+    }
+  };
+};
+
+/**
+ * Update all learning plan data when appState changes
+ */
+function updateLearningPlanData(
+  appState,
+  isOnboarding,
+  getSessionState,
+  setCadenceSettings,
+  setFocusPriorities,
+  setGuardrails,
+  setDailyMissions,
+  setOutcomeTrends,
+  getAccuracyStatus,
+  getProblemsStatus,
+  getHintEfficiencyStatus,
+  generateMissionsWithRealProgress
+) {
+  // Update cadence settings with real user data, maintaining system defaults as fallbacks
+  setCadenceSettings(_prev => ({
+    sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek || 5,
+    sessionLength: appState.learningPlan.cadence?.sessionLength || 5,
+    flexibleSchedule: appState.learningPlan.cadence?.flexibleSchedule ?? true
+  }));
+
+  // Update focus priorities with real system recommendations and user preferences
+  setFocusPriorities(prev => ({
+    primaryTags: appState.learningPlan.focus?.userFocusAreas || 
+                appState.learningPlan.focus?.systemFocusTags || 
+                ['Array', 'Hash Table', 'String', 'Sorting', 'Math'], // System default recommendations
+    difficultyDistribution: appState.learningPlan.focus?.difficultyDistribution || prev.difficultyDistribution,
+    reviewRatio: appState.learningPlan.focus?.reviewRatio || 40
+  }));
+
+  // Update guardrails with onboarding-aware limits
+  const sessionState = getSessionState();
+  const sessionLimits = SessionLimits.getSessionLimits(sessionState);
+  
+  setGuardrails(_prev => ({
+    minReviewRatio: appState.learningPlan.guardrails?.minReviewRatio || 30,
+    maxNewProblems: sessionLimits.maxNewProblems, // Onboarding-aware: 4 during onboarding, 8 after
+    difficultyCapEnabled: sessionLimits.isOnboarding, // Enable difficulty cap during onboarding
+    maxDifficulty: sessionLimits.isOnboarding ? "Medium" : "Hard", // Cap difficulty during onboarding
+    hintLimitEnabled: appState.learningPlan.guardrails?.hintLimitEnabled || false,
+    maxHintsPerProblem: appState.learningPlan.guardrails?.maxHintsPerProblem || 0
+  }));
+
+  // Always generate fresh missions based on current user progress
+  // Don't trust potentially stale mission data from appState
+  const freshMissions = generateMissionsWithRealProgress(appState, isOnboarding);
+  setDailyMissions(freshMissions);
+
+  // Always update outcome trends with available data or meaningful fallbacks
+  const trends = calculateOutcomeTrends(appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus);
+  setOutcomeTrends(trends);
+}
+
+export function Goals() {
+  const { data: appState, loading, error, refresh } = usePageData('goals');
+  const navigate = useNavigate();
+  
+  // Initialize with system defaults - will be updated with real data via useEffect
+  const [cadenceSettings, setCadenceSettings] = useCadenceSettings();
+
+  const [focusPriorities, setFocusPriorities] = useFocusPriorities();
+
+  const [guardrails, setGuardrails] = useGuardrails();
+
+  const [dailyMissions, setDailyMissions] = useDailyMissions();
 
   const [outcomeTrends, setOutcomeTrends] = useState({
     weeklyAccuracy: { value: 0, status: "loading", target: 75 },
@@ -65,76 +173,20 @@ export function Goals() {
 
   useEffect(() => {
     if (appState?.learningPlan) {
-      // Update cadence settings with real user data, maintaining system defaults as fallbacks
-      setCadenceSettings(_prev => ({
-        sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek || 5,
-        sessionLength: appState.learningPlan.cadence?.sessionLength || 5,
-        flexibleSchedule: appState.learningPlan.cadence?.flexibleSchedule ?? true
-      }));
-
-      // Update focus priorities with real system recommendations and user preferences
-      setFocusPriorities(prev => ({
-        primaryTags: appState.learningPlan.focus?.userFocusAreas || 
-                    appState.learningPlan.focus?.systemFocusTags || 
-                    ['Array', 'Hash Table', 'String', 'Sorting', 'Math'], // System default recommendations
-        difficultyDistribution: appState.learningPlan.focus?.difficultyDistribution || prev.difficultyDistribution,
-        reviewRatio: appState.learningPlan.focus?.reviewRatio || 40
-      }));
-
-      // Update guardrails with onboarding-aware limits
-      const sessionState = getSessionState();
-      const sessionLimits = SessionLimits.getSessionLimits(sessionState);
-      
-      setGuardrails(_prev => ({
-        minReviewRatio: appState.learningPlan.guardrails?.minReviewRatio || 30,
-        maxNewProblems: sessionLimits.maxNewProblems, // Onboarding-aware: 4 during onboarding, 8 after
-        difficultyCapEnabled: sessionLimits.isOnboarding, // Enable difficulty cap during onboarding
-        maxDifficulty: sessionLimits.isOnboarding ? "Medium" : "Hard", // Cap difficulty during onboarding
-        hintLimitEnabled: appState.learningPlan.guardrails?.hintLimitEnabled || false,
-        maxHintsPerProblem: appState.learningPlan.guardrails?.maxHintsPerProblem || 0
-      }));
-
-      // Always generate fresh missions based on current user progress
-      // Don't trust potentially stale mission data from appState
-      const freshMissions = generateMissionsWithRealProgress(appState, isOnboarding);
-      setDailyMissions(freshMissions);
-
-      // Always update outcome trends with available data or meaningful fallbacks
-      
-      // Calculate values with fallbacks for missing data
-      const accuracyValue = appState.statistics?.successRate?.overall ? 
-        Math.round(appState.statistics.successRate.overall * 100) : 0;
-      
-      const sessionsCount = appState.sessions?.allSessions?.length || 0;
-      
-      const hintEfficiency = appState.statistics?.averageHints || 0;
-      
-      const currentTier = appState.mastery?.currentTier || "Getting Started";
-      
-      setOutcomeTrends({
-        weeklyAccuracy: {
-          value: accuracyValue,
-          status: accuracyValue > 0 ? getAccuracyStatus(accuracyValue / 100) : "no_data",
-          target: 75
-        },
-        problemsPerWeek: {
-          value: sessionsCount,
-          status: sessionsCount > 0 ? getProblemsStatus(sessionsCount) : "no_data",
-          target: "25-30",
-          display: sessionsCount > 0 ? `${sessionsCount}` : "No sessions yet"
-        },
-        hintEfficiency: {
-          value: hintEfficiency,
-          status: hintEfficiency > 0 ? getHintEfficiencyStatus(hintEfficiency) : "no_data",
-          display: hintEfficiency > 0 ? 
-            `${hintEfficiency.toFixed(1)} per problem` : 
-            "No data yet"
-        },
-        learningVelocity: {
-          value: currentTier,
-          status: "adaptive"
-        }
-      });
+      updateLearningPlanData(
+        appState,
+        isOnboarding,
+        getSessionState,
+        setCadenceSettings,
+        setFocusPriorities,
+        setGuardrails,
+        setDailyMissions,
+        setOutcomeTrends,
+        getAccuracyStatus,
+        getProblemsStatus,
+        getHintEfficiencyStatus,
+        generateMissionsWithRealProgress
+      );
     }
   }, [appState, isOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
 

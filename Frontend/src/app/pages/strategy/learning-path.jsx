@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import logger, { debug } from "../../../shared/utils/logger.js";
+import logger, { debug, warn } from "../../../shared/utils/logger.js";
 import { Container, Grid, Card, Title, Text, Button, Stack, Group } from "@mantine/core";
 import { usePageData } from "../../hooks/usePageData";
 import {
@@ -13,6 +13,71 @@ import {
 } from "recharts";
 import LearningPathVisualization from "../../components/learning/LearningPathVisualization.jsx";
 
+// Data extraction helper functions
+const extractMasteryData = (appState) => {
+  return appState.mastery?.masteryData || 
+         appState.learningState?.masteryData || 
+         appState.progress?.learningState?.masteryData || 
+         [];
+};
+
+const extractFocusTags = (appState) => {
+  return appState.mastery?.focusTags || 
+         appState.learningState?.focusTags || 
+         appState.progress?.learningState?.focusTags || 
+         [];
+};
+
+const extractUnmasteredTags = (appState) => {
+  return appState.mastery?.unmasteredTags || 
+         appState.learningState?.unmasteredTags || 
+         appState.progress?.learningState?.unmasteredTags || 
+         [];
+};
+
+// Data processing helper
+const processLearningPathData = (masteryData, focusTags, unmasteredTags) => {
+  debug("Learning Path - extracted data", { 
+    masteryCount: masteryData.length,
+    focusCount: focusTags.length, 
+    unmasteredCount: unmasteredTags.length
+  });
+
+  if (!masteryData.length) {
+    warn("Learning Path - No mastery data available", { appState: "missing masteryData" });
+    return [];
+  }
+
+  const processedData = masteryData.map((item) => {
+    const isFocus = focusTags.includes(item.tag);
+    const progress = item.progress || 0;
+    
+    return {
+      ...item,
+      isFocus,
+      progress: Math.min(progress, 100),
+      status: progress >= 90 ? 'mastered' : 
+              progress >= 50 ? 'learning' : 
+              isFocus ? 'available' : 'locked'
+    };
+  });
+
+  debug("Learning Path - processed data sample", processedData.slice(0, 3));
+  return processedData;
+};
+
+const generateRecommendations = (unmasteredTags, focusTags) => {
+  const recs = [];
+  if (unmasteredTags.length > 0) {
+    recs.push(`Focus on ${unmasteredTags.slice(0, 3).join(', ')} for skill advancement`);
+  }
+  if (focusTags.length > 0) {
+    recs.push(`Continue practicing ${focusTags[0]} - you're making progress!`);
+  }
+  recs.push("Consider reviewing mastered topics to maintain proficiency");
+  return recs;
+};
+
 export function LearningPath() {
   const { data: appState } = usePageData('learning-path');
   const [pathData, setPathData] = useState([]);
@@ -25,10 +90,10 @@ export function LearningPath() {
     // Debug: Check appState structure for data availability
     // logger.info("Learning Path - appState structure:", appState);
 
-    // Use mastery data directly from appState which now includes progress and isFocus
-    const masteryData = appState.mastery?.masteryData || appState.learningState?.masteryData || appState.progress?.learningState?.masteryData || [];
-    const focusTags = appState.mastery?.focusTags || appState.learningState?.focusTags || appState.progress?.learningState?.focusTags || [];
-    const unmasteredTags = appState.mastery?.unmasteredTags || appState.learningState?.unmasteredTags || appState.progress?.learningState?.unmasteredTags || [];
+    // Extract data using helper functions
+    const masteryData = extractMasteryData(appState);
+    const focusTags = extractFocusTags(appState);
+    const unmasteredTags = extractUnmasteredTags(appState);
 
     // Debug: Check extracted data
     debug("Learning Path - extracted data", { 
@@ -38,30 +103,16 @@ export function LearningPath() {
       unmasteredTags: unmasteredTags
     });
 
-    // Create progression data for visualization, use existing progress or calculate it
-    const progressionData = masteryData.map(tag => ({
-      tag: tag.tag,
-      progress: tag.progress || (tag.totalAttempts > 0 ? Math.round((tag.successfulAttempts / tag.totalAttempts) * 100) : 0),
-      attempts: tag.totalAttempts,
-      mastered: tag.mastered,
-      isFocus: tag.isFocus !== undefined ? tag.isFocus : focusTags.includes(tag.tag)
-    })).sort((a, b) => b.progress - a.progress);
+    // Create progression data for visualization using helper function
+    const progressionData = processLearningPathData(masteryData, focusTags, unmasteredTags);
 
     debug("Learning Path - final progressionData", { progressionData });
 
     // Set progression data - empty array is valid state for new users
     setPathData(progressionData);
 
-    // Generate recommendations
-    const recs = [];
-    if (unmasteredTags.length > 0) {
-      recs.push(`Focus on ${unmasteredTags.slice(0, 3).join(', ')} for skill advancement`);
-    }
-    if (focusTags.length > 0) {
-      recs.push(`Continue practicing ${focusTags[0]} - you're making progress!`);
-    }
-    recs.push("Consider reviewing mastered topics to maintain proficiency");
-    
+    // Generate recommendations using helper function
+    const recs = generateRecommendations(unmasteredTags, focusTags);
     setRecommendations(recs);
   }, [appState]);
 

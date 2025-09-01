@@ -15,6 +15,50 @@ import { shouldUseMockDashboard } from "../config/mockConfig.js";
 import { FocusAreasDisplay } from "../components/dashboard/FocusAreasDisplay.jsx";
 import { usePageData } from "../hooks/usePageData";
 
+/**
+ * Process session data for accuracy and breakdown charts
+ */
+function processSessionData(allSessions, setAccuracyData, setBreakdownData) {
+  if (allSessions && Array.isArray(allSessions)) {
+    const weekly = getAccuracyTrendData(allSessions, "weekly");
+    const monthly = getAccuracyTrendData(allSessions, "monthly");
+    const yearly = getAccuracyTrendData(allSessions, "yearly");
+
+    setAccuracyData({ weekly, monthly, yearly });
+
+    const weeklyBreakdown = getAttemptBreakdownData(allSessions, "weekly");
+    const monthlyBreakdown = getAttemptBreakdownData(allSessions, "monthly");
+    const yearlyBreakdown = getAttemptBreakdownData(allSessions, "yearly");
+
+    setBreakdownData({
+      weekly: weeklyBreakdown,
+      monthly: monthlyBreakdown,
+      yearly: yearlyBreakdown,
+    });
+  } else {
+    console.warn("allSessions is not available or not an array:", allSessions);
+    setAccuracyData({ weekly: [], monthly: [], yearly: [] });
+    setBreakdownData({ weekly: [], monthly: [], yearly: [] });
+  }
+}
+
+/**
+ * Detect if there is any available data to display
+ */
+function detectAvailableData(appState, statistics, allSessions) {
+  return appState && (
+    // Check multiple statistics properties
+    (statistics?.totalSolved > 0) ||
+    (statistics?.statistics?.totalSolved > 0) ||
+    // Check multiple session sources
+    (allSessions && allSessions.length > 0) ||
+    (appState.allSessions && appState.allSessions.length > 0) ||
+    // Check for any problem/attempt data
+    (appState.allProblems && appState.allProblems.length > 0) ||
+    (appState.allAttempts && appState.allAttempts.length > 0)
+  );
+}
+
 export function Stats() {
   const { data: appState, loading, error, refresh } = usePageData('stats');
   const navigate = useNavigate();
@@ -69,52 +113,13 @@ export function Stats() {
       setHintsUsed(appState.hintsUsed);
       setLearningEfficiencyData(appState.learningEfficiencyData);
 
-      // Safety check for allSessions before calling DataAdapter functions
-      if (appState.allSessions && Array.isArray(appState.allSessions)) {
-        const weekly = getAccuracyTrendData(appState.allSessions, "weekly");
-        const monthly = getAccuracyTrendData(appState.allSessions, "monthly");
-        const yearly = getAccuracyTrendData(appState.allSessions, "yearly");
-
-        setAccuracyData({ weekly, monthly, yearly });
-
-        const weeklyBreakdown = getAttemptBreakdownData(
-          appState.allSessions,
-          "weekly"
-        );
-        const monthlyBreakdown = getAttemptBreakdownData(
-          appState.allSessions,
-          "monthly"
-        );
-        const yearlyBreakdown = getAttemptBreakdownData(
-          appState.allSessions,
-          "yearly"
-        );
-
-        setBreakdownData({
-          weekly: weeklyBreakdown,
-          monthly: monthlyBreakdown,
-          yearly: yearlyBreakdown,
-        });
-      } else {
-        console.warn("allSessions is not available or not an array:", appState.allSessions);
-        setAccuracyData({ weekly: [], monthly: [], yearly: [] });
-        setBreakdownData({ weekly: [], monthly: [], yearly: [] });
-      }
+      // Process session data for charts
+      processSessionData(appState.allSessions, setAccuracyData, setBreakdownData);
     }
   }, [appState, contentOnboardingCompleted]);
 
   // Enhanced data detection logic - check multiple data sources
-  const hasData = appState && (
-    // Check multiple statistics properties
-    (statistics?.totalSolved > 0) ||
-    (statistics?.statistics?.totalSolved > 0) ||
-    // Check multiple session sources
-    (allSessions && allSessions.length > 0) ||
-    (appState.allSessions && appState.allSessions.length > 0) ||
-    // Check for any problem/attempt data
-    (appState.allProblems && appState.allProblems.length > 0) ||
-    (appState.allAttempts && appState.allAttempts.length > 0)
-  );
+  const hasData = detectAvailableData(appState, statistics, allSessions);
 
   const showStartSessionButton =
     (contentOnboardingCompleted === false) && !shouldUseMockDashboard();

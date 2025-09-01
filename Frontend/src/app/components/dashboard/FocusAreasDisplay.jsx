@@ -1,23 +1,14 @@
 import logger from "../../../shared/utils/logger.js";
 import React, { useState, useEffect, useCallback } from "react";
-import {
-  Card,
-  Text,
-  Group,
-  Badge,
-  Button,
-  Tooltip,
-  Alert,
-  Progress,
-  Grid,
-} from "@mantine/core";
-import {
-  IconTarget,
-  IconTrophy,
-  IconSettings,
-  IconInfoCircle,
-} from "@tabler/icons-react";
+import { Card, Text, Group, Button, Grid } from "@mantine/core";
+import { IconTarget, IconInfoCircle } from "@tabler/icons-react";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+import { createPlaceholderCards } from './focusAreasHelpers.js';
+import { GraduationAlert } from './GraduationAlert.jsx';
+import { FocusAreasLoadingState } from './FocusAreasLoadingState.jsx';
+import { FocusAreasEmptyState } from './FocusAreasEmptyState.jsx';
+import { FocusAreaCard } from './FocusAreaCard.jsx';
+import { PlaceholderCard } from './PlaceholderCard.jsx';
 // Note: Fixed to use Chrome messaging pattern like other dashboard components
 
 export function FocusAreasDisplay({ onNavigateToSettings }) {
@@ -63,29 +54,6 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
     loadFocusAreasData();
   }, [loadFocusAreasData]);
 
-  const getTagProgress = (tagName) => {
-    const tagData = masteryData.find((tag) => tag.tag === tagName);
-    if (!tagData || tagData.totalAttempts === 0) return 0;
-    return Math.round((tagData.successfulAttempts / tagData.totalAttempts) * 100);
-  };
-
-  const getHintEffectiveness = (tagName) => {
-    const tagData = masteryData.find((tag) => tag.tag === tagName);
-    return tagData?.hintHelpfulness || "medium";
-  };
-
-  const getHintIcon = (effectiveness) => {
-    switch (effectiveness) {
-      case "high":
-        return "💡"; // Bright idea
-      case "medium":
-        return "📝"; // Note taking
-      case "low":
-        return "⚡"; // Quick/minimal help needed
-      default:
-        return "💡";
-    }
-  };
 
   const handleAutoGraduate = async () => {
     try {
@@ -103,42 +71,11 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
   };
 
   if (loading) {
-    return (
-      <Card withBorder>
-        <Group gap="xs" mb="xs">
-          <IconTarget size={16} />
-          <Text size="sm" fw={500}>Focus Areas</Text>
-        </Group>
-        <Text size="sm" c="dimmed">Loading...</Text>
-      </Card>
-    );
+    return <FocusAreasLoadingState />;
   }
 
   if (focusAreas.length === 0) {
-    return (
-      <Card withBorder>
-        <Group gap="xs" mb="xs">
-          <IconTarget size={16} />
-          <Text size="sm" fw={500}>Focus Areas</Text>
-        </Group>
-        <Text size="sm" c="dimmed" mb="xs">
-          No focus areas selected
-        </Text>
-        <Text size="xs" c="dimmed" mb="md">
-          Set focus areas to prioritize specific tags in your learning sessions
-        </Text>
-        {onNavigateToSettings && (
-          <Button
-            size="xs"
-            variant="light"
-            leftSection={<IconSettings size={14} />}
-            onClick={onNavigateToSettings}
-          >
-            Configure Focus Areas
-          </Button>
-        )}
-      </Card>
-    );
+    return <FocusAreasEmptyState onNavigateToSettings={onNavigateToSettings} />;
   }
 
   return (
@@ -159,103 +96,26 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
         )}
       </Group>
 
-      {graduationStatus?.needsUpdate && (
-        <Alert color="green" variant="light" mb="md">
-          <Group gap="xs" align="center">
-            <IconTrophy size={16} />
-            <Text size="sm">
-              🎉 You&apos;ve mastered {graduationStatus.masteredTags.length} focus area(s)!
-            </Text>
-            <Button size="xs" onClick={handleAutoGraduate}>
-              Graduate
-            </Button>
-          </Group>
-        </Alert>
-      )}
+      <GraduationAlert 
+        graduationStatus={graduationStatus} 
+        onAutoGraduate={handleAutoGraduate} 
+      />
 
-      {/* Full width horizontal layout for focus areas */}
       <Grid gutter="md" mb="md">
-        {focusAreas.map((tag) => {
-          const progress = getTagProgress(tag);
-          const isMastered = masteredTags.includes(tag);
-          const isNearMastery = graduationStatus?.nearMasteryTags?.includes(tag);
-          const hintEffectiveness = getHintEffectiveness(tag);
-          const hintIcon = getHintIcon(hintEffectiveness);
-          
-          return (
-            <Grid.Col key={tag} span={4}>
-              <Card withBorder p="sm" h="100%">
-                <Group gap="xs" mb="xs" align="center" justify="space-between">
-                  <Badge
-                    color={
-                      isMastered ? "green" : 
-                      isNearMastery ? "yellow" : 
-                      progress >= 60 ? "blue" : "gray"
-                    }
-                    variant="light"
-                    size="sm"
-                    leftSection={isMastered ? <IconTrophy size={12} /> : null}
-                  >
-                    {tag.charAt(0).toUpperCase() + tag.slice(1).replace(/[-_]/g, " ")}
-                  </Badge>
-                  <Group gap="xs" align="center">
-                    <Tooltip 
-                      label={`Hints are ${hintEffectiveness}ly helpful for this topic`}
-                      position="top"
-                    >
-                      <Text size="xs" style={{ cursor: "help" }}>
-                        {hintIcon}
-                      </Text>
-                    </Tooltip>
-                    <Text size="xs" fw={500} c="dimmed">
-                      {progress}%
-                    </Text>
-                  </Group>
-                </Group>
-                
-                <Tooltip label={`${progress}% mastery - ${isMastered ? "Mastered" : isNearMastery ? "Near Mastery" : "In Progress"}`}>
-                  <Progress
-                    value={progress}
-                    size="md"
-                    color={
-                      isMastered ? "green" : 
-                      isNearMastery ? "yellow" : 
-                      progress >= 60 ? "blue" : "gray"
-                    }
-                    animated={!isMastered}
-                  />
-                </Tooltip>
-                
-                {isMastered && (
-                  <Text size="xs" c="green" mt="xs" style={{ textAlign: "center" }}>
-                    ✨ Mastered
-                  </Text>
-                )}
-                {isNearMastery && !isMastered && (
-                  <Text size="xs" c="yellow" mt="xs" style={{ textAlign: "center" }}>
-                    🔥 Almost there!
-                  </Text>
-                )}
-              </Card>
-            </Grid.Col>
-          );
-        })}
+        {focusAreas.map((tag) => (
+          <Grid.Col key={tag} span={4}>
+            <FocusAreaCard 
+              tag={tag}
+              masteryData={masteryData}
+              masteredTags={masteredTags}
+              graduationStatus={graduationStatus}
+            />
+          </Grid.Col>
+        ))}
         
-        {/* Add placeholder cards if less than 3 focus areas to maintain visual balance */}
-        {focusAreas.length < 3 && [...Array(3 - focusAreas.length)].map((_, index) => (
-          <Grid.Col key={`placeholder-${index}`} span={4}>
-            <Card withBorder p="sm" h="100%" style={{ 
-              backgroundColor: "#f8f9fa", 
-              border: "2px dashed #e0e0e0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: "80px"
-            }}>
-              <Text size="xs" c="dimmed" style={{ textAlign: "center" }}>
-                {focusAreas.length === 0 ? "Select focus areas to get started" : "Add another focus area"}
-              </Text>
-            </Card>
+        {createPlaceholderCards(focusAreas.length).map((placeholder) => (
+          <Grid.Col key={placeholder.key} span={4}>
+            <PlaceholderCard text={placeholder.text} />
           </Grid.Col>
         ))}
       </Grid>

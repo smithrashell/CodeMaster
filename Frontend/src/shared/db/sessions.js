@@ -150,7 +150,7 @@ export const updateSessionInDB = async (session) => {
  * Saves session to Chrome Storage with fallback handling (optional: updates IndexedDB if needed).
  * Implements graceful degradation when Chrome APIs are unavailable.
  */
-export const saveSessionToStorage = async (session, updateDatabase = false) => {
+export const saveSessionToStorage = (session, updateDatabase = false) => {
   return new Promise((resolve, reject) => {
     try {
       // Check if Chrome API is available

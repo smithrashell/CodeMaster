@@ -107,66 +107,11 @@ export class AdaptiveLimitsService {
       let maximumTime;
       let isAdaptive = false;
 
-      switch (mode) {
-        case LIMIT_MODES.AUTO: {
-          // Adaptive mode - calculate based on user performance
-          const adaptiveLimit = await this.calculateAdaptiveLimit(difficulty);
-          recommendedTime = adaptiveLimit;
-          minimumTime = BASE_LIMITS[difficulty]; // Never go below interview standard
-          maximumTime = Math.max(
-            adaptiveLimit * 1.5,
-            BASE_LIMITS[difficulty] * 2
-          );
-          isAdaptive = true;
-          break;
-        }
-
-        case LIMIT_MODES.OFF:
-          // No limits mode - set very high values
-          recommendedTime = 999;
-          minimumTime = 999;
-          maximumTime = 999;
-          break;
-
-        case LIMIT_MODES.FIXED: {
-          // Fixed time based on difficulty and user preference
-          const fixedTime =
-            settings.fixedTimes?.[difficulty] ||
-            DEFAULT_FIXED_TIMES[difficulty];
-          recommendedTime = fixedTime;
-          minimumTime = fixedTime;
-          maximumTime = fixedTime * 1.5;
-          break;
-        }
-
-        case LIMIT_MODES.FIXED_15:
-          // Legacy: Fixed 15 minutes for all difficulties
-          recommendedTime = 15;
-          minimumTime = 15;
-          maximumTime = 15 * 1.5;
-          break;
-
-        case LIMIT_MODES.FIXED_20:
-          // Legacy: Fixed 20 minutes for all difficulties
-          recommendedTime = 20;
-          minimumTime = 20;
-          maximumTime = 20 * 1.5;
-          break;
-
-        case LIMIT_MODES.FIXED_30:
-          // Legacy: Fixed 30 minutes for all difficulties
-          recommendedTime = 30;
-          minimumTime = 30;
-          maximumTime = 30 * 1.5;
-          break;
-
-        default:
-          // Fallback to base limits for unknown modes
-          recommendedTime = BASE_LIMITS[difficulty];
-          minimumTime = BASE_LIMITS[difficulty];
-          maximumTime = BASE_LIMITS[difficulty] * 1.5;
-          break;
-      }
+      const timeConfig = await this._calculateTimeConfigByMode(mode, difficulty, settings);
+      recommendedTime = timeConfig.recommendedTime;
+      minimumTime = timeConfig.minimumTime;
+      maximumTime = timeConfig.maximumTime;
+      isAdaptive = timeConfig.isAdaptive;
 
       const result = {
         difficulty,
@@ -209,6 +154,77 @@ export class AdaptiveLimitsService {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * Calculate time configuration based on mode
+   * @private
+   */
+  async _calculateTimeConfigByMode(mode, difficulty, settings) {
+    let recommendedTime, minimumTime, maximumTime, isAdaptive = false;
+
+    switch (mode) {
+      case LIMIT_MODES.AUTO: {
+        // Adaptive mode - calculate based on user performance
+        const adaptiveLimit = await this.calculateAdaptiveLimit(difficulty);
+        recommendedTime = adaptiveLimit;
+        minimumTime = BASE_LIMITS[difficulty]; // Never go below interview standard
+        maximumTime = Math.max(
+          adaptiveLimit * 1.5,
+          BASE_LIMITS[difficulty] * 2
+        );
+        isAdaptive = true;
+        break;
+      }
+
+      case LIMIT_MODES.OFF:
+        // No limits mode - set very high values
+        recommendedTime = 999;
+        minimumTime = 999;
+        maximumTime = 999;
+        break;
+
+      case LIMIT_MODES.FIXED: {
+        // Fixed time based on difficulty and user preference
+        const fixedTime =
+          settings.fixedTimes?.[difficulty] ||
+          DEFAULT_FIXED_TIMES[difficulty];
+        recommendedTime = fixedTime;
+        minimumTime = fixedTime;
+        maximumTime = fixedTime * 1.5;
+        break;
+      }
+
+      case LIMIT_MODES.FIXED_15:
+        // Legacy: Fixed 15 minutes for all difficulties
+        recommendedTime = 15;
+        minimumTime = 15;
+        maximumTime = 15 * 1.5;
+        break;
+
+      case LIMIT_MODES.FIXED_20:
+        // Legacy: Fixed 20 minutes for all difficulties
+        recommendedTime = 20;
+        minimumTime = 20;
+        maximumTime = 20 * 1.5;
+        break;
+
+      case LIMIT_MODES.FIXED_30:
+        // Legacy: Fixed 30 minutes for all difficulties
+        recommendedTime = 30;
+        minimumTime = 30;
+        maximumTime = 30 * 1.5;
+        break;
+
+      default:
+        // Fallback to base limits for unknown modes
+        recommendedTime = BASE_LIMITS[difficulty];
+        minimumTime = BASE_LIMITS[difficulty];
+        maximumTime = BASE_LIMITS[difficulty] * 1.5;
+        break;
+    }
+
+    return { recommendedTime, minimumTime, maximumTime, isAdaptive };
   }
 
   /**

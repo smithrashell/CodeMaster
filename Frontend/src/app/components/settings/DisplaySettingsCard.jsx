@@ -5,6 +5,54 @@ import { IconChartBar, IconInfoCircle } from "@tabler/icons-react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { SettingsResetButton } from "./SettingsResetButton.jsx";
 
+// Extracted helper hooks for DisplaySettingsCard
+const useHandleReset = (defaultSettings, setSettings, setHasChanges, setSaveStatus, handleSave) => {
+  return () => {
+    setSettings(defaultSettings);
+    setHasChanges(true);
+    setSaveStatus({ type: "success", message: "Display settings reset to defaults!" });
+    
+    setTimeout(() => {
+      handleSave(defaultSettings);
+    }, 500);
+  };
+};
+
+const useUpdateSettings = (setSettings, setHasChanges, setSaveStatus) => {
+  return (newSettings) => {
+    setSettings(newSettings);
+    setHasChanges(true);
+    setSaveStatus(null);
+  };
+};
+
+// Helper render components for DisplaySettingsCard
+const DisplaySettingsLoading = () => (
+  <Card withBorder p="lg" radius="md">
+    <Stack gap="md">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <IconChartBar size={20} />
+        <Title order={4}>Display Settings</Title>
+      </div>
+      <Text size="sm" c="dimmed">Loading display settings...</Text>
+    </Stack>
+  </Card>
+);
+
+const DisplaySettingsError = () => (
+  <Card withBorder p="lg" radius="md">
+    <Stack gap="md">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <IconChartBar size={20} />
+        <Title order={4}>Display Settings</Title>
+      </div>
+      <Alert color="red" variant="light">
+        Failed to load display settings. Please refresh the page.
+      </Alert>
+    </Stack>
+  </Card>
+);
+
 // Layout Preferences Component
 function LayoutPreferences({ settings, updateSettings }) {
   const sidebarWidthOptions = [
@@ -368,53 +416,16 @@ export function DisplaySettingsCard() {
   // Use display settings save hook
   const handleSave = useDisplaySettingsSave(setSaveStatus, setHasChanges, setIsSaving);
 
-  // Reset display settings to defaults
-  const handleReset = () => {
-    setSettings(DEFAULT_DISPLAY_SETTINGS);
-    setHasChanges(true);
-    setSaveStatus({ type: "success", message: "Display settings reset to defaults!" });
-    
-    // Auto-save after reset
-    setTimeout(() => {
-      handleSave(DEFAULT_DISPLAY_SETTINGS);
-    }, 500);
-  };
+  const handleReset = useHandleReset(DEFAULT_DISPLAY_SETTINGS, setSettings, setHasChanges, setSaveStatus, handleSave);
 
-  // Update settings and mark as changed
-  const updateSettings = (newSettings) => {
-    setSettings(newSettings);
-    setHasChanges(true);
-    setSaveStatus(null);
-  };
+  const updateSettings = useUpdateSettings(setSettings, setHasChanges, setSaveStatus);
 
   if (loading) {
-    return (
-      <Card withBorder p="lg" radius="md">
-        <Stack gap="md">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <IconChartBar size={20} />
-            <Title order={4}>Display Settings</Title>
-          </div>
-          <Text size="sm" c="dimmed">Loading display settings...</Text>
-        </Stack>
-      </Card>
-    );
+    return <DisplaySettingsLoading />;
   }
 
   if (error) {
-    return (
-      <Card withBorder p="lg" radius="md">
-        <Stack gap="md">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <IconChartBar size={20} />
-            <Title order={4}>Display Settings</Title>
-          </div>
-          <Alert color="red" variant="light">
-            Failed to load display settings. Please refresh the page.
-          </Alert>
-        </Stack>
-      </Card>
-    );
+    return <DisplaySettingsError />;
   }
 
   return (

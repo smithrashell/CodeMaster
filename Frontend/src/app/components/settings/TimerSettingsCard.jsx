@@ -172,6 +172,88 @@ function NotificationPreferences({ settings, updateSettings }) {
   );
 }
 
+// Timer Settings Header Component
+function TimerSettingsHeader() {
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <IconClock size={20} />
+        <Title order={4}>Timer Settings</Title>
+        <Tooltip label="Configure timer display, breaks, and notifications for your coding sessions">
+          <IconInfoCircle size={16} style={{ cursor: "help", color: 'var(--mantine-color-dimmed)' }} />
+        </Tooltip>
+      </div>
+      <Text size="sm" c="dimmed">
+        Customize how the timer appears and behaves during your problem-solving sessions.
+      </Text>
+    </>
+  );
+}
+
+// Timer Settings Actions Component
+function TimerSettingsActions({ hasChanges, loading, isSaving, onReset, onSave }) {
+  return (
+    <Group justify="space-between" pt="md">
+      <SettingsResetButton
+        onReset={onReset}
+        disabled={loading || isSaving}
+        settingsType="timer settings"
+        variant="subtle"
+      />
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <IconInfoCircle size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
+          <Text size="xs" c="dimmed">
+            Timer settings apply to all problem-solving sessions
+          </Text>
+        </div>
+        
+        <Button
+          onClick={onSave}
+          loading={isSaving}
+          disabled={!hasChanges || loading}
+          size="sm"
+        >
+          Save Timer Settings
+        </Button>
+      </div>
+    </Group>
+  );
+}
+
+// Loading State Component
+function TimerSettingsLoadingState() {
+  return (
+    <Card withBorder p="lg" radius="md">
+      <Stack gap="md">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <IconClock size={20} />
+          <Title order={4}>Timer Settings</Title>
+        </div>
+        <Text size="sm" c="dimmed">Loading timer settings...</Text>
+      </Stack>
+    </Card>
+  );
+}
+
+// Error State Component
+function TimerSettingsErrorState() {
+  return (
+    <Card withBorder p="lg" radius="md">
+      <Stack gap="md">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <IconClock size={20} />
+          <Title order={4}>Timer Settings</Title>
+        </div>
+        <Alert color="red" variant="light">
+          Failed to load timer settings. Please refresh the page.
+        </Alert>
+      </Stack>
+    </Card>
+  );
+}
+
 // Settings Save Hook
 function useTimerSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
   return async (settings) => {
@@ -285,51 +367,15 @@ export function TimerSettingsCard() {
     setSaveStatus(null);
   };
 
-  if (loading) {
-    return (
-      <Card withBorder p="lg" radius="md">
-        <Stack gap="md">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <IconClock size={20} />
-            <Title order={4}>Timer Settings</Title>
-          </div>
-          <Text size="sm" c="dimmed">Loading timer settings...</Text>
-        </Stack>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card withBorder p="lg" radius="md">
-        <Stack gap="md">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <IconClock size={20} />
-            <Title order={4}>Timer Settings</Title>
-          </div>
-          <Alert color="red" variant="light">
-            Failed to load timer settings. Please refresh the page.
-          </Alert>
-        </Stack>
-      </Card>
-    );
-  }
+  // Early returns for loading and error states
+  if (loading) return <TimerSettingsLoadingState />;
+  if (error) return <TimerSettingsErrorState />;
 
   return (
     <Card withBorder p="lg" radius="md">
       <Stack gap="md">
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <IconClock size={20} />
-          <Title order={4}>Timer Settings</Title>
-          <Tooltip label="Configure timer display, breaks, and notifications for your coding sessions">
-            <IconInfoCircle size={16} style={{ cursor: "help", color: 'var(--mantine-color-dimmed)' }} />
-          </Tooltip>
-        </div>
-
-        <Text size="sm" c="dimmed">
-          Customize how the timer appears and behaves during your problem-solving sessions.
-        </Text>
+        <TimerSettingsHeader />
 
         {/* Save Status */}
         {saveStatus && (
@@ -351,32 +397,13 @@ export function TimerSettingsCard() {
         <NotificationPreferences settings={settings} updateSettings={updateSettings} />
 
         {/* Action Buttons */}
-        <Group justify="space-between" pt="md">
-          <SettingsResetButton
-            onReset={handleReset}
-            disabled={loading || isSaving}
-            settingsType="timer settings"
-            variant="subtle"
-          />
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <IconInfoCircle size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
-              <Text size="xs" c="dimmed">
-                Timer settings apply to all problem-solving sessions
-              </Text>
-            </div>
-            
-            <Button
-              onClick={() => handleSave(settings)}
-              loading={isSaving}
-              disabled={!hasChanges || loading}
-              size="sm"
-            >
-              Save Timer Settings
-            </Button>
-          </div>
-        </Group>
+        <TimerSettingsActions 
+          hasChanges={hasChanges}
+          loading={loading}
+          isSaving={isSaving}
+          onReset={handleReset}
+          onSave={() => handleSave(settings)}
+        />
       </Stack>
     </Card>
   );
