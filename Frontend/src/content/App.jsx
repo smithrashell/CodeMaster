@@ -17,18 +17,55 @@ import {
   GenericErrorFallback,
 } from "../shared/components/ErrorFallback";
 
-const MenuButtonContainer = () => {
-  const { pathname } = useLocation();
-  const { isAppOpen, setIsAppOpen } = useNav();
+const handleEmergencyReset = () => {
+  logger.warn("🚑 Emergency reset triggered by user");
+  chrome.runtime.sendMessage({ type: "emergencyReset" }, (response) => {
+    if (response?.status === "success") {
+      logger.info("✅ Emergency reset completed, reloading page...");
+      window.location.reload();
+    }
+  });
+};
+
+const EmergencyMenuButton = () => (
+  <div style={{ 
+    position: 'fixed', 
+    top: '10px', 
+    right: '10px', 
+    zIndex: 9999,
+    background: '#ff4444',
+    color: 'white',
+    padding: '8px 12px',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: 'bold'
+  }}>
+    <div 
+      role="button"
+      tabIndex={0}
+      onClick={handleEmergencyReset}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleEmergencyReset();
+        }
+      }}
+    >
+      🚑 Reset Extension
+    </div>
+  </div>
+);
+
+const useBackgroundScriptHealth = () => {
   const [backgroundScriptHealthy, setBackgroundScriptHealthy] = React.useState(true);
 
-  // Check background script health on mount
   React.useEffect(() => {
     const checkBackgroundScriptHealth = () => {
       const healthCheckTimeout = setTimeout(() => {
         logger.warn("🚨 Background script health check timeout - script may be unresponsive");
         setBackgroundScriptHealthy(false);
-      }, 3000); // 3 second timeout for health check
+      }, 3000);
 
       chrome.runtime.sendMessage({ type: "backgroundScriptHealth" }, (response) => {
         clearTimeout(healthCheckTimeout);
@@ -45,59 +82,19 @@ const MenuButtonContainer = () => {
       });
     };
 
-    // Initial health check
     checkBackgroundScriptHealth();
-    
-    // Periodic health checks
-    const healthCheckInterval = setInterval(checkBackgroundScriptHealth, 30000); // Check every 30 seconds
+    const healthCheckInterval = setInterval(checkBackgroundScriptHealth, 30000);
     
     return () => clearInterval(healthCheckInterval);
   }, []);
 
-  // Show emergency reset button if background script is unhealthy
-  const EmergencyMenuButton = () => (
-    <div style={{ 
-      position: 'fixed', 
-      top: '10px', 
-      right: '10px', 
-      zIndex: 9999,
-      background: '#ff4444',
-      color: 'white',
-      padding: '8px 12px',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: '12px',
-      fontWeight: 'bold'
-    }}>
-      <div 
-        role="button"
-        tabIndex={0}
-        onClick={() => {
-          logger.warn("🚑 Emergency reset triggered by user");
-          chrome.runtime.sendMessage({ type: "emergencyReset" }, (response) => {
-            if (response?.status === "success") {
-              logger.info("✅ Emergency reset completed, reloading page...");
-              window.location.reload();
-            }
-          });
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            logger.warn("🚑 Emergency reset triggered by user");
-            chrome.runtime.sendMessage({ type: "emergencyReset" }, (response) => {
-              if (response?.status === "success") {
-                logger.info("✅ Emergency reset completed, reloading page...");
-                window.location.reload();
-              }
-            });
-          }
-        }}
-      >
-        🚑 Reset Extension
-      </div>
-    </div>
-  );
+  return backgroundScriptHealthy;
+};
+
+function MenuButtonContainer() {
+  const { pathname } = useLocation();
+  const { isAppOpen, setIsAppOpen } = useNav();
+  const backgroundScriptHealthy = useBackgroundScriptHealth();
 
   return (
     <>
@@ -134,7 +131,7 @@ const MenuButtonContainer = () => {
       )}
     </>
   );
-};
+}
 
 const Router = () => {
   return (

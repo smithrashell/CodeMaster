@@ -161,67 +161,72 @@ const HintPanel = ({
         )}
 
         {!loading && !error && hints.length > 0 && (
-          <Stack gap="sm">
-            {/* Contextual hints (higher priority) */}
-            {contextualHints.length > 0 && (
-              <>
-                <Text size="xs" weight={500} c="blue" tt="uppercase">
-                  Multi-Tag Strategies
-                </Text>
-                {contextualHints.map((hint, index) => (
-                  <Card
-                    key={`contextual-${index}`}
-                    p="sm"
-                    radius="sm"
-                    bg="blue.0"
-                  >
-                    <Group gap="xs" mb="xs">
-                      <Badge size="xs" variant="filled" color="blue">
-                        {hint.primaryTag}
-                      </Badge>
-                      <Text size="xs" c="dimmed">
-                        +
-                      </Text>
-                      <Badge size="xs" variant="outline" color="blue">
-                        {hint.relatedTag}
-                      </Badge>
-                    </Group>
-                    <Text size="sm" lh={1.4}>
-                      {hint.tip}
-                    </Text>
-                  </Card>
-                ))}
-              </>
-            )}
-
-            {/* General hints */}
-            {generalHints.length > 0 && (
-              <>
-                {contextualHints.length > 0 && (
-                  <div style={{ marginTop: "0.5rem" }} />
-                )}
-                <Text size="xs" weight={500} c="gray" tt="uppercase">
-                  General Strategies
-                </Text>
-                {generalHints.map((hint, index) => (
-                  <Card key={`general-${index}`} p="sm" radius="sm" bg="gray.0">
-                    <Group gap="xs" mb="xs">
-                      <Badge size="xs" variant="light" color="gray">
-                        {hint.primaryTag}
-                      </Badge>
-                    </Group>
-                    <Text size="sm" lh={1.4}>
-                      {hint.tip}
-                    </Text>
-                  </Card>
-                ))}
-              </>
-            )}
-          </Stack>
+          <HintsSections contextualHints={contextualHints} generalHints={generalHints} />
         )}
       </Collapse>
     </Card>
   );
 };
+
+// Helper component for rendering hints sections
+const HintsSections = ({ contextualHints, generalHints }) => (
+  <Stack gap="sm">
+    {/* Contextual hints (higher priority) */}
+    {contextualHints.length > 0 && (
+      <>
+        <Text size="xs" weight={500} c="blue" tt="uppercase">
+          Multi-Tag Strategies
+        </Text>
+        {contextualHints.map((hint, index) => (
+          <Card
+            key={`contextual-${index}`}
+            p="sm"
+            radius="sm"
+            bg="blue.0"
+          >
+            <Group gap="xs" mb="xs">
+              <Badge size="xs" variant="filled" color="blue">
+                {hint.primaryTag}
+              </Badge>
+              <Text size="xs" c="dimmed">
+                +
+              </Text>
+              <Badge size="xs" variant="outline" color="blue">
+                {hint.relatedTag}
+              </Badge>
+            </Group>
+            <Text size="sm" lh={1.4}>
+              {hint.tip}
+            </Text>
+          </Card>
+        ))}
+      </>
+    )}
+
+    {/* General hints */}
+    {generalHints.length > 0 && (
+      <>
+        {contextualHints.length > 0 && (
+          <div style={{ marginTop: "0.5rem" }} />
+        )}
+        <Text size="xs" weight={500} c="gray" tt="uppercase">
+          General Strategies
+        </Text>
+        {generalHints.map((hint, index) => (
+          <Card key={`general-${index}`} p="sm" radius="sm" bg="gray.0">
+            <Group gap="xs" mb="xs">
+              <Badge size="xs" variant="light" color="gray">
+                {hint.primaryTag}
+              </Badge>
+            </Group>
+            <Text size="sm" lh={1.4}>
+              {hint.tip}
+            </Text>
+          </Card>
+        ))}
+      </>
+    )}
+  </Stack>
+);
 
 export default HintPanel;

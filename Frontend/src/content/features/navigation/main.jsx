@@ -200,7 +200,7 @@ const Main = () => {
     // Run the initial data fetch once when the component mounts
     logger.info("Current problem slug:", currentProblem);
     fetchProblemData(currentProblem);
-  }, []); // Empty dependency array ensures it only runs once on mount
+  }, [currentProblem, fetchProblemData]); // Dependencies for problem data fetching
 
   // Check content onboarding status with resume capability
   useEffect(() => {
@@ -279,7 +279,7 @@ const Main = () => {
       logger.info("📍 Current internal route:", pathname);
     }
   }, [currentProblem, fetchProblemData, pathname]);
-  const _backupIndexedDB = async () => {
+  const _backupIndexedDB = () => {
     try {
       logger.info("📌 Sending backup request to background script...");
       chrome.runtime.sendMessage({ type: "getBackupFile" }, (response) => {

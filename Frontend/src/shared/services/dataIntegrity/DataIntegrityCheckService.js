@@ -10,9 +10,24 @@ import ReferentialIntegrityService from "./ReferentialIntegrityService.js";
 import DataIntegritySchemas from "../../utils/dataIntegrity/DataIntegritySchemas.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
-import StorageHealthMonitor from "../../utils/storageHealth.js";
 import ErrorReportService from "../ErrorReportService.js";
 import logger from "../../utils/logger.js";
+import {
+  executeSchemaValidation,
+  executeReferentialCheck,
+  executeBusinessLogicCheck,
+  executeStorageHealthCheck,
+  initializeCheckReport,
+  finalizeCheckReport,
+  handlePostCheckOperations,
+} from "./integrityCheckHelpers.js";
+import {
+  shouldPerformSchemaValidation,
+  shouldPerformReferentialCheck,
+  shouldPerformBusinessLogicCheck,
+  validateAndNormalizeOptions,
+  createCheckExecutionContext,
+} from "./integrityCheckValidators.js";
 
 export class DataIntegrityCheckService {
   // Check types
@@ -51,167 +66,53 @@ export class DataIntegrityCheckService {
    * @returns {Promise<Object>} - Comprehensive integrity report
    */
   static async performIntegrityCheck(options = {}) {
-    const {
-      checkType = this.CHECK_TYPES.FULL,
-      stores = DataIntegritySchemas.getStoreNames(),
-      includePerformanceMetrics = true,
-      priority = this.PRIORITIES.MEDIUM,
-      saveToHistory = true,
-      _generateReport = true,
-    } = options;
+    // Validate and normalize options
+    const normalizedOptions = validateAndNormalizeOptions(options, {
+      CHECK_TYPES: this.CHECK_TYPES,
+      PRIORITIES: this.PRIORITIES,
+      getStoreNames: DataIntegritySchemas.getStoreNames,
+    });
+
+    const { checkType, stores } = normalizedOptions;
 
     logger.info(
       `🔍 Starting ${checkType} data integrity check for ${stores.length} stores...`
     );
     const checkStartTime = performance.now();
 
-    const report = {
-      checkId: this.generateCheckId(),
-      timestamp: new Date().toISOString(),
-      checkType,
-      priority,
-      overall: {
-        valid: true,
-        score: 0,
-        issues: 0,
-        warnings: 0,
-        errors: 0,
-      },
-      results: {
-        schema: null,
-        referential: null,
-        businessLogic: null,
-        storageHealth: null,
-      },
-      stores: {},
-      recommendations: [],
-      performanceMetrics: {
-        totalTime: 0,
-        checkBreakdown: {},
-      },
-    };
+    // Initialize report
+    const report = initializeCheckReport(normalizedOptions);
 
     try {
+      // Create execution context with all dependencies
+      const executionContext = createCheckExecutionContext(this, normalizedOptions);
+
       // Schema validation
-      if (
-        [
-          this.CHECK_TYPES.FULL,
-          this.CHECK_TYPES.SCHEMA,
-          this.CHECK_TYPES.QUICK,
-        ].includes(checkType)
-      ) {
-        const schemaStartTime = performance.now();
-        logger.info("📋 Running schema validation...");
-
-        report.results.schema = await this.performSchemaValidation(stores, {
-          priority,
-          quick: checkType === this.CHECK_TYPES.QUICK,
-        });
-
-        if (!report.results.schema.valid) {
-          report.overall.valid = false;
-          report.overall.errors += report.results.schema.errorCount;
-          report.overall.warnings += report.results.schema.warningCount;
-        }
-
-        const schemaEndTime = performance.now();
-        report.performanceMetrics.checkBreakdown.schema =
-          schemaEndTime - schemaStartTime;
+      if (shouldPerformSchemaValidation(checkType, this.CHECK_TYPES)) {
+        await executeSchemaValidation(stores, executionContext, report);
       }
 
       // Referential integrity checking
-      if (
-        [this.CHECK_TYPES.FULL, this.CHECK_TYPES.REFERENTIAL].includes(
-          checkType
-        )
-      ) {
-        const refStartTime = performance.now();
-        logger.info("🔗 Running referential integrity check...");
-
-        report.results.referential =
-          await ReferentialIntegrityService.checkAllReferentialIntegrity({
-            stores,
-            includeOrphans: true,
-            includeMissing: true,
-            deepCheck: checkType === this.CHECK_TYPES.FULL,
-            useCache: priority !== this.PRIORITIES.CRITICAL,
-          });
-
-        if (!report.results.referential.overall.valid) {
-          report.overall.valid = false;
-          report.overall.errors +=
-            report.results.referential.overall.violationCount;
-        }
-
-        const refEndTime = performance.now();
-        report.performanceMetrics.checkBreakdown.referential =
-          refEndTime - refStartTime;
+      if (shouldPerformReferentialCheck(checkType, this.CHECK_TYPES)) {
+        await executeReferentialCheck(stores, executionContext, report);
       }
 
       // Business logic validation
-      if (
-        [this.CHECK_TYPES.FULL, this.CHECK_TYPES.BUSINESS_LOGIC].includes(
-          checkType
-        )
-      ) {
-        const businessStartTime = performance.now();
-        logger.info("🧠 Running business logic validation...");
-
-        report.results.businessLogic =
-          await this.performBusinessLogicValidation(stores, { priority });
-
-        if (!report.results.businessLogic.valid) {
-          report.overall.valid = false;
-          report.overall.errors += report.results.businessLogic.errorCount;
-          report.overall.warnings += report.results.businessLogic.warningCount;
-        }
-
-        const businessEndTime = performance.now();
-        report.performanceMetrics.checkBreakdown.businessLogic =
-          businessEndTime - businessStartTime;
+      if (shouldPerformBusinessLogicCheck(checkType, this.CHECK_TYPES)) {
+        await executeBusinessLogicCheck(stores, executionContext, report);
       }
 
       // Storage health check
-      if (includePerformanceMetrics && checkType !== this.CHECK_TYPES.QUICK) {
-        const healthStartTime = performance.now();
-        logger.info("💾 Running storage health check...");
+      await executeStorageHealthCheck(executionContext, report);
 
-        report.results.storageHealth =
-          await StorageHealthMonitor.assessStorageHealth();
-
-        const healthEndTime = performance.now();
-        report.performanceMetrics.checkBreakdown.storageHealth =
-          healthEndTime - healthStartTime;
-      }
-
-      // Calculate overall score and generate recommendations
-      report.overall.score = this.calculateOverallScore(report);
-      report.recommendations = this.generateRecommendations(report);
+      // Finalize report
+      finalizeCheckReport(report, executionContext);
 
       const checkEndTime = performance.now();
       report.performanceMetrics.totalTime = checkEndTime - checkStartTime;
 
-      // Save to history
-      if (saveToHistory) {
-        this.addToHistory(report);
-      }
-
-      // Update last check timestamp
-      this.lastCheck.set(checkType, Date.now());
-
-      logger.info(
-        `✅ Data integrity check completed in ${report.performanceMetrics.totalTime.toFixed(
-          2
-        )}ms`
-      );
-      logger.info(
-        `📊 Overall Score: ${report.overall.score}% (${report.overall.errors} errors, ${report.overall.warnings} warnings)`
-      );
-
-      // Report critical issues immediately
-      if (report.overall.errors > 0 || report.overall.score < 70) {
-        await this.reportCriticalIssues(report);
-      }
+      // Handle post-check operations
+      await handlePostCheckOperations(report, executionContext);
 
       return report;
     } catch (error) {
@@ -305,13 +206,7 @@ export class DataIntegrityCheckService {
             batchResult.avgItemTime;
 
           // Collect errors and warnings
-          for (const itemResult of batchResult.results) {
-            if (!itemResult.valid) {
-              result.valid = false;
-              storeResult.errors.push(...itemResult.errors);
-              storeResult.warnings.push(...itemResult.warnings);
-            }
-          }
+          this._collectValidationErrors(batchResult.results, result, storeResult);
 
           result.validRecords += batchResult.validItems;
           result.errorCount += storeResult.errors.length;
@@ -423,25 +318,12 @@ export class DataIntegrityCheckService {
           if (problem.AttemptStats) {
             const { TotalAttempts, SuccessfulAttempts } = problem.AttemptStats;
 
-            if (
-              TotalAttempts !== actualTotal ||
-              SuccessfulAttempts !== actualSuccessful
-            ) {
-              result.valid = false;
-              result.errorCount++;
-              result.checks.push({
-                type: "cross_store_inconsistency",
-                severity: "error",
-                message: `Problem ${problem.leetCodeID} attempt stats mismatch`,
-                details: {
-                  stored: { TotalAttempts, SuccessfulAttempts },
-                  calculated: {
-                    TotalAttempts: actualTotal,
-                    SuccessfulAttempts: actualSuccessful,
-                  },
-                },
-              });
-            }
+            this._checkAttemptStatsMismatch(
+              result,
+              problem,
+              { TotalAttempts, SuccessfulAttempts },
+              { actualTotal, actualSuccessful }
+            );
           }
         }
       }
@@ -454,19 +336,12 @@ export class DataIntegrityCheckService {
             const attemptExists = attempts.some(
               (a) => a.id === sessionAttempt.attemptId
             );
-            if (!attemptExists) {
-              result.valid = false;
-              result.warningCount++;
-              result.checks.push({
-                type: "missing_attempt_reference",
-                severity: "warning",
-                message: `Session ${session.id} references non-existent attempt ${sessionAttempt.attemptId}`,
-                details: {
-                  sessionId: session.id,
-                  attemptId: sessionAttempt.attemptId,
-                },
-              });
-            }
+            this._checkMissingAttemptReference(
+              result,
+              session,
+              sessionAttempt,
+              attemptExists
+            );
           }
         }
       }
@@ -920,7 +795,7 @@ export class DataIntegrityCheckService {
    * Get data integrity dashboard summary
    * @returns {Promise<Object>} - Dashboard summary data
    */
-  static async getIntegrityDashboardSummary() {
+  static getIntegrityDashboardSummary() {
     const recentCheck =
       this.checkHistory.length > 0
         ? this.checkHistory[this.checkHistory.length - 1]
@@ -946,7 +821,7 @@ export class DataIntegrityCheckService {
 
   // Helper methods
 
-  static async getAllStoreData(db, storeName) {
+  static getAllStoreData(db, storeName) {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([storeName], "readonly");
       const store = transaction.objectStore(storeName);
@@ -1018,7 +893,7 @@ export class DataIntegrityCheckService {
     }
   }
 
-  static async notifyIntegrityIssues(checkType, result) {
+  static notifyIntegrityIssues(checkType, result) {
     // This could integrate with notification systems
     // For now, just console logging
     logger.warn(`🚨 Integrity issues detected in ${checkType}:`, {
@@ -1150,6 +1025,66 @@ export class DataIntegrityCheckService {
         trends: this.calculateTrends(),
       },
     };
+  }
+
+  /**
+   * Collect validation errors and warnings from batch results
+   * @private
+   */
+  static _collectValidationErrors(batchResults, result, storeResult) {
+    for (const itemResult of batchResults) {
+      if (!itemResult.valid) {
+        result.valid = false;
+        storeResult.errors.push(...itemResult.errors);
+        storeResult.warnings.push(...itemResult.warnings);
+      }
+    }
+  }
+
+  /**
+   * Check for attempt stats mismatch and add to result if found
+   * @private
+   */
+  static _checkAttemptStatsMismatch(result, problem, storedStats, actualStats) {
+    const { TotalAttempts, SuccessfulAttempts } = storedStats;
+    const { actualTotal, actualSuccessful } = actualStats;
+
+    if (TotalAttempts !== actualTotal || SuccessfulAttempts !== actualSuccessful) {
+      result.valid = false;
+      result.errorCount++;
+      result.checks.push({
+        type: "cross_store_inconsistency",
+        severity: "error",
+        message: `Problem ${problem.leetCodeID} attempt stats mismatch`,
+        details: {
+          stored: { TotalAttempts, SuccessfulAttempts },
+          calculated: {
+            TotalAttempts: actualTotal,
+            SuccessfulAttempts: actualSuccessful,
+          },
+        },
+      });
+    }
+  }
+
+  /**
+   * Check for missing attempt reference and add warning if not found
+   * @private
+   */
+  static _checkMissingAttemptReference(result, session, sessionAttempt, attemptExists) {
+    if (!attemptExists) {
+      result.valid = false;
+      result.warningCount++;
+      result.checks.push({
+        type: "missing_attempt_reference",
+        severity: "warning",
+        message: `Session ${session.id} references non-existent attempt ${sessionAttempt.attemptId}`,
+        details: {
+          sessionId: session.id,
+          attemptId: sessionAttempt.attemptId,
+        },
+      });
+    }
   }
 }
 

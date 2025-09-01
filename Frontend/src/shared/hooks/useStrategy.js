@@ -36,9 +36,9 @@ export const useStrategy = (problemTags = []) => {
       setHints([]);
       setPrimers([]);
     }
-  }, [problemTags, isDataLoaded]);
+  }, [problemTags, isDataLoaded, loadStrategyData]);
 
-  const loadStrategyData = async () => {
+  const loadStrategyData = useCallback(async () => {
     const queryContext = performanceMonitor.startQuery("useStrategy_loadData", {
       tagCount: problemTags.length,
     });
@@ -68,14 +68,14 @@ export const useStrategy = (problemTags = []) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [problemTags]);
 
   // Manual refresh function
   const refreshStrategy = useCallback(() => {
     if (problemTags.length > 0 && isDataLoaded) {
       loadStrategyData();
     }
-  }, [problemTags, isDataLoaded]);
+  }, [problemTags, isDataLoaded, loadStrategyData]);
 
   // Get strategy for specific tag
   const getTagStrategy = useCallback(async (tag) => {

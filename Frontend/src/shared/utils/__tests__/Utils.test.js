@@ -16,36 +16,47 @@ import {
   _clearOrRenameStoreField,
 } from "../Utils.js";
 
-describe("Utils Functions", () => {
+// Test data helpers
+const createSampleAttemptData = (overrides = {}) => ({
+  id: "test-uuid-123",
+  ProblemID: "prob-123",
+  Success: true,
+  TimeSpent: 1800,
+  AttemptDate: "2024-01-01T10:00:00Z",
+  Difficulty: 6,
+  ...overrides,
+});
+
+const createExpectedAttemptRecord = (overrides = {}) => ({
+  id: "test-uuid-123",
+  SessionID: undefined,
+  ProblemID: "prob-123",
+  Success: true,
+  AttemptDate: "2024-01-01T10:00:00Z",
+  TimeSpent: 1800,
+  Difficulty: 6,
+  Comments: "",
+  ...overrides,
+});
+
+const validateDateFormat = (dateString) => {
+  expect(new Date(dateString)).toBeInstanceOf(Date);
+};
+
+describe("Utils Functions", function() {
   describe("createAttemptRecord", () => {
     it("should create properly structured attempt record", () => {
       // Arrange
-      const attemptData = {
-        id: "test-uuid-123",
-        ProblemID: "prob-123",
-        Success: true,
-        TimeSpent: 1800,
-        AttemptDate: "2024-01-01T10:00:00Z",
-        Difficulty: 6,
-      };
+      const attemptData = createSampleAttemptData();
 
       // Act
       const result = createAttemptRecord(attemptData);
 
       // Assert
-      expect(result).toEqual({
-        id: "test-uuid-123",
-        SessionID: undefined,
-        ProblemID: "prob-123",
-        Success: true,
-        AttemptDate: "2024-01-01T10:00:00Z",
-        TimeSpent: 1800,
-        Difficulty: 6,
-        Comments: "",
-      });
+      expect(result).toEqual(createExpectedAttemptRecord());
 
       // Verify date format
-      expect(new Date(result.AttemptDate)).toBeInstanceOf(Date);
+      validateDateFormat(result.AttemptDate);
     });
 
     it("should handle minimal attempt data", () => {

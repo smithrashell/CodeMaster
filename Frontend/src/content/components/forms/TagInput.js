@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useTagSuggestions } from "./useTagSuggestions.js";
 
 const tags = [
   "Array",
@@ -75,39 +76,19 @@ const tags = [
 ];
 
 export default function TagInput({ setTags }) {
-  const [inputValue, setInputValue] = useState("");
-  const [suggestedTag, setSuggestedTag] = useState("");
   const [isInputVisible, setIsInputVisible] = useState(false);
   const inputRef = useRef(null);
 
-  const handleInputChange = (event) => {
-    const value = event.target.value;
-    setInputValue(value);
-    if (value) {
-      const match = tags.find((tag) =>
-        tag.toLowerCase().startsWith(value.toLowerCase())
-      );
-      setSuggestedTag(
-        match
-          ? match
-              .replace(/^./, (char) => char.toUpperCase())
-              .slice(value.length)
-          : ""
-      );
-    } else {
-      setSuggestedTag("");
-    }
-  };
+  const {
+    inputValue,
+    suggestedTag,
+    handleInputChange,
+    handleKeyDown: baseHandleKeyDown,
+    clearInput: _clearInput,
+  } = useTagSuggestions(tags);
 
   const handleKeyDown = (event) => {
-    if ((event.key === "Enter" || event.key === "Tab") && suggestedTag) {
-      event.preventDefault();
-      const completeTag = inputValue + suggestedTag;
-      setTags((prevTags) => [...prevTags, completeTag]);
-      setInputValue("");
-      setSuggestedTag("");
-      setIsInputVisible(false);
-    }
+    baseHandleKeyDown(event, setTags, setIsInputVisible);
   };
 
   const handleBlur = () => {

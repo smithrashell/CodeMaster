@@ -1,9 +1,125 @@
 import logger from "../../../shared/utils/logger.js";
-import  { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "../../components/navigation/header";
 import { useNav } from "../../../shared/provider/navprovider";
 
-const StrategyMap = () => {
+// Helper component for rendering tier data
+const TierRenderer = ({ tierData, getVisibleTags, focusTags, getTagClass, formatTagName, expandedTiers, toggleTierExpansion, getHoverHandlers }) => {
+  return (
+    <>
+      {Object.entries(tierData).map(([tierName, tags]) => (
+        <div key={tierName} style={{ marginBottom: "16px" }}>
+          <div
+            style={{
+              fontSize: "12px",
+              fontWeight: "600",
+              color: "var(--cm-text)",
+              marginBottom: "6px",
+            }}
+          >
+            {tierName}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "6px",
+            }}
+          >
+            {getVisibleTags(tags, tierName).map((tagData) => {
+              const isFocus = focusTags.includes(tagData.tag);
+              const tagClass = getTagClass(
+                tagData.mastery,
+                tagData.unlocked,
+                isFocus
+              );
+
+              return (
+                <span
+                  key={tagData.tag}
+                  className={`cm-extension ${tagClass}`}
+                  style={{
+                    cursor: tagData.unlocked ? "pointer" : "default",
+                  }}
+                  title={`${formatTagName(tagData.tag)} - ${
+                    isFocus
+                      ? "Focus Tag"
+                      : !tagData.unlocked
+                      ? "Locked"
+                      : tagData.mastery === 0
+                      ? "Not Started"
+                      : tagData.mastery >= 0.8
+                      ? "Mastered"
+                      : "Learning"
+                  }`}
+                >
+                  {formatTagName(tagData.tag)}
+                </span>
+              );
+            })}
+            {!expandedTiers.has(tierName) && tags.length > 3 && (
+              <span
+                onClick={() => toggleTierExpansion(tierName)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleTierExpansion(tierName);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                style={{
+                  fontSize: "10px",
+                  color: "var(--cm-link)",
+                  opacity: 0.8,
+                  padding: "2px 6px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  transition: "all 0.2s ease",
+                }}
+                {...getHoverHandlers()}
+                title={`Click to show all ${tags.length} tags`}
+              >
+                +{tags.length - 3} more
+              </span>
+            )}
+            {expandedTiers.has(tierName) && tags.length > 3 && (
+              <span
+                onClick={() => toggleTierExpansion(tierName)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleTierExpansion(tierName);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+                style={{
+                  fontSize: "10px",
+                  color: "var(--cm-link)",
+                  opacity: 0.8,
+                  padding: "2px 6px",
+                  fontWeight: "500",
+                  cursor: "pointer",
+                  borderRadius: "4px",
+                  transition: "all 0.2s ease",
+                }}
+                {...getHoverHandlers()}
+                title="Click to show less"
+              >
+                show less
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+};
+
+function StrategyMap() {
   const { setIsAppOpen } = useNav();
 
   const handleClose = () => {
@@ -15,6 +131,26 @@ const StrategyMap = () => {
   const [tierData, setTierData] = useState({});
   const [focusTags, setFocusTags] = useState([]);
   const [currentTier, setCurrentTier] = useState("Core Concept");
+
+  // Helper function for hover event handlers
+  const getHoverHandlers = () => ({
+    onMouseOver: (e) => {
+      e.target.style.opacity = "1";
+      e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+    },
+    onFocus: (e) => {
+      e.target.style.opacity = "1";
+      e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+    },
+    onMouseOut: (e) => {
+      e.target.style.opacity = "0.8";
+      e.target.style.backgroundColor = "transparent";
+    },
+    onBlur: (e) => {
+      e.target.style.opacity = "0.8";
+      e.target.style.backgroundColor = "transparent";
+    }
+  });
 
   useEffect(() => {
     const fetchStrategyMapData = () => {
@@ -200,148 +336,16 @@ const StrategyMap = () => {
           )}
 
           {/* All Tiers */}
-          {Object.entries(tierData).map(([tierName, tags]) => (
-            <div key={tierName} style={{ marginBottom: "16px" }}>
-              <div
-                style={{
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "var(--cm-text)",
-                  marginBottom: "6px",
-                }}
-              >
-                {tierName}
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "6px",
-                }}
-              >
-                {getVisibleTags(tags, tierName).map((tagData) => {
-                  const isFocus = focusTags.includes(tagData.tag);
-                  const tagClass = getTagClass(
-                    tagData.mastery,
-                    tagData.unlocked,
-                    isFocus
-                  );
-
-                  return (
-                    <span
-                      key={tagData.tag}
-                      className={`cm-extension ${tagClass}`}
-                      style={{
-                        cursor: tagData.unlocked ? "pointer" : "default",
-                      }}
-                      title={`${formatTagName(tagData.tag)} - ${
-                        isFocus
-                          ? "Focus Tag"
-                          : !tagData.unlocked
-                          ? "Locked"
-                          : tagData.mastery === 0
-                          ? "Not Started"
-                          : tagData.mastery >= 0.8
-                          ? "Mastered"
-                          : "Learning"
-                      }`}
-                    >
-                      {formatTagName(tagData.tag)}
-                    </span>
-                  );
-                })}
-                {!expandedTiers.has(tierName) && tags.length > 3 && (
-                  <span
-                    onClick={() => toggleTierExpansion(tierName)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleTierExpansion(tierName);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    style={{
-                      fontSize: "10px",
-                      color: "var(--cm-link)",
-                      opacity: 0.8,
-                      padding: "2px 6px",
-                      fontWeight: "500",
-                      cursor: "pointer",
-                      borderRadius: "4px",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.opacity = "1";
-                      e.target.style.backgroundColor =
-                        "rgba(255, 255, 255, 0.1)";
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.opacity = "1";
-                      e.target.style.backgroundColor =
-                        "rgba(255, 255, 255, 0.1)";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.opacity = "0.8";
-                      e.target.style.backgroundColor = "transparent";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.opacity = "0.8";
-                      e.target.style.backgroundColor = "transparent";
-                    }}
-                    title={`Click to show all ${tags.length} tags`}
-                  >
-                    +{tags.length - 3} more
-                  </span>
-                )}
-                {expandedTiers.has(tierName) && tags.length > 3 && (
-                  <span
-                    onClick={() => toggleTierExpansion(tierName)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleTierExpansion(tierName);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    style={{
-                      fontSize: "10px",
-                      color: "var(--cm-link)",
-                      opacity: 0.8,
-                      padding: "2px 6px",
-                      fontWeight: "500",
-                      cursor: "pointer",
-                      borderRadius: "4px",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseOver={(e) => {
-                      e.target.style.opacity = "1";
-                      e.target.style.backgroundColor =
-                        "rgba(255, 255, 255, 0.1)";
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.opacity = "1";
-                      e.target.style.backgroundColor =
-                        "rgba(255, 255, 255, 0.1)";
-                    }}
-                    onMouseOut={(e) => {
-                      e.target.style.opacity = "0.8";
-                      e.target.style.backgroundColor = "transparent";
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.opacity = "0.8";
-                      e.target.style.backgroundColor = "transparent";
-                    }}
-                    title="Click to show less"
-                  >
-                    show less
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+          <TierRenderer 
+            tierData={tierData}
+            getVisibleTags={getVisibleTags}
+            focusTags={focusTags}
+            getTagClass={getTagClass}
+            formatTagName={formatTagName}
+            expandedTiers={expandedTiers}
+            toggleTierExpansion={toggleTierExpansion}
+            getHoverHandlers={getHoverHandlers}
+          />
 
           {/* Empty State */}
           {Object.entries(tierData).length === 0 && (
@@ -397,6 +401,6 @@ const StrategyMap = () => {
       </div>
     </div>
   );
-};
+}
 
 export default StrategyMap;
