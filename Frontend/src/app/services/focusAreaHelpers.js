@@ -4,6 +4,7 @@
  */
 
 import { StorageService } from "../../shared/services/storageService.js";
+import { calculateSuccessRate } from "../../shared/utils/Utils.js";
 
 /**
  * Create problem mappings from standard problems data
@@ -100,7 +101,7 @@ export function calculateFocusAreaPerformance(
     // Calculate basic metrics
     const totalAttempts = focusAreaAttempts.length;
     const successfulAttempts = focusAreaAttempts.filter(a => a.Success).length;
-    const successRate = successfulAttempts / totalAttempts;
+    const successRate = calculateSuccessRate(successfulAttempts, totalAttempts);
     const averageTime = focusAreaAttempts.reduce((sum, a) => sum + (a.TimeSpent || 0), 0) / totalAttempts;
 
     // Calculate difficulty breakdown

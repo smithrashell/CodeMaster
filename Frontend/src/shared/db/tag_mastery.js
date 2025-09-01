@@ -57,93 +57,186 @@ export async function insertDefaultTagMasteryRecords() {
   console.log(`✅ Initialized ${tagRelationships.length} tag_mastery records.`);
 }
 
+async function fetchProblemsData(db) {
+  // Step 1: Fetch user problems
+  const userProblems = await new Promise((resolve, reject) => {
+    const transaction = db.transaction(["problems"], "readonly");
+    const store = transaction.objectStore("problems");
+    const request = store.getAll();
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  console.log("📥 Loaded user problems:", userProblems.length);
+
+  // Step 2: Fetch standard problems
+  const standardProblems = await new Promise((resolve, reject) => {
+    const transaction = db.transaction(["standard_problems"], "readonly");
+    const store = transaction.objectStore("standard_problems");
+    const request = store.getAll();
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  console.log("📦 Loaded standard problems:", standardProblems.length);
+  console.log("🔍 Sample standard problem:", standardProblems[0]);
+
+  return { userProblems, standardProblems };
+}
+
+function extractAllTags(standardProblems) {
+  // Step 3: Extract all unique tags from standard problems
+  let allTags = new Set();
+  for (const problem of standardProblems) {
+    const tags = Array.isArray(problem.tags) ? problem.tags : [];
+
+    for (const tag of tags) {
+      allTags.add(tag);
+    }
+  }
+
+  console.log(
+    "📊 Total unique tags found in standard problems:",
+    allTags.size
+  );
+  console.log("🏷️ Tag list:", [...allTags]);
+
+  return allTags;
+}
+
+function calculateTagStats(allTags, userProblems) {
+  // Step 4: Initialize tagStats
+  let tagStats = new Map();
+  for (const tag of allTags) {
+    tagStats.set(tag, {
+      totalAttempts: 0,
+      successfulAttempts: 0,
+      lastAttemptDate: null,
+    });
+  }
+
+  // Step 5: Accumulate stats from userProblems
+  for (const problem of userProblems) {
+    const tags = Array.isArray(problem.Tags) ? problem.Tags : [];
+    const { TotalAttempts = 0, SuccessfulAttempts = 0 } =
+      problem.AttemptStats || {};
+
+    for (const tag of tags) {
+      if (!tagStats.has(tag)) {
+        console.warn(
+          `⚠️ Tag "${tag}" found in user problems but not in standard problems.`
+        );
+        tagStats.set(tag, {
+          totalAttempts: 0,
+          successfulAttempts: 0,
+          lastAttemptDate: null,
+        });
+      }
+
+      const entry = tagStats.get(tag);
+      entry.totalAttempts += TotalAttempts;
+      entry.successfulAttempts += SuccessfulAttempts;
+
+      if (
+        !entry.lastAttemptDate ||
+        new Date(problem.lastAttemptDate) > new Date(entry.lastAttemptDate)
+      ) {
+        entry.lastAttemptDate = problem.lastAttemptDate;
+      }
+    }
+  }
+
+  console.log("📈 Tag stats before writing to DB:", [...tagStats.entries()]);
+  return tagStats;
+}
+
+function calculateMasteryThresholds(stats, masteryRatio, tag) {
+  // 🔓 Progressive attempt-based escape hatch: Multiple thresholds based on struggle level
+  let masteryThreshold = 0.8; // Default 80% success rate
+  let escapeHatchActivated = false;
+  let escapeHatchType = "";
+
+  const failedAttempts = stats.totalAttempts - stats.successfulAttempts;
+
+  // Progressive softening based on struggle level:
+  // 1. Light struggle: 8+ attempts with 75-79% → allow graduation
+  // 2. Moderate struggle: 12+ attempts with 70-79% → allow graduation
+  // 3. Heavy struggle: 15+ attempts with 60%+ → allow graduation (existing)
+
+  if (
+    stats.totalAttempts >= 8 &&
+    masteryRatio >= 0.75 &&
+    masteryRatio < 0.8
+  ) {
+    // Light struggle escape: 75-79% with 8+ attempts
+    masteryThreshold = 0.75;
+    escapeHatchActivated = true;
+    escapeHatchType = "light struggle (75% threshold)";
+    console.log(
+      `🔓 Light struggle escape hatch ACTIVATED for "${tag}": ${
+        stats.totalAttempts
+      } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
+    );
+  } else if (
+    stats.totalAttempts >= 12 &&
+    masteryRatio >= 0.7 &&
+    masteryRatio < 0.8
+  ) {
+    // Moderate struggle escape: 70-79% with 12+ attempts
+    masteryThreshold = 0.7;
+    escapeHatchActivated = true;
+    escapeHatchType = "moderate struggle (70% threshold)";
+    console.log(
+      `🔓 Moderate struggle escape hatch ACTIVATED for "${tag}": ${
+        stats.totalAttempts
+      } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
+    );
+  } else if (failedAttempts >= 15 && masteryRatio >= 0.6) {
+    // Heavy struggle escape: 60%+ with 15+ failed attempts (existing logic)
+    masteryThreshold = 0.6;
+    escapeHatchActivated = true;
+    escapeHatchType = "heavy struggle (60% threshold)";
+    console.log(
+      `🔓 Heavy struggle escape hatch ACTIVATED for "${tag}": ${failedAttempts} failed attempts, allowing graduation at 60% (was ${(
+        masteryRatio * 100
+      ).toFixed(1)}%)`
+    );
+  }
+
+  return {
+    masteryThreshold,
+    escapeHatchActivated,
+    escapeHatchType,
+    failedAttempts
+  };
+}
+
+async function writeMasteryToDatabase(tagMasteryStore, masteryData) {
+  const { tag, stats, decayScore, mastered } = masteryData;
+  
+  await new Promise((resolve, reject) => {
+    const request = tagMasteryStore.put({
+      tag,
+      totalAttempts: stats.totalAttempts,
+      successfulAttempts: stats.successfulAttempts,
+      decayScore,
+      mastered,
+    });
+
+    request.onsuccess = resolve;
+    request.onerror = () => reject(request.error);
+  });
+}
+
 export async function calculateTagMastery() {
   try {
     const db = await openDB();
 
-    // Step 1: Fetch user problems
-    const userProblems = await new Promise((resolve, reject) => {
-      const transaction = db.transaction(["problems"], "readonly");
-      const store = transaction.objectStore("problems");
-      const request = store.getAll();
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-
-    console.log("📥 Loaded user problems:", userProblems.length);
-
-    // Step 2: Fetch standard problems
-    const standardProblems = await new Promise((resolve, reject) => {
-      const transaction = db.transaction(["standard_problems"], "readonly");
-      const store = transaction.objectStore("standard_problems");
-      const request = store.getAll();
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-
-    console.log("📦 Loaded standard problems:", standardProblems.length);
-    console.log("🔍 Sample standard problem:", standardProblems[0]);
-
-    // Step 3: Extract all unique tags from standard problems
-    let allTags = new Set();
-    for (const problem of standardProblems) {
-      const tags = Array.isArray(problem.tags) ? problem.tags : [];
-
-      for (const tag of tags) {
-        allTags.add(tag);
-      }
-    }
-
-    console.log(
-      "📊 Total unique tags found in standard problems:",
-      allTags.size
-    );
-    console.log("🏷️ Tag list:", [...allTags]);
-
-    // Step 4: Initialize tagStats
-    let tagStats = new Map();
-    for (const tag of allTags) {
-      tagStats.set(tag, {
-        totalAttempts: 0,
-        successfulAttempts: 0,
-        lastAttemptDate: null,
-      });
-    }
-
-    // Step 5: Accumulate stats from userProblems
-    for (const problem of userProblems) {
-      const tags = Array.isArray(problem.Tags) ? problem.Tags : [];
-      const { TotalAttempts = 0, SuccessfulAttempts = 0 } =
-        problem.AttemptStats || {};
-
-      for (const tag of tags) {
-        if (!tagStats.has(tag)) {
-          console.warn(
-            `⚠️ Tag "${tag}" found in user problems but not in standard problems.`
-          );
-          tagStats.set(tag, {
-            totalAttempts: 0,
-            successfulAttempts: 0,
-            lastAttemptDate: null,
-          });
-        }
-
-        const entry = tagStats.get(tag);
-        entry.totalAttempts += TotalAttempts;
-        entry.successfulAttempts += SuccessfulAttempts;
-
-        if (
-          !entry.lastAttemptDate ||
-          new Date(problem.lastAttemptDate) > new Date(entry.lastAttemptDate)
-        ) {
-          entry.lastAttemptDate = problem.lastAttemptDate;
-        }
-      }
-    }
-
-    console.log("📈 Tag stats before writing to DB:", [...tagStats.entries()]);
+    const { userProblems, standardProblems } = await fetchProblemsData(db);
+    const allTags = extractAllTags(standardProblems);
+    const tagStats = calculateTagStats(allTags, userProblems);
 
     // Step 6: Write to tag_mastery
     const updateTransaction = db.transaction(["tag_mastery"], "readwrite");
@@ -162,57 +255,12 @@ export async function calculateTagMastery() {
       const decayScore =
         stats.totalAttempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
 
-      // 🔓 Progressive attempt-based escape hatch: Multiple thresholds based on struggle level
-      let masteryThreshold = 0.8; // Default 80% success rate
-      let escapeHatchActivated = false;
-      let escapeHatchType = "";
-
-      const failedAttempts = stats.totalAttempts - stats.successfulAttempts;
-
-      // Progressive softening based on struggle level:
-      // 1. Light struggle: 8+ attempts with 75-79% → allow graduation
-      // 2. Moderate struggle: 12+ attempts with 70-79% → allow graduation
-      // 3. Heavy struggle: 15+ attempts with 60%+ → allow graduation (existing)
-
-      if (
-        stats.totalAttempts >= 8 &&
-        masteryRatio >= 0.75 &&
-        masteryRatio < 0.8
-      ) {
-        // Light struggle escape: 75-79% with 8+ attempts
-        masteryThreshold = 0.75;
-        escapeHatchActivated = true;
-        escapeHatchType = "light struggle (75% threshold)";
-        console.log(
-          `🔓 Light struggle escape hatch ACTIVATED for "${tag}": ${
-            stats.totalAttempts
-          } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
-        );
-      } else if (
-        stats.totalAttempts >= 12 &&
-        masteryRatio >= 0.7 &&
-        masteryRatio < 0.8
-      ) {
-        // Moderate struggle escape: 70-79% with 12+ attempts
-        masteryThreshold = 0.7;
-        escapeHatchActivated = true;
-        escapeHatchType = "moderate struggle (70% threshold)";
-        console.log(
-          `🔓 Moderate struggle escape hatch ACTIVATED for "${tag}": ${
-            stats.totalAttempts
-          } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
-        );
-      } else if (failedAttempts >= 15 && masteryRatio >= 0.6) {
-        // Heavy struggle escape: 60%+ with 15+ failed attempts (existing logic)
-        masteryThreshold = 0.6;
-        escapeHatchActivated = true;
-        escapeHatchType = "heavy struggle (60% threshold)";
-        console.log(
-          `🔓 Heavy struggle escape hatch ACTIVATED for "${tag}": ${failedAttempts} failed attempts, allowing graduation at 60% (was ${(
-            masteryRatio * 100
-          ).toFixed(1)}%)`
-        );
-      }
+      const {
+        masteryThreshold,
+        escapeHatchActivated,
+        escapeHatchType,
+        failedAttempts
+      } = calculateMasteryThresholds(stats, masteryRatio, tag);
 
       const mastered = masteryRatio >= masteryThreshold;
 
@@ -228,17 +276,11 @@ export async function calculateTagMastery() {
         escapeHatchType: escapeHatchType || "none",
       });
 
-      await new Promise((resolve, reject) => {
-        const request = tagMasteryStore.put({
-          tag,
-          totalAttempts: stats.totalAttempts,
-          successfulAttempts: stats.successfulAttempts,
-          decayScore,
-          mastered,
-        });
-
-        request.onsuccess = resolve;
-        request.onerror = () => reject(request.error);
+      await writeMasteryToDatabase(tagMasteryStore, {
+        tag,
+        stats,
+        decayScore,
+        mastered
       });
     }
 
