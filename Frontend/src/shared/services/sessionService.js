@@ -421,7 +421,7 @@ export const SessionService = {
   },
 
   // NEW: Store interview analytics for dashboard
-  async storeInterviewAnalytics(interviewSummary) {
+  storeInterviewAnalytics(interviewSummary) {
     try {
       if (typeof chrome !== "undefined" && chrome.storage) {
         chrome.storage.local.get(["interviewAnalytics"], (result) => {
@@ -1786,75 +1786,19 @@ export const SessionService = {
             const threshold = cadence.averageGapDays + 0.5;
             
             // Enhanced reliability check - now requires medium+ reliability and good confidence
-            if (daysSince >= threshold && 
-                cadence.reliability !== "low" && 
-                cadence.confidenceScore >= 0.5) {
-              
-              alerts.push({
-                type: "cadence_nudge", 
-                priority: "medium",
-                message: `📅 You usually practice every ${Math.round(cadence.averageGapDays)} days — it's been ${Math.floor(daysSince)}. Quick session?`,
-                data: { 
-                  typicalGap: cadence.averageGapDays, 
-                  actualGap: Math.floor(daysSince),
-                  typicalCadence: cadence.pattern
-                }
-              });
-            }
+            this._addCadenceNudgeIfNeeded(alerts, cadence, daysSince, threshold);
           }
         }
       }
       
       // Check weekly goals with learning phase awareness (only Wednesday or Saturday)
       if (weeklyProgress && reminderSettings.weeklyGoals) {
-        // Require at least 2 weeks of data before sending weekly goal reminders
-        const hasEnoughHistoryForWeeklyGoals = cadence && 
-          !cadence.learningPhase && 
-          cadence.totalSessions >= 3;
-          
-        if (hasEnoughHistoryForWeeklyGoals) {
-          const today = new Date();
-          const dayOfWeek = today.getDay(); // 0 = Sunday, 3 = Wednesday, 6 = Saturday
-          
-          if ((dayOfWeek === 3 || dayOfWeek === 6) && weeklyProgress.percentage < 50) {
-            const isWednesday = dayOfWeek === 3;
-            const message = isWednesday 
-              ? `⚡ Halfway through the week! ${weeklyProgress.completed} of ${weeklyProgress.goal} sessions completed`
-              : `🎯 Weekend check: ${weeklyProgress.daysLeft} days left to hit your ${weeklyProgress.goal}-session goal`;
-              
-            alerts.push({
-              type: "weekly_goal",
-              priority: "low",
-              message,
-              data: { 
-                completedSessions: weeklyProgress.completed,
-                targetSessions: weeklyProgress.goal,
-                remainingDays: weeklyProgress.daysLeft
-              }
-            });
-          }
-        } else {
-          logger.info("⏸️ Skipping weekly goal reminders - insufficient data for reliable weekly patterns");
-        }
+        this._addWeeklyGoalAlertIfNeeded(alerts, weeklyProgress, cadence);
       }
       
       // Check re-engagement prompts
       if (reEngagement?.shouldPrompt) {
-        const messages = {
-          friendly_weekly: "👋 Ready to jump back in? Your progress is waiting",
-          supportive_biweekly: "💪 No pressure — start with just one problem when you're ready", 
-          gentle_monthly: "🌟 We're here when you want to continue your coding journey"
-        };
-        
-        alerts.push({
-          type: "re_engagement",
-          priority: "low",
-          message: messages[reEngagement.messageType],
-          data: { 
-            daysSinceLastSession: reEngagement.daysSinceLastSession,
-            messageType: reEngagement.messageType
-          }
-        });
+        this._addReEngagementAlert(alerts, reEngagement);
       }
       
       logger.info(`✅ Consistency check complete: ${alerts.length} alerts found`);
@@ -1880,5 +1824,85 @@ export const SessionService = {
         error: error.message
       };
     }
+  },
+
+  /**
+   * Add cadence nudge alert if conditions are met
+   * @private
+   */
+  _addCadenceNudgeIfNeeded(alerts, cadence, daysSince, threshold) {
+    if (daysSince >= threshold && 
+        cadence.reliability !== "low" && 
+        cadence.confidenceScore >= 0.5) {
+      
+      alerts.push({
+        type: "cadence_nudge", 
+        priority: "medium",
+        message: `📅 You usually practice every ${Math.round(cadence.averageGapDays)} days — it's been ${Math.floor(daysSince)}. Quick session?`,
+        data: { 
+          typicalGap: cadence.averageGapDays, 
+          actualGap: Math.floor(daysSince),
+          typicalCadence: cadence.pattern
+        }
+      });
+    }
+  },
+
+  /**
+   * Add weekly goal alert if conditions are met
+   * @private
+   */
+  _addWeeklyGoalAlertIfNeeded(alerts, weeklyProgress, cadence) {
+    // Require at least 2 weeks of data before sending weekly goal reminders
+    const hasEnoughHistoryForWeeklyGoals = cadence && 
+      !cadence.learningPhase && 
+      cadence.totalSessions >= 3;
+      
+    if (hasEnoughHistoryForWeeklyGoals) {
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 = Sunday, 3 = Wednesday, 6 = Saturday
+      
+      if ((dayOfWeek === 3 || dayOfWeek === 6) && weeklyProgress.percentage < 50) {
+        const isWednesday = dayOfWeek === 3;
+        const message = isWednesday 
+          ? `⚡ Halfway through the week! ${weeklyProgress.completed} of ${weeklyProgress.goal} sessions completed`
+          : `🎯 Weekend check: ${weeklyProgress.daysLeft} days left to hit your ${weeklyProgress.goal}-session goal`;
+          
+        alerts.push({
+          type: "weekly_goal",
+          priority: "low",
+          message,
+          data: { 
+            completedSessions: weeklyProgress.completed,
+            targetSessions: weeklyProgress.goal,
+            remainingDays: weeklyProgress.daysLeft
+          }
+        });
+      }
+    } else {
+      logger.info("⏸️ Skipping weekly goal reminders - insufficient data for reliable weekly patterns");
+    }
+  },
+
+  /**
+   * Add re-engagement alert
+   * @private
+   */
+  _addReEngagementAlert(alerts, reEngagement) {
+    const messages = {
+      friendly_weekly: "👋 Ready to jump back in? Your progress is waiting",
+      supportive_biweekly: "💪 No pressure — start with just one problem when you're ready", 
+      gentle_monthly: "🌟 We're here when you want to continue your coding journey"
+    };
+    
+    alerts.push({
+      type: "re_engagement",
+      priority: "low",
+      message: messages[reEngagement.messageType],
+      data: { 
+        daysSinceLastSession: reEngagement.daysSinceLastSession,
+        messageType: reEngagement.messageType
+      }
+    });
   },
 };

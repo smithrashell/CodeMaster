@@ -219,6 +219,26 @@ class ProductionLogger {
   getLogLevel() {
     return LOG_LEVEL_NAMES[this.currentLevel];
   }
+
+  /**
+   * Create console groups for organizing log output
+   */
+  group(label) {
+    if (this.currentLevel <= LOG_LEVELS.DEBUG) {
+      // eslint-disable-next-line no-console
+      console.group(label);
+    }
+  }
+
+  /**
+   * End console group
+   */
+  groupEnd() {
+    if (this.currentLevel <= LOG_LEVELS.DEBUG) {
+      // eslint-disable-next-line no-console  
+      console.groupEnd();
+    }
+  }
 }
 
 // Create singleton instance

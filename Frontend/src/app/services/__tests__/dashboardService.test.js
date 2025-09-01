@@ -28,7 +28,7 @@ import { TagService } from "../../../shared/services/tagServices";
 import { ProblemService } from "../../../shared/services/problemService";
 import { StorageService } from "../../../shared/services/storageService";
 
-describe("Dashboard Service", () => {
+describe("Dashboard Service", function() {
   beforeEach(() => {
     jest.clearAllMocks();
   });

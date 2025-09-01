@@ -11,7 +11,7 @@ export async function getBackupFile() {
  * @param {File} file - The JSON file containing the backup.
  * @returns {Promise<void>}
  */
-export async function restoreIndexedDB(file) {
+export function restoreIndexedDB(file) {
   try {
     const fileReader = new FileReader();
     fileReader.onload = async (event) => {

@@ -428,7 +428,10 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           request.slug
         )
           .then(sendResponse)
-          .catch(() => sendResponse({ error: "Problem not found" }))
+          .catch((error) => {
+            console.error("❌ Error in getProblemByDescription:", error);
+            sendResponse({ error: error.message || "Problem not found" });
+          })
           .finally(finishRequest);
         return true;
       case "countProblemsByBoxLevel":

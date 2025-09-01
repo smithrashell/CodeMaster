@@ -3,6 +3,81 @@ import { Container, Grid, Card, Title, Text, Stack, Group, Badge, Button, Box } 
 import { useThemeColors } from "../../../shared/hooks/useThemeColors";
 import { usePageData } from "../../hooks/usePageData";
 
+// Custom hooks for MistakeAnalysis state management
+const useMistakeAnalysisState = () => {
+  const [errorPatterns, setErrorPatterns] = useState([]);
+  const [strugglingTags, setStrugglingTags] = useState([]);
+  const [sessionInsights, setSessionInsights] = useState([]);
+  const [improvementSuggestions, setImprovementSuggestions] = useState([]);
+  const [showMoreFocus, setShowMoreFocus] = useState(false);
+  const [showMorePatterns, setShowMorePatterns] = useState(false);
+  const [showMoreFeedback, setShowMoreFeedback] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
+
+  return {
+    errorPatterns, setErrorPatterns,
+    strugglingTags, setStrugglingTags,
+    sessionInsights, setSessionInsights,
+    improvementSuggestions, setImprovementSuggestions,
+    showMoreFocus, setShowMoreFocus,
+    showMorePatterns, setShowMorePatterns,
+    showMoreFeedback, setShowMoreFeedback,
+    showMoreActions, setShowMoreActions
+  };
+};
+
+// Helper functions for MistakeAnalysis
+const getCardHeight = (isExpanded, itemCount, _baseItemHeight = 60) => {
+  if (isExpanded) {
+    return 'auto';
+  }
+  return 450;
+};
+
+// Analysis logic helpers
+const analyzeErrorPatterns = (recentSessions, sessions) => {
+  const errorPatternAnalysis = [];
+  
+  // Low accuracy pattern
+  const lowAccuracySessions = recentSessions.filter(s => s.accuracy < 0.7);
+  if (lowAccuracySessions.length > 2) {
+    errorPatternAnalysis.push({
+      type: 'accuracy',
+      severity: 'high',
+      description: `${lowAccuracySessions.length} recent sessions with accuracy below 70%`,
+      suggestion: 'Focus on understanding problem patterns rather than speed'
+    });
+  }
+
+  // Difficulty progression issues
+  const difficultyIssues = sessions.filter(s => {
+    const difficulty = s.difficulty || {};
+    return difficulty.Hard > difficulty.Easy; // Attempting hard before mastering easy
+  });
+  
+  if (difficultyIssues.length > 1) {
+    errorPatternAnalysis.push({
+      type: 'progression',
+      severity: 'medium',
+      description: 'Attempting advanced problems before mastering fundamentals',
+      suggestion: 'Build a solid foundation with Easy and Medium problems first'
+    });
+  }
+
+  // Session length vs accuracy correlation
+  const shortInaccurateSessions = recentSessions.filter(s => s.duration < 30 && s.accuracy < 0.8);
+  if (shortInaccurateSessions.length > 2) {
+    errorPatternAnalysis.push({
+      type: 'focus',
+      severity: 'medium',
+      description: 'Short sessions with low accuracy detected',
+      suggestion: 'Longer, focused practice sessions tend to improve learning retention'
+    });
+  }
+
+  return errorPatternAnalysis;
+};
+
 // Shared Components from mockup.jsx
 function Section({ title, right, children }) {
   return (
@@ -51,27 +126,17 @@ function FeedbackItem({ icon, title, note, meta }) {
 export function MistakeAnalysis() {
   const { data: appState } = usePageData('mistake-analysis');
   const _colors = useThemeColors();
-  const [errorPatterns, setErrorPatterns] = useState([]);
-  const [strugglingTags, setStrugglingTags] = useState([]);
-  const [sessionInsights, setSessionInsights] = useState([]);
-  const [improvementSuggestions, setImprovementSuggestions] = useState([]);
   
-  // State for expandable cards
-  const [showMoreFocus, setShowMoreFocus] = useState(false);
-  const [showMorePatterns, setShowMorePatterns] = useState(false);
-  const [showMoreFeedback, setShowMoreFeedback] = useState(false);
-  const [showMoreActions, setShowMoreActions] = useState(false);
-  
-  // Dynamic height calculation for cards
-  const getCardHeight = (isExpanded, itemCount, _baseItemHeight = 60) => {
-    // When expanded, return 'auto' to allow natural content height without limits
-    if (isExpanded) {
-      return 'auto';
-    }
-    
-    // When collapsed, use fixed 600px height for all cards
-    return 450;
-  };
+  const {
+    errorPatterns, setErrorPatterns,
+    strugglingTags, setStrugglingTags,
+    sessionInsights, setSessionInsights,
+    improvementSuggestions, setImprovementSuggestions,
+    showMoreFocus, setShowMoreFocus,
+    showMorePatterns, setShowMorePatterns,
+    showMoreFeedback, setShowMoreFeedback,
+    showMoreActions, setShowMoreActions
+  } = useMistakeAnalysisState();
 
   useEffect(() => {
     if (!appState) return;
@@ -100,46 +165,9 @@ export function MistakeAnalysis() {
     setSessionInsights(realInsights);
 
     // Analyze error patterns from session data
-    const errorPatternAnalysis = [];
     const recentSessions = appState.sessions?.recentSessions || [];
-    
-    // Low accuracy pattern
     const lowAccuracySessions = recentSessions.filter(s => s.accuracy < 0.7);
-    if (lowAccuracySessions.length > 2) {
-      errorPatternAnalysis.push({
-        type: 'accuracy',
-        severity: 'high',
-        description: `${lowAccuracySessions.length} recent sessions with accuracy below 70%`,
-        suggestion: 'Focus on understanding problem patterns rather than speed'
-      });
-    }
-
-    // Difficulty progression issues
-    const difficultyIssues = sessions.filter(s => {
-      const difficulty = s.difficulty || {};
-      return difficulty.Hard > difficulty.Easy; // Attempting hard before mastering easy
-    });
-    
-    if (difficultyIssues.length > 1) {
-      errorPatternAnalysis.push({
-        type: 'progression',
-        severity: 'medium',
-        description: 'Attempting advanced problems before mastering fundamentals',
-        suggestion: 'Build a solid foundation with Easy and Medium problems first'
-      });
-    }
-
-    // Session length vs accuracy correlation
-    const shortInaccurateSessions = recentSessions.filter(s => s.duration < 30 && s.accuracy < 0.8);
-    if (shortInaccurateSessions.length > 2) {
-      errorPatternAnalysis.push({
-        type: 'focus',
-        severity: 'medium',
-        description: 'Short sessions with low accuracy detected',
-        suggestion: 'Longer, focused practice sessions tend to improve learning retention'
-      });
-    }
-
+    const errorPatternAnalysis = analyzeErrorPatterns(recentSessions, sessions);
     setErrorPatterns(errorPatternAnalysis);
 
     // Generate improvement suggestions - only when there's actual data indicating issues
@@ -168,7 +196,7 @@ export function MistakeAnalysis() {
     
     setImprovementSuggestions(suggestions.slice(0, 4));
 
-  }, [appState]);
+  }, [appState, setErrorPatterns, setImprovementSuggestions, setSessionInsights, setStrugglingTags]);
 
 
   // Group struggling tags by severity

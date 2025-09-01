@@ -544,15 +544,13 @@ export async function fetchAdditionalProblems(
     logger.info(
       `🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`
     );
-    const primaryProblems = await selectProblemsForTag(
-      primaryTag,
-      primaryFocusCount,
-      tagDifficultyAllowances[primaryTag],
+    const primaryProblems = await selectProblemsForTag(primaryTag, primaryFocusCount, {
+      difficultyAllowance: tagDifficultyAllowances[primaryTag],
       ladders,
       allProblems,
       allTagsInCurrentTier,
       usedProblemIds
-    );
+    });
 
     selectedProblems.push(...primaryProblems);
     primaryProblems.forEach((p) => usedProblemIds.add(p.id));
@@ -573,15 +571,13 @@ export async function fetchAdditionalProblems(
       };
       const allowance = getDifficultyAllowanceForTag(tagMastery);
 
-      const expansionProblems = await selectProblemsForTag(
-        expansionTag,
-        expansionCount,
-        allowance,
+      const expansionProblems = await selectProblemsForTag(expansionTag, expansionCount, {
+        difficultyAllowance: allowance,
         ladders,
         allProblems,
         allTagsInCurrentTier,
         usedProblemIds
-      );
+      });
 
       selectedProblems.push(...expansionProblems);
       expansionProblems.forEach((p) => usedProblemIds.add(p.id));
@@ -848,7 +844,7 @@ export async function updateProblemsWithRating() {
 
     const request = problemStore.getAll();
 
-    request.onsuccess = async (event) => {
+    request.onsuccess = (event) => {
       const problems = event.target.result;
 
       for (let problem of problems) {
@@ -882,7 +878,7 @@ export async function updateProblemWithTags() {
     .objectStore("problems");
   const request = problemStore.getAll();
 
-  request.onsuccess = async (event) => {
+  request.onsuccess = (event) => {
     const problems = event.target.result;
 
     for (let problem of problems) {
@@ -911,22 +907,16 @@ function normalizeTags(tags) {
  * Selects problems for a specific tag with progressive difficulty
  * @param {string} tag - The tag to select problems for
  * @param {number} count - Number of problems to select
- * @param {object} difficultyAllowance - Difficulty allowance for the tag
- * @param {object} ladders - Pattern ladders
- * @param {array} allProblems - All standard problems
- * @param {array} allTagsInCurrentTier - Tags in current tier
- * @param {Set} usedProblemIds - Already used problem IDs
+ * @param {object} config - Configuration object containing:
+ *   - difficultyAllowance: Difficulty allowance for the tag
+ *   - ladders: Pattern ladders
+ *   - allProblems: All standard problems
+ *   - allTagsInCurrentTier: Tags in current tier
+ *   - usedProblemIds: Already used problem IDs
  * @returns {Array} Selected problems
  */
-function selectProblemsForTag(
-  tag,
-  count,
-  difficultyAllowance,
-  ladders,
-  allProblems,
-  allTagsInCurrentTier,
-  usedProblemIds
-) {
+function selectProblemsForTag(tag, count, config) {
+  const { difficultyAllowance, ladders, allProblems, allTagsInCurrentTier, usedProblemIds } = config;
   logger.info(`🎯 Selecting ${count} problems for tag: ${tag}`);
 
   const ladder = ladders?.[tag]?.problems || [];
@@ -1161,7 +1151,7 @@ export function addProblemWithRetry(problemData, options = {}) {
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    async () => {
+    () => {
       // This is a complex operation, so we'll use the enhanced dbHelper transaction method
       return dbHelper.executeTransaction(
         ["problems", "standard_problems"], // Multiple stores needed
@@ -1244,7 +1234,7 @@ export function saveUpdatedProblemWithRetry(problem, options = {}) {
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    async () => {
+    () => {
       return dbHelper.putRecord("problems", problem, {
         timeout,
         operationName,
@@ -1324,7 +1314,7 @@ export function fetchAllProblemsWithRetry(options = {}) {
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    async () => {
+    () => {
       return dbHelper.getAllRecords("problems", null, {
         timeout,
         operationName,
@@ -1363,7 +1353,7 @@ export function getProblemWithOfficialDifficultyWithRetry(
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    async () => {
+    () => {
       // Use the existing implementation but wrap it with our retry logic
       return getProblemWithOfficialDifficulty(leetCodeID);
     },
