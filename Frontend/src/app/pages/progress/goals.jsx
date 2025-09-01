@@ -12,6 +12,7 @@ import { DailyMissionsSection } from "./DailyMissionsSection.jsx";
 import { OutcomeTrendsSection } from "./OutcomeTrendsSection.jsx";
 import { useMissions } from "./useMissions.js";
 import { useStatusUtils } from "./useStatusUtils.js";
+import { settingsMessaging } from "../../components/settings/settingsMessaging.js";
 
 // Custom hooks for Goals page state management
 const useCadenceSettings = () => {
@@ -129,7 +130,10 @@ function updateLearningPlanData({
 }
 
 // Helper function to create settings change handlers
-const createSettingsHandlers = (cadenceSettings, focusPriorities, guardrails, setters, saveSettings, generators, appState, isOnboarding) => {
+const createSettingsHandlers = (settings, handlers, context) => {
+  const { setters, saveSettings, generators } = handlers;
+  const { appState, isOnboarding } = context;
+  
   const { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions } = setters;
   const { generateDefaultMissions } = generators;
   
@@ -160,29 +164,32 @@ const createSettingsHandlers = (cadenceSettings, focusPriorities, guardrails, se
   };
 };
 
-// Helper function to save settings to Chrome
+// Helper function to save settings using consolidated messaging utility
 const createSaveSettings = (cadenceSettings, focusPriorities, guardrails) => {
-  return () => {
-    const settings = {
-      sessionsPerWeek: cadenceSettings.sessionsPerWeek,
-      sessionLength: cadenceSettings.sessionLength,
-      flexibleSchedule: cadenceSettings.flexibleSchedule,
-      focusAreas: focusPriorities.primaryTags,
-      difficultyDistribution: focusPriorities.difficultyDistribution,
-      reviewRatio: focusPriorities.reviewRatio,
-      numberofNewProblemsPerSession: guardrails.maxNewProblems
-    };
+  return async () => {
+    try {
+      // Get current settings first to preserve other settings
+      const currentSettings = await settingsMessaging.getAllSettings();
+      
+      const updatedSettings = {
+        ...currentSettings,
+        sessionsPerWeek: cadenceSettings.sessionsPerWeek,
+        sessionLength: cadenceSettings.sessionLength,
+        flexibleSchedule: cadenceSettings.flexibleSchedule,
+        focusAreas: focusPriorities.primaryTags,
+        difficultyDistribution: focusPriorities.difficultyDistribution,
+        reviewRatio: focusPriorities.reviewRatio,
+        numberofNewProblemsPerSession: guardrails.maxNewProblems
+      };
 
-    chrome.runtime.sendMessage(
-      { type: "setSettings", message: settings },
-      (response) => {
-        if (response?.status === "success") {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" });
-        } else {
-          logger.error("Failed to save settings");
-        }
+      const response = await settingsMessaging.saveSettings(updatedSettings);
+      
+      if (!response || response.status !== "success") {
+        logger.error("Failed to save settings");
       }
-    );
+    } catch (error) {
+      logger.error("Failed to save settings:", error);
+    }
   };
 };
 
@@ -343,14 +350,13 @@ export function Goals() {
   
   // Create handlers
   const handlers = createSettingsHandlers(
-    cadenceSettings, 
-    focusPriorities, 
-    guardrails,
-    { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions },
-    saveSettings,
-    { generateDefaultMissions },
-    appState,
-    isOnboarding
+    { cadenceSettings, focusPriorities, guardrails },
+    { 
+      setters: { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions },
+      saveSettings,
+      generators: { generateDefaultMissions }
+    },
+    { appState, isOnboarding }
   );
 
   useEffect(() => {

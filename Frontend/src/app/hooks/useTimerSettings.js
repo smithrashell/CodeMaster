@@ -57,16 +57,23 @@ export function useTimerSettings() {
     setSaveStatus(null);
 
     try {
+      // Get current settings first, then merge with timer settings
+      const currentSettings = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
+          resolve(response || {});
+        });
+      });
+
+      const updatedSettings = {
+        ...currentSettings,
+        timerDisplay: settings.timerDisplay,
+        breakReminders: settings.breakReminders,
+        notifications: settings.notifications
+      };
+
       const response = await new Promise((resolve) => {
         chrome.runtime.sendMessage(
-          {
-            type: "updateSettings",
-            settings: {
-              timerDisplay: settings.timerDisplay,
-              breakReminders: settings.breakReminders,
-              notifications: settings.notifications
-            }
-          },
+          { type: "setSettings", message: updatedSettings },
           resolve
         );
       });
