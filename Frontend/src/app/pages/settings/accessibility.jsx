@@ -165,7 +165,7 @@ export function Accessibility() {
   };
 
   // Reset accessibility settings to defaults
-  const handleReset = async () => {
+  const handleReset = () => {
     setSettings(DEFAULT_ACCESSIBILITY_SETTINGS);
     setHasChanges(true);
     setSaveStatus({ type: "success", message: "Accessibility settings reset to defaults!" });

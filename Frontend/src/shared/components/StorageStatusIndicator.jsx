@@ -284,52 +284,61 @@ const StorageDetailModal = ({
     return Math.round((bytes / Math.pow(1024, i)) * 10) / 10 + " " + sizes[i];
   };
 
-  const renderOverview = () => (
-    <div>
-      <Group position="apart" mb="lg">
-        <Text weight={500} size="lg">
-          Storage Overview
-        </Text>
-        <Button variant="subtle" size="sm" onClick={onRefresh}>
-          <IconRefresh size={16} />
-          Refresh
-        </Button>
-      </Group>
+  // Helper components for renderOverview
+  const OverviewHeader = ({ onRefresh }) => (
+    <Group position="apart" mb="lg">
+      <Text weight={500} size="lg">
+        Storage Overview
+      </Text>
+      <Button variant="subtle" size="sm" onClick={onRefresh}>
+        <IconRefresh size={16} />
+        Refresh
+      </Button>
+    </Group>
+  );
 
-      <div style={{ marginBottom: "20px" }}>
-        <Group spacing="lg">
-          <div>
-            <Text size="sm" color="dimmed">
-              Current Mode
-            </Text>
-            <Badge
-              size="lg"
-              color={status.mode === "chrome_fallback" ? "orange" : "blue"}
-            >
-              {status.mode?.replace("_", " ").toUpperCase()}
-            </Badge>
-          </div>
-          <div>
-            <Text size="sm" color="dimmed">
-              Overall Health
-            </Text>
-            <Badge
-              size="lg"
-              color={
-                status.health?.overall === "excellent"
-                  ? "green"
-                  : status.health?.overall === "good"
-                  ? "blue"
-                  : status.health?.overall === "warning"
-                  ? "yellow"
-                  : "red"
-              }
-            >
-              {status.health?.overall?.toUpperCase()}
-            </Badge>
-          </div>
-        </Group>
-      </div>
+  const StatusBadges = ({ status }) => (
+    <div style={{ marginBottom: "20px" }}>
+      <Group spacing="lg">
+        <div>
+          <Text size="sm" color="dimmed">
+            Current Mode
+          </Text>
+          <Badge
+            size="lg"
+            color={status.mode === "chrome_fallback" ? "orange" : "blue"}
+          >
+            {status.mode?.replace("_", " ").toUpperCase()}
+          </Badge>
+        </div>
+        <div>
+          <Text size="sm" color="dimmed">
+            Overall Health
+          </Text>
+          <Badge
+            size="lg"
+            color={
+              status.health?.overall === "excellent"
+                ? "green"
+                : status.health?.overall === "good"
+                ? "blue"
+                : status.health?.overall === "warning"
+                ? "yellow"
+                : "red"
+            }
+          >
+            {status.health?.overall?.toUpperCase()}
+          </Badge>
+        </div>
+      </Group>
+    </div>
+  );
+
+  function renderOverview() {
+    return (
+    <div>
+      <OverviewHeader onRefresh={onRefresh} />
+      <StatusBadges status={status} />
 
       {/* IndexedDB Status */}
       <div style={{ marginBottom: "20px" }}>
@@ -406,7 +415,8 @@ const StorageDetailModal = ({
         </Group>
       )}
     </div>
-  );
+    );
+  }
 
   const renderRecommendations = () => (
     <div>

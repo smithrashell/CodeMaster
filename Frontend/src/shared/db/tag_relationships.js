@@ -1,5 +1,6 @@
 import { dbHelper } from "./index.js";
 import { getAllStandardProblems } from "./standard_problems.js";
+import logger from "../utils/logger.js";
 
 const openDB = dbHelper.openDB;
 
@@ -168,11 +169,11 @@ export const classifyTags = async () => {
     }
 
     // ✅ Step 4: Debugging Logs
-    console.group("Tag Classifications");
+    logger.group("Tag Classifications");
     console.log("🔥 Core Concepts:", coreConcepts.join(", "));
     console.log("🔹 Fundamental Techniques:", fundamentalTechniques.join(", "));
     console.log("🚀 Advanced Techniques:", advancedTechniques.join(", "));
-    console.groupEnd();
+    logger.groupEnd();
 
     console.log("✅ Tag classifications updated successfully in IndexedDB.");
   } catch (error) {

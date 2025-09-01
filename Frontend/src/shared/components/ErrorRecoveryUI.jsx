@@ -99,7 +99,7 @@ const ErrorRecoveryUI = ({
     return baseSteps;
   };
 
-  const runDiagnosticRecovery = async (type) => {
+  const runDiagnosticRecovery = (type) => {
     setIsRecovering(true);
 
     try {
@@ -161,7 +161,7 @@ const ErrorRecoveryUI = ({
     }
   };
 
-  const runDiagnostics = async () => {
+  const runDiagnostics = () => {
     setDiagnosticsRun(true);
     const results = {};
 

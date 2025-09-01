@@ -17,6 +17,43 @@ import {
 } from "recharts";
 import { useThemeColors } from "../../../shared/hooks/useThemeColors";
 
+// Extracted helper hooks for TimeGranularChartCard
+
+const usePieColors = (colors) => useMemo(() => [
+  colors.dataColors?.data1 || "#3b82f6",
+  colors.dataColors?.data2 || "#8b5cf6", 
+  colors.dataColors?.data3 || "#10b981",
+  colors.dataColors?.data4 || "#f59e0b",
+  colors.dataColors?.data5 || "#ef4444"
+], [colors.dataColors]);
+
+const useIsTimeBased = (data) => useMemo(() => 
+  typeof data === "object" &&
+  !Array.isArray(data) &&
+  (data?.weekly || data?.monthly || data?.yearly),
+  [data]
+);
+
+const useCurrentData = (data, view, isTimeBased) => useMemo(() => {
+  if (isTimeBased) {
+    return data?.[view] ?? [];
+  }
+  return Array.isArray(data) ? data : [];
+}, [data, view, isTimeBased]);
+
+const useHasValidData = (data, currentData, dataKeys) => useMemo(() => {
+  if (!data || typeof data !== "object") return false;
+
+  const series = currentData;
+  if (!Array.isArray(series) || series.length === 0) return false;
+
+  return series.some((item) =>
+    dataKeys.some(
+      (keyObj) => typeof item[keyObj.key] === "number" && item[keyObj.key] > 0
+    )
+  );
+}, [data, currentData, dataKeys]);
+
 // Chart helper functions
 const isPromotionTrendShape = (data) => {
   const requiredKeys = ["weekly", "monthly", "yearly"];
@@ -71,7 +108,7 @@ const compareDataKeys = (prevKeys, nextKeys) => {
 };
 
 // Chart rendering helper
-const renderChart = (chartType, currentData, dataKeys, yAxisFormatter, tooltipFormatter, colors, PIE_COLORS) => {
+const renderChart = ({ chartType, currentData, dataKeys, yAxisFormatter, tooltipFormatter, colors, PIE_COLORS }) => {
   const axisProps = getAxisProps(colors);
   const tooltipProps = getTooltipProps(tooltipFormatter, colors);
   
@@ -142,48 +179,17 @@ function TimeGranularChartCard({
 }) {
   const colors = useThemeColors();
   
-  // Memoized pie colors for performance
-  const PIE_COLORS = useMemo(() => [
-    colors.dataColors?.data1 || "#3b82f6",
-    colors.dataColors?.data2 || "#8b5cf6", 
-    colors.dataColors?.data3 || "#10b981",
-    colors.dataColors?.data4 || "#f59e0b",
-    colors.dataColors?.data5 || "#ef4444"
-  ], [colors.dataColors]);
+  const PIE_COLORS = usePieColors(colors);
   
   const [noData, setNoData] = useState(false);
   
-  // Memoize data type detection for performance
-  const isTimeBased = useMemo(() => 
-    typeof data === "object" &&
-    !Array.isArray(data) &&
-    (data?.weekly || data?.monthly || data?.yearly),
-    [data]
-  );
+  const isTimeBased = useIsTimeBased(data);
 
   const [view, setView] = useState("weekly");
 
-  // Memoize current data processing
-  const currentData = useMemo(() => {
-    if (isTimeBased) {
-      return data?.[view] ?? [];
-    }
-    return Array.isArray(data) ? data : [];
-  }, [data, view, isTimeBased]);
+  const currentData = useCurrentData(data, view, isTimeBased);
 
-  // Memoize data validation for better performance
-  const hasValidData = useMemo(() => {
-    if (!data || typeof data !== "object") return false;
-
-    const series = currentData;
-    if (!Array.isArray(series) || series.length === 0) return false;
-
-    return series.some((item) =>
-      dataKeys.some(
-        (keyObj) => typeof item[keyObj.key] === "number" && item[keyObj.key] > 0
-      )
-    );
-  }, [data, currentData, dataKeys]);
+  const hasValidData = useHasValidData(data, currentData, dataKeys);
   
   // Memoize promotion trend detection
   const isPromotionTrend = useMemo(() => isPromotionTrendShape(data), [data]);
@@ -252,7 +258,7 @@ function TimeGranularChartCard({
       )}
 
       <ResponsiveContainer width="100%" height={300}>
-        {renderChart(chartType, currentData, dataKeys, yAxisFormatter, tooltipFormatter, colors, PIE_COLORS)}
+        {renderChart({ chartType, currentData, dataKeys, yAxisFormatter, tooltipFormatter, colors, PIE_COLORS })}
       </ResponsiveContainer>
     </Card>
   );

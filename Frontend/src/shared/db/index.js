@@ -1,5 +1,6 @@
 import migrationSafety from "./migrationSafety.js";
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
+import logger from "../utils/logger.js";
 // Import database debugger to install global interceptor
 import "../utils/DatabaseDebugger.js";
 
@@ -59,7 +60,7 @@ export const dbHelper = {
   version: 36, // 🆙 Upgraded for sessionType index support
   db: null,
 
-  async openDB() {
+  openDB() {
     const context = getExecutionContext();
     const stack = getStackTrace();
     
@@ -87,7 +88,7 @@ export const dbHelper = {
       });
       
       if (isWebPage && isNotExtensionPage) {
-        console.groupEnd();
+        logger.groupEnd();
         const error = new Error(`🚫 DATABASE ACCESS BLOCKED: Content scripts cannot access IndexedDB directly. Context: ${context.contextType}, URL: ${context.location}`);
         console.error(error.message);
         console.error('📚 Blocked Call Stack:', stack);
@@ -123,7 +124,7 @@ export const dbHelper = {
     });
     
     if (dbHelper.db) {
-      console.debug('✅ Returning cached database connection');
+      logger.debug('✅ Returning cached database connection');
       return dbHelper.db; // Return cached database if already opened
     }
     
@@ -134,7 +135,7 @@ export const dbHelper = {
 
     return new Promise((resolve, reject) => {
       // DEBUGGING: Log the actual IndexedDB.open call
-      console.group(`💾 INDEXEDDB OPEN: Opening ${dbHelper.dbName} v${dbHelper.version}`);
+      logger.group(`💾 INDEXEDDB OPEN: Opening ${dbHelper.dbName} v${dbHelper.version}`);
       console.info('🕐 Time:', new Date().toISOString());
       console.log('📍 Database connection context:', {
         contextType: context.contextType,
@@ -142,9 +143,9 @@ export const dbHelper = {
       });
       
       const request = indexedDB.open(dbHelper.dbName, dbHelper.version);
-      console.debug('📨 IndexedDB request created');
+      logger.debug('📨 IndexedDB request created');
 
-      request.onupgradeneeded = async (event) => {
+      request.onupgradeneeded = (event) => {
         console.log("📋 Database upgrade needed - creating safety backup...");
 
         // TEMPORARY: Disable migration backup to prevent duplicate database creation
@@ -507,14 +508,14 @@ export const dbHelper = {
         dbHelper.db = event.target.result;
         
         // DEBUGGING: Log successful database connection
-        console.group('🎉 DATABASE OPENED SUCCESSFULLY');
+        logger.group('🎉 DATABASE OPENED SUCCESSFULLY');
         console.info('🕐 Time:', new Date().toISOString());
         console.info('📍 Context:', context.contextType);
         console.info('🆔 Database Name:', dbHelper.db.name);
         console.info('📄 Version:', dbHelper.db.version);
         console.info('📊 Object Stores:', Array.from(dbHelper.db.objectStoreNames));
         console.info('🧵 Call Stack:', stack.split('\n')[0]); // Just first line of stack
-        console.groupEnd();
+        logger.groupEnd();
         
         resolve(dbHelper.db);
       };
@@ -543,7 +544,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<IDBDatabase>} Database instance
    */
-  async openDBWithRetry(options = {}) {
+  openDBWithRetry(options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = "openDB",
@@ -567,7 +568,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<IDBObjectStore>} Object store
    */
-  async getStoreWithRetry(storeName, mode = "readonly", options = {}) {
+  getStoreWithRetry(storeName, mode = "readonly", options = {}) {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `getStore_${storeName}_${mode}`,
@@ -595,7 +596,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<any>} Transaction result
    */
-  async executeTransaction(storeNames, mode, operation, options = {}) {
+  executeTransaction(storeNames, mode, operation, options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `transaction_${
@@ -854,7 +855,7 @@ export const dbHelper = {
    * @param {AbortController} abortController - Abort controller
    * @returns {Promise<Array>} All records
    */
-  async streamRecords(store, range, limit, onProgress, abortController) {
+  streamRecords(store, range, limit, onProgress, abortController) {
     return new Promise((resolve, reject) => {
       const records = [];
       const request = store.openCursor(range);

@@ -428,7 +428,7 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
 };
 
 
-const ProbGen = () => {
+function ProbGen() {
   const { setIsAppOpen } = useNav();
   const [problems, setProblems] = useState([]);
   const [sessionData, setSessionData] = useState(null);
@@ -863,6 +863,6 @@ const ProbGen = () => {
       </div>
     </div>
   );
-};
+}
 
 export default ProbGen;
