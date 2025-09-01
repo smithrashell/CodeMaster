@@ -43,57 +43,124 @@ const validateDateFormat = (dateString) => {
   expect(new Date(dateString)).toBeInstanceOf(Date);
 };
 
-describe("Utils Functions", function() {
+// Test case helpers for createAttemptRecord
+const testCreateAttemptRecord = () => {
+  it("should create properly structured attempt record", () => {
+    // Arrange
+    const attemptData = createSampleAttemptData();
+
+    // Act
+    const result = createAttemptRecord(attemptData);
+
+    // Assert
+    expect(result).toEqual(createExpectedAttemptRecord());
+
+    // Verify date format
+    validateDateFormat(result.AttemptDate);
+  });
+
+  it("should handle minimal attempt data", () => {
+    // Arrange
+    const attemptData = {
+      id: "test-uuid-456",
+      ProblemID: "prob-456",
+      Success: false,
+    };
+
+    // Act
+    const result = createAttemptRecord(attemptData);
+
+    // Assert
+    expect(result.id).toBe("test-uuid-456");
+    expect(result.ProblemID).toBe("prob-456");
+    expect(result.Success).toBe(false);
+    expect(result.Comments).toBe("");
+  });
+
+  it("should handle missing ProblemID", () => {
+    // Arrange
+    const attemptData = {
+      id: "test-uuid-789",
+      Success: true,
+      TimeSpent: 900,
+    };
+
+    // Act
+    const result = createAttemptRecord(attemptData);
+
+    // Assert
+    expect(result.id).toBe("test-uuid-789");
+    expect(result.ProblemID).toBeUndefined();
+    expect(result.Success).toBe(true);
+    expect(result.TimeSpent).toBe(900);
+  });
+};
+
+// Test case helpers for calculateDecayScore
+const _testCalculateDecayScore = () => {
+  it("should calculate decay score based on time and success rate", () => {
+    // Arrange
+    const attempt = {
+      AttemptDate: "2024-01-01T10:00:00Z",
+      Success: true,
+      TimeSpent: 1800,
+      boxLevel: 2,
+    };
+    const currentTime = new Date("2024-01-08T10:00:00Z").getTime();
+
+    // Act
+    const result = calculateDecayScore(attempt, currentTime);
+
+    // Assert
+    expect(result).toBeCloseTo(0.85, 2);
+  });
+
+  it("should return higher decay for older attempts", () => {
+    // Arrange
+    const oldAttempt = {
+      AttemptDate: "2024-01-01T10:00:00Z",
+      Success: true,
+      TimeSpent: 1200,
+      boxLevel: 1,
+    };
+    const newAttempt = {
+      AttemptDate: "2024-01-07T10:00:00Z",
+      Success: true,
+      TimeSpent: 1200,
+      boxLevel: 1,
+    };
+    const currentTime = new Date("2024-01-08T10:00:00Z").getTime();
+
+    // Act
+    const oldDecay = calculateDecayScore(oldAttempt, currentTime);
+    const newDecay = calculateDecayScore(newAttempt, currentTime);
+
+    // Assert
+    expect(oldDecay).toBeLessThan(newDecay);
+  });
+
+  it("should handle edge case values", () => {
+    // Arrange
+    const attempt = {
+      AttemptDate: "2024-01-01T10:00:00Z",
+      Success: false,
+      TimeSpent: 0,
+      boxLevel: 0,
+    };
+    const currentTime = new Date("2024-01-01T10:00:01Z").getTime();
+
+    // Act
+    const result = calculateDecayScore(attempt, currentTime);
+
+    // Assert
+    expect(result).toBeGreaterThanOrEqual(0);
+    expect(result).toBeLessThanOrEqual(1);
+  });
+};
+
+describe("Utils Functions - Core Functions", function() {
   describe("createAttemptRecord", () => {
-    it("should create properly structured attempt record", () => {
-      // Arrange
-      const attemptData = createSampleAttemptData();
-
-      // Act
-      const result = createAttemptRecord(attemptData);
-
-      // Assert
-      expect(result).toEqual(createExpectedAttemptRecord());
-
-      // Verify date format
-      validateDateFormat(result.AttemptDate);
-    });
-
-    it("should handle minimal attempt data", () => {
-      // Arrange
-      const attemptData = {
-        id: "test-uuid-456",
-        ProblemID: "prob-456",
-        Success: false,
-      };
-
-      // Act
-      const result = createAttemptRecord(attemptData);
-
-      // Assert
-      expect(result.id).toBe("test-uuid-456");
-      expect(result.ProblemID).toBe("prob-456");
-      expect(result.Success).toBe(false);
-      expect(result.Comments).toBe("");
-    });
-
-    it("should handle missing ProblemID", () => {
-      // Arrange
-      const attemptData = {
-        id: "test-uuid-789",
-        Success: true,
-        TimeSpent: 900,
-      };
-
-      // Act
-      const result = createAttemptRecord(attemptData);
-
-      // Assert
-      expect(result.id).toBe("test-uuid-789");
-      expect(result.ProblemID).toBeUndefined();
-      expect(result.Success).toBe(true);
-      expect(result.TimeSpent).toBe(900);
-    });
+    testCreateAttemptRecord();
   });
 
   describe("calculateDecayScore", () => {
@@ -149,7 +216,9 @@ describe("Utils Functions", function() {
       expect(score).toBe(0); // Perfect success rate should give 0 decay
     });
   });
+});
 
+describe("Utils Functions - Validation", function() {
   describe("isDifficultyAllowed", () => {
     it("should allow easier difficulties", () => {
       // Act & Assert
@@ -242,7 +311,9 @@ describe("Utils Functions", function() {
       expect(result).toHaveLength(3); // null, undefined, and "1"
     });
   });
+});
 
+describe("Utils Functions - Edge Cases", function() {
   describe("Edge Cases and Data Validation", () => {
     it("should handle malformed attempt data in createAttemptRecord", () => {
       // Arrange
@@ -292,7 +363,9 @@ describe("Utils Functions", function() {
       expect(result.Difficulty).toBe(7);
     });
   });
+});
 
+describe("Utils Functions - Integration Tests", function() {
   describe("Integration Tests", () => {
     it("should work together in realistic scenarios", () => {
       // Arrange - Simulate processing a batch of problems

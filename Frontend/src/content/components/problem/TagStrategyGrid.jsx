@@ -1,71 +1,148 @@
 import logger from "../../../shared/utils/logger.js";
-import React, { useState, useEffect, useCallback } from "react";
-import StrategyService from "../../services/strategyService";
+import React, { useState, useCallback } from "react";
+import { useStrategy } from "../../../shared/hooks/useStrategy";
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
-/**
- * TagStrategyGrid Component
- *
- * Displays problem tags in a 3-column grid layout with inline strategy hints.
- * Only one tag's strategy can be expanded at a time, appearing directly below
- * the tag's row. Replaces the separate ExpandablePrimerSection.
- * 
- * Interview mode aware: respects interview constraints for primer/strategy access.
- */
-function TagStrategyGrid({ 
-  problemTags, 
-  problemId, 
-  className = "",
-  interviewConfig = null,
-  sessionType = null 
-}) {
-  const [expandedTag, setExpandedTag] = useState(null);
-  const [strategies, setStrategies] = useState({});
-  const [loading, setLoading] = useState(false);
+// Strategy hint content component
+const StrategyHintContent = ({ strategy }) => {
+  if (!strategy) {
+    return (
+      <div className="tag-strategy-hint expanded">
+        <div className="tag-strategy-hint-content">
+          <div className="tag-strategy-hint-empty">
+            No strategy information available for this tag
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // Interview mode logic
-  const isInterviewMode = sessionType && sessionType !== 'standard';
-  const primersAvailable = !isInterviewMode || (interviewConfig?.primers?.available !== false);
-  const primersEncouraged = !isInterviewMode || (interviewConfig?.primers?.encouraged !== false);
+  return (
+    <div className="tag-strategy-hint expanded">
+      <div className="tag-strategy-hint-content">
+        <div className="tag-strategy-hint-header">
+          <span className="tag-strategy-hint-title">
+            {strategy.tag.charAt(0).toUpperCase() + strategy.tag.slice(1)}{" "}
+            Strategy
+          </span>
+        </div>
 
-  // Handle problem tags updates
-  useEffect(() => {
-    // Problem tags received and processed
-  }, [problemTags]);
+        {strategy.strategy && (
+          <div className="tag-strategy-hint-body">{strategy.strategy}</div>
+        )}
 
-  useEffect(() => {
-    if (problemTags && problemTags.length > 0) {
-      loadStrategies();
-    }
-  }, [problemTags, loadStrategies]);
+        {strategy.patterns && strategy.patterns.length > 0 && (
+          <div className="tag-strategy-hint-patterns">
+            <div className="tag-strategy-hint-patterns-title">
+              Key Patterns:
+            </div>
+            <div className="tag-strategy-hint-patterns-list">
+              {strategy.patterns.slice(0, 3).map((pattern, index) => (
+                <span key={index} className="tag-strategy-hint-pattern">
+                  {pattern}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
-  const loadStrategies = useCallback(async () => {
-    try {
-      setLoading(true);
+// Tag button component
+const TagButton = ({ 
+  tag, 
+  isExpanded, 
+  primersAvailable, 
+  primersEncouraged, 
+  sessionType, 
+  onTagClick 
+}) => (
+  <button
+    className={`tag-strategy-button ${
+      isExpanded
+        ? "tag-strategy-button-expanded tag-strategy-no-hover"
+        : ""
+    } ${!primersAvailable ? "tag-strategy-disabled" : ""}`}
+    onClick={() => onTagClick(tag)}
+    type="button"
+    aria-expanded={isExpanded}
+    aria-label={primersAvailable 
+      ? `Toggle strategy for ${tag} tag` 
+      : `${tag} tag - strategies disabled in interview mode`}
+    disabled={!primersAvailable}
+    title={!primersAvailable 
+      ? `Strategies are not available in ${sessionType} mode` 
+      : `Click to view ${tag} strategy`}
+    style={{
+      ...(isExpanded
+        ? {
+            backgroundColor: "var(--cm-dropdown-bg)",
+            color: "var(--cm-text)",
+            borderRadius: "10px 10px 0px 0px",
+            margin: "0px",
+            border: "none",
+          }
+        : {}),
+      ...((!primersAvailable)
+        ? {
+            opacity: 0.6,
+            cursor: "not-allowed",
+            backgroundColor: "var(--cm-disabled-bg, #f5f5f5)",
+            color: "var(--cm-disabled-text, #999)"
+          }
+        : {})
+    }}
+  >
+    {tag.charAt(0).toUpperCase() + tag.slice(1)}
+    {!primersAvailable && !primersEncouraged && (
+      <span style={{ marginLeft: "4px", fontSize: "10px" }}>🚫</span>
+    )}
+  </button>
+);
 
-      // Normalize tags to lowercase to match strategy data
-      const normalizedTags = problemTags.map((tag) => tag.toLowerCase().trim());
+// Section header component
+const TagSectionHeader = ({ strategiesCount, isInterviewMode, primersAvailable }) => (
+  <div className="problem-sidebar-section-header">
+    <span className="problem-sidebar-section-title">
+      Tags{" "}
+      {strategiesCount > 0 &&
+        `(${strategiesCount} strategies)`}
+      {isInterviewMode && !primersAvailable && (
+        <span 
+          className="interview-constraint-indicator"
+          style={{
+            fontSize: "10px",
+            color: "var(--cm-error, #f44336)",
+            marginLeft: "5px",
+            fontWeight: "normal"
+          }}
+        >
+          • Strategies disabled in interview mode
+        </span>
+      )}
+    </span>
+  </div>
+);
 
-      // Use optimized parallel processing from StrategyService
-      const tagPrimers = await StrategyService.getTagPrimers(normalizedTags);
+// Consolidated strategy loader using existing useStrategy hook
+const useStrategyLoader = (problemTags) => {
+  const { primers, loading } = useStrategy(problemTags);
+  
+  // Convert array to object with tag names as keys to match expected interface
+  const strategies = primers.reduce((acc, primer) => {
+    acc[primer.tag] = primer;
+    return acc;
+  }, {});
 
-      // Convert array to object with tag names as keys
-      const strategiesMap = {};
-      tagPrimers.forEach((primer) => {
-        strategiesMap[primer.tag] = primer;
-      });
+  return { strategies, loading };
+};
 
-      setStrategies(strategiesMap);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      logger.error("Error loading strategies:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [problemTags]);
-
+// Custom hook for scroll management
+const useScrollManagement = () => {
   // Helper function for Strategy 1: Ensure problem card remains fully visible
-  const ensureProblemCardVisibility = (problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin) => {
+  const ensureProblemCardVisibility = useCallback((problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin) => {
     const problemCardBottom = problemCardRect.bottom;
     const buttonTop = buttonRect.top;
 
@@ -81,10 +158,10 @@ function TagStrategyGrid({
       return true;
     }
     return false;
-  };
+  }, []);
 
   // Helper function for Strategy 2: Enhanced scrollIntoView with action button protection
-  const handleExpandedContainerScrolling = (expandedButton, actionButtons, hintRect) => {
+  const handleExpandedContainerScrolling = useCallback((expandedButton, actionButtons, hintRect) => {
     const expandedTagContainer = expandedButton.closest(".tag-strategy-container");
     if (expandedTagContainer && actionButtons) {
       // Calculate if we need to ensure action buttons remain visible
@@ -110,10 +187,10 @@ function TagStrategyGrid({
       return true;
     }
     return false;
-  };
+  }, []);
 
   // Helper function for Strategy 3: Fallback positioning
-  const handleFallbackScrolling = ({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin }) => {
+  const handleFallbackScrolling = useCallback(({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin }) => {
     const currentRelativePosition = buttonRect.top - sidebarRect.top;
     const minTopPosition = 80; // Minimum distance from top to ensure content visibility
     const expandedContentHeight = hintRect.height;
@@ -136,7 +213,141 @@ function TagStrategyGrid({
         behavior: "smooth",
       });
     }
+  }, []);
+
+  return {
+    ensureProblemCardVisibility,
+    handleExpandedContainerScrolling,
+    handleFallbackScrolling
   };
+};
+
+// Helper function to create scrolling handler after tag expansion
+const createScrollingHandler = (scrollManagement) => () => {
+  setTimeout(() => {
+    const hintElement = document.querySelector(".tag-strategy-hint");
+    const sidebarContent = document.querySelector(
+      ".cm-sidenav.problem-sidebar-view .cm-sidenav__content"
+    );
+    const expandedButton = document.querySelector(
+      ".tag-strategy-button-expanded"
+    );
+    const problemCard = document.querySelector(".problem-sidebar-card");
+    const actionButtons = document.querySelector(".problem-sidebar-actions");
+
+    if (hintElement && sidebarContent && expandedButton) {
+      // Add expanded class for CSS animations
+      hintElement.classList.add("expanded");
+
+      // Wait for the hint element to render and get its actual height
+      setTimeout(() => {
+        const buttonRect = expandedButton.getBoundingClientRect();
+        const sidebarRect = sidebarContent.getBoundingClientRect();
+        const hintRect = hintElement.getBoundingClientRect();
+        const problemCardRect = problemCard ? problemCard.getBoundingClientRect() : null;
+        const scrollTop = sidebarContent.scrollTop;
+        const safeMargin = 20; // Extra breathing room
+
+        // Try each scrolling strategy in order
+        const { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling } = scrollManagement;
+        
+        if (problemCardRect && ensureProblemCardVisibility(problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin)) {
+          return;
+        }
+        
+        if (handleExpandedContainerScrolling(expandedButton, actionButtons, hintRect)) {
+          return;
+        }
+        
+        handleFallbackScrolling({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin });
+      }, 50); // Wait for hint element to fully render
+    }
+  }, 100);
+};
+
+// Helper function to track hint interaction
+const trackHintInteraction = async (tag, problemId) => {
+  const normalizedTag = tag.toLowerCase().trim();
+  logger.info(`🏷️ Tracking tag strategy view: ${tag}`);
+  
+  try {
+    await HintInteractionService.saveHintInteraction({
+      problemId: problemId || "unknown",
+      hintType: "primer", 
+      primaryTag: normalizedTag,
+      content: `Viewed strategy for ${tag} tag`,
+      action: "expand",
+      sessionContext: {
+        componentType: "TagStrategyGrid",
+        expandedTag: normalizedTag
+      }
+    });
+  } catch (error) {
+    logger.warn("Failed to track tag strategy view:", error);
+  }
+};
+
+// Helper function to handle tag expansion/collapse logic
+const handleTagToggle = (expandedTag, normalizedTag, setExpandedTag, scrollingHandler) => {
+  if (expandedTag === normalizedTag) {
+    // Clean up expanded class when collapsing
+    const hintElement = document.querySelector(".tag-strategy-hint");
+    if (hintElement) {
+      hintElement.classList.remove("expanded");
+    }
+    setExpandedTag(null);
+  } else {
+    setExpandedTag(normalizedTag);
+    // Enhanced scrolling to ensure content visibility
+    scrollingHandler();
+  }
+};
+
+// Helper function to render "no tags" message
+const renderNoTagsMessage = (className) => {
+  logger.info("🏷️ TagStrategyGrid: Rendering 'No tags available' message");
+  return (
+    <div className={`problem-sidebar-section ${className}`}>
+      <div className="problem-sidebar-section-header">
+        <span className="problem-sidebar-section-title">Tags</span>
+      </div>
+      <span className="problem-sidebar-no-tags">No tags available</span>
+    </div>
+  );
+};
+
+/**
+ * TagStrategyGrid Component
+ *
+ * Displays problem tags in a 3-column grid layout with inline strategy hints.
+ * Only one tag's strategy can be expanded at a time, appearing directly below
+ * the tag's row. Replaces the separate ExpandablePrimerSection.
+ * 
+ * Interview mode aware: respects interview constraints for primer/strategy access.
+ */
+function TagStrategyGrid({ 
+  problemTags, 
+  problemId, 
+  className = "",
+  interviewConfig = null,
+  sessionType = null 
+}) {
+  const [expandedTag, setExpandedTag] = useState(null);
+
+  // Interview mode logic
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+  const primersAvailable = !isInterviewMode || (interviewConfig?.primers?.available !== false);
+  const primersEncouraged = !isInterviewMode || (interviewConfig?.primers?.encouraged !== false);
+
+  // Use custom hooks
+  const { strategies, loading } = useStrategyLoader(problemTags);
+  const {
+    ensureProblemCardVisibility,
+    handleExpandedContainerScrolling,
+    handleFallbackScrolling
+  } = useScrollManagement();
+
+  // Scroll helper functions now provided by useScrollManagement hook
 
   const handleTagClick = async (tag) => {
     const normalizedTag = tag.toLowerCase().trim();
@@ -152,74 +363,18 @@ function TagStrategyGrid({
 
     // Track interaction when expanding strategy
     if (isExpanding) {
-      logger.info(`🏷️ Tracking tag strategy view: ${tag}`);
-      try {
-        await HintInteractionService.saveHintInteraction({
-          problemId: problemId || "unknown",
-          hintType: "primer", 
-          primaryTag: normalizedTag,
-          content: `Viewed strategy for ${tag} tag`,
-          action: "expand",
-          sessionContext: {
-            componentType: "TagStrategyGrid",
-            expandedTag: normalizedTag
-          }
-        });
-      } catch (error) {
-        logger.warn("Failed to track tag strategy view:", error);
-      }
+      await trackHintInteraction(tag, problemId);
     }
+
+    // Create scrolling handler with access to scroll management functions
+    const scrollingHandler = createScrollingHandler({
+      ensureProblemCardVisibility,
+      handleExpandedContainerScrolling,
+      handleFallbackScrolling
+    });
 
     // Toggle expansion: if same tag clicked, collapse; if different tag, expand new one
-    if (expandedTag === normalizedTag) {
-      // Clean up expanded class when collapsing
-      const hintElement = document.querySelector(".tag-strategy-hint");
-      if (hintElement) {
-        hintElement.classList.remove("expanded");
-      }
-      setExpandedTag(null);
-    } else {
-      setExpandedTag(normalizedTag);
-
-      // Enhanced scrolling to ensure content visibility
-      setTimeout(() => {
-        const hintElement = document.querySelector(".tag-strategy-hint");
-        const sidebarContent = document.querySelector(
-          ".cm-sidenav.problem-sidebar-view .cm-sidenav__content"
-        );
-        const expandedButton = document.querySelector(
-          ".tag-strategy-button-expanded"
-        );
-        const problemCard = document.querySelector(".problem-sidebar-card");
-        const actionButtons = document.querySelector(".problem-sidebar-actions");
-
-        if (hintElement && sidebarContent && expandedButton) {
-          // Add expanded class for CSS animations
-          hintElement.classList.add("expanded");
-
-          // Wait for the hint element to render and get its actual height
-          setTimeout(() => {
-            const buttonRect = expandedButton.getBoundingClientRect();
-            const sidebarRect = sidebarContent.getBoundingClientRect();
-            const hintRect = hintElement.getBoundingClientRect();
-            const problemCardRect = problemCard ? problemCard.getBoundingClientRect() : null;
-            const scrollTop = sidebarContent.scrollTop;
-            const safeMargin = 20; // Extra breathing room
-
-            // Try each scrolling strategy in order
-            if (problemCardRect && ensureProblemCardVisibility(problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin)) {
-              return;
-            }
-            
-            if (handleExpandedContainerScrolling(expandedButton, actionButtons, hintRect)) {
-              return;
-            }
-            
-            handleFallbackScrolling({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin });
-          }, 50); // Wait for hint element to fully render
-        }
-      }, 100);
-    }
+    handleTagToggle(expandedTag, normalizedTag, setExpandedTag, scrollingHandler);
   };
 
   const getTagRowIndex = (tagIndex) => {
@@ -234,68 +389,11 @@ function TagStrategyGrid({
     return expandedTagIndex !== -1 ? getTagRowIndex(expandedTagIndex) : -1;
   };
 
-  const renderStrategyHint = () => {
-    if (!expandedTag || loading) {
-      return null;
-    }
 
-    const strategy = strategies[expandedTag];
-    if (!strategy) {
-      return (
-        <div className="tag-strategy-hint expanded">
-          <div className="tag-strategy-hint-content">
-            <div className="tag-strategy-hint-empty">
-              No strategy information available for this tag
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="tag-strategy-hint expanded">
-        <div className="tag-strategy-hint-content">
-          <div className="tag-strategy-hint-header">
-            <span className="tag-strategy-hint-title">
-              {strategy.tag.charAt(0).toUpperCase() + strategy.tag.slice(1)}{" "}
-              Strategy
-            </span>
-          </div>
-
-          {strategy.strategy && (
-            <div className="tag-strategy-hint-body">{strategy.strategy}</div>
-          )}
-
-          {strategy.patterns && strategy.patterns.length > 0 && (
-            <div className="tag-strategy-hint-patterns">
-              <div className="tag-strategy-hint-patterns-title">
-                Key Patterns:
-              </div>
-              <div className="tag-strategy-hint-patterns-list">
-                {strategy.patterns.slice(0, 3).map((pattern, index) => (
-                  <span key={index} className="tag-strategy-hint-pattern">
-                    {pattern}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
+  // Strategy hint rendering now handled by StrategyHintContent component
 
   if (!problemTags || problemTags.length === 0) {
-    // eslint-disable-next-line no-console
-    logger.info("🏷️ TagStrategyGrid: Rendering 'No tags available' message");
-    return (
-      <div className={`problem-sidebar-section ${className}`}>
-        <div className="problem-sidebar-section-header">
-          <span className="problem-sidebar-section-title">Tags</span>
-        </div>
-        <span className="problem-sidebar-no-tags">No tags available</span>
-      </div>
-    );
+    return renderNoTagsMessage(className);
   }
 
   // Render strategy grid with available tags
@@ -303,86 +401,36 @@ function TagStrategyGrid({
   const expandedRowIndex = getExpandedTagRowIndex();
 
   return (
-    <div
-      className={`problem-sidebar-section tag-strategy-container ${className}`}
-    >
-      <div className="problem-sidebar-section-header">
-        <span className="problem-sidebar-section-title">
-          Tags{" "}
-          {Object.keys(strategies).length > 0 &&
-            `(${Object.keys(strategies).length} strategies)`}
-          {isInterviewMode && !primersAvailable && (
-            <span 
-              className="interview-constraint-indicator"
-              style={{
-                fontSize: "10px",
-                color: "var(--cm-error, #f44336)",
-                marginLeft: "5px",
-                fontWeight: "normal"
-              }}
-            >
-              • Strategies disabled in interview mode
-            </span>
-          )}
-        </span>
-      </div>
+    <div className={`problem-sidebar-section tag-strategy-container ${className}`}>
+      <TagSectionHeader 
+        strategiesCount={Object.keys(strategies).length}
+        isInterviewMode={isInterviewMode}
+        primersAvailable={primersAvailable}
+      />
 
       <div className="tag-strategy-simple-grid">
         {problemTags.map((tag, index) => {
           const normalizedTag = tag.toLowerCase().trim();
           const isExpanded = expandedTag === normalizedTag;
           const currentRowIndex = getTagRowIndex(index);
-          const isLastInRow =
-            index % 2 === 1 || index === problemTags.length - 1;
-          const showHintAfterThisRow =
-            isLastInRow && expandedRowIndex === currentRowIndex;
+          const isLastInRow = index % 2 === 1 || index === problemTags.length - 1;
+          const showHintAfterThisRow = isLastInRow && expandedRowIndex === currentRowIndex;
 
           return (
             <React.Fragment key={index}>
-              <button
-                className={`tag-strategy-button ${
-                  isExpanded
-                    ? "tag-strategy-button-expanded tag-strategy-no-hover"
-                    : ""
-                } ${!primersAvailable ? "tag-strategy-disabled" : ""}`}
-                onClick={() => handleTagClick(tag)}
-                type="button"
-                aria-expanded={isExpanded}
-                aria-label={primersAvailable 
-                  ? `Toggle strategy for ${tag} tag` 
-                  : `${tag} tag - strategies disabled in interview mode`}
-                disabled={!primersAvailable}
-                title={!primersAvailable 
-                  ? `Strategies are not available in ${sessionType} mode` 
-                  : `Click to view ${tag} strategy`}
-                style={{
-                  ...(isExpanded
-                    ? {
-                        backgroundColor: "var(--cm-dropdown-bg)",
-                        color: "var(--cm-text)",
-                        borderRadius: "10px 10px 0px 0px",
-                        margin: "0px",
-                        border: "none",
-                      }
-                    : {}),
-                  ...((!primersAvailable)
-                    ? {
-                        opacity: 0.6,
-                        cursor: "not-allowed",
-                        backgroundColor: "var(--cm-disabled-bg, #f5f5f5)",
-                        color: "var(--cm-disabled-text, #999)"
-                      }
-                    : {})
-                }}
-              >
-                {tag.charAt(0).toUpperCase() + tag.slice(1)}
-                {!primersAvailable && !primersEncouraged && (
-                  <span style={{ marginLeft: "4px", fontSize: "10px" }}>🚫</span>
-                )}
-              </button>
+              <TagButton
+                tag={tag}
+                isExpanded={isExpanded}
+                primersAvailable={primersAvailable}
+                primersEncouraged={primersEncouraged}
+                sessionType={sessionType}
+                onTagClick={handleTagClick}
+              />
 
               {/* Show expanded strategy content after the row containing the expanded tag */}
-              {showHintAfterThisRow && expandedTag && renderStrategyHint()}
+              {showHintAfterThisRow && expandedTag && (
+                <StrategyHintContent strategy={strategies[expandedTag]} />
+              )}
             </React.Fragment>
           );
         })}

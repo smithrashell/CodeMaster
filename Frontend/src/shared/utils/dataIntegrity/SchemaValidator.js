@@ -727,7 +727,7 @@ export class SchemaValidator {
       data.successfulAttempts &&
       data.successRate !== undefined
     ) {
-      const calculatedRate = data.successfulAttempts / data.totalAttempts;
+      const calculatedRate = data.totalAttempts > 0 ? data.successfulAttempts / data.totalAttempts : 0;
       const tolerance = 0.01; // 1% tolerance for floating point errors
 
       if (Math.abs(calculatedRate - data.successRate) > tolerance) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import {
   Card,
   Text,
@@ -16,7 +16,7 @@ import {
   IconChevronUp,
   IconInfoCircle,
 } from "@tabler/icons-react";
-import StrategyService from "../../services/strategyService";
+import { useStrategy } from "../../../shared/hooks/useStrategy";
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
 // Helper component for rendering panel content
@@ -67,37 +67,10 @@ const HintPanel = ({
   isVisible = true,
   className = "",
 }) => {
-  const [hints, setHints] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
-
-  // Load contextual hints when problem tags change
-  useEffect(() => {
-    if (problemTags.length > 0) {
-      loadHints();
-    } else {
-      setHints([]);
-    }
-  }, [problemTags, loadHints]);
-
-  const loadHints = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Use optimized cached service with performance monitoring
-      const contextualHints = await StrategyService.getContextualHints(
-        problemTags
-      );
-      setHints(contextualHints);
-    } catch (err) {
-      console.error("Error loading hints:", err);
-      setError("Failed to load strategy hints");
-    } finally {
-      setLoading(false);
-    }
-  }, [problemTags]);
+  
+  // Use existing useStrategy hook instead of duplicating state management
+  const { hints, loading, error } = useStrategy(problemTags);
 
   // Track panel expand/collapse actions
   const handlePanelToggle = async () => {
