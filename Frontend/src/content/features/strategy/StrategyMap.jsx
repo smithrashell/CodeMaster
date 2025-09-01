@@ -90,7 +90,7 @@ const TierRenderer = ({ tierData, getVisibleTags, focusTags, getTagClass, format
               gap: "6px",
             }}
           >
-            {getVisibleTags(tags, tierName).map((tagData) => {
+            {getVisibleTags(tags, tierName, expandedTiers).map((tagData) => {
               const isFocus = focusTags.includes(tagData.tag);
               const tagClass = getTagClass(
                 tagData.mastery,
@@ -135,19 +135,10 @@ const TierRenderer = ({ tierData, getVisibleTags, focusTags, getTagClass, format
   );
 };
 
-function StrategyMap() {
-  const { setIsAppOpen } = useNav();
-
-  const handleClose = () => {
-    setIsAppOpen(false);
-  };
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [expandedTiers, setExpandedTiers] = useState(new Set());
-  const [tierData, setTierData] = useState({});
-  const [focusTags, setFocusTags] = useState([]);
-  const [currentTier, setCurrentTier] = useState("Core Concept");
-
+/**
+ * Strategy map helper functions
+ */
+const useStrategyMapHelpers = () => {
   // Helper function for hover event handlers
   const getHoverHandlers = () => ({
     onMouseOver: (e) => {
@@ -168,34 +159,6 @@ function StrategyMap() {
     }
   });
 
-  useEffect(() => {
-    const fetchStrategyMapData = () => {
-      setLoading(true);
-      chrome.runtime.sendMessage({ type: "getStrategyMapData" }, (response) => {
-        if (response && response.status === "success") {
-          const data = response.data;
-          logger.info("🗺️ Strategy Map data:", data);
-
-          setTierData(data.tierData || {});
-          setFocusTags(data.focusTags || []);
-          setCurrentTier(data.currentTier || "Core Concept");
-          setError(null);
-        } else {
-          logger.error("❌ Failed to get Strategy Map data:", response?.error);
-          setError("Failed to load strategy map data. Please try refreshing.");
-
-          // Fallback to empty data structure
-          setTierData({});
-          setFocusTags([]);
-          setCurrentTier("Core Concept");
-        }
-        setLoading(false);
-      });
-    };
-
-    fetchStrategyMapData();
-  }, []);
-
   // Helper function to format tag name for display
   const formatTagName = (tag) => {
     return tag.replace(/-/g, " ").toLowerCase();
@@ -211,12 +174,18 @@ function StrategyMap() {
   };
 
   // Get visible tags based on tier expand state
-  const getVisibleTags = (tags, tierName) => {
+  const getVisibleTags = (tags, tierName, expandedTiers) => {
     if (expandedTiers.has(tierName)) return tags;
     return tags.slice(0, 3); // Show first 3 tags when collapsed
   };
 
-  // Toggle tier expansion
+  return { getHoverHandlers, formatTagName, getTagClass, getVisibleTags };
+};
+
+/**
+ * Tier expansion management
+ */
+const useTierExpansion = (expandedTiers, setExpandedTiers) => {
   const toggleTierExpansion = (tierName) => {
     const newExpandedTiers = new Set(expandedTiers);
     if (newExpandedTiers.has(tierName)) {
@@ -255,18 +224,195 @@ function StrategyMap() {
     }, 50); // Small delay to ensure DOM updates
   };
 
-  if (loading) {
-    return (
-      <div id="cm-mySidenav" className="cm-sidenav">
-        <Header title="Strategy Map" onClose={handleClose} />
-        <div className="cm-sidenav__content">
-          <div className="cm-stats-loading">
-            <p>Loading strategy map...</p>
-            <div className="cm-loading-spinner"></div>
-          </div>
-        </div>
+  return { toggleTierExpansion };
+};
+
+/**
+ * Loading state component
+ */
+const StrategyMapLoading = ({ onClose }) => (
+  <div id="cm-mySidenav" className="cm-sidenav">
+    <Header title="Strategy Map" onClose={onClose} />
+    <div className="cm-sidenav__content">
+      <div className="cm-stats-loading">
+        <p>Loading strategy map...</p>
+        <div className="cm-loading-spinner"></div>
       </div>
-    );
+    </div>
+  </div>
+);
+
+/**
+ * Current Tier Status component
+ */
+const CurrentTierStatus = ({ currentTier }) => (
+  <div
+    style={{
+      padding: "6px",
+      backgroundColor: "rgba(59, 130, 246, 0.1)",
+      borderRadius: "4px",
+      marginBottom: "12px",
+      textAlign: "center",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "11px",
+        fontWeight: "600",
+        color: "var(--cm-text)",
+      }}
+    >
+      Current Tier: {currentTier}
+    </div>
+  </div>
+);
+
+/**
+ * Focus Tags Section component
+ */
+const FocusTagsSection = ({ focusTags, tierData, formatTagName }) => {
+  if (focusTags.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: "16px" }}>
+      <div
+        style={{
+          fontSize: "12px",
+          fontWeight: "600",
+          color: "var(--cm-text)",
+          marginBottom: "6px",
+        }}
+      >
+        Focus Tags
+      </div>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "6px",
+        }}
+      >
+        {focusTags.map((tag) => {
+          const _tagData = Object.values(tierData)
+            .flat()
+            .find((t) => t.tag === tag);
+          return (
+            <span
+              key={tag}
+              className="cm-extension cd-strategy-focus-tag"
+            >
+              {formatTagName(tag)}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Empty State component
+ */
+const EmptyState = () => (
+  <div
+    style={{
+      textAlign: "center",
+      padding: "20px",
+      color: "var(--cm-text)",
+      opacity: 0.7,
+    }}
+  >
+    <p>🏗️ Setting up your strategy map...</p>
+    <p style={{ fontSize: "12px", marginTop: "8px" }}>
+      Start solving problems to see your progress!
+    </p>
+  </div>
+);
+
+/**
+ * Legend component
+ */
+const Legend = ({ expandedTiers }) => {
+  if (expandedTiers.size === 0) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: "12px",
+        padding: "8px",
+        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        borderRadius: "6px",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "10px",
+          color: "var(--cm-text)",
+          opacity: 0.8,
+          marginBottom: "4px",
+          fontWeight: "500",
+        }}
+      >
+        Legend:
+      </div>
+      <div
+        style={{
+          fontSize: "9px",
+          color: "var(--cm-text)",
+          opacity: 0.7,
+          lineHeight: "1.3",
+        }}
+      >
+        Focus • Mastered • Learning • Available • Locked
+      </div>
+    </div>
+  );
+};
+
+function StrategyMap() {
+  const { setIsAppOpen } = useNav();
+  const handleClose = () => setIsAppOpen(false);
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [expandedTiers, setExpandedTiers] = useState(new Set());
+  const [tierData, setTierData] = useState({});
+  const [focusTags, setFocusTags] = useState([]);
+  const [currentTier, setCurrentTier] = useState("Core Concept");
+
+  const { getHoverHandlers, formatTagName, getTagClass, getVisibleTags } = useStrategyMapHelpers();
+  const { toggleTierExpansion } = useTierExpansion(expandedTiers, setExpandedTiers);
+
+  useEffect(() => {
+    const fetchStrategyMapData = () => {
+      setLoading(true);
+      chrome.runtime.sendMessage({ type: "getStrategyMapData" }, (response) => {
+        if (response && response.status === "success") {
+          const data = response.data;
+          logger.info("🗺️ Strategy Map data:", data);
+
+          setTierData(data.tierData || {});
+          setFocusTags(data.focusTags || []);
+          setCurrentTier(data.currentTier || "Core Concept");
+          setError(null);
+        } else {
+          logger.error("❌ Failed to get Strategy Map data:", response?.error);
+          setError("Failed to load strategy map data. Please try refreshing.");
+
+          // Fallback to empty data structure
+          setTierData({});
+          setFocusTags([]);
+          setCurrentTier("Core Concept");
+        }
+        setLoading(false);
+      });
+    };
+
+    fetchStrategyMapData();
+  }, []);
+
+  if (loading) {
+    return <StrategyMapLoading onClose={handleClose} />;
   }
 
   if (error) {
@@ -293,65 +439,12 @@ function StrategyMap() {
       <Header title="Strategy Map" onClose={handleClose} />
       <div className="cm-sidenav__content">
         <div style={{ padding: "8px 12px" }}>
-          {/* Current Tier Status */}
-          <div
-            style={{
-              padding: "6px",
-              backgroundColor: "rgba(59, 130, 246, 0.1)",
-              borderRadius: "4px",
-              marginBottom: "12px",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "11px",
-                fontWeight: "600",
-                color: "var(--cm-text)",
-              }}
-            >
-              Current Tier: {currentTier}
-            </div>
-          </div>
-
-          {/* Focus Tags Section */}
-          {focusTags.length > 0 && (
-            <div style={{ marginBottom: "16px" }}>
-              <div
-                style={{
-                  fontSize: "12px",
-                  fontWeight: "600",
-                  color: "var(--cm-text)",
-                  marginBottom: "6px",
-                }}
-              >
-                Focus Tags
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "6px",
-                }}
-              >
-                {focusTags.map((tag) => {
-                  const _tagData = Object.values(tierData)
-                    .flat()
-                    .find((t) => t.tag === tag);
-                  return (
-                    <span
-                      key={tag}
-                      className="cm-extension cd-strategy-focus-tag"
-                    >
-                      {formatTagName(tag)}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* All Tiers */}
+          <CurrentTierStatus currentTier={currentTier} />
+          <FocusTagsSection 
+            focusTags={focusTags}
+            tierData={tierData}
+            formatTagName={formatTagName}
+          />
           <TierRenderer 
             tierData={tierData}
             getVisibleTags={getVisibleTags}
@@ -362,57 +455,8 @@ function StrategyMap() {
             toggleTierExpansion={toggleTierExpansion}
             getHoverHandlers={getHoverHandlers}
           />
-
-          {/* Empty State */}
-          {Object.entries(tierData).length === 0 && (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "20px",
-                color: "var(--cm-text)",
-                opacity: 0.7,
-              }}
-            >
-              <p>🏗️ Setting up your strategy map...</p>
-              <p style={{ fontSize: "12px", marginTop: "8px" }}>
-                Start solving problems to see your progress!
-              </p>
-            </div>
-          )}
-
-          {/* Legend - only show when any tier is expanded */}
-          {expandedTiers.size > 0 && (
-            <div
-              style={{
-                marginTop: "12px",
-                padding: "8px",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-                borderRadius: "6px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "10px",
-                  color: "var(--cm-text)",
-                  opacity: 0.8,
-                  marginBottom: "4px",
-                  fontWeight: "500",
-                }}
-              >
-                Legend:
-              </div>
-              <div
-                style={{
-                  fontSize: "9px",
-                  color: "var(--cm-text)",
-                  opacity: 0.7,
-                  lineHeight: "1.3",
-                }}
-              >
-                Focus • Mastered • Learning • Available • Locked
-              </div>
-            </div>
-          )}
+          {Object.entries(tierData).length === 0 && <EmptyState />}
+          <Legend expandedTiers={expandedTiers} />
         </div>
       </div>
     </div>

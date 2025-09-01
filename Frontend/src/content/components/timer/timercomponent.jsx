@@ -20,23 +20,243 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import AccurateTimer from "../../../shared/utils/AccurateTimer";
 import "../../../shared/components/css/timerBanner.css";
 
-function TimerBanner(_props) {
-  const [_problemTitle, _setProblemTitle] = useState("");
-  const [_currentURL, _setCurrentURL] = useState(window.location.href);
+// Countdown overlay component
+const CountdownOverlay = ({ countdownValue }) => (
+  <div className="countdown-overlay">
+    <h1>{countdownValue}</h1>
+  </div>
+);
+
+// Still working prompt component
+const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWorking, handleStuck, handleMoveOn }) => (
+  <div className="timer-banner still-working-prompt">
+    <div className="timer-banner-header">
+      <h1 className={getTimerClass()}>Time Check</h1>
+      <HiXMark 
+        onClick={handleClose} 
+        className="close-icon"
+        title="Close timer and return to menu"
+        aria-label="Close timer and return to menu"
+      />
+    </div>
+
+    <div className="timer-banner-content">
+      <div style={{ textAlign: "center", padding: "10px" }}>
+        <p>You&apos;ve exceeded the recommended interview time.</p>
+        <p>How are you feeling about this problem?</p>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            justifyContent: "center",
+            marginTop: "15px",
+          }}
+        >
+          <button
+            onClick={handleStillWorking}
+            style={{
+              padding: "8px 12px",
+              backgroundColor: "var(--cm-success, #4CAF50)",
+              color: "var(--cm-btn-text, white)",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Still Making Progress
+          </button>
+          <button
+            onClick={handleStuck}
+            style={{
+              padding: "8px 12px",
+              backgroundColor: "var(--cm-warning, #FF9800)",
+              color: "var(--cm-btn-text, white)",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            I&apos;m Stuck
+          </button>
+          <button
+            onClick={handleMoveOn}
+            style={{
+              padding: "8px 12px",
+              backgroundColor: "var(--cm-error, #f44336)",
+              color: "var(--cm-btn-text, white)",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Move On
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Timer header component
+const TimerHeader = ({ sessionType, isUnlimitedMode, getTimerClass, handleClose }) => (
+  <div className="timer-banner-header">
+    <h1 className={getTimerClass()}>
+      {sessionType && sessionType !== 'standard' 
+        ? `Interview Timer (${sessionType === 'interview-like' ? 'Practice' : 'Full Interview'})`
+        : isUnlimitedMode ? "Timer (No Limits)" : "Timer"}
+    </h1>
+    <HiXMark 
+      onClick={handleClose} 
+      className="close-icon"
+      title="Close timer and return to menu"
+      aria-label="Close timer and return to menu"
+    />
+  </div>
+);
+
+// Timer content component
+const TimerContent = ({ displayTime, toggleTimer, sessionType, interviewConfig, isUnlimitedMode, getWarningMessage, getWarningMessageClass }) => (
+  <div className="timer-banner-content">
+    <TimeDisplay time={displayTime} toggleTimer={toggleTimer} />
+
+    {/* Mode indicator */}
+    <div
+      style={{
+        fontSize: "11px",
+        textAlign: "center",
+        color: "var(--cm-timer-text, #000000)",
+        opacity: 0.7,
+        marginTop: "2px",
+        fontStyle: "italic",
+      }}
+    >
+      {sessionType && sessionType !== 'standard'
+        ? `Interview Mode • ${interviewConfig?.timing?.hardCutoff ? 'Hard time limits' : 'Soft guidance'}`
+        : isUnlimitedMode
+        ? "No guidance • Learn at your own pace"
+        : "Elapsed time • Guidance enabled"}
+    </div>
+
+    {/* Warning message display (only for guided mode) */}
+    {!isUnlimitedMode && getWarningMessage() && (
+      <div
+        className={getWarningMessageClass()}
+        style={{
+          fontSize: "12px",
+          textAlign: "center",
+          marginTop: "5px",
+          fontWeight: "bold",
+        }}
+      >
+        {getWarningMessage()}
+      </div>
+    )}
+  </div>
+);
+
+// Timer controls component
+const TimerControls = ({ 
+  handleReset, sessionType, hasFirstPlan, isTimerRunning, recordFirstPlan,
+  processedTags, state, handleHintOpen, handleHintClose, handleHintClick,
+  interviewConfig, uiMode, handleStop, handleStart, handleComplete
+}) => (
+  <div className="timer-banner-controls">
+    <HiArrowPath 
+      onClick={handleReset} 
+      title="Reset timer to 00:00"
+      aria-label="Reset timer to 00:00"
+      style={{ cursor: 'pointer' }}
+    />
+    {/* Interview mode: First Plan button */}
+    {sessionType && sessionType !== 'standard' && !hasFirstPlan && isTimerRunning && (
+      <button
+        onClick={recordFirstPlan}
+        className="first-plan-button"
+        style={{
+          padding: "4px 8px",
+          fontSize: "10px",
+          backgroundColor: "var(--cm-success, #4CAF50)",
+          color: "var(--cm-btn-text, white)",
+          border: "none",
+          borderRadius: "3px",
+          cursor: "pointer",
+          margin: "0 5px"
+        }}
+        title="Click when you have your approach planned out"
+      >
+        Got Plan!
+      </button>
+    )}
+
+    {/* Add hint button as part of timer controls */}
+    {processedTags.length > 0 && (
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <FloatingHintButton
+          problemTags={processedTags}
+          problemId={state?.LeetCodeID || null}
+          onOpen={handleHintOpen}
+          onClose={handleHintClose}
+          onHintClick={handleHintClick}
+          interviewConfig={interviewConfig}
+          sessionType={sessionType}
+          uiMode={uiMode}
+        />
+      </div>
+    )}
+    {isTimerRunning ? (
+      <HiPause 
+        onClick={handleStop} 
+        title="Pause timer"
+        aria-label="Pause timer"
+        style={{ cursor: 'pointer' }}
+      />
+    ) : (
+      <HiPlay 
+        onClick={handleStart} 
+        title="Start timer"
+        aria-label="Start timer"
+        style={{ cursor: 'pointer' }}
+      />
+    )}
+    <HiArrowRight 
+      onClick={handleComplete} 
+      title="Complete problem and submit"
+      aria-label="Complete problem and submit"
+      style={{ cursor: 'pointer' }}
+    />
+  </div>
+);
+
+// Custom hook for timer state management
+const useTimerState = () => {
   const [open, setOpen] = useState(true);
   const [countdownVisible, setCountdownVisible] = useState(false);
   const [countdownValue, setCountdownValue] = useState(null);
-  const [displayTime, setDisplayTime] = useState(0); // For display purposes only
-
-  // Soft warning system states
-  const [timeWarningLevel, setTimeWarningLevel] = useState(0); // 0=none, 1=75%, 2=100%, 3=150%
+  const [displayTime, setDisplayTime] = useState(0);
+  const [timeWarningLevel, setTimeWarningLevel] = useState(0);
   const [showStillWorkingPrompt, setShowStillWorkingPrompt] = useState(false);
-  const [userIntent, setUserIntent] = useState("solving"); // "solving" | "stuck" | "completed"
+  const [userIntent, setUserIntent] = useState("solving");
   const [exceededRecommendedTime, setExceededRecommendedTime] = useState(false);
   const [isUnlimitedMode, setIsUnlimitedMode] = useState(false);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
 
-  // Interview signal tracking
+  return {
+    open, setOpen,
+    countdownVisible, setCountdownVisible,
+    countdownValue, setCountdownValue,
+    displayTime, setDisplayTime,
+    timeWarningLevel, setTimeWarningLevel,
+    showStillWorkingPrompt, setShowStillWorkingPrompt,
+    userIntent, setUserIntent,
+    exceededRecommendedTime, setExceededRecommendedTime,
+    isUnlimitedMode, setIsUnlimitedMode,
+    isTimerRunning, setIsTimerRunning
+  };
+};
+
+// Custom hook for interview signals
+const useInterviewSignals = () => {
   const [interviewSignals, setInterviewSignals] = useState({
     timeToFirstPlanMs: null,
     timeToFirstKeystroke: null,
@@ -48,18 +268,15 @@ function TimerBanner(_props) {
   const [hasFirstPlan, setHasFirstPlan] = useState(false);
   const [hasFirstKeystroke, setHasFirstKeystroke] = useState(false);
 
-  const { pathname: _pathname, state } = useLocation();
-  const navigate = useNavigate();
+  return {
+    interviewSignals, setInterviewSignals,
+    hasFirstPlan, setHasFirstPlan,
+    hasFirstKeystroke, setHasFirstKeystroke
+  };
+};
 
-  // Timer state management
-  useEffect(() => {
-    // Timer state updates handled here
-  }, [state]);
-
-  // Use AccurateTimer for all time operations
-  const timerRef = useRef(null);
-  const intervalIdRef = useRef(null);
-  const _previousURLRef = useRef(_currentURL);
+// Custom hook for timer limit calculation and configuration
+const useTimerConfiguration = (state) => {
 
   // Memoize processed problem tags to prevent re-renders
   const processedTags = useMemo(() => {
@@ -67,45 +284,57 @@ function TimerBanner(_props) {
   }, [state?.Tags]);
 
   // Memoize interview configuration to prevent re-renders
-  const interviewConfig = useMemo(() => {
+  const memoizedInterviewConfig = useMemo(() => {
     return state?.interviewConfig || null;
   }, [state?.interviewConfig]);
 
-  const sessionType = useMemo(() => {
+  const memoizedSessionType = useMemo(() => {
     return state?.sessionType || null;
   }, [state?.sessionType]);
 
   // Determine UI mode from interview configuration
   const uiMode = useMemo(() => {
-    if (!interviewConfig || sessionType === 'standard') {
+    if (!memoizedInterviewConfig || memoizedSessionType === 'standard') {
       return 'full-support';
     }
-    return interviewConfig.uiMode || 'full-support';
-  }, [interviewConfig, sessionType]);
+    return memoizedInterviewConfig.uiMode || 'full-support';
+  }, [memoizedInterviewConfig, memoizedSessionType]);
 
   // Calculate interview-specific time limits
   const calculateInterviewTimeLimit = useCallback((standardLimitInMinutes, problemDifficulty) => {
-    if (!interviewConfig?.timing || sessionType === 'standard') {
+    if (!memoizedInterviewConfig?.timing || memoizedSessionType === 'standard') {
       return standardLimitInMinutes * 60; // Return in seconds
     }
 
     // Use interview mode thresholds if available
-    if (interviewConfig.timing.thresholds && problemDifficulty) {
-      const thresholdInMs = interviewConfig.timing.thresholds[problemDifficulty];
+    if (memoizedInterviewConfig.timing.thresholds && problemDifficulty) {
+      const thresholdInMs = memoizedInterviewConfig.timing.thresholds[problemDifficulty];
       if (thresholdInMs) {
         return Math.floor(thresholdInMs / 1000); // Convert ms to seconds
       }
     }
 
     // Apply interview timing multiplier
-    const multiplier = interviewConfig.timing.multiplier || 1.0;
+    const multiplier = memoizedInterviewConfig.timing.multiplier || 1.0;
     return Math.floor(standardLimitInMinutes * 60 * multiplier);
-  }, [interviewConfig, sessionType]);
+  }, [memoizedInterviewConfig, memoizedSessionType]);
 
-  // Interview signal tracking functions
+  return {
+    processedTags,
+    interviewConfig: memoizedInterviewConfig,
+    sessionType: memoizedSessionType,
+    uiMode,
+    calculateInterviewTimeLimit
+  };
+};
+
+// Custom hook for interview-specific features
+const useInterviewFeatures = (sessionType, timerRef, interviewSignalsState) => {
+  const { setInterviewSignals, hasFirstPlan, setHasFirstPlan, hasFirstKeystroke, setHasFirstKeystroke } = interviewSignalsState;
+
   const recordFirstPlan = useCallback(() => {
     if (!hasFirstPlan && timerRef.current?.isRunning) {
-      const timeToFirstPlan = timerRef.current.getElapsedTime() * 1000; // Convert to milliseconds
+      const timeToFirstPlan = timerRef.current.getElapsedTime() * 1000;
       setHasFirstPlan(true);
       setInterviewSignals(prev => ({
         ...prev,
@@ -113,11 +342,11 @@ function TimerBanner(_props) {
       }));
       logger.info("🎯 First plan recorded:", timeToFirstPlan + "ms");
     }
-  }, [hasFirstPlan]);
+  }, [hasFirstPlan, setHasFirstPlan, setInterviewSignals, timerRef]);
 
   const recordFirstKeystroke = useCallback(() => {
     if (!hasFirstKeystroke && timerRef.current?.isRunning) {
-      const timeToFirstKeystroke = timerRef.current.getElapsedTime() * 1000; // Convert to milliseconds
+      const timeToFirstKeystroke = timerRef.current.getElapsedTime() * 1000;
       setHasFirstKeystroke(true);
       setInterviewSignals(prev => ({
         ...prev,
@@ -125,34 +354,11 @@ function TimerBanner(_props) {
       }));
       logger.info("⌨️ First keystroke recorded:", timeToFirstKeystroke + "ms");
     }
-  }, [hasFirstKeystroke]);
-
-  // Listen for keyboard events to capture first keystroke
-  useEffect(() => {
-    const handleKeyDown = (_event) => {
-      // Only record if we're in an interview mode and timer is running
-      if (sessionType && sessionType !== 'standard' && timerRef.current?.isRunning) {
-        recordFirstKeystroke();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [recordFirstKeystroke, sessionType]);
-
-  // Memoize callback functions to prevent re-renders
-  const handleHintOpen = useCallback((_data) => {
-    // Track popover open event for analytics
-  }, []);
-
-  const handleHintClose = useCallback((_data) => {
-    // Track popover close event for analytics
-  }, []);
+  }, [hasFirstKeystroke, setHasFirstKeystroke, setInterviewSignals, timerRef]);
 
   const handleHintClick = useCallback((_hintData) => {
-    // Track individual hint clicks for usage analytics and interview signals
     if (sessionType && sessionType !== 'standard' && timerRef.current?.isRunning) {
-      const currentTime = timerRef.current.getElapsedTime() * 1000; // Convert to milliseconds
+      const currentTime = timerRef.current.getElapsedTime() * 1000;
       setInterviewSignals(prev => ({
         ...prev,
         hintsUsed: prev.hintsUsed + 1,
@@ -160,27 +366,239 @@ function TimerBanner(_props) {
       }));
       logger.info("💡 Hint used in interview mode at:", currentTime + "ms");
     }
+  }, [sessionType, setInterviewSignals, timerRef]);
 
-    // Original analytics tracking
-    // AnalyticsService.trackHintUsage(hintData);
-  }, [sessionType]);
+  // Listen for keyboard events to capture first keystroke
+  useEffect(() => {
+    const handleKeyDown = () => {
+      if (sessionType && sessionType !== 'standard' && timerRef.current?.isRunning) {
+        recordFirstKeystroke();
+      }
+    };
 
-  const toggleTimer = () => {
-    if (!timerRef.current) return;
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [recordFirstKeystroke, sessionType, timerRef]);
 
-    if (timerRef.current.isRunning) {
-      handleStop();
-    } else {
-      handleStart();
-    }
+  return {
+    recordFirstPlan,
+    recordFirstKeystroke, 
+    handleHintClick
+  };
+};
+
+// Helper function to create stop timer functionality
+const createStopTimerFunction = (timerRef, setIsTimerRunning, intervalIdRef) => () => {
+  if (!timerRef.current) return;
+  timerRef.current.pause();
+  setIsTimerRunning(false);
+  if (intervalIdRef.current) {
+    clearInterval(intervalIdRef.current);
+    intervalIdRef.current = null;
+  }
+};
+
+// Helper function to build problem data with timing information
+const buildProblemData = (state, timerRef, timerState, sessionType, interviewSignals) => {
+  const { exceededRecommendedTime, userIntent, timeWarningLevel } = timerState;
+  let problem = { ...state };
+
+  // Calculate accurate time spent using AccurateTimer
+  const timeSpentInSeconds = timerRef.current.getElapsedTime();
+  const timeSpentInMinutes = AccurateTimer.secondsToMinutes(timeSpentInSeconds, 1);
+  const totalTimeInSeconds = timerRef.current.totalTimeInSeconds;
+  const overageTime = Math.max(0, timeSpentInSeconds - totalTimeInSeconds);
+
+  // Ensure minimum time of 1 minute for valid submissions
+  problem["Time"] = Math.max(1, Math.round(timeSpentInMinutes));
+
+  // Enhanced time tracking for soft limits
+  problem["timeSpentInSeconds"] = timeSpentInSeconds;
+  problem["exceededRecommendedTime"] = exceededRecommendedTime;
+  problem["overageTime"] = overageTime;
+  problem["userIntent"] = userIntent;
+  problem["timeWarningLevel"] = timeWarningLevel;
+
+  // Add interview signals if this is an interview session
+  if (sessionType && sessionType !== 'standard') {
+    const finalInterviewSignals = {
+      ...interviewSignals,
+      hintPressure: timeSpentInSeconds > 0 ? interviewSignals.hintsUsed / timeSpentInSeconds : 0,
+      transferAccuracy: null,
+      speedDelta: null,
+    };
+
+    problem["interviewSignals"] = finalInterviewSignals;
+    logger.info("🎯 Interview signals captured:", finalInterviewSignals);
+  }
+
+  return problem;
+};
+
+// Helper function to get time warning thresholds
+const getTimeWarningThresholds = (isInterviewMode) => ({
+  warnThreshold1: isInterviewMode ? 0.6 : 0.75,
+  warnThreshold2: isInterviewMode ? 0.8 : 1.0,
+  warnThreshold3: isInterviewMode ? 1.0 : 1.5
+});
+
+// Helper function to create event handlers for timer banner
+const createTimerEventHandlers = ({
+  setShowStillWorkingPrompt, 
+  setUserIntent, 
+  handleComplete, 
+  handleStop, 
+  navigate
+}) => {
+  const handleStillWorking = () => {
+    setShowStillWorkingPrompt(false);
+    setUserIntent("solving");
   };
 
-  // Initialize timer when limits are received
-  const {
-    data: _limitsData,
-    loading: _loading,
-    error: _error,
-  } = useChromeMessage(
+  const handleStuck = () => {
+    setShowStillWorkingPrompt(false);
+    setUserIntent("stuck");
+  };
+
+  const handleMoveOn = () => {
+    setShowStillWorkingPrompt(false);
+    setUserIntent("completed");
+    handleComplete();
+  };
+
+  const handleClose = () => {
+    handleStop();
+    navigate("/");
+  };
+
+  return { handleStillWorking, handleStuck, handleMoveOn, handleClose };
+};
+
+// Helper function to create toggle timer functionality
+const createToggleTimer = (timerRef, handleStart, handleStop) => () => {
+  if (!timerRef.current) return;
+
+  if (timerRef.current.isRunning) {
+    handleStop();
+  } else {
+    handleStart();
+  }
+};
+
+// Helper function to get warning message based on warning level
+const getWarningMessage = (timeWarningLevel, sessionType, interviewConfig) => {
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+  const hasHardCutoff = interviewConfig?.timing?.hardCutoff;
+
+  switch (timeWarningLevel) {
+    case 1:
+      return isInterviewMode ? "Interview time halfway point" : "Approaching recommended time";
+    case 2:
+      if (isInterviewMode) {
+        return hasHardCutoff ? "Interview time almost up - wrap up your solution" : "Interview time exceeded - finish up";
+      }
+      return "Interview time exceeded - keep going if making progress";
+    case 3:
+      if (isInterviewMode) {
+        return hasHardCutoff ? "Interview time limit reached" : "Interview time well exceeded - move on";
+      }
+      return "Consider reviewing hints or moving to next problem";
+    default:
+      return null;
+  }
+};
+
+// Helper function to get timer CSS class based on warning level and UI mode
+const getTimerClass = (timeWarningLevel, uiMode) => {
+  let baseClass;
+  switch (timeWarningLevel) {
+    case 1:
+      baseClass = "timer-warning-1";
+      break;
+    case 2:
+      baseClass = "timer-warning-2";
+      break;
+    case 3:
+      baseClass = "timer-warning-3";
+      break;
+    default:
+      baseClass = "timer-normal";
+  }
+
+  // Apply UI mode modifiers
+  switch (uiMode) {
+    case 'pressure-indicators':
+      return `${baseClass} timer-pressure`;
+    case 'minimal-clean':
+      return `${baseClass} timer-minimal`;
+    default:
+      return baseClass;
+  }
+};
+
+// Helper function to get warning message CSS class based on warning level
+const getWarningMessageClass = (timeWarningLevel) => {
+  switch (timeWarningLevel) {
+    case 1:
+      return "timer-warning-message warning-1";
+    case 2:
+      return "timer-warning-message warning-2";
+    case 3:
+      return "timer-warning-message warning-3";
+    default:
+      return "timer-warning-message";
+  }
+};
+
+// Helper function to initialize timer with limits data
+const initializeTimerWithLimits = (response, options) => {
+  const { 
+    state, 
+    sessionType, 
+    interviewConfig, 
+    calculateInterviewTimeLimit, 
+    timerRef, 
+    setDisplayTime, 
+    setIsUnlimitedMode
+  } = options;
+  // Adaptive limits received and processed
+  const limitInMinutes = response.limits.Time;
+  const standardLimitInSeconds = AccurateTimer.minutesToSeconds(limitInMinutes);
+
+  // Get problem difficulty for interview time calculation
+  const problemDifficulty = state?.Difficulty;
+
+  // Calculate interview-adjusted time limit
+  const adjustedLimitInSeconds = calculateInterviewTimeLimit(limitInMinutes, problemDifficulty);
+
+  // Check if we're in unlimited mode (standard mode or no interview config)
+  const adaptiveLimits = response.limits.adaptiveLimits;
+  const isStandardUnlimited = adaptiveLimits?.isUnlimited || limitInMinutes >= 999;
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+  const unlimited = !isInterviewMode && isStandardUnlimited;
+
+  setIsUnlimitedMode(unlimited);
+
+  // Always initialize timer as elapsed time counter (counting up from 0)
+  timerRef.current = new AccurateTimer(0);
+  setDisplayTime(0);
+
+  // Store the appropriate limit for reference/warnings
+  timerRef.current.recommendedLimit = isInterviewMode ? adjustedLimitInSeconds : standardLimitInSeconds;
+  timerRef.current.isUnlimited = unlimited;
+  timerRef.current.isInterviewMode = isInterviewMode;
+  timerRef.current.interviewConfig = interviewConfig;
+
+  // Timer initialized with interview-aware limits
+};
+
+// Custom hook for timer setup and initialization
+const useTimerSetup = (options) => {
+  const { state, sessionType, interviewConfig, calculateInterviewTimeLimit, setDisplayTime, setIsUnlimitedMode } = options;
+  const timerRef = useRef(null);
+  const intervalIdRef = useRef(null);
+  
+  const limitsQuery = useChromeMessage(
     state?.LeetCodeID
       ? {
           type: "getLimits",
@@ -190,40 +608,73 @@ function TimerBanner(_props) {
     [state?.LeetCodeID],
     {
       onSuccess: (response) => {
-        // Adaptive limits received and processed
-        const limitInMinutes = response.limits.Time;
-        const standardLimitInSeconds = AccurateTimer.minutesToSeconds(limitInMinutes);
-
-        // Get problem difficulty for interview time calculation
-        const problemDifficulty = state?.Difficulty;
-
-        // Calculate interview-adjusted time limit
-        const adjustedLimitInSeconds = calculateInterviewTimeLimit(limitInMinutes, problemDifficulty);
-
-        // Check if we're in unlimited mode (standard mode or no interview config)
-        const adaptiveLimits = response.limits.adaptiveLimits;
-        const isStandardUnlimited = adaptiveLimits?.isUnlimited || limitInMinutes >= 999;
-        const isInterviewMode = sessionType && sessionType !== 'standard';
-        const unlimited = !isInterviewMode && isStandardUnlimited;
-
-        setIsUnlimitedMode(unlimited);
-
-        // Always initialize timer as elapsed time counter (counting up from 0)
-        timerRef.current = new AccurateTimer(0);
-        setDisplayTime(0);
-
-        // Store the appropriate limit for reference/warnings
-        timerRef.current.recommendedLimit = isInterviewMode ? adjustedLimitInSeconds : standardLimitInSeconds;
-        timerRef.current.isUnlimited = unlimited;
-        timerRef.current.isInterviewMode = isInterviewMode;
-        timerRef.current.interviewConfig = interviewConfig;
-
-        // Timer initialized with interview-aware limits
+        initializeTimerWithLimits(response, {
+          state, 
+          sessionType, 
+          interviewConfig, 
+          calculateInterviewTimeLimit, 
+          timerRef, 
+          setDisplayTime, 
+          setIsUnlimitedMode
+        });
       },
     }
   );
 
-  const handleStart = () => {
+  return { timerRef, intervalIdRef, limitsQuery };
+};
+
+// Custom hook for timer UI utilities and callbacks
+const useTimerUIHelpers = (timerRef, handleStart, handleStop) => {
+  // Memoize callback functions to prevent re-renders
+  const handleHintOpen = useCallback((_data) => {
+    // Track popover open event for analytics
+  }, []);
+
+  const handleHintClose = useCallback((_data) => {
+    // Track popover close event for analytics
+  }, []);
+
+  const toggleTimer = createToggleTimer(timerRef, handleStart, handleStop);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    const intervalId = timerRef.current?.intervalId;
+    const timer = timerRef.current;
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      if (timer?.isRunning) {
+        timer.stop();
+      }
+    };
+  }, [timerRef]);
+
+  return { handleHintOpen, handleHintClose, toggleTimer };
+};
+
+// Custom hook for timer operations
+const useTimerOperations = (timerRef, intervalIdRef, timerState, { sessionType, navigate, state }) => {
+  const {
+    setIsTimerRunning, setDisplayTime, setTimeWarningLevel,
+    setExceededRecommendedTime, setShowStillWorkingPrompt,
+    setCountdownVisible, setCountdownValue, setUserIntent, setOpen,
+    isUnlimitedMode, timeWarningLevel, interviewSignals
+  } = timerState;
+
+  const handleComplete = useCallback(() => {
+    const stopTimer = createStopTimerFunction(timerRef, setIsTimerRunning, intervalIdRef);
+    stopTimer();
+    
+    if (state !== null && timerRef.current) {
+      const problem = buildProblemData(state, timerRef, timerState, sessionType, interviewSignals);
+      setOpen(false);
+      navigate("/Probtime", { state: problem });
+    }
+  }, [state, timerRef, interviewSignals, sessionType, navigate, setOpen, timerState, setIsTimerRunning, intervalIdRef]);
+
+  const handleStart = useCallback(() => {
     if (!timerRef.current) {
       logger.error("❌ Timer not initialized");
       return;
@@ -231,62 +682,46 @@ function TimerBanner(_props) {
 
     if (timerRef.current.start()) {
       setIsTimerRunning(true);
-      // Start the display update interval - always show elapsed time
       intervalIdRef.current = setInterval(() => {
         const elapsedTime = timerRef.current.getElapsedTime();
-        setDisplayTime(elapsedTime); // Always show elapsed time counting up
+        setDisplayTime(elapsedTime);
 
-        // Handle interview mode hard cutoffs
         if (timerRef.current.isInterviewMode && 
             timerRef.current.interviewConfig?.timing?.hardCutoff) {
           const recommendedLimit = timerRef.current.recommendedLimit;
           if (elapsedTime >= recommendedLimit) {
-            // Hard cutoff - automatically complete the problem
             handleComplete();
             return;
           }
         }
 
-        // Only show warnings if we have a recommended limit (not unlimited mode)
         if (!isUnlimitedMode && timerRef.current.recommendedLimit > 0) {
           const recommendedLimit = timerRef.current.recommendedLimit;
           const timeProgress = elapsedTime / recommendedLimit;
-
-          // Adjust warning thresholds for interview mode
           const isInterviewMode = timerRef.current.isInterviewMode;
-          const warnThreshold1 = isInterviewMode ? 0.6 : 0.75; // Earlier warnings in interview
-          const warnThreshold2 = isInterviewMode ? 0.8 : 1.0;  // Earlier final warning
-          const warnThreshold3 = isInterviewMode ? 1.0 : 1.5;  // Hard stop vs continue
+          const { warnThreshold1, warnThreshold2, warnThreshold3 } = getTimeWarningThresholds(isInterviewMode);
 
           if (timeProgress >= warnThreshold3 && timeWarningLevel < 3) {
-            setTimeWarningLevel(3); // Final warning or hard cutoff
+            setTimeWarningLevel(3);
           } else if (timeProgress >= warnThreshold2 && timeWarningLevel < 2) {
-            setTimeWarningLevel(2); // Approaching limit or exceeded
+            setTimeWarningLevel(2);
             setExceededRecommendedTime(true);
             if (!isInterviewMode) {
-              setShowStillWorkingPrompt(true); // Only show prompt for non-interview
+              setShowStillWorkingPrompt(true);
             }
           } else if (timeProgress >= warnThreshold1 && timeWarningLevel < 1) {
-            setTimeWarningLevel(1); // Approaching recommended time
+            setTimeWarningLevel(1);
           }
 
-          // Show notification when recommended time is reached
           if (Math.floor(elapsedTime) === recommendedLimit && elapsedTime > 0) {
-            if (isInterviewMode && timerRef.current.interviewConfig?.timing?.hardCutoff) {
-              // Don't show countdown for hard cutoff modes - will auto-complete
-              startCountdown();
-            } else {
-              startCountdown();
-            }
+            startCountdown();
           }
         }
       }, 1000);
-
-      // Timer started in elapsed time mode
     }
-  };
+  }, [isUnlimitedMode, timeWarningLevel, setIsTimerRunning, setDisplayTime, setTimeWarningLevel, setExceededRecommendedTime, setShowStillWorkingPrompt, handleComplete, startCountdown, timerRef, intervalIdRef]);
 
-  const startCountdown = () => {
+  const startCountdown = useCallback(() => {
     setCountdownVisible(true);
     setCountdownValue("Recommended Time Reached");
 
@@ -294,388 +729,131 @@ function TimerBanner(_props) {
       setCountdownValue("Keep going if making progress!");
       setTimeout(() => {
         setCountdownVisible(false);
-        // Don't auto-complete anymore - let user decide
       }, 2000);
     }, 2000);
-  };
+  }, [setCountdownVisible, setCountdownValue]);
 
-  const handleStillWorking = () => {
-    setShowStillWorkingPrompt(false);
-    setUserIntent("solving");
-    // User indicated still working on solution
-  };
+  const handleStop = useCallback(() => {
+    const stopTimer = createStopTimerFunction(timerRef, setIsTimerRunning, intervalIdRef);
+    stopTimer();
+  }, [timerRef, setIsTimerRunning, intervalIdRef]);
 
-  const handleStuck = () => {
-    setShowStillWorkingPrompt(false);
-    setUserIntent("stuck");
-    // User indicated stuck - suggesting hints
-    // Could trigger hint system or other help
-  };
-
-  const handleMoveOn = () => {
-    setShowStillWorkingPrompt(false);
-    setUserIntent("completed");
-    handleComplete();
-  };
-
-  const handleStop = () => {
-    if (!timerRef.current) return;
-
-    timerRef.current.pause();
-    setIsTimerRunning(false);
-
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
-    }
-
-    // Timer stopped
-  };
-
-  const handleClose = () => {
-    handleStop();
-    navigate("/");
-  };
-
-  const handleComplete = () => {
-    handleStop();
-    if (state !== null && timerRef.current) {
-      let problem = { ...state };
-
-      // Calculate accurate time spent using AccurateTimer
-      const timeSpentInSeconds = timerRef.current.getElapsedTime();
-      const timeSpentInMinutes = AccurateTimer.secondsToMinutes(
-        timeSpentInSeconds,
-        1
-      );
-      const totalTimeInSeconds = timerRef.current.totalTimeInSeconds;
-      const overageTime = Math.max(0, timeSpentInSeconds - totalTimeInSeconds);
-
-      // Ensure minimum time of 1 minute for valid submissions
-      problem["Time"] = Math.max(1, Math.round(timeSpentInMinutes));
-
-      // Enhanced time tracking for soft limits
-      problem["timeSpentInSeconds"] = timeSpentInSeconds;
-      problem["exceededRecommendedTime"] = exceededRecommendedTime;
-      problem["overageTime"] = overageTime;
-      problem["userIntent"] = userIntent;
-      problem["timeWarningLevel"] = timeWarningLevel;
-
-      // Add interview signals if this is an interview session
-      if (sessionType && sessionType !== 'standard') {
-        const finalInterviewSignals = {
-          ...interviewSignals,
-          // Calculate hint pressure: hints per second
-          hintPressure: timeSpentInSeconds > 0 ? interviewSignals.hintsUsed / timeSpentInSeconds : 0,
-          // Calculate transfer accuracy (will be set later based on success)
-          transferAccuracy: null, // This will be calculated in the submission flow
-          // Calculate speed delta (will be calculated against baselines later)
-          speedDelta: null, // This will be calculated against tag baselines
-        };
-
-        problem["interviewSignals"] = finalInterviewSignals;
-        logger.info("🎯 Interview signals captured:", finalInterviewSignals);
-      }
-
-      // Problem completion recorded
-
-      setOpen(false);
-      navigate("/Probtime", { state: problem });
-    }
-  };
-
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (!timerRef.current) return;
 
     handleStop();
     timerRef.current.reset();
-    setDisplayTime(0); // Always reset to 0 for elapsed time counter
-
-    // Reset warning states
+    setDisplayTime(0);
     setTimeWarningLevel(0);
     setShowStillWorkingPrompt(false);
     setUserIntent("solving");
     setExceededRecommendedTime(false);
+  }, [handleStop, setDisplayTime, setTimeWarningLevel, setShowStillWorkingPrompt, setUserIntent, setExceededRecommendedTime, timerRef]);
 
-    // Timer reset to 0
+  return {
+    handleStart,
+    handleStop,
+    handleReset,
+    handleComplete,
+    startCountdown
   };
+};
 
-  // Get warning message based on current warning level
-  const getWarningMessage = () => {
-    const isInterviewMode = sessionType && sessionType !== 'standard';
-    const hasHardCutoff = interviewConfig?.timing?.hardCutoff;
+function TimerBanner(_props) {
+  const [_problemTitle, _setProblemTitle] = useState("");
+  const [_currentURL, _setCurrentURL] = useState(window.location.href);
 
-    switch (timeWarningLevel) {
-      case 1:
-        return isInterviewMode ? "Interview time halfway point" : "Approaching recommended time";
-      case 2:
-        if (isInterviewMode) {
-          return hasHardCutoff ? "Interview time almost up - wrap up your solution" : "Interview time exceeded - finish up";
-        }
-        return "Interview time exceeded - keep going if making progress";
-      case 3:
-        if (isInterviewMode) {
-          return hasHardCutoff ? "Interview time limit reached" : "Interview time well exceeded - move on";
-        }
-        return "Consider reviewing hints or moving to next problem";
-      default:
-        return null;
-    }
-  };
+  // Use custom hooks for state management
+  const timerState = useTimerState();
+  const { open, setOpen, countdownVisible, countdownValue, displayTime, setDisplayTime, timeWarningLevel, showStillWorkingPrompt, setShowStillWorkingPrompt, setUserIntent, isUnlimitedMode, setIsUnlimitedMode, isTimerRunning } = timerState;
 
-  // Get timer CSS class based on warning level and UI mode
-  const getTimerClass = () => {
-    let baseClass;
-    switch (timeWarningLevel) {
-      case 1:
-        baseClass = "timer-warning-1";
-        break;
-      case 2:
-        baseClass = "timer-warning-2";
-        break;
-      case 3:
-        baseClass = "timer-warning-3";
-        break;
-      default:
-        baseClass = "timer-normal";
-    }
+  const interviewSignalsState = useInterviewSignals();
+  const { interviewSignals, hasFirstPlan } = interviewSignalsState;
 
-    // Apply UI mode modifiers
-    switch (uiMode) {
-      case 'pressure-indicators':
-        return `${baseClass} timer-pressure`;
-      case 'minimal-clean':
-        return `${baseClass} timer-minimal`;
-      default:
-        return baseClass;
-    }
-  };
+  const { pathname: _pathname, state } = useLocation();
+  const navigate = useNavigate();
+  
+  // Use configuration hook for memoized values
+  const { processedTags, interviewConfig, sessionType, uiMode, calculateInterviewTimeLimit } = useTimerConfiguration(state);
 
-  // Get warning message CSS class based on warning level
-  const getWarningMessageClass = () => {
-    switch (timeWarningLevel) {
-      case 1:
-        return "timer-warning-message warning-1";
-      case 2:
-        return "timer-warning-message warning-2";
-      case 3:
-        return "timer-warning-message warning-3";
-      default:
-        return "timer-warning-message";
-    }
-  };
+  // Use timer setup hook
+  const { timerRef, intervalIdRef } = useTimerSetup({ state, sessionType, interviewConfig, calculateInterviewTimeLimit, setDisplayTime, setIsUnlimitedMode });
+  const _previousURLRef = useRef(_currentURL);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalIdRef.current) {
-        clearInterval(intervalIdRef.current);
-      }
-      if (timerRef.current?.isRunning) {
-        timerRef.current.stop();
-      }
-    };
-  }, []);
+  // Use extracted hooks for functionality  
+  const { recordFirstPlan, handleHintClick } = useInterviewFeatures(sessionType, timerRef, interviewSignalsState);
+  
+  // Enhanced timer state for operations hook
+  const enhancedTimerState = { ...timerState, interviewSignals, setOpen };
+
+  const { handleStart, handleStop, handleReset, handleComplete } = useTimerOperations(timerRef, intervalIdRef, enhancedTimerState, { sessionType, navigate, state });
+
+  // Use timer UI helpers hook
+  const { handleHintOpen, handleHintClose, toggleTimer } = useTimerUIHelpers(timerRef, handleStart, handleStop);
+
+  // Create event handlers using helper function
+  const { handleStillWorking, handleStuck, handleMoveOn, handleClose } = createTimerEventHandlers({ setShowStillWorkingPrompt, setUserIntent, handleComplete, handleStop, navigate });
+
+  // Use helper functions for timer styling and messages
+  const currentWarningMessage = getWarningMessage(timeWarningLevel, sessionType, interviewConfig);
+  const currentTimerClass = getTimerClass(timeWarningLevel, uiMode);
+  const currentWarningMessageClass = getWarningMessageClass(timeWarningLevel);
+  // Early returns using extracted components
   if (countdownVisible) {
-    return (
-      <div className="countdown-overlay">
-        <h1>{countdownValue}</h1>
-      </div>
-    );
+    return <CountdownOverlay countdownValue={countdownValue} />;
   }
 
   if (showStillWorkingPrompt) {
     return (
-      <div className="timer-banner still-working-prompt">
-        <div className="timer-banner-header">
-          <h1 className={getTimerClass()}>Time Check</h1>
-          <HiXMark 
-            onClick={handleClose} 
-            className="close-icon"
-            title="Close timer and return to menu"
-            aria-label="Close timer and return to menu"
-          />
-        </div>
-
-        <div className="timer-banner-content">
-          <div style={{ textAlign: "center", padding: "10px" }}>
-            <p>You&apos;ve exceeded the recommended interview time.</p>
-            <p>How are you feeling about this problem?</p>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                justifyContent: "center",
-                marginTop: "15px",
-              }}
-            >
-              <button
-                onClick={handleStillWorking}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "var(--cm-success, #4CAF50)",
-                  color: "var(--cm-btn-text, white)",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Still Making Progress
-              </button>
-              <button
-                onClick={handleStuck}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "var(--cm-warning, #FF9800)",
-                  color: "var(--cm-btn-text, white)",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                I&apos;m Stuck
-              </button>
-              <button
-                onClick={handleMoveOn}
-                style={{
-                  padding: "8px 12px",
-                  backgroundColor: "var(--cm-error, #f44336)",
-                  color: "var(--cm-btn-text, white)",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                Move On
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <StillWorkingPrompt 
+        getTimerClass={() => currentTimerClass}
+        handleClose={handleClose}
+        handleStillWorking={handleStillWorking}
+        handleStuck={handleStuck}
+        handleMoveOn={handleMoveOn}
+      />
     );
   }
 
   if (!open) return null;
 
+  // Main timer render using extracted components
   return (
     <div className="timer-banner">
-      <div className="timer-banner-header">
-        <h1 className={getTimerClass()}>
-          {sessionType && sessionType !== 'standard' 
-            ? `Interview Timer (${sessionType === 'interview-like' ? 'Practice' : 'Full Interview'})`
-            : isUnlimitedMode ? "Timer (No Limits)" : "Timer"}
-        </h1>
-        <HiXMark 
-          onClick={handleClose} 
-          className="close-icon"
-          title="Close timer and return to menu"
-          aria-label="Close timer and return to menu"
-        />
-      </div>
+      <TimerHeader 
+        sessionType={sessionType}
+        isUnlimitedMode={isUnlimitedMode}
+        getTimerClass={() => currentTimerClass}
+        handleClose={handleClose}
+      />
 
-      <div className="timer-banner-content">
-        <TimeDisplay time={displayTime} toggleTimer={toggleTimer} />
+      <TimerContent 
+        displayTime={displayTime}
+        toggleTimer={toggleTimer}
+        sessionType={sessionType}
+        interviewConfig={interviewConfig}
+        isUnlimitedMode={isUnlimitedMode}
+        getWarningMessage={() => currentWarningMessage}
+        getWarningMessageClass={() => currentWarningMessageClass}
+      />
 
-        {/* Mode indicator */}
-        <div
-          style={{
-            fontSize: "11px",
-            textAlign: "center",
-            color: "var(--cm-timer-text, #000000)",
-            opacity: 0.7,
-            marginTop: "2px",
-            fontStyle: "italic",
-          }}
-        >
-          {sessionType && sessionType !== 'standard'
-            ? `Interview Mode • ${interviewConfig?.timing?.hardCutoff ? 'Hard time limits' : 'Soft guidance'}`
-            : isUnlimitedMode
-            ? "No guidance • Learn at your own pace"
-            : "Elapsed time • Guidance enabled"}
-        </div>
-
-        {/* Warning message display (only for guided mode) */}
-        {!isUnlimitedMode && getWarningMessage() && (
-          <div
-            className={getWarningMessageClass()}
-            style={{
-              fontSize: "12px",
-              textAlign: "center",
-              marginTop: "5px",
-              fontWeight: "bold",
-            }}
-          >
-            {getWarningMessage()}
-          </div>
-        )}
-      </div>
-
-      <div className="timer-banner-controls">
-        <HiArrowPath 
-          onClick={handleReset} 
-          title="Reset timer to 00:00"
-          aria-label="Reset timer to 00:00"
-          style={{ cursor: 'pointer' }}
-        />
-        {/* Interview mode: First Plan button */}
-        {sessionType && sessionType !== 'standard' && !hasFirstPlan && isTimerRunning && (
-          <button
-            onClick={recordFirstPlan}
-            className="first-plan-button"
-            style={{
-              padding: "4px 8px",
-              fontSize: "10px",
-              backgroundColor: "var(--cm-success, #4CAF50)",
-              color: "var(--cm-btn-text, white)",
-              border: "none",
-              borderRadius: "3px",
-              cursor: "pointer",
-              margin: "0 5px"
-            }}
-            title="Click when you have your approach planned out"
-          >
-            Got Plan!
-          </button>
-        )}
-
-        {/* Add hint button as part of timer controls */}
-        {processedTags.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <FloatingHintButton
-              problemTags={processedTags}
-              problemId={state?.LeetCodeID || null}
-              onOpen={handleHintOpen}
-              onClose={handleHintClose}
-              onHintClick={handleHintClick}
-              interviewConfig={interviewConfig}
-              sessionType={sessionType}
-              uiMode={uiMode}
-            />
-          </div>
-        )}
-        {isTimerRunning ? (
-          <HiPause 
-            onClick={handleStop} 
-            title="Pause timer"
-            aria-label="Pause timer"
-            style={{ cursor: 'pointer' }}
-          />
-        ) : (
-          <HiPlay 
-            onClick={handleStart} 
-            title="Start timer"
-            aria-label="Start timer"
-            style={{ cursor: 'pointer' }}
-          />
-        )}
-        <HiArrowRight 
-          onClick={handleComplete} 
-          title="Complete problem and submit"
-          aria-label="Complete problem and submit"
-          style={{ cursor: 'pointer' }}
-        />
-      </div>
+      <TimerControls 
+        handleReset={handleReset}
+        sessionType={sessionType}
+        hasFirstPlan={hasFirstPlan}
+        isTimerRunning={isTimerRunning}
+        recordFirstPlan={recordFirstPlan}
+        processedTags={processedTags}
+        state={state}
+        handleHintOpen={handleHintOpen}
+        handleHintClose={handleHintClose}
+        handleHintClick={handleHintClick}
+        interviewConfig={interviewConfig}
+        uiMode={uiMode}
+        handleStop={handleStop}
+        handleStart={handleStart}
+        handleComplete={handleComplete}
+      />
     </div>
   );
 }
