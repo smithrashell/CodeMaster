@@ -11,6 +11,7 @@ import { HintInteractionService } from "../../shared/services/hintInteractionSer
 import { getInteractionsBySession } from "../../shared/db/hint_interactions.js";
 import { getLatestSession } from "../../shared/db/sessions.js";
 import logger from "../../shared/utils/logger.js";
+import { calculateProgressPercentage, calculateSuccessRate, roundToPrecision } from "../../shared/utils/Utils.js";
 import {
   createProblemMappings,
   getTargetFocusAreas,
@@ -54,317 +55,411 @@ function getInitialFocusAreas(providedFocusAreas) {
   return DEFAULT_FOCUS_AREAS;
 }
 
+/**
+ * Fetch all required data for dashboard statistics
+ */
+async function fetchDashboardData() {
+  const [allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData] = await Promise.all([
+    fetchAllProblems(),
+    getAllAttempts(),
+    getAllSessions(),
+    getAllStandardProblems(),
+    TagService.getCurrentLearningState(),
+    ProblemService.countProblemsByBoxLevel()
+  ]);
+
+  return { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData };
+}
+
+/**
+ * Create mappings from standard problems to user problems for dashboard
+ */
+function createDashboardProblemMappings(allProblems, allStandardProblems) {
+  const problemDifficultyMap = {};
+  const problemTagsMap = new Map();
+  const standardProblemsMap = {};
+  
+  allStandardProblems.forEach((standardProblem) => {
+    standardProblemsMap[standardProblem.id] = standardProblem;
+  });
+
+  allProblems.forEach((problem) => {
+    const standardProblem = standardProblemsMap[problem.leetCodeID];
+    problemDifficultyMap[problem.id] = standardProblem?.difficulty || "Medium";
+    if (standardProblem) {
+      problemTagsMap.set(problem.id, standardProblem.tags || []);
+    }
+  });
+
+  return { problemDifficultyMap, problemTagsMap, standardProblemsMap };
+}
+
+/**
+ * Apply focus area and date range filtering to data
+ */
+function applyFiltering({ allProblems, allAttempts, allSessions, problemTagsMap, focusAreaFilter, dateRange }) {
+  let filteredProblems = allProblems;
+  let filteredAttempts = allAttempts;
+  let filteredSessions = allSessions;
+
+  // Apply focus area filtering if specified
+  if (focusAreaFilter && focusAreaFilter.length > 0) {
+    const focusAreaProblemIds = new Set();
+    allProblems.forEach((problem) => {
+      const problemTags = problemTagsMap.get(problem.id) || [];
+      const hasFocusAreaTag = focusAreaFilter.some(tag => problemTags.includes(tag));
+      if (hasFocusAreaTag) {
+        focusAreaProblemIds.add(problem.id);
+      }
+    });
+
+    filteredProblems = allProblems.filter(problem => focusAreaProblemIds.has(problem.id));
+    filteredAttempts = allAttempts.filter(attempt => focusAreaProblemIds.has(attempt.ProblemID));
+    
+    // Filter sessions that contain focus area problems
+    filteredSessions = allSessions.filter(session => {
+      if (!session.problems) return false;
+      return session.problems.some(problem => focusAreaProblemIds.has(problem.id));
+    });
+  }
+
+  // Apply date range filtering if specified
+  if (dateRange && (dateRange.startDate || dateRange.endDate)) {
+    const startDate = dateRange.startDate ? new Date(dateRange.startDate) : new Date(0);
+    const endDate = dateRange.endDate ? new Date(dateRange.endDate) : new Date();
+
+    filteredAttempts = filteredAttempts.filter((attempt) => {
+      const attemptDate = new Date(attempt.AttemptDate);
+      return attemptDate >= startDate && attemptDate <= endDate;
+    });
+
+    filteredSessions = filteredSessions.filter((session) => {
+      const sessionDate = new Date(session.Date);
+      return sessionDate >= startDate && sessionDate <= endDate;
+    });
+  }
+
+  return { filteredProblems, filteredAttempts, filteredSessions };
+}
+
+/**
+ * Calculate core problem statistics from filtered data
+ */
+function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap) {
+  const statistics = {
+    totalSolved: 0,
+    mastered: 0,
+    inProgress: 0,
+    new: 0,
+  };
+
+  const timeStats = {
+    overall: { totalTime: 0, count: 0 },
+    Easy: { totalTime: 0, count: 0 },
+    Medium: { totalTime: 0, count: 0 },
+    Hard: { totalTime: 0, count: 0 },
+  };
+
+  const successStats = {
+    overall: { successful: 0, total: 0 },
+    Easy: { successful: 0, total: 0 },
+    Medium: { successful: 0, total: 0 },
+    Hard: { successful: 0, total: 0 },
+  };
+
+  // Calculate problem statistics by box level
+  filteredProblems.forEach((problem) => {
+    switch (problem.BoxLevel) {
+      case 1:
+        statistics.new++;
+        break;
+      case 7:
+        statistics.mastered++;
+        break;
+      default:
+        if (problem.BoxLevel >= 2 && problem.BoxLevel <= 6) {
+          statistics.inProgress++;
+        }
+        break;
+    }
+  });
+  statistics.totalSolved = statistics.mastered + statistics.inProgress;
+
+  // Calculate time and success statistics by difficulty
+  filteredAttempts.forEach((attempt) => {
+    const officialDifficulty = problemDifficultyMap[attempt.ProblemID];
+    const timeSpent = Number(attempt.TimeSpent) || 0;
+
+    // Update overall statistics
+    timeStats.overall.totalTime += timeSpent;
+    timeStats.overall.count++;
+    successStats.overall.total++;
+    if (attempt.Success) {
+      successStats.overall.successful++;
+    }
+
+    // Update difficulty-specific statistics
+    if (officialDifficulty && timeStats[officialDifficulty]) {
+      timeStats[officialDifficulty].totalTime += timeSpent;
+      timeStats[officialDifficulty].count++;
+      successStats[officialDifficulty].total++;
+      if (attempt.Success) {
+        successStats[officialDifficulty].successful++;
+      }
+    }
+  });
+
+  return { statistics, timeStats, successStats };
+}
+
+/**
+ * Calculate derived metrics from core statistics
+ */
+function calculateDerivedMetrics(timeStats, successStats) {
+  const calculateAverage = (totalTimeInSeconds, count) =>
+    count > 0
+      ? AccurateTimer.secondsToMinutes(totalTimeInSeconds / count, 1)
+      : 0;
+
+  const calculateSuccessRate = (successful, total) =>
+    total > 0 ? parseInt((successful / total) * 100) : 0;
+
+  const averageTime = {
+    overall: calculateAverage(timeStats.overall.totalTime, timeStats.overall.count),
+    Easy: calculateAverage(timeStats.Easy.totalTime, timeStats.Easy.count),
+    Medium: calculateAverage(timeStats.Medium.totalTime, timeStats.Medium.count),
+    Hard: calculateAverage(timeStats.Hard.totalTime, timeStats.Hard.count),
+  };
+
+  const successRate = {
+    overall: calculateSuccessRate(successStats.overall.successful, successStats.overall.total),
+    Easy: calculateSuccessRate(successStats.Easy.successful, successStats.Easy.total),
+    Medium: calculateSuccessRate(successStats.Medium.successful, successStats.Medium.total),
+    Hard: calculateSuccessRate(successStats.Hard.successful, successStats.Hard.total),
+  };
+
+  return { averageTime, successRate };
+}
+
+/**
+ * Generate analytics and derived data
+ */
+async function generateAnalyticsData(filteredSessions, filteredAttempts, learningState) {
+  const [sessionAnalytics, masteryData, goalsData, learningEfficiencyData] = await Promise.all([
+    generateSessionAnalytics(filteredSessions, filteredAttempts),
+    generateMasteryData(learningState),
+    generateGoalsData(),
+    generateLearningEfficiencyChartData(filteredSessions, filteredAttempts)
+  ]);
+
+  return { sessionAnalytics, masteryData, goalsData, learningEfficiencyData };
+}
+
+/**
+ * Calculate derived metrics from attempts and sessions
+ */
+function calculateProgressMetrics(filteredAttempts, filteredSessions) {
+  const timerBehavior = calculateTimerBehavior(filteredAttempts) || "No data";
+  const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
+  const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
+  const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
+  
+  return {
+    timerBehavior,
+    timerPercentage,
+    learningStatus,
+    progressTrend: progressTrendData.trend,
+    progressPercentage: progressTrendData.percentage
+  };
+}
+
+/**
+ * Get hint analytics data from service
+ */
+async function getHintAnalytics() {
+  let hintsUsed = { total: 0, contextual: 0, general: 0, primer: 0 };
+  
+  try {
+    logger.info("Getting hint analytics directly from service", { context: 'dashboard_hints' });
+    
+    const analytics = await HintInteractionService.getSystemAnalytics({});
+    
+    // Transform analytics data to match expected UI structure
+    hintsUsed.total = analytics.overview?.totalInteractions || 0;
+    
+    // Extract hint type counts from analytics
+    if (analytics.trends?.hintTypePopularity) {
+      analytics.trends.hintTypePopularity.forEach(hint => {
+        if (hintsUsed[hint.hintType] !== undefined) {
+          hintsUsed[hint.hintType] = hint.count;
+        }
+      });
+    }
+    
+    logger.info("Successfully retrieved hint analytics", { hintsUsed, context: 'dashboard_hints' });
+  } catch (error) {
+    logger.error("Failed to get hint analytics", { error, context: 'dashboard_hints' });
+  }
+  
+  return hintsUsed;
+}
+
+/**
+ * Construct final dashboard data object with all metrics
+ */
+function constructDashboardData({
+  // Core metrics
+  statistics, averageTime, successRate, timeAccuracy,
+  // Progress metrics
+  timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage, 
+  nextReviewTime, nextReviewCount,
+  // Analytics data
+  sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
+  // Filtered data
+  filteredProblems, filteredAttempts, filteredSessions,
+  // Original data and state
+  allProblems, allAttempts, allSessions, learningState, boxLevelData,
+  // Filter options
+  focusAreaFilter, dateRange
+}) {
+  const dashboardData = {
+    // Flattened statistics properties for Overview/Stats component
+    statistics,
+    averageTime,
+    successRate,
+    allSessions: filteredSessions,
+    hintsUsed,
+    timeAccuracy,
+    learningEfficiencyData,
+    
+    // Flattened progress properties for Progress component
+    boxLevelData: boxLevelData || {},
+    timerBehavior,
+    timerPercentage,
+    learningStatus,
+    progressTrend,
+    progressPercentage,
+    nextReviewTime,
+    nextReviewCount,
+    allAttempts: filteredAttempts || [],
+    allProblems: filteredProblems || [],
+    learningState: learningState || {},
+    
+    // Keep nested structure for components that might still need it
+    nested: {
+      statistics: { 
+        statistics, 
+        averageTime, 
+        successRate, 
+        allSessions: filteredSessions,
+        learningEfficiencyData
+      },
+      progress: {
+        learningState: learningState || {},
+        boxLevelData: boxLevelData || {},
+        allAttempts: filteredAttempts || [],
+        allProblems: filteredProblems || [],
+        allSessions: filteredSessions || [],
+        timerBehavior,
+        timerPercentage,
+        learningStatus,
+        progressTrend,
+        progressPercentage,
+        nextReviewTime,
+        nextReviewCount,
+      }
+    },
+    
+    // Keep existing sections for other components
+    sessions: sessionAnalytics,
+    mastery: masteryData,
+    goals: goalsData,
+    filters: {
+      focusAreaFilter,
+      dateRange,
+      appliedFilters: {
+        hasFocusAreaFilter: focusAreaFilter && focusAreaFilter.length > 0,
+        hasDateFilter: Boolean(dateRange && (dateRange.startDate || dateRange.endDate)),
+      },
+      originalCounts: {
+        problems: allProblems.length,
+        attempts: allAttempts.length,
+        sessions: allSessions.length,
+      },
+      filteredCounts: {
+        problems: filteredProblems.length,
+        attempts: filteredAttempts.length,
+        sessions: filteredSessions.length,
+      },
+    },
+  };
+
+  // Debug logging to verify data structure
+  logger.info("Dashboard Service - Data Structure Verification", { context: 'data_verification' });
+  logger.info("Data verification", { totalProblems: allProblems.length, context: 'data_verification' });
+  logger.info("Data verification", { totalAttempts: allAttempts.length, context: 'data_verification' });
+  logger.info("Data verification", { boxLevelData, context: 'data_verification' });
+  logger.info("Data verification", { timerBehavior, context: 'data_verification' });
+  logger.info("Data verification", { statistics, context: 'data_verification' });
+  logger.info("- Flattened Structure Keys:", Object.keys(dashboardData));
+
+  return dashboardData;
+}
+
 export async function getDashboardStatistics(options = {}) {
   try {
     const { focusAreaFilter = null, dateRange = null } = options;
     
-    const allProblems = await fetchAllProblems();
-    const allAttempts = await getAllAttempts();
-    const allSessions = await getAllSessions();
-    const allStandardProblems = await getAllStandardProblems();
-    const learningState = await TagService.getCurrentLearningState();
-    let boxLevelData = await ProblemService.countProblemsByBoxLevel();
+    const { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData } = await fetchDashboardData();
+    const { problemDifficultyMap, problemTagsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
 
-    // Create mapping from problem ID to official difficulty and tags
-    const problemDifficultyMap = {};
-    const problemTagsMap = new Map();
-    const standardProblemsMap = {};
-    allStandardProblems.forEach((standardProblem) => {
-      standardProblemsMap[standardProblem.id] = standardProblem;
+    // Apply filtering based on focus areas and date range
+    const { filteredProblems, filteredAttempts, filteredSessions } = applyFiltering({
+      allProblems,
+      allAttempts, 
+      allSessions,
+      problemTagsMap,
+      focusAreaFilter,
+      dateRange
     });
 
-    allProblems.forEach((problem) => {
-      const standardProblem = standardProblemsMap[problem.leetCodeID];
-      problemDifficultyMap[problem.id] = standardProblem?.difficulty || "Medium";
-      if (standardProblem) {
-        problemTagsMap.set(problem.id, standardProblem.tags || []);
-      }
-    });
+    // Calculate core statistics and derived metrics
+    const { statistics, timeStats, successStats } = calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap);
+    const { averageTime, successRate } = calculateDerivedMetrics(timeStats, successStats);
 
-    // Apply focus area filtering if specified
-    let filteredProblems = allProblems;
-    let filteredAttempts = allAttempts;
-    let filteredSessions = allSessions;
-
-    if (focusAreaFilter && focusAreaFilter.length > 0) {
-      // Filter problems that contain at least one of the focus area tags
-      const focusAreaProblemIds = new Set();
-      allProblems.forEach((problem) => {
-        const problemTags = problemTagsMap.get(problem.id) || [];
-        const hasFocusAreaTag = focusAreaFilter.some(tag => problemTags.includes(tag));
-        if (hasFocusAreaTag) {
-          focusAreaProblemIds.add(problem.id);
-        }
-      });
-
-      filteredProblems = allProblems.filter(problem => focusAreaProblemIds.has(problem.id));
-      filteredAttempts = allAttempts.filter(attempt => focusAreaProblemIds.has(attempt.ProblemID));
-      
-      // Filter sessions that contain focus area problems
-      filteredSessions = allSessions.filter(session => {
-        if (!session.problems) return false;
-        return session.problems.some(problem => focusAreaProblemIds.has(problem.id));
-      });
-    }
-
-    // Apply date range filtering if specified
-    if (dateRange && (dateRange.startDate || dateRange.endDate)) {
-      const startDate = dateRange.startDate ? new Date(dateRange.startDate) : new Date(0);
-      const endDate = dateRange.endDate ? new Date(dateRange.endDate) : new Date();
-
-      filteredAttempts = filteredAttempts.filter((attempt) => {
-        const attemptDate = new Date(attempt.AttemptDate);
-        return attemptDate >= startDate && attemptDate <= endDate;
-      });
-
-      filteredSessions = filteredSessions.filter((session) => {
-        const sessionDate = new Date(session.Date);
-        return sessionDate >= startDate && sessionDate <= endDate;
-      });
-    }
-
-    const statistics = {
-      totalSolved: 0,
-      mastered: 0,
-      inProgress: 0,
-      new: 0,
-    };
-
-    const timeStats = {
-      overall: { totalTime: 0, count: 0 },
-      Easy: { totalTime: 0, count: 0 },
-      Medium: { totalTime: 0, count: 0 },
-      Hard: { totalTime: 0, count: 0 },
-    };
-
-    const successStats = {
-      overall: { successful: 0, total: 0 },
-      Easy: { successful: 0, total: 0 },
-      Medium: { successful: 0, total: 0 },
-      Hard: { successful: 0, total: 0 },
-    };
-
-    filteredProblems.forEach((problem) => {
-      switch (problem.BoxLevel) {
-        case 1:
-          statistics.new++;
-          break;
-        case 7:
-          statistics.mastered++;
-          break;
-        default:
-          if (problem.BoxLevel >= 2 && problem.BoxLevel <= 6) {
-            statistics.inProgress++;
-          }
-          break;
-      }
-    });
-    statistics.totalSolved = statistics.mastered + statistics.inProgress;
-    filteredAttempts.forEach((attempt) => {
-      const officialDifficulty = problemDifficultyMap[attempt.ProblemID];
-      const timeSpent = Number(attempt.TimeSpent) || 0; // TimeSpent now in seconds
-
-      // Update overall time statistics
-      timeStats.overall.totalTime += timeSpent;
-      timeStats.overall.count++;
-
-      // Update overall success statistics
-      successStats.overall.total++;
-      if (attempt.Success) {
-        successStats.overall.successful++;
-      }
-
-      // Update statistics based on official difficulty
-      if (officialDifficulty && timeStats[officialDifficulty]) {
-        timeStats[officialDifficulty].totalTime += timeSpent;
-        timeStats[officialDifficulty].count++;
-
-        successStats[officialDifficulty].total++;
-        if (attempt.Success) {
-          successStats[officialDifficulty].successful++;
-        }
-      }
-    });
-
-    // Calculate average time in minutes for display (convert from seconds)
-    const calculateAverage = (totalTimeInSeconds, count) =>
-      count > 0
-        ? AccurateTimer.secondsToMinutes(totalTimeInSeconds / count, 1)
-        : 0;
-
-    const calculateSuccessRate = (successful, total) =>
-      total > 0 ? parseInt((successful / total) * 100) : 0;
-
-    const averageTime = {
-      overall: calculateAverage(
-        timeStats.overall.totalTime,
-        timeStats.overall.count
-      ),
-      Easy: calculateAverage(timeStats.Easy.totalTime, timeStats.Easy.count),
-      Medium: calculateAverage(
-        timeStats.Medium.totalTime,
-        timeStats.Medium.count
-      ),
-      Hard: calculateAverage(timeStats.Hard.totalTime, timeStats.Hard.count),
-    };
-
-    const successRate = {
-      overall: calculateSuccessRate(
-        successStats.overall.successful,
-        successStats.overall.total
-      ),
-      Easy: calculateSuccessRate(
-        successStats.Easy.successful,
-        successStats.Easy.total
-      ),
-      Medium: calculateSuccessRate(
-        successStats.Medium.successful,
-        successStats.Medium.total
-      ),
-      Hard: calculateSuccessRate(
-        successStats.Hard.successful,
-        successStats.Hard.total
-      ),
-    };
-
-    // Generate session analytics data
-    const sessionAnalytics = await generateSessionAnalytics(filteredSessions, filteredAttempts);
+    // Generate analytics and derived data
+    const { sessionAnalytics, masteryData, goalsData, learningEfficiencyData } = await generateAnalyticsData(filteredSessions, filteredAttempts, learningState);
     
-    // Generate mastery data with focus areas integration
-    const masteryData = await generateMasteryData(learningState);
+    // Calculate progress metrics
+    const { timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage } = calculateProgressMetrics(filteredAttempts, filteredSessions);
     
-    // Generate goals/learning plan data with real metrics
-    const goalsData = await generateGoalsData();
-
-    // Generate learning efficiency chart data
-    const learningEfficiencyData = await generateLearningEfficiencyChartData(filteredSessions, filteredAttempts);
-
-    // Calculate timer behavior from actual session data with null checks
-    const timerBehavior = calculateTimerBehavior(filteredAttempts) || "No data";
-    const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
-    
-    // Calculate learning status and progress trend from actual data
-    const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
-    const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
-    const progressTrend = progressTrendData.trend;
-    const progressPercentage = progressTrendData.percentage;
-    
-    // Calculate next review data from schedule service with null checks
-    const nextReviewData = await calculateNextReviewData();
+    // Calculate next review data and get hint analytics
+    const [nextReviewData, hintsUsed] = await Promise.all([
+      calculateNextReviewData(),
+      getHintAnalytics()
+    ]);
     const nextReviewTime = nextReviewData?.nextReviewTime || "Schedule unavailable";
     const nextReviewCount = nextReviewData?.nextReviewCount || 0;
-
-    // Get real hint analytics data directly from HintInteractionService
-    let hintsUsed = { total: 0, contextual: 0, general: 0, primer: 0 };
-    try {
-      logger.info("Getting hint analytics directly from service", { context: 'dashboard_hints' });
-      
-      const analytics = await HintInteractionService.getSystemAnalytics({});
-      
-      // Transform analytics data to match expected UI structure
-      hintsUsed.total = analytics.overview?.totalInteractions || 0;
-      
-      // Extract hint type counts from analytics
-      if (analytics.trends?.hintTypePopularity) {
-        analytics.trends.hintTypePopularity.forEach(hint => {
-          if (hintsUsed[hint.hintType] !== undefined) {
-            hintsUsed[hint.hintType] = hint.count;
-          }
-        });
-      }
-      
-      logger.info("Successfully retrieved hint analytics", { hintsUsed, context: 'dashboard_hints' });
-    } catch (error) {
-      logger.error("Failed to get hint analytics", { error, context: 'dashboard_hints' });
-      // Keep fallback values
-    }
 
     // Calculate time accuracy (how close user estimates are to actual time)
     const timeAccuracy = Math.floor(75 + Math.random() * 20); // 75-95% accuracy - TODO: implement real calculation
 
-    // Create the return object with flattened structure for component compatibility
-    const dashboardData = {
-      // Flattened statistics properties for Overview/Stats component
-      statistics,
-      averageTime,
-      successRate,
-      allSessions: filteredSessions,
-      hintsUsed,
-      timeAccuracy,
-      learningEfficiencyData,
-      
-      // Flattened progress properties for Progress component
-      boxLevelData: boxLevelData || {},
-      timerBehavior,
-      timerPercentage,
-      learningStatus,
-      progressTrend,
-      progressPercentage,
-      nextReviewTime,
-      nextReviewCount,
-      allAttempts: filteredAttempts || [],
-      allProblems: filteredProblems || [],
-      learningState: learningState || {},
-      
-      // Keep nested structure for components that might still need it
-      nested: {
-        statistics: { 
-          statistics, 
-          averageTime, 
-          successRate, 
-          allSessions: filteredSessions,
-          learningEfficiencyData
-        },
-        progress: {
-          learningState: learningState || {},
-          boxLevelData: boxLevelData || {},
-          allAttempts: filteredAttempts || [],
-          allProblems: filteredProblems || [],
-          allSessions: filteredSessions || [],
-          timerBehavior,
-          timerPercentage,
-          learningStatus,
-          progressTrend,
-          progressPercentage,
-          nextReviewTime,
-          nextReviewCount,
-        }
-      },
-      
-      // Keep existing sections for other components
-      sessions: sessionAnalytics,
-      mastery: masteryData,
-      goals: goalsData,
-      filters: {
-        focusAreaFilter,
-        dateRange,
-        appliedFilters: {
-          hasFocusAreaFilter: focusAreaFilter && focusAreaFilter.length > 0,
-          hasDateFilter: Boolean(dateRange && (dateRange.startDate || dateRange.endDate)),
-        },
-        originalCounts: {
-          problems: allProblems.length,
-          attempts: allAttempts.length,
-          sessions: allSessions.length,
-        },
-        filteredCounts: {
-          problems: filteredProblems.length,
-          attempts: filteredAttempts.length,
-          sessions: filteredSessions.length,
-        },
-      },
-    };
-
-    // Debug logging to verify data structure
-    logger.info("Dashboard Service - Data Structure Verification", { context: 'data_verification' });
-    logger.info("Data verification", { totalProblems: allProblems.length, context: 'data_verification' });
-    logger.info("Data verification", { totalAttempts: allAttempts.length, context: 'data_verification' });
-    logger.info("Data verification", { boxLevelData, context: 'data_verification' });
-    logger.info("Data verification", { timerBehavior, context: 'data_verification' });
-    logger.info("Data verification", { statistics, context: 'data_verification' });
-    logger.info("- Flattened Structure Keys:", Object.keys(dashboardData));
-    
-    return dashboardData;
+    // Construct and return final dashboard data
+    return constructDashboardData({
+      // Core metrics
+      statistics, averageTime, successRate, timeAccuracy,
+      // Progress metrics
+      timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage, 
+      nextReviewTime, nextReviewCount,
+      // Analytics data
+      sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
+      // Filtered data
+      filteredProblems, filteredAttempts, filteredSessions,
+      // Original data and state
+      allProblems, allAttempts, allSessions, learningState, boxLevelData,
+      // Filter options
+      focusAreaFilter, dateRange
+    });
   } catch (error) {
     logger.error("Error calculating dashboard statistics:", error);
     throw error;
@@ -584,7 +679,7 @@ export function generateSessionAnalytics(sessions, attempts) {
       ...session,
       sessionId: session.sessionId || `session_${index + 1}`,
       duration: Math.round(duration),
-      accuracy: Math.round(accuracy * 100) / 100,
+      accuracy: roundToPrecision(accuracy),
       completed,
       problems: session.problems || sessionAttempts.map(attempt => ({
         id: attempt.ProblemID,
@@ -645,10 +740,10 @@ export async function generateMasteryData(learningState) {
       ...mastery,
       isFocus: focusTags.includes(mastery.tag),
       progress: mastery.totalAttempts > 0 ? 
-        Math.round((mastery.successfulAttempts / mastery.totalAttempts) * 100) : 
+        calculateProgressPercentage(mastery.successfulAttempts, mastery.totalAttempts) : 
         0,
-      hintHelpfulness: mastery.successfulAttempts / mastery.totalAttempts > 0.8 ? "low" :
-                      mastery.successfulAttempts / mastery.totalAttempts > 0.5 ? "medium" : "high"
+      hintHelpfulness: calculateSuccessRate(mastery.successfulAttempts, mastery.totalAttempts) > 0.8 ? "low" :
+                      calculateSuccessRate(mastery.successfulAttempts, mastery.totalAttempts) > 0.5 ? "medium" : "high"
     }));
 
     return {
@@ -1856,7 +1951,7 @@ function calculateTransferMetrics(allSessions, allAttempts, accuracy, progressTr
     Math.round(((progressTrend[progressTrend.length - 1].accuracy - progressTrend[0].accuracy) / progressTrend.length) * 10) / 10 : 0;
 
   return {
-    standardToInterview: Math.round(transferScore * 100) / 100,
+    standardToInterview: roundToPrecision(transferScore),
     improvementRate
   };
 }
