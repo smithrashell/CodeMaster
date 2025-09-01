@@ -17,6 +17,7 @@ import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
 import logger from "../utils/logger.js";
+import { roundToPrecision } from "../utils/Utils.js";
 
 /**
  * Circuit Breaker for Enhanced Habit Learning Features
@@ -774,6 +775,57 @@ export const SessionService = {
   // Removed getDraftSession and startSession - sessions auto-start immediately now
 
   /**
+   * Helper method to classify interview sessions
+   */
+  _classifyInterviewSession(hoursStale, attemptCount) {
+    if (hoursStale > 3) {
+      if (attemptCount === 0 && hoursStale > 6) {
+        return 'interview_abandoned';
+      }
+      return 'interview_stale';
+    }
+    return 'interview_active';
+  },
+
+  /**
+   * Helper method to classify tracking sessions
+   */
+  _classifyTrackingSession(hoursStale) {
+    if (hoursStale > 6) {
+      return 'tracking_stale';
+    }
+    return 'tracking_active';
+  },
+
+  /**
+   * Helper method to classify generator sessions
+   */
+  _classifyGeneratorSession(session, metrics) {
+    const { hoursStale, attemptCount, progressRatio, sessionProblemsAttempted, outsideSessionAttempts } = metrics;
+    if (session.status === 'draft' && hoursStale > 2) {
+      return 'draft_expired';
+    }
+    
+    if (attemptCount === 0 && hoursStale > 24) {
+      return 'abandoned_at_start';
+    }
+    
+    if (progressRatio >= 0.8 && hoursStale > 12) {
+      return 'auto_complete_candidate';
+    }
+    
+    if (attemptCount > 0 && hoursStale > 48) {
+      return 'stalled_with_progress';
+    }
+    
+    if (outsideSessionAttempts > 0 && sessionProblemsAttempted === 0 && hoursStale > 12) {
+      return 'tracking_only_user';
+    }
+    
+    return null;
+  },
+
+  /**
    * Multi-factor session classification for intelligent cleanup
    * Determines session health and appropriate actions based on multiple factors
    */
@@ -803,7 +855,7 @@ export const SessionService = {
       attemptCount,
       sessionProblemsAttempted,
       outsideSessionAttempts,
-      progressRatio: Math.round(progressRatio * 100) / 100
+      progressRatio: roundToPrecision(progressRatio)
     });
     
     // Active sessions - use interview-aware thresholds
@@ -814,50 +866,21 @@ export const SessionService = {
     
     // Interview session classification - different thresholds for time-sensitive practice
     if (session.sessionType && (session.sessionType === 'interview-like' || session.sessionType === 'full-interview')) {
-      // Interview sessions have shorter staleness thresholds due to their time-sensitive nature
-      if (hoursStale > 3) {
-        if (attemptCount === 0 && hoursStale > 6) {
-          return 'interview_abandoned';
-        }
-        return 'interview_stale';
-      }
-      return 'interview_active';
+      return this._classifyInterviewSession(hoursStale, attemptCount);
     }
     
     // Tracking session classification
     if (session.origin === 'tracking') {
-      // Updated tracking session parameters: 4-6 hours active time
-      if (hoursStale > 6) {
-        return 'tracking_stale';
-      }
-      return 'tracking_active';
+      return this._classifyTrackingSession(hoursStale);
     }
     
     // Guided session classification
     if (session.origin === 'generator') {
-      // Draft sessions should rarely exist now - they auto-start, but clean up old ones
-      if (session.status === 'draft' && hoursStale > 2) {
-        return 'draft_expired';
-      }
-      
-      // Sessions with no attempts that are old
-      if (attemptCount === 0 && hoursStale > 24) {
-        return 'abandoned_at_start';
-      }
-      
-      // Nearly complete sessions
-      if (progressRatio >= 0.8 && hoursStale > 12) {
-        return 'auto_complete_candidate';
-      }
-      
-      // Sessions with progress but stalled
-      if (attemptCount > 0 && hoursStale > 48) {
-        return 'stalled_with_progress';
-      }
-      
-      // Detect "tracking-only" usage pattern - guided session but all attempts are outside
-      if (outsideSessionAttempts > 0 && sessionProblemsAttempted === 0 && hoursStale > 12) {
-        return 'tracking_only_user';
+      const result = this._classifyGeneratorSession(session, { 
+        hoursStale, attemptCount, progressRatio, sessionProblemsAttempted, outsideSessionAttempts 
+      });
+      if (result) {
+        return result;
       }
     }
     
@@ -1262,7 +1285,7 @@ export const SessionService = {
       type: "session_completed",
       sessionId: sessionSummary.sessionId,
       metrics: {
-        accuracy: Math.round(sessionSummary.performance.accuracy * 100) / 100,
+        accuracy: roundToPrecision(sessionSummary.performance.accuracy),
         avgTime: Math.round(sessionSummary.performance.avgTime),
         problemsCompleted: sessionSummary.difficultyAnalysis.totalProblems,
         newMasteries: sessionSummary.masteryProgression.newMasteries,
@@ -1545,7 +1568,7 @@ export const SessionService = {
       reliability,
       totalSessions: sessions.length,
       consistency: stdDev < 2 ? "consistent" : "variable",
-      confidenceScore: Math.round(confidenceScore * 100) / 100,
+      confidenceScore: roundToPrecision(confidenceScore),
       learningPhase,
       dataSpanDays: Math.round(dataSpanDays),
       standardDeviation: Math.round(stdDev * 10) / 10
