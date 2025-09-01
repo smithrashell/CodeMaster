@@ -261,13 +261,18 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
 
   // Cleanup function to prevent memory leaks
   useEffect(() => {
+    // Capture ref values at effect setup time
+    const timeoutRef_current = timeoutRef;
+    const retryTimeoutRef_current = retryTimeoutRef;
+    
     return () => {
       isMountedRef.current = false;
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      
+      if (timeoutRef_current.current) {
+        clearTimeout(timeoutRef_current.current);
       }
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
+      if (retryTimeoutRef_current.current) {
+        clearTimeout(retryTimeoutRef_current.current);
       }
     };
   }, []);
@@ -332,6 +337,7 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
   useEffect(() => {
     if (!immediate || !request) return;
     sendMessage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return {
