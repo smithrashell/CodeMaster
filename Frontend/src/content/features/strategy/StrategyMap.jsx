@@ -3,6 +3,69 @@ import React, { useState, useEffect } from "react";
 import Header from "../../components/navigation/header";
 import { useNav } from "../../../shared/provider/navprovider";
 
+// Helper component for expansion buttons
+const ExpansionButton = ({ 
+  isExpanded, 
+  tagsCount, 
+  tierName, 
+  toggleTierExpansion, 
+  getHoverHandlers 
+}) => {
+  const commonStyle = {
+    fontSize: "10px",
+    color: "var(--cm-link)",
+    opacity: 0.8,
+    padding: "2px 6px",
+    fontWeight: "500",
+    cursor: "pointer",
+    borderRadius: "4px",
+    transition: "all 0.2s ease",
+  };
+
+  const handleClick = () => toggleTierExpansion(tierName);
+  
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleTierExpansion(tierName);
+    }
+  };
+
+  if (!isExpanded && tagsCount > 3) {
+    return (
+      <span
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        style={commonStyle}
+        {...getHoverHandlers()}
+        title={`Click to show all ${tagsCount} tags`}
+      >
+        +{tagsCount - 3} more
+      </span>
+    );
+  }
+
+  if (isExpanded && tagsCount > 3) {
+    return (
+      <span
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={0}
+        style={commonStyle}
+        {...getHoverHandlers()}
+        title="Click to show less"
+      >
+        show less
+      </span>
+    );
+  }
+
+  return null;
+};
+
 // Helper component for rendering tier data
 const TierRenderer = ({ tierData, getVisibleTags, focusTags, getTagClass, formatTagName, expandedTiers, toggleTierExpansion, getHoverHandlers }) => {
   return (
@@ -58,60 +121,13 @@ const TierRenderer = ({ tierData, getVisibleTags, focusTags, getTagClass, format
                 </span>
               );
             })}
-            {!expandedTiers.has(tierName) && tags.length > 3 && (
-              <span
-                onClick={() => toggleTierExpansion(tierName)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleTierExpansion(tierName);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                style={{
-                  fontSize: "10px",
-                  color: "var(--cm-link)",
-                  opacity: 0.8,
-                  padding: "2px 6px",
-                  fontWeight: "500",
-                  cursor: "pointer",
-                  borderRadius: "4px",
-                  transition: "all 0.2s ease",
-                }}
-                {...getHoverHandlers()}
-                title={`Click to show all ${tags.length} tags`}
-              >
-                +{tags.length - 3} more
-              </span>
-            )}
-            {expandedTiers.has(tierName) && tags.length > 3 && (
-              <span
-                onClick={() => toggleTierExpansion(tierName)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleTierExpansion(tierName);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                style={{
-                  fontSize: "10px",
-                  color: "var(--cm-link)",
-                  opacity: 0.8,
-                  padding: "2px 6px",
-                  fontWeight: "500",
-                  cursor: "pointer",
-                  borderRadius: "4px",
-                  transition: "all 0.2s ease",
-                }}
-                {...getHoverHandlers()}
-                title="Click to show less"
-              >
-                show less
-              </span>
-            )}
+            <ExpansionButton
+              isExpanded={expandedTiers.has(tierName)}
+              tagsCount={tags.length}
+              tierName={tierName}
+              toggleTierExpansion={toggleTierExpansion}
+              getHoverHandlers={getHoverHandlers}
+            />
           </div>
         </div>
       ))}

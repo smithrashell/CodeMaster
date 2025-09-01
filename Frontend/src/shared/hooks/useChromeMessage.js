@@ -112,6 +112,108 @@ const performanceLogger = {
   }
 };
 
+// Helper functions for message handling
+const handleCacheCheck = ({ request, bypassCache, setData, setLoading, setError, onSuccess }) => {
+  if (bypassCache) return false;
+  
+  const cacheKey = getCacheKey(request);
+  const cachedData = getCachedResponse(cacheKey);
+  
+  if (cachedData) {
+    console.info(`🚀 Cache hit for ${request?.type}`);
+    setData(cachedData);
+    setLoading(false);
+    setError(null);
+    if (onSuccess) onSuccess(cachedData);
+    return true;
+  }
+  
+  return false;
+};
+
+const handleRequestDeduplication = async ({ request, setData, setLoading, setError, onSuccess, isMountedRef }) => {
+  const cacheKey = getCacheKey(request);
+  
+  if (pendingRequests.has(cacheKey)) {
+    console.info(`⏳ Deduplicating request for ${request?.type}`);
+    try {
+      const result = await pendingRequests.get(cacheKey);
+      if (!isMountedRef.current) return true;
+      setData(result);
+      setLoading(false);
+      setError(null);
+      if (onSuccess) onSuccess(result);
+      return true;
+    } catch (error) {
+      return true; // Will be handled by the original request
+    }
+  }
+  
+  return false;
+};
+
+const handleSuccess = ({ response, request, startTime, currentRetryCount, cacheKey, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess }) => {
+  if (!isMountedRef.current) return;
+  
+  const duration = performance.now() - startTime;
+  performanceLogger.logTiming(request, duration, true, currentRetryCount);
+  
+  if (duration > 5000) {
+    performanceLogger.logSlowRequest(request, duration);
+  }
+  
+  setCachedResponse(cacheKey, response);
+  setData(response);
+  setLoading(false);
+  setIsRetrying(false);
+  setRetryCount(currentRetryCount);
+  if (onSuccess) onSuccess(response);
+};
+
+const handleError = ({ error, request, startTime, maxRetries, showNotifications, isMountedRef, setLoading, setIsRetrying, setError, setRetryCount, onError, retry }) => {
+  if (!isMountedRef.current) return;
+  
+  const duration = performance.now() - startTime;
+  const errorMessage = error.message || "Unknown Chrome extension error";
+  
+  performanceLogger.logTiming(request, duration, false, maxRetries);
+  performanceLogger.logFailurePattern(request, error, maxRetries);
+  
+  setLoading(false);
+  setIsRetrying(false);
+  setError(errorMessage);
+  setRetryCount(maxRetries);
+  
+  if (showNotifications) {
+    showErrorNotification(errorMessage, {
+      title: "Chrome Extension Error",
+      message: `Failed to communicate with extension: ${errorMessage}`,
+      context: "useChromeMessage",
+      actions: [
+        {
+          label: "Retry",
+          primary: true,
+          onClick: () => retry(),
+        },
+        {
+          label: "Report Issue",
+          onClick: () => {
+            ChromeAPIErrorHandler.showErrorReportDialog({
+              message: request,
+              error: errorMessage,
+              attempts: maxRetries,
+              duration: Math.round(duration),
+              timestamp: new Date().toISOString(),
+            });
+          },
+        },
+      ],
+    });
+  }
+  
+  if (onError) onError(errorMessage);
+};
+
 /**
  * Enhanced Chrome extension message communication hook with retry mechanisms,
  * comprehensive error handling, and performance telemetry for production-ready 
@@ -174,53 +276,30 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
   const sendMessage = async (currentRetryCount = 0, bypassCache = false) => {
     if (!isMountedRef.current) return;
 
-    const cacheKey = getCacheKey(request);
-    
-    // Check cache first (unless bypassing for manual refresh)
-    if (!bypassCache) {
-      const cachedData = getCachedResponse(cacheKey);
-      if (cachedData) {
-        console.info(`🚀 Cache hit for ${request?.type}`);
-        setData(cachedData);
-        setLoading(false);
-        setError(null);
-        if (onSuccess) onSuccess(cachedData);
-        return;
-      }
+    // Check cache first
+    if (handleCacheCheck({ request, bypassCache, setData, setLoading, setError, onSuccess })) {
+      return;
     }
     
-    // Request deduplication - check for pending identical request
-    if (pendingRequests.has(cacheKey)) {
-      console.info(`⏳ Deduplicating request for ${request?.type}`);
-      try {
-        const result = await pendingRequests.get(cacheKey);
-        if (!isMountedRef.current) return;
-        setData(result);
-        setLoading(false);
-        setError(null);
-        if (onSuccess) onSuccess(result);
-        return;
-      } catch (error) {
-        // Will be handled by the original request
-        return;
-      }
+    // Handle request deduplication
+    if (await handleRequestDeduplication({ request, setData, setLoading, setError, onSuccess, isMountedRef })) {
+      return;
     }
 
     setLoading(true);
     setError(null);
     setIsRetrying(currentRetryCount > 0);
 
-    // Start timing measurement
     const startTime = performance.now();
+    const cacheKey = getCacheKey(request);
     
-    // Create promise for request deduplication
     const requestPromise = ChromeAPIErrorHandler.sendMessageWithRetry(
       request,
       {
         maxRetries: maxRetries - currentRetryCount,
         retryDelay,
         timeout,
-        showNotifications: false, // We'll handle notifications here
+        showNotifications: false,
       }
     );
     
@@ -228,78 +307,12 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
 
     try {
       const response = await requestPromise;
-      
-      // Clean up pending request
       pendingRequests.delete(cacheKey);
-
-      if (!isMountedRef.current) return;
-
-      // Calculate duration and log success metrics
-      const duration = performance.now() - startTime;
-      performanceLogger.logTiming(request, duration, true, currentRetryCount);
-
-      // Log slow requests for performance monitoring
-      if (duration > 5000) { // Log requests taking longer than 5 seconds
-        performanceLogger.logSlowRequest(request, duration);
-      }
-
-      // Cache successful response
-      setCachedResponse(cacheKey, response);
-
-      // Success case
-      setData(response);
-      setLoading(false);
-      setIsRetrying(false);
-      setRetryCount(currentRetryCount);
-      if (onSuccess) onSuccess(response);
+      
+      handleSuccess({ response, request, startTime, currentRetryCount, cacheKey, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess });
     } catch (error) {
-      // Clean up pending request
       pendingRequests.delete(cacheKey);
-      
-      if (!isMountedRef.current) return;
-
-      // Calculate duration and log failure metrics
-      const duration = performance.now() - startTime;
-      const errorMessage = error.message || "Unknown Chrome extension error";
-      
-      performanceLogger.logTiming(request, duration, false, maxRetries);
-      performanceLogger.logFailurePattern(request, error, maxRetries);
-
-      // Final failure after all retries
-      setLoading(false);
-      setIsRetrying(false);
-      setError(errorMessage);
-      setRetryCount(maxRetries);
-
-      // Show user notification for critical errors with graceful fallback
-      if (showNotifications) {
-        showErrorNotification(errorMessage, {
-          title: "Chrome Extension Error",
-          message: `Failed to communicate with extension: ${errorMessage}`,
-          context: "useChromeMessage",
-          actions: [
-            {
-              label: "Retry",
-              primary: true,
-              onClick: () => retry(),
-            },
-            {
-              label: "Report Issue",
-              onClick: () => {
-                ChromeAPIErrorHandler.showErrorReportDialog({
-                  message: request,
-                  error: errorMessage,
-                  attempts: maxRetries,
-                  duration: Math.round(duration),
-                  timestamp: new Date().toISOString(),
-                });
-              },
-            },
-          ],
-        });
-      }
-
-      if (onError) onError(errorMessage);
+      handleError({ error, request, startTime, maxRetries, showNotifications, isMountedRef, setLoading, setIsRetrying, setError, setRetryCount, onError, retry });
     }
   };
 
