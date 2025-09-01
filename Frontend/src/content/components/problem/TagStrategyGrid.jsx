@@ -64,6 +64,80 @@ function TagStrategyGrid({
     }
   }, [problemTags]);
 
+  // Helper function for Strategy 1: Ensure problem card remains fully visible
+  const ensureProblemCardVisibility = (problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin) => {
+    const problemCardBottom = problemCardRect.bottom;
+    const buttonTop = buttonRect.top;
+
+    // If the expanded content would overlap with problem card
+    if (buttonTop < problemCardBottom + safeMargin) {
+      // Scroll so that the expanded button starts right after the problem card
+      const targetPosition = problemCardRect.height + scrollTop + safeMargin;
+
+      sidebarContent.scrollTo({
+        top: Math.max(0, targetPosition),
+        behavior: "smooth",
+      });
+      return true;
+    }
+    return false;
+  };
+
+  // Helper function for Strategy 2: Enhanced scrollIntoView with action button protection
+  const handleExpandedContainerScrolling = (expandedButton, actionButtons, hintRect) => {
+    const expandedTagContainer = expandedButton.closest(".tag-strategy-container");
+    if (expandedTagContainer && actionButtons) {
+      // Calculate if we need to ensure action buttons remain visible
+      const containerRect = expandedTagContainer.getBoundingClientRect();
+      const actionButtonsRect = actionButtons.getBoundingClientRect();
+      const expandedContentHeight = hintRect.height;
+      
+      // If expanded content would push action buttons out of view
+      if (containerRect.bottom + expandedContentHeight > actionButtonsRect.top - 20) {
+        // Scroll to position the container higher to keep action buttons visible
+        expandedTagContainer.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+          inline: "nearest",
+        });
+      } else {
+        expandedTagContainer.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+          inline: "nearest",
+        });
+      }
+      return true;
+    }
+    return false;
+  };
+
+  // Helper function for Strategy 3: Fallback positioning
+  const handleFallbackScrolling = ({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin }) => {
+    const currentRelativePosition = buttonRect.top - sidebarRect.top;
+    const minTopPosition = 80; // Minimum distance from top to ensure content visibility
+    const expandedContentHeight = hintRect.height;
+
+    // Check if current position would cause content to overflow or block other content
+    if (
+      currentRelativePosition < minTopPosition ||
+      currentRelativePosition + expandedContentHeight > sidebarRect.height - safeMargin
+    ) {
+      // Calculate position that ensures both button and expanded content are visible
+      const idealPosition = Math.min(
+        minTopPosition,
+        sidebarRect.height - expandedContentHeight - safeMargin
+      );
+
+      const targetPosition = buttonRect.top - sidebarRect.top + scrollTop - idealPosition;
+
+      sidebarContent.scrollTo({
+        top: Math.max(0, targetPosition),
+        behavior: "smooth",
+      });
+    }
+  };
+
   const handleTagClick = async (tag) => {
     const normalizedTag = tag.toLowerCase().trim();
     const isExpanding = expandedTag !== normalizedTag;
@@ -128,86 +202,20 @@ function TagStrategyGrid({
             const buttonRect = expandedButton.getBoundingClientRect();
             const sidebarRect = sidebarContent.getBoundingClientRect();
             const hintRect = hintElement.getBoundingClientRect();
-            const problemCardRect = problemCard
-              ? problemCard.getBoundingClientRect()
-              : null;
+            const problemCardRect = problemCard ? problemCard.getBoundingClientRect() : null;
             const scrollTop = sidebarContent.scrollTop;
-
-            // Calculate the total height needed for tag button + expanded content
-            const expandedContentHeight = hintRect.height;
             const safeMargin = 20; // Extra breathing room
 
-            // Strategy 1: Ensure problem card remains fully visible
-            if (problemCardRect) {
-              const problemCardBottom = problemCardRect.bottom;
-              const buttonTop = buttonRect.top;
-
-              // If the expanded content would overlap with problem card
-              if (buttonTop < problemCardBottom + safeMargin) {
-                // Scroll so that the expanded button starts right after the problem card
-                const targetPosition =
-                  problemCardRect.height + scrollTop + safeMargin;
-
-                sidebarContent.scrollTo({
-                  top: Math.max(0, targetPosition),
-                  behavior: "smooth",
-                });
-                return;
-              }
-            }
-
-            // Strategy 2: Enhanced scrollIntoView with action button protection
-            const expandedTagContainer = expandedButton.closest(
-              ".tag-strategy-container"
-            );
-            if (expandedTagContainer && actionButtons) {
-              // Calculate if we need to ensure action buttons remain visible
-              const containerRect = expandedTagContainer.getBoundingClientRect();
-              const actionButtonsRect = actionButtons.getBoundingClientRect();
-              const expandedContentHeight = hintRect.height;
-              
-              // If expanded content would push action buttons out of view
-              if (containerRect.bottom + expandedContentHeight > actionButtonsRect.top - 20) {
-                // Scroll to position the container higher to keep action buttons visible
-                expandedTagContainer.scrollIntoView({
-                  behavior: "smooth",
-                  block: "center",
-                  inline: "nearest",
-                });
-              } else {
-                expandedTagContainer.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                  inline: "nearest",
-                });
-              }
+            // Try each scrolling strategy in order
+            if (problemCardRect && ensureProblemCardVisibility(problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin)) {
               return;
             }
-
-            // Strategy 3: Fallback - Position button with consideration for expanded content
-            const currentRelativePosition = buttonRect.top - sidebarRect.top;
-            const minTopPosition = 80; // Minimum distance from top to ensure content visibility
-
-            // Check if current position would cause content to overflow or block other content
-            if (
-              currentRelativePosition < minTopPosition ||
-              currentRelativePosition + expandedContentHeight >
-                sidebarRect.height - safeMargin
-            ) {
-              // Calculate position that ensures both button and expanded content are visible
-              const idealPosition = Math.min(
-                minTopPosition,
-                sidebarRect.height - expandedContentHeight - safeMargin
-              );
-
-              const targetPosition =
-                buttonRect.top - sidebarRect.top + scrollTop - idealPosition;
-
-              sidebarContent.scrollTo({
-                top: Math.max(0, targetPosition),
-                behavior: "smooth",
-              });
+            
+            if (handleExpandedContainerScrolling(expandedButton, actionButtons, hintRect)) {
+              return;
             }
+            
+            handleFallbackScrolling({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin });
           }, 50); // Wait for hint element to fully render
         }
       }, 100);
