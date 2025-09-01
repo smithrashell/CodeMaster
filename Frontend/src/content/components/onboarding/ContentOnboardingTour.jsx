@@ -165,38 +165,22 @@ const TOUR_STEPS = [
   },
 ];
 
-export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
-  const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
+// Custom hook for tour positioning logic
+const useTourPositioning = (isVisible, currentStepData, currentStep) => {
   const [tourPosition, setTourPosition] = useState({ top: 0, left: 0 });
   const [arrowPosition, setArrowPosition] = useState(null);
-  const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
-  const [menuOpenState, setMenuOpenState] = useState(false);
 
-  const currentStepData = TOUR_STEPS[currentStep];
-
-  // Smart positioning effect
   useEffect(() => {
     if (!isVisible) return;
 
     const calculatePosition = () => {
       const position = smartPositioning.calculatePosition(
         currentStepData.target,
-        currentStepData.position
+        currentStepData.position,
+        currentStepData.screenKey === "completion" ? "center" : undefined
       );
-
-      setTourPosition({ top: position.top, left: position.left });
-
-      if (position.arrowDirection && position.targetRect) {
-        const arrow = smartPositioning.getArrowPosition(
-          position,
-          position.targetRect,
-          position.arrowDirection
-        );
-        setArrowPosition({ ...arrow, direction: position.arrowDirection });
-      } else {
-        setArrowPosition(null);
-      }
+      setTourPosition(position.tooltip);
+      setArrowPosition(position.arrow);
     };
 
     // Initial calculation
@@ -213,30 +197,28 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
     };
   }, [currentStep, isVisible, currentStepData]);
 
-  // Enhanced menu state monitoring
+  return { tourPosition, arrowPosition };
+};
+
+// Custom hook for menu state monitoring
+const useMenuStateMonitoring = (isVisible) => {
+  const [menuOpenState, setMenuOpenState] = useState(false);
+
   useEffect(() => {
     if (!isVisible) return;
 
     const checkMenuState = () => {
       const menuElement = document.querySelector("#cm-mySidenav");
-      const isOpen =
-        menuElement && !menuElement.classList.contains("cm-hidden");
+      const isOpen = menuElement && !menuElement.classList.contains("cm-hidden");
       setMenuOpenState(isOpen);
-
-      // Debug logging
       logger.info("Menu state check:", { isOpen, element: !!menuElement });
     };
 
-    // Check immediately and set up observer
     checkMenuState();
 
-    // Set up mutation observer for class changes
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "class"
-        ) {
+        if (mutation.type === "attributes" && mutation.attributeName === "class") {
           checkMenuState();
         }
       });
@@ -244,33 +226,27 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
 
     const menuElement = document.querySelector("#cm-mySidenav");
     if (menuElement) {
-      observer.observe(menuElement, {
-        attributes: true,
-        attributeFilter: ["class"],
-      });
+      observer.observe(menuElement, { attributes: true });
     }
 
-    // Also monitor for DOM changes in case menu gets added later
-    const bodyObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (
-            node.nodeType === 1 &&
-            (node.id === "cd-mySidenav" || node.querySelector("#cm-mySidenav"))
-          ) {
-            setTimeout(checkMenuState, 100);
-          }
-        });
-      });
-    });
-
-    bodyObserver.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-      bodyObserver.disconnect();
-    };
+    return () => observer.disconnect();
   }, [isVisible]);
+
+  return menuOpenState;
+};
+
+export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
+
+  const currentStepData = TOUR_STEPS[currentStep];
+  
+  // Use extracted hooks
+  const { tourPosition, arrowPosition } = useTourPositioning(isVisible, currentStepData, currentStep);
+  const menuOpenState = useMenuStateMonitoring(isVisible);
+
+
 
   // Interaction handling
   useEffect(() => {

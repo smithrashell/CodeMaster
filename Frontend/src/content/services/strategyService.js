@@ -389,39 +389,12 @@ export class StrategyService {
             const primaryTag = problemTags[i];
             const relatedTag = problemTags[j];
 
-            const primaryStrategy = strategiesData[primaryTag];
-            const relatedStrategy = strategiesData[relatedTag];
-
-            if (primaryStrategy && relatedStrategy) {
-              // Generate contextual hint combining both strategies
-              const contextualTip = this.generateContextualTip(
-                primaryTag,
-                relatedTag,
-                primaryStrategy,
-                relatedStrategy
-              );
-
-              const contextualHint = {
-                type: "contextual",
-                primaryTag,
-                relatedTag,
-                tip: contextualTip,
-                tier: "essential",
-                source: "multi-tag-contextual",
-                complexity: 2,
-                relevance: 1.2, // Higher relevance for contextual hints
-                relationshipScore: 0.85, // Mock relationship score
-                finalScore: 350,
-                chainPosition: hints.length + 1,
-              };
-
-              hints.push(contextualHint);
-              // eslint-disable-next-line no-console
-              logger.info(
-                `✅ HINT DEBUG: Added contextual hint for "${primaryTag}" + "${relatedTag}":`,
-                contextualHint
-              );
-            }
+            this._addContextualHintIfValid(
+              primaryTag,
+              relatedTag,
+              strategiesData,
+              hints
+            );
           }
         }
       }
@@ -700,6 +673,48 @@ export class StrategyService {
       logger.error("❌ CONTENT: Error getting all strategy tags:", error);
       return [];
     }
+  }
+
+  /**
+   * Adds a contextual hint if both strategies are valid
+   * @private
+   */
+  _addContextualHintIfValid(primaryTag, relatedTag, strategiesData, hints) {
+    const primaryStrategy = strategiesData[primaryTag];
+    const relatedStrategy = strategiesData[relatedTag];
+
+    if (!primaryStrategy || !relatedStrategy) {
+      return;
+    }
+
+    // Generate contextual hint combining both strategies
+    const contextualTip = this.generateContextualTip(
+      primaryTag,
+      relatedTag,
+      primaryStrategy,
+      relatedStrategy
+    );
+
+    const contextualHint = {
+      type: "contextual",
+      primaryTag,
+      relatedTag,
+      tip: contextualTip,
+      tier: "essential",
+      source: "multi-tag-contextual",
+      complexity: 2,
+      relevance: 1.2, // Higher relevance for contextual hints
+      relationshipScore: 0.85, // Mock relationship score
+      finalScore: 350,
+      chainPosition: hints.length + 1,
+    };
+
+    hints.push(contextualHint);
+    // eslint-disable-next-line no-console
+    logger.info(
+      `✅ HINT DEBUG: Added contextual hint for "${primaryTag}" + "${relatedTag}":`,
+      contextualHint
+    );
   }
 
 }

@@ -1,11 +1,8 @@
 import React, {
-  useState,
   useEffect,
-  useRef,
   useMemo,
   useCallback,
 } from "react";
-import { useTheme } from "../../../shared/provider/themeprovider";
 import {
   Tooltip,
   Stack,
@@ -19,12 +16,141 @@ import {
 import { IconBulb, IconInfoCircle } from "@tabler/icons-react";
 import StrategyService from "../../services/strategyService";
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
+import { useFloatingHintState } from '../../hooks/useFloatingHintState.js';
+import { useHintThemeColors } from '../../hooks/useHintThemeColors.js';
+import { HintsSection } from './HintsSection.jsx';
+
+// Helper function to calculate interview restrictions
+const calculateInterviewRestrictions = (interviewConfig, sessionType, hintsUsed) => {
+  if (!interviewConfig || !sessionType || sessionType === 'standard') {
+    return { hintsAllowed: true, maxHints: null, hintsAvailable: true };
+  }
+
+  const maxHints = interviewConfig.hints?.max ?? null;
+  const hintsAllowed = maxHints === null || maxHints > 0;
+  const hintsAvailable = hintsAllowed && (maxHints === null || hintsUsed < maxHints);
+
+  return {
+    hintsAllowed,
+    maxHints,
+    hintsAvailable,
+    hintsRemaining: maxHints === null ? null : Math.max(0, maxHints - hintsUsed),
+    isInterviewMode: true,
+    sessionType,
+  };
+};
+
+// Helper function to get button styles based on UI mode
+const getButtonStyles = (uiMode, interviewRestrictions) => {
+  const baseStyles = {
+    border: "none",
+    borderRadius: "50%",
+    width: "32px",
+    height: "32px", 
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    position: "relative",
+    margin: "0 4px",
+    transition: "all 0.2s ease",
+  };
+
+  switch (uiMode) {
+    case 'minimal-clean':
+      return {
+        ...baseStyles,
+        background: "#6b7280",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+      };
+    case 'pressure-indicators':
+      return {
+        ...baseStyles,
+        background: !interviewRestrictions.hintsAvailable 
+          ? "#ef4444" 
+          : "linear-gradient(135deg, #f59e0b, #d97706)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+      };
+    default:
+      return {
+        ...baseStyles,
+        background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
+        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+      };
+  }
+};
+
+// Helper function to create hint click data
+const createHintClickData = (params) => {
+  const { problemId, hintId, hintType, hint, problemTags, isCurrentlyExpanded, opened, hints, expandedHints, index } = params;
+  
+  return {
+    problemId: problemId || "unknown",
+    hintId,
+    hintType,
+    primaryTag: hint.primaryTag,
+    relatedTag: hint.relatedTag,
+    content: hint.tip,
+    relationshipScore: hint.relationshipScore || null,
+    timestamp: new Date().toISOString(),
+    problemTags: problemTags,
+    action: isCurrentlyExpanded ? "collapse" : "expand",
+    sessionContext: {
+      popoverOpen: opened,
+      totalHints: hints.length,
+      hintPosition: index,
+      expandedHintsCount: isCurrentlyExpanded
+        ? expandedHints.size - 1
+        : expandedHints.size + 1,
+    },
+  };
+};
+
+// Helper function to get tooltip label
+const getTooltipLabel = (interviewRestrictions, totalHints) => {
+  return interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
+    ? `${interviewRestrictions.hintsRemaining} of ${interviewRestrictions.maxHints} hints remaining (Interview Mode)`
+    : `${totalHints} strategy hints available`;
+};
+
+// Helper function to get aria label
+const getAriaLabel = (interviewRestrictions, totalHints, problemTags) => {
+  return interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
+    ? `${interviewRestrictions.hintsRemaining} of ${interviewRestrictions.maxHints} hints remaining in Interview Mode. Click to view hints for ${problemTags.join(", ")}`
+    : `${totalHints} strategy hints available. Click to view hints for ${problemTags.join(", ")}`;
+};
+
+// Helper function to get badge color
+const getBadgeColor = (interviewRestrictions) => {
+  if (!interviewRestrictions.hintsAvailable) return "gray";
+  return interviewRestrictions.isInterviewMode ? "orange" : "red";
+};
+
+// Helper function to get badge text
+const getBadgeText = (interviewRestrictions, totalHints) => {
+  return interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
+    ? interviewRestrictions.hintsRemaining
+    : totalHints;
+};
+
+// Helper function to get alert message
+const getAlertMessage = (interviewRestrictions) => {
+  return interviewRestrictions.hintsAvailable 
+    ? `${interviewRestrictions.hintsRemaining} hints remaining in this interview session`
+    : 'No hints remaining in this interview session';
+};
+
+// Helper function to check if alert should be shown
+const shouldShowAlert = (interviewRestrictions) => {
+  return interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null;
+};
+
 
 /**
  * FloatingHintButton - Compact floating button that shows strategy hints in a popover
  * Better UX than inline panel - doesn't take up space until needed
  */
-const FloatingHintButton = ({
+function FloatingHintButton({
   problemTags = [],
   problemId = null,
   onOpen,
@@ -33,71 +159,34 @@ const FloatingHintButton = ({
   interviewConfig = null,
   sessionType = null,
   uiMode = 'full-support',
-}) => {
-  const [hints, setHints] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [opened, setOpened] = useState(false);
-  const [expandedHints, setExpandedHints] = useState(new Set());
-  const [hintsUsed, setHintsUsed] = useState(0); // Track hints used in this session
-  const buttonRef = useRef(null);
+}) {
+  const {
+    hints,
+    setHints,
+    loading,
+    setLoading,
+    error,
+    setError,
+    opened,
+    setOpened,
+    expandedHints,
+    setExpandedHints,
+    hintsUsed,
+    setHintsUsed,
+    buttonRef
+  } = useFloatingHintState();
 
-  // Get current theme
-  const { colorScheme } = useTheme();
-  const isDark = colorScheme === 'dark';
-
-  // Theme-aware colors - matching timer component colors exactly
-  const themeColors = useMemo(() => ({
-    light: {
-      buttonBg: {
-        collapsed: "#ffffff",  // Match timer background
-        expanded: "#ffffff",   // Match timer background
-        hover: "#f8f9ff"      // Subtle blue tint on hover
-      },
-      buttonBorder: "#cccccc", // Match timer border
-      expandedBg: "#ffffff",   // Match timer background
-      expandedBorder: "#cccccc", // Match timer border
-      containerBorder: "#cccccc", // Match timer border
-      text: "#000000"         // Match timer text
-    },
-    dark: {
-      buttonBg: {
-        collapsed: "#374151",  // Match timer background
-        expanded: "#374151",   // Match timer background
-        hover: "#4b5563"      // Slightly lighter on hover (matches timer border)
-      },
-      buttonBorder: "#4b5563", // Match timer border
-      expandedBg: "#374151",   // Match timer background
-      expandedBorder: "#4b5563", // Match timer border
-      containerBorder: "#4b5563", // Match timer border
-      text: "#ffffff"         // Match timer text
-    }
-  }), []);
-
-  const colors = isDark ? themeColors.dark : themeColors.light;
+  const themeColors = useHintThemeColors();
+  const colors = themeColors;
 
   // Memoize the stringified tags to prevent effect from running on array reference changes
   const tagsString = useMemo(() => JSON.stringify(problemTags), [problemTags]);
 
   // Memoize interview restrictions to prevent re-renders
-  const interviewRestrictions = useMemo(() => {
-    if (!interviewConfig || !sessionType || sessionType === 'standard') {
-      return { hintsAllowed: true, maxHints: null, hintsAvailable: true };
-    }
-
-    const maxHints = interviewConfig.hints?.max ?? null;
-    const hintsAllowed = maxHints === null || maxHints > 0;
-    const hintsAvailable = hintsAllowed && (maxHints === null || hintsUsed < maxHints);
-
-    return {
-      hintsAllowed,
-      maxHints,
-      hintsAvailable,
-      hintsRemaining: maxHints === null ? null : Math.max(0, maxHints - hintsUsed),
-      isInterviewMode: true,
-      sessionType,
-    };
-  }, [interviewConfig, sessionType, hintsUsed]);
+  const interviewRestrictions = useMemo(() => 
+    calculateInterviewRestrictions(interviewConfig, sessionType, hintsUsed),
+    [interviewConfig, sessionType, hintsUsed]
+  );
 
   // Load contextual hints when problem tags change
   useEffect(() => {
@@ -141,45 +230,10 @@ const FloatingHintButton = ({
   }, [hints]);
 
   // Memoize button styles to prevent re-creation on every render
-  const buttonStyles = useMemo(() => {
-    let baseStyles = {
-      border: "none",
-      borderRadius: "50%",
-      width: "32px",
-      height: "32px", 
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      position: "relative",
-      margin: "0 4px",
-      transition: "all 0.2s ease",
-    };
-
-    // Apply UI mode-specific styling
-    switch (uiMode) {
-      case 'minimal-clean':
-        return {
-          ...baseStyles,
-          background: "#6b7280", // Muted gray
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-        };
-      case 'pressure-indicators':
-        return {
-          ...baseStyles,
-          background: !interviewRestrictions.hintsAvailable 
-            ? "#ef4444" // Red when no hints left
-            : "linear-gradient(135deg, #f59e0b, #d97706)", // Orange gradient
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-        };
-      default: // full-support
-        return {
-          ...baseStyles,
-          background: "linear-gradient(135deg, #ffd43b, #fd7e14)",
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-        };
-    }
-  }, [uiMode, interviewRestrictions.hintsAvailable]);
+  const buttonStyles = useMemo(() => 
+    getButtonStyles(uiMode, interviewRestrictions),
+    [uiMode, interviewRestrictions.hintsAvailable]
+  );
 
   // Memoize callback functions
   const handlePopoverClose = useCallback(() => {
@@ -193,7 +247,7 @@ const FloatingHintButton = ({
         timestamp: new Date().toISOString(),
       });
     }
-  }, [onClose, problemTags, hints.length]);
+  }, [onClose, problemTags, hints.length, setExpandedHints, setOpened]);
 
   const handleButtonClick = useCallback(() => {
     const newOpened = !opened;
@@ -205,7 +259,7 @@ const FloatingHintButton = ({
         timestamp: new Date().toISOString(),
       });
     }
-  }, [opened, onOpen, problemTags, hints.length]);
+  }, [opened, onOpen, problemTags, hints.length, setOpened]);
 
   // Handle hint expand/collapse toggle
   const toggleHintExpansion = useCallback(
@@ -214,7 +268,6 @@ const FloatingHintButton = ({
 
       // Check interview restrictions before expanding hints
       if (!isCurrentlyExpanded && !interviewRestrictions.hintsAvailable) {
-        // Don't allow expanding if hints are not available in interview mode
         return;
       }
 
@@ -224,7 +277,6 @@ const FloatingHintButton = ({
           newSet.delete(hintId);
         } else {
           newSet.add(hintId);
-          // Increment hints used when expanding (viewing) a hint in interview mode
           if (interviewRestrictions.isInterviewMode) {
             setHintsUsed(prevUsed => prevUsed + 1);
           }
@@ -233,26 +285,10 @@ const FloatingHintButton = ({
       });
 
       // Track the expand/collapse action
-      const hintClickData = {
-        problemId: problemId || "unknown",
-        hintId,
-        hintType,
-        primaryTag: hint.primaryTag,
-        relatedTag: hint.relatedTag,
-        content: hint.tip,
-        relationshipScore: hint.relationshipScore || null,
-        timestamp: new Date().toISOString(),
-        problemTags: problemTags,
-        action: isCurrentlyExpanded ? "collapse" : "expand",
-        sessionContext: {
-          popoverOpen: opened,
-          totalHints: hints.length,
-          hintPosition: index,
-          expandedHintsCount: isCurrentlyExpanded
-            ? expandedHints.size - 1
-            : expandedHints.size + 1,
-        },
-      };
+      const hintClickData = createHintClickData({
+        problemId, hintId, hintType, hint, problemTags, isCurrentlyExpanded, 
+        opened, hints, expandedHints, index
+      });
 
       // Save interaction to persistent storage
       try {
@@ -263,12 +299,11 @@ const FloatingHintButton = ({
         console.warn("Failed to save hint interaction:", error);
       }
 
-      // Also call the callback for any additional handling
       if (onHintClick) {
         onHintClick(hintClickData);
       }
     },
-    [expandedHints, onHintClick, problemTags, hints.length, opened, interviewRestrictions]
+    [expandedHints, onHintClick, problemTags, hints.length, opened, interviewRestrictions, problemId, setExpandedHints, setHintsUsed]
   );
 
   // Generate a unique hint ID
@@ -305,18 +340,14 @@ const FloatingHintButton = ({
     >
       <Popover.Target>
         <Tooltip
-          label={interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
-            ? `${interviewRestrictions.hintsRemaining} of ${interviewRestrictions.maxHints} hints remaining (Interview Mode)`
-            : `${totalHints} strategy hints available`}
+          label={getTooltipLabel(interviewRestrictions, totalHints)}
           position="top"
         >
           <button
             ref={buttonRef}
             onClick={handleButtonClick}
             style={buttonStyles}
-            aria-label={interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
-              ? `${interviewRestrictions.hintsRemaining} of ${interviewRestrictions.maxHints} hints remaining in Interview Mode. Click to view hints for ${problemTags.join(", ")}`
-              : `${totalHints} strategy hints available. Click to view hints for ${problemTags.join(", ")}`}
+            aria-label={getAriaLabel(interviewRestrictions, totalHints, problemTags)}
             aria-expanded={opened}
             aria-haspopup="dialog"
             onMouseEnter={(e) => {
@@ -339,8 +370,7 @@ const FloatingHintButton = ({
               <Badge
                 size="xs"
                 variant="filled"
-                color={!interviewRestrictions.hintsAvailable ? "gray" : 
-                       interviewRestrictions.isInterviewMode ? "orange" : "red"}
+                color={getBadgeColor(interviewRestrictions)}
                 style={{
                   position: "absolute",
                   top: -4,
@@ -352,9 +382,7 @@ const FloatingHintButton = ({
                   lineHeight: "16px",
                 }}
               >
-                {interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null
-                  ? interviewRestrictions.hintsRemaining
-                  : totalHints}
+                {getBadgeText(interviewRestrictions, totalHints)}
               </Badge>
             )}
           </button>
@@ -386,16 +414,14 @@ const FloatingHintButton = ({
           </Group>
 
           {/* Interview restrictions warning */}
-          {interviewRestrictions.isInterviewMode && interviewRestrictions.maxHints !== null && (
+          {shouldShowAlert(interviewRestrictions) && (
             <Alert
               color="orange"
               variant="light"
               mb="sm"
               styles={{ body: { fontSize: '12px' } }}
             >
-              {interviewRestrictions.hintsAvailable 
-                ? `${interviewRestrictions.hintsRemaining} hints remaining in this interview session`
-                : 'No hints remaining in this interview session'}
+              {getAlertMessage(interviewRestrictions)}
             </Alert>
           )}
 
@@ -427,235 +453,35 @@ const FloatingHintButton = ({
 
           {!loading && !error && hints.length > 0 && (
             <Stack gap="xs">
-              {/* Contextual hints (higher priority) */}
-              {contextualHints.length > 0 && (
-                <>
-                  <Text size="xs" fw={500} c={colors.text} tt="uppercase" mb="xs" style={{ opacity: 0.8 }}>
-                    Multi-Tag Strategies ({contextualHints.length})
-                  </Text>
-                  {contextualHints.map((hint, index) => {
-                    const hintId = getHintId(hint, index, "contextual");
-                    const isExpanded = expandedHints.has(hintId);
-
-                    return (
-                      <div
-                        key={hintId}
-                        style={{
-                          border: `1px solid ${colors.containerBorder}`,
-                          borderRadius: "6px",
-                        }}
-                      >
-                        {/* Collapsed title row */}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          style={{
-                            padding: "10px 14px",
-                            cursor: interviewRestrictions.hintsAvailable ? "pointer" : "not-allowed",
-                            backgroundColor: isExpanded ? colors.buttonBg.expanded : colors.buttonBg.collapsed,
-                            borderRadius: "6px",
-                            transition: "background-color 0.2s ease",
-                            borderBottom: isExpanded
-                              ? `1px solid ${colors.buttonBorder}`
-                              : "none",
-                            opacity: !interviewRestrictions.hintsAvailable ? 0.5 : 1,
-                          }}
-                          onClick={() => {
-                            if (interviewRestrictions.hintsAvailable) {
-                              toggleHintExpansion(
-                                hintId,
-                                hint,
-                                index,
-                                "contextual"
-                              );
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if ((e.key === "Enter" || e.key === " ") && interviewRestrictions.hintsAvailable) {
-                              e.preventDefault();
-                              toggleHintExpansion(
-                                hintId,
-                                hint,
-                                index,
-                                "contextual"
-                              );
-                            }
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = colors.buttonBg.hover;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = isExpanded
-                              ? colors.buttonBg.expanded
-                              : colors.buttonBg.collapsed;
-                          }}
-                          aria-label={`${isExpanded ? "Collapse" : "Expand"} ${
-                            hint.primaryTag
-                          } + ${hint.relatedTag} strategy hint`}
-                        >
-                          <Text
-                            size="sm"
-                            fw={500}
-                            style={{
-                              textTransform: "capitalize",
-                              letterSpacing: "0.3px",
-                              color: colors.text
-                            }}
-                          >
-                            {hint.primaryTag} + {hint.relatedTag}
-                          </Text>
-                        </div>
-
-                        {/* Expanded content */}
-                        {isExpanded && (
-                          <div
-                            style={{
-                              padding: "12px 14px",
-                              backgroundColor: colors.expandedBg,
-                              borderRadius: "0 0 6px 6px",
-                              borderTop: `1px solid ${colors.expandedBorder}`,
-                            }}
-                          >
-                            <Text
-                              size="sm"
-                              lh={1.6}
-                              style={{ 
-                                lineHeight: "1.5",
-                                color: colors.text
-                              }}
-                            >
-                              {hint.tip}
-                            </Text>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
-
-              {/* General and pattern hints */}
-              {generalHints.length > 0 && (
-                <>
-                  {contextualHints.length > 0 && (
-                    <div style={{ height: "8px" }} />
-                  )}
-                  <Text size="xs" fw={500} c={colors.text} tt="uppercase" mb="xs" style={{ opacity: 0.8 }}>
-                    General Strategies ({generalHints.length})
-                  </Text>
-                  {generalHints.map((hint, index) => {
-                    const hintId = getHintId(
-                      hint,
-                      index + contextualHints.length,
-                      "contextual"
-                    );
-                    const isExpanded = expandedHints.has(hintId);
-
-                    return (
-                      <div
-                        key={hintId}
-                        style={{
-                          border: `1px solid ${colors.containerBorder}`,
-                          borderRadius: "6px",
-                        }}
-                      >
-                        {/* Collapsed title row */}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          style={{
-                            padding: "10px 14px",
-                            cursor: interviewRestrictions.hintsAvailable ? "pointer" : "not-allowed",
-                            backgroundColor: isExpanded ? colors.buttonBg.expanded : colors.buttonBg.collapsed,
-                            borderRadius: "6px",
-                            transition: "background-color 0.2s ease",
-                            borderBottom: isExpanded
-                              ? `1px solid ${colors.buttonBorder}`
-                              : "none",
-                            opacity: !interviewRestrictions.hintsAvailable ? 0.5 : 1,
-                          }}
-                          onClick={() => {
-                            if (interviewRestrictions.hintsAvailable) {
-                              toggleHintExpansion(
-                                hintId,
-                                hint,
-                                index + contextualHints.length,
-                                "contextual"
-                              );
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if ((e.key === "Enter" || e.key === " ") && interviewRestrictions.hintsAvailable) {
-                              e.preventDefault();
-                              toggleHintExpansion(
-                                hintId,
-                                hint,
-                                index + contextualHints.length,
-                                "contextual"
-                              );
-                            }
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = colors.buttonBg.hover;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = isExpanded
-                              ? colors.buttonBg.expanded
-                              : colors.buttonBg.collapsed;
-                          }}
-                          aria-label={`${isExpanded ? "Collapse" : "Expand"} ${
-                            hint.primaryTag
-                          }${
-                            hint.relatedTag ? ` + ${hint.relatedTag}` : ""
-                          } strategy hint`}
-                        >
-                          <Text
-                            size="sm"
-                            fw={500}
-                            style={{
-                              textTransform: "capitalize",
-                              letterSpacing: "0.3px",
-                              color: colors.text
-                            }}
-                          >
-                            {hint.primaryTag}
-                            {hint.relatedTag && ` + ${hint.relatedTag}`}
-                          </Text>
-                        </div>
-
-                        {/* Expanded content */}
-                        {isExpanded && (
-                          <div
-                            style={{
-                              padding: "12px 14px",
-                              backgroundColor: colors.expandedBg,
-                              borderRadius: "0 0 6px 6px",
-                              borderTop: `1px solid ${colors.expandedBorder}`,
-                            }}
-                          >
-                            <Text
-                              size="sm"
-                              lh={1.6}
-                              style={{ 
-                                lineHeight: "1.5",
-                                color: colors.text
-                              }}
-                            >
-                              {hint.tip}
-                            </Text>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </>
-              )}
+              <HintsSection
+                title="Multi-Tag Strategies"
+                hints={contextualHints}
+                hintType="contextual"
+                themeColors={colors}
+                expandedHints={expandedHints}
+                onToggleHint={toggleHintExpansion}
+                onHintClick={onHintClick}
+                getHintId={getHintId}
+                interviewRestrictions={interviewRestrictions}
+              />
+              
+              <HintsSection
+                title="General Strategies"
+                hints={generalHints}
+                hintType="general"
+                themeColors={colors}
+                expandedHints={expandedHints}
+                onToggleHint={toggleHintExpansion}
+                onHintClick={onHintClick}
+                getHintId={getHintId}
+                interviewRestrictions={interviewRestrictions}
+              />
             </Stack>
           )}
         </div>
       </Popover.Dropdown>
     </Popover>
   );
-};
+}
 
 export default FloatingHintButton;

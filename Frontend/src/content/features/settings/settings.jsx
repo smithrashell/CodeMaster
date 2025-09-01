@@ -1,5 +1,5 @@
 import "../../css/main.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button, SegmentedControl, Tooltip } from "@mantine/core";
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
 import {
@@ -49,27 +49,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
 
   // Always render the component, even if settings aren't loaded yet
   if (!settings) {
-    return (
-      <div className="cm-form-group">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>
-          <IconTrophy size={14} />
-          Interview Mode
-          <Tooltip 
-            label="Loading interview settings..." 
-            withArrow 
-            position="top"
-            classNames={{
-              tooltip: 'cm-force-tooltip-visible'
-            }}
-          >
-            <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
-          </Tooltip>
-        </div>
-        <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px', fontSize: '12px', color: '#666' }}>
-          ⏳ Loading...
-        </div>
-      </div>
-    );
+    return <InterviewModeLoadingState />;
   }
 
   return (
@@ -132,107 +112,135 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
 
       {/* Interview Frequency Controls - Show only when interview mode is enabled */}
       {currentMode !== "disabled" && (
-        <>
-          <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e0e0e0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
-              📅 Interview Frequency
-              <Tooltip 
-                label="When should interview sessions be automatically suggested?"
-                withArrow 
-                position="top"
-                classNames={{
-                  tooltip: 'cm-force-tooltip-visible'
-                }}
-              >
-                <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
-              </Tooltip>
-            </div>
-
-            <SegmentedControl
-              value={settings?.interviewFrequency || "manual"}
-              onChange={(value) => {
-                component("InterviewModeControls", "🎯 Interview frequency change", { value });
-                const updatedSettings = { ...settings, interviewFrequency: value };
-                debug("🎯 Updated settings", updatedSettings);
-                updateSettings(updatedSettings);
-              }}
-              data={[
-                { label: "Manual", value: "manual", description: "You decide when" },
-                { label: "Weekly", value: "weekly", description: "Auto-suggest weekly" },
-                { label: "Level Up", value: "level-up", description: "On mastery progress" }
-              ]}
-              size="xs"
-              color="var(--cm-active-blue)"
-              style={{ width: '100%', cursor: 'pointer' }}
-            />
-
-            <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
-              {settings?.interviewFrequency === "manual" && "Interview sessions available on demand"}
-              {settings?.interviewFrequency === "weekly" && "System will suggest interview sessions every 7-10 days"}
-              {settings?.interviewFrequency === "level-up" && "Interview sessions suggested after tag mastery improvements"}
-            </div>
-          </div>
-
-          {/* Readiness Threshold - Show only for level-up frequency */}
-          {settings?.interviewFrequency === "level-up" && (
-            <div style={{ marginTop: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
-                🎯 Readiness Threshold
-                <Tooltip 
-                  label="Minimum performance score needed before suggesting Full Interview mode"
-                  withArrow 
-                  position="top"
-                  styles={{
-                    tooltip: {
-                      zIndex: 9700,
-                      fontSize: '11px'
-                    }
-                  }}
-                >
-                  <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
-                </Tooltip>
-              </div>
-
-              <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Conservative</span>
-                  <span style={{ fontSize: '12px', fontWeight: '500' }}>
-                    {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}%
-                  </span>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Confident</span>
-                </div>
-                
-                <input
-                  type="range"
-                  min="0.5"
-                  max="1.0"
-                  step="0.05"
-                  value={settings?.interviewReadinessThreshold || 0.7}
-                  onChange={(e) => updateSettings({ 
-                    ...settings, 
-                    interviewReadinessThreshold: parseFloat(e.target.value) 
-                  })}
-                  style={{
-                    width: '100%',
-                    height: '4px',
-                    borderRadius: '2px',
-                    background: '#ddd',
-                    outline: 'none',
-                    cursor: 'pointer'
-                  }}
-                />
-                
-                <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', textAlign: 'center' }}>
-                  Full Interview mode unlocks at {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}% mastery
-                </div>
-              </div>
-            </div>
-          )}
-        </>
+        <InterviewFrequencyControls settings={settings} updateSettings={updateSettings} />
       )}
     </div>
   );
 }
+
+// Helper component for loading state
+const InterviewModeLoadingState = () => (
+  <div className="cm-form-group">
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '14px', fontWeight: '500' }}>
+      <IconTrophy size={14} />
+      Interview Mode
+      <Tooltip 
+        label="Loading interview settings..." 
+        withArrow 
+        position="top"
+        classNames={{
+          tooltip: 'cm-force-tooltip-visible'
+        }}
+      >
+        <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
+      </Tooltip>
+    </div>
+    <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px', fontSize: '12px', color: '#666' }}>
+      ⏳ Loading...
+    </div>
+  </div>
+);
+
+// Helper component for interview frequency controls
+const InterviewFrequencyControls = ({ settings, updateSettings }) => (
+  <>
+    <div style={{ marginTop: '12px', paddingTop: '8px', borderTop: '1px solid #e0e0e0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
+        📅 Interview Frequency
+        <Tooltip 
+          label="When should interview sessions be automatically suggested?"
+          withArrow 
+          position="top"
+          classNames={{
+            tooltip: 'cm-force-tooltip-visible'
+          }}
+        >
+          <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
+        </Tooltip>
+      </div>
+
+      <SegmentedControl
+        value={settings?.interviewFrequency || "manual"}
+        onChange={(value) => {
+          component("InterviewModeControls", "🎯 Interview frequency change", { value });
+          const updatedSettings = { ...settings, interviewFrequency: value };
+          debug("🎯 Updated settings", updatedSettings);
+          updateSettings(updatedSettings);
+        }}
+        data={[
+          { label: "Manual", value: "manual", description: "You decide when" },
+          { label: "Weekly", value: "weekly", description: "Auto-suggest weekly" },
+          { label: "Level Up", value: "level-up", description: "On mastery progress" }
+        ]}
+        size="xs"
+        color="var(--cm-active-blue)"
+        style={{ width: '100%', cursor: 'pointer' }}
+      />
+
+      <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+        {settings?.interviewFrequency === "manual" && "Interview sessions available on demand"}
+        {settings?.interviewFrequency === "weekly" && "System will suggest interview sessions every 7-10 days"}
+        {settings?.interviewFrequency === "level-up" && "Interview sessions suggested after tag mastery improvements"}
+      </div>
+    </div>
+
+    {/* Readiness Threshold - Show only for level-up frequency */}
+    {settings?.interviewFrequency === "level-up" && (
+      <div style={{ marginTop: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px', fontWeight: '500' }}>
+          🎯 Readiness Threshold
+          <Tooltip 
+            label="Minimum performance score needed before suggesting Full Interview mode"
+            withArrow 
+            position="top"
+            styles={{
+              tooltip: {
+                zIndex: 9700,
+                fontSize: '11px'
+              }
+            }}
+          >
+            <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
+          </Tooltip>
+        </div>
+
+        <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <span style={{ fontSize: '11px', color: '#666' }}>Conservative</span>
+            <span style={{ fontSize: '12px', fontWeight: '500' }}>
+              {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}%
+            </span>
+            <span style={{ fontSize: '11px', color: '#666' }}>Confident</span>
+          </div>
+          
+          <input
+            type="range"
+            min="0.5"
+            max="1.0"
+            step="0.05"
+            value={settings?.interviewReadinessThreshold || 0.7}
+            onChange={(e) => updateSettings({ 
+              ...settings, 
+              interviewReadinessThreshold: parseFloat(e.target.value) 
+            })}
+            style={{
+              width: '100%',
+              height: '4px',
+              borderRadius: '2px',
+              background: '#ddd',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          />
+          
+          <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', textAlign: 'center' }}>
+            Full Interview mode unlocks at {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}% mastery
+          </div>
+        </div>
+      </div>
+    )}
+  </>
+);
 
 const Settings = () => {
   const { setIsAppOpen } = useNav();
@@ -243,7 +251,7 @@ const Settings = () => {
   const [settings, setSettings] = useState(null);
   const [maxNewProblems, setMaxNewProblems] = useState(8);
   const useMock = false;
-  const MOCK_SETTINGS = {
+  const MOCK_SETTINGS = useMemo(() => ({
     adaptive: true, // try false to test toggling
     sessionLength: 8,
     numberofNewProblemsPerSession: 3,
@@ -256,7 +264,7 @@ const Settings = () => {
     interviewMode: "disabled",
     interviewReadinessThreshold: 0.8,
     interviewFrequency: "manual",
-  };
+  }), []);
 
   // Check interview readiness
   const interviewReadiness = useInterviewReadiness(settings);

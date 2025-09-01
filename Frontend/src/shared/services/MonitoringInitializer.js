@@ -519,78 +519,115 @@ export class MonitoringInitializer {
  * Content scripts MUST NOT access IndexedDB directly and should not initialize monitoring
  * This detection is CRITICAL to prevent duplicate database creation
  */
+/**
+ * Layer 1: URL-based detection - content scripts run on web pages
+ */
+function detectByWebPageUrl() {
+  if (typeof window !== "undefined" && window.location) {
+    const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
+    const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
+    
+    if (isWebPage && isNotExtensionPage) {
+      console.log("🚫 CONTENT SCRIPT DETECTED: Web page URL detected", window.location.href);
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Layer 2: Chrome API availability check - content scripts lack certain APIs
+ */
+function detectByChromeApiAccess() {
+  if (typeof chrome !== "undefined" && chrome.runtime) {
+    // Content scripts don't have access to chrome.tabs API
+    const hasTabsAPI = !!(chrome.tabs && chrome.tabs.query);
+    // Content scripts don't have access to chrome.management API  
+    const hasManagementAPI = !!(chrome.management && chrome.management.getSelf);
+    // Content scripts don't have access to chrome.storage.local directly in some contexts
+    const hasStorageAPI = !!(chrome.storage && chrome.storage.local);
+    
+    // If we're missing critical background/popup APIs, likely a content script
+    if (!hasTabsAPI || !hasManagementAPI) {
+      console.log("🚫 CONTENT SCRIPT DETECTED: Missing extension APIs", {
+        hasTabsAPI,
+        hasManagementAPI,
+        hasStorageAPI
+      });
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Layer 3: Document injection detection - content scripts inject into existing pages
+ */
+function detectByDocumentInjection() {
+  if (typeof document !== "undefined") {
+    // Content scripts inject into pages that already have content
+    const hasExistingContent = document.body && document.body.children.length > 1;
+    const hasLeetCodeElements = document.querySelector('[data-track-load]') || 
+                                document.querySelector('.content-wrapper') ||
+                                document.querySelector('#app') ||
+                                document.title.includes('LeetCode');
+    
+    if (hasExistingContent && hasLeetCodeElements) {
+      console.log("🚫 CONTENT SCRIPT DETECTED: LeetCode page elements found");
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Layer 4: Execution context check - content scripts have different global context
+ */
+function detectByExecutionContext() {
+  if (typeof window !== "undefined") {
+    // Extension pages have chrome-extension:// protocol
+    if (window.location.protocol === "chrome-extension:") {
+      console.log("✅ EXTENSION PAGE DETECTED: chrome-extension:// protocol");
+      return { isContentScript: false, detected: true };
+    }
+    
+    // Background scripts often don't have a visible document
+    if (document.visibilityState === "hidden" && window.location.href === "about:blank") {
+      console.log("✅ BACKGROUND SCRIPT DETECTED: Hidden document");
+      return { isContentScript: false, detected: true };
+    }
+  }
+  return { isContentScript: false, detected: false };
+}
+
+/**
+ * Final validation: chrome.runtime on web page detection
+ */
+function detectChromeRuntimeOnWebPage() {
+  if (typeof chrome !== "undefined" && chrome.runtime && 
+      typeof window !== "undefined" && 
+      (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+    console.log("🚫 CONTENT SCRIPT DETECTED: chrome.runtime on web page");
+    return true;
+  }
+  return false;
+}
+
 function isContentScriptContext() {
   try {
     // 🚨 CRITICAL: Multiple layers of detection to ensure we catch content scripts
     
-    // Layer 1: URL-based detection - content scripts run on web pages
-    if (typeof window !== "undefined" && window.location) {
-      const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
-      const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
-      
-      if (isWebPage && isNotExtensionPage) {
-        console.log("🚫 CONTENT SCRIPT DETECTED: Web page URL detected", window.location.href);
-        return true;
-      }
-    }
+    // Check each detection layer in sequence
+    if (detectByWebPageUrl()) return true;
+    if (detectByChromeApiAccess()) return true;
+    if (detectByDocumentInjection()) return true;
     
-    // Layer 2: Chrome API availability check - content scripts lack certain APIs
-    if (typeof chrome !== "undefined" && chrome.runtime) {
-      // Content scripts don't have access to chrome.tabs API
-      const hasTabsAPI = !!(chrome.tabs && chrome.tabs.query);
-      // Content scripts don't have access to chrome.management API  
-      const hasManagementAPI = !!(chrome.management && chrome.management.getSelf);
-      // Content scripts don't have access to chrome.storage.local directly in some contexts
-      const hasStorageAPI = !!(chrome.storage && chrome.storage.local);
-      
-      // If we're missing critical background/popup APIs, likely a content script
-      if (!hasTabsAPI || !hasManagementAPI) {
-        console.log("🚫 CONTENT SCRIPT DETECTED: Missing extension APIs", {
-          hasTabsAPI,
-          hasManagementAPI,
-          hasStorageAPI
-        });
-        return true;
-      }
-    }
+    // Check execution context (may return false for extension pages)
+    const contextCheck = detectByExecutionContext();
+    if (contextCheck.detected) return contextCheck.isContentScript;
     
-    // Layer 3: Document injection detection - content scripts inject into existing pages
-    if (typeof document !== "undefined") {
-      // Content scripts inject into pages that already have content
-      const hasExistingContent = document.body && document.body.children.length > 1;
-      const hasLeetCodeElements = document.querySelector('[data-track-load]') || 
-                                  document.querySelector('.content-wrapper') ||
-                                  document.querySelector('#app') ||
-                                  document.title.includes('LeetCode');
-      
-      if (hasExistingContent && hasLeetCodeElements) {
-        console.log("🚫 CONTENT SCRIPT DETECTED: LeetCode page elements found");
-        return true;
-      }
-    }
-    
-    // Layer 4: Execution context check - content scripts have different global context
-    if (typeof window !== "undefined") {
-      // Extension pages have chrome-extension:// protocol
-      if (window.location.protocol === "chrome-extension:") {
-        console.log("✅ EXTENSION PAGE DETECTED: chrome-extension:// protocol");
-        return false;
-      }
-      
-      // Background scripts often don't have a visible document
-      if (document.visibilityState === "hidden" && window.location.href === "about:blank") {
-        console.log("✅ BACKGROUND SCRIPT DETECTED: Hidden document");
-        return false;
-      }
-    }
-    
-    // If we're here with chrome.runtime but on a web page, it's definitely a content script
-    if (typeof chrome !== "undefined" && chrome.runtime && 
-        typeof window !== "undefined" && 
-        (window.location.protocol === "http:" || window.location.protocol === "https:")) {
-      console.log("🚫 CONTENT SCRIPT DETECTED: chrome.runtime on web page");
-      return true;
-    }
+    // Final validation
+    if (detectChromeRuntimeOnWebPage()) return true;
     
     // Default: if we can't determine, err on the side of caution
     console.log("🔍 CONTEXT DETECTION: Defaulting to false (allow monitoring)");

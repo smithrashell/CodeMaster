@@ -329,14 +329,14 @@ export function calculateAndTrimProblemRelationships({
     problemsArray.forEach((p2) => {
       if (p1.id === p2.id) return;
 
-      const similarity = calculateTagSimilarity(
-        p1.tags,
-        p2.tags,
+      const similarity = calculateTagSimilarity({
+        tags1: p1.tags,
+        tags2: p2.tags,
         tagGraph,
         tagMastery,
-        p1.difficulty,
-        p2.difficulty
-      );
+        difficulty1: p1.difficulty,
+        difficulty2: p2.difficulty
+      });
 
       const d1 = difficultyMap[p1.difficulty] || 2;
       const d2 = difficultyMap[p2.difficulty] || 2;

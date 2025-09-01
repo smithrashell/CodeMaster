@@ -27,7 +27,7 @@ import {
 import { dbHelper } from "../../db/index.js";
 import { updateStabilityFSRS } from "../../db/problems.js";
 
-describe("Leitner System", () => {
+describe("Leitner System", function() {
   let mockDB;
   let mockTransaction;
   let mockObjectStore;
@@ -57,145 +57,109 @@ describe("Leitner System", () => {
     updateStabilityFSRS.mockResolvedValue();
   });
 
-  describe("reassessBoxLevel", () => {
+  // Test helpers for reassessBoxLevel
+  const createProblem = (id, title, boxLevel, difficulty = 0) => ({
+    id,
+    title,
+    BoxLevel: boxLevel,
+    boxLevel,
+    Difficulty: difficulty,
+  });
+
+  const createAttempts = (attemptsData) => 
+    attemptsData.map(({ date, success, difficulty }) => ({
+      AttemptDate: date,
+      Success: success,
+      Difficulty: difficulty,
+    }));
+
+  const expectAttemptStats = (result, total, successful, unsuccessful) => {
+    expect(result.AttemptStats.TotalAttempts).toBe(total);
+    expect(result.AttemptStats.SuccessfulAttempts).toBe(successful);
+    expect(result.AttemptStats.UnsuccessfulAttempts).toBe(unsuccessful);
+  };
+
+  describe("reassessBoxLevel", function() {
     it.skip("should calculate correct box level for successful attempts", () => {
-      // Arrange
-      const problem = {
-        id: "prob-1",
-        title: "Test Problem",
-        BoxLevel: 1,
-        Difficulty: 0,
-      };
+      const problem = createProblem("prob-1", "Test Problem", 1);
+      const attempts = createAttempts([
+        { date: "2024-01-01", success: true, difficulty: 5 },
+        { date: "2024-01-02", success: true, difficulty: 4 },
+        { date: "2024-01-03", success: true, difficulty: 3 },
+      ]);
 
-      const attempts = [
-        { AttemptDate: "2024-01-01", Success: true, Difficulty: 5 },
-        { AttemptDate: "2024-01-02", Success: true, Difficulty: 4 },
-        { AttemptDate: "2024-01-03", Success: true, Difficulty: 3 },
-      ];
-
-      // Act
       const result = reassessBoxLevel(problem, attempts);
 
-      // Assert
-      expect(result.AttemptStats.TotalAttempts).toBe(3);
-      expect(result.AttemptStats.SuccessfulAttempts).toBe(3);
-      expect(result.AttemptStats.UnsuccessfulAttempts).toBe(0);
-      expect(result.BoxLevel).toBe(4); // Started at 1, +1 for each success = 4
-      expect(result.Difficulty).toBeCloseTo(4); // (5+4+3)/3 = 4
+      expectAttemptStats(result, 3, 3, 0);
+      expect(result.BoxLevel).toBe(4);
+      expect(result.Difficulty).toBeCloseTo(4);
     });
 
     it.skip("should demote box level after consecutive failures", () => {
-      // Arrange
-      const problem = {
-        id: "prob-1",
-        title: "Test Problem",
-        boxLevel: 5,
-      };
+      const problem = createProblem("prob-1", "Test Problem", 5);
+      const attempts = createAttempts([
+        { date: "2024-01-01", success: false, difficulty: 8 },
+        { date: "2024-01-02", success: false, difficulty: 9 },
+        { date: "2024-01-03", success: false, difficulty: 7 },
+      ]);
 
-      const attempts = [
-        { AttemptDate: "2024-01-01", Success: false, Difficulty: 8 },
-        { AttemptDate: "2024-01-02", Success: false, Difficulty: 9 },
-        { AttemptDate: "2024-01-03", Success: false, Difficulty: 7 },
-      ];
-
-      // Act
       const result = reassessBoxLevel(problem, attempts);
 
-      // Assert
-      expect(result.AttemptStats.TotalAttempts).toBe(3);
-      expect(result.AttemptStats.SuccessfulAttempts).toBe(0);
-      expect(result.AttemptStats.UnsuccessfulAttempts).toBe(3);
-      expect(result.BoxLevel).toBe(4); // Started at 5, demoted by 1 after 3 failures
-      expect(result.avgDifficulty).toBe(8); // (8+9+7)/3 = 8
+      expectAttemptStats(result, 3, 0, 3);
+      expect(result.BoxLevel).toBe(4);
+      expect(result.avgDifficulty).toBe(8);
     });
 
     it.skip("should handle mixed success and failure patterns", () => {
-      // Arrange
-      const problem = {
-        id: "prob-1",
-        title: "Test Problem",
-        boxLevel: 3,
-      };
+      const problem = createProblem("prob-1", "Test Problem", 3);
+      const attempts = createAttempts([
+        { date: "2024-01-01", success: true, difficulty: 6 },
+        { date: "2024-01-02", success: false, difficulty: 8 },
+        { date: "2024-01-03", success: false, difficulty: 7 },
+        { date: "2024-01-04", success: true, difficulty: 5 },
+      ]);
 
-      const attempts = [
-        { AttemptDate: "2024-01-01", Success: true, Difficulty: 6 },
-        { AttemptDate: "2024-01-02", Success: false, Difficulty: 8 },
-        { AttemptDate: "2024-01-03", Success: false, Difficulty: 7 },
-        { AttemptDate: "2024-01-04", Success: true, Difficulty: 5 },
-      ];
-
-      // Act
       const result = reassessBoxLevel(problem, attempts);
 
-      // Assert
-      expect(result.AttemptStats.TotalAttempts).toBe(4);
-      expect(result.AttemptStats.SuccessfulAttempts).toBe(2);
-      expect(result.AttemptStats.UnsuccessfulAttempts).toBe(2);
-      expect(result.BoxLevel).toBe(5); // 3 + 1 - 0 + 1 = 5 (no demotion since < 3 consecutive failures)
+      expectAttemptStats(result, 4, 2, 2);
+      expect(result.BoxLevel).toBe(5);
     });
 
     it("should not exceed maximum box level", () => {
-      // Arrange
-      const problem = {
-        id: "prob-1",
-        title: "Test Problem",
-        boxLevel: 8, // Already at max
-      };
+      const problem = createProblem("prob-1", "Test Problem", 8);
+      const attempts = createAttempts([
+        { date: "2024-01-01", success: true, difficulty: 3 },
+        { date: "2024-01-02", success: true, difficulty: 2 },
+      ]);
 
-      const attempts = [
-        { AttemptDate: "2024-01-01", Success: true, Difficulty: 3 },
-        { AttemptDate: "2024-01-02", Success: true, Difficulty: 2 },
-      ];
-
-      // Act
       const result = reassessBoxLevel(problem, attempts);
-
-      // Assert
-      expect(result.boxLevel).toBe(8); // Should stay at maximum
+      expect(result.boxLevel).toBe(8);
     });
 
     it("should not go below minimum box level", () => {
-      // Arrange
-      const problem = {
-        id: "prob-1",
-        title: "Test Problem",
-        boxLevel: 1, // Already at minimum
-      };
+      const problem = createProblem("prob-1", "Test Problem", 1);
+      const attempts = createAttempts([
+        { date: "2024-01-01", success: false, difficulty: 10 },
+        { date: "2024-01-02", success: false, difficulty: 9 },
+        { date: "2024-01-03", success: false, difficulty: 8 },
+      ]);
 
-      const attempts = [
-        { AttemptDate: "2024-01-01", Success: false, Difficulty: 10 },
-        { AttemptDate: "2024-01-02", Success: false, Difficulty: 9 },
-        { AttemptDate: "2024-01-03", Success: false, Difficulty: 8 },
-      ];
-
-      // Act
       const result = reassessBoxLevel(problem, attempts);
-
-      // Assert
-      expect(result.boxLevel).toBe(1); // Should stay at minimum
+      expect(result.boxLevel).toBe(1);
     });
 
     it.skip("should reset consecutive failures after success", () => {
-      // Arrange
-      const problem = {
-        id: "prob-1",
-        title: "Test Problem",
-        boxLevel: 4,
-      };
+      const problem = createProblem("prob-1", "Test Problem", 4);
+      const attempts = createAttempts([
+        { date: "2024-01-01", success: false, difficulty: 8 },
+        { date: "2024-01-02", success: false, difficulty: 9 },
+        { date: "2024-01-03", success: true, difficulty: 6 },
+        { date: "2024-01-04", success: false, difficulty: 7 },
+        { date: "2024-01-05", success: false, difficulty: 8 },
+      ]);
 
-      const attempts = [
-        { AttemptDate: "2024-01-01", Success: false, Difficulty: 8 },
-        { AttemptDate: "2024-01-02", Success: false, Difficulty: 9 },
-        { AttemptDate: "2024-01-03", Success: true, Difficulty: 6 }, // Resets failure count
-        { AttemptDate: "2024-01-04", Success: false, Difficulty: 7 },
-        { AttemptDate: "2024-01-05", Success: false, Difficulty: 8 },
-      ];
-
-      // Act
       const result = reassessBoxLevel(problem, attempts);
-
-      // Assert
-      expect(result.BoxLevel).toBe(5); // 4 + 1 (success) = 5, no demotion since only 2 consecutive failures at end
+      expect(result.BoxLevel).toBe(5);
     });
   });
 

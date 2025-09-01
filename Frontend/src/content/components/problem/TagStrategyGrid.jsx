@@ -12,13 +12,13 @@ import { HintInteractionService } from "../../../shared/services/hintInteraction
  * 
  * Interview mode aware: respects interview constraints for primer/strategy access.
  */
-const TagStrategyGrid = ({ 
+function TagStrategyGrid({ 
   problemTags, 
   problemId, 
   className = "",
   interviewConfig = null,
   sessionType = null 
-}) => {
+}) {
   const [expandedTag, setExpandedTag] = useState(null);
   const [strategies, setStrategies] = useState({});
   const [loading, setLoading] = useState(false);
@@ -385,6 +385,6 @@ const TagStrategyGrid = ({
       </div>
     </div>
   );
-};
+}
 
 export default TagStrategyGrid;

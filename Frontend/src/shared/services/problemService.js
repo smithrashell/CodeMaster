@@ -98,7 +98,7 @@ export const ProblemService = {
    * Counts problems grouped by box level.
    * @returns {Promise<Object>} - Box level counts.
    */
-  async countProblemsByBoxLevel() {
+  countProblemsByBoxLevel() {
     return countProblemsByBoxLevel();
   },
 
@@ -518,7 +518,7 @@ export const ProblemService = {
    * @param {string} attemptId - The attempt ID.
    * @returns {Object} - The updated session object.
    */
-  async addOrUpdateProblemInSession(session, problem, _attemptId) {
+  addOrUpdateProblemInSession(session, problem, _attemptId) {
     const existingProblem = findProblemInSession(session, problem);
 
     if (existingProblem) {
