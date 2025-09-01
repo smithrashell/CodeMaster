@@ -259,14 +259,7 @@ export async function getTagMastery() {
   });
 }
 
-export function calculateTagSimilarity(
-  tags1,
-  tags2,
-  tagGraph,
-  tagMastery,
-  difficulty1,
-  difficulty2
-) {
+export function calculateTagSimilarity({ tags1, tags2, tagGraph, tagMastery, difficulty1, difficulty2 }) {
   let similarity = 0;
 
   tags1.forEach((tag1) => {

@@ -25,19 +25,38 @@ const mockChrome = {
 // Mock console.log to avoid noise in tests
 console.log = jest.fn();
 
-describe("TimerButton Component", () => {
-  beforeEach(() => {
-    // Setup chrome mock
-    global.chrome = mockChrome;
-    jest.clearAllMocks();
+// Test setup helpers
+const setupTimerTest = () => {
+  // Setup chrome mock
+  global.chrome = mockChrome;
+  jest.clearAllMocks();
+  
+  // Mock timers
+  jest.useFakeTimers();
+};
 
-    // Mock timers
-    jest.useFakeTimers();
+const cleanupTimerTest = () => {
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
+};
+
+// Common test assertions
+const assertTimerButtonExists = () => {
+  expect(screen.getByText("Reset")).toBeInTheDocument();
+};
+
+const _assertTimerState = (expectedState) => {
+  const timerElement = screen.getByTestId('timer-display');
+  expect(timerElement).toHaveTextContent(expectedState);
+};
+
+describe("TimerButton Component", function() {
+  beforeEach(() => {
+    setupTimerTest();
   });
 
   afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    cleanupTimerTest();
   });
 
   describe("Component Rendering", () => {
@@ -46,7 +65,7 @@ describe("TimerButton Component", () => {
       render(<InjectedButton />);
 
       // Assert
-      expect(screen.getByText("Reset")).toBeInTheDocument();
+      assertTimerButtonExists();
       expect(screen.getByText("Submit")).toBeInTheDocument();
       // Timer should start at 00m:00s
       expect(screen.getByText("00m:00s")).toBeInTheDocument();

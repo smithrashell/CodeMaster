@@ -16,7 +16,7 @@ export function useInterviewReadiness(settings) {
   });
 
   useEffect(() => {
-    const checkReadiness = async () => {
+    const checkReadiness = () => {
       component("useInterviewReadiness", "🎯 Checking interview readiness", { hasSettings: !!settings });
       
       try {

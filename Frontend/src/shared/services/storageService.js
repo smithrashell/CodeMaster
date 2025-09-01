@@ -112,55 +112,59 @@ export const StorageService = {
     }
   },
 
+  // Helper function to create default settings
+  _createDefaultSettings() {
+    return {
+      theme: "light",
+      sessionLength: 5,
+      limit: "off",
+      reminder: { value: false, label: "6" },
+      numberofNewProblemsPerSession: 2,
+      adaptive: true,
+      focusAreas: [],
+      accessibility: {
+        screenReader: {
+          enabled: false,
+          verboseDescriptions: true,
+          announceNavigation: true,
+          readFormLabels: true
+        },
+        keyboard: {
+          enhancedFocus: false,
+          customShortcuts: false,
+          focusTrapping: false
+        },
+        motor: {
+          largerTargets: false,
+          extendedHover: false,
+          reducedMotion: false,
+          stickyHover: false
+        }
+      },
+      // TODO: Re-enable for future release when display settings are fully implemented
+      // display: {
+      //   sidebarWidth: "normal",
+      //   cardSpacing: "comfortable", 
+      //   autoCollapseSidebar: true,
+      //   chartStyle: "modern",
+      //   chartColorScheme: "blue",
+      //   customChartColor: "#3b82f6",
+      //   chartAnimations: true,
+      //   showGridLines: true,
+      //   showChartLegends: true,
+      //   defaultTimeRange: "30d",
+      //   maxDataPoints: 50,
+      //   autoRefreshData: true,
+      //   showEmptyDataPoints: false
+      // },
+    };
+  },
+
   // Settings using IndexedDB settings store
   async getSettings() {
     if (isInContentScript) {
       console.warn("StorageService.getSettings() called in content script context");
-      // Return default settings for content scripts
-      return {
-        theme: "light",
-        sessionLength: 5,
-        limit: "off",
-        reminder: { value: false, label: "6" },
-        numberofNewProblemsPerSession: 2,
-        adaptive: true,
-        focusAreas: [],
-        accessibility: {
-          screenReader: {
-            enabled: false,
-            verboseDescriptions: true,
-            announceNavigation: true,
-            readFormLabels: true
-          },
-          keyboard: {
-            enhancedFocus: false,
-            customShortcuts: false,
-            focusTrapping: false
-          },
-          motor: {
-            largerTargets: false,
-            extendedHover: false,
-            reducedMotion: false,
-            stickyHover: false
-          }
-        },
-        // TODO: Re-enable for future release when display settings are fully implemented
-        // display: {
-        //   sidebarWidth: "normal",
-        //   cardSpacing: "comfortable", 
-        //   autoCollapseSidebar: true,
-        //   chartStyle: "modern",
-        //   chartColorScheme: "blue",
-        //   customChartColor: "#3b82f6",
-        //   chartAnimations: true,
-        //   showGridLines: true,
-        //   showChartLegends: true,
-        //   defaultTimeRange: "30d",
-        //   maxDataPoints: 50,
-        //   autoRefreshData: true,
-        //   showEmptyDataPoints: false
-        // },
-      };
+      return this._createDefaultSettings();
     }
     
     try {
@@ -175,35 +179,11 @@ export const StorageService = {
             resolve(request.result.data);
           } else {
             // Return default settings if none exist
-            const defaultSettings = {
-              theme: "light",
-              sessionLength: 5,
-              limit: "off",
-              reminder: { value: false, label: "6" },
-              numberofNewProblemsPerSession: 2,
-              adaptive: true,
-              focusAreas: [],
-              accessibility: {
-                screenReader: {
-                  enabled: false,
-                  verboseDescriptions: true,
-                  announceNavigation: true,
-                  readFormLabels: true
-                },
-                keyboard: {
-                  enhancedFocus: true,
-                  skipToContent: true,
-                  customShortcuts: false,
-                  focusTrapping: true
-                },
-                motor: {
-                  largerTargets: false,
-                  extendedHover: false,
-                  reducedMotion: false,
-                  stickyHover: false
-                }
-              },
-            };
+            const defaultSettings = this._createDefaultSettings();
+            // Override some keyboard accessibility defaults
+            defaultSettings.accessibility.keyboard.enhancedFocus = true;
+            defaultSettings.accessibility.keyboard.skipToContent = true;
+            defaultSettings.accessibility.keyboard.focusTrapping = true;
             resolve(defaultSettings);
           }
         };
@@ -211,51 +191,7 @@ export const StorageService = {
       });
     } catch (error) {
       console.error("StorageService getSettings failed:", error);
-      // Return default settings on error
-      return {
-        theme: "light",
-        sessionLength: 5,
-        limit: "off",
-        reminder: { value: false, label: "6" },
-        numberofNewProblemsPerSession: 2,
-        adaptive: true,
-        focusAreas: [],
-        accessibility: {
-          screenReader: {
-            enabled: false,
-            verboseDescriptions: true,
-            announceNavigation: true,
-            readFormLabels: true
-          },
-          keyboard: {
-            enhancedFocus: false,
-            customShortcuts: false,
-            focusTrapping: false
-          },
-          motor: {
-            largerTargets: false,
-            extendedHover: false,
-            reducedMotion: false,
-            stickyHover: false
-          }
-        },
-        // TODO: Re-enable for future release when display settings are fully implemented
-        // display: {
-        //   sidebarWidth: "normal",
-        //   cardSpacing: "comfortable", 
-        //   autoCollapseSidebar: true,
-        //   chartStyle: "modern",
-        //   chartColorScheme: "blue",
-        //   customChartColor: "#3b82f6",
-        //   chartAnimations: true,
-        //   showGridLines: true,
-        //   showChartLegends: true,
-        //   defaultTimeRange: "30d",
-        //   maxDataPoints: 50,
-        //   autoRefreshData: true,
-        //   showEmptyDataPoints: false
-        // },
-      };
+      return this._createDefaultSettings();
     }
   },
 

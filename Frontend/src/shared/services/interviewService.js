@@ -123,7 +123,7 @@ export class InterviewService {
    * @param {Array} tagMastery - Tag mastery data
    * @returns {Promise<number>} Transfer readiness score (0-1)
    */
-  static async calculateCurrentTransferReadiness(tagMastery = []) {
+  static calculateCurrentTransferReadiness(tagMastery = []) {
     try {
       // This is a simplified calculation - would be enhanced with actual interview data
       const masteredTags = tagMastery.filter(tm => tm.mastered);
@@ -470,7 +470,7 @@ export class InterviewService {
    * @param {Object} interviewResults - Interview session results
    * @returns {Promise<void>}
    */
-  static async updateAdaptiveLearning(interviewResults) {
+  static updateAdaptiveLearning(interviewResults) {
     try {
       // This would integrate with existing adaptive systems
       // For now, just log the insights
