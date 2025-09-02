@@ -89,7 +89,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
       />
       
       {currentModeData && currentMode !== "disabled" && (
-        <div style={{ fontSize: '11px', color: '#666', marginTop: '4px', display: 'flex', alignItems: 'center' }}>
+        <div style={{ fontSize: '11px', color: 'var(--cm-text)', marginTop: '4px', display: 'flex', alignItems: 'center' }}>
           <IconClock size={10} style={{ marginRight: '4px' }} />
           {currentMode === "interview-like" ? "Limited hints, mild pressure" : 
            currentMode === "full-interview" ? "No hints, strict timing" : 
@@ -100,7 +100,7 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
       {currentMode !== "disabled" && (
         <div style={{ 
           fontSize: '11px', 
-          color: '#0066cc', 
+          color: 'var(--cm-link)', 
           marginTop: '4px', 
           padding: '4px 8px', 
           background: '#e6f3ff', 
@@ -135,7 +135,7 @@ const InterviewModeLoadingState = () => (
         <IconInfoCircle size={12} style={{ cursor: "help", opacity: 0.7 }} />
       </Tooltip>
     </div>
-    <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px', fontSize: '12px', color: '#666' }}>
+    <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px', fontSize: '12px', color: 'var(--cm-text)' }}>
       ⏳ Loading...
     </div>
   </div>
@@ -177,7 +177,7 @@ const InterviewFrequencyControls = ({ settings, updateSettings }) => (
         style={{ width: '100%', cursor: 'pointer' }}
       />
 
-      <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+      <div style={{ fontSize: '10px', color: 'var(--cm-text)', marginTop: '4px' }}>
         {settings?.interviewFrequency === "manual" && "Interview sessions available on demand"}
         {settings?.interviewFrequency === "weekly" && "System will suggest interview sessions every 7-10 days"}
         {settings?.interviewFrequency === "level-up" && "Interview sessions suggested after tag mastery improvements"}
@@ -206,11 +206,11 @@ const InterviewFrequencyControls = ({ settings, updateSettings }) => (
 
         <div style={{ padding: '8px', background: '#f8f9fa', borderRadius: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-            <span style={{ fontSize: '11px', color: '#666' }}>Conservative</span>
+            <span style={{ fontSize: '11px', color: 'var(--cm-text)' }}>Conservative</span>
             <span style={{ fontSize: '12px', fontWeight: '500' }}>
               {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}%
             </span>
-            <span style={{ fontSize: '11px', color: '#666' }}>Confident</span>
+            <span style={{ fontSize: '11px', color: 'var(--cm-text)' }}>Confident</span>
           </div>
           
           <input
@@ -233,7 +233,7 @@ const InterviewFrequencyControls = ({ settings, updateSettings }) => (
             }}
           />
           
-          <div style={{ fontSize: '10px', color: '#666', marginTop: '4px', textAlign: 'center' }}>
+          <div style={{ fontSize: '10px', color: 'var(--cm-text)', marginTop: '4px', textAlign: 'center' }}>
             Full Interview mode unlocks at {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}% mastery
           </div>
         </div>
@@ -372,7 +372,7 @@ const Settings = () => {
         {/* Debug info */}
         {!settings && (
           <div style={{ padding: '8px', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '8px' }}>
-            <div style={{ fontSize: '11px', color: '#856404' }}>
+            <div style={{ fontSize: '11px', color: 'var(--cm-text)' }}>
               ⚠️ Settings loading: {_loading ? 'Loading...' : _error ? 'Error' : 'Using defaults'}
             </div>
           </div>
@@ -387,7 +387,7 @@ const Settings = () => {
         {!workingSettings.adaptive && (
           <>
             <div className="cm-form-group">
-              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Session Length</div>
+              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>Session Length</div>
               <SliderMarksSessionLength
                 value={workingSettings.sessionLength}
                 onChange={(value) =>
@@ -397,7 +397,7 @@ const Settings = () => {
             </div>
 
             <div className="cm-form-group">
-              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>New Problems Per Session</div>
+              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>New Problems Per Session</div>
               <SliderMarksNewProblemsPerSession
                 value={Math.min(workingSettings.numberofNewProblemsPerSession || 1, maxNewProblems)}
                 onChange={(value) =>
@@ -426,8 +426,40 @@ const Settings = () => {
           updateSettings={(newSettings) => {
             component("Settings", "🎯 Settings update requested", newSettings);
             setSettings(newSettings);
+            
+            // Check if interview-related settings changed
+            const interviewSettingsChanged = (
+              workingSettings.interviewMode !== newSettings.interviewMode ||
+              workingSettings.interviewFrequency !== newSettings.interviewFrequency ||
+              workingSettings.interviewReadinessThreshold !== newSettings.interviewReadinessThreshold
+            );
+            
             // Auto-save interview settings changes
             handleSave(newSettings);
+            
+            // Clear session cache if interview settings changed to force new session creation
+            if (interviewSettingsChanged) {
+              component("Settings", "🎯 Interview settings changed, clearing caches and forcing reload");
+              
+              // Clear both settings and session cache
+              chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (settingsResponse) => {
+                component("Settings", "🔄 Settings cache cleared", settingsResponse);
+                
+                chrome.runtime.sendMessage({ type: "clearSessionCache" }, (sessionResponse) => {
+                  if (sessionResponse?.status === "success") {
+                    component("Settings", "✅ Session cache cleared successfully", { clearedCount: sessionResponse.clearedCount });
+                    
+                    // Force a page reload to ensure all caches are cleared and fresh settings are loaded
+                    setTimeout(() => {
+                      component("Settings", "🔄 Forcing page reload to refresh all caches");
+                      window.location.reload();
+                    }, 100);
+                  } else {
+                    component("Settings", "⚠️ Failed to clear session cache", sessionResponse);
+                  }
+                });
+              });
+            }
           }} 
           interviewReadiness={interviewReadiness}
         />

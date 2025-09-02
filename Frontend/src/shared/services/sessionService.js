@@ -139,11 +139,29 @@ export const SessionService = {
     const sessionType = session.sessionType || 'standard';
     const expected = expectedSessionType || 'standard';
     
-    // Simple exact match - only 3 types: 'standard', 'interview-like', 'full-interview'
-    const compatible = sessionType === expected;
+    // Define compatibility groups
+    const standardModes = ['standard', 'tracking']; // Standard modes (including tracking sessions)
+    
+    // Interview modes are NOT compatible with each other - each has different constraints
+    // interview-like: Limited hints, mild time pressure  
+    // full-interview: No hints, strict timing, realistic conditions
+    // Each interview mode should create its own dedicated session
+    
+    // Check if both are in the same compatibility group
+    const bothStandard = standardModes.includes(sessionType) && standardModes.includes(expected);
+    const exactInterviewMatch = (sessionType === expected) && !standardModes.includes(sessionType);
+    
+    // Allow mixed compatibility for common cases:
+    // - Any session can be resumed as 'standard' (fallback behavior)
+    // - 'standard' sessions can be resumed for any request (existing behavior)
+    const allowMixedStandard = (sessionType === 'standard' || expected === 'standard');
+    
+    const compatible = bothStandard || exactInterviewMatch || allowMixedStandard;
     
     if (!compatible) {
-      logger.info(`🔍 Session type incompatible: session=${sessionType} vs expected=${expected}`);
+      logger.info(`🔍 Session type incompatible: session=${sessionType} vs expected=${expected} (standard: ${bothStandard}, exactInterview: ${exactInterviewMatch}, mixed: ${allowMixedStandard})`);
+    } else {
+      logger.info(`✅ Session types compatible: ${sessionType} ↔ ${expected} (standard: ${bothStandard}, exactInterview: ${exactInterviewMatch}, mixed: ${allowMixedStandard})`);
     }
     
     return compatible;
@@ -499,8 +517,10 @@ export const SessionService = {
     }
     logger.info(`🔍 resumeSession getLatestSessionByType result:`, {
       found: !!latestSession,
-      id: latestSession?.id,
-      sessionType: latestSession?.sessionType || 'undefined'
+      id: latestSession?.id?.substring(0, 8) + '...',
+      sessionType: latestSession?.sessionType || 'undefined',
+      status: latestSession?.status || 'undefined',
+      lastActivity: latestSession?.lastActivityTime || latestSession?.date || 'undefined'
     });
 
     if (latestSession) {
@@ -510,8 +530,14 @@ export const SessionService = {
       logger.info(`🔍 Resume compatibility result:`, mismatchInfo);
       
       if (mismatchInfo.hasMismatch) {
-        logger.info(`🚫 Cannot resume session due to type mismatch:`, mismatchInfo.details);
-        logger.info(`🔄 Session ${latestSession.id} (${mismatchInfo.sessionType}) incompatible with current mode (${mismatchInfo.expectedType})`);
+        logger.warn(`🚫 BLOCKING SESSION RESUME due to type mismatch:`, {
+          details: mismatchInfo.details,
+          sessionId: latestSession.id?.substring(0, 8) + '...',
+          currentSessionType: mismatchInfo.sessionType,
+          expectedType: mismatchInfo.expectedType,
+          reason: mismatchInfo.reason
+        });
+        logger.info(`🔄 Will create NEW session instead of resuming existing incompatible session`);
         return null; // Fail fast instead of trying to resume incompatible session
       }
       
