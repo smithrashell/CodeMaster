@@ -228,6 +228,7 @@ button {
 /* Side Drawer */
 .cm-sidenav {
   background-color: var(--cm-bg);
+  color: var(--cm-text);
 }
 
 .cm-sidenav a,
