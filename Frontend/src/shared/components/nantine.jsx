@@ -23,7 +23,7 @@ const renderLearningProgress = (learningStatus) => {
           Learning your habits...
         </span>
       </div>
-      <div style={{ color: 'var(--cm-text-secondary)' }}>
+      <div style={{ color: 'var(--cm-text)' }}>
         {learningStatus.sessionsNeeded > 0 ? (
           <>
             Complete {learningStatus.sessionsNeeded} more session{learningStatus.sessionsNeeded > 1 ? 's' : ''} for personalized reminders
