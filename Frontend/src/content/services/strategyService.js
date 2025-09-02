@@ -88,6 +88,34 @@ const HINT_CONFIG = {
 };
 
 /**
+ * Helper function to create contextual hints for multi-tag combinations
+ * @param {string} primaryTag - The primary tag
+ * @param {Object} strategyData - Strategy data for the tag
+ * @param {string[]} problemTags - All problem tags
+ * @returns {Object[]} Array of contextual hints
+ */
+const createContextualHints = (primaryTag, strategyData, problemTags) => {
+  const contextualHints = [];
+  
+  if (strategyData.strategies && problemTags.length > 1) {
+    for (const strategyEntry of strategyData.strategies) {
+      // Check if the related tag is also in the problem tags
+      if (problemTags.includes(strategyEntry.when)) {
+        contextualHints.push({
+          type: 'contextual',
+          primaryTag: primaryTag,
+          relatedTag: strategyEntry.when,
+          tip: strategyEntry.tip,
+          relevance: 1.5 // Higher relevance for multi-tag strategies
+        });
+      }
+    }
+  }
+  
+  return contextualHints;
+};
+
+/**
  * Strategy Service for managing strategy data in IndexedDB
  * Handles retrieving and providing context-aware hints
  */
@@ -225,14 +253,8 @@ export class StrategyService {
     });
 
     try {
-      const cacheKey = strategyCacheService.constructor.generateCacheKey(
-        "strategies_bulk",
-        tags.sort()
-      );
-
-      const result = await strategyCacheService.getCachedData(
-        cacheKey,
-        async () => {
+      // Direct execution without caching for now
+      const result = await (async () => {
           // eslint-disable-next-line no-console
           data("📋 Loading strategies for tags (parallel)", { tags });
 
@@ -268,8 +290,7 @@ export class StrategyService {
             Object.keys(strategies)
           );
           return strategies;
-        }
-      );
+        })();
 
       performanceMonitor.endQuery(
         queryContext,
@@ -308,37 +329,237 @@ export class StrategyService {
         return [];
       }
 
-      // eslint-disable-next-line no-console
-      logger.info(
-        `🧠 Starting intelligent hint selection for ${difficulty} problem with tags:`,
-        problemTags
-      );
+      const strategiesData = await this.getStrategiesForTags(problemTags);
+      const hints = [];
 
-      const cacheKey = strategyCacheService.constructor.generateCacheKey(
-        "contextual_hints",
-        problemTags.sort(),
-        difficulty,
-        problemId || "no-problem-id"
-      );
-
-      const result = await strategyCacheService.getCachedData(
-        cacheKey,
-        async () => {
-          return await this.buildOptimalHintSelection(
-            problemTags,
-            difficulty,
-            problemId
-          );
+      for (const [primaryTag, strategyData] of Object.entries(strategiesData)) {
+        // Add general strategy for the tag
+        if (strategyData.strategy) {
+          hints.push({
+            type: 'general',
+            primaryTag: primaryTag,
+            relatedTag: null,
+            tip: strategyData.strategy,
+            relevance: 1.0
+          });
         }
-      );
 
-      performanceMonitor.endQuery(queryContext, true, result.length);
-      return result;
+        // Add contextual strategies when multiple tags are present
+        const contextualHints = createContextualHints(primaryTag, strategyData, problemTags);
+        hints.push(...contextualHints);
+      }
+
+      // Remove duplicates based on tip content (case-insensitive)
+      const deduplicatedHints = [];
+      const seenTips = new Set();
+      
+      for (const hint of hints) {
+        const normalizedTip = hint.tip.toLowerCase().trim();
+        if (!seenTips.has(normalizedTip)) {
+          seenTips.add(normalizedTip);
+          deduplicatedHints.push(hint);
+        }
+      }
+      
+      console.log(`🔍 Removed ${hints.length - deduplicatedHints.length} duplicate hints`);
+
+      // Sort by relevance (contextual hints first, then general)
+      deduplicatedHints.sort((a, b) => b.relevance - a.relevance);
+
+      // Apply difficulty-based hint limits
+      const difficultyConfig =
+        HINT_CONFIG.DIFFICULTY_CONFIG[difficulty] ||
+        HINT_CONFIG.DIFFICULTY_CONFIG["Medium"];
+
+      const limitedHints = deduplicatedHints.slice(0, difficultyConfig.maxHints);
+      
+      console.log(`🎯 Applied ${difficulty} difficulty limits:`, {
+        originalHints: hints.length,
+        afterDeduplication: deduplicatedHints.length,
+        maxAllowed: difficultyConfig.maxHints,
+        finalCount: limitedHints.length,
+        hintTypes: limitedHints.map(h => ({ type: h.type, primaryTag: h.primaryTag, relevance: h.relevance }))
+      });
+
+      performanceMonitor.endQuery(queryContext, true, limitedHints.length);
+      return limitedHints;
     } catch (error) {
       logger.error("❌ Error getting contextual hints:", error);
       performanceMonitor.endQuery(queryContext, false, 0, error);
       return [];
     }
+  }
+
+  /**
+   * Create normalized tag pair key to prevent duplicates
+   * @private
+   */
+  static _createNormalizedTagPair(tag1, tag2) {
+    return [tag1, tag2].sort().join("+");
+  }
+
+  /**
+   * Process contextual hints for multi-tag combinations
+   * @private
+   */
+  static _processContextualHints(problemTags, strategiesData, hints) {
+    try {
+      logger.info(
+        `🔍 HINT DEBUG: Creating contextual hints for ${problemTags.length} tags`
+      );
+
+      // Track processed combinations to prevent duplicates
+      const processedCombinations = new Set();
+
+      // Generate contextual hints for tag pairs (deduplication applied)
+      for (let i = 0; i < problemTags.length; i++) {
+        for (let j = i + 1; j < problemTags.length; j++) {
+          const primaryTag = problemTags[i];
+          const relatedTag = problemTags[j];
+
+          // Create normalized key to prevent duplicates like array+hashtable vs hashtable+array
+          const normalizedKey = StrategyService._createNormalizedTagPair(primaryTag, relatedTag);
+          
+          if (processedCombinations.has(normalizedKey)) {
+            logger.info(`🔄 HINT DEBUG: Skipping duplicate combination: ${normalizedKey}`);
+            continue;
+          }
+
+          processedCombinations.add(normalizedKey);
+          logger.info(`🔍 HINT DEBUG: Processing contextual pair: ${primaryTag} + ${relatedTag} (normalized: ${normalizedKey})`);
+          
+          try {
+            StrategyService._addContextualHintIfValid(
+              primaryTag,
+              relatedTag,
+              strategiesData,
+              hints
+            );
+            logger.info(`✅ HINT DEBUG: Contextual pair processed successfully`);
+          } catch (contextError) {
+            logger.error(`❌ HINT DEBUG: Error in contextual hint creation:`, {
+              primaryTag,
+              relatedTag,
+              error: contextError.message,
+              stack: contextError.stack
+            });
+            // Continue processing other hints - don't let contextual hint errors break everything
+            continue;
+          }
+        }
+      }
+    } catch (contextualSectionError) {
+      logger.error(`❌ HINT DEBUG: Error in entire contextual hints section:`, {
+        error: contextualSectionError.message,
+        stack: contextualSectionError.stack
+      });
+      // Continue to general hints even if contextual hints fail completely
+    }
+  }
+
+  /**
+   * Process general hints for individual tags
+   * @private
+   */
+  static _processGeneralHints(problemTags, strategiesData, hints) {
+    logger.info(`🔍 HINT DEBUG: Starting general hints processing for ${problemTags.length} tags`);
+    logger.info(`🔍 HINT DEBUG: Available strategy data keys:`, Object.keys(strategiesData));
+    logger.info(`🔍 HINT DEBUG: Current hints count before general:`, hints.length);
+    
+    for (const tag of problemTags) {
+      this._processGeneralHintForTag(tag, strategiesData, hints);
+    }
+    
+    // Debug after general hints loop
+    logger.info(`🔍 HINT DEBUG: General hints processing completed. Final hints count:`, hints.length);
+    const hintsAfterGeneral = hints.reduce((acc, hint) => {
+      acc[hint.type] = (acc[hint.type] || 0) + 1;
+      return acc;
+    }, {});
+    logger.info(`🔍 HINT DEBUG: Hints by type after general processing:`, hintsAfterGeneral);
+  }
+
+  /**
+   * Process a general hint for a single tag
+   * @private
+   */
+  static _processGeneralHintForTag(tag, strategiesData, hints) {
+    logger.info(`🔍 HINT DEBUG: Processing tag "${tag}" for general hint`);
+
+    const strategy = strategiesData[tag];
+    
+    logger.info(`📊 HINT DEBUG: Strategy data for "${tag}":`, {
+      hasStrategy: !!strategy,
+      strategyType: typeof strategy,
+      strategyKeys: strategy ? Object.keys(strategy) : [],
+      hasStrategyProperty: !!(strategy && strategy.strategy),
+      strategyContent: strategy && strategy.strategy ? strategy.strategy.substring(0, 100) + '...' : 'N/A',
+      fullStrategyStructure: strategy ? JSON.stringify(strategy, null, 2) : null
+    });
+
+    const { strategyText, debugSource } = this._extractStrategyText(tag, strategy);
+    
+    if (strategyText) {
+      const generalHint = {
+        type: "general",
+        primaryTag: tag,
+        relatedTag: null,
+        tip: strategyText,
+        tier: "essential",
+        source: "strategy",
+        complexity: 1,
+        relevance: 1.0,
+        finalScore: 300,
+        chainPosition: hints.length + 1,
+      };
+
+      hints.push(generalHint);
+      logger.info(
+        `✅ INTENSIVE DEBUG: Added general hint for "${tag}" using source: ${debugSource}`,
+        { generalHint, strategyTextLength: strategyText.length }
+      );
+    } else {
+      logger.warn(`⚠️ HINT DEBUG: No valid strategy text found for tag "${tag}"`, { 
+        strategy,
+        hasStrategy: !!strategy,
+        hasStrategyProperty: !!(strategy && strategy.strategy),
+        hasOverview: !!(strategy && strategy.overview),
+        strategyType: typeof strategy
+      });
+    }
+  }
+
+  /**
+   * Extract strategy text from strategy object
+   * @private
+   */
+  static _extractStrategyText(tag, strategy) {
+    let strategyText = null;
+    let debugSource = '';
+    
+    logger.info(`🚨 INTENSIVE DEBUG: Raw strategy object for "${tag}":`, strategy);
+    
+    if (!strategy) {
+      debugSource = 'no_strategy_object';
+      logger.warn(`🚨 INTENSIVE DEBUG: No strategy object found for "${tag}"`);
+    } else if (strategy && strategy.strategy) {
+      strategyText = strategy.strategy;
+      debugSource = 'strategy.strategy';
+      logger.info(`🚨 INTENSIVE DEBUG: Using strategy.strategy for "${tag}": "${strategyText.substring(0, 50)}..."`);
+    } else if (strategy && strategy.overview) {
+      strategyText = strategy.overview;
+      debugSource = 'strategy.overview';
+      logger.info(`🚨 INTENSIVE DEBUG: Using strategy.overview for "${tag}": "${strategyText.substring(0, 50)}..."`);
+    } else if (typeof strategy === 'string') {
+      strategyText = strategy;
+      debugSource = 'strategy_is_string';
+      logger.info(`🚨 INTENSIVE DEBUG: Strategy is string for "${tag}": "${strategyText.substring(0, 50)}..."`);
+    } else {
+      debugSource = 'no_valid_text_property';
+      logger.warn(`🚨 INTENSIVE DEBUG: Strategy object exists but no valid text property for "${tag}". Available props:`, Object.keys(strategy));
+    }
+    
+    return { strategyText, debugSource };
   }
 
   /**
@@ -353,6 +574,9 @@ export class StrategyService {
     difficulty = "Medium",
     _problemId = null
   ) {
+    let strategiesData = null;
+    let hints = [];
+    
     try {
       // eslint-disable-next-line no-console
       logger.info(
@@ -360,9 +584,21 @@ export class StrategyService {
         problemTags
       );
 
-      const strategiesData = await this.getStrategiesForTags(problemTags);
+      strategiesData = await this.getStrategiesForTags(problemTags);
 
-      // eslint-disable-next-line no-console
+      // Check if strategies data is valid
+      if (!strategiesData || typeof strategiesData !== 'object') {
+        logger.warn("⚠️ No valid strategies data received, returning empty hints");
+        return [];
+      }
+
+      // Log strategy availability (but don't return early - let fallbacks work)
+      const strategyKeys = Object.keys(strategiesData);
+      logger.info(`📊 HINT DEBUG: Received strategies for tags:`, { 
+        availableStrategies: strategyKeys,
+        requestedTags: problemTags,
+        missingStrategies: problemTags.filter(tag => !strategiesData[tag])
+      });
 
       const difficultyConfig =
         HINT_CONFIG.DIFFICULTY_CONFIG[difficulty] ||
@@ -374,68 +610,55 @@ export class StrategyService {
       );
 
       // Build both contextual and general hints
-      const hints = [];
+      hints = [];
 
       // First, create contextual hints for multi-tag combinations
       if (problemTags.length > 1) {
-        // eslint-disable-next-line no-console
-        logger.info(
-          `🔍 HINT DEBUG: Creating contextual hints for ${problemTags.length} tags`
-        );
-
-        // Generate contextual hints for tag pairs
-        for (let i = 0; i < problemTags.length; i++) {
-          for (let j = i + 1; j < problemTags.length; j++) {
-            const primaryTag = problemTags[i];
-            const relatedTag = problemTags[j];
-
-            this._addContextualHintIfValid(
-              primaryTag,
-              relatedTag,
-              strategiesData,
-              hints
-            );
-          }
-        }
+        this._processContextualHints(problemTags, strategiesData, hints);
       }
 
-      // Then, create general hints for individual tags
-      for (const tag of problemTags) {
-        // eslint-disable-next-line no-console
+      // Then, create general hints for individual tags  
+      this._processGeneralHints(problemTags, strategiesData, hints);
 
-        const strategy = strategiesData[tag];
+      // Apply balanced hint distribution (max 2 contextual + 2-3 general hints)
+      const contextualHints = hints.filter(h => h.type === 'contextual').sort((a, b) => b.relevance - a.relevance);
+      const generalHints = hints.filter(h => h.type === 'general').sort((a, b) => b.relevance - a.relevance);
 
-        if (strategy) {
-          const generalHint = {
-            type: "general",
-            primaryTag: tag,
-            relatedTag: null,
-            tip: strategy.strategy,
-            tier: "essential",
-            source: "strategy",
-            complexity: 1,
-            relevance: 1.0,
-            finalScore: 300,
-            chainPosition: hints.length + 1,
-          };
+      // Select top quality contextual hints (max 2) and fill remaining with general hints
+      const maxContextual = 2;
+      const selectedContextual = contextualHints.slice(0, maxContextual);
+      const remainingSlots = difficultyConfig.maxHints - selectedContextual.length;
+      const selectedGeneral = generalHints.slice(0, remainingSlots);
 
-          hints.push(generalHint);
-          // eslint-disable-next-line no-console
-          logger.info(
-            `✅ HINT DEBUG: Added general hint for "${tag}":`,
-            generalHint
-          );
-        } else {
-          // eslint-disable-next-line no-console
-        }
-      }
-
-      // eslint-disable-next-line no-console
-      const finalHints = hints.slice(0, difficultyConfig.maxHints);
+      const finalHints = [...selectedContextual, ...selectedGeneral];
+      
+      // DEBUG: Log balanced distribution results
+      const hintsByType = finalHints.reduce((acc, hint) => {
+        acc[hint.type] = (acc[hint.type] || 0) + 1;
+        return acc;
+      }, {});
+      
+      logger.info(`🔧 DEBUG: buildOptimalHintSelection returning ${finalHints.length} hints:`, {
+        total: finalHints.length,
+        byType: hintsByType,
+        hints: finalHints.map(h => ({
+          type: h.type,
+          primaryTag: h.primaryTag,
+          relatedTag: h.relatedTag,
+          tipPreview: h.tip ? h.tip.substring(0, 50) + '...' : 'No tip'
+        }))
+      });
 
       return finalHints;
     } catch (error) {
-      logger.error("❌ Error building optimal hint selection:", error);
+      logger.error("❌ Error building optimal hint selection:", {
+        error: error.message,
+        stack: error.stack,
+        problemTags,
+        strategiesDataKeys: Object.keys(strategiesData || {}),
+        strategiesDataSample: strategiesData,
+        hintsBuiltSoFar: hints.length
+      });
       return [];
     }
   }
@@ -446,7 +669,7 @@ export class StrategyService {
    * @param {string} relatedTag - The related tag
    * @param {Object} primaryStrategy - Strategy data for primary tag
    * @param {Object} relatedStrategy - Strategy data for related tag
-   * @returns {string} Combined contextual tip
+   * @returns {Object} Combined contextual tip with quality score
    */
   static generateContextualTip(
     primaryTag,
@@ -488,14 +711,18 @@ export class StrategyService {
       contextualCombinations[combinationKey2];
 
     if (contextualTip) {
-      return contextualTip;
+      // High quality - specific combination exists in our curated list
+      return { tip: contextualTip, quality: 2.0 };
     }
 
     // If no specific combination exists, generate a generic contextual hint
-    const primaryKeyword = this.extractKeyword(primaryStrategy.strategy);
-    const relatedKeyword = this.extractKeyword(relatedStrategy.strategy);
+    const primaryKeyword = StrategyService.extractKeyword(primaryStrategy.strategy);
+    const relatedKeyword = StrategyService.extractKeyword(relatedStrategy.strategy);
 
-    return `Combine ${primaryTag} techniques with ${relatedTag} patterns. Consider using ${primaryKeyword} alongside ${relatedKeyword} for an optimal solution approach.`;
+    const genericTip = `Combine ${primaryTag} techniques with ${relatedTag} patterns. Consider using ${primaryKeyword} alongside ${relatedKeyword} for an optimal solution approach.`;
+    
+    // Lower quality - generic combination
+    return { tip: genericTip, quality: 1.0 };
   }
 
   /**
@@ -599,15 +826,27 @@ export class StrategyService {
       // BYPASS CACHE TEMPORARILY - Direct parallel processing to test background script communication
       // eslint-disable-next-line no-console
       logger.info(
-        `🔍 CONTENT: Getting primers for ${tags.length} tags (cache bypassed):`,
+        `🔍 STRATEGY SERVICE: Getting primers for ${tags.length} tags:`,
         tags
       );
+      
+      console.log("🔍 STRATEGY SERVICE: getTagPrimers input tags detailed:", {
+        tags,
+        tagTypes: tags.map(tag => typeof tag),
+        tagValues: tags.map(tag => `"${tag}"`),
+        originalCase: tags,
+        lowerCase: tags.map(tag => tag.toLowerCase())
+      });
 
       // Process all tags in parallel
-      const primerPromises = tags.map(async (tag) => {
+      const primerPromises = tags.map(async (tag, index) => {
         try {
-          return await this.getTagPrimer(tag);
+          console.log(`🔍 STRATEGY SERVICE: Processing tag ${index + 1}/${tags.length}: "${tag}"`);
+          const result = await this.getTagPrimer(tag);
+          console.log(`✅ STRATEGY SERVICE: Got primer for "${tag}":`, result);
+          return result;
         } catch (error) {
+          console.error(`❌ STRATEGY SERVICE: Error getting primer for tag "${tag}":`, error);
           logger.error(
             `❌ CONTENT: Error getting primer for tag "${tag}":`,
             error
@@ -618,6 +857,15 @@ export class StrategyService {
 
       const primers = await Promise.all(primerPromises);
       const result = primers.filter((primer) => primer !== null);
+
+      console.log("🔍 STRATEGY SERVICE: getTagPrimers final results:", {
+        requestedTags: tags,
+        primersReceived: primers,
+        validPrimers: result,
+        successCount: result.length,
+        failureCount: tags.length - result.length,
+        resultTags: result.map(p => p?.tag)
+      });
 
       // eslint-disable-next-line no-console
       logger.info(
@@ -679,7 +927,7 @@ export class StrategyService {
    * Adds a contextual hint if both strategies are valid
    * @private
    */
-  _addContextualHintIfValid(primaryTag, relatedTag, strategiesData, hints) {
+  static _addContextualHintIfValid(primaryTag, relatedTag, strategiesData, hints) {
     const primaryStrategy = strategiesData[primaryTag];
     const relatedStrategy = strategiesData[relatedTag];
 
@@ -688,7 +936,7 @@ export class StrategyService {
     }
 
     // Generate contextual hint combining both strategies
-    const contextualTip = this.generateContextualTip(
+    const contextualResult = StrategyService.generateContextualTip(
       primaryTag,
       relatedTag,
       primaryStrategy,
@@ -699,13 +947,13 @@ export class StrategyService {
       type: "contextual",
       primaryTag,
       relatedTag,
-      tip: contextualTip,
+      tip: contextualResult.tip,
       tier: "essential",
       source: "multi-tag-contextual",
       complexity: 2,
-      relevance: 1.2, // Higher relevance for contextual hints
-      relationshipScore: 0.85, // Mock relationship score
-      finalScore: 350,
+      relevance: 1.0 + (contextualResult.quality * 0.2), // Quality-based relevance boost
+      relationshipScore: contextualResult.quality / 2.0, // Quality-based relationship score
+      finalScore: 300 + (contextualResult.quality * 50),
       chainPosition: hints.length + 1,
     };
 
