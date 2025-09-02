@@ -164,8 +164,19 @@ export class InterviewService {
         sessionLength = settings.sessionLength || 5;
       }
 
-      // Get tag mastery for problem selection
-      const tagMastery = await getTagMastery();
+      // Get tag mastery for problem selection with timeout protection
+      console.log("🔍 InterviewService: Getting tag mastery data...");
+      const tagMasteryStart = Date.now();
+      
+      // Add additional timeout wrapper in case the database operation hangs
+      const INTERVIEW_TIMEOUT = 8000; // 8 seconds for interview service operations
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`InterviewService.createInterviewSession timed out after ${INTERVIEW_TIMEOUT}ms`)), INTERVIEW_TIMEOUT);
+      });
+      
+      const tagMastery = await Promise.race([getTagMastery(), timeoutPromise]);
+      const tagMasteryDuration = Date.now() - tagMasteryStart;
+      console.log(`✅ InterviewService: Got tag mastery data in ${tagMasteryDuration}ms`);
       
       // Generate problem selection criteria based on interview mode
       const selectionCriteria = this.buildInterviewProblemCriteria(mode, config, tagMastery);
@@ -179,8 +190,29 @@ export class InterviewService {
         createdAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error("Error creating interview session:", error);
-      throw error;
+      console.error("❌ InterviewService.createInterviewSession failed:", error);
+      
+      // Provide more specific error information
+      if (error.message.includes('timed out')) {
+        console.error("🕐 Interview session creation timed out - possible database hang");
+        throw new Error(`Interview session creation timed out: ${error.message}`);
+      }
+      
+      // For other errors, provide fallback behavior
+      console.warn("🔄 Attempting fallback interview session configuration");
+      return {
+        sessionType: mode,
+        sessionLength: settings?.sessionLength || 5,
+        config: this.getInterviewConfig(mode),
+        selectionCriteria: {
+          allowedTags: [],
+          difficulty: 'adaptive',
+          reviewRatio: 0.3
+        },
+        interviewMetrics: this.initializeInterviewMetrics(),
+        createdAt: new Date().toISOString(),
+        fallbackMode: true
+      };
     }
   }
 
