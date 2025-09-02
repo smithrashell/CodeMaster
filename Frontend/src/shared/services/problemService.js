@@ -149,28 +149,48 @@ export const ProblemService = {
 
   // NEW: Interview session creation (additive, doesn't modify existing flow)
   async createInterviewSession(mode) {
+    const operationStart = Date.now();
     try {
       logger.info(`🎯 PROBLEM SERVICE: Creating interview session in ${mode} mode`);
       
       // Get interview session configuration from InterviewService
       logger.info("🎯 Calling InterviewService.createInterviewSession");
+      const configStart = Date.now();
+      
       const interviewConfig = await InterviewService.createInterviewSession(mode);
+      const configDuration = Date.now() - configStart;
+      
       logger.info("🎯 InterviewService returned config:", {
         hasConfig: !!interviewConfig,
         sessionLength: interviewConfig?.sessionLength,
-        hasCriteria: !!interviewConfig?.selectionCriteria
+        hasCriteria: !!interviewConfig?.selectionCriteria,
+        configTime: configDuration + 'ms'
       });
       
       // Use interview-specific problem selection
       logger.info("🎯 Calling fetchAndAssembleInterviewProblems");
-      const problems = await this.fetchAndAssembleInterviewProblems(
-        interviewConfig.sessionLength,
-        interviewConfig.selectionCriteria,
-        mode
-      );
+      const problemsStart = Date.now();
+      
+      // Add timeout protection to problem fetching
+      const PROBLEM_FETCH_TIMEOUT = 12000; // 12 seconds for problem fetching
+      const problemTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`fetchAndAssembleInterviewProblems timed out after ${PROBLEM_FETCH_TIMEOUT}ms`)), PROBLEM_FETCH_TIMEOUT);
+      });
+      
+      const problems = await Promise.race([
+        this.fetchAndAssembleInterviewProblems(
+          interviewConfig.sessionLength,
+          interviewConfig.selectionCriteria,
+          mode
+        ),
+        problemTimeout
+      ]);
+      const problemsDuration = Date.now() - problemsStart;
+      
       logger.info("🎯 fetchAndAssembleInterviewProblems returned:", {
         problemCount: problems?.length,
-        firstProblem: problems?.[0]?.title
+        firstProblem: problems?.[0]?.title,
+        problemsTime: problemsDuration + 'ms'
       });
 
       // Add interview metadata to session
@@ -182,23 +202,40 @@ export const ProblemService = {
         createdAt: interviewConfig.createdAt
       };
       
+      const totalDuration = Date.now() - operationStart;
       logger.info("🎯 PROBLEM SERVICE: Returning interview session data:", {
         problemCount: result.problems?.length,
         sessionType: result.sessionType,
-        hasConfig: !!result.interviewConfig
+        hasConfig: !!result.interviewConfig,
+        totalTime: totalDuration + 'ms'
       });
       
       return result;
     } catch (error) {
+      const totalDuration = Date.now() - operationStart;
       logger.error("🎯 ERROR creating interview session:", error);
+      logger.error(`   ⏱️ Failed after ${totalDuration}ms`);
+      
+      // Provide more detailed error information
+      if (error.message.includes('timed out')) {
+        logger.error("🕐 Interview session creation timed out - likely database or service hang");
+        throw new Error(`Interview session creation timed out after ${totalDuration}ms: ${error.message}`);
+      }
+      
       // Fallback to standard session if interview creation fails
       logger.info("🎯 Falling back to standard session creation");
-      const fallbackProblems = await this.createSession();
-      return {
-        problems: fallbackProblems,
-        sessionType: 'standard', // Fallback becomes standard
-        error: `Interview session failed: ${error.message}`
-      };
+      try {
+        const fallbackProblems = await this.createSession();
+        return {
+          problems: fallbackProblems,
+          sessionType: 'standard', // Fallback becomes standard
+          error: `Interview session failed: ${error.message}`,
+          fallbackUsed: true
+        };
+      } catch (fallbackError) {
+        logger.error("❌ Even fallback session creation failed:", fallbackError);
+        throw new Error(`Both interview and fallback session creation failed: ${error.message}`);
+      }
     }
   },
 
@@ -312,6 +349,7 @@ export const ProblemService = {
     try {
       logger.info(`🎯 Assembling interview session for ${mode} mode...`);
       logger.info("🎯 Session length:", sessionLength);
+      logger.info("🎯 Selection criteria:", selectionCriteria);
       
       if (mode === 'standard') {
         // For standard mode, fall back to regular session assembly
@@ -325,59 +363,89 @@ export const ProblemService = {
         );
       }
 
-      // Interview modes use specialized problem selection
+      // Get all problems
       const allProblems = await fetchAllProblems();
-      let availableProblems = allProblems.filter(problem => {
-        // Filter to problems that have the required tags
-        const problemTags = problem.Tags || [];
-        return problemTags.some(tag => 
-          selectionCriteria.allowedTags.includes(tag.toLowerCase())
-        );
-      });
-
-      if (availableProblems.length === 0) {
-        logger.warn("No problems found matching interview criteria, falling back to all problems");
-        availableProblems = allProblems;
+      logger.info(`🎯 Total problems available: ${allProblems.length}`);
+      
+      if (allProblems.length === 0) {
+        logger.error("❌ No problems found in database");
+        throw new Error("No problems available in database");
       }
 
-      // Apply interview-specific problem mix
-      const selectedProblems = [];
-      const { problemMix } = selectionCriteria;
-      
-      if (problemMix) {
-        const masteredCount = Math.floor(sessionLength * problemMix.mastered);
-        const nearMasteryCount = Math.floor(sessionLength * problemMix.nearMastery);
-        const challengingCount = sessionLength - masteredCount - nearMasteryCount;
+      let availableProblems = allProblems;
 
-        // Select mastered tag problems
-        const masteredProblems = availableProblems.filter(problem => {
+      // Apply tag filtering if criteria exists and has allowedTags
+      if (selectionCriteria && selectionCriteria.allowedTags && selectionCriteria.allowedTags.length > 0) {
+        logger.info("🎯 Filtering by tags:", selectionCriteria.allowedTags);
+        const filteredByTags = allProblems.filter(problem => {
           const problemTags = problem.Tags || [];
           return problemTags.some(tag => 
-            selectionCriteria.masteredTags.includes(tag.toLowerCase())
+            selectionCriteria.allowedTags.includes(tag.toLowerCase())
           );
         });
-        selectedProblems.push(...this.shuffleArray(masteredProblems).slice(0, masteredCount));
+        
+        logger.info(`🎯 Problems matching tag criteria: ${filteredByTags.length}`);
+        
+        if (filteredByTags.length > 0) {
+          availableProblems = filteredByTags;
+        } else {
+          logger.warn("No problems found matching interview tag criteria, using all problems");
+        }
+      } else {
+        logger.info("🎯 No tag filtering criteria provided, using all problems");
+      }
 
-        // Select near-mastery problems
-        const nearMasteryProblems = availableProblems.filter(problem => {
-          const problemTags = problem.Tags || [];
-          return problemTags.some(tag => 
-            selectionCriteria.nearMasteryTags.includes(tag.toLowerCase())
-          ) && !selectedProblems.includes(problem);
-        });
-        selectedProblems.push(...this.shuffleArray(nearMasteryProblems).slice(0, nearMasteryCount));
+      // Select problems for session
+      let selectedProblems = [];
+      
+      // Try to apply interview-specific problem mix if available
+      if (selectionCriteria && selectionCriteria.problemMix) {
+        logger.info("🎯 Applying interview problem mix");
+        const { problemMix } = selectionCriteria;
+        
+        const masteredCount = Math.floor(sessionLength * (problemMix.mastered || 0));
+        const nearMasteryCount = Math.floor(sessionLength * (problemMix.nearMastery || 0));
+        const challengingCount = sessionLength - masteredCount - nearMasteryCount;
 
-        // Fill remaining slots with challenging/wildcard problems
+        logger.info(`🎯 Problem distribution - Mastered: ${masteredCount}, Near-mastery: ${nearMasteryCount}, Challenging: ${challengingCount}`);
+
+        // Select mastered tag problems if criteria exists
+        if (selectionCriteria.masteredTags && selectionCriteria.masteredTags.length > 0) {
+          const masteredProblems = availableProblems.filter(problem => {
+            const problemTags = problem.Tags || [];
+            return problemTags.some(tag => 
+              selectionCriteria.masteredTags.includes(tag.toLowerCase())
+            );
+          });
+          selectedProblems.push(...this.shuffleArray(masteredProblems).slice(0, masteredCount));
+          logger.info(`🎯 Added ${Math.min(masteredProblems.length, masteredCount)} mastered problems`);
+        }
+
+        // Select near-mastery problems if criteria exists
+        if (selectionCriteria.nearMasteryTags && selectionCriteria.nearMasteryTags.length > 0) {
+          const nearMasteryProblems = availableProblems.filter(problem => {
+            const problemTags = problem.Tags || [];
+            return problemTags.some(tag => 
+              selectionCriteria.nearMasteryTags.includes(tag.toLowerCase())
+            ) && !selectedProblems.includes(problem);
+          });
+          selectedProblems.push(...this.shuffleArray(nearMasteryProblems).slice(0, nearMasteryCount));
+          logger.info(`🎯 Added ${Math.min(nearMasteryProblems.length, nearMasteryCount)} near-mastery problems`);
+        }
+
+        // Fill remaining slots with random problems
         const remainingProblems = availableProblems.filter(problem => 
           !selectedProblems.includes(problem)
         );
         selectedProblems.push(...this.shuffleArray(remainingProblems).slice(0, challengingCount));
+        logger.info(`🎯 Added ${Math.min(remainingProblems.length, challengingCount)} challenging problems`);
       } else {
-        // Fallback: random selection from available problems
-        selectedProblems.push(...this.shuffleArray(availableProblems).slice(0, sessionLength));
+        // Simple fallback: random selection from available problems
+        logger.info("🎯 Using simple random selection");
+        selectedProblems = this.shuffleArray(availableProblems).slice(0, sessionLength);
       }
 
-      // Ensure we have enough problems
+      // Ensure we have enough problems - fill with random selection if needed
       while (selectedProblems.length < sessionLength && availableProblems.length > selectedProblems.length) {
         const remaining = availableProblems.filter(p => !selectedProblems.includes(p));
         if (remaining.length > 0) {
@@ -385,6 +453,14 @@ export const ProblemService = {
         } else {
           break;
         }
+      }
+
+      logger.info(`🎯 Final selection: ${selectedProblems.length} problems`);
+
+      // Ensure we actually have problems
+      if (selectedProblems.length === 0) {
+        logger.error("❌ No problems selected for interview session");
+        throw new Error("Failed to select any problems for interview session");
       }
 
       // Add interview metadata to problems
@@ -398,20 +474,28 @@ export const ProblemService = {
         }
       }));
 
-      logger.info(`🎯 Interview session assembled: ${interviewProblems.length} problems`);
+      logger.info(`🎯 Interview session assembled successfully: ${interviewProblems.length} problems`);
       return interviewProblems;
       
     } catch (error) {
-      logger.error("Error assembling interview problems:", error);
-      // Fallback to standard session
-      const settings = await buildAdaptiveSessionSettings();
-      return this.fetchAndAssembleSessionProblems(
-        settings.sessionLength,
-        settings.numberOfNewProblems,
-        settings.currentAllowedTags,
-        settings.currentDifficultyCap,
-        settings.userFocusAreas
-      );
+      logger.error("❌ Error assembling interview problems:", error);
+      // Enhanced fallback to standard session
+      logger.info("🎯 Attempting fallback to standard session");
+      try {
+        const settings = await buildAdaptiveSessionSettings();
+        const fallbackProblems = await this.fetchAndAssembleSessionProblems(
+          settings.sessionLength,
+          settings.numberOfNewProblems,
+          settings.currentAllowedTags,
+          settings.currentDifficultyCap,
+          settings.userFocusAreas
+        );
+        logger.info(`🎯 Fallback session created with ${fallbackProblems.length} problems`);
+        return fallbackProblems;
+      } catch (fallbackError) {
+        logger.error("❌ Fallback session creation also failed:", fallbackError);
+        throw new Error(`Both interview and fallback session creation failed: ${error.message}`);
+      }
     }
   },
 
