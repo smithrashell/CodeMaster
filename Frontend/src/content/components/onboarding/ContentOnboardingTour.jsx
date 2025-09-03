@@ -1,15 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Card,
-  Text,
-  Group,
-  Stack,
-  ThemeIcon,
-  Badge,
-  Progress,
-  ActionIcon,
-} from "@mantine/core";
+import { Card, Stack, Group } from '../ui/Layout.jsx';
+import Text from '../ui/Text.jsx';
+import Badge from '../ui/Badge.jsx';
+// Note: ThemeIcon, Progress, ActionIcon simplified for onboarding
 import { SimpleButton } from "../../../shared/components/ui/SimpleButton";
 import {
   IconTarget,

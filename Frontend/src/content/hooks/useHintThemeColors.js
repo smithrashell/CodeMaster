@@ -17,7 +17,10 @@ export const useHintThemeColors = () => {
         expandedBg: "#374151",
         expandedBorder: "#4b5563",
         containerBorder: "#4b5563",
-        text: "#ffffff"
+        borderColor: "#4b5563",
+        text: "#ffffff",
+        textColor: "#ffffff",
+        iconColor: "#ffffff"
       };
     } else {
       return {
@@ -30,7 +33,10 @@ export const useHintThemeColors = () => {
         expandedBg: "#ffffff",
         expandedBorder: "#cccccc",
         containerBorder: "#cccccc",
-        text: "#000000"
+        borderColor: "#cccccc",
+        text: "#000000",
+        textColor: "#000000",
+        iconColor: "#333333"
       };
     }
   }, [isDark]);
