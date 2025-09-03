@@ -361,8 +361,6 @@ export class StrategyService {
         }
       }
       
-      console.log(`🔍 Removed ${hints.length - deduplicatedHints.length} duplicate hints`);
-
       // Sort by relevance (contextual hints first, then general)
       deduplicatedHints.sort((a, b) => b.relevance - a.relevance);
 
@@ -373,13 +371,7 @@ export class StrategyService {
 
       const limitedHints = deduplicatedHints.slice(0, difficultyConfig.maxHints);
       
-      console.log(`🎯 Applied ${difficulty} difficulty limits:`, {
-        originalHints: hints.length,
-        afterDeduplication: deduplicatedHints.length,
-        maxAllowed: difficultyConfig.maxHints,
-        finalCount: limitedHints.length,
-        hintTypes: limitedHints.map(h => ({ type: h.type, primaryTag: h.primaryTag, relevance: h.relevance }))
-      });
+      // Applied ${difficulty} difficulty limits (${hints.length} → ${deduplicatedHints.length} → ${limitedHints.length})
 
       performanceMonitor.endQuery(queryContext, true, limitedHints.length);
       return limitedHints;
@@ -830,20 +822,12 @@ export class StrategyService {
         tags
       );
       
-      console.log("🔍 STRATEGY SERVICE: getTagPrimers input tags detailed:", {
-        tags,
-        tagTypes: tags.map(tag => typeof tag),
-        tagValues: tags.map(tag => `"${tag}"`),
-        originalCase: tags,
-        lowerCase: tags.map(tag => tag.toLowerCase())
-      });
+      // Processing getTagPrimers for ${tags.length} tags
 
       // Process all tags in parallel
-      const primerPromises = tags.map(async (tag, index) => {
+      const primerPromises = tags.map(async (tag) => {
         try {
-          console.log(`🔍 STRATEGY SERVICE: Processing tag ${index + 1}/${tags.length}: "${tag}"`);
           const result = await this.getTagPrimer(tag);
-          console.log(`✅ STRATEGY SERVICE: Got primer for "${tag}":`, result);
           return result;
         } catch (error) {
           console.error(`❌ STRATEGY SERVICE: Error getting primer for tag "${tag}":`, error);
@@ -858,14 +842,7 @@ export class StrategyService {
       const primers = await Promise.all(primerPromises);
       const result = primers.filter((primer) => primer !== null);
 
-      console.log("🔍 STRATEGY SERVICE: getTagPrimers final results:", {
-        requestedTags: tags,
-        primersReceived: primers,
-        validPrimers: result,
-        successCount: result.length,
-        failureCount: tags.length - result.length,
-        resultTags: result.map(p => p?.tag)
-      });
+      // getTagPrimers completed: ${result.length}/${tags.length} primers found
 
       // eslint-disable-next-line no-console
       logger.info(

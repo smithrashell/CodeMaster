@@ -1,16 +1,10 @@
 import React, { useState } from "react";
-import {
-  Card,
-  Text,
-  Badge,
-  Button,
-  Collapse,
-  Stack,
-  Group,
-  Loader,
-  Alert,
-  Box,
-} from "@mantine/core";
+import { Card, Stack, Group, Box } from '../ui/Layout.jsx';
+import Text from '../ui/Text.jsx';
+import Badge from '../ui/Badge.jsx';
+import Alert from '../ui/Alert.jsx';
+import Loader from '../ui/Loader.jsx';
+import Collapse from '../ui/Collapse.jsx';
 import {
   IconBulb,
   IconChevronDown,
@@ -20,13 +14,13 @@ import {
 import { useStrategy } from "../../../shared/hooks/useStrategy";
 
 /**
- * Renders the header section with tags and expand button
+ * Renders the header section with clickable tags
  */
 const renderHeader = ({ totalHints, problemTags, isExpanded, setIsExpanded }) => (
   <Group justify="space-between" gap="xs">
     <Group gap="xs">
       <IconBulb size={16} color="#ffd43b" />
-      <Text size="sm" fw={500}>
+      <Text size="sm" fw={500} style={{ color: "var(--cm-text, #000)" }}>
         Strategy Hints
       </Text>
       {totalHints > 0 && (
@@ -37,25 +31,28 @@ const renderHeader = ({ totalHints, problemTags, isExpanded, setIsExpanded }) =>
     </Group>
     <Group gap="xs">
       {problemTags.slice(0, 3).map((tag) => (
-        <Badge key={tag} size="xs" variant="light" color="gray">
+        <Badge 
+          key={tag} 
+          size="xs" 
+          variant="light" 
+          color="blue"
+          style={{ 
+            cursor: "pointer",
+            backgroundColor: "var(--cm-dropdown-bg, #f0f0f0)",
+            color: "var(--cm-text, #000)",
+            border: "1px solid var(--cm-border, #ddd)"
+          }}
+          onClick={() => setIsExpanded(!isExpanded)}
+          title={`Click to ${isExpanded ? "hide" : "show"} ${tag} strategy hints`}
+        >
           {tag}
         </Badge>
       ))}
-      <Button
-        variant="subtle"
-        size="xs"
-        onClick={() => setIsExpanded(!isExpanded)}
-        rightSection={
-          isExpanded ? (
-            <IconChevronUp size={12} />
-          ) : (
-            <IconChevronDown size={12} />
-          )
-        }
-        style={{ minWidth: "auto", padding: "4px 8px" }}
-      >
-        {isExpanded ? "Less" : "More"}
-      </Button>
+      {isExpanded ? (
+        <IconChevronUp size={12} style={{ color: "var(--cm-text, #666)" }} />
+      ) : (
+        <IconChevronDown size={12} style={{ color: "var(--cm-text, #666)" }} />
+      )}
     </Group>
   </Group>
 );
@@ -73,9 +70,10 @@ const renderContextualHints = (contextualHints) => (
         key={`contextual-${index}`}
         p="xs"
         style={{
-          backgroundColor: "#e7f5ff",
+          backgroundColor: "var(--cm-hint-bg, #e7f5ff)",
           borderRadius: "6px",
-          border: "1px solid #d0ebff",
+          border: "1px solid var(--cm-hint-border, #d0ebff)",
+          color: "var(--cm-text, #000)"
         }}
       >
         <Group gap="xs" mb="xs">
@@ -115,9 +113,10 @@ const renderGeneralHints = (generalHints) => (
         key={`general-${index}`}
         p="xs"
         style={{
-          backgroundColor: "#f8f9fa",
+          backgroundColor: "var(--cm-dropdown-bg, #f8f9fa)",
           borderRadius: "6px",
-          border: "1px solid #e9ecef",
+          border: "1px solid var(--cm-border, #e9ecef)",
+          color: "var(--cm-text, #000)"
         }}
       >
         <Group gap="xs" mb="xs">
@@ -196,6 +195,16 @@ const CompactHintPanel = ({ problemTags = [], className = "" }) => {
   
   // Use existing useStrategy hook instead of duplicating state management
   const { hints, loading, error, contextualHints, generalHints } = useStrategy(problemTags);
+  
+  console.log("💡 CompactHintPanel render:", {
+    problemTags,
+    hintsCount: hints.length,
+    contextualCount: contextualHints.length,
+    generalCount: generalHints.length,
+    loading,
+    error,
+    isExpanded
+  });
 
   if (problemTags.length === 0) {
     return null;
@@ -211,8 +220,9 @@ const CompactHintPanel = ({ problemTags = [], className = "" }) => {
         radius="md"
         withBorder
         style={{
-          backgroundColor: "#f8f9fa",
-          border: "1px solid #e9ecef",
+          backgroundColor: "var(--cm-dropdown-bg, #f8f9fa)",
+          border: "1px solid var(--cm-border, #e9ecef)",
+          color: "var(--cm-text, #000)"
         }}
       >
         {renderHeader({ totalHints, problemTags, isExpanded, setIsExpanded })}

@@ -1,5 +1,5 @@
 import React from "react";
-import { Badge } from "@mantine/core";
+import Badge from '../ui/Badge.jsx';
 import { getBadgeColor, getBadgeText } from './floatingHintHelpers.js';
 
 /**

@@ -38,116 +38,6 @@ const useSettingsManager = () => {
   };
 };
 
-// Helper functions for session management
-const getFreshSettings = async (fallbackSettings) => {
-  logger.info('🎯 Getting fresh settings before creating session');
-  try {
-    const settingsResponse = await ChromeAPIErrorHandler.sendMessageWithRetry({
-      type: "getSettings"
-    });
-    const freshSettings = settingsResponse || fallbackSettings;
-    logger.info('🎯 Fresh settings retrieved:', freshSettings);
-    return freshSettings;
-  } catch (error) {
-    logger.warn('🎯 Failed to get fresh settings, using cached:', error);
-    return fallbackSettings;
-  }
-};
-
-const processSessionResponse = (response, handlers, sessionCreationAttempted, operationName) => {
-  const { setProblems, setSessionData, setShowRegenerationBanner } = handlers;
-  logger.info(`🔍 ${operationName} API Response:`, {
-    hasSession: !!response.session,
-    sessionId: response.session?.id?.substring(0, 8),
-    sessionType: response.session?.sessionType,
-    isSessionStale: response.isSessionStale,
-    lastActivityTime: response.session?.lastActivityTime
-  });
-  
-  if (response.session) {
-    const { problems: sessionProblems, ...restOfSession } = response.session;
-    setProblems(sessionProblems || []);
-    setSessionData(restOfSession);
-    
-    // Set regeneration banner state for direct API calls
-    logger.info(`🎯 ${operationName} - Setting regeneration banner state:`, response.isSessionStale || false);
-    setShowRegenerationBanner(response.isSessionStale || false);
-    
-    sessionCreationAttempted.current = true;
-    logger.info(`✅ ${operationName} session created successfully`);
-    return true;
-  } else {
-    logger.warn(`⚠️ No session in ${operationName} response - showing banner again`);
-    return false;
-  }
-};
-
-// Helper function to determine if interview banner should be shown
-const shouldShowInterviewBanner = (settings, settingsLoaded) => {
-  logger.info('🎯 Interview Banner Logic Check:', {
-    settingsLoaded,
-    settingsObject: settings,
-    interviewMode: settings?.interviewMode,
-    interviewFrequency: settings?.interviewFrequency,
-    conditionMet: settings?.interviewMode && 
-                 settings.interviewMode !== 'disabled' && 
-                 settings?.interviewFrequency === 'manual',
-    willShowBanner: settings?.interviewMode && 
-                  settings.interviewMode !== 'disabled' && 
-                  settings?.interviewFrequency === 'manual'
-  });
-
-  // Enhanced logic: Show banner if interview frequency is manual, regardless of mode setting
-  // This covers cases where user sets frequency to manual but forgets to enable interview mode
-  return (
-    // Original condition: Interview mode enabled AND frequency manual
-    (settings?.interviewMode && 
-     settings.interviewMode !== 'disabled' && 
-     settings?.interviewFrequency === 'manual') ||
-    // Fallback condition: If frequency is manual, assume user wants interview options
-    // even if they haven't explicitly enabled interview mode
-    (settings?.interviewFrequency === 'manual' && 
-     settings?.interviewMode !== 'disabled')  // Still respect explicit disable
-  );
-};
-
-// Helper function for processing session loader response
-const processSessionLoaderResponse = (response, handlers, sessionCreationAttempted, settings, pathName = '') => {
-  const { setProblems, setSessionData, setShowRegenerationBanner, setShowInterviewBanner, settingsLoaded } = handlers;
-  if (response.session) {
-    // Store session data and show problems immediately for both draft and in_progress
-    setSessionData(response.session);
-    
-    // Check if session is stale - hide regeneration banner if session is fresh
-    logger.info('🎯 Setting regeneration banner state:', response.isSessionStale || false);
-    setShowRegenerationBanner(response.isSessionStale || false);
-    
-    // Show problems immediately for any session with problems
-    if (response.session.problems && Array.isArray(response.session.problems)) {
-      setProblems(response.session.problems);
-    } else {
-      setProblems([]);
-    }
-    setShowInterviewBanner(false);
-    
-    // Reset session creation flag after successful session retrieval
-    sessionCreationAttempted.current = false;
-  } else {
-    // No existing session found - check if we should show banner
-    setProblems([]);
-    setSessionData(null);
-    setShowRegenerationBanner(false); // No session means no staleness
-    
-    // Only show banner if interview mode is manual and no session was found
-    if (shouldShowInterviewBanner(settings, settingsLoaded)) {
-      logger.info(`✅ Setting showInterviewBanner to true${pathName ? ` (${pathName})` : ''}`);
-      setShowInterviewBanner(true);
-    } else {
-      logger.info(`❌ Interview banner conditions not met${pathName ? ` (${pathName})` : ''} - staying in empty state`);
-    }
-  }
-};
-
 // Custom hook for session management
 const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted, lastSettingsHash, setProblems) => {
   const [sessionData, setSessionData] = useState(null);
@@ -157,7 +47,19 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
 
   // Session choice handlers - explicit session type selection
   const handleInterviewChoice = async () => {
-    const freshSettings = await getFreshSettings(settings);
+    // Get fresh settings from background script to avoid stale cache issues
+    logger.info('🎯 handleInterviewChoice: Getting fresh settings before creating session');
+    let freshSettings;
+    try {
+      const settingsResponse = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "getSettings"
+      });
+      freshSettings = settingsResponse || settings;
+      logger.info('🎯 handleInterviewChoice: Fresh settings retrieved:', freshSettings);
+    } catch (error) {
+      logger.warn('🎯 handleInterviewChoice: Failed to get fresh settings, using cached:', error);
+      freshSettings = settings;
+    }
     
     // Enhanced logic: Allow interview choice if frequency is manual, even if mode isn't explicitly enabled
     const canCreateInterviewSession = freshSettings?.interviewMode && freshSettings.interviewMode !== 'disabled';
@@ -188,9 +90,28 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
         sessionType: defaultInterviewMode
       });
       
-      // Process the response using helper function
-      const success = processSessionResponse(response, { setProblems, setSessionData, setShowRegenerationBanner }, sessionCreationAttempted, 'handleInterviewChoice');
-      if (!success) {
+      // Process the response just like the useChromeMessage onSuccess handler
+      logger.info('🔍 handleInterviewChoice API Response:', {
+        hasSession: !!response.session,
+        sessionId: response.session?.id?.substring(0, 8),
+        sessionType: response.session?.sessionType,
+        isSessionStale: response.isSessionStale,
+        lastActivityTime: response.session?.lastActivityTime
+      });
+      
+      if (response.session) {
+        const { problems: sessionProblems, ...restOfSession } = response.session;
+        setProblems(sessionProblems || []);
+        setSessionData(restOfSession);
+        
+        // IMPORTANT: Set regeneration banner state for direct API calls
+        logger.info('🎯 handleInterviewChoice - Setting regeneration banner state:', response.isSessionStale || false);
+        setShowRegenerationBanner(response.isSessionStale || false);
+        
+        sessionCreationAttempted.current = true;
+        logger.info('✅ Interview session created successfully');
+      } else {
+        logger.warn('⚠️ No session in handleInterviewChoice response - showing banner again');
         setShowInterviewBanner(true);
       }
     } catch (error) {
@@ -217,9 +138,28 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
         sessionType: 'standard'
       });
       
-      // Process the response using helper function
-      const success = processSessionResponse(response, { setProblems, setSessionData, setShowRegenerationBanner }, sessionCreationAttempted, 'handleRegularChoice');
-      if (!success) {
+      // Process the response just like the useChromeMessage onSuccess handler
+      logger.info('🔍 handleRegularChoice API Response:', {
+        hasSession: !!response.session,
+        sessionId: response.session?.id?.substring(0, 8),
+        sessionType: response.session?.sessionType,
+        isSessionStale: response.isSessionStale,
+        lastActivityTime: response.session?.lastActivityTime
+      });
+      
+      if (response.session) {
+        const { problems: sessionProblems, ...restOfSession } = response.session;
+        setProblems(sessionProblems || []);
+        setSessionData(restOfSession);
+        
+        // IMPORTANT: Set regeneration banner state for direct API calls
+        logger.info('🎯 handleRegularChoice - Setting regeneration banner state:', response.isSessionStale || false);
+        setShowRegenerationBanner(response.isSessionStale || false);
+        
+        sessionCreationAttempted.current = true;
+        logger.info('✅ Standard session created successfully');
+      } else {
+        logger.warn('⚠️ No session in handleRegularChoice response - showing banner again');
         setShowInterviewBanner(true);
       }
     } catch (error) {
@@ -317,7 +257,64 @@ const useSessionLoader = (options) => {
           backgroundScriptData: response.backgroundScriptData
         });
         
-        processSessionLoaderResponse(response, { setProblems, setSessionData, setShowRegenerationBanner, setShowInterviewBanner, settingsLoaded }, sessionCreationAttempted, settings);
+        if (response.session) {
+          // Store session data and show problems immediately for both draft and in_progress
+          setSessionData(response.session);
+          
+          // Check if session is stale - hide regeneration banner if session is fresh
+          logger.info('🎯 Setting regeneration banner state:', response.isSessionStale || false);
+          setShowRegenerationBanner(response.isSessionStale || false);
+          
+          // Show problems immediately for any session with problems
+          if (response.session.problems && Array.isArray(response.session.problems)) {
+            setProblems(response.session.problems);
+          } else {
+            setProblems([]);
+          }
+          setShowInterviewBanner(false);
+          
+          // Reset session creation flag after successful session retrieval
+          sessionCreationAttempted.current = false;
+        } else {
+          // No existing session found - check if we should show banner
+          setProblems([]);
+          setSessionData(null);
+          setShowRegenerationBanner(false); // No session means no staleness
+          
+          // Only show banner if interview mode is manual and no session was found
+          logger.info('🎯 Interview Banner Logic Check:', {
+            settingsLoaded,
+            settingsObject: settings,
+            interviewMode: settings?.interviewMode,
+            interviewFrequency: settings?.interviewFrequency,
+            conditionMet: settings?.interviewMode && 
+                         settings.interviewMode !== 'disabled' && 
+                         settings?.interviewFrequency === 'manual',
+            willShowBanner: settings?.interviewMode && 
+                          settings.interviewMode !== 'disabled' && 
+                          settings?.interviewFrequency === 'manual'
+          });
+
+          // Enhanced logic: Show banner if interview frequency is manual, regardless of mode setting
+          // This covers cases where user sets frequency to manual but forgets to enable interview mode
+          const shouldShowBanner = (
+            // Original condition: Interview mode enabled AND frequency manual
+            (settings?.interviewMode && 
+             settings.interviewMode !== 'disabled' && 
+             settings?.interviewFrequency === 'manual') ||
+            // Fallback condition: If frequency is manual, assume user wants interview options
+            // even if they haven't explicitly enabled interview mode
+            (settings?.interviewFrequency === 'manual' && 
+             settings?.interviewMode !== 'disabled')  // Still respect explicit disable
+          );
+
+          if (shouldShowBanner) {
+            logger.info('✅ Setting showInterviewBanner to true');
+            setShowInterviewBanner(true);
+          } else {
+            logger.info('❌ Interview banner conditions not met - staying in empty state');
+          }
+        }
       },
       onError: (error) => {
         logger.error('ProblemGenerator session fetch error:', error);
@@ -330,7 +327,31 @@ const useSessionLoader = (options) => {
         sessionCreationAttempted.current = false;
         
         // On error, show banner only for manual interview mode
-        if (shouldShowInterviewBanner(settings, settingsLoaded)) {
+        logger.info('🎯 Interview Banner Logic Check (ERROR PATH):', {
+          settingsLoaded,
+          settingsObject: settings,
+          interviewMode: settings?.interviewMode,
+          interviewFrequency: settings?.interviewFrequency,
+          conditionMet: settings?.interviewMode && 
+                       settings.interviewMode !== 'disabled' && 
+                       settings?.interviewFrequency === 'manual',
+          willShowBanner: settings?.interviewMode && 
+                        settings.interviewMode !== 'disabled' && 
+                        settings?.interviewFrequency === 'manual'
+        });
+
+        // Enhanced logic: Show banner if interview frequency is manual, regardless of mode setting
+        const shouldShowBanner = (
+          // Original condition: Interview mode enabled AND frequency manual
+          (settings?.interviewMode && 
+           settings.interviewMode !== 'disabled' && 
+           settings?.interviewFrequency === 'manual') ||
+          // Fallback condition: If frequency is manual, assume user wants interview options
+          (settings?.interviewFrequency === 'manual' && 
+           settings?.interviewMode !== 'disabled')  // Still respect explicit disable
+        );
+
+        if (shouldShowBanner) {
           logger.info('✅ Setting showInterviewBanner to true (ERROR PATH)');
           setShowInterviewBanner(true);
         } else {
@@ -932,105 +953,6 @@ const ProblemsList = ({ problems, sessionData, onLinkClick }) => (
 );
 
 
-// Custom hook for session cache listener
-const useSessionCacheListener = (setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner, sessionCreationAttempted) => {
-  useEffect(() => {
-    const handleSessionCacheCleared = () => {
-      logger.info("🔄 ProblemGenerator: Received session cache cleared signal, resetting session state");
-      sessionCreationAttempted.current = false;
-      setSessionData(null);
-      setProblems([]);
-      setShowInterviewBanner(false);
-      setShowRegenerationBanner(false);
-    };
-
-    const messageListener = (message, sender, sendResponse) => {
-      if (message.type === "sessionCacheCleared") {
-        handleSessionCacheCleared();
-        sendResponse({ status: "success" });
-      }
-    };
-
-    if (typeof chrome !== "undefined" && chrome.runtime) {
-      chrome.runtime.onMessage.addListener(messageListener);
-    }
-
-    return () => {
-      if (typeof chrome !== "undefined" && chrome.runtime) {
-        chrome.runtime.onMessage.removeListener(messageListener);
-      }
-    };
-  }, [setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner, sessionCreationAttempted]);
-};
-
-// Main content renderer component
-const ProblemGeneratorContent = ({ 
-  sessionData, 
-  showRegenerationBanner, 
-  handleRegenerateSession, 
-  settingsLoading, 
-  settingsLoaded, 
-  sessionLoading, 
-  isRegenerating, 
-  problems, 
-  showInterviewBanner, 
-  settings, 
-  handleInterviewChoice, 
-  handleRegularChoice, 
-  onLinkClick 
-}) => (
-  <>
-    <InterviewModeBanner 
-      sessionType={sessionData?.sessionType} 
-      interviewConfig={sessionData?.interviewConfig} 
-    />
-    
-    {logger.info("🎯 Render check - showRegenerationBanner:", showRegenerationBanner, "sessionData:", sessionData?.id?.substring(0,8))}
-    {showRegenerationBanner && (
-      <SessionRegenerationBanner onRegenerateSession={handleRegenerateSession} />
-    )}
-    
-    {logger.info("🎯 Render Decision Point:", { 
-      settingsLoading, 
-      settingsLoaded, 
-      sessionLoading, 
-      isRegenerating, 
-      problemsLength: problems.length, 
-      showInterviewBanner, 
-      settingsState: { 
-        interviewMode: settings?.interviewMode, 
-        interviewFrequency: settings?.interviewFrequency 
-      } 
-    })}
-    
-    {settingsLoading || (settingsLoaded && sessionLoading) || isRegenerating ? (
-      <LoadingState 
-        settingsLoading={settingsLoading} 
-        isRegenerating={isRegenerating} 
-        settingsLoaded={settingsLoaded} 
-        sessionLoading={sessionLoading} 
-        settings={settings} 
-      />
-    ) : problems.length > 0 ? (
-      <ProblemsList 
-        problems={problems} 
-        sessionData={sessionData} 
-        onLinkClick={onLinkClick} 
-      />
-    ) : showInterviewBanner ? (
-      <InterviewChoiceBanner 
-        sessionLoading={sessionLoading} 
-        handleInterviewChoice={handleInterviewChoice} 
-        handleRegularChoice={handleRegularChoice} 
-      />
-    ) : settingsLoaded && !sessionLoading ? (
-      <EmptyState 
-        settingsLoaded={settingsLoaded} 
-        sessionLoading={sessionLoading} 
-      />
-    ) : null}
-  </>
-);
 function ProbGen() {
   const { setIsAppOpen } = useNav();
   const [problems, setProblems] = useState([]);
@@ -1069,7 +991,38 @@ function ProbGen() {
   });
 
   // Listen for session cache invalidation events
-  useSessionCacheListener(setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner, sessionCreationAttempted);
+  useEffect(() => {
+    const handleSessionCacheCleared = () => {
+      logger.info('🔄 ProblemGenerator: Received session cache cleared signal, resetting session state');
+      // Reset session creation attempt flag to force reload
+      sessionCreationAttempted.current = false;
+      // Clear session data to trigger reload
+      setSessionData(null);
+      setProblems([]);
+      // Reset banners
+      setShowInterviewBanner(false);
+      setShowRegenerationBanner(false);
+    };
+
+    // Add listener for Chrome runtime messages
+    const messageListener = (message, sender, sendResponse) => {
+      if (message.type === 'sessionCacheCleared') {
+        handleSessionCacheCleared();
+        sendResponse({ status: 'success' });
+      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      chrome.runtime.onMessage.addListener(messageListener);
+    }
+
+    // Cleanup listener on unmount
+    return () => {
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.onMessage.removeListener(messageListener);
+      }
+    };
+  }, [setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner, sessionCreationAttempted]);
 
   const handleClose = () => {
     setIsAppOpen(false);
@@ -1088,21 +1041,58 @@ function ProbGen() {
     <div id="cm-mySidenav" className="cm-sidenav problink">
       <Header title="Generator" onClose={handleClose} />
       <div className="cm-sidenav__content">
-        <ProblemGeneratorContent
-          sessionData={sessionData}
-          showRegenerationBanner={showRegenerationBanner}
-          handleRegenerateSession={handleRegenerateSession}
-          settingsLoading={settingsLoading}
-          settingsLoaded={settingsLoaded}
-          sessionLoading={sessionLoading}
-          isRegenerating={isRegenerating}
-          problems={problems}
-          showInterviewBanner={showInterviewBanner}
-          settings={settings}
-          handleInterviewChoice={handleInterviewChoice}
-          handleRegularChoice={handleRegularChoice}
-          onLinkClick={handleLinkClick}
+        {/* Interview Mode Banner - only shows for interview sessions */}
+        <InterviewModeBanner 
+          sessionType={sessionData?.sessionType}
+          interviewConfig={sessionData?.interviewConfig}
         />
+        
+        {/* Session Regeneration Banner - shows for stale sessions */}
+        {logger.info('🎯 Render check - showRegenerationBanner:', showRegenerationBanner, 'sessionData:', sessionData?.id?.substring(0,8))}
+        {showRegenerationBanner && (
+          <SessionRegenerationBanner 
+            onRegenerateSession={handleRegenerateSession}
+          />
+        )}
+        
+        {logger.info('🎯 Render Decision Point:', {
+          settingsLoading,
+          settingsLoaded, 
+          sessionLoading,
+          isRegenerating,
+          problemsLength: problems.length,
+          showInterviewBanner,
+          settingsState: {
+            interviewMode: settings?.interviewMode,
+            interviewFrequency: settings?.interviewFrequency
+          }
+        })}
+        {settingsLoading || (settingsLoaded && sessionLoading) || isRegenerating ? (
+          <LoadingState
+            settingsLoading={settingsLoading}
+            isRegenerating={isRegenerating}
+            settingsLoaded={settingsLoaded}
+            sessionLoading={sessionLoading}
+            settings={settings}
+          />
+        ) : problems.length > 0 ? (
+          <ProblemsList
+            problems={problems}
+            sessionData={sessionData}
+            onLinkClick={handleLinkClick}
+          />
+        ) : showInterviewBanner ? (
+          <InterviewChoiceBanner
+            sessionLoading={sessionLoading}
+            handleInterviewChoice={handleInterviewChoice}
+            handleRegularChoice={handleRegularChoice}
+          />
+        ) : settingsLoaded && !sessionLoading ? (
+          <EmptyState
+            settingsLoaded={settingsLoaded}
+            sessionLoading={sessionLoading}
+          />
+        ) : null}
       </div>
     </div>
   );

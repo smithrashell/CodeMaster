@@ -1,5 +1,5 @@
 // HeaderWithClose.jsx
-import { Title } from "@mantine/core";
+import Title from '../ui/Title.jsx';
 import { useNav } from "../../../shared/provider/navprovider";
 export default function Header({ title, onClose }) {
   const { isAppOpen, setIsAppOpen } = useNav();
