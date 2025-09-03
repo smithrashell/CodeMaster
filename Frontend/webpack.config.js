@@ -23,16 +23,15 @@ module.exports = (env, argv) => {
 
   return {
     entry: {
-      popup: "./src/popup/popup.jsx",
       background: "./public/background.js",
-      content: "./src/content/content.jsx",
+      content: "./src/content/content.jsx", 
       app: "./src/app/app.jsx",
     },
     output: {
       path: path.resolve(__dirname, "dist"),
       filename: "[name].js",
     },
-    devtool: isDev ? "inline-source-map" : "source-map",
+    devtool: false, // Disable source maps to save memory
     watchOptions: {
       poll: 1000,
       ignored: /node_modules/,
@@ -46,11 +45,6 @@ module.exports = (env, argv) => {
         template: "./src/app/app.html",
         filename: "app.html",
         chunks: ["app"],
-      }),
-      new HtmlWebpackPlugin({
-        template: "./src/popup/popup.html",
-        filename: "popup.html",
-        chunks: ["popup"],
       }),
       // MonacoWebpackPlugin removed - flashcards feature not used in production
     ],
@@ -94,20 +88,28 @@ module.exports = (env, argv) => {
       extensions: [".jsx", ".js"],
     },
     optimization: {
-      sideEffects: false, // Enable tree shaking for better dead code elimination
-      usedExports: true,  // Mark unused exports for tree shaking
+      sideEffects: false,
+      usedExports: true,
       splitChunks: {
         chunks: 'all',
-        maxSize: 500000, // Split large chunks
+        minSize: 10000,
+        maxSize: 250000,
         cacheGroups: {
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             chunks: 'all',
-            maxSize: 800000,
+            maxSize: 400000,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            maxSize: 200000,
           },
         },
       },
+      concatenateModules: false, // Disable to save memory
     },
     stats: {
       children: false,
