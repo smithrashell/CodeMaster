@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { MantineProvider, createTheme } from "@mantine/core";
 import { useChromeMessage, clearChromeMessageCache } from "../hooks/useChromeMessage";
 
@@ -164,6 +164,44 @@ const useStorageListener = (applySettings) => {
   }, [applySettings]);
 };
 
+// Helper function to create settings update callbacks
+const createSettingsUpdateCallbacks = (settings, setters, saveSettings) => {
+  const { colorScheme } = settings;
+  const { setColorScheme, setFontSize, setLayoutDensity, setAnimationsEnabled } = setters;
+  
+  return {
+  toggleColorScheme: (value) => {
+    const newScheme = value || (colorScheme === "light" ? "dark" : "light");
+    setColorScheme(newScheme);
+    saveSettings({ colorScheme: newScheme });
+  },
+  updateFontSize: (newFontSize) => {
+    setFontSize(newFontSize);
+    saveSettings({ fontSize: newFontSize });
+  },
+  updateLayoutDensity: (newDensity) => {
+    setLayoutDensity(newDensity);
+    saveSettings({ layoutDensity: newDensity });
+  },
+  updateAnimationsEnabled: (enabled) => {
+    setAnimationsEnabled(enabled);
+    saveSettings({ animationsEnabled: enabled });
+  }
+  };
+};
+
+// Helper function to create context value
+const createContextValue = (colorScheme, fontSize, layoutDensity, animationsEnabled, callbacks) => ({
+  colorScheme,
+  fontSize,
+  layoutDensity,
+  animationsEnabled,
+  toggleColorScheme: callbacks.toggleColorScheme,
+  setFontSize: callbacks.updateFontSize,
+  setLayoutDensity: callbacks.updateLayoutDensity,
+  setAnimationsEnabled: callbacks.updateAnimationsEnabled,
+});
+
 
 
 function ThemeProviderWrapper({ children }) {
@@ -249,26 +287,14 @@ function ThemeProviderWrapper({ children }) {
   }, [colorScheme, fontSize, layoutDensity, animationsEnabled, chromeSettings]);
 
   // Settings update callbacks
-  const toggleColorScheme = useCallback((value) => {
-    const newScheme = value || (colorScheme === "light" ? "dark" : "light");
-    setColorScheme(newScheme);
-    saveSettings({ colorScheme: newScheme });
-  }, [colorScheme, saveSettings]);
+  const callbacks = useMemo(() => 
+    createSettingsUpdateCallbacks(
+      { colorScheme, fontSize, layoutDensity, animationsEnabled },
+      { setColorScheme, setFontSize, setLayoutDensity, setAnimationsEnabled },
+      saveSettings
+    ), [colorScheme, fontSize, layoutDensity, animationsEnabled, saveSettings]);
 
-  const updateFontSize = useCallback((newFontSize) => {
-    setFontSize(newFontSize);
-    saveSettings({ fontSize: newFontSize });
-  }, [saveSettings]);
-
-  const updateLayoutDensity = useCallback((newDensity) => {
-    setLayoutDensity(newDensity);
-    saveSettings({ layoutDensity: newDensity });
-  }, [saveSettings]);
-
-  const updateAnimationsEnabled = useCallback((enabled) => {
-    setAnimationsEnabled(enabled);
-    saveSettings({ animationsEnabled: enabled });
-  }, [saveSettings]);
+  // Use callbacks directly in context value
 
   // Handle fallback to localStorage if Chrome messaging fails
   useEffect(() => {
@@ -282,16 +308,10 @@ function ThemeProviderWrapper({ children }) {
   useDOMThemeApplier(colorScheme, fontSize, layoutDensity, animationsEnabled);
   useStorageListener(applySettings);
 
-  const contextValue = {
-    colorScheme,
-    fontSize,
-    layoutDensity,
-    animationsEnabled,
-    toggleColorScheme,
-    setFontSize: updateFontSize,
-    setLayoutDensity: updateLayoutDensity,
-    setAnimationsEnabled: updateAnimationsEnabled,
-  };
+  const contextValue = useMemo(() =>
+    createContextValue(colorScheme, fontSize, layoutDensity, animationsEnabled, callbacks),
+    [colorScheme, fontSize, layoutDensity, animationsEnabled, callbacks]
+  );
 
   return (
     <ThemeContext.Provider value={contextValue}>

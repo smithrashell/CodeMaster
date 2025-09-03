@@ -84,3 +84,30 @@ export function logNewConnectionWarning() {
 export function logCachedConnection() {
   logger.debug('✅ Returning cached database connection');
 }
+
+/**
+ * Simple database opener for services that need database access
+ * @returns {Promise<IDBDatabase>} Database instance
+ */
+export function openDatabase() {
+  const dbName = "review";
+  const version = 36;
+  
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, version);
+    
+    request.onsuccess = (event) => {
+      resolve(event.target.result);
+    };
+    
+    request.onerror = (event) => {
+      logger.error('Failed to open database:', event.target.error);
+      reject(event.target.error);
+    };
+    
+    request.onupgradeneeded = () => {
+      // For services, we'll just handle basic upgrade
+      logger.warn('Database upgrade needed but handling minimal upgrade for service');
+    };
+  });
+}

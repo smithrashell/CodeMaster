@@ -20,10 +20,13 @@ function SlimKPI({ title, value, sub }) {
 }
 
 export function Metrics() {
-  const { data: appState, loading: _loading, error: _error, refresh: _refresh } = usePageData('session-history');
+  const { data: appState, loading, error} = usePageData('session-history');
   const [timeRange, setTimeRange] = useState("Last 7 days");
   
   const { recentSessions, sessionLengthData, accuracyData, kpis } = useSessionData(appState, timeRange);
+
+  if (loading) return <Container size="xl" p="md"><Text>Loading session history...</Text></Container>;
+  if (error) return <Container size="xl" p="md"><Text c="red">Error loading session data: {error.message}</Text></Container>;
 
   return (
     <Container size="xl" p="md">

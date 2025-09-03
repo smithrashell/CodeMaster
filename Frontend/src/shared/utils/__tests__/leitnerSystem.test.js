@@ -131,17 +131,20 @@ const simulateEmptyCursor = (mockIndex) => {
 };
 
 const simulateCursorError = (mockIndex, errorCode = "DB_ERROR") => {
-  mockIndex.openCursor.mockImplementation(() => ({
-    onsuccess: null,
-    onerror: null,
-  }));
+  if (mockIndex && mockIndex.openCursor) {
+    const mockRequest = {
+      onsuccess: null,
+      onerror: null,
+    };
 
-  setTimeout(() => {
-    const request = mockIndex.openCursor.mock.results[0].value;
-    if (request.onerror) {
-      request.onerror({ target: { errorCode } });
-    }
-  }, 0);
+    mockIndex.openCursor.mockImplementation(() => mockRequest);
+
+    setTimeout(() => {
+      if (mockRequest.onerror) {
+        mockRequest.onerror({ target: { errorCode } });
+      }
+    }, 0);
+  }
 };
 
 // Test group functions
@@ -286,47 +289,7 @@ const runCalculateLeitnerBoxTests = () => {
   });
 };
 
-const runEvaluateAttemptsTests = (mockDB, mockObjectStore, mockIndex) => {
-  describe("evaluateAttempts", () => {
-    it.skip("should evaluate problem performance and update box level", async () => {
-      const problem = { id: "prob-123", title: "Test Problem", boxLevel: 2 };
-      const mockAttempts = [
-        { AttemptDate: "2024-01-01T10:00:00Z", Success: true, Difficulty: 5 },
-        { AttemptDate: "2024-01-02T11:00:00Z", Success: true, Difficulty: 4 },
-        { AttemptDate: "2024-01-03T12:00:00Z", Success: false, Difficulty: 8 },
-      ];
-
-      simulateCursorWithAttempts(mockAttempts, mockIndex);
-
-      const result = await evaluateAttempts(problem);
-
-      expect(result).toHaveProperty("boxLevel");
-      expect(result).toHaveProperty("TotalAttempts");
-      expect(result).toHaveProperty("NextReviewDate");
-      expect(mockDB.transaction).toHaveBeenCalledWith(["attempts"], "readonly");
-      expect(mockObjectStore.index).toHaveBeenCalledWith("by_problem_and_date");
-    });
-
-    it("should handle database errors gracefully", async () => {
-      const problem = { id: "prob-123", title: "Test Problem", boxLevel: 2 };
-      simulateCursorError(mockIndex, "DB_ERROR");
-
-      await expect(evaluateAttempts(problem)).rejects.toBe("DB_ERROR");
-    });
-
-    it.skip("should handle problems with no attempts", async () => {
-      const problem = { id: "prob-no-attempts", title: "Unattempted Problem", boxLevel: 1 };
-      simulateEmptyCursor(mockIndex);
-
-      const result = await evaluateAttempts(problem);
-
-      expect(result).toHaveProperty("boxLevel");
-      expect(result.TotalAttempts).toBe(0);
-      expect(result.SuccessfulAttempts).toBe(0);
-      expect(result.UnsuccessfulAttempts).toBe(0);
-    });
-  });
-};
+// Removed duplicate runEvaluateAttemptsTests function - tests inlined below
 
 const runBoxLevelIntervalsTests = () => {
   describe("Box Level Intervals", () => {
@@ -406,7 +369,50 @@ describe("Leitner System", function() {
 
   runReassessBoxLevelTests();
   runCalculateLeitnerBoxTests();
-  runEvaluateAttemptsTests(mockDB, mockObjectStore, mockIndex);
+  
+  describe("evaluateAttempts", () => {
+    it.skip("should evaluate problem performance and update box level", async () => {
+      const problem = { id: "prob-123", title: "Test Problem", boxLevel: 2 };
+      const mockAttempts = [
+        { AttemptDate: "2024-01-01T10:00:00Z", Success: true, Difficulty: 5 },
+        { AttemptDate: "2024-01-02T11:00:00Z", Success: true, Difficulty: 4 },
+        { AttemptDate: "2024-01-03T12:00:00Z", Success: false, Difficulty: 8 },
+      ];
+
+      simulateCursorWithAttempts(mockAttempts, mockIndex);
+
+      const result = await evaluateAttempts(problem);
+
+      expect(result).toHaveProperty("boxLevel");
+      expect(result).toHaveProperty("TotalAttempts");
+      expect(result).toHaveProperty("NextReviewDate");
+      expect(mockDB.transaction).toHaveBeenCalledWith(["attempts"], "readonly");
+      expect(mockObjectStore.index).toHaveBeenCalledWith("by_problem_and_date");
+    });
+
+    it("should handle database errors gracefully", async () => {
+      const problem = { id: "prob-123", title: "Test Problem", boxLevel: 2 };
+      
+      // Create a fresh mock index for this test
+      const localMockIndex = createMockIndex();
+      mockObjectStore.index.mockReturnValue(localMockIndex);
+      
+      simulateCursorError(localMockIndex, "DB_ERROR");
+
+      await expect(evaluateAttempts(problem)).rejects.toBe("DB_ERROR");
+    });
+
+    it.skip("should handle problems with no attempts", async () => {
+      const problem = { id: "prob-no-attempts", title: "Unattempted Problem", boxLevel: 1 };
+      simulateEmptyCursor(mockIndex);
+
+      const result = await evaluateAttempts(problem);
+
+      expect(result.boxLevel).toBe(problem.boxLevel);
+      expect(result.TotalAttempts).toBe(0);
+    });
+  });
+  
   runBoxLevelIntervalsTests();
   runEdgeCasesTests();
 });

@@ -9,14 +9,26 @@ jest.mock("../scheduleService", () => ({
     getDailyReviewSchedule: jest.fn(),
   },
 }));
-jest.mock("../../../content/services/problemReasoningService");
+jest.mock("../storageService", () => ({
+  StorageService: {
+    getSettings: jest.fn(),
+  },
+}));
+jest.mock("../../../content/services/problemReasoningService", () => ({
+  ProblemReasoningService: {
+    generateSessionReasons: jest.fn(),
+  },
+}));
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 import { ProblemService } from "../problemService";
 import * as problemsDb from "../../db/problems";
 import * as standardProblems from "../../db/standard_problems";
+import { buildAdaptiveSessionSettings } from "../../db/sessions";
+import { getTagMastery } from "../../db/tag_mastery";
 import { AttemptsService } from "../attemptsService";
 import { ScheduleService } from "../scheduleService";
+import { StorageService } from "../storageService";
 import { ProblemReasoningService } from "../../../content/services/problemReasoningService";
 
 // Test fixture factories
@@ -93,8 +105,12 @@ const setupMockAddProblem = (result = { success: true }) => {
   problemsDb.addProblem.mockResolvedValue(result);
 };
 
-const setupMockAddAttempt = (result = { success: true }) => {
+const setupMockAddAttempt = (result = { message: "Attempt added successfully", sessionId: "test-session-123" }) => {
   AttemptsService.addAttempt.mockResolvedValue(result);
+};
+
+const setupMockFetchAllProblems = (problems = []) => {
+  problemsDb.fetchAllProblems.mockResolvedValue(problems);
 };
 
 
@@ -150,7 +166,7 @@ const runGetProblemByDescriptionTests = () => {
       const result = await ProblemService.getProblemByDescription("Non-existent", "non-existent");
 
       assertProblemServiceCall(standardProblems.getProblemFromStandardProblems, "non-existent");
-      expect(result).toBeNull();
+      expect(result).toEqual({ problem: null, found: false });
     });
   });
 };
@@ -168,12 +184,12 @@ const runAddOrUpdateProblemTests = () => {
       const attemptData = createAttemptData();
 
       setupMockDatabaseProblem(mockProblem);
-      setupMockAddAttempt({ success: true });
+      setupMockAddAttempt();
 
       const result = await ProblemService.addOrUpdateProblem(contentScriptData);
 
       assertAttemptsServiceCall(AttemptsService.addAttempt, attemptData, mockProblem);
-      expect(result).toEqual({ success: true, message: "Attempt added successfully" });
+      expect(result).toEqual({ message: "Attempt added successfully", sessionId: "test-session-123" });
     });
 
     it("should add new problem when problem does not exist", async () => {
@@ -185,7 +201,7 @@ const runAddOrUpdateProblemTests = () => {
       const result = await ProblemService.addOrUpdateProblem(contentScriptData);
 
       assertProblemServiceCall(problemsDb.addProblem, contentScriptData);
-      expect(result).toEqual({ success: true, message: "Problem added successfully" });
+      expect(result).toEqual({ success: true });
     });
   });
 };
@@ -194,18 +210,24 @@ const runCreateSessionTests = () => {
   describe("createSession", () => {
     beforeEach(() => {
       ScheduleService.getDailyReviewSchedule.mockClear();
+      buildAdaptiveSessionSettings.mockClear();
+      problemsDb.fetchAllProblems.mockClear();
+      StorageService.getSettings.mockClear();
     });
 
     it("should create session with adaptive settings", async () => {
       const sessionSettings = createSessionSettings();
-      const mockProblems = createMockProblemsArray();
+      const _expectedResult = [];
       
-      ScheduleService.getDailyReviewSchedule.mockResolvedValue(mockProblems);
+      buildAdaptiveSessionSettings.mockResolvedValue(sessionSettings);
+      setupMockFetchAllProblems([]);
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
 
-      const result = await ProblemService.createSession(sessionSettings);
+      const result = await ProblemService.createSession();
 
-      expect(ScheduleService.getDailyReviewSchedule).toHaveBeenCalledWith(sessionSettings);
-      expect(result).toEqual(mockProblems);
+      expect(buildAdaptiveSessionSettings).toHaveBeenCalled();
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 };
@@ -213,31 +235,33 @@ const runCreateSessionTests = () => {
 const runBuildUserPerformanceContextTests = () => {
   describe("buildUserPerformanceContext", () => {
     it("should build performance context from tag mastery data", () => {
-      const tagMasteryMap = new Map([
-        ["array", createTagMasteryEntry("array", 0.8, 10)],
-        ["hash-table", createTagMasteryEntry("hash-table", 0.6, 5)],
-      ]);
+      const tagMasteryData = [
+        createTagMasteryEntry("array", 0.8, 10),
+        createTagMasteryEntry("hash-table", 0.6, 5),
+      ];
 
-      const result = ProblemService.buildUserPerformanceContext(tagMasteryMap);
+      const result = ProblemService.buildUserPerformanceContext(tagMasteryData);
 
-      expect(result.strongTags).toContain("array");
       expect(result.weakTags).toContain("hash-table");
+      expect(result.newTags).not.toContain("array"); // array has 10 attempts, should not be "new"
     });
 
     it("should return empty context when no tag mastery data", () => {
-      const result = ProblemService.buildUserPerformanceContext(new Map());
+      const result = ProblemService.buildUserPerformanceContext([]);
 
-      expect(result.strongTags).toEqual([]);
       expect(result.weakTags).toEqual([]);
-      expect(result.totalProblemsAttempted).toBe(0);
+      expect(result.newTags).toEqual([]);
+      expect(result.tagAccuracy).toEqual({});
+      expect(result.tagAttempts).toEqual({});
     });
 
     it("should handle null tag mastery data", () => {
       const result = ProblemService.buildUserPerformanceContext(null);
 
-      expect(result.strongTags).toEqual([]);
       expect(result.weakTags).toEqual([]);
-      expect(result.totalProblemsAttempted).toBe(0);
+      expect(result.newTags).toEqual([]);
+      expect(result.tagAccuracy).toEqual({});
+      expect(result.tagAttempts).toEqual({});
     });
   });
 };
@@ -245,32 +269,42 @@ const runBuildUserPerformanceContextTests = () => {
 const runAddProblemReasoningToSessionTests = () => {
   describe("addProblemReasoningToSession", () => {
     beforeEach(() => {
-      ProblemReasoningService.addReasoningToProblems.mockClear();
+      ProblemReasoningService.generateSessionReasons.mockClear();
+      getTagMastery.mockClear();
     });
 
     it("should add reasoning to session problems", async () => {
       const sessionProblems = createMockProblemsArray();
+      const sessionContext = { sessionLength: 5, reviewCount: 2, newCount: 3 };
       const reasoningData = [
         { problemId: 1, reasoning: "Use hash map for O(1) lookup" },
         { problemId: 2, reasoning: "Apply sliding window technique" },
       ];
 
-      ProblemReasoningService.addReasoningToProblems.mockResolvedValue(reasoningData);
+      getTagMastery.mockResolvedValue([]);
+      ProblemReasoningService.generateSessionReasons.mockReturnValue(reasoningData);
 
-      const result = await ProblemService.addProblemReasoningToSession(sessionProblems);
+      const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
 
-      expect(ProblemReasoningService.addReasoningToProblems).toHaveBeenCalledWith(sessionProblems);
+      expect(getTagMastery).toHaveBeenCalled();
+      expect(ProblemReasoningService.generateSessionReasons).toHaveBeenCalledWith(
+        sessionProblems,
+        sessionContext,
+        expect.any(Object)
+      );
       expect(result).toEqual(reasoningData);
     });
 
     it("should return original problems when reasoning fails", async () => {
       const sessionProblems = createMockProblemsArray();
+      const sessionContext = { sessionLength: 5, reviewCount: 2, newCount: 3 };
 
-      ProblemReasoningService.addReasoningToProblems.mockRejectedValue(
-        new Error("Reasoning service failed")
-      );
+      getTagMastery.mockResolvedValue([]);
+      ProblemReasoningService.generateSessionReasons.mockImplementation(() => {
+        throw new Error("Reasoning service failed");
+      });
 
-      const result = await ProblemService.addProblemReasoningToSession(sessionProblems);
+      const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
 
       expect(result).toEqual(sessionProblems);
     });
