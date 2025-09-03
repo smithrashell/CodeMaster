@@ -2,12 +2,14 @@
 import { dbHelper } from "../db/index.js";
 import {  getMostRecentAttempt } from "../db/attempts.js";
 import { SessionService } from "../services/sessionService.js";
+import { getLatestSessionByType } from "../db/sessions.js";
 import { calculateLeitnerBox } from "../utils/leitnerSystem";
 import { createAttemptRecord } from "../utils/Utils.js";
-import { saveSessionToStorage, updateSessionInDB } from "../db/sessions.js";
+import { saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from "../db/sessions.js";
 import { ProblemService } from "./problemService.js";
 import FocusCoordinationService from "./focusCoordinationService.js";
 import { debug, success, system } from "../utils/logger.js";
+import { v4 as uuidv4 } from "uuid";
 
 const openDB = dbHelper.openDB;
 const _checkAndCompleteSession = SessionService.checkAndCompleteSession;
@@ -18,10 +20,23 @@ const _checkAndCompleteSession = SessionService.checkAndCompleteSession;
  */
 class SessionAttributionEngine {
   /**
-   * Get active guided session that's currently in progress
+   * Get active guided session (standard, interview-like, or full-interview)
+   * Checks both draft and in_progress status
    */
   static async getActiveGuidedSession() {
-    return await SessionService.getLatestSessionByType(null, 'in_progress');
+    // First try in_progress sessions
+    let session = await getLatestSessionByType('standard', 'in_progress') ||
+                  await getLatestSessionByType('interview-like', 'in_progress') ||
+                  await getLatestSessionByType('full-interview', 'in_progress');
+    
+    // If no in_progress found, check draft sessions
+    if (!session) {
+      session = await getLatestSessionByType('standard', 'draft') ||
+                await getLatestSessionByType('interview-like', 'draft') ||
+                await getLatestSessionByType('full-interview', 'draft');
+    }
+    
+    return session;
   }
   
   /**
@@ -45,15 +60,22 @@ class SessionAttributionEngine {
     const db = await openDB();
     const transaction = db.transaction('sessions', 'readonly');
     const store = transaction.objectStore('sessions');
-    const index = store.index('by_origin_status');
+    
+    // Look for tracking sessions using sessionType
+    const request = store.openCursor(null, 'prev');
     
     return new Promise((resolve) => {
-      const request = index.openCursor(IDBKeyRange.only(['tracking', 'in_progress']), 'prev');
       
       request.onsuccess = async (event) => {
         const cursor = event.target.result;
         if (cursor) {
           const session = cursor.value;
+          
+          // Filter for tracking sessions that are in progress
+          if (session.sessionType !== 'tracking' || session.status !== 'in_progress') {
+            cursor.continue();
+            return;
+          }
           const lastActivity = new Date(session.lastActivityTime || session.date);
           const hoursStale = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60);
           const attemptCount = session.attempts?.length || 0;
@@ -153,7 +175,7 @@ class SessionAttributionEngine {
       
       // Update session in database
       const updatedSession = { ...session, ...completionData };
-      await SessionService.updateSessionInDB(updatedSession);
+      await updateSessionInDB(updatedSession);
       await saveSessionToStorage(updatedSession, true);
       
       success(`✅ Completed tracking session ${session.id} with focus`, { recommendedTags: completionData.sessionFocus.recommendedTags });
@@ -168,12 +190,10 @@ class SessionAttributionEngine {
    * Uses optimal parameters: 8-12 attempts, 4-6 hours active time
    */
   static async createTrackingSession() {
-    const { v4: uuidv4 } = await import('uuid');
     const trackingSession = {
       id: uuidv4(),
       date: new Date().toISOString(), 
       status: 'in_progress',
-      origin: 'tracking',
       startedBy: 'auto_inferred',
       lastActivityTime: new Date().toISOString(),
       problems: [], // Tracking sessions have no predefined problems
@@ -189,7 +209,7 @@ class SessionAttributionEngine {
       }
     };
     
-    await SessionService.saveNewSessionToDB(trackingSession);
+    await saveNewSessionToDB(trackingSession);
     await saveSessionToStorage(trackingSession);
     
     success('🆕 Created optimized tracking session', { sessionId: trackingSession.id });
@@ -201,7 +221,7 @@ class SessionAttributionEngine {
    */
   static async updateSessionActivity(session) {
     session.lastActivityTime = new Date().toISOString();
-    await SessionService.updateSessionInDB(session);
+    await updateSessionInDB(session);
     await saveSessionToStorage(session, true);
   }
   
@@ -264,6 +284,29 @@ class SessionAttributionEngine {
       attemptData.id
     );
 
+    // Remove completed problems from session (successful attempts)
+    if (attemptData.Success && session.problems && Array.isArray(session.problems)) {
+      console.log(`🎯 Attempting to remove completed problem from session`, {
+        problemId: problem.id,
+        problemLeetCodeID: problem.leetCodeID,
+        sessionId: session.id,
+        success: attemptData.Success,
+        currentProblemCount: session.problems.length
+      });
+      
+      const initialCount = session.problems.length;
+      session.problems = session.problems.filter(p => {
+        const shouldKeep = !(
+          (p.id && p.id === problem.id) || 
+          (p.leetCodeID && p.leetCodeID === problem.leetCodeID) ||
+          (p.problemId && p.problemId === problem.id)
+        );
+        return shouldKeep;
+      });
+      
+      console.log(`✅ Problem removal result: ${initialCount} → ${session.problems.length} problems`);
+    }
+
     // Open a transaction for database operations
     const transaction = db.transaction(
       ["problems", "attempts", "sessions"],
@@ -297,8 +340,8 @@ class SessionAttributionEngine {
     await putData(sessionStore, session);
 
     // Check if guided session is complete (tracking sessions don't auto-complete)
-    if (session.origin === 'generator') {
-      await SessionService.checkAndCompleteSession(session.id);
+    if (session.sessionType !== 'tracking') {
+      await _checkAndCompleteSession(session.id);
     }
     
     return { message: "Attempt added and problem updated successfully", sessionId: session.id };
@@ -321,22 +364,33 @@ async function addAttempt(attemptData, problem) {
       return { error: "Problem not found." };
     }
 
-    // 1. Check for active guided session with matching problem
+    // 1. Check for active guided session first
     const guidedSession = await SessionAttributionEngine.getActiveGuidedSession();
-    if (guidedSession && SessionAttributionEngine.isMatchingProblem(guidedSession, problem)) {
-      const result = await SessionAttributionEngine.attachToGuidedSession(guidedSession, attemptData, problem);
+    if (guidedSession) {
+      console.log(`🔍 Found guided session: ${guidedSession.sessionType} (${guidedSession.status})`);
       
-      // Notify UI to refresh focus area eligibility
-      try {
-        window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
-      } catch (err) {
-        // Silent fail - window might not be available in background context
+      // 2. Check if this problem matches any problems in the guided session
+      if (SessionAttributionEngine.isMatchingProblem(guidedSession, problem)) {
+        console.log(`✅ Problem ${problem.id} matches guided session ${guidedSession.id}`);
+        const result = await SessionAttributionEngine.attachToGuidedSession(guidedSession, attemptData, problem);
+        
+        // Notify UI to refresh focus area eligibility
+        try {
+          window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
+        } catch (err) {
+          // Silent fail - window might not be available in background context
+        }
+        
+        return result;
+      } else {
+        console.log(`❌ Problem ${problem.id} does not match any problems in guided session ${guidedSession.id}`);
       }
-      
-      return result;
+    } else {
+      console.log("❌ No active guided session found");
     }
 
-    // 2. Get or create tracking session for independent attempts (using optimal parameters)
+    // 3. Fall back to tracking session (independent problem solving)
+    console.log("🔄 Routing to tracking session for independent problem solving");
     let trackingSession = await SessionAttributionEngine.getRecentTrackingSession();
     if (!trackingSession) {
       trackingSession = await SessionAttributionEngine.createTrackingSession();
