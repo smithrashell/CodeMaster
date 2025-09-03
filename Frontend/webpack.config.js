@@ -1,6 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
+// const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin"); // Removed - not used in production routes
 const webpack = require("webpack");
 require("dotenv").config();
 
@@ -52,9 +52,7 @@ module.exports = (env, argv) => {
         filename: "popup.html",
         chunks: ["popup"],
       }),
-      new MonacoWebpackPlugin({
-        languages: ["javascript", "json"],
-      }),
+      // MonacoWebpackPlugin removed - flashcards feature not used in production
     ],
     module: {
       rules: [
@@ -94,6 +92,26 @@ module.exports = (env, argv) => {
     },
     resolve: {
       extensions: [".jsx", ".js"],
+    },
+    optimization: {
+      sideEffects: false, // Enable tree shaking for better dead code elimination
+      usedExports: true,  // Mark unused exports for tree shaking
+      splitChunks: {
+        chunks: 'all',
+        maxSize: 500000, // Split large chunks
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            maxSize: 800000,
+          },
+        },
+      },
+    },
+    stats: {
+      children: false,
+      modules: false,
     },
   };
 };
