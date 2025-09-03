@@ -8,17 +8,24 @@ export const HintItem = ({
   isExpanded,
   themeColors,
   onToggle,
-  onHintClick,
-  interviewRestrictions,
+  _onHintClick,
+  _interviewRestrictions,
+  index, // Need to pass index from parent
+  hintType, // Need to pass hintType from parent  
 }) => {
+  // Protect against undefined hints
+  if (!hint) {
+    console.warn('HintItem received undefined hint:', { hint, hintId, index, hintType });
+    return null;
+  }
   return (
     <Stack
       gap={8}
       style={{
         borderRadius: '8px',
-        border: `1px solid ${themeColors.borderColor}`,
+        border: `1px solid ${themeColors.containerBorder}`,
         padding: '12px',
-        background: themeColors.buttonBg.collapsed,
+        background: themeColors.expandedBg,
         transition: 'all 0.2s ease'
       }}
     >
@@ -27,19 +34,22 @@ export const HintItem = ({
           size="sm"
           weight={500}
           style={{ 
-            color: themeColors.textColor,
+            color: themeColors.text + " !important",
             lineHeight: 1.4,
             flex: 1
           }}
         >
-          {hint.title}
+          {hint.type === 'contextual' && hint.relatedTag 
+            ? `${hint.primaryTag} + ${hint.relatedTag}` 
+            : (hint.primaryTag || 'Strategy Hint')
+          }
         </Text>
         <Button
           variant="subtle"
           size="xs"
           onClick={(e) => {
             e.stopPropagation();
-            onToggle(hintId);
+            onToggle(hintId, hint, index, hintType);
           }}
           style={{
             minWidth: '24px',
@@ -51,9 +61,9 @@ export const HintItem = ({
           }}
         >
           {isExpanded ? (
-            <IconChevronUp size={14} style={{ color: themeColors.iconColor }} />
+            <IconChevronUp size={14} style={{ color: themeColors.text }} />
           ) : (
-            <IconChevronDown size={14} style={{ color: themeColors.iconColor }} />
+            <IconChevronDown size={14} style={{ color: themeColors.text }} />
           )}
         </Button>
       </Group>
@@ -63,51 +73,44 @@ export const HintItem = ({
           <Text
             size="sm"
             style={{
-              color: themeColors.textColor,
+              color: themeColors.text + " !important",
               lineHeight: 1.5,
               opacity: 0.9,
               whiteSpace: 'pre-wrap'
             }}
           >
-            {hint.content}
+            {hint.tip || 'No content available'}
           </Text>
 
-          {hint.tags && hint.tags.length > 0 && (
+          {(hint.primaryTag || hint.relatedTag) && (
             <Group gap={4}>
-              {hint.tags.map((tag, tagIndex) => (
+              {hint.primaryTag && (
                 <Badge
-                  key={tagIndex}
                   size="xs"
                   variant="outline"
                   style={{
-                    color: themeColors.iconColor,
-                    borderColor: themeColors.iconColor
+                    color: themeColors.text,
+                    borderColor: themeColors.text
                   }}
                 >
-                  {tag}
+                  {hint.primaryTag}
                 </Badge>
-              ))}
+              )}
+              {hint.relatedTag && (
+                <Badge
+                  size="xs"
+                  variant="outline"
+                  style={{
+                    color: themeColors.text,
+                    borderColor: themeColors.text
+                  }}
+                >
+                  {hint.relatedTag}
+                </Badge>
+              )}
             </Group>
           )}
 
-          {interviewRestrictions.hintsAvailable && (
-            <Button
-              size="xs"
-              variant="light"
-              onClick={(e) => {
-                e.stopPropagation();
-                onHintClick?.(hint, hintId);
-              }}
-              style={{
-                alignSelf: 'flex-start',
-                backgroundColor: `${themeColors.iconColor}15`,
-                color: themeColors.iconColor,
-                border: `1px solid ${themeColors.iconColor}30`
-              }}
-            >
-              Use Hint
-            </Button>
-          )}
         </Stack>
       )}
     </Stack>

@@ -2,17 +2,47 @@
  * FloatingHintPopoverContent - Extracted content for FloatingHintButton popover
  */
 import React from "react";
-import {
-  Stack,
-  Text,
-  Badge,
-  Group,
-  Loader,
-  Alert,
-} from "@mantine/core";
+import { Stack, Group } from '../ui/Layout.jsx';
+import Text from '../ui/Text.jsx';
+import Badge from '../ui/Badge.jsx';
+import Alert from '../ui/Alert.jsx';
+import Loader from '../ui/Loader.jsx';
 import { IconBulb, IconInfoCircle } from "@tabler/icons-react";
 import { HintsSection } from './HintsSection.jsx';
 import { getAlertMessage, shouldShowAlert } from './floatingHintHelpers.js';
+
+// Helper components for better maintainability and reduced line count
+const PopoverHeader = ({ colors, interviewRestrictions, problemTags }) => (
+  <Group justify="space-between" mb="sm">
+    <Group gap="xs">
+      <IconBulb size={20} color="#ffd43b" />
+      <Text fw={600} size="sm" c={colors.textColor} style={{ color: colors.textColor + " !important" }}>
+        Strategy Hints
+      </Text>
+      {interviewRestrictions.isInterviewMode && (
+        <Badge size="xs" color="orange" variant="light">
+          Interview Mode
+        </Badge>
+      )}
+    </Group>
+    <Group gap="xs">
+      {problemTags.map((tag) => (
+        <Badge key={tag} size="xs" variant="light">
+          {tag}
+        </Badge>
+      ))}
+    </Group>
+  </Group>
+);
+
+const LoadingState = ({ colors }) => (
+  <Group justify="center" p="md">
+    <Loader size="sm" />
+    <Text size="sm" c={colors.textColor} style={{ opacity: 0.7, color: colors.textColor + " !important" }}>
+      Loading...
+    </Text>
+  </Group>
+);
 
 const FloatingHintPopoverContent = ({
   loading,
@@ -28,29 +58,34 @@ const FloatingHintPopoverContent = ({
   onHintClick,
   getHintId
 }) => {
+  console.log("💡 FloatingHintPopoverContent received props:", {
+    loading,
+    error,
+    hintsCount: hints?.length || 0,
+    hints,
+    generalHintsCount: generalHints?.length || 0,
+    generalHints,
+    contextualHintsCount: contextualHints?.length || 0,
+    contextualHints,
+    colors,
+    problemTags,
+    expandedHints
+  });
+  
   return (
-    <div style={{ padding: "16px" }}>
+    <div style={{ 
+      padding: "16px",
+      backgroundColor: colors.expandedBg || "#ffffff",
+      color: colors.textColor || "#000000",
+      border: `1px solid ${colors.borderColor || "#cccccc"}`,
+      borderRadius: "8px"
+    }}>
       {/* Header */}
-      <Group justify="space-between" mb="sm">
-        <Group gap="xs">
-          <IconBulb size={20} color="#ffd43b" />
-          <Text fw={600} size="sm" c={colors.text}>
-            Strategy Hints
-          </Text>
-          {interviewRestrictions.isInterviewMode && (
-            <Badge size="xs" color="orange" variant="light">
-              Interview Mode
-            </Badge>
-          )}
-        </Group>
-        <Group gap="xs">
-          {problemTags.map((tag) => (
-            <Badge key={tag} size="xs" variant="light">
-              {tag}
-            </Badge>
-          ))}
-        </Group>
-      </Group>
+      <PopoverHeader 
+        colors={colors} 
+        interviewRestrictions={interviewRestrictions} 
+        problemTags={problemTags} 
+      />
 
       {/* Interview restrictions warning */}
       {shouldShowAlert(interviewRestrictions) && (
@@ -64,14 +99,7 @@ const FloatingHintPopoverContent = ({
         </Alert>
       )}
 
-      {loading && (
-        <Group justify="center" p="md">
-          <Loader size="sm" />
-          <Text size="sm" c={colors.text} style={{ opacity: 0.7 }}>
-            Loading...
-          </Text>
-        </Group>
-      )}
+      {loading && <LoadingState colors={colors} />}
 
       {error && (
         <Alert
@@ -85,7 +113,7 @@ const FloatingHintPopoverContent = ({
       )}
 
       {!loading && !error && hints.length === 0 && (
-        <Text size="sm" c={colors.text} ta="center" p="md" style={{ opacity: 0.7 }}>
+        <Text size="sm" c={colors.textColor} ta="center" p="md" style={{ opacity: 0.7, color: colors.textColor + " !important" }}>
           No strategy hints available.
         </Text>
       )}
