@@ -62,29 +62,60 @@ export const getButtonStyles = (uiMode, interviewRestrictions) => {
   }
 };
 
+// Helper function to calculate expanded hints count
+const calculateExpandedHintsCount = (isCurrentlyExpanded, expandedHints) => {
+  const currentSize = expandedHints?.size || 0;
+  return isCurrentlyExpanded ? currentSize - 1 : currentSize + 1;
+};
+
+// Helper function to create session context object
+const createSessionContext = (opened, hints, index, isCurrentlyExpanded, expandedHints) => ({
+  popoverOpen: opened,
+  totalHints: hints?.length || 0,
+  hintPosition: index || 0,
+  expandedHintsCount: calculateExpandedHintsCount(isCurrentlyExpanded, expandedHints),
+});
+
+// Helper function to create fallback hint data when hint is undefined
+const createFallbackHintData = (params) => {
+  const { problemId, hintId, hintType, problemTags, isCurrentlyExpanded, opened, hints, expandedHints, index } = params;
+  
+  return {
+    problemId: problemId || "unknown",
+    hintId: hintId || "unknown",
+    hintType,
+    primaryTag: "unknown",
+    relatedTag: "unknown",
+    content: "Unknown hint content",
+    relationshipScore: null,
+    timestamp: new Date().toISOString(),
+    problemTags: problemTags || [],
+    action: isCurrentlyExpanded ? "collapse" : "expand",
+    sessionContext: createSessionContext(opened, hints, index, isCurrentlyExpanded, expandedHints),
+  };
+};
+
 // Helper function to create hint click data
 export const createHintClickData = (params) => {
   const { problemId, hintId, hintType, hint, problemTags, isCurrentlyExpanded, opened, hints, expandedHints, index } = params;
+  
+  if (!hint) {
+    console.warn('⚠️ createHintClickData called with undefined hint:', params);
+    return createFallbackHintData(params);
+  }
   
   return {
     problemId: problemId || "unknown",
     hintId,
     hintType,
-    primaryTag: hint.primaryTag,
-    relatedTag: hint.relatedTag,
-    content: hint.tip,
+    primaryTag: hint.primaryTag || "unknown",
+    relatedTag: hint.relatedTag || "unknown",
+    content: hint.tip || "No content available",
     relationshipScore: hint.relationshipScore || null,
     timestamp: new Date().toISOString(),
-    problemTags: problemTags,
+    problemTags: problemTags || [],
     action: isCurrentlyExpanded ? "collapse" : "expand",
-    sessionContext: {
-      popoverOpen: opened,
-      totalHints: hints.length,
-      hintPosition: index,
-      expandedHintsCount: isCurrentlyExpanded
-        ? expandedHints.size - 1
-        : expandedHints.size + 1,
-    },
+    sessionContext: createSessionContext(opened, hints, index, isCurrentlyExpanded, expandedHints),
   };
 };
 
@@ -136,8 +167,35 @@ export const getPopoverDropdownStyles = (colors) => ({
     borderColor: colors.containerBorder, // Match timer border
     border: `1px solid ${colors.containerBorder}`, // Ensure border is applied
     color: colors.text, // Set text color to match timer
+    // Fix positioning - override Mantine's auto-calculation
+    position: "fixed !important",
+    transform: "none !important", // Disable Mantine's transform-based positioning
+    // Use CSS custom properties that can be updated dynamically
+    top: "var(--popover-top, auto)",
+    left: "var(--popover-left, auto)",
+    zIndex: "var(--cm-z-popover, 10000)",
   },
 });
+
+// Helper function to calculate and set popover position
+export const calculatePopoverPosition = (buttonRef, popoverWidth = 350, offset = 8) => {
+  if (!buttonRef?.current) return;
+  
+  const button = buttonRef.current;
+  const rect = button.getBoundingClientRect();
+  
+  // Calculate position below the button with offset
+  const top = rect.bottom + offset;
+  const left = rect.left + (rect.width / 2) - (popoverWidth / 2);
+  
+  // Ensure popover stays within viewport
+  const viewportWidth = window.innerWidth;
+  const adjustedLeft = Math.max(10, Math.min(left, viewportWidth - popoverWidth - 10));
+  
+  // Set CSS custom properties for positioning
+  document.documentElement.style.setProperty('--popover-top', `${top}px`);
+  document.documentElement.style.setProperty('--popover-left', `${adjustedLeft}px`);
+};
 
 // Helper function to handle mouse enter events
 export const handleMouseEnter = (e) => {

@@ -1,6 +1,7 @@
 import "../../css/main.css";
 import { useState, useEffect, useMemo } from "react";
-import { Button, SegmentedControl, Tooltip } from "@mantine/core";
+import Button from '../../components/ui/Button.jsx';
+import Tooltip from '../../components/ui/Tooltip.jsx';
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
 import {
   SliderMarksSessionLength,
@@ -340,6 +341,45 @@ const saveSettings = (settings) => {
   );
 };
 
+// Helper to handle interview settings changes and cache clearing
+const handleInterviewSettingsUpdate = (workingSettings, newSettings, handleSave) => {
+  component("Settings", "🎯 Settings update requested", newSettings);
+  
+  // Check if interview-related settings changed
+  const interviewSettingsChanged = (
+    workingSettings.interviewMode !== newSettings.interviewMode ||
+    workingSettings.interviewFrequency !== newSettings.interviewFrequency ||
+    workingSettings.interviewReadinessThreshold !== newSettings.interviewReadinessThreshold
+  );
+  
+  // Auto-save interview settings changes
+  handleSave(newSettings);
+  
+  // Clear session cache if interview settings changed to force new session creation
+  if (interviewSettingsChanged) {
+    component("Settings", "🎯 Interview settings changed, clearing caches and forcing reload");
+    
+    // Clear both settings and session cache
+    chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (settingsResponse) => {
+      component("Settings", "🔄 Settings cache cleared", settingsResponse);
+      
+      chrome.runtime.sendMessage({ type: "clearSessionCache" }, (sessionResponse) => {
+        if (sessionResponse?.status === "success") {
+          component("Settings", "✅ Session cache cleared successfully", { clearedCount: sessionResponse.clearedCount });
+          
+          // Force a page reload to ensure all caches are cleared and fresh settings are loaded
+          setTimeout(() => {
+            component("Settings", "🔄 Forcing page reload to refresh all caches");
+            window.location.reload();
+          }, 100);
+        } else {
+          component("Settings", "⚠️ Failed to clear session cache", sessionResponse);
+        }
+      });
+    });
+  }
+};
+
 const Settings = () => {
   const { setIsAppOpen } = useNav();
   const { settings, setSettings, maxNewProblems, _loading, _error } = useSettingsState();
@@ -357,10 +397,6 @@ const Settings = () => {
   });
 
   const handleSave = saveSettings;
-
-  const _toggleAdaptive = (value) => {
-    setSettings((prev) => ({ ...prev, adaptive: value }));
-  };
 
   const workingSettings = getWorkingSettings(settings);
 
@@ -424,42 +460,8 @@ const Settings = () => {
         <InterviewModeControls 
           settings={workingSettings} 
           updateSettings={(newSettings) => {
-            component("Settings", "🎯 Settings update requested", newSettings);
             setSettings(newSettings);
-            
-            // Check if interview-related settings changed
-            const interviewSettingsChanged = (
-              workingSettings.interviewMode !== newSettings.interviewMode ||
-              workingSettings.interviewFrequency !== newSettings.interviewFrequency ||
-              workingSettings.interviewReadinessThreshold !== newSettings.interviewReadinessThreshold
-            );
-            
-            // Auto-save interview settings changes
-            handleSave(newSettings);
-            
-            // Clear session cache if interview settings changed to force new session creation
-            if (interviewSettingsChanged) {
-              component("Settings", "🎯 Interview settings changed, clearing caches and forcing reload");
-              
-              // Clear both settings and session cache
-              chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (settingsResponse) => {
-                component("Settings", "🔄 Settings cache cleared", settingsResponse);
-                
-                chrome.runtime.sendMessage({ type: "clearSessionCache" }, (sessionResponse) => {
-                  if (sessionResponse?.status === "success") {
-                    component("Settings", "✅ Session cache cleared successfully", { clearedCount: sessionResponse.clearedCount });
-                    
-                    // Force a page reload to ensure all caches are cleared and fresh settings are loaded
-                    setTimeout(() => {
-                      component("Settings", "🔄 Forcing page reload to refresh all caches");
-                      window.location.reload();
-                    }, 100);
-                  } else {
-                    component("Settings", "⚠️ Failed to clear session cache", sessionResponse);
-                  }
-                });
-              });
-            }
+            handleInterviewSettingsUpdate(workingSettings, newSettings, handleSave);
           }} 
           interviewReadiness={interviewReadiness}
         />
