@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
 import { shouldUseMockDashboard } from "../config/mockConfig.js";
 import { 
@@ -12,8 +12,8 @@ import {
   getMockMistakeAnalysisData,
 } from "../services/mockDashboardService.js";
 
-// Page configuration mapping
-const getPageConfig = () => ({
+// Page configuration mapping - moved outside to prevent re-creation on every render
+const PAGE_CONFIG = {
   'learning-progress': {
     mockFunction: getMockLearningProgressData,
     messageType: 'getLearningProgressData'
@@ -46,7 +46,7 @@ const getPageConfig = () => ({
     mockFunction: getMockMistakeAnalysisData,
     messageType: 'getMistakeAnalysisData'
   }
-});
+};
 
 // Mock data loading helper
 const loadMockData = async (config, setData, setLoading, setError) => {
@@ -85,12 +85,13 @@ export function usePageData(pageType, options = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const pageConfig = getPageConfig();
-
-  const config = pageConfig[pageType];
+  const config = PAGE_CONFIG[pageType];
   if (!config) {
     throw new Error(`Unknown page type: ${pageType}`);
   }
+
+  // Memoize chrome message handlers to prevent re-renders
+  const chromeHandlers = useMemo(() => createChromeMessageHandlers(setData, setLoading, setError), []);
 
   // Chrome message hook for production data (conditionally used)
   const {
@@ -103,7 +104,7 @@ export function usePageData(pageType, options = {}) {
     [], 
     {
       immediate: !shouldUseMockDashboard(),
-      ...createChromeMessageHandlers(setData, setLoading, setError)
+      ...chromeHandlers
     }
   );
 
@@ -116,16 +117,16 @@ export function usePageData(pageType, options = {}) {
     };
 
     initializeMockData();
-  }, [pageType, config]);
+  }, [config, pageType]); // Include config dependency as required by ESLint
 
-  // Refresh function
-  const refresh = async () => {
+  // Memoize refresh function to prevent re-renders
+  const refresh = useCallback(async () => {
     if (shouldUseMockDashboard()) {
       await loadMockData(config, setData, setLoading, setError);
     } else {
       chromeRefetch();
     }
-  };
+  }, [config, chromeRefetch]);
 
   return {
     data: shouldUseMockDashboard() ? data : chromeData?.result,

@@ -1,6 +1,15 @@
 import { dbHelper } from "./index.js";
-import STANDARD_PROBLEMS from "../constants/LeetCode_Tags_Combined.json";
 import logger from "../utils/logger.js";
+
+// Lazy load the large JSON file only when needed
+let STANDARD_PROBLEMS = null;
+const loadStandardProblems = async () => {
+  if (!STANDARD_PROBLEMS) {
+    const module = await import("../constants/LeetCode_Tags_Combined.json");
+    STANDARD_PROBLEMS = module.default;
+  }
+  return STANDARD_PROBLEMS;
+};
 const openDB = dbHelper.openDB;
 export async function getProblemFromStandardProblems(slug) {
   try {
@@ -210,8 +219,11 @@ export async function insertStandardProblems() {
     return;
   }
 
+  // Lazy load the large JSON file only when seeding
+  const standardProblems = await loadStandardProblems();
+
   await Promise.all(
-    STANDARD_PROBLEMS.map((problem) => {
+    standardProblems.map((problem) => {
       return new Promise((resolve, reject) => {
         logger.info("🧼 problem:", problem);
         const req = store.put(problem);
@@ -221,5 +233,5 @@ export async function insertStandardProblems() {
     })
   );
 
-  logger.info(`✅ Inserted ${STANDARD_PROBLEMS.length} standard problems.`);
+  logger.info(`✅ Inserted ${standardProblems.length} standard problems.`);
 }
