@@ -1,124 +1,45 @@
 /**
- * Custom hook for FloatingHintButton logic
+ * Custom hook for FloatingHintButton business logic
+ * Extracts complex logic to reduce main component size
  */
-import { useCallback, useMemo, useEffect } from "react";
-import StrategyService from "../services/strategyService";
-import { HintInteractionService } from "../../shared/services/hintInteractionService";
-import { createHintClickData } from "../components/strategy/floatingHintHelpers";
-
-// Helper function to filter hints by type
-const filterHintsByType = (hints) => {
-  const general = hints.filter(
-    (hint) => hint.type === "general" || hint.type === "pattern"
-  );
-  const contextual = hints.filter((hint) => hint.type === "contextual");
-
-  return {
-    generalHints: general,
-    contextualHints: contextual,
-    totalHints: hints.length,
-  };
-};
-
-// Helper function to create close event data
-const createCloseEventData = (problemTags, hintsCount) => ({
-  problemTags,
-  hintsCount,
-  timestamp: new Date().toISOString(),
-});
-
-// Helper function to create open event data
-const createOpenEventData = (problemTags, hintsCount) => ({
-  problemTags,
-  hintsCount,
-  timestamp: new Date().toISOString(),
-});
-
-// Helper function to update hint expansion state
-const updateHintExpansion = (
-  expandedHints, 
-  hintId, 
-  isCurrentlyExpanded, 
-  interviewRestrictions, 
-  setHintsUsed
-) => {
-  const newSet = new Set(expandedHints);
-  if (isCurrentlyExpanded) {
-    newSet.delete(hintId);
-  } else {
-    newSet.add(hintId);
-    if (interviewRestrictions.isInterviewMode) {
-      setHintsUsed(prevUsed => prevUsed + 1);
-    }
-  }
-  return newSet;
-};
+import { useMemo, useCallback } from 'react';
+import { HintInteractionService } from '../../shared/services/hintInteractionService';
+import { createHintClickData } from '../components/strategy/floatingHintHelpers.js';
 
 export const useFloatingHintLogic = ({
-  problemTags,
-  problemId,
-  onClose,
-  onOpen,
-  onHintClick,
   hints,
-  setHints,
-  setLoading,
-  setError,
-  opened,
-  setOpened,
   expandedHints,
   setExpandedHints,
-  _hintsUsed,
+  interviewRestrictions,
   setHintsUsed,
-  interviewRestrictions
+  problemId,
+  problemTags,
+  opened,
+  onHintClick
 }) => {
-  // Load contextual hints when problem tags change
-  const tagsString = useMemo(() => JSON.stringify(problemTags), [problemTags]);
-
-  const loadHints = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const contextualHints = await StrategyService.getContextualHints(problemTags);
-      setHints(contextualHints);
-    } catch (err) {
-      console.error("❌ Error loading hints in FloatingHintButton:", err);
-      setError("Failed to load strategy hints");
-    } finally {
-      setLoading(false);
-    }
-  }, [problemTags, setHints, setLoading, setError]);
-
-  useEffect(() => {
-    if (problemTags.length > 0) {
-      loadHints();
-    } else {
-      setHints([]);
-    }
-  }, [tagsString, loadHints, setHints, problemTags.length]);
-
-  // Memoize expensive hint filtering calculations
-  const { generalHints, contextualHints, totalHints } = useMemo(() => 
-    filterHintsByType(hints), [hints]);
-
-  // Memoize callback functions
-  const handlePopoverClose = useCallback(() => {
-    setOpened(false);
-    // Reset expanded hints when popover closes
-    setExpandedHints(new Set());
-    if (onClose) {
-      onClose(createCloseEventData(problemTags, hints.length));
-    }
-  }, [onClose, problemTags, hints.length, setExpandedHints, setOpened]);
-
-  const handleButtonClick = useCallback(() => {
-    const newOpened = !opened;
-    setOpened(newOpened);
-    if (newOpened && onOpen) {
-      onOpen(createOpenEventData(problemTags, hints.length));
-    }
-  }, [opened, onOpen, problemTags, hints.length, setOpened]);
+  // Filter hints by type
+  const { contextualHints, generalHints } = useMemo(() => {
+    console.log("💡 FloatingHintButton: Filtering hints from useStrategy:", {
+      totalHints: hints.length,
+      hintsTypes: hints.map(h => ({ type: h.type, primaryTag: h.primaryTag, relatedTag: h.relatedTag })),
+      uniqueTypes: [...new Set(hints.map(h => h.type))]
+    });
+    
+    const contextual = hints.filter(hint => hint.type === "contextual");
+    const general = hints.filter(hint => hint.type === "general" || hint.type === "pattern");
+    
+    console.log("💡 FloatingHintButton: After filtering:", {
+      contextualCount: contextual.length,
+      generalCount: general.length,
+      contextualTypes: contextual.map(h => h.type),
+      generalTypes: general.map(h => h.type)
+    });
+    
+    return {
+      contextualHints: contextual,
+      generalHints: general
+    };
+  }, [hints]);
 
   // Handle hint expand/collapse toggle
   const toggleHintExpansion = useCallback(
@@ -130,9 +51,18 @@ export const useFloatingHintLogic = ({
         return;
       }
 
-      setExpandedHints((prev) => 
-        updateHintExpansion(prev, hintId, isCurrentlyExpanded, interviewRestrictions, setHintsUsed)
-      );
+      setExpandedHints((prev) => {
+        const newSet = new Set(prev);
+        if (isCurrentlyExpanded) {
+          newSet.delete(hintId);
+        } else {
+          newSet.add(hintId);
+          if (interviewRestrictions.isInterviewMode) {
+            setHintsUsed(prevUsed => prevUsed + 1);
+          }
+        }
+        return newSet;
+      });
 
       // Track the expand/collapse action
       const hintClickData = createHintClickData({
@@ -164,11 +94,8 @@ export const useFloatingHintLogic = ({
   }, []);
 
   return {
-    generalHints,
     contextualHints,
-    totalHints,
-    handlePopoverClose,
-    handleButtonClick,
+    generalHints,
     toggleHintExpansion,
     getHintId
   };

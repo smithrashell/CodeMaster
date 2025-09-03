@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Portal } from "@mantine/core";
+import Portal from '../ui/Portal.jsx';
 
 /**
  * Calculate optimal positioning for popover based on target and viewport

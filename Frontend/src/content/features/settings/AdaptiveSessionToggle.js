@@ -1,6 +1,6 @@
 import "../../css/main.css";
 import  { useState } from "react";
-import {  Switch } from "@mantine/core";
+import Switch from '../../components/ui/Switch.jsx';
 
 
 const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
@@ -70,14 +70,8 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
 
       <Switch
         checked={adaptive}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-        onLabel="ON"
-        offLabel="OFF"
+        onChange={(checked) => onChange(checked)}
         size="lg"
-        styles={{
-          track: { height: 24 },
-          thumb: { width: 18, height: 18 },
-        }}
       />
     </div>
   );
