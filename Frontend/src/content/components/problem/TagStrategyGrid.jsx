@@ -128,13 +128,26 @@ const TagSectionHeader = ({ strategiesCount, isInterviewMode, primersAvailable }
 
 // Consolidated strategy loader using existing useStrategy hook
 const useStrategyLoader = (problemTags) => {
+  logger.info("🏷️ useStrategyLoader: Received problemTags:", problemTags);
+  
   const { primers, loading } = useStrategy(problemTags);
+  
+  logger.info("🏷️ useStrategyLoader: Got primers from useStrategy:", primers);
+  logger.info("🏷️ useStrategyLoader: Loading state:", loading);
   
   // Convert array to object with tag names as keys to match expected interface
   const strategies = primers.reduce((acc, primer) => {
-    acc[primer.tag] = primer;
+    if (primer && primer.tag) {
+      acc[primer.tag] = primer;
+      logger.info(`🏷️ useStrategyLoader: Added strategy for "${primer.tag}":`, primer);
+    } else {
+      logger.warn("🏷️ useStrategyLoader: Invalid primer:", primer);
+    }
     return acc;
   }, {});
+
+  logger.info("🏷️ useStrategyLoader: Final strategies object:", strategies);
+  logger.info("🏷️ useStrategyLoader: Strategy count:", Object.keys(strategies).length);
 
   return { strategies, loading };
 };
@@ -303,6 +316,42 @@ const handleTagToggle = (expandedTag, normalizedTag, setExpandedTag, scrollingHa
   }
 };
 
+// Helper function to calculate interview mode configuration
+const getInterviewModeConfig = (sessionType, interviewConfig) => {
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+  const primersAvailable = !isInterviewMode || (interviewConfig?.primers?.available !== false);
+  const primersEncouraged = !isInterviewMode || (interviewConfig?.primers?.encouraged !== false);
+  
+  return { isInterviewMode, primersAvailable, primersEncouraged };
+};
+
+// Helper function to create tag click handler
+const createTagClickHandler = (expandedTag, setExpandedTag, interviewState, problemId, scrollManagement) => {
+  return async (tag) => {
+    const normalizedTag = tag.toLowerCase().trim();
+    const isExpanding = expandedTag !== normalizedTag;
+    
+    // Check interview mode constraints
+    if (isExpanding && !interviewState.primersAvailable) {
+      logger.info(`🚫 Tag Strategy: Primers not available in ${interviewState.sessionType} mode`);
+      return; // Block expansion in interview modes that don't allow primers
+    }
+    
+    logger.info(`🏷️ Tag Strategy: ${isExpanding ? 'Expanded' : 'Collapsed'} "${tag}" strategy`);
+
+    // Track interaction when expanding strategy
+    if (isExpanding) {
+      await trackHintInteraction(tag, problemId);
+    }
+
+    // Create scrolling handler with access to scroll management functions
+    const scrollingHandler = createScrollingHandler(scrollManagement);
+
+    // Toggle expansion: if same tag clicked, collapse; if different tag, expand new one
+    handleTagToggle(expandedTag, normalizedTag, setExpandedTag, scrollingHandler);
+  };
+};
+
 // Helper function to render "no tags" message
 const renderNoTagsMessage = (className) => {
   logger.info("🏷️ TagStrategyGrid: Rendering 'No tags available' message");
@@ -334,48 +383,45 @@ function TagStrategyGrid({
 }) {
   const [expandedTag, setExpandedTag] = useState(null);
 
+  logger.info("🏷️ TagStrategyGrid: Render started", {
+    problemTags,
+    problemId,
+    sessionType,
+    interviewConfig
+  });
+
   // Interview mode logic
-  const isInterviewMode = sessionType && sessionType !== 'standard';
-  const primersAvailable = !isInterviewMode || (interviewConfig?.primers?.available !== false);
-  const primersEncouraged = !isInterviewMode || (interviewConfig?.primers?.encouraged !== false);
+  const { isInterviewMode, primersAvailable, primersEncouraged } = getInterviewModeConfig(sessionType, interviewConfig);
+
+  logger.info("🏷️ TagStrategyGrid: Interview mode settings", {
+    isInterviewMode,
+    primersAvailable,
+    primersEncouraged
+  });
 
   // Use custom hooks
   const { strategies, loading } = useStrategyLoader(problemTags);
+  
+  logger.info("🏷️ TagStrategyGrid: After useStrategyLoader", {
+    strategiesCount: Object.keys(strategies).length,
+    strategiesKeys: Object.keys(strategies),
+    loading,
+    strategies
+  });
   const {
     ensureProblemCardVisibility,
     handleExpandedContainerScrolling,
     handleFallbackScrolling
   } = useScrollManagement();
 
-  // Scroll helper functions now provided by useScrollManagement hook
-
-  const handleTagClick = async (tag) => {
-    const normalizedTag = tag.toLowerCase().trim();
-    const isExpanding = expandedTag !== normalizedTag;
-    
-    // Check interview mode constraints
-    if (isExpanding && !primersAvailable) {
-      logger.info(`🚫 Tag Strategy: Primers not available in ${sessionType} mode`);
-      return; // Block expansion in interview modes that don't allow primers
-    }
-    
-    logger.info(`🏷️ Tag Strategy: ${isExpanding ? 'Expanded' : 'Collapsed'} "${tag}" strategy`);
-
-    // Track interaction when expanding strategy
-    if (isExpanding) {
-      await trackHintInteraction(tag, problemId);
-    }
-
-    // Create scrolling handler with access to scroll management functions
-    const scrollingHandler = createScrollingHandler({
-      ensureProblemCardVisibility,
-      handleExpandedContainerScrolling,
-      handleFallbackScrolling
-    });
-
-    // Toggle expansion: if same tag clicked, collapse; if different tag, expand new one
-    handleTagToggle(expandedTag, normalizedTag, setExpandedTag, scrollingHandler);
-  };
+  // Create tag click handler using extracted helper
+  const handleTagClick = createTagClickHandler(
+    expandedTag,
+    setExpandedTag,
+    { primersAvailable, sessionType },
+    problemId,
+    { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling }
+  );
 
   const getTagRowIndex = (tagIndex) => {
     return Math.floor(tagIndex / 2);

@@ -219,6 +219,10 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   /* Ensure adequate spacing around the container */
   margin-top: 2px !important;
   margin-bottom: 4px !important;
+  /* Ensure adequate height for all tags */
+  min-height: fit-content !important;
+  height: auto !important;
+  max-height: none !important;
 }
 
 /* Enhanced scrolling behavior for tag strategy expansion */
@@ -964,10 +968,13 @@ html
   .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
-  grid-gap: 0px !important;
-  gap: 0px !important;
+  grid-gap: 4px !important;
+  gap: 4px !important;
   width: 100% !important;
   box-sizing: border-box !important;
+  /* Ensure adequate height for all tags */
+  min-height: fit-content !important;
+  height: auto !important;
   /* Override any possible flex properties */
   flex-direction: unset !important;
   flex-wrap: unset !important;

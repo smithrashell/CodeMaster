@@ -13,7 +13,12 @@ export const HintsSection = ({
   getHintId,
   interviewRestrictions,
 }) => {
-  if (!hints || hints.length === 0) return null;
+  console.log(`🔍 HintsSection [${title}] - hintType: ${hintType}, hints:`, hints, `expanded:`, expandedHints);
+  
+  if (!hints || hints.length === 0) {
+    console.log(`⚠️ HintsSection [${title}] - No hints to display`);
+    return null;
+  }
 
   return (
     <>
@@ -21,7 +26,7 @@ export const HintsSection = ({
         size="sm"
         weight={600}
         style={{
-          color: themeColors.textColor,
+          color: themeColors.text + " !important",
           marginBottom: '8px',
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
@@ -41,6 +46,8 @@ export const HintsSection = ({
               key={hintId}
               hint={hint}
               hintId={hintId}
+              index={index}
+              hintType={hintType}
               isExpanded={isExpanded}
               themeColors={themeColors}
               onToggle={onToggleHint}
@@ -51,7 +58,7 @@ export const HintsSection = ({
         })}
       </Stack>
       
-      <Divider style={{ margin: '12px 0', borderColor: `${themeColors.borderColor}50` }} />
+      <Divider style={{ margin: '12px 0', borderColor: `${themeColors.containerBorder}50` }} />
     </>
   );
 };

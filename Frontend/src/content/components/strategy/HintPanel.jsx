@@ -1,15 +1,11 @@
 import React, { useState } from "react";
-import {
-  Card,
-  Text,
-  Badge,
-  Button,
-  Collapse,
-  Stack,
-  Group,
-  Loader,
-  Alert,
-} from "@mantine/core";
+import { Card, Stack, Group } from '../ui/Layout.jsx';
+import Text from '../ui/Text.jsx';
+import Badge from '../ui/Badge.jsx';
+import Button from '../ui/Button.jsx';
+import Alert from '../ui/Alert.jsx';
+import Loader from '../ui/Loader.jsx';
+import Collapse from '../ui/Collapse.jsx';
 import {
   IconBulb,
   IconChevronDown,
