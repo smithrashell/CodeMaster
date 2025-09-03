@@ -11,11 +11,8 @@ let dbCreationLog = [];
  */
 export function installDatabaseDebugger() {
   if (interceptorInstalled) {
-    console.warn('🔧 Database debugger already installed');
     return;
   }
-
-  console.log('🔧 Installing global IndexedDB debugger...');
   
   // Store original indexedDB.open
   const originalOpen = indexedDB.open;
@@ -37,19 +34,13 @@ export function installDatabaseDebugger() {
     
     dbCreationLog.push(dbAttempt);
     
-    console.group(`🗄️ GLOBAL INDEXEDDB INTERCEPT: ${name} v${version || 'default'}`);
-    console.log('🕐 Timestamp:', timestamp);
-    console.log('📍 Context:', context.type);
-    console.log('🌐 Location:', context.location);
-    console.log('🧵 First Stack Line:', stack.split('\n')[0]);
+    // Database intercept: ${name} v${version || 'default'}
     
     // Count how many times this specific database has been opened
     const sameDbAttempts = dbCreationLog.filter(attempt => attempt.databaseName === name);
     if (sameDbAttempts.length > 1) {
       console.error(`🚨 DUPLICATE DATABASE ATTEMPT #${sameDbAttempts.length} for database: ${name}`);
-      console.log('🔍 Previous attempts:', sameDbAttempts.slice(0, -1));
     }
-    console.groupEnd();
     
     // Call original indexedDB.open
     const request = originalOpen.call(this, name, version);
@@ -57,7 +48,6 @@ export function installDatabaseDebugger() {
     // Log when the database actually opens
     const originalOnSuccess = request.onsuccess;
     request.onsuccess = function(event) {
-      console.log(`✅ Database '${name}' opened successfully at ${new Date().toISOString()}`);
       if (originalOnSuccess) {
         originalOnSuccess.call(this, event);
       }
@@ -75,7 +65,6 @@ export function installDatabaseDebugger() {
   };
   
   interceptorInstalled = true;
-  console.log('✅ Global IndexedDB debugger installed');
 }
 
 /**

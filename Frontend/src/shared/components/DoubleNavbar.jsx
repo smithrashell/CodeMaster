@@ -1,5 +1,5 @@
 import { Tooltip, UnstyledButton, Title, rem } from "@mantine/core";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 // TODO: Re-enable for display settings feature
 // import { useChromeMessage } from "../hooks/useChromeMessage";
 import classes from "./css/DoubleNavbar.module.css";
@@ -9,6 +9,7 @@ import { useNavigation } from "../hooks/useNavigation";
 
 export function DoubleNavbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { active, activeLink, setActive, setActiveLink } = useNavigation();
   
   // TODO: Re-enable for display settings feature
@@ -79,7 +80,7 @@ export function DoubleNavbar() {
     return (
       <Link
         to={subLinkPath}
-        className={classes.link}
+        className={`${classes.subLink} ${isActive ? classes.activeSubLink : ''}`}
         data-active={isActive || undefined}
         key={subLink}
       >
