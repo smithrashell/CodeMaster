@@ -372,73 +372,15 @@ export const ProblemService = {
         throw new Error("No problems available in database");
       }
 
-      let availableProblems = allProblems;
-
-      // Apply tag filtering if criteria exists and has allowedTags
-      if (selectionCriteria && selectionCriteria.allowedTags && selectionCriteria.allowedTags.length > 0) {
-        logger.info("🎯 Filtering by tags:", selectionCriteria.allowedTags);
-        const filteredByTags = allProblems.filter(problem => {
-          const problemTags = problem.Tags || [];
-          return problemTags.some(tag => 
-            selectionCriteria.allowedTags.includes(tag.toLowerCase())
-          );
-        });
-        
-        logger.info(`🎯 Problems matching tag criteria: ${filteredByTags.length}`);
-        
-        if (filteredByTags.length > 0) {
-          availableProblems = filteredByTags;
-        } else {
-          logger.warn("No problems found matching interview tag criteria, using all problems");
-        }
-      } else {
-        logger.info("🎯 No tag filtering criteria provided, using all problems");
-      }
+      // Apply tag filtering
+      const availableProblems = this.filterProblemsByTags(allProblems, selectionCriteria);
 
       // Select problems for session
       let selectedProblems = [];
       
       // Try to apply interview-specific problem mix if available
       if (selectionCriteria && selectionCriteria.problemMix) {
-        logger.info("🎯 Applying interview problem mix");
-        const { problemMix } = selectionCriteria;
-        
-        const masteredCount = Math.floor(sessionLength * (problemMix.mastered || 0));
-        const nearMasteryCount = Math.floor(sessionLength * (problemMix.nearMastery || 0));
-        const challengingCount = sessionLength - masteredCount - nearMasteryCount;
-
-        logger.info(`🎯 Problem distribution - Mastered: ${masteredCount}, Near-mastery: ${nearMasteryCount}, Challenging: ${challengingCount}`);
-
-        // Select mastered tag problems if criteria exists
-        if (selectionCriteria.masteredTags && selectionCriteria.masteredTags.length > 0) {
-          const masteredProblems = availableProblems.filter(problem => {
-            const problemTags = problem.Tags || [];
-            return problemTags.some(tag => 
-              selectionCriteria.masteredTags.includes(tag.toLowerCase())
-            );
-          });
-          selectedProblems.push(...this.shuffleArray(masteredProblems).slice(0, masteredCount));
-          logger.info(`🎯 Added ${Math.min(masteredProblems.length, masteredCount)} mastered problems`);
-        }
-
-        // Select near-mastery problems if criteria exists
-        if (selectionCriteria.nearMasteryTags && selectionCriteria.nearMasteryTags.length > 0) {
-          const nearMasteryProblems = availableProblems.filter(problem => {
-            const problemTags = problem.Tags || [];
-            return problemTags.some(tag => 
-              selectionCriteria.nearMasteryTags.includes(tag.toLowerCase())
-            ) && !selectedProblems.includes(problem);
-          });
-          selectedProblems.push(...this.shuffleArray(nearMasteryProblems).slice(0, nearMasteryCount));
-          logger.info(`🎯 Added ${Math.min(nearMasteryProblems.length, nearMasteryCount)} near-mastery problems`);
-        }
-
-        // Fill remaining slots with random problems
-        const remainingProblems = availableProblems.filter(problem => 
-          !selectedProblems.includes(problem)
-        );
-        selectedProblems.push(...this.shuffleArray(remainingProblems).slice(0, challengingCount));
-        logger.info(`🎯 Added ${Math.min(remainingProblems.length, challengingCount)} challenging problems`);
+        selectedProblems = this.applyProblemMix(availableProblems, selectionCriteria, sessionLength);
       } else {
         // Simple fallback: random selection from available problems
         logger.info("🎯 Using simple random selection");
@@ -446,14 +388,7 @@ export const ProblemService = {
       }
 
       // Ensure we have enough problems - fill with random selection if needed
-      while (selectedProblems.length < sessionLength && availableProblems.length > selectedProblems.length) {
-        const remaining = availableProblems.filter(p => !selectedProblems.includes(p));
-        if (remaining.length > 0) {
-          selectedProblems.push(remaining[Math.floor(Math.random() * remaining.length)]);
-        } else {
-          break;
-        }
-      }
+      selectedProblems = this.ensureSufficientProblems(selectedProblems, availableProblems, sessionLength);
 
       logger.info(`🎯 Final selection: ${selectedProblems.length} problems`);
 
@@ -478,24 +413,117 @@ export const ProblemService = {
       return interviewProblems;
       
     } catch (error) {
-      logger.error("❌ Error assembling interview problems:", error);
-      // Enhanced fallback to standard session
-      logger.info("🎯 Attempting fallback to standard session");
-      try {
-        const settings = await buildAdaptiveSessionSettings();
-        const fallbackProblems = await this.fetchAndAssembleSessionProblems(
-          settings.sessionLength,
-          settings.numberOfNewProblems,
-          settings.currentAllowedTags,
-          settings.currentDifficultyCap,
-          settings.userFocusAreas
+      return await this.handleInterviewSessionFallback(error);
+    }
+  },
+
+  // Helper method for applying interview problem mix
+  applyProblemMix(availableProblems, selectionCriteria, sessionLength) {
+    logger.info("🎯 Applying interview problem mix");
+    const { problemMix } = selectionCriteria;
+    
+    const masteredCount = Math.floor(sessionLength * (problemMix.mastered || 0));
+    const nearMasteryCount = Math.floor(sessionLength * (problemMix.nearMastery || 0));
+    const challengingCount = sessionLength - masteredCount - nearMasteryCount;
+
+    logger.info(`🎯 Problem distribution - Mastered: ${masteredCount}, Near-mastery: ${nearMasteryCount}, Challenging: ${challengingCount}`);
+
+    let selectedProblems = [];
+
+    // Select mastered tag problems if criteria exists
+    if (selectionCriteria.masteredTags && selectionCriteria.masteredTags.length > 0) {
+      const masteredProblems = availableProblems.filter(problem => {
+        const problemTags = problem.Tags || [];
+        return problemTags.some(tag => 
+          selectionCriteria.masteredTags.includes(tag.toLowerCase())
         );
-        logger.info(`🎯 Fallback session created with ${fallbackProblems.length} problems`);
-        return fallbackProblems;
-      } catch (fallbackError) {
-        logger.error("❌ Fallback session creation also failed:", fallbackError);
-        throw new Error(`Both interview and fallback session creation failed: ${error.message}`);
+      });
+      selectedProblems.push(...this.shuffleArray(masteredProblems).slice(0, masteredCount));
+      logger.info(`🎯 Added ${Math.min(masteredProblems.length, masteredCount)} mastered problems`);
+    }
+
+    // Select near-mastery problems if criteria exists
+    if (selectionCriteria.nearMasteryTags && selectionCriteria.nearMasteryTags.length > 0) {
+      const nearMasteryProblems = availableProblems.filter(problem => {
+        const problemTags = problem.Tags || [];
+        return problemTags.some(tag => 
+          selectionCriteria.nearMasteryTags.includes(tag.toLowerCase())
+        ) && !selectedProblems.includes(problem);
+      });
+      selectedProblems.push(...this.shuffleArray(nearMasteryProblems).slice(0, nearMasteryCount));
+      logger.info(`🎯 Added ${Math.min(nearMasteryProblems.length, nearMasteryCount)} near-mastery problems`);
+    }
+
+    // Fill remaining slots with random problems
+    const remainingProblems = availableProblems.filter(problem => 
+      !selectedProblems.includes(problem)
+    );
+    selectedProblems.push(...this.shuffleArray(remainingProblems).slice(0, challengingCount));
+    logger.info(`🎯 Added ${Math.min(remainingProblems.length, challengingCount)} challenging problems`);
+
+    return selectedProblems;
+  },
+
+  // Helper method for filtering problems by tags
+  filterProblemsByTags(allProblems, selectionCriteria) {
+    // Apply tag filtering if criteria exists and has allowedTags
+    if (selectionCriteria && selectionCriteria.allowedTags && selectionCriteria.allowedTags.length > 0) {
+      logger.info("🎯 Filtering by tags:", selectionCriteria.allowedTags);
+      const filteredByTags = allProblems.filter(problem => {
+        const problemTags = problem.Tags || [];
+        return problemTags.some(tag => 
+          selectionCriteria.allowedTags.includes(tag.toLowerCase())
+        );
+      });
+      
+      logger.info(`🎯 Problems matching tag criteria: ${filteredByTags.length}`);
+      
+      if (filteredByTags.length > 0) {
+        return filteredByTags;
+      } else {
+        logger.warn("No problems found matching interview tag criteria, using all problems");
+        return allProblems;
       }
+    } else {
+      logger.info("🎯 No tag filtering criteria provided, using all problems");
+      return allProblems;
+    }
+  },
+
+  // Helper method for ensuring sufficient problems in selection
+  ensureSufficientProblems(selectedProblems, availableProblems, sessionLength) {
+    // Ensure we have enough problems - fill with random selection if needed
+    const result = [...selectedProblems];
+    while (result.length < sessionLength && availableProblems.length > result.length) {
+      const remaining = availableProblems.filter(p => !result.includes(p));
+      if (remaining.length > 0) {
+        result.push(remaining[Math.floor(Math.random() * remaining.length)]);
+      } else {
+        break;
+      }
+    }
+    return result;
+  },
+
+  // Helper method for handling interview session fallback
+  async handleInterviewSessionFallback(error) {
+    logger.error("❌ Error assembling interview problems:", error);
+    // Enhanced fallback to standard session
+    logger.info("🎯 Attempting fallback to standard session");
+    try {
+      const settings = await buildAdaptiveSessionSettings();
+      const fallbackProblems = await this.fetchAndAssembleSessionProblems(
+        settings.sessionLength,
+        settings.numberOfNewProblems,
+        settings.currentAllowedTags,
+        settings.currentDifficultyCap,
+        settings.userFocusAreas
+      );
+      logger.info(`🎯 Fallback session created with ${fallbackProblems.length} problems`);
+      return fallbackProblems;
+    } catch (fallbackError) {
+      logger.error("❌ Fallback session creation also failed:", fallbackError);
+      throw new Error(`Both interview and fallback session creation failed: ${error.message}`);
     }
   },
 

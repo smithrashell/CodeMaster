@@ -18,6 +18,7 @@ import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
 import logger from "../utils/logger.js";
 import { roundToPrecision } from "../utils/Utils.js";
+import { openDatabase } from "../db/connectionUtils.js";
 
 /**
  * Circuit Breaker for Enhanced Habit Learning Features
@@ -964,15 +965,28 @@ export const SessionService = {
    * Helper to get all sessions from database
    */
   async getAllSessionsFromDB() {
-    const db = await import('../db/index.js').then(m => m.default);
-    const transaction = db.transaction(['sessions'], 'readonly');
-    const store = transaction.objectStore('sessions');
-    
-    return new Promise((resolve, reject) => {
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    try {
+      const db = await openDatabase();
+      if (!db) {
+        logger.error('❌ Database not initialized');
+        return [];
+      }
+      
+      const transaction = db.transaction(['sessions'], 'readonly');
+      const store = transaction.objectStore('sessions');
+      
+      return new Promise((resolve, reject) => {
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => {
+          logger.error('❌ Failed to get sessions from DB:', request.error);
+          reject(request.error);
+        };
+      });
+    } catch (error) {
+      logger.error('❌ Error accessing sessions DB:', error);
+      return [];
+    }
   },
 
   /**
@@ -1096,7 +1110,7 @@ export const SessionService = {
   async getRecentTrackingAttempts(withinHours = 48) {
     const cutoffTime = new Date(Date.now() - (withinHours * 60 * 60 * 1000));
     
-    const db = await import('../db/index.js').then(m => m.default);
+    const db = await openDatabase();
     const transaction = db.transaction(['attempts', 'sessions'], 'readonly');
     const attemptStore = transaction.objectStore('attempts');
     const sessionStore = transaction.objectStore('sessions');
@@ -1398,7 +1412,7 @@ export const SessionService = {
   async getCurrentStreak() {
     try {
       // Get recent sessions ordered by date (newest first)
-      const db = await import("../db/index.js").then(m => m.default);
+      const db = await openDatabase();
       const transaction = db.transaction(["sessions"], "readonly");
       const store = transaction.objectStore("sessions");
       
@@ -1486,7 +1500,7 @@ export const SessionService = {
     const periodStart = new Date();
     periodStart.setDate(periodStart.getDate() - days);
     
-    const db = await import("../db/index.js").then(m => m.default);
+    const db = await openDatabase();
     const transaction = db.transaction(["sessions"], "readonly");
     const store = transaction.objectStore("sessions");
     
@@ -1620,7 +1634,7 @@ export const SessionService = {
       currentWeekEnd.setHours(23, 59, 59, 999);
       
       // Get sessions from current week
-      const db = await import("../db/index.js").then(m => m.default);
+      const db = await openDatabase();
       const transaction = db.transaction(["sessions"], "readonly");
       const store = transaction.objectStore("sessions");
       

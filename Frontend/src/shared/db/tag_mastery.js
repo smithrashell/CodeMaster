@@ -291,14 +291,31 @@ export async function calculateTagMastery() {
 }
 
 export async function getTagMastery() {
-  const db = await openDB();
-  const tx = db.transaction("tag_mastery", "readonly");
-  const store = tx.objectStore("tag_mastery");
-  const request = store.getAll();
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
+  const TIMEOUT_MS = 10000; // 10 second timeout for database operations
+  
+  const dbOperation = async () => {
+    const db = await openDB();
+    const tx = db.transaction("tag_mastery", "readonly");
+    const store = tx.objectStore("tag_mastery");
+    const request = store.getAll();
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  };
+  
+  // Add timeout protection
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`getTagMastery timed out after ${TIMEOUT_MS}ms`)), TIMEOUT_MS);
   });
+  
+  try {
+    return await Promise.race([dbOperation(), timeoutPromise]);
+  } catch (error) {
+    console.error("❌ getTagMastery failed:", error);
+    // Return empty array as fallback to prevent total failure
+    return [];
+  }
 }
 
 export function calculateTagSimilarity({ tags1, tags2, tagGraph, tagMastery, difficulty1, difficulty2 }) {
