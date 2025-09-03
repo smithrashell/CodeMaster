@@ -52,11 +52,13 @@ export function FocusAreasSelector() {
   const getTagMasteryProgressWrapper = (tagName) => getTagMasteryProgress(tagName, masteryData);
   const getTagOptionsWrapper = () => getTagOptions(focusAvailability, availableTags, masteredTags, masteryData);
 
-  // Lifecycle hooks setup
-  const stateSets = {
+  // Memoize stateSets to prevent recreation on every render
+  const stateSets = React.useMemo(() => ({
     setLoading, setError, setFocusAvailability, setCurrentTier, setShowCustomMode,
     setAvailableTags, setMasteredTags, setMasteryData, setSelectedFocusAreas, setHasChanges,
-  };
+  }), [setLoading, setError, setFocusAvailability, setCurrentTier, setShowCustomMode,
+       setAvailableTags, setMasteredTags, setMasteryData, setSelectedFocusAreas, setHasChanges]);
+
   const { loadData } = useFocusAreasLifecycle(focusAvailability, setFocusAvailability, loadFocusAreasData, stateSets);
 
   const handleFocusAreasChange = (values) => {

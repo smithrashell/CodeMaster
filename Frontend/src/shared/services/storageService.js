@@ -224,6 +224,13 @@ export const StorageService = {
     }
   },
 
+  // Clear settings cache (to be implemented by background script)
+  clearSettingsCache() {
+    // This will be called by the background script to clear its response cache
+    // The actual cache clearing happens in the background script's cache management
+    console.log("🔄 StorageService: Settings cache clear requested");
+  },
+
   // Session State using IndexedDB session_state store
   async getSessionState(key = "session_state") {
     if (isInContentScript) {
@@ -343,11 +350,4 @@ export const StorageService = {
     }
   },
 
-  /**
-   * Clear settings cache in various services
-   */
-  clearSettingsCache() {
-    // This would clear caches in other services that might store settings
-    console.log("🔄 Settings cache cleared");
-  },
 };

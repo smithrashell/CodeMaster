@@ -51,7 +51,7 @@ export async function getStrategyForTag(tag) {
       try {
         const transaction = db.transaction(["strategy_data"], "readonly");
         const store = transaction.objectStore("strategy_data");
-        const request = store.get(tag);
+        const request = store.get(tag.toLowerCase());
 
         request.onsuccess = (event) => {
           if (!completed) {

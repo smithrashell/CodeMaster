@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import logger, { debug } from "../../../shared/utils/logger.js";
 
 // Custom hooks for FocusAreasSelector state management
@@ -284,25 +284,24 @@ export const getTagOptions = (focusAvailability, availableTags, masteredTags, ma
 
 // Lifecycle hooks for FocusAreasSelector
 export const useFocusAreasLifecycle = (focusAvailability, setFocusAvailability, loadFocusAreasData, stateSets) => {
-  // Log when focusAvailability state changes
-  useEffect(() => {
-    debug("🔍 LIFECYCLE: focusAvailability state changed", { focusAvailability });
-    debug("🔍 LIFECYCLE: focusAvailability starterCore after change", { starterCore: focusAvailability?.starterCore });
-    debug("🔍 LIFECYCLE: focusAvailability tags after change", { tags: focusAvailability?.tags });
-  }, [focusAvailability]);
+  const hasLoadedRef = useRef(false);
 
   const loadData = useCallback(async () => {
+    if (hasLoadedRef.current) return; // Prevent multiple loads
+    hasLoadedRef.current = true;
     await loadFocusAreasData(stateSets);
   }, [loadFocusAreasData, stateSets]);
 
+  // Load data only once on mount
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Listen for attempt updates to refresh focus area availability
+  // Listen for attempt updates
   useEffect(() => {
-    return setupAttemptUpdateListener(focusAvailability, setFocusAvailability);
-  }, [focusAvailability, setFocusAvailability]);
+    const cleanup = setupAttemptUpdateListener(focusAvailability, setFocusAvailability);
+    return cleanup;
+  }, [focusAvailability, setFocusAvailability]); // Include dependencies as required
 
   return { loadData };
 };
