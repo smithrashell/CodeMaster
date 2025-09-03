@@ -1,3 +1,4 @@
+// Keep critical services as static imports
 import { StorageService } from "../src/shared/services/storageService.js";
 import { ProblemService } from "../src/shared/services/problemService.js";
 import { SessionService } from "../src/shared/services/sessionService.js";
@@ -7,29 +8,35 @@ import { TagService } from "../src/shared/services/tagServices.js";
 import { HintInteractionService } from "../src/shared/services/hintInteractionService.js";
 import { AlertingService } from "../src/shared/services/AlertingService.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
-import { connect } from "chrome-extension-hot-reload";
 import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
 import { getStrategyForTag } from "../src/shared/db/strategy_data.js";
 import { getProblem } from "../src/shared/db/problems.js";
-import { 
-  getDashboardStatistics,
-  getFocusAreaAnalytics,
-  getLearningProgressData,
-  getGoalsData,
-  getStatsData,
-  getSessionHistoryData,
-  getProductivityInsightsData,
-  getTagMasteryData,
-  getLearningPathData,
-  getMistakeAnalysisData,
-  clearFocusAreaAnalyticsCache,
-  getInterviewAnalyticsData,
-  getSessionMetrics
-} from "../src/app/services/dashboardService.js";
 import FocusCoordinationService from "../src/shared/services/focusCoordinationService.js";
 import { InterviewService } from "../src/shared/services/interviewService.js";
 
+// Lazy import heavy dashboard services only
+let getDashboardStatistics, getFocusAreaAnalytics, getLearningProgressData, getGoalsData,
+    getStatsData, getSessionHistoryData, getProductivityInsightsData, getTagMasteryData,
+    getLearningPathData, getMistakeAnalysisData, clearFocusAreaAnalyticsCache,
+    getInterviewAnalyticsData, getSessionMetrics;
+
+import { connect } from "chrome-extension-hot-reload";
+
 connect(); // handles app and popup
+
+// Lazy loading helper for dashboard services (biggest bundle size contributor)
+const lazyLoadDashboard = async () => {
+  if (!getDashboardStatistics) {
+    const module = await import("../src/app/services/dashboardService.js");
+    ({ getDashboardStatistics, getFocusAreaAnalytics, getLearningProgressData, getGoalsData,
+       getStatsData, getSessionHistoryData, getProductivityInsightsData, getTagMasteryData,
+       getLearningPathData, getMistakeAnalysisData, clearFocusAreaAnalyticsCache,
+       getInterviewAnalyticsData, getSessionMetrics } = module);
+  }
+  return { getDashboardStatistics, getFocusAreaAnalytics, getLearningProgressData, getGoalsData,
+           getStatsData, getSessionHistoryData, getProductivityInsightsData, getTagMasteryData,
+           getLearningPathData, getMistakeAnalysisData, getInterviewAnalyticsData, getSessionMetrics };
+};
 
 // Mark this as background script context for database access
 if (typeof globalThis !== 'undefined') {
@@ -397,16 +404,67 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
       /** ──────────────── User Settings ──────────────── **/
       case "setSettings":
+        console.log('🔧 BACKGROUND DEBUG: Setting settings with data:', JSON.stringify(request.message, null, 2));
         StorageService.setSettings(request.message)
-          .then(sendResponse)
+          .then((result) => {
+            console.log('✅ BACKGROUND DEBUG: Settings saved successfully:', result);
+            sendResponse(result);
+          })
+          .catch((error) => {
+            console.error('❌ BACKGROUND DEBUG: Settings save failed:', error);
+            sendResponse({ status: "error", message: error.message });
+          })
           .finally(finishRequest);
         return true;
       case "getSettings":
-        StorageService.getSettings().then(sendResponse).finally(finishRequest);
+        console.log('🔍 BACKGROUND DEBUG: Getting settings...');
+        StorageService.getSettings()
+          .then((settings) => {
+            console.log('📖 BACKGROUND DEBUG: Retrieved settings:', JSON.stringify(settings, null, 2));
+            sendResponse(settings);
+          })
+          .catch((error) => {
+            console.error('❌ BACKGROUND DEBUG: Settings retrieval failed:', error);
+            sendResponse(null);
+          })
+          .finally(finishRequest);
         return true;
       case "clearSettingsCache":
+        // Clear settings cache from background script cache
+        const settingsCacheKeys = ['settings_all', 'settings_'];
+        let clearedCount = 0;
+        
+        for (const [key] of responseCache.entries()) {
+          if (settingsCacheKeys.some(prefix => key.startsWith(prefix))) {
+            responseCache.delete(key);
+            console.log(`🗑️ Cleared settings cache key: ${key}`);
+            clearedCount++;
+          }
+        }
+        
+        console.log(`🔄 Cleared ${clearedCount} settings cache entries`);
+        
+        // Also call StorageService method for any internal cleanup
         StorageService.clearSettingsCache();
-        sendResponse({ status: "success" });
+        sendResponse({ status: "success", clearedCount });
+        finishRequest();
+        return true;
+
+      case "clearSessionCache":
+        // Clear session-related cache from background script cache
+        const sessionCacheKeys = ['createSession', 'getActiveSession', 'session_'];
+        let sessionClearedCount = 0;
+        
+        for (const [key] of responseCache.entries()) {
+          if (sessionCacheKeys.some(prefix => key.startsWith(prefix))) {
+            responseCache.delete(key);
+            console.log(`🗑️ Cleared session cache key: ${key}`);
+            sessionClearedCount++;
+          }
+        }
+        
+        console.log(`🔄 Cleared ${sessionClearedCount} session cache entries`);
+        sendResponse({ status: "success", clearedCount: sessionClearedCount });
         finishRequest();
         return true;
 
@@ -476,26 +534,37 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "getOrCreateSession":
         const startTime = Date.now();
         
-        // Check if we should show interview banner instead of auto-creating session
-        if (!request.sessionType) {
+        // Determine session type from settings when not explicitly provided
+        let sessionType = request.sessionType;
+        if (!sessionType) {
           try {
             const settings = await StorageService.getSettings();
-            if (settings?.interviewMode && 
-                settings.interviewMode !== 'disabled' && 
-                settings.interviewFrequency === 'manual') {
-              // Return null to trigger banner display
-              sendResponse({ session: null });
-              finishRequest();
-              return true;
+            console.log('🔍 BACKGROUND DEBUG: Auto-determining session type from settings:', JSON.stringify(settings, null, 2));
+            
+            if (settings?.interviewMode && settings.interviewMode !== 'disabled') {
+              if (settings.interviewFrequency === 'manual') {
+                // Return null to trigger banner display for manual interview mode
+                console.log('🎯 BACKGROUND DEBUG: Manual interview mode detected, showing banner');
+                sendResponse({ session: null });
+                finishRequest();
+                return true;
+              } else {
+                // Auto-create interview session for non-manual frequencies
+                sessionType = settings.interviewMode;
+                console.log('🎯 BACKGROUND DEBUG: Auto interview mode detected, using sessionType:', sessionType);
+              }
+            } else {
+              // Default to standard for disabled or missing interview mode
+              sessionType = 'standard';
+              console.log('🔍 BACKGROUND DEBUG: No interview mode, defaulting to standard');
             }
           } catch (error) {
-            console.error('Error checking settings for banner logic:', error);
-            // Continue with fallback behavior
+            console.error('Error checking settings for session type:', error);
+            sessionType = 'standard'; // Safe fallback
           }
         }
         
-        // Use explicit sessionType or default to standard (DO NOT auto-trigger interview sessions)
-        const sessionType = request.sessionType || 'standard';
+        console.log('🎯 BACKGROUND DEBUG: Final sessionType determined:', sessionType);
         
         // Add timeout monitoring
         const timeoutId = setTimeout(() => {
@@ -503,12 +572,20 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           console.error(`⏰ getOrCreateSession TIMEOUT after ${elapsed}ms for ${sessionType}`);
         }, 30000);
         
+        console.log('🎯 BACKGROUND DEBUG: Calling SessionService.getOrCreateSession with sessionType:', sessionType);
         withTimeout(
           SessionService.getOrCreateSession(sessionType),
           25000, // 25 second timeout for session creation
           `SessionService.getOrCreateSession(${sessionType})`
         )
           .then((session) => {
+            console.log('🎯 BACKGROUND DEBUG: SessionService returned session:', {
+              sessionId: session?.id?.substring(0, 8),
+              sessionType: session?.sessionType,
+              requestedType: sessionType,
+              status: session?.status,
+              matchesRequested: session?.sessionType === sessionType
+            });
             clearTimeout(timeoutId);
             const duration = Date.now() - startTime;
             
@@ -865,8 +942,9 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
 
       case "getInterviewAnalytics":
         console.log("🎯 Getting interview analytics");
-        getInterviewAnalyticsData(request.filters)
-          .then((analyticsData) => {
+        lazyLoadDashboard().then(({ getInterviewAnalyticsData }) =>
+          getInterviewAnalyticsData(request.filters)
+        ).then((analyticsData) => {
             console.log("✅ Interview analytics retrieved:", analyticsData);
             sendResponse({ 
               ...analyticsData,
@@ -961,8 +1039,9 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       /** ──────────────── Dashboard Management ──────────────── **/
       case "getDashboardStatistics":
         console.log("getDashboardStatistics!!!");
-        getDashboardStatistics(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getDashboardStatistics }) =>
+          getDashboardStatistics(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
@@ -1115,8 +1194,9 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
 
       /** ──────────────── Dashboard Data Handlers ──────────────── **/
       case "getLearningProgressData":
-        getLearningProgressData(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getLearningProgressData }) =>
+          getLearningProgressData(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
@@ -1140,6 +1220,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
               reasoning: focusDecision.algorithmReasoning
             });
             
+            const { getGoalsData } = await lazyLoadDashboard();
             const result = await getGoalsData(request.options || {}, { 
               settings, 
               focusAreas,
@@ -1157,29 +1238,33 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       case "getStatsData":
-        getStatsData(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getStatsData }) =>
+          getStatsData(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
 
       case "getSessionHistoryData":
-        getSessionHistoryData(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getSessionHistoryData }) =>
+          getSessionHistoryData(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
 
       case "getProductivityInsightsData":
-        getProductivityInsightsData(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getProductivityInsightsData }) =>
+          getProductivityInsightsData(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
 
       case "getTagMasteryData":
-        getTagMasteryData(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getTagMasteryData }) =>
+          getTagMasteryData(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
@@ -1269,15 +1354,17 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       case "getLearningPathData":
-        getLearningPathData(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getLearningPathData }) =>
+          getLearningPathData(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
 
       case "getMistakeAnalysisData":
-        getMistakeAnalysisData(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getMistakeAnalysisData }) =>
+          getMistakeAnalysisData(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
@@ -1341,8 +1428,9 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       case "getFocusAreaAnalytics":
-        getFocusAreaAnalytics(request.options || {})
-          .then((result) => sendResponse({ result }))
+        lazyLoadDashboard().then(({ getFocusAreaAnalytics }) =>
+          getFocusAreaAnalytics(request.options || {})
+        ).then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
