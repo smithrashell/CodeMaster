@@ -1,2 +1,0 @@
-- [x]  Develop the basic logic to sort problems into Leitner system boxes.
-- [x]  Implement a system to determine which problems need review.
