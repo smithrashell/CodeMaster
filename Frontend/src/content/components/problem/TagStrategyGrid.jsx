@@ -1,7 +1,7 @@
 import logger from "../../../shared/utils/logger.js";
 import React, { useState, useCallback } from "react";
 import { useStrategy } from "../../../shared/hooks/useStrategy";
-import { HintInteractionService } from "../../../shared/services/hintInteractionService";
+import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 
 // Strategy hint content component
 const StrategyHintContent = ({ strategy }) => {
@@ -284,15 +284,18 @@ const trackHintInteraction = async (tag, problemId) => {
   logger.info(`🏷️ Tracking tag strategy view: ${tag}`);
   
   try {
-    await HintInteractionService.saveHintInteraction({
-      problemId: problemId || "unknown",
-      hintType: "primer", 
-      primaryTag: normalizedTag,
-      content: `Viewed strategy for ${tag} tag`,
-      action: "expand",
-      sessionContext: {
-        componentType: "TagStrategyGrid",
-        expandedTag: normalizedTag
+    await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "saveHintInteraction",
+      interactionData: {
+        problemId: problemId || "unknown",
+        hintType: "primer", 
+        primaryTag: normalizedTag,
+        content: `Viewed strategy for ${tag} tag`,
+        action: "expand",
+        sessionContext: {
+          componentType: "TagStrategyGrid",
+          expandedTag: normalizedTag
+        }
       }
     });
   } catch (error) {

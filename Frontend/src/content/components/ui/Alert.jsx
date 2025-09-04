@@ -1,5 +1,60 @@
 import React from 'react';
 
+// Alert color configurations
+const ALERT_COLORS = {
+  blue: { 
+    light: { bg: '#e7f5ff', border: '#d0ebff', text: '#1971c2' },
+    filled: { bg: '#228be6', text: 'white' }
+  },
+  green: { 
+    light: { bg: '#ebfbee', border: '#d3f9d8', text: '#2f9e44' },
+    filled: { bg: '#40c057', text: 'white' }
+  },
+  orange: { 
+    light: { bg: '#fff4e6', border: '#ffe8cc', text: '#e8590c' },
+    filled: { bg: '#fd7e14', text: 'white' }
+  },
+  red: { 
+    light: { bg: '#fff5f5', border: '#ffd8d8', text: '#e03131' },
+    filled: { bg: '#fa5252', text: 'white' }
+  },
+  yellow: { 
+    light: { bg: '#fff9db', border: '#fff3bf', text: '#e67700' },
+    filled: { bg: '#fab005', text: 'white' }
+  },
+  gray: { 
+    light: { bg: '#f8f9fa', border: '#e9ecef', text: '#495057' },
+    filled: { bg: '#868e96', text: 'white' }
+  }
+};
+
+// Helper to get alert color values
+const getAlertColors = (color, variant) => {
+  const colorConfig = ALERT_COLORS[color];
+  if (!colorConfig) {
+    return { bg: color + '20', border: color + '40', text: color };
+  }
+  return colorConfig[variant] || colorConfig.light;
+};
+
+// Helper to create variant styles
+const createAlertStyles = (color, variant) => {
+  const colors = getAlertColors(color, variant);
+  
+  const styles = {
+    backgroundColor: colors.bg,
+    color: colors.text
+  };
+  
+  if (variant === 'light') {
+    styles.border = `1px solid ${colors.border}`;
+  } else {
+    styles.border = 'none';
+  }
+  
+  return styles;
+};
+
 /**
  * Alert component - replaces Mantine Alert
  * Supports different variants and colors
@@ -24,43 +79,8 @@ const Alert = ({
     ...style
   };
   
-  const colorStyles = {
-    light: {
-      backgroundColor: color === 'blue' ? '#e7f5ff' : 
-                      color === 'green' ? '#ebfbee' :
-                      color === 'orange' ? '#fff4e6' :
-                      color === 'red' ? '#fff5f5' :
-                      color === 'yellow' ? '#fff9db' :
-                      color === 'gray' ? '#f8f9fa' : color + '20',
-      border: `1px solid ${color === 'blue' ? '#d0ebff' : 
-                           color === 'green' ? '#d3f9d8' :
-                           color === 'orange' ? '#ffe8cc' :
-                           color === 'red' ? '#ffd8d8' :
-                           color === 'yellow' ? '#fff3bf' :
-                           color === 'gray' ? '#e9ecef' : color + '40'}`,
-      color: color === 'blue' ? '#1971c2' : 
-             color === 'green' ? '#2f9e44' :
-             color === 'orange' ? '#e8590c' :
-             color === 'red' ? '#e03131' :
-             color === 'yellow' ? '#e67700' :
-             color === 'gray' ? '#495057' : color
-    },
-    filled: {
-      backgroundColor: color === 'blue' ? '#228be6' : 
-                      color === 'green' ? '#40c057' :
-                      color === 'orange' ? '#fd7e14' :
-                      color === 'red' ? '#fa5252' :
-                      color === 'yellow' ? '#fab005' :
-                      color === 'gray' ? '#868e96' : color,
-      color: 'white',
-      border: 'none'
-    }
-  };
-  
-  const finalStyle = {
-    ...baseStyle,
-    ...colorStyles[variant]
-  };
+  const variantStyles = createAlertStyles(color, variant);
+  const finalStyle = { ...baseStyle, ...variantStyles };
   
   return (
     <div {...props} style={finalStyle}>

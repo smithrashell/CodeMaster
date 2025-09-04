@@ -49,7 +49,6 @@ export const Group = ({
  */
 export const Card = ({ 
   children, 
-  withBorder = true,
   shadow = 'sm',
   padding = true,
   ...props 

@@ -68,15 +68,36 @@ src/
 - Update import paths when renaming files
 
 ```javascript
-// ✅ Good
+// ✅ Good - UI Components
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import ProblemDetail from "./ProblemDetail";
+import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
+
+// ✅ Good - Services
 import { sessionService } from "../../services/sessionService";
+import { fetchAllProblems } from "../../shared/db/problems";
 
 // ❌ Avoid
 import probdetail from "./probdetail";
 import { SessionService } from "../../services/SessionService";
+```
+
+### Chrome Extension Architecture Patterns
+
+UI components must follow the Chrome messaging architecture:
+
+```javascript
+// ✅ CORRECT - UI Component
+import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
+const { data } = useChromeMessage({ type: "getSettings" });
+
+// ✅ CORRECT - Service
+import { fetchAllProblems } from "../../shared/db/problems";
+const problems = await fetchAllProblems();
+
+// ❌ PROHIBITED - UI Component directly importing service
+import { SessionService } from "../../services/sessionService";
 ```
 
 ## Future Development Guidelines
@@ -101,11 +122,22 @@ import { SessionService } from "../../services/SessionService";
 - **Single word routes**: Use lowercase (`/settings`)
 
 ## ESLint & Code Quality
+
 All naming changes must:
 - Pass ESLint checks (`npm run lint`)
 - Follow existing code patterns in each file
 - Maintain import correctness
 - Preserve functionality
+
+### ESLint Architecture Enforcement
+
+The project uses ESLint rules to enforce Chrome extension architecture:
+
+- **Database Access**: UI components are prevented from importing services or database modules directly
+- **Dynamic Imports**: Prohibited due to Chrome extension compatibility issues
+- **Context-Aware Limits**: Different complexity limits for components (130 lines), services (130 lines), and algorithms (150 lines)
+
+ESLint will show errors if you try to bypass the Chrome messaging architecture in UI components.
 
 ---
 

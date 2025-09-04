@@ -575,6 +575,25 @@ export const SessionService = {
     try {
       logger.info(`📌 Creating new ${sessionType} session with status: ${status}`);
 
+      // Enforce one active session per type: mark existing in_progress/draft sessions as completed
+      logger.info(`🔍 Checking for existing active ${sessionType} sessions to mark as completed...`);
+      
+      const existingInProgress = await getLatestSessionByType(sessionType, "in_progress");
+      if (existingInProgress) {
+        logger.info(`⏹️ Marking existing in_progress ${sessionType} session as completed:`, existingInProgress.id.substring(0, 8));
+        existingInProgress.status = "completed";
+        existingInProgress.lastActivityTime = new Date().toISOString();
+        await updateSessionInDB(existingInProgress);
+      }
+
+      const existingDraft = await getLatestSessionByType(sessionType, "draft");
+      if (existingDraft && existingDraft.id !== existingInProgress?.id) {
+        logger.info(`⏹️ Marking existing draft ${sessionType} session as completed:`, existingDraft.id.substring(0, 8));
+        existingDraft.status = "completed";
+        existingDraft.lastActivityTime = new Date().toISOString();
+        await updateSessionInDB(existingDraft);
+      }
+
       // Use appropriate service based on session type
       logger.info(`🎯 SESSION SERVICE: Creating ${sessionType} session`);
       let sessionData;
