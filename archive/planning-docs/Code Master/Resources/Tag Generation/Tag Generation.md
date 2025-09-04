@@ -1,2 +1,0 @@
-- [x] Generated  tags using chat gpt from the https://leetcode.com/api/problems/algorithms/
-- [x] Create a problem store to mangage problem tags : Standard_problems
