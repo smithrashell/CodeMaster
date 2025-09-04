@@ -1,7 +1,7 @@
 import { StorageService } from "./storageService.js";
 import { getTagMastery } from "../db/tag_mastery.js";
 import { getSessionPerformance } from "../db/sessions.js";
-import { dashboardService } from "../../app/services/dashboardService.js";
+import { getInterviewAnalyticsData } from "../../app/services/dashboardService.js";
 
 /**
  * Interview Service - Handles all interview simulation logic
@@ -552,7 +552,7 @@ export class InterviewService {
       }
 
       // Get interview analytics data (reuse existing dashboard function)
-      const analyticsData = await dashboardService.getInterviewAnalyticsData({
+      const analyticsData = await getInterviewAnalyticsData({
         dateRange: { start: thirtyDaysAgo.toISOString() }
       });
 
