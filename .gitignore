@@ -16,6 +16,13 @@ node_modules/
 
 # Test and development files
 test_*.ps1
+test-*.html
+test-*.js
+temp_*.txt
+*_config.json
+strategy_*.json
+strategy_*.js
+generate_*.js
 tstaus
 
 # API documentation (if it contains sensitive info)
