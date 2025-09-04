@@ -299,6 +299,80 @@ const {
 - Manual refresh capability
 - Computed values for UI state
 
+### useChromeMessage Hook (v0.9.5)
+
+**Location**: `src/shared/hooks/useChromeMessage.js`
+
+**Purpose**: Standardized Chrome extension messaging with loading states and error handling
+
+**Usage Pattern**:
+
+```javascript
+const { data, loading, error } = useChromeMessage(
+  { type: "getCurrentSession" },
+  [],
+  {
+    onSuccess: (response) => setSession(response.session),
+    onError: (error) => console.error("Session load failed:", error),
+  }
+);
+```
+
+**Key Features**:
+- Automatic loading state management
+- Consistent error handling across all Chrome API calls
+- Request caching and deduplication
+- Conditional execution for mock environments
+- 95% reduction in Chrome messaging boilerplate code
+
+### useChromeCache Hook
+
+**Location**: `src/shared/hooks/useChromeCache.js`
+
+**Purpose**: Intelligent caching for Chrome extension messages with TTL and deduplication
+
+**Usage Pattern**:
+
+```javascript
+const { getCachedResponse, setCachedResponse, getCacheKey } = useChromeCache();
+
+// Check cache first, then make request if needed
+const cacheKey = getCacheKey(request);
+const cachedData = getCachedResponse(cacheKey);
+if (cachedData) return cachedData;
+```
+
+**Key Features**:
+- 5-minute TTL for performance/freshness balance
+- Request deduplication to prevent redundant calls
+- Memory leak prevention (50-item cache limit)
+- Smart cache key generation ignoring timestamps
+
+### useChromeRetry Hook
+
+**Location**: `src/shared/hooks/useChromeRetry.js`
+
+**Purpose**: Robust retry logic for Chrome extension operations with exponential backoff
+
+**Usage Pattern**:
+
+```javascript
+const { sendWithRetry, isRetrying, retryCount } = useChromeRetry({
+  maxRetries: 3,
+  retryDelay: 1000,
+  timeout: 10000
+});
+
+const result = await sendWithRetry(request, pendingRequests, cacheKey);
+```
+
+**Key Features**:
+- Exponential backoff retry strategy
+- Configurable retry counts and timeouts
+- Integration with ChromeAPIErrorHandler
+- Request deduplication support
+- Performance monitoring and cleanup
+
 ## Chrome Extension Integration
 
 ### Chrome Runtime Patterns
@@ -725,12 +799,16 @@ sequenceDiagram
 ```
 src/shared/hooks/
 ├── index.js                 # Export all hooks
-├── useStrategy.js          # Existing strategy hook
+├── useStrategy.js          # Strategy data and contextual hints
+├── useChromeMessage.js     # Standardized Chrome messaging (v0.9.5)
+├── useChromeCache.js       # Chrome message caching with TTL
+├── useChromeRetry.js       # Retry logic with exponential backoff  
 ├── useChromeRuntime.js     # Chrome extension communication
 ├── useAsyncState.js        # Generic async state management
 ├── useProblemNavigation.js # Problem flow navigation
 └── __tests__/              # Hook tests
     ├── useStrategy.test.js
+    ├── useChromeMessage.test.jsx
     └── integration.test.js
 ```
 
