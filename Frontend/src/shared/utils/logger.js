@@ -159,6 +159,21 @@ class ProductionLogger {
    */
   _storeCriticalLog(logEntry) {
     try {
+      // Check if running in service worker (background script)
+      if (typeof localStorage === 'undefined' && typeof chrome !== 'undefined' && chrome.storage) {
+        // Use chrome.storage.local for service workers
+        chrome.storage.local.get(['codemaster_critical_logs'], (result) => {
+          const criticalLogs = result.codemaster_critical_logs || [];
+          criticalLogs.push(logEntry);
+          
+          // Keep only last 50 critical logs
+          const recentLogs = criticalLogs.slice(-50);
+          chrome.storage.local.set({ codemaster_critical_logs: recentLogs });
+        });
+        return;
+      }
+
+      // Standard localStorage for other contexts
       const criticalLogs = JSON.parse(
         localStorage.getItem("codemaster_critical_logs") || "[]"
       );

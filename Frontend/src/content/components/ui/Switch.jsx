@@ -59,9 +59,24 @@ const Switch = ({
     }
   };
   
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleClick();
+    }
+  };
+
   if (label) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: disabled ? 'not-allowed' : 'pointer' }} onClick={handleClick}>
+      <div 
+        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: disabled ? 'not-allowed' : 'pointer' }} 
+        onClick={handleClick}
+        onKeyPress={handleKeyPress}
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        aria-pressed={checked}
+        aria-disabled={disabled}
+      >
         <div style={trackStyle}>
           <div style={thumbStyle} />
         </div>
@@ -73,7 +88,16 @@ const Switch = ({
   }
   
   return (
-    <div {...props} style={trackStyle} onClick={handleClick}>
+    <div 
+      {...props} 
+      style={trackStyle} 
+      onClick={handleClick}
+      onKeyPress={handleKeyPress}
+      role="switch"
+      tabIndex={disabled ? -1 : 0}
+      aria-checked={checked}
+      aria-disabled={disabled}
+    >
       <div style={thumbStyle} />
     </div>
   );

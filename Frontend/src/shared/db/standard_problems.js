@@ -1,13 +1,10 @@
 import { dbHelper } from "./index.js";
 import logger from "../utils/logger.js";
+import STANDARD_PROBLEMS_DATA from "../constants/LeetCode_Tags_Combined.json";
 
-// Lazy load the large JSON file only when needed
-let STANDARD_PROBLEMS = null;
-const loadStandardProblems = async () => {
-  if (!STANDARD_PROBLEMS) {
-    const module = await import("../constants/LeetCode_Tags_Combined.json");
-    STANDARD_PROBLEMS = module.default;
-  }
+// Standard problems data
+let STANDARD_PROBLEMS = STANDARD_PROBLEMS_DATA;
+const loadStandardProblems = () => {
   return STANDARD_PROBLEMS;
 };
 const openDB = dbHelper.openDB;
