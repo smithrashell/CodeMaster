@@ -1,5 +1,5 @@
 import { dbHelper } from "./index.js";
-
+import { isDifficultyAllowed, deduplicateById } from "../utils/Utils.js";
 import { AttemptsService } from "../services/attemptsService.js";
 
 import { getAllStandardProblems } from "./standard_problems.js";
@@ -8,27 +8,14 @@ import { TagService } from "../services/tagServices.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 import { v4 as uuidv4 } from "uuid";
-
+import { getAllowedDifficulties } from "../utils/Utils.js";
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { getTagRelationships } from "./tag_relationships.js";
-
-// Import session functions
-const getOrCreateSession = () => {
-  return SessionService.getOrCreateSession();
-};
-
-const saveSessionToStorageLocal = (session) => {
-  return saveSessionToStorage(session);
-};
-
 const openDB = dbHelper.openDB;
 
 // Import retry service for enhanced database operations
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
-import { SessionService } from "../services/sessionService.js";
-import { saveSessionToStorage } from "./sessions.js";
-import logger from "../utils/logger.js";
 
 /**
  * Fetches a set of problems based on difficulty level.
@@ -117,7 +104,7 @@ import logger from "../utils/logger.js";
 
 //         // If the NextProblem exists in the problems store, skip it
 //         if (nextProblemExists) {
-//           logger.info(
+//           console.log(
 //             `Skipping NextProblem ${nextProblemId} (already attempted).`
 //           );
 //           continue;
@@ -149,7 +136,7 @@ import logger from "../utils/logger.js";
 
 //     // If no additional problems are found, break to avoid infinite loops
 //     if (additionalNextProblemIds.length === 0) {
-//       logger.warn("No additional NextProblems meet the criteria.");
+//       console.warn("No additional NextProblems meet the criteria.");
 //       break;
 //     }
 //   }
@@ -160,7 +147,7 @@ import logger from "../utils/logger.js";
 //     validatedNextProblemIds.slice(0, limit)
 //   );
 
-//   logger.info(
+//   console.log(
 //     `Pulled ${nextProblems.length} problems from NextProblem.`,
 //     nextProblems
 //   );
@@ -262,11 +249,11 @@ export async function saveUpdatedProblem(problem) {
  * @param {string} description - The problem description.
  * @returns {Promise<Object|null>} - The problem object or null if not found.
  */
-export async function getProblemByDescription(description, _slug) {
-  logger.info("📌 getProblemByDescription called with:", description);
+export async function getProblemByDescription(description, slug) {
+  console.log("📌 getProblemByDescription called with:", description);
 
   if (!description) {
-    logger.error("❌ Error: No description provided.");
+    console.error("❌ Error: No description provided.");
     return null;
   }
 
@@ -276,12 +263,12 @@ export async function getProblemByDescription(description, _slug) {
     const store = transaction.objectStore("problems");
 
     if (!store.indexNames.contains("by_ProblemDescription")) {
-      logger.error("❌ Error: Index 'by_ProblemDescription' does not exist.");
-      reject(new Error("Index missing: by_ProblemDescription"));
+      console.error("❌ Error: Index 'by_ProblemDescription' does not exist.");
+      reject("Index missing: by_ProblemDescription");
       return;
     }
 
-    logger.info("📌 Using index 'by_ProblemDescription' to fetch problem...");
+    console.log("📌 Using index 'by_ProblemDescription' to fetch problem...");
     const index = store.index("by_ProblemDescription");
 
     // Ensure the description is stored in lowercase
@@ -290,16 +277,16 @@ export async function getProblemByDescription(description, _slug) {
     request.onsuccess = (event) => {
       const result = event.target.result;
       if (result) {
-        logger.info("✅ Problem found:", result);
+        console.log("✅ Problem found:", result);
         resolve(result);
       } else {
-        logger.warn("⚠️ Problem not found for description:", description);
+        console.warn("⚠️ Problem not found for description:", description);
         resolve(false);
       }
     };
 
     request.onerror = (event) => {
-      logger.error("❌ Error fetching problem:", event.target.error);
+      console.error("❌ Error fetching problem:", event.target.error);
       reject(event.target.error);
     };
   });
@@ -313,7 +300,7 @@ export async function getProblemByDescription(description, _slug) {
 export async function addProblem(problemData) {
   try {
     const db = await openDB();
-    const _standardProblem = await fetchProblemById(problemData.leetCodeID);
+    const standardProblem = await fetchProblemById(problemData.leetCodeID);
 
     let session = await new Promise((resolve) => {
       chrome.storage.local.get(["currentSession"], (result) => {
@@ -323,7 +310,7 @@ export async function addProblem(problemData) {
 
     if (!session) {
       session = await getOrCreateSession();
-      await saveSessionToStorageLocal(session);
+      await saveSessionToStorage(session);
     }
 
     const transaction = db.transaction(["problems"], "readwrite");
@@ -356,10 +343,10 @@ export async function addProblem(problemData) {
 
       Tags: problemData.tags || [],
     };
-    logger.info("Adding problem:", problem);
+    console.log("Adding problem:", problem);
     const request = store.add(problem);
     transaction.oncomplete = async function () {
-      logger.info("Problem added successfully:", problem);
+      console.log("Problem added successfully:", problem);
 
       const attemptData = {
         id: attemptId,
@@ -388,17 +375,17 @@ export async function addProblem(problemData) {
         }
 
         await AttemptsService.addAttempt(attemptData, problem);
-        logger.info("✅ Attempt and problem added successfully.");
+        console.log("✅ Attempt and problem added successfully.");
       } catch (error) {
-        logger.error("❌ Error adding attempt:", error);
+        console.error("❌ Error adding attempt:", error);
       }
     };
 
     request.onerror = function (event) {
-      logger.error("Error adding problem:", event.target.error);
+      console.error("Error adding problem:", event.target.error);
     };
   } catch (error) {
-    logger.error("Error in addProblem function:", error);
+    console.error("Error in addProblem function:", error);
   }
 }
 
@@ -442,16 +429,17 @@ export async function checkDatabaseForProblem(problemId) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
-    logger.info("🔍 problemId:", problemId);
-    const request = store.get(problemId); // Use primary key (leetCodeID) directly
+    const index = store.index("by_problem");
+    console.log("🔍 problemId:", problemId);
+    const request = index.get(problemId);
 
     // return true if problem is found, false otherwise
     request.onsuccess = () => {
-      logger.info("✅ Problem found in database:", request.result);
+      console.log("✅ Problem found in database:", request.result);
       resolve(request.result);
     };
     request.onerror = () => {
-      logger.error("❌ Error checking database for problem:", request.error);
+      console.error("❌ Error checking database for problem:", request.error);
 
       reject(request.error);
     };
@@ -465,7 +453,7 @@ export async function fetchAllProblems() {
   const cursorRequest = objectStore.openCursor();
   const problems = [];
 
-  return new Promise((resolve, _reject) => {
+  return new Promise((resolve, reject) => {
     cursorRequest.onsuccess = function (event) {
       const cursor = event.target.result;
 
@@ -478,7 +466,7 @@ export async function fetchAllProblems() {
     };
 
     cursorRequest.onerror = function (event) {
-      logger.error(
+      console.error(
         "❌ Error fetching problems from IndexedDB:",
         event.target.error
       );
@@ -490,12 +478,12 @@ export async function fetchAllProblems() {
 export async function fetchAdditionalProblems(
   numNewProblems,
   excludeIds = new Set(),
-  _userFocusAreas = [],
-  _currentAllowedTags = [],
+  userFocusAreas = [],
+  currentAllowedTags = [],
   userId = "session_state" // Default to session_state for backward compatibility
 ) {
   try {
-    const { masteryData, _focusTags, allTagsInCurrentTier } =
+    const { masteryData, focusTags, allTagsInCurrentTier } =
       await TagService.getCurrentLearningState();
     const allProblems = await getAllStandardProblems();
     const ladders = await getPatternLadders();
@@ -506,20 +494,20 @@ export async function fetchAdditionalProblems(
     // Use coordinated focus decision for enhanced focus tags
     const enhancedFocusTags = focusDecision.activeFocusTags;
 
-    logger.info("🧠 Starting intelligent problem selection...");
-    logger.info("🎯 Focus Coordination Service decision:", {
+    console.log("🧠 Starting intelligent problem selection...");
+    console.log("🎯 Focus Coordination Service decision:", {
       activeFocusTags: enhancedFocusTags,
       reasoning: focusDecision.algorithmReasoning,
       userPreferences: focusDecision.userPreferences,
       systemRecommendation: focusDecision.systemRecommendation
     });
-    logger.info("🧠 Needed problems:", numNewProblems);
+    console.log("🧠 Needed problems:", numNewProblems);
     
     // Backward compatibility logging
-    logger.info("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
+    console.log("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
 
     // Get tag relationships for expansion
-    const _tagRelationships = await getTagRelationships();
+    const tagRelationships = await getTagRelationships();
 
     // Calculate difficulty allowances for all tags
     const tagDifficultyAllowances = {};
@@ -540,16 +528,18 @@ export async function fetchAdditionalProblems(
     const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
     const primaryTag = enhancedFocusTags[0]; // Highest priority tag (user selection or system recommendation)
 
-    logger.info(
+    console.log(
       `🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`
     );
-    const primaryProblems = await selectProblemsForTag(primaryTag, primaryFocusCount, {
-      difficultyAllowance: tagDifficultyAllowances[primaryTag],
+    const primaryProblems = await selectProblemsForTag(
+      primaryTag,
+      primaryFocusCount,
+      tagDifficultyAllowances[primaryTag],
       ladders,
       allProblems,
       allTagsInCurrentTier,
       usedProblemIds
-    });
+    );
 
     selectedProblems.push(...primaryProblems);
     primaryProblems.forEach((p) => usedProblemIds.add(p.id));
@@ -558,7 +548,7 @@ export async function fetchAdditionalProblems(
     const expansionCount = numNewProblems - selectedProblems.length;
     if (expansionCount > 0 && enhancedFocusTags.length > 1) {
       const expansionTag = enhancedFocusTags[1]; // Use next highest priority tag for expansion
-      logger.info(
+      console.log(
         `🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`
       );
 
@@ -570,31 +560,33 @@ export async function fetchAdditionalProblems(
       };
       const allowance = getDifficultyAllowanceForTag(tagMastery);
 
-      const expansionProblems = await selectProblemsForTag(expansionTag, expansionCount, {
-        difficultyAllowance: allowance,
+      const expansionProblems = await selectProblemsForTag(
+        expansionTag,
+        expansionCount,
+        allowance,
         ladders,
         allProblems,
         allTagsInCurrentTier,
         usedProblemIds
-      });
+      );
 
       selectedProblems.push(...expansionProblems);
       expansionProblems.forEach((p) => usedProblemIds.add(p.id));
 
-      logger.info(
+      console.log(
         `🔗 Added ${expansionProblems.length} problems from expansion tag: ${expansionTag}`
       );
     }
 
-    logger.info(`🎯 Selected ${selectedProblems.length} problems for learning`);
+    console.log(`🎯 Selected ${selectedProblems.length} problems for learning`);
     return selectedProblems;
   } catch (error) {
-    logger.error("❌ Error in fetchAdditionalProblems():", error);
+    console.error("❌ Error in fetchAdditionalProblems():", error);
     return [];
   }
 }
 
-async function _getProblemSequenceScore(
+async function getProblemSequenceScore(
   problemId,
   unmasteredTagSet,
   tierTagSet
@@ -635,13 +627,13 @@ async function _getProblemSequenceScore(
         }
 
         let weightedAvgStrength = count > 0 ? totalStrength / count : 0;
-        logger.info(
+        console.log(
           `🎯 Final sequenceScore for Problem ${problemId}:`,
           weightedAvgStrength
         );
         resolve(weightedAvgStrength);
       } else {
-        logger.warn(`⚠️ No relationships found for problem ${problemId}`);
+        console.warn(`⚠️ No relationships found for problem ${problemId}`);
         resolve(0);
       }
     };
@@ -664,7 +656,7 @@ async function _getProblemSequenceScore(
 //   // 🔹 Callback to update `attemptedProblems`
 //   const updateAttemptedCallback = (newProblem) => {
 //     attemptedProblems.add(newProblem);
-//     logger.info(`📝 Updated attemptedProblems:`, attemptedProblems);
+//     console.log(`📝 Updated attemptedProblems:`, attemptedProblems);
 //   };
 
 //   let maxRetries = 3; // 🔹 Prevents infinite loops
@@ -696,7 +688,7 @@ async function _getProblemSequenceScore(
 //           continue;
 //         }
 
-//         logger.info(`✅ NextProblem Selected: ${nextProblemId}`);
+//         console.log(`✅ NextProblem Selected: ${nextProblemId}`);
 //         attemptedProblems.add(nextProblemId); // ✅ Ensure problem is not chosen again
 
 //         // ✅ Fetch NextProblem details from `standard_problems`
@@ -724,7 +716,7 @@ async function _getProblemSequenceScore(
 //     }
 
 //     if (validatedNextProblemIds.length === 0) {
-//       logger.warn(
+//       console.warn(
 //         "⚠️ No additional NextProblems meet the criteria. Retrying..."
 //       );
 //     }
@@ -732,7 +724,7 @@ async function _getProblemSequenceScore(
 
 //   // ✅ Exit early if no problems found after retries
 //   if (validatedNextProblemIds.length === 0) {
-//     logger.error(
+//     console.error(
 //       "❌ Could not find additional NextProblems after retries. Exiting."
 //     );
 //     return [];
@@ -744,7 +736,7 @@ async function _getProblemSequenceScore(
 //     validatedNextProblemIds.slice(0, countNeeded)
 //   );
 
-//   logger.info(
+//   console.log(
 //     `✅ Pulled ${nextProblems.length} problems from NextProblem.`,
 //     nextProblems
 //   );
@@ -778,7 +770,7 @@ export async function addStabilityToProblems() {
           };
         });
 
-        logger.info("🔍 Attempts:", attempts);
+        console.log("🔍 Attempts:", attempts);
 
         // Sort attempts by date (assuming attemptDate exists)
         attempts.sort(
@@ -802,12 +794,12 @@ export async function addStabilityToProblems() {
       }
 
       transaction.oncomplete = () => {
-        logger.info("✅ Stability added/updated for all problems.");
+        console.log("✅ Stability added/updated for all problems.");
         resolve();
       };
 
       transaction.onerror = (err) => {
-        logger.error("❌ Transaction failed:", err);
+        console.error("❌ Transaction failed:", err);
         reject(err);
       };
     };
@@ -837,19 +829,19 @@ export async function updateProblemsWithRating() {
     standardProblems.forEach((problem) => {
       difficultyMap[problem.id] = problem.difficulty;
     });
-    logger.info("🔍 difficultyMap:", difficultyMap);
+    console.log("🔍 difficultyMap:", difficultyMap);
     const transaction = db.transaction(["problems"], "readwrite");
     const problemStore = transaction.objectStore("problems");
 
     const request = problemStore.getAll();
 
-    request.onsuccess = (event) => {
+    request.onsuccess = async (event) => {
       const problems = event.target.result;
 
       for (let problem of problems) {
         const difficulty = difficultyMap[problem.leetCodeID];
-        logger.info("🔍 difficulty:", difficulty);
-        logger.info("🔍 problem:", problem.leetCodeID);
+        console.log("🔍 difficulty:", difficulty);
+        console.log("🔍 problem:", problem.leetCodeID);
         if (difficulty) {
           problem.Rating = difficulty;
           problemStore.put(problem);
@@ -858,14 +850,14 @@ export async function updateProblemsWithRating() {
     };
 
     transaction.oncomplete = () => {
-      logger.info("✅ All problems updated with ratings.");
+      console.log("✅ All problems updated with ratings.");
     };
 
     transaction.onerror = (event) => {
-      logger.error("❌ Transaction error:", event.target.error);
+      console.error("❌ Transaction error:", event.target.error);
     };
   } catch (error) {
-    logger.error("❌ Error updating problems with ratings:", error);
+    console.error("❌ Error updating problems with ratings:", error);
   }
 }
 
@@ -877,7 +869,7 @@ export async function updateProblemWithTags() {
     .objectStore("problems");
   const request = problemStore.getAll();
 
-  request.onsuccess = (event) => {
+  request.onsuccess = async (event) => {
     const problems = event.target.result;
 
     for (let problem of problems) {
@@ -906,17 +898,23 @@ function normalizeTags(tags) {
  * Selects problems for a specific tag with progressive difficulty
  * @param {string} tag - The tag to select problems for
  * @param {number} count - Number of problems to select
- * @param {object} config - Configuration object containing:
- *   - difficultyAllowance: Difficulty allowance for the tag
- *   - ladders: Pattern ladders
- *   - allProblems: All standard problems
- *   - allTagsInCurrentTier: Tags in current tier
- *   - usedProblemIds: Already used problem IDs
- * @returns {Array} Selected problems
+ * @param {object} difficultyAllowance - Difficulty allowance for the tag
+ * @param {object} ladders - Pattern ladders
+ * @param {array} allProblems - All standard problems
+ * @param {array} allTagsInCurrentTier - Tags in current tier
+ * @param {Set} usedProblemIds - Already used problem IDs
+ * @returns {Promise<Array>} Selected problems
  */
-function selectProblemsForTag(tag, count, config) {
-  const { difficultyAllowance, ladders, allProblems, allTagsInCurrentTier, usedProblemIds } = config;
-  logger.info(`🎯 Selecting ${count} problems for tag: ${tag}`);
+async function selectProblemsForTag(
+  tag,
+  count,
+  difficultyAllowance,
+  ladders,
+  allProblems,
+  allTagsInCurrentTier,
+  usedProblemIds
+) {
+  console.log(`🎯 Selecting ${count} problems for tag: ${tag}`);
 
   const ladder = ladders?.[tag]?.problems || [];
   const allTagsInCurrentTierSet = new Set(allTagsInCurrentTier);
@@ -952,7 +950,7 @@ function selectProblemsForTag(tag, count, config) {
       return b.allowanceWeight - a.allowanceWeight;
     });
 
-  logger.info(
+  console.log(
     `🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`
   );
 
@@ -972,7 +970,7 @@ function selectProblemsForTag(tag, count, config) {
     }
   }
 
-  logger.info(`🎯 Selected ${selectedProblems.length} problems for ${tag}`);
+  console.log(`🎯 Selected ${selectedProblems.length} problems for ${tag}`);
   return selectedProblems;
 }
 
@@ -1020,7 +1018,7 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
     const standardProblem = await fetchProblemById(leetCodeID);
 
     if (!standardProblem) {
-      logger.warn(
+      console.warn(
         `⚠️ No standard problem found for LeetCode ID: ${leetCodeID}`
       );
       return userProblem; // Return user problem without official difficulty
@@ -1036,7 +1034,7 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
 
     return mergedProblem;
   } catch (error) {
-    logger.error(
+    console.error(
       `❌ Error getting problem with official difficulty for ID ${leetCodeID}:`,
       error
     );
@@ -1055,7 +1053,7 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object|null>} Problem data or null
  */
-export function getProblemWithRetry(problemId, options = {}) {
+export async function getProblemWithRetry(problemId, options = {}) {
   const {
     timeout = indexedDBRetry.quickTimeout,
     operationName = "getProblem",
@@ -1096,7 +1094,7 @@ export function getProblemWithRetry(problemId, options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<boolean>} True if problem exists, false otherwise
  */
-export function checkDatabaseForProblemWithRetry(
+export async function checkDatabaseForProblemWithRetry(
   problemId,
   options = {}
 ) {
@@ -1113,7 +1111,8 @@ export function checkDatabaseForProblemWithRetry(
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["problems"], "readonly");
         const store = transaction.objectStore("problems");
-        const request = store.get(problemId); // Use primary key (leetCodeID) directly
+        const index = store.index("by_problem");
+        const request = index.get(problemId);
 
         request.onsuccess = () => {
           resolve(!!request.result); // Convert to boolean
@@ -1140,7 +1139,7 @@ export function checkDatabaseForProblemWithRetry(
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object>} Result of add operation
  */
-export function addProblemWithRetry(problemData, options = {}) {
+export async function addProblemWithRetry(problemData, options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
     operationName = "addProblem",
@@ -1149,7 +1148,7 @@ export function addProblemWithRetry(problemData, options = {}) {
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    () => {
+    async () => {
       // This is a complex operation, so we'll use the enhanced dbHelper transaction method
       return dbHelper.executeTransaction(
         ["problems", "standard_problems"], // Multiple stores needed
@@ -1223,7 +1222,7 @@ export function addProblemWithRetry(problemData, options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object>} Save result
  */
-export function saveUpdatedProblemWithRetry(problem, options = {}) {
+export async function saveUpdatedProblemWithRetry(problem, options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
     operationName = "saveUpdatedProblem",
@@ -1232,7 +1231,7 @@ export function saveUpdatedProblemWithRetry(problem, options = {}) {
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    () => {
+    async () => {
       return dbHelper.putRecord("problems", problem, {
         timeout,
         operationName,
@@ -1256,7 +1255,7 @@ export function saveUpdatedProblemWithRetry(problem, options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Array>} Box level counts
  */
-export function countProblemsByBoxLevelWithRetry(options = {}) {
+export async function countProblemsByBoxLevelWithRetry(options = {}) {
   const {
     timeout = indexedDBRetry.defaultTimeout,
     operationName = "countProblemsByBoxLevel",
@@ -1301,7 +1300,7 @@ export function countProblemsByBoxLevelWithRetry(options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Array>} All problems
  */
-export function fetchAllProblemsWithRetry(options = {}) {
+export async function fetchAllProblemsWithRetry(options = {}) {
   const {
     timeout = indexedDBRetry.bulkTimeout,
     operationName = "fetchAllProblems",
@@ -1312,7 +1311,7 @@ export function fetchAllProblemsWithRetry(options = {}) {
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    () => {
+    async () => {
       return dbHelper.getAllRecords("problems", null, {
         timeout,
         operationName,
@@ -1339,7 +1338,7 @@ export function fetchAllProblemsWithRetry(options = {}) {
  * @param {Object} options - Retry configuration options
  * @returns {Promise<Object|null>} Problem with official difficulty
  */
-export function getProblemWithOfficialDifficultyWithRetry(
+export async function getProblemWithOfficialDifficultyWithRetry(
   leetCodeID,
   options = {}
 ) {
@@ -1351,7 +1350,7 @@ export function getProblemWithOfficialDifficultyWithRetry(
   } = options;
 
   return indexedDBRetry.executeWithRetry(
-    () => {
+    async () => {
       // Use the existing implementation but wrap it with our retry logic
       return getProblemWithOfficialDifficulty(leetCodeID);
     },

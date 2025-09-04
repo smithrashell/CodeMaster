@@ -1,16 +1,9 @@
 import { dbHelper } from "./index.js";
-import logger from "../utils/logger.js";
-import STANDARD_PROBLEMS_DATA from "../constants/LeetCode_Tags_Combined.json";
-
-// Standard problems data
-let STANDARD_PROBLEMS = STANDARD_PROBLEMS_DATA;
-const loadStandardProblems = () => {
-  return STANDARD_PROBLEMS;
-};
+import STANDARD_PROBLEMS from "../constants/LeetCode_Tags_Combined.json";
 const openDB = dbHelper.openDB;
 export async function getProblemFromStandardProblems(slug) {
   try {
-    logger.info("📌 getProblemFromStandardProblems called with:", {
+    console.log("📌 getProblemFromStandardProblems called with:", {
       slug,
     });
 
@@ -22,38 +15,38 @@ export async function getProblemFromStandardProblems(slug) {
       const objectStore = transaction.objectStore("standard_problems");
 
       if (!objectStore.indexNames.contains("by_slug")) {
-        logger.error("❌ Index 'by_slug' not found in 'standard_problems'.");
-        return reject(new Error("Index 'by_slug' not found."));
+        console.error("❌ Index 'by_slug' not found in 'standard_problems'.");
+        return reject("Index 'by_slug' not found.");
       }
 
       const index = objectStore.index("by_slug");
 
-      logger.info("📌 Querying standard_problems with slug:", slug);
+      console.log("📌 Querying standard_problems with slug:", slug);
       const request = index.get(slug);
 
       request.onsuccess = (event) => {
         const problem = event.target.result;
-        logger.info("🔍 Query Result:", problem);
+        console.log("🔍 Query Result:", problem);
 
         if (problem) {
-          logger.info("✅ Found problem in standard_problems:", problem);
+          console.log("✅ Found problem in standard_problems:", problem);
           resolve(problem); // ✅ Directly resolve the problem object
         } else {
-          logger.warn("⚠️ Problem not found in standard_problems.");
+          console.warn("⚠️ Problem not found in standard_problems.");
           resolve(null); // ✅ Resolve null if not found
         }
       };
 
       request.onerror = (event) => {
-        logger.error(
+        console.error(
           "❌ Error querying standard_problems:",
           event.target.error
         );
-        reject(new Error("Failed to retrieve the problem: " + event.target.error));
+        reject("Failed to retrieve the problem: " + event.target.error);
       };
     });
   } catch (error) {
-    logger.error("❌ Error in getProblemFromStandardProblems:", error);
+    console.error("❌ Error in getProblemFromStandardProblems:", error);
     throw error;
   }
 }
@@ -64,7 +57,7 @@ export async function updateStandardProblemsFromData(problems) {
       throw new Error("❌ Invalid data: expected an array.");
     }
 
-    logger.info("📌 Loaded", problems.length, "problems from local JSON");
+    console.log("📌 Loaded", problems.length, "problems from local JSON");
 
     const db = await openDB();
     if (!db) throw new Error("❌ Failed to open IndexedDB.");
@@ -76,36 +69,36 @@ export async function updateStandardProblemsFromData(problems) {
       let updatedCount = 0;
 
       problems.forEach((problem) => {
-        logger.info(problem);
+        console.log(problem);
         const request = store.put(problem);
         request.onsuccess = () => {
           updatedCount++;
         };
 
         request.onerror = (event) => {
-          logger.error("❌ Error updating problem:", event.target.error);
+          console.error("❌ Error updating problem:", event.target.error);
         };
       });
 
       transaction.oncomplete = () => {
-        logger.info(`✅ Successfully updated ${updatedCount} problems.`);
+        console.log(`✅ Successfully updated ${updatedCount} problems.`);
         resolve(updatedCount);
       };
 
       transaction.onerror = (event) => {
-        logger.error("❌ Transaction failed:", event.target.error);
-        reject(new Error("Transaction failed: " + event.target.error));
+        console.error("❌ Transaction failed:", event.target.error);
+        reject("Transaction failed: " + event.target.error);
       };
     });
   } catch (error) {
-    logger.error("❌ updateStandardProblemsFromData error:", error);
+    console.error("❌ updateStandardProblemsFromData error:", error);
     throw error;
   }
 }
 
 export async function updateStandardProblems(jsonFilePath) {
   try {
-    logger.info("📌 updateStandardProblems called with:", { jsonFilePath });
+    console.log("📌 updateStandardProblems called with:", { jsonFilePath });
 
     // Fetch the JSON file
     const response = jsonFilePath;
@@ -113,7 +106,7 @@ export async function updateStandardProblems(jsonFilePath) {
 
     const problems = await response.json();
 
-    logger.info("📌 Fetched problems data:", problems.length, "problems");
+    console.log("📌 Fetched problems data:", problems.length, "problems");
 
     const db = await openDB();
     if (!db) throw new Error("❌ Failed to open IndexedDB.");
@@ -132,24 +125,24 @@ export async function updateStandardProblems(jsonFilePath) {
         };
 
         request.onerror = (event) => {
-          logger.error("❌ Error updating problem:", event.target.error);
+          console.error("❌ Error updating problem:", event.target.error);
         };
       });
 
       transaction.oncomplete = () => {
-        logger.info(
+        console.log(
           `✅ Successfully updated ${updatedCount} problems in IndexedDB.`
         );
         resolve(updatedCount);
       };
 
       transaction.onerror = (event) => {
-        logger.error("❌ Transaction error:", event.target.error);
-        reject(new Error("Transaction failed: " + event.target.error));
+        console.error("❌ Transaction error:", event.target.error);
+        reject("Transaction failed: " + event.target.error);
       };
     });
   } catch (error) {
-    logger.error("❌ Error in updateStandardProblems:", error);
+    console.error("❌ Error in updateStandardProblems:", error);
     throw error;
   }
 }
@@ -178,14 +171,14 @@ export async function fetchProblemById(problemId) {
         if (request.result) {
           resolve(request.result);
         } else {
-          logger.warn(`⚠️ Problem with ID ${problemId} not found.`);
+          console.warn(`⚠️ Problem with ID ${problemId} not found.`);
           resolve(null); // Return null if not found
         }
       };
       request.onerror = () => reject(request.error);
     });
   } catch (error) {
-    logger.error(`❌ Error fetching problem ${problemId}:`, error);
+    console.error(`❌ Error fetching problem ${problemId}:`, error);
     return null;
   }
 }
@@ -196,7 +189,7 @@ export async function normalizeTagForStandardProblems() {
     problem.tags = problem.tags.map((tag) => tag.trim().toLowerCase());
   });
 
-  logger.info(problems);
+  console.log(problems);
   const db = await openDB();
   const tx = db.transaction("standard_problems", "readwrite");
   const store = tx.objectStore("standard_problems");
@@ -212,17 +205,14 @@ export async function insertStandardProblems() {
 
   const existing = await store.getAll();
   if (existing.length > 0) {
-    logger.info("📚 standard_problems already seeded.");
+    console.log("📚 standard_problems already seeded.");
     return;
   }
 
-  // Lazy load the large JSON file only when seeding
-  const standardProblems = await loadStandardProblems();
-
   await Promise.all(
-    standardProblems.map((problem) => {
+    STANDARD_PROBLEMS.map((problem) => {
       return new Promise((resolve, reject) => {
-        logger.info("🧼 problem:", problem);
+        console.log("🧼 problem:", problem);
         const req = store.put(problem);
         req.onsuccess = resolve;
         req.onerror = () => reject(req.error);
@@ -230,5 +220,5 @@ export async function insertStandardProblems() {
     })
   );
 
-  logger.info(`✅ Inserted ${standardProblems.length} standard problems.`);
+  console.log(`✅ Inserted ${STANDARD_PROBLEMS.length} standard problems.`);
 }

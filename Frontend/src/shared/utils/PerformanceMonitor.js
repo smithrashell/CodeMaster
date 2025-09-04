@@ -10,8 +10,6 @@
  * - Real-time performance analytics
  */
 
-import logger from "./logger.js";
-
 class PerformanceMonitor {
   constructor() {
     this.metrics = {
@@ -60,7 +58,10 @@ class PerformanceMonitor {
     // Initialize performance observers
     this.initializePerformanceObservers();
 
-    logger.info("Enhanced PerformanceMonitor initialized", { context: 'performance_monitor' });
+    // eslint-disable-next-line no-console
+    console.log(
+      "📊 Enhanced PerformanceMonitor initialized with critical operation tracking"
+    );
   }
 
   /**
@@ -69,7 +70,7 @@ class PerformanceMonitor {
   initializePerformanceObservers() {
     // Only initialize in browser environment
     if (typeof window === 'undefined') {
-      logger.warn("PerformanceMonitor window not available, skipping observers", { context: 'performance_monitor' });
+      console.warn('PerformanceMonitor: window not available, skipping observers');
       return;
     }
 
@@ -578,7 +579,7 @@ class PerformanceMonitor {
 
     // Enhanced logging for critical alerts
     alerts.forEach((alert) => {
-      const _icon =
+      const icon =
         alert.severity === "critical"
           ? "🔥"
           : alert.severity === "error"
@@ -586,9 +587,9 @@ class PerformanceMonitor {
           : "⚠️";
 
       if (alert.severity === "critical" || alert.severity === "error") {
-        logger.error("Performance alert", { message: alert.message, severity: 'error', context: 'performance_monitor' });
+        console.error(`${icon} ${alert.message}`);
       } else {
-        logger.warn("Performance alert", { message: alert.message, severity: 'warning', context: 'performance_monitor' });
+        console.warn(`${icon} ${alert.message}`);
       }
     });
   }
@@ -612,11 +613,11 @@ class PerformanceMonitor {
         data: { memoryUsage, source },
       });
 
-      logger.warn("High memory usage detected", { 
-        memoryUsageMB: (memoryUsage / 1024 / 1024).toFixed(2), 
-        source, 
-        context: 'performance_monitor' 
-      });
+      console.warn(
+        `⚠️ High memory usage: ${(memoryUsage / 1024 / 1024).toFixed(
+          2
+        )}MB from ${source}`
+      );
     }
   }
 
@@ -877,7 +878,8 @@ class PerformanceMonitor {
     };
     this.startTime = Date.now();
     this.lastMemoryCheck = (typeof window !== 'undefined' && performance.memory) ? performance.memory.usedJSHeapSize : 0;
-    logger.info("Enhanced performance metrics reset", { context: 'performance_monitor' });
+    // eslint-disable-next-line no-console
+    console.log("📊 Enhanced performance metrics reset");
   }
 
   /**
@@ -948,8 +950,8 @@ if (typeof window !== "undefined") {
   window.performanceMonitor = performanceMonitor;
 
   // Add convenience methods to global scope for debugging
-  window.perfReport = () => logger.info("Performance report", { report: performanceMonitor.generateReport(), context: 'performance_debug' });
-  window.perfExport = () => logger.info("Performance metrics export", { metrics: performanceMonitor.exportMetrics(), context: 'performance_debug' });
+  window.perfReport = () => console.log(performanceMonitor.generateReport());
+  window.perfExport = () => console.log(performanceMonitor.exportMetrics());
   window.perfReset = () => performanceMonitor.reset();
 }
 

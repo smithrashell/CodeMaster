@@ -1,7 +1,6 @@
-// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 
-
+const openDB = dbHelper.openDB;
 
 /**
  * 🚨 CRITICAL: Detect content script context to prevent database access
@@ -112,59 +111,55 @@ export const StorageService = {
     }
   },
 
-  // Helper function to create default settings
-  _createDefaultSettings() {
-    return {
-      theme: "light",
-      sessionLength: 5,
-      limit: "off",
-      reminder: { value: false, label: "6" },
-      numberofNewProblemsPerSession: 2,
-      adaptive: true,
-      focusAreas: [],
-      accessibility: {
-        screenReader: {
-          enabled: false,
-          verboseDescriptions: true,
-          announceNavigation: true,
-          readFormLabels: true
-        },
-        keyboard: {
-          enhancedFocus: false,
-          customShortcuts: false,
-          focusTrapping: false
-        },
-        motor: {
-          largerTargets: false,
-          extendedHover: false,
-          reducedMotion: false,
-          stickyHover: false
-        }
-      },
-      // TODO: Re-enable for future release when display settings are fully implemented
-      // display: {
-      //   sidebarWidth: "normal",
-      //   cardSpacing: "comfortable", 
-      //   autoCollapseSidebar: true,
-      //   chartStyle: "modern",
-      //   chartColorScheme: "blue",
-      //   customChartColor: "#3b82f6",
-      //   chartAnimations: true,
-      //   showGridLines: true,
-      //   showChartLegends: true,
-      //   defaultTimeRange: "30d",
-      //   maxDataPoints: 50,
-      //   autoRefreshData: true,
-      //   showEmptyDataPoints: false
-      // },
-    };
-  },
-
   // Settings using IndexedDB settings store
   async getSettings() {
     if (isInContentScript) {
       console.warn("StorageService.getSettings() called in content script context");
-      return this._createDefaultSettings();
+      // Return default settings for content scripts
+      return {
+        theme: "light",
+        sessionLength: 5,
+        limit: "off",
+        reminder: { value: false, label: "6" },
+        numberofNewProblemsPerSession: 2,
+        adaptive: true,
+        focusAreas: [],
+        accessibility: {
+          screenReader: {
+            enabled: false,
+            verboseDescriptions: true,
+            announceNavigation: true,
+            readFormLabels: true
+          },
+          keyboard: {
+            enhancedFocus: false,
+            customShortcuts: false,
+            focusTrapping: false
+          },
+          motor: {
+            largerTargets: false,
+            extendedHover: false,
+            reducedMotion: false,
+            stickyHover: false
+          }
+        },
+        // TODO: Re-enable for future release when display settings are fully implemented
+        // display: {
+        //   sidebarWidth: "normal",
+        //   cardSpacing: "comfortable", 
+        //   autoCollapseSidebar: true,
+        //   chartStyle: "modern",
+        //   chartColorScheme: "blue",
+        //   customChartColor: "#3b82f6",
+        //   chartAnimations: true,
+        //   showGridLines: true,
+        //   showChartLegends: true,
+        //   defaultTimeRange: "30d",
+        //   maxDataPoints: 50,
+        //   autoRefreshData: true,
+        //   showEmptyDataPoints: false
+        // },
+      };
     }
     
     try {
@@ -179,11 +174,35 @@ export const StorageService = {
             resolve(request.result.data);
           } else {
             // Return default settings if none exist
-            const defaultSettings = this._createDefaultSettings();
-            // Override some keyboard accessibility defaults
-            defaultSettings.accessibility.keyboard.enhancedFocus = true;
-            defaultSettings.accessibility.keyboard.skipToContent = true;
-            defaultSettings.accessibility.keyboard.focusTrapping = true;
+            const defaultSettings = {
+              theme: "light",
+              sessionLength: 5,
+              limit: "off",
+              reminder: { value: false, label: "6" },
+              numberofNewProblemsPerSession: 2,
+              adaptive: true,
+              focusAreas: [],
+              accessibility: {
+                screenReader: {
+                  enabled: false,
+                  verboseDescriptions: true,
+                  announceNavigation: true,
+                  readFormLabels: true
+                },
+                keyboard: {
+                  enhancedFocus: true,
+                  skipToContent: true,
+                  customShortcuts: false,
+                  focusTrapping: true
+                },
+                motor: {
+                  largerTargets: false,
+                  extendedHover: false,
+                  reducedMotion: false,
+                  stickyHover: false
+                }
+              },
+            };
             resolve(defaultSettings);
           }
         };
@@ -191,7 +210,51 @@ export const StorageService = {
       });
     } catch (error) {
       console.error("StorageService getSettings failed:", error);
-      return this._createDefaultSettings();
+      // Return default settings on error
+      return {
+        theme: "light",
+        sessionLength: 5,
+        limit: "off",
+        reminder: { value: false, label: "6" },
+        numberofNewProblemsPerSession: 2,
+        adaptive: true,
+        focusAreas: [],
+        accessibility: {
+          screenReader: {
+            enabled: false,
+            verboseDescriptions: true,
+            announceNavigation: true,
+            readFormLabels: true
+          },
+          keyboard: {
+            enhancedFocus: false,
+            customShortcuts: false,
+            focusTrapping: false
+          },
+          motor: {
+            largerTargets: false,
+            extendedHover: false,
+            reducedMotion: false,
+            stickyHover: false
+          }
+        },
+        // TODO: Re-enable for future release when display settings are fully implemented
+        // display: {
+        //   sidebarWidth: "normal",
+        //   cardSpacing: "comfortable", 
+        //   autoCollapseSidebar: true,
+        //   chartStyle: "modern",
+        //   chartColorScheme: "blue",
+        //   customChartColor: "#3b82f6",
+        //   chartAnimations: true,
+        //   showGridLines: true,
+        //   showChartLegends: true,
+        //   defaultTimeRange: "30d",
+        //   maxDataPoints: 50,
+        //   autoRefreshData: true,
+        //   showEmptyDataPoints: false
+        // },
+      };
     }
   },
 
@@ -222,13 +285,6 @@ export const StorageService = {
       console.error("StorageService setSettings failed:", error);
       return { status: "error", message: error.message };
     }
-  },
-
-  // Clear settings cache (to be implemented by background script)
-  clearSettingsCache() {
-    // This will be called by the background script to clear its response cache
-    // The actual cache clearing happens in the background script's cache management
-    console.log("🔄 StorageService: Settings cache clear requested");
   },
 
   // Session State using IndexedDB session_state store
@@ -350,4 +406,11 @@ export const StorageService = {
     }
   },
 
+  /**
+   * Clear settings cache in various services
+   */
+  clearSettingsCache() {
+    // This would clear caches in other services that might store settings
+    console.log("🔄 Settings cache cleared");
+  },
 };

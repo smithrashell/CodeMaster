@@ -5,7 +5,6 @@
  * and provides validation utilities for time-related data
  */
 
-// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import AccurateTimer from "./AccurateTimer.js";
 
@@ -122,6 +121,7 @@ export async function migrateAttemptsTimeData(dryRun = false) {
   let errorCount = 0;
   const errors = [];
 
+  console.log("⏰ Time data analysis:", analysis);
 
   if (!dryRun && analysis.confidence > 0.5) {
     const assumedUnit = analysis.unit;
@@ -145,6 +145,13 @@ export async function migrateAttemptsTimeData(dryRun = false) {
           });
 
           migratedCount++;
+
+          if (migratedCount <= 5) {
+            // Log first 5 migrations
+            console.log(
+              `✅ Migrated attempt ${attempt.id}: ${originalTime} → ${normalizedTime} seconds`
+            );
+          }
         }
       } catch (error) {
         errorCount++;
@@ -267,6 +274,9 @@ export async function backupTimeData() {
     request.onerror = () => reject(request.error);
   });
 
+  console.log(
+    `✅ Time data backup created: ${backupId} (${attempts.length} records)`
+  );
   return backupId;
 }
 
@@ -279,13 +289,15 @@ export async function performSafeTimeMigration(options = {}) {
   const {
     createBackup = true,
     dryRun = false,
-    forceUnit: _forceUnit = null, // 'minutes' or 'seconds' to override auto-detection
+    forceUnit = null, // 'minutes' or 'seconds' to override auto-detection
   } = options;
 
+  console.log("🔄 Starting safe time data migration...");
 
   try {
     // Step 1: Validate current data
     const validation = await validateTimeConsistency();
+    console.log("📊 Validation results:", validation);
 
     // Step 2: Create backup if requested
     let backupId = null;
@@ -311,6 +323,7 @@ export async function performSafeTimeMigration(options = {}) {
       recommendations: generateRecommendations(validation, migration),
     };
 
+    console.log("✅ Time migration completed successfully");
     return results;
   } catch (error) {
     console.error("❌ Time migration failed:", error);

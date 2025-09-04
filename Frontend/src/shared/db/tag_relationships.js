@@ -1,6 +1,5 @@
 import { dbHelper } from "./index.js";
 import { getAllStandardProblems } from "./standard_problems.js";
-import logger from "../utils/logger.js";
 
 const openDB = dbHelper.openDB;
 
@@ -169,11 +168,11 @@ export const classifyTags = async () => {
     }
 
     // ✅ Step 4: Debugging Logs
-    logger.group("Tag Classifications");
+    console.group("Tag Classifications");
     console.log("🔥 Core Concepts:", coreConcepts.join(", "));
     console.log("🔹 Fundamental Techniques:", fundamentalTechniques.join(", "));
     console.log("🚀 Advanced Techniques:", advancedTechniques.join(", "));
-    logger.groupEnd();
+    console.groupEnd();
 
     console.log("✅ Tag classifications updated successfully in IndexedDB.");
   } catch (error) {
@@ -245,7 +244,7 @@ export async function getNextFiveTagsFromNextTier(masteryData) {
     const tierTags = await new Promise((resolve, reject) => {
       tierRequest.onsuccess = () =>
         resolve(tierRequest.result.map((tag) => tag.id));
-      tierRequest.onerror = () => reject(tierRequest.error);
+      tierRequest.onerror = () => reject(request.error);
     });
 
     // Get new tags that are NOT in tag_mastery

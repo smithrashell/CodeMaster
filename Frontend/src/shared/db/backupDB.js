@@ -12,7 +12,7 @@ export async function openBackupDB() {
 /**
  * Fetch all records from an IndexedDB store
  */
-function fetchAllFromStore(db, storeName) {
+async function fetchAllFromStore(db, storeName) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, "readonly");
     const store = transaction.objectStore(storeName);

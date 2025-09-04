@@ -1,4 +1,4 @@
-
+import React from "react";
 import { SegmentedControl, Switch, Group, rem } from "@mantine/core";
 import { IconTextSize, IconLayout, IconSparkles } from "@tabler/icons-react";
 import { useTheme } from "../provider/themeprovider.jsx";
