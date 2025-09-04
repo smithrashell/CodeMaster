@@ -1,4 +1,5 @@
-import  { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Header from "../../components/navigation/header";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useNav } from "../../../shared/provider/navprovider";
@@ -86,6 +87,7 @@ const StatsBreakdown = ({ boxLevelData, totalProblems }) => (
 
 const ProbStat = () => {
   const { setIsAppOpen } = useNav();
+  const { state: routeState } = useLocation();
 
   const handleClose = () => {
     setIsAppOpen(false);
@@ -93,11 +95,15 @@ const ProbStat = () => {
   const [boxLevelData, setBoxLevelData] = useState({});
   const [error, setError] = useState(null);
 
+  // Check if we just completed a submission to show fresh data
+  const wasJustSubmitted = routeState?.submissionComplete;
+
   // New approach using custom hook
   const {
     data: _statisticsData,
     loading,
     error: _hookError,
+    refetch,
   } = useChromeMessage({ type: "countProblemsByBoxLevel" }, [], {
     onSuccess: (response) => {
       if (response && response.status === "success") {
@@ -113,6 +119,19 @@ const ProbStat = () => {
       setError("Failed to load statistics. Please try refreshing.");
     },
   });
+
+  // Refresh data when coming from a fresh submission
+  useEffect(() => {
+    if (wasJustSubmitted) {
+      console.log("🔄 Fresh submission detected, refreshing stats data...");
+      // Small delay to ensure database operation is fully complete
+      const refreshTimer = setTimeout(() => {
+        refetch();
+      }, 500);
+      
+      return () => clearTimeout(refreshTimer);
+    }
+  }, [wasJustSubmitted, refetch]);
 
   const totalProblems = Object.values(boxLevelData).reduce(
     (sum, count) => sum + count,

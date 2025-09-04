@@ -8,10 +8,7 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ContentOnboardingTour } from "../../components/onboarding";
 import { PageSpecificTour } from "../../components/onboarding/PageSpecificTour";
 import { usePageTour } from "../../components/onboarding/usePageTour";
-import {
-  checkContentOnboardingStatus,
-  completeContentOnboarding,
-} from "../../../shared/services/onboardingService";
+import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
 
 // Inline SVG Logo Component
@@ -153,7 +150,9 @@ const performContentOnboardingCheck = async (setShowContentOnboarding, setConten
   }
   
   try {
-    const status = await checkContentOnboardingStatus();
+    const status = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "checkContentOnboardingStatus"
+    });
     logger.info("📊 Main: Content onboarding status received:", status);
     setContentOnboardingStatus(status);
 
@@ -421,7 +420,9 @@ const Main = () => {
   // Content onboarding handlers
   const handleCompleteContentOnboarding = useCallback(async () => {
     try {
-      await completeContentOnboarding();
+      await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "completeContentOnboarding"
+      });
       setShowContentOnboarding(false);
       setContentOnboardingStatus((prev) => ({ ...prev, isCompleted: true }));
     } catch (error) {

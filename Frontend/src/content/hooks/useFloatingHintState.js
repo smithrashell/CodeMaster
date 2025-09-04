@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 export const useFloatingHintState = () => {
   const [hints, setHints] = useState([]);
@@ -7,6 +7,7 @@ export const useFloatingHintState = () => {
   const [opened, setOpened] = useState(false);
   const [expandedHints, setExpandedHints] = useState(new Set());
   const [hintsUsed, setHintsUsed] = useState(0);
+  const buttonRef = useRef(null);
 
   return {
     hints,
@@ -20,6 +21,7 @@ export const useFloatingHintState = () => {
     expandedHints,
     setExpandedHints,
     hintsUsed,
-    setHintsUsed
+    setHintsUsed,
+    buttonRef
   };
 };

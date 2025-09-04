@@ -2,11 +2,9 @@
  * FloatingHintButtonCore - Extracted button with badge for FloatingHintButton
  */
 import React from "react";
-import Tooltip from '../ui/Tooltip.jsx';
 import Badge from '../ui/Badge.jsx';
 import { IconBulb } from "@tabler/icons-react";
 import { 
-  getTooltipLabel, 
   getAriaLabel, 
   getBadgeColor, 
   getBadgeText 

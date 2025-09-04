@@ -13,14 +13,12 @@ import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { getTagRelationships } from "./tag_relationships.js";
 
-// Import session functions (use dynamic import to avoid circular dependencies)
-const getOrCreateSession = async () => {
-  const { SessionService } = await import("../services/sessionService.js");
+// Import session functions
+const getOrCreateSession = () => {
   return SessionService.getOrCreateSession();
 };
 
-const saveSessionToStorage = async (session) => {
-  const { saveSessionToStorage } = await import("./sessions.js");
+const saveSessionToStorageLocal = (session) => {
   return saveSessionToStorage(session);
 };
 
@@ -28,6 +26,8 @@ const openDB = dbHelper.openDB;
 
 // Import retry service for enhanced database operations
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
+import { SessionService } from "../services/sessionService.js";
+import { saveSessionToStorage } from "./sessions.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -323,7 +323,7 @@ export async function addProblem(problemData) {
 
     if (!session) {
       session = await getOrCreateSession();
-      await saveSessionToStorage(session);
+      await saveSessionToStorageLocal(session);
     }
 
     const transaction = db.transaction(["problems"], "readwrite");
@@ -442,9 +442,8 @@ export async function checkDatabaseForProblem(problemId) {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
-    const index = store.index("by_problem");
     logger.info("🔍 problemId:", problemId);
-    const request = index.get(problemId);
+    const request = store.get(problemId); // Use primary key (leetCodeID) directly
 
     // return true if problem is found, false otherwise
     request.onsuccess = () => {
@@ -1114,8 +1113,7 @@ export function checkDatabaseForProblemWithRetry(
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["problems"], "readonly");
         const store = transaction.objectStore("problems");
-        const index = store.index("by_problem");
-        const request = index.get(problemId);
+        const request = store.get(problemId); // Use primary key (leetCodeID) directly
 
         request.onsuccess = () => {
           resolve(!!request.result); // Convert to boolean

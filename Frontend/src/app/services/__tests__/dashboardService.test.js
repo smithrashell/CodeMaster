@@ -84,12 +84,6 @@ function setupDashboardMocks(mockData) {
   ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
 }
 
-describe("Dashboard Service - Main Suite", function() {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-});
-
 describe("getDashboardStatistics", () => {
   const mockData = createMockData();
   

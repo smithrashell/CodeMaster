@@ -1,6 +1,6 @@
 import logger from "../../../shared/utils/logger.js";
 import React, { useState, useEffect, useCallback } from "react";
-import { Card, Stack, Group } from '../ui/Layout.jsx';
+import { Card, Stack } from '../ui/Layout.jsx';
 import Text from '../ui/Text.jsx';
 import Badge from '../ui/Badge.jsx';
 // Note: ThemeIcon, Progress, ActionIcon simplified for onboarding
@@ -63,24 +63,47 @@ function TourArrow({ arrowPosition }) {
 // Helper component for tour header
 function TourHeader({ currentStep, totalSteps, onSkip }) {
   return (
-    <Group position="apart" mb="xs">
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
       <Badge color="green" variant="light" size="xs">
         {currentStep + 1} of {totalSteps}
       </Badge>
-      <ActionIcon variant="subtle" size="xs" onClick={onSkip}>
+      <button 
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '4px',
+          borderRadius: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        onClick={onSkip}
+      >
         <IconX size={12} />
-      </ActionIcon>
-    </Group>
+      </button>
+    </div>
   );
 }
 
 // Helper component for tour content
 function TourContent({ stepData, getStepIcon }) {
   return (
-    <Group spacing="xs" align="flex-start">
-      <ThemeIcon color="green" variant="light" size="sm" mt={1}>
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+      <div style={{
+        backgroundColor: '#e8f5e8',
+        color: '#2e7d32',
+        borderRadius: '4px',
+        padding: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '24px',
+        height: '24px',
+        marginTop: '2px'
+      }}>
         {getStepIcon()}
-      </ThemeIcon>
+      </div>
       <div style={{ flex: 1 }}>
         <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
           {stepData.title}
@@ -89,7 +112,7 @@ function TourContent({ stepData, getStepIcon }) {
           {stepData.content}
         </Text>
       </div>
-    </Group>
+    </div>
   );
 }
 
@@ -344,12 +367,23 @@ export function PageSpecificTour({
             onSkip={handleSkip} 
           />
 
-          <Progress
-            value={((currentStep + 1) / tourSteps.length) * 100}
-            size="xs"
-            mb="sm"
-            color="green"
-          />
+          {/* Progress Bar */}
+          <div style={{ 
+            width: '100%', 
+            height: '4px', 
+            backgroundColor: '#e9ecef', 
+            borderRadius: '2px',
+            marginBottom: '12px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${((currentStep + 1) / tourSteps.length) * 100}%`,
+              height: '100%',
+              backgroundColor: '#4caf50',
+              borderRadius: '2px',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
 
           <Stack spacing="xs">
             <TourContent 
