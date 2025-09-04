@@ -11,7 +11,7 @@ import TimerBanner from "./components/timer/TimerComponent";
 import "@mantine/core/styles.css";
 import { AppProviders } from "../shared/provider/appprovider";
 import { useNav } from "../shared/provider/navprovider";
-import ErrorBoundary from "../shared/components/ErrorBoundary";
+import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import {
   TimerErrorFallback,
   GenericErrorFallback,

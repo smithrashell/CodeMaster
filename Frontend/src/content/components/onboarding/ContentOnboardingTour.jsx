@@ -23,27 +23,50 @@ import {
 } from "@tabler/icons-react";
 import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
-import { updateContentOnboardingStep } from "../../../shared/services/onboardingService";
+import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
 
 // Tour Card Header Component
 const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => (
-  <Group position="apart" mb="xs">
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
     <Badge color="blue" variant="light" size="xs">
       {currentStep + 1} of {totalSteps}
     </Badge>
-    <ActionIcon variant="subtle" size="xs" onClick={onSkip}>
+    <button 
+      style={{
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: '4px',
+        borderRadius: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}
+      onClick={onSkip}
+    >
       <IconX size={12} />
-    </ActionIcon>
-  </Group>
+    </button>
+  </div>
 );
 
 // Tour Card Content Component  
 const TourCardContent = ({ currentStepData, getStepIcon }) => (
-  <Group spacing="xs" align="flex-start">
-    <ThemeIcon color="blue" variant="light" size="sm" mt={1}>
+  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+    <div style={{
+      backgroundColor: '#e3f2fd',
+      color: '#1976d2',
+      borderRadius: '4px',
+      padding: '4px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minWidth: '24px',
+      height: '24px',
+      marginTop: '2px'
+    }}>
       {getStepIcon()}
-    </ThemeIcon>
+    </div>
     <div style={{ flex: 1 }}>
       <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
         {currentStepData.title}
@@ -52,7 +75,7 @@ const TourCardContent = ({ currentStepData, getStepIcon }) => (
         {currentStepData.content}
       </Text>
     </div>
-  </Group>
+  </div>
 );
 
 // Action Prompt Component
@@ -418,11 +441,12 @@ const useTourNavigation = (currentStep, { setCurrentStep, setIsWaitingForInterac
     
     // Update progress in database
     try {
-      await updateContentOnboardingStep(
+      await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "updateContentOnboardingStep",
         currentStep,
-        currentStepData.screenKey,
-        currentStepData.interactionType
-      );
+        screenKey: currentStepData.screenKey,
+        interactionType: currentStepData.interactionType
+      });
     } catch (error) {
       logger.error("Error updating onboarding progress:", error);
     }
@@ -690,12 +714,22 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           />
 
           {/* Progress Bar */}
-          <Progress
-            value={((currentStep + 1) / TOUR_STEPS.length) * 100}
-            size="xs"
-            mb="sm"
-            color="blue"
-          />
+          <div style={{ 
+            width: '100%', 
+            height: '4px', 
+            backgroundColor: '#e9ecef', 
+            borderRadius: '2px',
+            marginBottom: '12px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: `${((currentStep + 1) / TOUR_STEPS.length) * 100}%`,
+              height: '100%',
+              backgroundColor: '#228be6',
+              borderRadius: '2px',
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
 
           {/* Content */}
           <Stack spacing="xs">

@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
 import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
+import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
 import { IconHash, IconTarget, IconClock, IconBolt, IconMessageCircle } from "@tabler/icons-react";
 import SimpleSelect from "../../../shared/components/ui/SimpleSelect";
 
@@ -135,40 +136,53 @@ const getSubmitButtonStyles = () => ({
 });
 
 /**
- * Handle form submission logic
+ * Handle form submission logic with proper database completion wait
  */
-const handleFormSubmission = (data, routeState, navigate) => {
-  // Convert time from minutes to seconds for consistent database storage
-  const timeInMinutes = Number(data.timeSpent) || 0;
-  const timeInSeconds = AccurateTimer.minutesToSeconds(timeInMinutes);
+const handleFormSubmission = async (data, routeState, navigate, setSubmitting) => {
+  try {
+    setSubmitting(true);
+    
+    // Convert time from minutes to seconds for consistent database storage
+    const timeInMinutes = Number(data.timeSpent) || 0;
+    const timeInSeconds = AccurateTimer.minutesToSeconds(timeInMinutes);
 
-  const formData = {
-    ...data,
-    timeSpent: timeInSeconds, // Store as seconds
-    date: new Date(),
-    address: window.location.href,
-    id: null,
-    success: data.success.trim().toLowerCase() === "true",
-    tags: routeState?.Tags || [],
+    const formData = {
+      ...data,
+      timeSpent: timeInSeconds, // Store as seconds
+      date: new Date(),
+      address: window.location.href,
+      id: null,
+      success: data.success.trim().toLowerCase() === "true",
+      tags: routeState?.Tags || [],
 
-    // Enhanced time tracking from timer (if available)
-    exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
-    overageTime: routeState?.overageTime || 0,
-    userIntent: routeState?.userIntent || "completed",
-    timeWarningLevel: routeState?.timeWarningLevel || 0,
-  };
+      // Enhanced time tracking from timer (if available)
+      exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
+      overageTime: routeState?.overageTime || 0,
+      userIntent: routeState?.userIntent || "completed",
+      timeWarningLevel: routeState?.timeWarningLevel || 0,
+    };
 
-  console.log("📌 ProbSubmission data:", {
-    originalTimeMinutes: timeInMinutes,
-    timeInSeconds: timeInSeconds,
-    formData,
-  });
+    console.log("📌 ProbSubmission data:", {
+      originalTimeMinutes: timeInMinutes,
+      timeInSeconds: timeInSeconds,
+      formData,
+    });
 
-  chrome.runtime.sendMessage({
-    type: "addProblem",
-    contentScriptData: formData,
-  });
-  navigate("/Probstat", { state: data });
+    // Use established Chrome messaging pattern and wait for completion
+    await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "addProblem",
+      contentScriptData: formData,
+    });
+
+    console.log("✅ Problem submission completed");
+    
+    // Navigate to stats page after successful submission
+    navigate("/Probstat", { state: { ...data, submissionComplete: true } });
+    
+  } catch (error) {
+    console.error("❌ Error submitting problem:", error);
+    setSubmitting(false);
+  }
 };
 
 const formStyles = { 
@@ -182,23 +196,32 @@ const formStyles = {
 };
 
 /**
- * Submit Button component
+ * Submit Button component with loading state
  */
-const SubmitButton = () => {
+const SubmitButton = ({ isSubmitting }) => {
   const buttonStyles = getSubmitButtonStyles();
   
   return (
     <button 
       type="submit"
-      style={buttonStyles.base}
+      disabled={isSubmitting}
+      style={{
+        ...buttonStyles.base,
+        backgroundColor: isSubmitting ? 'var(--cm-link-color)' : buttonStyles.base.backgroundColor,
+        cursor: isSubmitting ? 'not-allowed' : 'pointer'
+      }}
       onMouseEnter={(e) => {
-        Object.assign(e.target.style, buttonStyles.hover);
+        if (!isSubmitting) {
+          Object.assign(e.target.style, buttonStyles.hover);
+        }
       }}
       onMouseLeave={(e) => {
-        Object.assign(e.target.style, buttonStyles.normal);
+        if (!isSubmitting) {
+          Object.assign(e.target.style, buttonStyles.normal);
+        }
       }}
     >
-      Submit Problem
+      {isSubmitting ? 'Submitting...' : 'Submit Problem'}
     </button>
   );
 };
@@ -343,6 +366,7 @@ const ProbSubmission = () => {
   const { state: routeState } = useLocation();
   const navigate = useNavigate();
   const previousRoute = usePreviousRoute();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   console.log("🔍 ProbSubmission component rendered", {
     routeState,
@@ -369,8 +393,8 @@ const ProbSubmission = () => {
     }
   }, [routeState, setValue]);
 
-  const onSubmit = (data) => {
-    handleFormSubmission(data, routeState, navigate);
+  const onSubmit = async (data) => {
+    await handleFormSubmission(data, routeState, navigate, setIsSubmitting);
   };
 
   return (
@@ -380,7 +404,7 @@ const ProbSubmission = () => {
       style={formStyles}
     >
       <FormFields control={control} errors={errors} />
-      <SubmitButton />
+      <SubmitButton isSubmitting={isSubmitting} />
     </form>
   );
 };
