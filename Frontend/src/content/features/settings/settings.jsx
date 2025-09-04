@@ -2,6 +2,7 @@ import "../../css/main.css";
 import { useState, useEffect, useMemo } from "react";
 import Button from '../../components/ui/Button.jsx';
 import Tooltip from '../../components/ui/Tooltip.jsx';
+import SegmentedControl from '../../components/ui/SegmentedControl.jsx';
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
 import {
   SliderMarksSessionLength,
@@ -11,7 +12,7 @@ import {
 } from "../../../shared/components/nantine.jsx";
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
-import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { useChromeMessage, clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
 import SessionLimits from "../../../shared/utils/sessionLimits.js";
@@ -328,14 +329,56 @@ const getWorkingSettings = (settings) => {
   };
 };
 
+// Save Button Component
+const SaveSettingsButton = ({ workingSettings, handleSave }) => (
+  <Button 
+    onClick={() => handleSave(workingSettings)} 
+    size="lg"
+    style={{
+      width: '100%',
+      padding: '12px 24px',
+      backgroundColor: 'rgba(34, 197, 94, 0.9)',
+      fontSize: '16px',
+      fontWeight: '600',
+      marginTop: '16px',
+      transition: 'all 0.2s ease'
+    }}
+    onMouseOver={(e) => {
+      e.target.style.backgroundColor = 'rgba(34, 197, 94, 1)';
+      e.target.style.transform = 'translateY(-1px)';
+    }}
+    onMouseOut={(e) => {
+      e.target.style.backgroundColor = 'rgba(34, 197, 94, 0.9)';
+      e.target.style.transform = 'translateY(0px)';
+    }}
+    onFocus={(e) => {
+      e.target.style.backgroundColor = 'rgba(34, 197, 94, 1)';
+    }}
+    onBlur={(e) => {
+      e.target.style.backgroundColor = 'rgba(34, 197, 94, 0.9)';
+    }}
+  >
+    Save Settings
+  </Button>
+);
+
 // Helper to save settings
 const saveSettings = (settings) => {
+  console.log("🔄 Saving settings:", settings);
   chrome.runtime.sendMessage(
     { type: "setSettings", message: settings },
     (response) => {
-      chrome.runtime.sendMessage({ type: "clearSettingsCache" }, () => {});
+      console.log("✅ Settings save response:", response);
+      chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (cacheResponse) => {
+        console.log("🗑️ Settings cache cleared:", cacheResponse);
+      });
+      // Clear the useChromeMessage cache to prevent stale data
+      clearChromeMessageCache("getSettings");
+      
       if (response?.status === "success") {
-        // Settings successfully updated and cache cleared
+        console.log("✅ Settings successfully saved and cache cleared");
+      } else {
+        console.error("❌ Settings save failed:", response);
       }
     }
   );
@@ -352,12 +395,22 @@ const handleInterviewSettingsUpdate = (workingSettings, newSettings, handleSave)
     workingSettings.interviewReadinessThreshold !== newSettings.interviewReadinessThreshold
   );
   
+  component("Settings", "🔍 Interview settings change check", {
+    changed: interviewSettingsChanged,
+    oldMode: workingSettings.interviewMode,
+    newMode: newSettings.interviewMode,
+    oldFreq: workingSettings.interviewFrequency,
+    newFreq: newSettings.interviewFrequency,
+    oldThreshold: workingSettings.interviewReadinessThreshold,
+    newThreshold: newSettings.interviewReadinessThreshold
+  });
+  
   // Auto-save interview settings changes
   handleSave(newSettings);
   
   // Clear session cache if interview settings changed to force new session creation
   if (interviewSettingsChanged) {
-    component("Settings", "🎯 Interview settings changed, clearing caches and forcing reload");
+    component("Settings", "🎯 Interview settings changed, clearing caches");
     
     // Clear both settings and session cache
     chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (settingsResponse) => {
@@ -366,17 +419,14 @@ const handleInterviewSettingsUpdate = (workingSettings, newSettings, handleSave)
       chrome.runtime.sendMessage({ type: "clearSessionCache" }, (sessionResponse) => {
         if (sessionResponse?.status === "success") {
           component("Settings", "✅ Session cache cleared successfully", { clearedCount: sessionResponse.clearedCount });
-          
-          // Force a page reload to ensure all caches are cleared and fresh settings are loaded
-          setTimeout(() => {
-            component("Settings", "🔄 Forcing page reload to refresh all caches");
-            window.location.reload();
-          }, 100);
+          component("Settings", "✅ Settings updated without page reload - components will react to changes");
         } else {
           component("Settings", "⚠️ Failed to clear session cache", sessionResponse);
         }
       });
     });
+  } else {
+    component("Settings", "ℹ️ No interview settings changes detected - no cache clearing needed");
   }
 };
 
@@ -452,7 +502,7 @@ const Settings = () => {
           <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Time Limits</div>
           <GradientSegmentedControlTimeLimit
             value={workingSettings.limit}
-            onChange={(value) => setSettings({ ...workingSettings, limit: value })}
+            onChange={(value) => setSettings(prevSettings => ({ ...prevSettings, limit: value }))}
           />
         </div>
 
@@ -471,14 +521,17 @@ const Settings = () => {
           <ToggleSelectRemainders
             reminder={workingSettings.reminder}
             onChange={(updatedReminder) =>
-              setSettings((_prevSettings) => ({
-                ...workingSettings,
-                reminder: { ...workingSettings.reminder, ...updatedReminder },
+              setSettings((prevSettings) => ({
+                ...prevSettings,
+                reminder: { ...prevSettings.reminder, ...updatedReminder },
               }))
             }
           />
         </div>
-        <Button onClick={() => handleSave(workingSettings)}>Save</Button>
+        <SaveSettingsButton 
+          workingSettings={workingSettings} 
+          handleSave={handleSave} 
+        />
       </div>
     </div>
   );

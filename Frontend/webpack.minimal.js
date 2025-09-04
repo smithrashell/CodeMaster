@@ -48,8 +48,11 @@ module.exports = (env, argv) => {
     mode: "production",
     optimization: {
       minimize: false, // Disable minification to save memory
-      splitChunks: false, // Disable chunk splitting
+      splitChunks: false, // Disable chunk splitting  
     },
     devtool: false,
+    performance: {
+      hints: false, // Disable bundle size warnings for Chrome extension
+    },
   };
 };

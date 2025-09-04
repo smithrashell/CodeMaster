@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Portal from './Portal.jsx';
 
 /**
@@ -10,7 +10,6 @@ const Tooltip = ({
   label,
   position = 'top',
   disabled = false,
-  withArrow = false,
   ...props 
 }) => {
   const [visible, setVisible] = useState(false);
@@ -18,7 +17,7 @@ const Tooltip = ({
   const targetRef = useRef(null);
   const tooltipRef = useRef(null);
   
-  const calculatePosition = () => {
+  const calculatePosition = useCallback(() => {
     if (!targetRef.current || !tooltipRef.current) return;
     
     const targetRect = targetRef.current.getBoundingClientRect();
@@ -53,7 +52,7 @@ const Tooltip = ({
     y = Math.max(8, Math.min(y, window.innerHeight - tooltipRect.height - 8));
     
     setTooltipPosition({ x, y });
-  };
+  }, [position]);
   
   const handleMouseEnter = () => {
     if (!disabled) {
@@ -70,7 +69,7 @@ const Tooltip = ({
       // Small delay to ensure DOM has updated
       requestAnimationFrame(calculatePosition);
     }
-  }, [visible, position]);
+  }, [visible, calculatePosition]);
   
   const tooltipStyle = {
     position: 'fixed',

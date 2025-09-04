@@ -113,6 +113,10 @@ const setupMockFetchAllProblems = (problems = []) => {
   problemsDb.fetchAllProblems.mockResolvedValue(problems);
 };
 
+const setupMockFetchAdditionalProblems = (problems = []) => {
+  problemsDb.fetchAdditionalProblems.mockResolvedValue(problems);
+};
+
 
 
 
@@ -212,6 +216,7 @@ const runCreateSessionTests = () => {
       ScheduleService.getDailyReviewSchedule.mockClear();
       buildAdaptiveSessionSettings.mockClear();
       problemsDb.fetchAllProblems.mockClear();
+      problemsDb.fetchAdditionalProblems.mockClear();
       StorageService.getSettings.mockClear();
     });
 
@@ -221,6 +226,7 @@ const runCreateSessionTests = () => {
       
       buildAdaptiveSessionSettings.mockResolvedValue(sessionSettings);
       setupMockFetchAllProblems([]);
+      setupMockFetchAdditionalProblems([]);
       StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
       ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
 

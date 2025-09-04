@@ -9,7 +9,7 @@ import { useFloatingHintLogic } from '../../hooks/useFloatingHintLogic.js';
 import { useFloatingHintHandlers } from '../../hooks/useFloatingHintHandlers.js';
 import FloatingHintButtonCore from './FloatingHintButtonCore.jsx';
 import FloatingHintPopoverContent from './FloatingHintPopoverContent.jsx';
-import { calculateInterviewRestrictions, getButtonStyles, getPopoverDropdownStyles } from './floatingHintHelpers.js';
+import { calculateInterviewRestrictions, getButtonStyles } from './floatingHintHelpers.js';
 
 /**
  * FloatingHintButton - Compact floating button that shows strategy hints in a popover

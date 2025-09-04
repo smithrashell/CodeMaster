@@ -161,7 +161,7 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
     
     // Enhanced logic: Allow interview choice if frequency is manual, even if mode isn't explicitly enabled
     const canCreateInterviewSession = freshSettings?.interviewMode && freshSettings.interviewMode !== 'disabled';
-    const defaultInterviewMode = canCreateInterviewSession ? freshSettings.interviewMode : 'interview-basic';
+    const defaultInterviewMode = canCreateInterviewSession ? freshSettings.interviewMode : 'interview-like';
     
     logger.info('🎯 handleInterviewChoice called:', {
       settingsInterviewMode: freshSettings?.interviewMode,
@@ -282,7 +282,8 @@ const useSessionLoader = (options) => {
     setProblems, 
     setSessionData, 
     setShowInterviewBanner, 
-    setShowRegenerationBanner
+    setShowRegenerationBanner,
+    cacheClearedRecently
   } = options;
   const [_manualSessionTypeOverride, _setManualSessionTypeOverride] = useState(null);
 
@@ -301,6 +302,12 @@ const useSessionLoader = (options) => {
       ...(settings?.interviewMode && 
           settings.interviewMode !== 'disabled' && 
           settings.interviewFrequency !== 'manual' && 
+          !_manualSessionTypeOverride && 
+          { sessionType: settings.interviewMode }),
+      // IMPORTANT: Also pass sessionType if cache was recently cleared due to settings change (even with manual frequency)
+      ...(settings?.interviewMode && 
+          settings.interviewMode !== 'disabled' && 
+          cacheClearedRecently && 
           !_manualSessionTypeOverride && 
           { sessionType: settings.interviewMode })
     }, 
@@ -933,7 +940,8 @@ const ProblemsList = ({ problems, sessionData, onLinkClick }) => (
 
 
 // Custom hook for session cache listener
-const useSessionCacheListener = (setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner, sessionCreationAttempted) => {
+const useSessionCacheListener = (setters, sessionCreationAttempted, setCacheClearedRecently) => {
+  const { setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner } = setters;
   useEffect(() => {
     const handleSessionCacheCleared = () => {
       logger.info("🔄 ProblemGenerator: Received session cache cleared signal, resetting session state");
@@ -942,6 +950,10 @@ const useSessionCacheListener = (setSessionData, setProblems, setShowInterviewBa
       setProblems([]);
       setShowInterviewBanner(false);
       setShowRegenerationBanner(false);
+      // Mark that cache was recently cleared due to settings change
+      setCacheClearedRecently(true);
+      // Reset this flag after a short delay to allow session creation
+      setTimeout(() => setCacheClearedRecently(false), 2000);
     };
 
     const messageListener = (message, sender, sendResponse) => {
@@ -960,7 +972,7 @@ const useSessionCacheListener = (setSessionData, setProblems, setShowInterviewBa
         chrome.runtime.onMessage.removeListener(messageListener);
       }
     };
-  }, [setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner, sessionCreationAttempted]);
+  }, [setters, sessionCreationAttempted, setCacheClearedRecently, setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner]);
 };
 
 // Main content renderer component
@@ -1034,6 +1046,7 @@ const ProblemGeneratorContent = ({
 function ProbGen() {
   const { setIsAppOpen } = useNav();
   const [problems, setProblems] = useState([]);
+  const [cacheClearedRecently, setCacheClearedRecently] = useState(false);
   
   // Session creation tracking to prevent duplicates
   const sessionCreationAttempted = useRef(false);
@@ -1065,11 +1078,16 @@ function ProbGen() {
     setProblems, 
     setSessionData, 
     setShowInterviewBanner, 
-    setShowRegenerationBanner
+    setShowRegenerationBanner,
+    cacheClearedRecently
   });
 
   // Listen for session cache invalidation events
-  useSessionCacheListener(setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner, sessionCreationAttempted);
+  useSessionCacheListener(
+    { setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner },
+    sessionCreationAttempted,
+    setCacheClearedRecently
+  );
 
   const handleClose = () => {
     setIsAppOpen(false);

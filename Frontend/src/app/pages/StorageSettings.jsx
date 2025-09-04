@@ -29,7 +29,108 @@ import { StorageNotifications } from "../components/settings/StorageNotification
 import { StorageLoadingState } from "../components/settings/StorageLoadingState.jsx";
 import { useStorageData } from "../hooks/useStorageData.js";
 import StorageCleanupManager from "../../shared/utils/storageCleanup.js";
-import StorageMigrationService from "../../shared/services/StorageMigrationService.js";
+import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
+
+// Storage Header Component
+const StorageHeader = () => (
+  <Group position="apart" mb="lg">
+    <div>
+      <Title order={1}>Storage Management</Title>
+      <Text color="dimmed">
+        Monitor and manage your CodeMaster data storage
+      </Text>
+    </div>
+    <StorageStatusIndicator position="header" />
+  </Group>
+);
+
+// Storage Migration Actions Hook
+const useStorageMigrationActions = () => {
+  return {
+    runMigration: async (migrationData) => {
+      try {
+        return await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: "runStorageMigration",
+          migrationData
+        });
+      } catch (error) {
+        console.error("Storage migration failed:", error);
+        throw error;
+      }
+    },
+    getMigrationStatus: async () => {
+      try {
+        return await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: "getStorageMigrationStatus"
+        });
+      } catch (error) {
+        console.error("Failed to get migration status:", error);
+        throw error;
+      }
+    }
+  };
+};
+
+// Storage Tab Panels Component
+const StorageTabPanels = ({
+  storageHealth,
+  cleanupRecommendations,
+  migrationHistory,
+  isLoading,
+  loadStorageData,
+  addNotification,
+  fallbackMode,
+  setFallbackMode,
+  syncInterval,
+  setSyncInterval,
+  autoCleanup,
+  setAutoCleanup,
+  setActiveTab,
+  storageMigrationActions
+}) => (
+  <>
+    <Tabs.Panel value="overview" pt="md">
+      <OverviewTab
+        loadStorageData={loadStorageData}
+        isLoading={isLoading}
+        storageHealth={storageHealth}
+        formatBytes={formatBytes}
+        setActiveTab={setActiveTab}
+      />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="cleanup" pt="md">
+      <CleanupTab
+        cleanupRecommendations={cleanupRecommendations}
+        formatBytes={formatBytes}
+        StorageCleanupManager={StorageCleanupManager}
+        addNotification={addNotification}
+        loadStorageData={loadStorageData}
+      />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="migration" pt="md">
+      <MigrationTab
+        migrationHistory={migrationHistory}
+        formatDuration={formatDuration}
+        storageMigrationActions={storageMigrationActions}
+        addNotification={addNotification}
+        loadStorageData={loadStorageData}
+      />
+    </Tabs.Panel>
+
+    <Tabs.Panel value="settings" pt="md">
+      <SettingsTab
+        fallbackMode={fallbackMode}
+        setFallbackMode={setFallbackMode}
+        syncInterval={syncInterval}
+        setSyncInterval={setSyncInterval}
+        autoCleanup={autoCleanup}
+        setAutoCleanup={setAutoCleanup}
+      />
+    </Tabs.Panel>
+  </>
+);
 
 export function StorageSettings() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -63,23 +164,11 @@ export function StorageSettings() {
     loadStorageData,
   } = useStorageData(addNotification);
 
-
-
-
-
-
+  const storageMigrationActions = useStorageMigrationActions();
 
   return (
     <Container size="xl" py="md">
-      <Group position="apart" mb="lg">
-        <div>
-          <Title order={1}>Storage Management</Title>
-          <Text color="dimmed">
-            Monitor and manage your CodeMaster data storage
-          </Text>
-        </div>
-        <StorageStatusIndicator position="header" />
-      </Group>
+      <StorageHeader />
 
       <StorageNotifications 
         notifications={notifications} 
@@ -105,46 +194,22 @@ export function StorageSettings() {
             </Tabs.Tab>
           </Tabs.List>
 
-          <Tabs.Panel value="overview" pt="md">
-            <OverviewTab
-              loadStorageData={loadStorageData}
-              isLoading={isLoading}
-              storageHealth={storageHealth}
-              formatBytes={formatBytes}
-              setActiveTab={setActiveTab}
-            />
-          </Tabs.Panel>
-
-          <Tabs.Panel value="cleanup" pt="md">
-            <CleanupTab
-              cleanupRecommendations={cleanupRecommendations}
-              formatBytes={formatBytes}
-              StorageCleanupManager={StorageCleanupManager}
-              addNotification={addNotification}
-              loadStorageData={loadStorageData}
-            />
-          </Tabs.Panel>
-
-          <Tabs.Panel value="migration" pt="md">
-            <MigrationTab
-              migrationHistory={migrationHistory}
-              formatDuration={formatDuration}
-              StorageMigrationService={StorageMigrationService}
-              addNotification={addNotification}
-              loadStorageData={loadStorageData}
-            />
-          </Tabs.Panel>
-
-          <Tabs.Panel value="settings" pt="md">
-            <SettingsTab
-              fallbackMode={fallbackMode}
-              setFallbackMode={setFallbackMode}
-              syncInterval={syncInterval}
-              setSyncInterval={setSyncInterval}
-              autoCleanup={autoCleanup}
-              setAutoCleanup={setAutoCleanup}
-            />
-          </Tabs.Panel>
+          <StorageTabPanels
+            storageHealth={storageHealth}
+            cleanupRecommendations={cleanupRecommendations}
+            migrationHistory={migrationHistory}
+            isLoading={isLoading}
+            loadStorageData={loadStorageData}
+            addNotification={addNotification}
+            fallbackMode={fallbackMode}
+            setFallbackMode={setFallbackMode}
+            syncInterval={syncInterval}
+            setSyncInterval={setSyncInterval}
+            autoCleanup={autoCleanup}
+            setAutoCleanup={setAutoCleanup}
+            setActiveTab={setActiveTab}
+            storageMigrationActions={storageMigrationActions}
+          />
         </Tabs>
       )}
     </Container>

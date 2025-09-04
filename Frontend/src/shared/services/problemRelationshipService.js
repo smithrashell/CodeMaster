@@ -5,6 +5,7 @@
 
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
+import { buildRelationshipMap } from "../db/problem_relationships.js";
 
 /**
  * Service for managing problem relationship data
@@ -24,10 +25,7 @@ export class ProblemRelationshipService {
    */
   static async getSimilarProblems(problemId, limit = 10) {
     try {
-      // Use existing relationship system through dynamic import to avoid circular dependencies
-      const { buildRelationshipMap } = await import(
-        "../db/problem_relationships.js"
-      );
+      // Use existing relationship system
       const relationshipMap = await buildRelationshipMap();
       const relationships = relationshipMap.get(problemId);
 
@@ -261,9 +259,6 @@ export class ProblemRelationshipService {
    */
   static async areProblemRelationshipsLoaded() {
     try {
-      const { buildRelationshipMap } = await import(
-        "../db/problem_relationships.js"
-      );
       const relationshipMap = await buildRelationshipMap();
       return relationshipMap && relationshipMap.size > 0;
     } catch (error) {

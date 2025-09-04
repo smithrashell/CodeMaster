@@ -5,7 +5,6 @@ import {
   // Import retry-enabled functions
   getProblemWithRetry,
   checkDatabaseForProblemWithRetry,
-  addProblemWithRetry,
   countProblemsByBoxLevelWithRetry,
   fetchAllProblemsWithRetry,
 } from "../db/problems.js";
@@ -29,7 +28,6 @@ import { InterviewService } from "./interviewService.js";
 import logger from "../utils/logger.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
-const getDailyReviewSchedule = ScheduleService.getDailyReviewSchedule;
 
 /**
  * ProblemService - Handles all logic for problem management.
@@ -270,7 +268,7 @@ export const ProblemService = {
     const reviewTarget = Math.floor(sessionLength * reviewRatio);
     logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
     
-    const reviewProblems = await getDailyReviewSchedule(reviewTarget);
+    const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
     sessionProblems.push(...reviewProblems);
 
     logger.info(
@@ -726,9 +724,9 @@ ProblemService.addOrUpdateProblemWithRetry = async function (
   options = {}
 ) {
   const {
-    timeout = 10000, // Longer timeout for complex operation
-    priority = "high", // High priority for user-initiated actions
-    abortController = null,
+    timeout: _timeout = 10000, // Longer timeout for complex operation
+    priority: _priority = "high", // High priority for user-initiated actions
+    abortController: _abortController = null,
   } = options;
 
   try {
@@ -737,13 +735,8 @@ ProblemService.addOrUpdateProblemWithRetry = async function (
       contentScriptData
     );
 
-    // Use retry-enabled database functions
-    const result = await addProblemWithRetry(contentScriptData, {
-      timeout,
-      priority,
-      abortController,
-      operationName: "ProblemService.addOrUpdateProblem",
-    });
+    // Call the original addOrUpdateProblem method which handles the full logic
+    const result = await this.addOrUpdateProblem(contentScriptData);
 
     logger.info("✅ Problem added/updated successfully with retry:", result);
 

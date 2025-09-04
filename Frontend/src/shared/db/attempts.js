@@ -5,9 +5,9 @@ import { saveSessionToStorage } from "./sessions.js";
 import { ProblemService } from "../services/problemService.js";
 import { calculateLeitnerBox, evaluateAttempts } from "../utils/leitnerSystem.js";
 import { createAttemptRecord } from "../utils/Utils.js";
+import { SessionService } from "../services/sessionService.js";
 
-const checkAndCompleteSession = async (...args) => {
-  const { SessionService } = await import("../services/sessionService.js");
+const checkAndCompleteSession = (...args) => {
   return SessionService.checkAndCompleteSession(...args);
 };
 
@@ -31,7 +31,6 @@ export async function addAttempt(attemptData) {
 
     if (!session) {
       console.log("No active session found. Creating a new session...");
-      const { SessionService } = await import("../services/sessionService.js");
       session = await SessionService.getOrCreateSession();
       await saveSessionToStorage(session);
     }
