@@ -293,7 +293,7 @@ export class CrashReporter {
   /**
    * Get performance snapshot
    */
-  static async getPerformanceSnapshot() {
+  static getPerformanceSnapshot() {
     try {
       return {
         systemMetrics: performanceMonitor.getPerformanceSummary().systemMetrics,

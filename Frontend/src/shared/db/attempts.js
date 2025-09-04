@@ -1,13 +1,13 @@
 import { dbHelper } from "./index.js";
-import { sessionService } from "../services/sessionService.js";
+
 import { getProblem, saveUpdatedProblem } from "./problems.js";
 import { saveSessionToStorage } from "./sessions.js";
 import { ProblemService } from "../services/problemService.js";
-import { calculateLeitnerBox } from "../utils/leitnerSystem.js";
+import { calculateLeitnerBox, evaluateAttempts } from "../utils/leitnerSystem.js";
 import { createAttemptRecord } from "../utils/Utils.js";
+import { SessionService } from "../services/sessionService.js";
 
-const checkAndCompleteSession = async (...args) => {
-  const { SessionService } = await import("../services/sessionService.js");
+const checkAndCompleteSession = (...args) => {
   return SessionService.checkAndCompleteSession(...args);
 };
 
@@ -190,13 +190,13 @@ export async function saveAttempts(attempts) {
     attempts.forEach((attempt) => {
       const request = store.put(attempt);
       request.onerror = (event) => {
-        reject("Error saving attempt: " + event.target.errorCode);
+        reject(new Error("Error saving attempt: " + event.target.errorCode));
       };
     });
 
     transaction.oncomplete = () => resolve();
     transaction.onerror = (event) =>
-      reject("Transaction error: " + event.target.errorCode);
+      reject(new Error("Transaction error: " + event.target.errorCode));
   });
 }
 

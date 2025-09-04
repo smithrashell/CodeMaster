@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Session Staleness Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+        }
+        .banner-example {
+            margin: 10px 0;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid;
+        }
+        .interview-banner {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: #3b82f6;
+        }
+        .regeneration-banner {
+            background: rgba(251, 146, 60, 0.1);
+            border-left-color: #f59e0b;
+        }
+        .success {
+            color: #10b981;
+        }
+        .warning {
+            color: #f59e0b;
+        }
+        .info {
+            color: #3b82f6;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border: 1px solid #333;
+        }
+        th {
+            background: #333;
+        }
+        .time-sensitive {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎯 Interview Session Staleness Test</h1>
+        
+        <div class="test-section">
+            <h2>🚀 Implementation Complete</h2>
+            <ul>
+                <li class="success">✅ Interview session detection added to classifySessionState()</li>
+                <li class="success">✅ Interview-specific staleness thresholds (3 hours vs 6 hours)</li>
+                <li class="success">✅ New classifications: 'interview_stale', 'interview_abandoned'</li>
+                <li class="success">✅ Updated getRecommendedAction() for interview types</li>
+                <li class="success">✅ Banner priority preserved: Interview → Regeneration → Problems</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>⏰ Staleness Thresholds Comparison</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Session Type</th>
+                        <th>Staleness Threshold</th>
+                        <th>Abandoned Threshold</th>
+                        <th>Rationale</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Interview Sessions</strong></td>
+                        <td class="warning">3 hours</td>
+                        <td class="warning">6 hours (no attempts)</td>
+                        <td>Time-sensitive practice, fresher sessions expected</td>
+                    </tr>
+                    <tr>
+                        <td>Regular Sessions</td>
+                        <td>6 hours</td>
+                        <td>24 hours (no attempts)</td>
+                        <td>Longer session lifespans acceptable</td>
+                    </tr>
+                    <tr>
+                        <td>Tracking Sessions</td>
+                        <td>6 hours</td>
+                        <td>N/A</td>
+                        <td>Continuous tracking, regular refresh</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="test-section">
+            <h2>🎭 Interview Session Classification Logic</h2>
+            <div class="time-sensitive">
+                <strong>🎯 Key Change:</strong> Interview sessions now have separate detection logic that runs BEFORE 
+                general session origin checks, ensuring proper classification regardless of origin.
+            </div>
+            
+            <h3>Classification Priority Order:</h3>
+            <ol>
+                <li><strong class="info">Active Check:</strong> < 6 hours OR completed → "active"</li>
+                <li><strong class="warning">Interview Check:</strong> sessionType = 'interview-like' | 'full-interview'
+                    <ul>
+                        <li>3+ hours + no attempts + 6+ hours → "interview_abandoned"</li>
+                        <li>3+ hours → "interview_stale"</li>
+                        <li>< 3 hours → "interview_active"</li>
+                    </ul>
+                </li>
+                <li><strong>Origin Checks:</strong> tracking, generator, etc.</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🎪 Banner Display Priority</h2>
+            <p>When both interview mode and stale session conditions exist:</p>
+            
+            <div class="banner-example interview-banner">
+                <strong>1st Priority: Interview Mode Banner</strong><br>
+                🟡 Interview-Like Mode: Limited hints • Mild time pressure
+            </div>
+            
+            <div class="banner-example regeneration-banner">
+                <strong>2nd Priority: Session Regeneration Banner</strong><br>
+                ⏰ Session Inactive: Your session has been inactive. Generate fresh problems?
+            </div>
+            
+            <div style="padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                <strong>3rd Priority: Problems List</strong><br>
+                📋 Current session problems displayed
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test Scenarios</h2>
+            
+            <h3>Scenario A: Fresh Interview Session</h3>
+            <ul>
+                <li>✅ Interview banner shows (if manual frequency)</li>
+                <li>❌ Regeneration banner hidden</li>
+                <li>✅ Problems display normally</li>
+            </ul>
+
+            <h3>Scenario B: Stale Interview Session (3+ hours)</h3>
+            <ul>
+                <li>✅ Interview banner shows (if applicable)</li>
+                <li class="warning">✅ Regeneration banner shows (NEW!)</li>
+                <li>✅ Problems still accessible</li>
+            </ul>
+
+            <h3>Scenario C: User Actions</h3>
+            <ul>
+                <li><strong>"Generate New Session":</strong> Creates fresh interview session</li>
+                <li><strong>Click any problem:</strong> Hides regeneration banner, continues current interview</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🔄 Expected Behavior Changes</h2>
+            <div class="time-sensitive">
+                <strong>Before:</strong> Interview sessions used general 6-hour staleness rules<br>
+                <strong>After:</strong> Interview sessions become stale after 3 hours, improving time-sensitive practice experience
+            </div>
+            
+            <h3>User Impact:</h3>
+            <ul>
+                <li class="info">🎯 Interview sessions refresh more frequently</li>
+                <li class="info">🎯 Better aligned with interview practice expectations</li>
+                <li class="info">🎯 Maintains all existing functionality for standard sessions</li>
+                <li class="info">🎯 Users still have choice: regenerate or continue</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

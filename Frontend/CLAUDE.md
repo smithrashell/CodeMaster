@@ -166,17 +166,25 @@ const { data, loading, error, refresh } = usePageData('page-type');
 
 ## Database Access Rules
 
-**CRITICAL**: All service/database access MUST go through the background script using Chrome messaging. This is the same pattern that other pages follow.
+**CRITICAL**: All UI component database access MUST go through the background script using Chrome messaging. Services may access the database directly for business logic operations.
 
-### Prohibited Direct Access
-- **NEVER** import and use database services directly from dashboard pages (e.g., `import { HintInteractionService }`)
-- **NEVER** access `src/shared/db/` modules directly from UI components
-- **NEVER** call IndexedDB operations directly from content scripts or dashboard pages
+### Database Access Policy
 
-### Required Chrome Messaging Pattern
-All database operations must follow this flow:
+#### ✅ ALLOWED Direct Database Access:
+- **Services**: `src/shared/services/` and `src/app/services/` (business logic layer)
+- **Background Script**: `public/background.js` (Chrome messaging handlers)
+- **Test Files**: Direct access for test setup and assertions
+- **Migration/Utility Scripts**: Backup, restore, and maintenance operations
+
+#### ❌ PROHIBITED Direct Database Access:
+- **All UI Components**: Content scripts, dashboard pages, popup components
+- **All React Components**: Must use Chrome messaging instead
+
+### Required Architecture Flow
 ```
-Dashboard/UI → ChromeAPIErrorHandler.sendMessageWithRetry() → Background Script → Database Service → IndexedDB
+UI Components/Pages → useChromeMessage/ChromeAPIErrorHandler → Background Script → Services → Database
+                                                                    ↑
+                                                                Services can access DB directly
 ```
 
 ### How to Add New Database Operations
@@ -202,6 +210,24 @@ This architecture ensures:
 - Proper Chrome extension security model
 - Centralized database access control
 - Better performance through background script caching
+
+### ESLint Enforcement
+
+The codebase uses ESLint rules to enforce this architecture:
+
+#### Database Access Restrictions:
+- UI components are prevented from importing database or service modules directly
+- ESLint errors will occur if components try to bypass Chrome messaging
+- Services are allowed direct database access as they are the business logic layer
+
+#### Chrome Extension Compatibility:
+- **No Dynamic Imports**: Dynamic imports (`await import()`) are prohibited as they don't work reliably in Chrome extensions
+- **Static Imports Only**: All imports must be at the top of files using static import syntax
+- **Context-Aware Function Limits**: Different complexity limits for different file types:
+  - Components/Pages: 130 lines max
+  - Services: 130 lines max, complexity 30
+  - Database operations: 150 lines max
+  - Algorithm files: 150 lines max, complexity 35
 
 ## Development Notes
 

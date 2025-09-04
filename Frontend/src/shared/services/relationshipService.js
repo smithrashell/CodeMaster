@@ -1,5 +1,5 @@
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
-import { getAllStandardProblems } from "../db/standard_problems.js";
 import { getTagRelationships } from "../db/tag_relationships.js";
 import { getTagMastery } from "../db/tag_mastery.js";
 import { getAllFromStore } from "../db/common.js";
@@ -29,7 +29,7 @@ export async function buildProblemRelationships() {
   let { problemGraph, removedRelationships } =
     calculateAndTrimProblemRelationships(relationshipConfig);
   console.log("problems2", problems);
-  let { updatedProblemGraph, updatedRemovedRelationships } =
+  let { updatedProblemGraph, updatedRemovedRelationships: _updatedRemovedRelationships } =
     restoreMissingProblemRelationships({
       problems,
       problemGraph,

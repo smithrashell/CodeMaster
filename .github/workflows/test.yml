@@ -1,0 +1,56 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  frontend-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: Frontend/package-lock.json
+    
+    - name: Install Frontend dependencies
+      run: |
+        cd Frontend
+        npm ci
+    
+    - name: Run Frontend linter
+      run: |
+        cd Frontend
+        npm run lint
+    
+    - name: Run Frontend tests
+      run: |
+        cd Frontend
+        npm run test:ci
+    
+    - name: Upload Frontend coverage reports
+      uses: codecov/codecov-action@v4
+      if: matrix.node-version == '20.x'
+      with:
+        file: Frontend/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+        fail_ci_if_error: false
+    
+    - name: Build Frontend
+      run: |
+        cd Frontend
+        npm run build
+

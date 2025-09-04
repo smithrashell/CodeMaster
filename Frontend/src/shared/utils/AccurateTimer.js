@@ -53,7 +53,6 @@ class AccurateTimer {
     this.isRunning = true;
     this.isPaused = false;
 
-    console.log("AccurateTimer: Timer started");
     return true;
   }
 
@@ -75,10 +74,6 @@ class AccurateTimer {
     this.isPaused = true;
     this.startTimestamp = null;
 
-    console.log(
-      "AccurateTimer: Timer paused, accumulated time:",
-      this.accumulatedTime
-    );
     return true;
   }
 
@@ -97,7 +92,6 @@ class AccurateTimer {
     this.isRunning = true;
     this.isPaused = false;
 
-    console.log("AccurateTimer: Timer resumed");
     return true;
   }
 
@@ -120,7 +114,6 @@ class AccurateTimer {
     this.isPaused = true; // Set as paused so elapsed time is preserved
     this.lastTickTimestamp = null;
 
-    console.log("AccurateTimer: Timer stopped, final time:", finalTime);
     return finalTime;
   }
 
@@ -146,7 +139,6 @@ class AccurateTimer {
       this.start();
     }
 
-    console.log("AccurateTimer: Timer reset to", this.totalTimeInSeconds);
   }
 
   /**
@@ -180,7 +172,6 @@ class AccurateTimer {
    */
   setTotalTime(timeInSeconds) {
     this.totalTimeInSeconds = this.validateTime(timeInSeconds);
-    console.log("AccurateTimer: Total time set to", this.totalTimeInSeconds);
   }
 
   /**
@@ -294,11 +285,6 @@ class AccurateTimer {
 
     const timeSpent = Math.max(0, limit - remaining);
 
-    console.log("AccurateTimer: Time calculation -", {
-      originalLimit: limit,
-      remaining: remaining,
-      timeSpent: timeSpent,
-    });
 
     return timeSpent;
   }

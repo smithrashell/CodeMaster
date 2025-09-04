@@ -13,6 +13,7 @@ import { buildRelationshipMap } from "../db/problem_relationships.js";
 
 import { TagService } from "../services/tagServices.js";
 import { getAllFromStore } from "../db/common.js";
+import { getTagMastery } from "../db/tag_mastery.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 export async function initializePatternLaddersForOnboarding() {
   const [
@@ -93,7 +94,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
   ] = await Promise.all([
     getAllFromStore("standard_problems"),
     getAllFromStore("problems"),
-    getAllTagMastery(),
+    getTagMastery(),
     getAllFromStore("tag_relationships"),
     getAllFromStore("problem_relationships"),
   ]);
@@ -116,6 +117,9 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       allowedClassifications,
     });
 
+    // Default ladder size for pattern ladder generation
+    const ladderSize = 9;
+
     const ladder = buildLadder({
       validProblems,
       problemCounts: entry.problemCounts || {},
@@ -131,7 +135,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     });
 
     const existing = tagMasteryRecords.find((t) => t.tag === tag) || { tag };
-    await upsertTagMastery({
+    await TagService.upsertTagMastery({
       ...existing,
       coreLadder: ladder,
     });

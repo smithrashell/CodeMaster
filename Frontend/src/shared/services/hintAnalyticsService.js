@@ -3,7 +3,6 @@ import {
   getInteractionsByDateRange,
   getInteractionsByDifficultyAndType,
   getInteractionsByHintType,
-  getInteractionsByAction,
 } from "../db/hint_interactions.js";
 
 /**
@@ -262,7 +261,7 @@ export class HintAnalyticsService {
     return patterns;
   }
 
-  static async _generateRecommendations(analytics) {
+  static _generateRecommendations(analytics) {
     const recommendations = [];
 
     // Analyze effectiveness data for recommendations
@@ -396,12 +395,12 @@ export class HintAnalyticsService {
       problemReturns[i.problemId].push(i.timestamp);
     });
 
-    let totalReturns = 0;
+    let _totalReturns = 0;
     let problemsWithReturns = 0;
 
     Object.values(problemReturns).forEach((timestamps) => {
       if (timestamps.length > 1) {
-        totalReturns += timestamps.length - 1;
+        _totalReturns += timestamps.length - 1;
         problemsWithReturns++;
       }
     });

@@ -56,7 +56,7 @@ export class AlertingService {
       name: "console",
       handler: (alert) => {
         const emoji = this.getAlertEmoji(alert.severity);
-        console.error(`${emoji} ALERT: ${alert.title}`, alert);
+        logger.error(`${emoji} ALERT: ${alert.title}`, alert);
       },
     });
 
@@ -77,7 +77,7 @@ export class AlertingService {
             JSON.stringify(recentAlerts)
           );
         } catch (error) {
-          console.warn("Failed to store alert in localStorage:", error);
+          logger.warn("Failed to store alert in localStorage:", error);
         }
       },
     });
@@ -161,7 +161,7 @@ export class AlertingService {
   /**
    * Check performance health metrics
    */
-  static async checkPerformanceHealth() {
+  static checkPerformanceHealth() {
     try {
       const summary = performanceMonitor.getPerformanceSummary();
 
@@ -270,7 +270,7 @@ export class AlertingService {
   /**
    * Check crash patterns for systemic issues
    */
-  static async checkCrashPatterns() {
+  static checkCrashPatterns() {
     try {
       // This would integrate with CrashReporter if available
       if (window.CrashReporter) {
@@ -403,7 +403,7 @@ export class AlertingService {
       try {
         channel.handler(alert);
       } catch (error) {
-        console.error(`Failed to send alert via ${channel.name}:`, error);
+        logger.error(`Failed to send alert via ${channel.name}:`, error);
       }
     });
 
@@ -715,7 +715,7 @@ export class AlertingService {
           break;
         
         default:
-          console.warn(`Unknown consistency alert type: ${alert.type}`);
+          logger.warn(`Unknown consistency alert type: ${alert.type}`);
       }
     });
   }
@@ -730,7 +730,7 @@ export class AlertingService {
    */
   static routeToSession(context) {
     try {
-      console.log(`🚀 Routing to session generation - context: ${context}`);
+      logger.info(`🚀 Routing to session generation - context: ${context}`);
       
       // Try to use existing navigation service if available
       if (typeof chrome !== 'undefined' && chrome.runtime) {
@@ -744,7 +744,7 @@ export class AlertingService {
         window.location.hash = '/session-generator';
       }
     } catch (error) {
-      console.error("Error routing to session:", error);
+      logger.error("Error routing to session:", error);
       this.fallbackRoute();
     }
   }
@@ -754,7 +754,7 @@ export class AlertingService {
    */
   static routeToProgress() {
     try {
-      console.log("📊 Routing to progress dashboard");
+      logger.info("📊 Routing to progress dashboard");
       
       if (typeof chrome !== 'undefined' && chrome.runtime) {
         chrome.runtime.sendMessage({
@@ -765,7 +765,7 @@ export class AlertingService {
         window.location.hash = '/progress';
       }
     } catch (error) {
-      console.error("Error routing to progress:", error);
+      logger.error("Error routing to progress:", error);
       this.fallbackRoute();
     }
   }
@@ -775,7 +775,7 @@ export class AlertingService {
    */
   static routeToDashboard() {
     try {
-      console.log("🏠 Routing to main dashboard");
+      logger.info("🏠 Routing to main dashboard");
       
       if (typeof chrome !== 'undefined' && chrome.runtime) {
         chrome.runtime.sendMessage({
@@ -786,7 +786,7 @@ export class AlertingService {
         window.location.hash = '/';
       }
     } catch (error) {
-      console.error("Error routing to dashboard:", error);
+      logger.error("Error routing to dashboard:", error);
       this.fallbackRoute();
     }
   }
@@ -807,7 +807,7 @@ export class AlertingService {
    * @param {number} duration - Duration in milliseconds
    */
   static snoozeAlert(alertType, duration) {
-    console.log(`😴 Snoozing ${alertType} alert for ${duration / 1000 / 60} minutes`);
+    logger.info(`😴 Snoozing ${alertType} alert for ${duration / 1000 / 60} minutes`);
     
     // Store snooze info in localStorage
     const snoozeKey = `alert_snooze_${alertType}`;
@@ -819,11 +819,11 @@ export class AlertingService {
       // Set timeout to clear snooze
       setTimeout(() => {
         localStorage.removeItem(snoozeKey);
-        console.log(`⏰ Snooze cleared for ${alertType}`);
+        logger.info(`⏰ Snooze cleared for ${alertType}`);
       }, duration);
       
     } catch (error) {
-      console.error("Error setting alert snooze:", error);
+      logger.error("Error setting alert snooze:", error);
     }
   }
 
@@ -849,7 +849,7 @@ export class AlertingService {
       
       return isStillSnoozed;
     } catch (error) {
-      console.error("Error checking alert snooze:", error);
+      logger.error("Error checking alert snooze:", error);
       return false;
     }
   }
@@ -859,7 +859,7 @@ export class AlertingService {
    * @param {string} alertType - Type of alert to dismiss
    */
   static dismissAlert(alertType) {
-    console.log(`✖️ Dismissing ${alertType} alert`);
+    logger.info(`✖️ Dismissing ${alertType} alert`);
     
     // Remove from queue if present
     this.alertQueue = this.alertQueue.filter(alert => alert.type !== alertType);
@@ -881,7 +881,7 @@ export class AlertingService {
       localStorage.setItem("alert_dismissals", JSON.stringify(recentDismissals));
       
     } catch (error) {
-      console.warn("Could not log alert dismissal:", error);
+      logger.warn("Could not log alert dismissal:", error);
     }
   }
 
@@ -895,7 +895,7 @@ export class AlertingService {
    */
   static sendStreakAlert(currentStreak, daysSince) {
     if (typeof chrome === "undefined" || !chrome?.notifications) {
-      console.warn("Chrome notifications API not available");
+      logger.warn("Chrome notifications API not available");
       return;
     }
 
@@ -914,7 +914,7 @@ export class AlertingService {
       ]
     });
 
-    console.log(`🔥 Sent streak alert notification: ${currentStreak} streak, ${daysSince} days`);
+    logger.info(`🔥 Sent streak alert notification: ${currentStreak} streak, ${daysSince} days`);
   }
 
   /**
@@ -924,7 +924,7 @@ export class AlertingService {
    */
   static sendCadenceNudge(typicalCadence, daysSince) {
     if (typeof chrome === "undefined" || !chrome?.notifications) {
-      console.warn("Chrome notifications API not available");
+      logger.warn("Chrome notifications API not available");
       return;
     }
 
@@ -941,7 +941,7 @@ export class AlertingService {
       ]
     });
 
-    console.log(`⏰ Sent cadence nudge: ${typicalCadence}, ${daysSince} days`);
+    logger.info(`⏰ Sent cadence nudge: ${typicalCadence}, ${daysSince} days`);
   }
 
   /**
@@ -950,7 +950,7 @@ export class AlertingService {
    */
   static sendWeeklyGoalReminder(weeklyProgress) {
     if (typeof chrome === "undefined" || !chrome?.notifications) {
-      console.warn("Chrome notifications API not available");
+      logger.warn("Chrome notifications API not available");
       return;
     }
 
@@ -971,7 +971,7 @@ export class AlertingService {
         : [{ title: "View Progress" }, { title: "Set Next Goal" }]
     });
 
-    console.log(`📊 Sent weekly goal reminder: ${completedSessions}/${targetSessions}, ${remainingDays} days left`);
+    logger.info(`📊 Sent weekly goal reminder: ${completedSessions}/${targetSessions}, ${remainingDays} days left`);
   }
 
   /**
@@ -981,7 +981,7 @@ export class AlertingService {
    */
   static sendReEngagementPrompt(daysSince, lastActivity = "session") {
     if (typeof chrome === "undefined" || !chrome?.notifications) {
-      console.warn("Chrome notifications API not available");
+      logger.warn("Chrome notifications API not available");
       return;
     }
 
@@ -1009,7 +1009,7 @@ export class AlertingService {
       ]
     });
 
-    console.log(`👋 Sent re-engagement prompt: ${daysSince} days since ${lastActivity}`);
+    logger.info(`👋 Sent re-engagement prompt: ${daysSince} days since ${lastActivity}`);
   }
 
   /**
@@ -1019,7 +1019,7 @@ export class AlertingService {
    */
   static sendFocusAreaReminder(focusArea, reason) {
     if (typeof chrome === "undefined" || !chrome?.notifications) {
-      console.warn("Chrome notifications API not available");
+      logger.warn("Chrome notifications API not available");
       return;
     }
 
@@ -1034,7 +1034,7 @@ export class AlertingService {
       ]
     });
 
-    console.log(`🎯 Sent focus area reminder: ${focusArea} - ${reason}`);
+    logger.info(`🎯 Sent focus area reminder: ${focusArea} - ${reason}`);
   }
 }
 

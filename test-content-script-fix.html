@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Script Database Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        .success { border-color: #22c55e; background: #dcfce7; }
+        .warning { border-color: #f59e0b; background: #fef3c7; }
+        .error { border-color: #ef4444; background: #fee2e2; }
+        .info { border-color: #3b82f6; background: #dbeafe; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #2563eb; }
+        #testResults { margin-top: 20px; }
+        .log-entry {
+            font-family: monospace;
+            font-size: 12px;
+            padding: 5px;
+            margin: 2px 0;
+            background: #f8f9fa;
+            border-left: 3px solid #6b7280;
+        }
+        .log-success { border-color: #22c55e; }
+        .log-warning { border-color: #f59e0b; }
+        .log-error { border-color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Content Script Database Access Fix Test</h1>
+        
+        <div class="status info">
+            <strong>📋 Test Instructions:</strong><br>
+            1. Load this page with the CodeMaster extension enabled<br>
+            2. Open browser DevTools (F12) and check the Console<br>
+            3. Click the test buttons below<br>
+            4. Look for the protection messages in the console
+        </div>
+
+        <div class="status warning">
+            <strong>🎯 Expected Results:</strong><br>
+            ✅ Content script detection messages should appear<br>
+            ✅ Database operations should be blocked with "🚫" messages<br>
+            ✅ No duplicate "review" database creation<br>
+            ✅ Extension should function normally with Chrome Storage fallback
+        </div>
+
+        <h2>🧪 Manual Tests</h2>
+        
+        <button onclick="testContentScriptDetection()">Test Content Script Detection</button>
+        <button onclick="testStorageServiceProtection()">Test StorageService Protection</button>
+        <button onclick="testErrorReportServiceProtection()">Test ErrorReportService Protection</button>
+        <button onclick="testMonitoringInitializerProtection()">Test MonitoringInitializer Protection</button>
+        <button onclick="clearResults()">Clear Results</button>
+
+        <div id="testResults"></div>
+
+        <div class="status info">
+            <strong>🔍 Check Browser Console for:</strong><br>
+            • "🚫 CONTENT SCRIPT DETECTED" messages<br>
+            • "🚫 DATABASE ACCESS BLOCKED" messages<br>
+            • "🚫 MonitoringInitializer: Skipping initialization" messages<br>
+            • "🚫 STORAGE SERVICE: Using Chrome Storage fallback" messages<br>
+            • No IndexedDB "review" database creation from content script context
+        </div>
+    </div>
+
+    <script>
+        const results = document.getElementById('testResults');
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-entry log-${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            results.appendChild(div);
+            console.log(`🧪 TEST: ${message}`);
+        }
+
+        function clearResults() {
+            results.innerHTML = '';
+            console.clear();
+            addResult('Test results cleared');
+        }
+
+        async function testContentScriptDetection() {
+            addResult('Testing content script detection...', 'info');
+            
+            // Test context detection
+            const context = {
+                protocol: window.location.protocol,
+                href: window.location.href,
+                hasChromeRuntime: typeof chrome !== 'undefined' && !!chrome.runtime,
+                hasTabsAPI: typeof chrome !== 'undefined' && !!(chrome.tabs && chrome.tabs.query),
+                hasManagementAPI: typeof chrome !== 'undefined' && !!(chrome.management && chrome.management.getSelf)
+            };
+            
+            addResult(`Context: ${JSON.stringify(context)}`, 'info');
+            
+            if (context.protocol === 'http:' || context.protocol === 'https:') {
+                addResult('✅ Detected web page context (content script environment)', 'success');
+            } else {
+                addResult('❌ Not in web page context', 'warning');
+            }
+            
+            if (!context.hasTabsAPI) {
+                addResult('✅ Missing tabs API (expected for content scripts)', 'success');
+            } else {
+                addResult('❌ Has tabs API (background/popup context)', 'warning');
+            }
+        }
+
+        async function testStorageServiceProtection() {
+            addResult('Testing StorageService protection...', 'info');
+            
+            try {
+                // This should trigger the content script protection in StorageService
+                if (typeof window.StorageService !== 'undefined') {
+                    addResult('StorageService found, testing operations...', 'info');
+                    await window.StorageService.performHealthCheck();
+                    addResult('Health check completed (check console for protection messages)', 'info');
+                } else {
+                    addResult('StorageService not directly accessible (expected)', 'success');
+                }
+            } catch (error) {
+                addResult(`StorageService test error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testErrorReportServiceProtection() {
+            addResult('Testing ErrorReportService protection...', 'info');
+            
+            try {
+                // This should trigger the content script protection
+                if (typeof window.ErrorReportService !== 'undefined') {
+                    addResult('ErrorReportService found, testing operations...', 'info');
+                    await window.ErrorReportService.storeErrorReport({
+                        errorId: 'test-' + Date.now(),
+                        message: 'Test error from content script',
+                        stack: 'test stack',
+                        section: 'content-script-test'
+                    });
+                    addResult('Error report test completed (check console for protection messages)', 'info');
+                } else {
+                    addResult('ErrorReportService not directly accessible (expected)', 'success');
+                }
+            } catch (error) {
+                addResult(`ErrorReportService test error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMonitoringInitializerProtection() {
+            addResult('Testing MonitoringInitializer protection...', 'info');
+            
+            // Check if monitoring was skipped in content script
+            const hasMonitoringDebugLogs = console.log.toString().includes('MonitoringInitializer');
+            
+            addResult('MonitoringInitializer should have been skipped in content script context', 'info');
+            addResult('Check console for "🚫 MonitoringInitializer: Skipping initialization" message', 'info');
+        }
+
+        // Initialize test
+        document.addEventListener('DOMContentLoaded', function() {
+            addResult('🚀 Content Script Database Fix Test Initialized', 'success');
+            addResult('Current URL: ' + window.location.href, 'info');
+            addResult('User Agent: ' + navigator.userAgent.substring(0, 100) + '...', 'info');
+            
+            // Auto-run detection test
+            setTimeout(() => {
+                testContentScriptDetection();
+            }, 1000);
+        });
+
+        // Capture console messages
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('🚫') || message.includes('CONTENT SCRIPT') || message.includes('DATABASE')) {
+                addResult(`Console: ${message}`, 'warning');
+            }
+            originalLog.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('🚫') || message.includes('CONTENT SCRIPT') || message.includes('DATABASE')) {
+                addResult(`Console Warning: ${message}`, 'warning');
+            }
+            originalWarn.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            const message = args.join(' ');
+            if (message.includes('🚫') || message.includes('CONTENT SCRIPT') || message.includes('DATABASE')) {
+                addResult(`Console Error: ${message}`, 'error');
+            }
+            originalError.apply(console, args);
+        };
+    </script>
+</body>
+</html>

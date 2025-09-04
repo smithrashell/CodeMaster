@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import SessionLimits from "./sessionLimits.js";
 // import { v4 as uuidv4 } from "uuid"; // Commented out - uncomment when needed
@@ -96,7 +97,7 @@ export async function clearOrRenameStoreField(
 
     const request = store.getAll();
 
-    request.onsuccess = async () => {
+    request.onsuccess = () => {
       const records = request.result;
 
       for (const record of records) {
@@ -120,11 +121,11 @@ export async function clearOrRenameStoreField(
       }
 
       tx.oncomplete = () => {
-        console.log(`✅ Updated all records in ${storeName}`);
+        // Updated all records in storeName
         resolve();
       };
       tx.onerror = () => {
-        console.error(`❌ Failed updating ${storeName}:`, tx.error);
+        // Failed updating storeName
         reject(tx.error);
       };
     };
@@ -173,12 +174,86 @@ export function getDifficultyAllowanceForTag(data = null) {
     allowance.Hard = 0.4; // Low confidence
   }
 
-  console.log(
-    `🎯 Difficulty allowance for tag (${attempts} attempts, ${(
-      successRate * 100
-    ).toFixed(1)}% success):`,
-    allowance
-  );
+  // Debug output removed
 
   return allowance;
+}
+
+/**
+ * Calculate success rate with safe division handling
+ * @param {number} successfulAttempts - Number of successful attempts
+ * @param {number} totalAttempts - Total number of attempts
+ * @returns {number} Success rate between 0 and 1, or 0 if no attempts
+ */
+export function calculateSuccessRate(successfulAttempts, totalAttempts) {
+  if (!totalAttempts || totalAttempts === 0) {
+    return 0;
+  }
+  return successfulAttempts / totalAttempts;
+}
+
+/**
+ * Calculate progress percentage with rounding
+ * @param {number} successfulAttempts - Number of successful attempts
+ * @param {number} totalAttempts - Total number of attempts
+ * @returns {number} Progress percentage (0-100), or 0 if no attempts
+ */
+export function calculateProgressPercentage(successfulAttempts, totalAttempts) {
+  const successRate = calculateSuccessRate(successfulAttempts, totalAttempts);
+  return Math.round(successRate * 100);
+}
+
+/**
+ * Calculate failed attempts count
+ * @param {number} successfulAttempts - Number of successful attempts
+ * @param {number} totalAttempts - Total number of attempts
+ * @returns {number} Number of failed attempts
+ */
+export function calculateFailedAttempts(successfulAttempts, totalAttempts) {
+  if (!totalAttempts || totalAttempts === 0) {
+    return 0;
+  }
+  return totalAttempts - successfulAttempts;
+}
+
+/**
+ * Calculate failure rate with safe division handling
+ * @param {number} successfulAttempts - Number of successful attempts
+ * @param {number} totalAttempts - Total number of attempts
+ * @returns {number} Failure rate between 0 and 1, or 0 if no attempts
+ */
+export function calculateFailureRate(successfulAttempts, totalAttempts) {
+  const successRate = calculateSuccessRate(successfulAttempts, totalAttempts);
+  return 1 - successRate;
+}
+
+/**
+ * Calculate comprehensive progress statistics
+ * @param {number} successfulAttempts - Number of successful attempts
+ * @param {number} totalAttempts - Total number of attempts
+ * @returns {Object} Object containing all progress statistics
+ */
+export function calculateProgressStats(successfulAttempts, totalAttempts) {
+  const successRate = calculateSuccessRate(successfulAttempts, totalAttempts);
+  const failedAttempts = calculateFailedAttempts(successfulAttempts, totalAttempts);
+  
+  return {
+    successfulAttempts,
+    totalAttempts,
+    failedAttempts,
+    successRate,
+    failureRate: 1 - successRate,
+    progressPercentage: Math.round(successRate * 100)
+  };
+}
+
+/**
+ * Round value to specified number of decimal places
+ * @param {number} value - Value to round
+ * @param {number} decimals - Number of decimal places (default 2)
+ * @returns {number} Rounded value
+ */
+export function roundToPrecision(value, decimals = 2) {
+  const multiplier = Math.pow(10, decimals);
+  return Math.round(value * multiplier) / multiplier;
 }

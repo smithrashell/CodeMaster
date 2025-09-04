@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Interview Session Auto-Creation Fix</title>
+</head>
+<body>
+    <h1>Interview Session Auto-Creation Fix Test</h1>
+    <div>
+        <h2>Instructions:</h2>
+        <ol>
+            <li>Open DevTools Console</li>
+            <li>Enable interview mode in settings</li>
+            <li>Set frequency to "weekly", "level-up", or "manual"</li>
+            <li>Switch between different pages/tabs multiple times</li>
+            <li>Check console messages for interview session behavior</li>
+            <li>Verify interview sessions are NOT auto-created on page loads</li>
+        </ol>
+    </div>
+    
+    <div>
+        <h2>Expected Behavior (FIXED):</h2>
+        <ul>
+            <li><strong>Manual:</strong> No auto-creation, only resumes existing sessions</li>
+            <li><strong>Weekly:</strong> No auto-creation, only resumes existing sessions</li>
+            <li><strong>Level-up:</strong> No auto-creation, only resumes existing sessions</li>
+            <li>Console shows: "No existing interview session to resume" or "Resumed existing interview session"</li>
+            <li>Falls back to regular session creation</li>
+        </ul>
+    </div>
+    
+    <div>
+        <h2>How to Create Interview Sessions Now:</h2>
+        <ul>
+            <li><strong>Manual:</strong> Use explicit createInterviewSession action</li>
+            <li><strong>Weekly:</strong> Use checkInterviewFrequency action (creates if 7+ days passed)</li>
+            <li><strong>Level-up:</strong> Will be triggered by mastery achievement events</li>
+        </ul>
+    </div>
+
+    <div>
+        <h2>Console Commands to Test:</h2>
+        <pre>
+// Check current sessions in database
+chrome.runtime.sendMessage({action: "getAllSessions"}, response => {
+    console.log("All sessions:", response);
+    const interviewSessions = response?.sessions?.filter(s => s.sessionType);
+    console.log("Interview sessions:", interviewSessions);
+});
+
+// Test that getCurrentSession NO LONGER auto-creates interview sessions
+for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+        chrome.runtime.sendMessage({action: "getCurrentSession"}, response => {
+            console.log(`Call ${i+1}:`, response?.session?.id, response?.session?.sessionType, response?.backgroundScriptData);
+        });
+    }, i * 1000);
+}
+
+// Test manual interview session creation
+chrome.runtime.sendMessage({action: "createInterviewSession", mode: "interview-like"}, response => {
+    console.log("Manual creation:", response);
+});
+
+// Test frequency-based interview session creation (weekly)
+chrome.runtime.sendMessage({action: "checkInterviewFrequency"}, response => {
+    console.log("Frequency check:", response);
+});
+        </pre>
+    </div>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { StorageService } from "./storageService.js";
 import { getTagMastery } from "../db/tag_mastery.js";
 import { getSessionPerformance } from "../db/sessions.js";
+import { getInterviewAnalyticsData } from "../../app/services/dashboardService.js";
 
 /**
  * Interview Service - Handles all interview simulation logic
@@ -123,7 +124,7 @@ export class InterviewService {
    * @param {Array} tagMastery - Tag mastery data
    * @returns {Promise<number>} Transfer readiness score (0-1)
    */
-  static async calculateCurrentTransferReadiness(tagMastery = []) {
+  static calculateCurrentTransferReadiness(tagMastery = []) {
     try {
       // This is a simplified calculation - would be enhanced with actual interview data
       const masteredTags = tagMastery.filter(tm => tm.mastered);
@@ -148,7 +149,7 @@ export class InterviewService {
    * @param {Object} options - Additional options
    * @returns {Promise<Array>} Interview session problems
    */
-  static async createInterviewSession(mode, options = {}) {
+  static async createInterviewSession(mode, _options = {}) {
     const config = this.getInterviewConfig(mode);
     const settings = await StorageService.getSettings();
     
@@ -164,8 +165,19 @@ export class InterviewService {
         sessionLength = settings.sessionLength || 5;
       }
 
-      // Get tag mastery for problem selection
-      const tagMastery = await getTagMastery();
+      // Get tag mastery for problem selection with timeout protection
+      console.log("🔍 InterviewService: Getting tag mastery data...");
+      const tagMasteryStart = Date.now();
+      
+      // Add additional timeout wrapper in case the database operation hangs
+      const INTERVIEW_TIMEOUT = 8000; // 8 seconds for interview service operations
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`InterviewService.createInterviewSession timed out after ${INTERVIEW_TIMEOUT}ms`)), INTERVIEW_TIMEOUT);
+      });
+      
+      const tagMastery = await Promise.race([getTagMastery(), timeoutPromise]);
+      const tagMasteryDuration = Date.now() - tagMasteryStart;
+      console.log(`✅ InterviewService: Got tag mastery data in ${tagMasteryDuration}ms`);
       
       // Generate problem selection criteria based on interview mode
       const selectionCriteria = this.buildInterviewProblemCriteria(mode, config, tagMastery);
@@ -179,8 +191,29 @@ export class InterviewService {
         createdAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error("Error creating interview session:", error);
-      throw error;
+      console.error("❌ InterviewService.createInterviewSession failed:", error);
+      
+      // Provide more specific error information
+      if (error.message.includes('timed out')) {
+        console.error("🕐 Interview session creation timed out - possible database hang");
+        throw new Error(`Interview session creation timed out: ${error.message}`);
+      }
+      
+      // For other errors, provide fallback behavior
+      console.warn("🔄 Attempting fallback interview session configuration");
+      return {
+        sessionType: mode,
+        sessionLength: settings?.sessionLength || 5,
+        config: this.getInterviewConfig(mode),
+        selectionCriteria: {
+          allowedTags: [],
+          difficulty: 'adaptive',
+          reviewRatio: 0.3
+        },
+        interviewMetrics: this.initializeInterviewMetrics(),
+        createdAt: new Date().toISOString(),
+        fallbackMode: true
+      };
     }
   }
 
@@ -305,7 +338,7 @@ export class InterviewService {
    * @param {Object} tagBaselines - Tag performance baselines
    * @returns {number} Speed delta (negative = faster, positive = slower)
    */
-  static calculateSpeedDelta(attempts, tagBaselines) {
+  static calculateSpeedDelta(attempts, _tagBaselines) {
     const validAttempts = attempts.filter(a => 
       a.timeSpent && 
       a.interviewSignals && 
@@ -470,7 +503,7 @@ export class InterviewService {
    * @param {Object} interviewResults - Interview session results
    * @returns {Promise<void>}
    */
-  static async updateAdaptiveLearning(interviewResults) {
+  static updateAdaptiveLearning(interviewResults) {
     try {
       // This would integrate with existing adaptive systems
       // For now, just log the insights
@@ -519,8 +552,7 @@ export class InterviewService {
       }
 
       // Get interview analytics data (reuse existing dashboard function)
-      const { dashboardService } = await import("../../app/services/dashboardService.js");
-      const analyticsData = await dashboardService.getInterviewAnalyticsData({
+      const analyticsData = await getInterviewAnalyticsData({
         dateRange: { start: thirtyDaysAgo.toISOString() }
       });
 

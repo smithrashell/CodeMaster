@@ -11,7 +11,7 @@ export default class StorageCompression {
    * @param {*} data - Data to prepare
    * @returns {Promise<string>} JSON string of the data
    */
-  static async prepareForChromeStorage(data) {
+  static prepareForChromeStorage(data) {
     try {
       return JSON.stringify(data);
     } catch (error) {
@@ -24,7 +24,7 @@ export default class StorageCompression {
    * @param {string} compressedData - JSON string to parse
    * @returns {Promise<*>} Parsed data
    */
-  static async retrieveFromChromeStorage(compressedData) {
+  static retrieveFromChromeStorage(compressedData) {
     try {
       if (!compressedData) return null;
       return JSON.parse(compressedData);

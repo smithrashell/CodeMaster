@@ -258,7 +258,7 @@ export const MockDataFactories = {
         put: jest.fn(() => ({ result: true })),
         delete: jest.fn(() => ({ result: true })),
         index: jest.fn(() => ({
-          openCursor: jest.fn((range, direction) => ({ result: null })),
+          openCursor: jest.fn((_range, _direction) => ({ result: null })),
         })),
       })),
     },

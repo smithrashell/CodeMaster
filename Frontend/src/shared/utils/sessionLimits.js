@@ -43,7 +43,7 @@ export class SessionLimits {
    * @param {number} userSessionLength - User's configured session length
    * @returns {number} Maximum new problems allowed
    */
-  static getMaxNewProblems(sessionState, userSessionLength = null) {
+  static getMaxNewProblems(sessionState, _userSessionLength = null) {
     const isOnboarding = this.isOnboarding(sessionState);
     
     if (isOnboarding) {

@@ -20,3 +20,37 @@ tstaus
 
 # API documentation (if it contains sensitive info)
 # API_USAGE_GUIDE.md
+
+# Backend and development files - keep out of version control
+Backend/
+archive/
+planning-docs/
+Screenshots/
+
+# Documentation and planning files
+*.csv
+*.db
+*_IMPLEMENTATION*.md
+*_ISSUES*.md
+*_ANALYSIS*.md
+*_GUIDE*.md
+*_PLAN*.md
+*_SUMMARY*.md
+*_AUDIT*.md
+COMPREHENSIVE_*.md
+DASHBOARD_*.md
+ENHANCED_*.md
+FOCUS_*.md
+LEARNING_*.md
+PRODUCTION_*.md
+
+# Git templates and development docs
+Git/
+docs/implementation/
+webpack-stats.json
+webpack.dev-minimal.js
+
+# Keep only essential project documentation
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md

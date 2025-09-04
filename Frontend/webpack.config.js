@@ -1,6 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin");
+// const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin"); // Removed - not used in production routes
 const webpack = require("webpack");
 require("dotenv").config();
 
@@ -23,16 +23,15 @@ module.exports = (env, argv) => {
 
   return {
     entry: {
-      popup: "./src/popup/popup.jsx",
       background: "./public/background.js",
-      content: "./src/content/content.jsx",
+      content: "./src/content/content.jsx", 
       app: "./src/app/app.jsx",
     },
     output: {
       path: path.resolve(__dirname, "dist"),
       filename: "[name].js",
     },
-    devtool: isDev ? "inline-source-map" : "source-map",
+    devtool: false, // Disable source maps to save memory
     watchOptions: {
       poll: 1000,
       ignored: /node_modules/,
@@ -47,14 +46,7 @@ module.exports = (env, argv) => {
         filename: "app.html",
         chunks: ["app"],
       }),
-      new HtmlWebpackPlugin({
-        template: "./src/popup/popup.html",
-        filename: "popup.html",
-        chunks: ["popup"],
-      }),
-      new MonacoWebpackPlugin({
-        languages: ["javascript", "json"],
-      }),
+      // MonacoWebpackPlugin removed - flashcards feature not used in production
     ],
     module: {
       rules: [
@@ -94,6 +86,34 @@ module.exports = (env, argv) => {
     },
     resolve: {
       extensions: [".jsx", ".js"],
+    },
+    optimization: {
+      sideEffects: false,
+      usedExports: true,
+      splitChunks: {
+        chunks: 'all',
+        minSize: 10000,
+        maxSize: 250000,
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            maxSize: 400000,
+          },
+          common: {
+            name: 'common',
+            minChunks: 2,
+            chunks: 'all',
+            maxSize: 200000,
+          },
+        },
+      },
+      concatenateModules: false, // Disable to save memory
+    },
+    stats: {
+      children: false,
+      modules: false,
     },
   };
 };

@@ -1,6 +1,7 @@
 import { StorageService } from "../src/shared/services/storageService.js";
 import { ProblemService } from "../src/shared/services/problemService.js";
 import { SessionService } from "../src/shared/services/sessionService.js";
+import { updateSessionInDB } from "../src/shared/db/sessions.js";
 import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
 import { TagService } from "../src/shared/services/tagServices.js";
@@ -405,8 +406,40 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         StorageService.getSettings().then(sendResponse).finally(finishRequest);
         return true;
       case "clearSettingsCache":
+        // Clear settings cache from background script cache
+        const settingsCacheKeys = ['settings_all', 'settings_'];
+        let clearedCount = 0;
+        
+        for (const [key] of responseCache.entries()) {
+          if (settingsCacheKeys.some(prefix => key.startsWith(prefix))) {
+            responseCache.delete(key);
+            console.log(`🗑️ Cleared settings cache key: ${key}`);
+            clearedCount++;
+          }
+        }
+        
+        console.log(`🔄 Cleared ${clearedCount} settings cache entries`);
+        
+        // Also call StorageService method for any internal cleanup
         StorageService.clearSettingsCache();
-        sendResponse({ status: "success" });
+        sendResponse({ status: "success", clearedCount });
+        finishRequest();
+        return true;
+      case "clearSessionCache":
+        // Clear session-related cache from background script cache
+        const sessionCacheKeys = ['createSession', 'getActiveSession', 'session_'];
+        let sessionClearedCount = 0;
+        
+        for (const [key] of responseCache.entries()) {
+          if (sessionCacheKeys.some(prefix => key.startsWith(prefix))) {
+            responseCache.delete(key);
+            console.log(`🗑️ Cleared session cache key: ${key}`);
+            sessionClearedCount++;
+          }
+        }
+        
+        console.log(`🔄 Cleared ${sessionClearedCount} session cache entries`);
+        sendResponse({ status: "success", clearedCount: sessionClearedCount });
         finishRequest();
         return true;
 
@@ -428,7 +461,10 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           request.slug
         )
           .then(sendResponse)
-          .catch(() => sendResponse({ error: "Problem not found" }))
+          .catch((error) => {
+            console.error("❌ Error in getProblemByDescription:", error);
+            sendResponse({ error: error.message || "Problem not found" });
+          })
           .finally(finishRequest);
         return true;
       case "countProblemsByBoxLevel":
@@ -439,12 +475,41 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       case "addProblem":
-        ProblemService.addOrUpdateProblem(
+        ProblemService.addOrUpdateProblemWithRetry(
           request.contentScriptData,
-          sendResponse
+          (response) => {
+            // Enhanced logging for cache invalidation debugging
+            console.log('📊 ProblemService response received:', {
+              hasResponse: !!response,
+              hasSuccess: response && 'success' in response,
+              successValue: response?.success,
+              responseKeys: response ? Object.keys(response) : [],
+              responseMessage: response?.message,
+              responseError: response?.error
+            });
+
+            // Always clear dashboard cache when attempts are added (regardless of success field)
+            console.log('🔄 Clearing dashboard cache after attempt creation...');
+            const dashboardCacheKeys = ['stats_data', 'progress_data', 'sessions_data', 'mastery_data', 'productivity_data', 'learning_path_data'];
+            let clearedCount = 0;
+            for (const key of dashboardCacheKeys) {
+              if (responseCache.has(key)) {
+                responseCache.delete(key);
+                clearedCount++;
+                console.log(`🗑️ Cleared cache key: ${key}`);
+              } else {
+                console.log(`💨 Cache key not found (already cleared): ${key}`);
+              }
+            }
+            console.log(`🔄 Cache clearing complete: ${clearedCount} entries cleared`);
+            
+            sendResponse(response);
+          }
         )
-          .then(() => sendResponse({ message: "Problem added successfully" }))
-          .catch(() => sendResponse({ error: "Failed to add problem" }))
+          .catch((error) => {
+            console.error('[ERROR]', new Date().toISOString(), '- Error adding problem:', error);
+            sendResponse({ error: "Failed to add problem: " + error.message });
+          })
           .finally(finishRequest);
         return true;
 
@@ -2122,7 +2187,7 @@ async function cleanupStalledSessions() {
           case 'expire':
             session.status = 'expired';
             session.lastActivityTime = new Date().toISOString();
-            await SessionService.updateSessionInDB(session);
+            await updateSessionInDB(session);
             console.log(`⏰ Expired session ${sessionId}`);
             actions.push(`expired:${sessionId}`);
             break;
@@ -2130,7 +2195,7 @@ async function cleanupStalledSessions() {
           case 'auto_complete':
             session.status = 'completed';
             session.lastActivityTime = new Date().toISOString();
-            await SessionService.updateSessionInDB(session);
+            await updateSessionInDB(session);
             
             // Run performance analysis for completed sessions
             await SessionService.summarizeSessionPerformance(session);
@@ -2141,7 +2206,7 @@ async function cleanupStalledSessions() {
           case 'create_new_tracking':
             // Mark old tracking session as completed
             session.status = 'completed';
-            await SessionService.updateSessionInDB(session);
+            await updateSessionInDB(session);
             
             // No need to create new tracking here - SAE will do it on next attempt
             console.log(`🔄 Marked tracking session ${sessionId} for replacement`);
@@ -2156,7 +2221,7 @@ async function cleanupStalledSessions() {
               needsRefreshFromTracking: true,
               markedAt: new Date().toISOString()
             };
-            await SessionService.updateSessionInDB(session);
+            await updateSessionInDB(session);
             console.log(`🎯 Flagged guided session ${sessionId} for tracking-based refresh`);
             actions.push(`flagged_for_refresh:${sessionId}`);
             break;
@@ -2169,7 +2234,7 @@ async function cleanupStalledSessions() {
               stalledAt: new Date().toISOString(),
               classification: classification
             };
-            await SessionService.updateSessionInDB(session);
+            await updateSessionInDB(session);
             console.log(`🏃 Flagged session ${sessionId} for user decision`);
             actions.push(`user_choice:${sessionId}`);
             break;

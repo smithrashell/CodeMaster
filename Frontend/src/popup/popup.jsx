@@ -12,7 +12,7 @@
 // const domNode = document.getElementById("popup");
 
 // createRoot(domNode).render(<Popup />);
-import React from "react";
+
 import { createRoot } from "react-dom/client";
 
 function Popup() {
