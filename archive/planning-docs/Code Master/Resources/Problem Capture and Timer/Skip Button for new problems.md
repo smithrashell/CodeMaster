@@ -1,1 +1,0 @@
-- [ ] The button  should exclude the new problem from the schedule and maybe weaken  it's  relationship in problem_relationship store
