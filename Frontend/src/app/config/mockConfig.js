@@ -13,16 +13,20 @@ export const shouldUseMockDashboard = () => {
   // Primary control: Environment variable from .env file
   if (process.env.USE_MOCK_SERVICE !== undefined) {
     const useMock = process.env.USE_MOCK_SERVICE === 'true';
+    console.log('🔧 MOCK MODE via .env:', useMock ? '🎭 MOCK DATA' : '✅ REAL DATA');
     return useMock;
   }
   
   // Developer override: localStorage for debugging (temporary override)
   if (typeof window !== 'undefined' && localStorage.getItem('cm-force-mock') === 'true') {
+    console.log('🔧 DEVELOPER OVERRIDE: 🎭 FORCED MOCK MODE via localStorage');
+    console.log('💡 Run disableMockMode() to turn off');
     return true;
   }
   
   // Fallback: If no .env setting, default to false (real data)
   // This ensures production-like behavior when configuration is missing
+  console.log('⚠️ No USE_MOCK_SERVICE in .env, defaulting to real data');
   return false;
 };
 
@@ -67,12 +71,15 @@ export const MOCK_DATA_CONFIG = {
 export const enableMockMode = () => {
   if (typeof window !== 'undefined') {
     localStorage.setItem('cm-force-mock', 'true');
+    console.log('🎭 Mock mode enabled! Reload the page to use mock data.');
+    console.log('💡 Run disableMockMode() to turn it off.');
   }
 };
 
 export const disableMockMode = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('cm-force-mock');
+    console.log('🎭 Mock mode disabled! Reload the page to use real data.');
   }
 };
 
@@ -84,8 +91,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 
 // Simple dev mode warning
 if (process.env.NODE_ENV === 'development') {
-  // Development mock service active
-  // Mock mode instructions removed
+  console.warn('🎭 Development mock service active - UI testing data enabled');
+  console.warn('💡 If data is not showing, run enableMockMode() in console and reload');
 }
 
 export default {

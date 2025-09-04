@@ -30,7 +30,7 @@ export class ChromeMessagingService {
     if (cacheable && cacheKey) {
       const cached = this.getFromCache(cacheKey);
       if (cached) {
-        // Using cached response
+        console.log(`💾 CHROME MSG: Using cached response for ${message.type}`);
         return cached;
       }
     }
@@ -47,7 +47,9 @@ export class ChromeMessagingService {
         }
 
         if (attempt > 0) {
-          // Succeeded on retry ${attempt}
+          console.log(
+            `✅ CHROME MSG: Succeeded on retry ${attempt} for ${message.type}`
+          );
         }
 
         return result;
@@ -63,7 +65,7 @@ export class ChromeMessagingService {
         // Don't retry on the last attempt
         if (attempt < retries) {
           const delay = this.retryDelay * Math.pow(2, attempt); // Exponential backoff
-          // Retrying in ${delay}ms
+          console.log(`⏳ CHROME MSG: Retrying in ${delay}ms...`);
           await this.sleep(delay);
         }
       }
@@ -81,7 +83,7 @@ export class ChromeMessagingService {
    * @param {number} timeout - Timeout in milliseconds
    * @returns {Promise<any>} Response data
    */
-  sendSingleMessage(message, timeout) {
+  async sendSingleMessage(message, timeout) {
     return new Promise((resolve, reject) => {
       // Extended timeout to test if operations can complete
       const timer = setTimeout(() => {
@@ -173,7 +175,7 @@ export class ChromeMessagingService {
    */
   clearCache() {
     this.cache.clear();
-    // Cache cleared
+    console.log("🧹 CHROME MSG: Cache cleared");
   }
 
   /**

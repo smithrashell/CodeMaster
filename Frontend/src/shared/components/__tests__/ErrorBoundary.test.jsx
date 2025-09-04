@@ -10,6 +10,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MantineProvider } from "@mantine/core";
 import ErrorBoundary from "../ErrorBoundary";
+import ErrorReportService from "../../services/ErrorReportService";
 
 // Mock the error notification system
 jest.mock("../../utils/errorNotifications", () => ({
@@ -35,35 +36,24 @@ const ThrowError = ({ shouldThrow = false, errorMessage = "Test error" }) => {
   return <div data-testid="working-component">Component is working</div>;
 };
 
-// Test setup helpers
-const setupErrorBoundaryTest = () => {
-  const originalConsoleError = console.error;
-  console.error = jest.fn();
-  jest.clearAllMocks();
-
-  // Suppress unhandled promise rejection warnings
-  process.on("unhandledRejection", () => {});
-
-  // Mock window.prompt for error reporting
-  window.prompt = jest.fn().mockReturnValue("User feedback for test error");
-
-  return originalConsoleError;
-};
-
-const cleanupErrorBoundaryTest = (originalConsoleError) => {
-  console.error = originalConsoleError;
-};
-
-describe.skip("ErrorBoundary Component", function() {
+describe("ErrorBoundary Component", () => {
   // Suppress console errors during tests
   let originalConsoleError;
 
   beforeEach(() => {
-    originalConsoleError = setupErrorBoundaryTest();
+    originalConsoleError = console.error;
+    console.error = jest.fn();
+    jest.clearAllMocks();
+
+    // Suppress unhandled promise rejection warnings
+    process.on("unhandledRejection", () => {});
+
+    // Mock window.prompt for error reporting
+    window.prompt = jest.fn().mockReturnValue("User feedback for test error");
   });
 
   afterEach(() => {
-    cleanupErrorBoundaryTest(originalConsoleError);
+    console.error = originalConsoleError;
   });
 
   describe("Normal Operation", () => {
@@ -126,11 +116,15 @@ describe.skip("ErrorBoundary Component", function() {
       // Should show error UI
       expect(screen.getByText("Test Section Error")).toBeInTheDocument();
 
-      // Click retry button and verify it's working
+      // Click retry button (this resets the error boundary state)
       fireEvent.click(screen.getByText("Try Again"));
+
+      // After retry, the error boundary should reset and attempt to render children again
+      // In this test, we're just verifying the retry button exists and is clickable
       expect(screen.getByText("Try Again")).toBeInTheDocument();
     });
   });
+
   describe("Error Reporting", () => {
     it("displays Report Problem button when onReportProblem prop is provided", () => {
       const mockReportHandler = jest.fn();
@@ -151,7 +145,7 @@ describe.skip("ErrorBoundary Component", function() {
   });
 
   describe("Development Mode", () => {
-    it("shows appropriate error information in development", () => {
+    it("shows appropriate error information in development", async () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = "development";
 

@@ -7,7 +7,6 @@
 
 import DataIntegritySchemas from "./DataIntegritySchemas.js";
 import ErrorReportService from "../../services/ErrorReportService.js";
-import logger from "../logger.js";
 
 export class SchemaValidator {
   // Validation result severity levels
@@ -145,7 +144,7 @@ export class SchemaValidator {
 
     for (let i = 0; i < dataArray.length; i++) {
       if (reportProgress && i % 100 === 0) {
-        logger.info("Validation batch progress", { progress: i, total: dataArray.length, context: 'schema_validation' });
+        console.log(`Validating batch progress: ${i}/${dataArray.length}`);
       }
 
       const itemResult = this.validateData(storeName, dataArray[i], options);
@@ -162,10 +161,13 @@ export class SchemaValidator {
         batchResult.valid = false;
 
         if (stopOnFirstError || batchResult.summary.errors >= maxErrors) {
-          logger.warn("Stopping batch validation", { 
-            reason: stopOnFirstError ? "first error encountered" : "max errors reached",
-            context: 'schema_validation'
-          });
+          console.warn(
+            `Stopping batch validation: ${
+              stopOnFirstError
+                ? "first error encountered"
+                : "max errors reached"
+            }`
+          );
           break;
         }
       }
@@ -727,7 +729,7 @@ export class SchemaValidator {
       data.successfulAttempts &&
       data.successRate !== undefined
     ) {
-      const calculatedRate = data.totalAttempts > 0 ? data.successfulAttempts / data.totalAttempts : 0;
+      const calculatedRate = data.successfulAttempts / data.totalAttempts;
       const tolerance = 0.01; // 1% tolerance for floating point errors
 
       if (Math.abs(calculatedRate - data.successRate) > tolerance) {
@@ -872,7 +874,7 @@ export class SchemaValidator {
         },
       });
     } catch (reportError) {
-      logger.warn("Failed to report validation errors", { error: reportError, context: 'schema_validation' });
+      console.warn("Failed to report validation errors:", reportError);
     }
   }
 

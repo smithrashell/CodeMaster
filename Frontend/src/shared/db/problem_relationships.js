@@ -1,5 +1,8 @@
+import { getAllStandardProblems } from "./standard_problems.js";
+import { getTagRelationships } from "./tag_relationships.js";
 import { getTagMastery } from "./tag_mastery.js";
 import { calculateTagSimilarity } from "./tag_mastery.js";
+import { TagService } from "../services/tagServices";
 import { fetchAllProblems } from "./problems.js";
 import { dbHelper } from "./index.js";
 
@@ -22,7 +25,7 @@ export const addProblemRelationship = async (
   });
 };
 
-export const weakenProblemRelationship = async (problemId1, _problemId2) => {
+export const weakenProblemRelationship = async (problemId1, problemId2) => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("problem_relationships", "readwrite");
@@ -38,7 +41,7 @@ export const weakenProblemRelationship = async (problemId1, _problemId2) => {
         store.put(entry);
         resolve(entry);
       } else {
-        reject(new Error("No relationship found"));
+        reject("No relationship found");
       }
     };
     request.onerror = () => reject(request.error);
@@ -211,8 +214,10 @@ export async function updateProblemRelationships(session) {
     }
     console.log("problem.leetCodeID", problem.leetCodeID);
     // === Update NextProblem Property Based on Relationship Strength ===
-    // TODO: Implement determineNextProblem function
-    const updatedNextProblem = null; // Temporary fallback
+    const updatedNextProblem = await determineNextProblem(
+      problem.leetCodeID,
+      attemptedProblemIds
+    );
 
     if (updatedNextProblem && updatedNextProblem !== nextProblemId) {
       problem.NextProblem = updatedNextProblem;
@@ -329,14 +334,14 @@ export function calculateAndTrimProblemRelationships({
     problemsArray.forEach((p2) => {
       if (p1.id === p2.id) return;
 
-      const similarity = calculateTagSimilarity({
-        tags1: p1.tags,
-        tags2: p2.tags,
+      const similarity = calculateTagSimilarity(
+        p1.tags,
+        p2.tags,
         tagGraph,
         tagMastery,
-        difficulty1: p1.difficulty,
-        difficulty2: p2.difficulty
-      });
+        p1.difficulty,
+        p2.difficulty
+      );
 
       const d1 = difficultyMap[p1.difficulty] || 2;
       const d2 = difficultyMap[p2.difficulty] || 2;

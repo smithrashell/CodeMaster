@@ -152,11 +152,6 @@
 
 .activeSubLink {
   background-color: var(--cm-active-blue);
-  color: var(--cm-link-active-color);
+  color: var(--cm-btn-text);
   border-radius: 5px;
-}
-
-.activeSubLink:hover {
-  background-color: var(--cm-active-blue);
-  color: var(--cm-link-active-color);
 }

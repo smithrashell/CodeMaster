@@ -11,8 +11,11 @@ let dbCreationLog = [];
  */
 export function installDatabaseDebugger() {
   if (interceptorInstalled) {
+    console.warn('🔧 Database debugger already installed');
     return;
   }
+
+  console.log('🔧 Installing global IndexedDB debugger...');
   
   // Store original indexedDB.open
   const originalOpen = indexedDB.open;
@@ -34,13 +37,19 @@ export function installDatabaseDebugger() {
     
     dbCreationLog.push(dbAttempt);
     
-    // Database intercept: ${name} v${version || 'default'}
+    console.group(`🗄️ GLOBAL INDEXEDDB INTERCEPT: ${name} v${version || 'default'}`);
+    console.log('🕐 Timestamp:', timestamp);
+    console.log('📍 Context:', context.type);
+    console.log('🌐 Location:', context.location);
+    console.log('🧵 First Stack Line:', stack.split('\n')[0]);
     
     // Count how many times this specific database has been opened
     const sameDbAttempts = dbCreationLog.filter(attempt => attempt.databaseName === name);
     if (sameDbAttempts.length > 1) {
       console.error(`🚨 DUPLICATE DATABASE ATTEMPT #${sameDbAttempts.length} for database: ${name}`);
+      console.log('🔍 Previous attempts:', sameDbAttempts.slice(0, -1));
     }
+    console.groupEnd();
     
     // Call original indexedDB.open
     const request = originalOpen.call(this, name, version);
@@ -48,6 +57,7 @@ export function installDatabaseDebugger() {
     // Log when the database actually opens
     const originalOnSuccess = request.onsuccess;
     request.onsuccess = function(event) {
+      console.log(`✅ Database '${name}' opened successfully at ${new Date().toISOString()}`);
       if (originalOnSuccess) {
         originalOnSuccess.call(this, event);
       }
@@ -65,6 +75,7 @@ export function installDatabaseDebugger() {
   };
   
   interceptorInstalled = true;
+  console.log('✅ Global IndexedDB debugger installed');
 }
 
 /**
@@ -138,6 +149,49 @@ function getCallStack() {
   return stack.split('\n').slice(3).join('\n'); // Remove Error, getCallStack, and indexedDB.open from stack
 }
 
+/**
+ * Get database creation log
+ */
+export function getDatabaseCreationLog() {
+  return [...dbCreationLog];
+}
+
+/**
+ * Clear database creation log
+ */
+export function clearDatabaseCreationLog() {
+  dbCreationLog = [];
+}
+
+/**
+ * Get database creation summary
+ */
+export function getDatabaseCreationSummary() {
+  const summary = {};
+  
+  dbCreationLog.forEach(attempt => {
+    const key = attempt.databaseName;
+    if (!summary[key]) {
+      summary[key] = {
+        databaseName: key,
+        attemptCount: 0,
+        contexts: new Set(),
+        timestamps: []
+      };
+    }
+    
+    summary[key].attemptCount++;
+    summary[key].contexts.add(attempt.context.type);
+    summary[key].timestamps.push(attempt.timestamp);
+  });
+  
+  // Convert Sets to arrays for JSON serialization
+  Object.values(summary).forEach(db => {
+    db.contexts = Array.from(db.contexts);
+  });
+  
+  return summary;
+}
 
 // Auto-install debugger when this module is imported
 if (typeof window !== 'undefined' && typeof indexedDB !== 'undefined') {

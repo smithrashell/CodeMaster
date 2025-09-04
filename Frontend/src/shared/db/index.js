@@ -2,51 +2,530 @@ import migrationSafety from "./migrationSafety.js";
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
 // Import database debugger to install global interceptor
 import "../utils/DatabaseDebugger.js";
-// Import extracted modules for modular database operations
-import {
-  getExecutionContext,
-  getStackTrace,
-  validateDatabaseAccess,
-  logDatabaseAccess
-} from "./accessControl.js";
-import {
-  createDatabaseConnection,
-  logNewConnectionWarning,
-  logCachedConnection
-} from "./connectionUtils.js";
+
+/**
+ * Enhanced context detection for debugging
+ */
+function getExecutionContext() {
+  const context = {
+    timestamp: new Date().toISOString(),
+    location: typeof window !== 'undefined' ? window.location.href : 'no-window',
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 100) : 'no-navigator',
+    chromeRuntime: typeof chrome !== 'undefined' && chrome.runtime ? 'available' : 'unavailable',
+    chromeExtension: typeof chrome !== 'undefined' && chrome.extension ? 'available' : 'unavailable',
+    documentState: typeof document !== 'undefined' ? document.readyState : 'no-document',
+    contextType: 'unknown'
+  };
+  
+  try {
+    if (typeof window !== 'undefined') {
+      if (window.location.protocol === 'chrome-extension:') {
+        context.contextType = 'extension-page';
+      } else if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        context.contextType = 'content-script-or-web-page';
+      } else {
+        context.contextType = 'other-protocol';
+      }
+    } else {
+      context.contextType = 'no-window-context';
+    }
+    
+    // Try to determine if this is background script vs content script
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      if (chrome.runtime.getBackgroundPage) {
+        context.contextType += '-background-script';
+      } else if (chrome.tabs && chrome.tabs.query) {
+        context.contextType += '-with-tabs-api';
+      }
+    }
+  } catch (error) {
+    context.error = error.message;
+  }
+  
+  return context;
+}
+
+/**
+ * Get stack trace for debugging
+ */
+function getStackTrace() {
+  const error = new Error();
+  const stack = error.stack || '';
+  return stack.split('\n').slice(2).join('\n'); // Remove Error and getStackTrace from stack
+}
 
 export const dbHelper = {
   dbName: "review",
   version: 36, // 🆙 Upgraded for sessionType index support
   db: null,
 
-  openDB() {
+  async openDB() {
     const context = getExecutionContext();
     const stack = getStackTrace();
     
-    // Validate database access permissions
-    validateDatabaseAccess(context, stack);
+    // 🚨 CRITICAL SAFETY NET: Block database access from content scripts
+    // BUT allow access from marked background script context
+    console.group('🔍 DATABASE ACCESS CONTROL');
+    console.log('📍 Context Detection:', {
+      hasGlobalThis: typeof globalThis !== 'undefined',
+      isBackgroundContext: typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT,
+      hasWindow: typeof window !== 'undefined',
+      hasChrome: typeof chrome !== 'undefined',
+      contextType: context.contextType
+    });
     
-    // Log database access attempt
-    logDatabaseAccess(context, stack);
-    
-    // Return cached database if already opened
-    if (dbHelper.db) {
-      logCachedConnection();
-      return dbHelper.db;
+    if (typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT) {
+      console.log('✅ DATABASE ACCESS: Allowed from marked background script context');
+      console.groupEnd();
+    } else if (typeof window !== "undefined" && window.location) {
+      const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
+      const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
+      
+      console.log('📍 Window Context Check:', {
+        protocol: window.location.protocol,
+        href: window.location.href.substring(0, 100),
+        isWebPage,
+        isNotExtensionPage
+      });
+      
+      if (isWebPage && isNotExtensionPage) {
+        console.groupEnd();
+        const error = new Error(`🚫 DATABASE ACCESS BLOCKED: Content scripts cannot access IndexedDB directly. Context: ${context.contextType}, URL: ${context.location}`);
+        console.error(error.message);
+        console.error('📚 Blocked Call Stack:', stack);
+        throw error;
+      }
+      console.log('✅ DATABASE ACCESS: Extension page context allowed');
+      console.groupEnd();
+    } else {
+      console.log('✅ DATABASE ACCESS: No window context, allowing (likely service worker)');
+      console.groupEnd();
     }
     
-    logNewConnectionWarning();
+    // Additional safety check for chrome extension context
+    // BUT allow access from marked background script context
+    if (typeof chrome !== "undefined" && chrome.runtime && !(typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT)) {
+      const hasTabsAPI = !!(chrome.tabs && chrome.tabs.query);
+      console.log('🔍 Chrome Extension Context Check:', {
+        hasChromeRuntime: !!(chrome.runtime),
+        hasTabsAPI,
+        isBackgroundContext: typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT
+      });
+      
+      if (!hasTabsAPI && typeof window !== "undefined" && 
+          (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+        const error = new Error(`🚫 DATABASE ACCESS BLOCKED: Detected content script context without tabs API. Context: ${context.contextType}`);
+        console.error(error.message);
+        throw error;
+      }
+    }
+    
+    // DEBUGGING: Log every database open attempt with full context
+    console.group(`🔍 DATABASE DEBUG: openDB() called from ${context.contextType}`);
+    console.log('📍 Context:', context);
+    console.log('📚 Call Stack:', stack);
+    
+    if (dbHelper.db) {
+      console.log('✅ Returning cached database connection');
+      console.groupEnd();
+      return dbHelper.db; // Return cached database if already opened
+    }
+    
+    console.warn('🚨 CREATING NEW DATABASE CONNECTION - This should only happen ONCE!');
+    console.groupEnd();
 
     // Initialize migration safety system
     migrationSafety.initializeMigrationSafety();
 
-    // Create and configure database connection
-    return createDatabaseConnection(dbHelper.dbName, dbHelper.version, context, stack)
-      .then(db => {
-        dbHelper.db = db;
-        return db;
-      });
+    return new Promise((resolve, reject) => {
+      // DEBUGGING: Log the actual IndexedDB.open call
+      console.group(`💾 INDEXEDDB OPEN: Opening ${dbHelper.dbName} v${dbHelper.version}`);
+      console.log('🕐 Time:', new Date().toISOString());
+      console.log('📍 Context:', context.contextType);
+      console.log('🌐 Location:', context.location);
+      
+      const request = indexedDB.open(dbHelper.dbName, dbHelper.version);
+      console.log('📨 IndexedDB request created:', request);
+      console.groupEnd();
+
+      request.onupgradeneeded = async (event) => {
+        // eslint-disable-next-line no-console
+        console.log("📋 Database upgrade needed - creating safety backup...");
+
+        // TEMPORARY: Disable migration backup to prevent duplicate database creation
+        // Create backup before any schema changes
+        try {
+          if (event.oldVersion > 0) {
+            // Only backup if upgrading existing database
+            // await migrationSafety.createMigrationBackup(); // DISABLED temporarily
+            // eslint-disable-next-line no-console
+            console.log("⚠️ Migration backup disabled to prevent duplicate databases");
+          }
+        } catch (error) {
+          console.error(
+            "⚠️ Backup creation failed, proceeding with upgrade:",
+            error
+          );
+        }
+        const db = event.target.result;
+
+        // ✅ Ensure 'attempts' store exists
+        if (!db.objectStoreNames.contains("attempts")) {
+          let attemptsStore = db.createObjectStore("attempts", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+
+          dbHelper.ensureIndex(attemptsStore, "by_date", "date");
+          dbHelper.ensureIndex(attemptsStore, "by_problem_and_date", [
+            "problemId",
+            "date",
+          ]);
+          dbHelper.ensureIndex(attemptsStore, "by_problemId", "problemId");
+          dbHelper.ensureIndex(attemptsStore, "by_sessionId", "sessionId");
+        }
+
+        // ✅ Ensure 'limits' store exists
+        if (!db.objectStoreNames.contains("limits")) {
+          let limitsStore = db.createObjectStore("limits", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+
+          dbHelper.ensureIndex(limitsStore, "by_createAt", "createAt");
+        }
+
+        // ✅ Ensure 'problem_relationships' store exists
+        // if (db.objectStoreNames.contains("problem_relationships")) {
+        //   db.deleteObjectStore("problem_relationships");
+        // }
+        if (!db.objectStoreNames.contains("session_state")) {
+          db.createObjectStore("session_state", { keyPath: "id" });
+        }
+
+        // ✅ Fix problem_relationships store schema - recreate with proper keyPath
+        if (db.objectStoreNames.contains("problem_relationships")) {
+          db.deleteObjectStore("problem_relationships");
+        }
+
+        let relationshipsStore = db.createObjectStore("problem_relationships", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+
+        dbHelper.ensureIndex(relationshipsStore, "by_problemId1", "problemId1");
+        dbHelper.ensureIndex(relationshipsStore, "by_problemId2", "problemId2");
+
+        // ✅ Ensure 'problems' store exists
+        if (!db.objectStoreNames.contains("problems")) {
+          let problemsStore = db.createObjectStore("problems", {
+            keyPath: "leetCodeID",
+          });
+
+          dbHelper.ensureIndex(problemsStore, "by_tag", "tag");
+          dbHelper.ensureIndex(problemsStore, "by_problem", "problem");
+          dbHelper.ensureIndex(problemsStore, "by_review", "review");
+          dbHelper.ensureIndex(
+            problemsStore,
+            "by_ProblemDescription",
+            "ProblemDescription"
+          );
+          dbHelper.ensureIndex(problemsStore, "by_nextProblem", "nextProblem");
+        }
+        // ✅ Ensure 'sessions' store exists with safe migration
+        let sessionsStore;
+        if (!db.objectStoreNames.contains("sessions")) {
+          // Create new sessions store if it doesn't exist
+          sessionsStore = db.createObjectStore("sessions", {
+            keyPath: "id",
+            autoIncrement: false, // You manually set sessionID
+          });
+        } else {
+          // Access existing sessions store for index management
+          sessionsStore = event.target.transaction.objectStore("sessions");
+        }
+
+        // Ensure required indexes exist
+        if (!sessionsStore.indexNames.contains("by_date")) {
+          sessionsStore.createIndex("by_date", "date", { unique: false });
+        }
+        
+        // Add index for interview sessions
+        if (!sessionsStore.indexNames.contains("by_sessionType")) {
+          sessionsStore.createIndex("by_sessionType", "sessionType", { unique: false });
+        }
+        
+        // Add composite index for efficient sessionType + status queries
+        if (!sessionsStore.indexNames.contains("by_sessionType_status")) {
+          sessionsStore.createIndex("by_sessionType_status", ["sessionType", "status"], { unique: false });
+        }
+
+        // Add indexes for session attribution and staleness detection
+        if (!sessionsStore.indexNames.contains("by_origin")) {
+          sessionsStore.createIndex("by_origin", "origin", { unique: false });
+        }
+        
+        if (!sessionsStore.indexNames.contains("by_lastActivityTime")) {
+          sessionsStore.createIndex("by_lastActivityTime", "lastActivityTime", { unique: false });
+        }
+        
+        if (!sessionsStore.indexNames.contains("by_origin_status")) {
+          sessionsStore.createIndex("by_origin_status", ["origin", "status"], { unique: false });
+        }
+
+        // eslint-disable-next-line no-console
+        console.log("Sessions store configured safely!");
+        // ✅ Ensure 'standard_problems' store exists
+        if (!db.objectStoreNames.contains("standard_problems")) {
+          let standardProblemsStore = db.createObjectStore(
+            "standard_problems",
+            {
+              keyPath: "id",
+              autoIncrement: true,
+            }
+          );
+
+          dbHelper.ensureIndex(standardProblemsStore, "by_slug", "slug");
+        }
+
+        // ✅ Ensure 'backup_storage' store exists
+        if (!db.objectStoreNames.contains("backup_storage")) {
+          let backupStore = db.createObjectStore("backup_storage", {
+            keyPath: "backupId",
+          });
+
+          dbHelper.ensureIndex(backupStore, "by_backupId", "backupId");
+        }
+
+        // ✅ Ensure 'tag_relationships' store exists
+        let tagRelationshipsStore;
+        if (!db.objectStoreNames.contains("tag_relationships")) {
+          tagRelationshipsStore = db.createObjectStore("tag_relationships", {
+            keyPath: "id",
+          });
+        } else {
+          tagRelationshipsStore =
+            event.target.transaction.objectStore("tag_relationships");
+        }
+
+        // ✅ Ensure index on 'classification' is created
+        if (!tagRelationshipsStore.indexNames.contains("by_classification")) {
+          tagRelationshipsStore.createIndex(
+            "by_classification",
+            "classification"
+          );
+        }
+
+        // eslint-disable-next-line no-console
+        console.log("Database upgrade completed");
+
+        // ✅ **NEW: Ensure 'tag_mastery' store exists**
+        if (!db.objectStoreNames.contains("tag_mastery")) {
+          let tagMasteryStore = db.createObjectStore("tag_mastery", {
+            keyPath: "tag",
+          });
+
+          dbHelper.ensureIndex(tagMasteryStore, "by_tag", "tag");
+        }
+
+        // ✅ **NEW: Ensure 'settings' store exists**
+        if (!db.objectStoreNames.contains("settings")) {
+          let settingsStore = db.createObjectStore("settings", {
+            keyPath: "id",
+          });
+
+          // eslint-disable-next-line no-console
+          console.log("Settings store created!");
+        }
+        //add a index on classification
+
+        // // ✅ **NEW: Ensure 'user_stats' store exists**
+        if (!db.objectStoreNames.contains("pattern_ladders")) {
+          let patternLaddersStore = db.createObjectStore("pattern_ladders", {
+            keyPath: "tag",
+          });
+
+          dbHelper.ensureIndex(patternLaddersStore, "by_tag", "tag");
+        }
+
+        // ✅ **NEW: Ensure 'session_analytics' store exists**
+        if (!db.objectStoreNames.contains("session_analytics")) {
+          let sessionAnalyticsStore = db.createObjectStore(
+            "session_analytics",
+            {
+              keyPath: "sessionId",
+            }
+          );
+
+          dbHelper.ensureIndex(sessionAnalyticsStore, "by_date", "completedAt");
+          dbHelper.ensureIndex(
+            sessionAnalyticsStore,
+            "by_accuracy",
+            "accuracy"
+          );
+          dbHelper.ensureIndex(
+            sessionAnalyticsStore,
+            "by_difficulty",
+            "predominantDifficulty"
+          );
+
+          // eslint-disable-next-line no-console
+          console.log("✅ Session analytics store created!");
+        }
+
+        // ✅ **NEW: Ensure 'strategy_data' store exists with optimized indexes**
+        if (!db.objectStoreNames.contains("strategy_data")) {
+          let strategyDataStore = db.createObjectStore("strategy_data", {
+            keyPath: "tag",
+          });
+
+          // Core indexes for fast lookups
+          dbHelper.ensureIndex(strategyDataStore, "by_tag", "tag");
+          dbHelper.ensureIndex(strategyDataStore, "by_patterns", "patterns", {
+            multiEntry: true,
+          });
+          dbHelper.ensureIndex(strategyDataStore, "by_related", "related", {
+            multiEntry: true,
+          });
+
+          // eslint-disable-next-line no-console
+          console.log("✅ Strategy data store created with optimized indexes!");
+        } else {
+          // Add new indexes to existing store if they don't exist
+          const strategyDataStore =
+            event.target.transaction.objectStore("strategy_data");
+
+          if (!strategyDataStore.indexNames.contains("by_patterns")) {
+            strategyDataStore.createIndex("by_patterns", "patterns", {
+              multiEntry: true,
+            });
+          }
+          if (!strategyDataStore.indexNames.contains("by_related")) {
+            strategyDataStore.createIndex("by_related", "related", {
+              multiEntry: true,
+            });
+          }
+        }
+
+        // ✅ **NEW: Ensure 'hint_interactions' store exists for usage analytics**
+        if (!db.objectStoreNames.contains("hint_interactions")) {
+          let hintInteractionsStore = db.createObjectStore(
+            "hint_interactions",
+            {
+              keyPath: "id",
+              autoIncrement: true,
+            }
+          );
+
+          // Core indexes for analytics queries
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_problem_id",
+            "problemId"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_session_id",
+            "sessionId"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_timestamp",
+            "timestamp"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_hint_type",
+            "hintType"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_user_action",
+            "userAction"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_difficulty",
+            "problemDifficulty"
+          );
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_box_level",
+            "boxLevel"
+          );
+
+          // Composite indexes for advanced analytics
+          dbHelper.ensureIndex(hintInteractionsStore, "by_problem_and_action", [
+            "problemId",
+            "userAction",
+          ]);
+          dbHelper.ensureIndex(
+            hintInteractionsStore,
+            "by_hint_type_and_difficulty",
+            ["hintType", "problemDifficulty"]
+          );
+
+          // eslint-disable-next-line no-console
+          console.log(
+            "✅ Hint interactions store created for usage analytics!"
+          );
+        }
+
+        // ✅ **NEW: Ensure 'user_actions' store exists for user action tracking**
+        if (!db.objectStoreNames.contains("user_actions")) {
+          let userActionsStore = db.createObjectStore("user_actions", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+
+          // Create indexes for efficient analytics queries
+          dbHelper.ensureIndex(userActionsStore, "by_timestamp", "timestamp");
+          dbHelper.ensureIndex(userActionsStore, "by_category", "category");
+          dbHelper.ensureIndex(userActionsStore, "by_action", "action");
+          dbHelper.ensureIndex(userActionsStore, "by_session", "sessionId");
+          dbHelper.ensureIndex(userActionsStore, "by_user_agent", "userAgent");
+          dbHelper.ensureIndex(userActionsStore, "by_url", "url");
+
+          // eslint-disable-next-line no-console
+          console.log("✅ User actions store created for tracking!");
+        }
+
+        // ✅ **NEW: Ensure 'error_reports' store exists for error reporting**
+        if (!db.objectStoreNames.contains("error_reports")) {
+          let errorReportsStore = db.createObjectStore("error_reports", {
+            keyPath: "id",
+            autoIncrement: true,
+          });
+
+          // Create indexes for efficient querying
+          dbHelper.ensureIndex(errorReportsStore, "by_timestamp", "timestamp");
+          dbHelper.ensureIndex(errorReportsStore, "by_section", "section");
+          dbHelper.ensureIndex(errorReportsStore, "by_error_type", "errorType");
+          dbHelper.ensureIndex(errorReportsStore, "by_user_agent", "userAgent");
+
+          // eslint-disable-next-line no-console
+          console.log("✅ Error reports store created for error tracking!");
+        }
+      };
+
+      request.onsuccess = (event) => {
+        dbHelper.db = event.target.result;
+        
+        // DEBUGGING: Log successful database connection
+        console.group('🎉 DATABASE OPENED SUCCESSFULLY');
+        console.log('🕐 Time:', new Date().toISOString());
+        console.log('📍 Context:', context.contextType);
+        console.log('🆔 Database Name:', dbHelper.db.name);
+        console.log('📄 Version:', dbHelper.db.version);
+        console.log('📊 Object Stores:', Array.from(dbHelper.db.objectStoreNames));
+        console.log('🧵 Call Stack:', stack.split('\n')[0]); // Just first line of stack
+        console.groupEnd();
+        
+        resolve(dbHelper.db);
+      };
+
+      request.onerror = (event) => reject(`❌ DB Error: ${event.target.error}`);
+    });
   },
 
   ensureIndex(store, indexName, keyPath) {
@@ -69,7 +548,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<IDBDatabase>} Database instance
    */
-  openDBWithRetry(options = {}) {
+  async openDBWithRetry(options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = "openDB",
@@ -93,7 +572,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<IDBObjectStore>} Object store
    */
-  getStoreWithRetry(storeName, mode = "readonly", options = {}) {
+  async getStoreWithRetry(storeName, mode = "readonly", options = {}) {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `getStore_${storeName}_${mode}`,
@@ -121,7 +600,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<any>} Transaction result
    */
-  executeTransaction(storeNames, mode, operation, options = {}) {
+  async executeTransaction(storeNames, mode, operation, options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `transaction_${
@@ -190,7 +669,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<any>} Record data or null
    */
-  getRecord(storeName, key, options = {}) {
+  async getRecord(storeName, key, options = {}) {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `getRecord_${storeName}`,
@@ -224,7 +703,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<any>} Record key
    */
-  putRecord(storeName, data, options = {}) {
+  async putRecord(storeName, data, options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `putRecord_${storeName}`,
@@ -257,7 +736,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<void>}
    */
-  deleteRecord(storeName, key, options = {}) {
+  async deleteRecord(storeName, key, options = {}) {
     const {
       timeout = indexedDBRetry.defaultTimeout,
       operationName = `deleteRecord_${storeName}`,
@@ -290,7 +769,7 @@ export const dbHelper = {
    * @param {Object} options - Retry configuration options
    * @returns {Promise<number>} Record count
    */
-  countRecords(storeName, range = null, options = {}) {
+  async countRecords(storeName, range = null, options = {}) {
     const {
       timeout = indexedDBRetry.quickTimeout,
       operationName = `countRecords_${storeName}`,
@@ -324,7 +803,7 @@ export const dbHelper = {
    * @param {Object} options - Retry and streaming configuration
    * @returns {Promise<Array>} All records
    */
-  getAllRecords(storeName, range = null, options = {}) {
+  async getAllRecords(storeName, range = null, options = {}) {
     const {
       timeout = indexedDBRetry.bulkTimeout,
       operationName = `getAllRecords_${storeName}`,
@@ -380,7 +859,7 @@ export const dbHelper = {
    * @param {AbortController} abortController - Abort controller
    * @returns {Promise<Array>} All records
    */
-  streamRecords(store, range, limit, onProgress, abortController) {
+  async streamRecords(store, range, limit, onProgress, abortController) {
     return new Promise((resolve, reject) => {
       const records = [];
       const request = store.openCursor(range);

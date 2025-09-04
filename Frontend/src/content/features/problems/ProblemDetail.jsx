@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNav } from "../../../shared/provider/navprovider";
 import {
   ChevronLeftIcon,
   BarChart3Icon,
   TrendingUpIcon,
+  TagIcon,
   PlayIcon,
   BrainIcon,
 } from "../../../shared/components/ui/Icons";
@@ -15,10 +16,14 @@ import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
 import styles from "./ProblemCard.module.css";
 
-/**
- * Extract problem data from route state
- */
-const useProblemData = (routeState) => {
+const ProbDetail = ({ isLoading }) => {
+  const { state: routeState } = useLocation();
+  const { setIsAppOpen } = useNav();
+  const navigate = useNavigate();
+
+  const [showSkip, setShowSkip] = useState(false);
+
+  // Extract problem data from route state
   const problemData = {
     id: routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
     leetCodeID:
@@ -37,18 +42,21 @@ const useProblemData = (routeState) => {
     lastSolved: routeState?.problemData?.lastSolved || "Never",
   };
 
+  // Extract interview mode information
   const interviewConfig = routeState?.problemData?.interviewConstraints || null;
   const sessionType = routeState?.problemData?.sessionType || null;
   const isInterviewMode = sessionType && sessionType !== 'standard';
 
-  return { problemData, interviewConfig, sessionType, isInterviewMode };
-};
+  // DEBUG: Log problem data and route state
+  console.log("🔍 ProbDetail routeState:", routeState);
+  console.log("🔍 ProbDetail problemData:", problemData);
+  console.log("🔍 ProbDetail tags specifically:", problemData.tags);
 
-/**
- * Navigation and action handlers
- */
-const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfig, sessionType, routeState }) => {
-  const _handleClose = () => {
+  useEffect(() => {
+    setShowSkip(!routeState?.problemFound);
+  }, [routeState?.problemFound]);
+
+  const handleClose = () => {
     setIsAppOpen(false);
   };
 
@@ -74,197 +82,6 @@ const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfi
     navigate("/Probgen");
   };
 
-  return { handleNewAttempt, handleSkip };
-};
-
-/**
- * Problem statistics display component
- */
-const ProblemStats = ({ problemData }) => (
-  <div className={styles.stats}>
-    <div className={styles.stat}>
-      <BarChart3Icon className={styles.statIcon} />
-      <div>
-        <div className={styles.statValue}>
-          {problemData?.acceptance || "N/A"}
-        </div>
-        <div className={styles.statLabel}>Acceptance</div>
-      </div>
-    </div>
-    <div className={styles.stat}>
-      <TrendingUpIcon className={styles.statIcon} />
-      <div>
-        <div className={styles.statValue}>
-          {problemData?.submissions || "N/A"}
-        </div>
-        <div className={styles.statLabel}>Submissions</div>
-      </div>
-    </div>
-  </div>
-);
-
-/**
- * Status section component
- */
-const StatusSection = ({ problemData }) => (
-  <div className="problem-sidebar-section">
-    <div className={styles.statusCard}>
-      <BrainIcon className={styles.statusIcon} />
-      <span className={styles.statusLabel}>
-        Last Solved:
-      </span>
-      <div className={styles.statusItem}>
-        <span className={styles.statusValue}>
-          {problemData?.lastSolved || "Never"}
-        </span>
-      </div>
-    </div>
-  </div>
-);
-
-/**
- * Main content card component
- */
-const MainContentCard = ({ problemData, getDifficultyVariant }) => (
-  <div className={styles.card}>
-    <div className={styles.header}>
-      <ChevronLeftIcon className={styles.backIcon} />
-      <span>
-        Problem #{problemData?.leetCodeID || problemData?.id || "N/A"}
-      </span>
-    </div>
-    <h3 className={styles.title}>
-      {problemData?.ProblemDescription || problemData?.title || "N/A"}
-    </h3>
-    <Badge
-      className={styles.difficultyBadge}
-      variant={getDifficultyVariant(problemData?.difficulty)}
-    >
-      {problemData?.difficulty || "Unknown"}
-    </Badge>
-
-    <Separator className={styles.separator} />
-    <ProblemStats problemData={problemData} />
-    <StatusSection problemData={problemData} />
-  </div>
-);
-
-/**
- * Action buttons component
- */
-const ActionButtons = ({ handleNewAttempt, handleSkip, showSkip }) => (
-  <div className="problem-sidebar-actions" style={{ marginTop: '6px' }}>
-    <Button
-      onClick={handleNewAttempt}
-      className="problem-sidebar-primary-btn"
-      variant="default"
-      size="lg"
-      style={{ padding: '8px 16px', fontSize: '13px' }}
-    >
-      <PlayIcon className="problem-sidebar-btn-icon" />
-      New Attempt
-    </Button>
-    {showSkip && (
-      <Button
-        variant="ghost"
-        onClick={handleSkip}
-        className="problem-sidebar-skip-btn"
-        style={{ padding: '6px 12px', fontSize: '12px' }}
-      >
-        Skip Problem
-      </Button>
-    )}
-  </div>
-);
-
-/**
- * Interview Mode Banner Component
- */
-const InterviewModeBanner = ({ isInterviewMode, sessionType, interviewConfig }) => {
-  if (!isInterviewMode) return null;
-
-  const modeDisplayName = sessionType === 'interview-like' ? 'Interview Practice' : 
-                         sessionType === 'full-interview' ? 'Full Interview' : 
-                         'Interview Mode';
-  
-  const constraints = [];
-  if (interviewConfig?.hints?.max !== null && interviewConfig?.hints?.max !== undefined) {
-    constraints.push(`${interviewConfig.hints.max} hint${interviewConfig.hints.max !== 1 ? 's' : ''} max`);
-  }
-  if (interviewConfig?.timing?.hardCutoff) {
-    constraints.push('hard time limits');
-  }
-  if (interviewConfig?.primers?.available === false) {
-    constraints.push('no strategy guides');
-  }
-
-  const bannerStyle = {
-    backgroundColor: sessionType === 'full-interview' ? '#fef2f2' : '#fff7ed',
-    border: `1px solid ${sessionType === 'full-interview' ? '#fecaca' : '#fed7aa'}`,
-    borderRadius: '8px',
-    padding: '12px 16px',
-    margin: '12px 0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  };
-
-  const iconStyle = {
-    fontSize: '16px',
-    color: sessionType === 'full-interview' ? '#dc2626' : '#ea580c'
-  };
-
-  const textStyle = {
-    fontSize: '13px',
-    color: sessionType === 'full-interview' ? '#7f1d1d' : '#9a3412',
-    fontWeight: '500'
-  };
-
-  const constraintStyle = {
-    fontSize: '11px',
-    color: sessionType === 'full-interview' ? '#991b1b' : '#c2410c',
-    marginLeft: '4px'
-  };
-
-  return (
-    <div style={bannerStyle}>
-      <span style={iconStyle}>
-        {sessionType === 'full-interview' ? '🎯' : '💪'}
-      </span>
-      <div>
-        <div style={textStyle}>
-          {modeDisplayName} Mode Active
-        </div>
-        {constraints.length > 0 && (
-          <div style={constraintStyle}>
-            {constraints.join(' • ')}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const ProbDetail = ({ isLoading }) => {
-  const { state: routeState } = useLocation();
-  const { setIsAppOpen } = useNav();
-  const navigate = useNavigate();
-  const [showSkip, setShowSkip] = useState(false);
-
-  const { problemData, interviewConfig, sessionType, isInterviewMode } = useProblemData(routeState);
-  const { handleNewAttempt, handleSkip } = useProblemActions({
-    navigate, setIsAppOpen, problemData, interviewConfig, sessionType, routeState
-  });
-
-  // DEBUG: Log problem data and route state
-  console.log("🔍 ProbDetail routeState:", routeState);
-  console.log("🔍 ProbDetail problemData:", problemData);
-  console.log("🔍 ProbDetail tags specifically:", problemData.tags);
-
-  useEffect(() => {
-    setShowSkip(!routeState?.problemFound);
-  }, [routeState?.problemFound]);
-
   const getDifficultyVariant = (difficulty) => {
     if (!difficulty) return "default";
     const diff = difficulty.toLowerCase();
@@ -274,6 +91,71 @@ const ProbDetail = ({ isLoading }) => {
     return "default";
   };
 
+  // Interview Mode Banner Component
+  const InterviewModeBanner = () => {
+    if (!isInterviewMode) return null;
+
+    const modeDisplayName = sessionType === 'interview-like' ? 'Interview Practice' : 
+                           sessionType === 'full-interview' ? 'Full Interview' : 
+                           'Interview Mode';
+    
+    const constraints = [];
+    if (interviewConfig?.hints?.max !== null && interviewConfig?.hints?.max !== undefined) {
+      constraints.push(`${interviewConfig.hints.max} hint${interviewConfig.hints.max !== 1 ? 's' : ''} max`);
+    }
+    if (interviewConfig?.timing?.hardCutoff) {
+      constraints.push('hard time limits');
+    }
+    if (interviewConfig?.primers?.available === false) {
+      constraints.push('no strategy guides');
+    }
+
+    const bannerStyle = {
+      backgroundColor: sessionType === 'full-interview' ? '#fef2f2' : '#fff7ed', // Light red or orange
+      border: `1px solid ${sessionType === 'full-interview' ? '#fecaca' : '#fed7aa'}`,
+      borderRadius: '8px',
+      padding: '12px 16px',
+      margin: '12px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    };
+
+    const iconStyle = {
+      fontSize: '16px',
+      color: sessionType === 'full-interview' ? '#dc2626' : '#ea580c'
+    };
+
+    const textStyle = {
+      fontSize: '13px',
+      color: sessionType === 'full-interview' ? '#7f1d1d' : '#9a3412',
+      fontWeight: '500'
+    };
+
+    const constraintStyle = {
+      fontSize: '11px',
+      color: sessionType === 'full-interview' ? '#991b1b' : '#c2410c',
+      marginLeft: '4px'
+    };
+
+    return (
+      <div style={bannerStyle}>
+        <span style={iconStyle}>
+          {sessionType === 'full-interview' ? '🎯' : '💪'}
+        </span>
+        <div>
+          <div style={textStyle}>
+            {modeDisplayName} Mode Active
+          </div>
+          {constraints.length > 0 && (
+            <div style={constraintStyle}>
+              {constraints.join(' • ')}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   if (isLoading && !problemData.leetCodeID) {
     return (
@@ -292,21 +174,75 @@ const ProbDetail = ({ isLoading }) => {
   return (
     <>
       <div className="cm-sidenav__content">
-        <InterviewModeBanner 
-          isInterviewMode={isInterviewMode}
-          sessionType={sessionType}
-          interviewConfig={interviewConfig}
-        />
-        <MainContentCard 
-          problemData={problemData} 
-          getDifficultyVariant={getDifficultyVariant}
-        />
+        {/* Interview Mode Banner */}
+        <InterviewModeBanner />
+
+        {/* Main Content Card */}
+        <div className={styles.card}>
+          <div className={styles.header}>
+            <ChevronLeftIcon className={styles.backIcon} />
+            <span>
+              Problem #{problemData?.leetCodeID || problemData?.id || "N/A"}
+            </span>
+          </div>
+          <h3 className={styles.title}>
+            {problemData?.ProblemDescription || problemData?.title || "N/A"}
+          </h3>
+          <Badge
+            className={styles.difficultyBadge}
+            variant={getDifficultyVariant(problemData?.difficulty)}
+          >
+            {problemData?.difficulty || "Unknown"}
+          </Badge>
+
+          <Separator className={styles.separator} />
+
+          <div className={styles.stats}>
+            <div className={styles.stat}>
+              <BarChart3Icon className={styles.statIcon} />
+              <div>
+                <div className={styles.statValue}>
+                  {problemData?.acceptance || "N/A"}
+                </div>
+                <div className={styles.statLabel}>Acceptance</div>
+              </div>
+            </div>
+            <div className={styles.stat}>
+              <TrendingUpIcon className={styles.statIcon} />
+              <div>
+                <div className={styles.statValue}>
+                  {problemData?.submissions || "N/A"}
+                </div>
+                <div className={styles.statLabel}>Submissions</div>
+              </div>
+            </div>
+          </div>
+          {/* Status Section */}
+          <div className="problem-sidebar-section">
+            <div className={styles.statusCard}>
+              <BrainIcon className={styles.statusIcon} />
+                <span className={styles.statusLabel}>
+                  Last Solved:
+                </span>
+              <div className={styles.statusItem}>
+              
+                <span className={styles.statusValue}>
+                  {problemData?.lastSolved || "Never"}
+                </span>
+              </div>
+            </div> 
+          </div>
+        </div>
+
+        {/* Tags with Strategy Grid */}
         <TagStrategyGrid 
           problemTags={problemData?.tags || []} 
           problemId={problemData?.leetCodeID || problemData?.id}
           interviewConfig={interviewConfig}
           sessionType={sessionType}
         />
+
+        {/* Why This Problem Section - Show reasoning for problem selection */}
         {routeState?.problemData?.selectionReason && (
           <WhyThisProblem
             selectionReason={routeState.problemData.selectionReason}
@@ -314,11 +250,30 @@ const ProbDetail = ({ isLoading }) => {
             currentProblemId={problemData?.leetCodeID || routeState?.problemData?.leetCodeID}
           />
         )}
-        <ActionButtons 
-          handleNewAttempt={handleNewAttempt}
-          handleSkip={handleSkip}
-          showSkip={showSkip}
-        />
+
+        {/* Action Buttons - Positioned with better spacing */}
+        <div className="problem-sidebar-actions" style={{ marginTop: '6px' }}>
+          <Button
+            onClick={handleNewAttempt}
+            className="problem-sidebar-primary-btn"
+            variant="default"
+            size="lg"
+            style={{ padding: '8px 16px', fontSize: '13px' }}
+          >
+            <PlayIcon className="problem-sidebar-btn-icon" />
+            New Attempt
+          </Button>
+          {showSkip && (
+            <Button
+              variant="ghost"
+              onClick={handleSkip}
+              className="problem-sidebar-skip-btn"
+              style={{ padding: '6px 12px', fontSize: '12px' }}
+            >
+              Skip Problem
+            </Button>
+          )}
+        </div>
       </div>
     </>
   );
