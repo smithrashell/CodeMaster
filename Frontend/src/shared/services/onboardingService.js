@@ -11,6 +11,7 @@ import {
   getRecord,
 } from "../db/common.js";
 import { databaseProxy } from "./databaseProxy.js";
+import logger from "../utils/logger.js";
 
 // Detect if we're in a content script context
 const isContentScript = typeof window !== 'undefined' && window.location && window.location.href && window.location.href.includes('leetcode.com');
@@ -37,7 +38,7 @@ const dbUpdate = async (storeName, id, record) => {
   return await updateRecord(storeName, id, record);
 };
 
-const dbGetAll = async (storeName) => {
+const _dbGetAll = async (storeName) => {
   if (isContentScript) {
     return await databaseProxy.getAllFromStore(storeName);
   }
@@ -45,7 +46,7 @@ const dbGetAll = async (storeName) => {
 };
 
 export async function onboardUserIfNeeded() {
-  console.log("... onboarding started");
+  logger.info("... onboarding started");
 
   const [
     problemRelationships,
@@ -72,7 +73,7 @@ export async function onboardUserIfNeeded() {
     userProblems.length === 0 || tagMastery.length === 0;
 
   if (!isMissingStandardData && !isMissingUserData) {
-    console.log("✅ Onboarding skipped — all data present.");
+    logger.info("✅ Onboarding skipped — all data present.");
     return;
   }
 
@@ -84,11 +85,11 @@ export async function onboardUserIfNeeded() {
     await seedUserData();
   }
 
-  console.log("... onboarding completed");
+  logger.info("... onboarding completed");
 }
 
 async function seedStandardData() {
-  console.log(
+  logger.info(
     "📦 Seeding standard problems, strategy data, and tag relationships..."
   );
   await seedStandardProblems();
@@ -98,36 +99,36 @@ async function seedStandardData() {
 }
 
 async function seedUserData() {
-  console.log("🆕 Initializing user mastery data...");
+  logger.info("🆕 Initializing user mastery data...");
   await initializePatternLaddersForOnboarding();
 }
 
 async function seedStandardProblems() {
-  console.log("📦 Inserting standard problems...");
+  logger.info("📦 Inserting standard problems...");
   await insertStandardProblems();
 }
 
 async function seedStrategyData() {
-  console.log("📊 Inserting strategy data...");
+  logger.info("📊 Inserting strategy data...");
   await insertStrategyData();
 }
 
 async function seedTagRelationships() {
-  console.log("🔗 Building tag relationships...");
+  logger.info("🔗 Building tag relationships...");
   await buildTagRelationships();
 }
 
 async function seedProblemRelationships() {
-  console.log("🔁 Building problem relationships...");
+  logger.info("🔁 Building problem relationships...");
   await buildProblemRelationships();
 }
 
 // UX Onboarding Functions
 export async function checkOnboardingStatus() {
   try {
-    console.log("🔍 checkOnboardingStatus: Getting app onboarding record...");
+    logger.info("🔍 checkOnboardingStatus: Getting app onboarding record...");
     const appOnboardingRecord = await getRecord("settings", "app_onboarding");
-    console.log("📊 App onboarding record:", appOnboardingRecord);
+    logger.info("📊 App onboarding record:", appOnboardingRecord);
 
     if (appOnboardingRecord) {
       return appOnboardingRecord;
@@ -144,10 +145,10 @@ export async function checkOnboardingStatus() {
     };
 
     await addRecord("settings", newAppOnboarding);
-    console.log("✅ Created new app onboarding record");
+    logger.info("✅ Created new app onboarding record");
     return newAppOnboarding;
   } catch (error) {
-    console.error("❌ Error checking app onboarding status:", error);
+    logger.error("❌ Error checking app onboarding status:", error);
     // Return default app onboarding state
     return {
       id: "app_onboarding",
@@ -188,7 +189,7 @@ export async function completeOnboarding() {
   appOnboardingRecord.completedAt = new Date().toISOString();
 
   await updateRecord("settings", "app_onboarding", appOnboardingRecord);
-  console.log("✅ App onboarding completed");
+  logger.info("✅ App onboarding completed");
   return appOnboardingRecord;
 }
 
@@ -209,19 +210,19 @@ export async function resetOnboarding() {
 // Content script specific onboarding functions
 export async function checkContentOnboardingStatus() {
   try {
-    console.log("🔍 checkContentOnboardingStatus: Getting content onboarding record...", isContentScript ? "(via proxy)" : "(direct)");
+    logger.info("🔍 checkContentOnboardingStatus: Getting content onboarding record...", isContentScript ? "(via proxy)" : "(direct)");
     const contentOnboardingRecord = await dbGet(
       "settings",
       "content_onboarding"
     );
-    console.log("📊 Content onboarding record found:", contentOnboardingRecord);
+    logger.info("📊 Content onboarding record found:", contentOnboardingRecord);
 
     if (contentOnboardingRecord) {
-      console.log(`✅ Content onboarding status - isCompleted: ${contentOnboardingRecord.isCompleted}, currentStep: ${contentOnboardingRecord.currentStep}`);
+      logger.info(`✅ Content onboarding status - isCompleted: ${contentOnboardingRecord.isCompleted}, currentStep: ${contentOnboardingRecord.currentStep}`);
       
       // Database integrity check - ensure required properties exist
       if (!contentOnboardingRecord.pageProgress) {
-        console.warn("🔧 Fixing missing pageProgress in content onboarding record");
+        logger.warn("🔧 Fixing missing pageProgress in content onboarding record");
         contentOnboardingRecord.pageProgress = {
           probgen: false,
           probtime: false,
@@ -236,7 +237,7 @@ export async function checkContentOnboardingStatus() {
     }
 
     // Create new content onboarding record
-    console.log("🆕 Creating new content onboarding record...");
+    logger.info("🆕 Creating new content onboarding record...");
     const newContentOnboarding = {
       id: "content_onboarding",
       isCompleted: false,
@@ -273,12 +274,12 @@ export async function checkContentOnboardingStatus() {
     };
 
     await dbAdd("settings", newContentOnboarding);
-    console.log("✅ Created new content onboarding record with isCompleted:", newContentOnboarding.isCompleted);
+    logger.info("✅ Created new content onboarding record with isCompleted:", newContentOnboarding.isCompleted);
     return newContentOnboarding;
   } catch (error) {
-    console.error("❌ Error checking content onboarding status:", error);
+    logger.error("❌ Error checking content onboarding status:", error);
     // Return default content onboarding state
-    console.log("🔄 Returning fallback content onboarding state with isCompleted: false");
+    logger.info("🔄 Returning fallback content onboarding state with isCompleted: false");
     return {
       id: "content_onboarding",
       isCompleted: false,
@@ -336,7 +337,7 @@ export async function completeContentOnboarding() {
   });
 
   await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
-  console.log("✅ Content onboarding completed");
+  logger.info("✅ Content onboarding completed");
   return contentOnboardingRecord;
 }
 
@@ -364,7 +365,7 @@ export async function updateContentOnboardingStep(
   // Update screen progress if provided
   if (
     screenKey &&
-    contentOnboardingRecord.screenProgress.hasOwnProperty(screenKey)
+    Object.prototype.hasOwnProperty.call(contentOnboardingRecord.screenProgress, screenKey)
   ) {
     contentOnboardingRecord.screenProgress[screenKey] = true;
   }
@@ -372,7 +373,7 @@ export async function updateContentOnboardingStep(
   // Update interaction progress if provided
   if (
     interactionKey &&
-    contentOnboardingRecord.interactionProgress.hasOwnProperty(interactionKey)
+    Object.prototype.hasOwnProperty.call(contentOnboardingRecord.interactionProgress, interactionKey)
   ) {
     contentOnboardingRecord.interactionProgress[interactionKey] = true;
   }
@@ -473,10 +474,10 @@ export async function resetContentOnboarding() {
     };
 
     await dbUpdate("settings", "content_onboarding", resetRecord);
-    console.log("🔄 Content onboarding reset complete - isCompleted:", resetRecord.isCompleted);
+    logger.info("🔄 Content onboarding reset complete - isCompleted:", resetRecord.isCompleted);
     return resetRecord;
   } catch (error) {
-    console.error("❌ Error resetting content onboarding:", error);
+    logger.error("❌ Error resetting content onboarding:", error);
     throw error;
   }
 }
@@ -484,13 +485,13 @@ export async function resetContentOnboarding() {
 // Page-specific tour functions
 export async function checkPageTourStatus(pageId) {
   try {
-    console.log(`🔍 ONBOARDING DEBUG: Checking tour status for page: ${pageId}`);
+    logger.info(`🔍 ONBOARDING DEBUG: Checking tour status for page: ${pageId}`);
     const contentOnboardingRecord = await checkContentOnboardingStatus();
-    console.log(`📊 ONBOARDING DEBUG: Retrieved onboarding record:`, contentOnboardingRecord);
+    logger.info(`📊 ONBOARDING DEBUG: Retrieved onboarding record:`, contentOnboardingRecord);
     
     // Initialize pageProgress if it doesn't exist
     if (!contentOnboardingRecord.pageProgress) {
-      console.log(`🔧 ONBOARDING DEBUG: Initializing missing pageProgress for ${pageId}`);
+      logger.info(`🔧 ONBOARDING DEBUG: Initializing missing pageProgress for ${pageId}`);
       contentOnboardingRecord.pageProgress = {
         probgen: false,
         probtime: false,
@@ -499,30 +500,30 @@ export async function checkPageTourStatus(pageId) {
         settings: false,
       };
       await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
-      console.log(`✅ ONBOARDING DEBUG: pageProgress initialized`);
+      logger.info(`✅ ONBOARDING DEBUG: pageProgress initialized`);
     }
     
     const isCompleted = contentOnboardingRecord.pageProgress[pageId] || false;
-    console.log(`📋 ONBOARDING DEBUG: Page ${pageId} completion status: ${isCompleted}`);
-    console.log(`📋 ONBOARDING DEBUG: All page statuses:`, contentOnboardingRecord.pageProgress);
+    logger.info(`📋 ONBOARDING DEBUG: Page ${pageId} completion status: ${isCompleted}`);
+    logger.info(`📋 ONBOARDING DEBUG: All page statuses:`, contentOnboardingRecord.pageProgress);
     return isCompleted;
   } catch (error) {
-    console.error(`❌ Error checking page tour status for ${pageId}:`, error);
+    logger.error(`❌ Error checking page tour status for ${pageId}:`, error);
     return false; // Default to not completed if error
   }
 }
 
 export async function markPageTourCompleted(pageId) {
   try {
-    console.log(`🎯 ONBOARDING DEBUG: Marking page tour completed for: ${pageId}`);
-    console.log(`📞 ONBOARDING DEBUG: Using ${isContentScript ? 'databaseProxy' : 'direct DB'} context`);
+    logger.info(`🎯 ONBOARDING DEBUG: Marking page tour completed for: ${pageId}`);
+    logger.info(`📞 ONBOARDING DEBUG: Using ${isContentScript ? 'databaseProxy' : 'direct DB'} context`);
     
     const contentOnboardingRecord = await checkContentOnboardingStatus();
-    console.log(`📊 ONBOARDING DEBUG: Current record before update:`, contentOnboardingRecord);
+    logger.info(`📊 ONBOARDING DEBUG: Current record before update:`, contentOnboardingRecord);
     
     // Initialize pageProgress if it doesn't exist
     if (!contentOnboardingRecord.pageProgress) {
-      console.log(`🔧 ONBOARDING DEBUG: Initializing pageProgress for completion`);
+      logger.info(`🔧 ONBOARDING DEBUG: Initializing pageProgress for completion`);
       contentOnboardingRecord.pageProgress = {
         probgen: false,
         probtime: false,
@@ -537,15 +538,15 @@ export async function markPageTourCompleted(pageId) {
     contentOnboardingRecord.pageProgress[pageId] = true;
     contentOnboardingRecord.lastActiveStep = `page_${pageId}_completed`;
     
-    console.log(`📝 ONBOARDING DEBUG: ${pageId} status changed from ${previousStatus} to true`);
-    console.log(`📝 ONBOARDING DEBUG: Updated pageProgress:`, contentOnboardingRecord.pageProgress);
-    console.log(`💾 ONBOARDING DEBUG: Attempting to save to database...`);
+    logger.info(`📝 ONBOARDING DEBUG: ${pageId} status changed from ${previousStatus} to true`);
+    logger.info(`📝 ONBOARDING DEBUG: Updated pageProgress:`, contentOnboardingRecord.pageProgress);
+    logger.info(`💾 ONBOARDING DEBUG: Attempting to save to database...`);
     
     await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
-    console.log(`✅ ONBOARDING DEBUG: Page tour completed and saved for: ${pageId}`);
+    logger.info(`✅ ONBOARDING DEBUG: Page tour completed and saved for: ${pageId}`);
     return contentOnboardingRecord;
   } catch (error) {
-    console.error(`❌ ONBOARDING DEBUG: Error marking page tour completed for ${pageId}:`, error);
+    logger.error(`❌ ONBOARDING DEBUG: Error marking page tour completed for ${pageId}:`, error);
     throw error;
   }
 }
@@ -557,12 +558,12 @@ export async function resetPageTour(pageId) {
     if (contentOnboardingRecord.pageProgress) {
       contentOnboardingRecord.pageProgress[pageId] = false;
       await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
-      console.log(`🔄 Page tour reset for: ${pageId}`);
+      logger.info(`🔄 Page tour reset for: ${pageId}`);
     }
     
     return contentOnboardingRecord;
   } catch (error) {
-    console.error(`❌ Error resetting page tour for ${pageId}:`, error);
+    logger.error(`❌ Error resetting page tour for ${pageId}:`, error);
     throw error;
   }
 }
@@ -580,10 +581,10 @@ export async function resetAllPageTours() {
     };
     
     await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
-    console.log("🔄 All page tours reset");
+    logger.info("🔄 All page tours reset");
     return contentOnboardingRecord;
   } catch (error) {
-    console.error("❌ Error resetting all page tours:", error);
+    logger.error("❌ Error resetting all page tours:", error);
     throw error;
   }
 }
@@ -600,23 +601,23 @@ export async function debugCheckAllPagesStatus() {
     const pages = ['probgen', 'probtime', 'timer', 'probstat', 'settings'];
     const results = {};
     
-    console.log(`🔍 ONBOARDING AUDIT: Checking status for all ${pages.length} pages...`);
+    logger.info(`🔍 ONBOARDING AUDIT: Checking status for all ${pages.length} pages...`);
     
     for (const pageId of pages) {
       try {
         const status = await checkPageTourStatus(pageId);
         results[pageId] = status;
-        console.log(`📋 ${pageId}: ${status ? '✅ Completed' : '❌ Not completed'}`);
+        logger.info(`📋 ${pageId}: ${status ? '✅ Completed' : '❌ Not completed'}`);
       } catch (error) {
         results[pageId] = `ERROR: ${error.message}`;
-        console.error(`❌ Error checking ${pageId}:`, error);
+        logger.error(`❌ Error checking ${pageId}:`, error);
       }
     }
     
-    console.log(`📊 ONBOARDING AUDIT SUMMARY:`, results);
+    logger.info(`📊 ONBOARDING AUDIT SUMMARY:`, results);
     return results;
   } catch (error) {
-    console.error(`❌ Error in debugCheckAllPagesStatus:`, error);
+    logger.error(`❌ Error in debugCheckAllPagesStatus:`, error);
     throw error;
   }
 }
@@ -627,12 +628,12 @@ export async function debugCheckAllPagesStatus() {
  */
 export async function debugGetFullOnboardingRecord() {
   try {
-    console.log(`📊 ONBOARDING DEBUG: Retrieving full onboarding record...`);
+    logger.info(`📊 ONBOARDING DEBUG: Retrieving full onboarding record...`);
     const record = await checkContentOnboardingStatus();
-    console.log(`📋 Full onboarding record:`, record);
+    logger.info(`📋 Full onboarding record:`, record);
     return record;
   } catch (error) {
-    console.error(`❌ Error getting full onboarding record:`, error);
+    logger.error(`❌ Error getting full onboarding record:`, error);
     throw error;
   }
 }
@@ -643,21 +644,21 @@ export async function debugGetFullOnboardingRecord() {
  */
 export async function debugTestPageCompletion(pageId) {
   try {
-    console.log(`🧪 ONBOARDING TEST: Testing completion for page: ${pageId}`);
+    logger.info(`🧪 ONBOARDING TEST: Testing completion for page: ${pageId}`);
     
     // Check initial status
     const initialStatus = await checkPageTourStatus(pageId);
-    console.log(`📋 Initial status for ${pageId}: ${initialStatus}`);
+    logger.info(`📋 Initial status for ${pageId}: ${initialStatus}`);
     
     // Mark as completed
     await markPageTourCompleted(pageId);
     
     // Verify completion
     const finalStatus = await checkPageTourStatus(pageId);
-    console.log(`📋 Final status for ${pageId}: ${finalStatus}`);
+    logger.info(`📋 Final status for ${pageId}: ${finalStatus}`);
     
     const success = finalStatus === true;
-    console.log(`🧪 TEST RESULT: ${success ? '✅ PASSED' : '❌ FAILED'} - ${pageId} completion persistence`);
+    logger.info(`🧪 TEST RESULT: ${success ? '✅ PASSED' : '❌ FAILED'} - ${pageId} completion persistence`);
     
     return {
       pageId,
@@ -667,7 +668,7 @@ export async function debugTestPageCompletion(pageId) {
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error(`❌ Error testing page completion for ${pageId}:`, error);
+    logger.error(`❌ Error testing page completion for ${pageId}:`, error);
     throw error;
   }
 }
@@ -681,7 +682,7 @@ export async function debugTestAllPagesCompletion() {
     const pages = ['probgen', 'probtime', 'timer', 'probstat', 'settings'];
     const results = [];
     
-    console.log(`🧪 ONBOARDING TEST SUITE: Testing completion persistence for all ${pages.length} pages...`);
+    logger.info(`🧪 ONBOARDING TEST SUITE: Testing completion persistence for all ${pages.length} pages...`);
     
     for (const pageId of pages) {
       try {
@@ -700,15 +701,15 @@ export async function debugTestAllPagesCompletion() {
     const passedTests = results.filter(r => r.success).length;
     const failedTests = results.filter(r => !r.success).length;
     
-    console.log(`🧪 TEST SUITE COMPLETE: ${passedTests} passed, ${failedTests} failed`);
-    console.log(`📊 Detailed Results:`, results);
+    logger.info(`🧪 TEST SUITE COMPLETE: ${passedTests} passed, ${failedTests} failed`);
+    logger.info(`📊 Detailed Results:`, results);
     
     return {
       summary: { passed: passedTests, failed: failedTests, total: results.length },
       results
     };
   } catch (error) {
-    console.error(`❌ Error in test suite:`, error);
+    logger.error(`❌ Error in test suite:`, error);
     throw error;
   }
 }
@@ -723,8 +724,8 @@ if (typeof window !== 'undefined') {
     resetAllTours: resetAllPageTours,
     resetPage: resetPageTour
   };
-  console.log(`🛠️ ONBOARDING DEBUG: Console commands available at window.debugOnboarding`);
-  console.log(`📚 Available commands:
+  logger.info(`🛠️ ONBOARDING DEBUG: Console commands available at window.debugOnboarding`);
+  logger.info(`📚 Available commands:
     - await window.debugOnboarding.checkAllPagesStatus()  // Check status of all pages
     - await window.debugOnboarding.getFullRecord()        // Get complete record
     - await window.debugOnboarding.testComplete('timer')  // Test specific page

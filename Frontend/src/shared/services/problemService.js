@@ -5,10 +5,8 @@ import {
   // Import retry-enabled functions
   getProblemWithRetry,
   checkDatabaseForProblemWithRetry,
-  addProblemWithRetry,
   countProblemsByBoxLevelWithRetry,
   fetchAllProblemsWithRetry,
-  saveUpdatedProblemWithRetry,
 } from "../db/problems.js";
 import { getProblemFromStandardProblems } from "../db/standard_problems.js";
 import { AttemptsService } from "./attemptsService";
@@ -19,7 +17,6 @@ import {
   updateProblemsWithRatings as updateProblemsWithRatingsInDB,
 } from "../db/problems.js";
 import { ScheduleService } from "./scheduleService.js";
-import { TagService } from "./tagServices.js";
 import { StorageService } from "./storageService.js";
 import SessionLimits from "../utils/sessionLimits.js";
 import { buildAdaptiveSessionSettings } from "../db/sessions.js";
@@ -28,9 +25,9 @@ import { ProblemReasoningService } from "../../content/services/problemReasoning
 import { getTagMastery } from "../db/tag_mastery.js";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { InterviewService } from "./interviewService.js";
+import logger from "../utils/logger.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
-const getDailyReviewSchedule = ScheduleService.getDailyReviewSchedule;
 
 /**
  * ProblemService - Handles all logic for problem management.
@@ -56,17 +53,17 @@ export const ProblemService = {
     );
 
     try {
-      console.log("📌 ProblemService: Searching for problem:", description);
+      logger.info("📌 ProblemService: Searching for problem:", description);
 
       // 1️⃣ Try fetching from `Standard_Problems` store
       const problem = await getProblemFromStandardProblems(slug);
 
       if (problem) {
-        console.log("✅ Problem found in 'Standard_Problems' store:", problem);
+        logger.info("✅ Problem found in 'Standard_Problems' store:", problem);
         //  2️⃣  Check if problem exists in `problems` store
         const problemInProblems = await checkDatabaseForProblem(problem.id);
         if (problemInProblems) {
-          console.log(
+          logger.info(
             "✅ Returning Problem found in 'problems' store:",
             problemInProblems
           );
@@ -74,16 +71,16 @@ export const ProblemService = {
           return { problem: problemInProblems, found: true }; // ✅ Found in problems store
         }
       } else {
-        console.warn("❌ Problem not found in any store.");
+        logger.warn("❌ Problem not found in any store.");
         performanceMonitor.endQuery(queryContext, true, 0);
         return { problem: null, found: false }; // ❌ No problem found
       }
 
-      console.warn(
+      logger.warn(
         "⚠️ Problem not found in 'problems' store. returning problem from 'Standard_Problems' store"
       );
 
-      console.log(
+      logger.info(
         "✅ Returning problem found in  'standard_problems':",
         problem
       );
@@ -99,7 +96,7 @@ export const ProblemService = {
    * Counts problems grouped by box level.
    * @returns {Promise<Object>} - Box level counts.
    */
-  async countProblemsByBoxLevel() {
+  countProblemsByBoxLevel() {
     return countProblemsByBoxLevel();
   },
 
@@ -110,13 +107,13 @@ export const ProblemService = {
    * @returns {Promise<Object>} - The added/updated problem.
    */
   async addOrUpdateProblem(contentScriptData) {
-    console.log("📌 addOrUpdateProblem called");
+    logger.info("📌 addOrUpdateProblem called");
 
     const problem = await checkDatabaseForProblem(
       Number(contentScriptData.leetCodeID)
     );
 
-    console.log("✅ problemExists:", problem);
+    logger.info("✅ problemExists:", problem);
     if (problem) {
       return await AttemptsService.addAttempt(
         {
@@ -150,28 +147,48 @@ export const ProblemService = {
 
   // NEW: Interview session creation (additive, doesn't modify existing flow)
   async createInterviewSession(mode) {
+    const operationStart = Date.now();
     try {
-      console.log(`🎯 PROBLEM SERVICE: Creating interview session in ${mode} mode`);
+      logger.info(`🎯 PROBLEM SERVICE: Creating interview session in ${mode} mode`);
       
       // Get interview session configuration from InterviewService
-      console.log("🎯 Calling InterviewService.createInterviewSession");
+      logger.info("🎯 Calling InterviewService.createInterviewSession");
+      const configStart = Date.now();
+      
       const interviewConfig = await InterviewService.createInterviewSession(mode);
-      console.log("🎯 InterviewService returned config:", {
+      const configDuration = Date.now() - configStart;
+      
+      logger.info("🎯 InterviewService returned config:", {
         hasConfig: !!interviewConfig,
         sessionLength: interviewConfig?.sessionLength,
-        hasCriteria: !!interviewConfig?.selectionCriteria
+        hasCriteria: !!interviewConfig?.selectionCriteria,
+        configTime: configDuration + 'ms'
       });
       
       // Use interview-specific problem selection
-      console.log("🎯 Calling fetchAndAssembleInterviewProblems");
-      const problems = await this.fetchAndAssembleInterviewProblems(
-        interviewConfig.sessionLength,
-        interviewConfig.selectionCriteria,
-        mode
-      );
-      console.log("🎯 fetchAndAssembleInterviewProblems returned:", {
+      logger.info("🎯 Calling fetchAndAssembleInterviewProblems");
+      const problemsStart = Date.now();
+      
+      // Add timeout protection to problem fetching
+      const PROBLEM_FETCH_TIMEOUT = 12000; // 12 seconds for problem fetching
+      const problemTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error(`fetchAndAssembleInterviewProblems timed out after ${PROBLEM_FETCH_TIMEOUT}ms`)), PROBLEM_FETCH_TIMEOUT);
+      });
+      
+      const problems = await Promise.race([
+        this.fetchAndAssembleInterviewProblems(
+          interviewConfig.sessionLength,
+          interviewConfig.selectionCriteria,
+          mode
+        ),
+        problemTimeout
+      ]);
+      const problemsDuration = Date.now() - problemsStart;
+      
+      logger.info("🎯 fetchAndAssembleInterviewProblems returned:", {
         problemCount: problems?.length,
-        firstProblem: problems?.[0]?.title
+        firstProblem: problems?.[0]?.title,
+        problemsTime: problemsDuration + 'ms'
       });
 
       // Add interview metadata to session
@@ -183,23 +200,40 @@ export const ProblemService = {
         createdAt: interviewConfig.createdAt
       };
       
-      console.log("🎯 PROBLEM SERVICE: Returning interview session data:", {
+      const totalDuration = Date.now() - operationStart;
+      logger.info("🎯 PROBLEM SERVICE: Returning interview session data:", {
         problemCount: result.problems?.length,
         sessionType: result.sessionType,
-        hasConfig: !!result.interviewConfig
+        hasConfig: !!result.interviewConfig,
+        totalTime: totalDuration + 'ms'
       });
       
       return result;
     } catch (error) {
-      console.error("🎯 ERROR creating interview session:", error);
+      const totalDuration = Date.now() - operationStart;
+      logger.error("🎯 ERROR creating interview session:", error);
+      logger.error(`   ⏱️ Failed after ${totalDuration}ms`);
+      
+      // Provide more detailed error information
+      if (error.message.includes('timed out')) {
+        logger.error("🕐 Interview session creation timed out - likely database or service hang");
+        throw new Error(`Interview session creation timed out after ${totalDuration}ms: ${error.message}`);
+      }
+      
       // Fallback to standard session if interview creation fails
-      console.log("🎯 Falling back to standard session creation");
-      const fallbackProblems = await this.createSession();
-      return {
-        problems: fallbackProblems,
-        sessionType: 'standard', // Fallback becomes standard
-        error: `Interview session failed: ${error.message}`
-      };
+      logger.info("🎯 Falling back to standard session creation");
+      try {
+        const fallbackProblems = await this.createSession();
+        return {
+          problems: fallbackProblems,
+          sessionType: 'standard', // Fallback becomes standard
+          error: `Interview session failed: ${error.message}`,
+          fallbackUsed: true
+        };
+      } catch (fallbackError) {
+        logger.error("❌ Even fallback session creation failed:", fallbackError);
+        throw new Error(`Both interview and fallback session creation failed: ${error.message}`);
+      }
     }
   },
 
@@ -219,9 +253,9 @@ export const ProblemService = {
     currentDifficultyCap,
     userFocusAreas = []
   ) {
-    console.log("🎯 Starting intelligent session assembly...");
-    console.log("🎯 Session length:", sessionLength);
-    console.log("🎯 New problems target:", numberOfNewProblems);
+    logger.info("🎯 Starting intelligent session assembly...");
+    logger.info("🎯 Session length:", sessionLength);
+    logger.info("🎯 New problems target:", numberOfNewProblems);
 
     const allProblems = await fetchAllProblems();
     const excludeIds = new Set(allProblems.map((p) => p.leetCodeID));
@@ -232,12 +266,12 @@ export const ProblemService = {
     const settings = await StorageService.getSettings();
     const reviewRatio = (settings.reviewRatio || 40) / 100; // Default to 40% if not set
     const reviewTarget = Math.floor(sessionLength * reviewRatio);
-    console.log(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
+    logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
     
-    const reviewProblems = await getDailyReviewSchedule(reviewTarget);
+    const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
     sessionProblems.push(...reviewProblems);
 
-    console.log(
+    logger.info(
       `🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`
     );
 
@@ -254,7 +288,7 @@ export const ProblemService = {
       );
 
       sessionProblems.push(...newProblems);
-      console.log(
+      logger.info(
         `🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems`
       );
     }
@@ -270,7 +304,7 @@ export const ProblemService = {
         .slice(0, fallbackNeeded);
 
       sessionProblems.push(...fallbackProblems);
-      console.log(`🔄 Added ${fallbackProblems.length} fallback problems`);
+      logger.info(`🔄 Added ${fallbackProblems.length} fallback problems`);
     }
 
     // **Step 4: Final session composition**
@@ -291,15 +325,15 @@ export const ProblemService = {
       }
     );
 
-    console.log(`🎯 Final session composition:`);
-    console.log(
+    logger.info(`🎯 Final session composition:`);
+    logger.info(
       `   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`
     );
-    console.log(`   🔄 Review problems: ${reviewProblems.length}`);
-    console.log(
+    logger.info(`   🔄 Review problems: ${reviewProblems.length}`);
+    logger.info(
       `   🆕 New problems: ${sessionWithReasons.length - reviewProblems.length}`
     );
-    console.log(
+    logger.info(
       `   🧠 Problems with reasoning: ${
         sessionWithReasons.filter((p) => p.selectionReason).length
       }`
@@ -311,8 +345,9 @@ export const ProblemService = {
   // NEW: Interview-specific problem fetching (additive, doesn't modify existing)
   async fetchAndAssembleInterviewProblems(sessionLength, selectionCriteria, mode) {
     try {
-      console.log(`🎯 Assembling interview session for ${mode} mode...`);
-      console.log("🎯 Session length:", sessionLength);
+      logger.info(`🎯 Assembling interview session for ${mode} mode...`);
+      logger.info("🎯 Session length:", sessionLength);
+      logger.info("🎯 Selection criteria:", selectionCriteria);
       
       if (mode === 'standard') {
         // For standard mode, fall back to regular session assembly
@@ -326,66 +361,39 @@ export const ProblemService = {
         );
       }
 
-      // Interview modes use specialized problem selection
-      const allProblems = await problems.getAllProblems();
-      let availableProblems = allProblems.filter(problem => {
-        // Filter to problems that have the required tags
-        const problemTags = problem.Tags || [];
-        return problemTags.some(tag => 
-          selectionCriteria.allowedTags.includes(tag.toLowerCase())
-        );
-      });
-
-      if (availableProblems.length === 0) {
-        console.warn("No problems found matching interview criteria, falling back to all problems");
-        availableProblems = allProblems;
-      }
-
-      // Apply interview-specific problem mix
-      const selectedProblems = [];
-      const { problemMix } = selectionCriteria;
+      // Get all problems
+      const allProblems = await fetchAllProblems();
+      logger.info(`🎯 Total problems available: ${allProblems.length}`);
       
-      if (problemMix) {
-        const masteredCount = Math.floor(sessionLength * problemMix.mastered);
-        const nearMasteryCount = Math.floor(sessionLength * problemMix.nearMastery);
-        const challengingCount = sessionLength - masteredCount - nearMasteryCount;
-
-        // Select mastered tag problems
-        const masteredProblems = availableProblems.filter(problem => {
-          const problemTags = problem.Tags || [];
-          return problemTags.some(tag => 
-            selectionCriteria.masteredTags.includes(tag.toLowerCase())
-          );
-        });
-        selectedProblems.push(...this.shuffleArray(masteredProblems).slice(0, masteredCount));
-
-        // Select near-mastery problems
-        const nearMasteryProblems = availableProblems.filter(problem => {
-          const problemTags = problem.Tags || [];
-          return problemTags.some(tag => 
-            selectionCriteria.nearMasteryTags.includes(tag.toLowerCase())
-          ) && !selectedProblems.includes(problem);
-        });
-        selectedProblems.push(...this.shuffleArray(nearMasteryProblems).slice(0, nearMasteryCount));
-
-        // Fill remaining slots with challenging/wildcard problems
-        const remainingProblems = availableProblems.filter(problem => 
-          !selectedProblems.includes(problem)
-        );
-        selectedProblems.push(...this.shuffleArray(remainingProblems).slice(0, challengingCount));
-      } else {
-        // Fallback: random selection from available problems
-        selectedProblems.push(...this.shuffleArray(availableProblems).slice(0, sessionLength));
+      if (allProblems.length === 0) {
+        logger.error("❌ No problems found in database");
+        throw new Error("No problems available in database");
       }
 
-      // Ensure we have enough problems
-      while (selectedProblems.length < sessionLength && availableProblems.length > selectedProblems.length) {
-        const remaining = availableProblems.filter(p => !selectedProblems.includes(p));
-        if (remaining.length > 0) {
-          selectedProblems.push(remaining[Math.floor(Math.random() * remaining.length)]);
-        } else {
-          break;
-        }
+      // Apply tag filtering
+      const availableProblems = this.filterProblemsByTags(allProblems, selectionCriteria);
+
+      // Select problems for session
+      let selectedProblems = [];
+      
+      // Try to apply interview-specific problem mix if available
+      if (selectionCriteria && selectionCriteria.problemMix) {
+        selectedProblems = this.applyProblemMix(availableProblems, selectionCriteria, sessionLength);
+      } else {
+        // Simple fallback: random selection from available problems
+        logger.info("🎯 Using simple random selection");
+        selectedProblems = this.shuffleArray(availableProblems).slice(0, sessionLength);
+      }
+
+      // Ensure we have enough problems - fill with random selection if needed
+      selectedProblems = this.ensureSufficientProblems(selectedProblems, availableProblems, sessionLength);
+
+      logger.info(`🎯 Final selection: ${selectedProblems.length} problems`);
+
+      // Ensure we actually have problems
+      if (selectedProblems.length === 0) {
+        logger.error("❌ No problems selected for interview session");
+        throw new Error("Failed to select any problems for interview session");
       }
 
       // Add interview metadata to problems
@@ -399,20 +407,121 @@ export const ProblemService = {
         }
       }));
 
-      console.log(`🎯 Interview session assembled: ${interviewProblems.length} problems`);
+      logger.info(`🎯 Interview session assembled successfully: ${interviewProblems.length} problems`);
       return interviewProblems;
       
     } catch (error) {
-      console.error("Error assembling interview problems:", error);
-      // Fallback to standard session
+      return await this.handleInterviewSessionFallback(error);
+    }
+  },
+
+  // Helper method for applying interview problem mix
+  applyProblemMix(availableProblems, selectionCriteria, sessionLength) {
+    logger.info("🎯 Applying interview problem mix");
+    const { problemMix } = selectionCriteria;
+    
+    const masteredCount = Math.floor(sessionLength * (problemMix.mastered || 0));
+    const nearMasteryCount = Math.floor(sessionLength * (problemMix.nearMastery || 0));
+    const challengingCount = sessionLength - masteredCount - nearMasteryCount;
+
+    logger.info(`🎯 Problem distribution - Mastered: ${masteredCount}, Near-mastery: ${nearMasteryCount}, Challenging: ${challengingCount}`);
+
+    let selectedProblems = [];
+
+    // Select mastered tag problems if criteria exists
+    if (selectionCriteria.masteredTags && selectionCriteria.masteredTags.length > 0) {
+      const masteredProblems = availableProblems.filter(problem => {
+        const problemTags = problem.Tags || [];
+        return problemTags.some(tag => 
+          selectionCriteria.masteredTags.includes(tag.toLowerCase())
+        );
+      });
+      selectedProblems.push(...this.shuffleArray(masteredProblems).slice(0, masteredCount));
+      logger.info(`🎯 Added ${Math.min(masteredProblems.length, masteredCount)} mastered problems`);
+    }
+
+    // Select near-mastery problems if criteria exists
+    if (selectionCriteria.nearMasteryTags && selectionCriteria.nearMasteryTags.length > 0) {
+      const nearMasteryProblems = availableProblems.filter(problem => {
+        const problemTags = problem.Tags || [];
+        return problemTags.some(tag => 
+          selectionCriteria.nearMasteryTags.includes(tag.toLowerCase())
+        ) && !selectedProblems.includes(problem);
+      });
+      selectedProblems.push(...this.shuffleArray(nearMasteryProblems).slice(0, nearMasteryCount));
+      logger.info(`🎯 Added ${Math.min(nearMasteryProblems.length, nearMasteryCount)} near-mastery problems`);
+    }
+
+    // Fill remaining slots with random problems
+    const remainingProblems = availableProblems.filter(problem => 
+      !selectedProblems.includes(problem)
+    );
+    selectedProblems.push(...this.shuffleArray(remainingProblems).slice(0, challengingCount));
+    logger.info(`🎯 Added ${Math.min(remainingProblems.length, challengingCount)} challenging problems`);
+
+    return selectedProblems;
+  },
+
+  // Helper method for filtering problems by tags
+  filterProblemsByTags(allProblems, selectionCriteria) {
+    // Apply tag filtering if criteria exists and has allowedTags
+    if (selectionCriteria && selectionCriteria.allowedTags && selectionCriteria.allowedTags.length > 0) {
+      logger.info("🎯 Filtering by tags:", selectionCriteria.allowedTags);
+      const filteredByTags = allProblems.filter(problem => {
+        const problemTags = problem.Tags || [];
+        return problemTags.some(tag => 
+          selectionCriteria.allowedTags.includes(tag.toLowerCase())
+        );
+      });
+      
+      logger.info(`🎯 Problems matching tag criteria: ${filteredByTags.length}`);
+      
+      if (filteredByTags.length > 0) {
+        return filteredByTags;
+      } else {
+        logger.warn("No problems found matching interview tag criteria, using all problems");
+        return allProblems;
+      }
+    } else {
+      logger.info("🎯 No tag filtering criteria provided, using all problems");
+      return allProblems;
+    }
+  },
+
+  // Helper method for ensuring sufficient problems in selection
+  ensureSufficientProblems(selectedProblems, availableProblems, sessionLength) {
+    // Ensure we have enough problems - fill with random selection if needed
+    const result = [...selectedProblems];
+    while (result.length < sessionLength && availableProblems.length > result.length) {
+      const remaining = availableProblems.filter(p => !result.includes(p));
+      if (remaining.length > 0) {
+        result.push(remaining[Math.floor(Math.random() * remaining.length)]);
+      } else {
+        break;
+      }
+    }
+    return result;
+  },
+
+  // Helper method for handling interview session fallback
+  async handleInterviewSessionFallback(error) {
+    logger.error("❌ Error assembling interview problems:", error);
+    // Enhanced fallback to standard session
+    logger.info("🎯 Attempting fallback to standard session");
+    try {
       const settings = await buildAdaptiveSessionSettings();
-      return this.fetchAndAssembleSessionProblems(
+      const fallbackProblems = await this.fetchAndAssembleSessionProblems(
         settings.sessionLength,
         settings.numberOfNewProblems,
         settings.currentAllowedTags,
         settings.currentDifficultyCap,
         settings.userFocusAreas
       );
+      logger.info(`🎯 Fallback session created with ${fallbackProblems.length} problems`);
+      return fallbackProblems;
+    } catch (fallbackError) {
+      logger.error("❌ Fallback session creation also failed:", fallbackError);
+      throw new Error(`Both interview and fallback session creation failed: ${error.message}`);
     }
   },
 
@@ -434,7 +543,7 @@ export const ProblemService = {
    */
   async addProblemReasoningToSession(problems, sessionContext) {
     try {
-      console.log(
+      logger.info(
         `🧠 Adding reasoning to ${problems.length} problems in session`
       );
 
@@ -450,14 +559,14 @@ export const ProblemService = {
           userPerformance
         );
 
-      console.log(
+      logger.info(
         `✅ Added reasoning to ${
           problemsWithReasons.filter((p) => p.selectionReason).length
         } problems`
       );
       return problemsWithReasons;
     } catch (error) {
-      console.error("❌ Error adding problem reasoning to session:", error);
+      logger.error("❌ Error adding problem reasoning to session:", error);
       // Return original problems if reasoning fails
       return problems;
     }
@@ -519,7 +628,7 @@ export const ProblemService = {
    * @param {string} attemptId - The attempt ID.
    * @returns {Object} - The updated session object.
    */
-  async addOrUpdateProblemInSession(session, problem, attemptId) {
+  addOrUpdateProblemInSession(session, problem, _attemptId) {
     const existingProblem = findProblemInSession(session, problem);
 
     if (existingProblem) {
@@ -527,7 +636,7 @@ export const ProblemService = {
         curr.id === existingProblem.id ? problem : curr
       );
       session.problems = updatedproblems;
-      console.log("✅updatedSession", session);
+      logger.info("✅updatedSession", session);
     }
     return session;
   },
@@ -548,7 +657,7 @@ const findProblemInSession = (session, problemData) => {
  * @param {Array} array - The array to shuffle.
  * @returns {Array} - The shuffled array.
  */
-const shuffleArray = (array) => {
+const _shuffleArray = (array) => {
   let shuffled = array.slice();
   for (let i = shuffled.length - 1; i > 0; i--) {
     let j = Math.floor(Math.random() * (i + 1));
@@ -615,26 +724,21 @@ ProblemService.addOrUpdateProblemWithRetry = async function (
   options = {}
 ) {
   const {
-    timeout = 10000, // Longer timeout for complex operation
-    priority = "high", // High priority for user-initiated actions
-    abortController = null,
+    timeout: _timeout = 10000, // Longer timeout for complex operation
+    priority: _priority = "high", // High priority for user-initiated actions
+    abortController: _abortController = null,
   } = options;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Adding/updating problem with retry logic:",
       contentScriptData
     );
 
-    // Use retry-enabled database functions
-    const result = await addProblemWithRetry(contentScriptData, {
-      timeout,
-      priority,
-      abortController,
-      operationName: "ProblemService.addOrUpdateProblem",
-    });
+    // Call the original addOrUpdateProblem method which handles the full logic
+    const result = await this.addOrUpdateProblem(contentScriptData);
 
-    console.log("✅ Problem added/updated successfully with retry:", result);
+    logger.info("✅ Problem added/updated successfully with retry:", result);
 
     if (sendResponse) {
       sendResponse({
@@ -646,7 +750,7 @@ ProblemService.addOrUpdateProblemWithRetry = async function (
 
     return result;
   } catch (error) {
-    console.error("❌ Error adding/updating problem:", error);
+    logger.error("❌ Error adding/updating problem:", error);
 
     if (sendResponse) {
       sendResponse({
@@ -678,7 +782,7 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
   } = options;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Searching for problem with retry logic:",
       description
     );
@@ -687,7 +791,7 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
     const problem = await getProblemFromStandardProblems(slug);
 
     if (problem) {
-      console.log("✅ Problem found in 'Standard_Problems' store:", problem);
+      logger.info("✅ Problem found in 'Standard_Problems' store:", problem);
 
       // 2️⃣ Check if problem exists in `problems` store using retry logic
       const problemInProblems = await checkDatabaseForProblemWithRetry(
@@ -701,7 +805,7 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
       );
 
       if (problemInProblems) {
-        console.log("✅ Problem found in 'problems' store with retry");
+        logger.info("✅ Problem found in 'problems' store with retry");
 
         // Get the full problem data with retry
         const fullProblem = await getProblemWithRetry(problem.id, {
@@ -714,18 +818,18 @@ ProblemService.getProblemByDescriptionWithRetry = async function (
         return { problem: fullProblem, found: true };
       }
     } else {
-      console.warn("❌ Problem not found in any store.");
+      logger.warn("❌ Problem not found in any store.");
       return { problem: null, found: false };
     }
 
-    console.warn(
+    logger.warn(
       "⚠️ Problem not found in 'problems' store. returning problem from 'Standard_Problems' store"
     );
-    console.log("✅ Returning problem found in 'standard_problems':", problem);
+    logger.info("✅ Returning problem found in 'standard_problems':", problem);
 
     return { problem, found: true };
   } catch (error) {
-    console.error("❌ Error in getProblemByDescriptionWithRetry:", error);
+    logger.error("❌ Error in getProblemByDescriptionWithRetry:", error);
     throw error;
   }
 };
@@ -745,7 +849,7 @@ ProblemService.getAllProblemsWithRetry = async function (options = {}) {
   } = options;
 
   try {
-    console.log("📌 ProblemService: Fetching all problems with retry logic");
+    logger.info("📌 ProblemService: Fetching all problems with retry logic");
 
     const problems = await fetchAllProblemsWithRetry({
       timeout,
@@ -756,10 +860,10 @@ ProblemService.getAllProblemsWithRetry = async function (options = {}) {
       operationName: "ProblemService.getAllProblems",
     });
 
-    console.log(`✅ Fetched ${problems.length} problems with retry logic`);
+    logger.info(`✅ Fetched ${problems.length} problems with retry logic`);
     return problems;
   } catch (error) {
-    console.error("❌ Error fetching all problems with retry:", error);
+    logger.error("❌ Error fetching all problems with retry:", error);
     throw error;
   }
 };
@@ -775,7 +879,7 @@ ProblemService.countProblemsByBoxLevelWithRetry = async function (
   const { timeout = 5000, priority = "low", abortController = null } = options;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Counting problems by box level with retry logic"
     );
 
@@ -786,10 +890,10 @@ ProblemService.countProblemsByBoxLevelWithRetry = async function (
       operationName: "ProblemService.countProblemsByBoxLevel",
     });
 
-    console.log("✅ Box level counts with retry:", counts);
+    logger.info("✅ Box level counts with retry:", counts);
     return counts;
   } catch (error) {
-    console.error("❌ Error counting problems by box level with retry:", error);
+    logger.error("❌ Error counting problems by box level with retry:", error);
     throw error;
   }
 };
@@ -816,14 +920,14 @@ ProblemService.generateSessionWithRetry = async function (
     sessionLength = 5,
     difficulty = "Medium",
     tags = [],
-    includeReview = true,
+    _includeReview = true,
     streaming = false,
     onProgress = null,
     timeout = 20000,
   } = params;
 
   try {
-    console.log(
+    logger.info(
       "📌 ProblemService: Generating session with retry logic",
       params
     );
@@ -878,7 +982,7 @@ ProblemService.generateSessionWithRetry = async function (
       .sort((a, b) => new Date(a.review) - new Date(b.review)) // Sort by review date
       .slice(0, sessionLength);
 
-    console.log(
+    logger.info(
       `✅ Generated session with ${selectedProblems.length} problems using retry logic`
     );
 
@@ -889,9 +993,9 @@ ProblemService.generateSessionWithRetry = async function (
     return selectedProblems;
   } catch (error) {
     if (error.message.includes("cancelled")) {
-      console.log("🚫 Session generation cancelled:", error.message);
+      logger.info("🚫 Session generation cancelled:", error.message);
     } else {
-      console.error("❌ Error generating session with retry:", error);
+      logger.error("❌ Error generating session with retry:", error);
     }
     throw error;
   }

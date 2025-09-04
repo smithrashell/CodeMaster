@@ -9,16 +9,17 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 ### Core Documentation
 
 - **[Development Commands & Architecture](CLAUDE.md)** - Project setup, build commands, and core architecture overview
-- **[Chrome API Usage Analysis](CHROME_API_USAGE_ANALYSIS.md)** - Detailed analysis of Chrome extension API patterns
-- **[Project Overview](PROJECT_OVERVIEW.md)** - High-level project vision and current v0.9.5 status
-- **[Complete IndexedDB Schema](INDEXEDDB_SCHEMA.md)** - Comprehensive database structure (13 stores)
+- **[Chrome API Usage Analysis](docs/architecture/CHROME_API_USAGE_ANALYSIS.md)** - Detailed analysis of Chrome extension API patterns
+- **[Project Overview](docs/architecture/PROJECT_OVERVIEW.md)** - High-level project vision and current v0.9.5 status
+- **[Complete IndexedDB Schema](docs/architecture/INDEXEDDB_SCHEMA.md)** - Comprehensive database structure (13 stores)
 - **[Changelog](../CHANGELOG.md)** - Recent changes including v0.9.5 useChromeMessage hook refactoring
 
 ### Technical Deep-Dives
 
-- **[Hook Implementation Planning](HOOKS_IMPLEMENTATION_PLANNING.md)** - Hook development strategy and patterns
-- **[useChromeMessage Hook Plan](USECHROMEMESSAGE_PLAN.md)** - Detailed hook implementation and migration guide
-- **[Component Refactoring Audit](COMPONENT_REFACTORING_AUDIT.md)** - Component analysis and refactoring strategy
+- **[Hook Implementation Planning](docs/implementation/HOOKS_IMPLEMENTATION_PLANNING.md)** - Hook development strategy and patterns
+- **[useChromeMessage Hook Plan](docs/planning/USECHROMEMESSAGE_PLAN.md)** - Detailed hook implementation and migration guide
+- **[Component Refactoring Audit](docs/implementation/COMPONENT_REFACTORING_AUDIT.md)** - Component analysis and refactoring strategy
+- **[Naming Conventions](docs/implementation/NAMING_CONVENTIONS.md)** - File naming standards and import patterns
 
 ### Service & Database Documentation
 
@@ -26,6 +27,21 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 - **[Database Layer](src/shared/db/README.md)**: `src/shared/db/` - IndexedDB utilities and schema management
 - **Utilities**: `src/shared/utils/` - Helper functions and algorithms
 - **Components**: `src/shared/components/` - Reusable UI components with Mantine integration
+
+### Troubleshooting & Planning
+
+- **[Emergency Fixes](docs/troubleshooting/EMERGENCY_FIX.md)** - Critical issue resolution procedures
+- **[File Changes Summary](docs/troubleshooting/FILE_CHANGES_SUMMARY.md)** - Change tracking and impact analysis
+- **[Retry Usage Examples](docs/troubleshooting/RETRY_USAGE_EXAMPLES.md)** - Error handling patterns
+- **[Session Change Tracking](docs/planning/SESSION_CHANGE_TRACKING.md)** - Session system development planning
+- **[Dashboard Data Structure Audit](docs/planning/DASHBOARD_DATA_STRUCTURE_AUDIT.md)** - Data flow analysis
+
+### Development Tools
+
+Development testing utilities are located in `dev-tools/`:
+- Test HTML files for feature validation
+- Performance testing tools  
+- Mock service validation utilities
 
 _This document outlines patterns, conventions, and guidelines for maintaining scalable and consistent code across all system layers._
 
@@ -282,6 +298,80 @@ const {
 - Error boundary handling
 - Manual refresh capability
 - Computed values for UI state
+
+### useChromeMessage Hook (v0.9.5)
+
+**Location**: `src/shared/hooks/useChromeMessage.js`
+
+**Purpose**: Standardized Chrome extension messaging with loading states and error handling
+
+**Usage Pattern**:
+
+```javascript
+const { data, loading, error } = useChromeMessage(
+  { type: "getCurrentSession" },
+  [],
+  {
+    onSuccess: (response) => setSession(response.session),
+    onError: (error) => console.error("Session load failed:", error),
+  }
+);
+```
+
+**Key Features**:
+- Automatic loading state management
+- Consistent error handling across all Chrome API calls
+- Request caching and deduplication
+- Conditional execution for mock environments
+- 95% reduction in Chrome messaging boilerplate code
+
+### useChromeCache Hook
+
+**Location**: `src/shared/hooks/useChromeCache.js`
+
+**Purpose**: Intelligent caching for Chrome extension messages with TTL and deduplication
+
+**Usage Pattern**:
+
+```javascript
+const { getCachedResponse, setCachedResponse, getCacheKey } = useChromeCache();
+
+// Check cache first, then make request if needed
+const cacheKey = getCacheKey(request);
+const cachedData = getCachedResponse(cacheKey);
+if (cachedData) return cachedData;
+```
+
+**Key Features**:
+- 5-minute TTL for performance/freshness balance
+- Request deduplication to prevent redundant calls
+- Memory leak prevention (50-item cache limit)
+- Smart cache key generation ignoring timestamps
+
+### useChromeRetry Hook
+
+**Location**: `src/shared/hooks/useChromeRetry.js`
+
+**Purpose**: Robust retry logic for Chrome extension operations with exponential backoff
+
+**Usage Pattern**:
+
+```javascript
+const { sendWithRetry, isRetrying, retryCount } = useChromeRetry({
+  maxRetries: 3,
+  retryDelay: 1000,
+  timeout: 10000
+});
+
+const result = await sendWithRetry(request, pendingRequests, cacheKey);
+```
+
+**Key Features**:
+- Exponential backoff retry strategy
+- Configurable retry counts and timeouts
+- Integration with ChromeAPIErrorHandler
+- Request deduplication support
+- Performance monitoring and cleanup
 
 ## Chrome Extension Integration
 
@@ -709,12 +799,16 @@ sequenceDiagram
 ```
 src/shared/hooks/
 ├── index.js                 # Export all hooks
-├── useStrategy.js          # Existing strategy hook
+├── useStrategy.js          # Strategy data and contextual hints
+├── useChromeMessage.js     # Standardized Chrome messaging (v0.9.5)
+├── useChromeCache.js       # Chrome message caching with TTL
+├── useChromeRetry.js       # Retry logic with exponential backoff  
 ├── useChromeRuntime.js     # Chrome extension communication
 ├── useAsyncState.js        # Generic async state management
 ├── useProblemNavigation.js # Problem flow navigation
 └── __tests__/              # Hook tests
     ├── useStrategy.test.js
+    ├── useChromeMessage.test.jsx
     └── integration.test.js
 ```
 

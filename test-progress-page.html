@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Progress Page Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section { 
+            margin: 20px 0; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 4px; 
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+        }
+        .success { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460; 
+        }
+        .loading { 
+            background: #fff3cd; 
+            border: 1px solid #ffeaa7; 
+            color: #856404; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            font-size: 12px; 
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .expected-components {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .component-box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        .component-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Progress Page Component Test</h1>
+        <p>This test verifies that all 4 components on the Progress page are working with mock data.</p>
+        
+        <div class="status info">
+            <strong>Instructions:</strong>
+            <ol>
+                <li>Open <code>Frontend/dist/app.html</code> in Chrome</li>
+                <li>Navigate to the Progress page</li>
+                <li>Check the browser console for debug logs</li>
+                <li>Verify all components are rendering</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h3>Expected Components on Progress Page</h3>
+            <div class="expected-components">
+                <div class="component-box">
+                    <div class="component-title">1. Box Distribution (Bar Chart)</div>
+                    <p>Shows problem distribution across Leitner boxes 1-7</p>
+                    <p><strong>Data source:</strong> <code>boxLevelData</code></p>
+                    <p><strong>Should show:</strong> Bars for each box with problem counts</p>
+                </div>
+                
+                <div class="component-box">
+                    <div class="component-title">2. Mastery Dashboard</div>
+                    <p>Currently shows "MasteryDashboard - Coming Soon"</p>
+                    <p><strong>Status:</strong> Placeholder (commented out)</p>
+                    <p><strong>Expected:</strong> Text placeholder, no errors</p>
+                </div>
+                
+                <div class="component-box">
+                    <div class="component-title">3. Promotion & Demotion Trends (Line Chart)</div>
+                    <p>Shows promotion/demotion over time with time granularity controls</p>
+                    <p><strong>Data source:</strong> <code>promotionData</code></p>
+                    <p><strong>Should show:</strong> Line chart with weekly/monthly/yearly tabs</p>
+                </div>
+                
+                <div class="component-box">
+                    <div class="component-title">4. Problem Activity Over Time (Bar Chart)</div>
+                    <p>Shows attempted/passed/failed problems over time</p>
+                    <p><strong>Data source:</strong> <code>activityData</code></p>
+                    <p><strong>Should show:</strong> Stacked bar chart with time controls</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Debug Information to Look For</h3>
+            <p>Check your browser console for these logs when loading the Progress page:</p>
+            <pre>
+✅ Expected Console Logs:
+- "🎭 Using mock dashboard data" 
+- "Progress component - appState: {...}"
+- "Processing appState: { hasBoxLevelData: true, hasAllAttempts: true, ... }"
+- "Box level data processed: [{name: 'Box 1', count: X}, ...]"
+- "✅ weekly promotion data: [{name: 'Week 1', promotions: X, demotions: Y}, ...]"
+- "All data processed successfully"
+
+❌ Should NOT see:
+- "getPromotionDemotionData: Invalid input data"
+- "getProblemActivityData: Invalid sessions data"
+- "Progress component: appState is undefined"
+- Any forEach errors
+- React error boundaries
+            </pre>
+        </div>
+
+        <div class="test-section">
+            <h3>What Each Component Should Display</h3>
+            
+            <h4>1. Box Distribution Chart</h4>
+            <div class="status success">
+                Should show bars for boxes 1-7 with realistic distributions (more problems in lower boxes for active user)
+            </div>
+
+            <h4>2. Promotion & Demotion Trends</h4>
+            <div class="status success">
+                Should show line chart with promotions (green) and demotions (orange) lines. 
+                Should have Weekly/Monthly/Yearly tabs that change the data when clicked.
+            </div>
+
+            <h4>3. Problem Activity Over Time</h4>
+            <div class="status success">
+                Should show stacked bar chart with attempted (blue), passed (green), failed (red) bars.
+                Should have Weekly/Monthly/Yearly tabs that work.
+            </div>
+
+            <h4>If Components Show "No Data to display"</h4>
+            <div class="status error">
+                This indicates the data structure is still not matching what the components expect.
+                Check console for specific error messages about invalid input data.
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>Troubleshooting</h3>
+            <p>If you still see issues:</p>
+            <ul>
+                <li><strong>Reload errors:</strong> Hard refresh (Ctrl+Shift+R) and check console immediately</li>
+                <li><strong>Missing charts:</strong> Look for "No Data to display" messages</li>
+                <li><strong>Console errors:</strong> Look for data validation warnings or errors</li>
+                <li><strong>Loading issues:</strong> Should briefly show "Loading Progress Data..." message</li>
+            </ul>
+        </div>
+
+        <button class="btn" onclick="openApp()">Open App Dashboard</button>
+        <button class="btn" onclick="openConsole()">Open Browser Console</button>
+    </div>
+
+    <script>
+        function openApp() {
+            window.open('./Frontend/dist/app.html#/progress', '_blank');
+        }
+        
+        function openConsole() {
+            console.log('🔧 Progress Page Test - Check the app console for debug information');
+            alert('Press F12 in the app window to open developer tools and check the console');
+        }
+        
+        console.log('🔧 Progress Page Test Ready - Open the app and navigate to Progress page');
+    </script>
+</body>
+</html>

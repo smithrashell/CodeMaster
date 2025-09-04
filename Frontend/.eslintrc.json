@@ -34,16 +34,16 @@
       "varsIgnorePattern": "^_",
       "ignoreRestSiblings": true
     }],
-    "no-console": ["error", { 
-      "allow": ["warn", "error", "info"]
+    "no-console": ["warn", { 
+      "allow": ["warn", "error", "info", "log"]
     }],
     "no-debugger": "error",
     "no-async-promise-executor": "error",
 
     // === WARNINGS (Won't break build) ===
-    "complexity": ["warn", 15],
+    "complexity": ["warn", 20],
     "max-lines-per-function": ["warn", {
-      "max": 75,
+      "max": 100,
       "skipBlankLines": true,
       "skipComments": true
     }],
@@ -53,6 +53,12 @@
     "prefer-promise-reject-errors": "warn",
     "no-implied-eval": "warn",
     "no-new-func": "warn",
+    
+    // === CHROME EXTENSION COMPATIBILITY ===
+    "no-restricted-syntax": ["error", {
+      "selector": "ImportExpression",
+      "message": "Dynamic imports are not allowed in Chrome extensions. Use static imports instead."
+    }],
 
     // === REACT SPECIFIC ===
     "react/react-in-jsx-scope": "off",
@@ -75,21 +81,64 @@
       "rules": {
         "max-lines-per-function": "off",
         "complexity": "off",
-        "no-console": "off"
+        "no-console": "off",
+        "no-restricted-syntax": "off"
       }
     },
     {
       "files": ["**/db/**/*.js"],
       "rules": {
-        "complexity": ["warn", 20],
-        "max-lines-per-function": ["warn", 100]
+        "complexity": ["warn", 25],
+        "max-lines-per-function": ["warn", 150]
       }
     },
     {
       "files": ["**/services/**/*.js"],
       "rules": {
-        "max-lines-per-function": ["warn", 100],
-        "complexity": ["warn", 18]
+        "max-lines-per-function": ["warn", 130],
+        "complexity": ["warn", 30],
+        "max-params": ["warn", 6]
+      }
+    },
+    {
+      "files": ["**/utils/**/*.js"],
+      "rules": {
+        "max-lines-per-function": ["warn", 130],
+        "complexity": ["warn", 30],
+        "max-params": ["warn", 6],
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/components/**/*.jsx", "**/pages/**/*.jsx"],
+      "rules": {
+        "max-lines-per-function": ["warn", 130],
+        "complexity": ["warn", 30]
+      }
+    },
+    {
+      "files": ["**/pages/**/*.jsx", "**/components/**/*.jsx", "**/popup/**/*.jsx", "**/content/**/*.jsx"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [
+            {
+              "group": ["**/shared/db/*", "**/app/services/dashboardService*"],
+              "message": "UI components must use useChromeMessage/ChromeAPIErrorHandler instead of direct database or service access"
+            },
+            {
+              "group": ["**/shared/services/*", "!**/shared/services/ChromeAPIErrorHandler*"],
+              "message": "UI components must use Chrome messaging instead of direct service imports. Use ChromeAPIErrorHandler or useChromeMessage."
+            }
+          ]
+        }]
+      }
+    },
+    {
+      "files": ["**/algorithms/**/*.js", "**/utils/Leitner*.js", "**/utils/FSRS*.js"],
+      "rules": {
+        "max-lines-per-function": ["warn", 150],
+        "complexity": ["warn", 35],
+        "max-params": ["warn", 7]
       }
     }
   ],

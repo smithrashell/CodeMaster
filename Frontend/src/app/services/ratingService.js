@@ -1,5 +1,6 @@
-import { getDatabase } from "../../shared/db/index.js";
-import { addLimit } from "../../shared/db/limit.js";
+import { getAllFromStore, saveAllToStore } from "../../shared/db/common.js";
+import { addLimit, getMostRecentLimit } from "../../shared/db/limit.js";
+import logger from "../../shared/utils/logger.js";
 
 export const RatingService = {
   updateProblemsWithRatings,
@@ -31,10 +32,9 @@ function determineRating(ratings) {
  * Updates problem ratings based on attempt data.
  */
 async function updateProblemsWithRatings() {
-  const db = await getDatabase();
   try {
-    const problems = await fetchAllFromStore(db, "problems");
-    const attempts = await fetchAllFromStore(db, "attempts");
+    const problems = await getAllFromStore("problems");
+    const attempts = await getAllFromStore("attempts");
 
     const problemRatings = adjustProblemRatings(attempts);
 
@@ -44,52 +44,15 @@ async function updateProblemsWithRatings() {
       Rating: determineRating(problemRatings[problem.id] || []),
     }));
 
-    await saveAllToStore(db, "problems", updatedProblems);
+    await saveAllToStore("problems", updatedProblems);
 
     // Check if new limits need to be set
-    await checkAndUpdateLimits(attempts, db);
+    await checkAndUpdateLimits(attempts);
   } catch (error) {
-    console.error("Error updating problem ratings:", error);
+    logger.error("Error updating problem ratings:", error);
   }
 }
 
-/**
- * Fetches all entries from an IndexedDB store.
- */
-async function fetchAllFromStore(db, storeName) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(storeName, "readonly");
-    const store = transaction.objectStore(storeName);
-    const request = store.getAll();
-
-    request.onsuccess = () => resolve(request.result || []);
-    request.onerror = () =>
-      reject(new Error(`Error fetching from ${storeName}: ${request.error}`));
-  });
-}
-
-/**
- * Saves multiple entries to an IndexedDB store in a batch transaction.
- */
-async function saveAllToStore(db, storeName, items) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(storeName, "readwrite");
-    const store = transaction.objectStore(storeName);
-
-    items.forEach((item) => {
-      store.put(item).onerror = (event) => {
-        console.error(`Error saving to ${storeName}:`, event.target.error);
-        reject(event.target.error);
-      };
-    });
-
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = (event) =>
-      reject(
-        new Error(`Transaction error in ${storeName}: ${event.target.error}`)
-      );
-  });
-}
 
 /**
  * Adjusts problem ratings based on attempt times.
@@ -133,8 +96,8 @@ function calculateStatistics(times) {
 /**
  * Ensures that problem limits are updated if a week has passed.
  */
-async function checkAndUpdateLimits(attempts, db) {
-  const mostRecentLimit = await getMostRecentLimit(db);
+async function checkAndUpdateLimits(attempts) {
+  const mostRecentLimit = await getMostRecentLimit();
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0); // Normalize current date
 
@@ -143,18 +106,18 @@ async function checkAndUpdateLimits(attempts, db) {
     new Date(mostRecentLimit.CreatedAt).getTime() <
       currentDate.getTime() - 7 * 24 * 60 * 60 * 1000
   ) {
-    const newLimits = await calculateLimits(attempts, db);
+    const newLimits = await calculateLimits(attempts);
     await addLimit(newLimits);
-    console.log("New limits added:", newLimits);
+    logger.info("New limits added:", newLimits);
   } else {
-    console.log("Recent limit is still valid; no update needed.");
+    logger.info("Recent limit is still valid; no update needed.");
   }
 }
 
 /**
  * Calculates new problem limits based on attempts.
  */
-async function calculateLimits(attempts, db) {
+async function calculateLimits(attempts) {
   const buffer = 5;
   const idealLimits = { easy: 15, medium: 20, hard: 30 };
 
@@ -171,7 +134,7 @@ async function calculateLimits(attempts, db) {
     Hard: Math.max(newLimits.hard + buffer, idealLimits.hard),
   };
 
-  await saveAllToStore(db, "limits", [limitObject]);
+  await saveAllToStore("limits", [limitObject]);
   return limitObject;
 }
 

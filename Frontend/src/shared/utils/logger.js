@@ -106,16 +106,20 @@ class ProductionLogger {
     switch (level) {
       case LOG_LEVELS.TRACE:
       case LOG_LEVELS.DEBUG:
+        // eslint-disable-next-line no-console
         console.debug(formattedMessage, logEntry);
         break;
       case LOG_LEVELS.INFO:
+        // eslint-disable-next-line no-console
         console.info(formattedMessage, logEntry);
         break;
       case LOG_LEVELS.WARN:
+        // eslint-disable-next-line no-console
         console.warn(formattedMessage, logEntry);
         break;
       case LOG_LEVELS.ERROR:
       case LOG_LEVELS.FATAL:
+        // eslint-disable-next-line no-console
         console.error(formattedMessage, logEntry);
         // Report errors to error tracking system
         if (error) {
@@ -155,6 +159,21 @@ class ProductionLogger {
    */
   _storeCriticalLog(logEntry) {
     try {
+      // Check if running in service worker (background script)
+      if (typeof localStorage === 'undefined' && typeof chrome !== 'undefined' && chrome.storage) {
+        // Use chrome.storage.local for service workers
+        chrome.storage.local.get(['codemaster_critical_logs'], (result) => {
+          const criticalLogs = result.codemaster_critical_logs || [];
+          criticalLogs.push(logEntry);
+          
+          // Keep only last 50 critical logs
+          const recentLogs = criticalLogs.slice(-50);
+          chrome.storage.local.set({ codemaster_critical_logs: recentLogs });
+        });
+        return;
+      }
+
+      // Standard localStorage for other contexts
       const criticalLogs = JSON.parse(
         localStorage.getItem("codemaster_critical_logs") || "[]"
       );
@@ -215,6 +234,26 @@ class ProductionLogger {
   getLogLevel() {
     return LOG_LEVEL_NAMES[this.currentLevel];
   }
+
+  /**
+   * Create console groups for organizing log output
+   */
+  group(label) {
+    if (this.currentLevel <= LOG_LEVELS.DEBUG) {
+      // eslint-disable-next-line no-console
+      console.group(label);
+    }
+  }
+
+  /**
+   * End console group
+   */
+  groupEnd() {
+    if (this.currentLevel <= LOG_LEVELS.DEBUG) {
+      // eslint-disable-next-line no-console  
+      console.groupEnd();
+    }
+  }
 }
 
 // Create singleton instance
@@ -239,3 +278,67 @@ export const info = logger.info.bind(logger);
 export const warn = logger.warn.bind(logger);
 export const error = logger.error.bind(logger);
 export const fatal = logger.fatal.bind(logger);
+
+// Emoji-based helper methods to match existing console.log patterns
+// These map your current emoji categories to appropriate log levels
+
+/**
+ * Component debugging - 🎯 category
+ * Usage: component("Settings", "🎯 Interview readiness check", { hasSettings })
+ */
+export function component(componentName, message, context = {}) {
+  logger.debug(message, { component: componentName, ...context });
+}
+
+/**
+ * Data analysis logging - 📊 category
+ * Usage: data("📊 Processing attempts", { count: attempts.length })
+ */
+export function data(message, context = {}) {
+  logger.debug(message, { category: 'data-analysis', ...context });
+}
+
+/**
+ * System/configuration logging - 🔧 category (production-safe)
+ * Usage: system("🔧 Extension context detected", { type: "background" })
+ */
+export function system(message, context = {}) {
+  logger.info(message, { category: 'system-config', ...context });
+}
+
+/**
+ * Success/completion logging - ✅ category  
+ * Usage: success("✅ Migration completed", results)
+ */
+export function success(message, context = {}) {
+  logger.debug(message, { category: 'success', ...context });
+}
+
+/**
+ * Context/debugging info - 🔍📍 category
+ * Usage: context("📍 Database context", { location, callStack })
+ */
+export function context(message, contextData = {}) {
+  logger.debug(message, { category: 'context', ...contextData });
+}
+
+/**
+ * Warning/fallback logging - ⚠️ category (production-safe)
+ * Usage: fallback("⚠️ Using fallback mode", fallbackData)
+ */
+export function fallback(message, context = {}) {
+  logger.warn(message, { category: 'fallback', ...context });
+}
+
+// Development helper functions (extend existing functionality)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  window.CodeMasterDebug = {
+    ...window.CodeMasterDebug,
+    logger: logger,
+    enableDebugLogs: () => logger.setLogLevel('DEBUG'),
+    disableDebugLogs: () => logger.setLogLevel('WARN'),
+    // eslint-disable-next-line no-console
+    showLevel: () => console.log('Current log level:', logger.getLogLevel()),
+    getCriticalLogs: () => JSON.parse(localStorage.getItem("codemaster_critical_logs") || "[]")
+  };
+}

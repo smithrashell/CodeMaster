@@ -128,8 +128,8 @@ export const StyledProblemInfoIcon = ({
           transition: "opacity 0.2s ease, transform 0.2s ease",
           transform: hovered ? "scale(1.1)" : "scale(1)",
         }}
-        onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
-        onMouseOut={(e) => (e.currentTarget.style.opacity = "0.8")}
+        onMouseOver={(e) => (e.currentTarget.style.opacity = "1")} onFocus={(e) => (e.currentTarget.style.opacity = "1")}
+        onMouseOut={(e) => (e.currentTarget.style.opacity = "0.8")} onBlur={(e) => (e.currentTarget.style.opacity = "0.8")}
       >
         {showIcon ? (
           <ReasonTypeIcon reasonType={selectionReason.type} size={14} />

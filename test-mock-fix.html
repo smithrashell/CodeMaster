@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mock Data Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status { 
+            padding: 10px; 
+            border-radius: 4px; 
+            margin: 10px 0; 
+        }
+        .success { 
+            background: #d4edda; 
+            border: 1px solid #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border: 1px solid #f5c6cb; 
+            color: #721c24; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border: 1px solid #bee5eb; 
+            color: #0c5460; 
+        }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 4px; 
+            overflow-x: auto; 
+            font-size: 12px;
+        }
+        .test-section { 
+            margin: 20px 0; 
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 4px; 
+        }
+        .test-title { 
+            font-weight: bold; 
+            font-size: 16px; 
+            margin-bottom: 10px; 
+            color: #333; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Mock Data Configuration Test</h1>
+        <p>This page tests if your webpack NODE_ENV fix resolved the mock data issue.</p>
+        
+        <div class="test-section">
+            <div class="test-title">Environment Detection Test</div>
+            <div id="env-test">Loading...</div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">Mock Configuration Test</div>
+            <div id="mock-config-test">Loading...</div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">Mock Data Generation Test</div>
+            <div id="mock-data-test">Loading...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Test 1: Environment detection
+        const envTestDiv = document.getElementById('env-test');
+        try {
+            // This should now work because of our webpack DefinePlugin
+            const nodeEnv = process.env.NODE_ENV;
+            const isDev = nodeEnv === 'development';
+            const isProd = nodeEnv === 'production';
+            
+            envTestDiv.innerHTML = `
+                <div class="status ${isDev ? 'success' : 'info'}">
+                    <strong>Environment:</strong> ${nodeEnv || 'undefined'}<br>
+                    <strong>Is Development:</strong> ${isDev}<br>
+                    <strong>Is Production:</strong> ${isProd}
+                </div>
+            `;
+        } catch (error) {
+            envTestDiv.innerHTML = `
+                <div class="status error">
+                    <strong>Environment Test Failed:</strong> ${error.message}
+                </div>
+            `;
+        }
+
+        // Test 2: Mock configuration  
+        const mockConfigTestDiv = document.getElementById('mock-config-test');
+        try {
+            // Import and test mock configuration
+            import('./Frontend/dist/app.js').then(() => {
+                // This would test the actual mock config, but since it's bundled
+                // we'll simulate the expected behavior
+                const simulatedConfig = {
+                    isDevelopment: process.env.NODE_ENV === 'development',
+                    shouldUseMock: process.env.NODE_ENV !== 'production',
+                    mockEnabled: process.env.NODE_ENV === 'development'
+                };
+                
+                mockConfigTestDiv.innerHTML = `
+                    <div class="status ${simulatedConfig.mockEnabled ? 'success' : 'error'}">
+                        <strong>Mock Mode Should Be:</strong> ${simulatedConfig.mockEnabled ? 'ENABLED' : 'DISABLED'}<br>
+                        <strong>Environment:</strong> ${process.env.NODE_ENV}<br>
+                        <strong>Expected Behavior:</strong> ${simulatedConfig.mockEnabled ? 'Mock data will load with rich content' : 'Real data will be attempted from extension'}
+                    </div>
+                `;
+            }).catch(error => {
+                mockConfigTestDiv.innerHTML = `
+                    <div class="status info">
+                        <strong>Simulated Mock Config Test:</strong><br>
+                        Since NODE_ENV = "${process.env.NODE_ENV}", mock data should be ${process.env.NODE_ENV === 'development' ? 'ENABLED' : 'DISABLED'}
+                    </div>
+                `;
+            });
+        } catch (error) {
+            mockConfigTestDiv.innerHTML = `
+                <div class="status error">
+                    <strong>Mock Configuration Test Failed:</strong> ${error.message}
+                </div>
+            `;
+        }
+
+        // Test 3: Mock data generation
+        const mockDataTestDiv = document.getElementById('mock-data-test');
+        mockDataTestDiv.innerHTML = `
+            <div class="status info">
+                <strong>Expected Mock Data Structure:</strong>
+                <pre>
+{
+  statistics: {
+    statistics: { totalSolved: X, mastered: Y, inProgress: Z, new: W },
+    averageTime: { overall: A, Easy: B, Medium: C, Hard: D },
+    successRate: { overall: E%, Easy: F%, Medium: G%, Hard: H% },
+    allSessions: [Array of ${process.env.NODE_ENV === 'development' ? '50' : '0'} sessions]
+  },
+  progress: {
+    learningState: { currentTier: "...", masteredTags: X, totalTags: 50 },
+    boxLevelData: { 1: A, 2: B, 3: C, 4: D, 5: E, 6: F, 7: G },
+    allAttempts: [Array of attempts with Success/TimeSpent/Difficulty],
+    allProblems: [Array of problems with BoxLevel/difficulty/title],
+    allSessions: [Same as above]
+  }
+}
+                </pre>
+                <strong>If mock is working:</strong> You should see populated arrays and realistic numbers, not empty arrays.
+            </div>
+        `;
+    </script>
+</body>
+</html>

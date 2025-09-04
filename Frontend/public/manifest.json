@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Master algorithms with personalized spaced repetition, pattern ladders, and adaptive sessions. Track progress on LeetCode with intelligent learning analytics.",
   "manifest_version": 3,
-  "action": {},
   "icons": {
     "16": "icon16.png",
     "32": "icon32.png", 
@@ -22,6 +21,7 @@
     "notifications",
     "alarms"
   ],
+  "action": {},
   "background": {
     "service_worker": "background.js"
   },

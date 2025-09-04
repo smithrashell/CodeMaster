@@ -1,5 +1,5 @@
 import { dbHelper } from "./index.js";
-import { openBackupDB, getBackupFile as getBackupFileFromBackupDB } from "./backupDB.js";
+import { getBackupFile as getBackupFileFromBackupDB } from "./backupDB.js";
 
 export async function getBackupFile() {
   // Use the backup function from backupDB.js to maintain consistency
@@ -11,7 +11,7 @@ export async function getBackupFile() {
  * @param {File} file - The JSON file containing the backup.
  * @returns {Promise<void>}
  */
-export async function restoreIndexedDB(file) {
+export function restoreIndexedDB(file) {
   try {
     const fileReader = new FileReader();
     fileReader.onload = async (event) => {

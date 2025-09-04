@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import {
   getHighlyRelatedTags,
@@ -6,8 +7,164 @@ import {
 import { getSessionPerformance } from "../db/sessions.js";
 import { StorageService } from "./storageService.js";
 import SessionLimits from "../utils/sessionLimits.js";
+import logger from "../utils/logger.js";
+import { calculateSuccessRate } from "../utils/Utils.js";
 
 const openDB = dbHelper.openDB;
+
+// Helper function for onboarding fallback when no mastery data exists
+async function handleOnboardingFallback(db) {
+  const tagRelationships = await new Promise((resolve, reject) => {
+    const tx = db.transaction("tag_relationships", "readonly");
+    const store = tx.objectStore("tag_relationships");
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+  const topTags = tagRelationships
+    .map((entry) => {
+      const totalWeight = Object.values(entry.relatedTags || {}).reduce(
+        (sum, w) => sum + w,
+        0
+      );
+      return { tag: entry.id, weight: totalWeight };
+    })
+    .sort((a, b) => b.weight - a.weight)
+    .slice(0, 5)
+    .map((entry) => entry.tag);
+
+  const allTags = tagRelationships.map((entry) => entry);
+  const tagsinCurrentTier = allTags
+    .filter((tag) => tag.classification === "Core Concept")
+    .map((tag) => tag.id);
+
+  // 🛡️ Onboarding safety: Ensure we have focus tags and tier tags
+  const safeFocusTags =
+    topTags.length > 0
+      ? topTags
+      : tagsinCurrentTier.length > 0
+      ? tagsinCurrentTier.slice(0, 3)
+      : ["array", "hash table", "string"];
+
+  const safeAllTagsInCurrentTier =
+    tagsinCurrentTier.length > 0
+      ? tagsinCurrentTier
+      : [
+          "array",
+          "hash table",
+          "string",
+          "dynamic programming",
+          "two pointers",
+        ];
+
+  logger.info("👶 Onboarding with focus tags:", safeFocusTags);
+  logger.info("👶 All tags in current tier:", safeAllTagsInCurrentTier);
+
+  return {
+    classification: "Core Concept",
+    masteredTags: [],
+    allTagsInCurrentTier: safeAllTagsInCurrentTier,
+    focusTags: safeFocusTags,
+    masteryData: [],
+  };
+}
+
+// Helper function to check tier progression with escape hatch
+async function checkTierProgression(tier, masteredTags, tierTags, isTierMastered) {
+  // 🔓 Time-based tier progression escape hatch: Allow advancement after 30+ days without progress
+  const now = new Date();
+  let allowTierAdvancement = isTierMastered;
+  let tierEscapeHatchActivated = false;
+
+  if (!isTierMastered) {
+    // Check if user has been stuck at this tier for 30+ days
+    const tierProgressKey = `tier_progress_${tier}`;
+    let tierProgressData = (await StorageService.getSessionState(
+      tierProgressKey
+    )) || {
+      tierStartDate: now.toISOString(),
+      lastProgressDate: now.toISOString(),
+      daysWithoutProgress: 0,
+    };
+
+    // Calculate days since last tier progress
+    const lastProgressDate = new Date(tierProgressData.lastProgressDate);
+    const daysSinceProgress =
+      (now - lastProgressDate) / (1000 * 60 * 60 * 24);
+
+    // Check if user has reasonable progress (60%+ tags mastered) and been stuck 30+ days
+    const progressRatio = masteredTags.length / tierTags.length;
+    if (daysSinceProgress >= 30 && progressRatio >= 0.6) {
+      allowTierAdvancement = true;
+      tierEscapeHatchActivated = true;
+      logger.info(
+        `🔓 Tier progression escape hatch ACTIVATED for ${tier}: ${Math.floor(
+          daysSinceProgress
+        )} days without progress, ${masteredTags.length}/${
+          tierTags.length
+        } tags mastered (${(progressRatio * 100).toFixed(1)}%)`
+      );
+
+      // Update progress tracking
+      tierProgressData.lastProgressDate = now.toISOString();
+      await StorageService.setSessionState(tierProgressKey, tierProgressData);
+    } else {
+      // Update days without progress tracking
+      tierProgressData.daysWithoutProgress = Math.floor(daysSinceProgress);
+      await StorageService.setSessionState(tierProgressKey, tierProgressData);
+    }
+  }
+
+  return { allowTierAdvancement, tierEscapeHatchActivated };
+}
+
+// Helper function to seed new tags when needed
+async function seedNewTagsIfNeeded(context) {
+  const { db, masteryStore, masteredTags, tierTags, unmasteredTags, masteryData, tier, tierEscapeHatchActivated } = context;
+  const missingTags = tierTags.filter(
+    (tag) => !masteryData.some((m) => m.tag === tag)
+  );
+
+  if (unmasteredTags.length === 0 && missingTags.length > 0) {
+    const newTags = await getHighlyRelatedTags(
+      db,
+      masteredTags,
+      missingTags,
+      5
+    );
+
+    logger.info(
+      `🔹 Seeding ${newTags.length} new tags from ${tier} into tag_mastery`
+    );
+
+    await Promise.all(
+      newTags.map((newTag) => {
+        return new Promise((resolve, reject) => {
+          const putRequest = masteryStore.put({
+            tag: newTag,
+            totalAttempts: 0,
+            successfulAttempts: 0,
+            decayScore: 1,
+            mastered: false,
+          });
+          putRequest.onsuccess = () => resolve();
+          putRequest.onerror = () => reject(putRequest.error);
+        });
+      })
+    );
+
+    return {
+      classification: tier,
+      masteredTags,
+      allTagsInCurrentTier: tierTags,
+      focusTags: newTags,
+      masteryData,
+      tierEscapeHatchActivated,
+    };
+  }
+  return null;
+}
 
 async function getCurrentTier() {
   const db = await openDB();
@@ -21,64 +178,11 @@ async function getCurrentTier() {
     request.onerror = () => reject(request.error);
   });
 
-  console.log("🔍 masteryData:", masteryData);
+  logger.info("🔍 masteryData:", masteryData);
 
   // ✅ Onboarding fallback: No mastery data yet
   if (!masteryData || masteryData.length === 0) {
-    const tagRelationships = await new Promise((resolve, reject) => {
-      const tx = db.transaction("tag_relationships", "readonly");
-      const store = tx.objectStore("tag_relationships");
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-
-    const topTags = tagRelationships
-      .map((entry) => {
-        const totalWeight = Object.values(entry.relatedTags || {}).reduce(
-          (sum, w) => sum + w,
-          0
-        );
-        return { tag: entry.id, weight: totalWeight };
-      })
-      .sort((a, b) => b.weight - a.weight)
-      .slice(0, 5)
-      .map((entry) => entry.tag);
-
-    const allTags = tagRelationships.map((entry) => entry);
-    const tagsinCurrentTier = allTags
-      .filter((tag) => tag.classification === "Core Concept")
-      .map((tag) => tag.id);
-
-    // 🛡️ Onboarding safety: Ensure we have focus tags and tier tags
-    const safeFocusTags =
-      topTags.length > 0
-        ? topTags
-        : tagsinCurrentTier.length > 0
-        ? tagsinCurrentTier.slice(0, 3)
-        : ["array", "hash table", "string"];
-
-    const safeAllTagsInCurrentTier =
-      tagsinCurrentTier.length > 0
-        ? tagsinCurrentTier
-        : [
-            "array",
-            "hash table",
-            "string",
-            "dynamic programming",
-            "two pointers",
-          ];
-
-    console.log("👶 Onboarding with focus tags:", safeFocusTags);
-    console.log("👶 All tags in current tier:", safeAllTagsInCurrentTier);
-
-    return {
-      classification: "Core Concept",
-      masteredTags: [],
-      allTagsInCurrentTier: safeAllTagsInCurrentTier,
-      focusTags: safeFocusTags,
-      masteryData: [],
-    };
+    return await handleOnboardingFallback(db);
   }
 
   // ✅ Returning user logic
@@ -99,7 +203,7 @@ async function getCurrentTier() {
         (tag) =>
           tierTags.includes(tag.tag) &&
           tag.totalAttempts > 0 &&
-          tag.successfulAttempts / tag.totalAttempts >= 0.8
+          calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts) >= 0.8
       )
       .map((tag) => tag.tag);
 
@@ -112,52 +216,10 @@ async function getCurrentTier() {
     const masteryThreshold = Math.ceil(tierTags.length * 0.8);
     const isTierMastered = masteredTags.length >= masteryThreshold;
 
-    // 🔓 Time-based tier progression escape hatch: Allow advancement after 30+ days without progress
-    const now = new Date();
-    let allowTierAdvancement = isTierMastered;
-    let tierEscapeHatchActivated = false;
-
-    if (!isTierMastered) {
-      // Check if user has been stuck at this tier for 30+ days
-      const tierProgressKey = `tier_progress_${tier}`;
-      let tierProgressData = (await StorageService.getSessionState(
-        tierProgressKey
-      )) || {
-        tierStartDate: now.toISOString(),
-        lastProgressDate: now.toISOString(),
-        daysWithoutProgress: 0,
-      };
-
-      // Calculate days since last tier progress
-      const lastProgressDate = new Date(tierProgressData.lastProgressDate);
-      const daysSinceProgress =
-        (now - lastProgressDate) / (1000 * 60 * 60 * 24);
-
-      // Check if user has reasonable progress (60%+ tags mastered) and been stuck 30+ days
-      const progressRatio = masteredTags.length / tierTags.length;
-      if (daysSinceProgress >= 30 && progressRatio >= 0.6) {
-        allowTierAdvancement = true;
-        tierEscapeHatchActivated = true;
-        console.log(
-          `🔓 Tier progression escape hatch ACTIVATED for ${tier}: ${Math.floor(
-            daysSinceProgress
-          )} days without progress, ${masteredTags.length}/${
-            tierTags.length
-          } tags mastered (${(progressRatio * 100).toFixed(1)}%)`
-        );
-
-        // Update progress tracking
-        tierProgressData.lastProgressDate = now.toISOString();
-        await StorageService.setSessionState(tierProgressKey, tierProgressData);
-      } else {
-        // Update days without progress tracking
-        tierProgressData.daysWithoutProgress = Math.floor(daysSinceProgress);
-        await StorageService.setSessionState(tierProgressKey, tierProgressData);
-      }
-    }
+    const { allowTierAdvancement, tierEscapeHatchActivated } = await checkTierProgression(tier, masteredTags, tierTags, isTierMastered);
 
     if (!allowTierAdvancement) {
-      console.log(
+      logger.info(
         `✅ User is in ${tier}, working on ${unmasteredTags.length} tags.`
       );
       return {
@@ -170,51 +232,16 @@ async function getCurrentTier() {
       };
     }
 
-    const missingTags = tierTags.filter(
-      (tag) => !masteryData.some((m) => m.tag === tag)
-    );
-
-    if (unmasteredTags.length === 0 && missingTags.length > 0) {
-      const newTags = await getHighlyRelatedTags(
-        db,
-        masteredTags,
-        missingTags,
-        5
-      );
-
-      console.log(
-        `🔹 Seeding ${newTags.length} new tags from ${tier} into tag_mastery`
-      );
-
-      await Promise.all(
-        newTags.map((newTag) => {
-          return new Promise((resolve, reject) => {
-            const putRequest = masteryStore.put({
-              tag: newTag,
-              totalAttempts: 0,
-              successfulAttempts: 0,
-              decayScore: 1,
-              mastered: false,
-            });
-            putRequest.onsuccess = () => resolve();
-            putRequest.onerror = () => reject(putRequest.error);
-          });
-        })
-      );
-
-      return {
-        classification: tier,
-        masteredTags,
-        allTagsInCurrentTier: tierTags,
-        focusTags: newTags,
-        masteryData,
-        tierEscapeHatchActivated,
-      };
+    const seedResult = await seedNewTagsIfNeeded({
+      db, masteryStore, masteredTags, tierTags, unmasteredTags, masteryData, tier, tierEscapeHatchActivated
+    });
+    if (seedResult) {
+      return seedResult;
     }
   }
 
   // ✅ All tiers mastered — advance
-  console.log("🚀 All tiers mastered. Advancing to next tier...");
+  logger.info("🚀 All tiers mastered. Advancing to next tier...");
   return getNextFiveTagsFromNextTier(masteryData);
 }
 
@@ -230,11 +257,11 @@ async function getCurrentLearningState() {
   const sessionPerformance = await getSessionPerformance({
     allTagsInCurrentTier,
   });
-  console.log("tags", allTagsInCurrentTier);
-  console.log(`📌 Tier: ${classification}`);
-  console.log(`✅ Mastered Tags: ${masteredTags.join(", ")}`);
-  console.log(`🔹 Focus Tags: ${focusTags.join(", ")}`);
-  console.log(`🔹 Tags in Tier: ${allTagsInCurrentTier.join(", ")}`);
+  logger.info("tags", allTagsInCurrentTier);
+  logger.info(`📌 Tier: ${classification}`);
+  logger.info(`✅ Mastered Tags: ${masteredTags.join(", ")}`);
+  logger.info(`🔹 Focus Tags: ${focusTags.join(", ")}`);
+  logger.info(`🔹 Tags in Tier: ${allTagsInCurrentTier.join(", ")}`);
 
   return {
     currentTier: classification,
@@ -253,59 +280,36 @@ async function getCurrentLearningState() {
  * @param {object} db - Database connection
  * @returns {Promise<Array>} Intelligent focus tags
  */
-async function getIntelligentFocusTags(masteryData, tierTags) {
-  console.info("🧠 Selecting intelligent focus tags...");
-  const db = await openDB();
-  const masteryTx = db.transaction("tag_mastery", "readwrite");
-  const masteryStore = masteryTx.objectStore("tag_mastery");
-  // Get tag relationships for intelligent expansion
-  const tagRelationshipsData = await new Promise((resolve, reject) => {
-    const tx = db.transaction("tag_relationships", "readonly");
-    const store = tx.objectStore("tag_relationships");
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-
-  const tagRelationships = tagRelationshipsData.reduce((acc, item) => {
-    acc[item.id] = item.relatedTags || {};
-    return acc;
-  }, {});
-
-  // 🔓 Time-based escape hatch: Check for tags stuck for 2+ weeks
+// Helper function to apply time-based escape hatch logic
+function applyTimeBasedEscapeHatch(tag) {
+  let adjustedMasteryThreshold = 0.8; // Standard 80% threshold
+  let timeBasedEscapeHatch = false;
+  const successRate = calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts);
   const now = new Date();
 
-  // Filter and process tags in current tier with time-based escape hatch logic
-  const allRelevantTags = masteryData
+  // Check if tag has been stuck for 2+ weeks
+  if (tag.lastAttemptDate) {
+    const lastAttemptDate = new Date(tag.lastAttemptDate);
+    const daysSinceLastAttempt = (now - lastAttemptDate) / (1000 * 60 * 60 * 24);
+
+    // Apply time-based escape hatch if stuck for 14+ days and has some progress (≥60%)
+    if (daysSinceLastAttempt >= 14 && successRate >= 0.6 && successRate < 0.8) {
+      adjustedMasteryThreshold = 0.6; // Lower threshold from 80% to 60%
+      timeBasedEscapeHatch = true;
+      logger.info(`🔓 Time-based escape hatch available for "${tag.tag}": ${daysSinceLastAttempt.toFixed(0)} days since last attempt, ${(successRate * 100).toFixed(1)}% accuracy`);
+    }
+  }
+
+  return { adjustedMasteryThreshold, timeBasedEscapeHatch };
+}
+
+// Helper function to process and enrich tag data
+function processAndEnrichTags(masteryData, tierTags, tagRelationships) {
+  return masteryData
     .filter((tag) => tierTags.includes(tag.tag) && tag.totalAttempts > 0)
     .map((tag) => {
-      const successRate = tag.successfulAttempts / tag.totalAttempts;
-      let adjustedMasteryThreshold = 0.8; // Standard 80% threshold
-      let timeBasedEscapeHatch = false;
-
-      // Check if tag has been stuck for 2+ weeks
-      if (tag.lastAttemptDate) {
-        const lastAttemptDate = new Date(tag.lastAttemptDate);
-        const daysSinceLastAttempt =
-          (now - lastAttemptDate) / (1000 * 60 * 60 * 24);
-
-        // Apply time-based escape hatch if stuck for 14+ days and has some progress (≥60%)
-        if (
-          daysSinceLastAttempt >= 14 &&
-          successRate >= 0.6 &&
-          successRate < 0.8
-        ) {
-          adjustedMasteryThreshold = 0.6; // Lower threshold from 80% to 60%
-          timeBasedEscapeHatch = true;
-          console.log(
-            `🔓 Time-based escape hatch available for "${
-              tag.tag
-            }": ${daysSinceLastAttempt.toFixed(0)} days since last attempt, ${(
-              successRate * 100
-            ).toFixed(1)}% accuracy`
-          );
-        }
-      }
+      const successRate = calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts);
+      const { adjustedMasteryThreshold, timeBasedEscapeHatch } = applyTimeBasedEscapeHatch(tag);
 
       return {
         ...tag,
@@ -313,30 +317,16 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
         adjustedMasteryThreshold,
         timeBasedEscapeHatch,
         learningVelocity: calculateLearningVelocity(tag),
-        relationshipScore: calculateRelationshipScore(
-          tag.tag,
-          masteryData,
-          tagRelationships
-        ),
+        relationshipScore: calculateRelationshipScore(tag.tag, masteryData, tagRelationships),
       };
     });
+}
 
-  // Split into mastered and unmastered using adjusted thresholds
-  const unmasteredTags = allRelevantTags.filter(
-    (tag) => tag.successRate < tag.adjustedMasteryThreshold
-  );
-  const masteredTags = allRelevantTags.filter(
-    (tag) => tag.successRate >= tag.adjustedMasteryThreshold
-  );
-
-  // 🎓 Check if current focus tags are mastered and need graduation (including escape hatch logic)
-  const currentFocusTags = masteredTags;
-
+// Helper function to handle graduation logic
+async function handleGraduation(masteredTags, tierTags, masteryData, db, masteryStore) {
   // 🎓 Graduate when most of focus window is mastered (4 out of 5 tags)
-  if (currentFocusTags.length >= 4) {
-    console.log(
-      `🎓 ${currentFocusTags.length} tags mastered, graduating to new focus set...`
-    );
+  if (masteredTags.length >= 4) {
+    logger.info(`🎓 ${masteredTags.length} tags mastered, graduating to new focus set...`);
 
     // Get unstarted tags for fresh learning
     const unstartedTags = tierTags.filter(
@@ -346,14 +336,12 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
     if (unstartedTags.length > 0) {
       const newFocusTags = await getHighlyRelatedTags(
         db,
-        currentFocusTags.map((t) => t.tag),
+        masteredTags.map((t) => t.tag),
         unstartedTags,
         5
       );
 
-      console.log(
-        `🎓 Graduating to new focus tags: ${newFocusTags.join(", ")}`
-      );
+      logger.info(`🎓 Graduating to new focus tags: ${newFocusTags.join(", ")}`);
 
       // Initialize new focus tags in mastery data
       await Promise.all(
@@ -374,22 +362,19 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
 
       // 🔄 Reset tagIndex for new focus window
       await resetTagIndexForNewWindow();
-
       return newFocusTags;
     }
   }
+  return null;
+}
 
+// Helper function to sort and select focus tags
+function sortAndSelectFocusTags(unmasteredTags) {
   // Sort by intelligent criteria
   const sortedTags = unmasteredTags.sort((a, b) => {
     // Primary: Focus on tags with moderate success rate (learning opportunity)
-    const aOptimalLearning = getOptimalLearningScore(
-      a.successRate,
-      a.totalAttempts
-    );
-    const bOptimalLearning = getOptimalLearningScore(
-      b.successRate,
-      b.totalAttempts
-    );
+    const aOptimalLearning = getOptimalLearningScore(a.successRate, a.totalAttempts);
+    const bOptimalLearning = getOptimalLearningScore(b.successRate, b.totalAttempts);
 
     if (Math.abs(aOptimalLearning - bOptimalLearning) > 0.1) {
       return bOptimalLearning - aOptimalLearning;
@@ -421,8 +406,48 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
     }
   }
 
-  const selectedTags = focusTags.map((tag) => tag.tag);
-  console.log("🧠 Selected intelligent focus tags:", selectedTags);
+  return focusTags.map((tag) => tag.tag);
+}
+
+async function getIntelligentFocusTags(masteryData, tierTags) {
+  logger.info("🧠 Selecting intelligent focus tags...");
+  const db = await openDB();
+  const masteryTx = db.transaction("tag_mastery", "readwrite");
+  const masteryStore = masteryTx.objectStore("tag_mastery");
+  
+  // Get tag relationships for intelligent expansion
+  const tagRelationshipsData = await new Promise((resolve, reject) => {
+    const tx = db.transaction("tag_relationships", "readonly");
+    const store = tx.objectStore("tag_relationships");
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+  const tagRelationships = tagRelationshipsData.reduce((acc, item) => {
+    acc[item.id] = item.relatedTags || {};
+    return acc;
+  }, {});
+
+  // Filter and process tags in current tier with time-based escape hatch logic
+  const allRelevantTags = processAndEnrichTags(masteryData, tierTags, tagRelationships);
+
+  // Split into mastered and unmastered using adjusted thresholds
+  const unmasteredTags = allRelevantTags.filter(
+    (tag) => tag.successRate < tag.adjustedMasteryThreshold
+  );
+  const masteredTags = allRelevantTags.filter(
+    (tag) => tag.successRate >= tag.adjustedMasteryThreshold
+  );
+
+  // 🎓 Check if current focus tags are mastered and need graduation
+  const graduationResult = await handleGraduation(masteredTags, tierTags, masteryData, db, masteryStore);
+  if (graduationResult) {
+    return graduationResult;
+  }
+
+  const selectedTags = sortAndSelectFocusTags(unmasteredTags);
+  logger.info("🧠 Selected intelligent focus tags:", selectedTags);
 
   return selectedTags;
 }
@@ -503,7 +528,7 @@ async function resetTagIndexForNewWindow() {
   if (sessionState) {
     sessionState.tagIndex = 0; // Reset to start of new focus window
     await StorageService.setSessionState(sessionStateKey, sessionState);
-    console.log("🔄 Reset tagIndex to 0 for new focus window");
+    logger.info("🔄 Reset tagIndex to 0 for new focus window");
   }
 }
 
@@ -546,7 +571,7 @@ async function checkFocusAreasGraduation() {
     const needsUpdate = masteredFocusAreas.length > 0;
 
     if (needsUpdate) {
-      console.log(`🎓 Focus areas graduation detected: ${masteredFocusAreas.join(', ')} mastered`);
+      logger.info(`🎓 Focus areas graduation detected: ${masteredFocusAreas.join(', ')} mastered`);
     }
 
     return {
@@ -557,7 +582,7 @@ async function checkFocusAreasGraduation() {
       currentFocusAreas: userFocusAreas,
     };
   } catch (error) {
-    console.error('Error checking focus areas graduation:', error);
+    logger.error('Error checking focus areas graduation:', error);
     return { needsUpdate: false, masteredTags: [], suggestions: [] };
   }
 }
@@ -587,7 +612,7 @@ async function graduateFocusAreas() {
     if (spacesAvailable > 0 && graduationStatus.suggestions.length > 0) {
       const autoAddTags = graduationStatus.suggestions.slice(0, spacesAvailable);
       updatedFocusAreas.push(...autoAddTags);
-      console.log(`🔄 Auto-added focus areas: ${autoAddTags.join(', ')}`);
+      logger.info(`🔄 Auto-added focus areas: ${autoAddTags.join(', ')}`);
     }
 
     // Save updated settings
@@ -597,8 +622,8 @@ async function graduateFocusAreas() {
     };
     await StorageService.setSettings(updatedSettings);
 
-    console.log(`🎓 Graduated focus areas: ${graduationStatus.masteredTags.join(', ')}`);
-    console.log(`🎯 New focus areas: ${updatedFocusAreas.join(', ')}`);
+    logger.info(`🎓 Graduated focus areas: ${graduationStatus.masteredTags.join(', ')}`);
+    logger.info(`🎯 New focus areas: ${updatedFocusAreas.join(', ')}`);
 
     return {
       updated: true,
@@ -611,7 +636,7 @@ async function graduateFocusAreas() {
       }
     };
   } catch (error) {
-    console.error('Error graduating focus areas:', error);
+    logger.error('Error graduating focus areas:', error);
     return { updated: false, error: error.message };
   }
 }
@@ -624,7 +649,7 @@ async function graduateFocusAreas() {
  */
 async function getAvailableTagsForFocus(userId) {
   try {
-    console.log("🔍 TAGSERVICE: getAvailableTagsForFocus called with userId:", userId);
+    logger.info("🔍 TAGSERVICE: getAvailableTagsForFocus called with userId:", userId);
     
     // Get current learning state - this already has most of what we need!
     const learningState = await getCurrentLearningState();
@@ -637,7 +662,7 @@ async function getAvailableTagsForFocus(userId) {
         numSessionsCompleted: 0
       };
     const isOnboarding = SessionLimits.isOnboarding(sessionState);
-    console.log(`🔰 Onboarding status: ${isOnboarding} (sessions completed: ${sessionState.numSessionsCompleted})`);
+    logger.info(`🔰 Onboarding status: ${isOnboarding} (sessions completed: ${sessionState.numSessionsCompleted})`);
 
     const currentTier = learningState?.currentTier || "Core Concept";
     const systemSelectedTags = learningState?.focusTags || [];
@@ -676,8 +701,8 @@ async function getAvailableTagsForFocus(userId) {
       effectiveActiveSessionTags = systemSelectedTags.slice(0, maxFocusTags);
     }
     
-    console.log(`🔰 Focus areas limit: ${isOnboarding ? '1 (onboarding)' : '3+ (post-onboarding)'}`);
-    console.log(`🔰 Effective active session tags: [${effectiveActiveSessionTags.join(', ')}]`);
+    logger.info(`🔰 Focus areas limit: ${isOnboarding ? '1 (onboarding)' : '3+ (post-onboarding)'}`);
+    logger.info(`🔰 Effective active session tags: [${effectiveActiveSessionTags.join(', ')}]`);
 
     return {
       access: { core: "confirmed", fundamental: "none", advanced: "none" },
@@ -692,7 +717,7 @@ async function getAvailableTagsForFocus(userId) {
     };
 
   } catch (error) {
-    console.error("Error in getAvailableTagsForFocus:", error);
+    logger.error("Error in getAvailableTagsForFocus:", error);
     // Fallback to current behavior with conservative onboarding assumption
     const learningState = await getCurrentLearningState();
     const isOnboardingFallback = true; // Conservative assumption for error case

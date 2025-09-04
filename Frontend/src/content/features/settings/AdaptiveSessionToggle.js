@@ -1,13 +1,7 @@
 import "../../css/main.css";
-import React, { useState, useEffect } from "react";
-import { Label, Button, Title, Switch, Tooltip, Group } from "@mantine/core";
-import {
-  SliderMarksSessionLength,
-  SliderMarksNewProblemsPerSession,
-  GradientSegmentedControlTimeLimit,
-  ToggleSelectRemainders,
-} from "../../../shared/components/nantine.jsx";
-import { IconQuestionMark } from "@tabler/icons-react"; // or
+import  { useState } from "react";
+import Switch from '../../components/ui/Switch.jsx';
+
 
 const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
   const [hovered, setHovered] = useState(false);
@@ -22,11 +16,11 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
           maxWidth: "100%",
         }}
       >
-        <label
+        <div
           style={{ fontSize: "1rem", fontWeight: 500, color: "var(--cm-text)" }}
         >
           Adaptive Sessions
-        </label>
+        </div>
 
         <div
           onMouseEnter={() => setHovered(true)}
@@ -35,8 +29,8 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
             width: 18,
             height: 18,
             borderRadius: "50%",
-            backgroundColor: "black",
-            color: "white",
+            backgroundColor: "var(--cm-text)",
+            color: "var(--cm-bg)",
             fontSize: "12px",
             fontWeight: "bold",
             display: "flex",
@@ -63,7 +57,7 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
             maxWidth: "200px",
             margin: 0,
             fontSize: "0.85rem",
-            color: "#444",
+            color: "var(--cm-text)",
             lineHeight: 1.4,
             wordWrap: "break-word",
             overflowWrap: "anywhere",
@@ -76,14 +70,8 @@ const AdaptiveSessionToggle = ({ adaptive, onChange }) => {
 
       <Switch
         checked={adaptive}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-        onLabel="ON"
-        offLabel="OFF"
+        onChange={(checked) => onChange(checked)}
         size="lg"
-        styles={{
-          track: { height: 24 },
-          thumb: { width: 18, height: 18 },
-        }}
       />
     </div>
   );

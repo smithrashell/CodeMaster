@@ -10,7 +10,7 @@
 
 import { TagService } from './tagServices.js';
 import { StorageService } from './storageService.js';
-import { detectApplicableEscapeHatches, calculateAdjustedThreshold } from '../utils/escapeHatchUtils.js';
+import { detectApplicableEscapeHatches} from '../utils/escapeHatchUtils.js';
 
 /**
  * Configuration constants for focus coordination
@@ -190,7 +190,7 @@ export class FocusCoordinationService {
    * @param {Object} escapeHatches - Escape hatch results
    * @returns {number} Optimal tag count
    */
-  static calculateOptimalTagCount(performance, escapeHatches) {
+  static calculateOptimalTagCount(performance, _escapeHatches) {
     const { accuracy, efficiency } = performance;
     
     // Start with base count

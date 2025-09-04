@@ -8,6 +8,7 @@
 
 import timeMigration from "./timeMigration.js";
 import AccurateTimer from "./AccurateTimer.js";
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 
 /**
@@ -15,7 +16,6 @@ import { dbHelper } from "../db/index.js";
  * @returns {Promise<Object>} Audit report
  */
 export async function auditAllTimeData() {
-  console.log("🔍 Starting comprehensive time data audit...");
 
   const auditReport = {
     timestamp: new Date().toISOString(),
@@ -42,7 +42,6 @@ export async function auditAllTimeData() {
 
     auditReport.recommendations = generateAuditRecommendations(auditReport);
 
-    console.log("✅ Time data audit completed");
     return auditReport;
   } catch (error) {
     console.error("❌ Audit failed:", error);
@@ -66,7 +65,6 @@ export async function auditAttemptsTimeData() {
     request.onerror = () => reject(request.error);
   });
 
-  console.log(`📊 Analyzing ${attempts.length} attempt records...`);
 
   const issues = [];
   const timeValues = [];
@@ -74,7 +72,7 @@ export async function auditAttemptsTimeData() {
   let extremeTimeCount = 0;
 
   // Analyze each attempt
-  attempts.forEach((attempt, index) => {
+  attempts.forEach((attempt, _index) => {
     const timeSpent = Number(attempt.TimeSpent) || 0;
     const attemptDate = attempt.AttemptDate;
     const problemId = attempt.ProblemID;
@@ -296,7 +294,6 @@ export async function repairTimeData(options = {}) {
     backupFirst = true,
   } = options;
 
-  console.log("🔧 Starting time data repair...");
 
   const repairResults = {
     timestamp: new Date().toISOString(),
@@ -322,53 +319,10 @@ export async function repairTimeData(options = {}) {
       const store = transaction.objectStore("attempts");
 
       for (const issue of audit.issues) {
-        try {
-          let shouldFix = false;
-          let newValue = null;
-
-          // Decide what to fix based on options and issue type
-          if (fixZeroTimes && issue.type === "zero_time") {
-            shouldFix = true;
-            newValue = 60; // Default to 1 minute for zero times
-          } else if (fixExtremeTimes && issue.type === "extreme_long_time") {
-            shouldFix = true;
-            newValue = Math.min(issue.value, 14400); // Cap at 4 hours
-          }
-
-          if (shouldFix) {
-            // Get the record and update it
-            const getRequest = await new Promise((resolve, reject) => {
-              const req = store.get(issue.recordId);
-              req.onsuccess = () => resolve(req.result);
-              req.onerror = () => reject(req.error);
-            });
-
-            if (getRequest) {
-              getRequest.TimeSpent = newValue;
-              await new Promise((resolve, reject) => {
-                const putRequest = store.put(getRequest);
-                putRequest.onsuccess = () => resolve();
-                putRequest.onerror = () => reject(putRequest.error);
-              });
-
-              repairResults.repairedRecords++;
-              console.log(
-                `✅ Repaired record ${issue.recordId}: ${issue.value} → ${newValue}`
-              );
-            }
-          }
-        } catch (error) {
-          repairResults.errorRecords++;
-          repairResults.errors.push({
-            recordId: issue.recordId,
-            error: error.message,
-          });
-          console.error(`❌ Failed to repair record ${issue.recordId}:`, error);
-        }
+        await _processIssueForRepair(issue, store, fixZeroTimes, fixExtremeTimes, repairResults);
       }
     }
 
-    console.log("✅ Time data repair completed");
     return repairResults;
   } catch (error) {
     console.error("❌ Repair failed:", error);
@@ -426,8 +380,8 @@ export function generateAuditReport(auditResults) {
 
   // Issues by severity
   const highIssues = attempts.issues.filter((i) => i.severity === "high");
-  const mediumIssues = attempts.issues.filter((i) => i.severity === "medium");
-  const lowIssues = attempts.issues.filter((i) => i.severity === "low");
+  const _mediumIssues = attempts.issues.filter((i) => i.severity === "medium");
+  const _lowIssues = attempts.issues.filter((i) => i.severity === "low");
 
   if (highIssues.length > 0) {
     report.push("## High Severity Issues");
@@ -450,6 +404,71 @@ export function generateAuditReport(auditResults) {
   }
 
   return report.join("\n");
+}
+
+/**
+ * Process a single issue for repair
+ * @private
+ */
+async function _processIssueForRepair(issue, store, fixZeroTimes, fixExtremeTimes, repairResults) {
+  try {
+    // Decide what to fix based on options and issue type
+    const fixConfig = _determineFixAction(issue, fixZeroTimes, fixExtremeTimes);
+    
+    if (fixConfig.shouldFix) {
+      await _applyRecordFix(store, issue.recordId, fixConfig.newValue, repairResults);
+    }
+  } catch (error) {
+    repairResults.errorRecords++;
+    repairResults.errors.push({
+      recordId: issue.recordId,
+      error: error.message,
+    });
+    console.error(`❌ Failed to repair record ${issue.recordId}:`, error);
+  }
+}
+
+/**
+ * Determine if and how to fix a time data issue
+ * @private
+ */
+function _determineFixAction(issue, fixZeroTimes, fixExtremeTimes) {
+  let shouldFix = false;
+  let newValue = null;
+
+  if (fixZeroTimes && issue.type === "zero_time") {
+    shouldFix = true;
+    newValue = 60; // Default to 1 minute for zero times
+  } else if (fixExtremeTimes && issue.type === "extreme_long_time") {
+    shouldFix = true;
+    newValue = Math.min(issue.value, 14400); // Cap at 4 hours
+  }
+
+  return { shouldFix, newValue };
+}
+
+/**
+ * Apply fix to a specific record
+ * @private
+ */
+async function _applyRecordFix(store, recordId, newValue, repairResults) {
+  // Get the record and update it
+  const getRequest = await new Promise((resolve, reject) => {
+    const req = store.get(recordId);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+  if (getRequest) {
+    getRequest.TimeSpent = newValue;
+    await new Promise((resolve, reject) => {
+      const putRequest = store.put(getRequest);
+      putRequest.onsuccess = () => resolve();
+      putRequest.onerror = () => reject(putRequest.error);
+    });
+
+    repairResults.repairedRecords++;
+  }
 }
 
 export default {

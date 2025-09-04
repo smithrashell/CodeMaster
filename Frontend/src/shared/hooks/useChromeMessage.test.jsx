@@ -1,3 +1,4 @@
+
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import { useChromeMessage } from "./useChromeMessage";
@@ -18,6 +19,16 @@ const TestComponent = ({ request, deps = [], options = {} }) => {
   const { data, loading, error, retry, isRetrying, retryCount } =
     useChromeMessage(request, deps, options);
 
+  // Add some debugging output to understand what's happening
+  React.useEffect(() => {
+    console.log('TestComponent rendered with:', { 
+      request: JSON.stringify(request), 
+      immediate: options.immediate, 
+      loading,
+      deps: JSON.stringify(deps)
+    });
+  });
+
   return (
     <div data-testid="chrome-message-test">
       <div data-testid="loading">{loading ? "Loading..." : "Not loading"}</div>
@@ -34,186 +45,160 @@ const TestComponent = ({ request, deps = [], options = {} }) => {
   );
 };
 
-describe("useChromeMessage Hook", () => {
+// Test setup helpers
+const setupChromeAPITest = () => {
+  // Reset Chrome API mocks before each test
+  global.chrome = {
+    runtime: {
+      sendMessage: jest.fn(),
+      lastError: null,
+    },
+  };
+
+  // Reset the ChromeAPIErrorHandler mock completely
+  const mockChromeAPIErrorHandler = require("../services/ChromeAPIErrorHandler");
+  mockChromeAPIErrorHandler.sendMessageWithRetry.mockRestore?.();
+  mockChromeAPIErrorHandler.sendMessageWithRetry = jest.fn();
+  mockChromeAPIErrorHandler.showErrorReportDialog.mockClear();
+
+  // Reset error notifications mock
+  const errorNotifications = require("../utils/errorNotifications");
+  errorNotifications.showErrorNotification.mockReset();
+
+  return mockChromeAPIErrorHandler;
+};
+
+// Test helper functions
+const expectInitialState = () => {
+  expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
+  expect(screen.getByTestId("error")).toHaveTextContent("No error");
+  expect(screen.getByTestId("data")).toHaveTextContent("No data");
+};
+
+const expectLoadingThenComplete = async () => {
+  expect(screen.getByTestId("loading")).toHaveTextContent("Loading...");
+  await waitFor(() => {
+    expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
+  });
+};
+
+const expectErrorState = (errorMessage) => {
+  expect(screen.getByTestId("error")).toHaveTextContent(`Error: ${errorMessage}`);
+  expect(screen.getByTestId("data")).toHaveTextContent("No data");
+};
+
+const renderWithMockSuccess = (mockHandler, request, options, response) => {
+  mockHandler.sendMessageWithRetry.mockResolvedValue(response);
+  render(<TestComponent request={request} options={options} />);
+};
+
+const renderWithMockError = (mockHandler, request, options, error) => {
+  mockHandler.sendMessageWithRetry.mockRejectedValue(new Error(error));
+  render(<TestComponent request={request} options={options} />);
+};
+
+describe("useChromeMessage Hook", function() {
   let mockChromeAPIErrorHandler;
 
   beforeEach(() => {
-    // Reset Chrome API mocks before each test
-    global.chrome = {
-      runtime: {
-        sendMessage: jest.fn(),
-        lastError: null,
-      },
-    };
-
-    // Reset the ChromeAPIErrorHandler mock completely
-    mockChromeAPIErrorHandler = require("../services/ChromeAPIErrorHandler");
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockRestore?.();
-    mockChromeAPIErrorHandler.sendMessageWithRetry = jest.fn();
-    mockChromeAPIErrorHandler.showErrorReportDialog.mockClear();
-
-    // Reset error notifications mock
-    const errorNotifications = require("../utils/errorNotifications");
-    errorNotifications.showErrorNotification.mockReset();
+    mockChromeAPIErrorHandler = setupChromeAPITest();
   });
 
   test("should handle null request without making API call", () => {
     render(<TestComponent request={null} />);
-
-    expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
-    expect(screen.getByTestId("error")).toHaveTextContent("No error");
-    expect(screen.getByTestId("data")).toHaveTextContent("No data");
-    expect(
-      mockChromeAPIErrorHandler.sendMessageWithRetry
-    ).not.toHaveBeenCalled();
+    expectInitialState();
+    expect(mockChromeAPIErrorHandler.sendMessageWithRetry).not.toHaveBeenCalled();
   });
 
   test("should show loading state initially", async () => {
-    // Mock a delayed response using resolved value instead of implementation
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockResolvedValue({ success: true });
-
-    render(<TestComponent request={{ type: "getSettings" }} />);
-
-    expect(screen.getByTestId("loading")).toHaveTextContent("Loading...");
-    expect(mockChromeAPIErrorHandler.sendMessageWithRetry).toHaveBeenCalledWith(
-      { type: "getSettings" },
-      expect.any(Object)
+    // Clear any existing cache before starting
+    const { clearChromeMessageCache } = require('./useChromeMessage');
+    clearChromeMessageCache();
+    
+    // Set up the mock to return a delayed promise
+    mockChromeAPIErrorHandler.sendMessageWithRetry.mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
     );
-
+    
+    render(<TestComponent request={{ type: "getSettings" }} />);
+    
+    // Check loading state immediately after render - need to wait for useEffect to run
+    await waitFor(() => {
+      expect(screen.getByTestId("loading")).toHaveTextContent("Loading...");
+    });
+    
     // Wait for completion
     await waitFor(() => {
       expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
     });
+    
+    expect(mockChromeAPIErrorHandler.sendMessageWithRetry).toHaveBeenCalledWith(
+      { type: "getSettings" }, expect.any(Object)
+    );
   });
 
   test.skip("should handle successful response", async () => {
     const mockResponse = { theme: "dark", sessionLength: 8 };
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockResolvedValue(
-      mockResponse
-    );
-
-    render(<TestComponent request={{ type: "getSettings" }} />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
-    });
-
-    expect(screen.getByTestId("data")).toHaveTextContent(
-      JSON.stringify(mockResponse)
-    );
+    renderWithMockSuccess(mockChromeAPIErrorHandler, { type: "getSettings" }, {}, mockResponse);
+    await expectLoadingThenComplete();
+    expect(screen.getByTestId("data")).toHaveTextContent(JSON.stringify(mockResponse));
     expect(screen.getByTestId("error")).toHaveTextContent("No error");
   });
 
   test.skip("should handle Chrome runtime error", async () => {
     const errorMessage = "Extension context invalidated";
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockRejectedValue(
-      new Error(errorMessage)
-    );
-
-    render(<TestComponent request={{ type: "getSettings" }} />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
-    });
-
-    expect(screen.getByTestId("error")).toHaveTextContent(
-      `Error: ${errorMessage}`
-    );
-    expect(screen.getByTestId("data")).toHaveTextContent("No data");
+    renderWithMockError(mockChromeAPIErrorHandler, { type: "getSettings" }, {}, errorMessage);
+    await expectLoadingThenComplete();
+    expectErrorState(errorMessage);
   });
 
   test.skip("should handle response error", async () => {
     const errorMessage = "Settings not found";
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockRejectedValue(
-      new Error(errorMessage)
-    );
-
-    render(<TestComponent request={{ type: "getSettings" }} />);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
-    });
-
-    expect(screen.getByTestId("error")).toHaveTextContent(
-      `Error: ${errorMessage}`
-    );
-    expect(screen.getByTestId("data")).toHaveTextContent("No data");
+    renderWithMockError(mockChromeAPIErrorHandler, { type: "getSettings" }, {}, errorMessage);
+    await expectLoadingThenComplete();
+    expectErrorState(errorMessage);
   });
 
   test.skip("should call onSuccess callback on successful response", async () => {
     const mockResponse = { theme: "light" };
     const onSuccess = jest.fn();
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockResolvedValue(
-      mockResponse
-    );
-
-    render(
-      <TestComponent
-        request={{ type: "getSettings" }}
-        options={{ onSuccess }}
-      />
-    );
-
-    await waitFor(() => {
-      expect(onSuccess).toHaveBeenCalledWith(mockResponse);
-    });
+    renderWithMockSuccess(mockChromeAPIErrorHandler, { type: "getSettings" }, { onSuccess }, mockResponse);
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(mockResponse));
   });
 
   test.skip("should call onError callback on error", async () => {
     const onError = jest.fn();
     const errorMessage = "Test error";
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockRejectedValue(
-      new Error(errorMessage)
-    );
-
-    render(
-      <TestComponent request={{ type: "getSettings" }} options={{ onError }} />
-    );
-
-    await waitFor(() => {
-      expect(onError).toHaveBeenCalledWith(errorMessage);
-    });
+    renderWithMockError(mockChromeAPIErrorHandler, { type: "getSettings" }, { onError }, errorMessage);
+    await waitFor(() => expect(onError).toHaveBeenCalledWith(errorMessage));
   });
 
   test("should handle retry functionality", async () => {
-    const mockResponse = { theme: "light" };
-    mockChromeAPIErrorHandler.sendMessageWithRetry.mockResolvedValue(
-      mockResponse
+    // Clear any existing cache before starting
+    const { clearChromeMessageCache } = require('./useChromeMessage');
+    clearChromeMessageCache();
+    
+    // Set up the mock to return a delayed promise
+    mockChromeAPIErrorHandler.sendMessageWithRetry.mockImplementation(
+      () => new Promise(resolve => setTimeout(() => resolve({ theme: "light" }), 50))
     );
-
+    
     render(<TestComponent request={{ type: "getSettings" }} />);
-
-    // Wait for initial load
+    
+    // Wait for completion
     await waitFor(() => {
       expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
     });
-
-    // Test retry button works
-    const retryButton = screen.getByTestId("retry-button");
-    expect(retryButton).toBeInTheDocument();
+    
+    expect(screen.getByTestId("retry-button")).toBeInTheDocument();
   });
 
   test("should handle immediate mode disabled", () => {
-    render(
-      <TestComponent
-        request={{ type: "getSettings" }}
-        options={{ immediate: false }}
-      />
-    );
-
+    render(<TestComponent request={{ type: "getSettings" }} options={{ immediate: false }} />);
     expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
-    expect(
-      mockChromeAPIErrorHandler.sendMessageWithRetry
-    ).not.toHaveBeenCalled();
+    expect(mockChromeAPIErrorHandler.sendMessageWithRetry).not.toHaveBeenCalled();
   });
 });
 
-// Manual test helper for browser console testing
-export const runManualTests = () => {
-  console.info("🧪 Testing enhanced useChromeMessage hook...");
-  console.info(
-    "✅ Use Jest tests for automated testing. Check test results above."
-  );
-};
 
 export default TestComponent;

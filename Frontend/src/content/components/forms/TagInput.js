@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import { useTagSuggestions } from "./useTagSuggestions.js";
 
 const tags = [
   "Array",
@@ -75,39 +76,19 @@ const tags = [
 ];
 
 export default function TagInput({ setTags }) {
-  const [inputValue, setInputValue] = useState("");
-  const [suggestedTag, setSuggestedTag] = useState("");
   const [isInputVisible, setIsInputVisible] = useState(false);
   const inputRef = useRef(null);
 
-  const handleInputChange = (event) => {
-    const value = event.target.value;
-    setInputValue(value);
-    if (value) {
-      const match = tags.find((tag) =>
-        tag.toLowerCase().startsWith(value.toLowerCase())
-      );
-      setSuggestedTag(
-        match
-          ? match
-              .replace(/^./, (char) => char.toUpperCase())
-              .slice(value.length)
-          : ""
-      );
-    } else {
-      setSuggestedTag("");
-    }
-  };
+  const {
+    inputValue,
+    suggestedTag,
+    handleInputChange,
+    handleKeyDown: baseHandleKeyDown,
+    clearInput: _clearInput,
+  } = useTagSuggestions(tags);
 
   const handleKeyDown = (event) => {
-    if ((event.key === "Enter" || event.key === "Tab") && suggestedTag) {
-      event.preventDefault();
-      const completeTag = inputValue + suggestedTag;
-      setTags((prevTags) => [...prevTags, completeTag]);
-      setInputValue("");
-      setSuggestedTag("");
-      setIsInputVisible(false);
-    }
+    baseHandleKeyDown(event, setTags, setIsInputVisible);
   };
 
   const handleBlur = () => {
@@ -159,7 +140,6 @@ export default function TagInput({ setTags }) {
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
-            autoFocus
             style={{
               width: "100%",
               padding: "6px",
@@ -176,12 +156,20 @@ export default function TagInput({ setTags }) {
           />
         </div>
       ) : (
-        <p
+        <div
           style={{ cursor: "pointer", color: "#ffffff", marginBottom: "8px" }}
+          role="button"
+          tabIndex={0}
           onClick={() => setIsInputVisible(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsInputVisible(true);
+            }
+          }}
         >
           + Add Tag
-        </p>
+        </div>
       )}
     </div>
   );

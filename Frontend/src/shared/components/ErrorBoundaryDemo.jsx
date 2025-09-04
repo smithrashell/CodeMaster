@@ -5,7 +5,7 @@
  * and verify that error reporting works correctly.
  */
 
-import React, { useState } from "react";
+import  { useState } from "react";
 import { Button, Stack, Card, Text, Group } from "@mantine/core";
 import { IconBug, IconRefresh } from "@tabler/icons-react";
 import ErrorBoundary from "./ErrorBoundary";
