@@ -17,6 +17,7 @@ import {
 } from "@mantine/core";
 import { IconAlertTriangle, IconRefresh, IconBug } from "@tabler/icons-react";
 import ErrorReportService from "../services/ErrorReportService";
+import { showSuccessNotification } from "../utils/errorNotifications";
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -187,9 +188,6 @@ class ErrorBoundary extends React.Component {
       }
 
       // Show success notification
-      const { showSuccessNotification } = await import(
-        "../utils/errorNotifications"
-      );
       showSuccessNotification(
         "Thank you for reporting this issue. We'll investigate and improve CodeMaster.",
         { title: "Problem Report Submitted" }
