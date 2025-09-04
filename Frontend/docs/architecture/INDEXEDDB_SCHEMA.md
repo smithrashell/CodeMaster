@@ -3,9 +3,10 @@
 ## Database Info
 
 - **Database Name**: "review"
-- **Current Version**: 25 (as of v0.9.5)
-- **Total Stores**: 13 specialized object stores
+- **Current Version**: 36 (as of 2025-09-04)
+- **Total Stores**: 17 specialized object stores
 - **Access Pattern**: Service layer only (components never access directly)
+- **New Features**: Retry-enabled operations, Circuit Breaker patterns, Session conflict resolution
 
 ---
 
@@ -430,6 +431,190 @@
 
 ---
 
+### 14. `strategy_data` Store
+
+**Purpose**: Store algorithm strategy content and educational hints  
+**Key**: `id` (tag-based)  
+**Indexes**: `by_tag`
+
+**Object Structure**:
+
+```javascript
+{
+  id: "array-fundamentals",
+  tag: "array",
+  category: "Core Concept",
+  
+  hints: [
+    "Consider using two pointers for sorted arrays",
+    "Hash maps can reduce time complexity from O(n²) to O(n)",
+    "Think about edge cases: empty array, single element"
+  ],
+  
+  primers: [
+    {
+      title: "Array Fundamentals",
+      content: "Arrays are contiguous memory structures...",
+      examples: ["Two Sum", "Best Time to Buy and Sell Stock"],
+      timeComplexity: "Access: O(1), Search: O(n)"
+    }
+  ],
+  
+  patterns: [
+    "Two Pointers",
+    "Sliding Window", 
+    "Prefix Sum"
+  ],
+  
+  commonMistakes: [
+    "Off-by-one errors in indexing",
+    "Not handling empty input",
+    "Forgetting to check array bounds"
+  ],
+  
+  relatedConcepts: ["hash-table", "sorting", "binary-search"]
+}
+```
+
+---
+
+### 15. `hint_interactions` Store
+
+**Purpose**: Track user interactions with hints and strategy guidance  
+**Key**: `id` (auto-increment)  
+**Indexes**: `by_sessionId`, `by_problemId`, `by_timestamp`
+
+**Object Structure**:
+
+```javascript
+{
+  id: 123,
+  sessionId: "session-uuid-123",
+  problemId: "two-sum",
+  hintType: "contextual",              // contextual, strategic, primer
+  hintContent: "Consider using a hash map",
+  
+  interaction: {
+    viewed: true,
+    timestamp: "2024-01-15T10:30:00Z",
+    timeSpent: 45,                     // Seconds spent viewing hint
+    helpful: true,                     // User feedback
+    helpfulnessRating: 4               // 1-5 scale
+  },
+  
+  context: {
+    attemptNumber: 2,                  // Which attempt this hint was shown
+    timeIntoAttempt: 300,              // Seconds into current attempt
+    previousHintsViewed: 1,            // Number of previous hints in this attempt
+    userStruggleIndicators: ["time_exceeded", "multiple_attempts"]
+  },
+  
+  outcome: {
+    problemSolved: true,
+    solvedAfterHint: true,
+    timeToSolution: 120,               // Seconds from hint to solution
+    solutionQuality: "optimal"         // optimal, suboptimal, incomplete
+  }
+}
+```
+
+---
+
+### 16. `user_actions` Store
+
+**Purpose**: Track detailed user actions for analytics and behavior analysis  
+**Key**: `id` (auto-increment)  
+**Indexes**: `by_timestamp`, `by_actionType`, `by_sessionId`
+
+**Object Structure**:
+
+```javascript
+{
+  id: 456,
+  timestamp: "2024-01-15T10:30:00Z",
+  sessionId: "session-uuid-123",
+  
+  actionType: "problem_start",         // problem_start, hint_request, solution_submit, etc.
+  actionData: {
+    problemId: "two-sum",
+    difficulty: "Easy",
+    tags: ["array", "hash-table"],
+    context: "adaptive_session"
+  },
+  
+  userState: {
+    currentStreak: 3,                  // Current success streak
+    sessionProgress: 0.5,              // Progress through current session
+    energyLevel: "high",               // high, medium, low (inferred)
+    focusScore: 0.85                   // Concentration metric
+  },
+  
+  performance: {
+    responseTime: 150,                 // Time to take action (ms)
+    accuracy: 1.0,                     // If applicable
+    efficiency: 0.9                    // Action efficiency metric
+  }
+}
+```
+
+---
+
+### 17. `error_reports` Store
+
+**Purpose**: Store error reports and debugging information for system reliability  
+**Key**: `id` (auto-increment)  
+**Indexes**: `by_timestamp`, `by_errorType`, `by_severity`
+
+**Object Structure**:
+
+```javascript
+{
+  id: 789,
+  timestamp: "2024-01-15T10:30:00Z",
+  errorType: "database_operation_failed",
+  severity: "medium",                  // low, medium, high, critical
+  
+  error: {
+    message: "Failed to update tag mastery",
+    stack: "Error at updateTagMastery:45...",
+    code: "DB_WRITE_TIMEOUT",
+    context: "session_completion"
+  },
+  
+  systemState: {
+    userAgent: "Chrome/120.0.0.0",
+    extensionVersion: "0.9.5",
+    databaseVersion: 36,
+    memoryUsage: "45MB",
+    activeStores: 17
+  },
+  
+  userContext: {
+    sessionId: "session-uuid-123",
+    problemId: "two-sum",
+    actionSequence: ["start_session", "solve_problem", "complete_session"],
+    lastSuccessfulAction: "solve_problem"
+  },
+  
+  recovery: {
+    attempted: true,
+    successful: false,
+    fallbackUsed: "memory_cache",
+    retryCount: 3,
+    finalState: "partial_failure"
+  },
+  
+  resolved: false,
+  resolution: {
+    method: "automatic_retry",
+    timestamp: "2024-01-15T10:32:00Z",
+    notes: "Resolved after database connection reset"
+  }
+}
+```
+
+---
+
 ## 🔗 Key Relationships
 
 ### Primary Relationships
@@ -453,10 +638,10 @@
 
 ### Version History
 
-- **v22**: Initial schema with basic stores
-- **v23**: Added `strategy_data` store for hint system
-- **v24**: Enhanced session analytics and reasoning
-- **v25**: Current version with full v0.9.5 integration
+- **v22-25**: Initial schema with basic stores and strategy system
+- **v26-30**: Enhanced session analytics and FSRS integration  
+- **v31-35**: Added retry mechanisms, Circuit Breaker patterns, and advanced hint tracking
+- **v36**: Current version with session conflict resolution and comprehensive error reporting
 
 ### Migration Support
 
