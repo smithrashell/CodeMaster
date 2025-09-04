@@ -7,14 +7,24 @@ import {
   Card,
   Table,
   TextInput,
+  ScrollArea,
   Badge,
+  Progress,
+  Box,
   Group,
-  Pagination,
+  Tooltip,
+  Anchor,
 } from "@mantine/core";
-import { IconSearch } from "@tabler/icons-react";
+import { IconArrowLeft, IconArrowRight } from "@tabler/icons-react";
 import TimeGranularChartCard from "../charts/TimeGranularChartCard";
 
 /* ---------- helpers ---------- */
+
+// map mastery → color based on new color scheme
+const getMasteryColor = (pct) => (pct >= 80 ? "var(--cm-table-mastery-good)" : pct >= 50 ? "var(--cm-table-mastery-medium)" : "var(--cm-table-mastery-low)");
+
+// map mastery → mantine color names for badges
+const getMantineMasteryColor = (pct) => (pct >= 80 ? "green" : pct >= 50 ? "yellow" : "red");
 
 /* ---------- data adapter with service-based defaults ---------- */
 const normalizeData = (data) => ({
@@ -26,179 +36,6 @@ const normalizeData = (data) => ({
   unmasteredTags: data?.unmasteredTags || [],
   tagsinTier: data?.tagsinTier || [],
 });
-
-// Helper functions
-const generatePieData = (selectedTag, masteryData) => {
-  if (selectedTag) {
-    const { successfulAttempts, totalAttempts } = selectedTag;
-    return [
-      { name: "Successful", value: successfulAttempts },
-      { name: "Failed", value: totalAttempts - successfulAttempts }
-    ];
-  }
-  
-  const mastered = masteryData.filter(tag => tag.mastered).length;
-  const unmastered = masteryData.length - mastered;
-  return [
-    { name: "Mastered", value: mastered },
-    { name: "Learning", value: unmastered }
-  ];
-};
-
-const paginateData = (arr, currentPage, pageSize) => {
-  const start = currentPage * pageSize;
-  return arr.slice(start, start + pageSize);
-};
-
-const processTagData = (masteryData, unmasteredTags, search, activeFocusFilter) => {
-  return masteryData
-    .filter((tag) => {
-      if (search && !tag.tag.toLowerCase().includes(search.toLowerCase())) return false;
-      if (activeFocusFilter && tag.tag !== activeFocusFilter) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      const aIsUnmastered = unmasteredTags?.includes(a.tag);
-      const bIsUnmastered = unmasteredTags?.includes(b.tag);
-      if (aIsUnmastered && !bIsUnmastered) return -1;
-      if (!aIsUnmastered && bIsUnmastered) return 1;
-      return b.progress - a.progress;
-    });
-};
-
-const createTableRows = (data, options, callbacks) => {
-  const { highlightUnmastered } = options;
-  const { setSelectedTag } = callbacks;
-  
-  return data.map((tag) => {
-    const progress = Math.round((tag.successfulAttempts / tag.totalAttempts) * 100) || 0;
-    const isFocus = tag.isFocus;
-    const isUnmastered = !tag.mastered;
-    
-    return (
-      <Table.Tr
-        key={tag.tag}
-        onClick={() => setSelectedTag(tag)}
-        style={{
-          backgroundColor: highlightUnmastered && isUnmastered ? "var(--mantine-color-red-0)" : undefined,
-          cursor: "pointer"
-        }}
-      >
-        <Table.Td>
-          <Group gap="xs">
-            <Text fw={isFocus ? 600 : 400}>
-              {tag.tag}
-            </Text>
-            {isFocus && <Badge size="xs" color="cyan">focus</Badge>}
-            {isUnmastered && <Badge size="xs" color="orange">learning</Badge>}
-          </Group>
-        </Table.Td>
-        <Table.Td>
-          <Text size="sm">{tag.totalAttempts}</Text>
-        </Table.Td>
-        <Table.Td>
-          <Text size="sm">{progress}%</Text>
-        </Table.Td>
-        <Table.Td>
-          <Text size="sm" c={tag.mastered ? "green" : "orange"}>
-            {tag.mastered ? "Mastered" : "Learning"}
-          </Text>
-        </Table.Td>
-      </Table.Tr>
-    );
-  });
-};
-
-const TagTable = ({
-  source,
-  searchable = true,
-  highlightUnmastered = false,
-  withFocusBar = true,
-  data,
-  activeFocusFilter,
-  setActiveFocusFilter,
-  currentPage,
-  setCurrentPage,
-  pageSize,
-  search,
-  setSearch,
-  setSelectedTag
-}) => {
-  const rows = createTableRows(paginateData(source, currentPage, pageSize), 
-    { highlightUnmastered }, 
-    { setSelectedTag }
-  );
-  const totalPages = Math.max(1, Math.ceil(source.length / pageSize));
-
-  return (
-    <Card withBorder p="md" style={{ background: "var(--cm-card-bg)" }} className="cm-enhanced-table">
-      {withFocusBar && (data.focusTags?.length > 0) && (
-        <Group gap={8} mb="xs" wrap="wrap">
-          <Text size="sm" c="dimmed">Focus tags:</Text>
-          {data.focusTags.map((t) => (
-            <Badge
-              key={t}
-              color="cyan"
-              variant={activeFocusFilter === t ? "filled" : "outline"}
-              size="xs"
-              styles={{ root: { cursor: "pointer" } }}
-              onClick={() =>
-                setActiveFocusFilter((prev) => (prev === t ? null : t))
-              }
-            >
-              {t}
-            </Badge>
-          ))}
-          <Badge
-            color="gray"
-            variant="outline"
-            size="xs"
-            styles={{ root: { cursor: "pointer" } }}
-            onClick={() => setActiveFocusFilter(null)}
-          >
-            Clear
-          </Badge>
-        </Group>
-      )}
-
-      {searchable && (
-        <TextInput
-          placeholder="Search tags..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          mb="md"
-          leftSection={<IconSearch size={16} />}
-        />
-      )}
-
-      <Table highlightOnHover>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Tag</Table.Th>
-            <Table.Th>Attempts</Table.Th>
-            <Table.Th>Success Rate</Table.Th>
-            <Table.Th>Status</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {rows}
-        </Table.Tbody>
-      </Table>
-
-      <Group justify="space-between" mt="sm">
-        <Text size="sm" c="dimmed">
-          Showing {Math.min(source.length, pageSize)} of {source.length} tags
-        </Text>
-        <Pagination
-          total={totalPages}
-          value={currentPage + 1}
-          onChange={(page) => setCurrentPage(page - 1)}
-          size="sm"
-        />
-      </Group>
-    </Card>
-  );
-};
 
 export default function MasteryDashboard(props) {
   const [selectedTag, setSelectedTag] = useState(null);
@@ -222,11 +59,210 @@ export default function MasteryDashboard(props) {
     );
   }
 
+  /* ---------- pie data ---------- */
+  const getPieData = () => {
+    if (selectedTag) {
+      const { successfulAttempts, totalAttempts } = selectedTag;
+      return [
+        { name: "Successful", value: successfulAttempts },
+        { name: "Unsuccessful", value: totalAttempts - successfulAttempts },
+      ];
+    }
+    const mastered = (data.masteryData || []).filter(
+      (t) => t.totalAttempts > 0 && t.successfulAttempts / t.totalAttempts >= 0.8
+    ).length;
+    const total = (data.masteryData || []).length;
+    return [
+      { name: "Mastered", value: mastered },
+      { name: "Unmastered", value: Math.max(total - mastered, 0) },
+    ];
+  };
 
   const pieTitle = selectedTag ? `Mastery: ${selectedTag.tag}` : "Mastery Overview";
-  const focusFiltered = processTagData(data.masteryData || [], data.unmasteredTags || [], search, activeFocusFilter);
 
+  const isUnmasteredTag = (tag) =>
+    (data.unmasteredTags || []).map((t) => t.toLowerCase()).includes(tag.toLowerCase());
 
+  /* ---------- sorting, filtering, paging ---------- */
+  const base = [...(data.masteryData || [])];
+
+  // pin unmastered to top
+  base.sort((a, b) => {
+    const au = isUnmasteredTag(a.tag);
+    const bu = isUnmasteredTag(b.tag);
+    return au === bu ? 0 : au ? -1 : 1;
+  });
+
+  // search filter
+  const searched = base.filter((t) =>
+    t.tag.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // focus chip filter (optional)
+  const focusFiltered = activeFocusFilter
+    ? searched.filter((t) => t.tag.toLowerCase() === activeFocusFilter.toLowerCase())
+    : searched;
+
+  // tier filter for "Current Tier" tab will be applied later
+
+  const paginate = (arr) =>
+    arr.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
+
+  const makeRows = (arr, { highlightUnmastered = false }) =>
+    arr.map((tagObj) => {
+      const mastery =
+        tagObj.totalAttempts > 0
+          ? (tagObj.successfulAttempts / tagObj.totalAttempts) * 100
+          : 0;
+
+      const focus = (data.focusTags || []).some(
+        (t) => t.toLowerCase() === tagObj.tag.toLowerCase()
+      );
+      const unmastered = highlightUnmastered && isUnmasteredTag(tagObj.tag);
+
+      return (
+        <tr
+          key={tagObj.tag}
+          onClick={() => setSelectedTag(tagObj)}
+          className={focus ? "cm-table-row-focus" : ""}
+        >
+          <td>
+            <Group gap={8} wrap="nowrap">
+              <Text fw={600} size="sm" c="var(--cm-table-text-primary)">{tagObj.tag}</Text>
+              {focus && (
+                <Badge variant="outline" size="xs" className="cm-badge-focus">focus</Badge>
+              )}
+              {unmastered && (
+                <Badge variant="outline" size="xs" className="cm-badge-practice">practice</Badge>
+              )}
+            </Group>
+          </td>
+
+          <td className="cm-table-cell-numeric">
+            <Tooltip label={`${tagObj.successfulAttempts}/${tagObj.totalAttempts} solved`}>
+              <Badge color={getMantineMasteryColor(mastery)} variant="light" size="sm" fw={700}>
+                {mastery.toFixed(1)}%
+              </Badge>
+            </Tooltip>
+          </td>
+
+          <td className="cm-table-cell-numeric">
+            <Text size="sm" fw={600} c="var(--cm-table-text-primary)">{tagObj.totalAttempts}</Text>
+          </td>
+
+          <td style={{ textAlign: "left" }}>
+            <Box w={100}>
+              <Progress
+                value={mastery}
+                size="sm"
+                radius="xs"
+                styles={{ 
+                  root: { background: "var(--cm-table-progress-track)" },
+                  bar: { backgroundColor: "#6b7280" }
+                }}
+              />
+            </Box>
+          </td>
+        </tr>
+      );
+    });
+
+  /* ---------- table renderer ---------- */
+  const TagTable = ({
+    source,
+    searchable = true,
+    highlightUnmastered = false,
+    withFocusBar = true,
+  }) => {
+    const rows = makeRows(paginate(source), { highlightUnmastered });
+
+    const totalPages = Math.max(1, Math.ceil(source.length / pageSize));
+
+    return (
+      <Card withBorder p="md" style={{ background: "var(--cm-card-bg)" }} className="cm-enhanced-table">
+        {withFocusBar && (data.focusTags?.length > 0) && (
+          <Group gap={8} mb="xs" wrap="wrap">
+            <Text size="sm" c="dimmed">Focus tags:</Text>
+            {data.focusTags.map((t) => (
+              <Badge
+                key={t}
+                color="cyan"
+                variant={activeFocusFilter === t ? "filled" : "outline"}
+                size="xs"
+                styles={{ root: { cursor: "pointer" } }}
+                onClick={() =>
+                  setActiveFocusFilter((prev) => (prev === t ? null : t))
+                }
+              >
+                {t}
+              </Badge>
+            ))}
+            {activeFocusFilter && (
+              <Anchor size="sm" onClick={() => setActiveFocusFilter(null)}>
+                Clear
+              </Anchor>
+            )}
+          </Group>
+        )}
+
+        {searchable && (
+          <TextInput
+            placeholder="Search tag…"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.currentTarget.value);
+              setCurrentPage(0);
+            }}
+            mb="sm"
+            size="sm"
+            styles={{
+              input: {
+                backgroundColor: "var(--cm-dropdown-bg)",
+                borderColor: "var(--cm-border)",
+                color: "var(--cm-dropdown-color)",
+              },
+            }}
+          />
+        )}
+
+        <ScrollArea h={350} type="auto">
+          <Table
+            verticalSpacing="xs"
+            withColumnBorders
+            withBorder
+          >
+            <thead>
+              <tr>
+                <th>Tag</th>
+                <th className="cm-table-cell-numeric">Mastery</th>
+                <th className="cm-table-cell-numeric">Attempts</th>
+                <th>Progress</th>
+              </tr>
+            </thead>
+            <tbody>{rows}</tbody>
+          </Table>
+        </ScrollArea>
+
+        <Group justify="space-between" mt="sm">
+          <Button onClick={() => setCurrentPage((p) => Math.max(p - 1, 0))}
+                  disabled={currentPage === 0} variant="light" size="xs">
+            <IconArrowLeft size={14} />
+          </Button>
+          <Text size="sm" c="dimmed">
+            Page {currentPage + 1} of {totalPages}
+          </Text>
+          <Button
+            onClick={() => setCurrentPage((p) => (p + 1 < totalPages ? p + 1 : p))}
+            disabled={currentPage + 1 >= totalPages}
+            variant="light"
+            size="xs"
+          >
+            <IconArrowRight size={14} />
+          </Button>
+        </Group>
+      </Card>
+    );
+  };
 
   /* ---------- tier subset ---------- */
   const tierOnly = focusFiltered.filter((t) =>
@@ -258,26 +294,12 @@ export default function MasteryDashboard(props) {
               title={pieTitle}
               chartType="pie"
               useTimeGranularity={false}
-              data={generatePieData(selectedTag, data.masteryData)}
+              data={getPieData()}
               dataKeys={[{ key: "value", color: "#a9c1ff" }]}
             />
           </Grid.Col>
           <Grid.Col span={6}>
-            <TagTable 
-              source={focusFiltered} 
-              searchable 
-              highlightUnmastered 
-              withFocusBar 
-              data={data}
-              activeFocusFilter={activeFocusFilter}
-              setActiveFocusFilter={setActiveFocusFilter}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              pageSize={pageSize}
-              search={search}
-              setSearch={setSearch}
-              setSelectedTag={setSelectedTag}
-            />
+            <TagTable source={focusFiltered} searchable highlightUnmastered withFocusBar />
           </Grid.Col>
         </Grid>
       </Tabs.Panel>
@@ -290,26 +312,12 @@ export default function MasteryDashboard(props) {
               title={pieTitle}
               chartType="pie"
               useTimeGranularity={false}
-              data={generatePieData(selectedTag, data.masteryData)}
+              data={getPieData()}
               dataKeys={[{ key: "value", color: "#82ca9d" }]}
             />
           </Grid.Col>
           <Grid.Col span={6}>
-            <TagTable 
-              source={tierOnly} 
-              searchable={false} 
-              highlightUnmastered 
-              withFocusBar 
-              data={data}
-              activeFocusFilter={activeFocusFilter}
-              setActiveFocusFilter={setActiveFocusFilter}
-              currentPage={currentPage}
-              setCurrentPage={setCurrentPage}
-              pageSize={pageSize}
-              search={search}
-              setSearch={setSearch}
-              setSelectedTag={setSelectedTag}
-            />
+            <TagTable source={tierOnly} searchable={false} highlightUnmastered withFocusBar />
           </Grid.Col>
         </Grid>
       </Tabs.Panel>

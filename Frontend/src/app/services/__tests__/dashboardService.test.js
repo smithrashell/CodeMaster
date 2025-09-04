@@ -28,86 +28,81 @@ import { TagService } from "../../../shared/services/tagServices";
 import { ProblemService } from "../../../shared/services/problemService";
 import { StorageService } from "../../../shared/services/storageService";
 
-// Helper function to create mock data
-function createMockData() {
-  return {
-    mockProblems: [
-      { id: "1", leetCodeID: "1", title: "Two Sum" },
-      { id: "2", leetCodeID: "2", title: "Add Two Numbers" }
-    ],
-    mockAttempts: [
-      { 
-        id: "1", 
-        ProblemID: "1", 
-        Success: true, 
-        AttemptDate: "2025-01-01T10:00:00Z",
-        TimeSpent: 1500,
-        HintsUsed: 1
-      },
-      { 
-        id: "2", 
-        ProblemID: "2", 
-        Success: false, 
-        AttemptDate: "2025-01-02T10:00:00Z",
-        TimeSpent: 3000,
-        HintsUsed: 3
-      }
-    ],
-    mockSessions: [
-      {
-        id: "session1",
-        Date: "2025-01-01T10:00:00Z",
-        problems: [{ id: "1", solved: true }],
-        sessionType: "adaptive"
-      }
-    ],
-    mockStandardProblems: [
-      { id: "1", difficulty: "Easy", tags: ["Array", "Hash Table"] },
-      { id: "2", difficulty: "Medium", tags: ["Linked List", "Math"] }
-    ],
-    mockLearningState: {
-      currentTier: "Core Concept",
-      masteredTags: ["Array"],
-      allTagsInCurrentTier: ["Array", "String"],
-      unmasteredTags: ["Hash Table"]
-    }
-  };
-}
-
-// Helper function to setup mocks for dashboard statistics tests
-function setupDashboardMocks(mockData) {
-  fetchAllProblems.mockResolvedValue(mockData.mockProblems);
-  getAllAttempts.mockResolvedValue(mockData.mockAttempts);
-  getAllSessions.mockResolvedValue(mockData.mockSessions);
-  getAllStandardProblems.mockResolvedValue(mockData.mockStandardProblems);
-  TagService.getCurrentLearningState.mockResolvedValue(mockData.mockLearningState);
-  ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-}
-
-describe("getDashboardStatistics", () => {
-  const mockData = createMockData();
-  
+describe("Dashboard Service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  beforeEach(() => {
-    setupDashboardMocks(mockData);
-  });
 
-  it("should return complete dashboard statistics", async () => {
+  // Mock data setup
+  const mockProblems = [
+    { id: "1", leetCodeID: "1", title: "Two Sum" },
+    { id: "2", leetCodeID: "2", title: "Add Two Numbers" }
+  ];
+
+  const mockAttempts = [
+    { 
+      id: "1", 
+      ProblemID: "1", 
+      Success: true, 
+      AttemptDate: "2025-01-01T10:00:00Z",
+      TimeSpent: 1500,
+      HintsUsed: 1
+    },
+    { 
+      id: "2", 
+      ProblemID: "2", 
+      Success: false, 
+      AttemptDate: "2025-01-02T10:00:00Z",
+      TimeSpent: 3000,
+      HintsUsed: 3
+    }
+  ];
+
+  const mockSessions = [
+    {
+      id: "session1",
+      Date: "2025-01-01T10:00:00Z",
+      problems: [{ id: "1", solved: true }],
+      sessionType: "adaptive"
+    }
+  ];
+
+  const mockStandardProblems = [
+    { id: "1", difficulty: "Easy", tags: ["Array", "Hash Table"] },
+    { id: "2", difficulty: "Medium", tags: ["Linked List", "Math"] }
+  ];
+
+  const mockLearningState = {
+    currentTier: "Core Concept",
+    masteredTags: ["Array"],
+    allTagsInCurrentTier: ["Array", "String"],
+    unmasteredTags: ["Hash Table"]
+  };
+
+  describe("getDashboardStatistics", () => {
+    beforeEach(() => {
+      fetchAllProblems.mockResolvedValue(mockProblems);
+      getAllAttempts.mockResolvedValue(mockAttempts);
+      getAllSessions.mockResolvedValue(mockSessions);
+      getAllStandardProblems.mockResolvedValue(mockStandardProblems);
+      TagService.getCurrentLearningState.mockResolvedValue(mockLearningState);
+      ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
+    });
+
+    it("should return complete dashboard statistics", async () => {
       const result = await getDashboardStatistics();
 
       expect(result).toBeDefined();
       expect(result.statistics).toBeDefined();
       expect(result.averageTime).toBeDefined();
       expect(result.successRate).toBeDefined();
-      expect(result.allSessions).toEqual(mockData.mockSessions);
+      expect(result.allSessions).toEqual(mockSessions);
       expect(result.sessions).toBeDefined();
       expect(result.mastery).toBeDefined();
       expect(result.goals).toBeDefined();
     });
 
-  it("should handle focus area filtering", async () => {
+    it("should handle focus area filtering", async () => {
       const options = { focusAreaFilter: ["Array"] };
       const result = await getDashboardStatistics(options);
 
@@ -115,7 +110,7 @@ describe("getDashboardStatistics", () => {
       expect(result.filters.focusAreaFilter).toEqual(["Array"]);
     });
 
-  it("should handle date range filtering", async () => {
+    it("should handle date range filtering", async () => {
       const options = { 
         dateRange: { 
           startDate: "2025-01-01", 
@@ -128,24 +123,19 @@ describe("getDashboardStatistics", () => {
       expect(result.filters.dateRange).toEqual(options.dateRange);
     });
 
-  it("should handle errors gracefully", async () => {
+    it("should handle errors gracefully", async () => {
       fetchAllProblems.mockRejectedValue(new Error("Database error"));
 
       await expect(getDashboardStatistics()).rejects.toThrow("Database error");
       
       // Restore mocks after error test to prevent affecting other tests
-      fetchAllProblems.mockResolvedValue(mockData.mockProblems);
+      fetchAllProblems.mockResolvedValue(mockProblems);
+    });
   });
-});
 
-describe("generateSessionAnalytics", () => {
-  const mockData = createMockData();
-  
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-  it("should generate session analytics with productivity metrics", async () => {
-      const result = await generateSessionAnalytics(mockData.mockSessions, mockData.mockAttempts);
+  describe("generateSessionAnalytics", () => {
+    it("should generate session analytics with productivity metrics", async () => {
+      const result = await generateSessionAnalytics(mockSessions, mockAttempts);
 
       expect(result).toBeDefined();
       expect(result.allSessions).toBeDefined();
@@ -153,27 +143,22 @@ describe("generateSessionAnalytics", () => {
       expect(result.productivityMetrics).toBeDefined();
     });
 
-  it("should handle empty sessions gracefully", async () => {
+    it("should handle empty sessions gracefully", async () => {
       const result = await generateSessionAnalytics([], []);
 
       expect(result.allSessions).toEqual([]);
       expect(result.sessionAnalytics).toEqual([]);
       expect(result.productivityMetrics).toBeDefined();
-  });
-});
-
-describe("generateMasteryData", () => {
-  const mockData = createMockData();
-  
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-  beforeEach(() => {
-    StorageService.getSettings.mockResolvedValue({ focusAreas: ["Array"] });
+    });
   });
 
-  it("should generate mastery data with focus areas", async () => {
-      const result = await generateMasteryData(mockData.mockLearningState);
+  describe("generateMasteryData", () => {
+    beforeEach(() => {
+      StorageService.getSettings.mockResolvedValue({ focusAreas: ["Array"] });
+    });
+
+    it("should generate mastery data with focus areas", async () => {
+      const result = await generateMasteryData(mockLearningState);
 
       expect(result.currentTier).toBe("Core Concept");
       expect(result.masteredTags).toEqual(["Array"]);
@@ -181,28 +166,25 @@ describe("generateMasteryData", () => {
       expect(result.learningState).toBeDefined();
     });
 
-  it("should handle missing learning state", async () => {
+    it("should handle missing learning state", async () => {
       const result = await generateMasteryData(null);
 
       expect(result.currentTier).toBe("Core Concept");
       expect(result.masteredTags).toEqual([]);
-  });
-});
-
-describe("generateGoalsData", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-  beforeEach(() => {
-    StorageService.getSettings.mockResolvedValue({
-      sessionsPerWeek: 5,
-      sessionLength: 4,
-      focusAreas: ["Array"],
-      reviewRatio: 40
     });
   });
 
-  it("should generate goals data with learning plan", async () => {
+  describe("generateGoalsData", () => {
+    beforeEach(() => {
+      StorageService.getSettings.mockResolvedValue({
+        sessionsPerWeek: 5,
+        sessionLength: 4,
+        focusAreas: ["Array"],
+        reviewRatio: 40
+      });
+    });
+
+    it("should generate goals data with learning plan", async () => {
       const result = await generateGoalsData();
 
       expect(result.learningPlan).toBeDefined();
@@ -211,71 +193,67 @@ describe("generateGoalsData", () => {
       expect(result.learningPlan.guardrails).toBeDefined();
     });
 
-  it("should handle missing settings gracefully", async () => {
+    it("should handle missing settings gracefully", async () => {
       StorageService.getSettings.mockResolvedValue({});
 
       const result = await generateGoalsData();
 
       expect(result.learningPlan).toBeDefined();
       expect(result.learningPlan.cadence.sessionsPerWeek).toBe(5); // Default
-  });
-});
-
-describe("Page-specific data functions", () => {
-  const mockData = createMockData();
-  
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-  beforeEach(() => {
-    // Mock getDashboardStatistics to return complete data
-    jest.spyOn({ getDashboardStatistics }, 'getDashboardStatistics').mockResolvedValue({
-      statistics: { totalSolved: 10 },
-      sessions: { allSessions: mockData.mockSessions },
-      mastery: mockData.mockLearningState,
-      goals: { learningPlan: {} }
     });
   });
 
-  describe("getSessionHistoryData", () => {
-    it("should return session history data", async () => {
-      const result = await getSessionHistoryData();
-
-      expect(result.allSessions).toBeDefined();
-      expect(result.sessionAnalytics).toBeDefined();
+  describe("Page-specific data functions", () => {
+    beforeEach(() => {
+      // Mock getDashboardStatistics to return complete data
+      jest.spyOn({ getDashboardStatistics }, 'getDashboardStatistics').mockResolvedValue({
+        statistics: { totalSolved: 10 },
+        sessions: { allSessions: mockSessions },
+        mastery: mockLearningState,
+        goals: { learningPlan: {} }
+      });
     });
-  });
 
-  describe("getProductivityInsightsData", () => {
-    it("should return productivity insights data", async () => {
-      const result = await getProductivityInsightsData();
+    describe("getSessionHistoryData", () => {
+      it("should return session history data", async () => {
+        const result = await getSessionHistoryData();
 
-      expect(result.productivityMetrics).toBeDefined();
-      expect(result.sessionAnalytics).toBeDefined();
+        expect(result.allSessions).toBeDefined();
+        expect(result.sessionAnalytics).toBeDefined();
+      });
     });
-  });
 
-  describe("getTagMasteryData", () => {
-    it("should return tag mastery data", async () => {
-      const result = await getTagMasteryData();
+    describe("getProductivityInsightsData", () => {
+      it("should return productivity insights data", async () => {
+        const result = await getProductivityInsightsData();
 
-      expect(result).toBeDefined();
+        expect(result.productivityMetrics).toBeDefined();
+        expect(result.sessionAnalytics).toBeDefined();
+      });
     });
-  });
 
-  describe("getLearningPathData", () => {
-    it("should return learning path data", async () => {
-      const result = await getLearningPathData();
+    describe("getTagMasteryData", () => {
+      it("should return tag mastery data", async () => {
+        const result = await getTagMasteryData();
 
-      expect(result).toBeDefined();
+        expect(result).toBeDefined();
+      });
     });
-  });
 
-  describe("getGoalsData", () => {
-    it("should return goals data", async () => {
-      const result = await getGoalsData();
+    describe("getLearningPathData", () => {
+      it("should return learning path data", async () => {
+        const result = await getLearningPathData();
 
-      expect(result.learningPlan).toBeDefined();
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe("getGoalsData", () => {
+      it("should return goals data", async () => {
+        const result = await getGoalsData();
+
+        expect(result.learningPlan).toBeDefined();
+      });
     });
   });
 });

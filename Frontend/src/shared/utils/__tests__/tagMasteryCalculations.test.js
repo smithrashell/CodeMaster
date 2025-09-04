@@ -3,63 +3,64 @@
  * Tests the core mathematical algorithms isolated from database operations
  */
 
-// Helper function to simulate the mastery calculation logic from tag_mastery.js
-const calculateMasteryStatus = (
-  totalAttempts,
-  successfulAttempts,
-  lastAttemptDate = null
-) => {
-  const masteryRatio =
-    totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
-  const failedAttempts = totalAttempts - successfulAttempts;
-
-  // Calculate decay score
-  const daysSinceLast = lastAttemptDate
-    ? (Date.now() - new Date(lastAttemptDate)) / (1000 * 60 * 60 * 24)
-    : 0;
-  const decayScore =
-    totalAttempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
-
-  // Progressive escape hatch logic
-  let masteryThreshold = 0.8; // Default 80% success rate
-  let escapeHatchActivated = false;
-  let escapeHatchType = "";
-
-  // Light struggle escape: 75-79% with 8+ attempts
-  if (totalAttempts >= 8 && masteryRatio >= 0.75 && masteryRatio < 0.8) {
-    masteryThreshold = 0.75;
-    escapeHatchActivated = true;
-    escapeHatchType = "light struggle (75% threshold)";
-  }
-  // Moderate struggle escape: 70-79% with 12+ attempts
-  else if (totalAttempts >= 12 && masteryRatio >= 0.7 && masteryRatio < 0.8) {
-    masteryThreshold = 0.7;
-    escapeHatchActivated = true;
-    escapeHatchType = "moderate struggle (70% threshold)";
-  }
-  // Heavy struggle escape: 60%+ with 15+ failed attempts
-  else if (failedAttempts >= 15 && masteryRatio >= 0.6) {
-    masteryThreshold = 0.6;
-    escapeHatchActivated = true;
-    escapeHatchType = "heavy struggle (60% threshold)";
-  }
-
-  const mastered = masteryRatio >= masteryThreshold;
-
-  return {
+describe("Tag Mastery Calculation Logic", () => {
+  // Helper function to simulate the mastery calculation logic from tag_mastery.js
+  const calculateMasteryStatus = (
     totalAttempts,
     successfulAttempts,
-    failedAttempts,
-    masteryRatio,
-    decayScore,
-    mastered,
-    masteryThreshold,
-    escapeHatchActivated,
-    escapeHatchType,
-  };
-};
+    lastAttemptDate = null
+  ) => {
+    const masteryRatio =
+      totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
+    const failedAttempts = totalAttempts - successfulAttempts;
 
-describe("Basic Mastery Calculations", () => {
+    // Calculate decay score
+    const daysSinceLast = lastAttemptDate
+      ? (Date.now() - new Date(lastAttemptDate)) / (1000 * 60 * 60 * 24)
+      : 0;
+    const decayScore =
+      totalAttempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
+
+    // Progressive escape hatch logic
+    let masteryThreshold = 0.8; // Default 80% success rate
+    let escapeHatchActivated = false;
+    let escapeHatchType = "";
+
+    // Light struggle escape: 75-79% with 8+ attempts
+    if (totalAttempts >= 8 && masteryRatio >= 0.75 && masteryRatio < 0.8) {
+      masteryThreshold = 0.75;
+      escapeHatchActivated = true;
+      escapeHatchType = "light struggle (75% threshold)";
+    }
+    // Moderate struggle escape: 70-79% with 12+ attempts
+    else if (totalAttempts >= 12 && masteryRatio >= 0.7 && masteryRatio < 0.8) {
+      masteryThreshold = 0.7;
+      escapeHatchActivated = true;
+      escapeHatchType = "moderate struggle (70% threshold)";
+    }
+    // Heavy struggle escape: 60%+ with 15+ failed attempts
+    else if (failedAttempts >= 15 && masteryRatio >= 0.6) {
+      masteryThreshold = 0.6;
+      escapeHatchActivated = true;
+      escapeHatchType = "heavy struggle (60% threshold)";
+    }
+
+    const mastered = masteryRatio >= masteryThreshold;
+
+    return {
+      totalAttempts,
+      successfulAttempts,
+      failedAttempts,
+      masteryRatio,
+      decayScore,
+      mastered,
+      masteryThreshold,
+      escapeHatchActivated,
+      escapeHatchType,
+    };
+  };
+
+  describe("Basic Mastery Calculations", () => {
     it("should achieve mastery with 80% success rate", () => {
       const result = calculateMasteryStatus(10, 8);
 
@@ -94,9 +95,9 @@ describe("Basic Mastery Calculations", () => {
       expect(result.masteryRatio).toBe(1.0);
       expect(result.failedAttempts).toBe(0);
     });
-});
+  });
 
-describe("Light Struggle Escape Hatch (75% threshold)", () => {
+  describe("Light Struggle Escape Hatch (75% threshold)", () => {
     it("should activate with exactly 8 attempts at 75% accuracy", () => {
       const result = calculateMasteryStatus(8, 6); // 75% with 8 attempts
 
@@ -136,9 +137,9 @@ describe("Light Struggle Escape Hatch (75% threshold)", () => {
       expect(result.masteryThreshold).toBe(0.8); // Should use standard threshold
       expect(result.escapeHatchActivated).toBe(false);
     });
-});
+  });
 
-describe("Moderate Struggle Escape Hatch (70% threshold)", () => {
+  describe("Moderate Struggle Escape Hatch (70% threshold)", () => {
     it("should activate with exactly 12 attempts at 70% accuracy", () => {
       const result = calculateMasteryStatus(12, 8.4); // 70% with 12 attempts
 
@@ -194,9 +195,9 @@ describe("Moderate Struggle Escape Hatch (70% threshold)", () => {
     });
 
     it("should activate with 65% accuracy and 15+ failed attempts", () => {
-      const _result = calculateMasteryStatus(30, 19.5); // 65% with 10.5 failed attempts - need more failed
-      const _result2 = calculateMasteryStatus(25, 15); // 60% with 10 failed - need more attempts
-      const _result3 = calculateMasteryStatus(40, 26); // 65% with 14 failed - need one more failed
+      const result = calculateMasteryStatus(30, 19.5); // 65% with 10.5 failed attempts - need more failed
+      const result2 = calculateMasteryStatus(25, 15); // 60% with 10 failed - need more attempts
+      const result3 = calculateMasteryStatus(40, 26); // 65% with 14 failed - need one more failed
       const result4 = calculateMasteryStatus(41, 26); // ~63% with 15 failed attempts
 
       expect(result4.mastered).toBe(true);
@@ -214,7 +215,7 @@ describe("Moderate Struggle Escape Hatch (70% threshold)", () => {
 
     it("should not activate with 60% accuracy but only 14 failed attempts", () => {
       const result = calculateMasteryStatus(24, 14.4); // 60% with 9.6 failed attempts (not enough)
-      const _result2 = calculateMasteryStatus(39, 23.4); // 60% with 15.6 failed, but round to 14 failed
+      const result2 = calculateMasteryStatus(39, 23.4); // 60% with 15.6 failed, but round to 14 failed
 
       expect(result.escapeHatchActivated).toBe(false);
     });
@@ -309,3 +310,4 @@ describe("Moderate Struggle Escape Hatch (70% threshold)", () => {
       expect(failure.mastered).toBe(false);
     });
   });
+});

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 
 /**
  * Custom hook that resolves CSS custom properties to actual color values
@@ -23,7 +23,7 @@ export const useThemeColors = () => {
   };
 
   // Update colors when theme changes
-  const updateColors = useCallback(() => {
+  const updateColors = () => {
     const resolvedColors = {
       // Text colors
       text: getCSSVariable('--cm-text', '#334155'),
@@ -74,7 +74,7 @@ export const useThemeColors = () => {
     };
 
     setColors(resolvedColors);
-  }, []);
+  };
 
   useEffect(() => {
     // Initial color resolution
@@ -101,7 +101,7 @@ export const useThemeColors = () => {
 
     // Cleanup observer on unmount
     return () => observer.disconnect();
-  }, [updateColors]);
+  }, []);
 
   return colors;
 };

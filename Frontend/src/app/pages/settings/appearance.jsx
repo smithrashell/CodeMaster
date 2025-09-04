@@ -1,5 +1,5 @@
 import React from "react";
-import { Container, Title, Card, Text, Stack } from "@mantine/core";
+import { Container, Title, Grid, Card, Text, Stack } from "@mantine/core";
 import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
 import {
   FontSizeSelector,

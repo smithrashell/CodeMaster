@@ -1,5 +1,3 @@
-import { calculateSuccessRate, calculateFailedAttempts } from './Utils.js';
-
 /**
  * 🔓 Escape Hatch Utilities
  * Centralized logic for detecting and activating escape hatches to prevent user stalling
@@ -104,8 +102,8 @@ function detectAttemptBasedEscapeHatches(masteryData, tierTags) {
   masteryData
     .filter((tag) => tierTags.includes(tag.tag) && tag.totalAttempts > 0)
     .forEach((tag) => {
-      const successRate = calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts);
-      const failedAttempts = calculateFailedAttempts(tag.successfulAttempts, tag.totalAttempts);
+      const successRate = tag.successfulAttempts / tag.totalAttempts;
+      const failedAttempts = tag.totalAttempts - tag.successfulAttempts;
 
       // Apply escape hatch if 15+ failed attempts and 60%+ success rate (but below 80%)
       if (failedAttempts >= 15 && successRate >= 0.6 && successRate < 0.8) {
@@ -135,7 +133,7 @@ function detectTimeBasedEscapeHatches(masteryData, tierTags, now) {
   masteryData
     .filter((tag) => tierTags.includes(tag.tag) && tag.totalAttempts > 0)
     .forEach((tag) => {
-      const successRate = calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts);
+      const successRate = tag.successfulAttempts / tag.totalAttempts;
 
       if (tag.lastAttemptDate) {
         const lastAttemptDate = new Date(tag.lastAttemptDate);

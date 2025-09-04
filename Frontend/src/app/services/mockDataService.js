@@ -315,9 +315,17 @@ const generatePromotionData = (granularity = "weekly") => {
 };
 
 /**
- * Calculate statistics from problems data
+ * Main mock data generator
  */
-const calculateStatistics = (problems) => {
+export const generateMockData = (userType = "active") => {
+  // eslint-disable-next-line no-console
+  console.log(`🎭 Generating mock data for user type: ${userType}`);
+
+  const sessions = generateMockSessions(userType);
+  const attempts = generateMockAttempts(sessions, userType);
+  const problems = generateMockProblems(attempts, userType);
+
+  // Calculate statistics
   const statistics = {
     totalSolved: problems.filter((p) => p.BoxLevel >= 2).length,
     mastered: problems.filter((p) => p.BoxLevel === 7).length,
@@ -332,13 +340,7 @@ const calculateStatistics = (problems) => {
     boxLevelData[i] = problems.filter((p) => p.BoxLevel === i).length;
   }
 
-  return { statistics, boxLevelData };
-};
-
-/**
- * Calculate performance metrics from attempts data
- */
-const calculatePerformanceMetrics = (attempts) => {
+  // Calculate performance metrics
   const timeStats = {
     overall: { totalTime: 0, count: 0 },
     Easy: { totalTime: 0, count: 0 },
@@ -417,13 +419,6 @@ const calculatePerformanceMetrics = (attempts) => {
     ),
   };
 
-  return { averageTime, successRate };
-};
-
-/**
- * Generate analytics data based on user type
- */
-const generateAnalyticsData = (userType, sessions) => {
   // Calculate time accuracy (how close user estimates are to actual time)
   const timeAccuracy = Math.floor(75 + Math.random() * 20); // 75-95% accuracy
 
@@ -494,22 +489,7 @@ const generateAnalyticsData = (userType, sessions) => {
   const [minCount, maxCount] = reviewCountRanges[userType] || reviewCountRanges.active;
   const nextReviewCount = Math.floor(Math.random() * (maxCount - minCount + 1)) + minCount;
 
-  return {
-    hintsUsed,
-    learningEfficiencyData,
-    strategySuccessRate,
-    timerBehavior,
-    timerPercentage,
-    nextReviewTime,
-    nextReviewCount,
-    timeAccuracy,
-  };
-};
-
-/**
- * Generate all chart data
- */
-const generateAllChartData = (sessions) => {
+  // Generate chart data
   const accuracyData = {
     weekly: generateChartData(sessions, "accuracy", "weekly"),
     monthly: generateChartData(sessions, "accuracy", "monthly"),
@@ -534,14 +514,7 @@ const generateAllChartData = (sessions) => {
     yearly: generatePromotionData("yearly"),
   };
 
-  return { accuracyData, breakdownData, activityData, promotionData };
-};
-
-/**
- * Create mock learning state based on user type
- */
-const createMockLearningState = (userType, strategySuccessRate, timerBehavior) => {
-  return {
+  const mockLearningState = {
     currentTier:
       userType === "advanced"
         ? "Advanced Technique"
@@ -557,28 +530,6 @@ const createMockLearningState = (userType, strategySuccessRate, timerBehavior) =
     strategySuccessRate,
     timerBehavior,
   };
-};
-
-/**
- * Main mock data generator
- */
-export const generateMockData = (userType = "active") => {
-  // eslint-disable-next-line no-console
-  console.log(`🎭 Generating mock data for user type: ${userType}`);
-
-  const sessions = generateMockSessions(userType);
-  const attempts = generateMockAttempts(sessions, userType);
-  const problems = generateMockProblems(attempts, userType);
-
-  const { statistics, boxLevelData } = calculateStatistics(problems);
-  const { averageTime, successRate } = calculatePerformanceMetrics(attempts);
-  const analyticsData = generateAnalyticsData(userType, sessions);
-  const chartData = generateAllChartData(sessions);
-  const mockLearningState = createMockLearningState(
-    userType,
-    analyticsData.strategySuccessRate,
-    analyticsData.timerBehavior
-  );
 
   // eslint-disable-next-line no-console
   console.log(`✅ Generated mock data:`, {
@@ -596,26 +547,26 @@ export const generateMockData = (userType = "active") => {
 
     // Calculated statistics
     statistics,
-    averageTime: { ...averageTime, timeAccuracy: analyticsData.timeAccuracy },
+    averageTime: { ...averageTime, timeAccuracy },
     successRate,
     boxLevelData,
     learningState: mockLearningState,
 
     // New analytics data
-    hintsUsed: analyticsData.hintsUsed,
-    strategySuccessRate: analyticsData.strategySuccessRate,
-    timerBehavior: analyticsData.timerBehavior,
-    timerPercentage: analyticsData.timerPercentage,
-    nextReviewTime: analyticsData.nextReviewTime,
-    nextReviewCount: analyticsData.nextReviewCount,
-    timeAccuracy: analyticsData.timeAccuracy,
+    hintsUsed,
+    strategySuccessRate,
+    timerBehavior,
+    timerPercentage,
+    nextReviewTime,
+    nextReviewCount,
+    timeAccuracy,
 
     // Chart data
-    accuracyData: chartData.accuracyData,
-    breakdownData: chartData.breakdownData,
-    activityData: chartData.activityData,
-    promotionData: chartData.promotionData,
-    learningEfficiencyData: analyticsData.learningEfficiencyData,
+    accuracyData,
+    breakdownData,
+    activityData,
+    promotionData,
+    learningEfficiencyData,
   };
 };
 

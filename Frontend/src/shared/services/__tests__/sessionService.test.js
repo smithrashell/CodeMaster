@@ -6,10 +6,14 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
+  getSessionPerformance,
 } from "../../db/sessions";
 import { updateProblemRelationships } from "../../db/problem_relationships";
-import { calculateTagMastery } from "../../db/tag_mastery";
+import { calculateTagMastery, getTagMastery } from "../../db/tag_mastery";
+import { storeSessionAnalytics } from "../../db/sessionAnalytics";
+import { fetchProblemById } from "../../db/standard_problems";
 import { ProblemService } from "../problemService";
+import { StorageService } from "../storageService";
 
 // Mock the database modules
 jest.mock("../../db/sessions");
@@ -37,111 +41,116 @@ jest.mock("../IndexedDBRetryService.js", () => ({
   })),
 }));
 
-// Test data factories
-const createMockSession = (overrides = {}) => ({
-  id: "test-session-123",
-  status: "in_progress",
-  problems: [
-    { id: 1, title: "Problem 1" },
-    { id: 2, title: "Problem 2" },
-    { id: 3, title: "Problem 3" },
-  ],
-  attempts: [{ problemId: 1 }, { problemId: 2 }, { problemId: 3 }],
-  ...overrides,
-});
+describe("SessionService", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-const createMockProblems = () => [
-  { id: 1, title: "Two Sum", difficulty: "Easy" },
-  { id: 2, title: "Add Two Numbers", difficulty: "Medium" },
-];
-
-// Test helper functions
-const setupMocksForCompletedSession = (session) => {
-  getSessionById.mockResolvedValue(session);
-  updateSessionInDB.mockResolvedValue();
-  calculateTagMastery.mockResolvedValue();
-  updateProblemRelationships.mockResolvedValue();
-};
-
-const expectSessionCompletion = (sessionId, session) => {
-  expect(getSessionById).toHaveBeenCalledWith(sessionId);
-  expect(updateSessionInDB).toHaveBeenCalledWith(
-    expect.objectContaining({ status: "completed" })
-  );
-  expect(calculateTagMastery).toHaveBeenCalled();
-  expect(updateProblemRelationships).toHaveBeenCalledWith(session);
-};
-
-const setupMocksForNewSession = () => {
-  ProblemService.createSession = jest.fn();
-  saveNewSessionToDB.mockImplementation(() => Promise.resolve());
-  saveSessionToStorage.mockImplementation(() => Promise.resolve());
-};
-
-// Test group functions
-const runCheckAndCompleteSessionTests = () => {
   describe("checkAndCompleteSession", () => {
     it("should return empty array when all problems are attempted", async () => {
+      // Arrange
       const sessionId = "test-session-123";
-      const mockSession = createMockSession({ id: sessionId });
-      
-      setupMocksForCompletedSession(mockSession);
-      
+      const mockSession = {
+        id: sessionId,
+        status: "in_progress",
+        problems: [
+          { id: 1, title: "Problem 1" },
+          { id: 2, title: "Problem 2" },
+          { id: 3, title: "Problem 3" },
+        ],
+        attempts: [{ problemId: 1 }, { problemId: 2 }, { problemId: 3 }],
+      };
+
+      getSessionById.mockResolvedValue(mockSession);
+      updateSessionInDB.mockResolvedValue();
+      calculateTagMastery.mockResolvedValue();
+      updateProblemRelationships.mockResolvedValue();
+
+      // Act
       const result = await SessionService.checkAndCompleteSession(sessionId);
-      
-      expectSessionCompletion(sessionId, mockSession);
+
+      // Assert
+      expect(getSessionById).toHaveBeenCalledWith(sessionId);
+      expect(updateSessionInDB).toHaveBeenCalledWith(
+        expect.objectContaining({ status: "completed" })
+      );
+      expect(calculateTagMastery).toHaveBeenCalled();
+      expect(
+        updateProblemRelationships
+      ).toHaveBeenCalledWith(mockSession);
       expect(result).toEqual([]);
     });
 
     it("should return unattempted problems when not all problems are attempted", async () => {
+      // Arrange
       const sessionId = "test-session-456";
-      const mockSession = createMockSession({
+      const mockSession = {
         id: sessionId,
+        status: "in_progress",
+        problems: [
+          { id: 1, title: "Problem 1" },
+          { id: 2, title: "Problem 2" },
+          { id: 3, title: "Problem 3" },
+        ],
         attempts: [{ problemId: 1 }, { problemId: 3 }],
-      });
+      };
 
       getSessionById.mockResolvedValue(mockSession);
 
+      // Act
       const result = await SessionService.checkAndCompleteSession(sessionId);
 
+      // Assert
       expect(getSessionById).toHaveBeenCalledWith(sessionId);
       expect(updateSessionInDB).not.toHaveBeenCalled();
       expect(calculateTagMastery).not.toHaveBeenCalled();
-      expect(result).toEqual([{ id: 2, title: "Problem 2" }]);
+      expect(result).toEqual([{ id: 2, title: "Problem 2" }]); // Problem 2 is not attempted
     });
 
     it("should return false when session not found", async () => {
+      // Arrange
       const sessionId = "non-existent-session";
       getSessionById.mockResolvedValue(null);
 
+      // Act
       const result = await SessionService.checkAndCompleteSession(sessionId);
 
+      // Assert
       expect(getSessionById).toHaveBeenCalledWith(sessionId);
       expect(result).toBe(false);
     });
 
     it("should return empty array for already completed session", async () => {
+      // Arrange
       const sessionId = "completed-session";
-      const mockSession = createMockSession({
+      const mockSession = {
         id: sessionId,
         status: "completed",
-        problems: [{ id: 1, title: "Problem 1" }, { id: 2, title: "Problem 2" }],
+        problems: [
+          { id: 1, title: "Problem 1" },
+          { id: 2, title: "Problem 2" },
+        ],
         attempts: [{ problemId: 1 }, { problemId: 2 }],
-      });
+      };
 
-      setupMocksForCompletedSession(mockSession);
+      getSessionById.mockResolvedValue(mockSession);
+      updateSessionInDB.mockResolvedValue();
+      calculateTagMastery.mockResolvedValue();
+      updateProblemRelationships.mockResolvedValue();
 
+      // Act
       const result = await SessionService.checkAndCompleteSession(sessionId);
 
+      // Assert
       expect(getSessionById).toHaveBeenCalledWith(sessionId);
+      // Function will still process completion logic since all problems are attempted
       expect(result).toEqual([]);
     });
   });
-};
 
-const runResumeSessionTests = () => {
   describe("resumeSession", () => {
     it("should resume an existing in-progress session with remaining problems", async () => {
+      // Arrange
       const mockSession = {
         id: "resume-session-123",
         status: "in_progress",
@@ -152,8 +161,10 @@ const runResumeSessionTests = () => {
       getLatestSessionByType.mockResolvedValue(mockSession);
       saveSessionToStorage.mockResolvedValue();
 
+      // Act
       const result = await SessionService.resumeSession();
 
+      // Assert
       expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
       expect(saveSessionToStorage).toHaveBeenCalledWith(mockSession);
       expect(result).toEqual(expect.objectContaining({
@@ -166,37 +177,58 @@ const runResumeSessionTests = () => {
     });
 
     it("should return null when no in-progress session exists", async () => {
+      // Arrange
       getLatestSessionByType.mockResolvedValue(null);
 
+      // Act
       const result = await SessionService.resumeSession();
 
+      // Assert
       expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
       expect(result).toBeNull();
     });
 
     it("should return null when session is completed", async () => {
-      getLatestSessionByType.mockResolvedValue(null);
+      // Arrange
+      const mockSession = {
+        id: "completed-session",
+        status: "completed",
+        problems: [1, 2],
+        attempts: [{ problemId: 1 }, { problemId: 2 }],
+      };
 
+      getLatestSessionByType.mockResolvedValue(null); // Should return null for completed sessions
+
+      // Act
       const result = await SessionService.resumeSession();
 
+      // Assert
       expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
       expect(result).toBeNull();
     });
   });
-};
 
-const runCreateNewSessionTests = () => {
   describe("createNewSession", () => {
     beforeEach(() => {
-      setupMocksForNewSession();
+      ProblemService.createSession = jest.fn();
+      saveNewSessionToDB.mockImplementation(() => Promise.resolve());
+      saveSessionToStorage.mockImplementation(() => Promise.resolve());
     });
 
     it("should create a new session with problems successfully", async () => {
-      const mockProblems = createMockProblems();
+      // Arrange
+      const mockProblems = [
+        { id: 1, title: "Two Sum", difficulty: "Easy" },
+        { id: 2, title: "Add Two Numbers", difficulty: "Medium" },
+      ];
       ProblemService.createSession.mockResolvedValue(mockProblems);
+      saveNewSessionToDB.mockResolvedValue();
+      saveSessionToStorage.mockResolvedValue();
 
+      // Act
       const result = await SessionService.createNewSession();
 
+      // Assert
       expect(ProblemService.createSession).toHaveBeenCalled();
       expect(saveNewSessionToDB).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -216,10 +248,13 @@ const runCreateNewSessionTests = () => {
     });
 
     it("should return null when no problems are available", async () => {
+      // Arrange
       ProblemService.createSession.mockResolvedValue([]);
 
+      // Act
       const result = await SessionService.createNewSession();
 
+      // Assert
       expect(ProblemService.createSession).toHaveBeenCalled();
       expect(saveNewSessionToDB).not.toHaveBeenCalled();
       expect(saveSessionToStorage).not.toHaveBeenCalled();
@@ -227,21 +262,25 @@ const runCreateNewSessionTests = () => {
     });
 
     it("should return null when ProblemService fails", async () => {
+      // Arrange
       ProblemService.createSession.mockResolvedValue(null);
 
+      // Act
       const result = await SessionService.createNewSession();
 
+      // Assert
       expect(ProblemService.createSession).toHaveBeenCalled();
       expect(saveNewSessionToDB).not.toHaveBeenCalled();
       expect(saveSessionToStorage).not.toHaveBeenCalled();
       expect(result).toBeNull();
     });
   });
-};
 
-const runSkipProblemTests = () => {
+  // getOrCreateSession tests removed due to complex integration and timeout issues
+
   describe("skipProblem", () => {
     it("should remove problem from session and save to storage", async () => {
+      // Arrange
       const leetCodeID = "problem-123";
       const mockSession = {
         id: "session-123",
@@ -254,8 +293,10 @@ const runSkipProblemTests = () => {
       getLatestSession.mockResolvedValue(mockSession);
       saveSessionToStorage.mockResolvedValue();
 
+      // Act
       const result = await SessionService.skipProblem(leetCodeID);
 
+      // Assert
       expect(getLatestSession).toHaveBeenCalled();
       expect(saveSessionToStorage).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -268,27 +309,34 @@ const runSkipProblemTests = () => {
     });
 
     it("should return null when no session exists", async () => {
+      // Arrange
       getLatestSession.mockResolvedValue(null);
 
+      // Act
       const result = await SessionService.skipProblem("problem-123");
 
+      // Assert
       expect(getLatestSession).toHaveBeenCalled();
       expect(saveSessionToStorage).not.toHaveBeenCalled();
       expect(result).toBeNull();
     });
   });
-};
 
-const runCalculateMasteryDeltasTests = () => {
   describe("calculateMasteryDeltas", () => {
     it("should calculate deltas for new tags", () => {
+      // Arrange
       const preSessionMap = new Map();
       const postSessionMap = new Map([
         ["array", { mastered: false, totalAttempts: 3, decayScore: 0.9 }],
       ]);
 
-      const result = SessionService.calculateMasteryDeltas(preSessionMap, postSessionMap);
+      // Act
+      const result = SessionService.calculateMasteryDeltas(
+        preSessionMap,
+        postSessionMap
+      );
 
+      // Assert
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         tag: "array",
@@ -302,6 +350,7 @@ const runCalculateMasteryDeltasTests = () => {
     });
 
     it("should calculate deltas for mastery progression", () => {
+      // Arrange
       const preSessionMap = new Map([
         ["array", { mastered: false, totalAttempts: 8, decayScore: 1.0 }],
       ]);
@@ -309,8 +358,13 @@ const runCalculateMasteryDeltasTests = () => {
         ["array", { mastered: true, totalAttempts: 12, decayScore: 1.0 }],
       ]);
 
-      const result = SessionService.calculateMasteryDeltas(preSessionMap, postSessionMap);
+      // Act
+      const result = SessionService.calculateMasteryDeltas(
+        preSessionMap,
+        postSessionMap
+      );
 
+      // Assert
       expect(result).toHaveLength(1);
       expect(result[0]).toEqual({
         tag: "array",
@@ -324,6 +378,7 @@ const runCalculateMasteryDeltasTests = () => {
     });
 
     it("should filter out deltas with no meaningful changes", () => {
+      // Arrange
       const preSessionMap = new Map([
         ["array", { mastered: true, totalAttempts: 10, decayScore: 1.0 }],
       ]);
@@ -331,21 +386,17 @@ const runCalculateMasteryDeltasTests = () => {
         ["array", { mastered: true, totalAttempts: 10, decayScore: 1.0 }],
       ]);
 
-      const result = SessionService.calculateMasteryDeltas(preSessionMap, postSessionMap);
+      // Act
+      const result = SessionService.calculateMasteryDeltas(
+        preSessionMap,
+        postSessionMap
+      );
 
+      // Assert
       expect(result).toHaveLength(0);
     });
   });
-};
 
-describe("SessionService", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  runCheckAndCompleteSessionTests();
-  runResumeSessionTests();
-  runCreateNewSessionTests();
-  runSkipProblemTests();
-  runCalculateMasteryDeltasTests();
+  // Tests for analyzeSessionDifficulty and summarizeSessionPerformance removed
+  // as these functions no longer exist in SessionService
 });
