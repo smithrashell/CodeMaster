@@ -41,15 +41,67 @@ class SessionAttributionEngine {
   
   /**
    * Check if problem matches any scheduled problems in the guided session
+   * Enhanced matching with comprehensive property checks and debugging
    */
   static isMatchingProblem(session, problem) {
-    if (!session?.problems || !problem) return false;
+    if (!session?.problems || !problem) {
+      console.log("🔍 isMatchingProblem: Missing session.problems or problem", {
+        hasSession: !!session,
+        hasProblems: !!session?.problems,
+        problemsLength: session?.problems?.length || 0,
+        hasProblem: !!problem
+      });
+      return false;
+    }
     
-    return session.problems.some(p => 
-      p.id === problem.id || 
-      p.leetCodeID === problem.leetCodeID ||
-      p.problemId === problem.id
-    );
+    console.log("🔍 isMatchingProblem: Starting detailed match check");
+    
+    for (let i = 0; i < session.problems.length; i++) {
+      const sessionProblem = session.problems[i];
+      
+      // Comprehensive matching logic covering all possible property combinations
+      const matches = [
+        // Direct ID matches
+        sessionProblem.id === problem.id,
+        sessionProblem.leetCodeID === problem.leetCodeID,
+        sessionProblem.problemId === problem.id,
+        sessionProblem.problemId === problem.leetCodeID,
+        sessionProblem.id === problem.leetCodeID,
+        sessionProblem.leetCodeID === problem.id,
+        
+        // Cross-property matches for different naming conventions
+        sessionProblem.id === problem.problemId,
+        sessionProblem.leetCodeID === problem.problemId,
+        sessionProblem.problemId === problem.problemId,
+        
+        // String comparison for LeetCode IDs (handle number vs string)
+        String(sessionProblem.leetCodeID) === String(problem.leetCodeID),
+        String(sessionProblem.id) === String(problem.id),
+        String(sessionProblem.problemId) === String(problem.problemId || problem.id || problem.leetCodeID)
+      ];
+      
+      const hasMatch = matches.some(match => match && match !== false);
+      
+      if (hasMatch) {
+        console.log(`✅ Found matching problem at index ${i}:`, {
+          sessionProblem: {
+            id: sessionProblem.id,
+            leetCodeID: sessionProblem.leetCodeID,
+            problemId: sessionProblem.problemId
+          },
+          currentProblem: {
+            id: problem.id,
+            leetCodeID: problem.leetCodeID,
+            problemId: problem.problemId
+          },
+          matchResults: matches.map((match, idx) => ({ idx, match })).filter(r => r.match)
+        });
+        return true;
+      }
+    }
+    
+    console.log("❌ No matching problem found in session");
+    return false;
   }
   
   /**
@@ -364,14 +416,47 @@ async function addAttempt(attemptData, problem) {
       return { error: "Problem not found." };
     }
 
+    // Debug: Log current problem structure
+    console.log("🔍 Current problem object:", {
+      id: problem.id,
+      leetCodeID: problem.leetCodeID,
+      ProblemDescription: problem.ProblemDescription,
+      problemId: problem.problemId,
+      allKeys: Object.keys(problem)
+    });
+
     // 1. Check for active guided session first
     const guidedSession = await SessionAttributionEngine.getActiveGuidedSession();
-    if (guidedSession) {
+    if (!guidedSession) {
+      console.log("❌ No active guided session found");
+    } else if (!guidedSession.problems || !Array.isArray(guidedSession.problems)) {
+      console.log(`⚠️ Guided session ${guidedSession.id} has invalid problems array:`, {
+        hasProblems: !!guidedSession.problems,
+        isArray: Array.isArray(guidedSession.problems),
+        type: typeof guidedSession.problems
+      });
+      console.log("🔄 Session invalid - falling back to tracking session");
+    } else if (guidedSession.problems.length === 0) {
+      console.log(`⚠️ Guided session ${guidedSession.id} has empty problems array - likely a draft session`);
+      console.log("🔄 Session has no problems - falling back to tracking session");
+    } else {
       console.log(`🔍 Found guided session: ${guidedSession.sessionType} (${guidedSession.status})`);
+      
+      // Debug: Log session problems structure
+      console.log("🔍 Session problems array:", {
+        problemsCount: guidedSession.problems.length,
+        problems: guidedSession.problems.map(p => ({
+          id: p.id,
+          leetCodeID: p.leetCodeID,
+          problemId: p.problemId,
+          ProblemDescription: p.ProblemDescription,
+          allKeys: Object.keys(p || {})
+        }))
+      });
       
       // 2. Check if this problem matches any problems in the guided session
       if (SessionAttributionEngine.isMatchingProblem(guidedSession, problem)) {
-        console.log(`✅ Problem ${problem.id} matches guided session ${guidedSession.id}`);
+        console.log(`✅ Problem ${problem.id || problem.leetCodeID} matches guided session ${guidedSession.id}`);
         const result = await SessionAttributionEngine.attachToGuidedSession(guidedSession, attemptData, problem);
         
         // Notify UI to refresh focus area eligibility
@@ -382,11 +467,10 @@ async function addAttempt(attemptData, problem) {
         }
         
         return result;
-      } else {
-        console.log(`❌ Problem ${problem.id} does not match any problems in guided session ${guidedSession.id}`);
       }
-    } else {
-      console.log("❌ No active guided session found");
+      
+      console.log(`❌ Problem ${problem.id || problem.leetCodeID} does not match any problems in guided session ${guidedSession.id}`);
+      console.log("🔍 Detailed matching check failed - problem not found in session");
     }
 
     // 3. Fall back to tracking session (independent problem solving)
