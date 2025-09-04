@@ -139,7 +139,115 @@ The services layer provides business logic abstraction between UI components and
 - `getNextLadderProblem()` - Selects next problem in progression sequence
 - **Integration**: pattern_ladders store, TagService
 
-## Service Patterns
+### 🔄 **IndexedDBRetryService** (`IndexedDBRetryService.js`)
+
+**Purpose**: Database operation resilience with retry logic and timeout handling
+
+- `executeWithRetry()` - Executes database operations with exponential backoff
+- `createTimeoutPromise()` - Provides timeout handling for long-running operations
+- `deduplicateRequests()` - Prevents duplicate simultaneous operations
+- **Key Features**: Circuit breaker patterns, operation prioritization, performance monitoring
+- **Integration**: Used by all database operations for enhanced reliability
+
+### 🌐 **ChromeAPIErrorHandler** (`ChromeAPIErrorHandler.js`)
+
+**Purpose**: Robust Chrome extension message handling with error recovery
+
+- `sendMessageWithRetry()` - Chrome messaging with automatic retry and fallback
+- `handleChromeError()` - Intelligent error classification and recovery
+- `validateChromeResponse()` - Response validation and error detection
+- **Key Features**: Exponential backoff, network error handling, extension context validation
+- **Integration**: Core infrastructure for all Chrome messaging, useChromeMessage hook
+
+## Service Patterns & Advanced Features
+
+### 🛡️ Circuit Breaker Pattern
+
+**Purpose**: Provides automatic fallback to stable functionality when enhanced features fail
+
+**Implementation**:
+```javascript
+class HabitLearningCircuitBreaker {
+  static isOpen = false;
+  static failureCount = 0;
+  static MAX_FAILURES = 3;
+  static RECOVERY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+
+  static async safeExecute(enhancedFn, fallbackFn, operationName) {
+    // Automatic reset after recovery timeout
+    if (this.isOpen && this.shouldAttemptReset()) {
+      this.reset();
+    }
+    
+    // Use fallback if circuit is open
+    if (this.isOpen) {
+      return await fallbackFn();
+    }
+    
+    try {
+      const result = await enhancedFn();
+      this.recordSuccess();
+      return result;
+    } catch (error) {
+      this.recordFailure();
+      return await fallbackFn();
+    }
+  }
+}
+```
+
+**Usage in Services**:
+```javascript
+// SessionService example
+const session = await HabitLearningCircuitBreaker.safeExecute(
+  () => createEnhancedSession(params),
+  () => createBasicSession(params),
+  "session-creation"
+);
+```
+
+**Benefits**:
+- **Automatic Recovery**: Circuit resets after timeout period
+- **Zero Downtime**: Fallback ensures system continues working
+- **Performance Protection**: Prevents cascading failures
+- **Gradual Enhancement**: New features can be added safely
+
+### 🔄 Retry Mechanisms
+
+**Database Retry Strategy**:
+- **Exponential Backoff**: 100ms → 200ms → 400ms delays
+- **Max Attempts**: 3 retries for critical operations
+- **Timeout Handling**: Configurable timeouts per operation type
+- **Deduplication**: Prevents duplicate simultaneous operations
+
+**Chrome API Retry Strategy**:
+- **Network Error Recovery**: Automatic retry for connection failures
+- **Context Validation**: Handles extension context loss gracefully
+- **Response Validation**: Retries on malformed responses
+- **Fallback Mechanisms**: Graceful degradation when Chrome APIs fail
+
+### 📊 Performance Monitoring
+
+**Operation Tracking**:
+```javascript
+// Built into IndexedDBRetryService
+const performanceData = {
+  operationName: "getSessionData",
+  startTime: Date.now(),
+  retryCount: 2,
+  totalTime: 150, // ms
+  success: true,
+  error: null
+};
+```
+
+**Metrics Captured**:
+- Operation latency and success rates
+- Retry frequency and patterns  
+- Error categorization and trends
+- Cache hit rates and performance impact
+
+## Service Architecture Patterns
 
 ### Consistent API Structure
 
