@@ -13,16 +13,18 @@ export default class StorageFailureTesting {
    * @param {string} type - Failure type
    * @returns {Promise<void>}
    */
-  static simulateFailure(_type = 'indexeddb') {
+  static async simulateFailure(type = 'indexeddb') {
     this.isSimulatingFailure = true;
+    console.log(`Simulating ${type} failure (stub)`);
   }
 
   /**
    * Reset failure simulation (stub)
    * @returns {Promise<void>}
    */
-  static resetSimulation() {
+  static async resetSimulation() {
     this.isSimulatingFailure = false;
+    console.log('Reset failure simulation (stub)');
   }
 
   /**

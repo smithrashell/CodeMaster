@@ -1,150 +1,42 @@
-import { Switch, Slider, rem } from "@mantine/core";
+import { Switch, Group, Slider, rem } from "@mantine/core";
 import { IconPoint, IconGripHorizontal } from "@tabler/icons-react";
 import { SegmentedControl } from "@mantine/core";
 import classes from "./css/SliderMarks.module.css";
-import  { useState, useEffect } from "react";
-
-// Helper functions for rendering different sections
-const renderLearningProgress = (learningStatus) => {
-  if (!learningStatus.learningPhase || learningStatus.loading) return null;
-
-  return (
-    <div style={{ 
-      marginTop: '10px', 
-      padding: '8px 12px', 
-      backgroundColor: 'var(--cm-bg-secondary)', 
-      borderRadius: '6px',
-      border: '1px solid var(--cm-border)',
-      fontSize: '12px'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-        <span style={{ marginRight: '6px' }}>🧠</span>
-        <span style={{ fontWeight: '500', color: 'var(--cm-text)' }}>
-          Learning your habits...
-        </span>
-      </div>
-      <div style={{ color: 'var(--cm-text)' }}>
-        {learningStatus.sessionsNeeded > 0 ? (
-          <>
-            Complete {learningStatus.sessionsNeeded} more session{learningStatus.sessionsNeeded > 1 ? 's' : ''} for personalized reminders
-            <div style={{ 
-              width: '100%', 
-              height: '4px', 
-              backgroundColor: 'var(--cm-border)', 
-              borderRadius: '2px', 
-              marginTop: '4px',
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                width: `${(learningStatus.totalSessions / 5) * 100}%`, 
-                height: '100%', 
-                backgroundColor: 'var(--cm-primary)', 
-                transition: 'width 0.3s ease'
-              }} />
-            </div>
-          </>
-        ) : (
-          "Almost ready for smart reminders!"
-        )}
-      </div>
-    </div>
-  );
-};
-
-const renderReminderOption = (id, currReminder, handleReminderTypeChange, emoji, text) => (
-  <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center' }}>
-    <input
-      type="checkbox"
-      id={id}
-      checked={currReminder?.[id] || false}
-      onChange={(e) => handleReminderTypeChange(id, e.target.checked)}
-      style={{ marginRight: '8px' }}
-    />
-    <label htmlFor={id} style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
-      {emoji} {text}
-    </label>
-  </div>
-);
-
-const renderReminderOptions = (currReminder, learningStatus, handleReminderTypeChange) => {
-  if (!currReminder?.enabled || learningStatus.learningPhase) return null;
-
-  return (
-    <div style={{ marginTop: '12px', marginLeft: '8px' }}>
-      <div style={{ 
-        display: 'block', 
-        fontSize: '13px', 
-        fontWeight: '500', 
-        color: 'var(--cm-text)', 
-        marginBottom: '8px' 
-      }} role="heading" aria-level="4">
-        Reminder Types
-      </div>
-      
-      {renderReminderOption(
-        'streakAlerts', 
-        currReminder, 
-        handleReminderTypeChange, 
-        '🔥', 
-        'Streak alerts (protect practice streaks)'
-      )}
-      
-      {renderReminderOption(
-        'cadenceNudges', 
-        currReminder, 
-        handleReminderTypeChange, 
-        '📅', 
-        'Cadence reminders (based on your practice rhythm)'
-      )}
-      
-      {renderReminderOption(
-        'weeklyGoals', 
-        currReminder, 
-        handleReminderTypeChange, 
-        '🎯', 
-        'Weekly goal notifications (mid-week & weekend check-ins)'
-      )}
-      
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <input
-          type="checkbox"
-          id="reEngagement"
-          checked={currReminder?.reEngagement || false}
-          onChange={(e) => handleReminderTypeChange('reEngagement', e.target.checked)}
-          style={{ marginRight: '8px' }}
-        />
-        <label htmlFor="reEngagement" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
-          👋 Re-engagement prompts (gentle return after breaks)
-        </label>
-      </div>
-    </div>
-  );
-};
-
-const getDefaultReminder = () => ({
-  enabled: false, 
-  streakAlerts: false,
-  cadenceNudges: false,
-  weeklyGoals: false,
-  reEngagement: false
-});
-
+import React, { useState, useEffect } from "react";
+import SimpleSelect from "./ui/SimpleSelect";
 
 export function ToggleSelectRemainders({ reminder, onChange }) {
+  // State to track learning progress for UI feedback
   const [learningStatus, setLearningStatus] = useState({
     totalSessions: 0,
     learningPhase: true,
     sessionsNeeded: 5,
     loading: true
   });
-  const [currReminder, setCurrReminder] = useState(reminder || getDefaultReminder());
+  const [currReminder, setCurrReminder] = useState(
+    reminder || { 
+      enabled: false, 
+      streakAlerts: false,
+      cadenceNudges: false,
+      weeklyGoals: false,
+      reEngagement: false
+    }
+  ); // State to manage reminder settings
   
   useEffect(() => {
-    setCurrReminder(reminder || getDefaultReminder());
+    setCurrReminder(reminder || { 
+      enabled: false, 
+      streakAlerts: false,
+      cadenceNudges: false,
+      weeklyGoals: false,
+      reEngagement: false
+    });
+
+    // Fetch learning progress status
     fetchLearningStatus();
   }, [reminder]);
 
-  const fetchLearningStatus = () => {
+  const fetchLearningStatus = async () => {
     try {
       if (typeof chrome !== "undefined" && chrome.runtime) {
         chrome.runtime.sendMessage(
@@ -158,6 +50,7 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
                 loading: false
               });
             } else {
+              // Fallback for development/testing
               setLearningStatus({
                 totalSessions: 0,
                 learningPhase: true,
@@ -168,6 +61,7 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
           }
         );
       } else {
+        // Direct fallback when no Chrome runtime
         setLearningStatus({
           totalSessions: 0,
           learningPhase: true,
@@ -206,8 +100,52 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
 
   return (
     <div>
-      {renderLearningProgress(learningStatus)}
+
       
+      {/* Learning Progress Indicator - Show when in learning phase to explain why toggle is disabled */}
+      {learningStatus.learningPhase && !learningStatus.loading && (
+        <div style={{ 
+          marginTop: '10px', 
+          padding: '8px 12px', 
+          backgroundColor: 'var(--cm-bg-secondary)', 
+          borderRadius: '6px',
+          border: '1px solid var(--cm-border)',
+          fontSize: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+            <span style={{ marginRight: '6px' }}>🧠</span>
+            <span style={{ fontWeight: '500', color: 'var(--cm-text)' }}>
+              Learning your habits...
+            </span>
+          </div>
+          <div style={{ color: 'var(--cm-text-secondary)' }}>
+            {learningStatus.sessionsNeeded > 0 ? (
+              <>
+                Complete {learningStatus.sessionsNeeded} more session{learningStatus.sessionsNeeded > 1 ? 's' : ''} for personalized reminders
+                <div style={{ 
+                  width: '100%', 
+                  height: '4px', 
+                  backgroundColor: 'var(--cm-border)', 
+                  borderRadius: '2px', 
+                  marginTop: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ 
+                    width: `${(learningStatus.totalSessions / 5) * 100}%`, 
+                    height: '100%', 
+                    backgroundColor: 'var(--cm-primary)', 
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </>
+            ) : (
+              "Almost ready for smart reminders!"
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Reminder Toggle Switch */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' , margin: "5px"}}>
         <Switch
           checked={currReminder?.enabled || false}
@@ -218,7 +156,78 @@ export function ToggleSelectRemainders({ reminder, onChange }) {
         />
       </div>
 
-      {renderReminderOptions(currReminder, learningStatus, handleReminderTypeChange)}
+
+
+      {/* Smart Reminder Type Options */}
+      {currReminder?.enabled && !learningStatus.learningPhase && (
+        <div style={{ marginTop: '12px', marginLeft: '8px' }}>
+          <label style={{ 
+            display: 'block', 
+            fontSize: '13px', 
+            fontWeight: '500', 
+            color: 'var(--cm-text)', 
+            marginBottom: '8px' 
+          }}>
+            Reminder Types
+          </label>
+          
+          {/* Streak Alerts */}
+          <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="streakAlerts"
+              checked={currReminder?.streakAlerts || false}
+              onChange={(e) => handleReminderTypeChange('streakAlerts', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="streakAlerts" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              🔥 Streak alerts (protect practice streaks)
+            </label>
+          </div>
+
+          {/* Cadence Nudges */}
+          <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="cadenceNudges"
+              checked={currReminder?.cadenceNudges || false}
+              onChange={(e) => handleReminderTypeChange('cadenceNudges', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="cadenceNudges" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              📅 Cadence reminders (based on your practice rhythm)
+            </label>
+          </div>
+
+          {/* Weekly Goals */}
+          <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="weeklyGoals"
+              checked={currReminder?.weeklyGoals || false}
+              onChange={(e) => handleReminderTypeChange('weeklyGoals', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="weeklyGoals" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              🎯 Weekly goal notifications (mid-week & weekend check-ins)
+            </label>
+          </div>
+
+          {/* Re-engagement */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="reEngagement"
+              checked={currReminder?.reEngagement || false}
+              onChange={(e) => handleReminderTypeChange('reEngagement', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="reEngagement" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              👋 Re-engagement prompts (gentle return after breaks)
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

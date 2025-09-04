@@ -1,4 +1,8 @@
-import { fetchAllProblems } from "../db/problems.js";
+import { problemSortingCriteria, deduplicateById } from "../utils/Utils.js";
+import { fetchAllProblems, fetchAdditionalProblems } from "../db/problems.js";
+
+import { ProblemService } from "./problemService.js";
+import { calculateDecayScore } from "../utils/Utils.js";
 import { TagService } from "./tagServices.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 export const ScheduleService = {

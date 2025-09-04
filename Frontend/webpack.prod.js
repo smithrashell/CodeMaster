@@ -3,7 +3,6 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = (env, argv) => {
   const baseConfig = configFactory(env, { mode: "production" });
-  const shouldAnalyze = process.argv.includes("--analyze");
 
   baseConfig.plugins.push(
     new CopyPlugin({
@@ -37,29 +36,8 @@ module.exports = (env, argv) => {
     })
   );
 
-  // Add bundle analyzer for performance monitoring
-  if (shouldAnalyze) {
-    try {
-      const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
-      baseConfig.plugins.push(
-        new BundleAnalyzerPlugin({
-          analyzerMode: "server",
-          openAnalyzer: true,
-          reportFilename: "bundle-report.html",
-        })
-      );
-    } catch (error) {
-      console.warn("⚠️  webpack-bundle-analyzer not installed. Run 'npm install --save-dev webpack-bundle-analyzer' to enable bundle analysis.");
-    }
-  }
-
   return {
     ...baseConfig,
     mode: "production",
-    performance: {
-      hints: "warning",
-      maxAssetSize: 1000000, // 1MB warning for individual assets
-      maxEntrypointSize: 1500000, // 1.5MB warning for entry points
-    },
   };
 };

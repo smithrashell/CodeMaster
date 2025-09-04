@@ -3,7 +3,7 @@ export const NavigationService = {
     return new Promise((resolve, reject) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs.length) {
-          reject(new Error("No active tab found"));
+          reject("No active tab found");
           return;
         }
 
@@ -17,7 +17,7 @@ export const NavigationService = {
               !response ||
               response.result !== "success"
             ) {
-              reject(new Error("Navigation failed"));
+              reject("Navigation failed");
             } else {
               resolve("Success");
             }

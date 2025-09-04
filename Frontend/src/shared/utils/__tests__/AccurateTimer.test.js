@@ -3,19 +3,19 @@
  */
 import AccurateTimer from "../AccurateTimer";
 
-// Shared test setup
-beforeEach(() => {
-  jest.useFakeTimers();
-  jest.spyOn(global.Date, "now").mockImplementation(() => 1000000);
-});
+describe("AccurateTimer", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.spyOn(global.Date, "now").mockImplementation(() => 1000000);
+  });
 
-afterEach(() => {
-  jest.useRealTimers();
-  jest.restoreAllMocks();
-});
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
 
-describe("AccurateTimer - Basic Operations", () => {
-  test("should initialize with correct time", () => {
+  describe("Basic Timer Operations", () => {
+    test("should initialize with correct time", () => {
       const timer = new AccurateTimer(300); // 5 minutes in seconds
       expect(timer.totalTimeInSeconds).toBe(300);
       expect(timer.isRunning).toBe(false);
@@ -83,9 +83,9 @@ describe("AccurateTimer - Basic Operations", () => {
       Date.now.mockReturnValue(1013000); // 3 more seconds
       expect(timer.getElapsedTime()).toBe(8); // 5 + 3
     });
-});
+  });
 
-describe("AccurateTimer - Time Formatting and Conversion", () => {
+  describe("Time Formatting and Conversion", () => {
     test("should format time correctly", () => {
       expect(AccurateTimer.formatTime(0)).toBe("00:00");
       expect(AccurateTimer.formatTime(65)).toBe("01:05");
@@ -113,9 +113,9 @@ describe("AccurateTimer - Time Formatting and Conversion", () => {
       expect(AccurateTimer.normalizeTimeInput(-5, "minutes")).toBe(0);
       expect(AccurateTimer.normalizeTimeInput("invalid", "seconds")).toBe(0);
     });
-});
+  });
 
-describe("AccurateTimer - Calculation Bug Fixes", () => {
+  describe("Timer Calculation Bug Fixes", () => {
     test("should calculate accurate time spent", () => {
       // Test the original bug: limit/60 - Math.round(time/60)
       const originalLimit = 1800; // 30 minutes in seconds
@@ -160,9 +160,9 @@ describe("AccurateTimer - Calculation Bug Fixes", () => {
         expectedMinutes
       );
     });
-});
+  });
 
-describe("AccurateTimer - Edge Cases and Error Handling", () => {
+  describe("Edge Cases and Error Handling", () => {
     test("should handle countdown to zero", () => {
       const timer = new AccurateTimer(5); // 5 seconds
 
@@ -228,9 +228,9 @@ describe("AccurateTimer - Edge Cases and Error Handling", () => {
         isTimeUp: false,
       });
     });
-});
+  });
 
-describe("AccurateTimer - Factory Methods", () => {
+  describe("Factory Methods", () => {
     test("should create timer from different time formats", () => {
       const timer1 = AccurateTimer.createFromTime(5, "minutes");
       expect(timer1.totalTimeInSeconds).toBe(300);
@@ -240,5 +240,6 @@ describe("AccurateTimer - Factory Methods", () => {
 
       const timer3 = AccurateTimer.createFromTime("10", "minutes");
       expect(timer3.totalTimeInSeconds).toBe(600);
+    });
   });
 });

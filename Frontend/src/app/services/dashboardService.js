@@ -7,25 +7,10 @@ import AccurateTimer from "../../shared/utils/AccurateTimer.js";
 import { getAllStandardProblems } from "../../shared/db/standard_problems.js";
 import { StorageService } from "../../shared/services/storageService.js";
 import { getRecentSessionAnalytics } from "../../shared/db/sessionAnalytics.js";
+import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
 import { HintInteractionService } from "../../shared/services/hintInteractionService.js";
 import { getInteractionsBySession } from "../../shared/db/hint_interactions.js";
 import { getLatestSession } from "../../shared/db/sessions.js";
-import logger from "../../shared/utils/logger.js";
-import { calculateProgressPercentage, calculateSuccessRate, roundToPrecision } from "../../shared/utils/Utils.js";
-import {
-  createProblemMappings,
-  getTargetFocusAreas,
-  filterDataByDateRange,
-  calculateFocusAreaPerformance,
-  calculateFocusAreaProgress,
-  calculateFocusAreaEffectiveness
-} from "./focusAreaHelpers.js";
-import {
-  integrateFocusAreaSessionAnalytics,
-  generateFocusAreaInsights,
-  generateFocusAreaRecommendations,
-  cleanupAnalyticsCache
-} from "./focusAreaInsights.js";
 
 // Simple in-memory cache for focus area analytics
 const analyticsCache = new Map();
@@ -51,515 +36,324 @@ function getInitialFocusAreas(providedFocusAreas) {
   }
   
   // Enhanced fallback with multiple common focus areas (like content script pattern)
-  logger.warn("No focus areas provided by background script", { context: 'focus_areas_fallback' });
+  console.warn("No focus areas provided by background script, using enhanced fallback");
   return DEFAULT_FOCUS_AREAS;
-}
-
-/**
- * Fetch all required data for dashboard statistics
- */
-async function fetchDashboardData() {
-  const [allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData] = await Promise.all([
-    fetchAllProblems(),
-    getAllAttempts(),
-    getAllSessions(),
-    getAllStandardProblems(),
-    TagService.getCurrentLearningState(),
-    ProblemService.countProblemsByBoxLevel()
-  ]);
-
-  return { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData };
-}
-
-/**
- * Create mappings from standard problems to user problems for dashboard
- */
-function createDashboardProblemMappings(allProblems, allStandardProblems) {
-  const problemDifficultyMap = {};
-  const problemTagsMap = new Map();
-  const standardProblemsMap = {};
-  
-  allStandardProblems.forEach((standardProblem) => {
-    standardProblemsMap[standardProblem.id] = standardProblem;
-  });
-
-  allProblems.forEach((problem) => {
-    const standardProblem = standardProblemsMap[problem.leetCodeID];
-    problemDifficultyMap[problem.id] = standardProblem?.difficulty || "Medium";
-    if (standardProblem) {
-      problemTagsMap.set(problem.id, standardProblem.tags || []);
-    }
-  });
-
-  return { problemDifficultyMap, problemTagsMap, standardProblemsMap };
-}
-
-/**
- * Apply focus area and date range filtering to data
- */
-function applyFiltering({ allProblems, allAttempts, allSessions, problemTagsMap, focusAreaFilter, dateRange }) {
-  let filteredProblems = allProblems;
-  let filteredAttempts = allAttempts;
-  let filteredSessions = allSessions;
-
-  // Apply focus area filtering if specified
-  if (focusAreaFilter && focusAreaFilter.length > 0) {
-    const focusAreaProblemIds = new Set();
-    allProblems.forEach((problem) => {
-      const problemTags = problemTagsMap.get(problem.id) || [];
-      const hasFocusAreaTag = focusAreaFilter.some(tag => problemTags.includes(tag));
-      if (hasFocusAreaTag) {
-        focusAreaProblemIds.add(problem.id);
-      }
-    });
-
-    filteredProblems = allProblems.filter(problem => focusAreaProblemIds.has(problem.id));
-    filteredAttempts = allAttempts.filter(attempt => focusAreaProblemIds.has(attempt.ProblemID));
-    
-    // Filter sessions that contain focus area problems
-    filteredSessions = allSessions.filter(session => {
-      if (!session.problems) return false;
-      return session.problems.some(problem => focusAreaProblemIds.has(problem.id));
-    });
-  }
-
-  // Apply date range filtering if specified
-  if (dateRange && (dateRange.startDate || dateRange.endDate)) {
-    const startDate = dateRange.startDate ? new Date(dateRange.startDate) : new Date(0);
-    const endDate = dateRange.endDate ? new Date(dateRange.endDate) : new Date();
-
-    filteredAttempts = filteredAttempts.filter((attempt) => {
-      const attemptDate = new Date(attempt.AttemptDate);
-      return attemptDate >= startDate && attemptDate <= endDate;
-    });
-
-    filteredSessions = filteredSessions.filter((session) => {
-      const sessionDate = new Date(session.Date);
-      return sessionDate >= startDate && sessionDate <= endDate;
-    });
-  }
-
-  return { filteredProblems, filteredAttempts, filteredSessions };
-}
-
-/**
- * Calculate core problem statistics from filtered data
- */
-function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap) {
-  const statistics = {
-    totalSolved: 0,
-    mastered: 0,
-    inProgress: 0,
-    new: 0,
-  };
-
-  const timeStats = {
-    overall: { totalTime: 0, count: 0 },
-    Easy: { totalTime: 0, count: 0 },
-    Medium: { totalTime: 0, count: 0 },
-    Hard: { totalTime: 0, count: 0 },
-  };
-
-  const successStats = {
-    overall: { successful: 0, total: 0 },
-    Easy: { successful: 0, total: 0 },
-    Medium: { successful: 0, total: 0 },
-    Hard: { successful: 0, total: 0 },
-  };
-
-  // Calculate problem statistics by box level
-  filteredProblems.forEach((problem) => {
-    switch (problem.BoxLevel) {
-      case 1:
-        statistics.new++;
-        break;
-      case 7:
-        statistics.mastered++;
-        break;
-      default:
-        if (problem.BoxLevel >= 2 && problem.BoxLevel <= 6) {
-          statistics.inProgress++;
-        }
-        break;
-    }
-  });
-  statistics.totalSolved = statistics.mastered + statistics.inProgress;
-
-  // Calculate time and success statistics by difficulty
-  filteredAttempts.forEach((attempt) => {
-    const officialDifficulty = problemDifficultyMap[attempt.ProblemID];
-    const timeSpent = Number(attempt.TimeSpent) || 0;
-
-    // Update overall statistics
-    timeStats.overall.totalTime += timeSpent;
-    timeStats.overall.count++;
-    successStats.overall.total++;
-    if (attempt.Success) {
-      successStats.overall.successful++;
-    }
-
-    // Update difficulty-specific statistics
-    if (officialDifficulty && timeStats[officialDifficulty]) {
-      timeStats[officialDifficulty].totalTime += timeSpent;
-      timeStats[officialDifficulty].count++;
-      successStats[officialDifficulty].total++;
-      if (attempt.Success) {
-        successStats[officialDifficulty].successful++;
-      }
-    }
-  });
-
-  return { statistics, timeStats, successStats };
-}
-
-/**
- * Calculate derived metrics from core statistics
- */
-function calculateDerivedMetrics(timeStats, successStats) {
-  const calculateAverage = (totalTimeInSeconds, count) =>
-    count > 0
-      ? AccurateTimer.secondsToMinutes(totalTimeInSeconds / count, 1)
-      : 0;
-
-  const calculateSuccessRate = (successful, total) =>
-    total > 0 ? parseInt((successful / total) * 100) : 0;
-
-  const averageTime = {
-    overall: calculateAverage(timeStats.overall.totalTime, timeStats.overall.count),
-    Easy: calculateAverage(timeStats.Easy.totalTime, timeStats.Easy.count),
-    Medium: calculateAverage(timeStats.Medium.totalTime, timeStats.Medium.count),
-    Hard: calculateAverage(timeStats.Hard.totalTime, timeStats.Hard.count),
-  };
-
-  const successRate = {
-    overall: calculateSuccessRate(successStats.overall.successful, successStats.overall.total),
-    Easy: calculateSuccessRate(successStats.Easy.successful, successStats.Easy.total),
-    Medium: calculateSuccessRate(successStats.Medium.successful, successStats.Medium.total),
-    Hard: calculateSuccessRate(successStats.Hard.successful, successStats.Hard.total),
-  };
-
-  return { averageTime, successRate };
-}
-
-/**
- * Generate analytics and derived data
- */
-async function generateAnalyticsData(filteredSessions, filteredAttempts, learningState) {
-  const [sessionAnalytics, masteryData, goalsData, learningEfficiencyData] = await Promise.all([
-    generateSessionAnalytics(filteredSessions, filteredAttempts),
-    generateMasteryData(learningState),
-    generateGoalsData(),
-    generateLearningEfficiencyChartData(filteredSessions, filteredAttempts)
-  ]);
-
-  return { sessionAnalytics, masteryData, goalsData, learningEfficiencyData };
-}
-
-/**
- * Calculate derived metrics from attempts and sessions
- */
-function calculateProgressMetrics(filteredAttempts, filteredSessions) {
-  const timerBehavior = calculateTimerBehavior(filteredAttempts) || "No data";
-  const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
-  const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
-  const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
-  
-  return {
-    timerBehavior,
-    timerPercentage,
-    learningStatus,
-    progressTrend: progressTrendData.trend,
-    progressPercentage: progressTrendData.percentage
-  };
-}
-
-/**
- * Get hint analytics data from service
- */
-async function getHintAnalytics() {
-  let hintsUsed = { total: 0, contextual: 0, general: 0, primer: 0 };
-  
-  try {
-    logger.info("Getting hint analytics directly from service", { context: 'dashboard_hints' });
-    
-    const analytics = await HintInteractionService.getSystemAnalytics({});
-    
-    // Transform analytics data to match expected UI structure
-    hintsUsed.total = analytics.overview?.totalInteractions || 0;
-    
-    // Extract hint type counts from analytics
-    if (analytics.trends?.hintTypePopularity) {
-      analytics.trends.hintTypePopularity.forEach(hint => {
-        if (hintsUsed[hint.hintType] !== undefined) {
-          hintsUsed[hint.hintType] = hint.count;
-        }
-      });
-    }
-    
-    logger.info("Successfully retrieved hint analytics", { hintsUsed, context: 'dashboard_hints' });
-  } catch (error) {
-    logger.error("Failed to get hint analytics", { error, context: 'dashboard_hints' });
-  }
-  
-  return hintsUsed;
-}
-
-/**
- * Construct final dashboard data object with all metrics
- */
-function constructDashboardData({
-  // Core metrics
-  statistics, averageTime, successRate, timeAccuracy,
-  // Progress metrics
-  timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage, 
-  nextReviewTime, nextReviewCount,
-  // Analytics data
-  sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
-  // Filtered data
-  filteredProblems, filteredAttempts, filteredSessions,
-  // Original data and state
-  allProblems, allAttempts, allSessions, learningState, boxLevelData,
-  // Filter options
-  focusAreaFilter, dateRange
-}) {
-  const dashboardData = {
-    // Flattened statistics properties for Overview/Stats component
-    statistics,
-    averageTime,
-    successRate,
-    allSessions: filteredSessions,
-    hintsUsed,
-    timeAccuracy,
-    learningEfficiencyData,
-    
-    // Flattened progress properties for Progress component
-    boxLevelData: boxLevelData || {},
-    timerBehavior,
-    timerPercentage,
-    learningStatus,
-    progressTrend,
-    progressPercentage,
-    nextReviewTime,
-    nextReviewCount,
-    allAttempts: filteredAttempts || [],
-    allProblems: filteredProblems || [],
-    learningState: learningState || {},
-    
-    // Keep nested structure for components that might still need it
-    nested: {
-      statistics: { 
-        statistics, 
-        averageTime, 
-        successRate, 
-        allSessions: filteredSessions,
-        learningEfficiencyData
-      },
-      progress: {
-        learningState: learningState || {},
-        boxLevelData: boxLevelData || {},
-        allAttempts: filteredAttempts || [],
-        allProblems: filteredProblems || [],
-        allSessions: filteredSessions || [],
-        timerBehavior,
-        timerPercentage,
-        learningStatus,
-        progressTrend,
-        progressPercentage,
-        nextReviewTime,
-        nextReviewCount,
-      }
-    },
-    
-    // Keep existing sections for other components
-    sessions: sessionAnalytics,
-    mastery: masteryData,
-    goals: goalsData,
-    filters: {
-      focusAreaFilter,
-      dateRange,
-      appliedFilters: {
-        hasFocusAreaFilter: focusAreaFilter && focusAreaFilter.length > 0,
-        hasDateFilter: Boolean(dateRange && (dateRange.startDate || dateRange.endDate)),
-      },
-      originalCounts: {
-        problems: allProblems.length,
-        attempts: allAttempts.length,
-        sessions: allSessions.length,
-      },
-      filteredCounts: {
-        problems: filteredProblems.length,
-        attempts: filteredAttempts.length,
-        sessions: filteredSessions.length,
-      },
-    },
-  };
-
-  // Debug logging to verify data structure
-  logger.info("Dashboard Service - Data Structure Verification", { context: 'data_verification' });
-  logger.info("Data verification", { totalProblems: allProblems.length, context: 'data_verification' });
-  logger.info("Data verification", { totalAttempts: allAttempts.length, context: 'data_verification' });
-  logger.info("Data verification", { boxLevelData, context: 'data_verification' });
-  logger.info("Data verification", { timerBehavior, context: 'data_verification' });
-  logger.info("Data verification", { statistics, context: 'data_verification' });
-  logger.info("- Flattened Structure Keys:", Object.keys(dashboardData));
-
-  return dashboardData;
 }
 
 export async function getDashboardStatistics(options = {}) {
   try {
     const { focusAreaFilter = null, dateRange = null } = options;
     
-    const { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData } = await fetchDashboardData();
-    const { problemDifficultyMap, problemTagsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
+    const allProblems = await fetchAllProblems();
+    const allAttempts = await getAllAttempts();
+    const allSessions = await getAllSessions();
+    const allStandardProblems = await getAllStandardProblems();
+    const learningState = await TagService.getCurrentLearningState();
+    let boxLevelData = await ProblemService.countProblemsByBoxLevel();
 
-    // Apply filtering based on focus areas and date range
-    const { filteredProblems, filteredAttempts, filteredSessions } = applyFiltering({
-      allProblems,
-      allAttempts, 
-      allSessions,
-      problemTagsMap,
-      focusAreaFilter,
-      dateRange
+    // Create mapping from problem ID to official difficulty and tags
+    const problemDifficultyMap = {};
+    const problemTagsMap = new Map();
+    const standardProblemsMap = {};
+    allStandardProblems.forEach((standardProblem) => {
+      standardProblemsMap[standardProblem.id] = standardProblem;
     });
 
-    // Calculate core statistics and derived metrics
-    const { statistics, timeStats, successStats } = calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap);
-    const { averageTime, successRate } = calculateDerivedMetrics(timeStats, successStats);
+    allProblems.forEach((problem) => {
+      const standardProblem = standardProblemsMap[problem.leetCodeID];
+      problemDifficultyMap[problem.id] = standardProblem?.difficulty || "Medium";
+      if (standardProblem) {
+        problemTagsMap.set(problem.id, standardProblem.tags || []);
+      }
+    });
 
-    // Generate analytics and derived data
-    const { sessionAnalytics, masteryData, goalsData, learningEfficiencyData } = await generateAnalyticsData(filteredSessions, filteredAttempts, learningState);
+    // Apply focus area filtering if specified
+    let filteredProblems = allProblems;
+    let filteredAttempts = allAttempts;
+    let filteredSessions = allSessions;
+
+    if (focusAreaFilter && focusAreaFilter.length > 0) {
+      // Filter problems that contain at least one of the focus area tags
+      const focusAreaProblemIds = new Set();
+      allProblems.forEach((problem) => {
+        const problemTags = problemTagsMap.get(problem.id) || [];
+        const hasFocusAreaTag = focusAreaFilter.some(tag => problemTags.includes(tag));
+        if (hasFocusAreaTag) {
+          focusAreaProblemIds.add(problem.id);
+        }
+      });
+
+      filteredProblems = allProblems.filter(problem => focusAreaProblemIds.has(problem.id));
+      filteredAttempts = allAttempts.filter(attempt => focusAreaProblemIds.has(attempt.ProblemID));
+      
+      // Filter sessions that contain focus area problems
+      filteredSessions = allSessions.filter(session => {
+        if (!session.problems) return false;
+        return session.problems.some(problem => focusAreaProblemIds.has(problem.id));
+      });
+    }
+
+    // Apply date range filtering if specified
+    if (dateRange && (dateRange.startDate || dateRange.endDate)) {
+      const startDate = dateRange.startDate ? new Date(dateRange.startDate) : new Date(0);
+      const endDate = dateRange.endDate ? new Date(dateRange.endDate) : new Date();
+
+      filteredAttempts = filteredAttempts.filter((attempt) => {
+        const attemptDate = new Date(attempt.AttemptDate);
+        return attemptDate >= startDate && attemptDate <= endDate;
+      });
+
+      filteredSessions = filteredSessions.filter((session) => {
+        const sessionDate = new Date(session.Date);
+        return sessionDate >= startDate && sessionDate <= endDate;
+      });
+    }
+
+    const statistics = {
+      totalSolved: 0,
+      mastered: 0,
+      inProgress: 0,
+      new: 0,
+    };
+
+    const timeStats = {
+      overall: { totalTime: 0, count: 0 },
+      Easy: { totalTime: 0, count: 0 },
+      Medium: { totalTime: 0, count: 0 },
+      Hard: { totalTime: 0, count: 0 },
+    };
+
+    const successStats = {
+      overall: { successful: 0, total: 0 },
+      Easy: { successful: 0, total: 0 },
+      Medium: { successful: 0, total: 0 },
+      Hard: { successful: 0, total: 0 },
+    };
+
+    filteredProblems.forEach((problem) => {
+      switch (problem.BoxLevel) {
+        case 1:
+          statistics.new++;
+          break;
+        case 7:
+          statistics.mastered++;
+          break;
+        default:
+          if (problem.BoxLevel >= 2 && problem.BoxLevel <= 6) {
+            statistics.inProgress++;
+          }
+          break;
+      }
+    });
+    statistics.totalSolved = statistics.mastered + statistics.inProgress;
+    filteredAttempts.forEach((attempt) => {
+      const officialDifficulty = problemDifficultyMap[attempt.ProblemID];
+      const timeSpent = Number(attempt.TimeSpent) || 0; // TimeSpent now in seconds
+
+      // Update overall time statistics
+      timeStats.overall.totalTime += timeSpent;
+      timeStats.overall.count++;
+
+      // Update overall success statistics
+      successStats.overall.total++;
+      if (attempt.Success) {
+        successStats.overall.successful++;
+      }
+
+      // Update statistics based on official difficulty
+      if (officialDifficulty && timeStats[officialDifficulty]) {
+        timeStats[officialDifficulty].totalTime += timeSpent;
+        timeStats[officialDifficulty].count++;
+
+        successStats[officialDifficulty].total++;
+        if (attempt.Success) {
+          successStats[officialDifficulty].successful++;
+        }
+      }
+    });
+
+    // Calculate average time in minutes for display (convert from seconds)
+    const calculateAverage = (totalTimeInSeconds, count) =>
+      count > 0
+        ? AccurateTimer.secondsToMinutes(totalTimeInSeconds / count, 1)
+        : 0;
+
+    const calculateSuccessRate = (successful, total) =>
+      total > 0 ? parseInt((successful / total) * 100) : 0;
+
+    const averageTime = {
+      overall: calculateAverage(
+        timeStats.overall.totalTime,
+        timeStats.overall.count
+      ),
+      Easy: calculateAverage(timeStats.Easy.totalTime, timeStats.Easy.count),
+      Medium: calculateAverage(
+        timeStats.Medium.totalTime,
+        timeStats.Medium.count
+      ),
+      Hard: calculateAverage(timeStats.Hard.totalTime, timeStats.Hard.count),
+    };
+
+    const successRate = {
+      overall: calculateSuccessRate(
+        successStats.overall.successful,
+        successStats.overall.total
+      ),
+      Easy: calculateSuccessRate(
+        successStats.Easy.successful,
+        successStats.Easy.total
+      ),
+      Medium: calculateSuccessRate(
+        successStats.Medium.successful,
+        successStats.Medium.total
+      ),
+      Hard: calculateSuccessRate(
+        successStats.Hard.successful,
+        successStats.Hard.total
+      ),
+    };
+
+    // Generate session analytics data
+    const sessionAnalytics = await generateSessionAnalytics(filteredSessions, filteredAttempts);
     
-    // Calculate progress metrics
-    const { timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage } = calculateProgressMetrics(filteredAttempts, filteredSessions);
+    // Generate mastery data with focus areas integration
+    const masteryData = await generateMasteryData(learningState);
     
-    // Calculate next review data and get hint analytics
-    const [nextReviewData, hintsUsed] = await Promise.all([
-      calculateNextReviewData(),
-      getHintAnalytics()
-    ]);
+    // Generate goals/learning plan data with real metrics
+    const goalsData = await generateGoalsData();
+
+    // Generate learning efficiency chart data
+    const learningEfficiencyData = await generateLearningEfficiencyChartData(filteredSessions, filteredAttempts);
+
+    // Calculate timer behavior from actual session data with null checks
+    const timerBehavior = calculateTimerBehavior(filteredAttempts) || "No data";
+    const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
+    
+    // Calculate learning status and progress trend from actual data
+    const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
+    const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
+    const progressTrend = progressTrendData.trend;
+    const progressPercentage = progressTrendData.percentage;
+    
+    // Calculate next review data from schedule service with null checks
+    const nextReviewData = await calculateNextReviewData();
     const nextReviewTime = nextReviewData?.nextReviewTime || "Schedule unavailable";
     const nextReviewCount = nextReviewData?.nextReviewCount || 0;
+
+    // Get real hint analytics data directly from HintInteractionService
+    let hintsUsed = { total: 0, contextual: 0, general: 0, primer: 0 };
+    try {
+      console.log("🔍 Dashboard: Getting hint analytics directly from service...");
+      
+      const analytics = await HintInteractionService.getSystemAnalytics({});
+      
+      // Transform analytics data to match expected UI structure
+      hintsUsed.total = analytics.overview?.totalInteractions || 0;
+      
+      // Extract hint type counts from analytics
+      if (analytics.trends?.hintTypePopularity) {
+        analytics.trends.hintTypePopularity.forEach(hint => {
+          if (hintsUsed[hint.hintType] !== undefined) {
+            hintsUsed[hint.hintType] = hint.count;
+          }
+        });
+      }
+      
+      console.log("✅ Dashboard: Successfully got hint analytics", hintsUsed);
+    } catch (error) {
+      console.error("❌ Dashboard: Failed to get hint analytics:", error);
+      // Keep fallback values
+    }
 
     // Calculate time accuracy (how close user estimates are to actual time)
     const timeAccuracy = Math.floor(75 + Math.random() * 20); // 75-95% accuracy - TODO: implement real calculation
 
-    // Construct and return final dashboard data
-    return constructDashboardData({
-      // Core metrics
-      statistics, averageTime, successRate, timeAccuracy,
-      // Progress metrics
-      timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage, 
-      nextReviewTime, nextReviewCount,
-      // Analytics data
-      sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
-      // Filtered data
-      filteredProblems, filteredAttempts, filteredSessions,
-      // Original data and state
-      allProblems, allAttempts, allSessions, learningState, boxLevelData,
-      // Filter options
-      focusAreaFilter, dateRange
-    });
+    // Create the return object with flattened structure for component compatibility
+    const dashboardData = {
+      // Flattened statistics properties for Overview/Stats component
+      statistics,
+      averageTime,
+      successRate,
+      allSessions: filteredSessions,
+      hintsUsed,
+      timeAccuracy,
+      learningEfficiencyData,
+      
+      // Flattened progress properties for Progress component
+      boxLevelData: boxLevelData || {},
+      timerBehavior,
+      timerPercentage,
+      learningStatus,
+      progressTrend,
+      progressPercentage,
+      nextReviewTime,
+      nextReviewCount,
+      allAttempts: filteredAttempts || [],
+      allProblems: filteredProblems || [],
+      learningState: learningState || {},
+      
+      // Keep nested structure for components that might still need it
+      nested: {
+        statistics: { 
+          statistics, 
+          averageTime, 
+          successRate, 
+          allSessions: filteredSessions,
+          learningEfficiencyData
+        },
+        progress: {
+          learningState: learningState || {},
+          boxLevelData: boxLevelData || {},
+          allAttempts: filteredAttempts || [],
+          allProblems: filteredProblems || [],
+          allSessions: filteredSessions || [],
+          timerBehavior,
+          timerPercentage,
+          learningStatus,
+          progressTrend,
+          progressPercentage,
+          nextReviewTime,
+          nextReviewCount,
+        }
+      },
+      
+      // Keep existing sections for other components
+      sessions: sessionAnalytics,
+      mastery: masteryData,
+      goals: goalsData,
+      filters: {
+        focusAreaFilter,
+        dateRange,
+        appliedFilters: {
+          hasFocusAreaFilter: focusAreaFilter && focusAreaFilter.length > 0,
+          hasDateFilter: Boolean(dateRange && (dateRange.startDate || dateRange.endDate)),
+        },
+        originalCounts: {
+          problems: allProblems.length,
+          attempts: allAttempts.length,
+          sessions: allSessions.length,
+        },
+        filteredCounts: {
+          problems: filteredProblems.length,
+          attempts: filteredAttempts.length,
+          sessions: filteredSessions.length,
+        },
+      },
+    };
+
+    // Debug logging to verify data structure
+    console.info("📊 Dashboard Service - Data Structure Verification:");
+    console.info("- Total Problems:", allProblems.length);
+    console.info("- Total Attempts:", allAttempts.length);
+    console.info("- Box Level Data:", boxLevelData);
+    console.info("- Timer Behavior:", timerBehavior);
+    console.info("- Statistics:", statistics);
+    console.info("- Flattened Structure Keys:", Object.keys(dashboardData));
+    
+    return dashboardData;
   } catch (error) {
-    logger.error("Error calculating dashboard statistics:", error);
+    console.error("Error calculating dashboard statistics:", error);
     throw error;
-  }
-}
-
-// Helper function to handle cache checking
-function checkAnalyticsCache(cacheKey, useCache) {
-  if (!useCache || !analyticsCache.has(cacheKey)) {
-    return null;
-  }
-  
-  const cached = analyticsCache.get(cacheKey);
-  const now = Date.now();
-  if (now - cached.timestamp < CACHE_TTL) {
-    return cached.data;
-  }
-  
-  analyticsCache.delete(cacheKey);
-  return null;
-}
-
-// Helper function to fetch and prepare analytics data
-async function fetchAnalyticsData(startDate, endDate) {
-  const [allProblems, allAttempts, allSessions, allStandardProblems, learningState, recentSessionAnalytics] = await Promise.all([
-    fetchAllProblems(),
-    getAllAttempts(),
-    getAllSessions(),
-    getAllStandardProblems(),
-    TagService.getCurrentLearningState(),
-    getRecentSessionAnalytics(50),
-  ]);
-  
-  const { standardProblemsMap, problemTagsMap } = createProblemMappings(allProblems, allStandardProblems);
-  const { filteredAttempts, filteredSessions } = filterDataByDateRange(allAttempts, allSessions, startDate, endDate);
-  
-  return {
-    allProblems,
-    filteredAttempts,
-    filteredSessions,
-    problemTagsMap,
-    standardProblemsMap,
-    learningState,
-    recentSessionAnalytics,
-  };
-}
-
-// Helper function to perform conditional analytics calculations
-async function performAnalyticsCalculations(targetFocusAreas, analyticsData, includeProgressTracking, includeEffectivenessAnalysis) {
-  const { filteredAttempts, allProblems, problemTagsMap, standardProblemsMap, learningState, recentSessionAnalytics } = analyticsData;
-  
-  // Calculate focus area performance metrics
-  const focusAreaPerformance = await calculateFocusAreaPerformance(
-    targetFocusAreas,
-    filteredAttempts,
-    allProblems,
-    problemTagsMap,
-    standardProblemsMap
-  );
-  
-  // Calculate progress tracking if requested
-  let progressTracking = {};
-  if (includeProgressTracking) {
-    progressTracking = await calculateFocusAreaProgress({
-      focusAreas: targetFocusAreas,
-      attempts: filteredAttempts,
-      problemTagsMap,
-      learningState
-    });
-  }
-  
-  // Calculate effectiveness analysis if requested
-  let effectiveness = {};
-  if (includeEffectivenessAnalysis) {
-    effectiveness = await calculateFocusAreaEffectiveness(
-      targetFocusAreas,
-      focusAreaPerformance,
-      progressTracking,
-      learningState
-    );
-  }
-  
-  // Integrate session analytics data
-  const sessionAnalyticsIntegration = integrateFocusAreaSessionAnalytics(
-    targetFocusAreas,
-    recentSessionAnalytics,
-    problemTagsMap
-  );
-  
-  return { focusAreaPerformance, progressTracking, effectiveness, sessionAnalyticsIntegration };
-}
-
-// Helper function to store analytics results in cache
-function storeAnalyticsCache(cacheKey, result, useCache) {
-  if (useCache) {
-    analyticsCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now(),
-    });
-    cleanupAnalyticsCache(analyticsCache);
   }
 }
 
@@ -584,13 +378,22 @@ export async function getFocusAreaAnalytics(options = {}) {
     });
 
     // Check cache if enabled
-    const cachedResult = checkAnalyticsCache(cacheKey, useCache);
-    if (cachedResult) {
-      return cachedResult;
+    if (useCache && analyticsCache.has(cacheKey)) {
+      const cached = analyticsCache.get(cacheKey);
+      const now = Date.now();
+      if (now - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+      } else {
+        analyticsCache.delete(cacheKey);
+      }
     }
 
     // Get user's focus areas if not provided
-    const targetFocusAreas = await getTargetFocusAreas(focusAreas);
+    let targetFocusAreas = focusAreas;
+    if (!targetFocusAreas) {
+      const settings = await StorageService.getSettings();
+      targetFocusAreas = settings.focusAreas || [];
+    }
 
     if (targetFocusAreas.length === 0) {
       return {
@@ -603,16 +406,92 @@ export async function getFocusAreaAnalytics(options = {}) {
       };
     }
 
-    // Fetch and prepare all analytics data
-    const analyticsData = await fetchAnalyticsData(startDate, endDate);
+    // Fetch all necessary data including session analytics
+    const [allProblems, allAttempts, allSessions, allStandardProblems, learningState, recentSessionAnalytics] = await Promise.all([
+      fetchAllProblems(),
+      getAllAttempts(),
+      getAllSessions(),
+      getAllStandardProblems(),
+      TagService.getCurrentLearningState(),
+      getRecentSessionAnalytics(50), // Get last 50 sessions for trend analysis
+    ]);
 
-    // Perform analytics calculations
-    const { focusAreaPerformance, progressTracking, effectiveness, sessionAnalyticsIntegration } = 
-      await performAnalyticsCalculations(targetFocusAreas, analyticsData, includeProgressTracking, includeEffectivenessAnalysis);
+    // Create problem mappings
+    const standardProblemsMap = new Map();
+    allStandardProblems.forEach((sp) => {
+      standardProblemsMap.set(sp.id, sp);
+    });
+
+    const problemTagsMap = new Map();
+    allProblems.forEach((problem) => {
+      const standardProblem = standardProblemsMap.get(problem.leetCodeID);
+      if (standardProblem) {
+        problemTagsMap.set(problem.id, standardProblem.tags || []);
+      }
+    });
+
+    // Filter data by date range if provided
+    let filteredAttempts = allAttempts;
+    let filteredSessions = allSessions;
+
+    if (startDate || endDate) {
+      const start = startDate ? new Date(startDate) : new Date(0);
+      const end = endDate ? new Date(endDate) : new Date();
+
+      filteredAttempts = allAttempts.filter((attempt) => {
+        const attemptDate = new Date(attempt.AttemptDate);
+        return attemptDate >= start && attemptDate <= end;
+      });
+
+      filteredSessions = allSessions.filter((session) => {
+        const sessionDate = new Date(session.Date);
+        return sessionDate >= start && sessionDate <= end;
+      });
+    }
+
+    // Calculate focus area performance metrics
+    const focusAreaPerformance = await calculateFocusAreaPerformance(
+      targetFocusAreas,
+      filteredAttempts,
+      allProblems,
+      problemTagsMap,
+      standardProblemsMap
+    );
+
+    // Calculate progress tracking if requested
+    let progressTracking = {};
+    if (includeProgressTracking) {
+      progressTracking = await calculateFocusAreaProgress(
+        targetFocusAreas,
+        filteredSessions,
+        filteredAttempts,
+        allProblems,
+        problemTagsMap,
+        learningState
+      );
+    }
+
+    // Calculate effectiveness analysis if requested
+    let effectiveness = {};
+    if (includeEffectivenessAnalysis) {
+      effectiveness = await calculateFocusAreaEffectiveness(
+        targetFocusAreas,
+        focusAreaPerformance,
+        progressTracking,
+        learningState
+      );
+    }
+
+    // Integrate session analytics data
+    const sessionAnalyticsIntegration = integrateFocusAreaSessionAnalytics(
+      targetFocusAreas,
+      recentSessionAnalytics,
+      problemTagsMap
+    );
 
     // Generate insights and recommendations
     const insights = generateFocusAreaInsights(focusAreaPerformance, progressTracking, effectiveness);
-    const recommendations = generateFocusAreaRecommendations(focusAreaPerformance, effectiveness, analyticsData.learningState);
+    const recommendations = generateFocusAreaRecommendations(focusAreaPerformance, effectiveness, learningState);
 
     const result = {
       focusAreas: targetFocusAreas,
@@ -624,31 +503,829 @@ export async function getFocusAreaAnalytics(options = {}) {
       recommendations,
       metadata: {
         dateRange: { startDate, endDate },
-        totalAttempts: analyticsData.filteredAttempts.length,
-        totalSessions: analyticsData.filteredSessions.length,
+        totalAttempts: filteredAttempts.length,
+        totalSessions: filteredSessions.length,
         generatedAt: new Date().toISOString(),
         cacheKey,
       },
     };
 
-    // Store result in cache
-    storeAnalyticsCache(cacheKey, result, useCache);
+    // Cache the result if caching is enabled
+    if (useCache) {
+      analyticsCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now(),
+      });
+      
+      // Clean up old cache entries
+      cleanupAnalyticsCache();
+    }
 
     return result;
   } catch (error) {
-    logger.error("Error calculating focus area analytics:", error);
+    console.error("Error calculating focus area analytics:", error);
     throw error;
   }
 }
 
-// calculateFocusAreaPerformance moved to focusAreaHelpers.js
+async function calculateFocusAreaPerformance(focusAreas, attempts, allProblems, problemTagsMap, standardProblemsMap) {
+  const performance = {};
 
+  for (const focusArea of focusAreas) {
+    // Filter attempts for problems that contain this focus area tag
+    const focusAreaAttempts = attempts.filter((attempt) => {
+      const problemTags = problemTagsMap.get(attempt.ProblemID) || [];
+      return problemTags.includes(focusArea);
+    });
 
-// generateFocusAreaInsights moved to focusAreaInsights.js
+    if (focusAreaAttempts.length === 0) {
+      performance[focusArea] = {
+        totalAttempts: 0,
+        successfulAttempts: 0,
+        successRate: 0,
+        averageTime: 0,
+        difficultyBreakdown: {
+          Easy: { attempts: 0, successes: 0, avgTime: 0 },
+          Medium: { attempts: 0, successes: 0, avgTime: 0 },
+          Hard: { attempts: 0, successes: 0, avgTime: 0 },
+        },
+        recentTrend: "stable",
+        improvementVelocity: 0,
+      };
+      continue;
+    }
 
+    // Calculate overall metrics
+    const totalAttempts = focusAreaAttempts.length;
+    const successfulAttempts = focusAreaAttempts.filter((attempt) => attempt.Success).length;
+    const successRate = (successfulAttempts / totalAttempts) * 100;
+    const totalTime = focusAreaAttempts.reduce((sum, attempt) => sum + (Number(attempt.TimeSpent) || 0), 0);
+    const averageTime = AccurateTimer.secondsToMinutes(totalTime / totalAttempts, 1);
 
+    // Calculate difficulty breakdown
+    const difficultyBreakdown = {
+      Easy: { attempts: 0, successes: 0, totalTime: 0 },
+      Medium: { attempts: 0, successes: 0, totalTime: 0 },
+      Hard: { attempts: 0, successes: 0, totalTime: 0 },
+    };
 
+    focusAreaAttempts.forEach((attempt) => {
+      const problem = allProblems.find((p) => p.id === attempt.ProblemID);
+      if (problem) {
+        const standardProblem = standardProblemsMap.get(problem.leetCodeID);
+        const difficulty = standardProblem?.difficulty || "Medium";
+        
+        if (difficultyBreakdown[difficulty]) {
+          difficultyBreakdown[difficulty].attempts++;
+          if (attempt.Success) {
+            difficultyBreakdown[difficulty].successes++;
+          }
+          difficultyBreakdown[difficulty].totalTime += Number(attempt.TimeSpent) || 0;
+        }
+      }
+    });
 
+    // Calculate average times for each difficulty
+    Object.keys(difficultyBreakdown).forEach((difficulty) => {
+      const data = difficultyBreakdown[difficulty];
+      data.avgTime = data.attempts > 0 
+        ? AccurateTimer.secondsToMinutes(data.totalTime / data.attempts, 1)
+        : 0;
+      data.successRate = data.attempts > 0 ? (data.successes / data.attempts) * 100 : 0;
+      // Clean up totalTime as it's not needed in the final output
+      delete data.totalTime;
+    });
+
+    // Calculate recent trend and improvement velocity
+    const recentTrend = calculateRecentTrend(focusAreaAttempts);
+    const improvementVelocity = calculateImprovementVelocity(focusAreaAttempts);
+
+    performance[focusArea] = {
+      totalAttempts,
+      successfulAttempts,
+      successRate: Math.round(successRate * 100) / 100,
+      averageTime,
+      difficultyBreakdown,
+      recentTrend,
+      improvementVelocity: Math.round(improvementVelocity * 100) / 100,
+    };
+  }
+
+  return performance;
+}
+
+function calculateRecentTrend(attempts) {
+  if (attempts.length < 4) return "insufficient_data";
+
+  // Sort attempts by date
+  const sortedAttempts = attempts.sort((a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate));
+  
+  // Split into older and recent halves
+  const midpoint = Math.floor(sortedAttempts.length / 2);
+  const olderHalf = sortedAttempts.slice(0, midpoint);
+  const recentHalf = sortedAttempts.slice(midpoint);
+
+  const olderSuccessRate = olderHalf.filter(a => a.Success).length / olderHalf.length;
+  const recentSuccessRate = recentHalf.filter(a => a.Success).length / recentHalf.length;
+
+  const improvement = recentSuccessRate - olderSuccessRate;
+  
+  if (improvement > 0.1) return "improving";
+  if (improvement < -0.1) return "declining";
+  return "stable";
+}
+
+function calculateImprovementVelocity(attempts) {
+  if (attempts.length < 2) return 0;
+
+  // Sort attempts by date
+  const sortedAttempts = attempts.sort((a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate));
+  
+  // Calculate success rate over time using a sliding window
+  const windowSize = Math.max(3, Math.floor(attempts.length / 4));
+  const velocityPoints = [];
+
+  for (let i = windowSize; i <= sortedAttempts.length; i++) {
+    const window = sortedAttempts.slice(i - windowSize, i);
+    const successRate = window.filter(a => a.Success).length / window.length;
+    velocityPoints.push(successRate);
+  }
+
+  if (velocityPoints.length < 2) return 0;
+
+  // Calculate linear trend (slope)
+  const n = velocityPoints.length;
+  const x = Array.from({ length: n }, (_, i) => i);
+  const y = velocityPoints;
+  
+  const sumX = x.reduce((a, b) => a + b, 0);
+  const sumY = y.reduce((a, b) => a + b, 0);
+  const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+  const sumXX = x.reduce((sum, xi) => sum + xi * xi, 0);
+  
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  
+  return isNaN(slope) ? 0 : slope * 100; // Convert to percentage points
+}
+
+async function calculateFocusAreaProgress(focusAreas, _sessions, attempts, _allProblems, problemTagsMap, learningState) {
+  const progressTracking = {};
+
+  // Group sessions by time periods
+  const now = new Date();
+
+  for (const focusArea of focusAreas) {
+    // Filter attempts for this focus area
+    const focusAreaAttempts = attempts.filter((attempt) => {
+      const problemTags = problemTagsMap.get(attempt.ProblemID) || [];
+      return problemTags.includes(focusArea);
+    });
+
+    if (focusAreaAttempts.length === 0) {
+      progressTracking[focusArea] = {
+        weeklyProgress: [],
+        monthlyProgress: [],
+        milestones: [],
+        masteryStatus: "not_started",
+        timeToMastery: null,
+        currentStreak: 0,
+      };
+      continue;
+    }
+
+    // Calculate weekly progress (last 4 weeks)
+    const weeklyProgress = [];
+    for (let i = 0; i < 4; i++) {
+      const weekStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      
+      const weekAttempts = focusAreaAttempts.filter(attempt => {
+        const attemptDate = new Date(attempt.AttemptDate);
+        return attemptDate >= weekStart && attemptDate < weekEnd;
+      });
+
+      const weeklyData = {
+        period: `Week ${4 - i}`,
+        startDate: weekStart.toISOString(),
+        endDate: weekEnd.toISOString(),
+        attempts: weekAttempts.length,
+        successes: weekAttempts.filter(a => a.Success).length,
+        successRate: weekAttempts.length > 0 ? (weekAttempts.filter(a => a.Success).length / weekAttempts.length) * 100 : 0,
+        averageTime: weekAttempts.length > 0 
+          ? AccurateTimer.secondsToMinutes(
+              weekAttempts.reduce((sum, a) => sum + (Number(a.TimeSpent) || 0), 0) / weekAttempts.length,
+              1
+            )
+          : 0,
+      };
+
+      weeklyProgress.unshift(weeklyData);
+    }
+
+    // Calculate monthly progress (last 3 months)
+    const monthlyProgress = [];
+    for (let i = 0; i < 3; i++) {
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i - 1, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      
+      const monthAttempts = focusAreaAttempts.filter(attempt => {
+        const attemptDate = new Date(attempt.AttemptDate);
+        return attemptDate >= monthStart && attemptDate < monthEnd;
+      });
+
+      const monthlyData = {
+        period: monthStart.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        startDate: monthStart.toISOString(),
+        endDate: monthEnd.toISOString(),
+        attempts: monthAttempts.length,
+        successes: monthAttempts.filter(a => a.Success).length,
+        successRate: monthAttempts.length > 0 ? (monthAttempts.filter(a => a.Success).length / monthAttempts.length) * 100 : 0,
+        averageTime: monthAttempts.length > 0 
+          ? AccurateTimer.secondsToMinutes(
+              monthAttempts.reduce((sum, a) => sum + (Number(a.TimeSpent) || 0), 0) / monthAttempts.length,
+              1
+            )
+          : 0,
+      };
+
+      monthlyProgress.unshift(monthlyData);
+    }
+
+    // Detect milestones
+    const milestones = detectFocusAreaMilestones(focusAreaAttempts, focusArea);
+
+    // Determine mastery status
+    const masteryData = learningState.masteryData.find(m => m.tag === focusArea);
+    let masteryStatus = "not_started";
+    let timeToMastery = null;
+
+    if (masteryData) {
+      const successRate = masteryData.totalAttempts > 0 ? masteryData.successfulAttempts / masteryData.totalAttempts : 0;
+      if (successRate >= 0.8) {
+        masteryStatus = "mastered";
+      } else if (successRate >= 0.6) {
+        masteryStatus = "approaching_mastery";
+        // Estimate time to mastery based on current improvement rate
+        const recentAttempts = focusAreaAttempts.slice(-10);
+        if (recentAttempts.length >= 5) {
+          const recentSuccessRate = recentAttempts.filter(a => a.Success).length / recentAttempts.length;
+          const improvementNeeded = 0.8 - recentSuccessRate;
+          const averageImprovementRate = calculateImprovementVelocity(focusAreaAttempts) / 100;
+          if (averageImprovementRate > 0) {
+            timeToMastery = Math.ceil(improvementNeeded / averageImprovementRate);
+          }
+        }
+      } else if (successRate >= 0.3) {
+        masteryStatus = "developing";
+      } else {
+        masteryStatus = "struggling";
+      }
+    }
+
+    // Calculate current streak
+    const currentStreak = calculateCurrentStreak(focusAreaAttempts);
+
+    progressTracking[focusArea] = {
+      weeklyProgress,
+      monthlyProgress,
+      milestones,
+      masteryStatus,
+      timeToMastery,
+      currentStreak,
+      totalProblemsAttempted: new Set(focusAreaAttempts.map(a => a.ProblemID)).size,
+      firstAttemptDate: focusAreaAttempts.length > 0 
+        ? Math.min(...focusAreaAttempts.map(a => new Date(a.AttemptDate)))
+        : null,
+      lastAttemptDate: focusAreaAttempts.length > 0 
+        ? Math.max(...focusAreaAttempts.map(a => new Date(a.AttemptDate)))
+        : null,
+    };
+  }
+
+  return progressTracking;
+}
+
+function detectFocusAreaMilestones(attempts, focusArea) {
+  const milestones = [];
+  const sortedAttempts = attempts.sort((a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate));
+  
+  // Track success rate milestones
+  const windows = [5, 10, 20]; // Window sizes to check
+  const thresholds = [0.5, 0.7, 0.8, 0.9]; // Success rate thresholds
+
+  for (const windowSize of windows) {
+    for (let i = windowSize; i <= sortedAttempts.length; i++) {
+      const window = sortedAttempts.slice(i - windowSize, i);
+      const successRate = window.filter(a => a.Success).length / window.length;
+      
+      for (const threshold of thresholds) {
+        if (successRate >= threshold) {
+          const existingMilestone = milestones.find(m => 
+            m.type === "success_rate" && 
+            m.threshold === threshold && 
+            m.windowSize === windowSize
+          );
+          
+          if (!existingMilestone) {
+            milestones.push({
+              type: "success_rate",
+              threshold,
+              windowSize,
+              achievedAt: window[window.length - 1].AttemptDate,
+              description: `Achieved ${(threshold * 100).toFixed(0)}% success rate over ${windowSize} attempts`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Track problem count milestones
+  const uniqueProblems = new Set();
+  const problemCountThresholds = [5, 10, 25, 50, 100];
+  
+  sortedAttempts.forEach(attempt => {
+    uniqueProblems.add(attempt.ProblemID);
+    const problemCount = uniqueProblems.size;
+    
+    for (const threshold of problemCountThresholds) {
+      if (problemCount === threshold) {
+        const existingMilestone = milestones.find(m => 
+          m.type === "problem_count" && m.count === threshold
+        );
+        
+        if (!existingMilestone) {
+          milestones.push({
+            type: "problem_count",
+            count: threshold,
+            achievedAt: attempt.AttemptDate,
+            description: `Attempted ${threshold} different problems in ${focusArea}`,
+          });
+        }
+      }
+    }
+  });
+
+  return milestones.sort((a, b) => new Date(b.achievedAt) - new Date(a.achievedAt));
+}
+
+function calculateCurrentStreak(attempts) {
+  if (attempts.length === 0) return 0;
+  
+  // Sort attempts by date (most recent first)
+  const sortedAttempts = attempts.sort((a, b) => new Date(b.AttemptDate) - new Date(a.AttemptDate));
+  
+  let currentStreak = 0;
+  for (const attempt of sortedAttempts) {
+    if (attempt.Success) {
+      currentStreak++;
+    } else {
+      break;
+    }
+  }
+  
+  return currentStreak;
+}
+
+async function calculateFocusAreaEffectiveness(focusAreas, performance, progressTracking, learningState) {
+  const effectiveness = {};
+
+  for (const focusArea of focusAreas) {
+    const focusAreaPerf = performance[focusArea];
+    const focusAreaProgress = progressTracking[focusArea];
+    
+    if (!focusAreaPerf || focusAreaPerf.totalAttempts === 0) {
+      effectiveness[focusArea] = {
+        roi: 0,
+        learningEfficiency: 0,
+        difficultyProgression: "none",
+        correlationWithOtherAreas: {},
+        bottleneckRisk: "low",
+        recommendation: "start_practicing",
+      };
+      continue;
+    }
+
+    // Calculate ROI (Return on Investment)
+    const timeInvested = focusAreaPerf.averageTime * focusAreaPerf.totalAttempts; // Total minutes
+    const improvementGained = focusAreaPerf.improvementVelocity;
+    const roi = timeInvested > 0 ? (improvementGained / timeInvested) * 100 : 0;
+
+    // Calculate learning efficiency
+    const learningEfficiency = calculateLearningEfficiency(focusAreaPerf, focusAreaProgress);
+
+    // Analyze difficulty progression
+    const difficultyProgression = analyzeDifficultyProgression(focusAreaPerf.difficultyBreakdown);
+
+    // Calculate correlation with other focus areas
+    const correlationWithOtherAreas = calculateFocusAreaCorrelations(focusArea, focusAreas, performance);
+
+    // Assess bottleneck risk
+    const bottleneckRisk = assessBottleneckRisk(focusAreaPerf, focusAreaProgress, learningState);
+
+    // Generate recommendation
+    const recommendation = generateEffectivenessRecommendation(
+      focusAreaPerf,
+      focusAreaProgress,
+      roi,
+      learningEfficiency,
+      bottleneckRisk
+    );
+
+    effectiveness[focusArea] = {
+      roi: Math.round(roi * 100) / 100,
+      learningEfficiency: Math.round(learningEfficiency * 100) / 100,
+      difficultyProgression,
+      correlationWithOtherAreas,
+      bottleneckRisk,
+      recommendation,
+      timeInvestment: {
+        totalMinutes: Math.round(timeInvested),
+        averagePerAttempt: focusAreaPerf.averageTime,
+        comparedToAverage: calculateTimeEfficiencyComparison(focusAreaPerf, performance),
+      },
+    };
+  }
+
+  return effectiveness;
+}
+
+function calculateLearningEfficiency(performance, progress) {
+  // Learning efficiency = (Success rate improvement × Problem variety) / Time investment
+  const successRateWeight = performance.successRate / 100;
+  const improvementWeight = Math.max(0, performance.improvementVelocity / 10);
+  const varietyWeight = Math.min(1, progress.totalProblemsAttempted / 20);
+  const timeEfficiencyWeight = Math.max(0.1, 1 / Math.max(1, performance.averageTime / 10));
+
+  return (successRateWeight + improvementWeight + varietyWeight) * timeEfficiencyWeight;
+}
+
+function analyzeDifficultyProgression(difficultyBreakdown) {
+  const { Easy, Medium, Hard } = difficultyBreakdown;
+  
+  const easyMastery = Easy.attempts > 0 && Easy.successRate >= 80;
+  const mediumMastery = Medium.attempts > 0 && Medium.successRate >= 70;
+  const hardMastery = Hard.attempts > 0 && Hard.successRate >= 60;
+
+  if (hardMastery) return "advanced";
+  if (mediumMastery && easyMastery) return "intermediate";
+  if (easyMastery) return "beginner";
+  if (Easy.attempts > 0) return "learning";
+  return "none";
+}
+
+function calculateFocusAreaCorrelations(currentFocusArea, allFocusAreas, performance) {
+  const correlations = {};
+  const currentPerf = performance[currentFocusArea];
+
+  if (!currentPerf || currentPerf.totalAttempts === 0) {
+    return correlations;
+  }
+
+  for (const otherArea of allFocusAreas) {
+    if (otherArea === currentFocusArea) continue;
+    
+    const otherPerf = performance[otherArea];
+    if (!otherPerf || otherPerf.totalAttempts === 0) {
+      correlations[otherArea] = { strength: 0, type: "no_data" };
+      continue;
+    }
+
+    // Calculate correlation based on success rates and improvement trends
+    const successRateCorr = 1 - Math.abs(currentPerf.successRate - otherPerf.successRate) / 100;
+    const trendCorr = calculateTrendCorrelation(currentPerf.recentTrend, otherPerf.recentTrend);
+    const velocityCorr = 1 - Math.abs(currentPerf.improvementVelocity - otherPerf.improvementVelocity) / 20;
+
+    const overallCorrelation = (successRateCorr + trendCorr + velocityCorr) / 3;
+    
+    let type = "weak";
+    if (overallCorrelation >= 0.7) type = "strong";
+    else if (overallCorrelation >= 0.5) type = "moderate";
+
+    correlations[otherArea] = {
+      strength: Math.round(overallCorrelation * 100) / 100,
+      type,
+    };
+  }
+
+  return correlations;
+}
+
+function calculateTrendCorrelation(trend1, trend2) {
+  const trendValues = { improving: 1, stable: 0, declining: -1, insufficient_data: 0 };
+  const val1 = trendValues[trend1] || 0;
+  const val2 = trendValues[trend2] || 0;
+  
+  return 1 - Math.abs(val1 - val2) / 2;
+}
+
+function assessBottleneckRisk(performance, progress, _learningState) {
+  const riskFactors = [];
+
+  // Low success rate risk
+  if (performance.successRate < 30) {
+    riskFactors.push("low_success_rate");
+  }
+
+  // Declining trend risk
+  if (performance.recentTrend === "declining") {
+    riskFactors.push("declining_performance");
+  }
+
+  // High time investment with low progress
+  if (performance.averageTime > 20 && performance.successRate < 50) {
+    riskFactors.push("inefficient_time_use");
+  }
+
+  // Stagnant progress
+  if (progress.masteryStatus === "struggling" && progress.currentStreak === 0) {
+    riskFactors.push("learning_plateau");
+  }
+
+  if (riskFactors.length >= 3) return "high";
+  if (riskFactors.length >= 1) return "medium";
+  return "low";
+}
+
+function generateEffectivenessRecommendation(performance, progress, roi, learningEfficiency, bottleneckRisk) {
+  // High-performing areas
+  if (performance.successRate >= 70 && performance.recentTrend === "improving") {
+    return "continue_momentum";
+  }
+
+  // Good ROI but needs more practice
+  if (roi > 5 && performance.totalAttempts < 20) {
+    return "increase_practice_volume";
+  }
+
+  // High bottleneck risk
+  if (bottleneckRisk === "high") {
+    return "seek_help_or_change_approach";
+  }
+
+  // Inefficient learning
+  if (learningEfficiency < 0.3) {
+    return "optimize_learning_strategy";
+  }
+
+  // Steady progress
+  if (performance.recentTrend === "stable" && performance.successRate >= 50) {
+    return "maintain_current_approach";
+  }
+
+  // Need to start or restart
+  if (performance.totalAttempts < 5) {
+    return "build_foundation";
+  }
+
+  return "focus_on_weak_areas";
+}
+
+function calculateTimeEfficiencyComparison(focusAreaPerf, allPerformance) {
+  const allAreas = Object.values(allPerformance);
+  const validAreas = allAreas.filter(perf => perf.totalAttempts > 0);
+  
+  if (validAreas.length === 0) return "no_comparison";
+  
+  const averageTime = validAreas.reduce((sum, perf) => sum + perf.averageTime, 0) / validAreas.length;
+  const comparison = focusAreaPerf.averageTime / averageTime;
+  
+  if (comparison <= 0.8) return "faster_than_average";
+  if (comparison >= 1.2) return "slower_than_average";
+  return "average";
+}
+
+function generateFocusAreaInsights(performance, progressTracking, effectiveness) {
+  const insights = [];
+  const focusAreas = Object.keys(performance);
+
+  if (focusAreas.length === 0) {
+    return ["No focus areas configured. Set focus areas in Settings to get detailed analytics."];
+  }
+
+  // Identify top performing areas
+  const topPerformer = focusAreas.reduce((best, area) => 
+    performance[area].successRate > performance[best].successRate ? area : best
+  );
+  
+  if (performance[topPerformer].totalAttempts > 0) {
+    insights.push(`${topPerformer} is your strongest focus area with ${performance[topPerformer].successRate.toFixed(1)}% success rate`);
+  }
+
+  // Identify areas with high improvement velocity
+  const fastestImproving = focusAreas.reduce((best, area) => 
+    performance[area].improvementVelocity > performance[best].improvementVelocity ? area : best
+  );
+  
+  if (performance[fastestImproving].improvementVelocity > 5) {
+    insights.push(`${fastestImproving} shows rapid improvement with ${performance[fastestImproving].improvementVelocity.toFixed(1)}% velocity`);
+  }
+
+  // Identify bottleneck areas
+  const bottlenecks = focusAreas.filter(area => effectiveness[area]?.bottleneckRisk === "high");
+  if (bottlenecks.length > 0) {
+    insights.push(`Consider reviewing your approach for: ${bottlenecks.join(", ")} - showing signs of learning bottlenecks`);
+  }
+
+  // Mastery insights
+  const masteredAreas = focusAreas.filter(area => progressTracking[area]?.masteryStatus === "mastered");
+  if (masteredAreas.length > 0) {
+    insights.push(`Congratulations! You've mastered: ${masteredAreas.join(", ")}`);
+  }
+
+  // Time efficiency insights
+  const inefficientAreas = focusAreas.filter(area => 
+    effectiveness[area]?.timeInvestment?.comparedToAverage === "slower_than_average"
+  );
+  
+  if (inefficientAreas.length > 0) {
+    insights.push(`Focus on time efficiency for: ${inefficientAreas.join(", ")} - taking longer than average`);
+  }
+
+  return insights.length > 0 ? insights : ["Continue practicing your focus areas to unlock insights"];
+}
+
+function generateFocusAreaRecommendations(performance, effectiveness, learningState) {
+  const recommendations = [];
+  const focusAreas = Object.keys(performance);
+
+  if (focusAreas.length === 0) {
+    return [
+      {
+        type: "setup",
+        priority: "high",
+        action: "Configure focus areas in Settings to get personalized recommendations",
+        expectedImpact: "Enable targeted learning analytics",
+      }
+    ];
+  }
+
+  // High ROI recommendations
+  const highROIAreas = focusAreas.filter(area => effectiveness[area]?.roi > 10);
+  if (highROIAreas.length > 0) {
+    recommendations.push({
+      type: "continue",
+      priority: "high",
+      action: `Increase practice time for ${highROIAreas[0]} - showing excellent return on investment`,
+      expectedImpact: `Accelerate mastery with high learning efficiency`,
+    });
+  }
+
+  // Bottleneck recommendations
+  const bottleneckAreas = focusAreas.filter(area => effectiveness[area]?.bottleneckRisk === "high");
+  for (const area of bottleneckAreas.slice(0, 2)) { // Limit to top 2
+    recommendations.push({
+      type: "intervention",
+      priority: "high",
+      action: `Review learning strategy for ${area} - showing signs of learning plateau`,
+      expectedImpact: "Break through current learning bottleneck",
+    });
+  }
+
+  // Difficulty progression recommendations
+  const beginnerAreas = focusAreas.filter(area => 
+    effectiveness[area]?.difficultyProgression === "beginner"
+  );
+  
+  for (const area of beginnerAreas.slice(0, 2)) {
+    recommendations.push({
+      type: "progression",
+      priority: "medium",
+      action: `Try Medium difficulty problems for ${area} - ready to advance from Easy problems`,
+      expectedImpact: "Accelerate skill development and challenge growth",
+    });
+  }
+
+  // Time efficiency recommendations
+  const slowAreas = focusAreas.filter(area => 
+    effectiveness[area]?.timeInvestment?.comparedToAverage === "slower_than_average" &&
+    performance[area].successRate < 60
+  );
+  
+  if (slowAreas.length > 0) {
+    recommendations.push({
+      type: "optimization",
+      priority: "medium",
+      action: `Focus on time management techniques for ${slowAreas[0]}`,
+      expectedImpact: "Improve problem-solving efficiency and confidence",
+    });
+  }
+
+  // New focus area recommendations based on mastery
+  const masteredAreas = focusAreas.filter(area => 
+    effectiveness[area]?.recommendation === "continue_momentum"
+  );
+  
+  if (masteredAreas.length > 0 && learningState.allTagsInCurrentTier) {
+    const availableTags = learningState.allTagsInCurrentTier.filter(tag => 
+      !focusAreas.includes(tag)
+    );
+    
+    if (availableTags.length > 0) {
+      recommendations.push({
+        type: "expansion",
+        priority: "low",
+        action: `Consider adding ${availableTags[0]} as a new focus area`,
+        expectedImpact: "Expand skill portfolio and maintain learning momentum",
+      });
+    }
+  }
+
+  return recommendations.sort((a, b) => {
+    const priorityOrder = { high: 3, medium: 2, low: 1 };
+    return priorityOrder[b.priority] - priorityOrder[a.priority];
+  });
+}
+
+function integrateFocusAreaSessionAnalytics(focusAreas, sessionAnalytics, _problemTagsMap) {
+  const integration = {};
+
+  for (const focusArea of focusAreas) {
+    // Filter session analytics for sessions that involved this focus area
+    const focusAreaSessions = sessionAnalytics.filter(session => {
+      if (!session.strongTags && !session.weakTags) return false;
+      
+      const sessionTags = [
+        ...(session.strongTags || []),
+        ...(session.weakTags || [])
+      ];
+      
+      return sessionTags.includes(focusArea);
+    });
+
+    const recentSessions = focusAreaSessions.slice(0, 10); // Last 10 relevant sessions
+    
+    integration[focusArea] = {
+      recentSessionCount: focusAreaSessions.length,
+      averageAccuracy: focusAreaSessions.length > 0 
+        ? focusAreaSessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / focusAreaSessions.length
+        : 0,
+      averageTime: focusAreaSessions.length > 0 
+        ? focusAreaSessions.reduce((sum, s) => sum + (s.avgTime || 0), 0) / focusAreaSessions.length
+        : 0,
+      strongPerformanceSessions: focusAreaSessions.filter(s => 
+        s.strongTags && s.strongTags.includes(focusArea)
+      ).length,
+      weakPerformanceSessions: focusAreaSessions.filter(s => 
+        s.weakTags && s.weakTags.includes(focusArea)
+      ).length,
+      recentTrend: calculateSessionAnalyticsTrend(recentSessions, focusArea),
+      lastSessionDate: focusAreaSessions.length > 0 
+        ? focusAreaSessions[0].completedAt
+        : null,
+    };
+  }
+
+  return integration;
+}
+
+function calculateSessionAnalyticsTrend(sessions, _focusArea) {
+  if (sessions.length < 3) return "insufficient_data";
+
+  // Sort sessions by completion date (most recent first)
+  const sortedSessions = sessions.sort((a, b) => 
+    new Date(b.completedAt) - new Date(a.completedAt)
+  );
+
+  const recentHalf = sortedSessions.slice(0, Math.ceil(sessions.length / 2));
+  const olderHalf = sortedSessions.slice(Math.ceil(sessions.length / 2));
+
+  const recentAvgAccuracy = recentHalf.reduce((sum, s) => sum + (s.accuracy || 0), 0) / recentHalf.length;
+  const olderAvgAccuracy = olderHalf.reduce((sum, s) => sum + (s.accuracy || 0), 0) / olderHalf.length;
+
+  const improvement = recentAvgAccuracy - olderAvgAccuracy;
+
+  if (improvement > 0.05) return "improving";
+  if (improvement < -0.05) return "declining";
+  return "stable";
+}
+
+function cleanupAnalyticsCache() {
+  const now = Date.now();
+  const expiredKeys = [];
+
+  for (const [key, value] of analyticsCache.entries()) {
+    if (now - value.timestamp > CACHE_TTL) {
+      expiredKeys.push(key);
+    }
+  }
+
+  for (const key of expiredKeys) {
+    analyticsCache.delete(key);
+  }
+
+  // Limit cache size to prevent memory issues
+  const maxCacheSize = 50;
+  if (analyticsCache.size > maxCacheSize) {
+    const sortedEntries = Array.from(analyticsCache.entries())
+      .sort((a, b) => a[1].timestamp - b[1].timestamp);
+    
+    const toDelete = sortedEntries.slice(0, analyticsCache.size - maxCacheSize);
+    for (const [key] of toDelete) {
+      analyticsCache.delete(key);
+    }
+  }
+}
 
 // Utility function to clear analytics cache (useful for testing or data updates)
 export function clearFocusAreaAnalyticsCache() {
@@ -658,7 +1335,7 @@ export function clearFocusAreaAnalyticsCache() {
 /**
  * Generate session analytics data structure matching mock service format
  */
-export function generateSessionAnalytics(sessions, attempts) {
+export async function generateSessionAnalytics(sessions, attempts) {
   const enhancedSessions = sessions.map((session, index) => {
     // Calculate session metrics from attempts
     const sessionAttempts = attempts.filter(attempt => 
@@ -679,7 +1356,7 @@ export function generateSessionAnalytics(sessions, attempts) {
       ...session,
       sessionId: session.sessionId || `session_${index + 1}`,
       duration: Math.round(duration),
-      accuracy: roundToPrecision(accuracy),
+      accuracy: Math.round(accuracy * 100) / 100,
       completed,
       problems: session.problems || sessionAttempts.map(attempt => ({
         id: attempt.ProblemID,
@@ -740,10 +1417,10 @@ export async function generateMasteryData(learningState) {
       ...mastery,
       isFocus: focusTags.includes(mastery.tag),
       progress: mastery.totalAttempts > 0 ? 
-        calculateProgressPercentage(mastery.successfulAttempts, mastery.totalAttempts) : 
+        Math.round((mastery.successfulAttempts / mastery.totalAttempts) * 100) : 
         0,
-      hintHelpfulness: calculateSuccessRate(mastery.successfulAttempts, mastery.totalAttempts) > 0.8 ? "low" :
-                      calculateSuccessRate(mastery.successfulAttempts, mastery.totalAttempts) > 0.5 ? "medium" : "high"
+      hintHelpfulness: mastery.successfulAttempts / mastery.totalAttempts > 0.8 ? "low" :
+                      mastery.successfulAttempts / mastery.totalAttempts > 0.5 ? "medium" : "high"
     }));
 
     return {
@@ -761,7 +1438,7 @@ export async function generateMasteryData(learningState) {
       }
     };
   } catch (error) {
-    logger.error("Error generating mastery data:", error);
+    console.error("Error generating mastery data:", error);
     return {
       currentTier: "Core Concept",
       masteredTags: [],
@@ -778,7 +1455,7 @@ export async function generateMasteryData(learningState) {
 /**
  * Calculate outcome trends metrics for Goals page
  */
-async function calculateOutcomeTrends(attempts, _sessions) {
+async function calculateOutcomeTrends(attempts, sessions) {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   
@@ -797,9 +1474,11 @@ async function calculateOutcomeTrends(attempts, _sessions) {
   let hintEfficiency = "2.5";
   try {
     // Get real hint analytics data with date filtering
-    const hintAnalyticsData = await HintInteractionService.getSystemAnalytics({
-      startDate: oneWeekAgo.toISOString(),
-      endDate: now.toISOString()
+    const hintAnalyticsData = await getHintAnalyticsDataForDashboard({
+      hintFilters: {
+        startDate: oneWeekAgo.toISOString(),
+        endDate: now.toISOString()
+      }
     });
     
     if (hintAnalyticsData?.analytics?.overview?.totalInteractions && weeklyAttempts.length > 0) {
@@ -818,7 +1497,7 @@ async function calculateOutcomeTrends(attempts, _sessions) {
       hintEfficiency = estimatedHints.toFixed(1);
     }
   } catch (error) {
-    logger.warn("Could not get hint analytics for goals page, using fallback estimation:", error);
+    console.warn("Could not get hint analytics for goals page, using fallback estimation:", error);
     // If hint data not available, estimate based on success patterns
     const successRate = weeklyAccuracy / 100;
     const estimatedHints = successRate > 0.8 ? 1.5 : successRate > 0.6 ? 2.0 : 3.0;
@@ -878,7 +1557,7 @@ function generateEnhancedDailyMissions(settings, learningState, recentAttempts) 
   // Mission 1: Focus area practice
   if (focusAreas.length > 0) {
     const primaryFocus = focusAreas[0];
-    const recentFocusAttempts = recentAttempts.filter(_attempt => {
+    const recentFocusAttempts = recentAttempts.filter(attempt => {
       // Would need to check if attempt's problem has this tag
       // For now, use a simplified approach
       return Math.random() > 0.5; // Simulate tag matching
@@ -1005,7 +1684,7 @@ export async function generateGoalsData(providedData = {}) {
       }
     };
   } catch (error) {
-    logger.error("Error generating goals data:", error);
+    console.error("Error generating goals data:", error);
     return {
       learningPlan: {
         cadence: { sessionsPerWeek: 5, sessionLength: 45, flexibleSchedule: true },
@@ -1094,7 +1773,7 @@ function findBestPerformanceHour(sessions) {
 /**
  * Generate daily missions based on user settings
  */
-function _generateDailyMissions(settings) {
+function generateDailyMissions(settings) {
   const focusAreas = settings.focusAreas || [];
   const missions = [];
   
@@ -1243,7 +1922,7 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
     totalHintsUsed = hintResults.flat().length;
   } catch (error) {
     // If hint data is not available, fall back to estimation
-    logger.warn("Could not fetch hint data, using estimation:", error);
+    console.warn("Could not fetch hint data, using estimation:", error);
     totalHintsUsed = 0;
   }
   
@@ -1383,28 +2062,6 @@ function calculateTimerPercentage(attempts) {
 }
 
 /**
- * Validate session object and return error response if invalid
- */
-function validateSession(session) {
-  if (!session) {
-    logger.info('📊 No active session found');
-    return { nextReviewTime: "No active session", nextReviewCount: 0 };
-  }
-  
-  if (session === null || session === undefined) {
-    logger.info('📊 Session is null or undefined');
-    return { nextReviewTime: "No session available", nextReviewCount: 0 };
-  }
-  
-  if (typeof session !== 'object') {
-    logger.warn('❌ Session is not an object:', { sessionType: typeof session, sessionValue: session });
-    return { nextReviewTime: "Invalid session type", nextReviewCount: 0 };
-  }
-  
-  return null; // Valid session
-}
-
-/**
  * Calculate next review time and count using direct SessionService access
  * Runs directly in background context so no Chrome messaging needed
  */
@@ -1415,10 +2072,35 @@ async function calculateNextReviewData() {
       const session = await getLatestSession();
       
       // Process session data
-      const validationError = validateSession(session);
-      if (validationError) return validationError;
+      if (!session) {
+        console.info('📊 No active session found');
+        return {
+          nextReviewTime: "No active session", 
+          nextReviewCount: 0
+        };
+      }
+      console.log('📊 Dashboard received session object:', session);
       
-      logger.info('📊 Dashboard received session object:', session);
+      // Handle null session explicitly
+      if (session === null || session === undefined) {
+        console.info('📊 Session is null or undefined');
+        return {
+          nextReviewTime: "No session available",
+          nextReviewCount: 0
+        };
+      }
+      
+      // Validate session object structure with better error reporting
+      if (typeof session !== 'object') {
+        console.warn('❌ Session is not an object:', {
+          sessionType: typeof session,
+          sessionValue: session
+        });
+        return {
+          nextReviewTime: "Invalid session type",
+          nextReviewCount: 0
+        };
+      }
 
           // Handle both session.problems array and session.problemCount formats
           let totalProblems = 0;
@@ -1429,7 +2111,7 @@ async function calculateNextReviewData() {
           } else if (typeof session.problemCount === 'number') {
             totalProblems = session.problemCount;
           } else {
-            logger.warn('❌ Session has neither problems array nor problemCount:', {
+            console.warn('❌ Session has neither problems array nor problemCount:', {
               hasProblems: 'problems' in session,
               problemsType: typeof session.problems,
               hasProblemCount: 'problemCount' in session,
@@ -1443,7 +2125,7 @@ async function calculateNextReviewData() {
           }
           
           const problemsRemaining = totalProblems - currentIndex;
-          logger.info('📊 Session analysis:', {
+          console.log('📊 Session analysis:', {
             totalProblems,
             currentIndex,
             problemsRemaining,
@@ -1505,7 +2187,7 @@ async function calculateNextReviewData() {
       };
     }
   } catch (error) {
-    logger.error('Error in calculateNextReviewData:', error);
+    console.error('Error in calculateNextReviewData:', error);
     return {
       nextReviewTime: "Schedule unavailable",
       nextReviewCount: 0
@@ -1542,7 +2224,7 @@ export async function getLearningProgressData(options = {}) {
       promotionData: fullData.nested?.progress?.promotionData,
     };
   } catch (error) {
-    logger.error("Error getting learning progress data:", error);
+    console.error("Error getting learning progress data:", error);
     throw error;
   }
 }
@@ -1563,12 +2245,12 @@ export async function getGoalsData(options = {}, providedData = null) {
         return fullData.goals || await generateGoalsData();
       } catch (error) {
         // If getDashboardStatistics fails, use fallback
-        logger.warn("getDashboardStatistics failed, using fallback goals data");
+        console.warn("getDashboardStatistics failed, using fallback goals data");
         return await generateGoalsData();
       }
     }
   } catch (error) {
-    logger.error("Error getting goals data:", error);
+    console.error("Error getting goals data:", error);
     // Return fallback goals data instead of throwing
     return {
       learningPlan: {
@@ -1615,7 +2297,7 @@ export async function getStatsData(options = {}) {
       learningEfficiencyData: fullData.learningEfficiencyData || DEFAULT_STATS.learningEfficiencyData,
     };
   } catch (error) {
-    logger.error("Error getting stats data, using fallback:", error);
+    console.error("Error getting stats data, using fallback:", error);
     // Return fallback data instead of throwing (like content script pattern)
     return DEFAULT_STATS;
   }
@@ -1635,7 +2317,7 @@ export async function getSessionHistoryData(options = {}) {
       recentSessions: fullData.sessions?.recentSessions || [],
     };
   } catch (error) {
-    logger.error("Error getting session history data:", error);
+    console.error("Error getting session history data:", error);
     throw error;
   }
 }
@@ -1658,7 +2340,7 @@ export async function getProductivityInsightsData(options = {}) {
       reflectionData: reflectionData,
     };
   } catch (error) {
-    logger.error("Error getting productivity insights data:", error);
+    console.error("Error getting productivity insights data:", error);
     throw error;
   }
 }
@@ -1666,7 +2348,7 @@ export async function getProductivityInsightsData(options = {}) {
 /**
  * Calculate reflection insights from attempt data
  */
-function calculateReflectionInsights(dashboardData) {
+async function calculateReflectionInsights(dashboardData) {
   try {
     const allAttempts = dashboardData.attempts || [];
     
@@ -1702,7 +2384,7 @@ function calculateReflectionInsights(dashboardData) {
       performanceCorrelation: reflectionPerformanceCorrelation
     };
   } catch (error) {
-    logger.error("Error calculating reflection insights:", error);
+    console.error("Error calculating reflection insights:", error);
     return {
       reflectionsCount: 0,
       totalAttempts: 0,
@@ -1778,7 +2460,7 @@ export async function getTagMasteryData(options = {}) {
       learningState: {}
     };
   } catch (error) {
-    logger.error("Error getting tag mastery data:", error);
+    console.error("Error getting tag mastery data:", error);
     throw error;
   }
 }
@@ -1801,7 +2483,7 @@ export async function getLearningPathData(options = {}) {
       learningState: {}
     };
   } catch (error) {
-    logger.error("Error getting learning path data:", error);
+    console.error("Error getting learning path data:", error);
     throw error;
   }
 }
@@ -1823,166 +2505,14 @@ export async function getMistakeAnalysisData(options = {}) {
       mastery: fullData.mastery,
     };
   } catch (error) {
-    logger.error("Error getting mistake analysis data:", error);
+    console.error("Error getting mistake analysis data:", error);
     throw error;
   }
 }
 
-/**
- * Returns empty interview analytics data when no sessions exist
- */
-function getEmptyInterviewAnalytics() {
-  return {
-    totalInterviewSessions: 0,
-    interviewModeBreakdown: {
-      'interview-like': 0,
-      'full-interview': 0
-    },
-    averagePerformance: {
-      accuracy: 0,
-      timePerProblem: 0,
-      completionRate: 0
-    },
-    progressTrend: [],
-    transferMetrics: {
-      standardToInterview: 0,
-      improvementRate: 0
-    },
-    recentSessions: [],
-    recommendations: [
-      "Start with Interview-Like mode to practice with limited hints",
-      "Build confidence before moving to Full Interview mode"
-    ]
-  };
-}
-
-/**
- * Calculates session metrics from interview sessions and attempts
- */
-function calculateSessionMetrics(interviewSessions, allAttempts) {
-  const interviewModeBreakdown = {};
-  let totalAccuracy = 0;
-  let totalTimeSpent = 0;
-  let totalProblemsAttempted = 0;
-  let totalProblemsCompleted = 0;
-
-  interviewSessions.forEach(session => {
-    const mode = session.sessionType || 'interview-like';
-    interviewModeBreakdown[mode] = (interviewModeBreakdown[mode] || 0) + 1;
-
-    // Get attempts for this session
-    const sessionAttempts = allAttempts.filter(attempt => 
-      attempt.sessionId === session.sessionId
-    );
-
-    sessionAttempts.forEach(attempt => {
-      totalProblemsAttempted++;
-      if (attempt.status === 'correct') {
-        totalProblemsCompleted++;
-        totalAccuracy++;
-      }
-      if (attempt.timeSpent) {
-        totalTimeSpent += attempt.timeSpent;
-      }
-    });
-  });
-
-  // Calculate averages
-  const accuracy = totalProblemsAttempted > 0 ? (totalAccuracy / totalProblemsAttempted) * 100 : 0;
-  const averageTimePerProblem = totalProblemsAttempted > 0 ? totalTimeSpent / totalProblemsAttempted : 0;
-  const completionRate = totalProblemsAttempted > 0 ? (totalProblemsCompleted / totalProblemsAttempted) * 100 : 0;
-
-  return {
-    interviewModeBreakdown,
-    accuracy,
-    averageTimePerProblem,
-    completionRate,
-    totalProblemsAttempted,
-    totalProblemsCompleted
-  };
-}
-
-/**
- * Generates progress trend data from recent interview sessions
- */
-function generateProgressTrend(interviewSessions, allAttempts) {
-  const recentInterviewSessions = interviewSessions
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, 10);
-
-  return recentInterviewSessions.map(session => {
-    const sessionAttempts = allAttempts.filter(attempt => 
-      attempt.sessionId === session.sessionId
-    );
-    
-    const sessionAccuracy = sessionAttempts.length > 0 ? 
-      (sessionAttempts.filter(a => a.status === 'correct').length / sessionAttempts.length) * 100 : 0;
-
-    return {
-      sessionId: session.sessionId,
-      date: session.timestamp,
-      mode: session.sessionType,
-      accuracy: sessionAccuracy,
-      problemsAttempted: sessionAttempts.length,
-      timeSpent: sessionAttempts.reduce((sum, a) => sum + (a.timeSpent || 0), 0)
-    };
-  }).reverse(); // Show oldest to newest for trend
-}
-
-/**
- * Calculates transfer metrics comparing interview vs standard performance
- */
-function calculateTransferMetrics(allSessions, allAttempts, accuracy, progressTrend) {
-  const standardSessions = allSessions.filter(session => 
-    !session.sessionType || session.sessionType === 'standard'
-  );
-  
-  let standardAccuracy = 0;
-  if (standardSessions.length > 0) {
-    const standardAttempts = allAttempts.filter(attempt =>
-      standardSessions.some(session => session.sessionId === attempt.sessionId)
-    );
-    standardAccuracy = standardAttempts.length > 0 ?
-      (standardAttempts.filter(a => a.status === 'correct').length / standardAttempts.length) * 100 : 0;
-  }
-
-  const transferScore = standardAccuracy > 0 ? (accuracy / standardAccuracy) : 0;
-  const improvementRate = progressTrend.length >= 2 ? 
-    Math.round(((progressTrend[progressTrend.length - 1].accuracy - progressTrend[0].accuracy) / progressTrend.length) * 10) / 10 : 0;
-
-  return {
-    standardToInterview: roundToPrecision(transferScore),
-    improvementRate
-  };
-}
-
-/**
- * Generates performance-based recommendations
- */
-function generateRecommendations(accuracy, averageTimePerProblem, transferScore) {
-  const recommendations = [];
-  if (accuracy < 50) {
-    recommendations.push("Focus on Interview-Like mode to build confidence with reduced pressure");
-  } else if (accuracy < 70) {
-    recommendations.push("Good progress! Continue practicing in Interview-Like mode");
-  } else {
-    recommendations.push("Excellent performance! Ready to try Full Interview mode");
-  }
-
-  if (averageTimePerProblem > 1800) { // 30 minutes
-    recommendations.push("Work on time management - aim for 20-25 minutes per problem");
-  }
-
-  if (transferScore < 0.8) {
-    recommendations.push("Practice more standard sessions to strengthen fundamentals");
-  }
-
-  return recommendations;
-}
-
-export async function getInterviewAnalyticsData(_options = {}) {
+export async function getInterviewAnalyticsData(options = {}) {
   try {
-    logger.info("🎯 Getting interview analytics data...");
+    console.log("🎯 Getting interview analytics data...");
     
     const allSessions = await getAllSessions();
     const allAttempts = await getAllAttempts();
@@ -1992,47 +2522,153 @@ export async function getInterviewAnalyticsData(_options = {}) {
       session.sessionType && session.sessionType !== 'standard'
     );
     
-    logger.info(`Found ${interviewSessions.length} interview sessions`);
+    console.log(`Found ${interviewSessions.length} interview sessions`);
     
     if (interviewSessions.length === 0) {
-      return getEmptyInterviewAnalytics();
+      return {
+        totalInterviewSessions: 0,
+        interviewModeBreakdown: {
+          'interview-like': 0,
+          'full-interview': 0
+        },
+        averagePerformance: {
+          accuracy: 0,
+          timePerProblem: 0,
+          completionRate: 0
+        },
+        progressTrend: [],
+        transferMetrics: {
+          standardToInterview: 0,
+          improvementRate: 0
+        },
+        recentSessions: [],
+        recommendations: [
+          "Start with Interview-Like mode to practice with limited hints",
+          "Build confidence before moving to Full Interview mode"
+        ]
+      };
     }
 
-    // Calculate all metrics using helper functions
-    const sessionMetrics = calculateSessionMetrics(interviewSessions, allAttempts);
-    const progressTrend = generateProgressTrend(interviewSessions, allAttempts);
-    const transferMetrics = calculateTransferMetrics(allSessions, allAttempts, sessionMetrics.accuracy, progressTrend);
-    const recommendations = generateRecommendations(sessionMetrics.accuracy, sessionMetrics.averageTimePerProblem, transferMetrics.standardToInterview);
+    // Calculate interview session metrics
+    const interviewModeBreakdown = {};
+    let totalAccuracy = 0;
+    let totalTimeSpent = 0;
+    let totalProblemsAttempted = 0;
+    let totalProblemsCompleted = 0;
+
+    interviewSessions.forEach(session => {
+      const mode = session.sessionType || 'interview-like';
+      interviewModeBreakdown[mode] = (interviewModeBreakdown[mode] || 0) + 1;
+
+      // Get attempts for this session
+      const sessionAttempts = allAttempts.filter(attempt => 
+        attempt.sessionId === session.sessionId
+      );
+
+      sessionAttempts.forEach(attempt => {
+        totalProblemsAttempted++;
+        if (attempt.status === 'correct') {
+          totalProblemsCompleted++;
+          totalAccuracy++;
+        }
+        if (attempt.timeSpent) {
+          totalTimeSpent += attempt.timeSpent;
+        }
+      });
+    });
+
+    // Calculate averages
+    const accuracy = totalProblemsAttempted > 0 ? (totalAccuracy / totalProblemsAttempted) * 100 : 0;
+    const averageTimePerProblem = totalProblemsAttempted > 0 ? totalTimeSpent / totalProblemsAttempted : 0;
+    const completionRate = totalProblemsAttempted > 0 ? (totalProblemsCompleted / totalProblemsAttempted) * 100 : 0;
+
+    // Generate progress trend (last 10 sessions)
+    const recentInterviewSessions = interviewSessions
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 10);
+
+    const progressTrend = recentInterviewSessions.map(session => {
+      const sessionAttempts = allAttempts.filter(attempt => 
+        attempt.sessionId === session.sessionId
+      );
+      
+      const sessionAccuracy = sessionAttempts.length > 0 ? 
+        (sessionAttempts.filter(a => a.status === 'correct').length / sessionAttempts.length) * 100 : 0;
+
+      return {
+        sessionId: session.sessionId,
+        date: session.timestamp,
+        mode: session.sessionType,
+        accuracy: sessionAccuracy,
+        problemsAttempted: sessionAttempts.length,
+        timeSpent: sessionAttempts.reduce((sum, a) => sum + (a.timeSpent || 0), 0)
+      };
+    }).reverse(); // Show oldest to newest for trend
+
+    // Calculate transfer metrics (compare interview vs standard performance)
+    const standardSessions = allSessions.filter(session => 
+      !session.sessionType || session.sessionType === 'standard'
+    );
+    
+    let standardAccuracy = 0;
+    if (standardSessions.length > 0) {
+      const standardAttempts = allAttempts.filter(attempt =>
+        standardSessions.some(session => session.sessionId === attempt.sessionId)
+      );
+      standardAccuracy = standardAttempts.length > 0 ?
+        (standardAttempts.filter(a => a.status === 'correct').length / standardAttempts.length) * 100 : 0;
+    }
+
+    const transferScore = standardAccuracy > 0 ? (accuracy / standardAccuracy) : 0;
+    
+    // Generate recommendations based on performance
+    const recommendations = [];
+    if (accuracy < 50) {
+      recommendations.push("Focus on Interview-Like mode to build confidence with reduced pressure");
+    } else if (accuracy < 70) {
+      recommendations.push("Good progress! Continue practicing in Interview-Like mode");
+    } else {
+      recommendations.push("Excellent performance! Ready to try Full Interview mode");
+    }
+
+    if (averageTimePerProblem > 1800) { // 30 minutes
+      recommendations.push("Work on time management - aim for 20-25 minutes per problem");
+    }
+
+    if (transferScore < 0.8) {
+      recommendations.push("Practice more standard sessions to strengthen fundamentals");
+    }
 
     return {
       totalInterviewSessions: interviewSessions.length,
       interviewModeBreakdown: {
-        'interview-like': sessionMetrics.interviewModeBreakdown['interview-like'] || 0,
-        'full-interview': sessionMetrics.interviewModeBreakdown['full-interview'] || 0
+        'interview-like': interviewModeBreakdown['interview-like'] || 0,
+        'full-interview': interviewModeBreakdown['full-interview'] || 0
       },
       averagePerformance: {
-        accuracy: Math.round(sessionMetrics.accuracy * 10) / 10,
-        timePerProblem: Math.round(sessionMetrics.averageTimePerProblem / 60), // Convert to minutes
-        completionRate: Math.round(sessionMetrics.completionRate * 10) / 10
+        accuracy: Math.round(accuracy * 10) / 10,
+        timePerProblem: Math.round(averageTimePerProblem / 60), // Convert to minutes
+        completionRate: Math.round(completionRate * 10) / 10
       },
       progressTrend,
-      transferMetrics,
-      recentSessions: interviewSessions
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        .slice(0, 5)
-        .map(session => ({
-          sessionId: session.sessionId,
-          date: session.timestamp,
-          mode: session.sessionType,
-          problemsAttempted: allAttempts.filter(a => a.sessionId === session.sessionId).length,
-          accuracy: allAttempts.filter(a => a.sessionId === session.sessionId && a.status === 'correct').length /
-                    Math.max(1, allAttempts.filter(a => a.sessionId === session.sessionId).length) * 100
-        })),
+      transferMetrics: {
+        standardToInterview: Math.round(transferScore * 100) / 100,
+        improvementRate: progressTrend.length >= 2 ? 
+          Math.round(((progressTrend[progressTrend.length - 1].accuracy - progressTrend[0].accuracy) / progressTrend.length) * 10) / 10 : 0
+      },
+      recentSessions: recentInterviewSessions.slice(0, 5).map(session => ({
+        sessionId: session.sessionId,
+        date: session.timestamp,
+        mode: session.sessionType,
+        problemsAttempted: allAttempts.filter(a => a.sessionId === session.sessionId).length,
+        accuracy: allAttempts.filter(a => a.sessionId === session.sessionId && a.status === 'correct').length /
+                  Math.max(1, allAttempts.filter(a => a.sessionId === session.sessionId).length) * 100
+      })),
       recommendations
     };
     
   } catch (error) {
-    logger.error("Error in getInterviewAnalyticsData:", error);
+    console.error("Error in getInterviewAnalyticsData:", error);
     throw error;
   }
 }
@@ -2072,7 +2708,7 @@ export async function getSessionMetrics(options = {}) {
     const trackingMetrics = calculateSessionTypeMetrics(trackingSessions, trackingAttempts, 'tracking');
     
     // Calculate transfer metrics (tracking → guided adoption)
-    const transferMetrics = calculateTrackingAdoptionMetrics(sessions, attempts);
+    const transferMetrics = calculateTransferMetrics(sessions, attempts);
     
     // Calculate session health metrics
     const healthMetrics = await calculateSessionHealthMetrics(sessions);
@@ -2094,7 +2730,7 @@ export async function getSessionMetrics(options = {}) {
     };
     
   } catch (error) {
-    logger.error("Error in getSessionMetrics:", error);
+    console.error("Error in getSessionMetrics:", error);
     throw error;
   }
 }
@@ -2149,7 +2785,7 @@ function calculateSessionTypeMetrics(sessions, attempts, type) {
 /**
  * Calculate transfer metrics (tracking → guided session adoption)
  */
-function calculateTrackingAdoptionMetrics(sessions, attempts) {
+function calculateTransferMetrics(sessions, attempts) {
   // Find users who have both tracking and guided sessions
   const hasTracking = sessions.some(s => s.origin === 'tracking');
   const hasGuided = sessions.some(s => s.origin === 'generator');
@@ -2201,7 +2837,7 @@ function calculateTrackingAdoptionMetrics(sessions, attempts) {
 /**
  * Calculate session health metrics using classification system
  */
-function calculateSessionHealthMetrics(sessions) {
+async function calculateSessionHealthMetrics(sessions) {
   try {
     // This would typically call the background script to classify sessions
     // For now, we'll simulate the classification
@@ -2225,7 +2861,7 @@ function calculateSessionHealthMetrics(sessions) {
     };
     
   } catch (error) {
-    logger.error("Error calculating session health:", error);
+    console.error("Error calculating session health:", error);
     return {
       totalSessions: sessions.length,
       healthyCount: sessions.length,

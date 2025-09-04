@@ -16,9 +16,7 @@ import { fetchProblemById } from "../db/standard_problems.js";
 import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
-import logger from "../utils/logger.js";
-import { roundToPrecision } from "../utils/Utils.js";
-import { openDatabase } from "../db/connectionUtils.js";
+import { InterviewService } from "./interviewService.js";
 
 /**
  * Circuit Breaker for Enhanced Habit Learning Features
@@ -43,7 +41,7 @@ class HabitLearningCircuitBreaker {
     if (this.isOpen && this.lastFailureTime) {
       const timeSinceFailure = Date.now() - this.lastFailureTime;
       if (timeSinceFailure > this.RECOVERY_TIMEOUT) {
-        logger.info(`🔄 Circuit breaker reset for ${operationName} - attempting enhanced logic again`);
+        console.log(`🔄 Circuit breaker reset for ${operationName} - attempting enhanced logic again`);
         this.isOpen = false;
         this.failureCount = 0;
       }
@@ -51,7 +49,7 @@ class HabitLearningCircuitBreaker {
 
     // If circuit is open, use fallback immediately
     if (this.isOpen) {
-      logger.info(`🚫 Circuit breaker open for ${operationName} - using fallback logic`);
+      console.log(`🚫 Circuit breaker open for ${operationName} - using fallback logic`);
       return await fallbackFn();
     }
 
@@ -67,12 +65,12 @@ class HabitLearningCircuitBreaker {
       this.failureCount++;
       this.lastFailureTime = Date.now();
       
-      logger.warn(`⚠️ Enhanced ${operationName} failed (${this.failureCount}/${this.MAX_FAILURES}):`, error.message);
+      console.warn(`⚠️ Enhanced ${operationName} failed (${this.failureCount}/${this.MAX_FAILURES}):`, error.message);
       
       // Open circuit breaker if failure threshold reached
       if (this.failureCount >= this.MAX_FAILURES) {
         this.isOpen = true;
-        logger.error(`🚨 Circuit breaker opened for ${operationName} - enhanced features disabled`);
+        console.error(`🚨 Circuit breaker opened for ${operationName} - enhanced features disabled`);
       }
       
       // Always fall back to current system
@@ -114,7 +112,7 @@ export const SessionService = {
     const wasInProgress = this._sessionCreationInProgress;
     const mutexAge = this._sessionCreationStartTime ? Date.now() - this._sessionCreationStartTime : 0;
     
-    logger.warn(`🚨 EMERGENCY: Resetting session creation mutex`, {
+    console.warn(`🚨 EMERGENCY: Resetting session creation mutex`, {
       wasInProgress,
       mutexAge: `${mutexAge}ms`,
       hadPromise: !!this._sessionCreationPromise
@@ -140,29 +138,11 @@ export const SessionService = {
     const sessionType = session.sessionType || 'standard';
     const expected = expectedSessionType || 'standard';
     
-    // Define compatibility groups
-    const standardModes = ['standard', 'tracking']; // Standard modes (including tracking sessions)
-    
-    // Interview modes are NOT compatible with each other - each has different constraints
-    // interview-like: Limited hints, mild time pressure  
-    // full-interview: No hints, strict timing, realistic conditions
-    // Each interview mode should create its own dedicated session
-    
-    // Check if both are in the same compatibility group
-    const bothStandard = standardModes.includes(sessionType) && standardModes.includes(expected);
-    const exactInterviewMatch = (sessionType === expected) && !standardModes.includes(sessionType);
-    
-    // Allow mixed compatibility for common cases:
-    // - Any session can be resumed as 'standard' (fallback behavior)
-    // - 'standard' sessions can be resumed for any request (existing behavior)
-    const allowMixedStandard = (sessionType === 'standard' || expected === 'standard');
-    
-    const compatible = bothStandard || exactInterviewMatch || allowMixedStandard;
+    // Simple exact match - only 3 types: 'standard', 'interview-like', 'full-interview'
+    const compatible = sessionType === expected;
     
     if (!compatible) {
-      logger.info(`🔍 Session type incompatible: session=${sessionType} vs expected=${expected} (standard: ${bothStandard}, exactInterview: ${exactInterviewMatch}, mixed: ${allowMixedStandard})`);
-    } else {
-      logger.info(`✅ Session types compatible: ${sessionType} ↔ ${expected} (standard: ${bothStandard}, exactInterview: ${exactInterviewMatch}, mixed: ${allowMixedStandard})`);
+      console.info(`🔍 Session type incompatible: session=${sessionType} vs expected=${expected}`);
     }
     
     return compatible;
@@ -214,7 +194,7 @@ export const SessionService = {
       }
     );
 
-    logger.info(`📊 Starting performance summary for session ${session.id}`);
+    console.info(`📊 Starting performance summary for session ${session.id}`);
 
     try {
       // 1️⃣ Capture pre-session state for delta calculations
@@ -224,11 +204,11 @@ export const SessionService = {
       );
 
       // 2️⃣ Update problem relationships based on session attempts
-      logger.info("🔗 Updating problem relationships...");
+      console.info("🔗 Updating problem relationships...");
       await updateProblemRelationships(session);
 
       // 3️⃣ Recalculate tag mastery with new session data
-      logger.info("🧠 Recalculating tag mastery...");
+      console.info("🧠 Recalculating tag mastery...");
       await calculateTagMastery();
 
       // 4️⃣ Get updated tag mastery for delta calculation
@@ -238,7 +218,7 @@ export const SessionService = {
       );
 
       // 5️⃣ Generate comprehensive session performance metrics
-      logger.info("📈 Generating session performance metrics...");
+      console.info("📈 Generating session performance metrics...");
       const unmasteredTags = (postSessionTagMastery || [])
         .filter((tm) => !tm.mastered)
         .map((tm) => tm.tag);
@@ -294,7 +274,7 @@ export const SessionService = {
       // 🔟 Log structured analytics for dashboard integration (Chrome storage backup)
       this.logSessionAnalytics(sessionSummary);
 
-      logger.info(
+      console.info(
         `✅ Session performance summary completed for ${session.id}`
       );
 
@@ -305,7 +285,7 @@ export const SessionService = {
       );
       return sessionSummary;
     } catch (error) {
-      logger.error(
+      console.error(
         `❌ Error summarizing session performance for ${session.id}:`,
         error
       );
@@ -320,7 +300,7 @@ export const SessionService = {
   async checkAndCompleteSession(sessionId) {
     const session = await getSessionById(sessionId);
     if (!session) {
-      logger.error(`❌ Session ${sessionId} not found.`);
+      console.error(`❌ Session ${sessionId} not found.`);
       return false;
     }
 
@@ -335,14 +315,14 @@ export const SessionService = {
       return !attemptedProblemIds.has(problemId);
     });
 
-    logger.info("📎 Unattempted Problems:", unattemptedProblems);
+    console.info("📎 Unattempted Problems:", unattemptedProblems);
 
     if (unattemptedProblems.length === 0) {
       // ✅ Mark session as completed
       session.status = "completed";
       await updateSessionInDB(session);
 
-      logger.info(`✅ Session ${sessionId} marked as completed.`);
+      console.info(`✅ Session ${sessionId} marked as completed.`);
 
       // ✅ Clear session cache since session status changed
       try {
@@ -350,7 +330,7 @@ export const SessionService = {
           chrome.runtime.sendMessage({ type: "clearSessionCache" });
         }
       } catch (error) {
-        logger.warn("Failed to clear session cache:", error);
+        console.warn("Failed to clear session cache:", error);
       }
 
       // ✅ Run centralized session performance analysis
@@ -390,7 +370,7 @@ export const SessionService = {
       
       return false;
     } catch (error) {
-      logger.error("Error checking interview session frequency:", error);
+      console.error("Error checking interview session frequency:", error);
       return false;
     }
   },
@@ -404,7 +384,7 @@ export const SessionService = {
       const standardSummary = await this.summarizeSessionPerformance(session);
       
       if (!session.interviewMetrics) {
-        logger.warn("No interview metrics available for session summary");
+        console.warn("No interview metrics available for session summary");
         return standardSummary;
       }
 
@@ -424,7 +404,7 @@ export const SessionService = {
       // Store interview analytics
       await this.storeInterviewAnalytics(interviewSummary);
       
-      logger.info("📊 Interview session analysis complete:", {
+      console.info("📊 Interview session analysis complete:", {
         sessionId: session.id,
         mode: session.sessionType,
         transferReadiness: session.interviewMetrics.transferReadinessScore,
@@ -434,14 +414,14 @@ export const SessionService = {
       return interviewSummary;
       
     } catch (error) {
-      logger.error("Error summarizing interview performance:", error);
+      console.error("Error summarizing interview performance:", error);
       // Fallback to standard summary
       return this.summarizeSessionPerformance(session);
     }
   },
 
   // NEW: Store interview analytics for dashboard
-  storeInterviewAnalytics(interviewSummary) {
+  async storeInterviewAnalytics(interviewSummary) {
     try {
       if (typeof chrome !== "undefined" && chrome.storage) {
         chrome.storage.local.get(["interviewAnalytics"], (result) => {
@@ -465,7 +445,7 @@ export const SessionService = {
         });
       }
     } catch (error) {
-      logger.error("Error storing interview analytics:", error);
+      console.error("Error storing interview analytics:", error);
     }
   },
 
@@ -473,7 +453,7 @@ export const SessionService = {
   async getTagPerformanceBaselines() {
     try {
       // Get recent session performance data to establish baselines
-      const _recentPerformance = await getSessionPerformance({ 
+      const recentPerformance = await getSessionPerformance({ 
         recentSessionsLimit: 10 
       });
       
@@ -493,7 +473,7 @@ export const SessionService = {
       
       return baselines;
     } catch (error) {
-      logger.error("Error getting tag performance baselines:", error);
+      console.error("Error getting tag performance baselines:", error);
       return {};
     }
   },
@@ -505,57 +485,49 @@ export const SessionService = {
    * @returns {Promise<Object|null>} - Session object or null if no resumable session
    */
   async resumeSession(sessionType = null) {
-    logger.info(`🔍 resumeSession ENTRY: sessionType=${sessionType}`);
+    console.info(`🔍 resumeSession ENTRY: sessionType=${sessionType}`);
     
     // Look for both in_progress and draft sessions (guided sessions can be in draft status)
-    logger.info(`🔍 Calling getLatestSessionByType for in_progress sessions...`);
+    console.info(`🔍 Calling getLatestSessionByType for in_progress sessions...`);
     let latestSession = await getLatestSessionByType(sessionType, "in_progress");
     
     // If no in_progress session, look for draft sessions (for guided sessions)
     if (!latestSession) {
-      logger.info(`🔍 No in_progress session found, checking for draft sessions...`);
+      console.info(`🔍 No in_progress session found, checking for draft sessions...`);
       latestSession = await getLatestSessionByType(sessionType, "draft");
     }
-    logger.info(`🔍 resumeSession getLatestSessionByType result:`, {
+    console.info(`🔍 resumeSession getLatestSessionByType result:`, {
       found: !!latestSession,
-      id: latestSession?.id?.substring(0, 8) + '...',
-      sessionType: latestSession?.sessionType || 'undefined',
-      status: latestSession?.status || 'undefined',
-      lastActivity: latestSession?.lastActivityTime || latestSession?.date || 'undefined'
+      id: latestSession?.id,
+      sessionType: latestSession?.sessionType || 'undefined'
     });
 
     if (latestSession) {
       // ✨ NEW: Validate session type compatibility before resuming
-      logger.info(`🔍 Checking session compatibility for resume...`);
+      console.info(`🔍 Checking session compatibility for resume...`);
       const mismatchInfo = this.detectSessionTypeMismatch(latestSession, sessionType);
-      logger.info(`🔍 Resume compatibility result:`, mismatchInfo);
+      console.info(`🔍 Resume compatibility result:`, mismatchInfo);
       
       if (mismatchInfo.hasMismatch) {
-        logger.warn(`🚫 BLOCKING SESSION RESUME due to type mismatch:`, {
-          details: mismatchInfo.details,
-          sessionId: latestSession.id?.substring(0, 8) + '...',
-          currentSessionType: mismatchInfo.sessionType,
-          expectedType: mismatchInfo.expectedType,
-          reason: mismatchInfo.reason
-        });
-        logger.info(`🔄 Will create NEW session instead of resuming existing incompatible session`);
+        console.info(`🚫 Cannot resume session due to type mismatch:`, mismatchInfo.details);
+        console.info(`🔄 Session ${latestSession.id} (${mismatchInfo.sessionType}) incompatible with current mode (${mismatchInfo.expectedType})`);
         return null; // Fail fast instead of trying to resume incompatible session
       }
       
-      logger.info(`✅ Resuming existing ${sessionType || 'any'} session:`, latestSession.id);
+      console.info(`✅ Resuming existing ${sessionType || 'any'} session:`, latestSession.id);
       
       // Add currentProblemIndex to track progress if missing
       if (!latestSession.currentProblemIndex) {
         latestSession.currentProblemIndex = 0;
       }
       
-      logger.info(`🔍 Calling saveSessionToStorage...`);
+      console.info(`🔍 Calling saveSessionToStorage...`);
       await saveSessionToStorage(latestSession);
-      logger.info(`✅ Session saved to storage successfully`);
+      console.info(`✅ Session saved to storage successfully`);
       return latestSession; // Resume compatible sessions
     }
 
-    logger.info(`🔄 No resumable ${sessionType || 'any'} session found`);
+    console.info(`🔄 No resumable ${sessionType || 'any'} session found`);
     return null;
   },
 
@@ -573,54 +545,35 @@ export const SessionService = {
     });
 
     try {
-      logger.info(`📌 Creating new ${sessionType} session with status: ${status}`);
-
-      // Enforce one active session per type: mark existing in_progress/draft sessions as completed
-      logger.info(`🔍 Checking for existing active ${sessionType} sessions to mark as completed...`);
-      
-      const existingInProgress = await getLatestSessionByType(sessionType, "in_progress");
-      if (existingInProgress) {
-        logger.info(`⏹️ Marking existing in_progress ${sessionType} session as completed:`, existingInProgress.id.substring(0, 8));
-        existingInProgress.status = "completed";
-        existingInProgress.lastActivityTime = new Date().toISOString();
-        await updateSessionInDB(existingInProgress);
-      }
-
-      const existingDraft = await getLatestSessionByType(sessionType, "draft");
-      if (existingDraft && existingDraft.id !== existingInProgress?.id) {
-        logger.info(`⏹️ Marking existing draft ${sessionType} session as completed:`, existingDraft.id.substring(0, 8));
-        existingDraft.status = "completed";
-        existingDraft.lastActivityTime = new Date().toISOString();
-        await updateSessionInDB(existingDraft);
-      }
+      console.info(`📌 Creating new ${sessionType} session with status: ${status}`);
 
       // Use appropriate service based on session type
-      logger.info(`🎯 SESSION SERVICE: Creating ${sessionType} session`);
+      console.info(`🎯 SESSION SERVICE: Creating ${sessionType} session`);
       let sessionData;
       if (sessionType === 'standard') {
-        logger.info("🎯 Calling ProblemService.createSession() for standard session");
+        console.info("🎯 Calling ProblemService.createSession() for standard session");
         const problems = await ProblemService.createSession();
         sessionData = {
           problems: problems,
           sessionType: 'standard'
         };
-        logger.info("🎯 Standard session data created:", { problemCount: problems?.length });
+        console.info("🎯 Standard session data created:", { problemCount: problems?.length });
       } else {
-        logger.info(`🎯 Calling ProblemService.createInterviewSession(${sessionType}) for interview session`);
+        console.info(`🎯 Calling ProblemService.createInterviewSession(${sessionType}) for interview session`);
         // Interview session returns structured data
         sessionData = await ProblemService.createInterviewSession(sessionType);
-        logger.info("🎯 Interview session data created:", {
+        console.info("🎯 Interview session data created:", {
           sessionType: sessionData?.sessionType,
           problemCount: sessionData?.problems?.length,
           hasConfig: !!sessionData?.interviewConfig
         });
       }
       
-      logger.info("📌 sessionData for new session:", sessionData);
+      console.info("📌 sessionData for new session:", sessionData);
 
       const problems = sessionData.problems || [];
       if (!problems || problems.length === 0) {
-        logger.error("❌ No problems fetched for the new session.");
+        console.error("❌ No problems fetched for the new session.");
         performanceMonitor.endQuery(queryContext, true, 0);
         return null;
       }
@@ -645,7 +598,7 @@ export const SessionService = {
         })
       };
 
-      logger.info("📌 newSession:", newSession);
+      console.info("📌 newSession:", newSession);
 
       // Use retry service with deduplication for session creation
       await this._retryService.executeWithRetry(
@@ -669,7 +622,7 @@ export const SessionService = {
       // Update session creation timestamp for cooldown management
       this._lastSessionCreationTime = Date.now();
 
-      logger.info("✅ New session created and stored:", newSession);
+      console.info("✅ New session created and stored:", newSession);
       performanceMonitor.endQuery(
         queryContext,
         true,
@@ -688,25 +641,25 @@ export const SessionService = {
    * @returns {Promise<Object|null>} Session object or null on failure
    */
   async getOrCreateSession(sessionType = 'standard') {
-    logger.info(`🎯 getOrCreateSession called for ${sessionType}`);
+    console.info(`🎯 getOrCreateSession called for ${sessionType}`);
     
     // FIRST: Quick check for existing compatible session to avoid unnecessary mutex locks
     const quickCheck = await this.resumeSession(sessionType);
     if (quickCheck) {
-      logger.info(`🚀 Found existing ${sessionType} session immediately, no mutex needed:`, quickCheck.id);
+      console.info(`🚀 Found existing ${sessionType} session immediately, no mutex needed:`, quickCheck.id);
       return quickCheck;
     }
     
     // Check if session creation is already in progress
     if (this._sessionCreationInProgress) {
-      logger.info("🔒 Session creation already in progress, waiting for existing operation...");
+      console.info("🔒 Session creation already in progress, waiting for existing operation...");
       if (this._sessionCreationPromise) {
         // Wait for the existing promise with timeout protection
         const MUTEX_WAIT_TIMEOUT = 15000; // 15 seconds max wait
         const startTime = Date.now();
         
         try {
-          logger.info(`⏱️ Waiting for existing session creation (max ${MUTEX_WAIT_TIMEOUT / 1000}s)...`);
+          console.info(`⏱️ Waiting for existing session creation (max ${MUTEX_WAIT_TIMEOUT / 1000}s)...`);
           
           // Race between the existing promise and a timeout
           const timeoutPromise = new Promise((_, reject) => 
@@ -715,14 +668,14 @@ export const SessionService = {
           
           const result = await Promise.race([this._sessionCreationPromise, timeoutPromise]);
           const waitTime = Date.now() - startTime;
-          logger.info(`✅ Mutex wait completed in ${waitTime}ms, checking session compatibility...`);
+          console.info(`✅ Mutex wait completed in ${waitTime}ms, checking session compatibility...`);
           
           // Check if the returned session is compatible with requested type
           if (result && this.isSessionTypeCompatible(result, sessionType)) {
-            logger.info(`✅ Existing session is compatible with ${sessionType}, returning it`);
+            console.info(`✅ Existing session is compatible with ${sessionType}, returning it`);
             return result;
           } else {
-            logger.warn(`⚠️ Existing session incompatible with ${sessionType}, will retry after cooldown`);
+            console.warn(`⚠️ Existing session incompatible with ${sessionType}, will retry after cooldown`);
             // Wait a brief moment and try again - but don't create duplicate
             await new Promise(resolve => setTimeout(resolve, 1000));
             return this.resumeSession(sessionType) || null;
@@ -730,23 +683,23 @@ export const SessionService = {
           
         } catch (error) {
           const waitTime = Date.now() - startTime;
-          logger.warn(`🚫 Mutex wait failed after ${waitTime}ms:`, error.message);
+          console.warn(`🚫 Mutex wait failed after ${waitTime}ms:`, error.message);
           
           // Try to get an existing session instead of creating a new one
-          logger.info(`🔍 Attempting to resume existing session instead of creating new...`);
+          console.info(`🔍 Attempting to resume existing session instead of creating new...`);
           const existingSession = await this.resumeSession(sessionType);
           if (existingSession) {
-            logger.info(`✅ Found existing ${sessionType} session during mutex timeout recovery`);
+            console.info(`✅ Found existing ${sessionType} session during mutex timeout recovery`);
             return existingSession;
           }
           
-          logger.warn(`🔧 No existing session found, resetting mutex for retry`);
+          console.warn(`🔧 No existing session found, resetting mutex for retry`);
           this.resetSessionCreationMutex();
           throw new Error(`Session creation mutex timeout - please retry the operation`);
         }
       } else {
         // No promise but mutex is set - this is an inconsistent state
-        logger.warn(`🚫 Inconsistent mutex state: in_progress=true but no promise. Resetting...`);
+        console.warn(`🚫 Inconsistent mutex state: in_progress=true but no promise. Resetting...`);
         this.resetSessionCreationMutex();
       }
     }
@@ -754,22 +707,22 @@ export const SessionService = {
     // Set mutex lock
     this._sessionCreationInProgress = true;
     this._sessionCreationStartTime = Date.now();
-    logger.info(`🔒 Acquired session creation mutex for ${sessionType} at ${this._sessionCreationStartTime}`);
+    console.info(`🔒 Acquired session creation mutex for ${sessionType} at ${this._sessionCreationStartTime}`);
     
     // Store the promise so other calls can wait for it
     this._sessionCreationPromise = this._doGetOrCreateSession(sessionType);
     
     try {
       const result = await this._sessionCreationPromise;
-      logger.info(`✅ Session creation completed successfully for ${sessionType}`);
+      console.info(`✅ Session creation completed successfully for ${sessionType}`);
       return result;
     } catch (error) {
-      logger.error(`❌ Session creation failed for ${sessionType}:`, error);
+      console.error(`❌ Session creation failed for ${sessionType}:`, error);
       throw error;
     } finally {
       // Release mutex lock
       const mutexDuration = this._sessionCreationStartTime ? Date.now() - this._sessionCreationStartTime : 0;
-      logger.info(`🔓 Released session creation mutex for ${sessionType} after ${mutexDuration}ms`);
+      console.info(`🔓 Released session creation mutex for ${sessionType} after ${mutexDuration}ms`);
       this._sessionCreationInProgress = false;
       this._sessionCreationPromise = null;
       this._sessionCreationStartTime = null;
@@ -777,99 +730,48 @@ export const SessionService = {
   },
 
   async _doGetOrCreateSession(sessionType = 'standard') {
-    logger.info(`🔍 _doGetOrCreateSession ENTRY: sessionType=${sessionType}`);
+    console.info(`🔍 _doGetOrCreateSession ENTRY: sessionType=${sessionType}`);
     
     // Check if we're creating sessions too rapidly (prevent race conditions)
     const now = Date.now();
     const timeSinceLastCreation = now - this._lastSessionCreationTime;
     
     if (timeSinceLastCreation < this._sessionCreationCooldown) {
-      logger.info(`🔄 Session creation cooldown active (${Math.round(timeSinceLastCreation / 1000)}s/${this._sessionCreationCooldown / 1000}s)`);
+      console.info(`🔄 Session creation cooldown active (${Math.round(timeSinceLastCreation / 1000)}s/${this._sessionCreationCooldown / 1000}s)`);
       
       // Wait for cooldown to complete to prevent rapid session creation
       const remainingCooldown = this._sessionCreationCooldown - timeSinceLastCreation;
-      logger.info(`⏱️ Waiting ${Math.round(remainingCooldown / 1000)}s for session creation cooldown`);
+      console.info(`⏱️ Waiting ${Math.round(remainingCooldown / 1000)}s for session creation cooldown`);
       await new Promise(resolve => setTimeout(resolve, remainingCooldown));
     }
 
-    logger.info(`🔍 Getting settings...`);
+    console.info(`🔍 Getting settings...`);
     const settings = await StorageService.migrateSettingsToIndexedDB();
     if (!settings) {
-      logger.error("❌ Settings not found.");
+      console.error("❌ Settings not found.");
       return null;
     }
 
     // Try to resume existing in-progress session first
-    logger.info(`🔍 Calling resumeSession(${sessionType})...`);
+    console.info(`🔍 Calling resumeSession(${sessionType})...`);
     const resumedSession = await this.resumeSession(sessionType);
     if (resumedSession) {
-      logger.info("✅ Resuming existing session:", resumedSession.id);
+      console.info("✅ Resuming existing session:", resumedSession.id);
       return resumedSession;
     }
-    logger.info(`🔄 resumeSession returned null - no resumable session found`);
+    console.info(`🔄 resumeSession returned null - no resumable session found`);
 
-    logger.info(`🆕 Creating new ${sessionType} session - no resumable session found`);
+    console.info(`🆕 Creating new ${sessionType} session - no resumable session found`);
     this._lastSessionCreationTime = now; // Update creation time
     
     // Generated/Guided sessions should start as draft - they only become in_progress after first problem completion
     const newSession = await this.createNewSession(sessionType, 'draft');
     
-    logger.info(`✅ New session created:`, newSession?.id);
+    console.info(`✅ New session created:`, newSession?.id);
     return newSession;
   },
 
   // Removed getDraftSession and startSession - sessions auto-start immediately now
-
-  /**
-   * Helper method to classify interview sessions
-   */
-  _classifyInterviewSession(hoursStale, attemptCount) {
-    if (hoursStale > 3) {
-      if (attemptCount === 0 && hoursStale > 6) {
-        return 'interview_abandoned';
-      }
-      return 'interview_stale';
-    }
-    return 'interview_active';
-  },
-
-  /**
-   * Helper method to classify tracking sessions
-   */
-  _classifyTrackingSession(hoursStale) {
-    if (hoursStale > 6) {
-      return 'tracking_stale';
-    }
-    return 'tracking_active';
-  },
-
-  /**
-   * Helper method to classify generator sessions
-   */
-  _classifyGeneratorSession(session, metrics) {
-    const { hoursStale, attemptCount, progressRatio, sessionProblemsAttempted, outsideSessionAttempts } = metrics;
-    if (session.status === 'draft' && hoursStale > 2) {
-      return 'draft_expired';
-    }
-    
-    if (attemptCount === 0 && hoursStale > 24) {
-      return 'abandoned_at_start';
-    }
-    
-    if (progressRatio >= 0.8 && hoursStale > 12) {
-      return 'auto_complete_candidate';
-    }
-    
-    if (attemptCount > 0 && hoursStale > 48) {
-      return 'stalled_with_progress';
-    }
-    
-    if (outsideSessionAttempts > 0 && sessionProblemsAttempted === 0 && hoursStale > 12) {
-      return 'tracking_only_user';
-    }
-    
-    return null;
-  },
 
   /**
    * Multi-factor session classification for intelligent cleanup
@@ -894,14 +796,14 @@ export const SessionService = {
     ).length || 0;
     const outsideSessionAttempts = attemptCount - sessionProblemsAttempted;
     
-    logger.info(`🔍 Classifying session ${session.id}:`, {
+    console.log(`🔍 Classifying session ${session.id}:`, {
       origin: session.origin,
       status: session.status,
       hoursStale: Math.round(hoursStale * 10) / 10,
       attemptCount,
       sessionProblemsAttempted,
       outsideSessionAttempts,
-      progressRatio: roundToPrecision(progressRatio)
+      progressRatio: Math.round(progressRatio * 100) / 100
     });
     
     // Active sessions - use interview-aware thresholds
@@ -912,21 +814,50 @@ export const SessionService = {
     
     // Interview session classification - different thresholds for time-sensitive practice
     if (session.sessionType && (session.sessionType === 'interview-like' || session.sessionType === 'full-interview')) {
-      return this._classifyInterviewSession(hoursStale, attemptCount);
+      // Interview sessions have shorter staleness thresholds due to their time-sensitive nature
+      if (hoursStale > 3) {
+        if (attemptCount === 0 && hoursStale > 6) {
+          return 'interview_abandoned';
+        }
+        return 'interview_stale';
+      }
+      return 'interview_active';
     }
     
     // Tracking session classification
     if (session.origin === 'tracking') {
-      return this._classifyTrackingSession(hoursStale);
+      // Updated tracking session parameters: 4-6 hours active time
+      if (hoursStale > 6) {
+        return 'tracking_stale';
+      }
+      return 'tracking_active';
     }
     
     // Guided session classification
     if (session.origin === 'generator') {
-      const result = this._classifyGeneratorSession(session, { 
-        hoursStale, attemptCount, progressRatio, sessionProblemsAttempted, outsideSessionAttempts 
-      });
-      if (result) {
-        return result;
+      // Draft sessions should rarely exist now - they auto-start, but clean up old ones
+      if (session.status === 'draft' && hoursStale > 2) {
+        return 'draft_expired';
+      }
+      
+      // Sessions with no attempts that are old
+      if (attemptCount === 0 && hoursStale > 24) {
+        return 'abandoned_at_start';
+      }
+      
+      // Nearly complete sessions
+      if (progressRatio >= 0.8 && hoursStale > 12) {
+        return 'auto_complete_candidate';
+      }
+      
+      // Sessions with progress but stalled
+      if (attemptCount > 0 && hoursStale > 48) {
+        return 'stalled_with_progress';
+      }
+      
+      // Detect "tracking-only" usage pattern - guided session but all attempts are outside
+      if (outsideSessionAttempts > 0 && sessionProblemsAttempted === 0 && hoursStale > 12) {
+        return 'tracking_only_user';
       }
     }
     
@@ -937,7 +868,7 @@ export const SessionService = {
    * Detect all stalled sessions using classification
    */
   async detectStalledSessions() {
-    logger.info('🔍 Detecting stalled sessions...');
+    console.info('🔍 Detecting stalled sessions...');
     
     const allSessions = await this.getAllSessionsFromDB();
     const stalledSessions = [];
@@ -954,7 +885,7 @@ export const SessionService = {
       }
     }
     
-    logger.info(`Found ${stalledSessions.length} stalled sessions:`, 
+    console.info(`Found ${stalledSessions.length} stalled sessions:`, 
       stalledSessions.map(s => `${s.session.id.substring(0,8)}:${s.classification}`)
     );
     
@@ -984,28 +915,15 @@ export const SessionService = {
    * Helper to get all sessions from database
    */
   async getAllSessionsFromDB() {
-    try {
-      const db = await openDatabase();
-      if (!db) {
-        logger.error('❌ Database not initialized');
-        return [];
-      }
-      
-      const transaction = db.transaction(['sessions'], 'readonly');
-      const store = transaction.objectStore('sessions');
-      
-      return new Promise((resolve, reject) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => {
-          logger.error('❌ Failed to get sessions from DB:', request.error);
-          reject(request.error);
-        };
-      });
-    } catch (error) {
-      logger.error('❌ Error accessing sessions DB:', error);
-      return [];
-    }
+    const db = await import('../db/index.js').then(m => m.default);
+    const transaction = db.transaction(['sessions'], 'readonly');
+    const store = transaction.objectStore('sessions');
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
   },
 
   /**
@@ -1014,7 +932,7 @@ export const SessionService = {
    * Now creates sessions that auto-start when accessed
    */
   async generateSessionFromTrackingActivity(recentAttempts) {
-    logger.info(`🎯 Generating session from ${recentAttempts.length} recent tracking attempts`);
+    console.info(`🎯 Generating session from ${recentAttempts.length} recent tracking attempts`);
     
     // Analyze attempt patterns to build adaptive config
     const problemIds = [...new Set(recentAttempts.map(a => a.problemId))];
@@ -1038,7 +956,7 @@ export const SessionService = {
       .slice(0, 3)
       .map(([tag]) => tag);
     
-    logger.info('Tracking activity analysis:', {
+    console.info('Tracking activity analysis:', {
       uniqueProblems: problemIds.length,
       topDifficulty: Object.keys(difficultyCount).reduce((a, b) => 
         difficultyCount[a] > difficultyCount[b] ? a : b
@@ -1083,7 +1001,7 @@ export const SessionService = {
     };
     
     await saveNewSessionToDB(generatedSession);
-    logger.info(`🆕 Generated in_progress session from tracking: ${generatedSession.id}`);
+    console.info(`🆕 Generated in_progress session from tracking: ${generatedSession.id}`);
     
     return generatedSession;
   },
@@ -1093,32 +1011,32 @@ export const SessionService = {
    * Called periodically to monitor for auto-generation opportunities
    */
   async checkAndGenerateFromTracking() {
-    logger.info('🔍 Checking for session generation opportunities from tracking activity');
+    console.info('🔍 Checking for session generation opportunities from tracking activity');
     
     try {
       // Get recent attempts from tracking sessions (last 48 hours)
       const recentAttempts = await this.getRecentTrackingAttempts(48);
       
       if (recentAttempts.length < 4) {
-        logger.info(`Not enough tracking activity: ${recentAttempts.length} attempts (need ≥4)`);
+        console.info(`Not enough tracking activity: ${recentAttempts.length} attempts (need ≥4)`);
         return null;
       }
       
       // Check if there's already an active session to avoid creating duplicates
       const existingSession = await this.resumeSession('standard');
       if (existingSession) {
-        logger.info('Active session already exists, skipping auto-generation');
+        console.info('Active session already exists, skipping auto-generation');
         return null;
       }
       
       // Generate session from tracking patterns
       const generatedSession = await this.generateSessionFromTrackingActivity(recentAttempts);
       
-      logger.info('✅ Auto-generated guided session from tracking activity');
+      console.info('✅ Auto-generated guided session from tracking activity');
       return generatedSession;
       
     } catch (error) {
-      logger.error('❌ Failed to check/generate session from tracking:', error);
+      console.error('❌ Failed to check/generate session from tracking:', error);
       return null;
     }
   },
@@ -1129,7 +1047,7 @@ export const SessionService = {
   async getRecentTrackingAttempts(withinHours = 48) {
     const cutoffTime = new Date(Date.now() - (withinHours * 60 * 60 * 1000));
     
-    const db = await openDatabase();
+    const db = await import('../db/index.js').then(m => m.default);
     const transaction = db.transaction(['attempts', 'sessions'], 'readonly');
     const attemptStore = transaction.objectStore('attempts');
     const sessionStore = transaction.objectStore('sessions');
@@ -1162,7 +1080,7 @@ export const SessionService = {
              trackingSessionIds.has(attempt.SessionID);
     });
     
-    logger.info(`Found ${recentTrackingAttempts.length} recent tracking attempts`);
+    console.info(`Found ${recentTrackingAttempts.length} recent tracking attempts`);
     return recentTrackingAttempts;
   },
 
@@ -1170,7 +1088,7 @@ export const SessionService = {
    * Refresh/regenerate current session with new problems
    */
   async refreshSession(sessionType = 'standard', forceNew = false) {
-    logger.info(`🔄 Refreshing ${sessionType} session (forceNew: ${forceNew})`);
+    console.info(`🔄 Refreshing ${sessionType} session (forceNew: ${forceNew})`);
     
     // Mark current session as expired if it exists
     const currentSession = await this.resumeSession(sessionType);
@@ -1178,12 +1096,12 @@ export const SessionService = {
       currentSession.status = 'expired';
       currentSession.lastActivityTime = new Date().toISOString();
       await updateSessionInDB(currentSession);
-      logger.info(`Marked session ${currentSession.id} as expired`);
+      console.info(`Marked session ${currentSession.id} as expired`);
     }
     
     // Create fresh session
     const newSession = await this.createNewSession(sessionType);
-    logger.info(`✅ Created fresh ${sessionType} session: ${newSession.id}`);
+    console.info(`✅ Created fresh ${sessionType} session: ${newSession.id}`);
     
     return newSession;
   },
@@ -1344,7 +1262,7 @@ export const SessionService = {
       type: "session_completed",
       sessionId: sessionSummary.sessionId,
       metrics: {
-        accuracy: roundToPrecision(sessionSummary.performance.accuracy),
+        accuracy: Math.round(sessionSummary.performance.accuracy * 100) / 100,
         avgTime: Math.round(sessionSummary.performance.avgTime),
         problemsCompleted: sessionSummary.difficultyAnalysis.totalProblems,
         newMasteries: sessionSummary.masteryProgression.newMasteries,
@@ -1357,7 +1275,7 @@ export const SessionService = {
       },
     };
 
-    logger.info(
+    console.info(
       "📊 Session Analytics:",
       JSON.stringify(analyticsEvent, null, 2)
     );
@@ -1431,7 +1349,7 @@ export const SessionService = {
   async getCurrentStreak() {
     try {
       // Get recent sessions ordered by date (newest first)
-      const db = await openDatabase();
+      const db = await import("../db/index.js").then(m => m.default);
       const transaction = db.transaction(["sessions"], "readonly");
       const store = transaction.objectStore("sessions");
       
@@ -1450,7 +1368,7 @@ export const SessionService = {
         request.onerror = () => resolve(0);
       });
     } catch (error) {
-      logger.error("Error calculating current streak:", error);
+      console.error("Error calculating current streak:", error);
       return 0;
     }
   },
@@ -1496,7 +1414,7 @@ export const SessionService = {
         return this._analyzeCadence(sessions);
       },
       // Fallback to simple legacy logic
-      () => {
+      async () => {
         // Using fallback cadence analysis
         return {
           averageGapDays: 2,
@@ -1519,7 +1437,7 @@ export const SessionService = {
     const periodStart = new Date();
     periodStart.setDate(periodStart.getDate() - days);
     
-    const db = await openDatabase();
+    const db = await import("../db/index.js").then(m => m.default);
     const transaction = db.transaction(["sessions"], "readonly");
     const store = transaction.objectStore("sessions");
     
@@ -1627,7 +1545,7 @@ export const SessionService = {
       reliability,
       totalSessions: sessions.length,
       consistency: stdDev < 2 ? "consistent" : "variable",
-      confidenceScore: roundToPrecision(confidenceScore),
+      confidenceScore: Math.round(confidenceScore * 100) / 100,
       learningPhase,
       dataSpanDays: Math.round(dataSpanDays),
       standardDeviation: Math.round(stdDev * 10) / 10
@@ -1653,7 +1571,7 @@ export const SessionService = {
       currentWeekEnd.setHours(23, 59, 59, 999);
       
       // Get sessions from current week
-      const db = await openDatabase();
+      const db = await import("../db/index.js").then(m => m.default);
       const transaction = db.transaction(["sessions"], "readonly");
       const store = transaction.objectStore("sessions");
       
@@ -1683,7 +1601,7 @@ export const SessionService = {
         });
       });
     } catch (error) {
-      logger.error("Error calculating weekly progress:", error);
+      console.error("Error calculating weekly progress:", error);
       return {
         completed: 0,
         goal: 3,
@@ -1761,7 +1679,7 @@ export const SessionService = {
         daysUntilAlert: shouldAlert ? 0 : Math.max(0, alertThreshold - daysSinceLastSession)
       };
     } catch (error) {
-      logger.error("Error calculating streak risk timing:", error);
+      console.error("Error calculating streak risk timing:", error);
       return {
         shouldAlert: false,
         reason: "error",
@@ -1810,7 +1728,7 @@ export const SessionService = {
         lastSessionDate: lastSession.date
       };
     } catch (error) {
-      logger.error("Error calculating re-engagement timing:", error);
+      console.error("Error calculating re-engagement timing:", error);
       return {
         shouldPrompt: false,
         reason: "error",
@@ -1827,7 +1745,7 @@ export const SessionService = {
    */
   async checkConsistencyAlerts(reminderSettings) {
     try {
-      logger.info("🔍 Running comprehensive consistency check...");
+      console.info("🔍 Running comprehensive consistency check...");
       
       if (!reminderSettings?.enabled) {
         return {
@@ -1860,7 +1778,7 @@ export const SessionService = {
       if (cadence && reminderSettings.cadenceNudges) {
         // Skip cadence nudges if still in learning phase or insufficient data
         if (cadence.learningPhase || cadence.pattern === "insufficient_data") {
-          logger.info("⏸️ Skipping cadence nudges - still in learning phase or insufficient data");
+          console.log("⏸️ Skipping cadence nudges - still in learning phase or insufficient data");
         } else {
           const lastSession = await getLatestSession();
           if (lastSession) {
@@ -1868,22 +1786,78 @@ export const SessionService = {
             const threshold = cadence.averageGapDays + 0.5;
             
             // Enhanced reliability check - now requires medium+ reliability and good confidence
-            this._addCadenceNudgeIfNeeded(alerts, cadence, daysSince, threshold);
+            if (daysSince >= threshold && 
+                cadence.reliability !== "low" && 
+                cadence.confidenceScore >= 0.5) {
+              
+              alerts.push({
+                type: "cadence_nudge", 
+                priority: "medium",
+                message: `📅 You usually practice every ${Math.round(cadence.averageGapDays)} days — it's been ${Math.floor(daysSince)}. Quick session?`,
+                data: { 
+                  typicalGap: cadence.averageGapDays, 
+                  actualGap: Math.floor(daysSince),
+                  typicalCadence: cadence.pattern
+                }
+              });
+            }
           }
         }
       }
       
       // Check weekly goals with learning phase awareness (only Wednesday or Saturday)
       if (weeklyProgress && reminderSettings.weeklyGoals) {
-        this._addWeeklyGoalAlertIfNeeded(alerts, weeklyProgress, cadence);
+        // Require at least 2 weeks of data before sending weekly goal reminders
+        const hasEnoughHistoryForWeeklyGoals = cadence && 
+          !cadence.learningPhase && 
+          cadence.totalSessions >= 3;
+          
+        if (hasEnoughHistoryForWeeklyGoals) {
+          const today = new Date();
+          const dayOfWeek = today.getDay(); // 0 = Sunday, 3 = Wednesday, 6 = Saturday
+          
+          if ((dayOfWeek === 3 || dayOfWeek === 6) && weeklyProgress.percentage < 50) {
+            const isWednesday = dayOfWeek === 3;
+            const message = isWednesday 
+              ? `⚡ Halfway through the week! ${weeklyProgress.completed} of ${weeklyProgress.goal} sessions completed`
+              : `🎯 Weekend check: ${weeklyProgress.daysLeft} days left to hit your ${weeklyProgress.goal}-session goal`;
+              
+            alerts.push({
+              type: "weekly_goal",
+              priority: "low",
+              message,
+              data: { 
+                completedSessions: weeklyProgress.completed,
+                targetSessions: weeklyProgress.goal,
+                remainingDays: weeklyProgress.daysLeft
+              }
+            });
+          }
+        } else {
+          console.log("⏸️ Skipping weekly goal reminders - insufficient data for reliable weekly patterns");
+        }
       }
       
       // Check re-engagement prompts
       if (reEngagement?.shouldPrompt) {
-        this._addReEngagementAlert(alerts, reEngagement);
+        const messages = {
+          friendly_weekly: "👋 Ready to jump back in? Your progress is waiting",
+          supportive_biweekly: "💪 No pressure — start with just one problem when you're ready", 
+          gentle_monthly: "🌟 We're here when you want to continue your coding journey"
+        };
+        
+        alerts.push({
+          type: "re_engagement",
+          priority: "low",
+          message: messages[reEngagement.messageType],
+          data: { 
+            daysSinceLastSession: reEngagement.daysSinceLastSession,
+            messageType: reEngagement.messageType
+          }
+        });
       }
       
-      logger.info(`✅ Consistency check complete: ${alerts.length} alerts found`);
+      console.info(`✅ Consistency check complete: ${alerts.length} alerts found`);
       
       return {
         hasAlerts: alerts.length > 0,
@@ -1898,7 +1872,7 @@ export const SessionService = {
       };
       
     } catch (error) {
-      logger.error("Error in consistency check:", error);
+      console.error("Error in consistency check:", error);
       return {
         hasAlerts: false,
         reason: "check_failed",
@@ -1906,85 +1880,5 @@ export const SessionService = {
         error: error.message
       };
     }
-  },
-
-  /**
-   * Add cadence nudge alert if conditions are met
-   * @private
-   */
-  _addCadenceNudgeIfNeeded(alerts, cadence, daysSince, threshold) {
-    if (daysSince >= threshold && 
-        cadence.reliability !== "low" && 
-        cadence.confidenceScore >= 0.5) {
-      
-      alerts.push({
-        type: "cadence_nudge", 
-        priority: "medium",
-        message: `📅 You usually practice every ${Math.round(cadence.averageGapDays)} days — it's been ${Math.floor(daysSince)}. Quick session?`,
-        data: { 
-          typicalGap: cadence.averageGapDays, 
-          actualGap: Math.floor(daysSince),
-          typicalCadence: cadence.pattern
-        }
-      });
-    }
-  },
-
-  /**
-   * Add weekly goal alert if conditions are met
-   * @private
-   */
-  _addWeeklyGoalAlertIfNeeded(alerts, weeklyProgress, cadence) {
-    // Require at least 2 weeks of data before sending weekly goal reminders
-    const hasEnoughHistoryForWeeklyGoals = cadence && 
-      !cadence.learningPhase && 
-      cadence.totalSessions >= 3;
-      
-    if (hasEnoughHistoryForWeeklyGoals) {
-      const today = new Date();
-      const dayOfWeek = today.getDay(); // 0 = Sunday, 3 = Wednesday, 6 = Saturday
-      
-      if ((dayOfWeek === 3 || dayOfWeek === 6) && weeklyProgress.percentage < 50) {
-        const isWednesday = dayOfWeek === 3;
-        const message = isWednesday 
-          ? `⚡ Halfway through the week! ${weeklyProgress.completed} of ${weeklyProgress.goal} sessions completed`
-          : `🎯 Weekend check: ${weeklyProgress.daysLeft} days left to hit your ${weeklyProgress.goal}-session goal`;
-          
-        alerts.push({
-          type: "weekly_goal",
-          priority: "low",
-          message,
-          data: { 
-            completedSessions: weeklyProgress.completed,
-            targetSessions: weeklyProgress.goal,
-            remainingDays: weeklyProgress.daysLeft
-          }
-        });
-      }
-    } else {
-      logger.info("⏸️ Skipping weekly goal reminders - insufficient data for reliable weekly patterns");
-    }
-  },
-
-  /**
-   * Add re-engagement alert
-   * @private
-   */
-  _addReEngagementAlert(alerts, reEngagement) {
-    const messages = {
-      friendly_weekly: "👋 Ready to jump back in? Your progress is waiting",
-      supportive_biweekly: "💪 No pressure — start with just one problem when you're ready", 
-      gentle_monthly: "🌟 We're here when you want to continue your coding journey"
-    };
-    
-    alerts.push({
-      type: "re_engagement",
-      priority: "low",
-      message: messages[reEngagement.messageType],
-      data: { 
-        daysSinceLastSession: reEngagement.daysSinceLastSession,
-        messageType: reEngagement.messageType
-      }
-    });
   },
 };

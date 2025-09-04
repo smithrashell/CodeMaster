@@ -46,10 +46,10 @@ class NotificationManager {
   show(options) {
     // In background context, log to console instead of showing DOM notification
     if (this.isBackgroundContext) {
-      const { _title = "Notification", _message = "", type = "info" } = options;
-      const _logMethod =
+      const { title = "Notification", message = "", type = "info" } = options;
+      const logMethod =
         type === "error" ? "error" : type === "warning" ? "warn" : "log";
-      // Background logging removed
+      console[logMethod](`[${type.toUpperCase()}] ${title}:`, message);
       return `background-${Date.now()}`;
     }
 
@@ -305,7 +305,8 @@ export const showInfoNotification = (message, options = {}) => {
 
 // Service-specific error handlers
 export const handleServiceError = (serviceName, error, options = {}) => {
-  // Service error logged
+  // eslint-disable-next-line no-console
+  console.error(`${serviceName} Error:`, error);
 
   const userFriendlyMessages = {
     DatabaseService:
@@ -341,7 +342,8 @@ export const handleServiceError = (serviceName, error, options = {}) => {
 
 // Database-specific error handlers
 export const handleDatabaseError = (operation, error, options = {}) => {
-  // Database error logged
+  // eslint-disable-next-line no-console
+  console.error(`Database ${operation} Error:`, error);
 
   const messages = {
     read: "Unable to load your data. Your information is safe.",
@@ -372,7 +374,8 @@ export const handleDatabaseError = (operation, error, options = {}) => {
 
 // Chrome API error handlers
 export const handleChromeAPIError = (apiName, error, options = {}) => {
-  // Chrome API error logged
+  // eslint-disable-next-line no-console
+  console.error(`Chrome ${apiName} API Error:`, error);
 
   return showErrorNotification(error, {
     title: "Extension Connection Issue",
@@ -395,7 +398,8 @@ export const handleChromeAPIError = (apiName, error, options = {}) => {
 
 // Component error handlers
 export const handleComponentError = (componentName, error, options = {}) => {
-  // Component error logged
+  // eslint-disable-next-line no-console
+  console.error(`${componentName} Component Error:`, error);
 
   return showErrorNotification(error, {
     title: `${componentName} Unavailable`,
