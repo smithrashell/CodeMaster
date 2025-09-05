@@ -51,6 +51,10 @@ export const Card = ({
   children, 
   shadow = 'sm',
   padding = true,
+  withBorder, // Accept and ignore Mantine-specific prop
+  radius, // Accept and ignore Mantine-specific prop
+  p, // Accept and ignore Mantine shorthand padding prop
+  bg, // Accept and ignore Mantine background prop
   ...props 
 }) => {
   const shadowClass = shadow ? styles[`shadow${shadow.charAt(0).toUpperCase() + shadow.slice(1)}`] : '';
