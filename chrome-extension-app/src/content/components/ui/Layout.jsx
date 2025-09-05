@@ -4,8 +4,10 @@ import styles from './Layout.module.css';
 /**
  * Stack - Vertical layout component (replaces Mantine Stack)
  */
-export const Stack = ({ children, gap = 'md', ...props }) => {
-  const gapClass = gap ? styles[`gap${gap.charAt(0).toUpperCase() + gap.slice(1)}`] : '';
+export const Stack = ({ children, gap = 'md', spacing, ...props }) => {
+  // Use spacing if provided, otherwise fall back to gap  
+  const finalGap = spacing || gap;
+  const gapClass = finalGap ? styles[`gap${finalGap.charAt(0).toUpperCase() + finalGap.slice(1)}`] : '';
   const className = [styles.stack, gapClass, props.className].filter(Boolean).join(' ');
   
   return (
@@ -21,11 +23,14 @@ export const Stack = ({ children, gap = 'md', ...props }) => {
 export const Group = ({ 
   children, 
   gap = 'md', 
+  spacing, // Mantine spacing prop (equivalent to gap)
   justify = 'start',
   wrap = false,
   ...props 
 }) => {
-  const gapClass = gap ? styles[`gap${gap.charAt(0).toUpperCase() + gap.slice(1)}`] : '';
+  // Use spacing if provided, otherwise fall back to gap
+  const finalGap = spacing || gap;
+  const gapClass = finalGap ? styles[`gap${finalGap.charAt(0).toUpperCase() + finalGap.slice(1)}`] : '';
   const justifyClass = justify !== 'start' ? styles[`justify${justify.charAt(0).toUpperCase() + justify.slice(1)}`] : '';
   const wrapClass = wrap ? styles.wrapItems : '';
   

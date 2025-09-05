@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import "../../css/theme.css";
 import { useNavigate, useLocation, Link, Outlet } from "react-router-dom";
-import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
+import ContentThemeToggle from "../../components/ui/ContentThemeToggle.jsx";
 import { useNav } from "../../../shared/provider/navprovider.jsx";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
@@ -302,7 +302,7 @@ const NavigationSidebar = ({ isAppOpen, setIsAppOpen, currentProblem, problemDat
             problemTitle={problemTitle}
           />
         </nav>
-        <ThemeToggle />
+        <ContentThemeToggle />
       </div>
     </div>
   );
