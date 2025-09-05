@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  frontend-tests:
+  chrome-extension-tests:
     runs-on: ubuntu-latest
     
     strategy:
@@ -23,34 +23,34 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: Frontend/package-lock.json
+        cache-dependency-path: chrome-extension-app/package-lock.json
     
-    - name: Install Frontend dependencies
+    - name: Install Chrome Extension dependencies
       run: |
-        cd Frontend
+        cd chrome-extension-app
         npm ci
     
-    - name: Run Frontend linter
+    - name: Run Chrome Extension linter
       run: |
-        cd Frontend
+        cd chrome-extension-app
         npm run lint
     
-    - name: Run Frontend tests
+    - name: Run Chrome Extension tests
       run: |
-        cd Frontend
+        cd chrome-extension-app
         npm run test:ci
     
-    - name: Upload Frontend coverage reports
+    - name: Upload Chrome Extension coverage reports
       uses: codecov/codecov-action@v4
       if: matrix.node-version == '20.x'
       with:
-        file: Frontend/coverage/lcov.info
-        flags: frontend
-        name: frontend-coverage
+        file: chrome-extension-app/coverage/lcov.info
+        flags: chrome-extension-app
+        name: chrome-extension-app-coverage
         fail_ci_if_error: false
     
-    - name: Build Frontend
+    - name: Build Chrome Extension
       run: |
-        cd Frontend
+        cd chrome-extension-app
         npm run build
 
