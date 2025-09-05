@@ -11,7 +11,7 @@ import TimerBanner from "./components/timer/timercomponent";
 // Removed Mantine CSS import - not needed in content script
 import { AppProviders } from "../shared/provider/appprovider";
 import { useNav } from "../shared/provider/navprovider";
-import ErrorBoundary from "../shared/components/ErrorBoundary.jsx";
+import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import {
   TimerErrorFallback,
   GenericErrorFallback,
