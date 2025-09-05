@@ -1,1 +1,25 @@
+# Test coverage
 coverage/
+
+# Build artifacts
+build.log
+*.log
+
+# IDE configurations
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Temporary files
+*.tmp
+*.temp
