@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stack, Text, Divider } from '@mantine/core';
+// Removed Mantine imports - replaced with native HTML/CSS for content script compatibility
 import { HintItem } from './HintItem.jsx';
 
 export const HintsSection = ({
@@ -22,21 +22,20 @@ export const HintsSection = ({
 
   return (
     <>
-      <Text
-        size="sm"
-        weight={600}
+      <div
         style={{
           color: themeColors.text + " !important",
           marginBottom: '8px',
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
-          fontSize: '11px'
+          fontSize: '11px',
+          fontWeight: '600'
         }}
       >
         {title} ({hints.length})
-      </Text>
+      </div>
       
-      <Stack gap={8} style={{ marginBottom: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
         {hints.map((hint, index) => {
           const hintId = getHintId(hint, index, hintType);
           const isExpanded = expandedHints.has(hintId);
@@ -56,9 +55,14 @@ export const HintsSection = ({
             />
           );
         })}
-      </Stack>
+      </div>
       
-      <Divider style={{ margin: '12px 0', borderColor: `${themeColors.containerBorder}50` }} />
+      <div style={{ 
+        margin: '12px 0', 
+        height: '1px', 
+        backgroundColor: `${themeColors.containerBorder}50`,
+        border: 'none'
+      }} />
     </>
   );
 };

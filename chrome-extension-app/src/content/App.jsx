@@ -8,7 +8,7 @@ import ProbGen from "./features/problems/ProblemGenerator";
 import ProbTime from "./features/problems/ProblemTime";
 import Settings from "./features/settings/settings";
 import TimerBanner from "./components/timer/timercomponent";
-import "@mantine/core/styles.css";
+// Removed Mantine CSS import - not needed in content script
 import { AppProviders } from "../shared/provider/appprovider";
 import { useNav } from "../shared/provider/navprovider";
 import ErrorBoundary from "../shared/components/ErrorBoundary.jsx";

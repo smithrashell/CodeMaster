@@ -1,6 +1,6 @@
 import React from 'react';
-import { Stack, Text, Button, Group, Badge } from '@mantine/core';
-import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
+// Removed Mantine imports - replaced with native HTML/CSS for content script compatibility
+// import { IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 
 export const HintItem = ({
   hint,
@@ -19,9 +19,11 @@ export const HintItem = ({
     return null;
   }
   return (
-    <Stack
-      gap={8}
+    <div
       style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px',
         borderRadius: '8px',
         border: `1px solid ${themeColors.containerBorder}`,
         padding: '12px',
@@ -29,11 +31,16 @@ export const HintItem = ({
         transition: 'all 0.2s ease'
       }}
     >
-      <Group justify="space-between" align="flex-start" style={{ minHeight: '20px' }}>
-        <Text
-          size="sm"
-          weight={500}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'flex-start', 
+        minHeight: '20px' 
+      }}>
+        <span
           style={{ 
+            fontSize: '14px',
+            fontWeight: '500',
             color: themeColors.text + " !important",
             lineHeight: 1.4,
             flex: 1
@@ -43,10 +50,8 @@ export const HintItem = ({
             ? `${hint.primaryTag} + ${hint.relatedTag}` 
             : (hint.primaryTag || 'Strategy Hint')
           }
-        </Text>
-        <Button
-          variant="subtle"
-          size="xs"
+        </span>
+        <button
           onClick={(e) => {
             e.stopPropagation();
             onToggle(hintId, hint, index, hintType);
@@ -57,22 +62,29 @@ export const HintItem = ({
             height: '24px',
             padding: '0',
             flexShrink: 0,
-            marginLeft: '8px'
+            marginLeft: '8px',
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}
         >
           {isExpanded ? (
-            <IconChevronUp size={14} style={{ color: themeColors.text }} />
+            <span style={{ color: themeColors.text, fontSize: '14px' }}>▲</span>
           ) : (
-            <IconChevronDown size={14} style={{ color: themeColors.text }} />
+            <span style={{ color: themeColors.text, fontSize: '14px' }}>▼</span>
           )}
-        </Button>
-      </Group>
+        </button>
+      </div>
 
       {isExpanded && (
-        <Stack gap={12}>
-          <Text
-            size="sm"
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div
             style={{
+              fontSize: '14px',
               color: themeColors.text + " !important",
               lineHeight: 1.5,
               opacity: 0.9,
@@ -80,39 +92,43 @@ export const HintItem = ({
             }}
           >
             {hint.tip || 'No content available'}
-          </Text>
+          </div>
 
           {(hint.primaryTag || hint.relatedTag) && (
-            <Group gap={4}>
+            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
               {hint.primaryTag && (
-                <Badge
-                  size="xs"
-                  variant="outline"
+                <span
                   style={{
+                    fontSize: '12px',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    border: `1px solid ${themeColors.text}`,
                     color: themeColors.text,
-                    borderColor: themeColors.text
+                    background: 'transparent'
                   }}
                 >
                   {hint.primaryTag}
-                </Badge>
+                </span>
               )}
               {hint.relatedTag && (
-                <Badge
-                  size="xs"
-                  variant="outline"
+                <span
                   style={{
+                    fontSize: '12px',
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    border: `1px solid ${themeColors.text}`,
                     color: themeColors.text,
-                    borderColor: themeColors.text
+                    background: 'transparent'
                   }}
                 >
                   {hint.relatedTag}
-                </Badge>
+                </span>
               )}
-            </Group>
+            </div>
           )}
 
-        </Stack>
+        </div>
       )}
-    </Stack>
+    </div>
   );
 };
