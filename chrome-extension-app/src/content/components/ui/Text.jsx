@@ -8,7 +8,10 @@ const Text = ({
   children, 
   size = 'sm',
   fw = 400, // font weight
+  weight, // Mantine weight prop  
   c, // color (Mantine prop name)
+  color, // standard color prop
+  mb, // margin bottom (Mantine prop)
   style = {},
   ...props 
 }) => {
@@ -20,18 +23,24 @@ const Text = ({
     xl: '1.25rem'
   }[size] || '0.875rem';
   
+  // Handle both weight and fw props
+  const finalWeight = weight || fw;
   const fontWeight = {
     400: 'normal',
     500: '500',
     600: '600',
     700: 'bold'
-  }[fw] || fw;
+  }[finalWeight] || finalWeight;
+  
+  // Handle margin bottom
+  const marginBottom = mb ? `${mb * 4}px` : style.marginBottom;
   
   const textStyle = {
     fontSize,
     fontWeight,
-    color: c || style.color,
-    margin: 0,
+    color: c || color || style.color,
+    marginBottom,
+    margin: marginBottom ? `0 0 ${marginBottom} 0` : 0,
     ...style
   };
   
