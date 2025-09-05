@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { MantineProvider, createTheme } from "@mantine/core";
 import { useChromeMessage, clearChromeMessageCache } from "../hooks/useChromeMessage";
+import { getExecutionContext } from "../db/accessControl.js";
 
 const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
@@ -313,11 +314,27 @@ function ThemeProviderWrapper({ children }) {
     [colorScheme, fontSize, layoutDensity, animationsEnabled, callbacks]
   );
 
+  // Detect if we're in content script context to avoid Mantine provider
+  const executionContext = useMemo(() => getExecutionContext(), []);
+  const isContentScript = executionContext.contextType.includes('content-script-or-web-page') && 
+                          !executionContext.contextType.includes('background-script');
+
+  console.log("🎨 DEBUG: Execution context:", executionContext);
+  console.log("🎨 DEBUG: Is content script:", isContentScript);
+
   return (
     <ThemeContext.Provider value={contextValue}>
-      <MantineProvider theme={customTheme} defaultColorScheme="auto" forceColorScheme={colorScheme}>
-        {isLoading ? null : children}
-      </MantineProvider>
+      {isContentScript ? (
+        // Content script: Skip MantineProvider to avoid "MantineProvider was not found" errors
+        <>
+          {isLoading ? null : children}
+        </>
+      ) : (
+        // Extension pages and background: Use MantineProvider normally  
+        <MantineProvider theme={customTheme} defaultColorScheme="auto" forceColorScheme={colorScheme}>
+          {isLoading ? null : children}
+        </MantineProvider>
+      )}
     </ThemeContext.Provider>
   );
 }

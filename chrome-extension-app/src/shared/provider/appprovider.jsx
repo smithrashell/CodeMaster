@@ -3,8 +3,17 @@ import React from "react";
 import { MemoryRouter } from "react-router-dom";
 
 import { PreviousRouteProvider } from "./PreviousRouteProvider";
-import "@mantine/core/styles.css";
 import { NavProvider } from "./navprovider";
+import { getExecutionContext } from "../db/accessControl.js";
+
+// Conditionally import Mantine CSS only when not in content script context
+const executionContext = getExecutionContext();
+const isContentScript = executionContext.contextType.includes('content-script-or-web-page') && 
+                        !executionContext.contextType.includes('background-script');
+
+if (!isContentScript) {
+  import("@mantine/core/styles.css");
+}
 
 import ThemeProviderWrapper from "./themeprovider";
 // AppProviders.jsx
