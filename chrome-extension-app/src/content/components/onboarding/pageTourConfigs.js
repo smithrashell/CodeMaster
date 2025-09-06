@@ -3,12 +3,8 @@
  * Each page can have its own contextual onboarding tour
  */
 
-// Import database functions for proper page tour storage
-import { 
-  checkPageTourStatus, 
-  markPageTourCompleted as dbMarkPageTourCompleted, 
-  resetPageTour as dbResetPageTour 
-} from '../../../shared/services/onboardingService.js';
+// Import Chrome messaging for database operations
+import ChromeAPIErrorHandler from '../../../shared/services/ChromeAPIErrorHandler.js';
 
 export const PAGE_TOURS = {
   // Problem Generator Page Tour
@@ -316,7 +312,11 @@ export async function isPageTourCompleted(pageId) {
   if (!config) return true;
   
   try {
-    return await checkPageTourStatus(pageId);
+    const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: 'checkPageTourStatus',
+      pageId: pageId
+    });
+    return response;
   } catch (error) {
     console.error(`Error checking page tour status for ${pageId}:`, error);
     return false; // Default to not completed on error
@@ -328,7 +328,11 @@ export async function isPageTourCompleted(pageId) {
  */
 export async function markPageTourCompleted(pageId) {
   try {
-    await dbMarkPageTourCompleted(pageId);
+    const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: 'markPageTourCompleted',
+      pageId: pageId
+    });
+    return response;
   } catch (error) {
     console.error(`Error marking page tour completed for ${pageId}:`, error);
     throw error;
@@ -340,7 +344,11 @@ export async function markPageTourCompleted(pageId) {
  */
 export async function resetPageTour(pageId) {
   try {
-    await dbResetPageTour(pageId);
+    const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: 'resetPageTour',
+      pageId: pageId
+    });
+    return response;
   } catch (error) {
     console.error(`Error resetting page tour for ${pageId}:`, error);
     throw error;

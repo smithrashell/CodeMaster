@@ -13,7 +13,7 @@ import { getAlertMessage, shouldShowAlert } from './floatingHintHelpers.js';
 
 // Helper components for better maintainability and reduced line count
 const PopoverHeader = ({ colors, interviewRestrictions, problemTags }) => (
-  <Group justify="space-between" mb="sm">
+  <Stack gap="xs" mb="lg">
     <Group gap="xs">
       <IconBulb size={20} color="#ffd43b" />
       <Text fw={600} size="sm" c={colors.textColor} style={{ color: colors.textColor + " !important" }}>
@@ -25,14 +25,16 @@ const PopoverHeader = ({ colors, interviewRestrictions, problemTags }) => (
         </Badge>
       )}
     </Group>
-    <Group gap="xs">
-      {problemTags.map((tag) => (
-        <Badge key={tag} size="xs" variant="light">
-          {tag}
-        </Badge>
-      ))}
-    </Group>
-  </Group>
+    {problemTags.length > 0 && (
+      <Group gap="xs" wrap={true}>
+        {problemTags.map((tag) => (
+          <Badge key={tag} size="xs" variant="light">
+            {tag}
+          </Badge>
+        ))}
+      </Group>
+    )}
+  </Stack>
 );
 
 const LoadingState = ({ colors }) => (

@@ -1,6 +1,9 @@
 /* ========= Default (Light Mode) ========= */
 :root {
   --cm-bg: #dceefb;
+  --cm-bg-secondary: #f8f9fa;
+  --cm-bg-tertiary: #dee2e6;
+  --cm-bg-quaternary: #ced4da;
   --cm-text: #334155;
   --cm-link: #444f5a;
   --cm-link-hover: #1c2a3a;
@@ -49,6 +52,12 @@
   --cm-error: #ef4444;
   --cm-accent: #3b82f6;
   --cm-text-secondary: #6b7280;
+
+  /* Scrollbar theming variables - light mode */
+  --cm-scrollbar-track: #f8f9fa;
+  --cm-scrollbar-thumb: #cbd5e1;
+  --cm-scrollbar-thumb-hover: #9ca3af;
+  --cm-scrollbar-width: 8px;
 
   /* Timer specific colors */
   --cm-timer-bg: #ffffff;
@@ -132,6 +141,9 @@ body {
 /* ========= Dark Mode Overrides ========= */
 body[data-theme="dark"] {
   --cm-bg: #1f2937;
+  --cm-bg-secondary: #374151;
+  --cm-bg-tertiary: #4b5563;
+  --cm-bg-quaternary: #6b7280;
   --cm-bg-alt: #3b506e;
   --cm-text: #f8fafc;
   --cm-link: #cbd5e1;
@@ -179,6 +191,12 @@ body[data-theme="dark"] {
   --cm-error: #f87171;
   --cm-accent: #60a5fa;
   --cm-text-secondary: #e5e7eb;
+
+  /* Scrollbar theming variables - dark mode */
+  --cm-scrollbar-track: #1f2937;
+  --cm-scrollbar-thumb: #4b5563;
+  --cm-scrollbar-thumb-hover: #6b7280;
+  --cm-scrollbar-width: 8px;
 
   /* Timer specific colors - dark mode */
   --cm-timer-bg: #374151;
@@ -694,4 +712,104 @@ body[data-theme="dark"] {
   --muted: #9fb0c3;
   --hover: rgba(255,255,255,.04);
   --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.15);
+}
+
+/* ========= Global Scrollbar Theming ========= */
+
+/* Modern scrollbar theming for Webkit browsers (Chrome, Safari, Edge) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track);
+}
+
+/* Webkit scrollbar styling */
+*::-webkit-scrollbar {
+  width: var(--cm-scrollbar-width);
+  height: var(--cm-scrollbar-width);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--cm-scrollbar-track);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--cm-scrollbar-thumb);
+  border-radius: 4px;
+  border: 1px solid var(--cm-scrollbar-track);
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--cm-scrollbar-track);
+}
+
+/* Specific overrides for modal content and forms */
+.modal-content, 
+.form-container, 
+.scrollable-content, 
+.mantine-Modal-content, 
+.mantine-ScrollArea-viewport {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track) !important;
+}
+
+.modal-content::-webkit-scrollbar,
+.form-container::-webkit-scrollbar,
+.scrollable-content::-webkit-scrollbar,
+.mantine-Modal-content::-webkit-scrollbar,
+.mantine-ScrollArea-viewport::-webkit-scrollbar {
+  width: var(--cm-scrollbar-width) !important;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.form-container::-webkit-scrollbar-track,
+.scrollable-content::-webkit-scrollbar-track,
+.mantine-Modal-content::-webkit-scrollbar-track,
+.mantine-ScrollArea-viewport::-webkit-scrollbar-track {
+  background: var(--cm-scrollbar-track) !important;
+}
+
+.modal-content::-webkit-scrollbar-thumb,
+.form-container::-webkit-scrollbar-thumb,
+.scrollable-content::-webkit-scrollbar-thumb,
+.mantine-Modal-content::-webkit-scrollbar-thumb,
+.mantine-ScrollArea-viewport::-webkit-scrollbar-thumb {
+  background: var(--cm-scrollbar-thumb) !important;
+  border-radius: 4px !important;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover,
+.form-container::-webkit-scrollbar-thumb:hover,
+.scrollable-content::-webkit-scrollbar-thumb:hover,
+.mantine-Modal-content::-webkit-scrollbar-thumb:hover,
+.mantine-ScrollArea-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-scrollbar-thumb-hover) !important;
+}
+
+/* Body and html scrollbar theming */
+body, html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track);
+}
+
+body::-webkit-scrollbar, html::-webkit-scrollbar {
+  width: var(--cm-scrollbar-width);
+}
+
+body::-webkit-scrollbar-track, html::-webkit-scrollbar-track {
+  background: var(--cm-scrollbar-track);
+}
+
+body::-webkit-scrollbar-thumb, html::-webkit-scrollbar-thumb {
+  background: var(--cm-scrollbar-thumb);
+  border-radius: 4px;
+}
+
+body::-webkit-scrollbar-thumb:hover, html::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-scrollbar-thumb-hover);
 }

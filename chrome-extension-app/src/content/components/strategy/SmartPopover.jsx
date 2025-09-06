@@ -137,21 +137,24 @@ const getArrowStyles = (placement, actualWidth) => {
 };
 
 /**
- * Get popover container styles
+ * Get popover container styles with theme-aware scrollbar
  */
-const getPopoverStyles = (position, actualWidth, maxHeight) => ({
+const getPopoverStyles = (position, actualWidth, maxHeight, colors = {}) => ({
   position: "fixed",
   left: position.x,
   top: position.y,
   width: actualWidth,
   maxHeight: maxHeight,
-  backgroundColor: "white",
-  border: "1px solid #e9ecef",
+  backgroundColor: colors.expandedBg || "white",
+  border: `1px solid ${colors.borderColor || "#e9ecef"}`,
   borderRadius: "8px",
   boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
   zIndex: 1000,
   overflowY: "auto",
   animation: "popoverFadeIn 0.15s ease-out",
+  // Custom scrollbar styling
+  scrollbarWidth: "thin",
+  scrollbarColor: `${colors.borderColor || "#cccccc"} ${colors.expandedBg || "transparent"}`,
 });
 
 /**
@@ -165,6 +168,7 @@ const SmartPopover = ({
   children,
   width = 350,
   maxHeight = 400,
+  colors = {},
 }) => {
   const popoverRef = useRef(null);
   const [position, setPosition] = useState({
@@ -232,7 +236,7 @@ const SmartPopover = ({
   if (!opened) return null;
 
   const arrowStyles = getArrowStyles(position.placement, actualWidth);
-  const popoverStyles = getPopoverStyles(position, actualWidth, maxHeight);
+  const popoverStyles = getPopoverStyles(position, actualWidth, maxHeight, colors);
 
   return (
     <Portal>
@@ -243,7 +247,7 @@ const SmartPopover = ({
         {children}
       </div>
 
-      {/* CSS animation */}
+      {/* CSS animation and theme-aware scrollbar */}
       <style>{`
         @keyframes popoverFadeIn {
           from {
@@ -254,6 +258,33 @@ const SmartPopover = ({
             opacity: 1;
             transform: scale(1) translateY(0);
           }
+        }
+        
+        /* Custom scrollbar for webkit browsers */
+        div[style*="overflow-y: auto"]::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
+          background: ${colors.expandedBg || "transparent"};
+          border-radius: 3px;
+        }
+        
+        div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+          background: ${colors.borderColor || "#cccccc"};
+          border-radius: 3px;
+          opacity: 0.7;
+        }
+        
+        div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+          background: ${colors.textColor || "#999999"};
+          opacity: 1;
+        }
+        
+        /* For Firefox */
+        div[style*="overflow-y: auto"] {
+          scrollbar-width: thin;
+          scrollbar-color: ${colors.borderColor || "#cccccc"} ${colors.expandedBg || "transparent"};
         }
       `}</style>
     </Portal>

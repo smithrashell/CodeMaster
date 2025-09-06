@@ -1,0 +1,74 @@
+/* SegmentedControl CSS Module - Force override any external styles */
+
+.container {
+  display: inline-flex !important;
+  background-color: var(--cm-bg-secondary, #f8f9fa) !important;
+  border-radius: 6px !important;
+  padding: 2px !important;
+  border: 1px solid var(--cm-border, #e9ecef) !important;
+}
+
+.container.gradient {
+  background-color: var(--cm-bg-secondary, #f8f9fa) !important;
+  border: 1px solid var(--cm-border, #e9ecef) !important;
+}
+
+.button {
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  flex: 1 !important;
+  text-align: center !important;
+  min-width: max-content !important;
+  color: var(--cm-text-secondary, #666) !important;
+}
+
+.button.disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+}
+
+.button.xs {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+}
+
+.button.sm {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+}
+
+.button.md {
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+}
+
+.button.active {
+  background: #228be6 !important;
+  background-color: #228be6 !important;
+  color: white !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+  font-weight: 600 !important;
+}
+
+.button.active.gradient {
+  background: #228be6 !important;
+  background-color: #228be6 !important;
+  color: white !important;
+}
+
+/* Dark theme overrides - keep the same blue as light mode */
+[data-theme="dark"] .button.active {
+  background: #228be6 !important;
+  background-color: #228be6 !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .button.active.gradient {
+  background: #228be6 !important;
+  background-color: #228be6 !important;
+  color: white !important;
+}

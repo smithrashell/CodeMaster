@@ -37,6 +37,23 @@ export const sizeStyles = {
   },
 };
 
+// Theme-aware variant styles helper
+export const getThemeAwareVariantStyles = (isDark) => ({
+  primary: {
+    backgroundColor: "#4c6ef5",
+    color: "white",
+  },
+  secondary: {
+    backgroundColor: isDark ? "#373a40" : "#f1f3f4",
+    color: isDark ? "#c9c9c9" : "#495057",
+  },
+  ghost: {
+    backgroundColor: "transparent",
+    color: isDark ? "#c9c9c9" : "#495057",
+    border: isDark ? "1px solid rgba(201, 201, 201, 0.3)" : "1px solid rgba(73, 80, 87, 0.3)",
+  },
+});
+
 export const variantStyles = {
   primary: {
     backgroundColor: "#4c6ef5",

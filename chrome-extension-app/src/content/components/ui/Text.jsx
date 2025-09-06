@@ -35,10 +35,34 @@ const Text = ({
   // Handle margin bottom
   const marginBottom = mb ? `${mb * 4}px` : style.marginBottom;
   
+  // Handle special color values like "dimmed" with proper theme awareness
+  const getTextColor = () => {
+    const finalColor = c || color || style.color;
+    if (finalColor === 'dimmed') {
+      // Get current theme from document or default to light
+      const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                     document.body.classList.contains('dark-theme') ||
+                     window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      
+      // Return theme-appropriate dimmed color
+      return isDark ? '#909296' : '#868e96'; // Darker dimmed for dark theme, lighter for light theme
+    }
+    
+    // If no color specified, use theme-appropriate default
+    if (!finalColor) {
+      const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                     document.body.classList.contains('dark-theme') ||
+                     window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      return isDark ? '#c9c9c9' : '#212529'; // Light text for dark theme, dark text for light theme
+    }
+    
+    return finalColor;
+  };
+
   const textStyle = {
     fontSize,
     fontWeight,
-    color: c || color || style.color,
+    color: getTextColor(),
     marginBottom,
     margin: marginBottom ? `0 0 ${marginBottom} 0` : 0,
     ...style

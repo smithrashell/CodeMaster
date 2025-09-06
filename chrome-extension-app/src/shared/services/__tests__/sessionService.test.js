@@ -338,6 +338,29 @@ const runCalculateMasteryDeltasTests = () => {
   });
 };
 
+const runGetOrCreateSessionTests = () => {
+  describe("getOrCreateSession", () => {
+    it("should exist as a method on SessionService", () => {
+      expect(typeof SessionService.getOrCreateSession).toBe('function');
+    });
+
+    it("should resume existing compatible session", async () => {
+      const existingSession = {
+        id: "existing-session", 
+        sessionType: 'standard',
+        status: 'in_progress',
+        problems: [{ leetCodeID: "1" }]
+      };
+      getLatestSessionByType.mockResolvedValue(existingSession);
+      
+      const result = await SessionService.getOrCreateSession('standard');
+      
+      expect(result).toBe(existingSession);
+      expect(ProblemService.createSession).not.toHaveBeenCalled();
+    });
+  });
+};
+
 describe("SessionService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -348,4 +371,5 @@ describe("SessionService", () => {
   runCreateNewSessionTests();
   runSkipProblemTests();
   runCalculateMasteryDeltasTests();
+  runGetOrCreateSessionTests();
 });

@@ -28,23 +28,26 @@ export default function ContentThemeToggle() {
     },
   ];
 
-  // Styles that replicate Mantine SegmentedControl appearance
+  // Styles that replicate Mantine SegmentedControl appearance with proper theming
   const containerStyle = {
     display: 'flex',
     justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
     marginTop: '16px', // mt="md"
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
   };
 
   const segmentedControlStyle = {
     display: 'flex',
-    backgroundColor: 'var(--cm-input-bg, #f8f9fa)',
-    border: '1px solid var(--cm-border, #dee2e6)',
-    borderRadius: '8px', // radius="md"
+    backgroundColor: 'var(--cm-bg-secondary, #f8f9fa)',
+    border: '1px solid var(--cm-border, #e9ecef)',
+    borderRadius: '8px',
     padding: '2px',
     position: 'relative',
-    fontSize: '14px', // size="sm"
-    fontWeight: '500'
+    fontSize: '14px',
+    fontWeight: '500',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
   };
 
   const getOptionStyle = (value) => ({
@@ -52,23 +55,30 @@ export default function ContentThemeToggle() {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '6px 12px', // size="sm" padding
+    padding: '8px 14px',
     cursor: 'pointer',
     borderRadius: '6px',
     backgroundColor: colorScheme === value 
-      ? 'var(--cm-primary, #228be6)' 
+      ? 'var(--cm-bg-tertiary, #dee2e6)'
       : 'transparent',
     color: colorScheme === value 
-      ? 'white' 
-      : 'var(--cm-text, #495057)',
+      ? 'var(--cm-text, #333)' 
+      : 'var(--cm-text-secondary, #666)',
     transition: 'all 0.15s ease',
     border: 'none',
     fontSize: '14px',
-    fontWeight: '500',
-    minWidth: '70px',
+    fontWeight: colorScheme === value ? '600' : '500',
+    minWidth: '75px',
     zIndex: 1,
-    userSelect: 'none'
+    userSelect: 'none',
+    outline: 'none',
+    boxShadow: colorScheme === value ? '0 1px 3px rgba(0,0,0,0.12)' : 'none'
   });
+
+  const labelStyle = {
+    backgroundColor: 'transparent !important',
+    background: 'none !important'
+  };
 
   const handleOptionClick = (value) => {
     if (colorScheme !== value) {
@@ -84,18 +94,8 @@ export default function ContentThemeToggle() {
             key={option.value}
             style={getOptionStyle(option.value)}
             onClick={() => handleOptionClick(option.value)}
-            onMouseEnter={(e) => {
-              if (colorScheme !== option.value) {
-                e.target.style.backgroundColor = 'var(--cm-hover-bg, #e9ecef)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (colorScheme !== option.value) {
-                e.target.style.backgroundColor = 'transparent';
-              }
-            }}
           >
-            {option.label}
+            <div style={labelStyle}>{option.label}</div>
           </button>
         ))}
       </div>
