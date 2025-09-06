@@ -8,9 +8,9 @@ import {
   PlayIcon,
   BrainIcon,
 } from "../../../shared/components/ui/Icons";
-import Button from "../../../shared/components/ui/Button";
-import Badge from "../../../shared/components/ui/Badge";
-import Separator from "../../../shared/components/ui/Separator";
+import Button from "../../components/ui/Button.jsx";
+import Badge from "../../components/ui/Badge.jsx";
+import Separator from "../../components/ui/Separator.jsx";
 import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
 import styles from "./ProblemCard.module.css";
@@ -20,17 +20,15 @@ import styles from "./ProblemCard.module.css";
  */
 const useProblemData = (routeState) => {
   const problemData = {
-    id: routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
-    leetCodeID:
-      routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
-    title:
-      routeState?.problemData?.ProblemDescription ||
-      routeState?.problemData?.title,
-    ProblemDescription:
-      routeState?.problemData?.ProblemDescription ||
-      routeState?.problemData?.title,
-    tags: routeState?.problemData?.tags || [],
-    difficulty: routeState?.problemData?.difficulty || "Unknown",
+    id: routeState?.problemData?.LeetCodeID || routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
+    leetCodeID: routeState?.problemData?.LeetCodeID || routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
+    LeetCodeID: routeState?.problemData?.LeetCodeID || routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
+    title: routeState?.problemData?.Description || routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
+    Description: routeState?.problemData?.Description || routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
+    ProblemDescription: routeState?.problemData?.Description || routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
+    tags: routeState?.problemData?.Tags || routeState?.problemData?.tags || [],
+    Tags: routeState?.problemData?.Tags || routeState?.problemData?.tags || [],
+    difficulty: routeState?.problemData?.Difficulty || routeState?.problemData?.difficulty || "Unknown",
     acceptance: routeState?.problemData?.acceptance || "N/A",
     submissions: routeState?.problemData?.submissions || "N/A",
     attempts: routeState?.problemData?.attempts || 0,
@@ -80,24 +78,24 @@ const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfi
 /**
  * Problem statistics display component
  */
-const ProblemStats = ({ problemData }) => (
+const ProblemStats = ({ problemData: _problemData, attemptStats = { successful: 0, total: 0 } }) => (
   <div className={styles.stats}>
     <div className={styles.stat}>
       <BarChart3Icon className={styles.statIcon} />
       <div>
         <div className={styles.statValue}>
-          {problemData?.acceptance || "N/A"}
+          {attemptStats.successful}
         </div>
-        <div className={styles.statLabel}>Acceptance</div>
+        <div className={styles.statLabel}>Successful Attempts</div>
       </div>
     </div>
     <div className={styles.stat}>
       <TrendingUpIcon className={styles.statIcon} />
       <div>
         <div className={styles.statValue}>
-          {problemData?.submissions || "N/A"}
+          {attemptStats.total}
         </div>
-        <div className={styles.statLabel}>Submissions</div>
+        <div className={styles.statLabel}>Total Attempts</div>
       </div>
     </div>
   </div>
@@ -106,46 +104,68 @@ const ProblemStats = ({ problemData }) => (
 /**
  * Status section component
  */
-const StatusSection = ({ problemData }) => (
-  <div className="problem-sidebar-section">
-    <div className={styles.statusCard}>
-      <BrainIcon className={styles.statusIcon} />
-      <span className={styles.statusLabel}>
-        Last Solved:
-      </span>
-      <div className={styles.statusItem}>
-        <span className={styles.statusValue}>
-          {problemData?.lastSolved || "Never"}
+const StatusSection = ({ problemData: _problemData, attemptStats }) => {
+  const formatLastSolved = (lastSolved) => {
+    if (!lastSolved) return "Never";
+    
+    try {
+      const date = new Date(lastSolved);
+      const now = new Date();
+      const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+      
+      if (diffDays === 0) return "Today";
+      if (diffDays === 1) return "Yesterday";
+      if (diffDays < 7) return `${diffDays} days ago`;
+      if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+      if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+      return `${Math.floor(diffDays / 365)} years ago`;
+    } catch (error) {
+      return "Never";
+    }
+  };
+
+  return (
+    <div className="problem-sidebar-section">
+      <div className={styles.statusCard}>
+        <BrainIcon className={styles.statusIcon} />
+        <span className={styles.statusLabel}>
+          Last Solved:
         </span>
+        <div className={styles.statusItem}>
+          <span className={styles.statusValue}>
+            {formatLastSolved(attemptStats?.lastSolved)}
+          </span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /**
  * Main content card component
  */
-const MainContentCard = ({ problemData, getDifficultyVariant }) => (
+const MainContentCard = ({ problemData, getDifficultyColor, attemptStats }) => (
   <div className={styles.card}>
     <div className={styles.header}>
       <ChevronLeftIcon className={styles.backIcon} />
       <span>
-        Problem #{problemData?.leetCodeID || problemData?.id || "N/A"}
+        Problem #{problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id || "N/A"}
       </span>
     </div>
     <h3 className={styles.title}>
-      {problemData?.ProblemDescription || problemData?.title || "N/A"}
+      {problemData?.Description || problemData?.ProblemDescription || problemData?.title || "N/A"}
     </h3>
     <Badge
       className={styles.difficultyBadge}
-      variant={getDifficultyVariant(problemData?.difficulty)}
+      color={getDifficultyColor(problemData?.difficulty)}
+      variant="filled"
     >
       {problemData?.difficulty || "Unknown"}
     </Badge>
 
     <Separator className={styles.separator} />
-    <ProblemStats problemData={problemData} />
-    <StatusSection problemData={problemData} />
+    <ProblemStats problemData={problemData} attemptStats={attemptStats} />
+    <StatusSection problemData={problemData} attemptStats={attemptStats} />
   </div>
 );
 
@@ -250,6 +270,7 @@ const ProbDetail = ({ isLoading }) => {
   const { setIsAppOpen } = useNav();
   const navigate = useNavigate();
   const [showSkip, setShowSkip] = useState(false);
+  const [attemptStats, setAttemptStats] = useState({ successful: 0, total: 0, lastSolved: null });
 
   const { problemData, interviewConfig, sessionType, isInterviewMode } = useProblemData(routeState);
   const { handleNewAttempt, handleSkip } = useProblemActions({
@@ -265,17 +286,36 @@ const ProbDetail = ({ isLoading }) => {
     setShowSkip(!routeState?.problemFound);
   }, [routeState?.problemFound]);
 
-  const getDifficultyVariant = (difficulty) => {
-    if (!difficulty) return "default";
+  // Fetch attempt statistics for this problem
+  useEffect(() => {
+    const problemId = problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id;
+    if (problemId) {
+      chrome.runtime.sendMessage({
+        type: "getProblemAttemptStats",
+        problemId: problemId
+      }, (response) => {
+        if (response?.success) {
+          setAttemptStats({
+            successful: response.data?.successful || 0,
+            total: response.data?.total || 0,
+            lastSolved: response.data?.lastSolved || null
+          });
+        }
+      });
+    }
+  }, [problemData?.LeetCodeID, problemData?.leetCodeID, problemData?.id]);
+
+  const getDifficultyColor = (difficulty) => {
+    if (!difficulty) return "gray";
     const diff = difficulty.toLowerCase();
-    if (diff === "easy") return "easy";
-    if (diff === "medium") return "medium";
-    if (diff === "hard") return "hard";
-    return "default";
+    if (diff === "easy") return "green";
+    if (diff === "medium") return "orange";
+    if (diff === "hard") return "red";
+    return "gray";
   };
 
 
-  if (isLoading && !problemData.leetCodeID) {
+  if (isLoading && !problemData.LeetCodeID && !problemData.leetCodeID) {
     return (
       <p
         style={{
@@ -299,19 +339,20 @@ const ProbDetail = ({ isLoading }) => {
         />
         <MainContentCard 
           problemData={problemData} 
-          getDifficultyVariant={getDifficultyVariant}
+          getDifficultyColor={getDifficultyColor}
+          attemptStats={attemptStats}
         />
         <TagStrategyGrid 
-          problemTags={problemData?.tags || []} 
-          problemId={problemData?.leetCodeID || problemData?.id}
+          problemTags={problemData?.Tags || problemData?.tags || []} 
+          problemId={problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id}
           interviewConfig={interviewConfig}
           sessionType={sessionType}
         />
         {routeState?.problemData?.selectionReason && (
           <WhyThisProblem
             selectionReason={routeState.problemData.selectionReason}
-            problemTags={problemData?.tags || []}
-            currentProblemId={problemData?.leetCodeID || routeState?.problemData?.leetCodeID}
+            problemTags={problemData?.Tags || problemData?.tags || []}
+            currentProblemId={problemData?.LeetCodeID || problemData?.leetCodeID || routeState?.problemData?.LeetCodeID}
           />
         )}
         <ActionButtons 

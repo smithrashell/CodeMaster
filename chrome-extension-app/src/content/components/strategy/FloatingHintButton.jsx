@@ -111,6 +111,7 @@ function FloatingHintButton({
         target={buttonRef.current}
         width={uiMode === 'minimal-clean' ? 300 : 350}
         maxHeight={400}
+        colors={colors}
       >
         <FloatingHintPopoverContent
           loading={loading}

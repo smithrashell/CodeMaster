@@ -689,8 +689,8 @@ function problemSortingCriteria(a, b) {
   if (reviewDateA < reviewDateB) return -1;
   if (reviewDateA > reviewDateB) return 1;
 
-  const totalAttemptsA = a.AttemptStats.TotalAttempts;
-  const totalAttemptsB = b.AttemptStats.TotalAttempts;
+  const totalAttemptsA = a.AttemptStats?.TotalAttempts || 0;
+  const totalAttemptsB = b.AttemptStats?.TotalAttempts || 0;
 
   if (totalAttemptsA < totalAttemptsB) return -1;
   if (totalAttemptsA > totalAttemptsB) return 1;

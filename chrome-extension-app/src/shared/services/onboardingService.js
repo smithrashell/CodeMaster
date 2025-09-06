@@ -10,40 +10,13 @@ import {
   updateRecord,
   getRecord,
 } from "../db/common.js";
-import { databaseProxy } from "./databaseProxy.js";
 import logger from "../utils/logger.js";
 
-// Detect if we're in a content script context
-const isContentScript = typeof window !== 'undefined' && window.location && window.location.href && window.location.href.includes('leetcode.com');
-
-// Database helper functions that route to appropriate context
-const dbGet = async (storeName, id) => {
-  if (isContentScript) {
-    return await databaseProxy.getRecord(storeName, id);
-  }
-  return await getRecord(storeName, id);
-};
-
-const dbAdd = async (storeName, record) => {
-  if (isContentScript) {
-    return await databaseProxy.addRecord(storeName, record);
-  }
-  return await addRecord(storeName, record);
-};
-
-const dbUpdate = async (storeName, id, record) => {
-  if (isContentScript) {
-    return await databaseProxy.updateRecord(storeName, id, record);
-  }
-  return await updateRecord(storeName, id, record);
-};
-
-const _dbGetAll = async (storeName) => {
-  if (isContentScript) {
-    return await databaseProxy.getAllFromStore(storeName);
-  }
-  return await getAllFromStore(storeName);
-};
+// Use direct database access - all extension contexts support IndexedDB
+const dbGet = getRecord;
+const dbAdd = addRecord;
+const dbUpdate = updateRecord;
+const _dbGetAll = getAllFromStore;
 
 export async function onboardUserIfNeeded() {
   logger.info("... onboarding started");
@@ -210,7 +183,7 @@ export async function resetOnboarding() {
 // Content script specific onboarding functions
 export async function checkContentOnboardingStatus() {
   try {
-    logger.info("🔍 checkContentOnboardingStatus: Getting content onboarding record...", isContentScript ? "(via proxy)" : "(direct)");
+    logger.info("🔍 checkContentOnboardingStatus: Getting content onboarding record... (direct access)");
     const contentOnboardingRecord = await dbGet(
       "settings",
       "content_onboarding"
@@ -378,9 +351,17 @@ export async function updateContentOnboardingStep(
     contentOnboardingRecord.interactionProgress[interactionKey] = true;
   }
 
+  // Safely get current URL - may not be available in background script context
+  let currentUrl;
+  try {
+    currentUrl = typeof window !== 'undefined' && window.location ? window.location.href : 'background-context';
+  } catch (error) {
+    currentUrl = 'background-context';
+  }
+
   contentOnboardingRecord.resumeData = {
     timestamp: new Date().toISOString(),
-    currentUrl: window.location.href,
+    currentUrl,
     screenKey,
     interactionKey,
   };
@@ -516,7 +497,7 @@ export async function checkPageTourStatus(pageId) {
 export async function markPageTourCompleted(pageId) {
   try {
     logger.info(`🎯 ONBOARDING DEBUG: Marking page tour completed for: ${pageId}`);
-    logger.info(`📞 ONBOARDING DEBUG: Using ${isContentScript ? 'databaseProxy' : 'direct DB'} context`);
+    logger.info("📞 ONBOARDING DEBUG: Using direct DB access");
     
     const contentOnboardingRecord = await checkContentOnboardingStatus();
     logger.info(`📊 ONBOARDING DEBUG: Current record before update:`, contentOnboardingRecord);

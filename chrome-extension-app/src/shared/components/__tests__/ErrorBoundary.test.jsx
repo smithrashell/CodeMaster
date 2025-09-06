@@ -54,7 +54,7 @@ const cleanupErrorBoundaryTest = (originalConsoleError) => {
   console.error = originalConsoleError;
 };
 
-describe.skip("ErrorBoundary Component", function() {
+describe("ErrorBoundary Component", function() {
   // Suppress console errors during tests
   let originalConsoleError;
 

@@ -511,7 +511,51 @@ function putData(store, data) {
   });
 }
 
+/**
+ * Get attempt statistics for a specific problem
+ * @param {string|number} problemId - The problem ID to get stats for
+ * @returns {Promise<{successful: number, total: number}>}
+ */
+async function getProblemAttemptStats(problemId) {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction("attempts", "readonly");
+    const store = transaction.objectStore("attempts");
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      
+      request.onsuccess = () => {
+        const allAttempts = request.result || [];
+        const problemAttempts = allAttempts.filter(attempt => 
+          attempt.problemID?.toString() === problemId?.toString()
+        );
+        
+        const successfulAttempts = problemAttempts.filter(attempt => attempt.success === true);
+        const successful = successfulAttempts.length;
+        const total = problemAttempts.length;
+        
+        // Find the most recent successful attempt
+        let lastSolved = null;
+        if (successfulAttempts.length > 0) {
+          const mostRecentSuccess = successfulAttempts
+            .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+          lastSolved = mostRecentSuccess.date;
+        }
+        
+        resolve({ successful, total, lastSolved });
+      };
+      
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error("Error getting problem attempt stats:", error);
+    throw error;
+  }
+}
+
 export const AttemptsService = {
   addAttempt,
   getMostRecentAttempt,
+  getProblemAttemptStats,
 };

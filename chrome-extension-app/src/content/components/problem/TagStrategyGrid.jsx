@@ -281,13 +281,19 @@ const createScrollingHandler = (scrollManagement) => () => {
 // Helper function to track hint interaction
 const trackHintInteraction = async (tag, problemId) => {
   const normalizedTag = tag.toLowerCase().trim();
-  logger.info(`🏷️ Tracking tag strategy view: ${tag}`);
+  logger.info(`🏷️ Tracking tag strategy view: ${tag}`, { problemId });
+  
+  // Validate problemId before sending
+  if (!problemId) {
+    logger.warn("🏷️ No problemId provided for hint interaction, skipping tracking");
+    return;
+  }
   
   try {
     await ChromeAPIErrorHandler.sendMessageWithRetry({
       type: "saveHintInteraction",
       interactionData: {
-        problemId: problemId || "unknown",
+        problemId: problemId,
         hintType: "primer", 
         primaryTag: normalizedTag,
         content: `Viewed strategy for ${tag} tag`,
@@ -389,6 +395,8 @@ function TagStrategyGrid({
   logger.info("🏷️ TagStrategyGrid: Render started", {
     problemTags,
     problemId,
+    problemIdType: typeof problemId,
+    problemIdValue: problemId,
     sessionType,
     interviewConfig
   });

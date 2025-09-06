@@ -3,13 +3,8 @@ import { useState, useEffect, useMemo } from "react";
 import Button from '../../components/ui/Button.jsx';
 import Tooltip from '../../components/ui/Tooltip.jsx';
 import SegmentedControl from '../../components/ui/SegmentedControl.jsx';
+import Switch from '../../components/ui/Switch.jsx';
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
-import {
-  SliderMarksSessionLength,
-  SliderMarksNewProblemsPerSession,
-  GradientSegmentedControlTimeLimit,
-  ToggleSelectRemainders,
-} from "../../../shared/components/nantine.jsx";
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage, clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage";
@@ -86,26 +81,35 @@ function InterviewModeControls({ settings, updateSettings, interviewReadiness })
                  "Interview" // Clearer labels for content script
         }))}
         size="xs"
-        color="var(--cm-active-blue)"
         style={{ width: '100%', cursor: 'pointer' }}
       />
       
       {currentModeData && currentMode !== "disabled" && (
-        <div style={{ fontSize: '11px', color: 'var(--cm-text)', marginTop: '4px', display: 'flex', alignItems: 'center' }}>
-          <IconClock size={10} style={{ marginRight: '4px' }} />
-          {currentMode === "interview-like" ? "Limited hints, mild pressure" : 
-           currentMode === "full-interview" ? "No hints, strict timing" : 
-           currentModeData.description}
+        <div style={{ 
+          fontSize: '11px', 
+          color: '#ffffff', // Fixed white color for visibility
+          marginTop: '6px', 
+          display: 'flex', 
+          alignItems: 'center',
+          minHeight: '16px' // Ensure adequate height for icon
+        }}>
+          <IconClock size={12} style={{ marginRight: '6px', flexShrink: 0, color: 'var(--cm-text-secondary)' }} />
+          <span style={{ color: 'var(--cm-text-secondary)' }}>
+            {currentMode === "interview-like" ? "Limited hints, mild pressure" : 
+             currentMode === "full-interview" ? "No hints, strict timing" : 
+             currentModeData.description}
+          </span>
         </div>
       )}
       
       {currentMode !== "disabled" && (
         <div style={{ 
           fontSize: '11px', 
-          color: 'var(--cm-link)', 
-          marginTop: '4px', 
-          padding: '4px 8px', 
-          background: '#e6f3ff', 
+          color: '#ffffff', // Fixed white text for visibility
+          marginTop: '6px', 
+          padding: '6px 8px', 
+          background: '#2c2e33', // Dark background for contrast
+          border: '1px solid #373a40',
           borderRadius: '4px' 
         }}>
           🎯 Applies to next session
@@ -175,7 +179,6 @@ const InterviewFrequencyControls = ({ settings, updateSettings }) => (
           { label: "Level Up", value: "level-up", description: "On mastery progress" }
         ]}
         size="xs"
-        color="var(--cm-active-blue)"
         style={{ width: '100%', cursor: 'pointer' }}
       />
 
@@ -255,7 +258,13 @@ const useSettingsState = () => {
     sessionLength: 8,
     numberofNewProblemsPerSession: 3,
     limit: "Auto",
-    reminder: { enabled: true, time: "12" },
+    reminder: { 
+      enabled: false, 
+      streakAlerts: false,
+      cadenceNudges: false,
+      weeklyGoals: false,
+      reEngagement: false
+    },
     interviewMode: "disabled",
     interviewReadinessThreshold: 0.8,
     interviewFrequency: "manual",
@@ -322,11 +331,224 @@ const getWorkingSettings = (settings) => {
     sessionLength: 8,
     numberofNewProblemsPerSession: 3,
     limit: "Auto",
-    reminder: { enabled: true, time: "12" },
+    reminder: { 
+      enabled: false, 
+      streakAlerts: false,
+      cadenceNudges: false,
+      weeklyGoals: false,
+      reEngagement: false
+    },
     interviewMode: "disabled",
     interviewReadinessThreshold: 0.7,
     interviewFrequency: "manual"
   };
+};
+
+// Custom Reminders Component (without Mantine)
+const RemindersSection = ({ settings, setSettings }) => {
+  const [learningStatus, setLearningStatus] = useState({
+    totalSessions: 0,
+    learningPhase: true,
+    sessionsNeeded: 5,
+    loading: true
+  });
+
+  useEffect(() => {
+    fetchLearningStatus();
+  }, []);
+
+  const fetchLearningStatus = () => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.runtime) {
+        chrome.runtime.sendMessage(
+          { type: "getLearningStatus" },
+          (response) => {
+            if (response && !chrome.runtime.lastError) {
+              setLearningStatus({
+                totalSessions: response.totalSessions || 0,
+                learningPhase: response.learningPhase || true,
+                sessionsNeeded: Math.max(0, 5 - (response.totalSessions || 0)),
+                loading: false
+              });
+            } else {
+              setLearningStatus({
+                totalSessions: 0,
+                learningPhase: true,
+                sessionsNeeded: 5,
+                loading: false
+              });
+            }
+          }
+        );
+      } else {
+        setLearningStatus({
+          totalSessions: 0,
+          learningPhase: true,
+          sessionsNeeded: 5,
+          loading: false
+        });
+      }
+    } catch (error) {
+      console.warn("Error fetching learning status:", error);
+      setLearningStatus({
+        totalSessions: 0,
+        learningPhase: true,
+        sessionsNeeded: 5,
+        loading: false
+      });
+    }
+  };
+
+  const handleToggle = () => {
+    setSettings(prev => ({
+      ...prev,
+      reminder: {
+        ...prev.reminder,
+        enabled: !prev.reminder?.enabled
+      }
+    }));
+  };
+
+  const handleReminderTypeChange = (reminderType, value) => {
+    setSettings(prev => ({
+      ...prev,
+      reminder: {
+        ...prev.reminder,
+        [reminderType]: value
+      }
+    }));
+  };
+
+  const progressPercentage = learningStatus.learningPhase 
+    ? Math.max(0, ((5 - learningStatus.sessionsNeeded) / 5) * 100)
+    : 100;
+
+  return (
+    <div className="cm-form-group">
+      <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
+        Reminders
+      </div>
+      
+      {/* Learning Progress Section */}
+      <div style={{ 
+        marginBottom: '10px', 
+        padding: '8px 12px', 
+        backgroundColor: 'var(--cm-bg-secondary)', 
+        borderRadius: '6px',
+        border: '1px solid var(--cm-border)',
+        fontSize: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+          <span style={{ marginRight: '6px' }}>🧠</span>
+          <span style={{ fontWeight: '500', color: 'var(--cm-text)' }}>
+            {learningStatus.learningPhase ? 'Learning your habits...' : 'Habits learned!'}
+          </span>
+        </div>
+        <div style={{ color: 'var(--cm-text-secondary)' }}>
+          {learningStatus.learningPhase 
+            ? `Complete ${learningStatus.sessionsNeeded} more sessions for personalized reminders`
+            : 'Personalized reminders are now available'
+          }
+          <div style={{ 
+            width: '100%', 
+            height: '4px', 
+            backgroundColor: 'var(--cm-bg-tertiary)', 
+            borderRadius: '2px', 
+            marginTop: '4px',
+            overflow: 'hidden'
+          }}>
+            <div style={{ 
+              width: `${progressPercentage}%`, 
+              height: '100%', 
+              backgroundColor: 'var(--cm-primary, #228be6)', 
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Main Reminder Toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '5px' }}>
+        <Switch
+          checked={settings.reminder?.enabled || false}
+          onChange={handleToggle}
+          size="md"
+          disabled={learningStatus.learningPhase && !learningStatus.loading}
+        />
+      </div>
+
+      {/* Reminder Type Options - shown when enabled and not in learning phase */}
+      {settings.reminder?.enabled && !learningStatus.learningPhase && (
+        <div style={{ marginTop: '12px', marginLeft: '8px' }}>
+          <div style={{ 
+            display: 'block', 
+            fontSize: '13px', 
+            fontWeight: '500', 
+            color: 'var(--cm-text)', 
+            marginBottom: '8px' 
+          }}>
+            Reminder Types
+          </div>
+          
+          {/* Streak Alerts */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <input
+              type="checkbox"
+              id="streakAlerts"
+              checked={settings.reminder?.streakAlerts || false}
+              onChange={(e) => handleReminderTypeChange('streakAlerts', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="streakAlerts" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              🔥 Streak alerts (protect practice streaks)
+            </label>
+          </div>
+
+          {/* Cadence Nudges */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <input
+              type="checkbox"
+              id="cadenceNudges"
+              checked={settings.reminder?.cadenceNudges || false}
+              onChange={(e) => handleReminderTypeChange('cadenceNudges', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="cadenceNudges" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              📅 Cadence reminders (based on your practice rhythm)
+            </label>
+          </div>
+
+          {/* Weekly Goals */}
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+            <input
+              type="checkbox"
+              id="weeklyGoals"
+              checked={settings.reminder?.weeklyGoals || false}
+              onChange={(e) => handleReminderTypeChange('weeklyGoals', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="weeklyGoals" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              🎯 Weekly goal notifications (mid-week & weekend check-ins)
+            </label>
+          </div>
+
+          {/* Re-engagement */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              id="reEngagement"
+              checked={settings.reminder?.reEngagement || false}
+              onChange={(e) => handleReminderTypeChange('reEngagement', e.target.checked)}
+              style={{ marginRight: '8px' }}
+            />
+            <label htmlFor="reEngagement" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+              👋 Re-engagement prompts (gentle return after breaks)
+            </label>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 // Save Button Component
@@ -337,25 +559,25 @@ const SaveSettingsButton = ({ workingSettings, handleSave }) => (
     style={{
       width: '100%',
       padding: '12px 24px',
-      backgroundColor: 'rgba(34, 197, 94, 0.9)',
+      backgroundColor: 'var(--cm-primary, #228be6)',
       fontSize: '16px',
       fontWeight: '600',
       marginTop: '16px',
       transition: 'all 0.2s ease'
     }}
     onMouseOver={(e) => {
-      e.target.style.backgroundColor = 'rgba(34, 197, 94, 1)';
+      e.target.style.backgroundColor = 'var(--cm-primary-hover, #1971c2)';
       e.target.style.transform = 'translateY(-1px)';
     }}
     onMouseOut={(e) => {
-      e.target.style.backgroundColor = 'rgba(34, 197, 94, 0.9)';
+      e.target.style.backgroundColor = 'var(--cm-primary, #228be6)';
       e.target.style.transform = 'translateY(0px)';
     }}
     onFocus={(e) => {
-      e.target.style.backgroundColor = 'rgba(34, 197, 94, 1)';
+      e.target.style.backgroundColor = 'var(--cm-primary-hover, #1971c2)';
     }}
     onBlur={(e) => {
-      e.target.style.backgroundColor = 'rgba(34, 197, 94, 0.9)';
+      e.target.style.backgroundColor = 'var(--cm-primary, #228be6)';
     }}
   >
     Save Settings
@@ -450,6 +672,19 @@ const Settings = () => {
 
   const workingSettings = getWorkingSettings(settings);
 
+  // Auto-constrain numberofNewProblemsPerSession when sessionLength changes
+  useEffect(() => {
+    if (workingSettings?.sessionLength && workingSettings?.numberofNewProblemsPerSession) {
+      const maxAllowed = Math.min(maxNewProblems, workingSettings.sessionLength);
+      if (workingSettings.numberofNewProblemsPerSession > maxAllowed) {
+        setSettings(prev => ({
+          ...prev,
+          numberofNewProblemsPerSession: maxAllowed
+        }));
+      }
+    }
+  }, [workingSettings?.sessionLength, maxNewProblems, workingSettings?.numberofNewProblemsPerSession, setSettings]);
+
   return (
     <div id="cm-mySidenav" className="cm-sidenav problink">
       <Header title="Settings" onClose={handleClose} />
@@ -473,26 +708,59 @@ const Settings = () => {
         {!workingSettings.adaptive && (
           <>
             <div className="cm-form-group">
-              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>Session Length</div>
-              <SliderMarksSessionLength
+              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>Session Length: {workingSettings.sessionLength} problems</div>
+              <input
+                type="range"
+                min="3"
+                max="12"
                 value={workingSettings.sessionLength}
-                onChange={(value) =>
-                  setSettings({ ...workingSettings, sessionLength: value })
+                onChange={(e) =>
+                  setSettings({ ...workingSettings, sessionLength: parseInt(e.target.value) })
                 }
+                style={{
+                  width: '100%',
+                  height: '4px',
+                  borderRadius: '2px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
               />
             </div>
 
             <div className="cm-form-group">
-              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>New Problems Per Session</div>
-              <SliderMarksNewProblemsPerSession
-                value={Math.min(workingSettings.numberofNewProblemsPerSession || 1, maxNewProblems)}
-                onChange={(value) =>
+              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
+                New Problems Per Session: {Math.min(
+                  workingSettings.numberofNewProblemsPerSession || 1, 
+                  Math.min(maxNewProblems, workingSettings.sessionLength || 8)
+                )}
+                {maxNewProblems < (workingSettings.sessionLength || 8) && (
+                  <span style={{ fontSize: '11px', color: 'var(--cm-text-secondary)', marginLeft: '8px' }}>
+                    (Max {maxNewProblems} during onboarding)
+                  </span>
+                )}
+              </div>
+              <input
+                type="range"
+                min="1"
+                max={Math.min(maxNewProblems, workingSettings.sessionLength || 8)}
+                value={Math.min(
+                  workingSettings.numberofNewProblemsPerSession || 1, 
+                  Math.min(maxNewProblems, workingSettings.sessionLength || 8)
+                )}
+                onChange={(e) => {
+                  const newValue = parseInt(e.target.value);
                   setSettings({
                     ...workingSettings,
-                    numberofNewProblemsPerSession: value,
-                  })
-                }
-                max={maxNewProblems}
+                    numberofNewProblemsPerSession: Math.min(newValue, workingSettings.sessionLength || 8),
+                  });
+                }}
+                style={{
+                  width: '100%',
+                  height: '4px',
+                  borderRadius: '2px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
               />
             </div>
           </>
@@ -500,9 +768,16 @@ const Settings = () => {
 
         <div className="cm-form-group">
           <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Time Limits</div>
-          <GradientSegmentedControlTimeLimit
+          <SegmentedControl
             value={workingSettings.limit}
             onChange={(value) => setSettings(prevSettings => ({ ...prevSettings, limit: value }))}
+            options={[
+              { label: 'Auto', value: 'auto' },
+              { label: 'Off', value: 'off' },
+              { label: 'Fixed', value: 'fixed' }
+            ]}
+            variant="gradient"
+            size="sm"
           />
         </div>
 
@@ -516,18 +791,10 @@ const Settings = () => {
           interviewReadiness={interviewReadiness}
         />
 
-        <div className="cm-form-group">
-          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Reminders</div>
-          <ToggleSelectRemainders
-            reminder={workingSettings.reminder}
-            onChange={(updatedReminder) =>
-              setSettings((prevSettings) => ({
-                ...prevSettings,
-                reminder: { ...prevSettings.reminder, ...updatedReminder },
-              }))
-            }
-          />
-        </div>
+        <RemindersSection 
+          settings={workingSettings} 
+          setSettings={setSettings} 
+        />
         <SaveSettingsButton 
           workingSettings={workingSettings} 
           handleSave={handleSave} 

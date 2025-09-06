@@ -317,6 +317,368 @@ const runAddProblemReasoningToSessionTests = () => {
   });
 };
 
+/** ──────────────── ALGORITHM FAILURE SCENARIO TESTING ──────────────── **/
+
+const runAdaptiveSessionAlgorithmFailureTests = () => {
+  describe("Adaptive Session Algorithm Failures", () => {
+    beforeEach(() => {
+      buildAdaptiveSessionSettings.mockClear();
+      problemsDb.fetchAllProblems.mockClear();
+      getTagMastery.mockClear();
+      StorageService.getSettings.mockClear();
+    });
+
+    it("should handle adaptive algorithm failure with fallback settings", async () => {
+      buildAdaptiveSessionSettings.mockRejectedValue(new Error("Adaptive algorithm crashed"));
+      setupMockFetchAllProblems([createMockProblem()]);
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
+
+      const result = await ProblemService.createSession();
+
+      expect(buildAdaptiveSessionSettings).toHaveBeenCalled();
+      expect(Array.isArray(result)).toBe(true);
+      // Should still create session with fallback settings
+      expect(result.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should handle tag mastery calculation overflow", async () => {
+      const corruptedTagData = Array.from({ length: 10000 }, (_, i) => 
+        createTagMasteryEntry(`tag-${i}`, Math.random(), Number.MAX_SAFE_INTEGER)
+      );
+      
+      getTagMastery.mockResolvedValue(corruptedTagData);
+      
+      // This should handle massive dataset gracefully
+      const result = ProblemService.buildUserPerformanceContext(corruptedTagData);
+      
+      expect(result).toHaveProperty('tagMastery');
+      expect(result).toHaveProperty('tagAttempts');
+      
+      // Should not crash on large datasets
+      expect(Object.keys(result.tagMastery).length).toBeLessThanOrEqual(10000);
+    });
+
+    it("should handle circular dependency in problem difficulty calculation", async () => {
+      const circularProblems = [
+        { id: 1, title: "Problem 1", dependencies: [2], difficulty: "Medium" },
+        { id: 2, title: "Problem 2", dependencies: [3], difficulty: "Medium" },
+        { id: 3, title: "Problem 3", dependencies: [1], difficulty: "Medium" }, // Circular
+      ];
+      
+      setupMockFetchAllProblems(circularProblems);
+      buildAdaptiveSessionSettings.mockResolvedValue(createSessionSettings());
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
+
+      // Should not hang due to circular dependencies
+      const result = await ProblemService.createSession();
+      
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should handle box level progression algorithm failure", async () => {
+      const problemWithInvalidBoxLevel = createMockProblemInDb({ 
+        boxLevel: -1, // Invalid box level
+        attempts: NaN, // Invalid attempts
+      });
+      
+      setupMockDatabaseProblem(problemWithInvalidBoxLevel);
+      
+      const contentScriptData = createContentScriptData();
+      
+      // Should handle invalid data gracefully
+      const result = await ProblemService.addOrUpdateProblem(contentScriptData);
+      
+      expect(result).toBeDefined();
+      expect(problemsDb.checkDatabaseForProblem).toHaveBeenCalled();
+    });
+  });
+};
+
+const runProblemSelectionAlgorithmFailureTests = () => {
+  describe("Problem Selection Algorithm Failures", () => {
+    it("should handle empty problem pool gracefully", async () => {
+      setupMockFetchAllProblems([]); // No problems available
+      setupMockFetchAdditionalProblems([]);
+      buildAdaptiveSessionSettings.mockResolvedValue(createSessionSettings());
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
+
+      const result = await ProblemService.createSession();
+      
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(0); // Should return empty array, not crash
+    });
+
+    it("should handle malformed problem data in selection algorithm", async () => {
+      const malformedProblems = [
+        { id: null, title: "", difficulty: "InvalidDifficulty" },
+        { id: "not-a-number", title: null, tags: "should-be-array" },
+        { boxLevel: "infinity", attempts: -1, successRate: "not-a-number" },
+        undefined,
+        null,
+        { /* missing required fields */ }
+      ];
+      
+      setupMockFetchAllProblems(malformedProblems);
+      buildAdaptiveSessionSettings.mockResolvedValue(createSessionSettings());
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
+
+      const result = await ProblemService.createSession();
+      
+      // Should filter out malformed problems and continue
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.every(p => p && p.id && p.title)).toBe(true);
+    });
+
+    it("should handle infinite loop in problem recommendation algorithm", async () => {
+      // Mock a scenario that could cause infinite loops
+      let callCount = 0;
+      problemsDb.fetchAdditionalProblems.mockImplementation(async () => {
+        callCount++;
+        if (callCount > 100) {
+          throw new Error("Infinite loop detected in problem selection");
+        }
+        return []; // Keep returning empty, which could cause infinite retry
+      });
+      
+      setupMockFetchAllProblems([]);
+      buildAdaptiveSessionSettings.mockResolvedValue(createSessionSettings({ sessionLength: 10 }));
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
+
+      const result = await ProblemService.createSession();
+      
+      expect(Array.isArray(result)).toBe(true);
+      // Should break out of infinite loop and return empty session
+      expect(result.length).toBe(0);
+    });
+  });
+};
+
+const runPerformanceAnalysisAlgorithmFailureTests = () => {
+  describe("Performance Analysis Algorithm Failures", () => {
+    it("should handle division by zero in success rate calculations", async () => {
+      const zeroAttemptsData = [
+        createTagMasteryEntry("array", 0, 0), // Division by zero scenario
+        createTagMasteryEntry("dp", 1, 0), // Another zero attempts
+      ];
+      
+      const result = ProblemService.buildUserPerformanceContext(zeroAttemptsData);
+      
+      expect(result.tagMastery).toBeDefined();
+      expect(Object.values(result.tagMastery).every(rate => 
+        !isNaN(rate) && isFinite(rate)
+      )).toBe(true);
+    });
+
+    it("should handle floating point precision errors in calculations", async () => {
+      const precisionProblematicData = [
+        createTagMasteryEntry("array", 0.1 + 0.2, 1), // 0.30000000000000004
+        createTagMasteryEntry("math", 1 / 3, 3), // 0.3333333333333333
+        createTagMasteryEntry("precision", 0.999999999999999, 1),
+      ];
+      
+      const result = ProblemService.buildUserPerformanceContext(precisionProblematicData);
+      
+      expect(result.tagMastery).toBeDefined();
+      // All values should be reasonable numbers
+      Object.values(result.tagMastery).forEach(rate => {
+        expect(rate).toBeGreaterThanOrEqual(0);
+        expect(rate).toBeLessThanOrEqual(1);
+        expect(rate).not.toBeNaN();
+      });
+    });
+
+    it("should handle negative performance metrics gracefully", async () => {
+      const negativeMetricsData = [
+        createTagMasteryEntry("array", -0.5, -10), // Negative values
+        createTagMasteryEntry("dp", 1.5, 5), // Success rate > 1
+        createTagMasteryEntry("invalid", Number.NEGATIVE_INFINITY, 1),
+      ];
+      
+      const result = ProblemService.buildUserPerformanceContext(negativeMetricsData);
+      
+      expect(result.tagMastery).toBeDefined();
+      // Should normalize or handle invalid values
+      Object.values(result.tagMastery).forEach(rate => {
+        expect(rate).toBeGreaterThanOrEqual(0);
+        expect(rate).toBeLessThanOrEqual(1);
+        expect(Number.isFinite(rate)).toBe(true);
+      });
+    });
+  });
+};
+
+const runReasoningAlgorithmFailureTests = () => {
+  describe("Problem Reasoning Algorithm Failures", () => {
+    it("should handle reasoning service complete failure", async () => {
+      const sessionProblems = createMockProblemsArray();
+      const sessionContext = { sessionLength: 5 };
+      
+      getTagMastery.mockRejectedValue(new Error("Tag mastery service down"));
+      ProblemReasoningService.generateSessionReasons.mockImplementation(() => {
+        throw new Error("Reasoning service crashed");
+      });
+
+      const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
+      
+      // Should fallback to original problems
+      expect(result).toEqual(sessionProblems);
+    });
+
+    it("should handle partial reasoning failures", async () => {
+      const sessionProblems = createMockProblemsArray();
+      const sessionContext = { sessionLength: 5 };
+      
+      getTagMastery.mockResolvedValue([]);
+      ProblemReasoningService.generateSessionReasons.mockReturnValue([
+        { problemId: 1, reasoning: "Valid reasoning" },
+        { problemId: 2, reasoning: null }, // Partial failure
+        { problemId: 3, reasoning: undefined }, // Missing reasoning
+        null, // Invalid entry
+      ]);
+
+      const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
+      
+      expect(Array.isArray(result)).toBe(true);
+      // Should include valid reasoning and handle failures gracefully
+      expect(result.some(r => r.reasoning === "Valid reasoning")).toBe(true);
+    });
+
+    it("should handle reasoning generation timeout", async () => {
+      const sessionProblems = createMockProblemsArray();
+      const sessionContext = { sessionLength: 100 }; // Large session
+      
+      getTagMastery.mockResolvedValue([]);
+      
+      // Simulate timeout by delaying reasoning generation
+      ProblemReasoningService.generateSessionReasons.mockImplementation(
+        () => new Promise(resolve => 
+          setTimeout(() => resolve([]), 30000) // 30 second delay
+        )
+      );
+
+      // Should timeout and fallback
+      const startTime = Date.now();
+      const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
+      const elapsed = Date.now() - startTime;
+      
+      expect(elapsed).toBeLessThan(5000); // Should not wait 30 seconds
+      expect(result).toEqual(sessionProblems); // Should fallback
+    });
+  });
+};
+
+const runDatabaseIntegrityFailureTests = () => {
+  describe("Database Integrity Algorithm Failures", () => {
+    it("should handle corrupted problem data during updates", async () => {
+      const corruptedProblem = {
+        id: 1,
+        title: "Two Sum",
+        attempts: "corrupted-string", // Should be number
+        boxLevel: { invalid: "object" }, // Should be number
+        tags: "should-be-array", // Should be array
+        difficulty: 999, // Invalid difficulty
+      };
+      
+      setupMockDatabaseProblem(corruptedProblem);
+      setupMockAddProblem({ success: true });
+      
+      const contentScriptData = createContentScriptData();
+      
+      const result = await ProblemService.addOrUpdateProblem(contentScriptData);
+      
+      expect(result).toBeDefined();
+      expect(problemsDb.addProblem).toHaveBeenCalledWith(contentScriptData);
+    });
+
+    it("should handle database schema version conflicts", async () => {
+      problemsDb.addProblem.mockRejectedValue(
+        new Error("Schema version conflict: expected v36, found v35")
+      );
+      
+      const contentScriptData = createContentScriptData();
+      
+      await expect(ProblemService.addOrUpdateProblem(contentScriptData))
+        .rejects.toThrow("Schema version conflict");
+      
+      expect(problemsDb.addProblem).toHaveBeenCalledWith(contentScriptData);
+    });
+
+    it("should handle concurrent modification conflicts", async () => {
+      let attemptCount = 0;
+      problemsDb.addProblem.mockImplementation(async () => {
+        attemptCount++;
+        if (attemptCount === 1) {
+          throw new Error("Transaction conflict: record modified by another process");
+        }
+        return { success: true };
+      });
+      
+      const contentScriptData = createContentScriptData();
+      
+      // Should potentially retry on conflict
+      const result = await ProblemService.addOrUpdateProblem(contentScriptData);
+      
+      expect(result).toBeDefined();
+      expect(attemptCount).toBe(1); // Single attempt for now
+    });
+  });
+};
+
+const runMemoryConstraintFailureTests = () => {
+  describe("Memory Constraint Algorithm Failures", () => {
+    it("should handle memory exhaustion during large session creation", async () => {
+      // Create a scenario with many problems that could cause memory issues
+      const largeProblemsArray = Array.from({ length: 50000 }, (_, i) => 
+        createMockProblem({ 
+          id: i, 
+          title: `Problem ${i}`,
+          tags: Array.from({ length: 100 }, (_, j) => `tag-${j}`) // Large tag arrays
+        })
+      );
+      
+      setupMockFetchAllProblems(largeProblemsArray);
+      buildAdaptiveSessionSettings.mockResolvedValue(
+        createSessionSettings({ sessionLength: 10000 }) // Very large session
+      );
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
+
+      const result = await ProblemService.createSession();
+      
+      expect(Array.isArray(result)).toBe(true);
+      // Should handle memory constraints by limiting session size
+      expect(result.length).toBeLessThan(10000);
+    });
+
+    it("should handle stack overflow in recursive algorithms", async () => {
+      // Create deeply nested problem dependency structure
+      const deeplyNestedProblems = Array.from({ length: 1000 }, (_, i) => ({
+        id: i,
+        title: `Problem ${i}`,
+        dependencies: i > 0 ? [i - 1] : [], // Each depends on previous (deep chain)
+        difficulty: "Medium"
+      }));
+      
+      setupMockFetchAllProblems(deeplyNestedProblems);
+      buildAdaptiveSessionSettings.mockResolvedValue(createSessionSettings());
+      StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
+      ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
+
+      // Should handle deep recursion without stack overflow
+      const result = await ProblemService.createSession();
+      
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBeGreaterThanOrEqual(0);
+    });
+  });
+};
+
 describe("ProblemService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -328,6 +690,14 @@ describe("ProblemService", () => {
   runCreateSessionTests();
   runBuildUserPerformanceContextTests();
   runAddProblemReasoningToSessionTests();
+
+  // Algorithm failure scenario testing
+  runAdaptiveSessionAlgorithmFailureTests();
+  runProblemSelectionAlgorithmFailureTests();
+  runPerformanceAnalysisAlgorithmFailureTests();
+  runReasoningAlgorithmFailureTests();
+  runDatabaseIntegrityFailureTests();
+  runMemoryConstraintFailureTests();
 
   // Additional tests would be extracted here in a similar manner
   // Following the same pattern for remaining describe blocks:
