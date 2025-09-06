@@ -48,13 +48,22 @@
   gap: 16px;
 }
 
-/* Card - Container with border and shadow */
+/* Card - Container with border and shadow - Theme aware */
 .card {
-  background-color: white;
-  border: 1px solid #e9ecef;
+  background-color: var(--mantine-color-body, white);
+  border: 1px solid var(--mantine-color-gray-3, #e9ecef);
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  color: var(--mantine-color-text, #000000);
+}
+
+/* Dark theme support */
+[data-mantine-color-scheme="dark"] .card {
+  background-color: var(--mantine-color-dark-6, #2c2e33);
+  border-color: var(--mantine-color-dark-4, #373a40);
+  color: var(--mantine-color-dark-0, #c9c9c9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .card.withPadding {

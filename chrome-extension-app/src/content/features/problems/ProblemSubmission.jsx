@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
@@ -376,7 +376,6 @@ const ProbSubmission = () => {
   const {
     control,
     handleSubmit,
-    setValue,
     formState: { errors },
     watch,
   } = useForm(getFormConfig(routeState));
@@ -386,12 +385,6 @@ const ProbSubmission = () => {
   console.log("🔍 Form values:", watchedValues);
   console.log("🔍 Form errors:", errors);
 
-  useEffect(() => {
-    if (routeState?.problemData) {
-      setValue("leetCodeID", routeState.problemData.LeetCodeID || "");
-      setValue("title", routeState.problemData.Description || "");
-    }
-  }, [routeState, setValue]);
 
   const onSubmit = async (data) => {
     await handleFormSubmission(data, routeState, navigate, setIsSubmitting);

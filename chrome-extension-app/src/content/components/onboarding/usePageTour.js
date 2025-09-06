@@ -20,13 +20,18 @@ export function usePageTour() {
   const getPageIdFromPath = useCallback((path) => {
     const pathMap = {
       '/ProbGen': 'probgen',
-      '/Probgen': 'probgen', // Handle case variations
+      '/Probgen': 'probgen', // Handle mixed case - this matches the actual route!
+      '/probgen': 'probgen', // Handle lowercase
       '/ProbTime': 'probtime',
       '/Probtime': 'probtime',
+      '/probtime': 'probtime', // Handle lowercase
       '/Timer': 'timer',
+      '/timer': 'timer', // Handle lowercase
       '/ProbStat': 'probstat',
       '/Probstat': 'probstat',
+      '/probstat': 'probstat', // Handle lowercase
       '/Settings': 'settings',
+      '/settings': 'settings', // Handle lowercase
     };
     return pathMap[path];
   }, []);
@@ -37,7 +42,6 @@ export function usePageTour() {
       const pageId = getPageIdFromPath(pathname);
       
       if (!pageId) {
-        // No tour configured for this page
         setActiveTour(null);
         setShowTour(false);
         return;
@@ -45,7 +49,6 @@ export function usePageTour() {
 
       const tourConfig = getTourConfig(pageId);
       if (!tourConfig) {
-        // No tour configuration found
         setActiveTour(null);
         setShowTour(false);
         return;
@@ -55,7 +58,6 @@ export function usePageTour() {
         // Check if tour has already been completed (async database call)
         const isCompleted = await isPageTourCompleted(pageId);
         if (isCompleted) {
-          // Tour already seen
           logger.info(`⏭️ Page tour already completed for: ${pageId}`);
           setActiveTour(null);
           setShowTour(false);

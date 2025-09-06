@@ -16,7 +16,7 @@ export function useSimilarProblems(currentProblemId, isExpanded) {
       problemId: currentProblemId,
       limit: 3
     },
-    [currentProblemId], // Dependencies
+    [currentProblemId, isExpanded], // Dependencies - include isExpanded so it refetches when hover changes
     {
       immediate: isExpanded && !!currentProblemId, // Only fetch when expanded and has problemId
       onSuccess: (response) => {

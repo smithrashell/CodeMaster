@@ -10,7 +10,9 @@ const Tooltip = ({
   label,
   position = 'top',
   disabled = false,
-  ...props 
+  withArrow, // Extract but don't use
+  classNames, // Extract but don't use
+  ...domProps 
 }) => {
   const [visible, setVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -97,7 +99,7 @@ const Tooltip = ({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         style={{ display: 'inline-block' }}
-        {...props}
+        {...domProps}
       >
         {children}
       </div>

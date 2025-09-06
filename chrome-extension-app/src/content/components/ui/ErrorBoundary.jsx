@@ -50,27 +50,93 @@ class ContentErrorBoundary extends React.Component {
     });
   };
 
+  handleReload = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    console.log("ErrorBoundary: Attempting page reload...");
+    
+    // Try multiple reload methods to ensure it works
+    try {
+      // Method 1: Standard reload
+      window.location.reload(true);
+    } catch (error) {
+      console.warn("Standard reload failed, trying alternative method:", error);
+      // Method 2: Force navigation to current URL
+      try {
+        window.location.assign(window.location.href);
+      } catch (error2) {
+        console.warn("Alternative reload failed, trying location.replace:", error2);
+        // Method 3: Replace current location
+        try {
+          window.location.replace(window.location.href);
+        } catch (error3) {
+          console.error("All reload methods failed:", error3);
+          // Last resort: alert user
+          alert("Please manually refresh the page to continue.");
+        }
+      }
+    }
+  };
+
   render() {
     if (this.state.hasError) {
       const { section = "Component" } = this.props;
 
       return (
-        <div
-          style={{
-            padding: '12px',
-            margin: '8px 0',
-            border: '1px solid #ff6b6b',
-            borderRadius: '6px',
-            backgroundColor: '#fff5f5',
-            maxWidth: '100%',
-            fontSize: '14px',
-            color: '#333',
-            position: 'relative',
-            display: 'block',
-            width: '100%',
-            boxSizing: 'border-box'
-          }}
-        >
+        <>
+          {/* Backdrop */}
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 999999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {/* Modal */}
+            <div
+              style={{
+                padding: '20px',
+                border: '1px solid #ff6b6b',
+                borderRadius: '8px',
+                backgroundColor: '#fff',
+                maxWidth: '500px',
+                minWidth: '300px',
+                fontSize: '14px',
+                color: '#333',
+                position: 'relative',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                maxHeight: '80vh',
+                overflow: 'auto'
+              }}
+            >
+              {/* Close button */}
+              <button
+                onClick={this.handleRetry}
+                style={{
+                  position: 'absolute',
+                  top: '12px',
+                  right: '12px',
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  padding: '4px',
+                  borderRadius: '4px'
+                }}
+                title="Close"
+              >
+                ×
+              </button>
+
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ color: '#ff6b6b', marginRight: '8px', fontSize: '16px' }}>⚠️</span>
             <strong style={{ color: '#d63031' }}>{section} Error</strong>
@@ -108,7 +174,7 @@ class ContentErrorBoundary extends React.Component {
             </button>
             
             <button
-              onClick={() => window.location.reload()}
+              onClick={this.handleReload}
               style={{
                 padding: '6px 12px',
                 fontSize: '12px',
@@ -141,7 +207,9 @@ class ContentErrorBoundary extends React.Component {
               </pre>
             </details>
           )}
-        </div>
+            </div>
+          </div>
+        </>
       );
     }
 
