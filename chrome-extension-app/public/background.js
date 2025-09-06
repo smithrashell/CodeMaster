@@ -9,7 +9,15 @@ import { HintInteractionService } from "../src/shared/services/hintInteractionSe
 import { AlertingService } from "../src/shared/services/AlertingService.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
 import { connect } from "chrome-extension-hot-reload";
-import { onboardUserIfNeeded } from "../src/shared/services/onboardingService.js";
+import { 
+  onboardUserIfNeeded,
+  checkContentOnboardingStatus,
+  updateContentOnboardingStep,
+  completeContentOnboarding,
+  checkPageTourStatus,
+  markPageTourCompleted,
+  resetPageTour
+} from "../src/shared/services/onboardingService.js";
 import { getStrategyForTag } from "../src/shared/db/strategy_data.js";
 import { getProblem } from "../src/shared/db/problems.js";
 import { 
@@ -149,7 +157,8 @@ const generateCacheKey = (request) => {
     case 'getProblemByDescription': 
       return `problem_slug_${request.slug}`;
     case 'saveHintInteraction': 
-      return request.data?.problemId ? `problem_ctx_${request.data.problemId}` : null;
+      return (request.interactionData?.problemId || request.data?.problemId) ? 
+        `problem_ctx_${request.interactionData?.problemId || request.data?.problemId}` : null;
     
     // Dashboard data operations - simplified keys since no filters are passed
     case 'getStatsData': 
@@ -396,10 +405,87 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           })
           .finally(finishRequest);
         return true;
+      
+      case "checkContentOnboardingStatus":
+        checkContentOnboardingStatus()
+          .then(sendResponse)
+          .catch((error) => {
+            console.error("❌ Error checking content onboarding status:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+      
+      case "updateContentOnboardingStep":
+        updateContentOnboardingStep(request.step)
+          .then(sendResponse)
+          .catch((error) => {
+            console.error("❌ Error updating content onboarding step:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+      
+      case "completeContentOnboarding":
+        completeContentOnboarding()
+          .then(sendResponse)
+          .catch((error) => {
+            console.error("❌ Error completing content onboarding:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+      
+      case "checkPageTourStatus":
+        checkPageTourStatus(request.pageKey)
+          .then(sendResponse)
+          .catch((error) => {
+            console.error("❌ Error checking page tour status:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+      
+      case "markPageTourCompleted":
+        markPageTourCompleted(request.pageKey)
+          .then(sendResponse)
+          .catch((error) => {
+            console.error("❌ Error marking page tour completed:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+      
+      case "resetPageTour":
+        resetPageTour(request.pageKey)
+          .then(sendResponse)
+          .catch((error) => {
+            console.error("❌ Error resetting page tour:", error);
+            sendResponse({ error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
       /** ──────────────── User Settings ──────────────── **/
       case "setSettings":
         StorageService.setSettings(request.message)
-          .then(sendResponse)
+          .then((result) => {
+            // Also save to Chrome storage to trigger chrome.storage.onChanged listeners
+            // This enables theme synchronization across extension contexts
+            if (chrome.storage && chrome.storage.local) {
+              chrome.storage.local.set({ 
+                settings: request.message 
+              }, () => {
+                if (chrome.runtime.lastError) {
+                  console.warn("Failed to sync settings to Chrome storage:", chrome.runtime.lastError.message);
+                }
+              });
+            }
+            sendResponse(result);
+          })
+          .catch((error) => {
+            console.error("Failed to save settings:", error);
+            sendResponse({ status: "error", message: error.message });
+          })
           .finally(finishRequest);
         return true;
       case "getSettings":
@@ -1347,15 +1433,21 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       /** ──────────────── Hint Interaction Database Operations ──────────────── **/
 
       case "saveHintInteraction":
-        console.log("💾 Saving hint interaction from content script");
+        console.log("💾 Saving hint interaction from content script", { 
+          hasData: !!request.data, 
+          hasInteractionData: !!request.interactionData,
+          problemIdFromData: request.data?.problemId,
+          problemIdFromInteractionData: request.interactionData?.problemId
+        });
         
         // Get problem context in background script first to avoid IndexedDB access in content script
         (async () => {
-          let enrichedData = { ...request.data };
+          const interactionData = request.interactionData || request.data;
+          let enrichedData = { ...interactionData };
           
-          if (request.data.problemId) {
+          if (interactionData.problemId) {
             try {
-              const problem = await getProblem(request.data.problemId);
+              const problem = await getProblem(interactionData.problemId);
               if (problem) {
                 enrichedData.boxLevel = problem.box || 1;
                 enrichedData.problemDifficulty = problem.difficulty || "Medium";

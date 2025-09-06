@@ -712,38 +712,6 @@ const InterviewChoiceBanner = ({ sessionLoading, handleInterviewChoice, handleRe
   </div>
 );
 
-// Convert cryptic reasoning text to human-readable explanations
-const getHumanReadableReason = (shortText) => {
-  if (!shortText) return "Selected for your learning progression";
-  
-  // Handle interview mode patterns
-  if (shortText.toLowerCase().includes("interview")) {
-    return "Selected for interview practice to test skill transfer under pressure";
-  }
-  
-  // Handle common patterns
-  if (shortText.toLowerCase().includes("new") && shortText.toLowerCase().includes("easy")) {
-    return "This introduces fundamental problem-solving patterns with Easy difficulty";
-  }
-  if (shortText.toLowerCase().includes("new") && shortText.toLowerCase().includes("medium")) {
-    return "This builds on your foundation with Medium-level challenges";
-  }
-  if (shortText.toLowerCase().includes("new") && shortText.toLowerCase().includes("hard")) {
-    return "This advances your skills with Hard-level problem complexity";
-  }
-  if (shortText.toLowerCase().includes("review")) {
-    return "This reinforces previously learned concepts based on spaced repetition";
-  }
-  if (shortText.toLowerCase().includes("weakness")) {
-    return "This targets an area where you can improve your performance";
-  }
-  if (shortText.toLowerCase().includes("mastery")) {
-    return "This helps solidify your understanding of key patterns";
-  }
-  
-  // Fallback for unrecognized patterns
-  return `Selected because: ${shortText}`;
-};
 
 // Helper function to render problem badges
 const renderProblemBadges = ({ problem, isNewProblem, handleMouseEnter, handleMouseLeave }) => (
@@ -839,11 +807,12 @@ const renderExpandableContent = ({ problem, hovered, similarProblems, loadingSim
   
   return (
     <div style={{
-      maxHeight: hovered ? "120px" : "0px",
+      maxHeight: hovered ? "160px" : "0px",
       opacity: hovered ? 1 : 0,
       overflow: "hidden",
       transition: "all 0.3s ease",
     }}>
+      {/* Existing reason text */}
       <div style={{
         maxWidth: "240px",
         margin: 0,
@@ -857,8 +826,10 @@ const renderExpandableContent = ({ problem, hovered, similarProblems, loadingSim
         marginBottom: (similarProblems.length > 0 || loadingSimilar) ? "6px" : "0",
         textAlign: "left",
       }}>
-        <strong>🎯 Selected because:</strong> {getHumanReadableReason(problem.selectionReason.shortText)}
+        <strong>🎯 Selected because:</strong> {problem.selectionReason.fullText}
       </div>
+
+      {/* Similar Problems Section */}
       {(similarProblems.length > 0 || loadingSimilar) &&
         renderSimilarProblems({ similarProblems, loadingSimilar, hovered })
       }
@@ -883,7 +854,11 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
   }, []);
 
   return (
-    <div className="cm-simple-problem-item-container">
+    <div 
+      className="cm-simple-problem-item-container"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="cm-simple-problem-item">
         <button
           type="button"
@@ -1054,6 +1029,7 @@ function ProbGen() {
 
   // Use settings manager hook
   const { settings, settingsLoaded, settingsLoading } = useSettingsManager();
+
 
   // Use session management hook
   const {

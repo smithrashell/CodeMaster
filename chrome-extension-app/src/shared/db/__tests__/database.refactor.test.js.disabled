@@ -1,35 +1,25 @@
 /**
  * Test suite to verify database functionality after refactoring
- * 
- * TEMPORARILY DISABLED: Jest v30 compatibility issue with global state management
- * TODO: Re-enable when Jest configuration is updated
+ * Fixed: Jest v30 compatibility using established test patterns
  */
 
-// Skip entire file to avoid Jest state management issues  
-const TESTS_DISABLED = true;
-if (TESTS_DISABLED) {
+// Import dbHelper using existing test patterns
+import { dbHelper } from '../index.js';
 
-// Mock environment setup
-const FDBFactory = require('fake-indexeddb/lib/FDBFactory');
-const FDBKeyRange = require('fake-indexeddb/lib/FDBKeyRange');
+// Mock background script context - use existing test patterns
+const originalGlobalThis = global.globalThis;
 
-// Set up globals before any imports
-global.indexedDB = new FDBFactory();
-global.IDBKeyRange = FDBKeyRange;
+beforeAll(() => {
+  global.globalThis = { IS_BACKGROUND_SCRIPT_CONTEXT: true };
+});
 
-// Mock background script context
-global.globalThis = { IS_BACKGROUND_SCRIPT_CONTEXT: true };
+afterAll(() => {
+  global.globalThis = originalGlobalThis;
+});
 
-// Import after globals are set
-let dbHelper;
-
-describe.skip('Database Refactoring Tests', () => {
-  beforeAll(() => {
-    // Dynamic import to ensure globals are set first
-    dbHelper = require('../index.js').dbHelper;
-  });
+describe('Database Refactoring Tests', () => {
   beforeEach(() => {
-    // Clear any cached database
+    // Clear any cached database - follows existing cleanup patterns
     dbHelper.db = null;
   });
 
@@ -103,28 +93,28 @@ describe.skip('Database Refactoring Tests', () => {
   });
 });
 
-describe.skip('Database Access Control Tests', () => {
+describe('Database Access Control Tests', () => {
   test('should block access from content scripts', () => {
     // Mock content script environment
-    global.globalThis = {};
-    global.window = {
-      location: {
-        protocol: 'https:',
-        href: 'https://example.com'
-      }
-    };
+    const originalGlobalThis = global.globalThis;
+    const originalWindow = global.window;
     
-    expect(() => {
-      dbHelper.openDB();
-    }).toThrow(/DATABASE ACCESS BLOCKED/);
-  });
-});
-
-} // End if (false) - Re-enable this test when Jest v30 compatibility is fixed
-
-// Placeholder test to satisfy Jest requirements
-describe('Database Refactoring Tests - Placeholder', () => {
-  it('should be re-enabled when Jest v30 compatibility is fixed', () => {
-    expect(true).toBe(true);
+    try {
+      global.globalThis = {};
+      global.window = {
+        location: {
+          protocol: 'https:',
+          href: 'https://example.com'
+        }
+      };
+      
+      expect(() => {
+        dbHelper.openDB();
+      }).toThrow(/DATABASE ACCESS BLOCKED/);
+    } finally {
+      // Restore original values
+      global.globalThis = originalGlobalThis;
+      global.window = originalWindow;
+    }
   });
 });

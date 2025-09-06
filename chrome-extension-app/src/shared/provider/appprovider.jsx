@@ -7,13 +7,9 @@ import { NavProvider } from "./navprovider";
 import { getExecutionContext } from "../db/accessControl.js";
 
 // Conditionally import Mantine CSS only when not in content script context
-const executionContext = getExecutionContext();
-const isContentScript = executionContext.contextType.includes('content-script-or-web-page') && 
-                        !executionContext.contextType.includes('background-script');
-
-if (!isContentScript) {
-  import("@mantine/core/styles.css");
-}
+const _executionContext = getExecutionContext();
+// Note: Mantine CSS is conditionally loaded via webpack based on context
+// Static import here would cause issues in content scripts
 
 import ThemeProviderWrapper from "./themeprovider";
 // AppProviders.jsx

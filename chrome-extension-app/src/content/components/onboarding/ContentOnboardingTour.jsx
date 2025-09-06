@@ -4,7 +4,7 @@ import { Card, Stack, Group } from '../ui/Layout.jsx';
 import Text from '../ui/Text.jsx';
 import Badge from '../ui/Badge.jsx';
 // Note: ThemeIcon, Progress, ActionIcon simplified for onboarding
-import { SimpleButton } from "../../../shared/components/ui/SimpleButton";
+import { baseButtonStyles, sizeStyles, getThemeAwareVariantStyles } from "../../../shared/components/ui/buttonStyles";
 import {
   IconTarget,
   IconX,
@@ -26,76 +26,164 @@ import { smartPositioning } from "./SmartPositioning";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
 
-// Tour Card Header Component
-const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-    <Badge color="blue" variant="light" size="xs">
-      {currentStep + 1} of {totalSteps}
-    </Badge>
-    <button 
-      style={{
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: '4px',
-        borderRadius: '4px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}
-      onClick={onSkip}
+// Theme-aware SimpleButton for the tour
+const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onClick, children, style = {}, ...props }) => {
+  // Get current theme
+  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                 document.body.classList.contains('dark-theme') ||
+                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+  const themeAwareVariants = getThemeAwareVariantStyles(isDark);
+  
+  const buttonStyles = {
+    ...baseButtonStyles,
+    ...sizeStyles[size],
+    ...themeAwareVariants[variant],
+    cursor: disabled ? "not-allowed" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+    ...style,
+  };
+
+  const handleMouseEnter = (e) => {
+    if (disabled) return;
+    if (variant === 'ghost') {
+      e.target.style.backgroundColor = isDark ? "rgba(201, 201, 201, 0.1)" : "rgba(73, 80, 87, 0.1)";
+      e.target.style.borderColor = isDark ? "rgba(201, 201, 201, 0.5)" : "rgba(73, 80, 87, 0.5)";
+    } else if (variant === 'primary') {
+      e.target.style.backgroundColor = "#364fc7";
+    } else if (variant === 'secondary') {
+      e.target.style.backgroundColor = isDark ? "#495057" : "#e9ecef";
+    }
+  };
+
+  const handleMouseLeave = (e) => {
+    if (disabled) return;
+    if (variant === 'ghost') {
+      e.target.style.backgroundColor = "transparent";
+      e.target.style.borderColor = isDark ? "rgba(201, 201, 201, 0.3)" : "rgba(73, 80, 87, 0.3)";
+    } else if (variant === 'primary') {
+      e.target.style.backgroundColor = "#4c6ef5";
+    } else if (variant === 'secondary') {
+      e.target.style.backgroundColor = isDark ? "#373a40" : "#f1f3f4";
+    }
+  };
+
+  return (
+    <button
+      style={buttonStyles}
+      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...props}
     >
-      <IconX size={12} />
+      {children}
     </button>
-  </div>
-);
+  );
+};
+
+// Tour Card Header Component
+const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => {
+  // Get current theme for proper button styling
+  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                 document.body.classList.contains('dark-theme') ||
+                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+      <Badge color="blue" variant="light" size="xs">
+        {currentStep + 1} of {totalSteps}
+      </Badge>
+      <button 
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '4px',
+          borderRadius: '4px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: isDark ? '#c9c9c9' : '#495057'
+        }}
+        onClick={onSkip}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = isDark ? '#373a40' : '#f8f9fa';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = 'transparent';
+        }}
+      >
+        <IconX size={12} />
+      </button>
+    </div>
+  );
+};
 
 // Tour Card Content Component  
-const TourCardContent = ({ currentStepData, getStepIcon }) => (
-  <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-    <div style={{
-      backgroundColor: '#e3f2fd',
-      color: '#1976d2',
-      borderRadius: '4px',
-      padding: '4px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minWidth: '24px',
-      height: '24px',
-      marginTop: '2px'
-    }}>
-      {getStepIcon()}
+const TourCardContent = ({ currentStepData, getStepIcon }) => {
+  // Get current theme
+  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                 document.body.classList.contains('dark-theme') ||
+                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  
+  return (
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+      <div style={{
+        backgroundColor: isDark 
+          ? 'var(--mantine-color-blue-8, #1c3f5c)' 
+          : 'var(--mantine-color-blue-1, #e3f2fd)',
+        color: isDark 
+          ? 'var(--mantine-color-blue-3, #74c0fc)' 
+          : 'var(--mantine-color-blue-6, #1976d2)',
+        borderRadius: '4px',
+        padding: '4px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '24px',
+        height: '24px',
+        marginTop: '2px'
+      }}>
+        {getStepIcon()}
+      </div>
+      <div style={{ flex: 1 }}>
+        <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
+          {currentStepData.title}
+        </Text>
+        <Text size="xs" color="dimmed" style={{ lineHeight: 1.3 }}>
+          {currentStepData.content}
+        </Text>
+      </div>
     </div>
-    <div style={{ flex: 1 }}>
-      <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
-        {currentStepData.title}
-      </Text>
-      <Text size="xs" color="dimmed" style={{ lineHeight: 1.3 }}>
-        {currentStepData.content}
-      </Text>
-    </div>
-  </div>
-);
+  );
+};
 
 // Action Prompt Component
-const ActionPrompt = ({ actionPrompt }) => (
-  <div
-    style={{
-      padding: "4px 8px",
-      backgroundColor: "#e3f2fd",
-      borderRadius: "4px",
-      border: "1px solid #90caf9",
-    }}
-  >
-    <Group spacing="xs">
-      <IconClick size={12} color="#1976d2" />
-      <Text size="xs" color="#1976d2" weight={500} style={{ lineHeight: 1.2 }}>
-        {actionPrompt}
-      </Text>
-    </Group>
-  </div>
-);
+const ActionPrompt = ({ actionPrompt }) => {
+  // Get current theme
+  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                 document.body.classList.contains('dark-theme') ||
+                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  
+  return (
+    <div
+      style={{
+        padding: "4px 8px",
+        backgroundColor: isDark ? "#1c3f5c" : "#e3f2fd",
+        borderRadius: "4px",
+        border: isDark ? "1px solid #2c5aa0" : "1px solid #90caf9",
+      }}
+    >
+      <Group spacing="xs">
+        <IconClick size={12} color={isDark ? "#74c0fc" : "#1976d2"} />
+        <Text size="xs" color={isDark ? "#74c0fc" : "#1976d2"} weight={500} style={{ lineHeight: 1.2 }}>
+          {actionPrompt}
+        </Text>
+      </Group>
+    </div>
+  );
+};
 
 // Navigation Controls Component
 const NavigationControls = ({ 
@@ -272,7 +360,7 @@ const TOUR_STEPS = [
     title: "Problem Generator",
     content:
       "Get personalized problem recommendations based on your current skill level and learning goals. This adapts as you improve!",
-    target: "a[href='/ProbGen']",
+    target: "a[href='/Probgen']",
     position: "auto",
     highlightType: "outline",
     screenKey: "generator",
@@ -285,7 +373,7 @@ const TOUR_STEPS = [
     title: "Statistics & Analytics",
     content:
       "Track your progress, view detailed performance analytics, and identify your strengths and areas for improvement.",
-    target: "a[href='/ProbStat']",
+    target: "a[href='/Probstat']",
     position: "auto",
     highlightType: "outline",
     screenKey: "statistics",
@@ -311,7 +399,7 @@ const TOUR_STEPS = [
     title: "Problem Timer",
     content:
       "When you're solving a problem, use this to time your attempts and track your solving patterns over time.",
-    target: "a[href='/ProbTime']",
+    target: "a[href='/Probtime']",
     position: "auto",
     highlightType: "outline",
     screenKey: "problemTimer",
@@ -331,7 +419,7 @@ const TOUR_STEPS = [
     interactionType: null,
     actionPrompt: null,
     hasNavigationButton: true,
-    navigationRoute: "/ProbGen",
+    navigationRoute: "/Probgen",
     navigationText: "Go to Problem Generator",
   },
   {
@@ -357,13 +445,39 @@ const useTourPositioning = (isVisible, currentStepData, currentStep) => {
     if (!isVisible) return;
 
     const calculatePosition = () => {
-      const position = smartPositioning.calculatePosition(
-        currentStepData.target,
-        currentStepData.position,
-        currentStepData.screenKey === "completion" ? "center" : undefined
-      );
-      setTourPosition(position.tooltip);
-      setArrowPosition(position.arrow);
+      try {
+        console.log(`🎯 TOUR DEBUG: Calculating position for step ${currentStep}`, {
+          target: currentStepData.target,
+          position: currentStepData.position,
+          screenKey: currentStepData.screenKey
+        });
+        
+        const position = smartPositioning.calculatePosition(
+          currentStepData.target,
+          currentStepData.position,
+          currentStepData.screenKey === "completion" ? "center" : undefined
+        );
+        
+        console.log(`📍 TOUR DEBUG: Position calculated:`, position);
+        
+        // Add defensive checks to prevent undefined errors
+        if (position && typeof position.top === 'number' && typeof position.left === 'number') {
+          console.log(`✅ TOUR DEBUG: Setting position:`, position);
+          setTourPosition({ top: position.top, left: position.left });
+          setArrowPosition(position.arrowDirection ? {
+            direction: position.arrowDirection,
+            placement: position.placement
+          } : null);
+        } else {
+          console.warn("ContentOnboardingTour: Invalid position calculated, using fallback");
+          setTourPosition({ top: 100, left: 100 }); // Fallback position
+          setArrowPosition(null);
+        }
+      } catch (error) {
+        console.error("ContentOnboardingTour: Error calculating position:", error);
+        setTourPosition({ top: 100, left: 100 }); // Fallback position
+        setArrowPosition(null);
+      }
     };
 
     // Initial calculation
@@ -536,7 +650,7 @@ const createUserInteractionHandler = (currentStepData, setIsWaitingForInteractio
         setTimeout(() => {
           handleNext();
         }, 500); // Longer delay for menu animation
-      } else if (currentStepData.target === "a[href='/ProbGen']") {
+      } else if (currentStepData.target === "a[href='/Probgen']") {
         // User clicked Problem Generator - complete the main tour
         logger.info("User clicked Problem Generator, completing main tour");
         setTimeout(() => {
@@ -670,6 +784,12 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   }, [isWaitingForInteraction, currentStepData, handleNext, onComplete]);
 
   if (!isVisible || !shouldShowStep(currentStepData, menuOpenState)) {
+    return null;
+  }
+
+  // Additional safety check for positioning
+  if (!tourPosition || typeof tourPosition.top === 'undefined' || typeof tourPosition.left === 'undefined') {
+    console.warn("ContentOnboardingTour: Invalid tourPosition, skipping render");
     return null;
   }
 

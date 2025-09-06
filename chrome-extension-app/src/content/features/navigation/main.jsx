@@ -354,7 +354,7 @@ const Main = () => {
   const [showContentOnboarding, setShowContentOnboarding] = useState(false);
   const [_contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
   
-  // Page-specific tour management
+  // Page-specific tour management (restored from working commit 6ac6359)
   const { showTour: showPageTour, tourConfig: pageTourConfig, onTourComplete: handlePageTourComplete, onTourClose: handlePageTourClose } = usePageTour();
   
   // Content onboarding is now always enabled
@@ -463,7 +463,7 @@ const Main = () => {
         />
       )}
 
-      {/* Page-Specific Tours */}
+      {/* Page-Specific Tours (restored from working commit 6ac6359) */}
       {pageTourConfig && (
         <PageSpecificTour
           tourId={pageTourConfig.id}

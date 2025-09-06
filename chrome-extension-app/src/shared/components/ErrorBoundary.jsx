@@ -156,8 +156,37 @@ class ErrorBoundary extends React.Component {
     });
   };
 
-  handleReload = () => {
-    window.location.reload();
+  handleReload = (event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    console.log("ErrorBoundary: Attempting page reload...");
+    
+    // Try multiple reload methods to ensure it works
+    try {
+      // Method 1: Standard reload
+      window.location.reload(true);
+    } catch (error) {
+      console.warn("Standard reload failed, trying alternative method:", error);
+      // Method 2: Force navigation to current URL
+      try {
+        window.location.assign(window.location.href);
+      } catch (error2) {
+        console.warn("Alternative reload failed, trying location.replace:", error2);
+        // Method 3: Replace current location
+        try {
+          window.location.replace(window.location.href);
+        } catch (error3) {
+          console.error("All reload methods failed:", error3);
+          // Last resort: show user message
+          if (typeof alert !== 'undefined') {
+            alert("Please manually refresh the page to continue.");
+          }
+        }
+      }
+    }
   };
 
   handleReportProblem = async () => {
