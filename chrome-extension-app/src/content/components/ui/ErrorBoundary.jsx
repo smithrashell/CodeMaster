@@ -79,6 +79,67 @@ class ContentErrorBoundary extends React.Component {
     }
   };
 
+  renderActionButtons() {
+    return (
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button
+          onClick={this.handleRetry}
+          style={{
+            padding: '6px 12px',
+            fontSize: '12px',
+            border: '1px solid #0984e3',
+            borderRadius: '4px',
+            backgroundColor: '#74b9ff',
+            color: 'white',
+            cursor: 'pointer'
+          }}
+        >
+          ↻ Try Again
+        </button>
+        
+        <button
+          onClick={this.handleReload}
+          style={{
+            padding: '6px 12px',
+            fontSize: '12px',
+            border: '1px solid #636e72',
+            borderRadius: '4px',
+            backgroundColor: '#ddd',
+            color: '#333',
+            cursor: 'pointer'
+          }}
+        >
+          Reload Page
+        </button>
+      </div>
+    );
+  }
+
+  renderDeveloperInfo() {
+    if (process.env.NODE_ENV !== "development" || !this.state.error) {
+      return null;
+    }
+    
+    return (
+      <details style={{ marginTop: '12px', fontSize: '11px' }}>
+        <summary style={{ cursor: 'pointer', color: '#666' }}>
+          Developer Info
+        </summary>
+        <pre style={{ 
+          fontSize: '10px', 
+          background: '#f8f9fa', 
+          padding: '8px', 
+          borderRadius: '4px',
+          overflow: 'auto',
+          maxHeight: '100px',
+          marginTop: '4px'
+        }}>
+          {this.state.error.stack}
+        </pre>
+      </details>
+    );
+  }
+
   render() {
     if (this.state.hasError) {
       const { section = "Component" } = this.props;
@@ -157,56 +218,9 @@ class ContentErrorBoundary extends React.Component {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <button
-              onClick={this.handleRetry}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                border: '1px solid #0984e3',
-                borderRadius: '4px',
-                backgroundColor: '#74b9ff',
-                color: 'white',
-                cursor: 'pointer'
-              }}
-            >
-              ↻ Try Again
-            </button>
-            
-            <button
-              onClick={this.handleReload}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                border: '1px solid #636e72',
-                borderRadius: '4px',
-                backgroundColor: '#ddd',
-                color: '#333',
-                cursor: 'pointer'
-              }}
-            >
-              Reload Page
-            </button>
-          </div>
+          {this.renderActionButtons()}
 
-          {process.env.NODE_ENV === "development" && this.state.error && (
-            <details style={{ marginTop: '12px', fontSize: '11px' }}>
-              <summary style={{ cursor: 'pointer', color: '#666' }}>
-                Developer Info
-              </summary>
-              <pre style={{ 
-                fontSize: '10px', 
-                background: '#f8f9fa', 
-                padding: '8px', 
-                borderRadius: '4px',
-                overflow: 'auto',
-                maxHeight: '100px',
-                marginTop: '4px'
-              }}>
-                {this.state.error.stack}
-              </pre>
-            </details>
-          )}
+          {this.renderDeveloperInfo()}
             </div>
           </div>
         </>

@@ -110,7 +110,7 @@ export const ProblemService = {
     logger.info("📌 addOrUpdateProblem called");
 
     const problem = await checkDatabaseForProblem(
-      Number(contentScriptData.leetCodeID)
+      Number(contentScriptData.leetcode_id)
     );
 
     logger.info("✅ problemExists:", problem);
@@ -139,7 +139,8 @@ export const ProblemService = {
       settings.numberOfNewProblems,
       settings.currentAllowedTags,
       settings.currentDifficultyCap,
-      settings.userFocusAreas
+      settings.userFocusAreas,
+      settings.isOnboarding
     );
 
     return problems;
@@ -194,7 +195,7 @@ export const ProblemService = {
       // Add interview metadata to session
       const result = {
         problems,
-        sessionType: mode,
+        session_type: mode,
         interviewConfig: interviewConfig.config,
         interviewMetrics: interviewConfig.interviewMetrics,
         createdAt: interviewConfig.createdAt
@@ -203,7 +204,7 @@ export const ProblemService = {
       const totalDuration = Date.now() - operationStart;
       logger.info("🎯 PROBLEM SERVICE: Returning interview session data:", {
         problemCount: result.problems?.length,
-        sessionType: result.sessionType,
+        session_type: result.session_type,
         hasConfig: !!result.interviewConfig,
         totalTime: totalDuration + 'ms'
       });
@@ -226,7 +227,7 @@ export const ProblemService = {
         const fallbackProblems = await this.createSession();
         return {
           problems: fallbackProblems,
-          sessionType: 'standard', // Fallback becomes standard
+          session_type: 'standard', // Fallback becomes standard
           error: `Interview session failed: ${error.message}`,
           fallbackUsed: true
         };
@@ -244,6 +245,7 @@ export const ProblemService = {
    * @param {string[]} currentAllowedTags - Tags to focus on
    * @param {string} currentDifficultyCap - Maximum difficulty level
    * @param {string[]} userFocusAreas - User-selected focus areas for weighting
+   * @param {boolean} isOnboarding - Whether this is an onboarding session
    * @returns {Promise<Array>} - Array of problems for the session
    */
   async fetchAndAssembleSessionProblems(
@@ -251,29 +253,40 @@ export const ProblemService = {
     numberOfNewProblems,
     currentAllowedTags,
     currentDifficultyCap,
-    userFocusAreas = []
+    userFocusAreas = [],
+    isOnboarding = false
   ) {
     logger.info("🎯 Starting intelligent session assembly...");
     logger.info("🎯 Session length:", sessionLength);
     logger.info("🎯 New problems target:", numberOfNewProblems);
+    logger.info("🔰 Is onboarding session?", isOnboarding);
 
     const allProblems = await fetchAllProblems();
-    const excludeIds = new Set(allProblems.map((p) => p.leetCodeID));
+    const excludeIds = new Set(allProblems.map((p) => p.leetcode_id));
 
     const sessionProblems = [];
+    let reviewProblemsCount = 0;
 
-    // **Step 1: Review Problems (user-configurable ratio)**
-    const settings = await StorageService.getSettings();
-    const reviewRatio = (settings.reviewRatio || 40) / 100; // Default to 40% if not set
-    const reviewTarget = Math.floor(sessionLength * reviewRatio);
-    logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
-    
-    const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
-    sessionProblems.push(...reviewProblems);
-
-    logger.info(
-      `🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`
-    );
+    // **Step 1: Review Problems (user-configurable ratio) - Skip during onboarding**
+    if (!isOnboarding) {
+      const settings = await StorageService.getSettings();
+      const reviewRatio = (settings.reviewRatio || 40) / 100; // Default to 40% if not set
+      const reviewTarget = Math.floor(sessionLength * reviewRatio);
+      logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
+      
+      const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
+      sessionProblems.push(...reviewProblems);
+      reviewProblemsCount = reviewProblems.length;
+      
+      logger.info(`🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`);
+      
+      // Debug review problems selection
+      if (reviewProblems.length === 0 && reviewTarget > 0) {
+        logger.warn(`⚠️ No review problems found despite target of ${reviewTarget}. Check ScheduleService.getDailyReviewSchedule()`);
+      }
+    } else {
+      logger.info("🔰 Skipping review problems during onboarding - focusing on new problem distribution");
+    }
 
     // **Step 2: New Problems (remaining session) - Split between focus and expansion**
     const newProblemsNeeded = sessionLength - sessionProblems.length;
@@ -284,7 +297,11 @@ export const ProblemService = {
         excludeIds,
         userFocusAreas,
         currentAllowedTags,
-        "session_state" // Pass userId for coordination service
+        {
+          userId: "session_state", // Pass userId for coordination service
+          currentDifficultyCap, // Pass difficulty cap for filtering
+          isOnboarding // Pass onboarding flag for 50/50 distribution
+        }
       );
 
       sessionProblems.push(...newProblems);
@@ -296,10 +313,10 @@ export const ProblemService = {
     // **Step 3: Fallback if still short**
     if (sessionProblems.length < sessionLength) {
       const fallbackNeeded = sessionLength - sessionProblems.length;
-      const usedIds = new Set(sessionProblems.map((p) => p.id || p.leetCodeID));
+      const usedIds = new Set(sessionProblems.map((p) => p.problem_id || p.leetcode_id));
 
       const fallbackProblems = allProblems
-        .filter((p) => !usedIds.has(p.id))
+        .filter((p) => !usedIds.has(p.problem_id || p.leetcode_id))
         .sort(problemSortingCriteria)
         .slice(0, fallbackNeeded);
 
@@ -318,8 +335,8 @@ export const ProblemService = {
       finalSession,
       {
         sessionLength,
-        reviewCount: reviewProblems.length,
-        newCount: finalSession.length - reviewProblems.length,
+        reviewCount: reviewProblemsCount,
+        newCount: finalSession.length - reviewProblemsCount,
         allowedTags: currentAllowedTags,
         difficultyCap: currentDifficultyCap,
       }
@@ -329,9 +346,9 @@ export const ProblemService = {
     logger.info(
       `   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`
     );
-    logger.info(`   🔄 Review problems: ${reviewProblems.length}`);
+    logger.info(`   🔄 Review problems: ${reviewProblemsCount}`);
     logger.info(
-      `   🆕 New problems: ${sessionWithReasons.length - reviewProblems.length}`
+      `   🆕 New problems: ${sessionWithReasons.length - reviewProblemsCount}`
     );
     logger.info(
       `   🧠 Problems with reasoning: ${
@@ -357,7 +374,8 @@ export const ProblemService = {
           settings.numberOfNewProblems,
           settings.currentAllowedTags,
           settings.currentDifficultyCap,
-          settings.userFocusAreas
+          settings.userFocusAreas,
+          settings.isOnboarding
         );
       }
 
@@ -515,7 +533,8 @@ export const ProblemService = {
         settings.numberOfNewProblems,
         settings.currentAllowedTags,
         settings.currentDifficultyCap,
-        settings.userFocusAreas
+        settings.userFocusAreas,
+        settings.isOnboarding
       );
       logger.info(`🎯 Fallback session created with ${fallbackProblems.length} problems`);
       return fallbackProblems;
@@ -649,7 +668,7 @@ export const ProblemService = {
  * @returns {Object|null} - The found problem or null.
  */
 const findProblemInSession = (session, problemData) => {
-  return session.problems.find((p) => p.id === problemData.leetCodeID);
+  return session.problems.find((p) => p.leetcode_id === problemData.leetcode_id);
 };
 
 /**
@@ -674,7 +693,8 @@ const _shuffleArray = (array) => {
 const deduplicateById = (problems) => {
   const seen = new Set();
   return problems.filter((problem) => {
-    if (seen.has(problem.id)) {
+    // Use consistent 'id' field (LeetCode ID)
+    if (!problem.id || seen.has(problem.id)) {
       return false;
     }
     seen.add(problem.id);
@@ -695,13 +715,16 @@ function problemSortingCriteria(a, b) {
   if (totalAttemptsA < totalAttemptsB) return -1;
   if (totalAttemptsA > totalAttemptsB) return 1;
 
+  const successfulAttemptsA = a.AttemptStats?.SuccessfulAttempts || 0;
+  const successfulAttemptsB = b.AttemptStats?.SuccessfulAttempts || 0;
+  
   const aScore = calculateDecayScore(
     a.lastAttemptDate,
-    a.AttemptStats.SuccessfulAttempts / a.AttemptStats.TotalAttempts
+    totalAttemptsA > 0 ? successfulAttemptsA / totalAttemptsA : 0
   );
   const bScore = calculateDecayScore(
     b.lastAttemptDate,
-    b.AttemptStats.SuccessfulAttempts / b.AttemptStats.TotalAttempts
+    totalAttemptsB > 0 ? successfulAttemptsB / totalAttemptsB : 0
   );
 
   return bScore - aScore;

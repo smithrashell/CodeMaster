@@ -114,7 +114,7 @@ export async function getAttemptsByProblem(problemId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("attempts", "readonly");
-    const store = transaction.objectStore("attempts").index("by_problemId");
+    const store = transaction.objectStore("attempts").index("by_problem_id");
 
     const request = store.getAll(problemId);
     request.onsuccess = (event) => {

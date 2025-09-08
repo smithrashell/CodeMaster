@@ -12,60 +12,77 @@ jest.mock('../../db/index.js', () => ({
   }
 }));
 
-// Import the mocked dbHelper for setup
-import { dbHelper } from '../../db/index.js';
+// Create mock dbHelper that matches the structure from index.js
+const dbHelper = { openDB: jest.fn() };
+import { StorageService } from '../storageService.js';
+
+// Global test state
+let mockDB;
+let mockTransaction;
+let mockStore;
+let mockRequest;
+
+// Test setup helper functions
+const setupMockDatabase = () => {
+  // Setup mock IndexedDB structure
+  mockRequest = {
+    onsuccess: null,
+    onerror: null,
+    result: null,
+    error: null
+  };
+
+  mockStore = {
+    put: jest.fn().mockReturnValue(mockRequest),
+    get: jest.fn().mockReturnValue(mockRequest),
+    delete: jest.fn().mockReturnValue(mockRequest)
+  };
+
+  mockTransaction = {
+    objectStore: jest.fn().mockReturnValue(mockStore)
+  };
+
+  mockDB = {
+    transaction: jest.fn().mockReturnValue(mockTransaction)
+  };
+
+  dbHelper.openDB.mockResolvedValue(mockDB);
+};
+
+const setupBackgroundContext = () => {
+  jest.clearAllMocks();
+  
+  // Ensure we're NOT in content script context for most tests
+  delete global.window;
+  delete global.location;
+  
+  // Mock Chrome extension environment
+  global.chrome = {
+    runtime: { getURL: jest.fn() },
+    tabs: { query: jest.fn() }
+  };
+  
+  // Set background script context flag that StorageService checks for
+  global.globalThis = global.globalThis || {};
+  global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
+  
+  // Clear module cache to ensure StorageService re-evaluates context
+  jest.resetModules();
+  
+  setupMockDatabase();
+};
 
 describe('StorageService - Critical Data Operations', () => {
-  let mockDB;
-  let mockTransaction;
-  let mockStore;
-  let mockRequest;
+  beforeEach(setupBackgroundContext);
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-    
-    // Ensure we're NOT in content script context for most tests
-    delete global.window;
-    delete global.location;
-    
-    // Mock Chrome extension environment
-    global.chrome = {
-      runtime: { getURL: jest.fn() },
-      tabs: { query: jest.fn() }
-    };
-    
-    // Set background script context flag that StorageService checks for
-    global.globalThis = global.globalThis || {};
-    global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
-    
-    // Clear module cache to ensure StorageService re-evaluates context
-    jest.resetModules();
-    
-    // Setup mock IndexedDB structure
-    mockRequest = {
-      onsuccess: null,
-      onerror: null,
-      result: null,
-      error: null
-    };
+  runCriticalDataStorageTests();
+  runSettingsManagementTests();
+  runContentScriptSecurityTests();
+  runDataIntegrityTests();
+});
 
-    mockStore = {
-      put: jest.fn().mockReturnValue(mockRequest),
-      get: jest.fn().mockReturnValue(mockRequest),
-      delete: jest.fn().mockReturnValue(mockRequest)
-    };
-
-    mockTransaction = {
-      objectStore: jest.fn().mockReturnValue(mockStore)
-    };
-
-    mockDB = {
-      transaction: jest.fn().mockReturnValue(mockTransaction)
-    };
-
-    dbHelper.openDB.mockResolvedValue(mockDB);
-  });
-
+// Test suite functions to reduce main describe block size
+const runCriticalDataStorageTests = () => {
   describe('Critical Data Storage Operations', () => {
     it('should successfully store data with proper structure', async () => {
       const testKey = 'testSetting';
@@ -160,7 +177,9 @@ describe('StorageService - Critical Data Operations', () => {
       expect(result.message).toContain('Database connection failed');
     });
   });
+};
 
+const runSettingsManagementTests = () => {
   describe('Settings Management (Critical Business Logic)', () => {
     it('should store complete user settings with validation', async () => {
       const settings = {
@@ -224,13 +243,15 @@ describe('StorageService - Critical Data Operations', () => {
       expect(result.adaptive).toBe(true); // Default setting
     });
   });
+};
 
+const runContentScriptSecurityTests = () => {
   describe('Content Script Security (Data Protection)', () => {
-    let originalWindow;
+    let _originalWindow;
 
     beforeEach(() => {
       // Save original window if it exists
-      originalWindow = global.window;
+      _originalWindow = global.window;
       
       // Mock content script context
       global.window = {
@@ -276,7 +297,9 @@ describe('StorageService - Critical Data Operations', () => {
       expect(mockDB.transaction).not.toHaveBeenCalled();
     });
   });
+};
 
+const runDataIntegrityTests = () => {
   describe('Data Integrity and Error Recovery', () => {
     it('should handle corrupted data gracefully', async () => {
       const getPromise = StorageService.get('corruptedKey');
@@ -320,4 +343,4 @@ describe('StorageService - Critical Data Operations', () => {
       expect(result.message).toContain('Transaction failed');
     });
   });
-});
+};

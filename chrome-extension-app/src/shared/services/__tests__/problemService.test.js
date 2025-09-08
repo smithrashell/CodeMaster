@@ -342,7 +342,7 @@ const runAdaptiveSessionAlgorithmFailureTests = () => {
       expect(result.length).toBeGreaterThanOrEqual(0);
     });
 
-    it("should handle tag mastery calculation overflow", async () => {
+    it("should handle tag mastery calculation overflow", () => {
       const corruptedTagData = Array.from({ length: 10000 }, (_, i) => 
         createTagMasteryEntry(`tag-${i}`, Math.random(), Number.MAX_SAFE_INTEGER)
       );
@@ -437,7 +437,7 @@ const runProblemSelectionAlgorithmFailureTests = () => {
     it("should handle infinite loop in problem recommendation algorithm", async () => {
       // Mock a scenario that could cause infinite loops
       let callCount = 0;
-      problemsDb.fetchAdditionalProblems.mockImplementation(async () => {
+      problemsDb.fetchAdditionalProblems.mockImplementation(() => {
         callCount++;
         if (callCount > 100) {
           throw new Error("Infinite loop detected in problem selection");
@@ -461,7 +461,7 @@ const runProblemSelectionAlgorithmFailureTests = () => {
 
 const runPerformanceAnalysisAlgorithmFailureTests = () => {
   describe("Performance Analysis Algorithm Failures", () => {
-    it("should handle division by zero in success rate calculations", async () => {
+    it("should handle division by zero in success rate calculations", () => {
       const zeroAttemptsData = [
         createTagMasteryEntry("array", 0, 0), // Division by zero scenario
         createTagMasteryEntry("dp", 1, 0), // Another zero attempts
@@ -475,7 +475,7 @@ const runPerformanceAnalysisAlgorithmFailureTests = () => {
       )).toBe(true);
     });
 
-    it("should handle floating point precision errors in calculations", async () => {
+    it("should handle floating point precision errors in calculations", () => {
       const precisionProblematicData = [
         createTagMasteryEntry("array", 0.1 + 0.2, 1), // 0.30000000000000004
         createTagMasteryEntry("math", 1 / 3, 3), // 0.3333333333333333
@@ -493,7 +493,7 @@ const runPerformanceAnalysisAlgorithmFailureTests = () => {
       });
     });
 
-    it("should handle negative performance metrics gracefully", async () => {
+    it("should handle negative performance metrics gracefully", () => {
       const negativeMetricsData = [
         createTagMasteryEntry("array", -0.5, -10), // Negative values
         createTagMasteryEntry("dp", 1.5, 5), // Success rate > 1
@@ -611,7 +611,7 @@ const runDatabaseIntegrityFailureTests = () => {
 
     it("should handle concurrent modification conflicts", async () => {
       let attemptCount = 0;
-      problemsDb.addProblem.mockImplementation(async () => {
+      problemsDb.addProblem.mockImplementation(() => {
         attemptCount++;
         if (attemptCount === 1) {
           throw new Error("Transaction conflict: record modified by another process");

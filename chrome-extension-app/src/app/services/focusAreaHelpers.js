@@ -17,9 +17,9 @@ export function createProblemMappings(allProblems, allStandardProblems) {
 
   const problemTagsMap = new Map();
   allProblems.forEach((problem) => {
-    const standardProblem = standardProblemsMap.get(problem.leetCodeID);
+    const standardProblem = standardProblemsMap.get(problem.leetcode_id);
     if (standardProblem) {
-      problemTagsMap.set(problem.id, standardProblem.tags || []);
+      problemTagsMap.set(problem.problem_id, standardProblem.tags || []);
     }
   });
 
@@ -109,7 +109,7 @@ export function calculateFocusAreaPerformance(
     
     focusAreaAttempts.forEach((attempt) => {
       const standardProblem = standardProblemsMap.get(
-        allProblems.find(p => p.id === attempt.ProblemID)?.leetCodeID
+        allProblems.find(p => p.problem_id === attempt.ProblemID)?.leetcode_id
       );
       const difficulty = standardProblem?.difficulty || 'Medium';
       

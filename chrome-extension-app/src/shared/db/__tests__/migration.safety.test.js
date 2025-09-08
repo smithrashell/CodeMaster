@@ -78,21 +78,10 @@ const expectConsoleMessage = (spy, message) => {
   );
 };
 
-describe("Migration Safety System", () => {
-  let mockDB;
-  let consoleSpy;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockDB = createMockDB();
-    dbHelper.openDB.mockResolvedValue(mockDB);
-    consoleSpy = jest.spyOn(console, "log").mockImplementation();
-  });
-
-  afterEach(() => {
-    consoleSpy.mockRestore();
-  });
-
+/**
+ * Test suite for migration safety initialization
+ */
+function runInitializeMigrationSafetyTests() {
   describe("initializeMigrationSafety", () => {
     it("should initialize BroadcastChannel for multi-tab coordination", () => {
       initializeMigrationSafety();
@@ -112,7 +101,12 @@ describe("Migration Safety System", () => {
       global.indexedDB = originalIndexedDB;
     });
   });
+}
 
+/**
+ * Test suite for migration backup critical issues
+ */
+function runMigrationBackupTests(consoleSpy) {
   describe("createMigrationBackup - CRITICAL ISSUE", () => {
     it("should return backup ID without actually creating backup (DISABLED)", () => {
       const backupId = createMigrationBackup();
@@ -150,7 +144,12 @@ describe("Migration Safety System", () => {
       expect(backup2).toMatch(/migration_backup_\d+_v36/);
     });
   });
+}
 
+/**
+ * Test suite for database integrity validation critical issues
+ */
+function runDatabaseIntegrityTests(consoleSpy) {
   describe("validateDatabaseIntegrity - CRITICAL ISSUE", () => {
     it("should return simplified validation to prevent duplicate database creation", () => {
       const result = validateDatabaseIntegrity();
@@ -184,7 +183,12 @@ describe("Migration Safety System", () => {
       });
     });
   });
+}
 
+/**
+ * Test suite for safe migration data loss risk testing
+ */
+function runSafeMigrationTests(mockDB) {
   describe("performSafeMigration - Data Loss Risk Testing", () => {
     it("should complete migration successfully with disabled backup (HIGH RISK)", async () => {
       // Ensure clean state
@@ -285,7 +289,12 @@ describe("Migration Safety System", () => {
       expect(progressCallback).toHaveBeenCalledWith("Migration complete", 100);
     });
   });
+}
 
+/**
+ * Test suite for data protection analysis
+ */
+function runDataProtectionTests(consoleSpy) {
   describe("Data Protection Analysis", () => {
     it("should identify critical stores that need backup protection", () => {
       // Test that critical stores are properly identified
@@ -330,7 +339,12 @@ describe("Migration Safety System", () => {
       expect(failingMigration).toHaveBeenCalledTimes(2);
     });
   });
+}
 
+/**
+ * Test suite for production risk assessment
+ */
+function runProductionRiskTests(consoleSpy) {
   describe("Production Risk Assessment", () => {
     it("should document the current data loss risk in production", () => {
       // CRITICAL PRODUCTION RISK:
@@ -386,4 +400,28 @@ describe("Migration Safety System", () => {
       consoleSpy.mockRestore();
     });
   });
+}
+
+describe("Migration Safety System", () => {
+  let mockDB;
+  let consoleSpy;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockDB = createMockDB();
+    dbHelper.openDB.mockResolvedValue(mockDB);
+    consoleSpy = jest.spyOn(console, "log").mockImplementation();
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  // Execute all test suites using helper functions
+  runInitializeMigrationSafetyTests();
+  runMigrationBackupTests(consoleSpy);
+  runDatabaseIntegrityTests(consoleSpy);
+  runSafeMigrationTests(mockDB);
+  runDataProtectionTests(consoleSpy);
+  runProductionRiskTests(consoleSpy);
 });
