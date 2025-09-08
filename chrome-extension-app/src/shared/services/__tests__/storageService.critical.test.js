@@ -12,31 +12,48 @@ jest.mock('../../db/index.js', () => ({
   }
 }));
 
-import { dbHelper } from '../../db/index.js';
+// Create mock dbHelper that matches the structure from index.js  
+const dbHelper = { openDB: jest.fn() };
 
-describe('StorageService - Critical Risk Tests', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    // Ensure we're in background script context by removing window and setting proper globals
-    delete global.window;
-    delete global.location;
-    
-    // Mock Chrome extension environment
-    global.chrome = {
-      runtime: { getURL: jest.fn() },
-      tabs: { query: jest.fn() }
-    };
-    
-    // Set background script context flag that StorageService checks for
-    global.globalThis = global.globalThis || {};
-    global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
-  });
+// Test setup helpers to reduce main describe function size
+const setupBackgroundContext = () => {
+  jest.clearAllMocks();
+  // Ensure we're in background script context by removing window and setting proper globals
+  delete global.window;
+  delete global.location;
+  
+  // Mock Chrome extension environment
+  global.chrome = {
+    runtime: { getURL: jest.fn() },
+    tabs: { query: jest.fn() }
+  };
+  
+  // Set background script context flag that StorageService checks for
+  global.globalThis = global.globalThis || {};
+  global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
+};
 
-  afterEach(() => {
-    delete global.chrome;
-    delete global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT;
-  });
+const cleanupBackgroundContext = () => {
+  delete global.chrome;
+  delete global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT;
+};
 
+const setupContentScriptContext = () => {
+  // Mock content script environment
+  global.window = {
+    location: {
+      protocol: 'https:',
+      href: 'https://leetcode.com/problems/test'
+    }
+  };
+};
+
+const cleanupContentScriptContext = () => {
+  delete global.window;
+};
+
+// Test helper functions to reduce main describe function size
+const runDatabaseConnectionTests = () => {
   describe('Database Connection Failures (Data Loss Risk)', () => {
     it('should handle database connection failure gracefully', async () => {
       dbHelper.openDB.mockRejectedValue(new Error('Database unavailable'));
@@ -64,7 +81,9 @@ describe('StorageService - Critical Risk Tests', () => {
       expect(result.message).toBeDefined();
     });
   });
+};
 
+const runSettingsIntegrityTests = () => {
   describe('Settings Integrity (Critical Business Logic)', () => {
     it('should return valid default settings structure', async () => {
       // Mock successful DB but no stored settings
@@ -109,21 +128,12 @@ describe('StorageService - Critical Risk Tests', () => {
       });
     });
   });
+};
 
+const runContentScriptProtectionTests = () => {
   describe('Content Script Protection (Security Risk)', () => {
-    beforeEach(() => {
-      // Mock content script environment
-      global.window = {
-        location: {
-          protocol: 'https:',
-          href: 'https://leetcode.com/problems/test'
-        }
-      };
-    });
-
-    afterEach(() => {
-      delete global.window;
-    });
+    beforeEach(setupContentScriptContext);
+    afterEach(cleanupContentScriptContext);
 
     it('should block dangerous operations in content script context', async () => {
       const setResult = await StorageService.set('dangerous', 'data');
@@ -137,7 +147,9 @@ describe('StorageService - Critical Risk Tests', () => {
       expect(removeResult.status).toBe('error');
     });
   });
+};
 
+const runErrorRecoveryTests = () => {
   describe('Error Recovery (Data Corruption Prevention)', () => {
     it('should handle malformed stored data gracefully', () => {
       // Test default settings creation when data is corrupted
@@ -163,7 +175,9 @@ describe('StorageService - Critical Risk Tests', () => {
       expect(typeof defaults.accessibility.motor.largerTargets).toBe('boolean');
     });
   });
+};
 
+const runDataTypeIntegrityTests = () => {
   describe('Data Type Integrity', () => {
     it('should maintain correct data types for critical settings', () => {
       const defaults = StorageService._createDefaultSettings();
@@ -188,4 +202,15 @@ describe('StorageService - Critical Risk Tests', () => {
       expect(typeof defaults.reminder.label).toBe('string');
     });
   });
+};
+
+describe('StorageService - Critical Risk Tests', () => {
+  beforeEach(setupBackgroundContext);
+  afterEach(cleanupBackgroundContext);
+
+  runDatabaseConnectionTests();
+  runSettingsIntegrityTests();
+  runContentScriptProtectionTests();
+  runErrorRecoveryTests();
+  runDataTypeIntegrityTests();
 });

@@ -129,19 +129,36 @@ export function buildLadder({
   userProblemMap,
   relationshipMap,
   ladderSize,
+  isOnboarding = false,
 }) {
-  const total =
-    (problemCounts.easy || 0) +
-      (problemCounts.medium || 0) +
-      (problemCounts.hard || 0) || 1;
+  let easyCount, mediumCount, hardCount;
+  
+  // 🔰 ONBOARDING: Force Easy-only problems for new users
+  if (isOnboarding) {
+    easyCount = ladderSize;
+    mediumCount = 0;
+    hardCount = 0;
+    console.info("🔰 Onboarding mode: Using Easy-only pattern ladder", {
+      ladderSize,
+      easyCount,
+      mediumCount,
+      hardCount
+    });
+  } else {
+    // Normal proportional distribution for experienced users
+    const total =
+      (problemCounts.easy || 0) +
+        (problemCounts.medium || 0) +
+        (problemCounts.hard || 0) || 1;
 
-  const easyCount = Math.round(
-    ((problemCounts.easy || 0) / total) * ladderSize
-  );
-  const mediumCount = Math.round(
-    ((problemCounts.medium || 0) / total) * ladderSize
-  );
-  const hardCount = ladderSize - easyCount - mediumCount;
+    easyCount = Math.round(
+      ((problemCounts.easy || 0) / total) * ladderSize
+    );
+    mediumCount = Math.round(
+      ((problemCounts.medium || 0) / total) * ladderSize
+    );
+    hardCount = ladderSize - easyCount - mediumCount;
+  }
   console.info("easyCount", easyCount);
   console.info("mediumCount", mediumCount);
   console.info("hardCount", hardCount);
@@ -180,9 +197,9 @@ export function buildLadder({
       .slice(0, 5);
 
     return {
-      leetCodeID: p.id,
+      id: p.id,                    // Standardized: use 'id' to match standard problems schema
       title: p.title,
-      rating: p.difficulty,
+      difficulty: p.difficulty,    // Standardized: use 'difficulty' to match standard problems schema
       tags: p.tags || [],
       decayScore,
       connections: sortedConnections.map(([id]) => id),

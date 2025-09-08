@@ -3,6 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Card, Text, Title, Stack, SegmentedControl, Switch, ColorPicker, Alert, Button, Group, Tooltip, Slider, Select } from "@mantine/core";
 import { IconChartBar, IconInfoCircle } from "@tabler/icons-react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { ChromeAPIErrorHandler } from "../../../shared/services/ChromeAPIErrorHandler";
 import { SettingsResetButton } from "./SettingsResetButton.jsx";
 
 // Extracted helper hooks for DisplaySettingsCard
@@ -322,10 +323,8 @@ function useDisplaySettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
 
     try {
       // Get current settings and merge display settings
-      const currentSettings = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-          resolve(response || {});
-        });
+      const currentSettings = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "getSettings"
       });
 
       const updatedSettings = {
@@ -347,24 +346,24 @@ function useDisplaySettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
         }
       };
 
-      chrome.runtime.sendMessage(
-        { type: "setSettings", message: updatedSettings },
-        (response) => {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_cacheResponse) => {
-            // Check for errors to prevent "Unchecked runtime.lastError"
-            if (chrome.runtime.lastError) {
-              logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
-            }
-          });
+      const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "setSettings", 
+        message: updatedSettings
+      });
 
-          if (response?.status === "success") {
-            setSaveStatus({ type: "success", message: "Display settings saved successfully!" });
-            setHasChanges(false);
-          } else {
-            setSaveStatus({ type: "error", message: "Failed to save display settings." });
-          }
-        }
-      );
+      // Clear settings cache
+      try {
+        await ChromeAPIErrorHandler.sendMessageWithRetry({ type: "clearSettingsCache" });
+      } catch (cacheError) {
+        logger.warn("Clear cache failed:", cacheError.message);
+      }
+
+      if (response?.status === "success") {
+        setSaveStatus({ type: "success", message: "Display settings saved successfully!" });
+        setHasChanges(false);
+      } else {
+        setSaveStatus({ type: "error", message: "Failed to save display settings." });
+      }
     } catch (error) {
       // eslint-disable-next-line no-console
       logger.error("DisplaySettingsCard: Error saving settings:", error);

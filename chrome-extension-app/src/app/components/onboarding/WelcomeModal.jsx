@@ -27,7 +27,7 @@ import { BrainIcon } from "../../../shared/components/ui/Icons";
 const ONBOARDING_STEPS = [
   {
     title: "Welcome to CodeMaster",
-    subtitle: "Your AI-powered coding companion",
+    subtitle: "Your data stuctures and algorthims personal trainer ",
     content: "WelcomeStep",
   },
   {
@@ -63,7 +63,7 @@ function WelcomeStep() {
 
       <Stack spacing="md" align="center">
         <Text size="lg" color="dimmed" ta="center" maw={400}>
-          Stop grinding LeetCode blindly. CodeMaster uses AI to create
+          Stop grinding LeetCode blindly. CodeMaster is fine tuned to create
           personalized learning paths that adapt to your progress.
         </Text>
 

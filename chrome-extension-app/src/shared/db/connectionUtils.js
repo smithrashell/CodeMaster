@@ -91,7 +91,7 @@ export function logCachedConnection() {
  */
 export function openDatabase() {
   const dbName = "review";
-  const version = 36;
+  const version = 37;
   
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(dbName, version);

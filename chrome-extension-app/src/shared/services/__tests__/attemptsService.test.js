@@ -18,11 +18,8 @@ jest.mock('../focusCoordinationService.js', () => ({
 }));
 jest.mock('../../utils/Utils.js');
 
-describe('AttemptsService - Critical Business Logic', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
+// Test helper functions to reduce main describe function size
+const runAddAttemptCoreTests = () => {
   describe('addAttempt - Core Functionality', () => {
     it('should reject attempts when problem is missing', async () => {
       const attemptData = {
@@ -102,7 +99,9 @@ describe('AttemptsService - Critical Business Logic', () => {
       }
     });
   });
+};
 
+const runGetMostRecentAttemptTests = () => {
   describe('getMostRecentAttempt - Data Retrieval', () => {
     it('should exist as a function', () => {
       expect(typeof AttemptsService.getMostRecentAttempt).toBe('function');
@@ -139,7 +138,9 @@ describe('AttemptsService - Critical Business Logic', () => {
       }
     });
   });
+};
 
+const runServiceStructureTests = () => {
   describe('Service Structure and Exports', () => {
     it('should export the correct service structure', () => {
       expect(AttemptsService).toHaveProperty('addAttempt');
@@ -155,7 +156,9 @@ describe('AttemptsService - Critical Business Logic', () => {
       expect(typeof AttemptsService).toBe('object');
     });
   });
+};
 
+const runDataValidationTests = () => {
   describe('Data Validation and Error Handling', () => {
     it('should validate attemptData structure', async () => {
       const problem = { id: 'test-problem', title: 'Test' };
@@ -196,7 +199,9 @@ describe('AttemptsService - Critical Business Logic', () => {
       }
     });
   });
+};
 
+const runCriticalBusinessLogicTests = () => {
   describe('Critical Business Logic Edge Cases', () => {
     it('should handle problems with missing required properties', async () => {
       const attemptData = { success: true, timeSpent: 1500 };
@@ -238,4 +243,16 @@ describe('AttemptsService - Critical Business Logic', () => {
       }
     });
   });
+};
+
+describe('AttemptsService - Critical Business Logic', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  runAddAttemptCoreTests();
+  runGetMostRecentAttemptTests();
+  runServiceStructureTests();
+  runDataValidationTests();
+  runCriticalBusinessLogicTests();
 });

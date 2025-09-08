@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { ChromeAPIErrorHandler } from "../../../shared/services/ChromeAPIErrorHandler";
 import logger, { debug } from "../../../shared/utils/logger.js";
 
 // Custom hooks for FocusAreasSelector state management
@@ -104,11 +105,9 @@ export const loadFocusAreasData = async (setters) => {
       setMasteryData(learningState.masteryData || []);
     }
     
-    const settings = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-        resolve(response || { focusAreas: [] });
-      });
-    });
+    const settings = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "getSettings"
+    }) || { focusAreas: [] };
 
     // Load saved focus areas from settings
     const savedFocusAreas = settings.focusAreas || [];
@@ -138,27 +137,25 @@ export const saveFocusAreasSettings = async (selectedFocusAreas, setters) => {
 
   try {
     // Save focus areas to settings via Chrome messaging
-    const currentSettings = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-        resolve(response || {});
-      });
-    });
+    const currentSettings = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "getSettings"
+    }) || {};
     
     const updatedSettings = {
       ...currentSettings,
       focusAreas: selectedFocusAreas,
     };
 
-    chrome.runtime.sendMessage(
-      { type: "setSettings", message: updatedSettings },
-      (response) => {
-        if (response?.status === "success") {
-          setHasChanges(false);
-        } else {
-          setError("Failed to save focus areas. Please try again.");
-        }
-      }
-    );
+    const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "setSettings", 
+      message: updatedSettings
+    });
+
+    if (response?.status === "success") {
+      setHasChanges(false);
+    } else {
+      setError("Failed to save focus areas. Please try again.");
+    }
   } catch (err) {
     logger.error("Error saving focus areas:", err);
     setError("Failed to save focus areas. Please try again.");
@@ -171,28 +168,26 @@ export const resetFocusAreasSettings = async (setters) => {
   const { setError, setSelectedFocusAreas, setHasChanges } = setters;
   
   try {
-    const currentSettings = await new Promise((resolve) => {
-      chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-        resolve(response || {});
-      });
-    });
+    const currentSettings = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "getSettings"
+    }) || {};
     
     const updatedSettings = {
       ...currentSettings,
       focusAreas: [],
     };
 
-    chrome.runtime.sendMessage(
-      { type: "setSettings", message: updatedSettings },
-      (response) => {
-        if (response?.status === "success") {
-          setSelectedFocusAreas([]);
-          setHasChanges(false);
-        } else {
-          setError("Failed to reset focus areas. Please try again.");
-        }
-      }
-    );
+    const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "setSettings", 
+      message: updatedSettings
+    });
+
+    if (response?.status === "success") {
+      setSelectedFocusAreas([]);
+      setHasChanges(false);
+    } else {
+      setError("Failed to reset focus areas. Please try again.");
+    }
   } catch (err) {
     logger.error("Error resetting focus areas:", err);
     setError("Failed to reset focus areas. Please try again.");

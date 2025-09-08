@@ -21,54 +21,120 @@ const _dbGetAll = getAllFromStore;
 export async function onboardUserIfNeeded() {
   logger.info("... onboarding started");
 
-  const [
-    problemRelationships,
-    standardProblems,
-    userProblems,
-    tagMastery,
-    tagRelationships,
-    strategyData,
-  ] = await Promise.all([
-    getAllFromStore("problem_relationships"),
-    getAllFromStore("standard_problems"),
-    getAllFromStore("problems"),
-    getAllFromStore("tag_mastery"),
-    getAllFromStore("tag_relationships"),
-    getAllFromStore("strategy_data"),
-  ]);
+  try {
+    // Check data stores sequentially to avoid IndexedDB connection conflicts
+    const problemRelationships = await getAllFromStore("problem_relationships");
+    const standardProblems = await getAllFromStore("standard_problems");
+    const userProblems = await getAllFromStore("problems");
+    const tagMastery = await getAllFromStore("tag_mastery");
+    const tagRelationships = await getAllFromStore("tag_relationships");
+    const strategyData = await getAllFromStore("strategy_data");
 
-  const isMissingStandardData =
-    standardProblems.length === 0 ||
-    tagRelationships.length === 0 ||
-    problemRelationships.length === 0 ||
-    strategyData.length === 0;
-  const isMissingUserData =
-    userProblems.length === 0 || tagMastery.length === 0;
+    const isMissingStandardData =
+      standardProblems.length === 0 ||
+      tagRelationships.length === 0 ||
+      problemRelationships.length === 0 ||
+      strategyData.length === 0;
+    const isMissingUserData =
+      userProblems.length === 0 || tagMastery.length === 0;
 
-  if (!isMissingStandardData && !isMissingUserData) {
-    logger.info("✅ Onboarding skipped — all data present.");
-    return;
+    if (!isMissingStandardData && !isMissingUserData) {
+      logger.info("✅ Onboarding skipped — all data present.");
+      return { success: true, message: "All data present" };
+    }
+
+    if (isMissingStandardData) {
+      await seedStandardData();
+      
+      // Validate critical data was loaded successfully
+      const standardProblemsAfterSeed = await getAllFromStore("standard_problems");
+      if (standardProblemsAfterSeed.length === 0) {
+        logger.error("🚨 CRITICAL: Standard problems still empty after seeding!");
+        // Still return success to not block UI, but log the critical issue
+      } else {
+        logger.info(`✅ Standard problems validation: ${standardProblemsAfterSeed.length} problems loaded`);
+      }
+    }
+
+    if (isMissingUserData) {
+      await seedUserData();
+    }
+
+    logger.info("✅ Onboarding completed successfully");
+    return { success: true, message: "Onboarding completed" };
+
+  } catch (error) {
+    logger.error("❌ Error during onboarding:", error);
+    
+    // Return success to prevent blocking UI, but log the issue
+    // Most onboarding failures are non-critical for basic functionality
+    return { 
+      success: true, 
+      warning: true,
+      message: `Onboarding completed with warnings: ${error.message}` 
+    };
   }
-
-  if (isMissingStandardData) {
-    await seedStandardData();
-  }
-
-  if (isMissingUserData) {
-    await seedUserData();
-  }
-
-  logger.info("... onboarding completed");
 }
 
 async function seedStandardData() {
   logger.info(
     "📦 Seeding standard problems, strategy data, and tag relationships..."
   );
-  await seedStandardProblems();
-  await seedStrategyData();
-  await seedTagRelationships();
-  await seedProblemRelationships();
+  
+  // Seed each data type independently - don't fail if one fails
+  const results = {
+    standardProblems: false,
+    strategyData: false,
+    tagRelationships: false,
+    problemRelationships: false
+  };
+  
+  try {
+    await seedStandardProblems();
+    results.standardProblems = true;
+    logger.info("✅ Standard problems seeded successfully");
+  } catch (error) {
+    logger.error("❌ Failed to seed standard problems:", error);
+  }
+  
+  try {
+    await seedStrategyData();
+    results.strategyData = true;
+    logger.info("✅ Strategy data seeded successfully");
+  } catch (error) {
+    logger.error("❌ Failed to seed strategy data:", error);
+  }
+  
+  try {
+    await seedTagRelationships();
+    results.tagRelationships = true;
+    logger.info("✅ Tag relationships seeded successfully");
+  } catch (error) {
+    logger.error("❌ Failed to seed tag relationships:", error);
+  }
+  
+  try {
+    await seedProblemRelationships();
+    results.problemRelationships = true;
+    logger.info("✅ Problem relationships seeded successfully");
+  } catch (error) {
+    logger.error("❌ Failed to seed problem relationships:", error);
+  }
+  
+  // Log summary of what was seeded successfully
+  const successCount = Object.values(results).filter(Boolean).length;
+  logger.info(`📦 Seeding summary: ${successCount}/4 data types seeded successfully`);
+  
+  // Always try to seed standard problems if it failed - this is critical
+  if (!results.standardProblems) {
+    logger.warn("🚨 CRITICAL: Standard problems not seeded - retrying once...");
+    try {
+      await seedStandardProblems();
+      logger.info("✅ Standard problems seeded successfully on retry");
+    } catch (retryError) {
+      logger.error("❌ CRITICAL: Failed to seed standard problems on retry:", retryError);
+    }
+  }
 }
 
 async function seedUserData() {

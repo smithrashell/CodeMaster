@@ -397,11 +397,44 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       /** ──────────────── User Onboarding ──────────────── **/
       case "onboardingUserIfNeeded":
         onboardUserIfNeeded()
-          .then(sendResponse)
+          .then((result) => {
+            // Handle both old and new response formats
+            if (result && typeof result === 'object' && 'success' in result) {
+              sendResponse(result);
+            } else {
+              // Legacy format - assume success
+              sendResponse({ success: true, message: "Onboarding completed" });
+            }
+          })
           .catch((error) => {
             console.error("❌ Error onboarding user:", error);
-            sendResponse({ error: error.message });
-            return true;
+            // Return a graceful error that doesn't break the UI
+            sendResponse({ 
+              success: false, 
+              error: error.message,
+              fallback: true 
+            });
+          })
+          .finally(finishRequest);
+        return true;
+      
+      case "checkInstallationOnboardingStatus":
+        StorageService.get('installation_onboarding_complete')
+          .then((result) => {
+            console.log("🔍 Installation onboarding status check:", result);
+            sendResponse({ 
+              isComplete: result?.completed === true,
+              timestamp: result?.timestamp,
+              version: result?.version,
+              error: result?.error
+            });
+          })
+          .catch((error) => {
+            console.error("❌ Error checking installation onboarding status:", error);
+            sendResponse({ 
+              isComplete: false, 
+              error: error.message 
+            });
           })
           .finally(finishRequest);
         return true;
@@ -600,7 +633,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       case "skipProblem":
-        console.log("⏭️ Skipping problem:", request.consentScriptData?.leetCodeID || "unknown");
+        console.log("⏭️ Skipping problem:", request.consentScriptData?.leetcode_id || "unknown");
         // Acknowledge the skip request - no additional processing needed
         sendResponse({ message: "Problem skipped successfully" });
         finishRequest();
@@ -1533,6 +1566,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "getSimilarProblems":
         (async () => {
           try {
+            console.log("🔍 getSimilarProblems: Starting similarity search...");
             const { buildRelationshipMap } = await import("../src/shared/db/problem_relationships.js");
             const { fetchAllProblems } = await import("../src/shared/db/problems.js");
             const { getAllStandardProblems } = await import("../src/shared/db/standard_problems.js");
@@ -1592,6 +1626,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
               }
             }
             
+            console.log("✅ getSimilarProblems: Found", similarProblems.length, "similar problems");
             sendResponse({ similarProblems });
           } catch (error) {
             console.error("❌ getSimilarProblems error:", error);
@@ -1748,6 +1783,46 @@ const contentPorts = {};
 
 chrome.action.onClicked.addListener(async (tab) => {
   try {
+    // Check if installation onboarding is complete first
+    const onboardingStatus = await StorageService.get('installation_onboarding_complete');
+    console.log("🔍 Extension icon clicked - onboarding status:", onboardingStatus);
+    
+    if (!onboardingStatus) {
+      // Show notification that setup is in progress
+      console.log("⏳ Dashboard not ready yet - showing setup notification");
+      
+      try {
+        await chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icon128.png',
+          title: 'CodeMaster Setup',
+          message: 'CodeMaster is still setting up your database. Please wait a moment and try again.',
+          priority: 1
+        });
+      } catch (notificationError) {
+        console.warn("⚠️ Could not show notification:", notificationError);
+      }
+      
+      // Update icon to show loading state
+      try {
+        await chrome.action.setBadgeText({ text: '...' });
+        await chrome.action.setBadgeBackgroundColor({ color: '#3498db' });
+        await chrome.action.setTitle({ title: 'CodeMaster - Setting up...' });
+      } catch (badgeError) {
+        console.warn("⚠️ Could not update badge:", badgeError);
+      }
+      
+      return;
+    }
+    
+    // Clear any loading indicators
+    try {
+      await chrome.action.setBadgeText({ text: '' });
+      await chrome.action.setTitle({ title: 'CodeMaster - Algorithm Learning Assistant' });
+    } catch (clearError) {
+      console.warn("⚠️ Could not clear badge:", clearError);
+    }
+    
     // Check for existing dashboard tabs first
     const existingTabs = await chrome.tabs.query({ url: chrome.runtime.getURL("app.html") });
     
@@ -1770,13 +1845,26 @@ chrome.action.onClicked.addListener(async (tab) => {
     }
   } catch (error) {
     console.error("❌ Error handling dashboard tab:", error);
-    // Fallback: create new tab anyway
-    chrome.tabs.create({ url: "app.html" });
+    // Fallback: create new tab anyway (but only if onboarding seems complete)
+    try {
+      const fallbackStatus = await StorageService.get('installation_onboarding_complete');
+      if (fallbackStatus) {
+        chrome.tabs.create({ url: "app.html" });
+      }
+    } catch (fallbackError) {
+      console.error("❌ Fallback error:", fallbackError);
+    }
   }
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log("🔍 BACKGROUND DEBUG: Received request:", request.type, request);
+  console.log("🔍 BACKGROUND DEBUG: Received request:", { 
+    type: request?.type, 
+    requestType: typeof request,
+    isString: typeof request === 'string',
+    requestKeys: typeof request === 'object' ? Object.keys(request || {}) : 'not-object',
+    fullRequest: request 
+  });
 
   // Enhanced health check handler for service worker diagnostics
   if (request.type === 'HEALTH_CHECK') {
@@ -1839,10 +1927,91 @@ function initializeConsistencySystem() {
       console.warn("⚠️ Chrome alarms API not available - using fallback mode");
     }
     
+    // 🎯 NEW: Initialize database and onboarding during extension installation
+    console.log("🚀 Starting installation-time onboarding...");
+    initializeInstallationOnboarding();
+    
     console.log("✅ Consistency system initialization complete");
   } catch (error) {
     console.error("❌ Error initializing consistency system:", error);
     console.warn("⚠️ Some consistency features may not work properly");
+  }
+}
+
+/**
+ * Initialize database and onboarding during extension installation
+ * This ensures all data is ready before users can interact with the extension
+ */
+async function initializeInstallationOnboarding() {
+  try {
+    console.log("🎯 Installation onboarding: Starting database initialization...");
+    
+    // Set initial loading badge
+    try {
+      await chrome.action.setBadgeText({ text: '...' });
+      await chrome.action.setBadgeBackgroundColor({ color: '#FFA500' }); // Orange for setup
+      await chrome.action.setTitle({ title: 'CodeMaster - Setting up database...' });
+    } catch (badgeError) {
+      console.warn("⚠️ Could not set initial loading badge:", badgeError);
+    }
+    
+    // Run the full onboarding process
+    const result = await onboardUserIfNeeded();
+    
+    if (result.success) {
+      // Mark installation onboarding as complete
+      await StorageService.set('installation_onboarding_complete', {
+        completed: true,
+        timestamp: new Date().toISOString(),
+        version: chrome.runtime.getManifest().version
+      });
+      
+      // Clear loading badge and set ready state
+      try {
+        await chrome.action.setBadgeText({ text: '' });
+        await chrome.action.setTitle({ title: 'CodeMaster - Algorithm Learning Assistant' });
+      } catch (badgeError) {
+        console.warn("⚠️ Could not clear loading badge:", badgeError);
+      }
+      
+      console.log("✅ Installation onboarding completed successfully");
+      if (result.warning) {
+        console.warn("⚠️ Installation onboarding completed with warnings:", result.message);
+      }
+    } else {
+      console.error("❌ Installation onboarding failed:", result.message);
+      
+      // Set error badge
+      try {
+        await chrome.action.setBadgeText({ text: '!' });
+        await chrome.action.setBadgeBackgroundColor({ color: '#FF0000' });
+        await chrome.action.setTitle({ title: 'CodeMaster - Setup failed. Click to try again.' });
+      } catch (badgeError) {
+        console.warn("⚠️ Could not set error badge:", badgeError);
+      }
+    }
+    
+  } catch (error) {
+    console.error("❌ Error during installation onboarding:", error);
+    
+    // Still mark as complete to avoid blocking the extension
+    // Users can still use basic functionality
+    await StorageService.set('installation_onboarding_complete', {
+      completed: true,
+      timestamp: new Date().toISOString(),
+      version: chrome.runtime.getManifest().version,
+      error: error.message
+    });
+    
+    // Clear loading badge since we're marking as complete anyway
+    try {
+      await chrome.action.setBadgeText({ text: '' });
+      await chrome.action.setTitle({ title: 'CodeMaster - Algorithm Learning Assistant' });
+    } catch (badgeError) {
+      console.warn("⚠️ Could not clear badge after error:", badgeError);
+    }
+    
+    console.warn("⚠️ Installation onboarding marked complete despite error to avoid blocking extension");
   }
 }
 

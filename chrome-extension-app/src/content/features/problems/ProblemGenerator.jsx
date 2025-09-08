@@ -59,9 +59,9 @@ const processSessionResponse = (response, handlers, sessionCreationAttempted, op
   logger.info(`🔍 ${operationName} API Response:`, {
     hasSession: !!response.session,
     sessionId: response.session?.id?.substring(0, 8),
-    sessionType: response.session?.sessionType,
+    session_type: response.session?.session_type,
     isSessionStale: response.isSessionStale,
-    lastActivityTime: response.session?.lastActivityTime
+    last_activity_time: response.session?.last_activity_time
   });
   
   if (response.session) {
@@ -181,11 +181,11 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
         type: "clearSessionCache"
       });
       
-      // Directly create interview session with explicit sessionType - bypass race condition
-      logger.info('🎯 Creating interview session with sessionType:', defaultInterviewMode);
+      // Directly create interview session with explicit session_type - bypass race condition
+      logger.info('🎯 Creating interview session with session_type:', defaultInterviewMode);
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "getOrCreateSession",
-        sessionType: defaultInterviewMode
+        session_type: defaultInterviewMode
       });
       
       // Process the response using helper function
@@ -211,10 +211,10 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
     setShowInterviewBanner(false);
     
     try {
-      // Directly create standard session with explicit sessionType - bypass race condition  
+      // Directly create standard session with explicit session_type - bypass race condition  
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "getOrCreateSession", 
-        sessionType: 'standard'
+        session_type: 'standard'
       });
       
       // Process the response using helper function
@@ -240,7 +240,7 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
       // Call refresh session to create a fresh session
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "refreshSession",
-        sessionType: sessionData?.sessionType || 'standard'
+        session_type: sessionData?.session_type || 'standard'
       });
       
       if (response.session) {
@@ -296,20 +296,20 @@ const useSessionLoader = (options) => {
   } = useChromeMessage(
     { 
       type: "getOrCreateSession",
-      // Pass explicit sessionType if user made manual override OR if interview mode is enabled and not manual
-      ...(_manualSessionTypeOverride && { sessionType: _manualSessionTypeOverride }),
+      // Pass explicit session_type if user made manual override OR if interview mode is enabled and not manual
+      ...(_manualSessionTypeOverride && { session_type: _manualSessionTypeOverride }),
       // Auto-pass interview mode when enabled and frequency is not manual (for auto-creation)
       ...(settings?.interviewMode && 
           settings.interviewMode !== 'disabled' && 
           settings.interviewFrequency !== 'manual' && 
           !_manualSessionTypeOverride && 
-          { sessionType: settings.interviewMode }),
-      // IMPORTANT: Also pass sessionType if cache was recently cleared due to settings change (even with manual frequency)
+          { session_type: settings.interviewMode }),
+      // IMPORTANT: Also pass session_type if cache was recently cleared due to settings change (even with manual frequency)
       ...(settings?.interviewMode && 
           settings.interviewMode !== 'disabled' && 
           cacheClearedRecently && 
           !_manualSessionTypeOverride && 
-          { sessionType: settings.interviewMode })
+          { session_type: settings.interviewMode })
     }, 
     [settings, settingsLoaded, _manualSessionTypeOverride], // Depend on settings and manual override
     {
@@ -318,9 +318,9 @@ const useSessionLoader = (options) => {
         logger.info('🔍 ProblemGenerator API Response:', {
           hasSession: !!response.session,
           sessionId: response.session?.id?.substring(0, 8),
-          sessionType: response.session?.sessionType,
+          session_type: response.session?.session_type,
           isSessionStale: response.isSessionStale,
-          lastActivityTime: response.session?.lastActivityTime,
+          last_activity_time: response.session?.last_activity_time,
           backgroundScriptData: response.backgroundScriptData
         });
         
@@ -471,8 +471,8 @@ const SessionRegenerationBanner = ({ onRegenerateSession }) => {
 };
 
 // Interview Mode Banner Component
-const InterviewModeBanner = ({ sessionType, interviewConfig: _interviewConfig }) => {
-  if (!sessionType || sessionType === 'standard') return null;
+const InterviewModeBanner = ({ session_type, interviewConfig: _interviewConfig }) => {
+  if (!session_type || session_type === 'standard') return null;
 
   const getModeDisplay = (mode) => {
     switch (mode) {
@@ -500,7 +500,7 @@ const InterviewModeBanner = ({ sessionType, interviewConfig: _interviewConfig })
     }
   };
 
-  const modeDisplay = getModeDisplay(sessionType);
+  const modeDisplay = getModeDisplay(session_type);
   
   return (
     <div className="cm-interview-mode-banner" style={{
@@ -771,8 +771,8 @@ const renderSimilarProblems = ({ similarProblems, loadingSimilar, hovered }) => 
               textOverflow: "ellipsis",
               whiteSpace: "nowrap"
             }}>
-              {(similar.title || similar.problemDescription || '').substring(0, 30)}
-              {(similar.title || similar.problemDescription || '').length > 30 ? '...' : ''}
+              {(similar.Description || similar.ProblemDescription || similar.problemDescription || similar.title || '').substring(0, 30)}
+              {(similar.Description || similar.ProblemDescription || similar.problemDescription || similar.title || '').length > 30 ? '...' : ''}
             </span>
             {similar.difficulty && (
               <span style={{
@@ -882,7 +882,7 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
             width: '100%'
           }}
         >
-          {problem.problemDescription || problem.title}
+          {problem.Description || problem.ProblemDescription || problem.problemDescription || problem.title || "N/A"}
         </button>
         {renderProblemBadges({ problem, isNewProblem, handleMouseEnter, handleMouseLeave })}
       </div>
@@ -904,7 +904,7 @@ const ProblemsList = ({ problems, sessionData, onLinkClick }) => (
           <ProblemItemWithInterviewContext
             problem={problem}
             isNewProblem={isNewProblem}
-            interviewMode={sessionData?.sessionType}
+            interviewMode={sessionData?.session_type}
             onLinkClick={onLinkClick}
           />
         </div>
@@ -968,7 +968,7 @@ const ProblemGeneratorContent = ({
 }) => (
   <>
     <InterviewModeBanner 
-      sessionType={sessionData?.sessionType} 
+      session_type={sessionData?.session_type} 
       interviewConfig={sessionData?.interviewConfig} 
     />
     

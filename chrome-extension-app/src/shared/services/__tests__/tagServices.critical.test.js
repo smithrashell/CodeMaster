@@ -3,140 +3,10 @@
  * Focus: Core adaptive learning functionality that could break user progression
  */
 
-describe('TagServices - Critical Risk Areas', () => {
-  let TagService;
-
-  beforeAll(async () => {
-    // Mock all dependencies at module level with comprehensive mocks
-    jest.doMock('../../db/index.js', () => ({
-      dbHelper: { 
-        openDB: jest.fn().mockResolvedValue({
-          transaction: jest.fn().mockReturnValue({
-            objectStore: jest.fn().mockReturnValue({
-              getAll: jest.fn().mockReturnValue({ 
-                onsuccess: null, 
-                onerror: null, 
-                result: [] 
-              }),
-              get: jest.fn().mockReturnValue({ 
-                onsuccess: null, 
-                onerror: null, 
-                result: null 
-              }),
-              put: jest.fn().mockReturnValue({ 
-                onsuccess: null, 
-                onerror: null 
-              }),
-              index: jest.fn().mockReturnValue({
-                getAll: jest.fn().mockReturnValue({ 
-                  onsuccess: null, 
-                  onerror: null, 
-                  result: [] 
-                })
-              })
-            })
-          })
-        })
-      }
-    }));
-
-    jest.doMock('../../db/tag_relationships.js', () => ({
-      getHighlyRelatedTags: jest.fn().mockResolvedValue(['array', 'hash-table']),
-      getNextFiveTagsFromNextTier: jest.fn().mockResolvedValue({
-        classification: 'Advanced Technique',
-        masteredTags: [],
-        allTagsInCurrentTier: ['advanced-dp', 'tree-dp'],
-        focusTags: ['advanced-dp'],
-        masteryData: []
-      })
-    }));
-
-    jest.doMock('../../db/sessions.js', () => ({
-      getSessionPerformance: jest.fn().mockResolvedValue({
-        averageTime: 1200,
-        successRate: 0.75
-      })
-    }));
-
-    jest.doMock('../storageService.js', () => ({
-      StorageService: {
-        getSessionState: jest.fn().mockResolvedValue(null),
-        setSessionState: jest.fn().mockResolvedValue({ status: 'success' }),
-        getSettings: jest.fn().mockResolvedValue({
-          focusAreas: [],
-          interviewMode: 'disabled'
-        }),
-        setSettings: jest.fn().mockResolvedValue({ status: 'success' }),
-        migrateSessionStateToIndexedDB: jest.fn().mockResolvedValue(null)
-      }
-    }));
-
-    jest.doMock('../../utils/sessionLimits.js', () => ({
-      default: {
-        isOnboarding: jest.fn().mockReturnValue(false),
-        getMaxFocusTags: jest.fn().mockReturnValue(3)
-      }
-    }));
-
-    jest.doMock('../../utils/logger.js', () => ({
-      default: {
-        info: jest.fn(),
-        error: jest.fn(),
-        warn: jest.fn(),
-        debug: jest.fn()
-      }
-    }));
-
-    jest.doMock('../../utils/Utils.js', () => ({
-      calculateSuccessRate: jest.fn().mockReturnValue(0.8)
-    }));
-
-    // Set up proper globals for TagServices
-    global.globalThis = global.globalThis || {};
-    global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
-    
-    try {
-      // Import after mocking
-      const module = await import('../tagServices.js');
-      TagService = module.TagService;
-    } catch (error) {
-      // Create a mock service if import fails
-      TagService = {
-        getCurrentTier: jest.fn().mockResolvedValue({
-          classification: 'Core Concept',
-          masteredTags: [],
-          allTagsInCurrentTier: ['array', 'hash-table'],
-          focusTags: ['array'],
-          masteryData: []
-        }),
-        getCurrentLearningState: jest.fn().mockResolvedValue({
-          currentTier: 'Core Concept',
-          masteredTags: [],
-          allTagsInCurrentTier: ['array', 'hash-table'],
-          focusTags: ['array'],
-          masteryData: [],
-          sessionPerformance: { averageTime: 1200 }
-        }),
-        checkFocusAreasGraduation: jest.fn().mockResolvedValue({
-          needsUpdate: false,
-          masteredTags: [],
-          suggestions: []
-        }),
-        graduateFocusAreas: jest.fn().mockResolvedValue({
-          updated: false,
-          report: { needsUpdate: false }
-        }),
-        getAvailableTagsForFocus: jest.fn().mockResolvedValue({
-          access: { core: 'confirmed' },
-          caps: { core: 3 },
-          tags: [],
-          currentTier: 'Core Concept',
-          isOnboarding: false
-        })
-      };
-    }
-  });
-
+/**
+ * Test suite for service structure and availability validation
+ */
+function runServiceStructureTests(TagService) {
   describe('Service Structure and Availability', () => {
     it('should export all required TagService methods', () => {
       expect(TagService).toBeDefined();
@@ -162,7 +32,12 @@ describe('TagServices - Critical Risk Areas', () => {
       }).not.toThrow();
     });
   });
+}
 
+/**
+ * Test suite for critical tier progression logic
+ */
+function runTierProgressionTests(TagService) {
   describe('Critical Tier Progression Logic', () => {
     it('should handle getCurrentTier without database failures', async () => {
       try {
@@ -214,7 +89,12 @@ describe('TagServices - Critical Risk Areas', () => {
       }
     });
   });
+}
 
+/**
+ * Test suite for learning state management
+ */
+function runLearningStateTests(TagService) {
   describe('Learning State Management', () => {
     it('should handle getCurrentLearningState safely', async () => {
       try {
@@ -256,7 +136,12 @@ describe('TagServices - Critical Risk Areas', () => {
       }
     });
   });
+}
 
+/**
+ * Test suite for focus areas critical functionality
+ */
+function runFocusAreasFunctionalityTests(TagService) {
   describe('Focus Areas Critical Functionality', () => {
     it('should validate focus areas graduation logic', async () => {
       try {
@@ -306,7 +191,12 @@ describe('TagServices - Critical Risk Areas', () => {
       }
     });
   });
+}
 
+/**
+ * Test suite for available tags focus selection
+ */
+function runAvailableTagsTests(TagService) {
   describe('Available Tags for Focus Selection', () => {
     it('should handle getAvailableTagsForFocus with invalid user IDs', async () => {
       const invalidUserIds = [null, undefined, '', 0, false, {}];
@@ -369,7 +259,12 @@ describe('TagServices - Critical Risk Areas', () => {
       }
     });
   });
+}
 
+/**
+ * Test suite for error recovery and data integrity
+ */
+function runErrorRecoveryTests(TagService) {
   describe('Error Recovery and Data Integrity', () => {
     it('should handle database connection failures gracefully', async () => {
       // Test all methods handle database failures without corrupting application state
@@ -429,7 +324,12 @@ describe('TagServices - Critical Risk Areas', () => {
       }
     });
   });
+}
 
+/**
+ * Test suite for algorithm edge cases
+ */
+function runAlgorithmEdgeCaseTests(TagService) {
   describe('Algorithm Edge Cases', () => {
     it('should handle empty tag relationships data', async () => {
       // Test behavior when tag relationships are missing or empty
@@ -478,4 +378,155 @@ describe('TagServices - Critical Risk Areas', () => {
       }
     });
   });
+}
+
+/**
+ * Setup mock dependencies for TagService tests
+ */
+async function setupTagServiceMocks() {
+  // Mock all dependencies at module level with comprehensive mocks
+  jest.doMock('../../db/index.js', () => ({
+    dbHelper: { 
+      openDB: jest.fn().mockResolvedValue({
+        transaction: jest.fn().mockReturnValue({
+          objectStore: jest.fn().mockReturnValue({
+            getAll: jest.fn().mockReturnValue({ 
+              onsuccess: null, 
+              onerror: null, 
+              result: [] 
+            }),
+            get: jest.fn().mockReturnValue({ 
+              onsuccess: null, 
+              onerror: null, 
+              result: null 
+            }),
+            put: jest.fn().mockReturnValue({ 
+              onsuccess: null, 
+              onerror: null 
+            }),
+            index: jest.fn().mockReturnValue({
+              getAll: jest.fn().mockReturnValue({ 
+                onsuccess: null, 
+                onerror: null, 
+                result: [] 
+              })
+            })
+          })
+        })
+      })
+    }
+  }));
+
+  jest.doMock('../../db/tag_relationships.js', () => ({
+    getHighlyRelatedTags: jest.fn().mockResolvedValue(['array', 'hash-table']),
+    getNextFiveTagsFromNextTier: jest.fn().mockResolvedValue({
+      classification: 'Advanced Technique',
+      masteredTags: [],
+      allTagsInCurrentTier: ['advanced-dp', 'tree-dp'],
+      focusTags: ['advanced-dp'],
+      masteryData: []
+    })
+  }));
+
+  jest.doMock('../../db/sessions.js', () => ({
+    getSessionPerformance: jest.fn().mockResolvedValue({
+      averageTime: 1200,
+      successRate: 0.75
+    })
+  }));
+
+  jest.doMock('../storageService.js', () => ({
+    StorageService: {
+      getSessionState: jest.fn().mockResolvedValue(null),
+      setSessionState: jest.fn().mockResolvedValue({ status: 'success' }),
+      getSettings: jest.fn().mockResolvedValue({
+        focusAreas: [],
+        interviewMode: 'disabled'
+      }),
+      setSettings: jest.fn().mockResolvedValue({ status: 'success' }),
+      migrateSessionStateToIndexedDB: jest.fn().mockResolvedValue(null)
+    }
+  }));
+
+  jest.doMock('../../utils/sessionLimits.js', () => ({
+    default: {
+      isOnboarding: jest.fn().mockReturnValue(false),
+      getMaxFocusTags: jest.fn().mockReturnValue(3)
+    }
+  }));
+
+  jest.doMock('../../utils/logger.js', () => ({
+    default: {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn()
+    }
+  }));
+
+  jest.doMock('../../utils/Utils.js', () => ({
+    calculateSuccessRate: jest.fn().mockReturnValue(0.8)
+  }));
+
+  // Set up proper globals for TagServices
+  global.globalThis = global.globalThis || {};
+  global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
+  
+  try {
+    // Import after mocking
+    const module = await import('../tagServices.js');
+    return module.TagService;
+  } catch (error) {
+    // Create a mock service if import fails
+    return {
+      getCurrentTier: jest.fn().mockResolvedValue({
+        classification: 'Core Concept',
+        masteredTags: [],
+        allTagsInCurrentTier: ['array', 'hash-table'],
+        focusTags: ['array'],
+        masteryData: []
+      }),
+      getCurrentLearningState: jest.fn().mockResolvedValue({
+        currentTier: 'Core Concept',
+        masteredTags: [],
+        allTagsInCurrentTier: ['array', 'hash-table'],
+        focusTags: ['array'],
+        masteryData: [],
+        sessionPerformance: { averageTime: 1200 }
+      }),
+      checkFocusAreasGraduation: jest.fn().mockResolvedValue({
+        needsUpdate: false,
+        masteredTags: [],
+        suggestions: []
+      }),
+      graduateFocusAreas: jest.fn().mockResolvedValue({
+        updated: false,
+        report: { needsUpdate: false }
+      }),
+      getAvailableTagsForFocus: jest.fn().mockResolvedValue({
+        access: { core: 'confirmed' },
+        caps: { core: 3 },
+        tags: [],
+        currentTier: 'Core Concept',
+        isOnboarding: false
+      })
+    };
+  }
+}
+
+describe('TagServices - Critical Risk Areas', () => {
+  let TagService;
+
+  beforeAll(async () => {
+    TagService = await setupTagServiceMocks();
+  });
+
+  // Execute all test suites using helper functions
+  runServiceStructureTests(TagService);
+  runTierProgressionTests(TagService);
+  runLearningStateTests(TagService);
+  runFocusAreasFunctionalityTests(TagService);
+  runAvailableTagsTests(TagService);
+  runErrorRecoveryTests(TagService);
+  runAlgorithmEdgeCaseTests(TagService);
 });

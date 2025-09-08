@@ -66,9 +66,7 @@ const STORAGE_KEYS = {
 
 // Get initial theme - just return default, let Chrome storage be authoritative
 const getInitialTheme = () => {
-  const initialTheme = DEFAULT_THEME_SETTINGS.colorScheme;
-  console.log("🎨 DEBUG: getInitialTheme() returning:", initialTheme);
-  return initialTheme;
+  return DEFAULT_THEME_SETTINGS.colorScheme;
 };
 
 // Helper function to process settings from Chrome storage response
@@ -140,7 +138,6 @@ const createStorageChangeHandler = (applySettings) => {
 // Helper function to apply theme to DOM
 const useDOMThemeApplier = (colorScheme, fontSize, layoutDensity, animationsEnabled) => {
   React.useLayoutEffect(() => {
-    console.log("🎨 DEBUG: useLayoutEffect applying theme to DOM:", colorScheme);
     document.body.setAttribute("data-theme", colorScheme);
     document.body.setAttribute("data-font-size", fontSize);
     document.body.setAttribute("data-layout-density", layoutDensity);
@@ -148,7 +145,6 @@ const useDOMThemeApplier = (colorScheme, fontSize, layoutDensity, animationsEnab
       "data-animations",
       animationsEnabled ? "enabled" : "disabled"
     );
-    console.log("🎨 DEBUG: DOM attributes applied, data-theme now:", document.body.getAttribute("data-theme"));
   }, [colorScheme, fontSize, layoutDensity, animationsEnabled]);
 };
 
@@ -203,60 +199,67 @@ const createContextValue = (colorScheme, fontSize, layoutDensity, animationsEnab
   setAnimationsEnabled: callbacks.updateAnimationsEnabled,
 });
 
+// Helper function for Chrome settings hook configuration
+const createChromeSettingsHook = (applySettings) => ({
+  type: "getSettings",
+  deps: [],
+  options: { 
+    showNotifications: false,
+    onSuccess: (response) => {
+      if (response) {
+        const processed = processSettings(response);
+        applySettings(processed);
+      }
+    }
+  }
+});
 
-
-function ThemeProviderWrapper({ children }) {
-  console.log("🎨 ThemeProviderWrapper RENDER", new Date().toISOString());
-  
+// Helper function to manage theme state
+const useThemeState = () => {
   const [colorScheme, setColorScheme] = useState(getInitialTheme());
-  console.log("🎨 DEBUG: Current colorScheme in render:", colorScheme);
   const [fontSize, setFontSize] = useState(DEFAULT_THEME_SETTINGS.fontSize);
   const [layoutDensity, setLayoutDensity] = useState(DEFAULT_THEME_SETTINGS.layoutDensity);
   const [animationsEnabled, setAnimationsEnabled] = useState(DEFAULT_THEME_SETTINGS.animationsEnabled);
   const [_isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Log provider lifecycle
-  React.useEffect(() => {
-    console.log("🏗️ ThemeProviderWrapper MOUNTED");
-    return () => {
-      console.log("🗑️ ThemeProviderWrapper UNMOUNTED");
-    };
-  }, []);
+  return {
+    colorScheme, setColorScheme,
+    fontSize, setFontSize,
+    layoutDensity, setLayoutDensity,
+    animationsEnabled, setAnimationsEnabled,
+    _isInitialized, setIsInitialized,
+    isLoading, setIsLoading
+  };
+};
+
+function ThemeProviderWrapper({ children }) {
+  const {
+    colorScheme, setColorScheme,
+    fontSize, setFontSize,
+    layoutDensity, setLayoutDensity,
+    animationsEnabled, setAnimationsEnabled,
+    _isInitialized, setIsInitialized,
+    isLoading, setIsLoading
+  } = useThemeState();
 
   // Apply settings to state and DOM
   const applySettings = useCallback((settings) => {
-    console.log("🎨 DEBUG: applySettings called with:", settings);
-    console.log("🎨 DEBUG: Current colorScheme before apply:", colorScheme);
     setColorScheme(settings.colorScheme);
     setFontSize(settings.fontSize);
     setLayoutDensity(settings.layoutDensity);
     setAnimationsEnabled(settings.animationsEnabled);
     setIsInitialized(true);
     setIsLoading(false);
-    console.log("🎨 DEBUG: applySettings completed, state should update to:", settings.colorScheme);
-  }, [setColorScheme, setFontSize, setLayoutDensity, setAnimationsEnabled, setIsInitialized, setIsLoading, colorScheme]);
+  }, [setColorScheme, setFontSize, setLayoutDensity, setAnimationsEnabled, setIsInitialized, setIsLoading]);
 
   // Use Chrome message hook to load settings
+  const hookConfig = createChromeSettingsHook(applySettings);
   const { 
     data: chromeSettings, 
     loading: chromeLoading, 
     error: chromeError 
-  } = useChromeMessage(
-    { type: "getSettings" },
-    [],
-    { 
-      showNotifications: false,
-      onSuccess: (response) => {
-        if (response) {
-          console.log("🎨 DEBUG: Chrome storage response:", response);
-          const processed = processSettings(response);
-          console.log("🎨 DEBUG: Processed Chrome settings:", processed);
-          applySettings(processed);
-        }
-      }
-    }
-  );
+  } = useChromeMessage({ type: hookConfig.type }, hookConfig.deps, hookConfig.options);
 
   // Helper function to handle localStorage theme loading
   const loadFromLocalStorage = useCallback(() => {
@@ -275,7 +278,7 @@ function ThemeProviderWrapper({ children }) {
       setIsInitialized(true);
       setIsLoading(false);
     }
-  }, [applySettings]);
+  }, [applySettings, setIsInitialized, setIsLoading]);
 
   // Save settings to storage
   const saveSettings = useCallback((newSettings) => {
@@ -293,14 +296,13 @@ function ThemeProviderWrapper({ children }) {
       { colorScheme, fontSize, layoutDensity, animationsEnabled },
       { setColorScheme, setFontSize, setLayoutDensity, setAnimationsEnabled },
       saveSettings
-    ), [colorScheme, fontSize, layoutDensity, animationsEnabled, saveSettings]);
+    ), [colorScheme, fontSize, layoutDensity, animationsEnabled, saveSettings, setColorScheme, setFontSize, setLayoutDensity, setAnimationsEnabled]);
 
   // Use callbacks directly in context value
 
   // Handle fallback to localStorage if Chrome messaging fails
   useEffect(() => {
     if (chromeError && !chromeLoading) {
-      console.log("🎨 DEBUG: Chrome messaging failed, falling back to localStorage");
       loadFromLocalStorage();
     }
   }, [chromeError, chromeLoading, loadFromLocalStorage]);
@@ -318,9 +320,6 @@ function ThemeProviderWrapper({ children }) {
   const executionContext = useMemo(() => getExecutionContext(), []);
   const isContentScript = executionContext.contextType.includes('content-script-or-web-page') && 
                           !executionContext.contextType.includes('background-script');
-
-  console.log("🎨 DEBUG: Execution context:", executionContext);
-  console.log("🎨 DEBUG: Is content script:", isContentScript);
 
   return (
     <ThemeContext.Provider value={contextValue}>

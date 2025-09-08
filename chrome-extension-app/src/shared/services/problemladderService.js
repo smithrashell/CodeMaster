@@ -13,7 +13,7 @@ import { buildRelationshipMap } from "../db/problem_relationships.js";
 
 import { TagService } from "../services/tagServices.js";
 import { getAllFromStore } from "../db/common.js";
-import { getTagMastery } from "../db/tag_mastery.js";
+import { getTagMastery, upsertTagMastery } from "../db/tag_mastery.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 export async function initializePatternLaddersForOnboarding() {
   const [
@@ -40,7 +40,7 @@ export async function initializePatternLaddersForOnboarding() {
 
   const focusTagSet = new Set(focusTags);
   const allTagsInTierSet = new Set(allTagsInCurrentTier);
-  const userProblemMap = new Map(userProblems.map((p) => [p.leetCodeID, p]));
+  const userProblemMap = new Map(userProblems.map((p) => [p.leetcode_id, p]));
   const relationshipMap = await buildRelationshipMap(problemRelationships);
 
   for (const entry of tagRelationships) {
@@ -71,6 +71,7 @@ export async function initializePatternLaddersForOnboarding() {
       userProblemMap,
       relationshipMap,
       ladderSize,
+      isOnboarding: true, // 🔰 Force Easy-only problems for onboarding
     });
     console.log("ladder", ladder);
 
@@ -99,8 +100,13 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     getAllFromStore("problem_relationships"),
   ]);
 
-  const userProblemMap = new Map(userProblems.map((p) => [p.leetCodeID, p]));
+  const userProblemMap = new Map(userProblems.map((p) => [p.leetcode_id, p]));
   const relationshipMap = buildRelationshipMap(problemRelationships);
+
+  // Get learning state for dynamic ladder sizing
+  const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();
+  const focusTagSet = new Set(focusTags);
+  const allTagsInTierSet = new Set(allTagsInCurrentTier);
 
   await clearPatternLadders();
 
@@ -117,8 +123,12 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       allowedClassifications,
     });
 
-    // Default ladder size for pattern ladder generation
-    const ladderSize = 9;
+    // Dynamic ladder size based on tag focus and tier
+    const ladderSize = focusTagSet.has(tag)
+      ? 12
+      : allTagsInTierSet.has(tag)
+      ? 9
+      : 5;
 
     const ladder = buildLadder({
       validProblems,
@@ -126,6 +136,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       userProblemMap,
       relationshipMap,
       ladderSize,
+      isOnboarding: false, // Normal proportional distribution for experienced users
     });
 
     await upsertPatternLadder({
@@ -135,7 +146,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     });
 
     const existing = tagMasteryRecords.find((t) => t.tag === tag) || { tag };
-    await TagService.upsertTagMastery({
+    await upsertTagMastery({
       ...existing,
       coreLadder: ladder,
     });
