@@ -9,7 +9,7 @@ export const ScheduleService = {
 
 export async function getDailyReviewSchedule(sessionLength) {
   try {
-    const { focusTags, allTagsInCurrentTier } =
+    const { allTagsInCurrentTier } =
       await TagService.getCurrentLearningState();
     let allProblems = await fetchAllProblems();
 
@@ -27,45 +27,17 @@ export async function getDailyReviewSchedule(sessionLength) {
       (p.Tags || []).every((tag) => allTagsInCurrentTier.includes(tag))
     );
 
-    // ✅ Step 3: Select one unique problem per unmasteredTag
-    const seen = new Set();
-    const tagMatchedProblems = [];
-
-    for (let tag of focusTags) {
-      const match = reviewProblems.find((p) => {
-        const id = p.leetCodeID ?? p.id;
-        return (p.Tags || []).includes(tag) && !seen.has(id);
-      });
-
-      if (match) {
-        const id = match.leetCodeID ?? match.id;
-        seen.add(id);
-        tagMatchedProblems.push(match);
-        console.log(
-          `🎯 Matched tag "${tag}" with problem "${match.ProblemDescription}"`
-        );
-      } else {
-        console.warn(`⚠️ No available review problem found for tag "${tag}"`);
-      }
-    }
-
-    // ✅ Step 4: Fill remaining with other FSRS due problems (if needed)
-    const fsrsFillers = reviewProblems
-      .filter((p) => !seen.has(p.leetCodeID ?? p.id))
+    // Step 3: Sort by review date and return problems due for review
+    const finalReviewProblems = reviewProblems
       .sort((a, b) => new Date(a.ReviewSchedule) - new Date(b.ReviewSchedule))
-      .slice(0, sessionLength - tagMatchedProblems.length);
-
-    const finalReviewProblems = [...tagMatchedProblems, ...fsrsFillers].slice(
-      0,
-      sessionLength
-    );
+      .slice(0, sessionLength);
 
     console.log(
       "✅ Final Review Set:",
       finalReviewProblems.map((p) => ({
         title: p.ProblemDescription,
         tags: p.Tags,
-        leetCodeID: p.leetCodeID,
+        leetcode_id: p.leetcode_id,
       }))
     );
 

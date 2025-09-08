@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
+import { ChromeAPIErrorHandler } from "../../shared/services/ChromeAPIErrorHandler";
 import logger from "../../shared/utils/logger.js";
 
 /**
@@ -58,10 +59,8 @@ export function useTimerSettings() {
 
     try {
       // Get current settings first, then merge with timer settings
-      const currentSettings = await new Promise((resolve) => {
-        chrome.runtime.sendMessage({ type: "getSettings" }, (response) => {
-          resolve(response || {});
-        });
+      const currentSettings = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "getSettings"
       });
 
       const updatedSettings = {
@@ -71,11 +70,9 @@ export function useTimerSettings() {
         notifications: settings.notifications
       };
 
-      const response = await new Promise((resolve) => {
-        chrome.runtime.sendMessage(
-          { type: "setSettings", message: updatedSettings },
-          resolve
-        );
+      const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "setSettings", 
+        message: updatedSettings
       });
 
       if (response?.status === "success") {

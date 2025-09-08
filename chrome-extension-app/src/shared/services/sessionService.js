@@ -137,7 +137,7 @@ export const SessionService = {
     if (!session) return false;
     
     // Normalize types - treat missing sessionType as 'standard'
-    const sessionType = session.sessionType || 'standard';
+    const sessionType = session.session_type || 'standard';
     const expected = expectedSessionType || 'standard';
     
     // Define compatibility groups
@@ -179,7 +179,7 @@ export const SessionService = {
       return { hasMismatch: false, reason: 'no_session' };
     }
     
-    const sessionType = session.sessionType || 'standard';
+    const sessionType = session.session_type || 'standard';
     const expected = expectedSessionType || 'standard';
     const isCompatible = this.isSessionTypeCompatible(session, expected);
     
@@ -326,12 +326,12 @@ export const SessionService = {
 
     // Get all attempts related to this session - handle multiple ID formats
     const attemptedProblemIds = new Set(
-      session.attempts.map((a) => a.problemId || a.leetCodeID || a.id)
+      session.attempts.map((a) => a.problemId || a.leetcode_id || a.id)
     );
 
     // Check if all scheduled problems have been attempted - handle multiple ID formats
     const unattemptedProblems = session.problems.filter((problem) => {
-      const problemId = problem.id || problem.leetCodeID || problem.problemId;
+      const problemId = problem.problem_id || problem.leetcode_id;
       return !attemptedProblemIds.has(problemId);
     });
 
@@ -343,6 +343,19 @@ export const SessionService = {
       await updateSessionInDB(session);
 
       logger.info(`✅ Session ${sessionId} marked as completed.`);
+
+      // ✅ CRITICAL FIX: Update session state to increment numSessionsCompleted
+      try {
+        const sessionState = await StorageService.getSessionState("session_state") || {
+          id: "session_state",
+          numSessionsCompleted: 0
+        };
+        sessionState.numSessionsCompleted = (sessionState.numSessionsCompleted || 0) + 1;
+        await StorageService.setSessionState("session_state", sessionState);
+        logger.info(`✅ Session state updated: numSessionsCompleted = ${sessionState.numSessionsCompleted}`);
+      } catch (error) {
+        logger.error("❌ Failed to update session state:", error);
+      }
 
       // ✅ Clear session cache since session status changed
       try {
@@ -372,7 +385,7 @@ export const SessionService = {
       
       if (frequency === "weekly") {
         // Check if 7+ days have passed since last interview session
-        if (!latestSession || !latestSession.sessionType) {
+        if (!latestSession || !latestSession.session_type) {
           return true; // No previous interview session
         }
         
@@ -412,7 +425,7 @@ export const SessionService = {
       const interviewSummary = {
         ...standardSummary,
         interviewAnalysis: {
-          mode: session.sessionType,
+          mode: session.session_type,
           transferReadinessScore: session.interviewMetrics.transferReadinessScore,
           interventionNeedScore: session.interviewMetrics.interventionNeedScore,
           overallMetrics: session.interviewMetrics.overallMetrics,
@@ -426,7 +439,7 @@ export const SessionService = {
       
       logger.info("📊 Interview session analysis complete:", {
         sessionId: session.id,
-        mode: session.sessionType,
+        mode: session.session_type,
         transferReadiness: session.interviewMetrics.transferReadinessScore,
         feedbackItems: session.interviewMetrics.feedbackGenerated
       });
@@ -519,9 +532,9 @@ export const SessionService = {
     logger.info(`🔍 resumeSession getLatestSessionByType result:`, {
       found: !!latestSession,
       id: latestSession?.id?.substring(0, 8) + '...',
-      sessionType: latestSession?.sessionType || 'undefined',
+      session_type: latestSession?.session_type || 'undefined',
       status: latestSession?.status || 'undefined',
-      lastActivity: latestSession?.lastActivityTime || latestSession?.date || 'undefined'
+      lastActivity: latestSession?.last_activity_time || latestSession?.date || 'undefined'
     });
 
     if (latestSession) {
@@ -582,7 +595,7 @@ export const SessionService = {
       if (existingInProgress) {
         logger.info(`⏹️ Marking existing in_progress ${sessionType} session as completed:`, existingInProgress.id.substring(0, 8));
         existingInProgress.status = "completed";
-        existingInProgress.lastActivityTime = new Date().toISOString();
+        existingInProgress.last_activity_time = new Date().toISOString();
         await updateSessionInDB(existingInProgress);
       }
 
@@ -590,7 +603,7 @@ export const SessionService = {
       if (existingDraft && existingDraft.id !== existingInProgress?.id) {
         logger.info(`⏹️ Marking existing draft ${sessionType} session as completed:`, existingDraft.id.substring(0, 8));
         existingDraft.status = "completed";
-        existingDraft.lastActivityTime = new Date().toISOString();
+        existingDraft.last_activity_time = new Date().toISOString();
         await updateSessionInDB(existingDraft);
       }
 
@@ -602,7 +615,7 @@ export const SessionService = {
         const problems = await ProblemService.createSession();
         sessionData = {
           problems: problems,
-          sessionType: 'standard'
+          session_type: 'standard'
         };
         logger.info("🎯 Standard session data created:", { problemCount: problems?.length });
       } else {
@@ -610,7 +623,7 @@ export const SessionService = {
         // Interview session returns structured data
         sessionData = await ProblemService.createInterviewSession(sessionType);
         logger.info("🎯 Interview session data created:", {
-          sessionType: sessionData?.sessionType,
+          session_type: sessionData?.session_type,
           problemCount: sessionData?.problems?.length,
           hasConfig: !!sessionData?.interviewConfig
         });
@@ -630,12 +643,11 @@ export const SessionService = {
         date: new Date().toISOString(),
         status: status, // Use provided status (draft or in_progress)
         origin: "generator", // Always generator for guided sessions
-        startedBy: status === 'draft' ? "auto_inferred" : "user_action",
-        lastActivityTime: new Date().toISOString(),
+        last_activity_time: new Date().toISOString(),
         problems: problems,
         attempts: [],
-        currentProblemIndex: 0,
-        sessionType: sessionType,
+        current_problem_index: 0,
+        session_type: sessionType,
         
         // Add interview-specific fields if it's an interview session
         ...(sessionType !== 'standard' && sessionData.interviewConfig && {
@@ -877,7 +889,7 @@ export const SessionService = {
    */
   classifySessionState(session) {
     const now = Date.now();
-    const lastActivity = new Date(session.lastActivityTime || session.date);
+    const lastActivity = new Date(session.last_activity_time || session.date);
     const hoursStale = (now - lastActivity.getTime()) / (1000 * 60 * 60);
     
     const attemptCount = session.attempts?.length || 0;
@@ -888,8 +900,8 @@ export const SessionService = {
     const sessionProblemsAttempted = session.attempts?.filter(attempt => 
       session.problems?.some(p => 
         p.id === attempt.problemId || 
-        p.leetCodeID === attempt.problemId ||
-        p.problemId === attempt.problemId
+        p.leetcode_id === attempt.problemId ||
+        p.problem_id === attempt.problemId
       )
     ).length || 0;
     const outsideSessionAttempts = attemptCount - sessionProblemsAttempted;
@@ -905,13 +917,13 @@ export const SessionService = {
     });
     
     // Active sessions - use interview-aware thresholds
-    const activeThreshold = (session.sessionType === 'interview-like' || session.sessionType === 'full-interview') ? 3 : 6;
+    const activeThreshold = (session.session_type === 'interview-like' || session.session_type === 'full-interview') ? 3 : 6;
     if (hoursStale < activeThreshold || session.status === "completed") {
       return "active";
     }
     
     // Interview session classification - different thresholds for time-sensitive practice
-    if (session.sessionType && (session.sessionType === 'interview-like' || session.sessionType === 'full-interview')) {
+    if (session.session_type && (session.session_type === 'interview-like' || session.session_type === 'full-interview')) {
       return this._classifyInterviewSession(hoursStale, attemptCount);
     }
     
@@ -1063,11 +1075,10 @@ export const SessionService = {
       ...sessionProblems,
       status: 'in_progress', // Auto-start generated sessions
       origin: 'generator',
-      startedBy: 'auto_inferred', // Generated from tracking patterns
-      lastActivityTime: new Date().toISOString(),
+      last_activity_time: new Date().toISOString(),
       attempts: [],
-      currentProblemIndex: 0,
-      sessionType: 'standard',
+      current_problem_index: 0,
+      session_type: 'standard',
       metadata: {
         generatedFromTracking: true,
         sourceAttempts: problemIds,
@@ -1176,7 +1187,7 @@ export const SessionService = {
     const currentSession = await this.resumeSession(sessionType);
     if (currentSession && forceNew) {
       currentSession.status = 'expired';
-      currentSession.lastActivityTime = new Date().toISOString();
+      currentSession.last_activity_time = new Date().toISOString();
       await updateSessionInDB(currentSession);
       logger.info(`Marked session ${currentSession.id} as expired`);
     }
@@ -1196,7 +1207,7 @@ export const SessionService = {
     if (!session) return null;
 
     session.problems = session.problems.filter(
-      (p) => p.leetCodeID !== leetCodeID
+      (p) => p.leetcode_id !== leetCodeID
     );
     await saveSessionToStorage(session, true);
     return session;
@@ -1264,7 +1275,7 @@ export const SessionService = {
     for (const problem of session.problems) {
       // Get official difficulty from standard_problems
       const standardProblem = await fetchProblemById(
-        problem.leetCodeID || problem.id
+        problem.leetcode_id || problem.problem_id
       );
       const difficulty = standardProblem?.difficulty || "Medium";
 

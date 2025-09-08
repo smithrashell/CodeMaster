@@ -5,39 +5,8 @@
 
 import { ChromeMessagingService } from '../chromeMessagingService';
 
-describe('Content Script - Critical Integration Points', () => {
-  let chromeMessaging;
-  let chrome;
-
-  beforeAll(() => {
-    // Use Jest fake timers to prevent recursion
-    jest.useFakeTimers();
-    
-    // Mock Chrome extension APIs
-    chrome = {
-      runtime: {
-        sendMessage: jest.fn(),
-        lastError: null
-      }
-    };
-
-    // Set up global Chrome mock
-    global.chrome = chrome;
-
-    chromeMessaging = new ChromeMessagingService();
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    chrome.runtime.lastError = null;
-    chromeMessaging.clearCache();
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
-    delete global.chrome;
-  });
-
+// Helper function for Chrome Messaging Service Core Functionality tests
+const setupChromeMessagingCoreTests = (chromeMessaging, chrome) => {
   describe('ChromeMessagingService Core Functionality', () => {
     it('should initialize without crashing', () => {
       expect(() => {
@@ -127,7 +96,10 @@ describe('Content Script - Critical Integration Points', () => {
       expect(response).toEqual({ result: 'success after retries' });
     });
   });
+};
 
+// Helper function for Critical Message Types tests
+const setupCriticalMessageTypeTests = (chromeMessaging, chrome) => {
   describe('Critical Message Types for Content Scripts', () => {
     it('should handle problem data submission messages', async () => {
       const problemData = {
@@ -234,7 +206,10 @@ describe('Content Script - Critical Integration Points', () => {
       expect(response.session.id).toBe('session-123');
     });
   });
+};
 
+// Helper function for Cache Management tests
+const setupCacheManagementTests = (chromeMessaging, chrome) => {
   describe('Cache Management in Content Scripts', () => {
     it('should cache responses when cacheable option is set', async () => {
       const cacheableRequest = { type: 'getStrategyForTag', tag: 'dynamic-programming' };
@@ -309,7 +284,10 @@ describe('Content Script - Critical Integration Points', () => {
       }).not.toThrow();
     });
   });
+};
 
+// Helper function for Error Recovery tests
+const setupErrorRecoveryTests = (chromeMessaging, chrome) => {
   describe('Error Recovery and Resilience', () => {
     it('should handle malformed responses gracefully', async () => {
       const malformedResponses = [
@@ -387,7 +365,10 @@ describe('Content Script - Critical Integration Points', () => {
       expect(responses[2]).toEqual({ result: 'Response for request3' });
     });
   });
+};
 
+// Helper function for DOM Integration tests
+const setupDOMIntegrationTests = () => {
   describe('DOM Integration Safety', () => {
     it('should handle DOM queries without crashing when elements are missing', () => {
       // Mock DOM environment
@@ -465,7 +446,10 @@ describe('Content Script - Critical Integration Points', () => {
       }).not.toThrow();
     });
   });
+};
 
+// Helper function for Performance Management tests
+const setupPerformanceTests = (chromeMessaging, chrome) => {
   describe('Performance and Memory Management', () => {
     it('should manage cache memory efficiently', () => {
       expect(() => {
@@ -498,7 +482,7 @@ describe('Content Script - Critical Integration Points', () => {
       }).not.toThrow();
     });
 
-    it('should handle message queue without memory leaks', async () => {
+    it('should handle message queue without memory leaks', () => {
       // Test multiple rapid messages don't cause memory issues
       const rapidMessages = Array.from({ length: 20 }, (_, i) => ({
         type: 'rapid_test',
@@ -522,4 +506,46 @@ describe('Content Script - Critical Integration Points', () => {
       }).not.toThrow();
     });
   });
+};
+
+describe('Content Script - Critical Integration Points', () => {
+  let chromeMessaging;
+  let chrome;
+
+  beforeAll(() => {
+    // Use Jest fake timers to prevent recursion
+    jest.useFakeTimers();
+    
+    // Mock Chrome extension APIs
+    chrome = {
+      runtime: {
+        sendMessage: jest.fn(),
+        lastError: null
+      }
+    };
+
+    // Set up global Chrome mock
+    global.chrome = chrome;
+
+    chromeMessaging = new ChromeMessagingService();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    chrome.runtime.lastError = null;
+    chromeMessaging.clearCache();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+    delete global.chrome;
+  });
+
+  // Execute all test suites using helper functions
+  setupChromeMessagingCoreTests(chromeMessaging, chrome);
+  setupCriticalMessageTypeTests(chromeMessaging, chrome);
+  setupCacheManagementTests(chromeMessaging, chrome);
+  setupErrorRecoveryTests(chromeMessaging, chrome);
+  setupDOMIntegrationTests();
+  setupPerformanceTests(chromeMessaging, chrome);
 });

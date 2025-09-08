@@ -3,92 +3,8 @@
  * Focus: Message handling and Chrome API functionality that could break dashboard communication
  */
 
-describe('Background Script - Critical Chrome Extension Messaging', () => {
-  let chrome;
-  let global;
-  let backgroundScript;
-
-  beforeAll(() => {
-    // Mock Chrome extension APIs
-    chrome = {
-      runtime: {
-        onMessage: {
-          addListener: jest.fn()
-        },
-        getURL: jest.fn(path => `chrome-extension://test-id/${path}`)
-      },
-      tabs: {
-        query: jest.fn(),
-        create: jest.fn(),
-        update: jest.fn()
-      },
-      windows: {
-        update: jest.fn()
-      },
-      action: {
-        onClicked: {
-          addListener: jest.fn()
-        }
-      },
-      alarms: {
-        create: jest.fn(),
-        clear: jest.fn(),
-        onAlarm: {
-          addListener: jest.fn()
-        }
-      },
-      notifications: {
-        create: jest.fn(),
-        clear: jest.fn(),
-        onClicked: {
-          addListener: jest.fn()
-        },
-        onButtonClicked: {
-          addListener: jest.fn()
-        }
-      },
-      storage: {
-        local: {
-          get: jest.fn(),
-          set: jest.fn(),
-          remove: jest.fn()
-        }
-      }
-    };
-
-    // Mock global objects
-    global = {
-      chrome,
-      self: {
-        addEventListener: jest.fn(),
-        skipWaiting: jest.fn(),
-        clients: {
-          claim: jest.fn()
-        }
-      },
-      console: {
-        log: jest.fn(),
-        warn: jest.fn(),
-        error: jest.fn()
-      },
-      setTimeout: jest.fn(),
-      setInterval: jest.fn(),
-      Date: {
-        now: jest.fn(() => 1234567890)
-      }
-    };
-
-    // Set up global environment
-    Object.defineProperty(globalThis, 'chrome', { value: chrome, configurable: true });
-    Object.defineProperty(globalThis, 'self', { value: global.self, configurable: true });
-  });
-
-  afterAll(() => {
-    // Clean up global mocks
-    delete globalThis.chrome;
-    delete globalThis.self;
-  });
-
+// Helper function for Chrome Extension API Availability tests
+const setupChromeAPITests = (chrome) => {
   describe('Chrome Extension API Availability', () => {
     it('should have required Chrome APIs available', () => {
       expect(chrome.runtime).toBeDefined();
@@ -127,12 +43,15 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       expect(testUrl).toContain('app.html');
     });
   });
+};
 
+// Helper function for Message Handler Structure tests
+const setupMessageHandlerTests = (chrome) => {
   describe('Message Handler Structure', () => {
     it('should register message listener without crashing', () => {
       // Test that message listener registration doesn't throw
       expect(() => {
-        chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        chrome.runtime.onMessage.addListener((_request, _sender, _sendResponse) => {
           return true;
         });
       }).not.toThrow();
@@ -149,7 +68,7 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       });
 
       // Simulate message listener registration
-      chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      chrome.runtime.onMessage.addListener((_request, _sender, _sendResponse) => {
         return true;
       });
 
@@ -200,7 +119,10 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       });
     });
   });
+};
 
+// Helper function for Critical Message Types tests
+const setupCriticalMessageTypeTests = () => {
   describe('Critical Message Types', () => {
     it('should handle dashboard data requests without crashing', () => {
       const criticalMessageTypes = [
@@ -327,7 +249,10 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       });
     });
   });
+};
 
+// Helper function for Error Handling and Recovery tests
+const setupErrorHandlingTests = () => {
   describe('Error Handling and Recovery', () => {
     it('should handle sendResponse callback failures gracefully', () => {
       expect(() => {
@@ -420,7 +345,10 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       }).not.toThrow();
     });
   });
+};
 
+// Helper function for Service Worker Lifecycle tests
+const setupServiceWorkerLifecycleTests = (global) => {
   describe('Service Worker Lifecycle', () => {
     it('should handle service worker installation without errors', () => {
       expect(() => {
@@ -488,7 +416,10 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       }).not.toThrow();
     });
   });
+};
 
+// Helper function for Cache Management tests
+const setupCacheManagementTests = () => {
   describe('Cache Management', () => {
     it('should handle response caching without memory leaks', () => {
       expect(() => {
@@ -565,9 +496,12 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       }).not.toThrow();
     });
   });
+};
 
+// Helper function for Tab Management tests
+const setupTabManagementTests = (chrome) => {
   describe('Tab Management', () => {
-    it('should handle dashboard tab creation and focus', async () => {
+    it('should handle dashboard tab creation and focus', () => {
       chrome.tabs.query.mockResolvedValue([]);
       chrome.tabs.create.mockResolvedValue({ id: 1 });
 
@@ -591,7 +525,7 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       }).not.toThrow();
     });
 
-    it('should handle tab focus operations gracefully', async () => {
+    it('should handle tab focus operations gracefully', () => {
       chrome.tabs.query.mockResolvedValue([{ id: 123, windowId: 1 }]);
       chrome.tabs.update.mockResolvedValue({});
       chrome.windows.update.mockResolvedValue({});
@@ -610,4 +544,100 @@ describe('Background Script - Critical Chrome Extension Messaging', () => {
       }).not.toThrow();
     });
   });
+};
+
+describe('Background Script - Critical Chrome Extension Messaging', () => {
+  let chrome;
+  let global;
+  let _backgroundScript;
+
+  beforeAll(() => {
+    // Mock Chrome extension APIs
+    chrome = {
+      runtime: {
+        onMessage: {
+          addListener: jest.fn()
+        },
+        getURL: jest.fn(path => `chrome-extension://test-id/${path}`)
+      },
+      tabs: {
+        query: jest.fn(),
+        create: jest.fn(),
+        update: jest.fn()
+      },
+      windows: {
+        update: jest.fn()
+      },
+      action: {
+        onClicked: {
+          addListener: jest.fn()
+        }
+      },
+      alarms: {
+        create: jest.fn(),
+        clear: jest.fn(),
+        onAlarm: {
+          addListener: jest.fn()
+        }
+      },
+      notifications: {
+        create: jest.fn(),
+        clear: jest.fn(),
+        onClicked: {
+          addListener: jest.fn()
+        },
+        onButtonClicked: {
+          addListener: jest.fn()
+        }
+      },
+      storage: {
+        local: {
+          get: jest.fn(),
+          set: jest.fn(),
+          remove: jest.fn()
+        }
+      }
+    };
+
+    // Mock global objects
+    global = {
+      chrome,
+      self: {
+        addEventListener: jest.fn(),
+        skipWaiting: jest.fn(),
+        clients: {
+          claim: jest.fn()
+        }
+      },
+      console: {
+        log: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn()
+      },
+      setTimeout: jest.fn(),
+      setInterval: jest.fn(),
+      Date: {
+        now: jest.fn(() => 1234567890)
+      }
+    };
+
+    // Set up global environment
+    Object.defineProperty(globalThis, 'chrome', { value: chrome, configurable: true });
+    Object.defineProperty(globalThis, 'self', { value: global.self, configurable: true });
+  });
+
+  afterAll(() => {
+    // Clean up global mocks
+    delete globalThis.chrome;
+    delete globalThis.self;
+  });
+
+  // Execute all test suites using helper functions
+  setupChromeAPITests(chrome);
+  setupMessageHandlerTests(chrome);
+  setupCriticalMessageTypeTests();
+  setupErrorHandlingTests();
+  setupServiceWorkerLifecycleTests(global);
+  setupCacheManagementTests();
+  setupTabManagementTests(chrome);
 });

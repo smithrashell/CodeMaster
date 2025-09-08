@@ -28,9 +28,10 @@ export function createAttemptsStore(db) {
     });
 
     ensureIndex(attemptsStore, "by_date", "date");
-    ensureIndex(attemptsStore, "by_problem_and_date", ["problemId", "date"]);
-    ensureIndex(attemptsStore, "by_problemId", "problemId");
-    ensureIndex(attemptsStore, "by_sessionId", "sessionId");
+    ensureIndex(attemptsStore, "by_problem_and_date", ["problem_id", "date"]);
+    ensureIndex(attemptsStore, "by_problem_id", "problem_id");
+    ensureIndex(attemptsStore, "by_session_id", "session_id");
+    ensureIndex(attemptsStore, "by_leetcode_id", "leetcode_id");
   }
 }
 
@@ -45,7 +46,7 @@ export function createLimitsStore(db) {
       autoIncrement: true,
     });
 
-    ensureIndex(limitsStore, "by_createAt", "createAt");
+    ensureIndex(limitsStore, "by_create_at", "create_at");
   }
 }
 
@@ -74,8 +75,8 @@ export function createProblemRelationshipsStore(db) {
     autoIncrement: true,
   });
 
-  ensureIndex(relationshipsStore, "by_problemId1", "problemId1");
-  ensureIndex(relationshipsStore, "by_problemId2", "problemId2");
+  ensureIndex(relationshipsStore, "by_problem_id_1", "problem_id_1");
+  ensureIndex(relationshipsStore, "by_problem_id_2", "problem_id_2");
 }
 
 /**
@@ -85,14 +86,15 @@ export function createProblemRelationshipsStore(db) {
 export function createProblemsStore(db) {
   if (!db.objectStoreNames.contains("problems")) {
     let problemsStore = db.createObjectStore("problems", {
-      keyPath: "leetCodeID",
+      keyPath: "problem_id",
     });
 
-    ensureIndex(problemsStore, "by_tag", "tag");
+    ensureIndex(problemsStore, "by_tag", "tags");
     ensureIndex(problemsStore, "by_problem", "problem");
     ensureIndex(problemsStore, "by_review", "review");
-    ensureIndex(problemsStore, "by_ProblemDescription", "ProblemDescription");
+    ensureIndex(problemsStore, "by_title", "title");
     ensureIndex(problemsStore, "by_nextProblem", "nextProblem");
+    ensureIndex(problemsStore, "by_leetcode_id", "leetcode_id");
   }
 }
 
@@ -120,13 +122,13 @@ export function createSessionsStore(db, transaction) {
   }
   
   // Add index for interview sessions
-  if (!sessionsStore.indexNames.contains("by_sessionType")) {
-    sessionsStore.createIndex("by_sessionType", "sessionType", { unique: false });
+  if (!sessionsStore.indexNames.contains("by_session_type")) {
+    sessionsStore.createIndex("by_session_type", "session_type", { unique: false });
   }
   
   // Add composite index for efficient sessionType + status queries
-  if (!sessionsStore.indexNames.contains("by_sessionType_status")) {
-    sessionsStore.createIndex("by_sessionType_status", ["sessionType", "status"], { unique: false });
+  if (!sessionsStore.indexNames.contains("by_session_type_status")) {
+    sessionsStore.createIndex("by_session_type_status", ["session_type", "status"], { unique: false });
   }
 
   // Add indexes for session attribution and staleness detection
@@ -134,8 +136,8 @@ export function createSessionsStore(db, transaction) {
     sessionsStore.createIndex("by_origin", "origin", { unique: false });
   }
   
-  if (!sessionsStore.indexNames.contains("by_lastActivityTime")) {
-    sessionsStore.createIndex("by_lastActivityTime", "lastActivityTime", { unique: false });
+  if (!sessionsStore.indexNames.contains("by_last_activity_time")) {
+    sessionsStore.createIndex("by_last_activity_time", "last_activity_time", { unique: false });
   }
   
   if (!sessionsStore.indexNames.contains("by_origin_status")) {
@@ -247,9 +249,9 @@ export function createSessionAnalyticsStore(db) {
       keyPath: "sessionId",
     });
 
-    ensureIndex(sessionAnalyticsStore, "by_date", "completedAt");
+    ensureIndex(sessionAnalyticsStore, "by_date", "completed_at");
     ensureIndex(sessionAnalyticsStore, "by_accuracy", "accuracy");
-    ensureIndex(sessionAnalyticsStore, "by_difficulty", "predominantDifficulty");
+    ensureIndex(sessionAnalyticsStore, "by_difficulty", "predominant_difficulty");
 
     console.info("✅ Session analytics store created!");
   }
@@ -297,17 +299,17 @@ export function createHintInteractionsStore(db) {
     });
 
     // Core indexes for analytics queries
-    ensureIndex(hintInteractionsStore, "by_problem_id", "problemId");
-    ensureIndex(hintInteractionsStore, "by_session_id", "sessionId");
+    ensureIndex(hintInteractionsStore, "by_problem_id", "problem_id");
+    ensureIndex(hintInteractionsStore, "by_session_id", "session_id");
     ensureIndex(hintInteractionsStore, "by_timestamp", "timestamp");
-    ensureIndex(hintInteractionsStore, "by_hint_type", "hintType");
-    ensureIndex(hintInteractionsStore, "by_user_action", "userAction");
-    ensureIndex(hintInteractionsStore, "by_difficulty", "problemDifficulty");
-    ensureIndex(hintInteractionsStore, "by_box_level", "boxLevel");
+    ensureIndex(hintInteractionsStore, "by_hint_type", "hint_type");
+    ensureIndex(hintInteractionsStore, "by_user_action", "user_action");
+    ensureIndex(hintInteractionsStore, "by_difficulty", "problem_difficulty");
+    ensureIndex(hintInteractionsStore, "by_box_level", "box_level");
 
     // Composite indexes for advanced analytics
-    ensureIndex(hintInteractionsStore, "by_problem_and_action", ["problemId", "userAction"]);
-    ensureIndex(hintInteractionsStore, "by_hint_type_and_difficulty", ["hintType", "problemDifficulty"]);
+    ensureIndex(hintInteractionsStore, "by_problem_and_action", ["problem_id", "user_action"]);
+    ensureIndex(hintInteractionsStore, "by_hint_type_and_difficulty", ["hint_type", "problem_difficulty"]);
 
     console.info("✅ Hint interactions store created for usage analytics!");
   }
@@ -328,8 +330,8 @@ export function createUserActionsStore(db) {
     ensureIndex(userActionsStore, "by_timestamp", "timestamp");
     ensureIndex(userActionsStore, "by_category", "category");
     ensureIndex(userActionsStore, "by_action", "action");
-    ensureIndex(userActionsStore, "by_session", "sessionId");
-    ensureIndex(userActionsStore, "by_user_agent", "userAgent");
+    ensureIndex(userActionsStore, "by_session", "session_id");
+    ensureIndex(userActionsStore, "by_user_agent", "user_agent");
     ensureIndex(userActionsStore, "by_url", "url");
 
     console.info("✅ User actions store created for tracking!");
@@ -350,8 +352,8 @@ export function createErrorReportsStore(db) {
     // Create indexes for efficient querying
     ensureIndex(errorReportsStore, "by_timestamp", "timestamp");
     ensureIndex(errorReportsStore, "by_section", "section");
-    ensureIndex(errorReportsStore, "by_error_type", "errorType");
-    ensureIndex(errorReportsStore, "by_user_agent", "userAgent");
+    ensureIndex(errorReportsStore, "by_error_type", "error_type");
+    ensureIndex(errorReportsStore, "by_user_agent", "user_agent");
 
     console.info("✅ Error reports store created for error tracking!");
   }

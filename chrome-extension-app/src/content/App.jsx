@@ -95,11 +95,35 @@ function MenuButtonContainer() {
   const { pathname } = useLocation();
   const { isAppOpen, setIsAppOpen } = useNav();
   const backgroundScriptHealthy = useBackgroundScriptHealth();
+  const [installationOnboardingComplete, setInstallationOnboardingComplete] = React.useState(false);
+
+  // Check installation onboarding status before showing menu button
+  React.useEffect(() => {
+    const checkInstallationOnboarding = () => {
+      chrome.runtime.sendMessage({ type: "checkInstallationOnboardingStatus" }, (response) => {
+        if (chrome.runtime.lastError) {
+          logger.error("❌ Error checking installation onboarding status:", chrome.runtime.lastError);
+          // Default to true to avoid blocking extension functionality
+          setInstallationOnboardingComplete(true);
+        } else if (response?.isComplete) {
+          logger.info("✅ Installation onboarding complete, menu button ready");
+          setInstallationOnboardingComplete(true);
+        } else {
+          logger.info("⏳ Installation onboarding in progress, menu button hidden");
+          setInstallationOnboardingComplete(false);
+          // Re-check after a delay
+          setTimeout(checkInstallationOnboarding, 2000);
+        }
+      });
+    };
+
+    checkInstallationOnboarding();
+  }, []);
 
   return (
     <>
       {!backgroundScriptHealthy && <EmergencyMenuButton />}
-      {pathname !== "/Timer" && (
+      {installationOnboardingComplete && pathname !== "/Timer" && (
         <ErrorBoundary
           section="Menu Button"
           fallback={({ error: _error, resetError }) => (

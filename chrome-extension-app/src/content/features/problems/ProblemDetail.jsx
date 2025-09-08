@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNav } from "../../../shared/provider/navprovider";
 import {
@@ -16,27 +16,51 @@ import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
 import styles from "./ProblemCard.module.css";
 
 /**
+ * Helper function to get property with fallback keys
+ */
+const getProblemProperty = (routeState, ...keys) => {
+  const problemData = routeState?.problemData;
+  if (!problemData) return null;
+  
+  for (const key of keys) {
+    if (problemData[key] !== undefined && problemData[key] !== null) {
+      return problemData[key];
+    }
+  }
+  return null;
+};
+
+/**
  * Extract problem data from route state
  */
 const useProblemData = (routeState) => {
-  const problemData = {
-    id: routeState?.problemData?.LeetCodeID || routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
-    leetCodeID: routeState?.problemData?.LeetCodeID || routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
-    LeetCodeID: routeState?.problemData?.LeetCodeID || routeState?.problemData?.leetCodeID || routeState?.problemData?.id,
-    title: routeState?.problemData?.Description || routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
-    Description: routeState?.problemData?.Description || routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
-    ProblemDescription: routeState?.problemData?.Description || routeState?.problemData?.ProblemDescription || routeState?.problemData?.title,
-    tags: routeState?.problemData?.Tags || routeState?.problemData?.tags || [],
-    Tags: routeState?.problemData?.Tags || routeState?.problemData?.tags || [],
-    difficulty: routeState?.problemData?.Difficulty || routeState?.problemData?.difficulty || "Unknown",
-    acceptance: routeState?.problemData?.acceptance || "N/A",
-    submissions: routeState?.problemData?.submissions || "N/A",
-    attempts: routeState?.problemData?.attempts || 0,
-    lastSolved: routeState?.problemData?.lastSolved || "Never",
-  };
+  const idValue = getProblemProperty(routeState, 'LeetCodeID', 'leetCodeID', 'id');
+  const titleValue = getProblemProperty(routeState, 'Description', 'ProblemDescription', 'title');
+  const tagsValue = getProblemProperty(routeState, 'Tags', 'tags') || [];
+  const difficultyValue = getProblemProperty(routeState, 'Difficulty', 'difficulty') || 'Unknown';
+  const acceptanceValue = getProblemProperty(routeState, 'acceptance') || 'N/A';
+  const submissionsValue = getProblemProperty(routeState, 'submissions') || 'N/A';
+  const attemptsValue = getProblemProperty(routeState, 'attempts') || 0;
+  const lastSolvedValue = getProblemProperty(routeState, 'lastSolved') || 'Never';
+  
+  const problemData = useMemo(() => ({
+    id: idValue,
+    leetCodeID: idValue,
+    LeetCodeID: idValue,
+    title: titleValue,
+    Description: titleValue,
+    ProblemDescription: titleValue,
+    tags: tagsValue,
+    Tags: tagsValue,
+    difficulty: difficultyValue,
+    acceptance: acceptanceValue,
+    submissions: submissionsValue,
+    attempts: attemptsValue,
+    lastSolved: lastSolvedValue,
+  }), [idValue, titleValue, tagsValue, difficultyValue, acceptanceValue, submissionsValue, attemptsValue, lastSolvedValue]);
 
-  const interviewConfig = routeState?.problemData?.interviewConstraints || null;
-  const sessionType = routeState?.problemData?.sessionType || null;
+  const interviewConfig = getProblemProperty(routeState, 'interviewConstraints');
+  const sessionType = getProblemProperty(routeState, 'sessionType');
   const isInterviewMode = sessionType && sessionType !== 'standard';
 
   return { problemData, interviewConfig, sessionType, isInterviewMode };
@@ -277,6 +301,18 @@ const ProbDetail = ({ isLoading }) => {
     navigate, setIsAppOpen, problemData, interviewConfig, sessionType, routeState
   });
 
+  // Memoize problem tags to prevent array recreation
+  const problemTags = useMemo(() => 
+    problemData?.Tags || problemData?.tags || [], 
+    [problemData?.Tags, problemData?.tags]
+  );
+
+  // Memoize problem ID to prevent string recreation
+  const problemId = useMemo(() => 
+    problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id,
+    [problemData?.LeetCodeID, problemData?.leetCodeID, problemData?.id]
+  );
+
   // DEBUG: Log problem data and route state
   console.log("🔍 ProbDetail routeState:", routeState);
   console.log("🔍 ProbDetail problemData:", problemData);
@@ -288,7 +324,6 @@ const ProbDetail = ({ isLoading }) => {
 
   // Fetch attempt statistics for this problem
   useEffect(() => {
-    const problemId = problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id;
     if (problemId) {
       chrome.runtime.sendMessage({
         type: "getProblemAttemptStats",
@@ -303,16 +338,16 @@ const ProbDetail = ({ isLoading }) => {
         }
       });
     }
-  }, [problemData?.LeetCodeID, problemData?.leetCodeID, problemData?.id]);
+  }, [problemId]);
 
-  const getDifficultyColor = (difficulty) => {
+  const getDifficultyColor = useCallback((difficulty) => {
     if (!difficulty) return "gray";
     const diff = difficulty.toLowerCase();
     if (diff === "easy") return "green";
     if (diff === "medium") return "orange";
     if (diff === "hard") return "red";
     return "gray";
-  };
+  }, []);
 
 
   if (isLoading && !problemData.LeetCodeID && !problemData.leetCodeID) {
@@ -343,16 +378,16 @@ const ProbDetail = ({ isLoading }) => {
           attemptStats={attemptStats}
         />
         <TagStrategyGrid 
-          problemTags={problemData?.Tags || problemData?.tags || []} 
-          problemId={problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id}
+          problemTags={problemTags} 
+          problemId={problemId}
           interviewConfig={interviewConfig}
           sessionType={sessionType}
         />
         {routeState?.problemData?.selectionReason && (
           <WhyThisProblem
             selectionReason={routeState.problemData.selectionReason}
-            problemTags={problemData?.Tags || problemData?.tags || []}
-            currentProblemId={problemData?.LeetCodeID || problemData?.leetCodeID || routeState?.problemData?.LeetCodeID}
+            problemTags={problemTags}
+            currentProblemId={problemId || routeState?.problemData?.LeetCodeID}
           />
         )}
         <ActionButtons 

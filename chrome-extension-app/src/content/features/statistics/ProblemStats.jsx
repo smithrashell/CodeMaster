@@ -131,7 +131,8 @@ const ProbStat = () => {
       
       return () => clearTimeout(refreshTimer);
     }
-  }, [wasJustSubmitted, refetch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wasJustSubmitted]);
 
   const totalProblems = Object.values(boxLevelData).reduce(
     (sum, count) => sum + count,

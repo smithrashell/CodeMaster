@@ -28,7 +28,7 @@ export const weakenProblemRelationship = async (problemId1, _problemId2) => {
     const transaction = db.transaction("problem_relationships", "readwrite");
     const store = transaction.objectStore("problem_relationships");
 
-    const index = store.index("by_problemId1");
+    const index = store.index("by_problem_id_1");
     const request = index.get(problemId1);
 
     request.onsuccess = (event) => {
@@ -89,7 +89,7 @@ export async function updateProblemRelationships(session) {
   // Load all previously attempted problems from the `problems` store
   const allAttemptedProblems = await fetchAllProblems(); // ✅ Ensures all past attempts are included
   const attemptedProblemIds = new Set([
-    ...allAttemptedProblems.map((p) => p.leetCodeID),
+    ...allAttemptedProblems.map((p) => p.leetcode_id),
     ...session.attempts.map((a) => a.problemId),
   ]);
 
@@ -170,7 +170,7 @@ export async function updateProblemRelationships(session) {
     // === Indirect Updates: X → A ===
     const reverseRelationships = await new Promise((resolve, reject) => {
       const indexRequest = relationshipsStore
-        .index("by_problemId2")
+        .index("by_problem_id_2")
         .getAll(problemId);
       indexRequest.onsuccess = () => resolve(indexRequest.result);
       indexRequest.onerror = () => reject(indexRequest.error);
@@ -209,7 +209,7 @@ export async function updateProblemRelationships(session) {
         `Updated reverse relationship: ${rel.problemId1} → ${problemId} | New Weight: ${updatedRelationship.weight}`
       );
     }
-    console.log("problem.leetCodeID", problem.leetCodeID);
+    console.log("problem.leetcode_id", problem.leetcode_id);
     // === Update NextProblem Property Based on Relationship Strength ===
     // TODO: Implement determineNextProblem function
     const updatedNextProblem = null; // Temporary fallback
