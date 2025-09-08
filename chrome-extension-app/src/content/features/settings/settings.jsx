@@ -7,6 +7,7 @@ import Switch from '../../components/ui/Switch.jsx';
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
+import ContentThemeToggle from "../../components/ui/ContentThemeToggle.jsx";
 import { useChromeMessage, clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
@@ -344,6 +345,123 @@ const getWorkingSettings = (settings) => {
   };
 };
 
+// Learning Progress Display Component
+const LearningProgressDisplay = ({ learningStatus }) => {
+  const progressPercentage = learningStatus.learningPhase 
+    ? Math.max(0, ((5 - learningStatus.sessionsNeeded) / 5) * 100)
+    : 100;
+
+  return (
+    <div style={{ 
+      marginBottom: '10px', 
+      padding: '8px 12px', 
+      backgroundColor: 'var(--cm-bg-secondary)', 
+      borderRadius: '6px',
+      border: '1px solid var(--cm-border)',
+      fontSize: '12px'
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+        <span style={{ marginRight: '6px' }}>🧠</span>
+        <span style={{ fontWeight: '500', color: 'var(--cm-text)' }}>
+          {learningStatus.learningPhase ? 'Learning your habits...' : 'Habits learned!'}
+        </span>
+      </div>
+      <div style={{ color: 'var(--cm-text-secondary)' }}>
+        {learningStatus.learningPhase 
+          ? `Complete ${learningStatus.sessionsNeeded} more sessions for personalized reminders`
+          : 'Personalized reminders are now available'
+        }
+        <div style={{ 
+          width: '100%', 
+          height: '4px', 
+          backgroundColor: 'var(--cm-bg-tertiary)', 
+          borderRadius: '2px', 
+          marginTop: '4px',
+          overflow: 'hidden'
+        }}>
+          <div style={{ 
+            width: `${progressPercentage}%`, 
+            height: '100%', 
+            backgroundColor: 'var(--cm-primary, #228be6)', 
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Reminder Type Checkboxes Component
+const ReminderTypeCheckboxes = ({ settings, handleReminderTypeChange }) => (
+  <div style={{ marginTop: '12px', marginLeft: '8px' }}>
+    <div style={{ 
+      display: 'block', 
+      fontSize: '13px', 
+      fontWeight: '500', 
+      color: 'var(--cm-text)', 
+      marginBottom: '8px' 
+    }}>
+      Reminder Types
+    </div>
+    
+    {/* Streak Alerts */}
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+      <input
+        type="checkbox"
+        id="streakAlerts"
+        checked={settings.reminder?.streakAlerts || false}
+        onChange={(e) => handleReminderTypeChange('streakAlerts', e.target.checked)}
+        style={{ marginRight: '8px' }}
+      />
+      <label htmlFor="streakAlerts" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+        🔥 Streak alerts (protect practice streaks)
+      </label>
+    </div>
+
+    {/* Cadence Nudges */}
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+      <input
+        type="checkbox"
+        id="cadenceNudges"
+        checked={settings.reminder?.cadenceNudges || false}
+        onChange={(e) => handleReminderTypeChange('cadenceNudges', e.target.checked)}
+        style={{ marginRight: '8px' }}
+      />
+      <label htmlFor="cadenceNudges" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+        📅 Cadence reminders (based on your practice rhythm)
+      </label>
+    </div>
+
+    {/* Weekly Goals */}
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+      <input
+        type="checkbox"
+        id="weeklyGoals"
+        checked={settings.reminder?.weeklyGoals || false}
+        onChange={(e) => handleReminderTypeChange('weeklyGoals', e.target.checked)}
+        style={{ marginRight: '8px' }}
+      />
+      <label htmlFor="weeklyGoals" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+        🎯 Weekly goal notifications (mid-week & weekend check-ins)
+      </label>
+    </div>
+
+    {/* Re-engagement */}
+    <div style={{ display: 'flex', alignItems: 'center' }}>
+      <input
+        type="checkbox"
+        id="reEngagement"
+        checked={settings.reminder?.reEngagement || false}
+        onChange={(e) => handleReminderTypeChange('reEngagement', e.target.checked)}
+        style={{ marginRight: '8px' }}
+      />
+      <label htmlFor="reEngagement" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
+        👋 Re-engagement prompts (gentle return after breaks)
+      </label>
+    </div>
+  </div>
+);
+
 // Custom Reminders Component (without Mantine)
 const RemindersSection = ({ settings, setSettings }) => {
   const [learningStatus, setLearningStatus] = useState({
@@ -419,10 +537,6 @@ const RemindersSection = ({ settings, setSettings }) => {
     }));
   };
 
-  const progressPercentage = learningStatus.learningPhase 
-    ? Math.max(0, ((5 - learningStatus.sessionsNeeded) / 5) * 100)
-    : 100;
-
   return (
     <div className="cm-form-group">
       <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
@@ -430,42 +544,7 @@ const RemindersSection = ({ settings, setSettings }) => {
       </div>
       
       {/* Learning Progress Section */}
-      <div style={{ 
-        marginBottom: '10px', 
-        padding: '8px 12px', 
-        backgroundColor: 'var(--cm-bg-secondary)', 
-        borderRadius: '6px',
-        border: '1px solid var(--cm-border)',
-        fontSize: '12px'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-          <span style={{ marginRight: '6px' }}>🧠</span>
-          <span style={{ fontWeight: '500', color: 'var(--cm-text)' }}>
-            {learningStatus.learningPhase ? 'Learning your habits...' : 'Habits learned!'}
-          </span>
-        </div>
-        <div style={{ color: 'var(--cm-text-secondary)' }}>
-          {learningStatus.learningPhase 
-            ? `Complete ${learningStatus.sessionsNeeded} more sessions for personalized reminders`
-            : 'Personalized reminders are now available'
-          }
-          <div style={{ 
-            width: '100%', 
-            height: '4px', 
-            backgroundColor: 'var(--cm-bg-tertiary)', 
-            borderRadius: '2px', 
-            marginTop: '4px',
-            overflow: 'hidden'
-          }}>
-            <div style={{ 
-              width: `${progressPercentage}%`, 
-              height: '100%', 
-              backgroundColor: 'var(--cm-primary, #228be6)', 
-              transition: 'width 0.3s ease'
-            }} />
-          </div>
-        </div>
-      </div>
+      <LearningProgressDisplay learningStatus={learningStatus} />
 
       {/* Main Reminder Toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '5px' }}>
@@ -479,73 +558,10 @@ const RemindersSection = ({ settings, setSettings }) => {
 
       {/* Reminder Type Options - shown when enabled and not in learning phase */}
       {settings.reminder?.enabled && !learningStatus.learningPhase && (
-        <div style={{ marginTop: '12px', marginLeft: '8px' }}>
-          <div style={{ 
-            display: 'block', 
-            fontSize: '13px', 
-            fontWeight: '500', 
-            color: 'var(--cm-text)', 
-            marginBottom: '8px' 
-          }}>
-            Reminder Types
-          </div>
-          
-          {/* Streak Alerts */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-            <input
-              type="checkbox"
-              id="streakAlerts"
-              checked={settings.reminder?.streakAlerts || false}
-              onChange={(e) => handleReminderTypeChange('streakAlerts', e.target.checked)}
-              style={{ marginRight: '8px' }}
-            />
-            <label htmlFor="streakAlerts" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
-              🔥 Streak alerts (protect practice streaks)
-            </label>
-          </div>
-
-          {/* Cadence Nudges */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-            <input
-              type="checkbox"
-              id="cadenceNudges"
-              checked={settings.reminder?.cadenceNudges || false}
-              onChange={(e) => handleReminderTypeChange('cadenceNudges', e.target.checked)}
-              style={{ marginRight: '8px' }}
-            />
-            <label htmlFor="cadenceNudges" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
-              📅 Cadence reminders (based on your practice rhythm)
-            </label>
-          </div>
-
-          {/* Weekly Goals */}
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
-            <input
-              type="checkbox"
-              id="weeklyGoals"
-              checked={settings.reminder?.weeklyGoals || false}
-              onChange={(e) => handleReminderTypeChange('weeklyGoals', e.target.checked)}
-              style={{ marginRight: '8px' }}
-            />
-            <label htmlFor="weeklyGoals" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
-              🎯 Weekly goal notifications (mid-week & weekend check-ins)
-            </label>
-          </div>
-
-          {/* Re-engagement */}
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <input
-              type="checkbox"
-              id="reEngagement"
-              checked={settings.reminder?.reEngagement || false}
-              onChange={(e) => handleReminderTypeChange('reEngagement', e.target.checked)}
-              style={{ marginRight: '8px' }}
-            />
-            <label htmlFor="reEngagement" style={{ fontSize: '12px', color: 'var(--cm-text)' }}>
-              👋 Re-engagement prompts (gentle return after breaks)
-            </label>
-          </div>
-        </div>
+        <ReminderTypeCheckboxes 
+          settings={settings} 
+          handleReminderTypeChange={handleReminderTypeChange} 
+        />
       )}
     </div>
   );
@@ -652,6 +668,100 @@ const handleInterviewSettingsUpdate = (workingSettings, newSettings, handleSave)
   }
 };
 
+// Custom hook for auto-constraining new problems per session
+const useAutoConstrainNewProblems = (workingSettings, maxNewProblems, setSettings) => {
+  useEffect(() => {
+    if (workingSettings?.sessionLength && workingSettings?.numberofNewProblemsPerSession) {
+      const maxAllowed = Math.min(maxNewProblems, workingSettings.sessionLength);
+      if (workingSettings.numberofNewProblemsPerSession > maxAllowed) {
+        setSettings(prev => ({
+          ...prev,
+          numberofNewProblemsPerSession: maxAllowed
+        }));
+      }
+    }
+  }, [workingSettings?.sessionLength, maxNewProblems, workingSettings?.numberofNewProblemsPerSession, setSettings]);
+};
+
+// Component for debug/loading state information
+const LoadingDebugInfo = ({ settings, _loading, _error }) => {
+  if (settings) return null;
+  
+  return (
+    <div style={{ padding: '8px', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '8px' }}>
+      <div style={{ fontSize: '11px', color: 'var(--cm-text)' }}>
+        ⚠️ Settings loading: {_loading ? 'Loading...' : _error ? 'Error' : 'Using defaults'}
+      </div>
+    </div>
+  );
+};
+
+// Component for session controls (length and new problems per session)
+const SessionControls = ({ workingSettings, setSettings, maxNewProblems }) => {
+  if (workingSettings.adaptive) return null;
+  
+  return (
+    <>
+      <div className="cm-form-group">
+        <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>Session Length: {workingSettings.sessionLength} problems</div>
+        <input
+          type="range"
+          min="3"
+          max="12"
+          value={workingSettings.sessionLength}
+          onChange={(e) =>
+            setSettings({ ...workingSettings, sessionLength: parseInt(e.target.value) })
+          }
+          style={{
+            width: '100%',
+            height: '4px',
+            borderRadius: '2px',
+            outline: 'none',
+            cursor: 'pointer'
+          }}
+        />
+      </div>
+
+      <div className="cm-form-group">
+        <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
+          New Problems Per Session: {Math.min(
+            workingSettings.numberofNewProblemsPerSession || 1, 
+            Math.min(maxNewProblems, workingSettings.sessionLength || 8)
+          )}
+          {maxNewProblems < (workingSettings.sessionLength || 8) && (
+            <span style={{ fontSize: '11px', color: 'var(--cm-text-secondary)', marginLeft: '8px' }}>
+              (Max {maxNewProblems} during onboarding)
+            </span>
+          )}
+        </div>
+        <input
+          type="range"
+          min="1"
+          max={Math.min(maxNewProblems, workingSettings.sessionLength || 8)}
+          value={Math.min(
+            workingSettings.numberofNewProblemsPerSession || 1, 
+            Math.min(maxNewProblems, workingSettings.sessionLength || 8)
+          )}
+          onChange={(e) => {
+            const newValue = parseInt(e.target.value);
+            setSettings({
+              ...workingSettings,
+              numberofNewProblemsPerSession: Math.min(newValue, workingSettings.sessionLength || 8),
+            });
+          }}
+          style={{
+            width: '100%',
+            height: '4px',
+            borderRadius: '2px',
+            outline: 'none',
+            cursor: 'pointer'
+          }}
+        />
+      </div>
+    </>
+  );
+};
+
 const Settings = () => {
   const { setIsAppOpen } = useNav();
   const { settings, setSettings, maxNewProblems, _loading, _error } = useSettingsState();
@@ -669,21 +779,10 @@ const Settings = () => {
   });
 
   const handleSave = saveSettings;
-
   const workingSettings = getWorkingSettings(settings);
-
-  // Auto-constrain numberofNewProblemsPerSession when sessionLength changes
-  useEffect(() => {
-    if (workingSettings?.sessionLength && workingSettings?.numberofNewProblemsPerSession) {
-      const maxAllowed = Math.min(maxNewProblems, workingSettings.sessionLength);
-      if (workingSettings.numberofNewProblemsPerSession > maxAllowed) {
-        setSettings(prev => ({
-          ...prev,
-          numberofNewProblemsPerSession: maxAllowed
-        }));
-      }
-    }
-  }, [workingSettings?.sessionLength, maxNewProblems, workingSettings?.numberofNewProblemsPerSession, setSettings]);
+  
+  // Auto-constrain new problems per session when session length changes
+  useAutoConstrainNewProblems(workingSettings, maxNewProblems, setSettings);
 
   return (
     <div id="cm-mySidenav" className="cm-sidenav problink">
@@ -691,13 +790,8 @@ const Settings = () => {
 
       <div className="cm-sidenav__content ">
         {/* Debug info */}
-        {!settings && (
-          <div style={{ padding: '8px', background: '#fff3cd', border: '1px solid #ffeaa7', borderRadius: '4px', marginBottom: '8px' }}>
-            <div style={{ fontSize: '11px', color: 'var(--cm-text)' }}>
-              ⚠️ Settings loading: {_loading ? 'Loading...' : _error ? 'Error' : 'Using defaults'}
-            </div>
-          </div>
-        )}
+        <LoadingDebugInfo settings={settings} _loading={_loading} _error={_error} />
+        
         {/* Adaptive Toggle */}
         <AdaptiveSessionToggle
           adaptive={workingSettings.adaptive}
@@ -705,66 +799,11 @@ const Settings = () => {
         />
 
         {/* Session Controls (conditionally shown) */}
-        {!workingSettings.adaptive && (
-          <>
-            <div className="cm-form-group">
-              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>Session Length: {workingSettings.sessionLength} problems</div>
-              <input
-                type="range"
-                min="3"
-                max="12"
-                value={workingSettings.sessionLength}
-                onChange={(e) =>
-                  setSettings({ ...workingSettings, sessionLength: parseInt(e.target.value) })
-                }
-                style={{
-                  width: '100%',
-                  height: '4px',
-                  borderRadius: '2px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              />
-            </div>
-
-            <div className="cm-form-group">
-              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
-                New Problems Per Session: {Math.min(
-                  workingSettings.numberofNewProblemsPerSession || 1, 
-                  Math.min(maxNewProblems, workingSettings.sessionLength || 8)
-                )}
-                {maxNewProblems < (workingSettings.sessionLength || 8) && (
-                  <span style={{ fontSize: '11px', color: 'var(--cm-text-secondary)', marginLeft: '8px' }}>
-                    (Max {maxNewProblems} during onboarding)
-                  </span>
-                )}
-              </div>
-              <input
-                type="range"
-                min="1"
-                max={Math.min(maxNewProblems, workingSettings.sessionLength || 8)}
-                value={Math.min(
-                  workingSettings.numberofNewProblemsPerSession || 1, 
-                  Math.min(maxNewProblems, workingSettings.sessionLength || 8)
-                )}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value);
-                  setSettings({
-                    ...workingSettings,
-                    numberofNewProblemsPerSession: Math.min(newValue, workingSettings.sessionLength || 8),
-                  });
-                }}
-                style={{
-                  width: '100%',
-                  height: '4px',
-                  borderRadius: '2px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              />
-            </div>
-          </>
-        )}
+        <SessionControls 
+          workingSettings={workingSettings} 
+          setSettings={setSettings} 
+          maxNewProblems={maxNewProblems} 
+        />
 
         <div className="cm-form-group">
           <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>Time Limits</div>
@@ -795,6 +834,15 @@ const Settings = () => {
           settings={workingSettings} 
           setSettings={setSettings} 
         />
+
+        {/* Theme Toggle */}
+        <div className="cm-form-group">
+          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
+            Theme
+          </div>
+          <ContentThemeToggle />
+        </div>
+
         <SaveSettingsButton 
           workingSettings={workingSettings} 
           handleSave={handleSave} 

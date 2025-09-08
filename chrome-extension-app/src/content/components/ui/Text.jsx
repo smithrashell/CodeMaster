@@ -12,6 +12,7 @@ const Text = ({
   c, // color (Mantine prop name)
   color, // standard color prop
   mb, // margin bottom (Mantine prop)
+  margin, // full margin control
   style = {},
   ...props 
 }) => {
@@ -32,8 +33,18 @@ const Text = ({
     700: 'bold'
   }[finalWeight] || finalWeight;
   
-  // Handle margin bottom
-  const marginBottom = mb ? `${mb * 4}px` : style.marginBottom;
+  // Handle margin - priority: margin prop > mb prop > style.margin
+  const getMarginValue = () => {
+    if (margin !== undefined) {
+      return margin; // Use the margin prop as-is (can be string like "0px 0px 0px 8px")
+    }
+    if (mb !== undefined) {
+      return `0 0 ${mb * 4}px 0`; // Convert mb to margin shorthand
+    }
+    return style.margin || style.marginBottom ? undefined : '0'; // Use style margin or default to 0
+  };
+  
+  const finalMargin = getMarginValue();
   
   // Handle special color values like "dimmed" with proper theme awareness
   const getTextColor = () => {
@@ -63,8 +74,7 @@ const Text = ({
     fontSize,
     fontWeight,
     color: getTextColor(),
-    marginBottom,
-    margin: marginBottom ? `0 0 ${marginBottom} 0` : 0,
+    ...(finalMargin !== undefined && { margin: finalMargin }),
     ...style
   };
   

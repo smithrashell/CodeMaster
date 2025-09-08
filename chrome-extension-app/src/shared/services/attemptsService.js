@@ -63,21 +63,21 @@ class SessionAttributionEngine {
       const matches = [
         // Direct ID matches
         sessionProblem.id === problem.id,
-        sessionProblem.leetCodeID === problem.leetCodeID,
-        sessionProblem.problemId === problem.id,
-        sessionProblem.problemId === problem.leetCodeID,
-        sessionProblem.id === problem.leetCodeID,
-        sessionProblem.leetCodeID === problem.id,
+        sessionProblem.leetcode_id === problem.leetcode_id,
+        sessionProblem.problem_id === problem.id,
+        sessionProblem.problem_id === problem.leetcode_id,
+        sessionProblem.id === problem.leetcode_id,
+        sessionProblem.leetcode_id === problem.id,
         
         // Cross-property matches for different naming conventions
-        sessionProblem.id === problem.problemId,
-        sessionProblem.leetCodeID === problem.problemId,
-        sessionProblem.problemId === problem.problemId,
+        sessionProblem.id === problem.problem_id,
+        sessionProblem.leetcode_id === problem.problem_id,
+        sessionProblem.problem_id === problem.problem_id,
         
         // String comparison for LeetCode IDs (handle number vs string)
-        String(sessionProblem.leetCodeID) === String(problem.leetCodeID),
+        String(sessionProblem.leetcode_id) === String(problem.leetcode_id),
         String(sessionProblem.id) === String(problem.id),
-        String(sessionProblem.problemId) === String(problem.problemId || problem.id || problem.leetCodeID)
+        String(sessionProblem.problem_id) === String(problem.problem_id || problem.id || problem.leetcode_id)
       ];
       
       const hasMatch = matches.some(match => match && match !== false);
@@ -86,13 +86,13 @@ class SessionAttributionEngine {
         console.log(`✅ Found matching problem at index ${i}:`, {
           sessionProblem: {
             id: sessionProblem.id,
-            leetCodeID: sessionProblem.leetCodeID,
-            problemId: sessionProblem.problemId
+            leetcode_id: sessionProblem.leetcode_id,
+            problem_id: sessionProblem.problem_id
           },
           currentProblem: {
             id: problem.id,
-            leetCodeID: problem.leetCodeID,
-            problemId: problem.problemId
+            leetcode_id: problem.leetcode_id,
+            problem_id: problem.problem_id
           },
           matchResults: matches.map((match, idx) => ({ idx, match })).filter(r => r.match)
         });
@@ -113,7 +113,7 @@ class SessionAttributionEngine {
     const transaction = db.transaction('sessions', 'readonly');
     const store = transaction.objectStore('sessions');
     
-    // Look for tracking sessions using sessionType
+    // Look for tracking sessions using session_type
     const request = store.openCursor(null, 'prev');
     
     return new Promise((resolve) => {
@@ -124,11 +124,11 @@ class SessionAttributionEngine {
           const session = cursor.value;
           
           // Filter for tracking sessions that are in progress
-          if (session.sessionType !== 'tracking' || session.status !== 'in_progress') {
+          if (session.session_type !== 'tracking' || session.status !== 'in_progress') {
             cursor.continue();
             return;
           }
-          const lastActivity = new Date(session.lastActivityTime || session.date);
+          const lastActivity = new Date(session.last_activity_time || session.date);
           const hoursStale = (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60);
           const attemptCount = session.attempts?.length || 0;
           
@@ -246,11 +246,10 @@ class SessionAttributionEngine {
       id: uuidv4(),
       date: new Date().toISOString(), 
       status: 'in_progress',
-      startedBy: 'auto_inferred',
-      lastActivityTime: new Date().toISOString(),
+      last_activity_time: new Date().toISOString(),
       problems: [], // Tracking sessions have no predefined problems
       attempts: [],
-      sessionType: 'tracking',
+      session_type: 'tracking',
       metadata: {
         optimalParameters: {
           maxAttempts: 12,
@@ -272,7 +271,7 @@ class SessionAttributionEngine {
    * Update session's last activity time
    */
   static async updateSessionActivity(session) {
-    session.lastActivityTime = new Date().toISOString();
+    session.last_activity_time = new Date().toISOString();
     await updateSessionInDB(session);
     await saveSessionToStorage(session, true);
   }
@@ -287,7 +286,7 @@ class SessionAttributionEngine {
     if (session.status === 'draft') {
       console.log('▶️ Transitioning draft session to in_progress:', session.id);
       session.status = 'in_progress';
-      session.lastActivityTime = new Date().toISOString();
+      session.last_activity_time = new Date().toISOString();
       
       // Update session in database with new status
       await updateSessionInDB(session);
@@ -340,19 +339,16 @@ class SessionAttributionEngine {
     if (attemptData.Success && session.problems && Array.isArray(session.problems)) {
       console.log(`🎯 Attempting to remove completed problem from session`, {
         problemId: problem.id,
-        problemLeetCodeID: problem.leetCodeID,
+        problemLeetcode_id: problem.leetcode_id,
         sessionId: session.id,
         success: attemptData.Success,
         currentProblemCount: session.problems.length
       });
       
       const initialCount = session.problems.length;
+      // Use consistent ID matching - standard problems use 'id' field
       session.problems = session.problems.filter(p => {
-        const shouldKeep = !(
-          (p.id && p.id === problem.id) || 
-          (p.leetCodeID && p.leetCodeID === problem.leetCodeID) ||
-          (p.problemId && p.problemId === problem.id)
-        );
+        const shouldKeep = !(p.id === problem.id);
         return shouldKeep;
       });
       
@@ -392,7 +388,7 @@ class SessionAttributionEngine {
     await putData(sessionStore, session);
 
     // Check if guided session is complete (tracking sessions don't auto-complete)
-    if (session.sessionType !== 'tracking') {
+    if (session.session_type !== 'tracking') {
       await _checkAndCompleteSession(session.id);
     }
     
@@ -419,9 +415,9 @@ async function addAttempt(attemptData, problem) {
     // Debug: Log current problem structure
     console.log("🔍 Current problem object:", {
       id: problem.id,
-      leetCodeID: problem.leetCodeID,
-      ProblemDescription: problem.ProblemDescription,
-      problemId: problem.problemId,
+      leetcode_id: problem.leetcode_id,
+      title: problem.title,
+      problem_id: problem.problem_id,
       allKeys: Object.keys(problem)
     });
 
@@ -440,23 +436,23 @@ async function addAttempt(attemptData, problem) {
       console.log(`⚠️ Guided session ${guidedSession.id} has empty problems array - likely a draft session`);
       console.log("🔄 Session has no problems - falling back to tracking session");
     } else {
-      console.log(`🔍 Found guided session: ${guidedSession.sessionType} (${guidedSession.status})`);
+      console.log(`🔍 Found guided session: ${guidedSession.session_type} (${guidedSession.status})`);
       
       // Debug: Log session problems structure
       console.log("🔍 Session problems array:", {
         problemsCount: guidedSession.problems.length,
         problems: guidedSession.problems.map(p => ({
           id: p.id,
-          leetCodeID: p.leetCodeID,
-          problemId: p.problemId,
-          ProblemDescription: p.ProblemDescription,
+          leetcode_id: p.leetcode_id,
+          problem_id: p.problem_id,
+          title: p.title,
           allKeys: Object.keys(p || {})
         }))
       });
       
       // 2. Check if this problem matches any problems in the guided session
       if (SessionAttributionEngine.isMatchingProblem(guidedSession, problem)) {
-        console.log(`✅ Problem ${problem.id || problem.leetCodeID} matches guided session ${guidedSession.id}`);
+        console.log(`✅ Problem ${problem.id || problem.leetcode_id} matches guided session ${guidedSession.id}`);
         const result = await SessionAttributionEngine.attachToGuidedSession(guidedSession, attemptData, problem);
         
         // Notify UI to refresh focus area eligibility
@@ -469,7 +465,7 @@ async function addAttempt(attemptData, problem) {
         return result;
       }
       
-      console.log(`❌ Problem ${problem.id || problem.leetCodeID} does not match any problems in guided session ${guidedSession.id}`);
+      console.log(`❌ Problem ${problem.id || problem.leetcode_id} does not match any problems in guided session ${guidedSession.id}`);
       console.log("🔍 Detailed matching check failed - problem not found in session");
     }
 

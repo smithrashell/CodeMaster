@@ -19,7 +19,7 @@ const createMockSession = (dateString, status = 'completed') => ({
   performance: 0.8
 });
 
-const createSessionsForLearningPhase = () => {
+const _createSessionsForLearningPhase = () => {
   const today = new Date();
   return Array.from({ length: 7 }, (_, i) => {
     const date = new Date(today);
@@ -28,13 +28,13 @@ const createSessionsForLearningPhase = () => {
   });
 };
 
-const mockLatestSession = (session) => {
+const _mockLatestSession = (session) => {
   jest.doMock("../db/sessions.js", () => ({
     getLatestSession: jest.fn().mockResolvedValue(session)
   }));
 };
 
-const createReminderSettings = (overrides = {}) => ({
+const _createReminderSettings = (overrides = {}) => ({
   enabled: true,
   cadenceNudges: false,
   streakAlerts: false,
@@ -73,7 +73,7 @@ const simulateCursorIteration = (sessions, mockCursor) => {
   simulateNext();
 };
 
-const setupMockCursor = (sessions, mockDB) => {
+const _setupMockCursor = (sessions, mockDB) => {
   const mockCursor = {
     onsuccess: null,
     onerror: null
@@ -87,7 +87,7 @@ const setupMockCursor = (sessions, mockDB) => {
   }, 0);
 };
 
-const setupMockDB = () => ({
+const _setupMockDB = () => ({
   transaction: jest.fn().mockReturnValue({
     objectStore: jest.fn().mockReturnValue({
       openCursor: jest.fn().mockReturnValue({
@@ -99,7 +99,7 @@ const setupMockDB = () => ({
 });
 
 // Pattern Analysis Tests
-const runPatternAnalysisTests = (mockDB, mockSessions, setupMockCursor) => {
+const _runPatternAnalysisTests = (mockDB, mockSessions, setupMockCursor) => {
   describe('Pattern Analysis with Enhanced Requirements', () => {
     test('should require minimum 5 sessions for reliable patterns', async () => {
       mockSessions = [
@@ -138,7 +138,7 @@ const runPatternAnalysisTests = (mockDB, mockSessions, setupMockCursor) => {
 };
 
 // Learning Phase Tests
-const runLearningPhaseTests = (mockDB, mockSessions, setupMockCursor) => {
+const _runLearningPhaseTests = (mockDB, mockSessions, setupMockCursor) => {
   describe('Learning Phase Detection', () => {
     test('should detect learning phase within 2 weeks', async () => {
       const today = new Date();
@@ -175,7 +175,7 @@ const runLearningPhaseTests = (mockDB, mockSessions, setupMockCursor) => {
 };
 
 // Reliability Tests
-const runReliabilityTests = (mockDB, mockSessions, setupMockCursor) => {
+const _runReliabilityTests = (mockDB, mockSessions, setupMockCursor) => {
   describe('Enhanced Reliability Scoring', () => {
     test('should assign high reliability to consistent patterns', async () => {
       mockSessions = Array.from({ length: 8 }, (_, i) => 
@@ -211,7 +211,7 @@ const runReliabilityTests = (mockDB, mockSessions, setupMockCursor) => {
 };
 
 // Circuit Breaker Tests
-const runCircuitBreakerTests = (mockDB) => {
+const _runCircuitBreakerTests = (mockDB) => {
   describe('Circuit Breaker Error Handling', () => {
     test('should fall back to legacy logic on database errors', async () => {
       mockDB.transaction.mockImplementation(() => {
@@ -288,9 +288,9 @@ jest.mock("../../db/index.js", () => ({
 import { SessionService } from "../sessionService.js";
 import { 
   getSessionById, 
-  getLatestSession, 
-  saveSessionToStorage, 
-  saveNewSessionToDB, 
+  _getLatestSession, 
+  _saveSessionToStorage, 
+  _saveNewSessionToDB, 
   updateSessionInDB 
 } from "../../db/sessions.js";
 
@@ -312,14 +312,10 @@ const createRaceConditionScenario = async (scenarios) => {
   };
 };
 
-describe("Session Service Race Condition Testing", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    
-    // Reset session creation state
-    SessionService.resetSessionCreationMutex.mockReturnValue({ reset: true });
-  });
-
+/**
+ * Test suite for concurrent session creation race conditions
+ */
+function runConcurrentSessionCreationTests() {
   describe("Concurrent Session Creation Race Conditions", () => {
     it("should handle multiple simultaneous session creation requests", async () => {
       let creationCount = 0;
@@ -387,7 +383,7 @@ describe("Session Service Race Condition Testing", () => {
       const sessionId = "completion-race-session";
       let completionAttempts = 0;
       
-      SessionService.checkAndCompleteSession.mockImplementation(async (id) => {
+      SessionService.checkAndCompleteSession.mockImplementation(async (_id) => {
         await simulateNetworkDelay(Math.random() * 50);
         completionAttempts++;
         
@@ -417,7 +413,12 @@ describe("Session Service Race Condition Testing", () => {
       expect(SessionService.checkAndCompleteSession).toHaveBeenCalledTimes(3);
     });
   });
+}
 
+/**
+ * Test suite for database transaction race conditions
+ */
+function runDatabaseTransactionTests() {
   describe("Database Transaction Race Conditions", () => {
     it("should handle concurrent database write operations", async () => {
       let writeCount = 0;
@@ -496,7 +497,12 @@ describe("Session Service Race Condition Testing", () => {
       expect(updateSessionInDB).toHaveBeenCalledTimes(1);
     });
   });
+}
 
+/**
+ * Test suite for background script messaging race conditions
+ */
+function runBackgroundScriptMessagingTests() {
   describe("Background Script Messaging Race Conditions", () => {
     it("should handle concurrent message queue processing", async () => {
       const messageQueue = [];
@@ -574,7 +580,12 @@ describe("Session Service Race Condition Testing", () => {
       expect(timeoutErrors.every(msg => msg.includes('timed out'))).toBe(true);
     });
   });
+}
 
+/**
+ * Test suite for session state consistency under race conditions
+ */
+function runSessionStateConsistencyTests() {
   describe("Session State Consistency Under Race Conditions", () => {
     it("should maintain session state consistency during concurrent operations", async () => {
       const sessionId = "consistency-test-session";
@@ -669,7 +680,12 @@ describe("Session Service Race Condition Testing", () => {
       expect(sessionsFound.filter(count => count === 0)).toHaveLength(2);
     });
   });
+}
 
+/**
+ * Test suite for memory leak prevention under race conditions
+ */
+function runMemoryLeakPreventionTests() {
   describe("Memory Leak Prevention Under Race Conditions", () => {
     it("should prevent memory leaks from abandoned async operations", async () => {
       let activeOperations = new Set();
@@ -712,4 +728,20 @@ describe("Session Service Race Condition Testing", () => {
       expect(failed).toBe(5);
     });
   });
+}
+
+describe("Session Service Race Condition Testing", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // Reset session creation state
+    SessionService.resetSessionCreationMutex.mockReturnValue({ reset: true });
+  });
+
+  // Execute all test suites using helper functions
+  runConcurrentSessionCreationTests();
+  runDatabaseTransactionTests();
+  runBackgroundScriptMessagingTests();
+  runSessionStateConsistencyTests();
+  runMemoryLeakPreventionTests();
 });

@@ -24,6 +24,11 @@ import {
  */
 export function handleDatabaseUpgrade(event) {
   console.log("📋 Database upgrade needed - creating safety backup...");
+  console.log("🔧 Database upgrade event:", {
+    oldVersion: event.oldVersion,
+    newVersion: event.newVersion,
+    target: event.target
+  });
 
   // Create backup before any schema changes
   handleMigrationBackup(event.oldVersion);
@@ -31,10 +36,16 @@ export function handleDatabaseUpgrade(event) {
   const db = event.target.result;
   const transaction = event.target.transaction;
 
+  console.log("🔧 Database instance for upgrade:", {
+    name: db.name,
+    version: db.version,
+    objectStoreNames: Array.from(db.objectStoreNames)
+  });
+
   // Execute all store creation operations
   executeStoreCreationOperations(db, transaction);
 
-  console.info("Database upgrade completed");
+  console.log("✅ Database upgrade completed - final object stores:", Array.from(db.objectStoreNames));
 }
 
 /**
@@ -60,17 +71,34 @@ function handleMigrationBackup(oldVersion) {
  * @param {IDBTransaction} transaction - The upgrade transaction
  */
 function executeStoreCreationOperations(db, transaction) {
-  // Core data stores
-  createCoreDataStores(db, transaction);
+  console.log("🏗️ Starting store creation operations...");
   
-  // Strategy stores
-  createStrategyStores(db, transaction);
-  
-  // Analytics and tracking stores
-  createAnalyticsStores(db);
-  
-  // System and utility stores
-  createSystemStores(db);
+  try {
+    // Core data stores
+    console.log("🔧 Creating core data stores...");
+    createCoreDataStores(db, transaction);
+    console.log("✅ Core data stores created");
+    
+    // Strategy stores
+    console.log("🔧 Creating strategy stores...");
+    createStrategyStores(db, transaction);
+    console.log("✅ Strategy stores created");
+    
+    // Analytics and tracking stores
+    console.log("🔧 Creating analytics stores...");
+    createAnalyticsStores(db);
+    console.log("✅ Analytics stores created");
+    
+    // System and utility stores
+    console.log("🔧 Creating system stores...");
+    createSystemStores(db);
+    console.log("✅ System stores created");
+    
+    console.log("🎉 All store creation operations completed successfully");
+  } catch (error) {
+    console.error("❌ Error during store creation:", error);
+    throw error;
+  }
 }
 
 /**

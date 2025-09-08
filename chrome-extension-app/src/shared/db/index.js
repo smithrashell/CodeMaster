@@ -17,7 +17,7 @@ import {
 
 export const dbHelper = {
   dbName: "review",
-  version: 36, // 🆙 Upgraded for sessionType index support
+  version: 40, // 🆙 Updated problems store to use problem_id as UUID primary key
   db: null,
 
   openDB() {
@@ -30,10 +30,23 @@ export const dbHelper = {
     // Log database access attempt
     logDatabaseAccess(context, stack);
     
-    // Return cached database if already opened
+    // Check if cached database is still valid
     if (dbHelper.db) {
-      logCachedConnection();
-      return dbHelper.db;
+      try {
+        // Test if the connection is still valid by checking basic properties
+        if (dbHelper.db && dbHelper.db.name && dbHelper.db.version) {
+          logCachedConnection();
+          return Promise.resolve(dbHelper.db);
+        } else {
+          // Connection is invalid, clear the cache
+          console.warn('🔄 Database connection invalid, clearing cache and reopening');
+          dbHelper.db = null;
+        }
+      } catch (error) {
+        // Connection is invalid, clear the cache
+        console.warn('🔄 Database connection error, clearing cache:', error.message);
+        dbHelper.db = null;
+      }
     }
     
     logNewConnectionWarning();
@@ -43,10 +56,106 @@ export const dbHelper = {
 
     // Create and configure database connection
     return createDatabaseConnection(dbHelper.dbName, dbHelper.version, context, stack)
-      .then(db => {
+      .then(async db => {
+        // Add connection event handlers to detect when connection becomes invalid
+        db.onclose = () => {
+          console.warn('🔌 Database connection closed, clearing cache');
+          if (dbHelper.db === db) {
+            dbHelper.db = null;
+          }
+        };
+        
+        db.onversionchange = () => {
+          console.warn('🔄 Database version change detected, closing connection');
+          db.close();
+          if (dbHelper.db === db) {
+            dbHelper.db = null;
+          }
+        };
+        
+        // PRODUCTION SAFETY: Validate database integrity
+        const isValid = await dbHelper.validateDatabaseIntegrity(db);
+        if (!isValid) {
+          console.warn('🔧 Database validation failed, attempting repair...');
+          return dbHelper.repairDatabase(db);
+        }
+        
         dbHelper.db = db;
         return db;
       });
+  },
+
+  /**
+   * Validates that all required object stores exist in the database
+   * @param {IDBDatabase} db - Database instance to validate
+   * @returns {Promise<boolean>} True if database is valid
+   */
+  async validateDatabaseIntegrity(db) {
+    const requiredStores = [
+      'attempts', 'problems', 'sessions', 'settings', 'tag_mastery',
+      'standard_problems', 'strategy_data', 'tag_relationships',
+      'problem_relationships', 'pattern_ladders', 'session_analytics',
+      'hint_interactions', 'user_actions', 'error_reports', 
+      'limits', 'session_state', 'backup_storage'
+    ];
+
+    const existingStores = Array.from(db.objectStoreNames);
+    const missingStores = requiredStores.filter(store => !existingStores.includes(store));
+
+    if (missingStores.length > 0) {
+      console.error('❌ Database validation failed - missing stores:', missingStores);
+      console.log('📊 Existing stores:', existingStores);
+      return false;
+    }
+
+    console.log('✅ Database validation passed - all required stores present');
+    return true;
+  },
+
+  /**
+   * Repairs a corrupted database by recreating it
+   * @param {IDBDatabase} db - Corrupted database instance
+   * @returns {Promise<IDBDatabase>} Repaired database
+   */
+  async repairDatabase(db) {
+    console.warn('🛠️ Starting database repair process...');
+    
+    // Close the corrupted database
+    db.close();
+    
+    // Delete the corrupted database
+    return new Promise((resolve, reject) => {
+      const deleteRequest = indexedDB.deleteDatabase(dbHelper.dbName);
+      
+      deleteRequest.onsuccess = () => {
+        console.log('🗑️ Corrupted database deleted successfully');
+        
+        // Recreate the database with a fresh connection
+        dbHelper.db = null; // Clear cache
+        createDatabaseConnection(dbHelper.dbName, dbHelper.version, getExecutionContext(), getStackTrace())
+          .then(newDb => {
+            console.log('✅ Database repair completed successfully');
+            resolve(newDb);
+          })
+          .catch(reject);
+      };
+      
+      deleteRequest.onerror = () => {
+        console.error('❌ Failed to delete corrupted database');
+        reject(new Error('Database repair failed'));
+      };
+      
+      deleteRequest.onblocked = () => {
+        console.warn('⚠️ Database deletion blocked - other connections may be open');
+        // Continue anyway, the next open attempt should trigger upgrade
+        setTimeout(() => {
+          dbHelper.db = null;
+          createDatabaseConnection(dbHelper.dbName, dbHelper.version, getExecutionContext(), getStackTrace())
+            .then(resolve)
+            .catch(reject);
+        }, 1000);
+      };
+    });
   },
 
   ensureIndex(store, indexName, keyPath) {

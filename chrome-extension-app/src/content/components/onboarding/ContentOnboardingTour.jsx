@@ -128,7 +128,8 @@ const TourCardContent = ({ currentStepData, getStepIcon }) => {
                  window.matchMedia?.('(prefers-color-scheme: dark)').matches;
   
   return (
-    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' , flexDirection: 'column'}}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' , flexDirection: 'row'}} >
       <div style={{
         backgroundColor: isDark 
           ? 'var(--mantine-color-blue-8, #1c3f5c)' 
@@ -143,14 +144,16 @@ const TourCardContent = ({ currentStepData, getStepIcon }) => {
         justifyContent: 'center',
         minWidth: '24px',
         height: '24px',
-        marginTop: '2px'
+        margin: '2px'
       }}>
         {getStepIcon()}
       </div>
-      <div style={{ flex: 1 }}>
-        <Text weight={600} size="xs" mb={2} style={{ lineHeight: 1.3 }}>
+        <Text weight={600} size="sm" margin="0px 0px 0px 8px" style={{ lineHeight: 1.3 }} m>
           {currentStepData.title}
         </Text>
+      </div>
+      <div style={{ }}>
+    
         <Text size="xs" color="dimmed" style={{ lineHeight: 1.3 }}>
           {currentStepData.content}
         </Text>
@@ -751,7 +754,6 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
-
   const currentStepData = TOUR_STEPS[currentStep];
   
   // Use extracted hooks
@@ -762,7 +764,6 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   );
   useEffect(() => {
     if ((!isWaitingForInteraction || !currentStepData.waitForInteraction) && !currentStepData.waitForUserClick) return;
-
     const handleInteraction = createUserInteractionHandler(
       currentStepData, 
       setIsWaitingForInteraction, 

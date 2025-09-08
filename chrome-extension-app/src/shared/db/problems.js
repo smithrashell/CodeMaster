@@ -275,14 +275,14 @@ export async function getProblemByDescription(description, _slug) {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
 
-    if (!store.indexNames.contains("by_ProblemDescription")) {
-      logger.error("❌ Error: Index 'by_ProblemDescription' does not exist.");
-      reject(new Error("Index missing: by_ProblemDescription"));
+    if (!store.indexNames.contains("by_title")) {
+      logger.error("❌ Error: Index 'by_title' does not exist.");
+      reject(new Error("Index missing: by_title"));
       return;
     }
 
-    logger.info("📌 Using index 'by_ProblemDescription' to fetch problem...");
-    const index = store.index("by_ProblemDescription");
+    logger.info("📌 Using index 'by_title' to fetch problem...");
+    const index = store.index("by_title");
 
     // Ensure the description is stored in lowercase
     const request = index.get(description.toLowerCase());
@@ -313,7 +313,7 @@ export async function getProblemByDescription(description, _slug) {
 export async function addProblem(problemData) {
   try {
     const db = await openDB();
-    const _standardProblem = await fetchProblemById(problemData.leetCodeID);
+    const _standardProblem = await fetchProblemById(problemData.leetcode_id);
 
     let session = await new Promise((resolve) => {
       chrome.storage.local.get(["currentSession"], (result) => {
@@ -332,29 +332,28 @@ export async function addProblem(problemData) {
     const problemId = uuidv4();
     const attemptId = uuidv4();
 
-    const leetCodeID = problemData.leetCodeID
-      ? Number(problemData.leetCodeID)
+    const leetCodeID = problemData.leetcode_id
+      ? Number(problemData.leetcode_id)
       : null;
     const address = problemData.address;
     const problem = {
-      id: problemId,
-      ProblemDescription: problemData.title.toLowerCase(),
-      ProblemNumberAssoc: [],
-      leetCodeID: leetCodeID,
-      LeetCodeAddress: address,
-      CooldownStatus: false,
-      BoxLevel: 1,
-      ReviewSchedule: problemData.reviewSchedule,
-      perceivedDifficulty: problemData.difficulty || 5, // User's perceived difficulty (0-10 scale, default 5)
-      ConsecutiveFailures: 0,
-      Stability: 1.0,
-      AttemptStats: {
-        TotalAttempts: 0,
-        SuccessfulAttempts: 0,
-        UnsuccessfulAttempts: 0,
+      problem_id: problemId, // UUID primary key
+      leetcode_id: leetCodeID, // References standard_problems.id
+      title: problemData.title.toLowerCase(),
+      leetcode_address: address,
+      cooldown_status: false,
+      box_level: 1,
+      review_schedule: problemData.reviewSchedule,
+      perceived_difficulty: problemData.difficulty || 5,
+      consecutive_failures: 0,
+      stability: 1.0,
+      attempt_stats: {
+        total_attempts: 0,
+        successful_attempts: 0,
+        unsuccessful_attempts: 0,
       },
-
-      Tags: problemData.tags || [],
+      tags: problemData.tags || [],
+      session_id: session.id,
     };
     logger.info("Adding problem:", problem);
     const request = store.add(problem);
@@ -363,21 +362,22 @@ export async function addProblem(problemData) {
 
       const attemptData = {
         id: attemptId,
-        ProblemID: problemId,
-        Success: problemData.success,
-        AttemptDate: problemData.date,
-        TimeSpent: Number(problemData.timeSpent), // Now expecting seconds from forms
-        perceivedDifficulty: problemData.difficulty || 5, // User's perceived difficulty assessment
-        Comments: problemData.comments || "",
-        BoxLevel: 1,
-        NextReviewDate: null,
-        SessionID: session.id,
+        problem_id: problemId, // Internal UUID reference
+        leetcode_id: leetCodeID, // LeetCode ID for lookups
+        success: problemData.success,
+        attempt_date: problemData.date,
+        time_spent: Number(problemData.timeSpent),
+        perceived_difficulty: problemData.difficulty || 5,
+        comments: problemData.comments || "",
+        box_level: 1,
+        next_review_date: null,
+        session_id: session.id,
 
         // Enhanced time tracking fields
-        ExceededRecommendedTime: problemData.exceededRecommendedTime || false,
-        OverageTime: Number(problemData.overageTime) || 0,
-        UserIntent: problemData.userIntent || "completed",
-        TimeWarningLevel: Number(problemData.timeWarningLevel) || 0,
+        exceeded_recommended_time: problemData.exceededRecommendedTime || false,
+        overage_time: Number(problemData.overageTime) || 0,
+        user_intent: problemData.userIntent || "completed",
+        time_warning_level: Number(problemData.timeWarningLevel) || 0,
       };
 
       try {
@@ -443,7 +443,7 @@ export async function checkDatabaseForProblem(problemId) {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
     logger.info("🔍 problemId:", problemId);
-    const request = store.get(problemId); // Use primary key (leetCodeID) directly
+    const request = store.get(problemId); // Use primary key (leetcode_id) directly
 
     // return true if problem is found, false otherwise
     request.onsuccess = () => {
@@ -492,13 +492,29 @@ export async function fetchAdditionalProblems(
   excludeIds = new Set(),
   _userFocusAreas = [],
   _currentAllowedTags = [],
-  userId = "session_state" // Default to session_state for backward compatibility
+  options = {}
 ) {
+  const { userId = "session_state", currentDifficultyCap = null, isOnboarding = false } = options;
+  logger.info("🔰 fetchAdditionalProblems called with isOnboarding:", isOnboarding);
   try {
     const { masteryData, _focusTags, allTagsInCurrentTier } =
       await TagService.getCurrentLearningState();
     const allProblems = await getAllStandardProblems();
     const ladders = await getPatternLadders();
+
+
+    // Filter problems by difficulty cap if provided (for non-onboarding/adaptive progression)
+    let availableProblems = allProblems;
+    if (currentDifficultyCap) {
+      const difficultyMap = { "Easy": 1, "Medium": 2, "Hard": 3 };
+      const maxDifficulty = difficultyMap[currentDifficultyCap] || 3;
+      availableProblems = allProblems.filter(problem => {
+        const problemDifficultyString = problem.difficulty || problem.Difficulty || "Medium";
+        const problemDifficultyNum = difficultyMap[problemDifficultyString] || 2;
+        return problemDifficultyNum <= maxDifficulty;
+      });
+      logger.info(`🎯 Difficulty cap applied: ${currentDifficultyCap} (${availableProblems.length}/${allProblems.length} problems)`);
+    }
 
     // 🎯 Get coordinated focus decision (integrates all systems)
     const focusDecision = await FocusCoordinationService.getFocusDecision(userId);
@@ -514,6 +530,12 @@ export async function fetchAdditionalProblems(
       systemRecommendation: focusDecision.systemRecommendation
     });
     logger.info("🧠 Needed problems:", numNewProblems);
+    logger.info("🔍 Debug data availability:", {
+      totalStandardProblems: availableProblems.length,
+      ladderTags: Object.keys(ladders || {}),
+      enhancedFocusTagsCount: enhancedFocusTags.length,
+      difficultyCapApplied: !!currentDifficultyCap
+    });
     
     // Backward compatibility logging
     logger.info("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
@@ -546,7 +568,7 @@ export async function fetchAdditionalProblems(
     const primaryProblems = await selectProblemsForTag(primaryTag, primaryFocusCount, {
       difficultyAllowance: tagDifficultyAllowances[primaryTag],
       ladders,
-      allProblems,
+      allProblems: availableProblems,
       allTagsInCurrentTier,
       usedProblemIds
     });
@@ -573,7 +595,7 @@ export async function fetchAdditionalProblems(
       const expansionProblems = await selectProblemsForTag(expansionTag, expansionCount, {
         difficultyAllowance: allowance,
         ladders,
-        allProblems,
+        allProblems: availableProblems,
         allTagsInCurrentTier,
         usedProblemIds
       });
@@ -587,6 +609,63 @@ export async function fetchAdditionalProblems(
     }
 
     logger.info(`🎯 Selected ${selectedProblems.length} problems for learning`);
+    logger.info(`🎯 Selected problems by difficulty:`, {
+      Easy: selectedProblems.filter(p => (p.difficulty || p.Difficulty) === 'Easy').length,
+      Medium: selectedProblems.filter(p => (p.difficulty || p.Difficulty) === 'Medium').length,
+      Hard: selectedProblems.filter(p => (p.difficulty || p.Difficulty) === 'Hard').length,
+      problems: selectedProblems.map(p => ({id: p.id, difficulty: p.difficulty || p.Difficulty, title: p.title}))
+    });
+    
+    // **FALLBACK LOGIC**: If we don't have enough problems, select from all available problems
+    logger.info(`🔍 Fallback check: selectedProblems.length=${selectedProblems.length}, numNewProblems=${numNewProblems}, availableProblems.length=${availableProblems.length}`);
+    
+    if (selectedProblems.length < numNewProblems && availableProblems.length > 0) {
+      const remainingNeeded = numNewProblems - selectedProblems.length;
+      logger.warn(`⚠️ Tag-based selection only found ${selectedProblems.length}/${numNewProblems} problems. Using fallback selection for ${remainingNeeded} more.`);
+      
+      // Filter out already selected problems
+      const selectedIds = new Set(selectedProblems.map(p => p.id));
+      logger.info(`🔍 Before fallback filter - selectedIds:`, Array.from(selectedIds).slice(0, 5));
+      
+      const fallbackProblems = availableProblems
+        .filter(p => {
+          const pId = p.id;
+          const isSelected = selectedIds.has(pId);
+          const isUsed = usedProblemIds.has(pId);
+          
+          // Debug first few failures
+          if (isSelected || isUsed) {
+            logger.info(`🚫 Filtered out problem ${pId}: isSelected=${isSelected}, isUsed=${isUsed}`);
+          }
+          
+          return !isSelected && !isUsed;
+        })
+        .slice(0, remainingNeeded);
+      
+      logger.info(`🔄 Fallback filter debug:`, {
+        availableProblemsCount: availableProblems.length,
+        selectedIdsCount: selectedIds.size,
+        usedProblemIdsCount: usedProblemIds.size,
+        afterFilterCount: fallbackProblems.length,
+        remainingNeeded: remainingNeeded,
+        firstFallbackIds: fallbackProblems.slice(0, 3).map(p => p.id)
+      });
+      
+      const beforeCount = selectedProblems.length;
+      selectedProblems.push(...fallbackProblems);
+      const afterCount = selectedProblems.length;
+      
+      logger.warn(`🔄 FALLBACK RESULT: Added ${fallbackProblems.length} problems. Before: ${beforeCount}, After: ${afterCount}`);
+      logger.info(`🔍 Fallback problems by difficulty:`, {
+        Easy: fallbackProblems.filter(p => (p.difficulty || p.Difficulty) === 'Easy').length,
+        Medium: fallbackProblems.filter(p => (p.difficulty || p.Difficulty) === 'Medium').length,
+        Hard: fallbackProblems.filter(p => (p.difficulty || p.Difficulty) === 'Hard').length,
+        problems: fallbackProblems.map(p => ({id: p.id, difficulty: p.difficulty || p.Difficulty, title: p.title}))
+      });
+    } else {
+      logger.info(`🔄 Fallback skipped: hasEnough=${selectedProblems.length >= numNewProblems}, hasAvailable=${availableProblems.length > 0}`);
+    }
+    
     return selectedProblems;
   } catch (error) {
     logger.error("❌ Error in fetchAdditionalProblems():", error);
@@ -604,7 +683,7 @@ async function _getProblemSequenceScore(
   const store = tx.objectStore("problem_relationships");
 
   return new Promise((resolve, reject) => {
-    const request = store.index("by_problemId1").getAll(problemId);
+    const request = store.index("by_problem_id_1").getAll(problemId);
     request.onsuccess = async () => {
       const relationships = request.result;
 
@@ -847,9 +926,9 @@ export async function updateProblemsWithRating() {
       const problems = event.target.result;
 
       for (let problem of problems) {
-        const difficulty = difficultyMap[problem.leetCodeID];
+        const difficulty = difficultyMap[problem.leetcode_id];
         logger.info("🔍 difficulty:", difficulty);
-        logger.info("🔍 problem:", problem.leetCodeID);
+        logger.info("🔍 problem:", problem.leetcode_id);
         if (difficulty) {
           problem.Rating = difficulty;
           problemStore.put(problem);
@@ -882,7 +961,7 @@ export async function updateProblemWithTags() {
 
     for (let problem of problems) {
       const standardProblem = standardProblems.find(
-        (p) => p.id === problem.leetCodeID
+        (p) => p.id === problem.leetcode_id
       );
       if (standardProblem) {
         delete problem.tags;
@@ -920,12 +999,20 @@ function selectProblemsForTag(tag, count, config) {
 
   const ladder = ladders?.[tag]?.problems || [];
   const allTagsInCurrentTierSet = new Set(allTagsInCurrentTier);
+  
+  logger.info(`🔍 Tag selection debug for "${tag}":`, {
+    ladderProblemsCount: ladder.length,
+    allTagsInCurrentTierCount: allTagsInCurrentTier.length,
+    difficultyAllowance: difficultyAllowance,
+    usedProblemIdsCount: usedProblemIds.size
+  });
 
   // Filter eligible problems with progressive difficulty preference
   const eligibleProblems = ladder
     .filter((problem) => {
-      const id = problem.leetCodeID ?? problem.id;
-      const rating = problem.rating || "Medium";
+      // Use consistent 'id' field (LeetCode ID)
+      const id = problem.id;
+      const rating = problem.difficulty || problem.rating || "Medium";
       const tags = normalizeTags(problem.tags || []);
 
       // Basic filters
@@ -933,16 +1020,16 @@ function selectProblemsForTag(tag, count, config) {
       if (difficultyAllowance[rating] <= 0) return false;
       if (!tags.includes(tag)) return false;
 
-      // Tier constraint - all tags must be in current tier
-      const tierValid = tags.every((t) => allTagsInCurrentTierSet.has(t));
+      // Tier constraint - for onboarding, only check if target tag is in tier
+      const tierValid = allTagsInCurrentTierSet.has(tag) || allTagsInCurrentTier.length === 0;
       if (!tierValid) return false;
 
       return true;
     })
     .map((problem) => ({
       ...problem,
-      difficultyScore: getDifficultyScore(problem.rating || "Medium"),
-      allowanceWeight: difficultyAllowance[problem.rating || "Medium"],
+      difficultyScore: getDifficultyScore(problem.difficulty || "Medium"),
+      allowanceWeight: difficultyAllowance[problem.difficulty || "Medium"],
     }))
     .sort((a, b) => {
       // Sort by difficulty score (easier first) and then by allowance weight
@@ -955,6 +1042,20 @@ function selectProblemsForTag(tag, count, config) {
   logger.info(
     `🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`
   );
+  
+  // Add detailed debug info if no problems found
+  if (eligibleProblems.length === 0 && ladder.length > 0) {
+    logger.warn(`🔍 Why no problems for "${tag}"? Analyzing first ladder problem:`, {
+      sampleProblem: ladder[0],
+      sampleId: ladder[0]?.id,
+      isUsed: usedProblemIds.has(ladder[0]?.id),
+      sampleRating: ladder[0]?.difficulty || ladder[0]?.rating,
+      allowanceForRating: difficultyAllowance[ladder[0]?.difficulty || ladder[0]?.rating || "Medium"],
+      sampleTags: normalizeTags(ladder[0]?.tags || []),
+      hasTargetTag: normalizeTags(ladder[0]?.tags || []).includes(tag),
+      tierValidation: ladder[0]?.tags ? normalizeTags(ladder[0].tags).every(t => allTagsInCurrentTierSet.has(t)) : false
+    });
+  }
 
   // Select problems with progressive difficulty
   const selectedProblems = [];
@@ -963,8 +1064,10 @@ function selectProblemsForTag(tag, count, config) {
   for (const problem of eligibleProblems) {
     if (selectedCount >= count) break;
 
+    // Use consistent 'id' field (LeetCode ID)
+    const problemId = problem.id;
     const standardProblem = allProblems.find(
-      (p) => p.id === problem.leetCodeID
+      (p) => p.id === problemId
     );
     if (standardProblem) {
       selectedProblems.push(standardProblem);
@@ -1031,7 +1134,7 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
       ...userProblem,
       officialDifficulty: standardProblem.difficulty,
       tags: standardProblem.tags,
-      title: standardProblem.title || userProblem?.ProblemDescription,
+      title: standardProblem.title || userProblem?.title,
     };
 
     return mergedProblem;
@@ -1113,7 +1216,7 @@ export function checkDatabaseForProblemWithRetry(
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["problems"], "readonly");
         const store = transaction.objectStore("problems");
-        const request = store.get(problemId); // Use primary key (leetCodeID) directly
+        const request = store.get(problemId); // Use primary key (leetcode_id) directly
 
         request.onsuccess = () => {
           resolve(!!request.result); // Convert to boolean
@@ -1159,7 +1262,7 @@ export function addProblemWithRetry(problemData, options = {}) {
 
           // Get standard problem data
           const standardProblem = await fetchProblemById(
-            problemData.leetCodeID
+            problemData.leetcode_id
           );
 
           // Get current session from Chrome storage (this is external to transaction)
@@ -1175,15 +1278,13 @@ export function addProblemWithRetry(problemData, options = {}) {
 
           // Create the problem entry
           const problemEntry = {
-            leetCodeID: problemData.leetCodeID,
-            ProblemDescription: problemData.ProblemDescription,
-            problem: problemData.leetCodeID,
-            review: new Date().toISOString(),
+            leetcode_id: problemData.leetcode_id,
+            title: problemData.title,
             tags: standardProblem?.tags || [],
             difficulty: standardProblem?.difficulty || "Medium",
-            box: 1, // Start in first Leitner box
-            nextProblem: problemData.nextProblem || null,
-            sessionId: session.id,
+            box_level: 1,
+            review_schedule: new Date().toISOString(),
+            session_id: session.id,
           };
 
           // Add problem to database
@@ -1192,7 +1293,7 @@ export function addProblemWithRetry(problemData, options = {}) {
             request.onsuccess = () =>
               resolve({
                 success: true,
-                problemId: problemEntry.leetCodeID,
+                problemId: problemEntry.leetcode_id,
                 data: problemEntry,
               });
             request.onerror = () => reject(request.error);

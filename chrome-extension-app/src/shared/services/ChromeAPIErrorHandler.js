@@ -28,13 +28,12 @@ export class ChromeAPIErrorHandler {
     } = options;
 
     // Debug logging to identify which message is failing
-    console.log(`🔍 ChromeAPIErrorHandler: Sending message`, {
+    console.log(`📤 ChromeAPIErrorHandler: Sending message`, {
       type: message?.type || 'unknown',
-      action: message?.action || 'unknown', 
       messageKeys: Object.keys(message || {}),
+      fullMessage: message,
       timeout,
-      maxRetries,
-      ...(message?.sessionType && { sessionType: message.sessionType }) // Log session type for debugging
+      maxRetries
     });
 
     let lastError = null;

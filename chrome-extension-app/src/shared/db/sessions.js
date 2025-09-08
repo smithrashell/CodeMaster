@@ -12,13 +12,13 @@ const openDB = dbHelper.openDB;
 /**
  * Retrieves a session by its ID.
  */
-export const getSessionById = async (sessionId) => {
+export const getSessionById = async (session_id) => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("sessions", "readonly");
     const store = transaction.objectStore("sessions");
 
-    const request = store.get(sessionId);
+    const request = store.get(session_id);
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
@@ -64,12 +64,12 @@ export const getLatestSession = async () => {
  * Efficiently fetches the latest session by type and/or status using database indexes.
  * This is much more efficient than getLatestSession() as it uses cursors instead of loading all data.
  * 
- * @param {string|null} sessionType - Filter by session type ('standard', 'interview-like', 'full-interview', etc.)
+ * @param {string|null} session_type - Filter by session type ('standard', 'interview-like', 'full-interview', etc.)
  * @param {string|null} status - Filter by status ('in_progress', 'completed', etc.)
  * @returns {Promise<Object|null>} Latest matching session or null if none found
  */
-export const getLatestSessionByType = async (sessionType = null, status = null) => {
-  logger.info(`🔍 getLatestSessionByType ENTRY: sessionType=${sessionType}, status=${status}`);
+export const getLatestSessionByType = async (session_type = null, status = null) => {
+  logger.info(`🔍 getLatestSessionByType ENTRY: session_type=${session_type}, status=${status}`);
   
   const db = await openDB();
   
@@ -77,18 +77,18 @@ export const getLatestSessionByType = async (sessionType = null, status = null) 
     const transaction = db.transaction("sessions", "readonly");
     const store = transaction.objectStore("sessions");
     
-    // Normalize sessionType - treat null/undefined as 'standard' 
-    const normalizedSessionType = sessionType || 'standard';
+    // Normalize session_type - treat null/undefined as 'standard' 
+    const normalizedSessionType = session_type || 'standard';
     
     // Use appropriate index based on whether status is specified
     let index, keyRange;
     if (status) {
-      // Use composite index for sessionType + status queries
-      index = store.index("by_sessionType_status");
+      // Use composite index for session_type + status queries
+      index = store.index("by_session_type_status");
       keyRange = IDBKeyRange.only([normalizedSessionType, status]);
     } else {
-      // Use sessionType index for type-only queries  
-      index = store.index("by_sessionType");
+      // Use session_type index for type-only queries  
+      index = store.index("by_session_type");
       keyRange = IDBKeyRange.only(normalizedSessionType);
     }
     
@@ -243,11 +243,11 @@ export const saveSessionToStorage = (session, updateDatabase = false) => {
  * Initialize session state with default values
  */
 async function initializeSessionState(sessionStateKey) {
-  return (await StorageService.migrateSessionStateToIndexedDB()) ||
+  let sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
     (await StorageService.getSessionState(sessionStateKey)) || {
       id: sessionStateKey,
       numSessionsCompleted: 0,
-      currentDifficultyCap: "Easy",
+      currentDifficultyCap: "Easy", // Onboarding users start with Easy-only problems
       tagIndex: 0,
       difficultyTimeStats: {
         Easy: { problems: 0, totalTime: 0, avgTime: 0 },
@@ -266,24 +266,54 @@ async function initializeSessionState(sessionStateKey) {
         activatedEscapeHatches: [],
       },
     };
+
+  // ✅ CRITICAL FIX: One-time migration to correct numSessionsCompleted from existing data
+  if (sessionState.numSessionsCompleted === 0 && !sessionState._migrated) {
+    try {
+      const db = await openDB();
+      const transaction = db.transaction("sessions", "readonly");
+      const store = transaction.objectStore("sessions");
+      const request = store.getAll();
+      
+      const sessions = await new Promise((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      
+      const completedSessions = sessions.filter(s => s.status === "completed");
+      if (completedSessions.length > 0) {
+        sessionState.numSessionsCompleted = completedSessions.length;
+        sessionState._migrated = true; // Prevent future migrations
+        await StorageService.setSessionState(sessionStateKey, sessionState);
+        logger.info(`🔄 Migrated session state: found ${completedSessions.length} completed sessions`);
+      }
+    } catch (error) {
+      logger.error("❌ Session state migration failed:", error);
+    }
+  }
+
+  return sessionState;
 }
 
 /**
  * Apply onboarding mode settings with safety constraints
  */
 function applyOnboardingSettings(settings, sessionState, allowedTags, focusDecision) {
-  logger.info("🔰 Onboarding mode: Applying user preferences with safety caps");
+  logger.info("🔰 Onboarding mode: Enforcing fixed session parameters for optimal learning");
   
+  // ONBOARDING FIX: Force 4 problems for first few sessions regardless of user preference
   let sessionLength = 4;
   let numberOfNewProblems = 4;
   
-  // Apply user session length preference with dynamic onboarding cap
   const userSessionLength = settings.sessionLength;
-  const maxSessionLength = SessionLimits.getMaxSessionLength(sessionState);
-  if (userSessionLength && userSessionLength > 0) {
-    sessionLength = Math.min(userSessionLength, maxSessionLength);
-    logger.info(`🔰 User session length preference applied: ${userSessionLength} → capped at ${sessionLength} for onboarding`);
-  }
+  logger.info(`🔰 Session length calculation debug:`, {
+    onboardingSessionLength: 4,
+    userSessionLength: userSessionLength,
+    action: "enforcing_onboarding_length"
+  });
+  
+  // During onboarding, we ENFORCE 4 problems regardless of user preference for optimal learning progression
+  logger.info(`🔰 Onboarding session length enforced: 4 problems (user preference ${userSessionLength} will be respected after onboarding)`);
   
   // Apply user new problems cap with dynamic onboarding limit  
   const userMaxNewProblems = settings.numberofNewProblemsPerSession;
@@ -574,6 +604,19 @@ export async function buildAdaptiveSessionSettings() {
   // Initialize session state
   let sessionState = await initializeSessionState(sessionStateKey);
 
+  // Debug session state tracking
+  console.log(`🔍 Session state debug:`, {
+    numSessionsCompleted: sessionState.numSessionsCompleted,
+    focusDecisionOnboarding: focusDecision.onboarding,
+    sessionStateKeys: Object.keys(sessionState),
+    sessionState: sessionState
+  });
+  logger.info(`🔍 Session state debug:`, {
+    numSessionsCompleted: sessionState.numSessionsCompleted,
+    focusDecisionOnboarding: focusDecision.onboarding,
+    sessionStateKeys: Object.keys(sessionState)
+  });
+
   const performance = sessionState.lastPerformance || {};
   const accuracy = performance.accuracy ?? 0.5;
   const efficiencyScore = performance.efficiencyScore ?? 0.5;
@@ -593,7 +636,21 @@ export async function buildAdaptiveSessionSettings() {
   
   // Use coordinated focus decision (handles onboarding, performance, user preferences)
   let allowedTags = focusDecision.activeFocusTags;
-  const onboarding = focusDecision.onboarding;
+  const onboarding = focusDecision.onboarding || (sessionState.numSessionsCompleted || 0) < 3;
+  
+  console.log(`🔍 Onboarding decision debug:`, {
+    focusDecisionOnboarding: focusDecision.onboarding,
+    numSessionsCompleted: sessionState.numSessionsCompleted,
+    fallbackCheck: (sessionState.numSessionsCompleted || 0) < 3,
+    finalOnboarding: onboarding,
+    currentDifficultyCap: sessionState.currentDifficultyCap
+  });
+
+  // Failsafe: If FocusCoordinationService returns empty/invalid tags, use proven fallback
+  if (!allowedTags || allowedTags.length === 0) {
+    allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, 1) : ["array"];
+    logger.warn(`⚠️ FocusCoordinationService returned empty tags, using fallback: ${allowedTags}`);
+  }
   
   logger.info(`🎯 Focus Coordination Service decision:`, {
     activeFocusTags: allowedTags,
@@ -603,6 +660,10 @@ export async function buildAdaptiveSessionSettings() {
   });
 
   if (onboarding) {
+    // 🔰 ONBOARDING FIX: Ensure only 1 focus tag is used during onboarding
+    allowedTags = allowedTags.slice(0, 1);
+    logger.info(`🔰 Onboarding: Limited focus tags to: [${allowedTags.join(', ')}]`);
+    
     // Handle onboarding mode session parameters
     const onboardingResult = applyOnboardingSettings(settings, sessionState, allowedTags, focusDecision);
     sessionLength = onboardingResult.sessionLength;
@@ -635,6 +696,7 @@ export async function buildAdaptiveSessionSettings() {
     allowedTags,
     accuracy,
     efficiencyScore,
+    onboarding,
   });
 
   return {
@@ -644,6 +706,7 @@ export async function buildAdaptiveSessionSettings() {
     currentDifficultyCap: sessionState.currentDifficultyCap,
     userFocusAreas,
     sessionState,
+    isOnboarding: onboarding,
   };
 }
 
@@ -711,7 +774,7 @@ function _processAttempts(sessions) {
     const problemMap = new Map(problems.map((p) => [p.id, p]));
 
     for (let attempt of attempts) {
-      const problem = problemMap.get(attempt.problemId);
+      const problem = problemMap.get(attempt.problem_id);
       if (!problem) continue;
 
       const rating = problem.Rating || "Medium"; // fallback

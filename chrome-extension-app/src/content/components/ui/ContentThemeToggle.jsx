@@ -5,7 +5,13 @@ import { useTheme } from "../../../shared/provider/themeprovider";
 import { IconSun, IconMoon } from "@tabler/icons-react";
 
 export default function ContentThemeToggle() {
-  const { colorScheme, toggleColorScheme } = useTheme();
+  const themeContext = useTheme();
+  
+  if (!themeContext) {
+    return <div>Theme toggle unavailable</div>;
+  }
+  
+  const { colorScheme, toggleColorScheme } = themeContext;
 
   const options = [
     {

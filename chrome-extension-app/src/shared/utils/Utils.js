@@ -135,13 +135,13 @@ export async function clearOrRenameStoreField(
 }
 
 export function getDifficultyAllowanceForTag(data = null) {
-  // 🚨 Onboarding fallback - allow Easy and Medium for new users
+  // 🚨 ONBOARDING FIX: Prioritize Easy problems for 3 Easy + 1 Medium distribution
   if (
     !data ||
     typeof data.totalAttempts !== "number" ||
     data.totalAttempts < SessionLimits.getMinAttemptsForExperienced()
   ) {
-    return { Easy: 1.0, Medium: 0.8, Hard: 0 };
+    return { Easy: 1.0, Medium: 0.01, Hard: 0 }; // Extremely low Medium weight for 3 Easy + 1 Medium split
   }
 
   const successRate = data.successfulAttempts / data.totalAttempts;

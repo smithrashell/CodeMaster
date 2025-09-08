@@ -116,7 +116,7 @@ const _simulateCursorWithAttempts = (mockAttempts, mockIndex) => {
   }, 0);
 };
 
-const simulateEmptyCursor = (mockIndex) => {
+const _simulateEmptyCursor = (mockIndex) => {
   mockIndex.openCursor.mockImplementation(() => ({
     onsuccess: null,
     onerror: null,
@@ -197,16 +197,16 @@ const runEdgeCasesTests = () => {
 };
 
 describe("Leitner System", function() {
-  let mockDB;
-  let mockObjectStore;
-  let mockIndex;
+  let _mockDB;
+  let _mockObjectStore;
+  let _mockIndex;
 
   beforeEach(() => {
     jest.clearAllMocks();
     const mocks = setupMockDatabase();
-    mockDB = mocks.mockDB;
-    mockObjectStore = mocks.mockObjectStore;
-    mockIndex = mocks.mockIndex;
+    _mockDB = mocks.mockDB;
+    _mockObjectStore = mocks.mockObjectStore;
+    _mockIndex = mocks.mockIndex;
   });
 
   
@@ -217,7 +217,7 @@ describe("Leitner System", function() {
       
       // Create a fresh mock index for this test
       const localMockIndex = createMockIndex();
-      mockObjectStore.index.mockReturnValue(localMockIndex);
+      _mockObjectStore.index.mockReturnValue(localMockIndex);
       
       simulateCursorError(localMockIndex, "DB_ERROR");
 

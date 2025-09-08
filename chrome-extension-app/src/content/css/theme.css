@@ -716,35 +716,35 @@ body[data-theme="dark"] {
 
 /* ========= Global Scrollbar Theming ========= */
 
-/* Modern scrollbar theming for Webkit browsers (Chrome, Safari, Edge) */
-* {
+/* Modern scrollbar theming for Webkit browsers (Chrome, Safari, Edge) - SCOPED TO EXTENSION */
+.cm-extension * {
   scrollbar-width: thin;
   scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track);
 }
 
-/* Webkit scrollbar styling */
-*::-webkit-scrollbar {
+/* Webkit scrollbar styling - SCOPED TO EXTENSION */
+.cm-extension *::-webkit-scrollbar {
   width: var(--cm-scrollbar-width);
   height: var(--cm-scrollbar-width);
 }
 
-*::-webkit-scrollbar-track {
+.cm-extension *::-webkit-scrollbar-track {
   background: var(--cm-scrollbar-track);
   border-radius: 4px;
 }
 
-*::-webkit-scrollbar-thumb {
+.cm-extension *::-webkit-scrollbar-thumb {
   background: var(--cm-scrollbar-thumb);
   border-radius: 4px;
   border: 1px solid var(--cm-scrollbar-track);
   transition: background-color 0.2s ease;
 }
 
-*::-webkit-scrollbar-thumb:hover {
+.cm-extension *::-webkit-scrollbar-thumb:hover {
   background: var(--cm-scrollbar-thumb-hover);
 }
 
-*::-webkit-scrollbar-corner {
+.cm-extension *::-webkit-scrollbar-corner {
   background: var(--cm-scrollbar-track);
 }
 
@@ -791,25 +791,4 @@ body[data-theme="dark"] {
   background: var(--cm-scrollbar-thumb-hover) !important;
 }
 
-/* Body and html scrollbar theming */
-body, html {
-  scrollbar-width: thin;
-  scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track);
-}
-
-body::-webkit-scrollbar, html::-webkit-scrollbar {
-  width: var(--cm-scrollbar-width);
-}
-
-body::-webkit-scrollbar-track, html::-webkit-scrollbar-track {
-  background: var(--cm-scrollbar-track);
-}
-
-body::-webkit-scrollbar-thumb, html::-webkit-scrollbar-thumb {
-  background: var(--cm-scrollbar-thumb);
-  border-radius: 4px;
-}
-
-body::-webkit-scrollbar-thumb:hover, html::-webkit-scrollbar-thumb:hover {
-  background: var(--cm-scrollbar-thumb-hover);
-}
+/* Extension-specific scrollbar theming for components that need it */
