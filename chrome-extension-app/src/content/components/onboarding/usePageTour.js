@@ -15,6 +15,8 @@ export function usePageTour() {
   const { pathname } = useLocation();
   const [activeTour, setActiveTour] = useState(null);
   const [showTour, setShowTour] = useState(false);
+  
+  logger.info(`🎯 usePageTour: Hook initialized, pathname: "${pathname}"`);
 
   // Map route paths to tour IDs
   const getPageIdFromPath = useCallback((path) => {
@@ -39,7 +41,9 @@ export function usePageTour() {
   // Check and potentially show tour when route changes
   useEffect(() => {
     const checkAndShowTour = async () => {
+      logger.info(`🎯 usePageTour: Route changed to "${pathname}"`);
       const pageId = getPageIdFromPath(pathname);
+      logger.info(`🎯 usePageTour: Mapped to pageId "${pageId}"`);
       
       if (!pageId) {
         setActiveTour(null);
@@ -82,6 +86,11 @@ export function usePageTour() {
 
     checkAndShowTour();
   }, [pathname, getPageIdFromPath]);
+
+  // Debug: Log every pathname change
+  useEffect(() => {
+    logger.info(`🎯 usePageTour: pathname dependency changed to "${pathname}"`);
+  }, [pathname]);
 
   const handleTourComplete = useCallback(async () => {
     if (activeTour) {

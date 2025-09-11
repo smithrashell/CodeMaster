@@ -199,7 +199,7 @@ export const calculatePopoverPosition = (buttonRef, popoverWidth = 350, offset =
 
 // Helper function to handle mouse enter events
 export const handleMouseEnter = (e) => {
-  e.target.style.transform = "scale(1.05)";
+  e.target.style.transform = "scale(1.20)";
   e.target.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.2)";
 };
 

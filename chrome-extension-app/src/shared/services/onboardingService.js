@@ -307,6 +307,7 @@ export async function checkContentOnboardingStatus() {
         timer: false,
         probstat: false,
         settings: false,
+        timer_mini_tour: false,
       },
       lastActiveStep: null,
       resumeData: null,
@@ -349,6 +350,7 @@ export async function checkContentOnboardingStatus() {
         timer: false,
         probstat: false,
         settings: false,
+        timer_mini_tour: false,
       },
       lastActiveStep: null,
       resumeData: null,
@@ -366,8 +368,8 @@ export async function completeContentOnboarding() {
   }
 
   contentOnboardingRecord.isCompleted = true;
-  contentOnboardingRecord.currentStep = 10; // Updated total steps
-  contentOnboardingRecord.completedSteps = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  contentOnboardingRecord.currentStep = 9; // Back to original 8 steps 
+  contentOnboardingRecord.completedSteps = [1, 2, 3, 4, 5, 6, 7, 8];
   contentOnboardingRecord.completedAt = new Date().toISOString();
 
   // Mark all screens as completed
@@ -398,7 +400,7 @@ export async function updateContentOnboardingStep(
   if (!contentOnboardingRecord.completedSteps.includes(stepNumber)) {
     contentOnboardingRecord.completedSteps.push(stepNumber);
   }
-  contentOnboardingRecord.currentStep = Math.min(stepNumber + 1, 10);
+  contentOnboardingRecord.currentStep = Math.min(stepNumber + 1, 9);
   contentOnboardingRecord.lastActiveStep = stepNumber;
 
   // Update screen progress if provided
@@ -515,6 +517,7 @@ export async function resetContentOnboarding() {
         timer: false,
         probstat: false,
         settings: false,
+        timer_mini_tour: false,
       },
       lastActiveStep: null,
       resumeData: null,
@@ -533,8 +536,16 @@ export async function resetContentOnboarding() {
 export async function checkPageTourStatus(pageId) {
   try {
     logger.info(`🔍 ONBOARDING DEBUG: Checking tour status for page: ${pageId}`);
-    const contentOnboardingRecord = await checkContentOnboardingStatus();
+    
+    // Use direct database access to avoid recursive Chrome messaging
+    const contentOnboardingRecord = await dbGet("settings", "content_onboarding");
     logger.info(`📊 ONBOARDING DEBUG: Retrieved onboarding record:`, contentOnboardingRecord);
+    
+    // If no record exists, return false (not completed)
+    if (!contentOnboardingRecord) {
+      logger.info(`❌ ONBOARDING DEBUG: No onboarding record found, returning false for ${pageId}`);
+      return false;
+    }
     
     // Initialize pageProgress if it doesn't exist
     if (!contentOnboardingRecord.pageProgress) {
@@ -565,8 +576,32 @@ export async function markPageTourCompleted(pageId) {
     logger.info(`🎯 ONBOARDING DEBUG: Marking page tour completed for: ${pageId}`);
     logger.info("📞 ONBOARDING DEBUG: Using direct DB access");
     
-    const contentOnboardingRecord = await checkContentOnboardingStatus();
+    // Use direct database access to avoid recursive Chrome messaging
+    let contentOnboardingRecord = await dbGet("settings", "content_onboarding");
     logger.info(`📊 ONBOARDING DEBUG: Current record before update:`, contentOnboardingRecord);
+    
+    // If no record exists, create a minimal one
+    if (!contentOnboardingRecord) {
+      logger.info(`🆕 ONBOARDING DEBUG: Creating new onboarding record for page completion`);
+      contentOnboardingRecord = {
+        id: "content_onboarding",
+        isCompleted: false,
+        currentStep: 1,
+        completedSteps: [],
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        pageProgress: {
+          probgen: false,
+          probtime: false,
+          timer: false,
+          probstat: false,
+          settings: false,
+        },
+        lastActiveStep: null,
+        resumeData: null,
+      };
+      await dbAdd("settings", contentOnboardingRecord);
+    }
     
     // Initialize pageProgress if it doesn't exist
     if (!contentOnboardingRecord.pageProgress) {
@@ -600,9 +635,10 @@ export async function markPageTourCompleted(pageId) {
 
 export async function resetPageTour(pageId) {
   try {
-    const contentOnboardingRecord = await checkContentOnboardingStatus();
+    // Use direct database access to avoid recursive Chrome messaging
+    const contentOnboardingRecord = await dbGet("settings", "content_onboarding");
     
-    if (contentOnboardingRecord.pageProgress) {
+    if (contentOnboardingRecord && contentOnboardingRecord.pageProgress) {
       contentOnboardingRecord.pageProgress[pageId] = false;
       await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
       logger.info(`🔄 Page tour reset for: ${pageId}`);
@@ -617,18 +653,22 @@ export async function resetPageTour(pageId) {
 
 export async function resetAllPageTours() {
   try {
-    const contentOnboardingRecord = await checkContentOnboardingStatus();
+    // Use direct database access to avoid recursive Chrome messaging
+    const contentOnboardingRecord = await dbGet("settings", "content_onboarding");
     
-    contentOnboardingRecord.pageProgress = {
-      probgen: false,
-      probtime: false,
-      timer: false,
-      probstat: false,
-      settings: false,
-    };
+    if (contentOnboardingRecord) {
+      contentOnboardingRecord.pageProgress = {
+        probgen: false,
+        probtime: false,
+        timer: false,
+        probstat: false,
+        settings: false,
+      };
+      
+      await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
+      logger.info("🔄 All page tours reset");
+    }
     
-    await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
-    logger.info("🔄 All page tours reset");
     return contentOnboardingRecord;
   } catch (error) {
     logger.error("❌ Error resetting all page tours:", error);

@@ -6,9 +6,10 @@
 export class SmartPositioning {
   constructor(options = {}) {
     this.cardWidth = options.cardWidth || 280;
-    this.cardHeight = options.cardHeight || 200;
+    this.cardHeight = options.cardHeight || 300; // Increased to account for actual tour card content
     this.padding = options.padding || 20;
     this.arrowSize = options.arrowSize || 12;
+    this.minPaddingFromEdge = 10; // Minimum distance from viewport edge
   }
 
   /**
@@ -155,24 +156,37 @@ export class SmartPositioning {
       y: viewport.scrollY,
     };
 
+    // For small screens, use more aggressive padding
+    const dynamicPadding = viewport.width < 768 ? this.minPaddingFromEdge : this.padding;
+    const dynamicCardHeight = Math.min(this.cardHeight, viewport.height * 0.8); // Max 80% of viewport height
+
     // Check and adjust horizontal boundaries
-    if (left < scrollOffset.x + this.padding) {
-      left = scrollOffset.x + this.padding;
+    if (left < scrollOffset.x + dynamicPadding) {
+      left = scrollOffset.x + dynamicPadding;
     } else if (
       left + this.cardWidth >
-      scrollOffset.x + viewport.width - this.padding
+      scrollOffset.x + viewport.width - dynamicPadding
     ) {
-      left = scrollOffset.x + viewport.width - this.cardWidth - this.padding;
+      left = scrollOffset.x + viewport.width - this.cardWidth - dynamicPadding;
     }
 
-    // Check and adjust vertical boundaries
-    if (top < scrollOffset.y + this.padding) {
-      top = scrollOffset.y + this.padding;
-    } else if (
-      top + this.cardHeight >
-      scrollOffset.y + viewport.height - this.padding
-    ) {
-      top = scrollOffset.y + viewport.height - this.cardHeight - this.padding;
+    // Check and adjust vertical boundaries with more aggressive constraints for small screens
+    const topBoundary = scrollOffset.y + dynamicPadding;
+    const bottomBoundary = scrollOffset.y + viewport.height - dynamicCardHeight - dynamicPadding;
+
+    if (top < topBoundary) {
+      top = topBoundary;
+      // If we had to push down significantly, consider changing placement
+      if (placement === 'top') placement = 'bottom';
+    } else if (top > bottomBoundary) {
+      top = bottomBoundary;
+      // If we had to push up significantly, consider changing placement
+      if (placement === 'bottom') placement = 'top';
+    }
+
+    // Additional check for very small screens - force center if needed
+    if (viewport.height < 600 && (top + dynamicCardHeight > scrollOffset.y + viewport.height - 20)) {
+      return this.getCenterPosition();
     }
 
     return { top, left, placement };
