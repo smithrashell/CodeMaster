@@ -84,7 +84,7 @@ dbHelper.ensureIndex(store, indexName, keyPath);
 - `storeSessionAnalytics(analyticsData)` - Saves comprehensive session analysis
 - `getSessionAnalytics(sessionId)` - Retrieves detailed session metrics
 - `getAnalyticsTrends(timeframe)` - Gets performance trends over time
-- `generateSessionInsights(sessionId)` - Creates AI-generated insights
+- `generateSessionInsights(sessionId)` - Creates performance-based insights
 
 ### 🔍 **standard_problems.js**
 

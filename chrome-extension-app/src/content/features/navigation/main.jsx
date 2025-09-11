@@ -6,8 +6,8 @@ import { useNav } from "../../../shared/provider/navprovider.jsx";
 import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ContentOnboardingTour } from "../../components/onboarding";
-import { PageSpecificTour } from "../../components/onboarding/PageSpecificTour";
-import { usePageTour } from "../../components/onboarding/usePageTour";
+import { ProblemPageTimerTour } from "../../components/onboarding/ProblemPageTimerTour";
+// PageSpecificTour moved to App.jsx Router level to detect all route changes
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
 
@@ -352,10 +352,10 @@ const Main = () => {
   ); // Initialize with the current URL slug
   const [_settings, _setSettings] = useState(null);
   const [showContentOnboarding, setShowContentOnboarding] = useState(false);
-  const [_contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
+  const [contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
+  const [showTimerTour, setShowTimerTour] = useState(false);
   
-  // Page-specific tour management (restored from working commit 6ac6359)
-  const { showTour: showPageTour, tourConfig: pageTourConfig, onTourComplete: handlePageTourComplete, onTourClose: handlePageTourClose } = usePageTour();
+  // Page-specific tour management moved to App.jsx Router level
   
   // Content onboarding is now always enabled
   const FORCE_DISABLE_ONBOARDING = false;
@@ -417,21 +417,134 @@ const Main = () => {
     return cleanup;
   }, [handleUrlChange]); // Use memoized function
 
-  // Content onboarding handlers
-  const handleCompleteContentOnboarding = useCallback(async () => {
-    try {
-      await ChromeAPIErrorHandler.sendMessageWithRetry({
-        type: "completeContentOnboarding"
+  // Re-check main tour status when navigating to different pages
+  useEffect(() => {
+    const recheckMainTourStatus = async () => {
+      // Only recheck if main tour is currently showing
+      if (!showContentOnboarding) return;
+      
+      try {
+        // Use the already loaded status if available, otherwise fetch fresh
+        let mainTourStatus = contentOnboardingStatus;
+        if (!mainTourStatus || !Object.prototype.hasOwnProperty.call(mainTourStatus, 'isCompleted')) {
+          mainTourStatus = await ChromeAPIErrorHandler.sendMessageWithRetry({
+            type: "checkContentOnboardingStatus"
+          });
+        }
+        
+        if (mainTourStatus && mainTourStatus.isCompleted) {
+          logger.info("🎯 Main tour was completed, hiding it now");
+          setShowContentOnboarding(false);
+        }
+      } catch (error) {
+        logger.error("Error rechecking main tour status:", error);
+      }
+    };
+
+    recheckMainTourStatus();
+  }, [pathname, showContentOnboarding, contentOnboardingStatus]); // Re-check when page changes
+
+  // Timer tour logic - show on problem pages if main tour completed and timer tour not completed
+  useEffect(() => {
+    const checkTimerTour = async () => {
+      // Only check if we're on a problem page
+      const url = window.location.href;
+      const isProblemPage = url.includes('/problems/') && !url.includes('/problemset/');
+      
+      logger.info("🕐 Timer tour check:", {
+        url,
+        isProblemPage,
+        showContentOnboarding,
+        pathname,
+        contentOnboardingStatus: contentOnboardingStatus ? {
+          isCompleted: contentOnboardingStatus.isCompleted,
+          currentStep: contentOnboardingStatus.currentStep
+        } : null
       });
-      setShowContentOnboarding(false);
-      setContentOnboardingStatus((prev) => ({ ...prev, isCompleted: true }));
-    } catch (error) {
-      logger.error("Error completing content onboarding:", error);
-    }
+      
+      if (!isProblemPage) {
+        setShowTimerTour(false);
+        return;
+      }
+
+      // Use the already loaded contentOnboardingStatus if available
+      let mainTourStatus = contentOnboardingStatus;
+      if (!mainTourStatus) {
+        try {
+          mainTourStatus = await ChromeAPIErrorHandler.sendMessageWithRetry({
+            type: "checkContentOnboardingStatus"
+          });
+        } catch (error) {
+          logger.error("Error checking main tour status:", error);
+          setShowTimerTour(false);
+          return;
+        }
+      }
+
+      // Only show timer tour if main tour is completed
+      if (!mainTourStatus || !mainTourStatus.isCompleted) {
+        logger.info("🕐 Main tour not completed yet, not showing timer tour", {
+          isCompleted: mainTourStatus?.isCompleted,
+          currentStep: mainTourStatus?.currentStep
+        });
+        setShowTimerTour(false);
+        return;
+      }
+
+      // Check if timer tour is completed
+      try {
+        const isTimerTourCompleted = await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'checkPageTourStatus',
+          pageId: 'timer_mini_tour'
+        });
+
+        if (!isTimerTourCompleted) {
+          logger.info("🕐 Main tour completed, showing timer mini-tour on problem page");
+          setShowTimerTour(true);
+        } else {
+          logger.info("🕐 Timer tour already completed");
+          setShowTimerTour(false);
+        }
+      } catch (error) {
+        logger.error("Error checking timer tour completion status:", error);
+        setShowTimerTour(false);
+      }
+    };
+
+    // Add a small delay to let state settle
+    const timeoutId = setTimeout(() => {
+      checkTimerTour();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [pathname, contentOnboardingStatus]); // Re-check when page or main tour status changes
+
+  // Content onboarding handlers
+  const handleCompleteContentOnboarding = useCallback(() => {
+    setShowContentOnboarding(false);
+    logger.info("Content onboarding completed");
   }, []);
 
   const handleCloseContentOnboarding = useCallback(() => {
     setShowContentOnboarding(false);
+  }, []);
+
+  // Timer tour handlers
+  const handleCompleteTimerTour = useCallback(async () => {
+    try {
+      await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'markPageTourCompleted',
+        pageId: 'timer_mini_tour'
+      });
+      setShowTimerTour(false);
+      logger.info("🕐 Timer tour completed");
+    } catch (error) {
+      logger.error("Error completing timer tour:", error);
+    }
+  }, []);
+
+  const handleCloseTimerTour = useCallback(() => {
+    setShowTimerTour(false);
   }, []);
 
   const shouldShowNav = pathname === "/";
@@ -463,16 +576,16 @@ const Main = () => {
         />
       )}
 
-      {/* Page-Specific Tours (restored from working commit 6ac6359) */}
-      {pageTourConfig && (
-        <PageSpecificTour
-          tourId={pageTourConfig.id}
-          tourSteps={pageTourConfig.steps}
-          isVisible={showPageTour}
-          onComplete={handlePageTourComplete}
-          onClose={handlePageTourClose}
+      {/* Timer Mini-Tour for Problem Pages */}
+      {!FORCE_DISABLE_ONBOARDING && (
+        <ProblemPageTimerTour
+          isVisible={showTimerTour}
+          onComplete={handleCompleteTimerTour}
+          onClose={handleCloseTimerTour}
         />
       )}
+
+      {/* Page-Specific Tours moved to App.jsx Router level */}
     </div>
   );
 };

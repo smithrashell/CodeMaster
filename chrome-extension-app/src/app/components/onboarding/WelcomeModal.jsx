@@ -21,6 +21,9 @@ import {
   IconChevronRight,
   IconChevronLeft,
   IconCheck,
+  IconChartBar,
+  IconTarget,
+  IconRefresh,
 } from "@tabler/icons-react";
 import { BrainIcon } from "../../../shared/components/ui/Icons";
 
@@ -34,6 +37,11 @@ const ONBOARDING_STEPS = [
     title: "Discover Core Features",
     subtitle: "Everything you need to master algorithms",
     content: "FeaturesStep",
+  },
+  {
+    title: "Your Dashboard",
+    subtitle: "Understanding your progress and analytics",
+    content: "DashboardStep",
   },
   {
     title: "Your First Session",
@@ -77,7 +85,7 @@ function WelcomeStep() {
                 Adaptive sessions that learn from your mistakes
               </List.Item>
               <List.Item>
-                Spaced repetition to ensure long-term retention
+                Pattern ladder progression to build strong foundations
               </List.Item>
               <List.Item>Pattern recognition training for interviews</List.Item>
               <List.Item>Real-time strategy hints and explanations</List.Item>
@@ -115,7 +123,7 @@ function FeaturesStep() {
       icon: IconCards,
       title: "Review",
       description:
-        "Spaced repetition flashcards for algorithm patterns and concepts",
+        "Pattern recognition training through problem categorization and analysis",
       color: "purple",
     },
   ];
@@ -154,6 +162,75 @@ function FeaturesStep() {
       <Text size="sm" ta="center" color="dimmed">
         Each section adapts to your learning style and progress level
       </Text>
+    </Stack>
+  );
+}
+
+function DashboardStep() {
+  return (
+    <Stack spacing="md">
+      <Text ta="center" color="dimmed" size="sm">
+        Your dashboard drives your personalized learning experience:
+      </Text>
+
+      <Stack spacing="sm">
+        <Card withBorder p="sm">
+          <Group spacing="sm" align="flex-start">
+            <ThemeIcon size={32} radius="md" color="orange" variant="light">
+              <IconTarget size={16} />
+            </ThemeIcon>
+            <Stack spacing={2} style={{ flex: 1 }}>
+              <Text fw={500} size="sm">Focus Areas & Session Creation</Text>
+              <Text size="xs" color="dimmed">
+                Your focus areas automatically determine which problems appear in your next session. 
+                Struggling with arrays? You&apos;ll get more array problems. Mastered trees? Less tree practice, more variety.
+              </Text>
+            </Stack>
+          </Group>
+        </Card>
+
+        <Card withBorder p="sm">
+          <Group spacing="sm" align="flex-start">
+            <ThemeIcon size={32} radius="md" color="blue" variant="light">
+              <IconChartBar size={16} />
+            </ThemeIcon>
+            <Stack spacing={2} style={{ flex: 1 }}>
+              <Text fw={500} size="sm">Performance Metrics</Text>
+              <Text size="xs" color="dimmed">
+                Success rates and timing data help CodeMaster adjust difficulty. 
+                High success rate = harder problems. Slow solving time = more practice at that level.
+              </Text>
+            </Stack>
+          </Group>
+        </Card>
+
+        <Card withBorder p="sm">
+          <Group spacing="sm" align="flex-start">
+            <ThemeIcon size={32} radius="md" color="green" variant="light">
+              <IconRefresh size={16} />
+            </ThemeIcon>
+            <Stack spacing={2} style={{ flex: 1 }}>
+              <Text fw={500} size="sm">Adaptive Learning</Text>
+              <Text size="xs" color="dimmed">
+                Every problem you complete updates your dashboard, which immediately improves 
+                future session recommendations. It&apos;s a continuous learning loop.
+              </Text>
+            </Stack>
+          </Group>
+        </Card>
+      </Stack>
+
+      <Card withBorder p="sm" style={{ backgroundColor: 'var(--mantine-color-blue-0, #e7f5ff)' }}>
+        <Stack spacing={4}>
+          <Text fw={500} size="sm" ta="center" color="blue">
+            💡 Key Insight
+          </Text>
+          <Text size="xs" ta="center" color="blue">
+            Your dashboard isn&apos;t just for tracking - it&apos;s the brain that personalizes every session. 
+            The more you practice, the smarter your recommendations become!
+          </Text>
+        </Stack>
+      </Card>
     </Stack>
   );
 }
@@ -268,7 +345,7 @@ function CompletionStep() {
                 Practice consistently - even 15 minutes daily helps
               </List.Item>
               <List.Item>
-                Don&apos;t skip the review sessions - they boost retention
+                Review solved problems to reinforce learned patterns
               </List.Item>
               <List.Item>
                 Use hints strategically to learn new patterns
@@ -314,6 +391,8 @@ export function WelcomeModal({ opened, onClose, onComplete }) {
         return <WelcomeStep />;
       case "FeaturesStep":
         return <FeaturesStep />;
+      case "DashboardStep":
+        return <DashboardStep />;
       case "SessionStep":
         return <SessionStep />;
       case "CompletionStep":
@@ -373,7 +452,7 @@ export function WelcomeModal({ opened, onClose, onComplete }) {
           </Button>
 
           <Button
-            rightIcon={
+            rightSection={
               currentStep === ONBOARDING_STEPS.length - 1 ? (
                 <IconCheck size={16} />
               ) : (

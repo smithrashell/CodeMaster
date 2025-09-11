@@ -18,7 +18,7 @@ const StrategyHintContent = ({ strategy }) => {
   }
 
   return (
-    <div className="tag-strategy-hint expanded">
+    <div id="tour-strategy-dropdown" className="tag-strategy-hint expanded">
       <div className="tag-strategy-hint-content">
         <div className="tag-strategy-hint-header">
           <span className="tag-strategy-hint-title">
@@ -458,7 +458,7 @@ function TagStrategyGrid({
   const expandedRowIndex = getExpandedTagRowIndex();
 
   return (
-    <div className={`problem-sidebar-section tag-strategy-container ${className}`}>
+    <div id="tour-tag-strategy-section" className={`problem-sidebar-section tag-strategy-container ${className}`}>
       <TagSectionHeader 
         strategiesCount={Object.keys(strategies).length}
         isInterviewMode={isInterviewMode}

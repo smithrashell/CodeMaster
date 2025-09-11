@@ -16,6 +16,8 @@ import {
   TimerErrorFallback,
   GenericErrorFallback,
 } from "../shared/components/ErrorFallback";
+import { PageSpecificTour } from "./components/onboarding/PageSpecificTour";
+import { usePageTour } from "./components/onboarding/usePageTour";
 
 const handleEmergencyReset = () => {
   logger.warn("🚑 Emergency reset triggered by user");
@@ -59,34 +61,51 @@ const EmergencyMenuButton = () => (
 
 const useBackgroundScriptHealth = () => {
   const [backgroundScriptHealthy, setBackgroundScriptHealthy] = React.useState(true);
+  const [failureCount, setFailureCount] = React.useState(0);
 
   React.useEffect(() => {
     const checkBackgroundScriptHealth = () => {
       const healthCheckTimeout = setTimeout(() => {
         logger.warn("🚨 Background script health check timeout - script may be unresponsive");
-        setBackgroundScriptHealthy(false);
-      }, 3000);
+        setFailureCount(prev => prev + 1);
+      }, 5000); // Increased timeout from 3s to 5s
 
       chrome.runtime.sendMessage({ type: "backgroundScriptHealth" }, (response) => {
         clearTimeout(healthCheckTimeout);
         
         if (chrome.runtime.lastError) {
-          logger.error("❌ Background script health check failed:", chrome.runtime.lastError);
-          setBackgroundScriptHealthy(false);
+          // Log as warning instead of error for temporary issues
+          logger.warn("⚠️ Background script temporarily unreachable:", chrome.runtime.lastError.message);
+          setFailureCount(prev => prev + 1);
         } else if (response?.status === "success") {
-          setBackgroundScriptHealthy(true);
+          // Reset failure count on successful response
+          setFailureCount(0);
+          if (!backgroundScriptHealthy) {
+            logger.info("✅ Background script connection restored");
+            setBackgroundScriptHealthy(true);
+          }
         } else {
           logger.warn("⚠️ Background script health check returned unexpected response:", response);
-          setBackgroundScriptHealthy(false);
+          setFailureCount(prev => prev + 1);
         }
       });
     };
 
     checkBackgroundScriptHealth();
-    const healthCheckInterval = setInterval(checkBackgroundScriptHealth, 30000);
+    const healthCheckInterval = setInterval(checkBackgroundScriptHealth, 15000); // Check more frequently (15s instead of 30s)
     
     return () => clearInterval(healthCheckInterval);
-  }, []);
+  }, [backgroundScriptHealthy]);
+
+  // Only show error banner after 3 consecutive failures (avoid false alarms)
+  React.useEffect(() => {
+    if (failureCount >= 3) {
+      logger.error("❌ Background script persistently unreachable after 3 attempts");
+      setBackgroundScriptHealthy(false);
+    } else if (failureCount === 0) {
+      setBackgroundScriptHealthy(true);
+    }
+  }, [failureCount]);
 
   return backgroundScriptHealthy;
 };
@@ -157,6 +176,29 @@ function MenuButtonContainer() {
   );
 }
 
+// Component that uses React Router hooks - must be inside AppProviders
+const PageTourProvider = () => {
+  // Page-specific tour management - now has access to Router context
+  const { showTour: showPageTour, tourConfig: pageTourConfig, onTourComplete: handlePageTourComplete, onTourClose: handlePageTourClose } = usePageTour();
+
+  return (
+    <>
+      <MenuButtonContainer />
+      
+      {/* Page-Specific Tours - now with proper Router context */}
+      {pageTourConfig && (
+        <PageSpecificTour
+          tourId={pageTourConfig.id}
+          tourSteps={pageTourConfig.steps}
+          isVisible={showPageTour}
+          onComplete={handlePageTourComplete}
+          onClose={handlePageTourClose}
+        />
+      )}
+    </>
+  );
+};
+
 const Router = () => {
   return (
     <ErrorBoundary
@@ -169,7 +211,8 @@ const Router = () => {
       }}
     >
       <AppProviders>
-        <MenuButtonContainer />
+        <PageTourProvider />
+        
         <Routes>
           <Route
             path="/"

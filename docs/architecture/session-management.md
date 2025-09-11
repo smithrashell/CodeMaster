@@ -11,10 +11,54 @@ The fundamental rule governing session management:
 **Only ONE session of each type can be active (in_progress or draft) at any time.**
 
 Session types include:
-- `adaptive` - Regular adaptive learning sessions
-- `interview` - Interview practice sessions  
-- `review` - Spaced repetition review sessions
-- `focused` - Tag-specific focused practice
+- `standard` - Regular adaptive learning sessions with spaced repetition
+- `interview-like` - Interview preparation with mild pressure and limited hints
+- `full-interview` - Realistic interview simulation with strict timing
+- `tracking` - Background sessions for independent problem exploration
+
+---
+
+## 📋 Session Types Overview
+
+### Standard Sessions
+**Purpose:** Primary learning mode with adaptive difficulty and spaced repetition
+- **Problem Selection:** Mix of new problems + scheduled reviews
+- **Duration:** Adaptive (typically 5-8 problems)
+- **Features:** Full hint system, adaptive timing, progress tracking
+- **Status Management:** `draft` → `in_progress` → `completed`
+
+### Interview Sessions
+**Purpose:** Interview preparation with realistic constraints
+
+#### Interview-Like Mode
+- **Readiness:** 70%+ accuracy, 3+ mastered tags
+- **Constraints:** Max 2 hints, 1.5x time allowance
+- **Problems:** 3-5 problems, mastery-based selection
+- **Focus:** Building interview confidence
+
+#### Full-Interview Mode  
+- **Readiness:** 80%+ accuracy, 70%+ transfer score
+- **Constraints:** No hints, strict interview timing
+- **Problems:** 3-4 problems, realistic difficulty mix
+- **Focus:** Real interview simulation
+
+### Tracking Sessions
+**Purpose:** Background capture of independent problem exploration
+- **Creation:** Automatic when no guided session matches
+- **Duration:** Auto-rotating (2hr inactivity, 12 attempts, daily boundary)
+- **Problems:** Any problems solved independently
+- **Features:** Focus determination on completion, session generation insights
+
+### Session Type Compatibility
+```javascript
+// Compatible session types (can be resumed interchangeably)
+const compatibleModes = {
+  'standard': ['tracking'],           // Standard compatible with tracking
+  'interview-like': [],               // Interview modes are isolated
+  'full-interview': [],              // Each interview mode is separate
+  'tracking': ['standard']            // Tracking compatible with standard
+};
+```
 
 ---
 
@@ -208,27 +252,21 @@ const session = await HabitLearningCircuitBreaker.safeExecute(
 When a user attempts a problem, the system must determine which session (if any) the attempt belongs to.
 
 ### Attribution Priority
-1. **Guided Sessions**: Check if problem exists in any active guided session
-2. **Interview Sessions**: Special handling for interview-aware attribution  
-3. **Tracking Sessions**: Fallback for unguided practice
+1. **Guided Sessions**: Check if problem exists in any active standard/interview session
+2. **Problem Matching**: Verify current problem matches session's scheduled problems
+3. **Tracking Sessions**: Fallback for independent problem exploration
 
 ### Implementation Flow
 ```javascript
 // Session Attribution Engine
-const attributeAttemptToSession = async (problemId) => {
-  // 1. Check guided sessions first (highest priority)
-  const guidedSession = await findGuidedSessionForProblem(problemId);
-  if (guidedSession) {
+const attributeAttemptToSession = async (problem) => {
+  // 1. Check for active guided session (standard/interview modes)
+  const guidedSession = await getActiveGuidedSession();
+  if (guidedSession && isMatchingProblem(guidedSession, problem)) {
     return { sessionId: guidedSession.id, type: 'guided' };
   }
   
-  // 2. Check interview sessions
-  const interviewSession = await findInterviewSessionForProblem(problemId);
-  if (interviewSession) {
-    return { sessionId: interviewSession.id, type: 'interview' };
-  }
-  
-  // 3. Create/use tracking session (fallback)
+  // 2. Fallback to tracking session (independent problem solving)
   const trackingSession = await getOrCreateTrackingSession();
   return { sessionId: trackingSession.id, type: 'tracking' };
 };
