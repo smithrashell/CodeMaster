@@ -2,60 +2,6 @@ import React from "react";
 import { createButtonStyles } from "./buttonStyles";
 import { createHoverHandlers } from "./buttonHoverHandlers";
 
-// Size variants
-const _sizeStyles = {
-  sm: {
-    fontSize: "12px",
-    padding: "6px 12px",
-    height: "28px",
-    minWidth: "60px",
-  },
-  md: {
-    fontSize: "14px", 
-    padding: "8px 16px",
-    height: "32px",
-    minWidth: "80px",
-  },
-  lg: {
-    fontSize: "16px",
-    padding: "10px 20px", 
-    height: "40px",
-    minWidth: "100px",
-  },
-};
-
-// Variant styles
-const _variantStyles = {
-  primary: {
-    backgroundColor: "#4c6ef5",
-    color: "white",
-  },
-  secondary: {
-    backgroundColor: "#f1f3f4",
-    color: "#495057",
-  },
-  ghost: {
-    backgroundColor: "transparent",
-    color: "white",
-    border: "1px solid rgba(255, 255, 255, 0.3)",
-  },
-  danger: {
-    backgroundColor: "#fa5252",
-    color: "white",
-  },
-};
-
-// Hover styles
-const _hoverStyles = {
-  primary: { backgroundColor: "#364fc7" },
-  secondary: { backgroundColor: "#e9ecef" },
-  ghost: { 
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    borderColor: "rgba(255, 255, 255, 0.5)"
-  },
-  danger: { backgroundColor: "#e03131" },
-};
-
 /**
  * Simple Button component using pure HTML/CSS (no Mantine dependencies)
  * Designed to avoid styling conflicts and provide clean, readable buttons

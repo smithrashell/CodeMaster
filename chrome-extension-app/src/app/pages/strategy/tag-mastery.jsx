@@ -1,5 +1,6 @@
 import React from "react";
 import { Container, Grid, Card, Title, Text, Group, Button } from "@mantine/core";
+import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
 import MasteryDashboard from "../../components/analytics/MasteryDashboard.jsx";
 
@@ -32,9 +33,19 @@ function Kpis({ items }) {
 }
 
 export function TagMastery() {
-  const { data: appState } = usePageData('tag-mastery');
+  const { data: appState, loading, error, refresh } = usePageData('tag-mastery');
   // Use real mastery data from services
   const masteryData = appState || {};
+
+  if (loading) return <Container size="xl" p="md"><Text>Loading tag mastery data...</Text></Container>;
+  if (error) return (
+    <Container size="xl" p="md">
+      <Text c="red">Error loading tag mastery data: {error.message}</Text>
+      <Button leftSection={<IconRefresh size={16} />} onClick={refresh} mt="md">
+        Retry
+      </Button>
+    </Container>
+  );
   
   // Check if we have actual data to display
   const hasData = masteryData.masteryData && masteryData.masteryData.length > 0;
@@ -59,9 +70,19 @@ export function TagMastery() {
 
   return (
     <Container size="xl" py="md">
-      <Title order={2} mb="md" style={{ color: "var(--cm-text)" }}>
-        Tag Mastery Analytics
-      </Title>
+      <Group justify="space-between" mb="md">
+        <Title order={2} style={{ color: "var(--cm-text)" }}>
+          Tag Mastery Analytics
+        </Title>
+        <Button 
+          leftSection={<IconRefresh size={16} />} 
+          variant="light" 
+          onClick={refresh}
+          size="sm"
+        >
+          Refresh
+        </Button>
+      </Group>
       
       {hasData ? (
         <>

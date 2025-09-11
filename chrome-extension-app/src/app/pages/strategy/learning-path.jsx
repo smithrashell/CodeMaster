@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Container, Grid, Card } from "@mantine/core";
+import { Container, Grid, Card, Title, Text, Group, Button } from "@mantine/core";
+import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
 import { useLearningPathData } from "../../hooks/useLearningPathData.js";
 import LearningPathVisualization from "../../components/learning/LearningPathVisualization.jsx";
@@ -12,12 +13,34 @@ import MasteryStatus from "../../components/learning/MasteryStatus.jsx";
 import LearningEfficiencyAnalytics from "../../components/learning/LearningEfficiencyAnalytics.jsx";
 
 export function LearningPath() {
-  const { data: appState } = usePageData('learning-path');
+  const { data: appState, loading, error, refresh } = usePageData('learning-path');
   const { pathData } = useLearningPathData(appState);
   const [selectedTag, setSelectedTag] = useState(null);
 
+  if (loading) return <Container size="xl" p="md"><Text>Loading learning path data...</Text></Container>;
+  if (error) return (
+    <Container size="xl" p="md">
+      <Text c="red">Error loading learning path data: {error.message}</Text>
+      <Button leftSection={<IconRefresh size={16} />} onClick={refresh} mt="md">
+        Retry
+      </Button>
+    </Container>
+  );
+
   return (
     <Container size="xl" p="md">
+      <Group justify="space-between" mb="md">
+        <Title order={2}>Learning Path Visualization</Title>
+        <Button 
+          leftSection={<IconRefresh size={16} />} 
+          variant="light" 
+          onClick={refresh}
+          size="sm"
+        >
+          Refresh
+        </Button>
+      </Group>
+      
       <Grid gutter="md">
         {/* Visual Learning Path */}
         <Grid.Col span={8}>

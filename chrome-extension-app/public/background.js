@@ -470,7 +470,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
       
       case "checkPageTourStatus":
-        checkPageTourStatus(request.pageKey)
+        checkPageTourStatus(request.pageId)
           .then(sendResponse)
           .catch((error) => {
             console.error("❌ Error checking page tour status:", error);
@@ -480,7 +480,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
       
       case "markPageTourCompleted":
-        markPageTourCompleted(request.pageKey)
+        markPageTourCompleted(request.pageId)
           .then(sendResponse)
           .catch((error) => {
             console.error("❌ Error marking page tour completed:", error);
@@ -490,7 +490,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
       
       case "resetPageTour":
-        resetPageTour(request.pageKey)
+        resetPageTour(request.pageId)
           .then(sendResponse)
           .catch((error) => {
             console.error("❌ Error resetting page tour:", error);

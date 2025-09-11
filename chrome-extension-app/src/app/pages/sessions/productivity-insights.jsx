@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Container, Title, Text, Stack, Group, SimpleGrid, Select } from "@mantine/core";
+import { Container, Title, Text, Stack, Group, SimpleGrid, Select, Button } from "@mantine/core";
+import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
 import { useProductivityData } from "../../hooks/useProductivityData";
 import { useProductivityInsights } from "../../hooks/useProductivityInsights";
@@ -9,7 +10,7 @@ import { RecommendationsCard } from "../../components/productivity/Recommendatio
 import { ProductivityCharts } from "../../components/productivity/ProductivityCharts";
 
 export function ProductivityInsights() {
-  const { data: appState, loading, error} = usePageData('productivity-insights');
+  const { data: appState, loading, error, refresh} = usePageData('productivity-insights');
   const [timeRange, setTimeRange] = useState("Last 7 days");
 
   // Use custom hooks for data processing
@@ -17,7 +18,14 @@ export function ProductivityInsights() {
   const insights = useProductivityInsights(appState, productivityData, totalSessions);
 
   if (loading) return <Container size="xl" p="md"><Text>Loading productivity insights...</Text></Container>;
-  if (error) return <Container size="xl" p="md"><Text c="red">Error loading productivity data: {error.message}</Text></Container>;
+  if (error) return (
+    <Container size="xl" p="md">
+      <Text c="red">Error loading productivity data: {error.message}</Text>
+      <Button leftSection={<IconRefresh size={16} />} onClick={refresh} mt="md">
+        Retry
+      </Button>
+    </Container>
+  );
 
   return (
     <Container size="xl" p="md">
@@ -32,6 +40,14 @@ export function ProductivityInsights() {
               value={timeRange}
               onChange={setTimeRange}
             />
+            <Button 
+              leftSection={<IconRefresh size={16} />} 
+              variant="light" 
+              onClick={refresh}
+              size="sm"
+            >
+              Refresh
+            </Button>
           </Group>
         </Group>
 

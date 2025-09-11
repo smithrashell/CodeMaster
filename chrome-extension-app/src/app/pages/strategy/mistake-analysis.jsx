@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Container, Grid, Card, Title, Text, Stack, Group, Badge, Button, Box } from "@mantine/core";
+import { IconRefresh } from "@tabler/icons-react";
 import { useThemeColors } from "../../../shared/hooks/useThemeColors";
 import { usePageData } from "../../hooks/usePageData";
 
@@ -508,7 +509,7 @@ function RecentSessionFeedbackCard({ insights, showMore, onToggleShow }) {
 }
 
 export function MistakeAnalysis() {
-  const { data: appState } = usePageData('mistake-analysis');
+  const { data: appState, loading, error, refresh } = usePageData('mistake-analysis');
   const _colors = useThemeColors();
   
   const {
@@ -553,12 +554,34 @@ export function MistakeAnalysis() {
   const watchList = strugglingTags.filter(t => t.progress >= 30 && t.progress < 50);
   const _healthy = strugglingTags.filter(t => t.progress >= 50);
 
+  if (loading) return <Container size="lg" p="xl"><Text>Loading mistake analysis data...</Text></Container>;
+  if (error) return (
+    <Container size="lg" p="xl">
+      <Text c="red">Error loading mistake analysis data: {error.message}</Text>
+      <Button leftSection={<IconRefresh size={16} />} onClick={refresh} mt="md">
+        Retry
+      </Button>
+    </Container>
+  );
+
   return (
     <Container size="lg" p="xl">
-      <Title order={2} mb="xs" c="var(--text)">Mistake Analysis & Improvement</Title>
-      <Text c="var(--muted)" size="sm" mb="xl">
-        Identify patterns in your mistakes and get targeted recommendations for improvement
-      </Text>
+      <Group justify="space-between" mb="md">
+        <div>
+          <Title order={2} mb="xs" c="var(--text)">Mistake Analysis & Improvement</Title>
+          <Text c="var(--muted)" size="sm">
+            Identify patterns in your mistakes and get targeted recommendations for improvement
+          </Text>
+        </div>
+        <Button 
+          leftSection={<IconRefresh size={16} />} 
+          variant="light" 
+          onClick={refresh}
+          size="sm"
+        >
+          Refresh
+        </Button>
+      </Group>
 
       {/* Summary Stats - Moved to Top */}
       <Section title="📊 Mistake Analysis Summary">

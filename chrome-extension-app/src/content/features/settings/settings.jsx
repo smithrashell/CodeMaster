@@ -7,7 +7,6 @@ import Switch from '../../components/ui/Switch.jsx';
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
-import ContentThemeToggle from "../../components/ui/ContentThemeToggle.jsx";
 import { useChromeMessage, clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
@@ -570,6 +569,7 @@ const RemindersSection = ({ settings, setSettings }) => {
 // Save Button Component
 const SaveSettingsButton = ({ workingSettings, handleSave }) => (
   <Button 
+    id="save-settings-button"
     onClick={() => handleSave(workingSettings)} 
     size="lg"
     style={{
@@ -835,13 +835,6 @@ const Settings = () => {
           setSettings={setSettings} 
         />
 
-        {/* Theme Toggle */}
-        <div className="cm-form-group">
-          <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
-            Theme
-          </div>
-          <ContentThemeToggle />
-        </div>
 
         <SaveSettingsButton 
           workingSettings={workingSettings} 

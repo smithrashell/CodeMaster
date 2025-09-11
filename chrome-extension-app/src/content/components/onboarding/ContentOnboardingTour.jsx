@@ -26,6 +26,8 @@ import { smartPositioning } from "./SmartPositioning";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
 
+
+
 // Theme-aware SimpleButton for the tour
 const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onClick, children, style = {}, ...props }) => {
   // Get current theme
@@ -41,30 +43,66 @@ const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onCl
     ...themeAwareVariants[variant],
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.6 : 1,
+    outline: 'none', // Remove outline
+    border: variant === 'ghost' ? 'none' : (themeAwareVariants[variant]?.border || '1px solid transparent'),
     ...style,
+    // Override color last to ensure it takes precedence
+    color: variant === 'ghost' ? '#1a1a1a' : (variant === 'primary' ? '#ffffff' : '#1a1a1a'),
   };
 
   const handleMouseEnter = (e) => {
     if (disabled) return;
+    // Ensure we target the button element, not child elements
+    const button = e.currentTarget;
     if (variant === 'ghost') {
-      e.target.style.backgroundColor = isDark ? "rgba(201, 201, 201, 0.1)" : "rgba(73, 80, 87, 0.1)";
-      e.target.style.borderColor = isDark ? "rgba(201, 201, 201, 0.5)" : "rgba(73, 80, 87, 0.5)";
+      button.style.backgroundColor = "rgba(26, 26, 26, 0.1)";
+      button.style.color = '#1a1a1a';
+      button.style.border = 'none';
+      // Also update icon color
+      const icons = button.querySelectorAll('svg');
+      icons.forEach(icon => {
+        icon.style.color = '#1a1a1a';
+        icon.style.fill = '#1a1a1a';
+      });
     } else if (variant === 'primary') {
-      e.target.style.backgroundColor = "#364fc7";
+      button.style.backgroundColor = "#364fc7";
+      button.style.color = '#ffffff';
+      // Also update icon color
+      const icons = button.querySelectorAll('svg');
+      icons.forEach(icon => {
+        icon.style.color = '#ffffff';
+        icon.style.fill = '#ffffff';
+      });
     } else if (variant === 'secondary') {
-      e.target.style.backgroundColor = isDark ? "#495057" : "#e9ecef";
+      button.style.backgroundColor = isDark ? "#495057" : "#e9ecef";
     }
   };
 
   const handleMouseLeave = (e) => {
     if (disabled) return;
+    // Ensure we target the button element, not child elements
+    const button = e.currentTarget;
     if (variant === 'ghost') {
-      e.target.style.backgroundColor = "transparent";
-      e.target.style.borderColor = isDark ? "rgba(201, 201, 201, 0.3)" : "rgba(73, 80, 87, 0.3)";
+      button.style.backgroundColor = "transparent";
+      button.style.color = '#1a1a1a';
+      button.style.border = 'none';
+      // Also update icon color
+      const icons = button.querySelectorAll('svg');
+      icons.forEach(icon => {
+        icon.style.color = '#1a1a1a';
+        icon.style.fill = '#1a1a1a';
+      });
     } else if (variant === 'primary') {
-      e.target.style.backgroundColor = "#4c6ef5";
+      button.style.backgroundColor = "#4c6ef5";
+      button.style.color = '#ffffff';
+      // Also update icon color
+      const icons = button.querySelectorAll('svg');
+      icons.forEach(icon => {
+        icon.style.color = '#ffffff';
+        icon.style.fill = '#ffffff';
+      });
     } else if (variant === 'secondary') {
-      e.target.style.backgroundColor = isDark ? "#373a40" : "#f1f3f4";
+      button.style.backgroundColor = isDark ? "#373a40" : "#f1f3f4";
     }
   };
 
@@ -148,14 +186,24 @@ const TourCardContent = ({ currentStepData, getStepIcon }) => {
       }}>
         {getStepIcon()}
       </div>
-        <Text weight={600} size="sm" margin="0px 0px 0px 8px" style={{ lineHeight: 1.3 }} m>
+        <Text 
+          weight={600} 
+          size="sm" 
+          margin="0px 0px 0px 8px" 
+          className="tour-text"
+          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+        >
           {currentStepData.title}
         </Text>
       </div>
       <div style={{ }}>
     
-        <Text size="xs" color="dimmed" style={{ lineHeight: 1.3 }}>
-          {currentStepData.content}
+        <Text 
+          size="xs" 
+          className="tour-text"
+          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+        >
+          {typeof currentStepData.content === 'function' ? currentStepData.content() : currentStepData.content}
         </Text>
       </div>
     </div>
@@ -181,12 +229,114 @@ const ActionPrompt = ({ actionPrompt }) => {
       <Group spacing="xs">
         <IconClick size={12} color={isDark ? "#74c0fc" : "#1976d2"} />
         <Text size="xs" color={isDark ? "#74c0fc" : "#1976d2"} weight={500} style={{ lineHeight: 1.2 }}>
-          {actionPrompt}
+          {typeof actionPrompt === 'function' ? actionPrompt() : actionPrompt}
         </Text>
       </Group>
     </div>
   );
 };
+
+// Skip Button Component
+const SkipButton = ({ onClick, text = "Skip" }) => (
+  <SimpleButton
+    variant="ghost"
+    size="sm"
+    onClick={onClick}
+    style={{ 
+      flex: text === "Skip Tour" ? 1 : 0,
+      flexShrink: text === "Skip Tour" ? 1 : 0,
+      minWidth: text === "Skip Tour" ? "auto" : "50px",
+      textDecoration: 'underline',
+      transition: 'transform 0.2s ease',
+      color: '#1a1a1a !important',
+      backgroundColor: 'transparent !important'
+    }}
+    onMouseEnter={(e) => {
+      e.target.style.transform = 'scale(1.20)';
+      e.target.style.backgroundColor = 'transparent';
+      e.target.style.color = '#1a1a1a';
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.transform = 'scale(1)';
+      e.target.style.backgroundColor = 'transparent';
+      e.target.style.color = '#1a1a1a';
+    }}
+  >
+    {text}
+  </SimpleButton>
+);
+
+// Back Button Component
+const BackButton = ({ onClick, disabled, style = {} }) => (
+  <SimpleButton
+    variant="ghost"
+    size="sm"
+    onClick={onClick}
+    disabled={disabled}
+    style={{ ...style }}
+  >
+    <IconChevronLeft size={12} style={{ marginRight: 4 }} />
+    Back
+  </SimpleButton>
+);
+
+// Next Button Component
+const NextButton = ({ onClick, isLastStep, style = {} }) => (
+  <SimpleButton
+    variant="primary"
+    size="sm"
+    onClick={onClick}
+    style={{ ...style }}
+  >
+    {isLastStep ? (
+      <>
+        Finish
+        <IconCheck size={12} style={{ marginLeft: 4 }} />
+      </>
+    ) : (
+      <>
+        Next
+        <IconChevronRight size={12} style={{ marginLeft: 4 }} />
+      </>
+    )}
+  </SimpleButton>
+);
+
+// Navigation with Special Button Layout
+const NavigationWithSpecialButton = ({ 
+  currentStepData, 
+  currentStep, 
+  handleNavigation, 
+  handlePrevious, 
+  handleSkip 
+}) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px", width: "100%" }}>
+    <SimpleButton variant="primary" size="md" onClick={handleNavigation} style={{ width: "100%" }}>
+      <IconChevronRight size={14} style={{ marginRight: 6 }} />
+      {currentStepData.navigationText || "Continue"}
+    </SimpleButton>
+    
+    <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", gap: "6px" }}>
+      <BackButton onClick={handlePrevious} disabled={currentStep === 0} style={{ flex: 1 }} />
+      <SkipButton onClick={handleSkip} text="Skip Tour" />
+    </div>
+  </div>
+);
+
+// Standard Navigation Layout
+const StandardNavigation = ({ 
+  currentStep, 
+  totalSteps, 
+  handlePrevious, 
+  handleNext, 
+  handleSkip 
+}) => (
+  <div style={{ display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: "6px", marginTop: "8px", width: "100%" }}>
+    <BackButton onClick={handlePrevious} disabled={currentStep === 0} style={{ flex: 1, minWidth: "70px" }} />
+    <NextButton onClick={handleNext} isLastStep={currentStep === totalSteps - 1} style={{ flex: 1, minWidth: "80px" }} />
+    <SkipButton onClick={handleSkip} />
+  </div>
+);
 
 // Navigation Controls Component
 const NavigationControls = ({ 
@@ -200,109 +350,24 @@ const NavigationControls = ({
 }) => {
   if (currentStepData.hasNavigationButton) {
     return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "8px",
-          marginTop: "8px",
-          width: "100%",
-        }}
-      >
-        <SimpleButton
-          variant="primary"
-          size="md"
-          onClick={handleNavigation}
-          style={{ width: "100%" }}
-        >
-          <IconChevronRight size={14} style={{ marginRight: 6 }} />
-          {currentStepData.navigationText || "Continue"}
-        </SimpleButton>
-        
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            gap: "6px",
-          }}
-        >
-          <SimpleButton
-            variant="ghost"
-            size="sm"
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-            style={{ flex: 1 }}
-          >
-            <IconChevronLeft size={12} style={{ marginRight: 4 }} />
-            Back
-          </SimpleButton>
-
-          <SimpleButton
-            variant="ghost"
-            size="sm"
-            onClick={handleSkip}
-            style={{ flex: 1 }}
-          >
-            Skip Tour
-          </SimpleButton>
-        </div>
-      </div>
+      <NavigationWithSpecialButton 
+        currentStepData={currentStepData}
+        currentStep={currentStep}
+        handleNavigation={handleNavigation}
+        handlePrevious={handlePrevious}
+        handleSkip={handleSkip}
+      />
     );
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: "6px",
-        marginTop: "8px",
-        width: "100%",
-      }}
-    >
-      <SimpleButton
-        variant="ghost"
-        size="sm"
-        onClick={handlePrevious}
-        disabled={currentStep === 0}
-        style={{ flex: 1, minWidth: "70px" }}
-      >
-        <IconChevronLeft size={12} style={{ marginRight: 4 }} />
-        Back
-      </SimpleButton>
-
-      <SimpleButton
-        variant="primary"
-        size="sm"
-        onClick={handleNext}
-        disabled={false}
-        style={{ flex: 1, minWidth: "80px" }}
-      >
-        {currentStep === totalSteps - 1 ? (
-          <>
-            Finish
-            <IconCheck size={12} style={{ marginLeft: 4 }} />
-          </>
-        ) : (
-          <>
-            Next
-            <IconChevronRight size={12} style={{ marginLeft: 4 }} />
-          </>
-        )}
-      </SimpleButton>
-
-      <SimpleButton
-        variant="ghost"
-        size="sm"
-        onClick={handleSkip}
-        style={{ flexShrink: 0, minWidth: "50px" }}
-      >
-        Skip
-      </SimpleButton>
-    </div>
+    <StandardNavigation 
+      currentStep={currentStep}
+      totalSteps={totalSteps}
+      handlePrevious={handlePrevious}
+      handleNext={handleNext}
+      handleSkip={handleSkip}
+    />
   );
 };
 
@@ -335,7 +400,7 @@ const TOUR_STEPS = [
     id: "cm-button-interactive",
     title: "Opening the Menu",
     content:
-      "Perfect! Now we'll automatically open the CodeMaster dashboard for you. The menu will appear on the right side.",
+      "Perfect! Now open CodeMaster. The  will appear on the left side.",
     target: "#cm-menuButton",
     position: "auto",
     highlightType: "pointer",
@@ -349,7 +414,7 @@ const TOUR_STEPS = [
     id: "navigation-overview",
     title: "Your CodeMaster Dashboard",
     content:
-      "Perfect! This is your CodeMaster menu. Here you can access all the tools to improve your problem-solving skills.",
+      "Perfect! This is your CodeMaster dashboard. Here you can access all the tools to improve your problem-solving skills.",
     target: "#cm-mySidenav",
     position: "auto",
     highlightType: "outline",
@@ -373,9 +438,9 @@ const TOUR_STEPS = [
   },
   {
     id: "statistics-feature",
-    title: "Statistics & Analytics",
+    title: "Statistics & Box Levels",
     content:
-      "Track your progress, view detailed performance analytics, and identify your strengths and areas for improvement.",
+      "View your learning progress through Leitner box levels, which show how well you've mastered different problems and your total problem count.",
     target: "a[href='/Probstat']",
     position: "auto",
     highlightType: "outline",
@@ -393,19 +458,6 @@ const TOUR_STEPS = [
     position: "auto",
     highlightType: "outline",
     screenKey: "settings",
-    interactionType: null,
-    actionPrompt: null,
-    requiresMenuOpen: true,
-  },
-  {
-    id: "timer-feature",
-    title: "Problem Timer",
-    content:
-      "When you're solving a problem, use this to time your attempts and track your solving patterns over time.",
-    target: "a[href='/Probtime']",
-    position: "auto",
-    highlightType: "outline",
-    screenKey: "problemTimer",
     interactionType: null,
     actionPrompt: null,
     requiresMenuOpen: true,
@@ -441,11 +493,16 @@ const TOUR_STEPS = [
 
 // Custom hook for tour positioning logic
 const useTourPositioning = (isVisible, currentStepData, currentStep) => {
-  const [tourPosition, setTourPosition] = useState({ top: 0, left: 0 });
+  const [tourPosition, setTourPosition] = useState(null);
   const [arrowPosition, setArrowPosition] = useState(null);
+  const [hasInitiallyPositioned, setHasInitiallyPositioned] = useState(false);
 
   useEffect(() => {
     if (!isVisible) return;
+
+    // Reset positioning state when step changes
+    setHasInitiallyPositioned(false);
+    setTourPosition(null);
 
     const calculatePosition = () => {
       try {
@@ -471,15 +528,18 @@ const useTourPositioning = (isVisible, currentStepData, currentStep) => {
             direction: position.arrowDirection,
             placement: position.placement
           } : null);
+          setHasInitiallyPositioned(true);
         } else {
           console.warn("ContentOnboardingTour: Invalid position calculated, using fallback");
           setTourPosition({ top: 100, left: 100 }); // Fallback position
           setArrowPosition(null);
+          setHasInitiallyPositioned(true);
         }
       } catch (error) {
         console.error("ContentOnboardingTour: Error calculating position:", error);
         setTourPosition({ top: 100, left: 100 }); // Fallback position
         setArrowPosition(null);
+        setHasInitiallyPositioned(true);
       }
     };
 
@@ -497,7 +557,7 @@ const useTourPositioning = (isVisible, currentStepData, currentStep) => {
     };
   }, [currentStep, isVisible, currentStepData]);
 
-  return { tourPosition, arrowPosition };
+  return { tourPosition, arrowPosition, hasInitiallyPositioned };
 };
 
 // Custom hook for menu state monitoring
@@ -553,26 +613,30 @@ const useTourNavigation = (currentStep, { setCurrentStep, setIsWaitingForInterac
     }
   }, [currentStep, onComplete, setCurrentStep, setIsWaitingForInteraction]);
 
-  const handleNext = useCallback(async () => {
+  const handleNext = useCallback(() => {
     const currentStepData = TOUR_STEPS[currentStep];
-    
-    // Update progress in database
-    try {
-      await ChromeAPIErrorHandler.sendMessageWithRetry({
-        type: "updateContentOnboardingStep",
-        currentStep,
-        screenKey: currentStepData.screenKey,
-        interactionType: currentStepData.interactionType
-      });
-    } catch (error) {
-      logger.error("Error updating onboarding progress:", error);
-    }
 
     // Auto-trigger UI element if specified
     if (currentStepData.autoTriggerSelector) {
       const targetElement = document.querySelector(currentStepData.autoTriggerSelector);
       if (targetElement) {
-        logger.info("Auto-triggering element:", currentStepData.autoTriggerSelector);
+        // Special handling for menu button - check if menu is already open
+        if (currentStepData.autoTriggerSelector === "#cm-menuButton") {
+          const menuElement = document.querySelector("#cm-mySidenav");
+          const isMenuAlreadyOpen = menuElement && !menuElement.classList.contains("cm-hidden");
+          
+          if (isMenuAlreadyOpen) {
+            logger.info("Menu is already open, skipping auto-trigger");
+            // Proceed directly without clicking since menu is already open
+            proceedToNextStep();
+            return;
+          } else {
+            logger.info("Auto-triggering menu button (menu is currently closed)");
+          }
+        } else {
+          logger.info("Auto-triggering element:", currentStepData.autoTriggerSelector);
+        }
+        
         targetElement.click();
         // Wait for UI to respond before proceeding
         // Longer delay for navigation steps
@@ -616,15 +680,27 @@ const useTourNavigation = (currentStep, { setCurrentStep, setIsWaitingForInterac
     onClose();
   };
 
-  const handleNavigation = useCallback(() => {
+  const handleNavigation = useCallback(async () => {
     const currentStepData = TOUR_STEPS[currentStep];
     if (currentStepData.navigationRoute) {
       logger.info("Navigating to:", currentStepData.navigationRoute);
-      navigate(currentStepData.navigationRoute);
-      // Complete the tour after navigation
+      
+      // Complete the tour before navigation using the passed onComplete
+      try {
+        await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: "completeContentOnboarding"
+        });
+        logger.info("🎉 Tour completed via navigation and saved to database");
+      } catch (error) {
+        logger.error("Error completing tour via navigation:", error);
+      }
+      
+      onComplete();
+      
+      // Small delay then navigate
       setTimeout(() => {
-        onComplete();
-      }, 300);
+        navigate(currentStepData.navigationRoute);
+      }, 100);
     }
   }, [currentStep, navigate, onComplete]);
 
@@ -653,6 +729,12 @@ const createUserInteractionHandler = (currentStepData, setIsWaitingForInteractio
         setTimeout(() => {
           handleNext();
         }, 500); // Longer delay for menu animation
+      } else if (currentStepData.id === "select-problem") {
+        // User clicked on a problem link - they're navigating to problem page
+        logger.info("User clicked problem link, advancing to next step");
+        setTimeout(() => {
+          handleNext();
+        }, 300);
       } else if (currentStepData.target === "a[href='/Probgen']") {
         // User clicked Problem Generator - complete the main tour
         logger.info("User clicked Problem Generator, completing main tour");
@@ -752,16 +834,61 @@ const getArrowStyles = (direction) => {
 
 export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   const navigate = useNavigate();
+  
+  // Simple state management (no database persistence)
   const [currentStep, setCurrentStep] = useState(0);
   const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
   const currentStepData = TOUR_STEPS[currentStep];
   
+  // Handle tour completion
+  const handleTourComplete = async () => {
+    try {
+      await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: "completeContentOnboarding"
+      });
+      logger.info("🎉 Tour completed and saved to database");
+      onComplete();
+    } catch (error) {
+      logger.error("Error completing tour:", error);
+      // Still call onComplete even if database update fails
+      onComplete();
+    }
+  };
+
+  // Handle tour close  
+  const handleTourClose = () => {
+    logger.info("🚪 Tour closed");
+    onClose();
+  };
+
   // Use extracted hooks
-  const { tourPosition, arrowPosition } = useTourPositioning(isVisible, currentStepData, currentStep);
+  const { tourPosition, arrowPosition, hasInitiallyPositioned } = useTourPositioning(isVisible, currentStepData, currentStep);
   const menuOpenState = useMenuStateMonitoring(isVisible);
-  const { handleNext, handlePrevious, handleSkip, handleNavigation } = useTourNavigation(
-    currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete, onClose, navigate }
+  const { handleNext, handlePrevious, handleNavigation } = useTourNavigation(
+    currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete: handleTourComplete, onClose: handleTourClose, navigate }
   );
+
+  // Add effect to detect navigation to /Probgen and complete tour
+  useEffect(() => {
+    if (!isVisible) return;
+    
+    const handleNavigationClick = (event) => {
+      // Check if the clicked element is a link to Problem Generator
+      const clickedElement = event.target.closest('a[href="/Probgen"]');
+      if (clickedElement) {
+        logger.info("🎯 Main Tour: User navigating to Problem Generator, completing tour");
+        // Complete the tour since user is going to the intended destination
+        handleTourComplete();
+      }
+    };
+    
+    // Listen for clicks on the entire document
+    document.addEventListener('click', handleNavigationClick, true);
+    
+    return () => {
+      document.removeEventListener('click', handleNavigationClick, true);
+    };
+  }, [isVisible, handleTourComplete]);
   useEffect(() => {
     if ((!isWaitingForInteraction || !currentStepData.waitForInteraction) && !currentStepData.waitForUserClick) return;
     const handleInteraction = createUserInteractionHandler(
@@ -788,9 +915,8 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
     return null;
   }
 
-  // Additional safety check for positioning
-  if (!tourPosition || typeof tourPosition.top === 'undefined' || typeof tourPosition.left === 'undefined') {
-    console.warn("ContentOnboardingTour: Invalid tourPosition, skipping render");
+  // Don't show tour until positioning is complete to prevent flash
+  if (!hasInitiallyPositioned || !tourPosition) {
     return null;
   }
 
@@ -812,6 +938,8 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           zIndex: 10000,
           width: 280,
           maxWidth: "90vw",
+          maxHeight: "80vh",
+          overflow: "hidden",
         }}
       >
         {/* Arrow pointer */}
@@ -826,12 +954,12 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           />
         )}
 
-        <Card shadow="lg" padding="sm" withBorder radius="md">
+        <Card shadow="lg" padding="sm" withBorder radius="md" style={{ maxHeight: "80vh", overflowY: "auto" }}>
           {/* Header */}
           <TourCardHeader 
             currentStep={currentStep} 
             totalSteps={TOUR_STEPS.length} 
-            onSkip={handleSkip} 
+            onSkip={handleTourClose} 
           />
 
           {/* Progress Bar */}
@@ -860,7 +988,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
             />
 
             {/* Action Prompt */}
-            {currentStepData.actionPrompt && (
+            {(currentStepData.actionPrompt && (typeof currentStepData.actionPrompt === 'function' ? currentStepData.actionPrompt() : currentStepData.actionPrompt)) && (
               <ActionPrompt actionPrompt={currentStepData.actionPrompt} />
             )}
 
@@ -871,7 +999,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
               totalSteps={TOUR_STEPS.length}
               handleNavigation={handleNavigation}
               handlePrevious={handlePrevious}
-              handleSkip={handleSkip}
+              handleSkip={handleTourClose}
               handleNext={handleNext}
             />
           </Stack>
