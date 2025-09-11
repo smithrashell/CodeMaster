@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Container, Grid, Card, Title, Text, Stack, Group, SimpleGrid, Select } from "@mantine/core";
+import { Container, Grid, Card, Title, Text, Stack, Group, SimpleGrid, Select, Button } from "@mantine/core";
+import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
 import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
 import { TIME_RANGE_OPTIONS } from "./sessionTimeUtils";
@@ -20,13 +21,20 @@ function SlimKPI({ title, value, sub }) {
 }
 
 export function Metrics() {
-  const { data: appState, loading, error} = usePageData('session-history');
+  const { data: appState, loading, error, refresh} = usePageData('session-history');
   const [timeRange, setTimeRange] = useState("Last 7 days");
   
   const { recentSessions, sessionLengthData, accuracyData, kpis } = useSessionData(appState, timeRange);
 
   if (loading) return <Container size="xl" p="md"><Text>Loading session history...</Text></Container>;
-  if (error) return <Container size="xl" p="md"><Text c="red">Error loading session data: {error.message}</Text></Container>;
+  if (error) return (
+    <Container size="xl" p="md">
+      <Text c="red">Error loading session data: {error.message}</Text>
+      <Button leftSection={<IconRefresh size={16} />} onClick={refresh} mt="md">
+        Retry
+      </Button>
+    </Container>
+  );
 
   return (
     <Container size="xl" p="md">
@@ -41,6 +49,14 @@ export function Metrics() {
               value={timeRange}
               onChange={setTimeRange}
             />
+            <Button 
+              leftSection={<IconRefresh size={16} />} 
+              variant="light" 
+              onClick={refresh}
+              size="sm"
+            >
+              Refresh
+            </Button>
           </Group>
         </Group>
 

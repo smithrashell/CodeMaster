@@ -39,8 +39,8 @@ export function Stats() {
   }
 
   return (
-    <Container size="xl" p="md">
-      <Group justify="space-between" mb="md">
+    <Container size="xl" p="md" className="dashboard-overview">
+      <Group justify="space-between" mb="md" className="dashboard-navigation">
         <Title order={2}>
           General Performance Summary
         </Title>
@@ -58,16 +58,18 @@ export function Stats() {
         <EmptyStateCard type="dashboard" onAction={handleStartFirstSession} />
       ) : (
         <>
-          <StatsMetrics 
-            statistics={statistics}
-            averageTime={averageTime}
-            successRate={successRate}
-            hintsUsed={hintsUsed}
-            loading={loading}
-          />
+          <div className="dashboard-metrics">
+            <StatsMetrics 
+              statistics={statistics}
+              averageTime={averageTime}
+              successRate={successRate}
+              hintsUsed={hintsUsed}
+              loading={loading}
+            />
+          </div>
           
           {/* Focus Areas - Full Width Second Row */}
-          <Grid gutter="md" mt="md">
+          <Grid gutter="md" mt="md" className="dashboard-focus-areas">
             <Grid.Col span={12}>
               <FocusAreasDisplay 
                 onNavigateToSettings={() => navigate("/settings/general")}
@@ -97,6 +99,7 @@ export function Stats() {
           />
         </Grid.Col>
       </Grid> */}
+
     </Container>
   );
 }

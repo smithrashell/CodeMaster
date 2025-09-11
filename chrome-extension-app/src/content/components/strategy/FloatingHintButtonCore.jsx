@@ -21,6 +21,7 @@ const FloatingHintButtonCore = ({
 }) => {
   return (
       <button
+        id="floating-hint-button"
         ref={buttonRef}
         onClick={handleButtonClick}
         style={buttonStyles}

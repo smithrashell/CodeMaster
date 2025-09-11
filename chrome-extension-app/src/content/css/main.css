@@ -1856,3 +1856,97 @@ body:has(.navbar) .cm-extension #cm-menuButton {
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* ===== PAGE TOUR STYLES ===== */
+/* Force hover state for tour demonstration */
+.tour-forced-hover {
+  background-color: rgba(var(--cm-primary-rgb, 59, 130, 246), 0.1) !important;
+  border: 1px solid rgba(var(--cm-primary-rgb, 59, 130, 246), 0.3) !important;
+  box-shadow: 0 2px 8px rgba(var(--cm-primary-rgb, 59, 130, 246), 0.2) !important;
+}
+
+/* Highlight expanded content during tour */
+.tour-highlight-expanded {
+  border: 2px solid var(--cm-primary, #3b82f6) !important;
+  border-radius: 6px !important;
+  background: rgba(var(--cm-primary-rgb, 59, 130, 246), 0.05) !important;
+  box-shadow: 0 0 12px rgba(var(--cm-primary-rgb, 59, 130, 246), 0.25) !important;
+}
+
+/* Enhanced icon highlighting for tour */
+.cm-problem-info-icon {
+  transition: all 0.2s ease !important;
+}
+
+.tour-forced-hover .cm-problem-info-icon {
+  background-color: var(--cm-primary, #3b82f6) !important;
+  color: white !important;
+  border-radius: 4px !important;
+  padding: 2px !important;
+  transform: scale(1.1) !important;
+}
+
+/* Tag expansion tour styles */
+.tour-forced-expanded {
+  border: 2px solid var(--cm-primary, #3b82f6) !important;
+  box-shadow: 0 0 12px rgba(var(--cm-primary-rgb, 59, 130, 246), 0.4) !important;
+  background: rgba(var(--cm-primary-rgb, 59, 130, 246), 0.1) !important;
+}
+
+/* Highlight expanded hint content */
+.tour-highlight-hint {
+  border: 2px solid var(--cm-success, #10b981) !important;
+  border-radius: 6px !important;
+  background: rgba(16, 185, 129, 0.05) !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25) !important;
+  animation: pulse-highlight 2s ease-in-out infinite !important;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+  }
+}
+
+/* Force visibility for tour demonstrations */
+.tour-force-visible {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Keep tag expanded during tour */
+.tour-keep-expanded.tag-strategy-button {
+  background-color: var(--cm-active, #2563eb) !important;
+  color: white !important;
+}
+
+/* Force hint container to stay expanded */
+.tag-strategy-hint.tour-force-visible,
+.tag-strategy-hint.expanded.tour-force-visible {
+  display: block !important;
+  max-height: 500px !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+  transition: none !important;
+}
+
+/* Ensure hint content is visible */
+.tag-strategy-hint-content.tour-force-visible {
+  display: block !important;
+  opacity: 1 !important;
+  max-height: none !important;
+}
+
+/* Tour text color overrides - always dark text since tour background is always white */
+.mantine-Card-root span,
+.mantine-Card-root .mantine-Text-root,
+.tour-text {
+  color: #1a1a1a !important; /* Always dark text for white tour background */
+}
+

@@ -240,7 +240,7 @@ const SmartPopover = ({
 
   return (
     <Portal>
-      <div ref={popoverRef} style={popoverStyles}>
+      <div id="smart-popover-hints" ref={popoverRef} style={popoverStyles}>
         {/* Arrow pointing to target */}
         <div style={arrowStyles.arrow} />
         <div style={arrowStyles.border} />
