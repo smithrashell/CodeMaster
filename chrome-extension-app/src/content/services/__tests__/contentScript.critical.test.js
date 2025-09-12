@@ -5,6 +5,43 @@
 
 import { ChromeMessagingService } from '../chromeMessagingService';
 
+// Set up Chrome API mock at module level (before helper functions are called)
+const chrome = {
+  runtime: {
+    sendMessage: jest.fn(),
+    lastError: null,
+    onMessage: {
+      addListener: jest.fn(),
+      removeListener: jest.fn()
+    },
+    getURL: jest.fn((path) => `chrome-extension://test-extension-id/${path}`),
+    id: "test-extension-id"
+  },
+  tabs: {
+    query: jest.fn(),
+    update: jest.fn(),
+    create: jest.fn()
+  },
+  action: {
+    setBadgeText: jest.fn(),
+    setBadgeBackgroundColor: jest.fn()
+  },
+  storage: {
+    local: {
+      get: jest.fn((keys, callback) => callback({})),
+      set: jest.fn((items, callback) => callback && callback()),
+      remove: jest.fn((keys, callback) => callback && callback()),
+      clear: jest.fn((callback) => callback && callback())
+    }
+  }
+};
+
+// Set up global Chrome mock
+global.chrome = chrome;
+
+// Create ChromeMessagingService instance at module level
+const chromeMessaging = new ChromeMessagingService();
+
 // Helper function for Chrome Messaging Service Core Functionality tests
 const setupChromeMessagingCoreTests = (chromeMessaging, chrome) => {
   describe('ChromeMessagingService Core Functionality', () => {
@@ -19,6 +56,8 @@ const setupChromeMessagingCoreTests = (chromeMessaging, chrome) => {
     });
 
     it('should handle successful message sending', async () => {
+      jest.useRealTimers(); // Use real timers for this test
+      
       const mockResponse = { result: 'test success', data: 'mock data' };
       chrome.runtime.sendMessage.mockImplementation((message, callback) => {
         setTimeout(() => callback(mockResponse), 10);
@@ -30,7 +69,7 @@ const setupChromeMessagingCoreTests = (chromeMessaging, chrome) => {
         { type: 'test' },
         expect.any(Function)
       );
-      expect(response).toEqual(mockResponse);
+      expect(response).toEqual(mockResponse.data); // ChromeMessagingService extracts the data property
     });
 
     it('should handle Chrome runtime errors gracefully', async () => {
@@ -226,7 +265,7 @@ const setupCacheManagementTests = (chromeMessaging, chrome) => {
       });
 
       expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
-      expect(response1).toEqual(mockResponse);
+      expect(response1).toEqual(mockResponse.data); // Service extracts data property
 
       // Second request - should use cache
       const response2 = await chromeMessaging.sendMessage(cacheableRequest, {
@@ -235,7 +274,7 @@ const setupCacheManagementTests = (chromeMessaging, chrome) => {
       });
 
       expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1); // No additional calls
-      expect(response2).toEqual(mockResponse);
+      expect(response2).toEqual(mockResponse.data); // Cached response also extracts data
     });
 
     it('should handle cache expiration correctly', async () => {
@@ -509,31 +548,17 @@ const setupPerformanceTests = (chromeMessaging, chrome) => {
 };
 
 describe('Content Script - Critical Integration Points', () => {
-  let chromeMessaging;
-  let chrome;
-
   beforeAll(() => {
     // Use Jest fake timers to prevent recursion
     jest.useFakeTimers();
-    
-    // Mock Chrome extension APIs
-    chrome = {
-      runtime: {
-        sendMessage: jest.fn(),
-        lastError: null
-      }
-    };
-
-    // Set up global Chrome mock
-    global.chrome = chrome;
-
-    chromeMessaging = new ChromeMessagingService();
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
     chrome.runtime.lastError = null;
-    chromeMessaging.clearCache();
+    if (chromeMessaging && chromeMessaging.clearCache) {
+      chromeMessaging.clearCache();
+    }
   });
 
   afterAll(() => {

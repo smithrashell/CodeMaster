@@ -3,6 +3,9 @@
  * Focus: Core adaptive learning functionality that could break user progression
  */
 
+// Import the actual TagService for testing
+import { TagService } from '../tagServices.js';
+
 /**
  * Test suite for service structure and availability validation
  */
@@ -472,53 +475,14 @@ async function setupTagServiceMocks() {
   global.globalThis = global.globalThis || {};
   global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
   
-  try {
-    // Import after mocking
-    const module = await import('../tagServices.js');
-    return module.TagService;
-  } catch (error) {
-    // Create a mock service if import fails
-    return {
-      getCurrentTier: jest.fn().mockResolvedValue({
-        classification: 'Core Concept',
-        masteredTags: [],
-        allTagsInCurrentTier: ['array', 'hash-table'],
-        focusTags: ['array'],
-        masteryData: []
-      }),
-      getCurrentLearningState: jest.fn().mockResolvedValue({
-        currentTier: 'Core Concept',
-        masteredTags: [],
-        allTagsInCurrentTier: ['array', 'hash-table'],
-        focusTags: ['array'],
-        masteryData: [],
-        sessionPerformance: { averageTime: 1200 }
-      }),
-      checkFocusAreasGraduation: jest.fn().mockResolvedValue({
-        needsUpdate: false,
-        masteredTags: [],
-        suggestions: []
-      }),
-      graduateFocusAreas: jest.fn().mockResolvedValue({
-        updated: false,
-        report: { needsUpdate: false }
-      }),
-      getAvailableTagsForFocus: jest.fn().mockResolvedValue({
-        access: { core: 'confirmed' },
-        caps: { core: 3 },
-        tags: [],
-        currentTier: 'Core Concept',
-        isOnboarding: false
-      })
-    };
-  }
+  // Mocks are already set up, no need to return anything
+  console.log('✅ TagService mocks configured for testing');
 }
 
 describe('TagServices - Critical Risk Areas', () => {
-  let TagService;
-
   beforeAll(async () => {
-    TagService = await setupTagServiceMocks();
+    // Set up minimal mocks needed for TagService to function
+    await setupTagServiceMocks();
   });
 
   // Execute all test suites using helper functions

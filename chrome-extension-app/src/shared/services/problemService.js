@@ -262,7 +262,7 @@ export const ProblemService = {
     logger.info("🔰 Is onboarding session?", isOnboarding);
 
     const allProblems = await fetchAllProblems();
-    const excludeIds = new Set(allProblems.map((p) => p.leetcode_id));
+    const excludeIds = new Set(allProblems.filter(p => p && p.leetcode_id && p.title && p.title.trim()).map((p) => p.leetcode_id));
 
     const sessionProblems = [];
     let reviewProblemsCount = 0;
@@ -313,9 +313,10 @@ export const ProblemService = {
     // **Step 3: Fallback if still short**
     if (sessionProblems.length < sessionLength) {
       const fallbackNeeded = sessionLength - sessionProblems.length;
-      const usedIds = new Set(sessionProblems.map((p) => p.problem_id || p.leetcode_id));
+      const usedIds = new Set(sessionProblems.filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim()).map((p) => p.problem_id || p.leetcode_id));
 
       const fallbackProblems = allProblems
+        .filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim())
         .filter((p) => !usedIds.has(p.problem_id || p.leetcode_id))
         .sort(problemSortingCriteria)
         .slice(0, fallbackNeeded);
@@ -625,8 +626,17 @@ export const ProblemService = {
 
     tagMasteryData.forEach((tm) => {
       const tagKey = tm.tag.toLowerCase();
-      tagAccuracy[tagKey] = tm.successRate || 0;
-      tagAttempts[tagKey] = tm.totalAttempts || 0;
+      
+      // Normalize success rate to valid range [0, 1] and handle invalid values
+      let successRate = tm.successRate || 0;
+      if (!Number.isFinite(successRate) || successRate < 0) {
+        successRate = 0;
+      } else if (successRate > 1) {
+        successRate = 1;
+      }
+      
+      tagAccuracy[tagKey] = successRate;
+      tagAttempts[tagKey] = Math.max(0, tm.totalAttempts || 0); // Also normalize attempts to non-negative
     });
 
     return {

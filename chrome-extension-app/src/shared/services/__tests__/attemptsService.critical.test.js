@@ -3,6 +3,9 @@
  * Focus: Critical validation and error handling that could break user progress tracking
  */
 
+// Import the actual AttemptsService for testing
+import { AttemptsService } from '../attemptsService.js';
+
 /**
  * Test suite for critical input validation scenarios
  */
@@ -191,8 +194,6 @@ function runDataIntegrityTests(AttemptsService) {
 }
 
 describe('AttemptsService - Critical Risk Areas', () => {
-  let AttemptsService;
-
   beforeAll(async () => {
     // Mock all complex dependencies that cause import issues
     jest.doMock('../../db/index.js', () => ({
@@ -262,17 +263,8 @@ describe('AttemptsService - Critical Risk Areas', () => {
     global.globalThis = global.globalThis || {};
     global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
     
-    try {
-      // Import after all mocking is complete
-      const module = await import('../attemptsService.js');
-      AttemptsService = module.AttemptsService;
-    } catch (error) {
-      // Create a mock service if import fails
-      AttemptsService = {
-        addAttempt: jest.fn().mockResolvedValue({ status: 'success' }),
-        getMostRecentAttempt: jest.fn().mockResolvedValue(null)
-      };
-    }
+    // Mocks are already set up, AttemptsService is imported at the top
+    console.log('✅ AttemptsService mocks configured for testing');
   });
 
   // Execute all test suites using helper functions

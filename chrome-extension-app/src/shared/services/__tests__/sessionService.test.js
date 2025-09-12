@@ -1,3 +1,14 @@
+// Mock logger first before any other imports
+jest.mock("../../utils/logger.js", () => ({
+  __esModule: true,
+  default: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 import { SessionService } from "../sessionService";
 import {
   getSessionById,
@@ -246,8 +257,8 @@ const runSkipProblemTests = () => {
       const mockSession = {
         id: "session-123",
         problems: [
-          { leetCodeID: "problem-123", title: "Problem 1" },
-          { leetCodeID: "problem-456", title: "Problem 2" },
+          { leetcode_id: "problem-123", title: "Problem 1" },
+          { leetcode_id: "problem-456", title: "Problem 2" },
         ],
       };
 
@@ -259,12 +270,12 @@ const runSkipProblemTests = () => {
       expect(getLatestSession).toHaveBeenCalled();
       expect(saveSessionToStorage).toHaveBeenCalledWith(
         expect.objectContaining({
-          problems: [{ leetCodeID: "problem-456", title: "Problem 2" }],
+          problems: [{ leetcode_id: "problem-456", title: "Problem 2" }],
         }),
         true
       );
       expect(result.problems).toHaveLength(1);
-      expect(result.problems[0].leetCodeID).toBe("problem-456");
+      expect(result.problems[0].leetcode_id).toBe("problem-456");
     });
 
     it("should return null when no session exists", async () => {

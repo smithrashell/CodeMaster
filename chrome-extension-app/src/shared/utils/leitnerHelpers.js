@@ -49,6 +49,15 @@ export function computeTimePerformanceScore(attemptData, useTimeLimits = true) {
  * Calculate box level adjustments based on success/failure and performance
  */
 export function applyBoxLevelAdjustments(problem, attemptData, timePerformanceScore) {
+  // Defensive programming: Initialize AttemptStats if missing
+  if (!problem.AttemptStats) {
+    problem.AttemptStats = {
+      TotalAttempts: 0,
+      SuccessfulAttempts: 0,
+      UnsuccessfulAttempts: 0
+    };
+  }
+  
   const AttemptStats = problem.AttemptStats;
   AttemptStats.TotalAttempts++;
 
@@ -133,6 +142,12 @@ export function calculateNextReviewDate(problem, attemptData) {
 
   const nextReviewDate = new Date(attemptDate);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays);
+  
+  // Defensive programming: Handle invalid date calculations
+  if (isNaN(nextReviewDate.getTime())) {
+    // Fallback to a reasonable next review date (1 day from now)
+    nextReviewDate.setTime(Date.now() + 24 * 60 * 60 * 1000);
+  }
   
   return {
     nextReviewDays,
