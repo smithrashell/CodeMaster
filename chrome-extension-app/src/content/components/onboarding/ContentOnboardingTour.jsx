@@ -832,16 +832,9 @@ const getArrowStyles = (direction) => {
   }
 };
 
-export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
-  const navigate = useNavigate();
-  
-  // Simple state management (no database persistence)
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
-  const currentStepData = TOUR_STEPS[currentStep];
-  
-  // Handle tour completion
-  const handleTourComplete = useCallback(async () => {
+// Helper hook for tour completion
+const useTourCompleteHandler = (onComplete) => {
+  return useCallback(async () => {
     try {
       await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "completeContentOnboarding"
@@ -854,21 +847,18 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       onComplete();
     }
   }, [onComplete]);
+};
 
-  // Handle tour close  
-  const handleTourClose = () => {
+// Helper hook for tour close
+const useTourCloseHandler = (onClose) => {
+  return useCallback(() => {
     logger.info("🚪 Tour closed");
     onClose();
-  };
+  }, [onClose]);
+};
 
-  // Use extracted hooks
-  const { tourPosition, arrowPosition, hasInitiallyPositioned } = useTourPositioning(isVisible, currentStepData, currentStep);
-  const menuOpenState = useMenuStateMonitoring(isVisible);
-  const { handleNext, handlePrevious, handleNavigation } = useTourNavigation(
-    currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete: handleTourComplete, onClose: handleTourClose, navigate }
-  );
-
-  // Add effect to detect navigation to /Probgen and complete tour
+// Helper hook for navigation detection effect
+const useNavigationDetectionEffect = (isVisible, handleTourComplete) => {
   useEffect(() => {
     if (!isVisible) return;
     
@@ -889,6 +879,10 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       document.removeEventListener('click', handleNavigationClick, true);
     };
   }, [isVisible, handleTourComplete]);
+};
+
+// Helper hook for interaction handling effect
+const useInteractionHandlingEffect = (isWaitingForInteraction, currentStepData, setIsWaitingForInteraction, handleNext, onComplete) => {
   useEffect(() => {
     if ((!isWaitingForInteraction || !currentStepData.waitForInteraction) && !currentStepData.waitForUserClick) return;
     const handleInteraction = createUserInteractionHandler(
@@ -909,7 +903,32 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       document.removeEventListener("click", handleInteraction, true);
       clearTimeout(escapeTimer);
     };
-  }, [isWaitingForInteraction, currentStepData, handleNext, onComplete]);
+  }, [isWaitingForInteraction, currentStepData, handleNext, onComplete, setIsWaitingForInteraction]);
+};
+
+export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
+  const navigate = useNavigate();
+  
+  // Simple state management (no database persistence)
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
+  const currentStepData = TOUR_STEPS[currentStep];
+  
+  // Handle tour completion and close
+  const handleTourComplete = useTourCompleteHandler(onComplete);
+  const handleTourClose = useTourCloseHandler(onClose);
+
+  // Use extracted hooks
+  const { tourPosition, arrowPosition, hasInitiallyPositioned } = useTourPositioning(isVisible, currentStepData, currentStep);
+  const menuOpenState = useMenuStateMonitoring(isVisible);
+  const { handleNext, handlePrevious, handleNavigation } = useTourNavigation(
+    currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete: handleTourComplete, onClose: handleTourClose, navigate }
+  );
+
+  // Use extracted effect for navigation detection
+  useNavigationDetectionEffect(isVisible, handleTourComplete);
+  // Use extracted effect for interaction handling
+  useInteractionHandlingEffect(isWaitingForInteraction, currentStepData, setIsWaitingForInteraction, handleNext, onComplete);
 
   if (!isVisible || !shouldShowStep(currentStepData, menuOpenState)) {
     return null;
