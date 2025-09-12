@@ -324,6 +324,12 @@ export const SessionService = {
       return false;
     }
 
+    // If session is already completed, return empty array immediately
+    if (session.status === "completed") {
+      logger.info(`✅ Session ${sessionId} already completed.`);
+      return [];
+    }
+
     // Get all attempts related to this session - handle multiple ID formats
     const attemptedProblemIds = new Set(
       session.attempts.map((a) => a.problemId || a.leetcode_id || a.id)
@@ -331,7 +337,7 @@ export const SessionService = {
 
     // Check if all scheduled problems have been attempted - handle multiple ID formats
     const unattemptedProblems = session.problems.filter((problem) => {
-      const problemId = problem.problem_id || problem.leetcode_id;
+      const problemId = problem.problem_id || problem.leetcode_id || problem.id;
       return !attemptedProblemIds.has(problemId);
     });
 
@@ -805,11 +811,10 @@ export const SessionService = {
     }
 
     logger.info(`🔍 Getting settings...`);
-    const settings = await StorageService.migrateSettingsToIndexedDB();
-    if (!settings) {
-      logger.error("❌ Settings not found.");
-      return null;
-    }
+    // Skip migration - just get settings directly (has built-in fallbacks and defaults)
+    const settings = await StorageService.getSettings();
+    logger.info(`✅ Settings loaded successfully`);
+    // StorageService.getSettings() always returns settings (defaults if needed), no null check required
 
     // Try to resume existing in-progress session first
     logger.info(`🔍 Calling resumeSession(${sessionType})...`);

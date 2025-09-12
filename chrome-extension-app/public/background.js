@@ -1902,9 +1902,18 @@ chrome.runtime.onStartup.addListener(() => {
   initializeConsistencySystem();
 });
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   console.log("🚀 Extension installed/updated - initializing consistency system");
   initializeConsistencySystem();
+  
+  // Auto-open dashboard on install/update
+  if (details.reason === 'install') {
+    console.log("🎉 First-time install - opening dashboard");
+    chrome.tabs.create({ url: "app.html" });
+  } else if (details.reason === 'update') {
+    console.log("⬆️ Extension updated - opening dashboard");
+    chrome.tabs.create({ url: "app.html" });
+  }
 });
 
 /**
