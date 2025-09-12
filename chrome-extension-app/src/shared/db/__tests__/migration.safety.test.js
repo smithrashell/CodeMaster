@@ -72,7 +72,7 @@ const createMockMigrationFunction = (shouldFail = false) =>
     return Promise.resolve({ updated: true, records: 42 });
   });
 
-const expectConsoleMessage = (spy, message) => {
+const _expectConsoleMessage = (spy, message) => {
   expect(spy).toHaveBeenCalledWith(
     expect.stringContaining(message)
   );

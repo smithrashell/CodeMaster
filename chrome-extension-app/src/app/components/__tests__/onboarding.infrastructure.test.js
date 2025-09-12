@@ -161,7 +161,7 @@ describe("Onboarding Flow - Session Infrastructure Validation", () => {
       });
 
       try {
-        const settings = await StorageService.getSettings();
+        const _settings = await StorageService.getSettings();
         await SessionService.getOrCreateSession();
       } catch (error) {
         // CRITICAL: Detect inconsistent onboarding state

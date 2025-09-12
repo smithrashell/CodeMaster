@@ -90,7 +90,7 @@ export const dbHelper = {
    * @param {IDBDatabase} db - Database instance to validate
    * @returns {Promise<boolean>} True if database is valid
    */
-  async validateDatabaseIntegrity(db) {
+  validateDatabaseIntegrity(db) {
     const requiredStores = [
       'attempts', 'problems', 'sessions', 'settings', 'tag_mastery',
       'standard_problems', 'strategy_data', 'tag_relationships',
@@ -117,7 +117,7 @@ export const dbHelper = {
    * @param {IDBDatabase} db - Corrupted database instance
    * @returns {Promise<IDBDatabase>} Repaired database
    */
-  async repairDatabase(db) {
+  repairDatabase(db) {
     console.warn('🛠️ Starting database repair process...');
     
     // Close the corrupted database

@@ -1,7 +1,7 @@
 import { SessionService } from "../sessionService";
 import {
   getSessionById,
-  getLatestSession,
+  // getLatestSession, // Unused in current tests
   getLatestSessionByType,
   saveSessionToStorage,
   saveNewSessionToDB,
@@ -217,7 +217,7 @@ describe("SessionService - Critical User Retention Paths", () => {
       StorageService.getSessionState.mockResolvedValue(null); // Corrupt state
       StorageService.setSessionState.mockResolvedValue();
 
-      const result = await SessionService.checkAndCompleteSession(sessionId);
+      const _result = await SessionService.checkAndCompleteSession(sessionId);
 
       // CRITICAL: Handles corruption, creates new state
       expect(StorageService.setSessionState).toHaveBeenCalledWith(
@@ -233,7 +233,7 @@ describe("SessionService - Critical User Retention Paths", () => {
   describe("📊 CRITICAL: User sees their streak", () => {
     it("should calculate current streak correctly", async () => {
       // Mock the openDatabase function to return our test database
-      const { openDatabase } = await import('../../db/connectionUtils.js');
+      const { openDatabase: _openDatabase } = await import('../../db/connectionUtils.js');
       jest.doMock('../../db/connectionUtils.js', () => ({
         openDatabase: jest.fn().mockResolvedValue({
           transaction: jest.fn().mockReturnValue({
@@ -274,7 +274,7 @@ describe("SessionService - Critical User Retention Paths", () => {
       ProblemService.createSession.mockResolvedValue([]);
       
       // Force creation of new session to bypass the empty check
-      jest.spyOn(SessionService, '_doGetOrCreateSession').mockImplementation(async () => {
+      jest.spyOn(SessionService, '_doGetOrCreateSession').mockImplementation(() => {
         // Simulate fallback logic that finds problems from database
         const fallbackProblems = [
           { id: 999, title: "Fallback Problem", difficulty: "Easy" }
@@ -362,7 +362,7 @@ describe("SessionService - Critical User Retention Paths", () => {
       StorageService.getSessionState.mockRejectedValue(new Error("Chrome storage error"));
       StorageService.setSessionState.mockResolvedValue();
 
-      const result = await SessionService.checkAndCompleteSession("storage-fail-test");
+      const _result = await SessionService.checkAndCompleteSession("storage-fail-test");
 
       // CRITICAL: Session still completes despite storage errors
       // Check that the method was called at least once - the exact status may depend on session completeness logic
