@@ -107,11 +107,16 @@ export const ProblemService = {
    * @returns {Promise<Object>} - The added/updated problem.
    */
   async addOrUpdateProblem(contentScriptData) {
-    logger.info("📌 addOrUpdateProblem called");
+    logger.info("📌 addOrUpdateProblem called", { contentScriptData });
 
-    const problem = await checkDatabaseForProblem(
-      Number(contentScriptData.leetcode_id)
-    );
+    // Validate leetcode_id before using it as a database key
+    if (!contentScriptData.leetcode_id || isNaN(Number(contentScriptData.leetcode_id))) {
+      logger.error("❌ Invalid leetcode_id:", contentScriptData.leetcode_id);
+      throw new Error(`Invalid leetcode_id: ${contentScriptData.leetcode_id}. Must be a valid number.`);
+    }
+
+    const leetcodeId = Number(contentScriptData.leetcode_id);
+    const problem = await checkDatabaseForProblem(leetcodeId);
 
     logger.info("✅ problemExists:", problem);
     if (problem) {

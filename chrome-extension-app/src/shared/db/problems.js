@@ -438,12 +438,18 @@ export async function countProblemsByBoxLevel() {
  * @returns {Promise<boolean>} - Returns true if the problem exists, false otherwise.
  */
 export async function checkDatabaseForProblem(problemId) {
+  // Validate problemId before attempting database operation
+  if (problemId == null || isNaN(Number(problemId))) {
+    logger.error("❌ Invalid problemId for database lookup:", problemId);
+    throw new Error(`Invalid problemId: ${problemId}. Must be a valid number.`);
+  }
+
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
     logger.info("🔍 problemId:", problemId);
-    const request = store.get(problemId); // Use primary key (leetcode_id) directly
+    const request = store.get(Number(problemId)); // Ensure it's a number
 
     // return true if problem is found, false otherwise
     request.onsuccess = () => {
@@ -1210,13 +1216,19 @@ export function checkDatabaseForProblemWithRetry(
     abortController = null,
   } = options;
 
+  // Validate problemId before attempting database operation
+  if (problemId == null || isNaN(Number(problemId))) {
+    logger.error("❌ Invalid problemId for database lookup with retry:", problemId);
+    return Promise.reject(new Error(`Invalid problemId: ${problemId}. Must be a valid number.`));
+  }
+
   return indexedDBRetry.executeWithRetry(
     async () => {
       const db = await openDB();
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["problems"], "readonly");
         const store = transaction.objectStore("problems");
-        const request = store.get(problemId); // Use primary key (leetcode_id) directly
+        const request = store.get(Number(problemId)); // Ensure it's a number
 
         request.onsuccess = () => {
           resolve(!!request.result); // Convert to boolean
