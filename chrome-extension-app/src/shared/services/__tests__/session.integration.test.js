@@ -53,48 +53,77 @@ describe.skip('Session Logic Integration', () => {
     jest.clearAllMocks();
   });
 
-  describe('Complete Session Workflow', () => {
-    const createSuccessfulSessionMock = () => (message, callback) => {
+  // Helper functions for Complete Session Workflow tests
+  const createSuccessfulSessionMock = () => (message, callback) => {
+    switch (message.type) {
+      case 'createSession':
+        callback({
+          status: 'success',
+          session: {
+            id: 'session-123',
+            status: 'active',
+            problems: [
+              { id: 'prob-1', difficulty: 'Easy', tags: ['Array'] },
+              { id: 'prob-2', difficulty: 'Medium', tags: ['Hash Table'] },
+            ],
+            startTime: new Date().toISOString(),
+          },
+        });
+        break;
+      case 'updateSessionProgress':
+        callback({
+          status: 'success',
+          updatedSession: {
+            id: 'session-123',
+            problemsCompleted: message.problemsCompleted,
+            currentProblem: message.currentProblem,
+          },
+        });
+        break;
+      case 'completeSession':
+        callback({
+          status: 'success',
+          completedSession: {
+            id: 'session-123',
+            status: 'completed',
+            endTime: new Date().toISOString(),
+            performance: 0.8,
+          },
+        });
+        break;
+      default:
+        callback({ status: 'success' });
+    }
+  };
+
+  const createStatefulSessionMock = () => {
+    let sessionState = {
+      id: 'session-123',
+      status: 'active',
+      problemsCompleted: 0,
+      totalProblems: 5,
+    };
+
+    return (message, callback) => {
       switch (message.type) {
-        case 'createSession':
-          callback({
-            status: 'success',
-            session: {
-              id: 'session-123',
-              status: 'active',
-              problems: [
-                { id: 'prob-1', difficulty: 'Easy', tags: ['Array'] },
-                { id: 'prob-2', difficulty: 'Medium', tags: ['Hash Table'] },
-              ],
-              startTime: new Date().toISOString(),
-            },
-          });
+        case 'getSessionState':
+          callback({ status: 'success', sessionState });
           break;
         case 'updateSessionProgress':
-          callback({
-            status: 'success',
-            updatedSession: {
-              id: 'session-123',
-              problemsCompleted: message.problemsCompleted,
-              currentProblem: message.currentProblem,
-            },
-          });
-          break;
-        case 'completeSession':
-          callback({
-            status: 'success',
-            completedSession: {
-              id: 'session-123',
-              status: 'completed',
-              endTime: new Date().toISOString(),
-              performance: 0.8,
-            },
-          });
+          sessionState = {
+            ...sessionState,
+            problemsCompleted: message.problemsCompleted,
+            currentProblem: message.currentProblem,
+          };
+          callback({ status: 'success', updatedSession: sessionState });
           break;
         default:
           callback({ status: 'success' });
       }
     };
+  };
+
+  describe('Complete Session Workflow', () => {
 
     it('should handle full session lifecycle with background script integration', async () => {
       // Mock background script responses
@@ -165,33 +194,6 @@ describe.skip('Session Logic Integration', () => {
       expect(sessionData.status).toBe('error');
       expect(sessionData.error).toContain('Database connection failed');
     });
-
-    const createStatefulSessionMock = () => {
-      let sessionState = {
-        id: 'session-123',
-        status: 'active',
-        problemsCompleted: 0,
-        totalProblems: 5,
-      };
-
-      return (message, callback) => {
-        switch (message.type) {
-          case 'getSessionState':
-            callback({ status: 'success', sessionState });
-            break;
-          case 'updateSessionProgress':
-            sessionState = {
-              ...sessionState,
-              problemsCompleted: message.problemsCompleted,
-              currentProblem: message.currentProblem,
-            };
-            callback({ status: 'success', updatedSession: sessionState });
-            break;
-          default:
-            callback({ status: 'success' });
-        }
-      };
-    };
 
     it('should maintain session state consistency across operations', async () => {
       mockSendMessage.mockImplementation(createStatefulSessionMock());

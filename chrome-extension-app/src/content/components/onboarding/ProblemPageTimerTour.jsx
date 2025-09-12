@@ -133,6 +133,109 @@ const markTimerTourCompleted = async () => {
   }
 };
 
+// Helper function for finding timer link
+const findTimerLinkAndPosition = () => {
+  // Look for the timer link with multiple selectors
+  let timerLink = document.querySelector("a[href='/Probtime']") ||
+                 document.querySelector("a[href*='Probtime']") ||
+                 document.querySelector("#cm-mySidenav a[href*='timer']") ||
+                 document.querySelector("#cm-mySidenav a[href*='Timer']");
+  
+  // Also search by text content if href search fails
+  if (!timerLink) {
+    const allMenuLinks = document.querySelectorAll("#cm-mySidenav a");
+    for (const link of allMenuLinks) {
+      const text = link.textContent?.toLowerCase() || '';
+      if (text.includes('timer') || text.includes('probtime')) {
+        timerLink = link;
+        break;
+      }
+    }
+  }
+  
+  // Debug all available links
+  const allMenuLinks = document.querySelectorAll("#cm-mySidenav a, #cm-mySidenav button");
+  const linkInfo = Array.from(allMenuLinks).map(link => ({ 
+    tagName: link.tagName,
+    href: link.href || 'no-href', 
+    text: link.textContent?.trim() || 'no-text',
+    classes: Array.from(link.classList),
+    onclick: link.onclick ? 'has-onclick' : 'no-onclick'
+  }));
+  
+  logger.info(`🕐 Positioning DEBUG: Timer link found: ${!!timerLink}, all menu items:`, linkInfo);
+  
+  return timerLink;
+};
+
+// Helper function for timer button positioning
+const calculateTimerButtonPosition = (position, setTourPosition, setHasInitiallyPositioned) => {
+  // Check if menu is actually open and give it time to load
+  const menuSidebar = document.querySelector("#cm-mySidenav");
+  const menuClasses = menuSidebar ? Array.from(menuSidebar.classList) : [];
+  const isMenuOpen = menuSidebar && !menuSidebar.classList.contains("cm-hidden");
+  
+  logger.info(`🕐 Positioning DEBUG: Menu sidebar found: ${!!menuSidebar}, classes: [${menuClasses.join(', ')}], isMenuOpen: ${isMenuOpen}`);
+  
+  let finalPosition = { top: position.top, left: position.left };
+  
+  if (isMenuOpen) {
+    // Try immediately first
+    let timerLink = findTimerLinkAndPosition();
+    
+    // If not found, try again after a short delay for menu to fully load
+    if (!timerLink) {
+      setTimeout(() => {
+        timerLink = findTimerLinkAndPosition();
+        if (timerLink) {
+          logger.info(`🕐 Positioning: Found timer link on retry, recalculating position`);
+          // Note: We'd need to pass calculatePosition as parameter for recursion
+        }
+      }, 100);
+    }
+    
+    if (timerLink) {
+      const timerRect = timerLink.getBoundingClientRect();
+      logger.info(`🕐 Positioning: Found timer link at (${timerRect.top}, ${timerRect.left}, ${timerRect.right}, ${timerRect.bottom}), positioning tour to point at it`);
+      
+      // Position to the right of the timer link with proper spacing
+      const viewportWidth = window.innerWidth;
+      const tourWidth = 280;
+      
+      finalPosition = {
+        top: Math.max(60, timerRect.top - 10), // Align with timer link top, slight offset up
+        left: Math.min(
+          timerRect.right + 30, // Close enough to clearly point to the timer link
+          viewportWidth - tourWidth - 40 // Don't go off screen
+        )
+      };
+    } else {
+      logger.info(`🕐 Positioning: Timer link not found, using menu-relative positioning`);
+      const sidebarRect = menuSidebar.getBoundingClientRect();
+      finalPosition = {
+        top: sidebarRect.top + 100,
+        left: Math.min(
+          sidebarRect.right + 30,
+          window.innerWidth - 320
+        )
+      };
+    }
+  } else {
+    logger.info(`🕐 Positioning: Menu not open, using default fallback positioning`);
+    // Even if menu not detected as open, use a safe fallback position
+    finalPosition = {
+      top: 100,
+      left: Math.max(350, window.innerWidth - 350)
+    };
+  }
+  
+  setTourPosition(finalPosition);
+  setHasInitiallyPositioned(true);
+  logger.info(`🕐 Positioning: Step positioned at (${finalPosition.top}, ${finalPosition.left})`);
+  
+  return finalPosition;
+};
+
 // Custom hook for positioning
 const useTimerTourPositioning = (isVisible, currentStepData, currentStep) => {
   const [tourPosition, setTourPosition] = useState(null);
