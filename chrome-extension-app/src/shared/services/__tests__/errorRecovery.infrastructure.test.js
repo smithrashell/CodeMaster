@@ -98,7 +98,7 @@ describe("Error Recovery Infrastructure - User-Facing Failure Scenarios", () => 
       }
     });
 
-    it("should detect orphaned session cleanup failures via leaked resources", async () => {
+    it("should detect orphaned session cleanup failures via leaked resources", () => {
       // Mock scenario: Session cleanup doesn't remove all related data
       const orphanedSessionData = {
         sessions: [
@@ -142,6 +142,71 @@ describe("Error Recovery Infrastructure - User-Facing Failure Scenarios", () => 
   });
 
   describe("⚡ CRITICAL: Data Recovery Under Load", () => {
+    const createMemoryPressureSimulator = () => {
+      let operationTimes = [];
+      
+      return () => {
+        const baseTime = 100; // Normal operation time
+        const pressureMultiplier = operationTimes.length + 1; // Increasing pressure
+        const operationTime = baseTime * Math.pow(1.5, pressureMultiplier);
+        
+        operationTimes.push(operationTime);
+        
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve({
+              completed: true,
+              duration: operationTime,
+              memoryUsage: operationTimes.length * 10 + "MB"
+            });
+          }, operationTime);
+        });
+      };
+    };
+
+    const validateRollbackConsistency = (result) => {
+      if (!result.rollbackPerformed || !result.rollbackIncomplete) return [];
+
+      const inconsistencies = [];
+      
+      if (result.preState.attempts.length !== result.postState.attempts.length) {
+        inconsistencies.push("attempts_not_restored");
+      }
+      
+      if (result.preState.problemStats.totalSolved !== result.postState.problemStats.totalSolved) {
+        inconsistencies.push("stats_not_restored");
+      }
+
+      if (inconsistencies.length > 0) {
+        console.error("Transaction rollback incomplete:", {
+          inconsistencies,
+          dataIntegrityCompromised: true,
+          recommendedAction: "manual_data_repair"
+        });
+      }
+
+      return inconsistencies;
+    };
+
+    const analyzePerformanceDegradation = (results) => {
+      const durations = results.map(r => r.duration);
+      const performanceDegradation = durations[durations.length - 1] / durations[0];
+
+      if (performanceDegradation > 3) {
+        console.warn("Memory pressure detected:", {
+          performanceDegradation: performanceDegradation + "x slower",
+          operationTimes: durations,
+          recommendedActions: [
+            "implement_operation_throttling",
+            "add_memory_monitoring",
+            "optimize_data_structures"
+          ]
+        });
+      }
+
+      return performanceDegradation;
+    };
+
     it("should detect IndexedDB quota exhaustion via storage failure patterns", async () => {
       // Mock scenario: Storage quota exceeded during data operation
       const quotaError = new Error("QuotaExceededError: Storage quota exceeded");
@@ -196,51 +261,17 @@ describe("Error Recovery Infrastructure - User-Facing Failure Scenarios", () => 
       const result = await SessionService.performTransactionWithRollback();
 
       // CRITICAL: Detect incomplete rollback that leaves inconsistent state
-      if (result.rollbackPerformed && result.rollbackIncomplete) {
-        const inconsistencies = [];
-        
-        if (result.preState.attempts.length !== result.postState.attempts.length) {
-          inconsistencies.push("attempts_not_restored");
-        }
-        
-        if (result.preState.problemStats.totalSolved !== result.postState.problemStats.totalSolved) {
-          inconsistencies.push("stats_not_restored");
-        }
-
-        if (inconsistencies.length > 0) {
-          console.error("Transaction rollback incomplete:", {
-            inconsistencies,
-            dataIntegrityCompromised: true,
-            recommendedAction: "manual_data_repair"
-          });
-          
-          // This reveals: Need atomic transaction rollback implementation
-          expect(result.rollbackIncomplete).toBe(true);
-        }
+      const inconsistencies = validateRollbackConsistency(result);
+      
+      if (inconsistencies.length > 0) {
+        // This reveals: Need atomic transaction rollback implementation
+        expect(result.rollbackIncomplete).toBe(true);
       }
     });
 
     it("should detect memory pressure via operation degradation", async () => {
       // Mock scenario: System under memory pressure, operations slow down
-      let operationTimes = [];
-      
-      const simulateMemoryPressure = () => {
-        const baseTime = 100; // Normal operation time
-        const pressureMultiplier = operationTimes.length + 1; // Increasing pressure
-        const operationTime = baseTime * Math.pow(1.5, pressureMultiplier);
-        
-        operationTimes.push(operationTime);
-        
-        return new Promise(resolve => {
-          setTimeout(() => {
-            resolve({
-              completed: true,
-              duration: operationTime,
-              memoryUsage: operationTimes.length * 10 + "MB"
-            });
-          }, operationTime);
-        });
-      };
+      const simulateMemoryPressure = createMemoryPressureSimulator();
 
       ProblemService.createSession.mockImplementation(simulateMemoryPressure);
 
@@ -253,20 +284,9 @@ describe("Error Recovery Infrastructure - User-Facing Failure Scenarios", () => 
       const results = await Promise.all(operations);
 
       // CRITICAL: Detect performance degradation indicating memory pressure
-      const durations = results.map(r => r.duration);
-      const performanceDegradation = durations[durations.length - 1] / durations[0];
-
+      const performanceDegradation = analyzePerformanceDegradation(results);
+      
       if (performanceDegradation > 3) {
-        console.warn("Memory pressure detected:", {
-          performanceDegradation: performanceDegradation + "x slower",
-          operationTimes: durations,
-          recommendedActions: [
-            "implement_operation_throttling",
-            "add_memory_monitoring",
-            "optimize_data_structures"
-          ]
-        });
-        
         // This reveals: Need memory pressure detection and mitigation
         expect(performanceDegradation).toBeGreaterThan(3);
       }
@@ -274,25 +294,47 @@ describe("Error Recovery Infrastructure - User-Facing Failure Scenarios", () => 
   });
 
   describe("🔧 CRITICAL: User Action Recovery", () => {
-    it("should detect lost user progress via action replay validation", async () => {
-      // Mock scenario: User actions get lost during system recovery
-      const userActions = [
-        { type: "problem_completed", problemId: 1, timestamp: Date.now() - 3000 },
-        { type: "problem_completed", problemId: 2, timestamp: Date.now() - 2000 },
-        { type: "session_completed", sessionId: "session-1", timestamp: Date.now() - 1000 }
-      ];
+    const createMockActionProcessor = () => {
+      let processCount = 0;
+      return (action) => {
+        processCount++;
+        
+        return {
+          actionId: action.id,
+          processed: true,
+          processCount,
+          newState: {
+            totalSolved: 10 + processCount, // Should only increment once
+            attempts: Array(processCount).fill({ problemId: 1 }) // Duplicated attempts
+          },
+          duplicateDetected: processCount > 1
+        };
+      };
+    };
 
-      const expectedState = {
+    const createMockUserActions = () => [
+      { type: "problem_completed", problemId: 1, timestamp: Date.now() - 3000 },
+      { type: "problem_completed", problemId: 2, timestamp: Date.now() - 2000 },
+      { type: "session_completed", sessionId: "session-1", timestamp: Date.now() - 1000 }
+    ];
+
+    const createExpectedRecoveryStates = () => ({
+      expected: {
         completedProblems: [1, 2],
         completedSessions: ["session-1"],
         totalSolved: 12 // Was 10, now 12 after 2 completions
-      };
-
-      const actualStateAfterRecovery = {
+      },
+      actualAfterRecovery: {
         completedProblems: [1], // Lost problem 2 completion
         completedSessions: [], // Lost session completion
         totalSolved: 11 // Inconsistent count
-      };
+      }
+    });
+
+    it("should detect lost user progress via action replay validation", () => {
+      // Mock scenario: User actions get lost during system recovery
+      const userActions = createMockUserActions();
+      const { expected: expectedState, actualAfterRecovery: actualStateAfterRecovery } = createExpectedRecoveryStates();
 
       SessionService.validateActionReplay = jest.fn().mockReturnValue({
         actionsProcessed: userActions.length,
@@ -331,24 +373,10 @@ describe("Error Recovery Infrastructure - User-Facing Failure Scenarios", () => 
         sessionId: "session-1"
       };
 
-      let processCount = 0;
-      SessionService.processUserAction = jest.fn().mockImplementation((action) => {
-        processCount++;
-        
-        return {
-          actionId: action.id,
-          processed: true,
-          processCount,
-          newState: {
-            totalSolved: 10 + processCount, // Should only increment once
-            attempts: Array(processCount).fill({ problemId: 1 }) // Duplicated attempts
-          },
-          duplicateDetected: processCount > 1
-        };
-      });
+      SessionService.processUserAction = jest.fn().mockImplementation(createMockActionProcessor());
 
       // Simulate recovery processing same action multiple times
-      const result1 = await SessionService.processUserAction(userAction);
+      const _result1 = await SessionService.processUserAction(userAction);
       const result2 = await SessionService.processUserAction(userAction); // Duplicate
 
       // CRITICAL: Detect idempotency violations
@@ -368,7 +396,7 @@ describe("Error Recovery Infrastructure - User-Facing Failure Scenarios", () => 
       }
     });
 
-    it("should detect action ordering corruption via causality validation", async () => {
+    it("should detect action ordering corruption via causality validation", () => {
       // Mock scenario: Actions processed out of order during recovery
       const outOfOrderActions = [
         { id: "action-3", type: "session_completed", sessionId: "session-1", timestamp: Date.now() },

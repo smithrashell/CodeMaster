@@ -8,7 +8,7 @@
  * - Chrome messaging integration
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -198,7 +198,7 @@ describe('Dashboard Refresh Functionality', () => {
   // The functionality is still tested via ProductivityInsights which has similar patterns
 
   describe('Productivity Insights Page', () => {
-    it('should render refresh button and handle click', async () => {
+    it('should render refresh button and handle click', () => {
       render(
         <TestWrapper>
           <ProductivityInsights />
@@ -212,7 +212,7 @@ describe('Dashboard Refresh Functionality', () => {
       expect(mockRefresh).toHaveBeenCalledTimes(1);
     });
 
-    it('should handle error state with retry functionality', async () => {
+    it('should handle error state with retry functionality', () => {
       mockUsePageData.mockReturnValue({
         data: null,
         loading: false,
@@ -242,7 +242,7 @@ describe('Dashboard Refresh Functionality', () => {
   // Mistake Analysis Page tests removed due to import issues
 
   describe('usePageData Hook Integration', () => {
-    it('should call refresh function with correct parameters', async () => {
+    it('should call refresh function with correct parameters', () => {
       render(
         <TestWrapper>
           <ProductivityInsights />
@@ -258,7 +258,7 @@ describe('Dashboard Refresh Functionality', () => {
   });
 
   describe('Consistent UX Patterns', () => {
-    it('should have consistent refresh button styling', async () => {
+    it('should have consistent refresh button styling', () => {
       render(
         <TestWrapper>
           <ProductivityInsights />
@@ -272,7 +272,7 @@ describe('Dashboard Refresh Functionality', () => {
       expect(refreshButton).toHaveTextContent('Refresh');
     });
 
-    it('should have consistent error message formatting', async () => {
+    it('should have consistent error message formatting', () => {
       const errorMessage = 'Test error message';
       
       mockUsePageData.mockReturnValue({

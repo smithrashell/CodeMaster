@@ -36,28 +36,30 @@ const getProblemProperty = (routeState, ...keys) => {
 const useProblemData = (routeState) => {
   const idValue = getProblemProperty(routeState, 'LeetCodeID', 'leetCodeID', 'id');
   const titleValue = getProblemProperty(routeState, 'Description', 'ProblemDescription', 'title');
-  const tagsValue = getProblemProperty(routeState, 'Tags', 'tags') || [];
-  const difficultyValue = getProblemProperty(routeState, 'Difficulty', 'difficulty') || 'Unknown';
-  const acceptanceValue = getProblemProperty(routeState, 'acceptance') || 'N/A';
-  const submissionsValue = getProblemProperty(routeState, 'submissions') || 'N/A';
-  const attemptsValue = getProblemProperty(routeState, 'attempts') || 0;
-  const lastSolvedValue = getProblemProperty(routeState, 'lastSolved') || 'Never';
-  
-  const problemData = useMemo(() => ({
-    id: idValue,
-    leetCodeID: idValue,
-    LeetCodeID: idValue,
-    title: titleValue,
-    Description: titleValue,
-    ProblemDescription: titleValue,
-    tags: tagsValue,
-    Tags: tagsValue,
-    difficulty: difficultyValue,
-    acceptance: acceptanceValue,
-    submissions: submissionsValue,
-    attempts: attemptsValue,
-    lastSolved: lastSolvedValue,
-  }), [idValue, titleValue, tagsValue, difficultyValue, acceptanceValue, submissionsValue, attemptsValue, lastSolvedValue]);
+  const problemData = useMemo(() => {
+    const tagsValue = getProblemProperty(routeState, 'Tags', 'tags') || [];
+    const difficultyValue = getProblemProperty(routeState, 'Difficulty', 'difficulty') || 'Unknown';
+    const acceptanceValue = getProblemProperty(routeState, 'acceptance') || 'N/A';
+    const submissionsValue = getProblemProperty(routeState, 'submissions') || 'N/A';
+    const attemptsValue = getProblemProperty(routeState, 'attempts') || 0;
+    const lastSolvedValue = getProblemProperty(routeState, 'lastSolved') || 'Never';
+    
+    return {
+      id: idValue,
+      leetCodeID: idValue,
+      LeetCodeID: idValue,
+      title: titleValue,
+      Description: titleValue,
+      ProblemDescription: titleValue,
+      tags: tagsValue,
+      Tags: tagsValue,
+      difficulty: difficultyValue,
+      acceptance: acceptanceValue,
+      submissions: submissionsValue,
+      attempts: attemptsValue,
+      lastSolved: lastSolvedValue,
+    };
+  }, [idValue, titleValue, routeState]);
 
   const interviewConfig = getProblemProperty(routeState, 'interviewConstraints');
   const sessionType = getProblemProperty(routeState, 'sessionType');

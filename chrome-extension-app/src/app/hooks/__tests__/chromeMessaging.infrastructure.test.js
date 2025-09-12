@@ -59,7 +59,7 @@ describe("Chrome Messaging Infrastructure - UI-Revealed Problems", () => {
       // This test reveals: Need message ordering/deduplication in Chrome messaging
     });
 
-    it("should detect Chrome API quota exhaustion via error patterns", async () => {
+    it("should detect Chrome API quota exhaustion via error patterns", () => {
       // Mock scenario: Too many Chrome messages trigger quota limits
       const quotaError = new Error("Quota exceeded");
       quotaError.name = "QuotaExceededError";

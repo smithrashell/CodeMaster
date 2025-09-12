@@ -194,7 +194,7 @@ function runDataIntegrityTests(AttemptsService) {
 }
 
 describe('AttemptsService - Critical Risk Areas', () => {
-  beforeAll(async () => {
+  beforeAll(() => {
     // Mock all complex dependencies that cause import issues
     jest.doMock('../../db/index.js', () => ({
       dbHelper: { 

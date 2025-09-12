@@ -54,49 +54,51 @@ describe.skip('Session Logic Integration', () => {
   });
 
   describe('Complete Session Workflow', () => {
+    const createSuccessfulSessionMock = () => (message, callback) => {
+      switch (message.type) {
+        case 'createSession':
+          callback({
+            status: 'success',
+            session: {
+              id: 'session-123',
+              status: 'active',
+              problems: [
+                { id: 'prob-1', difficulty: 'Easy', tags: ['Array'] },
+                { id: 'prob-2', difficulty: 'Medium', tags: ['Hash Table'] },
+              ],
+              startTime: new Date().toISOString(),
+            },
+          });
+          break;
+        case 'updateSessionProgress':
+          callback({
+            status: 'success',
+            updatedSession: {
+              id: 'session-123',
+              problemsCompleted: message.problemsCompleted,
+              currentProblem: message.currentProblem,
+            },
+          });
+          break;
+        case 'completeSession':
+          callback({
+            status: 'success',
+            completedSession: {
+              id: 'session-123',
+              status: 'completed',
+              endTime: new Date().toISOString(),
+              performance: 0.8,
+            },
+          });
+          break;
+        default:
+          callback({ status: 'success' });
+      }
+    };
+
     it('should handle full session lifecycle with background script integration', async () => {
       // Mock background script responses
-      mockSendMessage.mockImplementation((message, callback) => {
-        switch (message.type) {
-          case 'createSession':
-            callback({
-              status: 'success',
-              session: {
-                id: 'session-123',
-                status: 'active',
-                problems: [
-                  { id: 'prob-1', difficulty: 'Easy', tags: ['Array'] },
-                  { id: 'prob-2', difficulty: 'Medium', tags: ['Hash Table'] },
-                ],
-                startTime: new Date().toISOString(),
-              },
-            });
-            break;
-          case 'updateSessionProgress':
-            callback({
-              status: 'success',
-              updatedSession: {
-                id: 'session-123',
-                problemsCompleted: message.problemsCompleted,
-                currentProblem: message.currentProblem,
-              },
-            });
-            break;
-          case 'completeSession':
-            callback({
-              status: 'success',
-              completedSession: {
-                id: 'session-123',
-                status: 'completed',
-                endTime: new Date().toISOString(),
-                performance: 0.8,
-              },
-            });
-            break;
-          default:
-            callback({ status: 'success' });
-        }
-      });
+      mockSendMessage.mockImplementation(createSuccessfulSessionMock());
 
       // Step 1: Create session
       const sessionData = await SessionService.createSession({
@@ -164,7 +166,7 @@ describe.skip('Session Logic Integration', () => {
       expect(sessionData.error).toContain('Database connection failed');
     });
 
-    it('should maintain session state consistency across operations', async () => {
+    const createStatefulSessionMock = () => {
       let sessionState = {
         id: 'session-123',
         status: 'active',
@@ -172,7 +174,7 @@ describe.skip('Session Logic Integration', () => {
         totalProblems: 5,
       };
 
-      mockSendMessage.mockImplementation((message, callback) => {
+      return (message, callback) => {
         switch (message.type) {
           case 'getSessionState':
             callback({ status: 'success', sessionState });
@@ -188,7 +190,11 @@ describe.skip('Session Logic Integration', () => {
           default:
             callback({ status: 'success' });
         }
-      });
+      };
+    };
+
+    it('should maintain session state consistency across operations', async () => {
+      mockSendMessage.mockImplementation(createStatefulSessionMock());
 
       // Get initial state
       const initialState = await SessionService.getSessionState('session-123');
@@ -271,7 +277,7 @@ describe.skip('Session Logic Integration', () => {
         }
       });
 
-      const problems = await ProblemService.getSessionProblems({
+      const _problems = await ProblemService.getSessionProblems({
         sessionLength: 5,
         focusAreas: ['NonexistentTag'],
       });
