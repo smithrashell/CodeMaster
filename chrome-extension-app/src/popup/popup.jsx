@@ -14,17 +14,46 @@
 // createRoot(domNode).render(<Popup />);
 
 import { createRoot } from "react-dom/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+
+// Shared spinner component for loading states
+const LoadingSpinner = ({ message }) => (
+  <div style={{ 
+    width: '300px', 
+    height: '100px', 
+    display: 'flex', 
+    flexDirection: 'column',
+    justifyContent: 'center', 
+    alignItems: 'center',
+    gap: '10px'
+  }}>
+    <div style={{ 
+      width: '20px', 
+      height: '20px', 
+      border: '2px solid #f3f3f3',
+      borderTop: '2px solid #3498db',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite'
+    }}></div>
+    <div style={{ fontSize: '12px', color: '#666' }}>
+      {message}
+    </div>
+    <style dangerouslySetInnerHTML={{
+      __html: `
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `
+    }} />
+  </div>
+);
 
 function Popup() {
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
 
-  useEffect(() => {
-    checkOnboardingStatus();
-  }, []);
-
-  const checkOnboardingStatus = async () => {
+  const checkOnboardingStatus = useCallback(async () => {
     try {
       const response = await chrome.runtime.sendMessage({
         type: "checkInstallationOnboardingStatus"
@@ -43,78 +72,22 @@ function Popup() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setIsReady, setIsLoading]);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, [checkOnboardingStatus]);
 
   const openApp = () => {
     chrome.tabs.create({ url: chrome.runtime.getURL("app.html") });
   };
 
   if (isLoading) {
-    return (
-      <div style={{ 
-        width: '300px', 
-        height: '100px', 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center',
-        gap: '10px'
-      }}>
-        <div style={{ 
-          width: '20px', 
-          height: '20px', 
-          border: '2px solid #f3f3f3',
-          borderTop: '2px solid #3498db',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <div style={{ fontSize: '12px', color: '#666' }}>
-          Setting up CodeMaster...
-        </div>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `
-        }} />
-      </div>
-    );
+    return <LoadingSpinner message="Setting up CodeMaster..." />;
   }
 
   if (!isReady) {
-    return (
-      <div style={{ 
-        width: '300px', 
-        height: '100px', 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center',
-        gap: '10px'
-      }}>
-        <div style={{ 
-          width: '20px', 
-          height: '20px', 
-          border: '2px solid #f3f3f3',
-          borderTop: '2px solid #3498db',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }}></div>
-        <div style={{ fontSize: '12px', color: '#666' }}>
-          Preparing your dashboard...
-        </div>
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `
-        }} />
-      </div>
-    );
+    return <LoadingSpinner message="Preparing your dashboard..." />;
   }
 
   return (

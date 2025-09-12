@@ -601,6 +601,62 @@ function useTourNavigation(currentStep, setCurrentStep, tourSteps, onComplete, o
   return { handleNext, handlePrevious, handleSkip, forceHoverState };
 }
 
+// Custom hook for handling early tour completion
+function useEarlyTourCompletion(isVisible, tourConfig, _tourId, onComplete) {
+  React.useEffect(() => {
+    if (!isVisible) return;
+    
+    const tourId = tourConfig?.id || _tourId;
+    const isProbgenTour = tourId === "probgen_tour" || _tourId === "probgen";
+    const isProbTimeTour = tourId === "probtime_tour" || _tourId === "probtime";
+    
+    if (!isProbgenTour && !isProbTimeTour) return;
+    
+    const handleEarlyCompletionClick = (event) => {
+      if (isProbgenTour) {
+        // Check if the clicked element is a navigation link for probgen tour
+        const clickedElement = event.target.closest('a[href]');
+        if (!clickedElement) return;
+        
+        const href = clickedElement.getAttribute('href');
+        
+        // List of navigation links that should complete the probgen tour
+        const navigationLinks = ['/Probstat', '/Settings'];
+        
+        if (navigationLinks.includes(href)) {
+          console.log(`🎯 Probgen Tour: User clicked navigation link ${href}, completing tour early`);
+          onComplete();
+        }
+      } else if (isProbTimeTour) {
+        // Check if the clicked element is an attempt/timer button for probtime tour
+        const clickedElement = event.target.closest('button, a');
+        if (!clickedElement) return;
+        
+        // Check for attempt/timer/start button patterns
+        const isAttemptButton = clickedElement.textContent?.toLowerCase().includes('attempt') ||
+                              clickedElement.textContent?.toLowerCase().includes('start') ||
+                              clickedElement.textContent?.toLowerCase().includes('solve') ||
+                              clickedElement.className?.includes('timer') ||
+                              clickedElement.className?.includes('start') ||
+                              clickedElement.className?.includes('primary') ||
+                              clickedElement.classList?.contains('start-button');
+        
+        if (isAttemptButton) {
+          console.log(`🎯 Problem Details Tour: User clicked attempt/timer button, completing tour early`);
+          onComplete();
+        }
+      }
+    };
+    
+    // Listen for clicks on the entire document
+    document.addEventListener('click', handleEarlyCompletionClick, true);
+    
+    return () => {
+      document.removeEventListener('click', handleEarlyCompletionClick, true);
+    };
+  }, [isVisible, onComplete, tourConfig, _tourId]);
+}
+
 // Helper function for step icons
 function getStepIcon(stepType) {
   switch (stepType) {
@@ -664,59 +720,8 @@ export function PageSpecificTour({
   useForceHoverEffect(isVisible, currentStepData, currentStep, forceHoverState);
   useAutoTriggerEffects(isVisible, currentStepData, menuOpenState);
   
-  // Add effect to detect clicks that should complete tours early
-  React.useEffect(() => {
-    if (!isVisible) return;
-    
-    const tourId = tourConfig?.id || _tourId;
-    const isProbgenTour = tourId === "probgen_tour" || _tourId === "probgen";
-    const isProbTimeTour = tourId === "probtime_tour" || _tourId === "probtime";
-    
-    if (!isProbgenTour && !isProbTimeTour) return;
-    
-    const handleEarlyCompletionClick = (event) => {
-      if (isProbgenTour) {
-        // Check if the clicked element is a navigation link for probgen tour
-        const clickedElement = event.target.closest('a[href]');
-        if (!clickedElement) return;
-        
-        const href = clickedElement.getAttribute('href');
-        
-        // List of navigation links that should complete the probgen tour
-        const navigationLinks = ['/Probstat', '/Settings'];
-        
-        if (navigationLinks.includes(href)) {
-          console.log(`🎯 Probgen Tour: User clicked navigation link ${href}, completing tour early`);
-          onComplete();
-        }
-      } else if (isProbTimeTour) {
-        // Check if the clicked element is an attempt/timer button for probtime tour
-        const clickedElement = event.target.closest('button, a');
-        if (!clickedElement) return;
-        
-        // Check for attempt/timer/start button patterns
-        const isAttemptButton = clickedElement.textContent?.toLowerCase().includes('attempt') ||
-                              clickedElement.textContent?.toLowerCase().includes('start') ||
-                              clickedElement.textContent?.toLowerCase().includes('solve') ||
-                              clickedElement.className?.includes('timer') ||
-                              clickedElement.className?.includes('start') ||
-                              clickedElement.className?.includes('primary') ||
-                              clickedElement.classList?.contains('start-button');
-        
-        if (isAttemptButton) {
-          console.log(`🎯 Problem Details Tour: User clicked attempt/timer button, completing tour early`);
-          onComplete();
-        }
-      }
-    };
-    
-    // Listen for clicks on the entire document
-    document.addEventListener('click', handleEarlyCompletionClick, true);
-    
-    return () => {
-      document.removeEventListener('click', handleEarlyCompletionClick, true);
-    };
-  }, [isVisible, onComplete, tourConfig, _tourId]);
+  // Handle early tour completion on specific interactions
+  useEarlyTourCompletion(isVisible, tourConfig, _tourId, onComplete);
 
   if (!isVisible || !currentStepData || !shouldShowStep(currentStepData, menuOpenState)) {
     return null;

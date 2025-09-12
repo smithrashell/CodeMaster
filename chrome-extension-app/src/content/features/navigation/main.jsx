@@ -517,7 +517,7 @@ const Main = () => {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [pathname, contentOnboardingStatus]); // Re-check when page or main tour status changes
+  }, [pathname, contentOnboardingStatus, showContentOnboarding]); // Re-check when page or main tour status changes
 
   // Content onboarding handlers
   const handleCompleteContentOnboarding = useCallback(() => {

@@ -812,7 +812,7 @@ export const SessionService = {
 
     logger.info(`🔍 Getting settings...`);
     // Skip migration - just get settings directly (has built-in fallbacks and defaults)
-    const settings = await StorageService.getSettings();
+    const _settings = await StorageService.getSettings();
     logger.info(`✅ Settings loaded successfully`);
     // StorageService.getSettings() always returns settings (defaults if needed), no null check required
 

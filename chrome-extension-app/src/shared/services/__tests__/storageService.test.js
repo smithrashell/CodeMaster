@@ -10,7 +10,12 @@ jest.mock('../../db/index.js', () => ({
   }
 }));
 
-import { dbHelper } from '../../db/index.js';
+// Mock connectionUtils
+jest.mock('../../db/connectionUtils.js', () => ({
+  openDatabase: jest.fn()
+}));
+
+import { openDatabase } from '../../db/connectionUtils.js';
 
 // Global test state
 let mockDB;
@@ -42,101 +47,119 @@ const setupMockDatabase = () => {
     transaction: jest.fn().mockReturnValue(mockTransaction)
   };
 
-  dbHelper.openDB.mockResolvedValue(mockDB);
+  openDatabase.mockResolvedValue(mockDB);
 };
 
 // Create a StorageService that bypasses content script checks for testing
+// Helper function to create set method
+const createSetMethod = () => {
+  return async function(key, value) {
+    try {
+      const db = await openDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["settings"], "readwrite");
+        const store = transaction.objectStore("settings");
+        const request = store.put({
+          id: key,
+          data: value,
+          lastUpdated: new Date().toISOString()
+        });
+        request.onsuccess = () => resolve({ status: "success" });
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error("StorageService set failed:", error);
+      return { status: "error", message: error.message };
+    }
+  };
+};
+
+// Helper function to create get method
+const createGetMethod = () => {
+  return async function(key) {
+    try {
+      const db = await openDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["settings"], "readonly");
+        const store = transaction.objectStore("settings");
+        const request = store.get(key);
+        
+        request.onsuccess = () => {
+          const result = request.result;
+          resolve(result ? result.data : null);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error("StorageService get failed:", error);
+      return null;
+    }
+  };
+};
+
+// Helper function to create remove method
+const createRemoveMethod = () => {
+  return async function(key) {
+    try {
+      const db = await openDatabase();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(["settings"], "readwrite");
+        const store = transaction.objectStore("settings");
+        const request = store.delete(key);
+        request.onsuccess = () => resolve({ status: "success" });
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.error("StorageService remove failed:", error);
+      return { status: "error", message: error.message };
+    }
+  };
+};
+
+// Helper function to create default settings
+const createDefaultSettings = () => {
+  return {
+    theme: "light",
+    sessionLength: 5,
+    limit: "off",
+    reminder: { value: false, label: "6" },
+    numberofNewProblemsPerSession: 2,
+    adaptive: true,
+    focusAreas: [],
+    accessibility: {
+      screenReader: {
+        enabled: false,
+        verboseDescriptions: true,
+        announceNavigation: true,
+        readFormLabels: true
+      },
+      keyboard: {
+        enhancedFocus: false,
+        customShortcuts: false,
+        focusTrapping: false
+      },
+      motor: {
+        largerTargets: false,
+        extendedHover: false,
+        reducedMotion: false,
+        stickyHover: false
+      }
+    }
+  };
+};
+
 const createTestableStorageService = () => {
   return {
-    async set(key, value) {
-      try {
-        const db = await dbHelper.openDB();
-        return new Promise((resolve, reject) => {
-          const transaction = db.transaction(["settings"], "readwrite");
-          const store = transaction.objectStore("settings");
-          const request = store.put({
-            id: key,
-            data: value,
-            lastUpdated: new Date().toISOString()
-          });
-          request.onsuccess = () => resolve({ status: "success" });
-          request.onerror = () => reject(request.error);
-        });
-      } catch (error) {
-        console.error("StorageService set failed:", error);
-        return { status: "error", message: error.message };
-      }
-    },
+    set: createSetMethod(),
 
-    async get(key) {
-      try {
-        const db = await dbHelper.openDB();
-        return new Promise((resolve, reject) => {
-          const transaction = db.transaction(["settings"], "readonly");
-          const store = transaction.objectStore("settings");
-          const request = store.get(key);
-          request.onsuccess = () => {
-            const result = request.result;
-            resolve(result ? result.data : null);
-          };
-          request.onerror = () => reject(request.error);
-        });
-      } catch (error) {
-        console.error("StorageService get failed:", error);
-        return null;
-      }
-    },
+    get: createGetMethod(),
 
-    async remove(key) {
-      try {
-        const db = await dbHelper.openDB();
-        return new Promise((resolve, reject) => {
-          const transaction = db.transaction(["settings"], "readwrite");
-          const store = transaction.objectStore("settings");
-          const request = store.delete(key);
-          request.onsuccess = () => resolve({ status: "success" });
-          request.onerror = () => reject(request.error);
-        });
-      } catch (error) {
-        console.error("StorageService remove failed:", error);
-        return { status: "error", message: error.message };
-      }
-    },
-
-    _createDefaultSettings() {
-      return {
-        theme: "light",
-        sessionLength: 5,
-        limit: "off",
-        reminder: { value: false, label: "6" },
-        numberofNewProblemsPerSession: 2,
-        adaptive: true,
-        focusAreas: [],
-        accessibility: {
-          screenReader: {
-            enabled: false,
-            verboseDescriptions: true,
-            announceNavigation: true,
-            readFormLabels: true
-          },
-          keyboard: {
-            enhancedFocus: false,
-            customShortcuts: false,
-            focusTrapping: false
-          },
-          motor: {
-            largerTargets: false,
-            extendedHover: false,
-            reducedMotion: false,
-            stickyHover: false
-          }
-        }
-      };
-    },
+    remove: createRemoveMethod(),
+    _createDefaultSettings: () => createDefaultSettings(),
 
     async getSettings() {
       try {
-        const db = await dbHelper.openDB();
+        const db = await openDatabase();
         return new Promise((resolve, reject) => {
           const transaction = db.transaction(["settings"], "readonly");
           const store = transaction.objectStore("settings");
@@ -165,7 +188,7 @@ const createTestableStorageService = () => {
 
     async setSettings(settings) {
       try {
-        const db = await dbHelper.openDB();
+        const db = await openDatabase();
         return new Promise((resolve, reject) => {
           const transaction = db.transaction(["settings"], "readwrite");
           const store = transaction.objectStore("settings");
@@ -194,12 +217,12 @@ const createTestableStorageService = () => {
 };
 
 describe('StorageService - Critical Data Operations', () => {
-  let StorageService;
+  let _StorageService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     setupMockDatabase();
-    StorageService = createTestableStorageService();
+    _StorageService = createTestableStorageService();
   });
 
   runCriticalDataStorageTests();
@@ -298,7 +321,7 @@ function runCriticalDataStorageTests() {
     });
 
     it('should handle database connection failures', async () => {
-      dbHelper.openDB.mockRejectedValue(new Error('Database connection failed'));
+      openDatabase.mockRejectedValue(new Error('Database connection failed'));
 
       const StorageService = createTestableStorageService();
       const result = await StorageService.set('testKey', 'testValue');
@@ -307,7 +330,7 @@ function runCriticalDataStorageTests() {
       expect(result.message).toContain('Database connection failed');
     });
   });
-};
+}
 
 function runSettingsManagementTests() {
   describe('Settings Management (Critical Business Logic)', () => {
@@ -374,52 +397,52 @@ function runSettingsManagementTests() {
       expect(result.theme).toBe('dark'); // User setting
     });
   });
-};
+}
 
 function runContentScriptSecurityTests() {
   describe('Content Script Security (Data Protection)', () => {
-    it('should block content script access to prevent data corruption', async () => {
+    it('should block content script access to prevent data corruption', () => {
       // Create a StorageService that simulates content script behavior
       const contentScriptStorageService = {
-        async set(key, value) {
+        set(_key, _value) {
           return { status: "error", message: "Not available in content scripts" };
         }
       };
 
-      const result = await contentScriptStorageService.set('testKey', 'testValue');
+      const result = contentScriptStorageService.set('testKey', 'testValue');
 
       expect(result.status).toBe('error');
       expect(result.message).toContain('Not available in content scripts');
     });
 
-    it('should return null for get operations in content scripts', async () => {
+    it('should return null for get operations in content scripts', () => {
       // Create a StorageService that simulates content script behavior
       const contentScriptStorageService = {
-        async get(key) {
+        get(_key) {
           return null;
         }
       };
 
-      const result = await contentScriptStorageService.get('testKey');
+      const result = contentScriptStorageService.get('testKey');
 
       expect(result).toBeNull();
     });
 
-    it('should block remove operations in content scripts', async () => {
+    it('should block remove operations in content scripts', () => {
       // Create a StorageService that simulates content script behavior
       const contentScriptStorageService = {
-        async remove(key) {
+        remove(_key) {
           return { status: "error", message: "Not available in content scripts" };
         }
       };
 
-      const result = await contentScriptStorageService.remove('testKey');
+      const result = contentScriptStorageService.remove('testKey');
 
       expect(result.status).toBe('error');
       expect(result.message).toContain('Not available in content scripts');
     });
   });
-};
+}
 
 function runDataIntegrityTests() {
   describe('Data Integrity and Error Recovery', () => {
@@ -459,9 +482,9 @@ function runDataIntegrityTests() {
     it('should handle database transaction failures', async () => {
       // Create a testable service that simulates transaction failure
       const transactionFailureStorageService = {
-        async set(key, value) {
+        async set(_key, _value) {
           try {
-            const db = await dbHelper.openDB();
+            const _db = await openDatabase();
             // Simulate transaction failure
             throw new Error('Transaction failed');
           } catch (error) {
@@ -477,4 +500,4 @@ function runDataIntegrityTests() {
       expect(result.message).toContain('Transaction failed');
     });
   });
-};
+}

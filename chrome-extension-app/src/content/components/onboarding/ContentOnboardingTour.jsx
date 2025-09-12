@@ -841,7 +841,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   const currentStepData = TOUR_STEPS[currentStep];
   
   // Handle tour completion
-  const handleTourComplete = async () => {
+  const handleTourComplete = useCallback(async () => {
     try {
       await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "completeContentOnboarding"
@@ -853,7 +853,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
       // Still call onComplete even if database update fails
       onComplete();
     }
-  };
+  }, [onComplete]);
 
   // Handle tour close  
   const handleTourClose = () => {
