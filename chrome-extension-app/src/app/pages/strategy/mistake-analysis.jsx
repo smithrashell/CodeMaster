@@ -27,6 +27,34 @@ const useMistakeAnalysisState = () => {
   };
 };
 
+// Custom hook for data processing logic
+const useDataProcessing = (appState, setState) => {
+  useEffect(() => {
+    if (!appState) return;
+
+    // Process data using utility functions
+    const masteryData = appState.mastery?.masteryData || appState.sessions?.masteryData || [];
+    const sessions = appState.sessions?.sessionAnalytics || [];
+    const recentSessions = appState.sessions?.recentSessions || [];
+    
+    // Extract struggling tags and insights
+    const struggling = processStrugglingTags(masteryData);
+    const insights = processSessionInsights(sessions);
+    
+    // Analyze patterns and generate suggestions
+    const lowAccuracySessions = recentSessions.filter(s => s.accuracy < 0.7);
+    const errorPatterns = analyzeErrorPatterns(recentSessions, sessions);
+    const suggestions = generateImprovementSuggestions(struggling, lowAccuracySessions, masteryData, errorPatterns);
+
+    // Update state
+    setState.setStrugglingTags(struggling);
+    setState.setSessionInsights(insights);
+    setState.setErrorPatterns(errorPatterns);
+    setState.setImprovementSuggestions(suggestions);
+
+  }, [appState, setState]);
+};
+
 // Helper functions for MistakeAnalysis
 const getCardHeight = (isExpanded, itemCount, _baseItemHeight = 60) => {
   if (isExpanded) {
@@ -523,30 +551,10 @@ export function MistakeAnalysis() {
     showMoreActions, setShowMoreActions
   } = useMistakeAnalysisState();
 
-  useEffect(() => {
-    if (!appState) return;
-
-    // Process data using utility functions
-    const masteryData = appState.mastery?.masteryData || appState.sessions?.masteryData || [];
-    const sessions = appState.sessions?.sessionAnalytics || [];
-    const recentSessions = appState.sessions?.recentSessions || [];
-    
-    // Extract struggling tags and insights
-    const struggling = processStrugglingTags(masteryData);
-    const insights = processSessionInsights(sessions);
-    
-    // Analyze patterns and generate suggestions
-    const lowAccuracySessions = recentSessions.filter(s => s.accuracy < 0.7);
-    const errorPatterns = analyzeErrorPatterns(recentSessions, sessions);
-    const suggestions = generateImprovementSuggestions(struggling, lowAccuracySessions, masteryData, errorPatterns);
-
-    // Update state
-    setStrugglingTags(struggling);
-    setSessionInsights(insights);
-    setErrorPatterns(errorPatterns);
-    setImprovementSuggestions(suggestions);
-
-  }, [appState, setErrorPatterns, setImprovementSuggestions, setSessionInsights, setStrugglingTags]);
+  // Process data and update state
+  useDataProcessing(appState, {
+    setErrorPatterns, setImprovementSuggestions, setSessionInsights, setStrugglingTags
+  });
 
 
   // Group struggling tags by severity

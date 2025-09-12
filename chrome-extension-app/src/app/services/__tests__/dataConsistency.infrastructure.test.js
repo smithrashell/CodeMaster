@@ -8,7 +8,7 @@ import {
   getDashboardStatistics,
   getStatsData,
   getLearningProgressData,
-  getSessionHistoryData 
+  // getSessionHistoryData // Unused in current tests 
 } from "../dashboardService";
 
 describe("Data Consistency Infrastructure - Cross-Component Validation", () => {
@@ -17,11 +17,10 @@ describe("Data Consistency Infrastructure - Cross-Component Validation", () => {
   });
 
   describe("🔥 CRITICAL: Database State Consistency Across Views", () => {
-    it("should detect database transaction isolation failures via cross-page data divergence", async () => {
-      // Mock scenario: Concurrent database operations cause inconsistent reads
+    const createMockDataWithRaceCondition = () => {
       let readOrder = 0;
       
-      const mockDataGenerator = () => {
+      return () => {
         readOrder++;
         
         // Simulate race condition - different pages see different states
@@ -39,24 +38,13 @@ describe("Data Consistency Infrastructure - Cross-Component Validation", () => {
           };
         }
       };
+    };
 
-      getDashboardStatistics.mockImplementation(mockDataGenerator);
-      getStatsData.mockImplementation(mockDataGenerator);
-      getLearningProgressData.mockImplementation(mockDataGenerator);
-
-      // Simulate multiple dashboard pages loading simultaneously
-      const [statsData, progressData, dashboardData] = await Promise.all([
-        getStatsData(),
-        getLearningProgressData(), 
-        getDashboardStatistics()
-      ]);
-
-      // CRITICAL: All pages should see consistent core statistics
+    const validateDataConsistency = (statsData, progressData, dashboardData) => {
       const statsCount = statsData.statistics?.totalSolved || 0;
       const progressCount = progressData.statistics?.totalSolved || 0; 
       const dashboardCount = dashboardData.statistics?.totalSolved || 0;
 
-      // Detect inconsistency that reveals database isolation problems
       const counts = [statsCount, progressCount, dashboardCount];
       const uniqueCounts = new Set(counts);
 
@@ -66,40 +54,30 @@ describe("Data Consistency Infrastructure - Cross-Component Validation", () => {
           progressCount, 
           dashboardCount 
         });
-        
-        // This reveals: IndexedDB transaction isolation issues
-        // Production fix: Implement read consistency in dbHelper
       }
 
-      // For testing: at least verify no null/undefined states
-      expect(statsCount).toBeGreaterThanOrEqual(0);
-      expect(progressCount).toBeGreaterThanOrEqual(0);
-      expect(dashboardCount).toBeGreaterThanOrEqual(0);
-    });
+      return { statsCount, progressCount, dashboardCount };
+    };
 
-    it("should detect cache corruption via data staleness patterns", async () => {
-      // Mock scenario: Cache layer serves stale data
+    const createCacheTestData = () => {
       const freshTimestamp = Date.now();
       const staleTimestamp = Date.now() - (10 * 60 * 1000); // 10 minutes old
 
-      getDashboardStatistics.mockResolvedValue({
-        statistics: { totalSolved: 20 },
-        timestamp: freshTimestamp,
-        cacheInfo: { source: "database", lastUpdated: freshTimestamp }
-      });
+      return {
+        fresh: {
+          statistics: { totalSolved: 20 },
+          timestamp: freshTimestamp,
+          cacheInfo: { source: "database", lastUpdated: freshTimestamp }
+        },
+        stale: {
+          statistics: { totalSolved: 15 }, // Stale count
+          timestamp: staleTimestamp,
+          cacheInfo: { source: "cache", lastUpdated: staleTimestamp }
+        }
+      };
+    };
 
-      getStatsData.mockResolvedValue({
-        statistics: { totalSolved: 15 }, // Stale count
-        timestamp: staleTimestamp,
-        cacheInfo: { source: "cache", lastUpdated: staleTimestamp }
-      });
-
-      const [dashboardData, statsData] = await Promise.all([
-        getDashboardStatistics(),
-        getStatsData()
-      ]);
-
-      // CRITICAL: Detect cache staleness that could confuse users
+    const detectCacheStaleness = (dashboardData, statsData) => {
       const timestampDiff = Math.abs(dashboardData.timestamp - statsData.timestamp);
       const dataDiff = Math.abs(
         dashboardData.statistics.totalSolved - statsData.statistics.totalSolved
@@ -114,10 +92,59 @@ describe("Data Consistency Infrastructure - Cross-Component Validation", () => {
             stats: statsData.cacheInfo?.source
           }
         });
-        
-        // This reveals: Cache invalidation problems
-        // Production fix: Implement cache versioning/TTL
       }
+
+      return { timestampDiff, dataDiff };
+    };
+
+    it("should detect database transaction isolation failures via cross-page data divergence", async () => {
+      // Mock scenario: Concurrent database operations cause inconsistent reads
+      const mockDataGenerator = createMockDataWithRaceCondition();
+
+      getDashboardStatistics.mockImplementation(mockDataGenerator);
+      getStatsData.mockImplementation(mockDataGenerator);
+      getLearningProgressData.mockImplementation(mockDataGenerator);
+
+      // Simulate multiple dashboard pages loading simultaneously
+      const [statsData, progressData, dashboardData] = await Promise.all([
+        getStatsData(),
+        getLearningProgressData(), 
+        getDashboardStatistics()
+      ]);
+
+      // CRITICAL: All pages should see consistent core statistics
+      const { statsCount, progressCount, dashboardCount } = validateDataConsistency(
+        statsData, 
+        progressData, 
+        dashboardData
+      );
+
+      // This reveals: IndexedDB transaction isolation issues
+      // Production fix: Implement read consistency in dbHelper
+
+      // For testing: at least verify no null/undefined states
+      expect(statsCount).toBeGreaterThanOrEqual(0);
+      expect(progressCount).toBeGreaterThanOrEqual(0);
+      expect(dashboardCount).toBeGreaterThanOrEqual(0);
+    });
+
+    it("should detect cache corruption via data staleness patterns", async () => {
+      // Mock scenario: Cache layer serves stale data
+      const testData = createCacheTestData();
+
+      getDashboardStatistics.mockResolvedValue(testData.fresh);
+      getStatsData.mockResolvedValue(testData.stale);
+
+      const [dashboardData, statsData] = await Promise.all([
+        getDashboardStatistics(),
+        getStatsData()
+      ]);
+
+      // CRITICAL: Detect cache staleness that could confuse users
+      detectCacheStaleness(dashboardData, statsData);
+        
+      // This reveals: Cache invalidation problems
+      // Production fix: Implement cache versioning/TTL
 
       expect(dashboardData.statistics.totalSolved).toBeGreaterThanOrEqual(0);
       expect(statsData.statistics.totalSolved).toBeGreaterThanOrEqual(0);

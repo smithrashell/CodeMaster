@@ -386,7 +386,7 @@ function runAlgorithmEdgeCaseTests(TagService) {
 /**
  * Setup mock dependencies for TagService tests
  */
-async function setupTagServiceMocks() {
+function setupTagServiceMocks() {
   // Mock all dependencies at module level with comprehensive mocks
   jest.doMock('../../db/index.js', () => ({
     dbHelper: { 

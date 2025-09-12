@@ -420,10 +420,10 @@ async function addAttempt(attemptData, problem) {
 
     // Validate required structure - attempt should have some meaningful data
     const hasValidProperties = Object.keys(attemptData).length > 0 && 
-      (attemptData.hasOwnProperty('success') || 
-       attemptData.hasOwnProperty('timeSpent') || 
-       attemptData.hasOwnProperty('difficulty') ||
-       attemptData.hasOwnProperty('timestamp'));
+      (Object.prototype.hasOwnProperty.call(attemptData, 'success') || 
+       Object.prototype.hasOwnProperty.call(attemptData, 'timeSpent') || 
+       Object.prototype.hasOwnProperty.call(attemptData, 'difficulty') ||
+       Object.prototype.hasOwnProperty.call(attemptData, 'timestamp'));
 
     if (!hasValidProperties) {
       console.error("AddAttempt: Attempt data missing required properties", attemptData);
