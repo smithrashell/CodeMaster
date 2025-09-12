@@ -148,6 +148,7 @@ const handleFormSubmission = async (data, routeState, navigate, setSubmitting) =
 
     const formData = {
       ...data,
+      leetcode_id: data.leetCodeID, // Map form field to expected backend field
       timeSpent: timeInSeconds, // Store as seconds
       date: new Date(),
       address: window.location.href,
