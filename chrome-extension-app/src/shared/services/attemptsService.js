@@ -12,7 +12,7 @@ import { debug, success, system } from "../utils/logger.js";
 import { v4 as uuidv4 } from "uuid";
 
 const openDB = dbHelper.openDB;
-const _checkAndCompleteSession = SessionService.checkAndCompleteSession;
+// Removed circular dependency: const _checkAndCompleteSession = SessionService.checkAndCompleteSession;
 
 /**
  * Session Attribution Engine - Routes attempts to appropriate sessions
@@ -389,7 +389,7 @@ class SessionAttributionEngine {
 
     // Check if guided session is complete (tracking sessions don't auto-complete)
     if (session.session_type !== 'tracking') {
-      await _checkAndCompleteSession(session.id);
+      await SessionService.checkAndCompleteSession(session.id);
     }
     
     return { message: "Attempt added and problem updated successfully", sessionId: session.id };
@@ -410,6 +410,24 @@ async function addAttempt(attemptData, problem) {
     if (!problem) {
       console.error("AddAttempt: Problem not found");
       return { error: "Problem not found." };
+    }
+
+    // Validate attempt data
+    if (!attemptData || typeof attemptData !== 'object' || Array.isArray(attemptData)) {
+      console.error("AddAttempt: Invalid attempt data", attemptData);
+      return { error: "Invalid attempt data provided." };
+    }
+
+    // Validate required structure - attempt should have some meaningful data
+    const hasValidProperties = Object.keys(attemptData).length > 0 && 
+      (attemptData.hasOwnProperty('success') || 
+       attemptData.hasOwnProperty('timeSpent') || 
+       attemptData.hasOwnProperty('difficulty') ||
+       attemptData.hasOwnProperty('timestamp'));
+
+    if (!hasValidProperties) {
+      console.error("AddAttempt: Attempt data missing required properties", attemptData);
+      return { error: "Attempt data missing required properties." };
     }
 
     // Debug: Log current problem structure

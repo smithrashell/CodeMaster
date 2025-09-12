@@ -11,7 +11,10 @@ module.exports = {
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
     '^@app/(.*)$': '<rootDir>/src/app/$1',
     '^@popup/(.*)$': '<rootDir>/src/popup/$1',
-    '^@content/(.*)$': '<rootDir>/src/content/$1'
+    '^@content/(.*)$': '<rootDir>/src/content/$1',
+    // CSS and CSS modules mocks
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+    '\\.module\\.(css|less|scss|sass)$': 'identity-obj-proxy'
   },
   
   // File extensions to consider

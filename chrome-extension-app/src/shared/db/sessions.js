@@ -1,7 +1,7 @@
 import { dbHelper } from "./index.js";
 import { TagService } from "../services/tagServices.js";
 import { StorageService } from "../services/storageService.js";
-import { AttemptsService } from "../services/attemptsService.js";
+import { getMostRecentAttempt } from "./attempts.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 import SessionLimits from "../utils/sessionLimits.js";
 import { InterviewService } from "../services/interviewService.js";
@@ -338,7 +338,7 @@ async function applyPostOnboardingLogic({
 }) {
   // Time gap since last session
   let gapInDays = 999;
-  const lastAttempt = await AttemptsService.getMostRecentAttempt();
+  const lastAttempt = await getMostRecentAttempt();
   if (lastAttempt?.AttemptDate) {
     const lastTime = new Date(lastAttempt.AttemptDate);
     gapInDays = (now - lastTime) / (1000 * 60 * 60 * 24);

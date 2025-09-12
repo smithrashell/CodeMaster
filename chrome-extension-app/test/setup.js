@@ -1,6 +1,81 @@
 import "@testing-library/jest-dom";
 import "fake-indexeddb/auto";
 
+// Global logger mock - fixes logger issues across all tests
+// Must be declared before any imports to ensure proper hoisting
+const mockLogger = {
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+  trace: jest.fn(),
+  fatal: jest.fn(),
+  group: jest.fn(),
+  groupEnd: jest.fn(),
+  groupCollapsed: jest.fn(),
+  log: jest.fn(),
+  time: jest.fn(),
+  timeEnd: jest.fn(),
+  table: jest.fn(),
+  count: jest.fn(),
+  countReset: jest.fn(),
+  clear: jest.fn(),
+  assert: jest.fn(),
+  dir: jest.fn(),
+  dirxml: jest.fn(),
+  setLogLevel: jest.fn(),
+  getLogLevel: jest.fn(() => 'DEBUG'),
+  _createLogEntry: jest.fn(),
+  _log: jest.fn(),
+  _storeCriticalLog: jest.fn(),
+};
+
+jest.mock("../src/shared/utils/logger.js", () => ({
+  __esModule: true,
+  default: mockLogger,
+  // Also export named exports if any modules use them
+  trace: jest.fn(),
+  debug: jest.fn(),
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  fatal: jest.fn(),
+  fallback: jest.fn(),
+}));
+
+// Mock PerformanceMonitor to prevent initialization errors
+jest.mock("../src/shared/utils/PerformanceMonitor.js", () => ({
+  default: {
+    recordTiming: jest.fn(),
+    recordEvent: jest.fn(),
+    getMetrics: jest.fn(() => ({})),
+    cleanup: jest.fn(),
+    startQuery: jest.fn(() => ({
+      end: jest.fn(),
+      addTag: jest.fn(),
+      addMetric: jest.fn(),
+    })),
+    endQuery: jest.fn(),
+    logOperation: jest.fn(),
+    recordMemoryUsage: jest.fn(),
+  },
+  // Also export the methods directly for named exports
+  recordTiming: jest.fn(),
+  recordEvent: jest.fn(),
+  getMetrics: jest.fn(() => ({})),
+  cleanup: jest.fn(),
+  startQuery: jest.fn(() => ({
+    end: jest.fn(),
+    addTag: jest.fn(),
+    addMetric: jest.fn(),
+  })),
+  endQuery: jest.fn(),
+  logOperation: jest.fn(),
+  recordMemoryUsage: jest.fn(),
+}));
+
+// Note: Window.location mocking causes JSDOM issues, skipping for now
+
 // Mock Chrome Extension APIs
 global.chrome = {
   storage: {
@@ -75,6 +150,17 @@ global.chrome = {
       version: "1.0.0",
       name: "CodeMaster Test",
     })),
+    getURL: jest.fn((path) => `chrome-extension://test-extension-id/${path}`),
+    lastError: null,
+    onInstalled: {
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+    },
+    onStartup: {
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+    },
+    reload: jest.fn(),
   },
   tabs: {
     query: jest.fn((query, callback) => {
@@ -89,11 +175,71 @@ global.chrome = {
       addListener: jest.fn(),
       removeListener: jest.fn(),
     },
+    create: jest.fn((createProperties, callback) => {
+      const mockTab = { id: 1, url: createProperties.url };
+      if (callback) callback(mockTab);
+      return Promise.resolve(mockTab);
+    }),
+    get: jest.fn((tabId, callback) => {
+      const mockTab = { id: tabId, url: "https://example.com" };
+      if (callback) callback(mockTab);
+      return Promise.resolve(mockTab);
+    }),
+  },
+  action: {
+    setBadgeText: jest.fn((details, callback) => {
+      if (callback) callback();
+      return Promise.resolve();
+    }),
+    setBadgeBackgroundColor: jest.fn((details, callback) => {
+      if (callback) callback();
+      return Promise.resolve();
+    }),
+    setTitle: jest.fn((details, callback) => {
+      if (callback) callback();
+      return Promise.resolve();
+    }),
+    setIcon: jest.fn((details, callback) => {
+      if (callback) callback();
+      return Promise.resolve();
+    }),
+  },
+  scripting: {
+    executeScript: jest.fn((injection, callback) => {
+      if (callback) callback([]);
+      return Promise.resolve([]);
+    }),
+  },
+  alarms: {
+    create: jest.fn(),
+    clear: jest.fn((name, callback) => {
+      if (callback) callback(true);
+      return Promise.resolve(true);
+    }),
+    onAlarm: {
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+    },
   },
 };
 
 // Mock browser global for WebExtensions API
 global.browser = global.chrome;
+
+// Mock service worker global 'self' for background script tests
+global.self = {
+  skipWaiting: jest.fn(() => Promise.resolve()),
+  clients: {
+    claim: jest.fn(() => Promise.resolve()),
+    matchAll: jest.fn(() => Promise.resolve([])),
+  },
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  registration: {
+    update: jest.fn(() => Promise.resolve()),
+    unregister: jest.fn(() => Promise.resolve()),
+  },
+};
 
 // Polyfill structuredClone for Node.js environment (not available in older versions)
 if (!global.structuredClone) {
