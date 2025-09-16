@@ -592,9 +592,38 @@ const initializeTimerWithLimits = (response, options) => {
   // Timer initialized with interview-aware limits
 };
 
+// Initialize timer with default limits when query fails
+const initializeTimerWithDefaults = (options) => {
+  const { state, sessionType, interviewConfig: _interviewConfig, calculateInterviewTimeLimit: _calculateInterviewTimeLimit, timerRef, setDisplayTime: _setDisplayTime, setIsUnlimitedMode: _setIsUnlimitedMode } = options;
+
+  console.log("🔍 Timer initializeTimerWithDefaults", { state, sessionType });
+
+  // Use default limits - create a mock response similar to what getLimits would return
+  const defaultResponse = {
+    limits: {
+      standard: 30, // 30 minutes default for standard mode
+      adaptiveLimits: {
+        isUnlimited: false,
+        limitInMinutes: 30
+      }
+    }
+  };
+
+  // Call the same initialization logic with default values
+  initializeTimerWithLimits(defaultResponse, options);
+
+  console.log("🔍 Timer initializeTimerWithDefaults: Complete", { timerRefExists: !!timerRef.current });
+};
+
 // Custom hook for timer setup and initialization
 const useTimerSetup = (options) => {
   const { state, sessionType, interviewConfig, calculateInterviewTimeLimit, setDisplayTime, setIsUnlimitedMode } = options;
+  console.log("🔍 Timer useTimerSetup: Hook called", {
+    state,
+    sessionType,
+    leetCodeID: state?.LeetCodeID,
+    hasState: !!state
+  });
   const timerRef = useRef(null);
   const intervalIdRef = useRef(null);
   
@@ -608,18 +637,50 @@ const useTimerSetup = (options) => {
     [state?.LeetCodeID],
     {
       onSuccess: (response) => {
+        console.log("🔍 Timer useTimerSetup: limitsQuery onSuccess", { response, leetCodeID: state?.LeetCodeID });
         initializeTimerWithLimits(response, {
-          state, 
-          sessionType, 
-          interviewConfig, 
-          calculateInterviewTimeLimit, 
-          timerRef, 
-          setDisplayTime, 
+          state,
+          sessionType,
+          interviewConfig,
+          calculateInterviewTimeLimit,
+          timerRef,
+          setDisplayTime,
           setIsUnlimitedMode
         });
+        console.log("🔍 Timer useTimerSetup: timerRef initialized", { timerRefExists: !!timerRef.current });
       },
+      onError: (error) => {
+        console.error("❌ Timer useTimerSetup: limitsQuery failed", { error, leetCodeID: state?.LeetCodeID });
+        // Fallback initialization with default limits
+        initializeTimerWithDefaults({
+          state,
+          sessionType,
+          interviewConfig,
+          calculateInterviewTimeLimit,
+          timerRef,
+          setDisplayTime,
+          setIsUnlimitedMode
+        });
+        console.log("🔍 Timer useTimerSetup: timerRef initialized with defaults", { timerRefExists: !!timerRef.current });
+      }
     }
   );
+
+  // Handle case where there's no LeetCode ID - initialize with defaults
+  useEffect(() => {
+    if (!state?.LeetCodeID && !timerRef.current) {
+      console.log("🔍 Timer useTimerSetup: No LeetCode ID, initializing with defaults");
+      initializeTimerWithDefaults({
+        state,
+        sessionType,
+        interviewConfig,
+        calculateInterviewTimeLimit,
+        timerRef,
+        setDisplayTime,
+        setIsUnlimitedMode
+      });
+    }
+  }, [state?.LeetCodeID, sessionType, interviewConfig, calculateInterviewTimeLimit, setDisplayTime, setIsUnlimitedMode]);
 
   return { timerRef, intervalIdRef, limitsQuery };
 };
@@ -664,13 +725,40 @@ const useTimerOperations = (timerRef, intervalIdRef, timerState, { sessionType, 
   } = timerState;
 
   const handleComplete = useCallback(() => {
+    console.log("🔍 Timer handleComplete called", {
+      state,
+      timerRefExists: !!timerRef.current,
+      stateNotNull: state !== null,
+      willNavigate: state !== null && timerRef.current
+    });
+
     const stopTimer = createStopTimerFunction(timerRef, setIsTimerRunning, intervalIdRef);
     stopTimer();
-    
+
     if (state !== null && timerRef.current) {
+      console.log("🔍 Timer handleComplete: Original state:", {
+        state,
+        stateKeys: state ? Object.keys(state) : 'null',
+        LeetCodeID: state?.LeetCodeID,
+        Description: state?.Description,
+        Time: state?.Time
+      });
       const problem = buildProblemData(state, timerRef, timerState, sessionType, interviewSignals);
+      console.log("🔍 Timer navigating to /Probtime with state:", {
+        problem,
+        problemKeys: problem ? Object.keys(problem) : 'null',
+        LeetCodeID: problem?.LeetCodeID,
+        Description: problem?.Description,
+        Time: problem?.Time
+      });
       setOpen(false);
       navigate("/Probtime", { state: problem });
+    } else {
+      console.log("❌ Timer navigation blocked", {
+        reason: state === null ? "state is null" : "timerRef.current is null",
+        state,
+        timerRefExists: !!timerRef.current
+      });
     }
   }, [state, timerRef, interviewSignals, sessionType, navigate, setOpen, timerState, setIsTimerRunning, intervalIdRef]);
 
