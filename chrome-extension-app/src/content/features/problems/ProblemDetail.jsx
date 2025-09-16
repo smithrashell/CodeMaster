@@ -13,6 +13,9 @@ import Badge from "../../components/ui/Badge.jsx";
 import Separator from "../../components/ui/Separator.jsx";
 import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
+import { usePageTour } from "../../components/onboarding/usePageTour";
+import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
+import logger from "../../../shared/utils/logger.js";
 import styles from "./ProblemCard.module.css";
 
 /**
@@ -34,32 +37,17 @@ const getProblemProperty = (routeState, ...keys) => {
  * Extract problem data from route state
  */
 const useProblemData = (routeState) => {
-  const idValue = getProblemProperty(routeState, 'LeetCodeID', 'leetCodeID', 'id');
-  const titleValue = getProblemProperty(routeState, 'Description', 'ProblemDescription', 'title');
   const problemData = useMemo(() => {
-    const tagsValue = getProblemProperty(routeState, 'Tags', 'tags') || [];
-    const difficultyValue = getProblemProperty(routeState, 'Difficulty', 'difficulty') || 'Unknown';
-    const acceptanceValue = getProblemProperty(routeState, 'acceptance') || 'N/A';
-    const submissionsValue = getProblemProperty(routeState, 'submissions') || 'N/A';
-    const attemptsValue = getProblemProperty(routeState, 'attempts') || 0;
-    const lastSolvedValue = getProblemProperty(routeState, 'lastSolved') || 'Never';
-    
+    const data = routeState?.problemData;
+    if (!data) return {};
+
     return {
-      id: idValue,
-      leetCodeID: idValue,
-      LeetCodeID: idValue,
-      title: titleValue,
-      Description: titleValue,
-      ProblemDescription: titleValue,
-      tags: tagsValue,
-      Tags: tagsValue,
-      difficulty: difficultyValue,
-      acceptance: acceptanceValue,
-      submissions: submissionsValue,
-      attempts: attemptsValue,
-      lastSolved: lastSolvedValue,
+      leetcode_id: data.id,
+      title: data.title,
+      tags: data.tags || [],
+      difficulty: data.difficulty || 'Unknown'
     };
-  }, [idValue, titleValue, routeState]);
+  }, [routeState]);
 
   const interviewConfig = getProblemProperty(routeState, 'interviewConstraints');
   const sessionType = getProblemProperty(routeState, 'sessionType');
@@ -71,16 +59,26 @@ const useProblemData = (routeState) => {
 /**
  * Navigation and action handlers
  */
-const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfig, sessionType, routeState }) => {
+const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfig, sessionType, routeState, showPageTour }) => {
   const _handleClose = () => {
     setIsAppOpen(false);
   };
 
   const handleNewAttempt = () => {
+    // Complete page tour only if it's currently active (to avoid unnecessary API calls)
+    if (showPageTour) {
+      ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'markPageTourCompleted',
+        pageId: 'probtime'
+      }).catch(error => {
+        logger.warn('Failed to mark page tour completed:', error);
+      });
+    }
+    
     navigate("/Timer", {
       state: {
-        LeetCodeID: problemData.leetCodeID,
-        Description: problemData.ProblemDescription,
+        LeetCodeID: problemData.leetcode_id,
+        Description: problemData.title,
         Tags: problemData.tags,
         interviewConfig: interviewConfig,
         sessionType: sessionType,
@@ -170,17 +168,21 @@ const StatusSection = ({ problemData: _problemData, attemptStats }) => {
 /**
  * Main content card component
  */
-const MainContentCard = ({ problemData, getDifficultyColor, attemptStats }) => (
-  <div className={styles.card}>
-    <div className={styles.header}>
-      <ChevronLeftIcon className={styles.backIcon} />
-      <span>
-        Problem #{problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id || "N/A"}
-      </span>
-    </div>
-    <h3 className={styles.title}>
-      {problemData?.Description || problemData?.ProblemDescription || problemData?.title || "N/A"}
-    </h3>
+const MainContentCard = ({ problemData, getDifficultyColor, attemptStats }) => {
+  console.log('🔍 MainContentCard received problemData:', problemData);
+  console.log('🔍 MainContentCard title value:', problemData?.title);
+
+  return (
+    <div className={styles.card}>
+      <div className={styles.header}>
+        <ChevronLeftIcon className={styles.backIcon} />
+        <span>
+          Problem #{problemData?.leetcode_id || "N/A"}
+        </span>
+      </div>
+      <h3 className={styles.title}>
+        {problemData?.title || "N/A"}
+      </h3>
     <Badge
       className={styles.difficultyBadge}
       color={getDifficultyColor(problemData?.difficulty)}
@@ -193,7 +195,8 @@ const MainContentCard = ({ problemData, getDifficultyColor, attemptStats }) => (
     <ProblemStats problemData={problemData} attemptStats={attemptStats} />
     <StatusSection problemData={problemData} attemptStats={attemptStats} />
   </div>
-);
+  );
+};
 
 /**
  * Action buttons component
@@ -297,28 +300,54 @@ const ProbDetail = ({ isLoading }) => {
   const navigate = useNavigate();
   const [showSkip, setShowSkip] = useState(false);
   const [attemptStats, setAttemptStats] = useState({ successful: 0, total: 0, lastSolved: null });
+  const [fetchedProblemData, setFetchedProblemData] = useState(null);
 
   const { problemData, interviewConfig, sessionType, isInterviewMode } = useProblemData(routeState);
+
+  // If problemData is missing essential fields, try to fetch from database
+  const needsDataFetch = !problemData?.leetcode_id;
+  const finalProblemData = fetchedProblemData || problemData;
+  
+  // Use page tour hook to check if tour is active
+  const { showTour: showPageTour } = usePageTour();
+  
   const { handleNewAttempt, handleSkip } = useProblemActions({
-    navigate, setIsAppOpen, problemData, interviewConfig, sessionType, routeState
+    navigate, setIsAppOpen, problemData: finalProblemData, interviewConfig, sessionType, routeState, showPageTour
   });
 
   // Memoize problem tags to prevent array recreation
-  const problemTags = useMemo(() => 
-    problemData?.Tags || problemData?.tags || [], 
-    [problemData?.Tags, problemData?.tags]
+  const problemTags = useMemo(() =>
+    finalProblemData?.tags || [],
+    [finalProblemData?.tags]
   );
 
   // Memoize problem ID to prevent string recreation
-  const problemId = useMemo(() => 
-    problemData?.LeetCodeID || problemData?.leetCodeID || problemData?.id,
-    [problemData?.LeetCodeID, problemData?.leetCodeID, problemData?.id]
+  const problemId = useMemo(() =>
+    finalProblemData?.leetcode_id,
+    [finalProblemData?.leetcode_id]
   );
 
-  // DEBUG: Log problem data and route state
-  console.log("🔍 ProbDetail routeState:", routeState);
-  console.log("🔍 ProbDetail problemData:", problemData);
-  console.log("🔍 ProbDetail tags specifically:", problemData.tags);
+  // Fetch missing problem data from database if needed
+  useEffect(() => {
+    if (needsDataFetch) {
+      // Try to get problem ID from URL params or route state
+      const urlParams = new URLSearchParams(window.location.search);
+      const problemIdFromUrl = urlParams.get('problemId') || routeState?.problemId;
+
+      if (problemIdFromUrl) {
+        ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'getProblemById',
+          problemId: problemIdFromUrl
+        }).then(response => {
+          if (response?.success && response.data) {
+            setFetchedProblemData(response.data);
+          }
+        }).catch(error => {
+          logger.error('Failed to fetch problem data:', error);
+        });
+      }
+    }
+  }, [needsDataFetch, routeState?.problemId]);
 
   useEffect(() => {
     setShowSkip(!routeState?.problemFound);
@@ -374,8 +403,8 @@ const ProbDetail = ({ isLoading }) => {
           sessionType={sessionType}
           interviewConfig={interviewConfig}
         />
-        <MainContentCard 
-          problemData={problemData} 
+        <MainContentCard
+          problemData={finalProblemData}
           getDifficultyColor={getDifficultyColor}
           attemptStats={attemptStats}
         />
