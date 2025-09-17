@@ -157,19 +157,19 @@ const performContentOnboardingCheck = async (setShowContentOnboarding, setConten
     setContentOnboardingStatus(status);
 
     // Show onboarding tour if not completed
-    if (status.isCompleted) {
+    if (status.is_completed) {
       logger.info("⏭️ Content onboarding already completed - will NOT show", {
-        isCompleted: status.isCompleted,
-        completedAt: status.completedAt,
-        currentStep: status.currentStep
+        is_completed: status.is_completed,
+        completed_at: status.completed_at,
+        current_step: status.current_step
       });
       setShowContentOnboarding(false);
       return;
     }
     
     logger.info("✅ Content onboarding will show - not completed", { 
-      isCompleted: status.isCompleted, 
-      currentStep: status.currentStep,
+      is_completed: status.is_completed, 
+      current_step: status.current_step,
       lastActiveStep: status.lastActiveStep 
     });
     
@@ -417,6 +417,50 @@ const Main = () => {
     return cleanup;
   }, [handleUrlChange]); // Use memoized function
 
+  // Listen for problem submission events to refresh problem data
+  useEffect(() => {
+    const handleProblemSubmission = async () => {
+      const problemSlug = getProblemSlugFromUrl(window.location.href);
+      if (problemSlug) {
+        logger.info("🔄 Problem submitted, refreshing problem data for:", problemSlug);
+
+        // Add a small additional delay to ensure the database is fully updated
+        // This helps ensure the problem is found in the database on the next lookup
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Reset the problem state first to trigger a clean fetch
+        setProblemFound(false);
+        setProblemData(null);
+
+        // Then fetch the updated problem data
+        fetchProblemData(problemSlug);
+
+        logger.info("🔄 Problem data refresh initiated");
+      } else {
+        logger.warn("⚠️ Problem submitted but no problem slug found in URL");
+      }
+    };
+
+    // Listen for Chrome extension messages
+    const messageListener = (message, _sender, sendResponse) => {
+      if (message.type === "problemSubmitted") {
+        logger.info("📨 Received problemSubmitted message");
+        handleProblemSubmission();
+        sendResponse({ status: "success" });
+      }
+    };
+
+    if (typeof chrome !== "undefined" && chrome.runtime) {
+      chrome.runtime.onMessage.addListener(messageListener);
+    }
+
+    return () => {
+      if (typeof chrome !== "undefined" && chrome.runtime) {
+        chrome.runtime.onMessage.removeListener(messageListener);
+      }
+    };
+  }, [fetchProblemData]);
+
   // Re-check main tour status when navigating to different pages
   useEffect(() => {
     const recheckMainTourStatus = async () => {
@@ -432,7 +476,7 @@ const Main = () => {
           });
         }
         
-        if (mainTourStatus && mainTourStatus.isCompleted) {
+        if (mainTourStatus && mainTourStatus.is_completed) {
           logger.info("🎯 Main tour was completed, hiding it now");
           setShowContentOnboarding(false);
         }
@@ -457,8 +501,8 @@ const Main = () => {
         showContentOnboarding,
         pathname,
         contentOnboardingStatus: contentOnboardingStatus ? {
-          isCompleted: contentOnboardingStatus.isCompleted,
-          currentStep: contentOnboardingStatus.currentStep
+          isCompleted: contentOnboardingStatus.is_completed,
+          currentStep: contentOnboardingStatus.current_step
         } : null
       });
       
@@ -482,10 +526,10 @@ const Main = () => {
       }
 
       // Only show timer tour if main tour is completed
-      if (!mainTourStatus || !mainTourStatus.isCompleted) {
+      if (!mainTourStatus || !mainTourStatus.is_completed) {
         logger.info("🕐 Main tour not completed yet, not showing timer tour", {
           isCompleted: mainTourStatus?.isCompleted,
-          currentStep: mainTourStatus?.currentStep
+          currentStep: mainTourStatus?.current_step
         });
         setShowTimerTour(false);
         return;
