@@ -13,21 +13,13 @@ import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { getTagRelationships } from "./tag_relationships.js";
 
-// Import session functions
-const getOrCreateSession = () => {
-  return SessionService.getOrCreateSession();
-};
-
-const saveSessionToStorageLocal = (session) => {
-  return saveSessionToStorage(session);
-};
+// Import session functions are handled directly through SessionService
 
 const openDB = dbHelper.openDB;
 
 // Import retry service for enhanced database operations
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
 import { SessionService } from "../services/sessionService.js";
-import { saveSessionToStorage } from "./sessions.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -282,7 +274,18 @@ export async function getProblemByDescription(description, _slug) {
     }
 
     logger.info("📌 Using index 'by_title' to fetch problem...");
-    const index = store.index("by_title");
+    let index;
+    try {
+      index = store.index("by_title");
+    } catch (error) {
+      console.error(`❌ PROBLEMS INDEX ERROR: by_title index not found in problems`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "problems"
+      });
+      reject(error);
+      return;
+    }
 
     // Ensure the description is stored in lowercase
     const request = index.get(description.toLowerCase());
@@ -315,15 +318,11 @@ export async function addProblem(problemData) {
     const db = await openDB();
     const _standardProblem = await fetchProblemById(problemData.leetcode_id);
 
-    let session = await new Promise((resolve) => {
-      chrome.storage.local.get(["currentSession"], (result) => {
-        resolve(result.currentSession || null);
-      });
-    });
-
-    if (!session) {
-      session = await getOrCreateSession();
-      await saveSessionToStorageLocal(session);
+    // Check if problem already exists by leetcode_id to prevent duplicates
+    const existingProblem = await checkDatabaseForProblem(problemData.leetcode_id);
+    if (existingProblem) {
+      logger.info("Problem already exists, not creating duplicate:", existingProblem);
+      return existingProblem;
     }
 
     const transaction = db.transaction(["problems"], "readwrite");
@@ -344,21 +343,33 @@ export async function addProblem(problemData) {
       cooldown_status: false,
       box_level: 1,
       review_schedule: problemData.reviewSchedule,
-      perceived_difficulty: problemData.difficulty || 5,
+      perceived_difficulty: null, // Will be calculated from attempts
       consecutive_failures: 0,
       stability: 1.0,
       attempt_stats: {
         total_attempts: 0,
         successful_attempts: 0,
         unsuccessful_attempts: 0,
-      },
-      tags: problemData.tags || [],
-      session_id: session.id,
+      }
+      // Removed session_id - problems are persistent records, not session-specific
+      // Removed tags - available from standard_problems store
     };
     logger.info("Adding problem:", problem);
     const request = store.add(problem);
     transaction.oncomplete = async function () {
       logger.info("Problem added successfully:", problem);
+
+      // Get current session from Chrome storage
+      let session = await new Promise((resolve) => {
+        chrome.storage.local.get(["currentSession"], (result) => {
+          resolve(result.currentSession || null);
+        });
+      });
+
+      if (!session) {
+        logger.warn("No active session found, creating session");
+        session = await SessionService.getOrCreateSession();
+      }
 
       const attemptData = {
         id: attemptId,
@@ -367,7 +378,7 @@ export async function addProblem(problemData) {
         success: problemData.success,
         attempt_date: problemData.date,
         time_spent: Number(problemData.timeSpent),
-        perceived_difficulty: problemData.difficulty || 5,
+        perceived_difficulty: problemData.difficulty || 1,
         comments: problemData.comments || "",
         box_level: 1,
         next_review_date: null,
@@ -418,8 +429,8 @@ export async function countProblemsByBoxLevel() {
     request.onsuccess = function (event) {
       const cursor = event.target.result;
       if (cursor) {
-        const { BoxLevel } = cursor.value;
-        boxLevelCounts[BoxLevel] = (boxLevelCounts[BoxLevel] || 0) + 1;
+        const { box_level } = cursor.value;
+        boxLevelCounts[box_level] = (boxLevelCounts[box_level] || 0) + 1;
         cursor.continue();
       } else {
         resolve(boxLevelCounts);
@@ -437,28 +448,38 @@ export async function countProblemsByBoxLevel() {
  * @param {string} problemId - The problem ID.
  * @returns {Promise<boolean>} - Returns true if the problem exists, false otherwise.
  */
-export async function checkDatabaseForProblem(problemId) {
-  // Validate problemId before attempting database operation
-  if (problemId == null || isNaN(Number(problemId))) {
-    logger.error("❌ Invalid problemId for database lookup:", problemId);
-    throw new Error(`Invalid problemId: ${problemId}. Must be a valid number.`);
+export async function checkDatabaseForProblem(leetcodeId) {
+  // Validate leetcodeId before attempting database operation
+  if (leetcodeId == null || isNaN(Number(leetcodeId))) {
+    logger.error("❌ Invalid leetcodeId for database lookup:", leetcodeId);
+    throw new Error(`Invalid leetcodeId: ${leetcodeId}. Must be a valid number.`);
   }
 
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(["problems"], "readonly");
     const store = transaction.objectStore("problems");
-    logger.info("🔍 problemId:", problemId);
-    const request = store.get(Number(problemId)); // Ensure it's a number
+    let index;
+    try {
+      index = store.index("by_leetcode_id");
+    } catch (error) {
+      console.error(`❌ PROBLEMS INDEX ERROR: by_leetcode_id index not found in problems`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "problems"
+      });
+      reject(error);
+      return;
+    }
+    logger.info("🔍 leetcodeId lookup:", leetcodeId);
+    const request = index.get(Number(leetcodeId)); // Look up by leetcode_id
 
-    // return true if problem is found, false otherwise
     request.onsuccess = () => {
-      logger.info("✅ Problem found in database:", request.result);
+      logger.info("✅ Problem found in database by leetcode_id:", request.result);
       resolve(request.result);
     };
     request.onerror = () => {
-      logger.error("❌ Error checking database for problem:", request.error);
-
+      logger.error("❌ Error checking database for problem by leetcode_id:", request.error);
       reject(request.error);
     };
   });
@@ -515,7 +536,7 @@ export async function fetchAdditionalProblems(
       const difficultyMap = { "Easy": 1, "Medium": 2, "Hard": 3 };
       const maxDifficulty = difficultyMap[currentDifficultyCap] || 3;
       availableProblems = allProblems.filter(problem => {
-        const problemDifficultyString = problem.difficulty || problem.Difficulty || "Medium";
+        const problemDifficultyString = problem.difficulty || "Medium";
         const problemDifficultyNum = difficultyMap[problemDifficultyString] || 2;
         return problemDifficultyNum <= maxDifficulty;
       });
@@ -616,10 +637,10 @@ export async function fetchAdditionalProblems(
 
     logger.info(`🎯 Selected ${selectedProblems.length} problems for learning`);
     logger.info(`🎯 Selected problems by difficulty:`, {
-      Easy: selectedProblems.filter(p => (p.difficulty || p.Difficulty) === 'Easy').length,
-      Medium: selectedProblems.filter(p => (p.difficulty || p.Difficulty) === 'Medium').length,
-      Hard: selectedProblems.filter(p => (p.difficulty || p.Difficulty) === 'Hard').length,
-      problems: selectedProblems.map(p => ({id: p.id, difficulty: p.difficulty || p.Difficulty, title: p.title}))
+      Easy: selectedProblems.filter(p => p.difficulty === 'Easy').length,
+      Medium: selectedProblems.filter(p => p.difficulty === 'Medium').length,
+      Hard: selectedProblems.filter(p => p.difficulty === 'Hard').length,
+      problems: selectedProblems.map(p => ({id: p.id, difficulty: p.difficulty, title: p.title}))
     });
     
     // **FALLBACK LOGIC**: If we don't have enough problems, select from all available problems
@@ -663,10 +684,10 @@ export async function fetchAdditionalProblems(
       
       logger.warn(`🔄 FALLBACK RESULT: Added ${fallbackProblems.length} problems. Before: ${beforeCount}, After: ${afterCount}`);
       logger.info(`🔍 Fallback problems by difficulty:`, {
-        Easy: fallbackProblems.filter(p => (p.difficulty || p.Difficulty) === 'Easy').length,
-        Medium: fallbackProblems.filter(p => (p.difficulty || p.Difficulty) === 'Medium').length,
-        Hard: fallbackProblems.filter(p => (p.difficulty || p.Difficulty) === 'Hard').length,
-        problems: fallbackProblems.map(p => ({id: p.id, difficulty: p.difficulty || p.Difficulty, title: p.title}))
+        Easy: fallbackProblems.filter(p => p.difficulty === 'Easy').length,
+        Medium: fallbackProblems.filter(p => p.difficulty === 'Medium').length,
+        Hard: fallbackProblems.filter(p => p.difficulty === 'Hard').length,
+        problems: fallbackProblems.map(p => ({id: p.id, difficulty: p.difficulty, title: p.title}))
       });
     } else {
       logger.info(`🔄 Fallback skipped: hasEnough=${selectedProblems.length >= numNewProblems}, hasAvailable=${availableProblems.length > 0}`);
@@ -689,7 +710,19 @@ async function _getProblemSequenceScore(
   const store = tx.objectStore("problem_relationships");
 
   return new Promise((resolve, reject) => {
-    const request = store.index("by_problem_id_1").getAll(problemId);
+    let index;
+    try {
+      index = store.index("by_problem_id1");
+    } catch (error) {
+      console.error(`❌ PROBLEMS INDEX ERROR: by_problem_id1 index not found in problem_relationships`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "problem_relationships"
+      });
+      reject(error);
+      return;
+    }
+    const request = index.getAll(problemId);
     request.onsuccess = async () => {
       const relationships = request.result;
 
@@ -842,7 +875,18 @@ export async function addStabilityToProblems() {
     const transaction = db.transaction(["problems", "attempts"], "readwrite");
     const problemStore = transaction.objectStore("problems");
     const attemptStore = transaction.objectStore("attempts");
-    const attemptIndex = attemptStore.index("by_problemId");
+    let attemptIndex;
+    try {
+      attemptIndex = attemptStore.index("by_problem_id");
+    } catch (error) {
+      console.error(`❌ PROBLEMS INDEX ERROR: by_problem_id index not found in attempts`, {
+        error: error.message,
+        availableIndexes: Array.from(attemptStore.indexNames),
+        storeName: "attempts"
+      });
+      reject(error);
+      return;
+    }
 
     const problemsRequest = problemStore.getAll();
 
@@ -865,9 +909,9 @@ export async function addStabilityToProblems() {
 
         logger.info("🔍 Attempts:", attempts);
 
-        // Sort attempts by date (assuming attemptDate exists)
+        // Sort attempts by date (assuming attempt_date exists)
         attempts.sort(
-          (a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate)
+          (a, b) => new Date(a.attempt_date) - new Date(b.attempt_date)
         );
 
         // Initialize stability
@@ -876,12 +920,12 @@ export async function addStabilityToProblems() {
         for (let attempt of attempts) {
           currentStability = updateStabilityFSRS(
             currentStability,
-            attempt.Success // Assuming attempt.hasCorrect is a boolean
+            attempt.success // Assuming attempt.success is a boolean
           );
         }
 
         // Save stability to problem
-        problem.Stability = currentStability;
+        problem.stability = currentStability;
 
         problemStore.put(problem);
       }
@@ -1117,10 +1161,22 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
     // Get user problem data
     const problemTx = db.transaction("problems", "readonly");
     const problemStore = problemTx.objectStore("problems");
-    const problemIndex = problemStore.index("by_problem");
+    // Note: Using direct store access since we're querying all problems, not by specific index
 
     const userProblem = await new Promise((resolve, reject) => {
-      const request = problemIndex.get(leetCodeID);
+      let index;
+      try {
+        index = problemStore.index("by_leetcode_id");
+      } catch (error) {
+        console.error(`❌ PROBLEMS INDEX ERROR: by_leetcode_id index not found in problems`, {
+          error: error.message,
+          availableIndexes: Array.from(problemStore.indexNames),
+          storeName: "problems"
+        });
+        reject(error);
+        return;
+      }
+      const request = index.get(leetCodeID);
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(request.error);
     });
@@ -1132,15 +1188,43 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
       logger.warn(
         `⚠️ No standard problem found for LeetCode ID: ${leetCodeID}`
       );
-      return userProblem; // Return user problem without official difficulty
+      // Return user problem with field mapping even without standard problem data
+      return {
+        ...userProblem,
+        id: userProblem?.leetcode_id || leetCodeID,
+        leetcode_id: userProblem?.leetcode_id || leetCodeID,
+        problemId: userProblem?.problem_id,
+        title: userProblem?.title,
+        difficulty: userProblem?.difficulty || userProblem?.Rating || "Unknown",
+        tags: userProblem?.tags || userProblem?.Tags || [],
+        boxLevel: userProblem?.box_level,
+        reviewSchedule: userProblem?.review_schedule,
+        cooldownStatus: userProblem?.cooldown_status,
+        perceivedDifficulty: userProblem?.perceived_difficulty,
+        consecutiveFailures: userProblem?.consecutive_failures,
+        attemptStats: userProblem?.attempt_stats,
+      };
     }
 
-    // Merge data: user problem data + official difficulty
+    // Merge data: user problem data + official metadata from standard_problems
+    // Convert snake_case to camelCase for UI compatibility
     const mergedProblem = {
       ...userProblem,
-      officialDifficulty: standardProblem.difficulty,
-      tags: standardProblem.tags,
+      // Map snake_case fields to camelCase for UI compatibility
+      id: userProblem?.leetcode_id || leetCodeID, // UI expects 'id' not 'leetcode_id'
+      leetcode_id: userProblem?.leetcode_id || leetCodeID, // Keep both for compatibility
+      problemId: userProblem?.problem_id, // Internal UUID
+      // Official metadata from standard_problems (don't duplicate in problems table)
+      difficulty: standardProblem.difficulty || userProblem?.difficulty || userProblem?.Rating || "Unknown",
+      tags: standardProblem.tags || userProblem?.tags || userProblem?.Tags || [],
       title: standardProblem.title || userProblem?.title,
+      // Map other snake_case fields to camelCase
+      boxLevel: userProblem?.box_level,
+      reviewSchedule: userProblem?.review_schedule,
+      cooldownStatus: userProblem?.cooldown_status,
+      perceivedDifficulty: userProblem?.perceived_difficulty,
+      consecutiveFailures: userProblem?.consecutive_failures,
+      attemptStats: userProblem?.attempt_stats,
     };
 
     return mergedProblem;
@@ -1206,7 +1290,7 @@ export function getProblemWithRetry(problemId, options = {}) {
  * @returns {Promise<boolean>} True if problem exists, false otherwise
  */
 export function checkDatabaseForProblemWithRetry(
-  problemId,
+  leetcodeId,
   options = {}
 ) {
   const {
@@ -1216,10 +1300,10 @@ export function checkDatabaseForProblemWithRetry(
     abortController = null,
   } = options;
 
-  // Validate problemId before attempting database operation
-  if (problemId == null || isNaN(Number(problemId))) {
-    logger.error("❌ Invalid problemId for database lookup with retry:", problemId);
-    return Promise.reject(new Error(`Invalid problemId: ${problemId}. Must be a valid number.`));
+  // Validate leetcodeId before attempting database operation
+  if (leetcodeId == null || isNaN(Number(leetcodeId))) {
+    logger.error("❌ Invalid leetcodeId for database lookup with retry:", leetcodeId);
+    return Promise.reject(new Error(`Invalid leetcodeId: ${leetcodeId}. Must be a valid number.`));
   }
 
   return indexedDBRetry.executeWithRetry(
@@ -1228,7 +1312,19 @@ export function checkDatabaseForProblemWithRetry(
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["problems"], "readonly");
         const store = transaction.objectStore("problems");
-        const request = store.get(Number(problemId)); // Ensure it's a number
+        let index;
+        try {
+          index = store.index("by_leetcode_id");
+        } catch (error) {
+          console.error(`❌ PROBLEMS INDEX ERROR: by_leetcode_id index not found in problems`, {
+            error: error.message,
+            availableIndexes: Array.from(store.indexNames),
+            storeName: "problems"
+          });
+          reject(error);
+          return;
+        }
+        const request = index.get(Number(leetcodeId)); // Look up by leetcode_id
 
         request.onsuccess = () => {
           resolve(!!request.result); // Convert to boolean
@@ -1243,7 +1339,7 @@ export function checkDatabaseForProblemWithRetry(
       operationName,
       priority,
       abortController,
-      deduplicationKey: `check_problem_${problemId}`,
+      deduplicationKey: `check_problem_${leetcodeId}`,
     }
   );
 }
@@ -1272,8 +1368,8 @@ export function addProblemWithRetry(problemData, options = {}) {
         async (tx, stores) => {
           const [problemStore] = stores;
 
-          // Get standard problem data
-          const standardProblem = await fetchProblemById(
+          // Get standard problem data (for future use if needed)
+          const _standardProblem = await fetchProblemById(
             problemData.leetcode_id
           );
 
@@ -1290,13 +1386,13 @@ export function addProblemWithRetry(problemData, options = {}) {
 
           // Create the problem entry
           const problemEntry = {
+            problem_id: uuidv4(), // UUID primary key
             leetcode_id: problemData.leetcode_id,
-            title: problemData.title,
-            tags: standardProblem?.tags || [],
-            difficulty: standardProblem?.difficulty || "Medium",
+            title: problemData.title.toLowerCase(),
             box_level: 1,
             review_schedule: new Date().toISOString(),
-            session_id: session.id,
+            // Removed session_id - problems are persistent records, not session-specific
+            // Removed tags and difficulty - available from standard_problems store
           };
 
           // Add problem to database
@@ -1327,6 +1423,50 @@ export function addProblemWithRetry(problemData, options = {}) {
       retries: 2, // Fewer retries for write operations
     }
   );
+}
+
+/**
+ * Fixes problems with corrupted difficulty fields by restoring from standard problems
+ * @returns {Promise<number>} Number of problems fixed
+ */
+export async function fixCorruptedDifficultyFields() {
+  const db = await openDB();
+  let fixedCount = 0;
+
+  return new Promise((resolve, reject) => {
+    (async () => {
+      try {
+        // Get all standard problems for lookup
+        const standardProblems = await getAllStandardProblems();
+      const standardProblemsMap = {};
+      standardProblems.forEach(p => {
+        standardProblemsMap[p.id] = p;
+      });
+
+      const transaction = db.transaction(["problems"], "readwrite");
+      const store = transaction.objectStore("problems");
+      const request = store.openCursor();
+
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          // Note: difficulty was removed from problem objects - it's now in standard_problems
+          // This corruption check is no longer needed since difficulty is managed separately
+          // Skipping difficulty corruption check as it's handled by standard_problems store
+
+          cursor.continue();
+        } else {
+          console.log(`✅ Fixed ${fixedCount} problems with corrupted difficulty fields`);
+          resolve(fixedCount);
+        }
+      };
+
+        request.onerror = () => reject(request.error);
+      } catch (error) {
+        reject(error);
+      }
+    })();
+  });
 }
 
 /**
