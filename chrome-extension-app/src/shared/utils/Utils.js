@@ -50,13 +50,14 @@ export function calculateDecayScore(lastAttemptDate, successRate, stability) {
 export function createAttemptRecord(attemptData) {
   const baseRecord = {
     id: attemptData.id,
-    SessionID: attemptData.SessionID,
-    ProblemID: attemptData.ProblemID,
-    Success: attemptData.Success,
-    AttemptDate: attemptData.AttemptDate,
-    TimeSpent: Number(attemptData.TimeSpent),
-    Difficulty: attemptData.Difficulty,
-    Comments: attemptData.Comments || "",
+    session_id: attemptData.session_id,
+    problem_id: attemptData.problem_id,
+    leetcode_id: attemptData.leetcode_id,
+    success: attemptData.success,
+    attempt_date: attemptData.attempt_date,
+    time_spent: Number(attemptData.time_spent || 0),
+    perceived_difficulty: Number(attemptData.perceived_difficulty || 0),
+    comments: attemptData.comments || "",
   };
 
   // Add interview signals if present
