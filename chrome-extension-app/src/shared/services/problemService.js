@@ -64,11 +64,32 @@ export const ProblemService = {
         const problemInProblems = await checkDatabaseForProblem(problem.id);
         if (problemInProblems) {
           logger.info(
-            "✅ Returning Problem found in 'problems' store:",
+            "✅ Problem found in 'problems' store, merging with standard data:",
             problemInProblems
           );
+
+          // Merge user problem data with standard problem metadata (including tags)
+          const mergedProblem = {
+            ...problemInProblems,
+            // Map snake_case fields to camelCase for UI compatibility
+            id: problemInProblems?.leetcode_id || problem.id,
+            leetcode_id: problemInProblems?.leetcode_id || problem.id,
+            problemId: problemInProblems?.problem_id,
+            // Official metadata from standard_problems (including tags!)
+            difficulty: problem.difficulty || problemInProblems?.difficulty || problemInProblems?.Rating || "Unknown",
+            tags: problem.tags || problemInProblems?.tags || problemInProblems?.Tags || [],
+            title: problem.title || problemInProblems?.title,
+            // Map other snake_case fields to camelCase
+            boxLevel: problemInProblems?.box_level,
+            reviewSchedule: problemInProblems?.review_schedule,
+            cooldownStatus: problemInProblems?.cooldown_status,
+            perceivedDifficulty: problemInProblems?.perceived_difficulty,
+            consecutiveFailures: problemInProblems?.consecutive_failures,
+            attemptStats: problemInProblems?.attempt_stats,
+          };
+
           performanceMonitor.endQuery(queryContext, true, 1);
-          return { problem: problemInProblems, found: true }; // ✅ Found in problems store
+          return { problem: mergedProblem, found: true }; // ✅ Found in problems store with tags
         }
       } else {
         logger.warn("❌ Problem not found in any store.");
@@ -123,12 +144,12 @@ export const ProblemService = {
       return await AttemptsService.addAttempt(
         {
           id: uuidv4(),
-          ProblemID: problem.id,
-          AttemptDate: contentScriptData.date,
-          Success: contentScriptData.success,
-          TimeSpent: contentScriptData.timeSpent,
-          Difficulty: contentScriptData.difficulty,
-          Comments: contentScriptData.comments,
+          problem_id: problem.id,
+          attempt_date: contentScriptData.date,
+          success: contentScriptData.success,
+          time_spent: contentScriptData.timeSpent,
+          perceived_difficulty: contentScriptData.difficulty,
+          comments: contentScriptData.comments,
         },
         problem
       );
@@ -718,20 +739,20 @@ const deduplicateById = (problems) => {
 };
 
 function problemSortingCriteria(a, b) {
-  const reviewDateA = new Date(a.ReviewSchedule);
-  const reviewDateB = new Date(b.ReviewSchedule);
+  const reviewDateA = new Date(a.review_schedule);
+  const reviewDateB = new Date(b.review_schedule);
 
   if (reviewDateA < reviewDateB) return -1;
   if (reviewDateA > reviewDateB) return 1;
 
-  const totalAttemptsA = a.AttemptStats?.TotalAttempts || 0;
-  const totalAttemptsB = b.AttemptStats?.TotalAttempts || 0;
+  const totalAttemptsA = a.attempt_stats?.total_attempts || 0;
+  const totalAttemptsB = b.attempt_stats?.total_attempts || 0;
 
   if (totalAttemptsA < totalAttemptsB) return -1;
   if (totalAttemptsA > totalAttemptsB) return 1;
 
-  const successfulAttemptsA = a.AttemptStats?.SuccessfulAttempts || 0;
-  const successfulAttemptsB = b.AttemptStats?.SuccessfulAttempts || 0;
+  const successfulAttemptsA = a.attempt_stats?.successful_attempts || 0;
+  const successfulAttemptsB = b.attempt_stats?.successful_attempts || 0;
   
   const aScore = calculateDecayScore(
     a.lastAttemptDate,

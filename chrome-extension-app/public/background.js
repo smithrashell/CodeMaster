@@ -1,6 +1,7 @@
 import { StorageService } from "../src/shared/services/storageService.js";
 import { ProblemService } from "../src/shared/services/problemService.js";
 import { SessionService } from "../src/shared/services/sessionService.js";
+import { AttemptsService } from "../src/shared/services/attemptsService.js";
 import { updateSessionInDB } from "../src/shared/db/sessions.js";
 import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../src/shared/services/navigationService.js";
@@ -19,7 +20,7 @@ import {
   resetPageTour
 } from "../src/shared/services/onboardingService.js";
 import { getStrategyForTag } from "../src/shared/db/strategy_data.js";
-import { getProblem } from "../src/shared/db/problems.js";
+import { getProblem, getProblemWithOfficialDifficulty } from "../src/shared/db/problems.js";
 import { 
   getDashboardStatistics,
   getFocusAreaAnalytics,
@@ -587,9 +588,20 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
       case "countProblemsByBoxLevel":
-        ProblemService.countProblemsByBoxLevel()
-          .then((counts) => sendResponse({ status: "success", data: counts }))
-          .catch(() => sendResponse({ status: "error" }))
+        // Support cache invalidation for fresh database reads
+        const countProblemsPromise = request.forceRefresh ? 
+          ProblemService.countProblemsByBoxLevelWithRetry({ priority: "high" }) :
+          ProblemService.countProblemsByBoxLevel();
+          
+        countProblemsPromise
+          .then((counts) => {
+            console.log("📊 Background: Problem counts retrieved", counts);
+            sendResponse({ status: "success", data: counts });
+          })
+          .catch((error) => {
+            console.error("❌ Background: Error counting problems by box level:", error);
+            sendResponse({ status: "error", message: error.message });
+          })
           .finally(finishRequest);
         return true;
 
@@ -632,6 +644,28 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
+      case "problemSubmitted":
+        console.log("🔄 Problem submitted - notifying all content scripts to refresh");
+        // Forward the message to all tabs to refresh navigation state
+        chrome.tabs.query({}, (tabs) => {
+          tabs.forEach((tab) => {
+            // Only send to tabs that might have content scripts (http/https URLs)
+            if (tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+              chrome.tabs.sendMessage(tab.id, { type: "problemSubmitted" }, (response) => {
+                // Ignore errors from tabs without content scripts
+                if (chrome.runtime.lastError) {
+                  console.log(`ℹ️ Tab ${tab.id} doesn't have content script:`, chrome.runtime.lastError.message);
+                } else {
+                  console.log(`✅ Notified tab ${tab.id} about problem submission`);
+                }
+              });
+            }
+          });
+        });
+        sendResponse({ status: "success", message: "Problem submission notification sent" });
+        finishRequest();
+        return true;
+
       case "skipProblem":
         console.log("⏭️ Skipping problem:", request.consentScriptData?.leetcode_id || "unknown");
         // Acknowledge the skip request - no additional processing needed
@@ -643,6 +677,26 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         ProblemService.getAllProblems()
           .then(sendResponse)
           .catch(() => sendResponse({ error: "Failed to retrieve problems" }))
+          .finally(finishRequest);
+        return true;
+
+      case "getProblemById":
+        getProblemWithOfficialDifficulty(request.problemId)
+          .then((problemData) => sendResponse({ success: true, data: problemData }))
+          .catch((error) => {
+            console.error("❌ Error getting problem by ID:", error);
+            sendResponse({ success: false, error: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+
+      case "getProblemAttemptStats":
+        AttemptsService.getProblemAttemptStats(request.problemId)
+          .then((stats) => sendResponse({ success: true, data: stats }))
+          .catch((error) => {
+            console.error("❌ Error getting problem attempt stats:", error);
+            sendResponse({ success: false, error: error.message });
+          })
           .finally(finishRequest);
         return true;
 
@@ -1591,21 +1645,33 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
               }
             });
             
-            // Since we're now receiving numeric IDs directly from Generator, use them directly
-            const numericProblemId = parseInt(request.problemId);
-            
+            // Ensure consistent number type for Map key lookup
+            const numericProblemId = Number(request.problemId);
+
             // Get similar problems from relationships using numeric ID
             const relationships = relationshipMap.get(numericProblemId) || {};
-            
+
+            console.log(`🔍 getSimilarProblems: Processing problem ${numericProblemId}, found ${Object.keys(relationships).length} relationships`);
+
             const similarProblems = [];
-            
+
+            // Check if we have any relationships at all
+            if (relationshipMap.size === 0) {
+              console.warn("⚠️ getSimilarProblems: Relationship map is empty - problem relationships may not be built yet");
+              sendResponse({
+                similarProblems: [],
+                debug: { message: "Problem relationships not initialized", mapSize: 0 }
+              });
+              return;
+            }
+
             // Sort by relationship strength and take top N
             const sortedRelationships = Object.entries(relationships)
               .sort(([,a], [,b]) => b - a) // Sort by strength descending
               .slice(0, request.limit || 5);
             
             for (const [relatedNumericId, strength] of sortedRelationships) {
-              const relatedId = parseInt(relatedNumericId);
+              const relatedId = Number(relatedNumericId);
               
               // Skip if this is the same problem as the one we're getting similar problems for
               if (relatedId === numericProblemId) {
@@ -1631,6 +1697,23 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           } catch (error) {
             console.error("❌ getSimilarProblems error:", error);
             sendResponse({ similarProblems: [] });
+          }
+        })().finally(finishRequest);
+        return true;
+
+      case "rebuildProblemRelationships":
+        (async () => {
+          try {
+            console.log("🔄 Starting problem relationships rebuild...");
+            const { buildProblemRelationships } = await import("../src/shared/services/relationshipService.js");
+            
+            // Rebuild relationships
+            await buildProblemRelationships();
+            console.log("✅ Problem relationships rebuilt successfully");
+            sendResponse({ success: true, message: "Problem relationships rebuilt successfully" });
+          } catch (error) {
+            console.error("❌ Error rebuilding problem relationships:", error);
+            sendResponse({ success: false, error: error.message });
           }
         })().finally(finishRequest);
         return true;
@@ -2463,21 +2546,16 @@ async function cleanupStalledSessions() {
             break;
             
           case 'auto_complete':
-            session.status = 'completed';
-            session.lastActivityTime = new Date().toISOString();
-            await updateSessionInDB(session);
-            
-            // Run performance analysis for completed sessions
-            await SessionService.summarizeSessionPerformance(session);
+            // Use checkAndCompleteSession to properly handle completion and session state increment
+            await SessionService.checkAndCompleteSession(sessionId);
             console.log(`✅ Auto-completed session ${sessionId}`);
             actions.push(`completed:${sessionId}`);
             break;
             
           case 'create_new_tracking':
-            // Mark old tracking session as completed
-            session.status = 'completed';
-            await updateSessionInDB(session);
-            
+            // Mark old tracking session as completed using proper completion method
+            await SessionService.checkAndCompleteSession(sessionId);
+
             // No need to create new tracking here - SAE will do it on next attempt
             console.log(`🔄 Marked tracking session ${sessionId} for replacement`);
             actions.push(`tracking_replaced:${sessionId}`);

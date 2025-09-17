@@ -150,6 +150,7 @@ const handleFormSubmission = async (data, routeState, navigate, setSubmitting) =
       ...data,
       leetcode_id: data.leetCodeID, // Map form field to expected backend field
       timeSpent: timeInSeconds, // Store as seconds
+      perceived_difficulty: Number(data.difficulty), // User's perceived difficulty as a number
       date: new Date(),
       address: window.location.href,
       id: null,
@@ -176,7 +177,16 @@ const handleFormSubmission = async (data, routeState, navigate, setSubmitting) =
     });
 
     console.log("✅ Problem submission completed");
-    
+
+    // Add a small delay to ensure database commit completes
+    // This allows the problem to be properly saved before navigation refresh
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Notify navigation component to refresh problem status
+    if (chrome?.runtime?.sendMessage) {
+      chrome.runtime.sendMessage({ type: "problemSubmitted" });
+    }
+
     // Navigate to stats page after successful submission
     navigate("/Probstat", { state: { ...data, submissionComplete: true } });
     
@@ -372,6 +382,21 @@ const ProbSubmission = () => {
   console.log("🔍 ProbSubmission component rendered", {
     routeState,
     previousRoute,
+    routeStateKeys: routeState ? Object.keys(routeState) : 'null',
+    routeStateValues: routeState ? Object.keys(routeState).reduce((acc, key) => ({
+      ...acc,
+      [key]: routeState[key]
+    }), {}) : 'null',
+    leetCodeID: routeState?.LeetCodeID,
+    description: routeState?.Description,
+    time: routeState?.Time,
+    // Check for snake_case versions
+    leetcode_id: routeState?.leetcode_id,
+    title: routeState?.title,
+    // Check for other possible field names
+    id: routeState?.id,
+    problemId: routeState?.problemId,
+    problem_id: routeState?.problem_id
   });
 
   const {

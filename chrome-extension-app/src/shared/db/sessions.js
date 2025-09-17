@@ -5,6 +5,7 @@ import { getMostRecentAttempt } from "./attempts.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 import SessionLimits from "../utils/sessionLimits.js";
 import { InterviewService } from "../services/interviewService.js";
+import { getRecentSessionAnalytics } from "./sessionAnalytics.js";
 import logger from "../utils/logger.js";
 
 const openDB = dbHelper.openDB;
@@ -44,10 +45,10 @@ export const getLatestSession = async () => {
         return;
       }
       
-      // Sort by date (newest first) - handle both 'date' and 'Date' properties
+      // Sort by date (newest first) - handle snake_case created_date first, then fallback to date/Date
       const sortedSessions = allSessions.sort((a, b) => {
-        const dateA = new Date(a.date || a.Date || 0);
-        const dateB = new Date(b.date || b.Date || 0);
+        const dateA = new Date(a.created_date || a.date || a.Date || 0);
+        const dateB = new Date(b.created_date || b.date || b.Date || 0);
         return dateB - dateA;
       });
       const result = sortedSessions[0];
@@ -82,14 +83,25 @@ export const getLatestSessionByType = async (session_type = null, status = null)
     
     // Use appropriate index based on whether status is specified
     let index, keyRange;
-    if (status) {
-      // Use composite index for session_type + status queries
-      index = store.index("by_session_type_status");
-      keyRange = IDBKeyRange.only([normalizedSessionType, status]);
-    } else {
-      // Use session_type index for type-only queries  
-      index = store.index("by_session_type");
-      keyRange = IDBKeyRange.only(normalizedSessionType);
+    try {
+      if (status) {
+        // Use composite index for session_type + status queries
+        index = store.index("by_session_type_status");
+        keyRange = IDBKeyRange.only([normalizedSessionType, status]);
+      } else {
+        // Use session_type index for type-only queries  
+        index = store.index("by_session_type");
+        keyRange = IDBKeyRange.only(normalizedSessionType);
+      }
+    } catch (error) {
+      console.error(`❌ INDEX ACCESS ERROR: Failed to access index:`, {
+        indexName: status ? "by_session_type_status" : "by_session_type",
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames)
+      });
+      logger.error(`❌ getLatestSessionByType() index error:`, error);
+      reject(error);
+      return;
     }
     
     // Open cursor in reverse order (latest first) for efficiency
@@ -243,32 +255,76 @@ export const saveSessionToStorage = (session, updateDatabase = false) => {
  * Initialize session state with default values
  */
 async function initializeSessionState(sessionStateKey) {
-  let sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
-    (await StorageService.getSessionState(sessionStateKey)) || {
+  console.log(`🔍 SESSION STATE DEBUG: initializeSessionState ENTRY with key: ${sessionStateKey}`);
+  
+  const migratedState = await StorageService.migrateSessionStateToIndexedDB();
+  const storedState = await StorageService.getSessionState(sessionStateKey);
+  
+  console.log(`🔍 SESSION STATE DEBUG: State loading results:`, {
+    hasMigratedState: !!migratedState,
+    hasStoredState: !!storedState,
+    migratedSessionsCompleted: migratedState?.num_sessions_completed,
+    storedSessionsCompleted: storedState?.num_sessions_completed
+  });
+
+  let sessionState = migratedState || storedState || {
       id: sessionStateKey,
-      numSessionsCompleted: 0,
-      currentDifficultyCap: "Easy", // Onboarding users start with Easy-only problems
-      tagIndex: 0,
-      difficultyTimeStats: {
-        Easy: { problems: 0, totalTime: 0, avgTime: 0 },
-        Medium: { problems: 0, totalTime: 0, avgTime: 0 },
-        Hard: { problems: 0, totalTime: 0, avgTime: 0 },
+      num_sessions_completed: 0,
+      current_difficulty_cap: "Easy", // Onboarding users start with Easy-only problems
+      tag_index: 0,
+      difficulty_time_stats: {
+        Easy: { problems: 0, total_time: 0, avg_time: 0 },
+        Medium: { problems: 0, total_time: 0, avg_time: 0 },
+        Hard: { problems: 0, total_time: 0, avg_time: 0 },
       },
-      lastPerformance: {
+      last_performance: {
         accuracy: null,
-        efficiencyScore: null,
+        efficiency_score: null,
       },
       // 🔓 Escape hatch tracking
-      escapeHatches: {
-        sessionsAtCurrentDifficulty: 0,
-        lastDifficultyPromotion: null,
-        sessionsWithoutPromotion: 0,
-        activatedEscapeHatches: [],
+      escape_hatches: {
+        sessions_at_current_difficulty: 0,
+        last_difficulty_promotion: null,
+        sessions_without_promotion: 0,
+        activated_escape_hatches: [],
       },
     };
 
-  // ✅ CRITICAL FIX: One-time migration to correct numSessionsCompleted from existing data
-  if (sessionState.numSessionsCompleted === 0 && !sessionState._migrated) {
+  console.log(`🔍 SESSION STATE DEBUG: Initial session state:`, {
+    id: sessionState.id,
+    num_sessions_completed: sessionState.num_sessions_completed,
+    current_difficulty_cap: sessionState.current_difficulty_cap,
+    hasLegacyFields: !!(sessionState.numSessionsCompleted || sessionState.currentDifficultyCap)
+  });
+
+  // 🔄 MIGRATION: Convert camelCase fields to snake_case (backwards compatibility)
+  if (sessionState.numSessionsCompleted !== undefined) {
+    sessionState.num_sessions_completed = sessionState.numSessionsCompleted;
+    delete sessionState.numSessionsCompleted;
+  }
+  if (sessionState.currentDifficultyCap !== undefined) {
+    sessionState.current_difficulty_cap = sessionState.currentDifficultyCap;
+    delete sessionState.currentDifficultyCap;
+  }
+  if (sessionState.lastPerformance !== undefined) {
+    sessionState.last_performance = sessionState.lastPerformance;
+    delete sessionState.lastPerformance;
+  }
+  if (sessionState.escapeHatches !== undefined) {
+    sessionState.escape_hatches = sessionState.escapeHatches;
+    delete sessionState.escapeHatches;
+  }
+  if (sessionState.tagIndex !== undefined) {
+    sessionState.tag_index = sessionState.tagIndex;
+    delete sessionState.tagIndex;
+  }
+  if (sessionState.difficultyTimeStats !== undefined) {
+    sessionState.difficulty_time_stats = sessionState.difficultyTimeStats;
+    delete sessionState.difficultyTimeStats;
+  }
+
+  // ✅ CRITICAL FIX: One-time migration to correct num_sessions_completed from existing data
+  if (sessionState.num_sessions_completed === 0 && !sessionState._migrated) {
     try {
       const db = await openDB();
       const transaction = db.transaction("sessions", "readonly");
@@ -282,7 +338,7 @@ async function initializeSessionState(sessionStateKey) {
       
       const completedSessions = sessions.filter(s => s.status === "completed");
       if (completedSessions.length > 0) {
-        sessionState.numSessionsCompleted = completedSessions.length;
+        sessionState.num_sessions_completed = completedSessions.length;
         sessionState._migrated = true; // Prevent future migrations
         await StorageService.setSessionState(sessionStateKey, sessionState);
         logger.info(`🔄 Migrated session state: found ${completedSessions.length} completed sessions`);
@@ -339,8 +395,8 @@ async function applyPostOnboardingLogic({
   // Time gap since last session
   let gapInDays = 999;
   const lastAttempt = await getMostRecentAttempt();
-  if (lastAttempt?.AttemptDate) {
-    const lastTime = new Date(lastAttempt.AttemptDate);
+  if (lastAttempt?.attempt_date) {
+    const lastTime = new Date(lastAttempt.attempt_date);
     gapInDays = (now - lastTime) / (1000 * 60 * 60 * 24);
   }
 
@@ -496,11 +552,11 @@ function applyInterviewInsightsToTags(allowedTags, focusTags, interviewInsights,
  */
 function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   // Session-based escape hatch detection and activation
-  const currentDifficulty = sessionState.currentDifficultyCap;
+  const currentDifficulty = sessionState.current_difficulty_cap;
 
-  // Ensure escapeHatches object exists (backward compatibility)
-  if (!sessionState.escapeHatches) {
-    sessionState.escapeHatches = {
+  // Ensure escape_hatches object exists (backward compatibility)
+  if (!sessionState.escape_hatches) {
+    sessionState.escape_hatches = {
       sessionsAtCurrentDifficulty: 0,
       lastDifficultyPromotion: null,
       sessionsWithoutPromotion: 0,
@@ -508,7 +564,7 @@ function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     };
   }
 
-  const escapeHatches = sessionState.escapeHatches;
+  const escapeHatches = sessionState.escape_hatches;
 
   // Track sessions at current difficulty level
   escapeHatches.sessionsAtCurrentDifficulty++;
@@ -540,10 +596,10 @@ function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   
   if (
     accuracy >= promotionThreshold &&
-    sessionState.currentDifficultyCap === "Easy" &&
+    sessionState.current_difficulty_cap === "Easy" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")
   ) {
-    sessionState.currentDifficultyCap = "Medium";
+    sessionState.current_difficulty_cap = "Medium";
     escapeHatches.lastDifficultyPromotion = now.toISOString();
     escapeHatches.sessionsAtCurrentDifficulty = 0; // Reset counter
     escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
@@ -557,10 +613,10 @@ function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     }
   } else if (
     accuracy >= promotionThreshold &&
-    sessionState.currentDifficultyCap === "Medium" &&
+    sessionState.current_difficulty_cap === "Medium" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")
   ) {
-    sessionState.currentDifficultyCap = "Hard";
+    sessionState.current_difficulty_cap = "Hard";
     escapeHatches.lastDifficultyPromotion = now.toISOString();
     escapeHatches.sessionsAtCurrentDifficulty = 0; // Reset counter
     escapeHatches.activatedEscapeHatches = []; // Reset escape hatches for new difficulty
@@ -574,13 +630,13 @@ function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     }
   } else if (
     accuracy >= promotionThreshold &&
-    getDifficultyOrder(sessionState.currentDifficultyCap) < getDifficultyOrder(userMaxDifficulty)
+    getDifficultyOrder(sessionState.current_difficulty_cap) < getDifficultyOrder(userMaxDifficulty)
   ) {
-    logger.info(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.currentDifficultyCap}, Max allowed: ${userMaxDifficulty}`);
+    logger.info(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.current_difficulty_cap}, Max allowed: ${userMaxDifficulty}`);
   }
 
   // Track sessions without promotion for debugging
-  if (sessionState.currentDifficultyCap === currentDifficulty) {
+  if (sessionState.current_difficulty_cap === currentDifficulty) {
     escapeHatches.sessionsWithoutPromotion++;
   } else {
     escapeHatches.sessionsWithoutPromotion = 0;
@@ -606,20 +662,35 @@ export async function buildAdaptiveSessionSettings() {
 
   // Debug session state tracking
   console.log(`🔍 Session state debug:`, {
-    numSessionsCompleted: sessionState.numSessionsCompleted,
+    numSessionsCompleted: sessionState.num_sessions_completed,
     focusDecisionOnboarding: focusDecision.onboarding,
     sessionStateKeys: Object.keys(sessionState),
     sessionState: sessionState
   });
   logger.info(`🔍 Session state debug:`, {
-    numSessionsCompleted: sessionState.numSessionsCompleted,
+    numSessionsCompleted: sessionState.num_sessions_completed,
     focusDecisionOnboarding: focusDecision.onboarding,
     sessionStateKeys: Object.keys(sessionState)
   });
 
-  const performance = sessionState.lastPerformance || {};
-  const accuracy = performance.accuracy ?? 0.5;
-  const efficiencyScore = performance.efficiencyScore ?? 0.5;
+  // Get most recent performance from session analytics store (more reliable than session state)
+  let accuracy = 0.5;
+  let efficiencyScore = 0.5;
+  
+  try {
+    const recentAnalytics = await getRecentSessionAnalytics(1);
+    if (recentAnalytics && recentAnalytics.length > 0) {
+      const lastSession = recentAnalytics[0];
+      accuracy = lastSession.accuracy ?? 0.5;
+      // Calculate efficiency from timing if available (simplified metric)
+      efficiencyScore = lastSession.avg_time ? Math.max(0.3, Math.min(1.0, 1.0 - (lastSession.avg_time / 1800))) : 0.5;
+      logger.info(`🔍 Using session analytics performance: accuracy=${accuracy}, efficiency=${efficiencyScore}`);
+    } else {
+      logger.info("🔍 No recent session analytics found, using defaults");
+    }
+  } catch (error) {
+    logger.warn("⚠️ Failed to get recent session analytics, using defaults:", error);
+  }
 
   // Default values with onboarding-aware user preference integration
   let sessionLength = 4;
@@ -636,14 +707,24 @@ export async function buildAdaptiveSessionSettings() {
   
   // Use coordinated focus decision (handles onboarding, performance, user preferences)
   let allowedTags = focusDecision.activeFocusTags;
-  const onboarding = focusDecision.onboarding || (sessionState.numSessionsCompleted || 0) < 3;
+  // Prioritize session count over focus decision for onboarding determination
+  const sessionCountBasedOnboarding = (sessionState.num_sessions_completed || 0) < 3;
+  const onboarding = sessionCountBasedOnboarding; // Session count takes precedence over focus decision
+  
+  console.log(`🔍 ONBOARDING DECISION DEBUG: Detailed analysis:`, {
+    focusDecisionOnboarding: focusDecision.onboarding,
+    numSessionsCompleted: sessionState.num_sessions_completed,
+    sessionCountBasedOnboarding,
+    finalOnboarding: onboarding,
+    overridingFocusDecision: focusDecision.onboarding !== onboarding
+  });
   
   console.log(`🔍 Onboarding decision debug:`, {
     focusDecisionOnboarding: focusDecision.onboarding,
-    numSessionsCompleted: sessionState.numSessionsCompleted,
-    fallbackCheck: (sessionState.numSessionsCompleted || 0) < 3,
+    numSessionsCompleted: sessionState.num_sessions_completed,
+    fallbackCheck: (sessionState.num_sessions_completed || 0) < 3,
     finalOnboarding: onboarding,
-    currentDifficultyCap: sessionState.currentDifficultyCap
+    currentDifficultyCap: sessionState.current_difficulty_cap
   });
 
   // Failsafe: If FocusCoordinationService returns empty/invalid tags, use proven fallback
@@ -703,7 +784,7 @@ export async function buildAdaptiveSessionSettings() {
     sessionLength,
     numberOfNewProblems,
     currentAllowedTags: allowedTags,
-    currentDifficultyCap: sessionState.currentDifficultyCap,
+    currentDifficultyCap: sessionState.current_difficulty_cap,
     userFocusAreas,
     sessionState,
     isOnboarding: onboarding,
@@ -747,11 +828,11 @@ function _filterSessions(allSessions, daysBack, recentSessionsLimit) {
   const now = new Date();
   if (daysBack) {
     return allSessions.filter((s) => {
-      const date = new Date(s.Date);
+      const date = new Date(s.created_date);
       return (now - date) / (1000 * 60 * 60 * 24) <= daysBack;
     });
   } else {
-    allSessions.sort((a, b) => new Date(a.Date) - new Date(b.Date));
+    allSessions.sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
     return allSessions.slice(-recentSessionsLimit);
   }
 }
@@ -771,18 +852,87 @@ function _processAttempts(sessions) {
   for (let session of sessions) {
     const attempts = session.attempts || [];
     const problems = session.problems || [];
+
+    // Simple, direct problem mapping using the actual database field structure
     const problemMap = new Map(problems.map((p) => [p.id, p]));
 
-    for (let attempt of attempts) {
-      const problem = problemMap.get(attempt.problem_id);
-      if (!problem) continue;
+    console.log(`🔍 PROBLEM MAP DEBUG: Session ${session.id}:`, {
+      problemMapKeys: Array.from(problemMap.keys()),
+      problemMapSize: problemMap.size,
+      sampleProblem: problems[0] ? { id: problems[0].id, idType: typeof problems[0].id, title: problems[0].title } : null
+    });
 
-      const rating = problem.Rating || "Medium"; // fallback
-      const tags = problem.Tags || [];
+    console.log(`🔍 ATTEMPT PROCESSING DEBUG: Session ${session.id}:`, {
+      attemptsCount: attempts.length,
+      problemsCount: problems.length,
+      sessionProblems: problems.map(p => ({ id: p.id, title: p.title?.substring(0, 30) })),
+      sessionAttempts: attempts.map(a => ({ problem_id: a.problem_id, leetcode_id: a.leetcode_id, success: a.success })),
+      problemsArrayEmpty: problems.length === 0,
+      hasAttempts: attempts.length > 0
+    });
+
+    // Handle the case where session.problems is empty but attempts exist
+    if (problems.length === 0 && attempts.length > 0) {
+      console.log(`⚠️ ATTEMPT PROCESSING DEBUG: Session has empty problems array but ${attempts.length} attempts - this is the root cause of analytics failure`);
+    }
+
+    for (let attempt of attempts) {
+      const leetcodeId = attempt.leetcode_id;
+
+      console.log(`🔍 Processing attempt ${attempt.attempt_id} for leetcode problem ${leetcodeId}:`, {
+        leetcodeId,
+        leetcodeIdType: typeof leetcodeId,
+        problemMapHasKey: problemMap.has(leetcodeId),
+        problemMapKeys: Array.from(problemMap.keys()).slice(0, 3) // Show first 3 keys for comparison
+      });
+
+      // First try session problems using leetcode_id (session problems use LeetCode ID as 'id')
+      // Try both the original value and converted types to handle potential mismatches
+      let problem = problemMap.get(leetcodeId) ||
+                   problemMap.get(String(leetcodeId)) ||
+                   problemMap.get(Number(leetcodeId));
+
+      // In release prep: No backwards compatibility needed
+      // If problem not found in session, create minimal fallback
+      if (!problem) {
+        console.log(`🔧 ATTEMPT PROCESSING DEBUG: Problem ${leetcodeId} not in session, creating fallback for analytics`);
+      }
+
+      console.log(`🔍 Found problem: ${problem ? problem.title : `fallback for ${leetcodeId}`}`);
+
+      if (!problem) {
+        // Look for the problem in the current session's problems array by leetcode_id
+        const sessionProblem = problems.find(p => String(p.id) === String(leetcodeId));
+
+        problem = {
+          title: sessionProblem?.title || `Problem ${leetcodeId}`,
+          difficulty: sessionProblem?.difficulty || "Medium",
+          tags: sessionProblem?.tags || [],
+          leetcode_id: leetcodeId
+        };
+
+        console.log(`🔧 Created fallback problem: ${problem.title}`);
+      }
+
+      // Use snake_case fields for database consistency
+      // Prefer user's perceived difficulty from attempt, fallback to official difficulty
+      let rating;
+      if (attempt.perceived_difficulty) {
+        // Convert numeric perceived difficulty (1,2,3) to string labels
+        const difficultyMap = { 1: "Easy", 2: "Medium", 3: "Hard" };
+        rating = difficultyMap[attempt.perceived_difficulty] || "Medium";
+      } else {
+        // Fallback to official difficulty from problem/standard_problems
+        rating = problem.difficulty || "Medium";
+      }
+      const tags = problem.tags || [];
+
+      const timeSpent = attempt.time_spent || 0;
+      const success = attempt.success;
 
       performance[rating].attempts += 1;
-      performance[rating].time += attempt.timeSpent || 0;
-      if (attempt.success) performance[rating].correct += 1;
+      performance[rating].time += timeSpent;
+      if (success) performance[rating].correct += 1;
 
       // Tag stats
       for (let tag of tags) {
@@ -790,13 +940,13 @@ function _processAttempts(sessions) {
           tagStats[tag] = { attempts: 0, correct: 0, time: 0 };
         }
         tagStats[tag].attempts += 1;
-        tagStats[tag].time += attempt.timeSpent || 0;
-        if (attempt.success) tagStats[tag].correct += 1;
+        tagStats[tag].time += timeSpent;
+        if (success) tagStats[tag].correct += 1;
       }
 
       totalAttempts += 1;
-      totalTime += attempt.timeSpent || 0;
-      if (attempt.success) totalCorrect += 1;
+      totalTime += timeSpent;
+      if (success) totalCorrect += 1;
     }
   }
 
@@ -860,11 +1010,20 @@ export async function getSessionPerformance({
   daysBack = null,
   unmasteredTags = [],
 } = {}) {
+  console.log(`🔍 PERFORMANCE DEBUG: getSessionPerformance ENTRY`);
+  console.log(`🔍 PERFORMANCE DEBUG: Parameters:`, {
+    recentSessionsLimit,
+    daysBack,
+    unmasteredTagsCount: unmasteredTags.length,
+    unmasteredTags: unmasteredTags.slice(0, 5)
+  });
+
   logger.info("🔍 getSessionPerformance", unmasteredTags);
   const db = await openDB();
   const unmasteredTagSet = new Set(unmasteredTags);
 
   // 1️⃣ Fetch all sessions
+  console.log(`🔍 PERFORMANCE DEBUG: Step 1 - Fetching all sessions...`);
   const sessionStore = db
     .transaction("sessions", "readonly")
     .objectStore("sessions");
@@ -874,11 +1033,38 @@ export async function getSessionPerformance({
     req.onerror = () => reject(req.error);
   });
 
+  console.log(`🔍 PERFORMANCE DEBUG: All sessions fetched:`, {
+    totalSessionsCount: allSessions.length,
+    completedSessionsCount: allSessions.filter(s => s.status === 'completed').length,
+    inProgressSessionsCount: allSessions.filter(s => s.status === 'in_progress').length,
+    draftSessionsCount: allSessions.filter(s => s.status === 'draft').length
+  });
+
   // 2️⃣ Filter sessions and process attempts
+  console.log(`🔍 PERFORMANCE DEBUG: Step 2 - Filtering sessions...`);
   const sessions = _filterSessions(allSessions, daysBack, recentSessionsLimit);
+  console.log(`🔍 PERFORMANCE DEBUG: Filtered sessions:`, {
+    filteredSessionsCount: sessions.length,
+    sessionsWithAttempts: sessions.filter(s => s.attempts?.length > 0).length,
+    totalAttemptsAcrossSessions: sessions.reduce((sum, s) => sum + (s.attempts?.length || 0), 0)
+  });
+  
   logger.info("🔍 sessions", sessions);
   
+  console.log(`🔍 PERFORMANCE DEBUG: Step 3 - Processing attempts...`);
   const { performance, tagStats, totalAttempts, totalCorrect, totalTime } = _processAttempts(sessions);
+  
+  console.log(`🔍 PERFORMANCE DEBUG: Processed attempts result:`, {
+    totalAttempts,
+    totalCorrect,
+    totalTime,
+    accuracy: totalAttempts ? totalCorrect / totalAttempts : 0,
+    avgTime: totalAttempts ? totalTime / totalAttempts : 0,
+    easyAttempts: performance.Easy?.attempts || 0,
+    mediumAttempts: performance.Medium?.attempts || 0,
+    hardAttempts: performance.Hard?.attempts || 0,
+    tagStatsKeys: Object.keys(tagStats || {}).length
+  });
 
   // 🧠 Calculate tag strengths and timing feedback
   logger.info("unmasteredTagSet", unmasteredTagSet);
