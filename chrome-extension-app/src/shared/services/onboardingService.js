@@ -3,6 +3,7 @@ import { buildTagRelationships } from "../db/tag_relationships.js";
 import { insertStandardProblems } from "../db/standard_problems.js"; // assuming this is where seeding is
 import { insertStrategyData } from "../db/strategy_data.js";
 import { buildProblemRelationships } from "../services/relationshipService.js";
+import { StorageService } from "./storageService.js";
 
 import {
   getAllFromStore,
@@ -11,6 +12,8 @@ import {
   getRecord,
 } from "../db/common.js";
 import logger from "../utils/logger.js";
+
+// Direct snake_case field access - no backward compatibility needed
 
 // Use direct database access - all extension contexts support IndexedDB
 const dbGet = getRecord;
@@ -138,8 +141,85 @@ async function seedStandardData() {
 }
 
 async function seedUserData() {
-  logger.info("🆕 Initializing user mastery data...");
+  logger.info("🆕 Initializing user data...");
+
+  // Initialize user settings with defaults
+  await initializeUserSettings();
+
+  // Initialize user mastery data
   await initializePatternLaddersForOnboarding();
+}
+
+/**
+ * Initialize default user settings during onboarding
+ */
+async function initializeUserSettings() {
+  try {
+    // Check if settings already exist
+    const existingSettings = await StorageService.getSettings();
+
+    // If settings exist and have the theme property, they're already initialized
+    // Note: StorageService.getSettings() auto-initializes settings now, so this is mostly a backup
+    if (existingSettings && existingSettings.theme && existingSettings.focusAreas) {
+      logger.info("✅ User settings already exist, skipping onboarding initialization");
+      return;
+    }
+
+    // Create default settings
+    const defaultSettings = {
+      adaptive: true,
+      sessionLength: 5,
+      numberofNewProblemsPerSession: 2,
+      limit: "off",
+      reminder: { value: false, label: "6" },
+      theme: "light",
+      focusAreas: ["array"], // Start with one focus area for new users
+      timerDisplay: "mm:ss",
+      breakReminders: { enabled: false, interval: 25 },
+      notifications: { sound: false, browser: false, visual: true },
+      sessionsPerWeek: 5,
+      reviewRatio: 40,
+      accessibility: {
+        screenReader: {
+          enabled: false,
+          verboseDescriptions: true,
+          announceNavigation: true,
+          readFormLabels: true
+        },
+        keyboard: {
+          enhancedFocus: true,
+          skipToContent: true,
+          focusTrapping: true,
+          customShortcuts: false
+        },
+        motor: {
+          largerTargets: false,
+          extendedHover: false,
+          reducedMotion: false,
+          stickyHover: false
+        },
+        visual: {
+          highContrast: false,
+          reducedAnimations: false,
+          largerText: false,
+          colorBlindFriendly: false
+        }
+      }
+    };
+
+    // Save the default settings
+    const result = await StorageService.setSettings(defaultSettings);
+
+    if (result.status === "success") {
+      logger.info("✅ User settings initialized successfully");
+      logger.info(`🎯 Default focus areas set to: [${defaultSettings.focusAreas.join(', ')}]`);
+    } else {
+      logger.error("❌ Failed to initialize user settings:", result);
+    }
+  } catch (error) {
+    logger.error("❌ Error initializing user settings:", error);
+    // Don't throw - onboarding should continue even if settings fail
+  }
 }
 
 async function seedStandardProblems() {
@@ -176,11 +256,11 @@ export async function checkOnboardingStatus() {
     // Create new app onboarding record
     const newAppOnboarding = {
       id: "app_onboarding",
-      isCompleted: false,
-      currentStep: 1,
-      completedSteps: [],
-      startedAt: new Date().toISOString(),
-      completedAt: null,
+      is_completed: false,
+      current_step: 1,
+      completed_steps: [],
+      started_at: new Date().toISOString(),
+      completed_at: null,
     };
 
     await addRecord("settings", newAppOnboarding);
@@ -191,11 +271,11 @@ export async function checkOnboardingStatus() {
     // Return default app onboarding state
     return {
       id: "app_onboarding",
-      isCompleted: false,
-      currentStep: 1,
-      completedSteps: [],
-      startedAt: new Date().toISOString(),
-      completedAt: null,
+      is_completed: false,
+      current_step: 1,
+      completed_steps: [],
+      started_at: new Date().toISOString(),
+      completed_at: null,
     };
   }
 }
@@ -206,11 +286,11 @@ export async function updateOnboardingProgress(stepNumber) {
     throw new Error("App onboarding settings not found");
   }
 
-  if (!appOnboardingRecord.completedSteps.includes(stepNumber)) {
-    appOnboardingRecord.completedSteps.push(stepNumber);
+  if (!appOnboardingRecord.completed_steps.includes(stepNumber)) {
+    appOnboardingRecord.completed_steps.push(stepNumber);
   }
 
-  appOnboardingRecord.currentStep = Math.min(stepNumber + 1, 4);
+  appOnboardingRecord.current_step = Math.min(stepNumber + 1, 4);
 
   await updateRecord("settings", "app_onboarding", appOnboardingRecord);
   return appOnboardingRecord;
@@ -222,10 +302,10 @@ export async function completeOnboarding() {
     throw new Error("App onboarding settings not found");
   }
 
-  appOnboardingRecord.isCompleted = true;
-  appOnboardingRecord.currentStep = 4;
-  appOnboardingRecord.completedSteps = [1, 2, 3, 4];
-  appOnboardingRecord.completedAt = new Date().toISOString();
+  appOnboardingRecord.is_completed = true;
+  appOnboardingRecord.current_step = 4;
+  appOnboardingRecord.completed_steps = [1, 2, 3, 4];
+  appOnboardingRecord.completed_at = new Date().toISOString();
 
   await updateRecord("settings", "app_onboarding", appOnboardingRecord);
   logger.info("✅ App onboarding completed");
@@ -235,11 +315,11 @@ export async function completeOnboarding() {
 export async function resetOnboarding() {
   const resetRecord = {
     id: "app_onboarding",
-    isCompleted: false,
-    currentStep: 1,
-    completedSteps: [],
-    startedAt: new Date().toISOString(),
-    completedAt: null,
+    is_completed: false,
+    current_step: 1,
+    completed_steps: [],
+    started_at: new Date().toISOString(),
+    completed_at: null,
   };
 
   await updateRecord("settings", "app_onboarding", resetRecord);
@@ -257,12 +337,12 @@ export async function checkContentOnboardingStatus() {
     logger.info("📊 Content onboarding record found:", contentOnboardingRecord);
 
     if (contentOnboardingRecord) {
-      logger.info(`✅ Content onboarding status - isCompleted: ${contentOnboardingRecord.isCompleted}, currentStep: ${contentOnboardingRecord.currentStep}`);
+      logger.info(`✅ Content onboarding status - is_completed: ${contentOnboardingRecord.is_completed}, current_step: ${contentOnboardingRecord.current_step}`);
       
       // Database integrity check - ensure required properties exist
-      if (!contentOnboardingRecord.pageProgress) {
+      if (!contentOnboardingRecord.page_progress) {
         logger.warn("🔧 Fixing missing pageProgress in content onboarding record");
-        contentOnboardingRecord.pageProgress = {
+        contentOnboardingRecord.page_progress = {
           probgen: false,
           probtime: false,
           timer: false,
@@ -279,11 +359,11 @@ export async function checkContentOnboardingStatus() {
     logger.info("🆕 Creating new content onboarding record...");
     const newContentOnboarding = {
       id: "content_onboarding",
-      isCompleted: false,
-      currentStep: 1,
-      completedSteps: [],
-      startedAt: new Date().toISOString(),
-      completedAt: null,
+      is_completed: false,
+      current_step: 1,
+      completed_steps: [],
+      started_at: new Date().toISOString(),
+      completed_at: null,
       screenProgress: {
         intro: false,
         cmButton: false,
@@ -314,19 +394,19 @@ export async function checkContentOnboardingStatus() {
     };
 
     await dbAdd("settings", newContentOnboarding);
-    logger.info("✅ Created new content onboarding record with isCompleted:", newContentOnboarding.isCompleted);
+    logger.info("✅ Created new content onboarding record with is_completed:", newContentOnboarding.is_completed);
     return newContentOnboarding;
   } catch (error) {
     logger.error("❌ Error checking content onboarding status:", error);
     // Return default content onboarding state
-    logger.info("🔄 Returning fallback content onboarding state with isCompleted: false");
+    logger.info("🔄 Returning fallback content onboarding state with is_completed: false");
     return {
       id: "content_onboarding",
-      isCompleted: false,
-      currentStep: 1,
-      completedSteps: [],
-      startedAt: new Date().toISOString(),
-      completedAt: null,
+      is_completed: false,
+      current_step: 1,
+      completed_steps: [],
+      started_at: new Date().toISOString(),
+      completed_at: null,
       screenProgress: {
         intro: false,
         cmButton: false,
@@ -367,10 +447,10 @@ export async function completeContentOnboarding() {
     throw new Error("Content onboarding settings not found");
   }
 
-  contentOnboardingRecord.isCompleted = true;
-  contentOnboardingRecord.currentStep = 9; // Back to original 8 steps 
-  contentOnboardingRecord.completedSteps = [1, 2, 3, 4, 5, 6, 7, 8];
-  contentOnboardingRecord.completedAt = new Date().toISOString();
+  contentOnboardingRecord.is_completed = true;
+  contentOnboardingRecord.current_step = 9; // Back to original 8 steps 
+  contentOnboardingRecord.completed_steps = [1, 2, 3, 4, 5, 6, 7, 8];
+  contentOnboardingRecord.completed_at = new Date().toISOString();
 
   // Mark all screens as completed
   Object.keys(contentOnboardingRecord.screenProgress).forEach((key) => {
@@ -397,10 +477,10 @@ export async function updateContentOnboardingStep(
   }
 
   // Update step progress
-  if (!contentOnboardingRecord.completedSteps.includes(stepNumber)) {
-    contentOnboardingRecord.completedSteps.push(stepNumber);
+  if (!contentOnboardingRecord.completed_steps.includes(stepNumber)) {
+    contentOnboardingRecord.completed_steps.push(stepNumber);
   }
-  contentOnboardingRecord.currentStep = Math.min(stepNumber + 1, 9);
+  contentOnboardingRecord.current_step = Math.min(stepNumber + 1, 9);
   contentOnboardingRecord.lastActiveStep = stepNumber;
 
   // Update screen progress if provided
@@ -441,7 +521,7 @@ export async function updateContentOnboardingStep(
 export async function getResumeStep() {
   const progress = await checkContentOnboardingStatus();
 
-  if (progress.isCompleted) {
+  if (progress.is_completed) {
     return null;
   }
 
@@ -463,7 +543,7 @@ export async function getResumeStep() {
   if (!progress.screenProgress.problemTimer) return 7;
   if (!progress.screenProgress.strategyHints) return 8;
 
-  return progress.currentStep || 1;
+  return progress.current_step || 1;
 }
 
 export async function skipToSection(sectionKey) {
@@ -489,11 +569,11 @@ export async function resetContentOnboarding() {
   try {
     const resetRecord = {
       id: "content_onboarding",
-      isCompleted: false,
-      currentStep: 1,
-      completedSteps: [],
-      startedAt: new Date().toISOString(),
-      completedAt: null,
+      is_completed: false,
+      current_step: 1,
+      completed_steps: [],
+      started_at: new Date().toISOString(),
+      completed_at: null,
       screenProgress: {
         intro: false,
         cmButton: false,
@@ -524,7 +604,7 @@ export async function resetContentOnboarding() {
     };
 
     await dbUpdate("settings", "content_onboarding", resetRecord);
-    logger.info("🔄 Content onboarding reset complete - isCompleted:", resetRecord.isCompleted);
+    logger.info("🔄 Content onboarding reset complete - is_completed:", resetRecord.is_completed);
     return resetRecord;
   } catch (error) {
     logger.error("❌ Error resetting content onboarding:", error);
@@ -547,24 +627,29 @@ export async function checkPageTourStatus(pageId) {
       return false;
     }
     
+    // Get pageProgress directly from database record
+    let pageProgress = contentOnboardingRecord.page_progress;
+    
     // Initialize pageProgress if it doesn't exist
-    if (!contentOnboardingRecord.pageProgress) {
+    if (!pageProgress) {
       logger.info(`🔧 ONBOARDING DEBUG: Initializing missing pageProgress for ${pageId}`);
-      contentOnboardingRecord.pageProgress = {
+      pageProgress = {
         probgen: false,
         probtime: false,
         timer: false,
         probstat: false,
         settings: false,
       };
+      // Store using snake_case field name
+      contentOnboardingRecord.page_progress = pageProgress;
       await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
       logger.info(`✅ ONBOARDING DEBUG: pageProgress initialized`);
     }
     
-    const isCompleted = contentOnboardingRecord.pageProgress[pageId] || false;
-    logger.info(`📋 ONBOARDING DEBUG: Page ${pageId} completion status: ${isCompleted}`);
-    logger.info(`📋 ONBOARDING DEBUG: All page statuses:`, contentOnboardingRecord.pageProgress);
-    return isCompleted;
+    const is_completed = pageProgress[pageId] || false;
+    logger.info(`📋 ONBOARDING DEBUG: Page ${pageId} completion status: ${is_completed}`);
+    logger.info(`📋 ONBOARDING DEBUG: All page statuses:`, pageProgress);
+    return is_completed;
   } catch (error) {
     logger.error(`❌ Error checking page tour status for ${pageId}:`, error);
     return false; // Default to not completed if error
@@ -585,11 +670,11 @@ export async function markPageTourCompleted(pageId) {
       logger.info(`🆕 ONBOARDING DEBUG: Creating new onboarding record for page completion`);
       contentOnboardingRecord = {
         id: "content_onboarding",
-        isCompleted: false,
-        currentStep: 1,
-        completedSteps: [],
-        startedAt: new Date().toISOString(),
-        completedAt: null,
+        is_completed: false,
+        current_step: 1,
+        completed_steps: [],
+        started_at: new Date().toISOString(),
+        completed_at: null,
         pageProgress: {
           probgen: false,
           probtime: false,
@@ -603,25 +688,30 @@ export async function markPageTourCompleted(pageId) {
       await dbAdd("settings", contentOnboardingRecord);
     }
     
+    // Get pageProgress directly from database record
+    let pageProgress = contentOnboardingRecord.page_progress;
+    
     // Initialize pageProgress if it doesn't exist
-    if (!contentOnboardingRecord.pageProgress) {
+    if (!pageProgress) {
       logger.info(`🔧 ONBOARDING DEBUG: Initializing pageProgress for completion`);
-      contentOnboardingRecord.pageProgress = {
+      pageProgress = {
         probgen: false,
         probtime: false,
         timer: false,
         probstat: false,
         settings: false,
       };
+      contentOnboardingRecord.page_progress = pageProgress;
     }
     
     // Mark the specific page tour as completed
-    const previousStatus = contentOnboardingRecord.pageProgress[pageId];
-    contentOnboardingRecord.pageProgress[pageId] = true;
+    const previousStatus = pageProgress[pageId];
+    pageProgress[pageId] = true;
+    contentOnboardingRecord.page_progress = pageProgress; // Ensure we're storing with snake_case field name
     contentOnboardingRecord.lastActiveStep = `page_${pageId}_completed`;
     
     logger.info(`📝 ONBOARDING DEBUG: ${pageId} status changed from ${previousStatus} to true`);
-    logger.info(`📝 ONBOARDING DEBUG: Updated pageProgress:`, contentOnboardingRecord.pageProgress);
+    logger.info(`📝 ONBOARDING DEBUG: Updated pageProgress:`, pageProgress);
     logger.info(`💾 ONBOARDING DEBUG: Attempting to save to database...`);
     
     await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
@@ -638,8 +728,10 @@ export async function resetPageTour(pageId) {
     // Use direct database access to avoid recursive Chrome messaging
     const contentOnboardingRecord = await dbGet("settings", "content_onboarding");
     
-    if (contentOnboardingRecord && contentOnboardingRecord.pageProgress) {
-      contentOnboardingRecord.pageProgress[pageId] = false;
+    if (contentOnboardingRecord) {
+      let pageProgress = contentOnboardingRecord.page_progress || {};
+      pageProgress[pageId] = false;
+      contentOnboardingRecord.page_progress = pageProgress;
       await dbUpdate("settings", "content_onboarding", contentOnboardingRecord);
       logger.info(`🔄 Page tour reset for: ${pageId}`);
     }
@@ -657,7 +749,7 @@ export async function resetAllPageTours() {
     const contentOnboardingRecord = await dbGet("settings", "content_onboarding");
     
     if (contentOnboardingRecord) {
-      contentOnboardingRecord.pageProgress = {
+      contentOnboardingRecord.page_progress = {
         probgen: false,
         probtime: false,
         timer: false,

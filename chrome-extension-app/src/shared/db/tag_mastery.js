@@ -42,9 +42,13 @@ export async function insertDefaultTagMasteryRecords() {
   for (const t of tagRelationships) {
     masteryStore.put({
       tag: t.id,
+      total_attempts: 0,
+      successful_attempts: 0,
+      decay_score: 1,
+      mastered: false,
       strength: 0,
-      decayScore: 1,
-      coreLadder: [],
+      mastery_date: null,
+      last_practiced: null
     });
   }
 
@@ -56,6 +60,7 @@ export async function insertDefaultTagMasteryRecords() {
 
   console.log(`✅ Initialized ${tagRelationships.length} tag_mastery records.`);
 }
+
 
 async function fetchProblemsData(db) {
   // Step 1: Fetch user problems
@@ -111,17 +116,17 @@ function calculateTagStats(allTags, userProblems) {
   let tagStats = new Map();
   for (const tag of allTags) {
     tagStats.set(tag, {
-      totalAttempts: 0,
-      successfulAttempts: 0,
-      lastAttemptDate: null,
+      total_attempts: 0,
+      successful_attempts: 0,
+      last_attempt_date: null,
     });
   }
 
   // Step 5: Accumulate stats from userProblems
   for (const problem of userProblems) {
-    const tags = Array.isArray(problem.Tags) ? problem.Tags : [];
-    const { TotalAttempts = 0, SuccessfulAttempts = 0 } =
-      problem.AttemptStats || {};
+    const tags = Array.isArray(problem.tags) ? problem.tags : [];
+    const { total_attempts = 0, successful_attempts = 0 } =
+      problem.attempt_stats || {};
 
     for (const tag of tags) {
       if (!tagStats.has(tag)) {
@@ -129,21 +134,21 @@ function calculateTagStats(allTags, userProblems) {
           `⚠️ Tag "${tag}" found in user problems but not in standard problems.`
         );
         tagStats.set(tag, {
-          totalAttempts: 0,
-          successfulAttempts: 0,
-          lastAttemptDate: null,
+          total_attempts: 0,
+          successful_attempts: 0,
+          last_attempt_date: null,
         });
       }
 
       const entry = tagStats.get(tag);
-      entry.totalAttempts += TotalAttempts;
-      entry.successfulAttempts += SuccessfulAttempts;
+      entry.total_attempts += total_attempts;
+      entry.successful_attempts += successful_attempts;
 
       if (
-        !entry.lastAttemptDate ||
-        new Date(problem.lastAttemptDate) > new Date(entry.lastAttemptDate)
+        !entry.last_attempt_date ||
+        new Date(problem.last_attempt_date) > new Date(entry.last_attempt_date)
       ) {
-        entry.lastAttemptDate = problem.lastAttemptDate;
+        entry.last_attempt_date = problem.last_attempt_date;
       }
     }
   }
@@ -158,7 +163,7 @@ function calculateMasteryThresholds(stats, masteryRatio, tag) {
   let escapeHatchActivated = false;
   let escapeHatchType = "";
 
-  const failedAttempts = stats.totalAttempts - stats.successfulAttempts;
+  const failedAttempts = stats.total_attempts - stats.successful_attempts;
 
   // Progressive softening based on struggle level:
   // 1. Light struggle: 8+ attempts with 75-79% → allow graduation
@@ -166,7 +171,7 @@ function calculateMasteryThresholds(stats, masteryRatio, tag) {
   // 3. Heavy struggle: 15+ attempts with 60%+ → allow graduation (existing)
 
   if (
-    stats.totalAttempts >= 8 &&
+    stats.total_attempts >= 8 &&
     masteryRatio >= 0.75 &&
     masteryRatio < 0.8
   ) {
@@ -176,11 +181,11 @@ function calculateMasteryThresholds(stats, masteryRatio, tag) {
     escapeHatchType = "light struggle (75% threshold)";
     console.log(
       `🔓 Light struggle escape hatch ACTIVATED for "${tag}": ${
-        stats.totalAttempts
+        stats.total_attempts
       } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
     );
   } else if (
-    stats.totalAttempts >= 12 &&
+    stats.total_attempts >= 12 &&
     masteryRatio >= 0.7 &&
     masteryRatio < 0.8
   ) {
@@ -190,7 +195,7 @@ function calculateMasteryThresholds(stats, masteryRatio, tag) {
     escapeHatchType = "moderate struggle (70% threshold)";
     console.log(
       `🔓 Moderate struggle escape hatch ACTIVATED for "${tag}": ${
-        stats.totalAttempts
+        stats.total_attempts
       } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
     );
   } else if (failedAttempts >= 15 && masteryRatio >= 0.6) {
@@ -215,19 +220,126 @@ function calculateMasteryThresholds(stats, masteryRatio, tag) {
 
 async function writeMasteryToDatabase(tagMasteryStore, masteryData) {
   const { tag, stats, decayScore, mastered } = masteryData;
-  
+
+  // Calculate strength as normalized success rate with decay factor
+  const successRate = stats.total_attempts > 0 ?
+    stats.successful_attempts / stats.total_attempts : 0;
+  const strength = Math.min(successRate * (1 + decayScore), 1.0);
+
+  // Determine mastery date if newly mastered
+  const currentTime = new Date().toISOString();
+
   await new Promise((resolve, reject) => {
     const request = tagMasteryStore.put({
       tag,
-      totalAttempts: stats.totalAttempts,
-      successfulAttempts: stats.successfulAttempts,
-      decayScore,
+      total_attempts: stats.total_attempts,
+      successful_attempts: stats.successful_attempts,
+      decay_score: decayScore,
       mastered,
+      strength: Number(strength.toFixed(3)),
+      mastery_date: mastered ? currentTime : null,
+      last_practiced: stats.lastAttemptDate || currentTime
     });
 
     request.onsuccess = resolve;
     request.onerror = () => reject(request.error);
   });
+}
+
+// Incremental tag mastery update for a single attempt
+export async function updateTagMasteryForAttempt(problem, attempt) {
+  try {
+    const db = await openDB();
+    const tags = (problem.tags || []).filter(tag => tag && typeof tag === 'string' && tag.trim().length > 0);
+    const isSuccess = attempt.success;
+    const attemptDate = new Date().toISOString();
+
+    console.log(`🧠 Updating tag mastery for attempt on problem "${problem.title}":`, {
+      originalTags: problem.tags,
+      filteredTags: tags,
+      success: isSuccess,
+      problemId: problem.leetcode_id || problem.id
+    });
+
+    if (tags.length === 0) {
+      console.warn(`⚠️ No valid tags found for problem "${problem.title}", skipping tag mastery update`);
+      return;
+    }
+
+    const transaction = db.transaction(["tag_mastery"], "readwrite");
+    const tagMasteryStore = transaction.objectStore("tag_mastery");
+
+    for (const tag of tags) {
+      // Get current mastery record
+      const currentRecord = await new Promise((resolve, reject) => {
+        const request = tagMasteryStore.get(tag);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      // Initialize if doesn't exist
+      const masteryData = currentRecord || {
+        tag,
+        total_attempts: 0,
+        successful_attempts: 0,
+        decay_score: 1,
+        mastered: false,
+        strength: 0,
+        mastery_date: null,
+        last_practiced: null
+      };
+
+      // Increment attempt counters
+      masteryData.total_attempts += 1;
+      if (isSuccess) {
+        masteryData.successful_attempts += 1;
+      }
+      masteryData.last_practiced = attemptDate;
+
+      // Calculate updated mastery metrics
+      const masteryRatio = masteryData.total_attempts > 0
+        ? masteryData.successful_attempts / masteryData.total_attempts
+        : 0;
+
+      const {
+        masteryThreshold,
+        escapeHatchActivated,
+        escapeHatchType
+      } = calculateMasteryThresholds(masteryData, masteryRatio, tag);
+
+      const wasAlreadyMastered = masteryData.mastered;
+      masteryData.mastered = masteryRatio >= masteryThreshold;
+
+      // Set mastery date if newly mastered
+      if (masteryData.mastered && !wasAlreadyMastered) {
+        masteryData.mastery_date = attemptDate;
+      }
+
+      masteryData.strength = Math.round(masteryRatio * 100);
+
+      console.log(`🧠 Updated mastery for "${tag}":`, {
+        totalAttempts: masteryData.total_attempts,
+        successfulAttempts: masteryData.successful_attempts,
+        accuracy: `${(masteryRatio * 100).toFixed(1)}%`,
+        mastered: masteryData.mastered,
+        newlyMastered: masteryData.mastered && !wasAlreadyMastered,
+        escapeHatchUsed: escapeHatchActivated,
+        escapeHatchType: escapeHatchType || "none"
+      });
+
+      // Save updated record
+      await new Promise((resolve, reject) => {
+        const request = tagMasteryStore.put(masteryData);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    console.log("✅ Tag mastery updated for attempt");
+  } catch (error) {
+    console.error("❌ Error updating tag mastery for attempt:", error);
+    throw error;
+  }
 }
 
 export async function calculateTagMastery() {
@@ -248,12 +360,12 @@ export async function calculateTagMastery() {
         : 0;
 
       const masteryRatio =
-        stats.totalAttempts > 0
-          ? stats.successfulAttempts / stats.totalAttempts
+        stats.total_attempts > 0
+          ? stats.successful_attempts / stats.total_attempts
           : 0;
 
       const decayScore =
-        stats.totalAttempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
+        stats.total_attempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
 
       const {
         masteryThreshold,
@@ -265,8 +377,8 @@ export async function calculateTagMastery() {
       const mastered = masteryRatio >= masteryThreshold;
 
       console.log(`🧠 Writing mastery for "${tag}":`, {
-        totalAttempts: stats.totalAttempts,
-        successfulAttempts: stats.successfulAttempts,
+        totalAttempts: stats.total_attempts,
+        successfulAttempts: stats.successful_attempts,
         failedAttempts,
         decayScore,
         mastered: mastered,

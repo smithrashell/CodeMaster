@@ -51,7 +51,7 @@ export default function MetricCard({ title, value, details, loading = false }) {
         <Collapse in={opened} mt="md">
           {details?.map((item, index) => (
             <Group key={index} position="apart">
-              <Text size="sm" color="dimmed">
+              <Text size="sm" c="dimmed">
                 {item.label}
               </Text>
               <Text size="sm" weight={500}>

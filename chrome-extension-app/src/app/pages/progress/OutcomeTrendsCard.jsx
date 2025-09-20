@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Grid, Group, Title, Badge, Text } from '@mantine/core';
+import { Card, Grid, Group, Title, Text, Badge } from '@mantine/core';
 import { IconAdjustments } from '@tabler/icons-react';
 
 const getStatusColor = (status) => {

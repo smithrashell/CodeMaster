@@ -1372,10 +1372,6 @@ body[data-theme="dark"] .cm-extension .mantine-Text-root {
   background-color: var(--cm-btn-bg) !important;
 }
 
-.cm-extension .mantine-Badge-root:not(.problem-sidebar-difficulty-badge) {
-  background-color: var(--cm-btn-bg) !important;
-  color: var(--cm-btn-text) !important;
-}
 
 /* Strategy Map Compact Tag Styling - Updated for better readability */
 .cm-extension .cm-strategy-focus-tag {

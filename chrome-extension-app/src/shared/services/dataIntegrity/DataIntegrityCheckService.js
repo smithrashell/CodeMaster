@@ -315,13 +315,13 @@ export class DataIntegrityCheckService {
             (a) => a.success
           ).length;
 
-          if (problem.AttemptStats) {
-            const { TotalAttempts, SuccessfulAttempts } = problem.AttemptStats;
+          if (problem.attempt_stats) {
+            const { total_attempts, successful_attempts } = problem.attempt_stats;
 
             this._checkAttemptStatsMismatch(
               result,
               problem,
-              { TotalAttempts, SuccessfulAttempts },
+              { total_attempts, successful_attempts },
               { actualTotal, actualSuccessful }
             );
           }
@@ -376,9 +376,9 @@ export class DataIntegrityCheckService {
       if (stores.includes("sessions")) {
         const sessions = await this.getAllStoreData(db, "sessions");
         const staleSessions = sessions.filter((session) => {
-          if (session.isCompleted) return false;
+          if (session.status === "completed") return false;
 
-          const sessionDate = new Date(session.Date);
+          const sessionDate = new Date(session.date);
           const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
           return sessionDate < oneDayAgo;
         });
@@ -1046,21 +1046,21 @@ export class DataIntegrityCheckService {
    * @private
    */
   static _checkAttemptStatsMismatch(result, problem, storedStats, actualStats) {
-    const { TotalAttempts, SuccessfulAttempts } = storedStats;
+    const { total_attempts, successful_attempts } = storedStats;
     const { actualTotal, actualSuccessful } = actualStats;
 
-    if (TotalAttempts !== actualTotal || SuccessfulAttempts !== actualSuccessful) {
+    if (total_attempts !== actualTotal || successful_attempts !== actualSuccessful) {
       result.valid = false;
       result.errorCount++;
       result.checks.push({
         type: "cross_store_inconsistency",
         severity: "error",
-        message: `Problem ${problem.leetCodeID} attempt stats mismatch`,
+        message: `Problem ${problem.leetcode_id} attempt stats mismatch`,
         details: {
-          stored: { TotalAttempts, SuccessfulAttempts },
+          stored: { total_attempts, successful_attempts },
           calculated: {
-            TotalAttempts: actualTotal,
-            SuccessfulAttempts: actualSuccessful,
+            total_attempts: actualTotal,
+            successful_attempts: actualSuccessful,
           },
         },
       });

@@ -26,6 +26,7 @@ import { getTagMastery } from "../db/tag_mastery.js";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { InterviewService } from "./interviewService.js";
 import logger from "../utils/logger.js";
+import { selectOptimalProblems } from "../db/problem_relationships.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
 
@@ -172,6 +173,33 @@ export const ProblemService = {
     return problems;
   },
 
+  // NEW: Create session with custom configuration (used by tracking activity generator)
+  async createSessionWithConfig(adaptiveConfig) {
+    logger.info("🎯 Creating session with adaptive config:", adaptiveConfig);
+
+    const sessionLength = adaptiveConfig.sessionLength || 8;
+    const settings = await buildAdaptiveSessionSettings();
+
+    // Use adaptive config to override defaults
+    const problems = await this.fetchAndAssembleSessionProblems(
+      sessionLength,
+      sessionLength, // All new problems for generated sessions
+      adaptiveConfig.focusAreas || settings.currentAllowedTags,
+      settings.currentDifficultyCap,
+      adaptiveConfig.focusAreas || settings.userFocusAreas,
+      false // Not onboarding
+    );
+
+    return {
+      problems,
+      metadata: {
+        generatedWithConfig: true,
+        sourceConfig: adaptiveConfig,
+        createdAt: new Date().toISOString()
+      }
+    };
+  },
+
   // NEW: Interview session creation (additive, doesn't modify existing flow)
   async createInterviewSession(mode) {
     const operationStart = Date.now();
@@ -314,12 +342,14 @@ export const ProblemService = {
       logger.info("🔰 Skipping review problems during onboarding - focusing on new problem distribution");
     }
 
-    // **Step 2: New Problems (remaining session) - Split between focus and expansion**
+    // **Step 2: New Problems (remaining session) - Enhanced with Optimal Path Scoring**
     const newProblemsNeeded = sessionLength - sessionProblems.length;
 
     if (newProblemsNeeded > 0) {
-      const newProblems = await fetchAdditionalProblems(
-        newProblemsNeeded,
+      // Get candidate problems (fetch more than needed for optimal selection)
+      const candidatesNeeded = Math.min(newProblemsNeeded * 3, 50); // Get 3x candidates, max 50
+      const candidateProblems = await fetchAdditionalProblems(
+        candidatesNeeded,
         excludeIds,
         userFocusAreas,
         currentAllowedTags,
@@ -330,9 +360,45 @@ export const ProblemService = {
         }
       );
 
+      let newProblems;
+
+      if (!isOnboarding && candidateProblems.length >= newProblemsNeeded) {
+        // **Phase 3: Apply Optimal Path Scoring for personalized session composition**
+        logger.info(`🧮 Applying optimal path scoring to ${candidateProblems.length} candidates`);
+
+        try {
+          // Get user state for tag mastery alignment
+          const tagMastery = await getTagMastery();
+          const userState = {
+            tagMastery: tagMastery.reduce((acc, tm) => {
+              acc[tm.tag] = {
+                mastered: tm.mastered,
+                successRate: tm.totalAttempts > 0 ? tm.successfulAttempts / tm.totalAttempts : 0,
+                attempts: tm.totalAttempts
+              };
+              return acc;
+            }, {})
+          };
+
+          // Score and select optimal problems
+          const scoredProblems = await selectOptimalProblems(candidateProblems, userState);
+          newProblems = scoredProblems.slice(0, newProblemsNeeded);
+
+          logger.info(`✅ Selected ${newProblems.length} optimal problems with scores: ${newProblems.map(p => `${p.id || p.leetcode_id}:${p.pathScore?.toFixed(2) || 'N/A'}`).join(', ')}`);
+        } catch (error) {
+          logger.error("❌ Error applying optimal path scoring, falling back to standard selection:", error);
+          // Fallback to first N problems if scoring fails
+          newProblems = candidateProblems.slice(0, newProblemsNeeded);
+        }
+      } else {
+        // Use all candidates during onboarding or when insufficient candidates
+        newProblems = candidateProblems.slice(0, newProblemsNeeded);
+        logger.info(`📚 Using ${newProblems.length} problems (onboarding: ${isOnboarding}, candidates: ${candidateProblems.length})`);
+      }
+
       sessionProblems.push(...newProblems);
       logger.info(
-        `🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems`
+        `🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems${!isOnboarding ? ' with optimal path scoring' : ''}`
       );
     }
 

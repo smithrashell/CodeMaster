@@ -10,7 +10,7 @@ const createCacheKey = (sessions, range, functionName) => {
   
   // Create a hash based on sessions data structure and range
   const sessionHash = sessions.reduce((hash, session, index) => {
-    const sessionDate = session.Date || session.date;
+    const sessionDate = session.Date || session.date || session.created_date;
     const attemptsCount = session.attempts?.length || 0;
     return hash + sessionDate + attemptsCount + index;
   }, '');
@@ -131,8 +131,8 @@ export function getAccuracyTrendData(sessions, range = "weekly") {
   }
 
   sessions.forEach((session) => {
-    // Validate session structure - handle both Date and date properties
-    const sessionDate = session.Date || session.date;
+    // Validate session structure - handle Date, date, and created_date properties
+    const sessionDate = session.Date || session.date || session.created_date;
     if (!session || !sessionDate) {
       console.warn("Session missing Date property:", session);
       return;
@@ -208,14 +208,15 @@ export function getAttemptBreakdownData(sessions, range = "weekly") {
   }
 
   sessions.forEach((session) => {
-    // Handle both Date and date properties for consistency
-    const sessionDate = session.Date || session.date;
-    
+    // Handle Date, date, and created_date properties for consistency
+    const sessionDate = session.Date || session.date || session.created_date;
+
     session.attempts.forEach((attempt) => {
-      if (!problemMap[attempt.problemId]) {
-        problemMap[attempt.problemId] = [];
+      const problemId = attempt.problemId || attempt.problem_id || attempt.leetcode_id;
+      if (!problemMap[problemId]) {
+        problemMap[problemId] = [];
       }
-      problemMap[attempt.problemId].push({ ...attempt, date: sessionDate });
+      problemMap[problemId].push({ ...attempt, date: sessionDate });
     });
   });
 
@@ -282,8 +283,8 @@ export function getProblemActivityData(sessions, range = "weekly") {
   }
 
   sessions.forEach((session) => {
-    // Handle both Date and date properties for consistency
-    const sessionDate = session.Date || session.date;
+    // Handle Date, date, and created_date properties for consistency
+    const sessionDate = session.Date || session.date || session.created_date;
     if (!sessionDate) {
       console.warn("Session missing Date property in getProblemActivityData:", session);
       return;

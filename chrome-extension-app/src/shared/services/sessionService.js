@@ -6,13 +6,14 @@ import {
   saveNewSessionToDB,
   updateSessionInDB,
   getSessionPerformance,
+  getOrCreateSessionAtomic,
+  evaluateDifficultyProgression,
 } from "../db/sessions.js";
 import { updateProblemRelationships } from "../db/problem_relationships.js";
 import { ProblemService } from "../services/problemService.js";
-import { calculateTagMastery, getTagMastery } from "../db/tag_mastery.js";
-import { storeSessionAnalytics } from "../db/sessionAnalytics.js";
+import { getTagMastery } from "../db/tag_mastery.js";
+import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../db/sessionAnalytics.js";
 import { StorageService } from "./storageService.js";
-import { fetchProblemById } from "../db/standard_problems.js";
 import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
@@ -94,38 +95,8 @@ class HabitLearningCircuitBreaker {
 }
 
 export const SessionService = {
-  // Simple session creation timing control to prevent rapid consecutive creation
-  _lastSessionCreationTime: 0,
-  _sessionCreationCooldown: 30000, // 30 seconds cooldown between session creation attempts
-  
-  // Session creation mutex to prevent race conditions
-  _sessionCreationInProgress: false,
-  _sessionCreationPromise: null,
-  _sessionCreationStartTime: null, // Track when mutex was acquired
-  
   // IndexedDB retry service for deduplication
   _retryService: new IndexedDBRetryService(),
-
-  /**
-   * Emergency method to reset session creation mutex in case of deadlock
-   * Should only be used when mutex appears to be permanently stuck
-   */
-  resetSessionCreationMutex() {
-    const wasInProgress = this._sessionCreationInProgress;
-    const mutexAge = this._sessionCreationStartTime ? Date.now() - this._sessionCreationStartTime : 0;
-    
-    logger.warn(`🚨 EMERGENCY: Resetting session creation mutex`, {
-      wasInProgress,
-      mutexAge: `${mutexAge}ms`,
-      hadPromise: !!this._sessionCreationPromise
-    });
-    
-    this._sessionCreationInProgress = false;
-    this._sessionCreationPromise = null;
-    this._sessionCreationStartTime = null;
-    
-    return { wasInProgress, mutexAge };
-  },
 
   /**
    * Checks if a session type is compatible with current settings.
@@ -198,6 +169,7 @@ export const SessionService = {
     return { hasMismatch: false, reason: 'compatible' };
   },
 
+
   /**
    * Centralizes session performance analysis and tracking.
    * Orchestrates tag mastery, problem relationships, and session metrics.
@@ -215,9 +187,82 @@ export const SessionService = {
     );
 
     logger.info(`📊 Starting performance summary for session ${session.id}`);
+    console.log(`🔍 DEBUG: summarizeSessionPerformance ENTRY for session ${session.id}`);
+
+    // Validate session has attempts before processing
+    if (!session.attempts || session.attempts.length === 0) {
+      logger.warn(`⚠️ Session ${session.id} has no attempts - skipping performance summary`);
+      performanceMonitor.endQuery(queryContext, true, 0);
+      return {
+        session_id: session.id,
+        completed_at: new Date().toISOString(),
+        performance: {
+          accuracy: 0,
+          avgTime: 0,
+          strongTags: [],
+          weakTags: [],
+          timingFeedback: {},
+          easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+          medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+          hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+        },
+        mastery_progression: {
+          deltas: [],
+          new_masteries: 0,
+          decayed_masteries: 0,
+        },
+        difficulty_analysis: { predominantDifficulty: 'Unknown', totalProblems: 0 },
+        insights: { message: 'No attempts recorded in this session' }
+      };
+    }
+
+    // CRITICAL FIX: Handle ad-hoc sessions with empty problems arrays
+    if (!session.problems || session.problems.length === 0) {
+      logger.warn(`⚠️ Session ${session.id} has attempts but no problems (ad-hoc session) - using simplified analytics`);
+
+      // Calculate basic metrics from attempts only
+      const totalAttempts = session.attempts.length;
+      const successfulAttempts = session.attempts.filter(a => a.success).length;
+      const accuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
+      const avgTime = totalAttempts > 0 ?
+        session.attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / totalAttempts : 0;
+
+      performanceMonitor.endQuery(queryContext, true, 0);
+      return {
+        session_id: session.id,
+        completed_at: new Date().toISOString(),
+        performance: {
+          accuracy: Math.round(accuracy * 100) / 100,
+          avgTime: Math.round(avgTime),
+          strongTags: [],
+          weakTags: [],
+          timingFeedback: {},
+          easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+          medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+          hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+        },
+        mastery_progression: {
+          deltas: [],
+          new_masteries: 0,
+          decayed_masteries: 0,
+        },
+        difficulty_analysis: {
+          predominantDifficulty: 'Mixed',
+          totalProblems: totalAttempts, // Use attempts count as proxy
+          percentages: {},
+        },
+        insights: {
+          sessionType: 'ad_hoc',
+          message: `Completed ${totalAttempts} ad-hoc problem${totalAttempts !== 1 ? 's' : ''} with ${Math.round(accuracy * 100)}% accuracy`
+        },
+      };
+    }
 
     try {
+      console.log(`🔍 DEBUG: Starting comprehensive session analysis for ${session.id}...`);
+
       // 1️⃣ Capture pre-session state for delta calculations
+      console.log(`🔍 DEBUG: Step 1 - Getting pre-session tag mastery...`);
       const preSessionTagMastery = await getTagMastery();
       const preSessionMasteryMap = new Map(
         (preSessionTagMastery || []).map((tm) => [tm.tag, tm])
@@ -227,11 +272,7 @@ export const SessionService = {
       logger.info("🔗 Updating problem relationships...");
       await updateProblemRelationships(session);
 
-      // 3️⃣ Recalculate tag mastery with new session data
-      logger.info("🧠 Recalculating tag mastery...");
-      await calculateTagMastery();
-
-      // 4️⃣ Get updated tag mastery for delta calculation
+      // 3️⃣ Get updated tag mastery for delta calculation (mastery updated incrementally per attempt)
       const postSessionTagMastery = await getTagMastery();
       const postSessionMasteryMap = new Map(
         (postSessionTagMastery || []).map((tm) => [tm.tag, tm])
@@ -243,19 +284,42 @@ export const SessionService = {
         .filter((tm) => !tm.mastered)
         .map((tm) => tm.tag);
 
-      const performanceMetrics = (await getSessionPerformance({
-        recentSessionsLimit: 1, // Focus on current session
-        unmasteredTags,
-      })) || {
+      let performanceMetrics;
+      try {
+        console.log(`🔍 DEBUG: Calling getSessionPerformance for session ${session.id}...`);
+        // Use the fixed getSessionPerformance that now uses the combined index properly
+        performanceMetrics = await getSessionPerformance({
+          recentSessionsLimit: 1,
+          unmasteredTags
+        });
+        console.log(`✅ DEBUG: getSessionPerformance completed successfully`);
+      } catch (performanceError) {
+        console.error(`❌ DEBUG: getSessionPerformance failed:`, performanceError);
+        logger.warn(`⚠️ Session performance calculation failed, using fallback:`, performanceError);
+        performanceMetrics = null;
+      }
+
+      // Ensure fallback metrics if performance calculation failed
+      performanceMetrics = performanceMetrics || {
         accuracy: 0,
         avgTime: 0,
         strongTags: [],
         weakTags: [],
         timingFeedback: {},
-        Easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-        Medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-        Hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+        easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+        medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+        hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
       };
+
+      console.log(`🔍 DEBUG: Performance metrics retrieved:`, {
+        accuracy: performanceMetrics.accuracy,
+        avgTime: performanceMetrics.avgTime,
+        hasStrongTags: !!performanceMetrics.strongTags?.length,
+        hasWeakTags: !!performanceMetrics.weakTags?.length,
+        easyAttempts: performanceMetrics.easy?.attempts || 0,
+        mediumAttempts: performanceMetrics.medium?.attempts || 0,
+        hardAttempts: performanceMetrics.hard?.attempts || 0
+      });
 
       // 6️⃣ Calculate mastery progression deltas
       const masteryDeltas = this.calculateMasteryDeltas(
@@ -264,23 +328,35 @@ export const SessionService = {
       );
 
       // 7️⃣ Analyze session difficulty distribution
-      const difficultyMix = await this.analyzeSessionDifficulty(session);
+      console.log(`🔍 DEBUG: Step 7 - Analyzing session difficulty distribution...`);
+      let difficultyMix;
+      try {
+        difficultyMix = await this.analyzeSessionDifficulty(session);
+        console.log(`✅ DEBUG: Difficulty analysis completed`);
+      } catch (difficultyError) {
+        console.error(`❌ DEBUG: Difficulty analysis failed:`, difficultyError);
+        difficultyMix = {
+          predominantDifficulty: 'Unknown',
+          totalProblems: session.attempts?.length || 0,
+          percentages: {}
+        };
+      }
 
-      // 8️⃣ Create comprehensive summary
+      // 8️⃣ Create comprehensive summary with snake_case properties
       const sessionSummary = {
-        sessionId: session.id,
-        completedAt: new Date().toISOString(),
+        session_id: session.id,
+        completed_at: new Date().toISOString(),
         performance: performanceMetrics,
-        masteryProgression: {
+        mastery_progression: {
           deltas: masteryDeltas,
-          newMasteries: masteryDeltas.filter(
+          new_masteries: masteryDeltas.filter(
             (d) => d.masteredChanged && d.postMastered
           ).length,
-          decayedMasteries: masteryDeltas.filter(
+          decayed_masteries: masteryDeltas.filter(
             (d) => d.masteredChanged && !d.postMastered
           ).length,
         },
-        difficultyAnalysis: difficultyMix,
+        difficulty_analysis: difficultyMix,
         insights: this.generateSessionInsights(
           performanceMetrics,
           masteryDeltas,
@@ -289,10 +365,61 @@ export const SessionService = {
       };
 
       // 9️⃣ Store session analytics in dedicated IndexedDB store
-      await storeSessionAnalytics(sessionSummary);
+      console.log(`🔍 REAL SESSION DEBUG: About to call storeSessionAnalytics for ACTUAL session ${session.id}`);
+      console.log(`🔍 REAL SESSION DEBUG: SessionSummary structure:`, {
+        session_id: sessionSummary.session_id,
+        completed_at: sessionSummary.completed_at,
+        performance: {
+          accuracy: sessionSummary.performance?.accuracy,
+          avgTime: sessionSummary.performance?.avgTime,
+          hasEasy: !!sessionSummary.performance?.Easy,
+          hasMedium: !!sessionSummary.performance?.Medium,
+          hasHard: !!sessionSummary.performance?.Hard
+        },
+        mastery_progression: {
+          new_masteries: sessionSummary.mastery_progression?.new_masteries,
+          decayed_masteries: sessionSummary.mastery_progression?.decayed_masteries,
+          deltasCount: sessionSummary.mastery_progression?.deltas?.length || 0
+        },
+        difficulty_analysis: {
+          predominantDifficulty: sessionSummary.difficulty_analysis?.predominantDifficulty,
+          totalProblems: sessionSummary.difficulty_analysis?.totalProblems
+        }
+      });
+
+      // 🔟 Update session state with performance data FIRST (before analytics to ensure it happens)
+      try {
+        await this.updateSessionStateWithPerformance(session, sessionSummary);
+        console.log(`✅ REAL SESSION DEBUG: updateSessionStateWithPerformance completed successfully for session ${session.id}`);
+      } catch (stateUpdateError) {
+        console.error(`❌ REAL SESSION DEBUG: updateSessionStateWithPerformance failed for session ${session.id}:`, stateUpdateError);
+        logger.error(`❌ Failed to update session state for session ${session.id}:`, stateUpdateError);
+      }
+
+      try {
+        await storeSessionAnalytics(sessionSummary);
+        console.log(`✅ REAL SESSION DEBUG: storeSessionAnalytics completed successfully for ACTUAL session ${session.id}`);
+
+        // Verify storage by checking all analytics
+        await debugGetAllSessionAnalytics();
+        console.log(`🔍 REAL SESSION DEBUG: debugGetAllSessionAnalytics completed, continuing to next step...`);
+      } catch (analyticsError) {
+        logger.error(`❌ Failed to store session analytics for session ${session.id}:`, analyticsError);
+        logger.error(`❌ SessionSummary data:`, {
+          session_id: sessionSummary?.session_id,
+          completed_at: sessionSummary?.completed_at,
+          hasPerformance: !!sessionSummary?.performance,
+          performanceKeys: sessionSummary?.performance ? Object.keys(sessionSummary.performance) : [],
+          hasDifficulty: !!sessionSummary?.difficulty_analysis,
+          hasMastery: !!sessionSummary?.mastery_progression
+        });
+        // Continue execution - don't fail entire session completion for analytics errors
+      }
 
       // 🔟 Log structured analytics for dashboard integration (Chrome storage backup)
+      console.log(`🔍 REAL SESSION DEBUG: About to call logSessionAnalytics for session ${session.id}`);
       this.logSessionAnalytics(sessionSummary);
+      console.log(`🔍 REAL SESSION DEBUG: logSessionAnalytics completed for session ${session.id}`);
 
       logger.info(
         `✅ Session performance summary completed for ${session.id}`
@@ -303,6 +430,8 @@ export const SessionService = {
         true,
         Object.keys(sessionSummary).length
       );
+
+
       return sessionSummary;
     } catch (error) {
       logger.error(
@@ -318,6 +447,12 @@ export const SessionService = {
    * Checks if all session problems are attempted and marks the session as complete.
    */
   async checkAndCompleteSession(sessionId) {
+    // Validate sessionId before database call
+    if (!sessionId) {
+      logger.error(`❌ checkAndCompleteSession called with invalid sessionId:`, sessionId);
+      return false;
+    }
+
     const session = await getSessionById(sessionId);
     if (!session) {
       logger.error(`❌ Session ${sessionId} not found.`);
@@ -354,11 +489,11 @@ export const SessionService = {
       try {
         const sessionState = await StorageService.getSessionState("session_state") || {
           id: "session_state",
-          numSessionsCompleted: 0
+          num_sessions_completed: 0
         };
-        sessionState.numSessionsCompleted = (sessionState.numSessionsCompleted || 0) + 1;
+        sessionState.num_sessions_completed = (sessionState.num_sessions_completed || 0) + 1;
         await StorageService.setSessionState("session_state", sessionState);
-        logger.info(`✅ Session state updated: numSessionsCompleted = ${sessionState.numSessionsCompleted}`);
+        logger.info(`✅ Session state updated: num_sessions_completed = ${sessionState.num_sessions_completed}`);
       } catch (error) {
         logger.error("❌ Failed to update session state:", error);
       }
@@ -366,14 +501,33 @@ export const SessionService = {
       // ✅ Clear session cache since session status changed
       try {
         if (typeof chrome !== 'undefined' && chrome.runtime) {
-          chrome.runtime.sendMessage({ type: "clearSessionCache" });
+          // Handle both sync errors and async promise rejections
+          const result = chrome.runtime.sendMessage({ type: "clearSessionCache" });
+          if (result && typeof result.catch === 'function') {
+            result.catch((error) => {
+              logger.warn("Failed to clear session cache (async):", error);
+            });
+          }
         }
       } catch (error) {
-        logger.warn("Failed to clear session cache:", error);
+        logger.warn("Failed to clear session cache (sync):", error);
       }
 
       // ✅ Run centralized session performance analysis
-      await this.summarizeSessionPerformance(session);
+      console.log(`🔍 DEBUG: About to call summarizeSessionPerformance for session ${session.id}`);
+      try {
+        await this.summarizeSessionPerformance(session);
+        console.log(`✅ DEBUG: summarizeSessionPerformance completed successfully for session ${session.id}`);
+      } catch (performanceError) {
+        logger.error(`❌ Failed to summarize session performance for session ${session.id}:`, performanceError);
+        logger.error(`❌ Session data:`, {
+          sessionId: session?.id,
+          hasAttempts: !!session?.attempts,
+          attemptCount: session?.attempts?.length || 0,
+          sessionStatus: session?.status
+        });
+        // Continue execution - don't fail session completion for performance analysis errors
+      }
     }
     return unattemptedProblems;
   },
@@ -685,7 +839,6 @@ export const SessionService = {
       );
 
       // Update session creation timestamp for cooldown management
-      this._lastSessionCreationTime = Date.now();
 
       logger.info("✅ New session created and stored:", newSession);
       performanceMonitor.endQuery(
@@ -707,130 +860,40 @@ export const SessionService = {
    */
   async getOrCreateSession(sessionType = 'standard') {
     logger.info(`🎯 getOrCreateSession called for ${sessionType}`);
-    
-    // FIRST: Quick check for existing compatible session to avoid unnecessary mutex locks
-    const quickCheck = await this.resumeSession(sessionType);
-    if (quickCheck) {
-      logger.info(`🚀 Found existing ${sessionType} session immediately, no mutex needed:`, quickCheck.id);
-      return quickCheck;
-    }
-    
-    // Check if session creation is already in progress
-    if (this._sessionCreationInProgress) {
-      logger.info("🔒 Session creation already in progress, waiting for existing operation...");
-      if (this._sessionCreationPromise) {
-        // Wait for the existing promise with timeout protection
-        const MUTEX_WAIT_TIMEOUT = 15000; // 15 seconds max wait
-        const startTime = Date.now();
-        
-        try {
-          logger.info(`⏱️ Waiting for existing session creation (max ${MUTEX_WAIT_TIMEOUT / 1000}s)...`);
-          
-          // Race between the existing promise and a timeout
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(`Mutex wait timeout after ${MUTEX_WAIT_TIMEOUT}ms`)), MUTEX_WAIT_TIMEOUT)
-          );
-          
-          const result = await Promise.race([this._sessionCreationPromise, timeoutPromise]);
-          const waitTime = Date.now() - startTime;
-          logger.info(`✅ Mutex wait completed in ${waitTime}ms, checking session compatibility...`);
-          
-          // Check if the returned session is compatible with requested type
-          if (result && this.isSessionTypeCompatible(result, sessionType)) {
-            logger.info(`✅ Existing session is compatible with ${sessionType}, returning it`);
-            return result;
-          } else {
-            logger.warn(`⚠️ Existing session incompatible with ${sessionType}, will retry after cooldown`);
-            // Wait a brief moment and try again - but don't create duplicate
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return this.resumeSession(sessionType) || null;
-          }
-          
-        } catch (error) {
-          const waitTime = Date.now() - startTime;
-          logger.warn(`🚫 Mutex wait failed after ${waitTime}ms:`, error.message);
-          
-          // Try to get an existing session instead of creating a new one
-          logger.info(`🔍 Attempting to resume existing session instead of creating new...`);
-          const existingSession = await this.resumeSession(sessionType);
-          if (existingSession) {
-            logger.info(`✅ Found existing ${sessionType} session during mutex timeout recovery`);
-            return existingSession;
-          }
-          
-          logger.warn(`🔧 No existing session found, resetting mutex for retry`);
-          this.resetSessionCreationMutex();
-          throw new Error(`Session creation mutex timeout - please retry the operation`);
-        }
-      } else {
-        // No promise but mutex is set - this is an inconsistent state
-        logger.warn(`🚫 Inconsistent mutex state: in_progress=true but no promise. Resetting...`);
-        this.resetSessionCreationMutex();
-      }
-    }
-    
-    // Set mutex lock
-    this._sessionCreationInProgress = true;
-    this._sessionCreationStartTime = Date.now();
-    logger.info(`🔒 Acquired session creation mutex for ${sessionType} at ${this._sessionCreationStartTime}`);
-    
-    // Store the promise so other calls can wait for it
-    this._sessionCreationPromise = this._doGetOrCreateSession(sessionType);
-    
-    try {
-      const result = await this._sessionCreationPromise;
-      logger.info(`✅ Session creation completed successfully for ${sessionType}`);
-      return result;
-    } catch (error) {
-      logger.error(`❌ Session creation failed for ${sessionType}:`, error);
-      throw error;
-    } finally {
-      // Release mutex lock
-      const mutexDuration = this._sessionCreationStartTime ? Date.now() - this._sessionCreationStartTime : 0;
-      logger.info(`🔓 Released session creation mutex for ${sessionType} after ${mutexDuration}ms`);
-      this._sessionCreationInProgress = false;
-      this._sessionCreationPromise = null;
-      this._sessionCreationStartTime = null;
-    }
+    return await this._doGetOrCreateSession(sessionType);
   },
 
   async _doGetOrCreateSession(sessionType = 'standard') {
     logger.info(`🔍 _doGetOrCreateSession ENTRY: sessionType=${sessionType}`);
     
-    // Check if we're creating sessions too rapidly (prevent race conditions)
-    const now = Date.now();
-    const timeSinceLastCreation = now - this._lastSessionCreationTime;
-    
-    if (timeSinceLastCreation < this._sessionCreationCooldown) {
-      logger.info(`🔄 Session creation cooldown active (${Math.round(timeSinceLastCreation / 1000)}s/${this._sessionCreationCooldown / 1000}s)`);
-      
-      // Wait for cooldown to complete to prevent rapid session creation
-      const remainingCooldown = this._sessionCreationCooldown - timeSinceLastCreation;
-      logger.info(`⏱️ Waiting ${Math.round(remainingCooldown / 1000)}s for session creation cooldown`);
-      await new Promise(resolve => setTimeout(resolve, remainingCooldown));
-    }
-
     logger.info(`🔍 Getting settings...`);
     // Skip migration - just get settings directly (has built-in fallbacks and defaults)
     const _settings = await StorageService.getSettings();
     logger.info(`✅ Settings loaded successfully`);
     // StorageService.getSettings() always returns settings (defaults if needed), no null check required
 
-    // Try to resume existing in-progress session first
-    logger.info(`🔍 Calling resumeSession(${sessionType})...`);
-    const resumedSession = await this.resumeSession(sessionType);
-    if (resumedSession) {
-      logger.info("✅ Resuming existing session:", resumedSession.id);
-      return resumedSession;
-    }
-    logger.info(`🔄 resumeSession returned null - no resumable session found`);
+    // Try atomic resume/create to prevent race conditions
+    logger.info(`🔍 Attempting atomic resume or create for ${sessionType}...`);
 
-    logger.info(`🆕 Creating new ${sessionType} session - no resumable session found`);
-    this._lastSessionCreationTime = now; // Update creation time
-    
+    // First try to find existing in_progress sessions
+    let session = await getOrCreateSessionAtomic(sessionType, 'in_progress', null);
+    if (session) {
+      logger.info("✅ Found existing in_progress session:", session.id);
+      return session;
+    }
+
+    // Then try draft sessions
+    session = await getOrCreateSessionAtomic(sessionType, 'draft', null);
+    if (session) {
+      logger.info("✅ Found existing draft session:", session.id);
+      return session;
+    }
+
+    logger.info(`🆕 No existing session found, creating new ${sessionType} session`);
+
     // Generated/Guided sessions should start as draft - they only become in_progress after first problem completion
     const newSession = await this.createNewSession(sessionType, 'draft');
-    
+
     logger.info(`✅ New session created:`, newSession?.id);
     return newSession;
   },
@@ -1277,19 +1340,23 @@ export const SessionService = {
     const difficultyCount = { Easy: 0, Medium: 0, Hard: 0 };
     const totalProblems = session.problems.length;
 
+    console.log(`🔍 DIFFICULTY ANALYSIS: Starting analysis for ${totalProblems} problems`);
+
     for (const problem of session.problems) {
-      // Get official difficulty from standard_problems
-      const standardProblem = await fetchProblemById(
-        problem.leetcode_id || problem.problem_id
-      );
-      const difficulty = standardProblem?.difficulty || "Medium";
+      // Use difficulty directly from session problem object - no database lookup needed
+      const difficulty = problem.difficulty || "Medium";
+
+      console.log(`🔍 DIFFICULTY ANALYSIS: Problem ${problem.title} - difficulty: ${difficulty}`);
 
       if (Object.prototype.hasOwnProperty.call(difficultyCount, difficulty)) {
         difficultyCount[difficulty]++;
+      } else {
+        console.warn(`⚠️ DIFFICULTY ANALYSIS: Unknown difficulty '${difficulty}' for problem ${problem.title}`);
+        difficultyCount.Medium++; // Default to Medium for unknown difficulties
       }
     }
 
-    return {
+    const result = {
       counts: difficultyCount,
       percentages: {
         Easy:
@@ -1306,6 +1373,9 @@ export const SessionService = {
         difficultyCount[a[0]] > difficultyCount[b[0]] ? a : b
       )[0],
     };
+
+    console.log(`✅ DIFFICULTY ANALYSIS: Final result:`, result);
+    return result;
   },
 
   /**
@@ -1355,21 +1425,25 @@ export const SessionService = {
    * @param {Object} sessionSummary - Complete session summary
    */
   logSessionAnalytics(sessionSummary) {
+    // 🛡️ Safe access with fallbacks to prevent crashes
+    const performance = sessionSummary.performance || {};
+    const difficultyAnalysis = sessionSummary.difficultyAnalysis || {};
+    const masteryProgression = sessionSummary.masteryProgression || {};
+
     const analyticsEvent = {
-      timestamp: sessionSummary.completedAt,
+      timestamp: sessionSummary.completedAt || new Date().toISOString(),
       type: "session_completed",
-      sessionId: sessionSummary.sessionId,
+      sessionId: sessionSummary.sessionId || sessionSummary.session_id || "unknown",
       metrics: {
-        accuracy: roundToPrecision(sessionSummary.performance.accuracy),
-        avgTime: Math.round(sessionSummary.performance.avgTime),
-        problemsCompleted: sessionSummary.difficultyAnalysis.totalProblems,
-        newMasteries: sessionSummary.masteryProgression.newMasteries,
-        predominantDifficulty:
-          sessionSummary.difficultyAnalysis.predominantDifficulty,
+        accuracy: roundToPrecision(performance.accuracy || 0),
+        avgTime: Math.round(performance.avgTime || 0),
+        problemsCompleted: difficultyAnalysis.totalProblems || 0,
+        newMasteries: masteryProgression.newMasteries || 0,
+        predominantDifficulty: difficultyAnalysis.predominantDifficulty || "Unknown",
       },
       tags: {
-        strong: sessionSummary.performance.strongTags,
-        weak: sessionSummary.performance.weakTags,
+        strong: performance.strongTags || [],
+        weak: performance.weakTags || [],
       },
     };
 
@@ -1433,6 +1507,162 @@ export const SessionService = {
     if (decayed > 0)
       return `Some tags need review. ${decayed} mastery level(s) decreased.`;
     return "Maintained current mastery levels. Consistent performance.";
+  },
+
+  /**
+   * Update session state with performance data from completed session
+   * @param {Object} session - Completed session object
+   * @param {Object} sessionSummary - Session performance summary
+   */
+  async updateSessionStateWithPerformance(session, sessionSummary) {
+    try {
+      console.log(`🔍 REAL SESSION DEBUG: updateSessionStateWithPerformance ENTRY for ACTUAL session ${session.id}`);
+      console.log(`🔍 REAL SESSION DEBUG: Session ID is UUID? ${session.id.length === 36 && session.id.includes('-')}`);
+      logger.info(`📊 Updating session state with performance data for session ${session.id}`);
+
+      console.log(`🔍 DEBUG: Getting current session state...`);
+      const sessionState = await StorageService.getSessionState("session_state") || {
+        id: "session_state",
+        num_sessions_completed: 0,
+        difficulty_time_stats: {
+          easy: { problems: 0, total_time: 0, avg_time: 0 },
+          medium: { problems: 0, total_time: 0, avg_time: 0 },
+          hard: { problems: 0, total_time: 0, avg_time: 0 },
+        },
+        last_performance: {
+          accuracy: null,
+          efficiency_score: null,
+        }
+      };
+
+      // NOTE: Session count is incremented in checkAndCompleteSession, not here
+      // sessionState.num_sessions_completed is managed by the session completion flow
+
+      console.log(`🔍 DEBUG: Current session state before performance updates:`, {
+        id: sessionState.id,
+        num_sessions_completed: sessionState.num_sessions_completed,
+        difficulty_time_stats: sessionState.difficulty_time_stats,
+        last_performance: sessionState.last_performance,
+        last_session_date: sessionState.last_session_date
+      });
+
+      // Update difficulty time stats from session summary performance data
+      console.log(`🔍 DEBUG: Updating difficulty time stats from session summary...`);
+      // CRITICAL FIX: Use difficulty_breakdown instead of performance for difficulty stats
+      const difficultyData = sessionSummary.difficulty_breakdown || sessionSummary.performance;
+
+      if (difficultyData) {
+        // Map difficulty breakdown data to session state (using snake_case)
+        const difficultyMappings = [
+          { perfKey: 'easy', stateKey: 'easy' },
+          { perfKey: 'medium', stateKey: 'medium' },
+          { perfKey: 'hard', stateKey: 'hard' }
+        ];
+
+        for (const { perfKey, stateKey } of difficultyMappings) {
+          const perfStats = difficultyData[perfKey];
+          if (perfStats && perfStats.attempts > 0) {
+            console.log(`🔍 DEBUG: Processing ${perfKey} difficulty - attempts: ${perfStats.attempts}, time: ${perfStats.time}`);
+
+            // Update session state difficulty stats
+            sessionState.difficulty_time_stats[stateKey].problems += perfStats.attempts;
+            sessionState.difficulty_time_stats[stateKey].total_time += perfStats.time;
+            sessionState.difficulty_time_stats[stateKey].avg_time =
+              sessionState.difficulty_time_stats[stateKey].total_time /
+              sessionState.difficulty_time_stats[stateKey].problems;
+
+            console.log(`🔍 DEBUG: Updated ${stateKey} stats:`, sessionState.difficulty_time_stats[stateKey]);
+          }
+        }
+      }
+
+      // Update last performance from session summary
+      console.log(`🔍 DEBUG: Updating last performance from session summary...`);
+      if (sessionSummary.performance) {
+        const newAccuracy = roundToPrecision(sessionSummary.performance.accuracy || 0);
+        const newEfficiency = roundToPrecision(sessionSummary.performance.avgTime ?
+          Math.max(0, 1 - (sessionSummary.performance.avgTime / 1800000)) : 0);
+
+        console.log(`🔍 DEBUG: New performance values - accuracy: ${newAccuracy}, efficiency: ${newEfficiency}`);
+
+        sessionState.last_performance = {
+          accuracy: newAccuracy,
+          efficiency_score: newEfficiency
+        };
+      }
+
+      // Update last session date
+      sessionState.last_session_date = new Date().toISOString();
+      console.log(`🔍 DEBUG: Set last_session_date to: ${sessionState.last_session_date}`);
+
+      console.log(`🔍 DEBUG: Final session state before saving:`, {
+        id: sessionState.id,
+        num_sessions_completed: sessionState.num_sessions_completed,
+        difficulty_time_stats: sessionState.difficulty_time_stats,
+        last_performance: sessionState.last_performance,
+        last_session_date: sessionState.last_session_date
+      });
+
+      console.log(`🔍 DEBUG: Calling StorageService.setSessionState...`);
+      const saveResult = await StorageService.setSessionState("session_state", sessionState);
+      console.log(`🔍 DEBUG: StorageService.setSessionState result:`, saveResult);
+
+      // Verify the update by reading it back
+      console.log(`🔍 DEBUG: Verifying save by reading back from database...`);
+      const verificationState = await StorageService.getSessionState("session_state");
+      console.log(`🔍 DEBUG: Verification read result:`, {
+        id: verificationState?.id,
+        num_sessions_completed: verificationState?.num_sessions_completed,
+        difficulty_time_stats: verificationState?.difficulty_time_stats,
+        last_performance: verificationState?.last_performance,
+        last_session_date: verificationState?.last_session_date
+      });
+
+      if (!verificationState || verificationState.last_session_date !== sessionState.last_session_date) {
+        console.error(`❌ DEBUG: Session state verification FAILED! Data not persisted correctly`);
+        logger.error(`❌ Session state update verification failed - data not persisted`);
+      } else {
+        console.log(`✅ DEBUG: Session state verification PASSED! Data persisted correctly`);
+      }
+
+      logger.info(`✅ Session state updated with performance data:`, {
+        difficulty_problems: Object.entries(sessionState.difficulty_time_stats).map(([diff, stats]) =>
+          `${diff}: ${stats.problems} problems`).join(', '),
+        last_accuracy: sessionState.last_performance.accuracy,
+        last_efficiency: sessionState.last_performance.efficiency_score
+      });
+
+      // 🎯 Evaluate difficulty progression after session completion (non-blocking)
+      console.log(`🔍 DEBUG: Evaluating difficulty progression after session completion...`);
+      try {
+        const settings = await StorageService.getSettings();
+        const accuracy = sessionSummary.performance?.accuracy || 0;
+
+        // Validate accuracy value to prevent downstream errors
+        if (typeof accuracy !== 'number' || isNaN(accuracy) || accuracy < 0 || accuracy > 1) {
+          console.warn(`⚠️ Invalid accuracy value: ${accuracy}, skipping difficulty progression`);
+          logger.warn(`⚠️ Invalid accuracy value for difficulty progression: ${accuracy}`);
+          return; // Don't fail the entire session for this
+        }
+
+        console.log(`🔍 DEBUG: Calling evaluateDifficultyProgression with accuracy: ${(accuracy * 100).toFixed(1)}%`);
+        const updatedSessionState = await evaluateDifficultyProgression(accuracy, settings);
+        console.log(`✅ DEBUG: Difficulty progression evaluated. Current cap: ${updatedSessionState.current_difficulty_cap}`);
+      } catch (difficultyError) {
+        // Log the error but don't fail the session - difficulty progression is not critical to session completion
+        console.error(`❌ DEBUG: Difficulty progression evaluation failed (non-critical):`, difficultyError);
+        logger.error("❌ Failed to evaluate difficulty progression (session completion continues):", {
+          error: difficultyError.message,
+          stack: difficultyError.stack,
+          sessionId: sessionSummary.session_id
+        });
+        // Continue with session completion - this is not a blocking error
+      }
+
+    } catch (error) {
+      console.error(`❌ DEBUG: updateSessionStateWithPerformance ERROR:`, error);
+      logger.error("❌ Failed to update session state with performance:", error);
+    }
   },
 
   /**

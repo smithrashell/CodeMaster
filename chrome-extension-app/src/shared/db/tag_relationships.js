@@ -6,77 +6,6 @@ const openDB = dbHelper.openDB;
 
 const normalizeTag = (tag) => tag.trim().toLowerCase();
 
-export const buildAndStoreTagGraph2 = async () => {
-  let tagGraph = new Map();
-  let tagProblemCounts = new Map(); // To track problem difficulty per tag
-  const problems = await getAllStandardProblems();
-
-  console.log("Problems:", problems);
-
-  problems.forEach(({ Tags, Difficulty }) => {
-    if (!Tags || Tags.length < 1) return;
-
-    let weightMultiplier =
-      Difficulty === "Easy" ? 3 : Difficulty === "Medium" ? 2 : 1;
-
-    Tags.forEach((tag) => {
-      const normalized = normalizeTag(tag);
-
-      if (!tagProblemCounts.has(normalized))
-        tagProblemCounts.set(normalized, {
-          easy: 0,
-          medium: 0,
-          hard: 0,
-        });
-
-      if (Difficulty === "Easy") tagProblemCounts.get(normalized).easy++;
-      if (Difficulty === "Medium") tagProblemCounts.get(normalized).medium++;
-      if (Difficulty === "Hard") tagProblemCounts.get(normalized).hard++;
-    });
-
-    for (let i = 0; i < Tags.length; i++) {
-      for (let j = i + 1; j < Tags.length; j++) {
-        let tagA = normalizeTag(Tags[i]);
-        let tagB = normalizeTag(Tags[j]);
-
-        if (!tagGraph.has(tagA)) tagGraph.set(tagA, new Map());
-        if (!tagGraph.has(tagB)) tagGraph.set(tagB, new Map());
-
-        let existingWeight = tagGraph.get(tagA).get(tagB) || 0;
-        let newWeight = existingWeight + weightMultiplier;
-
-        tagGraph.get(tagA).set(tagB, newWeight);
-        tagGraph.get(tagB).set(tagA, newWeight);
-      }
-    }
-  });
-
-  console.log("Tag Easy Problem Counts:", tagProblemCounts);
-
-  // Store in IndexedDB
-  const db = await openDB();
-  const transaction = db.transaction(["tag_relationships"], "readwrite");
-  const store = transaction.objectStore("tag_relationships");
-
-  tagGraph.forEach((relations, tag) => {
-    console.log(tag);
-    store.put({
-      id: tag, // normalized
-      relatedTags: Object.fromEntries(relations),
-      problemCounts: tagProblemCounts.get(tag),
-    });
-  });
-
-  transaction.oncomplete = function () {
-    console.log("Tag graph successfully stored in IndexedDB.");
-  };
-
-  transaction.onerror = function (event) {
-    console.error("Error storing tag graph in IndexedDB:", event.target.error);
-  };
-
-  return tagGraph;
-};
 
 export const classifyTags = async () => {
   try {
@@ -102,7 +31,7 @@ export const classifyTags = async () => {
 
     for (const entry of tagRelationships) {
       let tag = entry.id;
-      let { easy = 0, medium = 0, hard = 0 } = entry.problemCounts || {};
+      let { easy = 0, medium = 0, hard = 0 } = entry.difficulty_distribution || {};
       let total = easy + medium + hard;
 
       let classification = "Advanced Technique"; // Default
@@ -164,6 +93,8 @@ export const classifyTags = async () => {
       let entry = tagRelationships.find((e) => e.id === tag);
       if (entry) {
         entry.classification = classification;
+        // Recalculate mastery threshold with updated classification
+        entry.mastery_threshold = calculateMasteryThreshold(classification, entry.difficulty_distribution);
         await writeStore.put(entry);
       }
     }
@@ -190,7 +121,11 @@ export async function getTagRelationships() {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => {
       const result = request.result.reduce((acc, item) => {
-        acc[item.id] = item.relatedTags; // ✅ Ensure we get an object, not an array
+        // Convert array format to object for consumer compatibility
+        acc[item.id] = item.related_tags.reduce((tagObj, relation) => {
+          tagObj[relation.tag] = relation.strength;
+          return tagObj;
+        }, {});
         return acc;
       }, {});
       resolve(result);
@@ -217,10 +152,10 @@ export async function getHighlyRelatedTags(
       tagDataRequest.onerror = () => resolve(null);
     });
 
-    if (tagData && tagData.relatedTags) {
-      for (const [relatedTag, score] of Object.entries(tagData.relatedTags)) {
-        if (missingTags.includes(relatedTag)) {
-          relatedTags.push({ tag: relatedTag, score });
+    if (tagData && tagData.related_tags) {
+      for (const relation of tagData.related_tags) {
+        if (missingTags.includes(relation.tag)) {
+          relatedTags.push({ tag: relation.tag, score: relation.strength });
         }
       }
     }
@@ -239,9 +174,19 @@ export async function getNextFiveTagsFromNextTier(masteryData) {
   const currentMasteredTags = masteryData.map((tag) => tag.tag);
 
   for (const tier of tiers) {
-    const tierRequest = relationshipsStore
-      .index("by_classification")
-      .getAll(tier);
+    let index;
+    try {
+      index = relationshipsStore.index("by_classification");
+    } catch (error) {
+      console.error(`❌ TAG RELATIONSHIPS INDEX ERROR: by_classification index not found in tag_relationships`, {
+        error: error.message,
+        availableIndexes: Array.from(relationshipsStore.indexNames),
+        storeName: "tag_relationships"
+      });
+      throw error;
+    }
+    
+    const tierRequest = index.getAll(tier);
     const tierTags = await new Promise((resolve, reject) => {
       tierRequest.onsuccess = () =>
         resolve(tierRequest.result.map((tag) => tag.id));
@@ -295,7 +240,7 @@ export async function buildTagRelationships() {
   });
 
   if (existing.length > 0) {
-    console.log("🔁 tag_relationships already exist. Skipping insert.");
+    console.log("🔁 tag_relationships already exist. Skipping initialization.");
     return;
   }
 
@@ -358,16 +303,63 @@ function buildTagGraphAndCounts(problems) {
   return { tagGraph, tagProblemCounts };
 }
 
+function calculateMasteryThreshold(classification, problemCounts) {
+  // Base thresholds by classification
+  const baseThresholds = {
+    "Core Concept": 0.75,        // 75% for fundamental concepts
+    "Fundamental Technique": 0.80, // 80% for core techniques
+    "Advanced Technique": 0.85    // 85% for advanced concepts
+  };
+
+  let threshold = baseThresholds[classification] || 0.80;
+
+  // Adjust based on problem distribution - if mostly hard problems, lower threshold slightly
+  if (problemCounts) {
+    const { easy = 0, medium = 0, hard = 0 } = problemCounts;
+    const total = easy + medium + hard;
+    if (total > 0) {
+      const hardRatio = hard / total;
+      if (hardRatio > 0.6) {
+        threshold -= 0.05; // Lower threshold for hard-heavy tags
+      }
+    }
+  }
+
+  return Number(threshold.toFixed(2));
+}
+
 async function storeTagGraph(tagGraph, tagProblemCounts) {
   const db = await openDB();
   const tx = db.transaction("tag_relationships", "readwrite");
   const store = tx.objectStore("tag_relationships");
 
+  // Find the maximum strength value for normalization
+  let maxStrength = 0;
+  tagGraph.forEach((relations) => {
+    relations.forEach((strength) => {
+      maxStrength = Math.max(maxStrength, strength);
+    });
+  });
+
   for (const [tag, relations] of tagGraph.entries()) {
+    // Convert relations to normalized array format
+    const related_tags = Array.from(relations.entries()).map(([relatedTag, strength]) => ({
+      tag: relatedTag,
+      strength: maxStrength > 0 ? Number((strength / maxStrength).toFixed(3)) : 0
+    }));
+
+    const problemCounts = tagProblemCounts.get(tag);
+    const classification = "Core Concept"; // Will be updated by classifyTags()
+    const masteryThreshold = calculateMasteryThreshold(classification, problemCounts);
+
     await store.put({
       id: tag,
-      relatedTags: Object.fromEntries(relations),
-      problemCounts: tagProblemCounts.get(tag),
+      classification: classification,
+      related_tags: related_tags,
+      difficulty_distribution: problemCounts || { easy: 0, medium: 0, hard: 0 },
+      learning_order: 1, // Default, can be updated later
+      prerequisite_tags: [], // Keep empty - using tier-based progression instead
+      mastery_threshold: masteryThreshold
     });
   }
 
@@ -382,3 +374,4 @@ async function storeTagGraph(tagGraph, tagProblemCounts) {
     };
   });
 }
+

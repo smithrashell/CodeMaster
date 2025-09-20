@@ -44,10 +44,58 @@ export function handleDatabaseUpgrade(event) {
     objectStoreNames: Array.from(db.objectStoreNames)
   });
 
+  // Handle version-specific migrations
+  handleVersionSpecificMigrations(db, transaction, event.oldVersion, event.newVersion);
+
   // Execute all store creation operations
   executeStoreCreationOperations(db, transaction);
 
   console.log("✅ Database upgrade completed - final object stores:", Array.from(db.objectStoreNames));
+}
+
+/**
+ * Handles version-specific migrations that require special handling
+ * @param {IDBDatabase} db - Database instance  
+ * @param {IDBTransaction} transaction - The upgrade transaction
+ * @param {number} oldVersion - The old database version
+ * @param {number} newVersion - The new database version
+ */
+function handleVersionSpecificMigrations(db, transaction, oldVersion, newVersion) {
+  console.log(`🔄 Checking for version-specific migrations: ${oldVersion} → ${newVersion}`);
+  
+  // Migration to version 45: Fix attempts store autoIncrement issue
+  if (oldVersion < 45 && newVersion >= 45) {
+    console.log("🔧 Migration v45: Fixing attempts store schema (removing autoIncrement)");
+    
+    // If attempts store exists, we need to recreate it without autoIncrement
+    if (db.objectStoreNames.contains("attempts")) {
+      console.log("📦 Backing up attempts data for schema change...");
+      
+      // Get all existing attempts data first
+      const attemptsStore = transaction.objectStore("attempts");
+      const getAllRequest = attemptsStore.getAll();
+      
+      getAllRequest.onsuccess = () => {
+        const attemptData = getAllRequest.result;
+        console.log(`📊 Found ${attemptData.length} attempt records to migrate`);
+        
+        // Delete the old store 
+        db.deleteObjectStore("attempts");
+        console.log("🗑️ Deleted old attempts store");
+        
+        // Recreate with new schema (this will be handled by createAttemptsStore)
+        console.log("🏗️ Attempts store will be recreated by store creation operations");
+        
+        // Note: We can't restore data here because we're in the upgrade transaction
+        // The data will need to be handled by the store creation operations
+        if (attemptData.length > 0) {
+          console.warn(`⚠️ ${attemptData.length} attempt records need manual migration`);
+          // Store the data temporarily for migration after store recreation
+          globalThis._migrationAttempts = attemptData;
+        }
+      };
+    }
+  }
 }
 
 /**

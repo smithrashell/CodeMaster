@@ -683,24 +683,24 @@ export class SchemaValidator {
    */
   static validateProblemBusinessLogic(data, result) {
     // Success rate should be consistent with attempt stats
-    if (data.AttemptStats) {
-      const { TotalAttempts, SuccessfulAttempts } = data.AttemptStats;
+    if (data.attempt_stats) {
+      const { total_attempts, successful_attempts } = data.attempt_stats;
 
-      if (SuccessfulAttempts > TotalAttempts) {
+      if (successful_attempts > total_attempts) {
         result.valid = false;
         result.errors.push({
           type: "impossible_success_rate",
           message: "Successful attempts cannot exceed total attempts",
           severity: this.SEVERITY.ERROR,
-          field: "AttemptStats",
-          value: { TotalAttempts, SuccessfulAttempts },
+          field: "attempt_stats",
+          value: { total_attempts, successful_attempts },
         });
       }
 
       // Box level should be reasonable based on attempts
       if (
         data.BoxLevel !== undefined &&
-        TotalAttempts === 0 &&
+        total_attempts === 0 &&
         data.BoxLevel > 0
       ) {
         result.warnings.push({

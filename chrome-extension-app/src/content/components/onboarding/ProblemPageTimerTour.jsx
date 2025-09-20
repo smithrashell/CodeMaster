@@ -169,7 +169,7 @@ const findTimerLinkAndPosition = () => {
 };
 
 // Helper function for timer button positioning
-const calculateTimerButtonPosition = (position, setTourPosition, setHasInitiallyPositioned) => {
+const _calculateTimerButtonPosition = (position, setTourPosition, setHasInitiallyPositioned) => {
   // Check if menu is actually open and give it time to load
   const menuSidebar = document.querySelector("#cm-mySidenav");
   const menuClasses = menuSidebar ? Array.from(menuSidebar.classList) : [];

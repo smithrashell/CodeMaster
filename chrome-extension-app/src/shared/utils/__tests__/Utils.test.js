@@ -29,13 +29,13 @@ const createSampleAttemptData = (overrides = {}) => ({
 
 const createExpectedAttemptRecord = (overrides = {}) => ({
   id: "test-uuid-123",
-  SessionID: undefined,
-  ProblemID: "prob-123",
-  Success: true,
-  AttemptDate: "2024-01-01T10:00:00Z",
-  TimeSpent: 1800,
-  Difficulty: 6,
-  Comments: "",
+  session_id: undefined,
+  problem_id: "prob-123",
+  success: true,
+  attempt_date: "2024-01-01T10:00:00Z",
+  time_spent: 1800,
+  difficulty: 6,
+  comments: "",
   ...overrides,
 });
 
@@ -56,7 +56,7 @@ const testCreateAttemptRecord = () => {
     expect(result).toEqual(createExpectedAttemptRecord());
 
     // Verify date format
-    validateDateFormat(result.AttemptDate);
+    validateDateFormat(result.attempt_date);
   });
 
   it("should handle minimal attempt data", () => {
@@ -72,9 +72,9 @@ const testCreateAttemptRecord = () => {
 
     // Assert
     expect(result.id).toBe("test-uuid-456");
-    expect(result.ProblemID).toBe("prob-456");
-    expect(result.Success).toBe(false);
-    expect(result.Comments).toBe("");
+    expect(result.problem_id).toBe("prob-456");
+    expect(result.success).toBe(false);
+    expect(result.comments).toBe("");
   });
 
   it("should handle missing ProblemID", () => {
@@ -90,9 +90,9 @@ const testCreateAttemptRecord = () => {
 
     // Assert
     expect(result.id).toBe("test-uuid-789");
-    expect(result.ProblemID).toBeUndefined();
-    expect(result.Success).toBe(true);
-    expect(result.TimeSpent).toBe(900);
+    expect(result.problem_id).toBeUndefined();
+    expect(result.success).toBe(true);
+    expect(result.time_spent).toBe(900);
   });
 };
 
@@ -330,10 +330,10 @@ describe("Utils Functions - Edge Cases", function() {
 
       // Assert
       expect(result.id).toBe("malformed-id");
-      expect(result.Comments).toBe("");
+      expect(result.comments).toBe("");
       // Should still process despite malformed data
-      expect(result.ProblemID).toBeNull();
-      expect(result.Success).toBe("maybe");
+      expect(result.problem_id).toBeNull();
+      expect(result.success).toBe("maybe");
     });
 
     it("should handle undefined inputs gracefully", () => {
@@ -358,9 +358,9 @@ describe("Utils Functions - Edge Cases", function() {
 
       // Assert
       expect(result.id).toBe("preserve-test");
-      expect(result.ProblemID).toBe("prob-789");
-      expect(result.Comments).toBe("custom comment");
-      expect(result.Difficulty).toBe(7);
+      expect(result.problem_id).toBe("prob-789");
+      expect(result.comments).toBe("custom comment");
+      expect(result.difficulty).toBe(7);
     });
   });
 });

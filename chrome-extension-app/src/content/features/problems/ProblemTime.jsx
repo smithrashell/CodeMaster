@@ -35,6 +35,14 @@ const ProbTime = () => {
     previousRoute === "/Timer"
   );
 
+  console.log("🔍 ProbTime Debug:", {
+    previousRoute,
+    pathname,
+    routeState,
+    isFromTimer: previousRoute === "/Timer",
+    shouldShowSubmission: previousRoute === "/Timer"
+  });
+
   const _onSkip = () => {
     chrome.runtime.sendMessage(
       { type: "skipProblem", consentScriptData: routeState.problemData },

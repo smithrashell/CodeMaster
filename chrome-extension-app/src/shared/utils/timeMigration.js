@@ -135,7 +135,7 @@ export async function migrateAttemptsTimeData(dryRun = false) {
         );
 
         if (normalizedTime !== Number(originalTime)) {
-          attempt.TimeSpent = normalizedTime;
+          attempt.time_spent = normalizedTime;
 
           // Update in database
           await new Promise((resolve, reject) => {

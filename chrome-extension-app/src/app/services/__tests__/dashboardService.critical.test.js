@@ -67,8 +67,8 @@ describe("DashboardService - Critical User Retention Paths", () => {
     it("should load and display existing user data correctly", async () => {
       // Mock minimal data scenario - user with some progress
       fetchAllProblems.mockResolvedValue([
-        { id: 1, problem_id: 1, leetcode_id: 1, BoxLevel: 2, AttemptStats: { TotalAttempts: 3, SuccessfulAttempts: 2 } },
-        { id: 2, problem_id: 2, leetcode_id: 2, BoxLevel: 7, AttemptStats: { TotalAttempts: 5, SuccessfulAttempts: 4 } }
+        { id: 1, problem_id: 1, leetcode_id: 1, box_level: 2, attempt_stats: { total_attempts: 3, successful_attempts: 2 } },
+        { id: 2, problem_id: 2, leetcode_id: 2, box_level: 7, attempt_stats: { total_attempts: 5, successful_attempts: 4 } }
       ]);
 
       getAllAttempts.mockResolvedValue([
@@ -345,8 +345,8 @@ describe("DashboardService - Critical User Retention Paths", () => {
       const largeProblems = Array.from({ length: 5000 }, (_, i) => ({
         id: i,
         problem_id: i,
-        BoxLevel: (i % 7) + 1,
-        AttemptStats: { TotalAttempts: i % 10, SuccessfulAttempts: i % 5 }
+        box_level: (i % 7) + 1,
+        attempt_stats: { total_attempts: i % 10, successful_attempts: i % 5 }
       }));
 
       const largeAttempts = Array.from({ length: 15000 }, (_, i) => ({
