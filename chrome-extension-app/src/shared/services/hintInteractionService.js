@@ -7,6 +7,7 @@ import {
   getHintEffectiveness,
   deleteOldInteractions,
 } from "../db/hint_interactions.js";
+import { SessionService } from "./sessionService.js";
 
 /**
  * Service for managing hint interactions and analytics
@@ -29,22 +30,14 @@ export class HintInteractionService {
         .substr(2, 9)}`;
 
       // Extract session information
-      let sessionId = sessionContext.sessionId;
-      let boxLevel = sessionContext.boxLevel || 1;
-      let problemDifficulty = sessionContext.problemDifficulty || "Medium";
+      let sessionId = sessionContext.session_id;
+      let boxLevel = sessionContext.box_level || 1;
+      let problemDifficulty = sessionContext.problem_difficulty || "Medium";
 
       // Try to get current session from storage if not provided
       if (!sessionId) {
         try {
-          const currentSession = await new Promise((resolve) => {
-            if (typeof chrome !== "undefined" && chrome?.storage?.local) {
-              chrome.storage.local.get(["currentSession"], (result) => {
-                resolve(result.currentSession || null);
-              });
-            } else {
-              resolve(null);
-            }
-          });
+          const currentSession = await SessionService.resumeSession();
 
           if (currentSession) {
             sessionId = currentSession.id;
@@ -58,57 +51,57 @@ export class HintInteractionService {
       }
 
       // Use problem context from enriched data (provided by background script) or fallback values
-      if (interactionData.boxLevel !== undefined) {
-        boxLevel = interactionData.boxLevel;
+      if (interactionData.box_level !== undefined) {
+        boxLevel = interactionData.box_level;
       }
-      if (interactionData.problemDifficulty) {
-        problemDifficulty = interactionData.problemDifficulty;
+      if (interactionData.problem_difficulty) {
+        problemDifficulty = interactionData.problem_difficulty;
       }
       // Additional fallback from sessionContext if available
-      if (!interactionData.boxLevel && sessionContext.boxLevel) {
-        boxLevel = sessionContext.boxLevel;
+      if (!interactionData.box_level && sessionContext.box_level) {
+        boxLevel = sessionContext.box_level;
       }
-      if (!interactionData.problemDifficulty && sessionContext.problemDifficulty) {
-        problemDifficulty = sessionContext.problemDifficulty;
+      if (!interactionData.problem_difficulty && sessionContext.problem_difficulty) {
+        problemDifficulty = sessionContext.problem_difficulty;
       }
 
       // Build the complete interaction record
       const completeInteraction = {
         id: interactionId,
-        problemId: interactionData.problemId || "unknown",
-        hintType: interactionData.hintType || "general",
-        hintId:
-          interactionData.hintId ||
-          `${interactionData.hintType}_${
-            interactionData.primaryTag
+        problem_id: interactionData.problem_id || "unknown",
+        hint_type: interactionData.hint_type || "general",
+        hint_id:
+          interactionData.hint_id ||
+          `${interactionData.hint_type}_${
+            interactionData.primary_tag
           }_${Date.now()}`,
         timestamp: new Date().toISOString(),
-        sessionId: sessionId,
-        boxLevel: boxLevel,
-        userAction:
-          interactionData.action || interactionData.userAction || "clicked",
-        problemDifficulty: problemDifficulty,
-        tagsCombination:
-          interactionData.problemTags || interactionData.tagsCombination || [],
+        session_id: sessionId,
+        box_level: boxLevel,
+        user_action:
+          interactionData.action || interactionData.user_action || "clicked",
+        problem_difficulty: problemDifficulty,
+        tags_combination:
+          interactionData.problem_tags || interactionData.tags_combination || [],
 
         // Additional context for analytics
-        primaryTag: interactionData.primaryTag,
-        relatedTag: interactionData.relatedTag,
+        primary_tag: interactionData.primary_tag,
+        related_tag: interactionData.related_tag,
         content: interactionData.content || interactionData.tip,
-        relationshipScore: interactionData.relationshipScore || null,
-        sessionContext: {
-          ...interactionData.sessionContext,
-          totalHints:
-            sessionContext.totalHints ||
-            interactionData.sessionContext?.totalHints,
-          hintPosition: interactionData.sessionContext?.hintPosition,
-          expandedHintsCount:
-            interactionData.sessionContext?.expandedHintsCount,
-          popoverOpen: interactionData.sessionContext?.popoverOpen,
+        relationship_score: interactionData.relationship_score || null,
+        session_context: {
+          ...interactionData.session_context,
+          total_hints:
+            sessionContext.total_hints ||
+            interactionData.session_context?.total_hints,
+          hint_position: interactionData.session_context?.hint_position,
+          expanded_hints_count:
+            interactionData.session_context?.expanded_hints_count,
+          popover_open: interactionData.session_context?.popover_open,
         },
 
         // Performance tracking
-        processingTime: null, // Will be set below
+        processing_time: null, // Will be set below
       };
 
       // Save to database - route through background script if in content script context
@@ -116,7 +109,7 @@ export class HintInteractionService {
 
       // Record processing time for performance monitoring
       const processingTime = performance.now() - startTime;
-      savedInteraction.processingTime = processingTime;
+      savedInteraction.processing_time = processingTime;
 
       // Keep only error logging for debugging - removed verbose success logging for performance
 
@@ -127,7 +120,7 @@ export class HintInteractionService {
       // For analytics - track failed saves (but don't throw to avoid breaking UI)
       console.warn("Hint interaction will not be tracked due to error:", {
         action: interactionData.action,
-        hintType: interactionData.hintType,
+        hint_type: interactionData.hint_type,
         error: error.message,
       });
 
@@ -135,7 +128,7 @@ export class HintInteractionService {
       return {
         id: null,
         error: error.message,
-        failedData: interactionData,
+        failed_data: interactionData,
       };
     }
   }

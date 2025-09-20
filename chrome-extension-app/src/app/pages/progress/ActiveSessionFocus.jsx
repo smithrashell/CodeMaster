@@ -6,21 +6,21 @@ export function ActiveSessionFocus({ appState }) {
       <Group gap="xs" mb="xs">
         <Text size="sm" fw={500}>Active Session Focus</Text>
         {appState?.learningPlan?.focus?.activeFocusTags ? (
-          <Badge variant="light" color="teal" size="xs">
+          <Badge color="teal" size="xs">
             Coordinated Decision
           </Badge>
         ) : (
-          <Badge variant="light" color="cyan" size="xs">
+          <Badge color="cyan" size="xs">
             System Default
           </Badge>
         )}
         {appState?.learningPlan?.focus?.onboarding && (
-          <Badge variant="light" color="orange" size="xs">
+          <Badge color="orange" size="xs">
             Onboarding Mode
           </Badge>
         )}
         {appState?.learningPlan?.focus?.performanceLevel && (
-          <Badge variant="light" color="blue" size="xs">
+          <Badge color="blue" size="xs">
             {appState.learningPlan.focus.performanceLevel} Performance
           </Badge>
         )}
@@ -31,7 +31,7 @@ export function ActiveSessionFocus({ appState }) {
           ['Array', 'Hash Table', 'String', 'Sorting', 'Math']).map((tag, index) => (
           <Badge 
             key={index} 
-            variant={appState?.learningPlan?.focus?.activeFocusTags ? "filled" : "light"} 
+            variant={appState?.learningPlan?.focus?.activeFocusTags ? "filled" : "filled"} 
             color={appState?.learningPlan?.focus?.activeFocusTags ? "teal" : "cyan"} 
             size="sm"
           >

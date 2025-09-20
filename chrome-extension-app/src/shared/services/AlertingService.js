@@ -734,11 +734,20 @@ export class AlertingService {
       
       // Try to use existing navigation service if available
       if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({
-          type: 'navigate',
-          route: '/session-generator',
-          context: context
-        });
+        try {
+          const result = chrome.runtime.sendMessage({
+            type: 'navigate',
+            route: '/session-generator',
+            context: context
+          });
+          if (result && typeof result.catch === 'function') {
+            result.catch((error) => {
+              logger.warn("Failed to send navigation message (async):", error);
+            });
+          }
+        } catch (error) {
+          logger.warn("Failed to send navigation message (sync):", error);
+        }
       } else if (window.location) {
         // Fallback for web context
         window.location.hash = '/session-generator';
@@ -757,10 +766,19 @@ export class AlertingService {
       logger.info("📊 Routing to progress dashboard");
       
       if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({
-          type: 'navigate',
-          route: '/progress'
-        });
+        try {
+          const result = chrome.runtime.sendMessage({
+            type: 'navigate',
+            route: '/progress'
+          });
+          if (result && typeof result.catch === 'function') {
+            result.catch((error) => {
+              logger.warn("Failed to send progress navigation message (async):", error);
+            });
+          }
+        } catch (error) {
+          logger.warn("Failed to send progress navigation message (sync):", error);
+        }
       } else if (window.location) {
         window.location.hash = '/progress';
       }
@@ -778,10 +796,19 @@ export class AlertingService {
       logger.info("🏠 Routing to main dashboard");
       
       if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({
-          type: 'navigate',
-          route: '/'
-        });
+        try {
+          const result = chrome.runtime.sendMessage({
+            type: 'navigate',
+            route: '/'
+          });
+          if (result && typeof result.catch === 'function') {
+            result.catch((error) => {
+              logger.warn("Failed to send dashboard navigation message (async):", error);
+            });
+          }
+        } catch (error) {
+          logger.warn("Failed to send dashboard navigation message (sync):", error);
+        }
       } else if (window.location) {
         window.location.hash = '/';
       }

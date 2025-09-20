@@ -73,12 +73,12 @@ export async function evaluateAttempts(problem) {
 }
 
 function reassessBoxLevel(problem, attempts) {
-  attempts.sort((a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate));
+  attempts.sort((a, b) => new Date(a.attempt_date) - new Date(b.attempt_date));
 
   let stats = {
-    TotalAttempts: 0,
-    SuccessfulAttempts: 0,
-    UnsuccessfulAttempts: 0,
+    total_attempts: 0,
+    successful_attempts: 0,
+    unsuccessful_attempts: 0,
   };
 
   const boxIntervals = [1, 3, 7, 14, 30, 60, 90, 120];
@@ -87,14 +87,15 @@ function reassessBoxLevel(problem, attempts) {
 
   let currentBoxLevel = 1;
   let consecutiveFailures = 0;
-  let avgDifficulty = 0;
+  let totalPerceivedDifficulty = 0;
 
   for (const attempt of attempts) {
-    avgDifficulty += attempt.Difficulty;
-    stats.TotalAttempts++;
-    attempt.Success ? stats.SuccessfulAttempts++ : stats.UnsuccessfulAttempts++;
+    // Use perceived_difficulty for user difficulty assessment, not actual difficulty
+    totalPerceivedDifficulty += attempt.perceived_difficulty || 2; // Default to 2 (Medium)
+    stats.total_attempts++;
+    attempt.success ? stats.successful_attempts++ : stats.unsuccessful_attempts++;
 
-    if (attempt.Success) {
+    if (attempt.success) {
       consecutiveFailures = 0;
       currentBoxLevel = Math.min(currentBoxLevel + 1, boxIntervals.length);
     } else {
@@ -106,10 +107,10 @@ function reassessBoxLevel(problem, attempts) {
     }
   }
 
-  problem.AttemptStats = stats;
-  problem.CooldownStatus = stats.UnsuccessfulAttempts >= FAILURE_THRESHOLD;
-  problem.BoxLevel = currentBoxLevel;
-  console.info("problem.BoxLevel", problem.BoxLevel);
+  problem.attempt_stats = stats;
+  problem.cooldown_status = stats.unsuccessful_attempts >= FAILURE_THRESHOLD;
+  problem.box_level = currentBoxLevel;
+  console.info("problem.box_level", problem.box_level);
 
   let nextReviewDays = boxIntervals[currentBoxLevel - 1];
 
@@ -129,9 +130,13 @@ function reassessBoxLevel(problem, attempts) {
 
   const nextReviewDate = new Date(lastAttemptDate);
   nextReviewDate.setDate(nextReviewDate.getDate() + nextReviewDays);
-  problem.ReviewSchedule = nextReviewDate.toISOString();
-  problem.ConsecutiveFailures = consecutiveFailures;
-  problem.Difficulty = avgDifficulty;
+  problem.review_schedule = nextReviewDate.toISOString();
+  problem.consecutive_failures = consecutiveFailures;
+
+  // Store perceived difficulty as numeric average (preserve original difficulty from standard problems)
+  if (stats.total_attempts > 0) {
+    problem.perceived_difficulty = Math.round(totalPerceivedDifficulty / stats.total_attempts);
+  }
 
   return problem;
 }
@@ -151,22 +156,22 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
 
   // Step 4: Calculate next review date
   const { nextReviewDays, nextReviewDate } = calculateNextReviewDate(problem, attemptData);
-  problem.ReviewSchedule = nextReviewDate;
+  problem.review_schedule = nextReviewDate;
 
   // Step 5: Update problem statistics
   problem = updateProblemStats(problem, attemptData);
 
   // Enhanced logging for debugging and telemetry
-  console.info("CalculateLeitnerBox - problem.ConsecutiveFailures", problem.ConsecutiveFailures);
+  console.info("CalculateLeitnerBox - problem.consecutive_failures", problem.consecutive_failures);
   console.info("Enhanced Leitner Calculation Results:", {
     nextReviewDays,
     stability: problem.Stability,
-    boxLevel: problem.BoxLevel,
+    boxLevel: problem.box_level,
     timePerformanceScore,
     exceededTimeLimit,
-    userIntent: attemptData?.UserIntent,
-    timeSpent: attemptData?.TimeSpent,
-    success: attemptData?.Success,
+    userIntent: attemptData?.user_intent,
+    timeSpent: attemptData?.time_spent,
+    success: attemptData?.success,
   });
 
   return problem;

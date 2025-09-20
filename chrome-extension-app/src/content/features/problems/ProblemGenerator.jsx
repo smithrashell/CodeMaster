@@ -8,6 +8,7 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useSimilarProblems } from "../../components/problem/useSimilarProblems";
 import { useNav } from "../../../shared/provider/navprovider";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
+import { usePageTour } from "../../components/onboarding/usePageTour";
 
 // Custom hook for settings loading and management
 const useSettingsManager = () => {
@@ -893,9 +894,18 @@ const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
 };
 
 // Problems List Component
-const ProblemsList = ({ problems, sessionData, onLinkClick }) => (
-  <div className="cm-simple-problems-list">
-    {problems.map((problem) => {
+const ProblemsList = ({ problems, sessionData, onLinkClick }) => {
+  // Filter out attempted problems - only show unattempted problems
+  const unattemptedProblems = problems.filter(problem => !problem.attempted);
+
+  // Log filtering for debugging
+  if (problems.length !== unattemptedProblems.length) {
+    logger.info(`🎯 Filtered problems: ${problems.length} total → ${unattemptedProblems.length} unattempted`);
+  }
+
+  return (
+    <div className="cm-simple-problems-list">
+      {unattemptedProblems.map((problem) => {
       const isNewProblem =
         !problem.attempts || problem.attempts.length === 0;
 
@@ -911,7 +921,8 @@ const ProblemsList = ({ problems, sessionData, onLinkClick }) => (
       );
     })}
   </div>
-);
+  );
+};
 
 
 // Custom hook for session cache listener
@@ -1027,6 +1038,9 @@ function ProbGen() {
   const sessionCreationAttempted = useRef(false);
   const lastSettingsHash = useRef(null);
 
+  // Use page tour hook to check if tour is active
+  const { showTour: showPageTour } = usePageTour();
+
   // Use settings manager hook
   const { settings, settingsLoaded, settingsLoading } = useSettingsManager();
 
@@ -1072,6 +1086,16 @@ function ProbGen() {
   const handleLinkClick = (problem) => {
     // Hide regeneration banner when user clicks a problem (session reactivated)
     setShowRegenerationBanner(false);
+    
+    // Complete page tour only if it's currently active (to avoid unnecessary API calls)
+    if (showPageTour) {
+      ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'markPageTourCompleted',
+        pageId: 'probgen'
+      }).catch(error => {
+        logger.warn('Failed to mark page tour completed:', error);
+      });
+    }
     
     window.location.href =
       problem.LeetCodeAddress ||

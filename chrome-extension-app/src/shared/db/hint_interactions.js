@@ -31,7 +31,18 @@ export const getInteractionsByProblem = async (problemId) => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readonly");
     const store = transaction.objectStore("hint_interactions");
-    const index = store.index("by_problem_id");
+    let index;
+    try {
+      index = store.index("by_problem_id");
+    } catch (error) {
+      console.error(`❌ HINT INTERACTIONS INDEX ERROR: by_problem_id index not found in hint_interactions`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "hint_interactions"
+      });
+      reject(error);
+      return;
+    }
 
     const request = index.getAll(problemId);
     request.onsuccess = () => resolve(request.result);
@@ -49,7 +60,18 @@ export const getInteractionsBySession = async (sessionId) => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readonly");
     const store = transaction.objectStore("hint_interactions");
-    const index = store.index("by_session_id");
+    let index;
+    try {
+      index = store.index("by_session_id");
+    } catch (error) {
+      console.error(`❌ HINT INTERACTIONS INDEX ERROR: by_session_id index not found in hint_interactions`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "hint_interactions"
+      });
+      reject(error);
+      return;
+    }
 
     const request = index.getAll(sessionId);
     request.onsuccess = () => resolve(request.result);
@@ -67,7 +89,18 @@ export const getInteractionsByHintType = async (hintType) => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readonly");
     const store = transaction.objectStore("hint_interactions");
-    const index = store.index("by_hint_type");
+    let index;
+    try {
+      index = store.index("by_hint_type");
+    } catch (error) {
+      console.error(`❌ HINT INTERACTIONS INDEX ERROR: by_hint_type index not found in hint_interactions`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "hint_interactions"
+      });
+      reject(error);
+      return;
+    }
 
     const request = index.getAll(hintType);
     request.onsuccess = () => resolve(request.result);
@@ -85,7 +118,18 @@ export const getInteractionsByAction = async (userAction) => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readonly");
     const store = transaction.objectStore("hint_interactions");
-    const index = store.index("by_user_action");
+    let index;
+    try {
+      index = store.index("by_user_action");
+    } catch (error) {
+      console.error(`❌ HINT INTERACTIONS INDEX ERROR: by_user_action index not found in hint_interactions`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "hint_interactions"
+      });
+      reject(error);
+      return;
+    }
 
     const request = index.getAll(userAction);
     request.onsuccess = () => resolve(request.result);
@@ -104,7 +148,18 @@ export const getInteractionsByDateRange = async (startDate, endDate) => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readonly");
     const store = transaction.objectStore("hint_interactions");
-    const index = store.index("by_timestamp");
+    let index;
+    try {
+      index = store.index("by_timestamp");
+    } catch (error) {
+      console.error(`❌ HINT INTERACTIONS INDEX ERROR: by_timestamp index not found in hint_interactions`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "hint_interactions"
+      });
+      reject(error);
+      return;
+    }
 
     const range = IDBKeyRange.bound(
       startDate.toISOString(),
@@ -130,7 +185,18 @@ export const getInteractionsByDifficultyAndType = async (
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readonly");
     const store = transaction.objectStore("hint_interactions");
-    const index = store.index("by_hint_type_and_difficulty");
+    let index;
+    try {
+      index = store.index("by_hint_type_and_difficulty");
+    } catch (error) {
+      console.error(`❌ HINT INTERACTIONS INDEX ERROR: by_hint_type_and_difficulty index not found in hint_interactions`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "hint_interactions"
+      });
+      reject(error);
+      return;
+    }
 
     const request = index.getAll([hintType, difficulty]);
     request.onsuccess = () => resolve(request.result);
@@ -164,7 +230,18 @@ export const deleteOldInteractions = async (cutoffDate) => {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("hint_interactions", "readwrite");
     const store = transaction.objectStore("hint_interactions");
-    const index = store.index("by_timestamp");
+    let index;
+    try {
+      index = store.index("by_timestamp");
+    } catch (error) {
+      console.error(`❌ HINT INTERACTIONS INDEX ERROR: by_timestamp index not found in hint_interactions`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "hint_interactions"
+      });
+      reject(error);
+      return;
+    }
 
     const range = IDBKeyRange.upperBound(cutoffDate.toISOString());
     let deletedCount = 0;
@@ -202,20 +279,20 @@ export const getInteractionStats = async () => {
         (i) =>
           new Date(i.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       ).length,
-      uniqueProblems: new Set(allInteractions.map((i) => i.problemId)).size,
-      uniqueSessions: new Set(allInteractions.map((i) => i.sessionId)).size,
+      uniqueProblems: new Set(allInteractions.map((i) => i.problem_id)).size,
+      uniqueSessions: new Set(allInteractions.map((i) => i.session_id)).size,
     };
 
     // Count by action type
     allInteractions.forEach((interaction) => {
-      stats.byAction[interaction.userAction] =
-        (stats.byAction[interaction.userAction] || 0) + 1;
-      stats.byHintType[interaction.hintType] =
-        (stats.byHintType[interaction.hintType] || 0) + 1;
-      stats.byDifficulty[interaction.problemDifficulty] =
-        (stats.byDifficulty[interaction.problemDifficulty] || 0) + 1;
-      stats.byBoxLevel[interaction.boxLevel] =
-        (stats.byBoxLevel[interaction.boxLevel] || 0) + 1;
+      stats.byAction[interaction.user_action] =
+        (stats.byAction[interaction.user_action] || 0) + 1;
+      stats.byHintType[interaction.hint_type] =
+        (stats.byHintType[interaction.hint_type] || 0) + 1;
+      stats.byDifficulty[interaction.problem_difficulty] =
+        (stats.byDifficulty[interaction.problem_difficulty] || 0) + 1;
+      stats.byBoxLevel[interaction.box_level] =
+        (stats.byBoxLevel[interaction.box_level] || 0) + 1;
     });
 
     return stats;
@@ -237,11 +314,11 @@ export const getHintEffectiveness = async () => {
     const effectiveness = {};
 
     allInteractions.forEach((interaction) => {
-      const key = `${interaction.hintType}-${interaction.problemDifficulty}`;
+      const key = `${interaction.hint_type}-${interaction.problem_difficulty}`;
       if (!effectiveness[key]) {
         effectiveness[key] = {
-          hintType: interaction.hintType,
-          difficulty: interaction.problemDifficulty,
+          hintType: interaction.hint_type,
+          difficulty: interaction.problem_difficulty,
           totalInteractions: 0,
           expansions: 0,
           dismissals: 0,
@@ -251,11 +328,11 @@ export const getHintEffectiveness = async () => {
       }
 
       effectiveness[key].totalInteractions++;
-      effectiveness[key].problems.add(interaction.problemId);
+      effectiveness[key].problems.add(interaction.problem_id);
 
-      if (interaction.userAction === "expand") {
+      if (interaction.user_action === "expand") {
         effectiveness[key].expansions++;
-      } else if (interaction.userAction === "dismissed") {
+      } else if (interaction.user_action === "dismissed") {
         effectiveness[key].dismissals++;
       }
     });

@@ -14,7 +14,7 @@ export const useAppOnboarding = () => {
     const checkOnboarding = async () => {
       try {
         const status = await checkOnboardingStatus();
-        setShowOnboarding(!status.isCompleted);
+        setShowOnboarding(!status.is_completed);
       } catch (error) {
         // Error checking onboarding status
         setShowOnboarding(false);

@@ -1,4 +1,3 @@
-import { calculateDecayScore } from "../Utils.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
 
@@ -121,6 +120,41 @@ export function getValidProblems({
 }
 
 /**
+ * Calculate relationship score for a problem based on user's attempted problems
+ * Higher score = more connected to user's learning path
+ */
+function calculateRelationshipScore(problemId, attemptedProblems, relationshipMap) {
+  if (!relationshipMap || attemptedProblems.length === 0) return 0;
+
+  let totalScore = 0;
+  let relationshipCount = 0;
+
+  // Check relationships with attempted problems
+  for (const attemptedId of attemptedProblems) {
+    // Convert to numbers for map lookup (relationship map uses numeric keys)
+    const numProblemId = Number(problemId);
+    const numAttemptedId = Number(attemptedId);
+
+    // Check both directions of relationships
+    const relationships1 = relationshipMap.get(numProblemId);
+    const relationships2 = relationshipMap.get(numAttemptedId);
+
+    if (relationships1 && relationships1[numAttemptedId]) {
+      totalScore += relationships1[numAttemptedId];
+      relationshipCount++;
+    }
+
+    if (relationships2 && relationships2[numProblemId]) {
+      totalScore += relationships2[numProblemId];
+      relationshipCount++;
+    }
+  }
+
+  // Return average relationship strength, or 0 if no relationships
+  return relationshipCount > 0 ? totalScore / relationshipCount : 0;
+}
+
+/**
  * Build a pattern ladder of problems with decay scores and relationships.
  */
 export function buildLadder({
@@ -163,47 +197,47 @@ export function buildLadder({
   console.info("mediumCount", mediumCount);
   console.info("hardCount", hardCount);
 
-  const easy = validProblems
-    .filter((p) => p.difficulty === "Easy")
-    .slice(0, easyCount);
-  const medium = validProblems
-    .filter((p) => p.difficulty === "Medium")
-    .slice(0, mediumCount);
-  const hard = validProblems
-    .filter((p) => p.difficulty === "Hard")
-    .slice(0, hardCount);
+  // Helper function to sort problems by relationship strength (secondary criteria)
+  const sortByRelationships = (problems) => {
+    if (!relationshipMap || !userProblemMap) return problems;
+
+    return problems.sort((a, b) => {
+      // Get attempted problems for relationship scoring
+      const attemptedProblems = Array.from(userProblemMap.keys());
+
+      // Calculate relationship scores for each problem
+      const scoreA = calculateRelationshipScore(a.id, attemptedProblems, relationshipMap);
+      const scoreB = calculateRelationshipScore(b.id, attemptedProblems, relationshipMap);
+
+      // Higher relationship score = more connected to user's learning path
+      return scoreB - scoreA;
+    });
+  };
+
+  const easy = sortByRelationships(
+    validProblems.filter((p) => p.difficulty === "Easy")
+  ).slice(0, easyCount);
+
+  const medium = sortByRelationships(
+    validProblems.filter((p) => p.difficulty === "Medium")
+  ).slice(0, mediumCount);
+
+  const hard = sortByRelationships(
+    validProblems.filter((p) => p.difficulty === "Hard")
+  ).slice(0, hardCount);
 
   let problemsByDifficulty = [...easy, ...medium, ...hard];
   console.info("ladderProblems", problemsByDifficulty);
   const ladderProblems = problemsByDifficulty.map((p) => {
-    const userData = userProblemMap.get(p.id);
-    const stats = userData?.AttemptStats || {};
-    const totalAttempts = stats.TotalAttempts || 0;
-    const successAttempts = stats.SuccessfulAttempts || 0;
-    const successRate = totalAttempts > 0 ? successAttempts / totalAttempts : 0;
-
-    const lastAttemptDate =
-      userData?.lastAttemptDate || new Date().toISOString();
-    const stability = userData?.Stability || 6.0;
-
-    const decayScore =
-      totalAttempts > 0
-        ? calculateDecayScore(lastAttemptDate, successRate, stability)
-        : 1;
-
-    const fullConnections = relationshipMap.get(p.id) || {};
-    const sortedConnections = Object.entries(fullConnections)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+    // Check if this problem has been attempted by user
+    const isAttempted = userProblemMap ? userProblemMap.has(p.id) : false;
 
     return {
       id: p.id,                    // Standardized: use 'id' to match standard problems schema
       title: p.title,
       difficulty: p.difficulty,    // Standardized: use 'difficulty' to match standard problems schema
       tags: p.tags || [],
-      decayScore,
-      connections: sortedConnections.map(([id]) => id),
-      connectedStrengths: Object.fromEntries(sortedConnections),
+      attempted: isAttempted       // Track if user has attempted this problem
     };
   });
   if (ladderProblems.length < 1) {

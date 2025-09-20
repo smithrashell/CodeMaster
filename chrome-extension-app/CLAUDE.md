@@ -236,3 +236,73 @@ The codebase uses ESLint rules to enforce this architecture:
 - IndexedDB for persistent local storage without backend dependency
 - Chrome extension manifest v3 architecture
 - ESLint and Prettier for code quality
+
+## Theming Guidelines
+
+### Dark Mode Badge Text Color Fix
+
+When badges appear with poor contrast in dark mode, use Mantine's official approaches instead of direct CSS overrides:
+
+#### ✅ PREFERRED: Mantine Styles API
+```javascript
+// In theme configuration
+Badge: {
+  styles: (theme) => {
+    const isDarkMode = document.body?.getAttribute('data-theme') === 'dark';
+    return {
+      root: isDarkMode ? {
+        color: '#ffffff !important',
+        '&:hover': {
+          color: '#ffffff !important',
+        }
+      } : {}
+    };
+  }
+}
+```
+
+#### ✅ PREFERRED: Variant Color Resolver
+```javascript
+const variantColorResolver = (input) => {
+  const isDarkMode = document.body?.getAttribute('data-theme') === 'dark';
+  
+  if (isDarkMode && input.variant === 'light') {
+    const result = defaultVariantColorsResolver(input);
+    return {
+      ...result,
+      color: '#ffffff',
+      hoverColor: '#ffffff',
+    };
+  }
+  
+  return defaultVariantColorsResolver(input);
+};
+```
+
+#### ❌ AVOID: Direct CSS Overrides
+- Do not add CSS rules like `[data-theme="dark"] .mantine-Badge-root { color: #ffffff !important; }`
+- Direct overrides bypass Mantine's design system and can cause maintenance issues
+- Use Mantine's official theming APIs for better integration and maintainability
+
+#### ❌ PROHIBITED: SegmentedControl CSS Overrides
+Never add direct CSS overrides for SegmentedControl components like:
+```css
+/* Fix SegmentedControl in dark mode */
+body[data-theme="dark"] .mantine-SegmentedControl-root {
+  background-color: #1f2a38;
+}
+
+body[data-theme="dark"] .mantine-SegmentedControl-label {
+  color: #ffffff !important;
+}
+
+body[data-theme="dark"] .mantine-SegmentedControl-control[data-active] {
+  background-color: #1e3a8a !important;
+}
+
+body[data-theme="dark"] .mantine-SegmentedControl-control[data-active] .mantine-SegmentedControl-label {
+  color: #ffffff !important;
+}
+```
+- These overrides break Mantine's component architecture
+- Use component styles in the theme provider instead

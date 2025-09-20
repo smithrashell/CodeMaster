@@ -7,6 +7,7 @@ import {
   getAllowedClassifications,
   getValidProblems,
   buildLadder,
+  getPatternLadders,
 } from "../utils/dbUtils/patternLadderUtils.js";
 
 import { buildRelationshipMap } from "../db/problem_relationships.js";
@@ -33,6 +34,35 @@ export async function initializePatternLaddersForOnboarding() {
   if (patternLadders.length > 0) {
     console.log("🔁 Pattern ladders already exist. Skipping initialization.");
     return;
+  }
+
+  // 🛡️ INITIALIZATION FIX: Ensure tag mastery exists before getting learning state
+  const existingMastery = await getTagMastery();
+  if (!existingMastery || existingMastery.length === 0) {
+    console.log("🔰 Initializing tag mastery data for onboarding...");
+
+    // Initialize with safe default focus tags from tag relationships
+    const coreConceptTags = tagRelationships
+      .filter(entry => entry.classification === "Core Concept")
+      .map(entry => entry.id)
+      .slice(0, 3); // Take first 3 core concept tags
+
+    const defaultFocusTags = coreConceptTags.length > 0 ? coreConceptTags : ["array", "hash table", "string"];
+
+    // Create initial tag mastery records for default focus tags
+    for (const tag of defaultFocusTags) {
+      await upsertTagMastery({
+        tag,
+        total_attempts: 0,
+        successful_attempts: 0,
+        mastered: false,
+        last_attempted: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    }
+
+    console.log("✅ Initialized tag mastery with focus tags:", defaultFocusTags);
   }
 
   const { allTagsInCurrentTier, focusTags } =
@@ -85,6 +115,143 @@ export async function initializePatternLaddersForOnboarding() {
   console.log("🎉 Onboarding complete: pattern ladders initialized.");
 }
 
+/**
+ * Updates pattern ladders when a problem is attempted and checks for completion
+ * @param {number} problemId - LeetCode problem ID that was attempted
+ */
+export async function updatePatternLaddersOnAttempt(problemId) {
+  try {
+    console.log(`🔄 Updating pattern ladders for attempted problem: ${problemId}`);
+
+    // Get all pattern ladders
+    const allLadders = await getPatternLadders();
+    const updatedLadders = [];
+
+    // Find and update ladders containing this problem
+    for (const [tag, ladder] of Object.entries(allLadders)) {
+      const problemIndex = ladder.problems.findIndex(p => Number(p.id) === Number(problemId));
+
+      if (problemIndex !== -1 && !ladder.problems[problemIndex].attempted) {
+        // Mark problem as attempted
+        ladder.problems[problemIndex].attempted = true;
+
+        // Update the ladder in database
+        await upsertPatternLadder({
+          tag,
+          last_updated: new Date().toISOString(),
+          problems: ladder.problems,
+        });
+
+        updatedLadders.push(tag);
+        console.log(`✅ Updated pattern ladder for tag: ${tag}`);
+
+        // Check if ladder is now complete
+        const allAttempted = ladder.problems.every(p => p.attempted);
+        if (allAttempted) {
+          console.log(`🎉 Pattern ladder completed for tag: ${tag}`);
+
+          // Trigger regeneration for completed ladder with error logging
+          try {
+            await regenerateCompletedPatternLadder(tag);
+            console.log(`✅ Successfully regenerated completed pattern ladder: ${tag}`);
+          } catch (error) {
+            console.error(`❌ Failed to regenerate completed pattern ladder: ${tag}`, error);
+            // Continue execution - don't fail the attempt if regeneration fails
+          }
+        }
+      }
+    }
+
+    if (updatedLadders.length > 0) {
+      console.log(`✅ Updated ${updatedLadders.length} pattern ladders for problem ${problemId}`);
+    }
+
+    return updatedLadders;
+  } catch (error) {
+    console.error(`❌ Error updating pattern ladders for problem ${problemId}:`, error);
+    // Don't throw - pattern ladder updates shouldn't fail problem attempts
+  }
+}
+
+/**
+ * Regenerates a specific completed pattern ladder with related tags
+ * @param {string} completedTag - The tag whose ladder was completed
+ */
+export async function regenerateCompletedPatternLadder(completedTag) {
+  console.log(`🔄 Regenerating completed pattern ladder: ${completedTag}`);
+
+  // For now, regenerate just this specific ladder
+  // TODO: Could be enhanced to regenerate related tags via tag_relationships
+  const [
+    standardProblems,
+    userProblems = [],
+    tagMasteryRecords = [],
+    tagRelationships = [],
+    problemRelationships = [],
+  ] = await Promise.all([
+    getAllFromStore("standard_problems"),
+    getAllFromStore("problems"),
+    getTagMastery(),
+    getAllFromStore("tag_relationships"),
+    getAllFromStore("problem_relationships"),
+  ]);
+
+  const userProblemMap = new Map(userProblems.map((p) => [p.leetcode_id, p]));
+  const relationshipMap = buildRelationshipMap(problemRelationships);
+
+  // Get learning state for dynamic ladder sizing
+  const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();
+  const focusTagSet = new Set(focusTags);
+  const allTagsInTierSet = new Set(allTagsInCurrentTier);
+
+  // Find the specific tag relationship
+  const tagEntry = tagRelationships.find(entry => entry.id === completedTag);
+  if (!tagEntry) {
+    throw new Error(`Tag relationship not found for: ${completedTag}`);
+  }
+
+  const classification = tagEntry.classification || "Advanced Techniques";
+  const allowedClassifications = getAllowedClassifications(classification);
+
+  const validProblems = getValidProblems({
+    problems: standardProblems,
+    userProblemMap,
+    tagRelationships,
+    allowedClassifications,
+    focusTags,
+  });
+
+  // Dynamic ladder size based on tag focus and tier
+  const ladderSize = focusTagSet.has(completedTag)
+    ? 12
+    : allTagsInTierSet.has(completedTag)
+    ? 9
+    : 5;
+
+  const ladder = buildLadder({
+    validProblems,
+    problemCounts: tagEntry.difficulty_distribution || {},
+    userProblemMap,
+    relationshipMap,
+    ladderSize,
+    isOnboarding: false,
+  });
+
+  await upsertPatternLadder({
+    tag: completedTag,
+    last_updated: new Date().toISOString(),
+    problems: ladder,
+  });
+
+  const existing = tagMasteryRecords.find((t) => t.tag === completedTag) || { tag: completedTag };
+  await upsertTagMastery({
+    ...existing,
+    coreLadder: ladder,
+  });
+
+  console.log(`✅ Successfully regenerated pattern ladder: ${completedTag}`);
+}
+
 export async function generatePatternLaddersAndUpdateTagMastery() {
   const [
     standardProblems,
@@ -116,11 +283,11 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     const allowedClassifications = getAllowedClassifications(classification);
 
     const validProblems = getValidProblems({
-      tag,
       problems: standardProblems,
       userProblemMap,
       tagRelationships,
       allowedClassifications,
+      focusTags,
     });
 
     // Dynamic ladder size based on tag focus and tier

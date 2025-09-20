@@ -22,11 +22,26 @@ export async function getProblemFromStandardProblems(slug) {
       const objectStore = transaction.objectStore("standard_problems");
 
       if (!objectStore.indexNames.contains("by_slug")) {
+        console.error("❌ STANDARD_PROBLEMS INDEX ERROR: by_slug index not found", {
+          availableIndexes: Array.from(objectStore.indexNames),
+          storeName: "standard_problems",
+          requestedIndex: "by_slug"
+        });
         logger.error("❌ Index 'by_slug' not found in 'standard_problems'.");
         return reject(new Error("Index 'by_slug' not found."));
       }
 
-      const index = objectStore.index("by_slug");
+      let index;
+      try {
+        index = objectStore.index("by_slug");
+      } catch (error) {
+        console.error("❌ STANDARD_PROBLEMS INDEX ACCESS ERROR:", {
+          error: error.message,
+          availableIndexes: Array.from(objectStore.indexNames),
+          storeName: "standard_problems"
+        });
+        return reject(error);
+      }
 
       logger.info("📌 Querying standard_problems with slug:", slug);
       const request = index.get(slug);

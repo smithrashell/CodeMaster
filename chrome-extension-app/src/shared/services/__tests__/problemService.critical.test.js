@@ -228,10 +228,10 @@ describe("ProblemService - Critical User Retention Paths", () => {
       // CRITICAL: User progress is recorded
       expect(AttemptsService.addAttempt).toHaveBeenCalledWith(
         expect.objectContaining({
-          ProblemID: 1,
-          Success: true,
-          TimeSpent: 900,
-          AttemptDate: "2024-01-15T10:00:00Z"
+          problem_id: 1,
+          success: true,
+          time_spent: 900,
+          attempt_date: "2024-01-15T10:00:00Z"
         }),
         existingProblem
       );

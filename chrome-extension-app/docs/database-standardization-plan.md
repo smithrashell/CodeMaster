@@ -28,11 +28,18 @@ This document outlines a comprehensive plan to standardize all property names ac
 - **Root Cause**: Inconsistent session ID property names and references
 
 ### 5. Property Casing Inconsistencies
-- **Examples**: 
+- **Examples**:
   - `ProblemDescription` vs `problemDescription`
-  - `Tags` vs `tags` 
+  - `Tags` vs `tags`
   - `leetCodeID` vs `leetcode_id`
   - `SessionID` vs `sessionId`
+
+### 6. Session Analytics Processing Failure (CRITICAL)
+- **Location**: `sessions.js:859` (`_processAttempts` function)
+- **Issue**: Session attempts use camelCase (`attemptId`, `problemId`, `timeSpent`) but analytics processing expects snake_case (`attempt_id`, `problem_id`, `time_spent`)
+- **Symptom**: All 12 attempts report `problem_id: undefined`, causing 0 accuracy calculation
+- **Root Cause**: `attemptsService.js:403` creates session attempts with camelCase structure
+- **Impact**: Sessions stuck in onboarding mode, no adaptive learning progression
 
 ## Current Database Schema Analysis
 
@@ -167,12 +174,23 @@ indexes: {
 // New Object Structure
 {
   id: sessionId,
-  session_type: "practice",          // Snake case
-  status: "draft",
+  session_type: "standard",          // Snake case
+  status: "completed",
   problems: [],
+  attempts: [                        // Session attempts array (snake_case)
+    {
+      attempt_id: "uuid",            // Snake case
+      problem_id: "uuid",            // Database UUID (snake_case)
+      leetcode_id: 21,               // LeetCode ID for lookups (snake_case)
+      success: true,
+      time_spent: 900,               // Snake case
+      source: "session_problem"
+    }
+  ],
   created_date: new Date(),          // Snake case
   last_activity_time: new Date(),    // Snake case
-  origin: "content_script"           // Snake case
+  origin: "generator",               // Snake case
+  current_problem_index: 0           // Snake case
 }
 ```
 

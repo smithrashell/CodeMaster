@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { getTagRelationships } from "./tag_relationships.js";
+import { scoreProblemsWithRelationships } from "./problem_relationships.js";
 
 // Import session functions are handled directly through SessionService
 
@@ -318,15 +319,39 @@ export async function addProblem(problemData) {
     const db = await openDB();
     const _standardProblem = await fetchProblemById(problemData.leetcode_id);
 
-    // Check if problem already exists by leetcode_id to prevent duplicates
-    const existingProblem = await checkDatabaseForProblem(problemData.leetcode_id);
+    const transaction = db.transaction(["problems"], "readwrite");
+    const store = transaction.objectStore("problems");
+
+    // Check if problem already exists by leetcode_id within the same transaction to prevent race conditions
+    let index;
+    try {
+      index = store.index("by_leetcode_id");
+    } catch (error) {
+      console.error(`❌ PROBLEMS INDEX ERROR: by_leetcode_id index not found in problems`, {
+        error: error.message,
+        availableIndexes: Array.from(store.indexNames),
+        storeName: "problems"
+      });
+      throw error;
+    }
+
+    const existingCheck = index.get(Number(problemData.leetcode_id));
+    const existingProblem = await new Promise((resolve, reject) => {
+      existingCheck.onsuccess = () => {
+        const result = existingCheck.result;
+        logger.info("🔍 Duplicate check result:", result ? "Found existing problem" : "No duplicate found");
+        resolve(result); // Will be undefined/null if not found, or the problem object if found
+      };
+      existingCheck.onerror = () => {
+        logger.error("❌ Error checking for duplicate problem:", existingCheck.error);
+        reject(existingCheck.error);
+      };
+    });
+
     if (existingProblem) {
       logger.info("Problem already exists, not creating duplicate:", existingProblem);
       return existingProblem;
     }
-
-    const transaction = db.transaction(["problems"], "readwrite");
-    const store = transaction.objectStore("problems");
 
     const problemId = uuidv4();
     const attemptId = uuidv4();
@@ -359,12 +384,8 @@ export async function addProblem(problemData) {
     transaction.oncomplete = async function () {
       logger.info("Problem added successfully:", problem);
 
-      // Get current session from Chrome storage
-      let session = await new Promise((resolve) => {
-        chrome.storage.local.get(["currentSession"], (result) => {
-          resolve(result.currentSession || null);
-        });
-      });
+      // Get current session using SessionService to respect mutex
+      let session = await SessionService.resumeSession();
 
       if (!session) {
         logger.warn("No active session found, creating session");
@@ -521,7 +542,7 @@ export async function fetchAdditionalProblems(
   _currentAllowedTags = [],
   options = {}
 ) {
-  const { userId = "session_state", currentDifficultyCap = null, isOnboarding = false } = options;
+  const { currentDifficultyCap = null, isOnboarding = false } = options;
   logger.info("🔰 fetchAdditionalProblems called with isOnboarding:", isOnboarding);
   try {
     const { masteryData, _focusTags, allTagsInCurrentTier } =
@@ -544,7 +565,7 @@ export async function fetchAdditionalProblems(
     }
 
     // 🎯 Get coordinated focus decision (integrates all systems)
-    const focusDecision = await FocusCoordinationService.getFocusDecision(userId);
+    const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
     
     // Use coordinated focus decision for enhanced focus tags
     const enhancedFocusTags = focusDecision.activeFocusTags;
@@ -1043,8 +1064,8 @@ function normalizeTags(tags) {
  *   - usedProblemIds: Already used problem IDs
  * @returns {Array} Selected problems
  */
-function selectProblemsForTag(tag, count, config) {
-  const { difficultyAllowance, ladders, allProblems, allTagsInCurrentTier, usedProblemIds } = config;
+async function selectProblemsForTag(tag, count, config) {
+  const { difficultyAllowance, ladders, allProblems, allTagsInCurrentTier, usedProblemIds, recentAttempts = [] } = config;
   logger.info(`🎯 Selecting ${count} problems for tag: ${tag}`);
 
   const ladder = ladders?.[tag]?.problems || [];
@@ -1081,13 +1102,28 @@ function selectProblemsForTag(tag, count, config) {
       difficultyScore: getDifficultyScore(problem.difficulty || "Medium"),
       allowanceWeight: difficultyAllowance[problem.difficulty || "Medium"],
     }))
-    .sort((a, b) => {
-      // Sort by difficulty score (easier first) and then by allowance weight
-      if (a.difficultyScore !== b.difficultyScore) {
-        return a.difficultyScore - b.difficultyScore;
-      }
-      return b.allowanceWeight - a.allowanceWeight;
-    });
+    // Add relationship scoring before final sort
+  const problemsWithRelationships = await scoreProblemsWithRelationships(
+    eligibleProblems.map(p => ({ id: p.id, ...p })),
+    recentAttempts,
+    5 // Look at last 5 attempts
+  );
+
+  problemsWithRelationships.sort((a, b) => {
+    // Primary: Relationship score (higher is better)
+    const relationshipDiff = (b.relationshipScore || 0) - (a.relationshipScore || 0);
+    if (Math.abs(relationshipDiff) > 0.01) { // Only consider significant differences
+      return relationshipDiff;
+    }
+
+    // Secondary: Difficulty score (easier first)
+    if (a.difficultyScore !== b.difficultyScore) {
+      return a.difficultyScore - b.difficultyScore;
+    }
+
+    // Tertiary: Allowance weight
+    return b.allowanceWeight - a.allowanceWeight;
+  });
 
   logger.info(
     `🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`
@@ -1373,12 +1409,8 @@ export function addProblemWithRetry(problemData, options = {}) {
             problemData.leetcode_id
           );
 
-          // Get current session from Chrome storage (this is external to transaction)
-          let session = await new Promise((resolve) => {
-            chrome.storage.local.get(["currentSession"], (result) => {
-              resolve(result.currentSession || null);
-            });
-          });
+          // Get current session using SessionService to respect mutex
+          let session = await SessionService.resumeSession();
 
           if (!session) {
             throw new Error("No active session found");

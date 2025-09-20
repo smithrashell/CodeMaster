@@ -13,7 +13,7 @@ export function OutcomeTrendsSection({
           <Group gap="xs" mb="md">
             <IconAdjustments size={20} style={{ color: 'var(--mantine-color-dimmed)' }} />
             <Title order={4}>Outcome Trends & Soft Targets</Title>
-            <Badge variant="light" color="cyan" size="sm">System guided</Badge>
+            <Badge color="cyan" size="sm">System guided</Badge>
           </Group>
           
           <Grid>
@@ -23,7 +23,7 @@ export function OutcomeTrendsSection({
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.weeklyAccuracy.value}%
                 </Text>
-                <Badge variant="light" color={getStatusColor(outcomeTrends.weeklyAccuracy.status)} size="xs" mt="xs">
+                <Badge color={getStatusColor(outcomeTrends.weeklyAccuracy.status)} size="xs" mt="xs">
                   {getStatusText(outcomeTrends.weeklyAccuracy.status)}
                 </Badge>
               </div>
@@ -35,7 +35,7 @@ export function OutcomeTrendsSection({
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.problemsPerWeek.display || outcomeTrends.problemsPerWeek.value}
                 </Text>
-                <Badge variant="light" color={getStatusColor(outcomeTrends.problemsPerWeek.status)} size="xs" mt="xs">
+                <Badge color={getStatusColor(outcomeTrends.problemsPerWeek.status)} size="xs" mt="xs">
                   {getStatusText(outcomeTrends.problemsPerWeek.status)}
                 </Badge>
               </div>
@@ -47,7 +47,7 @@ export function OutcomeTrendsSection({
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.hintEfficiency.display}
                 </Text>
-                <Badge variant="light" color={getStatusColor(outcomeTrends.hintEfficiency.status)} size="xs" mt="xs">
+                <Badge color={getStatusColor(outcomeTrends.hintEfficiency.status)} size="xs" mt="xs">
                   {getStatusText(outcomeTrends.hintEfficiency.status)}
                 </Badge>
               </div>
@@ -59,7 +59,7 @@ export function OutcomeTrendsSection({
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.learningVelocity.value}
                 </Text>
-                <Badge variant="light" color={getStatusColor(outcomeTrends.learningVelocity.status)} size="xs" mt="xs">
+                <Badge color={getStatusColor(outcomeTrends.learningVelocity.status)} size="xs" mt="xs">
                   {getStatusText(outcomeTrends.learningVelocity.status)}
                 </Badge>
               </div>

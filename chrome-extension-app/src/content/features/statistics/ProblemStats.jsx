@@ -98,17 +98,18 @@ const ProbStat = () => {
   // Check if we just completed a submission to show fresh data
   const wasJustSubmitted = routeState?.submissionComplete;
 
-  // New approach using custom hook
+  // New approach using custom hook with cache invalidation support
   const {
     data: _statisticsData,
     loading,
     error: _hookError,
     refetch,
-  } = useChromeMessage({ type: "countProblemsByBoxLevel" }, [], {
+  } = useChromeMessage({ type: "countProblemsByBoxLevel", forceRefresh: true }, [], {
     onSuccess: (response) => {
       if (response && response.status === "success") {
         setBoxLevelData(response.data);
         setError(null);
+        console.log("📊 Problem stats updated:", response.data);
       } else {
         console.error("Failed to get problem count by box level");
         setError("Failed to load statistics. Please try refreshing.");

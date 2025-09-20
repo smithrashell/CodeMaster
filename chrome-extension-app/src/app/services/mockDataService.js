@@ -182,8 +182,8 @@ const generateMockProblems = (attempts, userType = "active") => {
       ProblemTitle: `Problem ${
         problemId.split("_")[2] || problemId.split("_")[1]
       }`,
-      TotalAttempts: relatedAttempts.length,
-      SuccessfulAttempts: relatedAttempts.filter((a) => a.Success).length,
+      total_attempts: relatedAttempts.length,
+      successful_attempts: relatedAttempts.filter((a) => a.Success).length,
       tags: [`tag_${Math.floor(Math.random() * 20) + 1}`], // Legacy field
     });
   });

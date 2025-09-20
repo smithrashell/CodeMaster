@@ -17,7 +17,7 @@ import { detectApplicableEscapeHatches} from '../utils/escapeHatchUtils.js';
  */
 const FOCUS_CONFIG = {
   onboarding: {
-    sessionCount: 3,
+    sessionCount: 1,
     maxTags: 1
   },
   performance: {
@@ -41,13 +41,13 @@ export class FocusCoordinationService {
   /**
    * Main entry point for all focus area decisions
    * Integrates with existing systems to provide unified decision making
-   * @param {string} userId - User identifier
+   * @param {string} sessionStateKey - Session state key to read from
    * @returns {Object} Complete focus decision with transparency data
    */
-  static async getFocusDecision(userId) {
+  static async getFocusDecision(sessionStateKey) {
     try {
       // STEP 1: Gather all inputs from existing systems
-      const inputs = await this.gatherSystemInputs(userId);
+      const inputs = await this.gatherSystemInputs(sessionStateKey);
       
       // STEP 2: Check escape hatches FIRST (existing system priority)
       const escapeHatches = await detectApplicableEscapeHatches(
@@ -106,10 +106,10 @@ export class FocusCoordinationService {
   
   /**
    * Gathers inputs from all existing systems
-   * @param {string} userId - User identifier
+   * @param {string} sessionStateKey - Session state key
    * @returns {Object} All system inputs
    */
-  static async gatherSystemInputs(userId) {
+  static async gatherSystemInputs(sessionStateKey) {
     const [
       systemRecommendation,
       userPreferences,
@@ -118,14 +118,14 @@ export class FocusCoordinationService {
     ] = await Promise.all([
       TagService.getCurrentTier(),
       this.getUserPreferences(),
-      StorageService.getSessionState(`sessionState_${userId}`),
+      StorageService.getSessionState(sessionStateKey),
       StorageService.getSettings()
     ]);
     
     return {
       systemRecommendation,
       userPreferences,
-      sessionState: sessionState || { numSessionsCompleted: 0 },
+      sessionState: sessionState || { num_sessions_completed: 0 },
       settings,
       masteryData: systemRecommendation.masteryData || [],
       tierTags: systemRecommendation.allTagsInCurrentTier || []
@@ -153,8 +153,8 @@ export class FocusCoordinationService {
     const performance = this.getPerformanceMetrics(sessionState);
     const isOnboarding = this.isOnboarding(sessionState);
     
-    // Get base system tags
-    const systemTags = systemRec.focusTags || ['array'];
+    // Get base system tags with proper fallback for empty arrays
+    const systemTags = (systemRec.focusTags && systemRec.focusTags.length > 0) ? systemRec.focusTags : ['array'];
     
     // Apply onboarding restrictions (CORE ALGORITHM)
     if (isOnboarding) {
@@ -276,11 +276,11 @@ export class FocusCoordinationService {
    * @returns {Object} Performance metrics
    */
   static getPerformanceMetrics(sessionState) {
-    const lastPerformance = sessionState.lastPerformance || {};
-    
+    const lastPerformance = sessionState.last_performance || {};
+
     return {
       accuracy: lastPerformance.accuracy || 0.0,
-      efficiency: lastPerformance.efficiencyScore || 0.0,
+      efficiency: lastPerformance.efficiency_score || 0.0,
       level: this.getPerformanceLevel(lastPerformance.accuracy || 0.0),
       daysSinceProgress: this.calculateDaysSinceProgress(sessionState)
     };
@@ -320,7 +320,7 @@ export class FocusCoordinationService {
    * @returns {boolean} True if onboarding
    */
   static isOnboarding(sessionState) {
-    return (sessionState.numSessionsCompleted || 0) < FOCUS_CONFIG.onboarding.sessionCount;
+    return (sessionState.num_sessions_completed || 0) < FOCUS_CONFIG.onboarding.sessionCount;
   }
   
   /**
@@ -353,11 +353,11 @@ export class FocusCoordinationService {
     // Only update focus-related fields to avoid conflicts
     return {
       ...sessionState,
-      // DON'T touch: numSessionsCompleted, escapeHatches, etc.
+      // DON'T touch: num_sessions_completed, escapeHatches, etc.
       // These are owned by other systems
-      currentFocusTags: focusDecision.activeFocusTags,
-      focusDecisionTimestamp: new Date().toISOString(),
-      performanceLevel: focusDecision.performanceLevel
+      current_focus_tags: focusDecision.activeFocusTags,
+      focus_decision_timestamp: new Date().toISOString(),
+      performance_level: focusDecision.performanceLevel
     };
   }
 }

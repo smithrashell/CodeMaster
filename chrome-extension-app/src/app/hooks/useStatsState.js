@@ -72,7 +72,7 @@ export function useStatsState(appState) {
     const checkContentStatus = async () => {
       try {
         const status = await checkContentOnboardingStatus();
-        setContentOnboardingCompleted(status.isCompleted);
+        setContentOnboardingCompleted(status.is_completed);
       } catch (error) {
         console.error("Error checking content onboarding status:", error);
         setContentOnboardingCompleted(false);
