@@ -73,9 +73,9 @@ export async function auditAttemptsTimeData() {
 
   // Analyze each attempt
   attempts.forEach((attempt, _index) => {
-    const timeSpent = Number(attempt.TimeSpent) || 0;
-    const attemptDate = attempt.AttemptDate;
-    const problemId = attempt.ProblemID;
+    const timeSpent = Number(attempt.time_spent) || 0;
+    const attemptDate = attempt.attempt_date;
+    const problemId = attempt.problem_id;
 
     // Collect time values for statistics
     if (timeSpent > 0) {
@@ -460,7 +460,7 @@ async function _applyRecordFix(store, recordId, newValue, repairResults) {
   });
 
   if (getRequest) {
-    getRequest.TimeSpent = newValue;
+    getRequest.time_spent = newValue;
     await new Promise((resolve, reject) => {
       const putRequest = store.put(getRequest);
       putRequest.onsuccess = () => resolve();

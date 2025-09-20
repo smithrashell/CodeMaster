@@ -121,7 +121,12 @@ export const StorageService = {
       reminder: { value: false, label: "6" },
       numberofNewProblemsPerSession: 2,
       adaptive: true,
-      focusAreas: [],
+      focusAreas: ["array"], // Start new users with one focus area
+      sessionsPerWeek: 5,
+      reviewRatio: 40,
+      timerDisplay: "mm:ss",
+      breakReminders: { enabled: false, interval: 25 },
+      notifications: { sound: false, browser: false, visual: true },
       accessibility: {
         screenReader: {
           enabled: false,
@@ -174,16 +179,26 @@ export const StorageService = {
         const store = transaction.objectStore("settings");
         const request = store.get("user_settings");
         
-        request.onsuccess = () => {
+        request.onsuccess = async () => {
           if (request.result && request.result.data) {
             resolve(request.result.data);
           } else {
-            // Return default settings if none exist
+            // Create and save default settings if none exist
             const defaultSettings = this._createDefaultSettings();
             // Override some keyboard accessibility defaults
             defaultSettings.accessibility.keyboard.enhancedFocus = true;
             defaultSettings.accessibility.keyboard.skipToContent = true;
             defaultSettings.accessibility.keyboard.focusTrapping = true;
+
+            // Auto-save defaults to persist them
+            try {
+              await this.setSettings(defaultSettings);
+              console.log("✅ Auto-initialized user settings with defaults");
+            } catch (saveError) {
+              console.warn("⚠️ Failed to auto-save default settings:", saveError);
+              // Still return defaults even if save fails
+            }
+
             resolve(defaultSettings);
           }
         };

@@ -40,24 +40,24 @@ export class DataIntegritySchemas {
   static PROBLEMS_SCHEMA = {
     type: "object",
     required: [
-      "leetCodeID",
-      "ProblemDescription",
-      "Difficulty",
-      "BoxLevel",
-      "AttemptStats",
+      "leetcode_id",
+      "description",
+      "difficulty",
+      "box_level",
+      "attempt_stats",
     ],
     properties: {
-      leetCodeID: {
+      leetcode_id: {
         type: "integer",
         minimum: 1,
       },
-      ProblemDescription: {
+      description: {
         type: "string",
         minLength: 1,
       },
-      Difficulty: this.COMMON_TYPES.difficulty,
-      BoxLevel: this.COMMON_TYPES.boxLevel,
-      Tags: {
+      difficulty: this.COMMON_TYPES.difficulty,
+      box_level: this.COMMON_TYPES.boxLevel,
+      tags: {
         type: "array",
         items: {
           type: "string",
@@ -65,27 +65,27 @@ export class DataIntegritySchemas {
         },
         uniqueItems: true,
       },
-      AttemptStats: {
+      attempt_stats: {
         type: "object",
-        required: ["TotalAttempts", "SuccessfulAttempts"],
+        required: ["total_attempts", "successful_attempts"],
         properties: {
-          TotalAttempts: {
+          total_attempts: {
             type: "integer",
             minimum: 0,
           },
-          SuccessfulAttempts: {
+          successful_attempts: {
             type: "integer",
             minimum: 0,
           },
         },
         additionalProperties: false,
       },
-      ReviewSchedule: this.COMMON_TYPES.timestamp,
-      lastAttemptDate: this.COMMON_TYPES.timestamp,
-      NextProblem: {
+      review_schedule: this.COMMON_TYPES.timestamp,
+      last_attempt_date: this.COMMON_TYPES.timestamp,
+      next_problem: {
         type: ["integer", "null"],
       },
-      CreatedAt: this.COMMON_TYPES.timestamp,
+      created_at: this.COMMON_TYPES.timestamp,
     },
     additionalProperties: false,
   };
@@ -93,19 +93,19 @@ export class DataIntegritySchemas {
   // Attempts store schema
   static ATTEMPTS_SCHEMA = {
     type: "object",
-    required: ["id", "problemId", "success", "date", "timeSpent"],
+    required: ["id", "problem_id", "success", "attempt_date", "time_spent"],
     properties: {
       id: this.COMMON_TYPES.uuid,
-      problemId: {
+      problem_id: {
         type: "integer",
         minimum: 1,
       },
-      sessionId: this.COMMON_TYPES.uuid,
+      session_id: this.COMMON_TYPES.uuid,
       success: {
         type: "boolean",
       },
-      date: this.COMMON_TYPES.timestamp,
-      timeSpent: {
+      attempt_date: this.COMMON_TYPES.timestamp,
+      time_spent: {
         type: "integer",
         minimum: 0,
       },
@@ -127,25 +127,25 @@ export class DataIntegritySchemas {
   // Sessions store schema
   static SESSIONS_SCHEMA = {
     type: "object",
-    required: ["id", "Date", "problems"],
+    required: ["id", "date", "problems"],
     properties: {
       id: this.COMMON_TYPES.uuid,
-      Date: this.COMMON_TYPES.timestamp,
+      date: this.COMMON_TYPES.timestamp,
       problems: {
         type: "array",
         items: {
           type: "object",
-          required: ["id", "leetCodeID"],
+          required: ["id", "leetcode_id"],
           properties: {
             id: {
               type: "integer",
               minimum: 1,
             },
-            leetCodeID: {
+            leetcode_id: {
               type: "integer",
               minimum: 1,
             },
-            selectionReason: {
+            selection_reason: {
               type: "string",
             },
           },
@@ -155,30 +155,30 @@ export class DataIntegritySchemas {
         type: "array",
         items: {
           type: "object",
-          required: ["attemptId", "problemId"],
+          required: ["attempt_id", "problem_id"],
           properties: {
-            attemptId: this.COMMON_TYPES.uuid,
-            problemId: {
+            attempt_id: this.COMMON_TYPES.uuid,
+            problem_id: {
               type: "integer",
               minimum: 1,
             },
             success: {
               type: "boolean",
             },
-            timeSpent: {
+            time_spent: {
               type: "integer",
               minimum: 0,
             },
           },
         },
       },
-      sessionLength: {
+      session_length: {
         type: "integer",
         minimum: 1,
         maximum: 20,
       },
-      completedAt: this.COMMON_TYPES.timestamp,
-      isCompleted: {
+      completed_at: this.COMMON_TYPES.timestamp,
+      is_completed: {
         type: "boolean",
       },
     },
@@ -368,17 +368,17 @@ export class DataIntegritySchemas {
   // Problem Relationships store schema
   static PROBLEM_RELATIONSHIPS_SCHEMA = {
     type: "object",
-    required: ["id", "problemId1", "problemId2", "relationshipType"],
+    required: ["id", "problem_id1", "problem_id2", "relationshipType"],
     properties: {
       id: {
         type: "integer",
         minimum: 1,
       },
-      problemId1: {
+      problem_id1: {
         type: "integer",
         minimum: 1,
       },
-      problemId2: {
+      problem_id2: {
         type: "integer",
         minimum: 1,
       },
@@ -399,7 +399,7 @@ export class DataIntegritySchemas {
   // Tag Relationships store schema
   static TAG_RELATIONSHIPS_SCHEMA = {
     type: "object",
-    required: ["id", "classification"],
+    required: ["id", "classification", "related_tags", "difficulty_distribution"],
     properties: {
       id: {
         type: "string",
@@ -408,17 +408,54 @@ export class DataIntegritySchemas {
       classification: {
         type: "string",
         enum: [
-          "pattern",
-          "algorithm",
-          "data_structure",
-          "technique",
-          "concept",
+          "Core Concept",
+          "Fundamental Technique",
+          "Advanced Technique",
         ],
       },
-      parentTag: {
-        type: "string",
+      related_tags: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["tag", "strength"],
+          properties: {
+            tag: {
+              type: "string",
+              minLength: 1,
+            },
+            strength: {
+              type: "number",
+              minimum: 0,
+              maximum: 1,
+            },
+          },
+          additionalProperties: false,
+        },
       },
-      relatedTags: {
+      difficulty_distribution: {
+        type: "object",
+        required: ["easy", "medium", "hard"],
+        properties: {
+          easy: {
+            type: "integer",
+            minimum: 0,
+          },
+          medium: {
+            type: "integer",
+            minimum: 0,
+          },
+          hard: {
+            type: "integer",
+            minimum: 0,
+          },
+        },
+        additionalProperties: false,
+      },
+      learning_order: {
+        type: "integer",
+        minimum: 1,
+      },
+      prerequisite_tags: {
         type: "array",
         items: {
           type: "string",
@@ -426,15 +463,11 @@ export class DataIntegritySchemas {
         },
         uniqueItems: true,
       },
-      prerequisites: {
-        type: "array",
-        items: {
-          type: "string",
-          minLength: 1,
-        },
-        uniqueItems: true,
+      mastery_threshold: {
+        type: "number",
+        minimum: 0,
+        maximum: 1,
       },
-      difficulty: this.COMMON_TYPES.difficulty,
     },
     additionalProperties: false,
   };
@@ -442,52 +475,40 @@ export class DataIntegritySchemas {
   // Pattern Ladders store schema
   static PATTERN_LADDERS_SCHEMA = {
     type: "object",
-    required: ["tag"],
+    required: ["tag", "problems"],
     properties: {
       tag: {
         type: "string",
         minLength: 1,
       },
-      ladder: {
+      last_updated: this.COMMON_TYPES.timestamp,
+      problems: {
         type: "array",
         items: {
           type: "object",
-          required: ["problemId", "difficulty", "order"],
+          required: ["id", "title", "difficulty", "tags"],
           properties: {
-            problemId: {
+            id: {
               type: "integer",
               minimum: 1,
             },
+            title: {
+              type: "string",
+              minLength: 1,
+            },
             difficulty: this.COMMON_TYPES.difficulty,
-            order: {
-              type: "integer",
-              minimum: 0,
-            },
-            isCompleted: {
-              type: "boolean",
-            },
-            attempts: {
-              type: "integer",
-              minimum: 0,
+            tags: {
+              type: "array",
+              items: {
+                type: "string",
+                minLength: 1,
+              },
+              minItems: 1,
             },
           },
+          additionalProperties: false,
         },
       },
-      progress: {
-        type: "object",
-        properties: {
-          completed: {
-            type: "integer",
-            minimum: 0,
-          },
-          total: {
-            type: "integer",
-            minimum: 0,
-          },
-          percentage: this.COMMON_TYPES.successRate,
-        },
-      },
-      lastUpdated: this.COMMON_TYPES.timestamp,
     },
     additionalProperties: false,
   };
@@ -495,45 +516,106 @@ export class DataIntegritySchemas {
   // Session Analytics store schema
   static SESSION_ANALYTICS_SCHEMA = {
     type: "object",
-    required: ["sessionId"],
+    required: ["session_id", "completed_at"],
     properties: {
-      sessionId: this.COMMON_TYPES.uuid,
-      completedAt: this.COMMON_TYPES.timestamp,
-      totalProblems: {
-        type: "integer",
-        minimum: 0,
+      session_id: {
+        type: "string",
+        minLength: 1,
       },
-      totalAttempts: {
-        type: "integer",
-        minimum: 0,
-      },
-      successfulAttempts: {
-        type: "integer",
-        minimum: 0,
-      },
+      completed_at: this.COMMON_TYPES.timestamp,
       accuracy: this.COMMON_TYPES.successRate,
-      averageTimePerProblem: {
+      avg_time: {
         type: "number",
         minimum: 0,
       },
-      totalTimeSpent: {
+      predominant_difficulty: this.COMMON_TYPES.difficulty,
+      total_problems: {
         type: "integer",
         minimum: 0,
       },
-      predominantDifficulty: this.COMMON_TYPES.difficulty,
-      tagsWorkedOn: {
+      difficulty_mix: {
+        type: "object",
+        properties: {
+          easy: { type: "number", minimum: 0, maximum: 100 },
+          medium: { type: "number", minimum: 0, maximum: 100 },
+          hard: { type: "number", minimum: 0, maximum: 100 },
+        },
+        additionalProperties: false,
+      },
+      new_masteries: {
+        type: "integer",
+        minimum: 0,
+      },
+      decayed_masteries: {
+        type: "integer",
+        minimum: 0,
+      },
+      mastery_deltas: {
         type: "array",
         items: {
-          type: "string",
-          minLength: 1,
+          type: "object",
+          required: ["tag", "delta"],
+          properties: {
+            tag: { type: "string", minLength: 1 },
+            delta: { type: "number" },
+          },
         },
+      },
+      strong_tags: {
+        type: "array",
+        items: { type: "string", minLength: 1 },
         uniqueItems: true,
       },
-      improvementAreas: {
+      weak_tags: {
         type: "array",
-        items: {
-          type: "string",
+        items: { type: "string", minLength: 1 },
+        uniqueItems: true,
+      },
+      timing_feedback: {
+        type: "object",
+        properties: {
+          easy: { type: "string" },
+          medium: { type: "string" },
+          hard: { type: "string" },
         },
+        additionalProperties: false,
+      },
+      insights: {
+        type: "object",
+        additionalProperties: true,
+      },
+      difficulty_breakdown: {
+        type: "object",
+        properties: {
+          easy: {
+            type: "object",
+            properties: {
+              attempts: { type: "integer", minimum: 0 },
+              correct: { type: "integer", minimum: 0 },
+              time: { type: "number", minimum: 0 },
+              avg_time: { type: "number", minimum: 0 },
+            },
+          },
+          medium: {
+            type: "object",
+            properties: {
+              attempts: { type: "integer", minimum: 0 },
+              correct: { type: "integer", minimum: 0 },
+              time: { type: "number", minimum: 0 },
+              avg_time: { type: "number", minimum: 0 },
+            },
+          },
+          hard: {
+            type: "object",
+            properties: {
+              attempts: { type: "integer", minimum: 0 },
+              correct: { type: "integer", minimum: 0 },
+              time: { type: "number", minimum: 0 },
+              avg_time: { type: "number", minimum: 0 },
+            },
+          },
+        },
+        additionalProperties: false,
       },
     },
     additionalProperties: false,
@@ -659,15 +741,15 @@ export class DataIntegritySchemas {
   static REFERENTIAL_CONSTRAINTS = {
     attempts: [
       {
-        field: "problemId",
+        field: "problem_id",
         references: {
           store: "problems",
-          field: "leetCodeID",
+          field: "leetcode_id",
         },
         required: true,
       },
       {
-        field: "sessionId",
+        field: "session_id",
         references: {
           store: "sessions",
           field: "id",
@@ -677,15 +759,15 @@ export class DataIntegritySchemas {
     ],
     sessions: [
       {
-        field: "problems.leetCodeID",
+        field: "problems.leetcode_id",
         references: {
           store: "problems",
-          field: "leetCodeID",
+          field: "leetcode_id",
         },
         required: true,
       },
       {
-        field: "attempts.attemptId",
+        field: "attempts.attempt_id",
         references: {
           store: "attempts",
           field: "id",
@@ -695,25 +777,25 @@ export class DataIntegritySchemas {
     ],
     problem_relationships: [
       {
-        field: "problemId1",
+        field: "problem_id1",
         references: {
           store: "problems",
-          field: "leetCodeID",
+          field: "leetcode_id",
         },
         required: true,
       },
       {
-        field: "problemId2",
+        field: "problem_id2",
         references: {
           store: "problems",
-          field: "leetCodeID",
+          field: "leetcode_id",
         },
         required: true,
       },
     ],
     session_analytics: [
       {
-        field: "sessionId",
+        field: "session_id",
         references: {
           store: "sessions",
           field: "id",

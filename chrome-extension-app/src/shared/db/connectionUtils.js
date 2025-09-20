@@ -90,8 +90,8 @@ export function logCachedConnection() {
  * @returns {Promise<IDBDatabase>} Database instance
  */
 export function openDatabase() {
-  const dbName = "review";
-  const version = 37;
+  const dbName = "CodeMaster";
+  const version = 47;
   
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(dbName, version);

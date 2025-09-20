@@ -24,10 +24,10 @@ export function detectApplicableEscapeHatches(
 ) {
   const now = new Date();
   const escapeHatches = sessionState.escapeHatches || {
-    sessionsAtCurrentDifficulty: 0,
-    lastDifficultyPromotion: null,
-    sessionsWithoutPromotion: 0,
-    activatedEscapeHatches: [],
+    sessions_at_current_difficulty: 0,
+    last_difficulty_promotion: null,
+    sessions_without_promotion: 0,
+    activated_escape_hatches: [],
   };
 
   const results = {
@@ -41,7 +41,7 @@ export function detectApplicableEscapeHatches(
   if (results.sessionBased.applicable) {
     results.recommendations.push({
       type: "session-based",
-      message: `🔓 After ${escapeHatches.sessionsAtCurrentDifficulty} sessions at ${sessionState.currentDifficultyCap} difficulty, we're lowering the promotion threshold from 90% to 80% to help you progress.`,
+      message: `🔓 After ${escapeHatches.sessions_at_current_difficulty} sessions at ${sessionState.current_difficulty_cap} difficulty, we're lowering the promotion threshold from 90% to 80% to help you progress.`,
       impact: "Difficulty promotion threshold reduced",
     });
   }
@@ -79,7 +79,7 @@ export function detectApplicableEscapeHatches(
  */
 function detectSessionBasedEscapeHatch(escapeHatches) {
   const sessionsAtCurrentDifficulty =
-    escapeHatches.sessionsAtCurrentDifficulty || 0;
+    escapeHatches.sessions_at_current_difficulty || 0;
   const applicable = sessionsAtCurrentDifficulty >= 10;
 
   return {
@@ -210,14 +210,14 @@ export function calculateAdjustedThreshold(
 export function updateEscapeHatchTracking(sessionState, escapeHatchResults) {
   if (!sessionState.escapeHatches) {
     sessionState.escapeHatches = {
-      sessionsAtCurrentDifficulty: 0,
-      lastDifficultyPromotion: null,
-      sessionsWithoutPromotion: 0,
-      activatedEscapeHatches: [],
+      sessions_at_current_difficulty: 0,
+      last_difficulty_promotion: null,
+      sessions_without_promotion: 0,
+      activated_escape_hatches: [],
     };
   }
 
-  const activatedHatches = sessionState.escapeHatches.activatedEscapeHatches;
+  const activatedHatches = sessionState.escapeHatches.activated_escape_hatches;
 
   // Track session-based activation
   if (

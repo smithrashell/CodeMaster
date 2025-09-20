@@ -89,9 +89,9 @@ const createTagMasteryEntry = (tag, successRate, totalAttempts) => ({
 
 const createAttemptData = (overrides = {}) => ({
   id: "test-uuid-123",
-  ProblemID: 1,
-  TimeSpent: 1200,
-  Success: true,
+  problem_id: 1,
+  time_spent: 1200,
+  success: true,
   ...overrides
 });
 

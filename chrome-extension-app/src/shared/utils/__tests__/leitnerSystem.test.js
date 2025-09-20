@@ -60,9 +60,8 @@ const setupMockDatabase = () => {
 const _createProblem = (id, title, boxLevel, difficulty = 0) => ({
   id,
   title,
-  BoxLevel: boxLevel,
-  boxLevel,
-  Difficulty: difficulty,
+  box_level: boxLevel,
+  difficulty: difficulty,
 });
 
 const _createAttempts = (attemptsData) => 
@@ -73,9 +72,9 @@ const _createAttempts = (attemptsData) =>
   }));
 
 const _expectAttemptStats = (result, total, successful, unsuccessful) => {
-  expect(result.AttemptStats.TotalAttempts).toBe(total);
-  expect(result.AttemptStats.SuccessfulAttempts).toBe(successful);
-  expect(result.AttemptStats.UnsuccessfulAttempts).toBe(unsuccessful);
+  expect(result.attempt_stats.total_attempts).toBe(total);
+  expect(result.attempt_stats.successful_attempts).toBe(successful);
+  expect(result.attempt_stats.unsuccessful_attempts).toBe(unsuccessful);
 };
 
 // Cursor simulation helpers
@@ -174,7 +173,7 @@ const runBoxLevelIntervalsTests = () => {
           }));
 
         const result = reassessBoxLevel(problem, attempts);
-        expect(result.boxLevel).toBeGreaterThanOrEqual(boxLevel);
+        expect(result.box_level).toBeGreaterThanOrEqual(boxLevel);
       });
     });
   });

@@ -10,13 +10,13 @@ function SystemFocusTagsSection({ appState }) {
     <div>
       <Group gap="xs" mb="xs">
         <Text size="sm" fw={500}>System Recommendations</Text>
-        <Badge variant="light" color="cyan" size="xs">
+        <Badge color="cyan" size="xs">
           System Recommended
         </Badge>
       </Group>
       <Group gap="xs">
         {(appState?.learningPlan?.focus?.systemFocusTags || []).map((tag, index) => (
-          <Badge key={index} variant="light" color="cyan" size="sm">
+          <Badge key={index} color="cyan" size="sm">
             {tag}
           </Badge>
         ))}
@@ -37,7 +37,7 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
       <Group gap="xs" mb="xs">
         <Text size="sm" fw={500}>Your Focus Areas</Text>
         {isOnboarding && (
-          <Badge variant="light" color="orange" size="xs">
+          <Badge color="orange" size="xs">
             Onboarding: 1 tag limit
           </Badge>
         )}
@@ -45,7 +45,7 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
       <Group gap="xs">
         {userFocusAreas.length > 0 ? (
           userFocusAreas.slice(0, isOnboarding ? 1 : 3).map((tag, index) => (
-            <Badge key={index} variant="light" color="violet" size="sm">
+            <Badge key={index} color="violet" size="sm">
               {tag}
             </Badge>
           ))

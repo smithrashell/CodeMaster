@@ -75,7 +75,7 @@ export const MockDataFactories = {
     sessionLength: 5,
     numberOfNewProblems: 3,
     currentAllowedTags: ["array", "string"],
-    lastSessionDate: new Date().toISOString(),
+    last_session_date: new Date().toISOString(),
     ...overrides,
   }),
 

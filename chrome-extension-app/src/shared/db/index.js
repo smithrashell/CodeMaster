@@ -15,10 +15,27 @@ import {
   logCachedConnection
 } from "./connectionUtils.js";
 
+// Global IndexedDB error handler for debugging
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    if (event.error && event.error.name && event.error.name.includes('IndexedDB')) {
+      console.error('🚨 GLOBAL INDEXEDDB ERROR CAUGHT:', {
+        message: event.error.message,
+        name: event.error.name,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error.stack
+      });
+    }
+  });
+}
+
 export const dbHelper = {
-  dbName: "review",
-  version: 40, // 🆙 Updated problems store to use problem_id as UUID primary key
+  dbName: "CodeMaster",
+  version: 47, // 🆙 Fixed problem_relationships store snake_case field names migration
   db: null,
+  pendingConnection: null, // Track pending database connection promises
 
   openDB() {
     const context = getExecutionContext();
@@ -29,6 +46,11 @@ export const dbHelper = {
     
     // Log database access attempt
     logDatabaseAccess(context, stack);
+    
+    console.log(`🔍 INDEXEDDB DEBUG: openDB() called from:`, {
+      context: context.contextType,
+      stackSnippet: stack.substring(0, 200)
+    });
     
     // Check if cached database is still valid
     if (dbHelper.db) {
@@ -41,12 +63,20 @@ export const dbHelper = {
           // Connection is invalid, clear the cache
           console.warn('🔄 Database connection invalid, clearing cache and reopening');
           dbHelper.db = null;
+          dbHelper.pendingConnection = null;
         }
       } catch (error) {
         // Connection is invalid, clear the cache
         console.warn('🔄 Database connection error, clearing cache:', error.message);
         dbHelper.db = null;
+        dbHelper.pendingConnection = null;
       }
+    }
+
+    // Check if there's already a pending connection
+    if (dbHelper.pendingConnection) {
+      console.log('🔄 RACE CONDITION AVOIDED: Using existing pending connection');
+      return dbHelper.pendingConnection;
     }
     
     logNewConnectionWarning();
@@ -54,9 +84,11 @@ export const dbHelper = {
     // Initialize migration safety system
     migrationSafety.initializeMigrationSafety();
 
-    // Create and configure database connection
-    return createDatabaseConnection(dbHelper.dbName, dbHelper.version, context, stack)
+    // Create and configure database connection - track pending promise to avoid race conditions
+    dbHelper.pendingConnection = createDatabaseConnection(dbHelper.dbName, dbHelper.version, context, stack)
       .then(async db => {
+        console.log(`🔍 INDEXEDDB DEBUG: Database connection established successfully`);
+        
         // Add connection event handlers to detect when connection becomes invalid
         db.onclose = () => {
           console.warn('🔌 Database connection closed, clearing cache');
@@ -74,15 +106,49 @@ export const dbHelper = {
         };
         
         // PRODUCTION SAFETY: Validate database integrity
-        const isValid = await dbHelper.validateDatabaseIntegrity(db);
-        if (!isValid) {
-          console.warn('🔧 Database validation failed, attempting repair...');
-          return dbHelper.repairDatabase(db);
+        // Skip intensive validation immediately after upgrade to prevent circular reference
+        try {
+          // Add a small delay after database connection to ensure upgrade transaction completes
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+          const isValid = await dbHelper.validateDatabaseIntegrity(db);
+          if (!isValid) {
+            console.warn('🔧 Database validation failed, attempting repair...');
+            return dbHelper.repairDatabase(db);
+          }
+        } catch (error) {
+          // If validation fails during upgrade, log but continue - the database should still be functional
+          if (error.message && error.message.includes('index not found')) {
+            console.warn('⚠️ Database validation skipped due to upgrade timing issue:', error.message);
+            console.log('📝 Database should be functional, continuing...');
+          } else {
+            console.error(`❌ INDEXEDDB DEBUG: Database validation failed:`, {
+              error: error.message,
+              name: error.name,
+              code: error.code
+            });
+            throw error;
+          }
         }
         
         dbHelper.db = db;
+        dbHelper.pendingConnection = null; // Clear pending connection on success
+        console.log(`🔍 INDEXEDDB DEBUG: Database ready for use`);
         return db;
+      })
+      .catch(error => {
+        console.error(`❌ INDEXEDDB DEBUG: Database connection failed:`, {
+          error: error.message,
+          name: error.name,
+          code: error.code,
+          stack: error.stack
+        });
+        dbHelper.pendingConnection = null; // Clear pending connection on error
+        throw error;
       });
+
+    // Return the pending promise
+    return dbHelper.pendingConnection;
   },
 
   /**

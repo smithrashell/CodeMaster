@@ -6,9 +6,9 @@ The database layer provides IndexedDB abstraction with a centralized helper syst
 
 ### Core Database Management
 
-- **Database Name**: "review"
-- **Current Version**: 25
-- **Store Count**: 13 specialized object stores
+- **Database Name**: "CodeMaster"
+- **Current Version**: 47
+- **Store Count**: 17 specialized object stores
 - **Upgrade Strategy**: Automatic versioned migrations with data preservation
 
 ### Key Functions
@@ -35,6 +35,27 @@ dbHelper.ensureIndex(store, indexName, keyPath);
 - `getAttemptHistory(problemId)` - Gets historical attempts for a problem
 - `calculateAttemptStatistics()` - Computes success rates and timing metrics
 
+**Attempt Object Structure** (snake_case):
+```javascript
+{
+  id: attemptId,                           // Auto-increment attempt ID
+  problem_id: problemId,                   // References problems.problem_id (UUID)
+  leetcode_id: problem.leetcode_id,        // References standard_problems.id (numeric)
+  success: attemptData.Success,            // Lowercase
+  attempt_date: attemptData.AttemptDate,   // Snake case
+  time_spent: attemptData.TimeSpent,       // Snake case
+  perceived_difficulty: 5,                 // Snake case
+  comments: attemptData.comments || "",    // Lowercase
+  box_level: 1,                           // Snake case
+  next_review_date: null,                 // Snake case
+  session_id: session.id,                 // Snake case
+  exceeded_recommended_time: false,        // Snake case
+  overage_time: 0,                        // Snake case
+  user_intent: "completed",               // Snake case
+  time_warning_level: 0                   // Snake case
+}
+```
+
 ### 🔄 **sessions.js**
 
 **Purpose**: Learning session management and analytics
@@ -45,6 +66,30 @@ dbHelper.ensureIndex(store, indexName, keyPath);
 - `getLatestSession()` - Gets most recent session
 - `getSessionPerformance(sessionId)` - Generates performance analysis
 - `buildAdaptiveSessionSettings()` - Creates adaptive session configurations
+
+**Session Object Structure** (snake_case):
+```javascript
+{
+  id: sessionId,
+  session_type: "standard",
+  status: "completed",
+  problems: [],
+  attempts: [                        // Session attempts array (snake_case)
+    {
+      attempt_id: "uuid",            // Snake case
+      problem_id: "uuid",            // Database UUID (snake_case)
+      leetcode_id: 21,               // LeetCode ID for lookups (snake_case)
+      success: true,
+      time_spent: 900,               // Snake case
+      source: "session_problem"
+    }
+  ],
+  created_date: new Date(),          // Snake case
+  last_activity_time: new Date(),    // Snake case
+  origin: "generator",               // Snake case
+  current_problem_index: 0           // Snake case
+}
+```
 
 ### 🧩 **problems.js**
 
