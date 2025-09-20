@@ -42,7 +42,7 @@ const useProblemData = (routeState) => {
     if (!data) return {};
 
     return {
-      leetcode_id: data.id,
+      leetcode_id: data.leetcode_id || data.id,
       title: data.title,
       tags: data.tags || [],
       difficulty: data.difficulty || 'Unknown'
@@ -153,11 +153,11 @@ const StatusSection = ({ problemData: _problemData, attemptStats }) => {
       <div className={styles.statusCard}>
         <BrainIcon className={styles.statusIcon} />
         <span className={styles.statusLabel}>
-          Last Solved:
+          Last Attempted:
         </span>
         <div className={styles.statusItem}>
           <span className={styles.statusValue}>
-            {formatLastSolved(attemptStats?.lastSolved)}
+            {formatLastSolved(attemptStats?.lastAttempted || attemptStats?.lastSolved)}
           </span>
         </div>
       </div>

@@ -106,7 +106,7 @@ describe('SessionAttributionEngine Logic', () => {
 
     const transitioned = transitionSession(draftSession, 'in_progress');
     expect(transitioned.status).toBe('in_progress');
-    expect(transitioned.lastActivityTime).toBeDefined();
+    expect(transitioned.last_activity_time).toBeDefined();
   });
 });
 

@@ -1,7 +1,6 @@
 import { dbHelper } from "./index.js";
 
 import { getProblem, saveUpdatedProblem } from "./problems.js";
-import { saveSessionToStorage } from "./sessions.js";
 import { ProblemService } from "../services/problemService.js";
 import { calculateLeitnerBox, evaluateAttempts } from "../utils/leitnerSystem.js";
 import { createAttemptRecord } from "../utils/Utils.js";
@@ -22,26 +21,21 @@ export async function addAttempt(attemptData) {
   try {
     const db = await openDB();
 
-    // Retrieve or create an active session
-    let session = await new Promise((resolve) => {
-      chrome.storage.local.get(["currentSession"], (result) => {
-        resolve(result.currentSession || null);
-      });
-    });
+    // Retrieve or create an active session using SessionService to respect mutex
+    let session = await SessionService.resumeSession();
 
     if (!session) {
       console.log("No active session found. Creating a new session...");
       session = await SessionService.getOrCreateSession();
-      await saveSessionToStorage(session);
     }
 
     console.log("Active session:", session);
 
     // Associate the attempt with the session
-    attemptData.SessionID = session.id;
+    attemptData.session_id = session.id; // Use snake_case to match database schema
 
     // Retrieve problem data
-    let problem = await getProblem(attemptData.ProblemID);
+    let problem = await getProblem(attemptData.problem_id);
     if (!problem) {
       console.error("AddAttempt: Problem not found");
       return { error: "Problem not found." };
@@ -56,7 +50,6 @@ export async function addAttempt(attemptData) {
       problem,
       attemptData.id
     );
-    await saveSessionToStorage(session, true);
 
     // Open a transaction for database operations
     const transaction = db.transaction(
@@ -77,10 +70,10 @@ export async function addAttempt(attemptData) {
     // Append attempt to session
     session.attempts = session.attempts || [];
     session.attempts.push({
-      attemptId: record.id,
-      problemId: attemptData.ProblemID,
-      success: record.Success,
-      timeSpent: record.TimeSpent,
+      attempt_id: record.id,
+      problem_id: record.problem_id,
+      success: record.success,
+      time_spent: record.time_spent,
     });
 
     // Update session record
@@ -114,7 +107,19 @@ export async function getAttemptsByProblem(problemId) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("attempts", "readonly");
-    const store = transaction.objectStore("attempts").index("by_problem_id");
+    const objectStore = transaction.objectStore("attempts");
+    let store;
+    try {
+      store = objectStore.index("by_problem_id");
+    } catch (error) {
+      console.error(`❌ ATTEMPTS INDEX ERROR: by_problem_id index not found in attempts`, {
+        error: error.message,
+        availableIndexes: Array.from(objectStore.indexNames),
+        storeName: "attempts"
+      });
+      reject(error);
+      return;
+    }
 
     const request = store.getAll(problemId);
     request.onsuccess = (event) => {
@@ -158,11 +163,33 @@ export async function getMostRecentAttempt(problemId) {
     let store;
     let request;
     if (!problemId) {
-      store = transaction.objectStore("attempts").index("by_date");
+      const objectStore = transaction.objectStore("attempts");
+      try {
+        store = objectStore.index("by_attempt_date");
+      } catch (error) {
+        console.error(`❌ ATTEMPTS INDEX ERROR: by_attempt_date index not found in attempts`, {
+          error: error.message,
+          availableIndexes: Array.from(objectStore.indexNames),
+          storeName: "attempts"
+        });
+        reject(error);
+        return;
+      }
 
       request = store.openCursor(null, "prev"); // Fetch most recent attempt
     } else {
-      store = transaction.objectStore("attempts").index("by_problem_and_date");
+      const objectStore = transaction.objectStore("attempts");
+      try {
+        store = objectStore.index("by_problem_and_date");
+      } catch (error) {
+        console.error(`❌ ATTEMPTS INDEX ERROR: by_problem_and_date index not found in attempts`, {
+          error: error.message,
+          availableIndexes: Array.from(objectStore.indexNames),
+          storeName: "attempts"
+        });
+        reject(error);
+        return;
+      }
       request = store.openCursor(problemId, "prev"); // Fetch most recent attempt
     }
 
@@ -197,6 +224,43 @@ export async function saveAttempts(attempts) {
     transaction.oncomplete = () => resolve();
     transaction.onerror = (event) =>
       reject(new Error("Transaction error: " + event.target.errorCode));
+  });
+}
+
+/**
+ * Gets all attempts for a specific session ID.
+ * @param {string} sessionId - Session ID to get attempts for
+ * @returns {Promise<Array>} Array of attempt records
+ */
+export async function getAttemptsBySessionId(sessionId) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("attempts", "readonly");
+    const store = transaction.objectStore("attempts");
+
+    // Use session_id index if available, otherwise filter manually
+    let request;
+    try {
+      const index = store.index("by_session_id");
+      request = index.getAll(sessionId);
+    } catch (error) {
+      // Fallback to manual filtering if index doesn't exist
+      request = store.getAll();
+    }
+
+    request.onsuccess = () => {
+      const allAttempts = request.result;
+      if (request === store.getAll()) {
+        // Manual filtering if we used getAll
+        const sessionAttempts = allAttempts.filter(attempt => attempt.session_id === sessionId);
+        resolve(sessionAttempts);
+      } else {
+        // Index query already filtered
+        resolve(allAttempts);
+      }
+    };
+
+    request.onerror = () => reject(request.error);
   });
 }
 

@@ -3,6 +3,8 @@
  * Extracted from database upgrade logic to reduce complexity
  */
 
+import { v4 as uuidv4 } from "uuid";
+
 /**
  * Ensures an index exists on a store
  * @param {IDBObjectStore} store - The object store
@@ -24,14 +26,44 @@ export function createAttemptsStore(db) {
   if (!db.objectStoreNames.contains("attempts")) {
     let attemptsStore = db.createObjectStore("attempts", {
       keyPath: "id",
-      autoIncrement: true,
     });
 
-    ensureIndex(attemptsStore, "by_date", "date");
-    ensureIndex(attemptsStore, "by_problem_and_date", ["problem_id", "date"]);
+    // Create indexes using snake_case field names for database consistency
+    ensureIndex(attemptsStore, "by_attempt_date", "attempt_date");
+    ensureIndex(attemptsStore, "by_problem_and_date", ["problem_id", "attempt_date"]);
     ensureIndex(attemptsStore, "by_problem_id", "problem_id");
     ensureIndex(attemptsStore, "by_session_id", "session_id");
     ensureIndex(attemptsStore, "by_leetcode_id", "leetcode_id");
+    ensureIndex(attemptsStore, "by_time_spent", "time_spent");
+    ensureIndex(attemptsStore, "by_success", "success");
+    
+    console.log("✅ Attempts store created with snake_case schema for database consistency");
+    
+    // Handle data migration if we have temporary migration data
+    if (globalThis._migrationAttempts && globalThis._migrationAttempts.length > 0) {
+      console.log(`🔄 Restoring ${globalThis._migrationAttempts.length} attempt records after schema migration`);
+      
+      // Restore the attempt data to the new store
+      globalThis._migrationAttempts.forEach(attempt => {
+        try {
+          // Ensure the attempt has a valid UUID (may be numeric from autoIncrement)
+          const originalId = attempt.id;
+          if (typeof attempt.id === 'number') {
+            // Replace numeric autoIncrement ID with UUID
+            attempt.id = uuidv4();
+            console.log(`🔄 Converted attempt ID from ${originalId} to UUID: ${attempt.id}`);
+          }
+          
+          attemptsStore.add(attempt);
+        } catch (error) {
+          console.error(`❌ Failed to migrate attempt record:`, attempt, error);
+        }
+      });
+      
+      // Clear the temporary migration data
+      delete globalThis._migrationAttempts;
+      console.log("✅ Attempt records migration completed");
+    }
   }
 }
 
@@ -65,18 +97,23 @@ export function createSessionStateStore(db) {
  * @param {IDBDatabase} db - Database instance
  */
 export function createProblemRelationshipsStore(db) {
-  // Fix problem_relationships store schema - recreate with proper keyPath
-  if (db.objectStoreNames.contains("problem_relationships")) {
-    db.deleteObjectStore("problem_relationships");
+  // Create the store if it doesn't exist
+  if (!db.objectStoreNames.contains("problem_relationships")) {
+    console.log("🔧 Creating new problem_relationships store with indexes");
+
+    let relationshipsStore = db.createObjectStore("problem_relationships", {
+      keyPath: "id",
+      autoIncrement: true,
+    });
+
+    // Create required indexes
+    ensureIndex(relationshipsStore, "by_problem_id1", "problem_id1");
+    ensureIndex(relationshipsStore, "by_problem_id2", "problem_id2");
+
+    console.log("✅ problem_relationships store created with indexes:", Array.from(relationshipsStore.indexNames));
+  } else {
+    console.log("📋 problem_relationships store already exists, keeping existing data");
   }
-
-  let relationshipsStore = db.createObjectStore("problem_relationships", {
-    keyPath: "id",
-    autoIncrement: true,
-  });
-
-  ensureIndex(relationshipsStore, "by_problem_id_1", "problem_id_1");
-  ensureIndex(relationshipsStore, "by_problem_id_2", "problem_id_2");
 }
 
 /**
@@ -89,12 +126,13 @@ export function createProblemsStore(db) {
       keyPath: "problem_id",
     });
 
-    ensureIndex(problemsStore, "by_tag", "tags");
-    ensureIndex(problemsStore, "by_problem", "problem");
-    ensureIndex(problemsStore, "by_review", "review");
+    ensureIndex(problemsStore, "by_tags", "tags", { multiEntry: true });
     ensureIndex(problemsStore, "by_title", "title");
-    ensureIndex(problemsStore, "by_nextProblem", "nextProblem");
+    ensureIndex(problemsStore, "by_box_level", "box_level");
+    ensureIndex(problemsStore, "by_review_schedule", "review_schedule");
+    ensureIndex(problemsStore, "by_session_id", "session_id");
     ensureIndex(problemsStore, "by_leetcode_id", "leetcode_id");
+    ensureIndex(problemsStore, "by_cooldown_status", "cooldown_status");
   }
 }
 
@@ -131,17 +169,9 @@ export function createSessionsStore(db, transaction) {
     sessionsStore.createIndex("by_session_type_status", ["session_type", "status"], { unique: false });
   }
 
-  // Add indexes for session attribution and staleness detection
-  if (!sessionsStore.indexNames.contains("by_origin")) {
-    sessionsStore.createIndex("by_origin", "origin", { unique: false });
-  }
-  
+  // Add indexes for session staleness detection
   if (!sessionsStore.indexNames.contains("by_last_activity_time")) {
     sessionsStore.createIndex("by_last_activity_time", "last_activity_time", { unique: false });
-  }
-  
-  if (!sessionsStore.indexNames.contains("by_origin_status")) {
-    sessionsStore.createIndex("by_origin_status", ["origin", "status"], { unique: false });
   }
 
   console.info("Sessions store configured safely!");
@@ -244,17 +274,22 @@ export function createPatternLaddersStore(db) {
  * @param {IDBDatabase} db - Database instance
  */
 export function createSessionAnalyticsStore(db) {
-  if (!db.objectStoreNames.contains("session_analytics")) {
-    let sessionAnalyticsStore = db.createObjectStore("session_analytics", {
-      keyPath: "sessionId",
-    });
-
-    ensureIndex(sessionAnalyticsStore, "by_date", "completed_at");
-    ensureIndex(sessionAnalyticsStore, "by_accuracy", "accuracy");
-    ensureIndex(sessionAnalyticsStore, "by_difficulty", "predominant_difficulty");
-
-    console.info("✅ Session analytics store created!");
+  // Check if we need to recreate the store with correct keyPath (snake_case migration)
+  if (db.objectStoreNames.contains("session_analytics")) {
+    // Delete existing store to recreate with correct keyPath
+    db.deleteObjectStore("session_analytics");
+    console.info("🔄 Deleted old session_analytics store for snake_case migration");
   }
+  
+  let sessionAnalyticsStore = db.createObjectStore("session_analytics", {
+    keyPath: "session_id",
+  });
+
+  ensureIndex(sessionAnalyticsStore, "by_date", "completed_at");
+  ensureIndex(sessionAnalyticsStore, "by_accuracy", "accuracy");
+  ensureIndex(sessionAnalyticsStore, "by_difficulty", "predominant_difficulty");
+
+  console.info("✅ Session analytics store created with session_id keyPath!");
 }
 
 /**

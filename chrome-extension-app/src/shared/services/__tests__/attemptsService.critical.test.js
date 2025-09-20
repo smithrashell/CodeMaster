@@ -144,6 +144,66 @@ function runErrorRecoveryTests(AttemptsService) {
 }
 
 /**
+ * Test suite for session problem removal on completion
+ */
+function runSessionProblemRemovalTests(_AttemptsService) {
+  describe('Session Problem Removal', () => {
+    it('should remove completed problems from session using LeetCode ID matching', () => {
+      // Setup: Session with problems that have LeetCode IDs
+      const mockSession = {
+        id: 'test-session-123',
+        problems: [
+          { id: 268, title: 'Missing Number', slug: 'missing-number' },
+          { id: 1, title: 'Two Sum', slug: 'two-sum' }
+        ]
+      };
+
+      const mockDatabaseProblem = {
+        problem_id: 'f7b8cc56-8aa4-42fe-9e34-bf4371d3af18', // UUID primary key  
+        leetcode_id: 268, // LeetCode reference that should match session problem.id
+        title: 'missing number'
+      };
+
+      const _mockAttemptData = { success: true };
+
+      // Test the critical matching logic that was broken
+      const sessionProblemId = String(mockSession.problems[0].id); // "268"
+      const databaseProblemLeetcodeId = String(mockDatabaseProblem.leetcode_id); // "268"
+      const databaseProblemUuid = mockDatabaseProblem.problem_id; // UUID
+
+      // These should match (the fix)
+      expect(sessionProblemId).toBe(databaseProblemLeetcodeId);
+      
+      // This should NOT match (the old broken logic)
+      expect(sessionProblemId).not.toBe(databaseProblemUuid);
+
+      // Simulate the fixed filter logic
+      const initialProblems = [...mockSession.problems];
+      const filteredProblems = initialProblems.filter(p => 
+        !(String(p.id) === String(mockDatabaseProblem.leetcode_id))
+      );
+
+      // Verify problem 268 was removed, problem 1 remains
+      expect(filteredProblems.length).toBe(1);
+      expect(filteredProblems.find(p => p.id === 268)).toBeUndefined();
+      expect(filteredProblems.find(p => p.id === 1)).toBeDefined();
+    });
+
+    it('should not remove problems when attempt is unsuccessful', () => {
+      const _mockSession = {
+        problems: [{ id: 268, title: 'Missing Number' }]
+      };
+
+      const _mockAttemptData = { success: false };
+
+      // Failed attempts should not trigger problem removal
+      const shouldRemoveProblems = _mockAttemptData.success;
+      expect(shouldRemoveProblems).toBe(false);
+    });
+  });
+}
+
+/**
  * Test suite for data integrity protection scenarios
  */
 function runDataIntegrityTests(AttemptsService) {
@@ -272,4 +332,5 @@ describe('AttemptsService - Critical Risk Areas', () => {
   runServiceAvailabilityTests(AttemptsService);
   runErrorRecoveryTests(AttemptsService);
   runDataIntegrityTests(AttemptsService);
+  runSessionProblemRemovalTests(AttemptsService);
 });

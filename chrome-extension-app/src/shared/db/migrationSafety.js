@@ -169,13 +169,13 @@ async function _validateStore(db, storeName) {
  */
 function validateAttemptsStore(records, validation) {
   records.forEach((record, index) => {
-    if (!record.id || !record.problemId || !record.sessionId) {
+    if (!record.id || !record.problem_id || !record.session_id) {
       validation.valid = false;
       validation.issues.push({
         type: "missing_required_field",
         store: "attempts",
         recordIndex: index,
-        message: "Missing required fields: id, problemId, or sessionId",
+        message: "Missing required fields: id, problem_id, or session_id",
       });
     }
 

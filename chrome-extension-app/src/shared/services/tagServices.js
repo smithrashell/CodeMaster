@@ -24,8 +24,8 @@ async function handleOnboardingFallback(db) {
 
   const topTags = tagRelationships
     .map((entry) => {
-      const totalWeight = Object.values(entry.relatedTags || {}).reduce(
-        (sum, w) => sum + w,
+      const totalWeight = (entry.related_tags || []).reduce(
+        (sum, relation) => sum + relation.strength,
         0
       );
       return { tag: entry.id, weight: totalWeight };
@@ -143,9 +143,9 @@ async function seedNewTagsIfNeeded(context) {
         return new Promise((resolve, reject) => {
           const putRequest = masteryStore.put({
             tag: newTag,
-            totalAttempts: 0,
-            successfulAttempts: 0,
-            decayScore: 1,
+            total_attempts: 0,
+            successful_attempts: 0,
+            decay_score: 1,
             mastered: false,
           });
           putRequest.onsuccess = () => resolve();
@@ -185,6 +185,18 @@ async function getCurrentTier() {
     return await handleOnboardingFallback(db);
   }
 
+  // Get all tag relationships data to access mastery thresholds
+  const allTagRelationships = await new Promise((resolve, reject) => {
+    const request = relationshipsStore.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  const masteryThresholds = allTagRelationships.reduce((acc, item) => {
+    acc[item.id] = item.mastery_threshold || 0.8;
+    return acc;
+  }, {});
+
   // ✅ Returning user logic
   const tiers = ["Core Concept", "Fundamental Technique", "Advanced Technique"];
 
@@ -202,8 +214,8 @@ async function getCurrentTier() {
       .filter(
         (tag) =>
           tierTags.includes(tag.tag) &&
-          tag.totalAttempts > 0 &&
-          calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts) >= 0.8
+          tag.total_attempts > 0 &&
+          calculateSuccessRate(tag.successful_attempts, tag.total_attempts) >= (masteryThresholds[tag.tag] || 0.8)
       )
       .map((tag) => tag.tag);
 
@@ -222,11 +234,21 @@ async function getCurrentTier() {
       logger.info(
         `✅ User is in ${tier}, working on ${unmasteredTags.length} tags.`
       );
+
+      // 🛡️ FINAL SAFETY NET: Ensure focus tags are never empty
+      const safeFocusTags = unmasteredTags && unmasteredTags.length > 0
+        ? unmasteredTags
+        : (tierTags.length > 0 ? tierTags.slice(0, 3) : ["array"]);
+
+      if (safeFocusTags !== unmasteredTags) {
+        logger.warn(`⚠️ getCurrentTier using fallback focus tags: ${safeFocusTags}`);
+      }
+
       return {
         classification: tier,
         masteredTags,
         allTagsInCurrentTier: tierTags,
-        focusTags: unmasteredTags,
+        focusTags: safeFocusTags,
         masteryData,
         tierEscapeHatchActivated: false,
       };
@@ -281,22 +303,23 @@ async function getCurrentLearningState() {
  * @returns {Promise<Array>} Intelligent focus tags
  */
 // Helper function to apply time-based escape hatch logic
-function applyTimeBasedEscapeHatch(tag) {
-  let adjustedMasteryThreshold = 0.8; // Standard 80% threshold
+function applyTimeBasedEscapeHatch(tag, baseMasteryThreshold = 0.8) {
+  let adjustedMasteryThreshold = baseMasteryThreshold;
   let timeBasedEscapeHatch = false;
-  const successRate = calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts);
+  const successRate = calculateSuccessRate(tag.successful_attempts, tag.total_attempts);
   const now = new Date();
 
   // Check if tag has been stuck for 2+ weeks
-  if (tag.lastAttemptDate) {
-    const lastAttemptDate = new Date(tag.lastAttemptDate);
+  if (tag.last_attempt_date) {
+    const lastAttemptDate = new Date(tag.last_attempt_date);
     const daysSinceLastAttempt = (now - lastAttemptDate) / (1000 * 60 * 60 * 24);
 
     // Apply time-based escape hatch if stuck for 14+ days and has some progress (≥60%)
-    if (daysSinceLastAttempt >= 14 && successRate >= 0.6 && successRate < 0.8) {
-      adjustedMasteryThreshold = 0.6; // Lower threshold from 80% to 60%
+    // Lower the tag-specific threshold by 20 percentage points (e.g., 85% -> 65%, 70% -> 50%)
+    if (daysSinceLastAttempt >= 14 && successRate >= 0.6 && successRate < baseMasteryThreshold) {
+      adjustedMasteryThreshold = Math.max(0.6, baseMasteryThreshold - 0.2);
       timeBasedEscapeHatch = true;
-      logger.info(`🔓 Time-based escape hatch available for "${tag.tag}": ${daysSinceLastAttempt.toFixed(0)} days since last attempt, ${(successRate * 100).toFixed(1)}% accuracy`);
+      logger.info(`🔓 Time-based escape hatch available for "${tag.tag}": ${daysSinceLastAttempt.toFixed(0)} days since last attempt, ${(successRate * 100).toFixed(1)}% accuracy, threshold lowered from ${(baseMasteryThreshold * 100).toFixed(0)}% to ${(adjustedMasteryThreshold * 100).toFixed(0)}%`);
     }
   }
 
@@ -304,12 +327,15 @@ function applyTimeBasedEscapeHatch(tag) {
 }
 
 // Helper function to process and enrich tag data
-function processAndEnrichTags(masteryData, tierTags, tagRelationships) {
+function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds) {
   return masteryData
-    .filter((tag) => tierTags.includes(tag.tag) && tag.totalAttempts > 0)
+    .filter((tag) => tierTags.includes(tag.tag) && tag.total_attempts > 0)
     .map((tag) => {
-      const successRate = calculateSuccessRate(tag.successfulAttempts, tag.totalAttempts);
-      const { adjustedMasteryThreshold, timeBasedEscapeHatch } = applyTimeBasedEscapeHatch(tag);
+      const successRate = calculateSuccessRate(tag.successful_attempts, tag.total_attempts);
+
+      // Use tag-specific mastery threshold from tag_relationships, with time-based escape hatch
+      const baseMasteryThreshold = masteryThresholds[tag.tag] || 0.8;
+      const { adjustedMasteryThreshold, timeBasedEscapeHatch } = applyTimeBasedEscapeHatch(tag, baseMasteryThreshold);
 
       return {
         ...tag,
@@ -317,7 +343,7 @@ function processAndEnrichTags(masteryData, tierTags, tagRelationships) {
         adjustedMasteryThreshold,
         timeBasedEscapeHatch,
         learningVelocity: calculateLearningVelocity(tag),
-        relationshipScore: calculateRelationshipScore(tag.tag, masteryData, tagRelationships),
+        relationshipScore: calculateRelationshipScore(tag.tag, masteryData, tagRelationships, masteryThresholds),
       };
     });
 }
@@ -349,9 +375,9 @@ async function handleGraduation(masteredTags, tierTags, masteryData, db, mastery
           return new Promise((resolve, reject) => {
             const putRequest = masteryStore.put({
               tag: newTag,
-              totalAttempts: 0,
-              successfulAttempts: 0,
-              decayScore: 1,
+              total_attempts: 0,
+              successful_attempts: 0,
+              decay_score: 1,
               mastered: false,
             });
             putRequest.onsuccess = () => resolve();
@@ -362,6 +388,21 @@ async function handleGraduation(masteredTags, tierTags, masteryData, db, mastery
 
       // 🔄 Reset tagIndex for new focus window
       await resetTagIndexForNewWindow();
+
+      // 📝 Update user settings with new focus areas
+      try {
+        const settings = await StorageService.getSettings();
+        const updatedSettings = {
+          ...settings,
+          focusAreas: newFocusTags.slice(0, 3), // Limit to 3 as per UI convention
+        };
+        await StorageService.setSettings(updatedSettings);
+        logger.info(`📝 Updated user focus areas settings with graduated tags: ${newFocusTags.slice(0, 3).join(', ')}`);
+      } catch (error) {
+        logger.error('❌ Failed to update focus areas settings after graduation:', error);
+        // Don't fail the graduation just because settings update failed
+      }
+
       return newFocusTags;
     }
   }
@@ -373,8 +414,8 @@ function sortAndSelectFocusTags(unmasteredTags) {
   // Sort by intelligent criteria
   const sortedTags = unmasteredTags.sort((a, b) => {
     // Primary: Focus on tags with moderate success rate (learning opportunity)
-    const aOptimalLearning = getOptimalLearningScore(a.successRate, a.totalAttempts);
-    const bOptimalLearning = getOptimalLearningScore(b.successRate, b.totalAttempts);
+    const aOptimalLearning = getOptimalLearningScore(a.successRate, a.total_attempts);
+    const bOptimalLearning = getOptimalLearningScore(b.successRate, b.total_attempts);
 
     if (Math.abs(aOptimalLearning - bOptimalLearning) > 0.1) {
       return bOptimalLearning - aOptimalLearning;
@@ -406,7 +447,15 @@ function sortAndSelectFocusTags(unmasteredTags) {
     }
   }
 
-  return focusTags.map((tag) => tag.tag);
+  const selectedTags = focusTags.map((tag) => tag.tag);
+
+  // 🛡️ SAFETY NET: Never return empty focus tags
+  if (selectedTags.length === 0) {
+    logger.warn("⚠️ sortAndSelectFocusTags returned empty, using fallback tags");
+    return ["array", "hash table", "string"].slice(0, 1); // Onboarding-safe fallback
+  }
+
+  return selectedTags;
 }
 
 async function getIntelligentFocusTags(masteryData, tierTags) {
@@ -425,12 +474,22 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   });
 
   const tagRelationships = tagRelationshipsData.reduce((acc, item) => {
-    acc[item.id] = item.relatedTags || {};
+    // Convert array format to object for consumer compatibility
+    acc[item.id] = item.related_tags.reduce((tagObj, relation) => {
+      tagObj[relation.tag] = relation.strength;
+      return tagObj;
+    }, {});
+    return acc;
+  }, {});
+
+  // Create mastery threshold lookup from tag_relationships data
+  const masteryThresholds = tagRelationshipsData.reduce((acc, item) => {
+    acc[item.id] = item.mastery_threshold || 0.8; // Fallback to 80% if not set
     return acc;
   }, {});
 
   // Filter and process tags in current tier with time-based escape hatch logic
-  const allRelevantTags = processAndEnrichTags(masteryData, tierTags, tagRelationships);
+  const allRelevantTags = processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds);
 
   // Split into mastered and unmastered using adjusted thresholds
   const unmasteredTags = allRelevantTags.filter(
@@ -449,6 +508,14 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   const selectedTags = sortAndSelectFocusTags(unmasteredTags);
   logger.info("🧠 Selected intelligent focus tags:", selectedTags);
 
+  // 🛡️ SAFETY NET: Ensure we always have focus tags
+  if (!selectedTags || selectedTags.length === 0) {
+    logger.warn("⚠️ getIntelligentFocusTags failed, falling back to tier tags");
+    // Fall back to first available tier tags
+    const fallbackTags = tierTags.slice(0, 3);
+    return fallbackTags.length > 0 ? fallbackTags : ["array"];
+  }
+
   return selectedTags;
 }
 
@@ -458,9 +525,15 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
  * @returns {number} Learning velocity score
  */
 function calculateLearningVelocity(tagData) {
+  // Defensive programming: Handle undefined or invalid tagData
+  if (!tagData || typeof tagData !== 'object') {
+    return 0.1; // Default low velocity for invalid data
+  }
+
   // Simple velocity calculation based on attempts and success rate
-  const attempts = tagData.totalAttempts;
-  const successRate = tagData.successfulAttempts / tagData.totalAttempts;
+  const attempts = tagData.total_attempts || 0;
+  const successfulAttempts = tagData.successful_attempts || 0;
+  const successRate = attempts > 0 ? successfulAttempts / attempts : 0;
 
   // Higher velocity for tags with moderate attempts and growing success
   if (attempts < 3) return 0.3; // Low velocity for new tags
@@ -477,15 +550,24 @@ function calculateLearningVelocity(tagData) {
  * @param {object} tagRelationships - Tag relationship data
  * @returns {number} Relationship score
  */
-function calculateRelationshipScore(tag, masteryData, tagRelationships) {
+function calculateRelationshipScore(tag, masteryData, tagRelationships, masteryThresholds = {}) {
   const relationships = tagRelationships[tag] || {};
 
-  // Get mastered tags
+  // Defensive programming: Handle invalid inputs
+  if (!Array.isArray(masteryData) || !tagRelationships) {
+    return 0;
+  }
+
+  // Get mastered tags using tag-specific mastery thresholds
   const masteredTags = masteryData
-    .filter(
-      (t) =>
-        t.totalAttempts > 0 && t.successfulAttempts / t.totalAttempts >= 0.8
-    )
+    .filter((t) => {
+      // Handle undefined/null objects and use snake_case field names
+      if (!t || typeof t !== 'object') return false;
+      const totalAttempts = t.total_attempts || 0;
+      const successfulAttempts = t.successful_attempts || 0;
+      const threshold = masteryThresholds[t.tag] || 0.8;
+      return totalAttempts > 0 && successfulAttempts / totalAttempts >= threshold;
+    })
     .map((t) => t.tag);
 
   // Calculate relationship strength to mastered tags
@@ -518,7 +600,7 @@ function getOptimalLearningScore(successRate, attempts) {
 }
 
 /**
- * Resets tagIndex to 0 when a new focus window is created
+ * Resets tag_index to 0 when a new focus window is created
  * @returns {Promise<void>}
  */
 async function resetTagIndexForNewWindow() {
@@ -526,9 +608,9 @@ async function resetTagIndexForNewWindow() {
   const sessionState = await StorageService.getSessionState(sessionStateKey);
 
   if (sessionState) {
-    sessionState.tagIndex = 0; // Reset to start of new focus window
+    sessionState.tag_index = 0; // Reset to start of new focus window
     await StorageService.setSessionState(sessionStateKey, sessionState);
-    logger.info("🔄 Reset tagIndex to 0 for new focus window");
+    logger.info("🔄 Reset tag_index to 0 for new focus window");
   }
 }
 
@@ -552,12 +634,28 @@ async function checkFocusAreasGraduation() {
       masteredTags.includes(tag)
     );
 
-    // Check if any focus areas are close to mastery (80%+)
+    // Get tag-specific thresholds for near-mastery calculation
+    const db = await openDB();
+    const tagRelationshipsData = await new Promise((resolve, reject) => {
+      const tx = db.transaction("tag_relationships", "readonly");
+      const store = tx.objectStore("tag_relationships");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    const masteryThresholds = tagRelationshipsData.reduce((acc, item) => {
+      acc[item.id] = item.mastery_threshold || 0.8;
+      return acc;
+    }, {});
+
+    // Check if any focus areas are close to mastery (using tag-specific thresholds)
     const nearMasteryFocusAreas = userFocusAreas.filter(tag => {
       const tagData = masteryData.find(m => m.tag === tag);
-      if (!tagData || tagData.totalAttempts === 0) return false;
-      const successRate = tagData.successfulAttempts / tagData.totalAttempts;
-      return successRate >= 0.8 && !masteredTags.includes(tag);
+      if (!tagData || tagData.total_attempts === 0) return false;
+      const successRate = tagData.successful_attempts / tagData.total_attempts;
+      const threshold = masteryThresholds[tag] || 0.8;
+      return successRate >= threshold && !masteredTags.includes(tag);
     });
 
     // Suggest new focus areas from current tier
@@ -659,10 +757,10 @@ async function getAvailableTagsForFocus(userId) {
     const sessionStateKey = `sessionState_${userId}`;
     const sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
       (await StorageService.getSessionState(sessionStateKey)) || {
-        numSessionsCompleted: 0
+        num_sessions_completed: 0
       };
     const isOnboarding = SessionLimits.isOnboarding(sessionState);
-    logger.info(`🔰 Onboarding status: ${isOnboarding} (sessions completed: ${sessionState.numSessionsCompleted})`);
+    logger.info(`🔰 Onboarding status: ${isOnboarding} (sessions completed: ${sessionState.num_sessions_completed})`);
 
     const currentTier = learningState?.currentTier || "Core Concept";
     const systemSelectedTags = learningState?.focusTags || [];

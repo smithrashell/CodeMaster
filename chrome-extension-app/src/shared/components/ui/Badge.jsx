@@ -1,81 +1,81 @@
 import React from "react";
-import { Badge as MantineBadge } from "@mantine/core";
 
 /**
- * Unified Badge component using Mantine Badge with CodeMaster variants
- * Replaces the previous Tailwind-based badge system
+ * Custom Badge component with proper dark mode support
+ * No Mantine dependencies - pure CSS implementation
  */
 export function Badge({
-  variant = "filled",
-  color,
+  variant = "light",
+  color = "blue", 
   size = "sm",
   children,
-  className,
+  className = "",
   ...props
 }) {
-  // Get exact hex colors matching original design
-  const getInlineStyles = () => {
-    if (variant === "easy") {
-      return { backgroundColor: "#10b981", color: "white" };
-    }
-    if (variant === "medium") {
-      return { backgroundColor: "#f59e0b", color: "white" };
-    }
-    if (variant === "hard") {
-      return { backgroundColor: "#ef4444", color: "white" };
-    }
-    return {};
-  };
-
-  // Use neutral color for Mantine, override with inline styles
-  const getMantineColor = (v, c) => {
-    switch (v) {
-      case "easy":
-      case "medium":
-      case "hard":
-        return "gray"; // Will be overridden by inline styles
-      case "secondary":
-        return "gray";
+  // Map colors to CSS classes
+  const getColorClass = () => {
+    // Handle difficulty badges (legacy support)
+    if (variant === "easy") return "cm-badge--green";
+    if (variant === "medium") return "cm-badge--orange"; 
+    if (variant === "hard") return "cm-badge--red";
+    
+    // Handle status color mappings from getStatusColor function
+    switch (color) {
+      case "green": return "cm-badge--green";
+      case "blue": return "cm-badge--blue";
+      case "cyan": return "cm-badge--cyan";
+      case "purple": return "cm-badge--purple";
+      case "orange": return "cm-badge--orange";
+      case "yellow": return "cm-badge--yellow";
+      case "red": return "cm-badge--red";
+      case "teal": return "cm-badge--teal";
+      case "gray": 
+      case "grey":
       default:
-        return c || "blue"; // Default CodeMaster blue
+        return "cm-badge--gray";
     }
   };
 
-  // Map variants to Mantine equivalents
-  const getMantineVariant = (v) => {
-    switch (v) {
-      case "outline":
-        return "outline";
-      case "secondary":
-        return "light";
-      default:
-        return "filled";
+  // Map sizes to CSS classes  
+  const getSizeClass = () => {
+    switch (size) {
+      case "xs": return "cm-badge--xs";
+      case "sm": return "cm-badge--sm";
+      case "md": return "cm-badge--md";
+      case "lg": return "cm-badge--lg";
+      default: return "cm-badge--sm";
     }
   };
 
-  // Add difficulty class to prevent theme override
-  const getDifficultyClass = () => {
+  // Map variants to CSS classes
+  const getVariantClass = () => {
+    // Handle difficulty badges as filled
     if (variant === "easy" || variant === "medium" || variant === "hard") {
-      return "problem-sidebar-difficulty-badge";
+      return "cm-badge--filled";
     }
-    return "";
+    
+    switch (variant) {
+      case "filled": return "cm-badge--filled";
+      case "outline": return "cm-badge--outline";
+      case "light":
+      case "secondary":
+      default:
+        return "cm-badge--light";
+    }
   };
 
-  const combinedClassName = [className, getDifficultyClass()]
-    .filter(Boolean)
-    .join(" ");
+  const badgeClasses = [
+    "cm-badge",
+    getColorClass(),
+    getSizeClass(), 
+    getVariantClass(),
+    className
+  ].filter(Boolean).join(" ");
 
   return (
-    <MantineBadge
-      variant={getMantineVariant(variant)}
-      color={getMantineColor(variant, color)}
-      size={size}
-      className={combinedClassName}
-      style={getInlineStyles()}
-      {...props}
-    >
+    <span className={badgeClasses} {...props}>
       {children}
-    </MantineBadge>
+    </span>
   );
 }
 

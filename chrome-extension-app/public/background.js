@@ -65,6 +65,29 @@ self.addEventListener('activate', (event) => {
 global.backgroundStartTime = Date.now();
 console.log('🚀 SERVICE WORKER: Background script loaded and ready for messages');
 
+// Global error handlers to prevent service worker crashes
+self.addEventListener('error', (event) => {
+  console.error('🚨 SERVICE WORKER: Uncaught error:', event.error);
+  console.error('🚨 SERVICE WORKER: Error details:', {
+    message: event.message,
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+    stack: event.error?.stack
+  });
+  // Don't preventDefault - let Chrome handle the error but log it
+});
+
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('🚨 SERVICE WORKER: Unhandled promise rejection:', event.reason);
+  console.error('🚨 SERVICE WORKER: Rejection details:', {
+    reason: event.reason,
+    promise: event.promise,
+    stack: event.reason?.stack
+  });
+  // Don't preventDefault - let Chrome handle the rejection but log it
+});
+
 // Emergency cleanup on background script startup
 console.log('🔧 Performing startup cleanup...');
 // Clear any potential mutex locks from previous instance

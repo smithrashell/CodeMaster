@@ -66,7 +66,6 @@
   
   /* Text dimmed/muted colors - light mode */
   --cm-text-dimmed: #6b7280;
-  --mantine-color-dimmed: #6b7280;
 
   /* Table enhancement colors - light theme */
   --cm-table-accent: #0891b2; /* cyan-700 */
@@ -141,7 +140,7 @@ body {
 /* ========= Dark Mode Overrides ========= */
 body[data-theme="dark"] {
   --cm-bg: #1f2937;
-  --cm-bg-secondary: #374151;
+  --cm-bg-secondary: #1f2a38;
   --cm-bg-tertiary: #4b5563;
   --cm-bg-quaternary: #6b7280;
   --cm-bg-alt: #3b506e;
@@ -205,7 +204,6 @@ body[data-theme="dark"] {
   
   /* Text dimmed/muted colors - dark mode */
   --cm-text-dimmed: #d1d5db;
-  --mantine-color-dimmed: #d1d5db;
 
   /* Table enhancement colors - dark theme */
   --cm-table-accent: #22d3ee; /* cyan-400 */
@@ -406,9 +404,6 @@ body {
   color: var(--cm-text) !important;
 }
 
-.mantine-Text-root[data-c="dimmed"] {
-  color: var(--cm-text-dimmed) !important;
-}
 
 .mantine-Title-root {
   color: var(--cm-text) !important;
@@ -439,10 +434,25 @@ body {
   color: var(--cm-text) !important;
 }
 
-.mantine-Card-root .mantine-Text-root[data-c="dimmed"],
-.mantine-Paper-root .mantine-Text-root[data-c="dimmed"] {
-  color: var(--cm-text-dimmed) !important;
+
+/* Force text elements in dashboard to use proper colors - exclude badges */
+.dashboard-overview .mantine-Text-root,
+.dashboard-overview .mantine-Title-root,
+.dashboard-overview .mantine-Group-root .mantine-Text-root {
+  color: var(--cm-text) !important;
 }
+
+
+
+
+
+
+/* Ensure proper text colors in specific contexts */
+body[data-theme="dark"] .mantine-Text-root,
+body[data-theme="dark"] .mantine-Title-root {
+  color: var(--cm-text) !important;
+}
+
 
 
 /* ScrollArea within tables */
@@ -792,3 +802,228 @@ body[data-theme="dark"] {
 }
 
 /* Extension-specific scrollbar theming for components that need it */
+
+
+/* ========= Mantine Icon Color Override for Dark Mode ========= */
+
+[data-theme="dark"] {
+  --mantine-color-dimmed: #ffffff !important;
+  
+  /* Fix slider marks and labels */
+  --mantine-color-text: #ffffff !important;
+  --mantine-color-body: #ffffff !important;
+  
+  /* Force all text to be white in dark mode */
+  color: #ffffff !important;
+}
+
+
+/* Additional dark mode text fixes - removed overly broad selector */
+
+/* Keep secondary/dimmed text appropriately gray */
+[data-theme="dark"] .mantine-Text-root[data-variant="dimmed"],
+[data-theme="dark"] [style*="dimmed"] {
+  color: #d1d5db !important;
+}
+
+/* ========= Custom Badge Styles ========= */
+
+.cm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+/* Size variants */
+.cm-badge--xs {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.cm-badge--sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.cm-badge--md {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.cm-badge--lg {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* Light mode colors */
+.cm-badge--blue {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.cm-badge--cyan {
+  background-color: rgba(6, 182, 212, 0.1);
+  color: #0891b2;
+  border-color: rgba(6, 182, 212, 0.2);
+}
+
+.cm-badge--purple {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.cm-badge--gray {
+  background-color: rgba(107, 114, 128, 0.1);
+  color: #374151;
+  border-color: rgba(107, 114, 128, 0.2);
+}
+
+.cm-badge--orange {
+  background-color: rgba(249, 115, 22, 0.1);
+  color: #ea580c;
+  border-color: rgba(249, 115, 22, 0.2);
+}
+
+.cm-badge--yellow {
+  background-color: rgba(234, 179, 8, 0.1);
+  color: #a16207;
+  border-color: rgba(234, 179, 8, 0.2);
+}
+
+.cm-badge--green {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.cm-badge--red {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.cm-badge--teal {
+  background-color: rgba(20, 184, 166, 0.1);
+  color: #0d9488;
+  border-color: rgba(20, 184, 166, 0.2);
+}
+
+/* Dark mode colors */
+body[data-theme="dark"] .cm-badge--blue {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--cyan {
+  background-color: rgba(6, 182, 212, 0.2);
+  color: #67e8f9;
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--purple {
+  background-color: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--gray {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #d1d5db;
+  border-color: rgba(107, 114, 128, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--orange {
+  background-color: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--yellow {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border-color: rgba(234, 179, 8, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--green {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--red {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--teal {
+  background-color: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.4);
+}
+
+/* Variant styles */
+.cm-badge--filled {
+  color: white !important;
+}
+
+.cm-badge--filled.cm-badge--blue {
+  background-color: #3b82f6;
+}
+
+.cm-badge--filled.cm-badge--cyan {
+  background-color: #06b6d4;
+}
+
+.cm-badge--filled.cm-badge--purple {
+  background-color: #8b5cf6;
+}
+
+.cm-badge--filled.cm-badge--gray {
+  background-color: #6b7280;
+}
+
+.cm-badge--filled.cm-badge--orange {
+  background-color: #f97316;
+}
+
+.cm-badge--filled.cm-badge--yellow {
+  background-color: #eab308;
+}
+
+.cm-badge--filled.cm-badge--green {
+  background-color: #10b981;
+}
+
+.cm-badge--filled.cm-badge--red {
+  background-color: #ef4444;
+}
+
+.cm-badge--filled.cm-badge--teal {
+  background-color: #14b8a6;
+}
+
+.cm-badge--outline {
+  background-color: transparent !important;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* Light variant (default styling above is already light) */
+.cm-badge--light {
+  /* Uses default styling */
+}
+
