@@ -492,8 +492,9 @@ export const SessionService = {
           num_sessions_completed: 0
         };
         sessionState.num_sessions_completed = (sessionState.num_sessions_completed || 0) + 1;
+        sessionState.last_session_date = new Date().toISOString();
         await StorageService.setSessionState("session_state", sessionState);
-        logger.info(`✅ Session state updated: num_sessions_completed = ${sessionState.num_sessions_completed}`);
+        logger.info(`✅ Session state updated: num_sessions_completed = ${sessionState.num_sessions_completed}, last_session_date = ${sessionState.last_session_date}`);
       } catch (error) {
         logger.error("❌ Failed to update session state:", error);
       }
