@@ -56,12 +56,15 @@ export class FocusCoordinationService {
         inputs.tierTags
       );
       
-      // STEP 3: Check tag graduation (existing system priority)
+      // STEP 3: Check tag graduation (weighted integration - no direct modification)
       const graduationStatus = await TagService.checkFocusAreasGraduation();
       if (graduationStatus.needsUpdate) {
-        await TagService.graduateFocusAreas();
-        // Refresh user preferences after graduation
-        inputs.userPreferences = await this.getUserPreferences();
+        // Apply weighted graduation: remove mastered, blend with suggestions
+        inputs.userPreferences = this.applyWeightedGraduation(
+          inputs.userPreferences,
+          graduationStatus,
+          inputs.tierTags
+        );
       }
       
       // STEP 4: Calculate algorithm decision (core logic)
@@ -192,22 +195,32 @@ export class FocusCoordinationService {
    */
   static calculateOptimalTagCount(performance, _escapeHatches) {
     const { accuracy, efficiency } = performance;
-    
+
     // Start with base count
     let tagCount = 1;
-    
+
     // Performance-based expansion
-    const hasGoodPerformance = accuracy >= FOCUS_CONFIG.performance.expansion.goodThreshold || 
+    const hasGoodPerformance = accuracy >= FOCUS_CONFIG.performance.expansion.goodThreshold ||
                               efficiency >= 0.6;
     const hasExcellentPerformance = accuracy >= FOCUS_CONFIG.performance.expansion.excellentThreshold;
     const hasStagnation = performance.daysSinceProgress >= FOCUS_CONFIG.performance.expansion.stagnationDays;
-    
+
     if (hasExcellentPerformance || hasStagnation) {
       tagCount = Math.min(4, FOCUS_CONFIG.limits.totalTags); // Significant expansion
     } else if (hasGoodPerformance) {
       tagCount = 2; // Moderate expansion
     }
-    
+
+    console.log(`🔍 DEBUG: Tag count calculation - FINAL RESULT: ${tagCount} tags`);
+    console.log(`🔍 DEBUG: Performance values:`, {
+      accuracy,
+      efficiency,
+      hasExcellentPerformance,
+      hasGoodPerformance,
+      excellentThreshold: FOCUS_CONFIG.performance.expansion.excellentThreshold,
+      totalTagsLimit: FOCUS_CONFIG.limits.totalTags
+    });
+
     return tagCount;
   }
   
@@ -249,6 +262,39 @@ export class FocusCoordinationService {
   }
   
   /**
+   * Applies weighted graduation without modifying user settings
+   * Uses same pattern as problem selection: blend user + system recommendations
+   * @param {Array} userPreferences - Current user focus areas
+   * @param {Object} graduationStatus - Graduation analysis results
+   * @param {Array} availableTags - All available tags in current tier
+   * @returns {Array} Updated focus areas for this session only
+   */
+  static applyWeightedGraduation(userPreferences, graduationStatus, availableTags) {
+    // Remove mastered tags from user preferences (like removing used problems)
+    const filteredUserPrefs = userPreferences.filter(tag =>
+      !graduationStatus.masteredTags.includes(tag)
+    );
+
+    // Add system suggestions (like expansion tags in problem selection)
+    const systemSuggestions = graduationStatus.suggestions.filter(tag =>
+      availableTags.includes(tag) && !filteredUserPrefs.includes(tag)
+    );
+
+    // Weighted integration: 70% user preferences, 30% system suggestions
+    const maxTags = 3;
+    const userSlots = Math.min(filteredUserPrefs.length, Math.ceil(maxTags * 0.7));
+    const systemSlots = maxTags - userSlots;
+
+    const weighted = [
+      ...filteredUserPrefs.slice(0, userSlots),
+      ...systemSuggestions.slice(0, systemSlots)
+    ];
+
+    // Fallback if empty (same as problem selection fallback)
+    return weighted.length > 0 ? weighted : ['array'];
+  }
+
+  /**
    * Reorders algorithm tags to prioritize user preferences
    * @param {Array} algorithmTags - Algorithm-selected tags
    * @param {Array} userPreferences - User preferences
@@ -257,16 +303,16 @@ export class FocusCoordinationService {
    */
   static reorderByUserPreference(algorithmTags, userPreferences, availableTags) {
     const tagCount = algorithmTags.length; // Algorithm controls count
-    
+
     // Start with user preferences that are in available tags
     const userChoices = userPreferences.filter(tag => availableTags.includes(tag));
-    
+
     // Add system tags that aren't in user choices
     const systemChoices = algorithmTags.filter(tag => !userChoices.includes(tag));
-    
+
     // Combine, respecting algorithm's count decision
     const combined = [...userChoices, ...systemChoices];
-    
+
     return combined.slice(0, tagCount);
   }
   
@@ -277,11 +323,25 @@ export class FocusCoordinationService {
    */
   static getPerformanceMetrics(sessionState) {
     const lastPerformance = sessionState.last_performance || {};
+    const accuracy = lastPerformance.accuracy || 0.0;
+    const efficiency = lastPerformance.efficiency_score || 0.0;
+
+    console.log(`🔍 DEBUG: Performance metrics calculation:`, {
+      sessionState,
+      lastPerformance,
+      accuracy,
+      efficiency,
+      level: this.getPerformanceLevel(accuracy),
+      thresholds: {
+        good: FOCUS_CONFIG.performance.expansion.goodThreshold,
+        excellent: FOCUS_CONFIG.performance.expansion.excellentThreshold
+      }
+    });
 
     return {
-      accuracy: lastPerformance.accuracy || 0.0,
-      efficiency: lastPerformance.efficiency_score || 0.0,
-      level: this.getPerformanceLevel(lastPerformance.accuracy || 0.0),
+      accuracy,
+      efficiency,
+      level: this.getPerformanceLevel(accuracy),
       daysSinceProgress: this.calculateDaysSinceProgress(sessionState)
     };
   }
@@ -320,7 +380,19 @@ export class FocusCoordinationService {
    * @returns {boolean} True if onboarding
    */
   static isOnboarding(sessionState) {
-    return (sessionState.num_sessions_completed || 0) < FOCUS_CONFIG.onboarding.sessionCount;
+    const completed = sessionState.num_sessions_completed || 0;
+    const threshold = FOCUS_CONFIG.onboarding.sessionCount;
+    const isOnboarding = completed < threshold;
+
+    console.log(`🔍 ONBOARDING DEBUG: ${completed} sessions completed < ${threshold} threshold = ${isOnboarding}`, {
+      sessionStateId: sessionState?.id,
+      completed,
+      threshold,
+      isOnboarding,
+      sessionStateKeys: Object.keys(sessionState || {})
+    });
+
+    return isOnboarding;
   }
   
   /**
