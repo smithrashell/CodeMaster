@@ -329,10 +329,20 @@ export const ProblemService = {
       logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
       
       const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
-      sessionProblems.push(...reviewProblems);
-      reviewProblemsCount = reviewProblems.length;
-      
-      logger.info(`🔄 Added ${reviewProblems.length}/${reviewTarget} review problems`);
+
+      // Debug review problems before adding them
+      logger.info(`🔍 DEBUG: reviewProblems before filtering:`, {
+        isArray: Array.isArray(reviewProblems),
+        length: reviewProblems?.length,
+        content: reviewProblems?.map(p => ({ id: p?.id, leetcode_id: p?.leetcode_id, title: p?.title }))
+      });
+
+      // Filter out any null/undefined problems before adding
+      const validReviewProblems = reviewProblems.filter(p => p && (p.id || p.leetcode_id));
+      sessionProblems.push(...validReviewProblems);
+      reviewProblemsCount = validReviewProblems.length;
+
+      logger.info(`🔄 Added ${validReviewProblems.length}/${reviewTarget} review problems (filtered from ${reviewProblems?.length || 0} candidates)`);
       
       // Debug review problems selection
       if (reviewProblems.length === 0 && reviewTarget > 0) {
@@ -343,6 +353,12 @@ export const ProblemService = {
     }
 
     // **Step 2: New Problems (remaining session) - Enhanced with Optimal Path Scoring**
+    logger.info(`🔍 DEBUG: Before calculating newProblemsNeeded:`, {
+      sessionLength,
+      sessionProblemsLength: sessionProblems.length,
+      sessionProblemsContent: sessionProblems.map(p => ({ id: p?.id, leetcode_id: p?.leetcode_id, title: p?.title }))
+    });
+
     const newProblemsNeeded = sessionLength - sessionProblems.length;
 
     if (newProblemsNeeded > 0) {

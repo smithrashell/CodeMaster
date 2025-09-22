@@ -395,6 +395,7 @@ async function initializeSessionState(sessionStateKey) {
         sessions_without_promotion: 0,
         activated_escape_hatches: [],
       },
+      last_session_date: null,
     };
 
   console.log(`🔍 SESSION STATE DEBUG: Initial session state:`, {
@@ -496,19 +497,19 @@ function applyOnboardingSettings(settings, sessionState, allowedTags, focusDecis
  * Apply post-onboarding adaptive logic with performance-based adjustments
  */
 async function applyPostOnboardingLogic({
-  accuracy, efficiencyScore, settings, interviewInsights, 
-  allowedTags, focusTags, _sessionState, now
+  accuracy, efficiencyScore, settings, interviewInsights,
+  allowedTags, focusTags, _sessionState, now, performanceTrend, consecutiveExcellentSessions
 }) {
-  // Time gap since last session
-  let gapInDays = 999;
+  // Time gap since last session (only calculate if we have real attempt data)
+  let gapInDays = null; // null means no gap data available
   const lastAttempt = await getMostRecentAttempt();
   if (lastAttempt?.attempt_date) {
     const lastTime = new Date(lastAttempt.attempt_date);
     gapInDays = (now - lastTime) / (1000 * 60 * 60 * 24);
   }
 
-  // Calculate adaptive session length
-  const adaptiveSessionLength = computeSessionLength(accuracy, efficiencyScore);
+  // Calculate adaptive session length with trend analysis
+  const adaptiveSessionLength = computeSessionLength(accuracy, efficiencyScore, settings.sessionLength || 4, performanceTrend, consecutiveExcellentSessions);
   
   // Apply user preference blending (70% adaptive, 30% user preference)
   const userPreferredLength = settings.sessionLength;
@@ -519,10 +520,12 @@ async function applyPostOnboardingLogic({
     sessionLength, interviewInsights
   );
 
-  // Apply performance-based constraints
-  if (gapInDays > 4 || accuracy < 0.5) {
+  // Apply performance-based constraints (only when we have real attempt data)
+  if ((gapInDays !== null && gapInDays > 4) || accuracy < 0.5) {
+    const originalLength = sessionLength;
     sessionLength = Math.min(sessionLength, 5);
-    logger.info(`🛡️ Performance constraint applied: Session length capped at 5 due to gap (${gapInDays.toFixed(1)} days) or low accuracy (${(accuracy * 100).toFixed(1)}%)`);
+    const gapText = gapInDays !== null ? `${gapInDays.toFixed(1)} days` : 'no gap data';
+    logger.info(`🛡️ Performance constraint applied: Session length capped from ${originalLength} to ${sessionLength} due to gap (${gapText}) or low accuracy (${(accuracy * 100).toFixed(1)}%)`);
   }
 
   // Calculate new problems based on performance and settings
@@ -659,7 +662,7 @@ function applyInterviewInsightsToTags(allowedTags, focusTags, interviewInsights,
  */
 export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   // Session-based escape hatch detection and activation
-  const currentDifficulty = sessionState.current_difficulty_cap;
+  const currentDifficulty = sessionState.current_difficulty_cap || "easy";
 
   // Ensure escape_hatches object exists (backward compatibility)
   if (!sessionState.escape_hatches) {
@@ -672,6 +675,11 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   }
 
   const escapeHatches = sessionState.escape_hatches;
+
+  // Ensure sessionState has current_difficulty_cap set
+  if (!sessionState.current_difficulty_cap) {
+    sessionState.current_difficulty_cap = "easy";
+  }
 
   // Track sessions at current difficulty level
   escapeHatches.sessions_at_current_difficulty++;
@@ -703,7 +711,7 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   
   if (
     accuracy >= promotionThreshold &&
-    sessionState.current_difficulty_cap.toLowerCase() === "easy" &&
+    (sessionState.current_difficulty_cap || "easy").toLowerCase() === "easy" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")
   ) {
     sessionState.current_difficulty_cap = "medium";
@@ -718,9 +726,10 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     } else {
       logger.info("🎯 Difficulty cap upgraded: Easy → Medium");
     }
+    return sessionState; // Prevent double progression in same session
   } else if (
     accuracy >= promotionThreshold &&
-    sessionState.current_difficulty_cap.toLowerCase() === "medium" &&
+    (sessionState.current_difficulty_cap || "easy").toLowerCase() === "medium" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")
   ) {
     sessionState.current_difficulty_cap = "hard";
@@ -780,18 +789,65 @@ export async function buildAdaptiveSessionSettings() {
     sessionStateKeys: Object.keys(sessionState)
   });
 
-  // Get most recent performance from session analytics store (more reliable than session state)
+  // Get performance trends from session analytics store (analyze last 5 sessions for momentum)
   let accuracy = 0.5;
   let efficiencyScore = 0.5;
-  
+  let performanceTrend = 'stable';
+  let consecutiveExcellentSessions = 0;
+
   try {
-    const recentAnalytics = await getRecentSessionAnalytics(1);
+    const recentAnalytics = await getRecentSessionAnalytics(5);
     if (recentAnalytics && recentAnalytics.length > 0) {
       const lastSession = recentAnalytics[0];
-      accuracy = lastSession.accuracy ?? 0.5;
-      // Calculate efficiency from timing if available (simplified metric)
+      const currentDifficulty = (sessionState.current_difficulty_cap || "easy").toLowerCase();
+
+      // Calculate current session accuracy (same logic as before)
+      const difficultyBreakdown = lastSession.difficulty_breakdown;
+      if (difficultyBreakdown && currentDifficulty) {
+        const currentDifficultyData = difficultyBreakdown[currentDifficulty];
+        if (currentDifficultyData && currentDifficultyData.attempts > 0) {
+          accuracy = currentDifficultyData.correct / currentDifficultyData.attempts;
+          logger.info(`🎯 Using ${currentDifficulty}-specific accuracy for difficulty progression: ${(accuracy * 100).toFixed(1)}% (${currentDifficultyData.correct}/${currentDifficultyData.attempts})`);
+        } else {
+          accuracy = lastSession.accuracy ?? 0.5;
+          logger.info(`🔍 No ${currentDifficulty} attempts found, using overall accuracy: ${(accuracy * 100).toFixed(1)}%`);
+        }
+      } else {
+        accuracy = lastSession.accuracy ?? 0.5;
+        logger.info(`🔍 Using overall session accuracy: ${(accuracy * 100).toFixed(1)}%`);
+      }
+
+      // Calculate efficiency from timing if available
       efficiencyScore = lastSession.avg_time ? Math.max(0.3, Math.min(1.0, 1.0 - (lastSession.avg_time / 1800))) : 0.5;
-      logger.info(`🔍 Using session analytics performance: accuracy=${accuracy}, efficiency=${efficiencyScore}`);
+
+      // NEW: Analyze performance trend across recent sessions
+      if (recentAnalytics.length >= 2) {
+        const accuracies = recentAnalytics.map(session => session.accuracy || 0.5);
+        const avgRecent = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
+
+        // Count consecutive excellent sessions (90%+ accuracy)
+        consecutiveExcellentSessions = 0;
+        for (const session of recentAnalytics) {
+          if ((session.accuracy || 0) >= 0.9) {
+            consecutiveExcellentSessions++;
+          } else {
+            break; // Stop at first non-excellent session
+          }
+        }
+
+        // Determine performance trend
+        if (avgRecent >= 0.85 && consecutiveExcellentSessions >= 2) {
+          performanceTrend = 'sustained_excellence';
+        } else if (avgRecent >= 0.7 && accuracies[0] > accuracies[Math.min(2, accuracies.length - 1)]) {
+          performanceTrend = 'improving';
+        } else if (avgRecent < 0.5) {
+          performanceTrend = 'struggling';
+        } else {
+          performanceTrend = 'stable';
+        }
+
+        logger.info(`📈 Performance analysis: trend=${performanceTrend}, avgAccuracy=${(avgRecent * 100).toFixed(1)}%, consecutiveExcellent=${consecutiveExcellentSessions}`);
+      }
     } else {
       logger.info("🔍 No recent session analytics found, using defaults");
     }
@@ -814,23 +870,13 @@ export async function buildAdaptiveSessionSettings() {
   
   // Use coordinated focus decision (handles onboarding, performance, user preferences)
   let allowedTags = focusDecision.activeFocusTags;
-  // Prioritize session count over focus decision for onboarding determination
-  const sessionCountBasedOnboarding = (sessionState.num_sessions_completed || 0) < 3;
-  const onboarding = sessionCountBasedOnboarding; // Session count takes precedence over focus decision
+  // Use FocusCoordinationService as single source of truth for onboarding
+  const onboarding = focusDecision.onboarding;
   
-  console.log(`🔍 ONBOARDING DECISION DEBUG: Detailed analysis:`, {
-    focusDecisionOnboarding: focusDecision.onboarding,
+  console.log(`🔍 ONBOARDING DECISION: Using FocusCoordinationService as single source of truth:`, {
+    onboarding: focusDecision.onboarding,
     numSessionsCompleted: sessionState.num_sessions_completed,
-    sessionCountBasedOnboarding,
-    finalOnboarding: onboarding,
-    overridingFocusDecision: focusDecision.onboarding !== onboarding
-  });
-  
-  console.log(`🔍 Onboarding decision debug:`, {
-    focusDecisionOnboarding: focusDecision.onboarding,
-    numSessionsCompleted: sessionState.num_sessions_completed,
-    fallbackCheck: (sessionState.num_sessions_completed || 0) < 3,
-    finalOnboarding: onboarding,
+    performanceLevel: focusDecision.performanceLevel,
     currentDifficultyCap: sessionState.current_difficulty_cap
   });
 
@@ -859,8 +905,8 @@ export async function buildAdaptiveSessionSettings() {
   } else if (!onboarding) {
     // Apply post-onboarding adaptive logic
     const adaptiveResult = await applyPostOnboardingLogic({
-      accuracy, efficiencyScore, settings, interviewInsights, 
-      allowedTags, focusTags, sessionState, now
+      accuracy, efficiencyScore, settings, interviewInsights,
+      allowedTags, focusTags, sessionState, now, performanceTrend, consecutiveExcellentSessions
     });
     sessionLength = adaptiveResult.sessionLength;
     numberOfNewProblems = adaptiveResult.numberOfNewProblems;
@@ -871,8 +917,6 @@ export async function buildAdaptiveSessionSettings() {
     sessionState = applyEscapeHatchLogic(sessionState, accuracy, settings, now);
   }
 
-  sessionState.last_session_date = now.toISOString();
-  
   // Update session state using coordination service to avoid conflicts
   sessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
   
@@ -885,6 +929,9 @@ export async function buildAdaptiveSessionSettings() {
     accuracy,
     efficiencyScore,
     onboarding,
+    performanceTrend,
+    consecutiveExcellentSessions,
+    sessionStateNumCompleted: sessionState.num_sessions_completed
   });
 
   return {
@@ -898,14 +945,63 @@ export async function buildAdaptiveSessionSettings() {
   };
 }
 
-function computeSessionLength(accuracy, efficiencyScore) {
+function computeSessionLength(accuracy, efficiencyScore, userPreferredLength = 4, performanceTrend = 'stable', consecutiveExcellentSessions = 0) {
   const accWeight = Math.min(Math.max(accuracy ?? 0.5, 0), 1);
   const effWeight = Math.min(Math.max(efficiencyScore ?? 0.5, 0), 1);
 
-  const composite = accWeight * 0.6 + effWeight * 0.4;
+  // Start with user's preferred length as baseline
+  const baseLength = Math.max(userPreferredLength || 4, 3); // Minimum 3 problems
 
-  // Scale from 3 to 12 problems based on performance
-  return Math.round(3 + composite * 9); // [3, 12]
+  // Base adaptation multipliers
+  let lengthMultiplier = 1.0;
+
+  if (accWeight >= 0.9) {
+    // Excellent current performance - base increase
+    lengthMultiplier = 1.25;
+  } else if (accWeight >= 0.7) {
+    lengthMultiplier = 1.0;
+  } else if (accWeight < 0.5) {
+    lengthMultiplier = 0.8;
+  }
+
+  // NEW: Progressive scaling based on performance trends
+  if (performanceTrend === 'sustained_excellence') {
+    // Sustained excellence deserves progressive challenge growth
+    const momentumBonus = Math.min(consecutiveExcellentSessions * 0.15, 0.6); // Up to 60% bonus for 4+ excellent sessions
+    lengthMultiplier += momentumBonus;
+    logger.info(`🚀 Sustained excellence bonus: ${(momentumBonus * 100).toFixed(0)}% (${consecutiveExcellentSessions} consecutive excellent sessions)`);
+  } else if (performanceTrend === 'improving') {
+    // Improving users get moderate growth encouragement
+    lengthMultiplier += 0.1;
+    logger.info(`📈 Improvement momentum: +10% session length`);
+  } else if (performanceTrend === 'struggling') {
+    // Struggling users need more support
+    lengthMultiplier = Math.max(lengthMultiplier - 0.2, 0.6); // Extra reduction but not below 60%
+    logger.info(`🛡️ Struggling support: Extra session length reduction`);
+  }
+
+  // Speed consideration: Very fast + accurate users might need even more challenge
+  if (effWeight > 0.8 && accWeight > 0.8) {
+    lengthMultiplier *= 1.1;
+  }
+
+  // Apply adaptation with expanded bounds for sustained excellent performers
+  const maxLength = performanceTrend === 'sustained_excellence' ? 12 : 8;
+  const adaptedLength = Math.round(baseLength * lengthMultiplier);
+  const finalLength = Math.min(Math.max(adaptedLength, 3), maxLength);
+
+  console.log(`🔍 SESSION LENGTH COMPUTATION:`, {
+    accuracy: accWeight,
+    performanceTrend,
+    consecutiveExcellentSessions,
+    baseLength,
+    lengthMultiplier,
+    adaptedLength,
+    maxLength,
+    finalLength
+  });
+
+  return finalLength;
 }
 
 /**
