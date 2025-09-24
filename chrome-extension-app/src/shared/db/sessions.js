@@ -377,7 +377,7 @@ async function initializeSessionState(sessionStateKey) {
   let sessionState = migratedState || storedState || {
       id: sessionStateKey,
       num_sessions_completed: 0,
-      current_difficulty_cap: "easy", // Onboarding users start with easy-only problems
+      current_difficulty_cap: "Easy", // Onboarding users start with easy-only problems
       tag_index: 0,
       difficulty_time_stats: {
         easy: { problems: 0, total_time: 0, avg_time: 0 },
@@ -662,7 +662,7 @@ function applyInterviewInsightsToTags(allowedTags, focusTags, interviewInsights,
  */
 export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   // Session-based escape hatch detection and activation
-  const currentDifficulty = sessionState.current_difficulty_cap || "easy";
+  const currentDifficulty = sessionState.current_difficulty_cap || "Easy";
 
   // Ensure escape_hatches object exists (backward compatibility)
   if (!sessionState.escape_hatches) {
@@ -678,7 +678,7 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
 
   // Ensure sessionState has current_difficulty_cap set
   if (!sessionState.current_difficulty_cap) {
-    sessionState.current_difficulty_cap = "easy";
+    sessionState.current_difficulty_cap = "Easy";
   }
 
   // Track sessions at current difficulty level
@@ -711,10 +711,10 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   
   if (
     accuracy >= promotionThreshold &&
-    (sessionState.current_difficulty_cap || "easy").toLowerCase() === "easy" &&
+    (sessionState.current_difficulty_cap || "Easy").toLowerCase() === "easy" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")
   ) {
-    sessionState.current_difficulty_cap = "medium";
+    sessionState.current_difficulty_cap = "Medium";
     escapeHatches.last_difficulty_promotion = now.toISOString();
     escapeHatches.sessions_at_current_difficulty = 0; // Reset counter
     escapeHatches.activated_escape_hatches = []; // Reset escape hatches for new difficulty
@@ -729,10 +729,10 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     return sessionState; // Prevent double progression in same session
   } else if (
     accuracy >= promotionThreshold &&
-    (sessionState.current_difficulty_cap || "easy").toLowerCase() === "medium" &&
+    (sessionState.current_difficulty_cap || "Easy").toLowerCase() === "medium" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")
   ) {
-    sessionState.current_difficulty_cap = "hard";
+    sessionState.current_difficulty_cap = "Hard";
     escapeHatches.last_difficulty_promotion = now.toISOString();
     escapeHatches.sessions_at_current_difficulty = 0; // Reset counter
     escapeHatches.activated_escape_hatches = []; // Reset escape hatches for new difficulty
@@ -799,7 +799,7 @@ export async function buildAdaptiveSessionSettings() {
     const recentAnalytics = await getRecentSessionAnalytics(5);
     if (recentAnalytics && recentAnalytics.length > 0) {
       const lastSession = recentAnalytics[0];
-      const currentDifficulty = (sessionState.current_difficulty_cap || "easy").toLowerCase();
+      const currentDifficulty = (sessionState.current_difficulty_cap || "Easy").toLowerCase();
 
       // Calculate current session accuracy (same logic as before)
       const difficultyBreakdown = lastSession.difficulty_breakdown;
@@ -934,11 +934,21 @@ export async function buildAdaptiveSessionSettings() {
     sessionStateNumCompleted: sessionState.num_sessions_completed
   });
 
+  // BUGFIX: Ensure onboarding sessions always start with Easy difficulty
+  const finalDifficultyCap = onboarding ? "Easy" : sessionState.current_difficulty_cap;
+
+  console.log(`🔍 DIFFICULTY CAP DEBUG:`, {
+    onboarding,
+    sessionStateCurrentDifficulty: sessionState.current_difficulty_cap,
+    finalDifficultyCap,
+    numSessionsCompleted: sessionState.num_sessions_completed
+  });
+
   return {
     sessionLength,
     numberOfNewProblems,
     currentAllowedTags: allowedTags,
-    currentDifficultyCap: onboarding ? "Easy" : sessionState.current_difficulty_cap,
+    currentDifficultyCap: finalDifficultyCap,
     userFocusAreas,
     sessionState,
     isOnboarding: onboarding,
@@ -978,6 +988,18 @@ function computeSessionLength(accuracy, efficiencyScore, userPreferredLength = 4
     // Struggling users need more support
     lengthMultiplier = Math.max(lengthMultiplier - 0.2, 0.6); // Extra reduction but not below 60%
     logger.info(`🛡️ Struggling support: Extra session length reduction`);
+  } else if (performanceTrend === 'stable') {
+    // Stable users get gentle scaling based on their accuracy level
+    if (accWeight >= 0.8) {
+      // Strong stable performance (80%+) gets gentle challenge increase
+      lengthMultiplier += 0.05;
+      logger.info(`📊 Stable strong performance: +5% session length (${(accWeight * 100).toFixed(1)}% accuracy)`);
+    } else if (accWeight >= 0.6) {
+      // Good stable performance (60-80%) gets small variation for engagement
+      lengthMultiplier += 0.025;
+      logger.info(`📊 Stable performance: +2.5% session length for engagement (${(accWeight * 100).toFixed(1)}% accuracy)`);
+    }
+    // Below 60% stable performance gets no additional scaling (already handled by base multiplier)
   }
 
   // Speed consideration: Very fast + accurate users might need even more challenge
@@ -1063,9 +1085,10 @@ async function _processAttempts(sessions) {
       hasValidAttempts: attempts.length > 0
     });
 
-    // Strict validation: Session must have attempts to be processed
+    // Skip sessions without attempts instead of throwing error
     if (attempts.length === 0) {
-      throw new Error(`Session ${session.id} has no attempts in database - session should not be evaluated until problems are attempted`);
+      console.log(`⏭️ Skipping session ${session.id} - no attempts recorded yet`);
+      continue;
     }
 
     // Create problem mapping for tag lookup
@@ -1380,7 +1403,7 @@ export async function evaluateDifficultyProgression(accuracy, settings) {
         sessionState = {
           id: "session_state",
           num_sessions_completed: 0,
-          current_difficulty_cap: "easy",
+          current_difficulty_cap: "Easy",
           escape_hatches: {
             sessions_at_current_difficulty: 0,
             last_difficulty_promotion: null,

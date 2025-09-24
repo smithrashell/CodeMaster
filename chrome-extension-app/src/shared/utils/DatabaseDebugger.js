@@ -38,8 +38,20 @@ export function installDatabaseDebugger() {
     
     // Count how many times this specific database has been opened
     const sameDbAttempts = dbCreationLog.filter(attempt => attempt.databaseName === name);
+
+    // Only warn about suspicious patterns, not legitimate Chrome extension multi-context access
     if (sameDbAttempts.length > 1) {
-      console.error(`🚨 DUPLICATE DATABASE ATTEMPT #${sameDbAttempts.length} for database: ${name}`);
+      // Check if this is likely a legitimate pattern (different contexts)
+      const contexts = [...new Set(sameDbAttempts.map(attempt => attempt.context.type))];
+      const isLegitimateMultiContext = contexts.length > 1 || contexts.includes('extension-page');
+
+      if (!isLegitimateMultiContext && sameDbAttempts.length > 3) {
+        // Only warn if it's suspicious (same context, many attempts)
+        console.warn(`⚠️ Multiple database attempts (#${sameDbAttempts.length}) for database: ${name} in same context`);
+      } else if (sameDbAttempts.length <= 2) {
+        // Normal case: just log quietly for first few attempts
+        console.debug(`📊 Database access #${sameDbAttempts.length} for: ${name} (context: ${context.type})`);
+      }
     }
     
     // Call original indexedDB.open

@@ -199,6 +199,33 @@ export async function getRelationshipStrength(problemId1, problemId2) {
 }
 
 /**
+ * Batch load all relationship strengths for performance optimization
+ * @returns {Promise<Map>} Map with keys like "problemId1-problemId2" and strength values
+ */
+export async function getAllRelationshipStrengths() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("problem_relationships", "readonly");
+    const store = transaction.objectStore("problem_relationships");
+
+    const request = store.getAll();
+    request.onsuccess = () => {
+      const relationships = request.result || [];
+      const strengthMap = new Map();
+
+      relationships.forEach(rel => {
+        const key = `${rel.problem_id1}-${rel.problem_id2}`;
+        strengthMap.set(key, rel.strength);
+      });
+
+      console.log(`⚡ Loaded ${strengthMap.size} relationship strengths for batch processing`);
+      resolve(strengthMap);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
  * Update or create relationship strength between two problems
  * @param {number} problemId1 - First problem ID
  * @param {number} problemId2 - Second problem ID
@@ -276,14 +303,16 @@ async function detectSimplePlateau() {
  * Core Phase 3 implementation for personalized session composition
  * @param {Object} problem - Candidate problem to score
  * @param {Object} userState - Current user state (can be null)
+ * @param {Object} cachedData - Pre-computed data to avoid repeated database calls
  * @returns {Promise<number>} Optimal path score (higher = better fit)
  */
-export async function calculateOptimalPathScore(problem, userState = null) {
+export async function calculateOptimalPathScore(problem, userState = null, cachedData = {}) {
   try {
     let score = 1.0; // Base score
 
     // Factor 1: Relationship strength from recent successes
-    const recentSuccesses = await getUserRecentAttempts(5);
+    const recentSuccesses = cachedData.recentSuccesses || await getUserRecentAttempts(5);
+    const relationshipMap = cachedData.relationshipMap || new Map();
     let avgRelationshipStrength = 0;
 
     if (recentSuccesses.length > 0) {
@@ -291,12 +320,10 @@ export async function calculateOptimalPathScore(problem, userState = null) {
       let relationshipCount = 0;
 
       for (const recentProblem of recentSuccesses) {
-        const strength = await getRelationshipStrength(
-          recentProblem.leetcode_id,
-          problem.id || problem.leetcode_id
-        );
+        const relationshipKey = `${recentProblem.leetcode_id}-${problem.id || problem.leetcode_id}`;
+        let strength = relationshipMap.get(relationshipKey);
 
-        if (strength !== null) {
+        if (strength !== undefined) {
           totalStrength += strength;
           relationshipCount++;
         } else {
@@ -323,7 +350,7 @@ export async function calculateOptimalPathScore(problem, userState = null) {
     score *= diversityBonus;
 
     // Factor 4: Plateau detection - encourage harder challenges if plateauing
-    const isPlateauing = await detectSimplePlateau();
+    const isPlateauing = cachedData.isPlateauing !== undefined ? cachedData.isPlateauing : await detectSimplePlateau();
     if (isPlateauing && problem.difficulty === 'Hard') {
       score *= 1.2; // Boost hard problems when plateauing
       console.log(`🚀 Plateau detection: Boosting Hard problem for breakthrough`);
@@ -442,10 +469,25 @@ export async function selectOptimalProblems(candidateProblems, userState = null)
   try {
     console.log(`🧮 Scoring ${candidateProblems.length} candidate problems for optimal session composition`);
 
+    // Pre-compute ALL shared data to avoid repeated database calls
+    const [recentSuccesses, relationshipMap, isPlateauing] = await Promise.all([
+      getUserRecentAttempts(5),
+      getAllRelationshipStrengths(),
+      detectSimplePlateau()
+    ]);
+
+    const cachedData = {
+      recentSuccesses,
+      relationshipMap,
+      isPlateauing
+    };
+
+    console.log(`⚡ Cached shared data: ${cachedData.recentSuccesses.length} recent successes, ${cachedData.relationshipMap.size} relationships, plateau: ${cachedData.isPlateauing}`);
+
     const scoredProblems = [];
 
     for (const problem of candidateProblems) {
-      const score = await calculateOptimalPathScore(problem, userState);
+      const score = await calculateOptimalPathScore(problem, userState, cachedData);
       scoredProblems.push({
         ...problem,
         pathScore: score,
