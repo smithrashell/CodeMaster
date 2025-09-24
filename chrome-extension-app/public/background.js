@@ -18,6 +18,8 @@ import { DynamicPathOptimizationTester } from "../src/shared/utils/dynamicPathOp
 import { RealSystemTester } from "../src/shared/utils/realSystemTesting.js";
 import { TestDataIsolation } from "../src/shared/utils/testDataIsolation.js";
 import { RelationshipSystemTester } from "../src/shared/utils/relationshipSystemTesting.js";
+import { getAllFromStore } from "../src/shared/db/common.js";
+import { shouldEnableSessionTesting } from "../src/app/config/mockConfig.js";
 import { connect } from "chrome-extension-hot-reload";
 import { 
   onboardUserIfNeeded,
@@ -98,8 +100,7 @@ globalThis.FocusCoordinationService = FocusCoordinationService;
 (async () => {
   let sessionTestingEnabled = false;
   try {
-    // Try to import the config (might not be available in all contexts)
-    const { shouldEnableSessionTesting } = await import('../src/app/config/mockConfig.js');
+    // Use static import for better Chrome extension compatibility
     sessionTestingEnabled = shouldEnableSessionTesting();
   } catch (error) {
     // Fallback: enable in development environment
@@ -10635,8 +10636,7 @@ globalThis.testDataPersistenceReliability = async function(options = {}) {
 
     // 1. Test database connection reliability
     try {
-      const { getAllFromStore } = await import('../src/shared/db/common.js');
-
+      // Use static import for better Chrome extension compatibility
       // Test multiple store access
       const stores = ['sessions', 'problems', 'attempts', 'tag_mastery'];
       const connectionResults = [];
@@ -12860,7 +12860,12 @@ globalThis.listAvailableTests = function() {
  * Service Worker Safe Mode - Ultra-quiet testing for service workers
  */
 globalThis.runTestsSilent = async function() {
-  return await globalThis.runComprehensiveTests({ silent: true });
+  try {
+    return await globalThis.runComprehensiveTests({ silent: true });
+  } catch (error) {
+    console.error('runTestsSilent failed:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 globalThis.runCriticalTestsSilent = async function() {
@@ -12869,6 +12874,52 @@ globalThis.runCriticalTestsSilent = async function() {
 
 globalThis.runProductionTestsSilent = async function() {
   return await globalThis.runProductionTests({ silent: true });
+};
+
+// Simple test to verify functions are available
+globalThis.quickHealthCheck = async function() {
+  console.log('🏥 CodeMaster Quick Health Check');
+  console.log('================================');
+
+  const results = {
+    servicesAvailable: 0,
+    servicesTotal: 0,
+    functionsAvailable: 0,
+    functionsTotal: 0
+  };
+
+  // Check core services
+  const services = ['ProblemService', 'SessionService', 'TagService', 'HintInteractionService'];
+  services.forEach(service => {
+    results.servicesTotal++;
+    if (typeof globalThis[service] !== 'undefined') {
+      results.servicesAvailable++;
+      console.log(`✓ ${service} available`);
+    } else {
+      console.log(`❌ ${service} missing`);
+    }
+  });
+
+  // Check test functions
+  const functions = ['runComprehensiveTests', 'runCriticalTests', 'testCoreSessionValidation'];
+  functions.forEach(func => {
+    results.functionsTotal++;
+    if (typeof globalThis[func] === 'function') {
+      results.functionsAvailable++;
+      console.log(`✓ ${func} available`);
+    } else {
+      console.log(`❌ ${func} missing`);
+    }
+  });
+
+  const serviceHealth = (results.servicesAvailable / results.servicesTotal * 100).toFixed(1);
+  const functionHealth = (results.functionsAvailable / results.functionsTotal * 100).toFixed(1);
+
+  console.log('');
+  console.log(`📊 Services: ${results.servicesAvailable}/${results.servicesTotal} (${serviceHealth}%)`);
+  console.log(`🔧 Functions: ${results.functionsAvailable}/${results.functionsTotal} (${functionHealth}%)`);
+
+  return results;
 };
 
 // Initialize comprehensive test system
