@@ -2,10 +2,7 @@
  * App Onboarding Hook
  */
 import { useState, useEffect } from "react";
-import {
-  checkOnboardingStatus,
-  completeOnboarding,
-} from "../../shared/services/onboardingService";
+import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
 
 export const useAppOnboarding = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -13,7 +10,9 @@ export const useAppOnboarding = () => {
   useEffect(() => {
     const checkOnboarding = async () => {
       try {
-        const status = await checkOnboardingStatus();
+        const status = await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'checkOnboardingStatus'
+        });
         setShowOnboarding(!status.is_completed);
       } catch (error) {
         // Error checking onboarding status
@@ -26,7 +25,9 @@ export const useAppOnboarding = () => {
 
   const handleCompleteOnboarding = async () => {
     try {
-      await completeOnboarding();
+      await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'completeOnboarding'
+      });
       setShowOnboarding(false);
     } catch (error) {
       // Error completing onboarding

@@ -18,8 +18,7 @@ export async function getDailyReviewSchedule(sessionLength) {
     // Step 1: Get problems due for review
     let reviewProblems = allProblems.filter(
       (p) =>
-        isDueForReview(p.ReviewSchedule) ||
-        !isRecentlyAttempted(p.lastAttemptDate, p.BoxLevel)
+        isDueForReview(p.ReviewSchedule)
     );
 
     // Step 2: Filter to tier-appropriate problems

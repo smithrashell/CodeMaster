@@ -1,6 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
-import SessionLimits from "./sessionLimits.js";
 // import { v4 as uuidv4 } from "uuid"; // Commented out - uncomment when needed
 
 const openDB = dbHelper.openDB;
@@ -136,46 +135,61 @@ export async function clearOrRenameStoreField(
 }
 
 export function getDifficultyAllowanceForTag(data = null) {
-  // 🚨 ONBOARDING FIX: Prioritize Easy problems for 3 Easy + 1 Medium distribution
-  if (
-    !data ||
-    typeof data.totalAttempts !== "number" ||
-    data.totalAttempts < SessionLimits.getMinAttemptsForExperienced()
-  ) {
-    return { Easy: 1.0, Medium: 0.01, Hard: 0 }; // Extremely low Medium weight for 3 Easy + 1 Medium split
+  // Default natural distribution if no tag-specific data available
+  const defaultDistribution = { Easy: 0.6, Medium: 0.3, Hard: 0.1 };
+
+  // If no mastery data, use natural distribution with slight easy bias for safety
+  if (!data || typeof data.totalAttempts !== "number") {
+    return { Easy: 0.7, Medium: 0.25, Hard: 0.05 };
+  }
+
+  // Use real-world difficulty distribution from tag data if available
+  const naturalDistribution = data.difficulty_distribution || defaultDistribution;
+  const totalProblems = (naturalDistribution.easy || 0) + (naturalDistribution.medium || 0) + (naturalDistribution.hard || 0);
+
+  let baseAllowance;
+  if (totalProblems > 0) {
+    // Use actual proportions from real problem distribution
+    baseAllowance = {
+      Easy: (naturalDistribution.easy || 0) / totalProblems,
+      Medium: (naturalDistribution.medium || 0) / totalProblems,
+      Hard: (naturalDistribution.hard || 0) / totalProblems
+    };
+  } else {
+    // Fallback to default distribution
+    baseAllowance = defaultDistribution;
   }
 
   const successRate = data.successfulAttempts / data.totalAttempts;
   const attempts = data.totalAttempts;
 
-  // Progressive difficulty scaling based on success rate and experience
-  const allowance = {
-    Easy: 1.0, // Always allow Easy problems
-    Medium: 0,
-    Hard: 0,
-  };
+  // Apply readiness multipliers based on user performance
+  const allowance = { ...baseAllowance };
 
-  // Medium difficulty allowance with progressive scaling
-  if (successRate >= 0.85 && attempts >= 5) {
-    allowance.Medium = 1.0; // Full confidence
-  } else if (successRate >= 0.75 && attempts >= 3) {
-    allowance.Medium = 0.8; // Good confidence
-  } else if (successRate >= 0.65 && attempts >= 2) {
-    allowance.Medium = 0.6; // Moderate confidence
-  } else if (successRate >= 0.5 && attempts >= 1) {
-    allowance.Medium = 0.4; // Low confidence
+  // Reduce harder difficulties based on readiness, but don't eliminate them entirely
+  // This preserves natural distribution while respecting user skill level
+
+  // Medium problems: reduce if user isn't ready
+  if (successRate < 0.7 || attempts < 3) {
+    allowance.Medium *= 0.3; // Reduce but don't eliminate
+  } else if (successRate >= 0.85 && attempts >= 5) {
+    allowance.Medium *= 1.2; // Slight boost for high performers
   }
 
-  // Hard difficulty allowance with stricter requirements
-  if (successRate >= 0.9 && attempts >= 8) {
-    allowance.Hard = 0.8; // High confidence for hard problems
-  } else if (successRate >= 0.85 && attempts >= 6) {
-    allowance.Hard = 0.6; // Moderate confidence
-  } else if (successRate >= 0.8 && attempts >= 4) {
-    allowance.Hard = 0.4; // Low confidence
+  // Hard problems: more conservative scaling
+  if (successRate < 0.8 || attempts < 5) {
+    allowance.Hard *= 0.1; // Significantly reduce but don't eliminate
+  } else if (successRate >= 0.9 && attempts >= 8) {
+    allowance.Hard *= 1.0; // Keep natural proportion for experts
   }
 
-  // Debug output removed
+  // Normalize to ensure weights don't exceed 1.0
+  const total = allowance.Easy + allowance.Medium + allowance.Hard;
+  if (total > 0) {
+    allowance.Easy /= total;
+    allowance.Medium /= total;
+    allowance.Hard /= total;
+  }
 
   return allowance;
 }

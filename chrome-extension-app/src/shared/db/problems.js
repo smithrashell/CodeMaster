@@ -588,10 +588,20 @@ export async function fetchAdditionalProblems(
     // Backward compatibility logging
     logger.info("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
 
-    // Get tag relationships for expansion
+    // Get tag relationships for expansion and difficulty distributions
     const _tagRelationships = await getTagRelationships();
 
-    // Calculate difficulty allowances for all tags
+    // Get raw tag relationship data for difficulty distributions
+    const db = await openDB();
+    const tagRelationshipsRaw = await new Promise((resolve, reject) => {
+      const tx = db.transaction("tag_relationships", "readonly");
+      const store = tx.objectStore("tag_relationships");
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    // Calculate difficulty allowances for all tags with real distributions
     const tagDifficultyAllowances = {};
     for (const tag of enhancedFocusTags) {
       const tagMastery = masteryData.find((m) => m.tag === tag) || {
@@ -600,6 +610,13 @@ export async function fetchAdditionalProblems(
         successfulAttempts: 0,
         mastered: false,
       };
+
+      // Add difficulty distribution from tag relationships
+      const tagRelData = tagRelationshipsRaw.find(tr => tr.id === tag);
+      if (tagRelData && tagRelData.difficulty_distribution) {
+        tagMastery.difficulty_distribution = tagRelData.difficulty_distribution;
+      }
+
       tagDifficultyAllowances[tag] = getDifficultyAllowanceForTag(tagMastery);
     }
 
@@ -618,7 +635,8 @@ export async function fetchAdditionalProblems(
       ladders,
       allProblems: availableProblems,
       allTagsInCurrentTier,
-      usedProblemIds
+      usedProblemIds,
+      currentDifficultyCap
     });
 
     selectedProblems.push(...primaryProblems);
@@ -638,6 +656,13 @@ export async function fetchAdditionalProblems(
         successfulAttempts: 0,
         mastered: false,
       };
+
+      // Add difficulty distribution from tag relationships
+      const tagRelData = tagRelationshipsRaw.find(tr => tr.id === expansionTag);
+      if (tagRelData && tagRelData.difficulty_distribution) {
+        tagMastery.difficulty_distribution = tagRelData.difficulty_distribution;
+      }
+
       const allowance = getDifficultyAllowanceForTag(tagMastery);
 
       const expansionProblems = await selectProblemsForTag(expansionTag, expansionCount, {
@@ -645,7 +670,8 @@ export async function fetchAdditionalProblems(
         ladders,
         allProblems: availableProblems,
         allTagsInCurrentTier,
-        usedProblemIds
+        usedProblemIds,
+        currentDifficultyCap
       });
 
       selectedProblems.push(...expansionProblems);
@@ -1065,7 +1091,7 @@ function normalizeTags(tags) {
  * @returns {Array} Selected problems
  */
 async function selectProblemsForTag(tag, count, config) {
-  const { difficultyAllowance, ladders, allProblems, allTagsInCurrentTier, usedProblemIds, recentAttempts = [] } = config;
+  const { difficultyAllowance, ladders, allProblems, allTagsInCurrentTier, usedProblemIds, recentAttempts = [], currentDifficultyCap = null } = config;
   logger.info(`🎯 Selecting ${count} problems for tag: ${tag}`);
 
   const ladder = ladders?.[tag]?.problems || [];
@@ -1116,12 +1142,23 @@ async function selectProblemsForTag(tag, count, config) {
       return relationshipDiff;
     }
 
-    // Secondary: Difficulty score (easier first)
+    // Secondary: Respect difficulty cap - prioritize problems at cap level
+    if (currentDifficultyCap) {
+      const capScore = getDifficultyScore(currentDifficultyCap);
+      const aDistanceFromCap = Math.abs(a.difficultyScore - capScore);
+      const bDistanceFromCap = Math.abs(b.difficultyScore - capScore);
+
+      if (aDistanceFromCap !== bDistanceFromCap) {
+        return aDistanceFromCap - bDistanceFromCap; // Closer to cap = selected first
+      }
+    }
+
+    // Tertiary: Difficulty score (easier first) - only if no cap specified
     if (a.difficultyScore !== b.difficultyScore) {
       return a.difficultyScore - b.difficultyScore;
     }
 
-    // Tertiary: Allowance weight
+    // Quaternary: Allowance weight
     return b.allowanceWeight - a.allowanceWeight;
   });
 

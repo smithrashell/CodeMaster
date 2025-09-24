@@ -1,4 +1,4 @@
-import { Card, Title, Group, Stack, Text, Slider, Select, Switch, Badge } from "@mantine/core";
+import { Card, Title, Group, Stack, Text, Slider, Select, Badge } from "@mantine/core";
 import { IconClock } from "@tabler/icons-react";
 import SessionLimits from "../../../shared/utils/sessionLimits.js";
 
@@ -42,7 +42,7 @@ export function CadenceSettingsSection({
 
         <div>
           <Group gap="xs" mb="md">
-            <Text size="sm" fw={500}>Session length (problems)</Text>
+            <Text size="sm" fw={500}>Max session length (problems)</Text>
             {isOnboarding && (
               <Badge variant="light" color="orange" size="xs">
                 {SessionLimits.getOnboardingBadgeText('sessionLength')}
@@ -65,19 +65,11 @@ export function CadenceSettingsSection({
           />
           {isOnboarding && (
             <Text size="xs" c="orange" mt="md">
-              🔰 First 3 sessions are limited to 6 problems for optimal learning
+              🔰 During onboarding, maximum session length is capped at 6 problems for optimal learning
             </Text>
           )}
         </div>
 
-        <div>
-          <Switch
-            label="Flexible schedule (adapt based on performance)"
-            checked={cadenceSettings.flexibleSchedule}
-            onChange={(event) => onCadenceChange('flexibleSchedule', event.currentTarget.checked)}
-            color="blue"
-          />
-        </div>
       </Stack>
     </Card>
   );
