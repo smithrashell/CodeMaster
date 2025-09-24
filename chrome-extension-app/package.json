@@ -14,7 +14,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --coverage --watchAll=false"
+    "test:ci": "jest --coverage --watchAll=false",
+    "test:all": "node test-everything.js",
+    "test:critical": "node test-everything.js --critical",
+    "test:production": "node test-everything.js --production",
+    "test:verbose": "node test-everything.js --verbose"
   },
   "keywords": [],
   "author": "",

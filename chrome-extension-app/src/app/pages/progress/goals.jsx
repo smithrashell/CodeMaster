@@ -18,8 +18,7 @@ import { settingsMessaging } from "../../components/settings/settingsMessaging.j
 const useCadenceSettings = () => {
   return useState({
     sessionsPerWeek: 5, // System default
-    sessionLength: 5, // System default (was incorrectly hardcoded as 45)
-    flexibleSchedule: true // System default for adaptive mode
+    sessionLength: 5 // System default - now represents max session length
   });
 };
 
@@ -33,7 +32,7 @@ const useFocusPriorities = () => {
 
 const useGuardrails = () => {
   return useState({
-    minReviewRatio: 30, // System default
+    minReviewRatio: 40, // System default - matches Focus Priorities reviewRatio
     maxNewProblems: 8, // System default (will be adjusted for onboarding)
     difficultyCapEnabled: false, // System default - no artificial difficulty cap
     maxDifficulty: "Hard", // System default - allow all difficulties
@@ -93,8 +92,7 @@ function updateLearningPlanData({
   // Update cadence settings with real user data, maintaining system defaults as fallbacks
   setCadenceSettings(_prev => ({
     sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek || 5,
-    sessionLength: appState.learningPlan.cadence?.sessionLength || 5,
-    flexibleSchedule: appState.learningPlan.cadence?.flexibleSchedule ?? true
+    sessionLength: appState.learningPlan.cadence?.sessionLength || 5
   }));
 
   // Update focus priorities with real system recommendations and user preferences
@@ -175,7 +173,6 @@ const createSaveSettings = (cadenceSettings, focusPriorities, guardrails) => {
         ...currentSettings,
         sessionsPerWeek: cadenceSettings.sessionsPerWeek,
         sessionLength: cadenceSettings.sessionLength,
-        flexibleSchedule: cadenceSettings.flexibleSchedule,
         focusAreas: focusPriorities.primaryTags,
         difficultyDistribution: focusPriorities.difficultyDistribution,
         reviewRatio: focusPriorities.reviewRatio,
