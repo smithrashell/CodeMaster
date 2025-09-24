@@ -168,7 +168,7 @@ async function seedNewTagsIfNeeded(context) {
 
 async function getCurrentTier() {
   const db = await openDB();
-  const tx = db.transaction(["tag_mastery", "tag_relationships"], "readwrite");
+  const tx = db.transaction(["tag_mastery", "tag_relationships"], "readonly");
   const masteryStore = tx.objectStore("tag_mastery");
   const relationshipsStore = tx.objectStore("tag_relationships");
 
@@ -349,7 +349,7 @@ function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryTh
 }
 
 // Helper function to handle graduation logic
-async function handleGraduation(masteredTags, tierTags, masteryData, db, masteryStore) {
+async function _handleGraduation(masteredTags, tierTags, masteryData, db, masteryStore) {
   // 🎓 Graduate when most of focus window is mastered (4 out of 5 tags)
   if (masteredTags.length >= 4) {
     logger.info(`🎓 ${masteredTags.length} tags mastered, graduating to new focus set...`);
@@ -461,8 +461,8 @@ function sortAndSelectFocusTags(unmasteredTags) {
 async function getIntelligentFocusTags(masteryData, tierTags) {
   logger.info("🧠 Selecting intelligent focus tags...");
   const db = await openDB();
-  const masteryTx = db.transaction("tag_mastery", "readwrite");
-  const masteryStore = masteryTx.objectStore("tag_mastery");
+  const masteryTx = db.transaction("tag_mastery", "readonly");
+  const _masteryStore = masteryTx.objectStore("tag_mastery");
   
   // Get tag relationships for intelligent expansion
   const tagRelationshipsData = await new Promise((resolve, reject) => {
@@ -495,15 +495,12 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   const unmasteredTags = allRelevantTags.filter(
     (tag) => tag.successRate < tag.adjustedMasteryThreshold
   );
-  const masteredTags = allRelevantTags.filter(
+  const _masteredTags = allRelevantTags.filter(
     (tag) => tag.successRate >= tag.adjustedMasteryThreshold
   );
 
-  // 🎓 Check if current focus tags are mastered and need graduation
-  const graduationResult = await handleGraduation(masteredTags, tierTags, masteryData, db, masteryStore);
-  if (graduationResult) {
-    return graduationResult;
-  }
+  // 🎓 Skip graduation logic when using readonly transaction (Focus Coordination Service handles this)
+  // Graduation logic is now handled by Focus Coordination Service through weighted integration
 
   const selectedTags = sortAndSelectFocusTags(unmasteredTags);
   logger.info("🧠 Selected intelligent focus tags:", selectedTags);

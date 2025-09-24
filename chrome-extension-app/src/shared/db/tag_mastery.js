@@ -2,6 +2,8 @@ import { dbHelper } from "./index.js";
 
 const openDB = dbHelper.openDB;
 
+const normalizeTag = (tag) => tag.trim().toLowerCase();
+
 export async function insertDefaultTagMasteryRecords() {
   const db = await openDB();
 
@@ -41,7 +43,7 @@ export async function insertDefaultTagMasteryRecords() {
 
   for (const t of tagRelationships) {
     masteryStore.put({
-      tag: t.id,
+      tag: normalizeTag(t.id),
       total_attempts: 0,
       successful_attempts: 0,
       decay_score: 1,
@@ -250,7 +252,9 @@ async function writeMasteryToDatabase(tagMasteryStore, masteryData) {
 export async function updateTagMasteryForAttempt(problem, attempt) {
   try {
     const db = await openDB();
-    const tags = (problem.tags || []).filter(tag => tag && typeof tag === 'string' && tag.trim().length > 0);
+    const tags = (problem.tags || [])
+      .filter(tag => tag && typeof tag === 'string' && tag.trim().length > 0)
+      .map(normalizeTag);
     const isSuccess = attempt.success;
     const attemptDate = new Date().toISOString();
 
@@ -279,7 +283,7 @@ export async function updateTagMasteryForAttempt(problem, attempt) {
 
       // Initialize if doesn't exist
       const masteryData = currentRecord || {
-        tag,
+        tag: normalizeTag(tag),
         total_attempts: 0,
         successful_attempts: 0,
         decay_score: 1,
@@ -355,6 +359,7 @@ export async function calculateTagMastery() {
     const tagMasteryStore = updateTransaction.objectStore("tag_mastery");
 
     for (const [tag, stats] of tagStats.entries()) {
+      const normalizedTag = normalizeTag(tag);
       const daysSinceLast = stats.lastAttemptDate
         ? (Date.now() - new Date(stats.lastAttemptDate)) / (1000 * 60 * 60 * 24)
         : 0;
@@ -372,11 +377,11 @@ export async function calculateTagMastery() {
         escapeHatchActivated,
         escapeHatchType,
         failedAttempts
-      } = calculateMasteryThresholds(stats, masteryRatio, tag);
+      } = calculateMasteryThresholds(stats, masteryRatio, normalizedTag);
 
       const mastered = masteryRatio >= masteryThreshold;
 
-      console.log(`🧠 Writing mastery for "${tag}":`, {
+      console.log(`🧠 Writing mastery for "${normalizedTag}":`, {
         totalAttempts: stats.total_attempts,
         successfulAttempts: stats.successful_attempts,
         failedAttempts,
@@ -389,7 +394,7 @@ export async function calculateTagMastery() {
       });
 
       await writeMasteryToDatabase(tagMasteryStore, {
-        tag,
+        tag: normalizedTag,
         stats,
         decayScore,
         mastered
@@ -491,6 +496,7 @@ export async function upsertTagMastery(tagMasteryObj) {
   const db = await openDB();
   const tx = db.transaction("tag_mastery", "readwrite");
   const store = tx.objectStore("tag_mastery");
-  store.put(tagMasteryObj);
+  const normalizedObj = { ...tagMasteryObj, tag: normalizeTag(tagMasteryObj.tag) };
+  store.put(normalizedObj);
   return tx.complete;
 }

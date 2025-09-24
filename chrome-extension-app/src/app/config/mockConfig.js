@@ -10,20 +10,55 @@
  * Simplified to prioritize .env configuration with minimal fallbacks
  */
 export const shouldUseMockDashboard = () => {
-  // Primary control: Environment variable from .env file
-  if (process.env.USE_MOCK_SERVICE !== undefined) {
-    const useMock = process.env.USE_MOCK_SERVICE === 'true';
-    return useMock;
+  // Try to read from environment if available
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.USE_MOCK_SERVICE !== undefined) {
+      return process.env.USE_MOCK_SERVICE === 'true';
+    }
+  } catch (error) {
+    // Ignore process.env errors in background script context
   }
-  
+
   // Developer override: localStorage for debugging (temporary override)
   if (typeof window !== 'undefined' && localStorage.getItem('cm-force-mock') === 'true') {
     return true;
   }
-  
-  // Fallback: If no .env setting, default to false (real data)
-  // This ensures production-like behavior when configuration is missing
+
+  // Default to false (real data) if no configuration available
   return false;
+};
+
+/**
+ * Check if session testing functions should be available
+ * Separate control from dashboard mocking - available by default in dev
+ */
+export const shouldEnableSessionTesting = () => {
+  // Simple: Available by default, only disable if explicitly requested
+  if (typeof window !== 'undefined' && localStorage.getItem('cm-disable-session-testing') === 'true') {
+    return false;
+  }
+
+  // Available by default
+  return true;
+};
+
+/**
+ * Check if mock session services should be used instead of real services
+ * Follows the same pattern as dashboard mocking but separate control
+ */
+export const shouldUseMockSession = () => {
+  // Developer override: localStorage for testing
+  if (typeof window !== 'undefined' && localStorage.getItem('cm-use-mock-session') === 'true') {
+    return true;
+  }
+
+  // Developer override: localStorage disable
+  if (typeof window !== 'undefined' && localStorage.getItem('cm-use-mock-session') === 'false') {
+    return false;
+  }
+
+  // Default: Use mocks for safe testing by default
+  return true;
 };
 
 /**
@@ -82,14 +117,19 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   window.disableMockMode = disableMockMode;
 }
 
-// Simple dev mode warning
-if (process.env.NODE_ENV === 'development') {
-  // Development mock service active
-  // Mock mode instructions removed
+// Simple dev mode info
+try {
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+    // Development mode - session testing available by default
+  }
+} catch (error) {
+  // Background script context - testing still available
 }
 
 export default {
   shouldUseMockDashboard,
+  shouldEnableSessionTesting,
+  shouldUseMockSession,
   USER_SCENARIOS,
   MOCK_DATA_CONFIG,
 };
