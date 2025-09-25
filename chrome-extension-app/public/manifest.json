@@ -5,11 +5,13 @@
   "manifest_version": 3,
   "icons": {
     "16": "icon16.png",
-    "32": "icon32.png", 
+    "32": "icon32.png",
     "48": "icon48.png",
     "128": "icon128.png"
   },
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "permissions": [
     "tabs",
     "bookmarks",
@@ -25,10 +27,11 @@
   "background": {
     "service_worker": "background.js"
   },
-
   "content_scripts": [
     {
-      "matches": ["https://leetcode.com/*"],
+      "matches": [
+        "https://leetcode.com/*"
+      ],
       "css": [
         "content/css/main.css",
         "content/css/timer.css",
@@ -36,7 +39,9 @@
         "content/css/timerBanner.css"
       ],
       "run_at": "document_idle",
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "media": []
     }
   ],
@@ -49,7 +54,9 @@
         "LeetCode_Tags_Combined.json",
         "strategy_data.json"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }
