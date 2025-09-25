@@ -9,6 +9,7 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 ### Core Documentation
 
 - **[Development Commands & Architecture](CLAUDE.md)** - Project setup, build commands, and core architecture overview
+- **[Testing Framework](TESTING.md)** - Comprehensive browser-based testing framework and production readiness tests
 - **[Chrome API Usage Analysis](docs/architecture/CHROME_API_USAGE_ANALYSIS.md)** - Detailed analysis of Chrome extension API patterns
 - **[Project Overview](docs/architecture/PROJECT_OVERVIEW.md)** - High-level project vision and current v0.9.5 status
 - **[Complete IndexedDB Schema](docs/architecture/INDEXEDDB_SCHEMA.md)** - Comprehensive database structure (13 stores)
