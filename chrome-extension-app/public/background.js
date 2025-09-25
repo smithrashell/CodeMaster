@@ -8,6 +8,7 @@ import { NavigationService } from "../src/shared/services/navigationService.js";
 import { TagService } from "../src/shared/services/tagServices.js";
 import { HintInteractionService } from "../src/shared/services/hintInteractionService.js";
 import { AlertingService } from "../src/shared/services/AlertingService.js";
+import { ChromeAPIErrorHandler } from "../src/shared/services/ChromeAPIErrorHandler.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
 import { SessionTester, TestScenarios } from "../src/shared/utils/sessionTesting.js";
 import { ComprehensiveSessionTester, ComprehensiveTestScenarios } from "../src/shared/utils/comprehensiveSessionTesting.js";
