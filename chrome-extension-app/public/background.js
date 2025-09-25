@@ -96,6 +96,70 @@ globalThis.AccurateTimer = AccurateTimer;
 globalThis.ChromeAPIErrorHandler = ChromeAPIErrorHandler;
 globalThis.FocusCoordinationService = FocusCoordinationService;
 
+// Always expose essential test functions first (outside async block)
+/**
+ * Service Worker Safe Mode - Ultra-quiet testing for service workers
+ */
+globalThis.runTestsSilent = async function() {
+  try {
+    if (typeof globalThis.runComprehensiveTests === 'function') {
+      return await globalThis.runComprehensiveTests({ silent: true });
+    } else {
+      console.log('⚠️ runComprehensiveTests not available yet, running basic check');
+      return await globalThis.quickHealthCheck();
+    }
+  } catch (error) {
+    console.error('runTestsSilent failed:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Simple test to verify functions are available
+globalThis.quickHealthCheck = async function() {
+  console.log('🏥 CodeMaster Quick Health Check');
+  console.log('================================');
+
+  const results = {
+    servicesAvailable: 0,
+    servicesTotal: 0,
+    functionsAvailable: 0,
+    functionsTotal: 0
+  };
+
+  // Check core services
+  const services = ['ProblemService', 'SessionService', 'TagService', 'HintInteractionService'];
+  services.forEach(service => {
+    results.servicesTotal++;
+    if (typeof globalThis[service] !== 'undefined') {
+      results.servicesAvailable++;
+      console.log(`✓ ${service} available`);
+    } else {
+      console.log(`❌ ${service} missing`);
+    }
+  });
+
+  // Check test functions
+  const functions = ['runComprehensiveTests', 'runCriticalTests', 'testCoreSessionValidation'];
+  functions.forEach(func => {
+    results.functionsTotal++;
+    if (typeof globalThis[func] === 'function') {
+      results.functionsAvailable++;
+      console.log(`✓ ${func} available`);
+    } else {
+      console.log(`❌ ${func} missing`);
+    }
+  });
+
+  const serviceHealth = (results.servicesAvailable / results.servicesTotal * 100).toFixed(1);
+  const functionHealth = (results.functionsAvailable / results.functionsTotal * 100).toFixed(1);
+
+  console.log('');
+  console.log(`📊 Services: ${results.servicesAvailable}/${results.servicesTotal} (${serviceHealth}%)`);
+  console.log(`🔧 Functions: ${results.functionsAvailable}/${results.functionsTotal} (${functionHealth}%)`);
+
+  return results;
+};
+
 // Check if session testing should be enabled and conditionally expose functions
 (async () => {
   let sessionTestingEnabled = false;
@@ -12771,21 +12835,7 @@ globalThis.runTestSuite = async function(tests, suiteName = 'Test Suite', verbos
   return results;
 };
 
-/**
- * Quick Health Check - Fast essential system validation
- */
-globalThis.quickHealthCheck = async function() {
-  console.log('⚡ QUICK HEALTH CHECK');
-  console.log('=====================');
-
-  const essentialTests = [
-    'testCoreServiceAvailability',
-    'testSessionGeneration',
-    'testExtensionLoadOnLeetCode'
-  ];
-
-  return await globalThis.runTestSuite(essentialTests, 'Health Check', false);
-};
+// quickHealthCheck function is already defined above
 
 /**
  * Development Test Runner - For active development cycles
@@ -12856,70 +12906,12 @@ globalThis.listAvailableTests = function() {
   return testFunctions;
 };
 
-/**
- * Service Worker Safe Mode - Ultra-quiet testing for service workers
- */
-globalThis.runTestsSilent = async function() {
-  try {
-    return await globalThis.runComprehensiveTests({ silent: true });
-  } catch (error) {
-    console.error('runTestsSilent failed:', error);
-    return { success: false, error: error.message };
-  }
-};
-
 globalThis.runCriticalTestsSilent = async function() {
   return await globalThis.runCriticalTests({ silent: true });
 };
 
 globalThis.runProductionTestsSilent = async function() {
   return await globalThis.runProductionTests({ silent: true });
-};
-
-// Simple test to verify functions are available
-globalThis.quickHealthCheck = async function() {
-  console.log('🏥 CodeMaster Quick Health Check');
-  console.log('================================');
-
-  const results = {
-    servicesAvailable: 0,
-    servicesTotal: 0,
-    functionsAvailable: 0,
-    functionsTotal: 0
-  };
-
-  // Check core services
-  const services = ['ProblemService', 'SessionService', 'TagService', 'HintInteractionService'];
-  services.forEach(service => {
-    results.servicesTotal++;
-    if (typeof globalThis[service] !== 'undefined') {
-      results.servicesAvailable++;
-      console.log(`✓ ${service} available`);
-    } else {
-      console.log(`❌ ${service} missing`);
-    }
-  });
-
-  // Check test functions
-  const functions = ['runComprehensiveTests', 'runCriticalTests', 'testCoreSessionValidation'];
-  functions.forEach(func => {
-    results.functionsTotal++;
-    if (typeof globalThis[func] === 'function') {
-      results.functionsAvailable++;
-      console.log(`✓ ${func} available`);
-    } else {
-      console.log(`❌ ${func} missing`);
-    }
-  });
-
-  const serviceHealth = (results.servicesAvailable / results.servicesTotal * 100).toFixed(1);
-  const functionHealth = (results.functionsAvailable / results.functionsTotal * 100).toFixed(1);
-
-  console.log('');
-  console.log(`📊 Services: ${results.servicesAvailable}/${results.servicesTotal} (${serviceHealth}%)`);
-  console.log(`🔧 Functions: ${results.functionsAvailable}/${results.functionsTotal} (${functionHealth}%)`);
-
-  return results;
 };
 
 // Initialize comprehensive test system
