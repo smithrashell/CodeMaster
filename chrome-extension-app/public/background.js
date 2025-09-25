@@ -78,6 +78,10 @@ self.addEventListener('activate', (event) => {
 // Track background script startup time for health monitoring
 global.backgroundStartTime = Date.now();
 console.log('🚀 SERVICE WORKER: Background script loaded and ready for messages');
+console.log('🧪 Test functions available:', {
+  runTestsSilent: typeof globalThis.runTestsSilent,
+  quickHealthCheck: typeof globalThis.quickHealthCheck
+});
 
 // Expose testing framework globally for browser console access
 // Always expose classes for manual instantiation
