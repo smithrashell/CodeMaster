@@ -94,11 +94,20 @@ chrome-extension-app/browser-tests/
 - `testAllOptimization` - Complete optimization test suite
 
 ### **🧬 Integration Tests** (System Coordination)
+- `testProductionWorkflow` - **NEW** Complete production workflow validation (replaces manual database checking)
 - `testTagIntegration` - Tag + problem relationship integration
 - `testTagLadderPathfinding` - Tag ladder + pathfinding coordination
 - `testSessionBlending` - Session recommendation blending
 - `testLearningJourney` - Multi-session learning optimization
 - `testAllIntegration` - Complete integration test suite
+
+#### **Production Workflow Test** 🚀
+```javascript
+await testProductionWorkflow({verbose: true})
+```
+**What it tests**: Complete user journey from session creation → database persistence → progression logic → browser integration
+
+**Use before launch** instead of manual database inspection. Returns detailed step-by-step results with pass/fail status for each workflow component.
 
 ### **🔗 Relationship Tests** (Learning Algorithms)
 - `testRelationshipFlow` - Relationship data flow across sessions
