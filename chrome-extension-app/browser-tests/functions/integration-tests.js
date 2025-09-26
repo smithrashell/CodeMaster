@@ -10,61 +10,13 @@
 // =============================================================================
 
 // 🧬 Integration Test Functions - Clean versions for default execution
-globalThis.testTagIntegration = async function() {
-  console.log('🧬 Testing tag integration...');
+// testTagIntegration is implemented in background.js - this file should not override it
 
-  try {
-    console.log('✓ Tag integration - basic functionality verified');
-    console.log('✅ Tag integration test PASSED');
-    return true;
+// testTagLadderPathfinding is implemented in background.js - this file should not override it
 
-  } catch (error) {
-    console.error('❌ testTagIntegration failed:', error);
-    return false;
-  }
-};
+// testSessionBlending is implemented in background.js - this file should not override it
 
-globalThis.testTagLadderPathfinding = async function() {
-  console.log('🎯 Testing tag ladder pathfinding...');
-
-  try {
-    console.log('✓ Tag ladder pathfinding - basic functionality verified');
-    console.log('✅ Tag ladder pathfinding test PASSED');
-    return true;
-
-  } catch (error) {
-    console.error('❌ testTagLadderPathfinding failed:', error);
-    return false;
-  }
-};
-
-globalThis.testSessionBlending = async function() {
-  console.log('🔀 Testing session blending...');
-
-  try {
-    console.log('✓ Session blending - basic functionality verified');
-    console.log('✅ Session blending test PASSED');
-    return true;
-
-  } catch (error) {
-    console.error('❌ testSessionBlending failed:', error);
-    return false;
-  }
-};
-
-globalThis.testLearningJourney = async function() {
-  console.log('🎓 Testing learning journey...');
-
-  try {
-    console.log('✓ Learning journey - basic functionality verified');
-    console.log('✅ Learning journey test PASSED');
-    return true;
-
-  } catch (error) {
-    console.error('❌ testLearningJourney failed:', error);
-    return false;
-  }
-};
+// testLearningJourney is implemented in background.js - this file should not override it
 
 /**
  * Production Workflow Integration Test - Tests complete user workflow

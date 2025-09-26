@@ -36,7 +36,8 @@ export class MockSessionService {
       },
       current_focus_tags: ["array"],
       performance_level: "developing",
-      _isMock: true
+      _isMock: true,
+      simulated: true
     };
 
     this.mockSessions = new Map();
@@ -357,38 +358,37 @@ export class MockSessionService {
   }
 
   /**
-   * Reset mock state for fresh testing
+   * Reset mock state for fresh testing (optimized)
    */
   reset() {
-    this.mockState = {
-      id: "session_state",
-      num_sessions_completed: 0,
-      current_difficulty_cap: "Easy",
-      tag_index: 0,
-      difficulty_time_stats: {
-        easy: { problems: 0, total_time: 0, avg_time: 0 },
-        medium: { problems: 0, total_time: 0, avg_time: 0 },
-        hard: { problems: 0, total_time: 0, avg_time: 0 }
-      },
-      escape_hatches: {
-        sessions_at_current_difficulty: 0,
-        last_difficulty_promotion: null,
-        sessions_without_promotion: 0,
-        activated_escape_hatches: []
-      },
-      current_focus_tags: ["array"],
-      performance_level: "developing",
-      _isMock: true
-    };
+    // Fast reset - modify existing objects instead of recreating
+    this.mockState.num_sessions_completed = 0;
+    this.mockState.current_difficulty_cap = "Easy";
+    this.mockState.tag_index = 0;
 
+    // Reset nested objects efficiently
+    const resetStats = { problems: 0, total_time: 0, avg_time: 0 };
+    Object.assign(this.mockState.difficulty_time_stats.easy, resetStats);
+    Object.assign(this.mockState.difficulty_time_stats.medium, resetStats);
+    Object.assign(this.mockState.difficulty_time_stats.hard, resetStats);
+
+    this.mockState.escape_hatches.sessions_at_current_difficulty = 0;
+    this.mockState.escape_hatches.last_difficulty_promotion = null;
+    this.mockState.escape_hatches.sessions_without_promotion = 0;
+    this.mockState.escape_hatches.activated_escape_hatches.length = 0;
+
+    this.mockState.current_focus_tags = ["array"];
+    this.mockState.performance_level = "developing";
+
+    // Clear collections efficiently
     this.mockSessions.clear();
     this.mockAttempts.clear();
     this.sessionCounter = 0;
-    this.progressionHistory = [];
-    this.thresholdEvents = [];
-    this.performanceData = [];
+    this.progressionHistory.length = 0;
+    this.thresholdEvents.length = 0;
+    this.performanceData.length = 0;
 
-    logger.info(`[MockSession] Mock session service reset to difficulty: ${this.mockState.current_difficulty_cap}`, {
+    logger.info(`[MockSession] Mock session service fast reset to difficulty: ${this.mockState.current_difficulty_cap}`, {
       resetDifficulty: this.mockState.current_difficulty_cap,
       resetSessions: this.mockState.num_sessions_completed,
       context: 'mock_session_service'

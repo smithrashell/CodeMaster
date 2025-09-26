@@ -1,13 +1,13 @@
 import { dbHelper } from "./index.js";
 import logger from "../utils/logger.js";
-import STANDARD_PROBLEMS_DATA from "../constants/LeetCode_Tags_Combined.json";
+import STANDARD_PROBLEMS_DATA from "../constants/LeetCode_Tags_Combined.json" with { type: "json" };
 
 // Standard problems data
 let STANDARD_PROBLEMS = STANDARD_PROBLEMS_DATA;
 const loadStandardProblems = () => {
   return STANDARD_PROBLEMS;
 };
-const openDB = dbHelper.openDB;
+const openDB = () => dbHelper.openDB();
 export async function getProblemFromStandardProblems(slug) {
   try {
     logger.info("📌 getProblemFromStandardProblems called with:", {
@@ -176,7 +176,7 @@ export async function getAllStandardProblems() {
   const request = store.getAll();
 
   return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => resolve(request.result || []);
     request.onerror = () => reject(request.error);
   });
 }

@@ -34,9 +34,9 @@ export class SessionTester {
     console.log(`🧪 Starting session simulation with ${this.config.totalSessions} sessions`);
     console.log(`🎯 Config:`, this.config);
 
-    // Clear existing data if requested
-    if (this.config.clearData) {
-      console.log('🗑️ Resetting test state...');
+    // Reset state efficiently if requested
+    if (this.config.fastReset || this.config.clearData) {
+      console.log('🚀 Fast resetting test state...');
       // Use static imports
       const usingMocks = await isUsingMockServices();
 
@@ -44,8 +44,13 @@ export class SessionTester {
         await resetMockServices();
         console.log('✅ Mock services reset for fresh testing');
       } else {
-        await this.clearTestData();
-        console.log('✅ Real data cleared for testing');
+        if (this.config.fastReset) {
+          await this.fastResetState();
+          console.log('✅ Real state fast reset completed');
+        } else {
+          await this.clearTestData();
+          console.log('✅ Real data cleared for testing');
+        }
       }
     }
 
@@ -247,6 +252,40 @@ export class SessionTester {
   }
 
   /**
+   * Fast state reset - resets session state without database operations
+   */
+  async fastResetState() {
+    console.log("🚀 Fast resetting session state...");
+    try {
+      // Create baseline session state for testing
+      const baselineState = {
+        id: 'session_state',
+        num_sessions_completed: 0,
+        current_difficulty_cap: 'Easy',
+        tag_index: 0,
+        difficulty_time_stats: {
+          easy: { problems: 0, total_time: 0, avg_time: 0 },
+          medium: { problems: 0, total_time: 0, avg_time: 0 },
+          hard: { problems: 0, total_time: 0, avg_time: 0 }
+        },
+        escape_hatches: {
+          sessions_at_current_difficulty: 0,
+          last_difficulty_promotion: null,
+          sessions_without_promotion: 0,
+          activated_escape_hatches: []
+        },
+        current_focus_tags: ['array'],
+        performance_level: 'developing'
+      };
+
+      await StorageService.setSessionState('session_state', baselineState);
+      console.log(`✅ Fast reset completed - session state reset to baseline`);
+    } catch (error) {
+      console.warn("⚠️ Failed to fast reset state:", error);
+    }
+  }
+
+  /**
    * Setup test isolation - backup original state and use test-specific keys
    */
   async clearTestData() {
@@ -441,7 +480,7 @@ export const TestScenarios = {
   onboarding: () => new SessionTester({
     totalSessions: 5,
     difficultyBias: 'optimistic',
-    clearData: true,
+    fastReset: true,
     verbose: true
   }),
 
@@ -449,7 +488,7 @@ export const TestScenarios = {
   difficultyProgression: () => new SessionTester({
     totalSessions: 15,
     difficultyBias: 'realistic',
-    clearData: true,
+    fastReset: true,
     verbose: true
   }),
 
@@ -458,15 +497,15 @@ export const TestScenarios = {
     totalSessions: 10,
     difficultyBias: 'pessimistic',
     accuracyRange: [0.3, 0.7],
-    clearData: true,
+    fastReset: true,
     verbose: true
   }),
 
-  // Quick smoke test (with data reset for progression testing)
+  // Quick smoke test (with fast reset for progression testing)
   quickTest: () => new SessionTester({
     totalSessions: 3,
     difficultyBias: 'realistic',
-    clearData: true, // Reset to show Easy → Medium progression
+    fastReset: true, // Fast reset to show Easy → Medium progression
     verbose: true,
     delay: 500
   })
@@ -507,7 +546,7 @@ if (typeof window !== 'undefined') {
         totalSessions: 6,
         difficultyBias: 'optimistic', // High success rate to ensure progression
         accuracyRange: [0.9, 1.0], // 90-100% success to trigger difficulty increases
-        clearData: true,
+        fastReset: true,
         verbose: true,
         delay: 200
       }).runSimulation();

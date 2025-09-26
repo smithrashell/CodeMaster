@@ -10,7 +10,7 @@ import SessionLimits from "../utils/sessionLimits.js";
 import logger from "../utils/logger.js";
 import { calculateSuccessRate } from "../utils/Utils.js";
 
-const openDB = dbHelper.openDB;
+const openDB = () => dbHelper.openDB();
 
 // Helper function for onboarding fallback when no mastery data exists
 async function handleOnboardingFallback(db) {
@@ -172,11 +172,19 @@ async function getCurrentTier() {
   const masteryStore = tx.objectStore("tag_mastery");
   const relationshipsStore = tx.objectStore("tag_relationships");
 
-  const masteryData = await new Promise((resolve, reject) => {
-    const request = masteryStore.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  // Execute both queries in parallel within the same transaction
+  const [masteryData, allTagRelationships] = await Promise.all([
+    new Promise((resolve, reject) => {
+      const request = masteryStore.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    }),
+    new Promise((resolve, reject) => {
+      const request = relationshipsStore.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    })
+  ]);
 
   logger.info("🔍 masteryData:", masteryData);
 
@@ -184,13 +192,6 @@ async function getCurrentTier() {
   if (!masteryData || masteryData.length === 0) {
     return await handleOnboardingFallback(db);
   }
-
-  // Get all tag relationships data to access mastery thresholds
-  const allTagRelationships = await new Promise((resolve, reject) => {
-    const request = relationshipsStore.getAll();
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
 
   const masteryThresholds = allTagRelationships.reduce((acc, item) => {
     acc[item.id] = item.mastery_threshold || 0.8;
@@ -461,9 +462,7 @@ function sortAndSelectFocusTags(unmasteredTags) {
 async function getIntelligentFocusTags(masteryData, tierTags) {
   logger.info("🧠 Selecting intelligent focus tags...");
   const db = await openDB();
-  const masteryTx = db.transaction("tag_mastery", "readonly");
-  const _masteryStore = masteryTx.objectStore("tag_mastery");
-  
+
   // Get tag relationships for intelligent expansion
   const tagRelationshipsData = await new Promise((resolve, reject) => {
     const tx = db.transaction("tag_relationships", "readonly");

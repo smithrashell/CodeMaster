@@ -14,6 +14,7 @@ import {
   buildRelationshipMap,
   getAllRelationshipStrengths
 } from '../db/problem_relationships.js';
+import { v4 as uuidv4 } from 'uuid';
 
 export class RelationshipSystemTester {
 
@@ -103,7 +104,7 @@ export class RelationshipSystemTester {
 
         compositionResults.push({
           sessionNum: i,
-          sessionId: sessionData.sessionId,
+          sessionId: sessionData.id,
           problemCount: sessionData.problems?.length || 0,
           relationshipInfluence: compositionAnalysis,
           relationshipMapSize: relationshipMap.size
@@ -154,7 +155,7 @@ export class RelationshipSystemTester {
       const attempts = await this.simulateHighPerformanceAttempts(sessionData);
 
       // Complete session (this should trigger updateSuccessPatterns)
-      await SessionService.completeSession(sessionData.sessionId, attempts);
+      await SessionService.checkAndCompleteSession(sessionData.id);
 
       // Get updated relationship state
       const updatedRelationships = await buildRelationshipMap();
@@ -327,14 +328,14 @@ export class RelationshipSystemTester {
       const attempts = await this.simulateRealisticAttempts(sessionData, performanceVariation);
 
       // Complete session (triggers updateSuccessPatterns)
-      await SessionService.completeSession(sessionData.sessionId, attempts);
+      await SessionService.checkAndCompleteSession(sessionData.id);
 
       // Get post-session relationship state
       const postRelationshipMap = await buildRelationshipMap();
 
       return {
         sessionNum,
-        sessionId: sessionData.sessionId,
+        sessionId: sessionData.id,
         focusDecision,
         problemCount: sessionData.problems?.length || 0,
         attempts: attempts.length,
@@ -373,7 +374,10 @@ export class RelationshipSystemTester {
       const timeSpent = (baseTime + timeVariation) * 60 * 1000; // Convert to milliseconds
 
       const attempt = {
-        problem_id: problem.id || problem.leetcode_id,
+        id: uuidv4(), // Required for IndexedDB keyPath
+        problem_id: problem.problem_id || problem.id, // Use UUID problem_id if available
+        leetcode_id: problem.leetcode_id || problem.id, // Include leetcode_id for lookups
+        session_id: sessionData.id, // Associate with current session
         success: isSuccess,
         time_spent: timeSpent,
         hints_used: isSuccess ? Math.floor(Math.random() * 2) : Math.floor(Math.random() * 4),
@@ -384,7 +388,7 @@ export class RelationshipSystemTester {
 
       // Add to database
       try {
-        await AttemptsService.addAttempt(attempt);
+        await AttemptsService.addAttempt(attempt, problem);
       } catch (error) {
         console.warn('⚠️ Failed to add simulated attempt:', error.message);
       }
