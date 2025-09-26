@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
 
-const openDB = dbHelper.openDB;
+const openDB = () => dbHelper.openDB();
 
 const classificationRank = {
   "core concept": 1,

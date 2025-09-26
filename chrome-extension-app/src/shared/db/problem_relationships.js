@@ -111,7 +111,7 @@ export async function updateProblemRelationships(session) {
   const allAttemptedProblems = await fetchAllProblems(); // ✅ Ensures all past attempts are included
   const attemptedProblemIds = new Set([
     ...allAttemptedProblems.map((p) => p.leetcode_id),
-    ...session.attempts.map((a) => a.problem_id),
+    ...session.attempts.map((a) => a.problem_id || a.problemId),
   ]);
 
   console.log(
@@ -122,7 +122,7 @@ export async function updateProblemRelationships(session) {
   const _tagMastery = await getTagMastery(); // Fetch user's tag mastery state
 
   for (const attempt of session.attempts) {
-    const { problem_id } = attempt;
+    const problem_id = attempt.problem_id || attempt.problemId;
 
     // Skip if problem_id is missing or invalid
     if (!problem_id) {

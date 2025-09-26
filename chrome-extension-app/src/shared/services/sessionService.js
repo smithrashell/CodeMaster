@@ -1627,10 +1627,11 @@ export const SessionService = {
       }
 
       logger.info(`✅ Session state updated with performance data:`, {
-        difficulty_problems: Object.entries(sessionState.difficulty_time_stats).map(([diff, stats]) =>
-          `${diff}: ${stats.problems} problems`).join(', '),
-        last_accuracy: sessionState.last_performance.accuracy,
-        last_efficiency: sessionState.last_performance.efficiency_score
+        difficulty_problems: sessionState.difficulty_time_stats ?
+          Object.entries(sessionState.difficulty_time_stats).map(([diff, stats]) =>
+            `${diff}: ${stats.problems} problems`).join(', ') : 'no difficulty stats available',
+        last_accuracy: sessionState.last_performance?.accuracy,
+        last_efficiency: sessionState.last_performance?.efficiency_score
       });
 
       // 🎯 Evaluate difficulty progression after session completion (non-blocking)

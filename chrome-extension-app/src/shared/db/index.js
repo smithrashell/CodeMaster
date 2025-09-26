@@ -7,7 +7,8 @@ import {
   getExecutionContext,
   getStackTrace,
   validateDatabaseAccess,
-  logDatabaseAccess
+  logDatabaseAccess,
+  checkProductionDatabaseAccess
 } from "./accessControl.js";
 import {
   createDatabaseConnection,
@@ -31,19 +32,59 @@ if (typeof window !== 'undefined') {
   });
 }
 
-export const dbHelper = {
+const dbHelper = {
   dbName: "CodeMaster",
   version: 47, // 🆙 Fixed problem_relationships store snake_case field names migration
   db: null,
   pendingConnection: null, // Track pending database connection promises
 
   openDB() {
+    // 🔄 TEST DATABASE INTERCEPT: If test database is active, redirect all calls
+    if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper) {
+      console.log('🔄 GLOBAL Context switching: Intercepting openDB() call for test database');
+      return globalThis._testDatabaseHelper.openDB();
+    }
+
+    // 🚨 SAFETY CHECK: Ensure this dbHelper has proper properties
+    if (!this || !this.dbName) {
+      console.error('🚨 CRITICAL ERROR: dbHelper or dbHelper.dbName is undefined!', {
+        thisObject: this,
+        hasThis: !!this,
+        hasDbName: this ? 'dbName' in this : false,
+        dbNameValue: this ? this.dbName : 'N/A',
+        thisKeys: Object.keys(this || {}),
+        stack: new Error().stack
+      });
+
+      // Try to recover by reinitializing with default values
+      console.log('🔧 Attempting to recover with default database configuration...');
+      try {
+        // Restore basic properties directly
+        this.dbName = "CodeMaster";
+        this.version = 47;
+        this.db = null;
+        this.pendingConnection = null;
+
+        if (!this.dbName) {
+          throw new Error('Database helper recovery failed - still no dbName');
+        }
+
+        console.log('✅ Database helper recovered with default configuration');
+      } catch (error) {
+        console.error('❌ Database helper recovery failed:', error);
+        throw new Error('Database helper is in an invalid state and could not be recovered');
+      }
+    }
+
     const context = getExecutionContext();
     const stack = getStackTrace();
-    
+
     // Validate database access permissions
     validateDatabaseAccess(context, stack);
-    
+
+    // 🚨 SAFETY: Block test code from accessing production database
+    checkProductionDatabaseAccess(this.dbName, context);
+
     // Log database access attempt
     logDatabaseAccess(context, stack);
     
@@ -619,3 +660,29 @@ export const dbHelper = {
     };
   },
 };
+
+// 🔄 GLOBAL INTERCEPTION: Create a proxy wrapper for the entire dbHelper
+// This ensures ALL access to dbHelper.openDB goes through interception
+const originalDbHelper = { ...dbHelper };
+
+// Create a proxy that intercepts all property access
+export const dbHelperProxy = new Proxy(dbHelper, {
+  get(target, prop) {
+    if (prop === 'openDB') {
+      return function() {
+        // Check for global test database interception
+        if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper) {
+          console.log('🔄 PROXY INTERCEPTION: Redirecting openDB to test database');
+          return globalThis._testDatabaseHelper.openDB();
+        }
+        // Otherwise call the original method
+        return originalDbHelper.openDB.call(target);
+      };
+    }
+    // For all other properties, return normally
+    return target[prop];
+  }
+});
+
+// Replace the export with the proxy
+export { dbHelperProxy as dbHelper };

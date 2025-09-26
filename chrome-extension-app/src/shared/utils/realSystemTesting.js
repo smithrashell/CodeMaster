@@ -10,7 +10,6 @@
  * testAllRealSystem() - Run complete real system test suite
  */
 
-import { TestDataIsolation } from './testDataIsolation.js';
 import { ProblemService } from '../services/problemService.js';
 import { SessionService } from '../services/sessionService.js';
 import { AttemptsService } from '../services/attemptsService.js';
@@ -19,6 +18,9 @@ import {
   buildRelationshipMap
 } from '../db/problem_relationships.js';
 import { getTagMastery } from '../db/tag_mastery.js';
+import { v4 as uuidv4 } from 'uuid';
+import { withTestDatabase } from '../db/testDatabaseContext.js';
+import { createScenarioTestDb } from '../db/dbHelperFactory.js';
 
 export class RealSystemTester {
 
@@ -28,15 +30,34 @@ export class RealSystemTester {
   static async testRealLearningFlow(options = {}) {
     const { scenario = 'default', sessions = 3, quiet = false } = options;
 
-    if (!quiet) console.log('🎯 Testing Real Learning Flow with Isolated Data...');
+    if (!quiet) console.log('🎯 Testing Real Learning Flow with Existing Services + Test Database...');
+
+    // Create test database with seeding capabilities
+    const testDb = createScenarioTestDb('realLearningFlow');
 
     try {
-      // Enter test mode with isolated database
-      const testSession = await TestDataIsolation.enterTestMode();
-      await TestDataIsolation.seedTestData(scenario);
+      // Activate test database context manually
+      const testName = `realLearningFlow_${Date.now()}`;
+
+      // Set up test database context
+      globalThis._testDatabaseActive = true;
+      globalThis._testDatabaseHelper = testDb;
+
+      if (!quiet) {
+        const dbInfo = testDb.getInfo();
+        console.log(`✅ Test database context active: ${dbInfo.dbName}`);
+      }
+
+      // Seed the test database with problems for testing
+      if (!quiet) console.log('🌱 Seeding test database with problems...');
+      const seedResults = await testDb.seedProductionLikeData();
+      if (!quiet) {
+        const successCount = Object.values(seedResults).filter(Boolean).length;
+        console.log(`✅ Database seeded: ${successCount}/5 components loaded`);
+      }
 
       const results = {
-        testSession,
+        testDatabase: testDb.getInfo(),
         scenario,
         sessions: [],
         learningProgression: {},
@@ -59,7 +80,8 @@ export class RealSystemTester {
       results.learningProgression = await this.analyzeLearningProgression(results.sessions);
       results.systemBehavior = await this.analyzeSystemBehavior();
 
-      results.success = true;
+      // Validate test success based on actual results
+      results.success = this.validateTestSuccess(results);
 
       if (!quiet) {
         this.displayRealSystemResults(results);
@@ -69,10 +91,17 @@ export class RealSystemTester {
 
     } catch (error) {
       console.error('❌ Real learning flow test failed:', error);
-      return { error: error.message, testSession: TestDataIsolation.getCurrentTestSession() };
+      return { error: error.message, testDatabase: testDb.getInfo() };
     } finally {
-      // Always clean up test data
-      await TestDataIsolation.exitTestMode(true);
+      // Clean up test database context
+      try {
+        delete globalThis._testDatabaseActive;
+        delete globalThis._testDatabaseHelper;
+        await testDb.deleteDB();
+        if (!quiet) console.log('🗑️ Test database cleaned up');
+      } catch (cleanupError) {
+        console.warn('⚠️ Test database cleanup failed:', cleanupError.message);
+      }
     }
   }
 
@@ -91,7 +120,7 @@ export class RealSystemTester {
         console.log(`📊 Session ${sessionNum} created:`, {
           problemCount: sessionData.problems?.length || 0,
           focusTags: focusDecision.activeFocusTags,
-          sessionId: sessionData.sessionId
+          sessionId: sessionData.id
         });
       }
 
@@ -99,14 +128,14 @@ export class RealSystemTester {
       const attempts = await this.simulateRealisticAttempts(sessionData, 0.75); // 75% accuracy
 
       // 4. Complete session using real SessionService
-      const completionResult = await SessionService.completeSession(sessionData.sessionId, attempts);
+      const completionResult = await SessionService.checkAndCompleteSession(sessionData.id);
 
       // 5. Verify relationship updates occurred
       const relationshipMap = await buildRelationshipMap();
 
       return {
         sessionNum,
-        sessionId: sessionData.sessionId,
+        sessionId: sessionData.id,
         focusDecision,
         problemCount: sessionData.problems?.length || 0,
         attempts: attempts.length,
@@ -204,7 +233,7 @@ export class RealSystemTester {
       const attempts = await this.simulateRealisticAttempts(sessionData, 0.9); // High success rate
 
       // Complete session (this should trigger relationship updates)
-      await SessionService.completeSession(sessionData.sessionId, attempts);
+      await SessionService.checkAndCompleteSession(sessionData.id);
 
       // Check if relationships were updated
       const updatedRelationships = await buildRelationshipMap();
@@ -259,7 +288,7 @@ export class RealSystemTester {
           sessionNum: i,
           problemCount: sessionData.problems?.length || 0,
           analysis,
-          sessionId: sessionData.sessionId
+          sessionId: sessionData.id
         });
 
         if (!quiet) {
@@ -297,7 +326,10 @@ export class RealSystemTester {
       const timeSpent = (baseTime + timeVariation) * 60 * 1000; // Convert to milliseconds
 
       const attempt = {
-        problem_id: problem.id || problem.leetcode_id,
+        id: uuidv4(), // Required for IndexedDB keyPath
+        problem_id: problem.problem_id || problem.id, // Use UUID problem_id if available
+        leetcode_id: problem.leetcode_id || problem.id, // Include leetcode_id for lookups
+        session_id: sessionData.id, // Associate with current session
         success: isSuccess,
         time_spent: timeSpent,
         hints_used: isSuccess ? Math.floor(Math.random() * 2) : Math.floor(Math.random() * 4),
@@ -308,7 +340,7 @@ export class RealSystemTester {
 
       // Add to database using real AttemptsService
       try {
-        await AttemptsService.addAttempt(attempt);
+        await AttemptsService.addAttempt(attempt, problem);
       } catch (error) {
         console.warn('⚠️ Failed to add simulated attempt:', error.message);
       }
@@ -415,6 +447,45 @@ export class RealSystemTester {
   }
 
   /**
+   * Validate if the test should be considered successful
+   */
+  static validateTestSuccess(results) {
+    // Check for basic data completeness and validity
+    if (!results.sessions || results.sessions.length === 0) {
+      console.warn('❌ Test failed: No sessions completed');
+      return false;
+    }
+
+    // Check if sessions contain errors
+    const sessionErrors = results.sessions.filter(s => s.error).length;
+    if (sessionErrors > 0) {
+      console.warn(`❌ Test failed: ${sessionErrors} sessions had errors`);
+      return false;
+    }
+
+    // Check learning progression metrics
+    if (!results.learningProgression || isNaN(results.learningProgression.averageSuccessRate)) {
+      console.warn('❌ Test failed: Learning progression data invalid or missing');
+      return false;
+    }
+
+    // Check system behavior metrics
+    if (!results.systemBehavior || results.systemBehavior.tagMasteryCount === undefined) {
+      console.warn('❌ Test failed: System behavior analysis failed');
+      return false;
+    }
+
+    // Check if system is healthy
+    if (!results.systemBehavior.systemHealthy) {
+      console.warn('❌ Test failed: System health check failed');
+      return false;
+    }
+
+    console.log('✅ Test validation: All criteria met');
+    return true;
+  }
+
+  /**
    * Display real system test results
    */
   static displayRealSystemResults(results) {
@@ -492,10 +563,12 @@ export default RealSystemTester;
 /**
  * Test complete learning flow with real system functions
  */
-globalThis.testRealLearningFlow = async function(options = {}) {
+export async function testRealLearningFlow(options = {}) {
   console.log('🎯 Testing Real Learning Flow...');
   return await RealSystemTester.testRealLearningFlow({ quiet: false, ...options });
-};
+}
+
+globalThis.testRealLearningFlow = testRealLearningFlow;
 
 /**
  * Test real focus coordination service integration
