@@ -40,6 +40,7 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         "process.env.NODE_ENV": JSON.stringify(nodeEnv),
         "process.env.USE_MOCK_SERVICE": JSON.stringify(process.env.USE_MOCK_SERVICE),
+        "process.env.ENABLE_TESTING": JSON.stringify(isDev), // Only enable testing in dev builds
       }),
       new HtmlWebpackPlugin({
         template: "./src/app/app.html",

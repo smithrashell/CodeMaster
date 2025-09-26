@@ -67,7 +67,7 @@ function logSuccessfulConnection(db, context, stack) {
   console.info('🆔 Database Name:', db.name);
   console.info('📄 Version:', db.version);
   console.info('📊 Object Stores:', Array.from(db.objectStoreNames));
-  console.info('🧵 Call Stack:', stack.split('\n')[0]); // Just first line of stack
+  console.info('🧵 Call Stack:', stack ? stack.split('\n')[0] : 'unavailable'); // Just first line of stack
   logger.groupEnd();
 }
 

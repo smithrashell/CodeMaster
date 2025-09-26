@@ -16,7 +16,7 @@ import { scoreProblemsWithRelationships } from "./problem_relationships.js";
 
 // Import session functions are handled directly through SessionService
 
-const openDB = dbHelper.openDB;
+const openDB = () => dbHelper.openDB();
 
 // Import retry service for enhanced database operations
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
@@ -507,7 +507,9 @@ export async function checkDatabaseForProblem(leetcodeId) {
 }
 
 export async function fetchAllProblems() {
+  console.log('🔍 FETCH ALL PROBLEMS: Starting to fetch problems...');
   const db = await openDB();
+  console.log('🔍 FETCH ALL PROBLEMS: Database opened:', db.name);
   const transaction = db.transaction("problems", "readonly");
   const objectStore = transaction.objectStore("problems");
   const cursorRequest = objectStore.openCursor();
@@ -518,9 +520,11 @@ export async function fetchAllProblems() {
       const cursor = event.target.result;
 
       if (cursor) {
+        console.log('🔍 FETCH ALL PROBLEMS: Found problem:', cursor.value.id, cursor.value.title);
         problems.push(cursor.value);
         cursor.continue();
       } else {
+        console.log('🔍 FETCH ALL PROBLEMS: Finished. Total problems found:', problems.length);
         resolve(problems); // ✅ Always return an array, even if empty
       }
     };

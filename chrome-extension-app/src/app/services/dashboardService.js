@@ -2,7 +2,7 @@ import { fetchAllProblems } from "../../shared/db/problems.js";
 import { getAllAttempts } from "../../shared/db/attempts.js";
 import { getAllSessions } from "../../shared/db/sessions.js";
 import { TagService } from "../../shared/services/tagServices.js";
-import { ProblemService } from "../../shared/services/problemService";
+import { ProblemService } from "../../shared/services/problemService.js";
 import AccurateTimer from "../../shared/utils/AccurateTimer.js";
 import { getAllStandardProblems } from "../../shared/db/standard_problems.js";
 import { StorageService } from "../../shared/services/storageService.js";
@@ -1906,12 +1906,16 @@ function calculateSessionMetrics(interviewSessions, allAttempts) {
  * Generates progress trend data from recent interview sessions
  */
 function generateProgressTrend(interviewSessions, allAttempts) {
+  // Validate inputs
+  if (!Array.isArray(interviewSessions)) return [];
+  if (!Array.isArray(allAttempts)) allAttempts = [];
+
   const recentInterviewSessions = interviewSessions
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     .slice(0, 10);
 
   return recentInterviewSessions.map(session => {
-    const sessionAttempts = allAttempts.filter(attempt => 
+    const sessionAttempts = allAttempts.filter(attempt =>
       attempt.sessionId === session.sessionId
     );
     

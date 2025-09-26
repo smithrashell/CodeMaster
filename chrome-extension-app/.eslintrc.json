@@ -34,11 +34,27 @@
       "varsIgnorePattern": "^_",
       "ignoreRestSiblings": true
     }],
-    "no-console": ["warn", { 
+    "no-console": ["warn", {
       "allow": ["warn", "error", "info", "log"]
     }],
     "no-debugger": "error",
     "no-async-promise-executor": "error",
+
+    // === DATABASE SAFETY ===
+    "no-restricted-imports": ["error", {
+      "paths": [
+        {
+          "name": "../db/index.js",
+          "importNames": ["dbHelper"],
+          "message": "🚨 SAFETY: Test files should use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+        },
+        {
+          "name": "../../shared/db/index.js",
+          "importNames": ["dbHelper"],
+          "message": "🚨 SAFETY: Test files should use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+        }
+      ]
+    }],
 
     // === WARNINGS (Won't break build) ===
     "complexity": ["warn", 20],
@@ -139,6 +155,30 @@
         "max-lines-per-function": ["warn", 150],
         "complexity": ["warn", 35],
         "max-params": ["warn", 7]
+      }
+    },
+    {
+      "files": ["**/*test*.js", "**/*testing*.js", "**/*.test.js", "**/__tests__/**/*.js"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "paths": [
+            {
+              "name": "../shared/db/index.js",
+              "importNames": ["dbHelper"],
+              "message": "🚨 SAFETY: Test files must use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+            },
+            {
+              "name": "../../shared/db/index.js",
+              "importNames": ["dbHelper"],
+              "message": "🚨 SAFETY: Test files must use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+            },
+            {
+              "name": "../../../shared/db/index.js",
+              "importNames": ["dbHelper"],
+              "message": "🚨 SAFETY: Test files must use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+            }
+          ]
+        }]
       }
     }
   ],
