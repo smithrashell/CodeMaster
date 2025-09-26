@@ -3,7 +3,7 @@ import { dbHelper } from "../db/index.js";
 import {  getMostRecentAttempt } from "../db/attempts.js";
 import { SessionService } from "../services/sessionService.js";
 import { getLatestSessionByType } from "../db/sessions.js";
-import { calculateLeitnerBox } from "../utils/leitnerSystem";
+import { calculateLeitnerBox } from "../utils/leitnerSystem.js";
 import { createAttemptRecord } from "../utils/Utils.js";
 import { saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from "../db/sessions.js";
 import { ProblemService } from "./problemService.js";
@@ -408,14 +408,19 @@ class SessionAttributionEngine {
     const sessionStore = transaction.objectStore("sessions");
 
     // Save attempt record with source tracking
+    const attemptSource = 'test_attempt'; // Default source for attempt tracking
     const record = createAttemptRecord({
       ...attemptData,
       leetcode_id: problem.leetcode_id, // Include LeetCode ID for session processing
-      source: source // Track attempt source for analytics
+      source: attemptSource // Track attempt source for analytics
     });
     await putData(attemptStore, record);
 
-    // Update problem record
+    // Update problem record - ensure correct key field for database
+    // The problems store uses keyPath: "problem_id", but problem objects sometimes have "id"
+    if (problem.id && !problem.problem_id) {
+      problem.problem_id = problem.id;
+    }
     await putData(problemStore, problem);
 
     // Append attempt to session - store LeetCode ID for proper session completion matching
@@ -643,9 +648,27 @@ async function addAttempt(attemptData, problem) {
  */
 function putData(store, data) {
   return new Promise((resolve, reject) => {
+    // Debug logging to identify keyPath evaluation issues
+    console.log(`🔍 putData called for store: ${store.name}`);
+    console.log(`🔍 Data being inserted:`, {
+      id: data.id,
+      idType: typeof data.id,
+      hasId: 'id' in data,
+      allKeys: Object.keys(data),
+      storeKeyPath: store.keyPath
+    });
+
     const request = store.put(data);
     request.onsuccess = resolve;
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      console.error(`❌ IndexedDB put error for store ${store.name}:`, {
+        error: request.error,
+        data: data,
+        keyPath: store.keyPath,
+        dataId: data.id
+      });
+      reject(request.error);
+    };
   });
 }
 

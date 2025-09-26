@@ -12807,8 +12807,53 @@ globalThis.runTestSuite = async function(tests, suiteName = 'Test Suite', verbos
     results.failedTests.forEach((testName, index) => {
       const detail = results.details.find(d => d.test === testName && d.status === 'FAILED');
       console.log(`${index + 1}. ❌ ${testName} (${detail?.duration || 0}ms)`);
-      if (detail?.result && detail.result.summary) {
-        console.log(`   Reason: ${detail.result.summary}`);
+      if (detail?.result) {
+        // Handle comprehensive test results that return complex objects
+        if (detail.result.summary && typeof detail.result.summary === 'string') {
+          console.log(`   Reason: ${detail.result.summary}`);
+        } else if (detail.result.summary && typeof detail.result.summary === 'object') {
+          // For comprehensive tests, show key metrics from the summary object
+          const summary = detail.result.summary;
+          if (summary.totalSessions !== undefined) {
+            const errorMsg = summary.totalErrors > 0
+              ? ` with ${summary.totalErrors} validation errors`
+              : ' with no errors';
+            console.log(`   Result: ${summary.successfulSessions}/${summary.totalSessions} sessions successful${errorMsg}`);
+          } else {
+            console.log(`   Result: ${JSON.stringify(summary, null, 2)}`);
+          }
+        } else if (typeof detail.result === 'object') {
+          // Handle cases where the entire result is an object (like comprehensive tests)
+          if (detail.result.summary && detail.result.summary.totalSessions !== undefined) {
+            const s = detail.result.summary;
+            const errorMsg = s.totalErrors > 0
+              ? ` with ${s.totalErrors} validation errors`
+              : ' with no errors';
+            console.log(`   Result: ${s.successfulSessions}/${s.totalSessions} sessions successful${errorMsg}`);
+
+            // Show validation errors if any
+            if (detail.result.validationErrors && detail.result.validationErrors.length > 0) {
+              console.log(`   Validation Issues:`);
+              detail.result.validationErrors.slice(0, 3).forEach((error, idx) => {
+                console.log(`     ${idx + 1}. ${error}`);
+              });
+              if (detail.result.validationErrors.length > 3) {
+                console.log(`     ... and ${detail.result.validationErrors.length - 3} more`);
+              }
+            }
+          } else {
+            // Fallback for unknown object structure
+            console.log(`   Result: Complex test result (${Object.keys(detail.result).join(', ')})`);
+            // Try to extract meaningful info
+            if (detail.result.error) {
+              console.log(`   Error: ${detail.result.error}`);
+            } else if (detail.result.message) {
+              console.log(`   Message: ${detail.result.message}`);
+            }
+          }
+        } else {
+          console.log(`   Reason: ${detail.result}`);
+        }
       }
     });
   }

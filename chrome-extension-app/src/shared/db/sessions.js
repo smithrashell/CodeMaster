@@ -8,7 +8,7 @@ import { InterviewService } from "../services/interviewService.js";
 import { getRecentSessionAnalytics } from "./sessionAnalytics.js";
 import logger from "../utils/logger.js";
 
-const openDB = dbHelper.openDB;
+const openDB = () => dbHelper.openDB();
 
 /**
  * Retrieves a session by its ID.

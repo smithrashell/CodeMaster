@@ -1,6 +1,6 @@
 import { dbHelper } from "./index.js";
 
-const openDB = dbHelper.openDB;
+const openDB = () => dbHelper.openDB();
 
 const normalizeTag = (tag) => tag.trim().toLowerCase();
 

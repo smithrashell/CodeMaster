@@ -152,12 +152,12 @@ export class ComprehensiveSessionTester {
       }
 
       // 7. Complete session and get analytics
-      const sessionId = sessionData.sessionId || `test_${sessionNumber}_${Date.now()}`;
+      const sessionId = sessionData.id || `test_${sessionNumber}_${Date.now()}`;
       let analytics = null;
       let sessionCompletion = null;
 
       try {
-        sessionCompletion = await SessionService.completeSession(sessionId);
+        sessionCompletion = await SessionService.checkAndCompleteSession(sessionId);
         analytics = await SessionService.getSessionAnalytics(sessionId);
       } catch (error) {
         console.warn(`Analytics error for session ${sessionNumber}:`, error.message);

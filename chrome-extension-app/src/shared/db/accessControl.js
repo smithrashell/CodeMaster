@@ -1,7 +1,7 @@
 import logger from "../utils/logger.js";
 
 /**
- * Enhanced context detection for debugging
+ * Enhanced context detection for debugging and test safety
  */
 export function getExecutionContext() {
   const context = {
@@ -11,7 +11,8 @@ export function getExecutionContext() {
     chromeRuntime: typeof chrome !== 'undefined' && chrome.runtime ? 'available' : 'unavailable',
     chromeExtension: typeof chrome !== 'undefined' && chrome.extension ? 'available' : 'unavailable',
     documentState: typeof document !== 'undefined' ? document.readyState : 'no-document',
-    contextType: 'unknown'
+    contextType: 'unknown',
+    isTest: isTestEnvironment()
   };
   
   try {
@@ -125,4 +126,56 @@ export function logDatabaseAccess(context, stack) {
     executionContext: context,
     callStack: stack
   });
+}
+
+/**
+ * Detect if we're running in a test environment
+ */
+export function isTestEnvironment() {
+  // Check multiple test indicators
+  const testIndicators = [
+    // Jest environment
+    typeof jest !== 'undefined',
+    typeof global !== 'undefined' && global.jest,
+    typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test',
+
+    // Test function names in stack (actual test execution)
+    typeof Error !== 'undefined' && Error().stack && (
+      Error().stack.includes('jest') ||
+      Error().stack.includes('simulateRealisticAttempts') ||
+      Error().stack.includes('testRealLearningFlow') ||
+      Error().stack.includes('runComprehensiveTests') ||
+      Error().stack.includes('withTestDatabase')
+    ),
+
+    // Active test database context (more specific than just function existence)
+    typeof globalThis !== 'undefined' && globalThis._testDatabaseActive === true
+  ];
+
+  return testIndicators.some(Boolean);
+}
+
+/**
+ * Check if production database access should be blocked
+ * @param {string} dbName - Database name being accessed
+ * @param {Object} context - Execution context
+ */
+export function checkProductionDatabaseAccess(dbName, context) {
+  // If we're in test mode but trying to access production database
+  if (context.isTest && dbName === 'CodeMaster') {
+    const error = new Error(
+      `🚨 SAFETY VIOLATION: Test code attempted to access production database '${dbName}'. ` +
+      `Use createTestDbHelper() instead of the production dbHelper.`
+    );
+
+    console.error('🚨 PRODUCTION DATABASE PROTECTION:', {
+      dbName,
+      isTest: context.isTest,
+      contextType: context.contextType,
+      violation: 'test-accessing-production-db',
+      stack: Error().stack
+    });
+
+    throw error;
+  }
 }

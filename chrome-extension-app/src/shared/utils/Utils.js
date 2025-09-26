@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
-// import { v4 as uuidv4 } from "uuid"; // Commented out - uncomment when needed
+import { v4 as uuidv4 } from "uuid";
 
 const openDB = dbHelper.openDB;
 
@@ -48,7 +48,7 @@ export function calculateDecayScore(lastAttemptDate, successRate, stability) {
 
 export function createAttemptRecord(attemptData) {
   const baseRecord = {
-    id: attemptData.id,
+    id: attemptData.id || uuidv4(), // Generate UUID if not provided
     session_id: attemptData.session_id,
     problem_id: attemptData.problem_id,
     leetcode_id: attemptData.leetcode_id,
@@ -57,6 +57,9 @@ export function createAttemptRecord(attemptData) {
     time_spent: Number(attemptData.time_spent || 0),
     perceived_difficulty: Number(attemptData.perceived_difficulty || 0),
     comments: attemptData.comments || "",
+    // Preserve additional fields that might be present
+    hints_used: attemptData.hints_used,
+    source: attemptData.source,
   };
 
   // Add interview signals if present

@@ -9,7 +9,7 @@ import {
   fetchAllProblemsWithRetry,
 } from "../db/problems.js";
 import { getProblemFromStandardProblems } from "../db/standard_problems.js";
-import { AttemptsService } from "./attemptsService";
+import { AttemptsService } from "./attemptsService.js";
 import { v4 as uuidv4 } from "uuid";
 import {
   fetchAllProblems,
