@@ -3,12 +3,21 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = (env, argv) => {
   const baseConfig = configFactory(env, { mode: "production" });
-  
+
+  // Determine if development mode (same logic as webpack.config.js)
+  const isUsingDevConfig = process.env.npm_lifecycle_script && process.env.npm_lifecycle_script.includes('webpack.dev');
+  const isDev = argv.mode === "development" || isUsingDevConfig;
+
   // Add static assets copying
   baseConfig.plugins.push(
     new CopyPlugin({
       patterns: [
-        { from: "public" },
+        {
+          from: "public",
+          globOptions: {
+            ignore: ["**/background.js", "**/background-dev.js", "**/background-production.js", "**/app.html"], // Exclude background scripts and app.html - handled by webpack entry points
+          }
+        },
         {
           from: "src/content/css",
           to: "content/css",
@@ -41,14 +50,14 @@ module.exports = (env, argv) => {
   return {
     ...baseConfig,
     entry: {
-      content: "./src/content/content.jsx", 
-      background: "./public/background.js",
+      content: "./src/content/content.jsx",
+      background: isDev ? "./public/background-dev.js" : "./public/background-production.js",
       app: "./src/app/app.jsx",
     },
     mode: "production",
     optimization: {
       minimize: false, // Disable minification to save memory
-      splitChunks: false, // Disable chunk splitting  
+      splitChunks: false, // Disable chunk splitting
     },
     devtool: false,
     performance: {
