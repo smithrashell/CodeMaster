@@ -148,8 +148,25 @@ const performContentOnboardingCheck = async (setShowContentOnboarding, setConten
     setShowContentOnboarding(true);
     return;
   }
-  
+
   try {
+    // STEP 1: First check if installation/database seeding is complete
+    const installationStatus = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "checkInstallationOnboardingStatus"
+    });
+
+    logger.info("📊 Main: Installation onboarding status received:", installationStatus);
+
+    if (!installationStatus.isComplete) {
+      logger.info("⏳ Installation onboarding not complete - hiding content onboarding", {
+        isComplete: installationStatus.isComplete,
+        timestamp: installationStatus.timestamp
+      });
+      setShowContentOnboarding(false);
+      return;
+    }
+
+    // STEP 2: Installation complete, now check content onboarding status
     const status = await ChromeAPIErrorHandler.sendMessageWithRetry({
       type: "checkContentOnboardingStatus"
     });
@@ -166,13 +183,14 @@ const performContentOnboardingCheck = async (setShowContentOnboarding, setConten
       setShowContentOnboarding(false);
       return;
     }
-    
-    logger.info("✅ Content onboarding will show - not completed", { 
-      is_completed: status.is_completed, 
+
+    logger.info("✅ Both installation and content onboarding checks passed - content onboarding will show", {
+      installation_complete: installationStatus.isComplete,
+      content_completed: status.is_completed,
       current_step: status.current_step,
-      lastActiveStep: status.lastActiveStep 
+      lastActiveStep: status.lastActiveStep
     });
-    
+
     // Small delay to ensure the DOM is ready
     const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
     setTimeout(() => {
@@ -180,12 +198,11 @@ const performContentOnboardingCheck = async (setShowContentOnboarding, setConten
       setShowContentOnboarding(true);
     }, delayTime);
   } catch (error) {
-    logger.error("❌ Error checking content onboarding status:", error);
-    
-    // Fallback: show onboarding anyway for new users
-    setTimeout(() => {
-      setShowContentOnboarding(true);
-    }, 1000);
+    logger.error("❌ Error checking onboarding status:", error);
+
+    // Fallback: hide onboarding to prevent showing before system is ready
+    logger.info("🚫 Hiding content onboarding due to error - extension may not be ready");
+    setShowContentOnboarding(false);
   }
 };
 
