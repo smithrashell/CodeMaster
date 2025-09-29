@@ -1,10 +1,11 @@
-// PRODUCTION BACKGROUND SCRIPT - Core Chrome Extension Business Logic Only
-console.log('🚀 SERVICE WORKER: Production background script starting...');
+// DEVELOPMENT BACKGROUND SCRIPT - Full functionality + Test features
+console.log('🚀 SERVICE WORKER: Development background script starting...');
 
 // Extension state control
-let EXTENSION_READY = true;  // Ready immediately in production
+let EXTENSION_READY = true;  // Always ready in development mode
+let TESTS_READY = false;
 
-// Import only essential services for core extension functionality
+// Import core services
 import { StorageService } from "../src/shared/services/storageService.js";
 import { ProblemService } from "../src/shared/services/problemService.js";
 import { SessionService } from "../src/shared/services/sessionService.js";
@@ -17,6 +18,7 @@ import { HintInteractionService } from "../src/shared/services/hintInteractionSe
 import { AlertingService } from "../src/shared/services/AlertingService.js";
 import { ChromeAPIErrorHandler } from "../src/shared/services/ChromeAPIErrorHandler.js";
 import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
+import { createScenarioTestDb, createDbHelper } from "../src/shared/db/dbHelperFactory.js";
 import { insertStandardProblems } from "../src/shared/db/standard_problems.js";
 import { insertStrategyData } from "../src/shared/db/strategy_data.js";
 import { buildTagRelationships } from "../src/shared/db/tag_relationships.js";
@@ -59,14 +61,14 @@ if (typeof globalThis !== 'undefined') {
   globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
 }
 
-// Service Worker Lifecycle Management
+// Service Worker Lifecycle Management for Manifest V3
 self.addEventListener('install', (event) => {
-  console.log('🔧 SERVICE WORKER: Installing production background script...');
+  console.log('🔧 SERVICE WORKER: Installing development background script...');
   event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('🔧 SERVICE WORKER: Activated production background script...');
+  console.log('🔧 SERVICE WORKER: Activated development background script...');
   event.waitUntil(
     self.clients.claim().then(() => {
       console.log('✅ SERVICE WORKER: All clients claimed, service worker active');
@@ -88,42 +90,9 @@ globalThis.AlertingService = AlertingService;
 globalThis.FocusCoordinationService = FocusCoordinationService;
 globalThis.InterviewService = InterviewService;
 
-console.log('✅ SERVICE WORKER: Production services initialized');
+console.log('✅ SERVICE WORKER: Development services initialized');
 
-// Initialize extension after database seeding
-async function initializeExtension() {
-  try {
-    console.log('🌱 Starting extension initialization...');
-
-    // Seed database with essential data
-    await insertStandardProblems();
-    console.log('✅ Standard problems inserted');
-
-    await insertStrategyData();
-    console.log('✅ Strategy data inserted');
-
-    await buildTagRelationships();
-    console.log('✅ Tag relationships built');
-
-    await buildProblemRelationships();
-    console.log('✅ Problem relationships built');
-
-    await initializePatternLaddersForOnboarding();
-    console.log('✅ Pattern ladders initialized');
-
-    // Enable extension access
-    EXTENSION_READY = true;
-    console.log("✅ Production extension fully initialized and ready");
-
-  } catch (error) {
-    console.error('❌ Extension initialization failed:', error);
-    // Allow extension to work even if seeding partially fails
-    EXTENSION_READY = true;
-    console.log("⚠️ Extension enabled with partial initialization");
-  }
-}
-
-// Chrome Message Handlers - Essential handlers only
+// Chrome Message Handlers
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('📨 SERVICE WORKER: Message received:', request.type);
 
@@ -233,20 +202,62 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
-      // Session Management - Essential only
+      // Session Management
       case "getOrCreateSession":
-        globalThis.SessionService.getOrCreateSession(request.sessionType || 'standard', request.forceNew || false)
-          .then((session) => sendResponse({ session }))
-          .catch((error) => sendResponse({ error: error.message }))
-          .finally(finishRequest);
+        (async () => {
+          const startTime = Date.now();
+
+          if (!request.sessionType) {
+            try {
+              const bannerResult = await globalThis.InterviewService.shouldShowInterviewBanner();
+              if (bannerResult.shouldShow) {
+                console.log("📋 Interview banner should be shown, not auto-creating session");
+                sendResponse({
+                  showInterviewBanner: true,
+                  bannerData: bannerResult.bannerData,
+                  session: null
+                });
+                finishRequest();
+                return;
+              }
+            } catch (error) {
+              console.warn("⚠️ Interview banner check failed, proceeding with session creation:", error.message);
+            }
+          }
+
+          try {
+            const session = await globalThis.SessionService.getOrCreateSession(request.sessionType || 'standard', request.forceNew || false);
+            const duration = Date.now() - startTime;
+            console.log(`✅ Session created in ${duration}ms`);
+            sendResponse({ session });
+          } catch (error) {
+            const duration = Date.now() - startTime;
+            console.error(`❌ Session creation failed after ${duration}ms:`, error);
+            sendResponse({ error: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
         return true;
 
       case "refreshSession":
-        console.log("🔄 Refreshing session:", request.sessionType || 'standard');
-        globalThis.SessionService.refreshSession(request.sessionType || 'standard', true)
-          .then((session) => sendResponse({ session }))
-          .catch((error) => sendResponse({ error: error.message }))
-          .finally(finishRequest);
+        (async () => {
+          console.log("🔄 Refreshing session:", request.sessionType || 'standard');
+          const refreshStartTime = Date.now();
+
+          try {
+            const session = await globalThis.SessionService.refreshSession(request.sessionType || 'standard', true);
+            const duration = Date.now() - refreshStartTime;
+            console.log(`✅ Session refreshed in ${duration}ms`);
+            sendResponse({ session });
+          } catch (error) {
+            const duration = Date.now() - refreshStartTime;
+            console.error(`❌ Session refresh failed after ${duration}ms:`, error);
+            sendResponse({ error: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
         return true;
 
       // Settings Management
@@ -269,7 +280,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
-      // Onboarding - Essential only
+      // Onboarding
       case "checkInstallationOnboardingStatus":
         checkOnboardingStatus()
           .then((status) => sendResponse({ status }))
@@ -284,10 +295,111 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
-      // Additional Onboarding Handlers
+      // Additional handlers for missing message types
+      case "checkOnboardingStatus":
+        checkOnboardingStatus()
+          .then((status) => sendResponse({ status }))
+          .catch((error) => sendResponse({ error: error.message }))
+          .finally(finishRequest);
+        return true;
+
+      case "getFocusAreasData":
+        (async () => {
+          try {
+            const focusDecision = await globalThis.FocusCoordinationService.getFocusDecision("session_state");
+            const result = {
+              focusAreas: focusDecision?.focusAreas || [],
+              currentFocus: focusDecision?.currentFocus || null,
+              lastUpdated: focusDecision?.lastUpdated || Date.now()
+            };
+            sendResponse({ result });
+          } catch (error) {
+            sendResponse({ error: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "isStrategyDataLoaded":
+        (async () => {
+          try {
+            // Check if strategy data exists in the database
+            const db = await createDbHelper();
+            const transaction = db.transaction(['standard_problems'], 'readonly');
+            const store = transaction.objectStore('standard_problems');
+            const count = await new Promise((resolve, reject) => {
+              const countRequest = store.count();
+              countRequest.onsuccess = () => resolve(countRequest.result);
+              countRequest.onerror = () => reject(countRequest.error);
+            });
+
+            const isLoaded = count > 0;
+            sendResponse({ isLoaded });
+          } catch (error) {
+            console.warn("Strategy data check failed:", error);
+            sendResponse({ isLoaded: false });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "onboardingUserIfNeeded":
+        (async () => {
+          try {
+            const status = await checkOnboardingStatus();
+            if (status.needsOnboarding) {
+              // Trigger onboarding flow
+              sendResponse({
+                needsOnboarding: true,
+                onboardingType: status.onboardingType,
+                status
+              });
+            } else {
+              sendResponse({ needsOnboarding: false, status });
+            }
+          } catch (error) {
+            sendResponse({ error: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      // Test Functions (Development Only)
+      case "runDevelopmentTests":
+        console.log("🧪 Running development tests...");
+        sendResponse({ message: "Development tests available in dev mode", testsReady: TESTS_READY });
+        finishRequest();
+        return true;
+
+      case "seedTestDatabase":
+        console.log("🌱 Seeding test database...");
+        (async () => {
+          try {
+            const db = await createDbHelper();
+            await insertStandardProblems(db);
+            await insertStrategyData();
+            await buildTagRelationships();
+            await buildProblemRelationships();
+            await initializePatternLaddersForOnboarding();
+
+            TESTS_READY = true;
+            console.log("✅ Test database seeded successfully");
+            sendResponse({ success: true, message: "Test database seeded" });
+          } catch (error) {
+            console.error("❌ Test database seeding failed:", error);
+            sendResponse({ success: false, error: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
       case "checkContentOnboardingStatus":
         checkContentOnboardingStatus()
-          .then((status) => sendResponse(status))
+          .then((status) => sendResponse({ status }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
         return true;
@@ -638,79 +750,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
-      case "onboardingUserIfNeeded":
-        (async () => {
-          try {
-            const status = await checkOnboardingStatus();
-            if (status.needsOnboarding) {
-              sendResponse({
-                needsOnboarding: true,
-                onboardingType: status.onboardingType,
-                status
-              });
-            } else {
-              sendResponse({ needsOnboarding: false, status });
-            }
-          } catch (error) {
-            sendResponse({ error: error.message });
-          }
-        })().finally(finishRequest);
-        return true;
-
-      case "checkOnboardingStatus":
-        checkOnboardingStatus()
-          .then((status) => sendResponse({ status }))
-          .catch((error) => sendResponse({ error: error.message }))
-          .finally(finishRequest);
-        return true;
-
-      case "checkInstallationOnboardingStatus":
-        (async () => {
-          try {
-            const status = await checkOnboardingStatus();
-            sendResponse({ isComplete: status.completed || false, status });
-          } catch (error) {
-            sendResponse({ isComplete: true, error: error.message });
-          }
-        })().finally(finishRequest);
-        return true;
-
-      case "getFocusAreasData":
-        (async () => {
-          try {
-            const focusDecision = await globalThis.FocusCoordinationService.getFocusDecision("session_state");
-            const result = {
-              focusAreas: focusDecision?.focusAreas || [],
-              currentFocus: focusDecision?.currentFocus || null,
-              lastUpdated: focusDecision?.lastUpdated || Date.now()
-            };
-            sendResponse({ result });
-          } catch (error) {
-            sendResponse({ error: error.message });
-          }
-        })().finally(finishRequest);
-        return true;
-
-      case "isStrategyDataLoaded":
-        (async () => {
-          try {
-            const db = await createDbHelper();
-            const transaction = db.transaction(['standard_problems'], 'readonly');
-            const store = transaction.objectStore('standard_problems');
-            const count = await new Promise((resolve, reject) => {
-              const countRequest = store.count();
-              countRequest.onsuccess = () => resolve(countRequest.result);
-              countRequest.onerror = () => reject(countRequest.error);
-            });
-            const isLoaded = count > 0;
-            sendResponse({ isLoaded });
-          } catch (error) {
-            console.warn("Strategy data check failed:", error);
-            sendResponse({ isLoaded: false });
-          }
-        })().finally(finishRequest);
-        return true;
-
       default:
         console.log(`⚠️ Unknown message type: ${request.type}`);
         sendResponse({ error: `Unknown message type: ${request.type}` });
@@ -757,37 +796,24 @@ chrome.action.onClicked.addListener(async (tab) => {
 chrome.runtime.onInstalled.addListener((details) => {
   console.log('🚀 SERVICE WORKER: Extension installed/updated:', details.reason);
 
-  // Start initialization process
-  initializeExtension();
+  // Initialize extension immediately in development
+  EXTENSION_READY = true;
+  console.log("✅ Development mode - extension ready immediately");
 
   if (details.reason === 'install') {
-    console.log("🎉 First-time install - dashboard will open after initialization");
-    // Delay dashboard opening until extension is fully initialized
-    setTimeout(() => {
-      if (EXTENSION_READY) {
-        chrome.tabs.create({ url: "app.html" });
-      } else {
-        console.log("⚠️ Install dashboard opening delayed - extension still initializing");
-      }
-    }, 2000);
+    console.log("🎉 First-time install - opening dashboard");
+    chrome.tabs.create({ url: "app.html" });
   } else if (details.reason === 'update') {
-    console.log("⬆️ Extension updated - dashboard will open after initialization");
-    // Delay dashboard opening until extension is fully initialized
-    setTimeout(() => {
-      if (EXTENSION_READY) {
-        chrome.tabs.create({ url: "app.html" });
-      } else {
-        console.log("⚠️ Update dashboard opening delayed - extension still initializing");
-      }
-    }, 2000);
+    console.log("⬆️ Extension updated - opening dashboard");
+    chrome.tabs.create({ url: "app.html" });
   }
 });
 
 // Extension Startup Handler
 chrome.runtime.onStartup.addListener(() => {
-  console.log("🚀 Production background script startup");
-  // Start initialization process on startup too
-  initializeExtension();
+  console.log("🚀 Development background script startup");
+  EXTENSION_READY = true;
+  console.log("✅ Development mode - extension ready on startup");
 });
 
-console.log('✅ SERVICE WORKER: Production background script loaded, initialization starting...');
+console.log('✅ SERVICE WORKER: Development background script fully initialized');
