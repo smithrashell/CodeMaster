@@ -344,9 +344,19 @@ export const ProblemService = {
 
       logger.info(`🔄 Added ${validReviewProblems.length}/${reviewTarget} review problems (filtered from ${reviewProblems?.length || 0} candidates)`);
       
-      // Debug review problems selection
+      // Adaptive review problem analysis
       if (reviewProblems.length === 0 && reviewTarget > 0) {
-        logger.warn(`⚠️ No review problems found despite target of ${reviewTarget}. Check ScheduleService.getDailyReviewSchedule()`);
+        // Check if this is a new user scenario (no attempted problems)
+        const hasAttemptedProblems = allProblems.length > 0;
+
+        if (!hasAttemptedProblems) {
+          logger.info(`ℹ️ New user detected - no review problems available. Using 0/100 review/new ratio automatically.`);
+        } else {
+          // Experienced user with no review problems due - this might indicate scheduling issues
+          logger.warn(`⚠️ No review problems found despite target of ${reviewTarget} for experienced user. Check ScheduleService.getDailyReviewSchedule()`);
+        }
+      } else if (reviewProblems.length < reviewTarget) {
+        logger.info(`ℹ️ Found ${reviewProblems.length}/${reviewTarget} review problems. Remaining ${reviewTarget - reviewProblems.length} slots will be filled with new problems.`);
       }
     } else {
       logger.info("🔰 Skipping review problems during onboarding - focusing on new problem distribution");
