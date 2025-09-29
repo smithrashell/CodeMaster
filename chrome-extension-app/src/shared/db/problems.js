@@ -694,12 +694,48 @@ export async function fetchAdditionalProblems(
       problems: selectedProblems.map(p => ({id: p.id, difficulty: p.difficulty, title: p.title}))
     });
     
-    // **FALLBACK LOGIC**: If we don't have enough problems, select from all available problems
-    logger.info(`🔍 Fallback check: selectedProblems.length=${selectedProblems.length}, numNewProblems=${numNewProblems}, availableProblems.length=${availableProblems.length}`);
-    
+    // **INTELLIGENT EXPANSION**: Try broader tag search before falling back to random selection
+    logger.info(`🔍 Expansion check: selectedProblems.length=${selectedProblems.length}, numNewProblems=${numNewProblems}, availableProblems.length=${availableProblems.length}`);
+
+    // If still short, try expanding to all focus tags before random fallback
+    const remainingAfterExpansion = numNewProblems - selectedProblems.length;
+    if (remainingAfterExpansion > 0 && enhancedFocusTags.length > 2) {
+      logger.info(`🔗 Expanding to all remaining focus tags for ${remainingAfterExpansion} more problems...`);
+
+      for (let i = 2; i < enhancedFocusTags.length && selectedProblems.length < numNewProblems; i++) {
+        const expansionTag = enhancedFocusTags[i];
+        const needed = numNewProblems - selectedProblems.length;
+
+        const tagMastery = masteryData.find((m) => m.tag === expansionTag) || {
+          tag: expansionTag,
+          totalAttempts: 0,
+          successfulAttempts: 0,
+          mastered: false,
+        };
+
+        const allowance = getDifficultyAllowanceForTag(tagMastery);
+        const moreProblems = await selectProblemsForTag(expansionTag, needed, {
+          difficultyAllowance: allowance,
+          ladders,
+          allProblems: availableProblems,
+          allTagsInCurrentTier,
+          usedProblemIds,
+          currentDifficultyCap
+        });
+
+        selectedProblems.push(...moreProblems);
+        moreProblems.forEach((p) => usedProblemIds.add(p.id));
+
+        if (moreProblems.length > 0) {
+          logger.info(`🔗 Added ${moreProblems.length} problems from additional tag: ${expansionTag}`);
+        }
+      }
+    }
+
+    // **FALLBACK LOGIC**: Only use random selection if tag-based expansion still insufficient
     if (selectedProblems.length < numNewProblems && availableProblems.length > 0) {
       const remainingNeeded = numNewProblems - selectedProblems.length;
-      logger.warn(`⚠️ Tag-based selection only found ${selectedProblems.length}/${numNewProblems} problems. Using fallback selection for ${remainingNeeded} more.`);
+      logger.info(`ℹ️ Tag-based selection found ${selectedProblems.length}/${numNewProblems} problems across all focus tags. Using random selection for final ${remainingNeeded} problems.`);
       
       // Filter out already selected problems
       const selectedIds = new Set(selectedProblems.map(p => p.id));
