@@ -956,29 +956,38 @@ ${summary.recentAlerts
    * @returns {boolean} True if in test environment
    */
   isTestEnvironment() {
-    // Check for common test environment indicators
-    if (typeof window !== 'undefined') {
-      // Check for test functions in global scope
-      if (window.enableTesting || window.testCoreBusinessLogic || window.enableMockMode) {
+    // Check for Node.js test environment variables (most reliable)
+    if (typeof process !== 'undefined' && process.env) {
+      if (process.env.NODE_ENV === 'test' ||
+          process.env.NODE_ENV === 'development' ||
+          process.env.JEST_WORKER_ID ||
+          process.env.ENABLE_TESTING === 'true') {
         return true;
       }
+    }
 
+    // Check for test database helper in global scope (internal test marker)
+    if (typeof globalThis !== 'undefined' &&
+        (globalThis._testDbHelper || globalThis._testDatabaseActive)) {
+      return true;
+    }
+
+    // Check for browser test environment indicators (safer)
+    if (typeof window !== 'undefined') {
       // Check for test-specific query parameters
       if (window.location && window.location.search.includes('test=true')) {
         return true;
       }
-    }
 
-    // Check for Node.js test environment
-    if (typeof process !== 'undefined' && process.env) {
-      if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID) {
+      // Check for development/staging hostname patterns (safe)
+      const hostname = window.location?.hostname;
+      if (hostname && (hostname.includes('localhost') ||
+                      hostname.includes('127.0.0.1') ||
+                      hostname.includes('dev') ||
+                      hostname.includes('staging') ||
+                      hostname.includes('test'))) {
         return true;
       }
-    }
-
-    // Check for test database helper in global scope
-    if (typeof globalThis !== 'undefined' && globalThis._testDbHelper) {
-      return true;
     }
 
     return false;
