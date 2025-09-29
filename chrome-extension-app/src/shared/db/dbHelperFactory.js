@@ -34,7 +34,8 @@ export function createDbHelper(config = {}) {
     version = 47,
     isTestMode = false,
     testSession = null,
-    enableLogging = true
+    enableLogging = true,
+    testSessionUID = null
   } = config;
 
   // Calculate actual database name with test isolation
@@ -48,14 +49,17 @@ export function createDbHelper(config = {}) {
     version,
     isTestMode,
     testSession,
+    testSessionUID,
     enableLogging,
     db: null,
     pendingConnection: null,
 
     openDB() {
       // 🔄 TEST DATABASE INTERCEPT: If test database is active, redirect all calls
-      if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper && !this.isTestMode) {
-        console.log('🔄 GLOBAL Context switching: Intercepting factory dbHelper openDB() call for test database');
+      // CRITICAL: Only redirect if this is NOT already the test helper (prevent infinite recursion)
+      if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper &&
+          !this.isTestMode && this !== globalThis._testDatabaseHelper) {
+        // Silently redirect to test database
         return globalThis._testDatabaseHelper.openDB();
       }
 
@@ -72,10 +76,12 @@ export function createDbHelper(config = {}) {
       logDatabaseAccess(context, stack);
 
       if (this.enableLogging) {
-        console.log(`🔍 DATABASE ${this.isTestMode ? 'TEST' : 'PROD'} DEBUG: openDB() called for:`, {
+        const uidPrefix = this.testSessionUID ? `[${this.testSessionUID}]` : '';
+        console.log(`🔍 ${uidPrefix} DATABASE ${this.isTestMode ? 'TEST' : 'PROD'} DEBUG: openDB() called for:`, {
           dbName: this.dbName,
           isTestMode: this.isTestMode,
           testSession: this.testSession,
+          testSessionUID: this.testSessionUID,
           context: context.contextType,
           stackSnippet: stack.substring(0, 200)
         });
@@ -265,51 +271,76 @@ export function createDbHelper(config = {}) {
         errors: []
       };
 
-      // Define what to preserve vs clear
-      const expensiveSeededStores = [
-        'standard_problems',
-        'strategy_data',
-        'tag_relationships',
-        'pattern_ladders'
-        // Note: problem_relationships moved to dynamicDataStores since tests modify it
-      ];
-
-      const userDataStores = [
-        'sessions',
-        'attempts',
-        'tag_mastery',
-        'settings'
-      ];
-
-      const dynamicDataStores = [
-        'problems', // User's custom problems
-        'user_progress',
-        'notifications',
-        'problem_relationships' // This gets updated during tests when sessions complete
-      ];
+      // Define data categories for snapshot-based isolation
+      const DATA_CATEGORIES = {
+        STATIC: [
+          'standard_problems',    // Never changes, expensive to seed (~3000+ problems)
+          'strategy_data',        // Static algorithm data
+          'tag_relationships'     // Static tag graph data
+        ],
+        EXPENSIVE_DERIVED: [
+          'pattern_ladders',      // Derived from static data but expensive to rebuild
+          'problem_relationships' // Modified by tests but very expensive to rebuild
+        ],
+        TEST_SESSION: [
+          'sessions',             // Test session data - clear between tests
+          'attempts',             // Test attempt data - clear between tests
+          'tag_mastery',          // Test progress data - clear between tests
+          'problems'              // Test custom problems - clear between tests
+        ],
+        CONFIG: [
+          'settings',             // User settings - preserve or reset to defaults
+          'user_progress',        // User progress state
+          'notifications'         // User notifications
+        ]
+      };
 
       try {
-        // Clear user data (fast to recreate)
+        // Always clear test session data (fast to recreate)
+        for (const storeName of DATA_CATEGORIES.TEST_SESSION) {
+          try {
+            await this.clear(storeName);
+            results.cleared.push(storeName);
+            if (this.enableLogging) {
+              console.log(`✅ TEST DB: Cleared ${storeName}`);
+            }
+          } catch (error) {
+            results.errors.push({ store: storeName, error: error.message });
+            if (this.enableLogging) {
+              console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
+            }
+          }
+        }
+
+        // Clear configuration data if requested
         if (clearUserData) {
-          for (const storeName of [...userDataStores, ...dynamicDataStores]) {
+          for (const storeName of DATA_CATEGORIES.CONFIG) {
             try {
               await this.clear(storeName);
               results.cleared.push(storeName);
               if (this.enableLogging) {
-                console.log(`✅ TEST DB: Cleared ${storeName}`);
+                console.log(`✅ TEST DB: Cleared ${storeName} (config reset)`);
               }
             } catch (error) {
-              results.errors.push({ store: storeName, error: error.message });
-              if (this.enableLogging) {
-                console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
+              // Only warn about missing stores if they're not expected to be missing
+              if (error.message.includes('object stores was not found')) {
+                if (this.enableLogging) {
+                  console.log(`🔍 TEST DB: Store ${storeName} not found (skipping, likely not in schema)`);
+                }
+              } else {
+                results.errors.push({ store: storeName, error: error.message });
+                if (this.enableLogging) {
+                  console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
+                }
               }
             }
           }
         }
 
-        // Optionally clear seeded data (expensive to recreate)
+        // Handle expensive derived data based on test isolation level
         if (!preserveSeededData) {
-          for (const storeName of expensiveSeededStores) {
+          // Full teardown - clear everything including expensive data
+          for (const storeName of [...DATA_CATEGORIES.STATIC, ...DATA_CATEGORIES.EXPENSIVE_DERIVED]) {
             try {
               await this.clear(storeName);
               results.cleared.push(storeName);
@@ -324,9 +355,39 @@ export function createDbHelper(config = {}) {
             }
           }
         } else {
-          results.preserved = [...expensiveSeededStores];
+          // Smart teardown - preserve expensive static data, conditionally clear derived data
+          results.preserved = [...DATA_CATEGORIES.STATIC];
+
+          // For expensive derived data, check if tests indicated they modified it
+          const testModifiedStores = globalThis._testModifiedStores || new Set();
+
+          for (const storeName of DATA_CATEGORIES.EXPENSIVE_DERIVED) {
+            if (testModifiedStores.has(storeName)) {
+              try {
+                await this.clear(storeName);
+                results.cleared.push(storeName);
+                if (this.enableLogging) {
+                  console.log(`✅ TEST DB: Cleared ${storeName} (test-modified)`);
+                }
+              } catch (error) {
+                results.errors.push({ store: storeName, error: error.message });
+                if (this.enableLogging) {
+                  console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
+                }
+              }
+            } else {
+              results.preserved.push(storeName);
+              if (this.enableLogging) {
+                console.log(`💾 TEST DB: Preserved ${storeName} (unmodified)`);
+              }
+            }
+          }
+
+          // Clear the modification tracking for next test
+          globalThis._testModifiedStores = new Set();
+
           if (this.enableLogging) {
-            console.log(`💾 TEST DB: Preserved seeded stores: ${results.preserved.join(', ')}`);
+            console.log(`💾 TEST DB: Preserved static data: ${results.preserved.join(', ')}`);
           }
         }
 
@@ -339,6 +400,223 @@ export function createDbHelper(config = {}) {
       } catch (error) {
         if (this.enableLogging) {
           console.error('❌ TEST DB: Smart teardown failed:', error);
+        }
+        throw error;
+      }
+    },
+
+    /**
+     * Creates a baseline snapshot of expensive derived data for fast restoration
+     * @returns {Promise<Object>} Snapshot metadata
+     */
+    async createBaseline() {
+      if (!this.isTestMode) {
+        throw new Error('🚨 SAFETY: Baseline snapshots only available in test mode');
+      }
+
+      const DATA_CATEGORIES = {
+        EXPENSIVE_DERIVED: ['pattern_ladders', 'problem_relationships']
+      };
+
+      if (this.enableLogging) {
+        console.log('📸 TEST DB: Creating baseline snapshot...');
+      }
+
+      const db = await this.openDB();
+      const snapshotId = `baseline_${Date.now()}`;
+      const snapshotData = {};
+
+      // Capture current state of expensive derived stores
+      for (const storeName of DATA_CATEGORIES.EXPENSIVE_DERIVED) {
+        try {
+          const transaction = db.transaction(storeName, 'readonly');
+          const store = transaction.objectStore(storeName);
+          const data = await new Promise((resolve, reject) => {
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+
+          snapshotData[storeName] = {
+            data,
+            count: data.length,
+            timestamp: new Date().toISOString()
+          };
+
+          if (this.enableLogging) {
+            console.log(`📸 TEST DB: Captured ${data.length} records from ${storeName}`);
+          }
+        } catch (error) {
+          if (this.enableLogging) {
+            console.error(`❌ TEST DB: Failed to snapshot ${storeName}:`, error.message);
+          }
+          throw error;
+        }
+      }
+
+      // Store snapshot metadata
+      globalThis._testBaseline = {
+        id: snapshotId,
+        data: snapshotData,
+        created: new Date().toISOString(),
+        stores: Object.keys(snapshotData)
+      };
+
+      if (this.enableLogging) {
+        const totalRecords = Object.values(snapshotData).reduce((sum, store) => sum + store.count, 0);
+        console.log(`✅ TEST DB: Baseline snapshot created - ${totalRecords} records across ${Object.keys(snapshotData).length} stores`);
+      }
+
+      return globalThis._testBaseline;
+    },
+
+    /**
+     * Restores expensive derived data from baseline snapshot
+     * @returns {Promise<Object>} Restoration results
+     */
+    async restoreFromBaseline() {
+      if (!this.isTestMode) {
+        throw new Error('🚨 SAFETY: Baseline restoration only available in test mode');
+      }
+
+      if (!globalThis._testBaseline) {
+        throw new Error('❌ TEST DB: No baseline snapshot available - call createBaseline() first');
+      }
+
+      if (this.enableLogging) {
+        console.log('🔄 TEST DB: Restoring from baseline snapshot...');
+      }
+
+      const db = await this.openDB();
+      const baseline = globalThis._testBaseline;
+      const results = {
+        restored: [],
+        errors: [],
+        totalRecords: 0
+      };
+
+      // Restore each snapshotted store
+      for (const [storeName, storeSnapshot] of Object.entries(baseline.data)) {
+        try {
+          // Clear the store first
+          await this.clear(storeName);
+
+          // Restore data from snapshot
+          const transaction = db.transaction(storeName, 'readwrite');
+          const store = transaction.objectStore(storeName);
+
+          for (const record of storeSnapshot.data) {
+            store.put(record);
+          }
+
+          // Wait for transaction to complete
+          await new Promise((resolve, reject) => {
+            transaction.oncomplete = () => resolve();
+            transaction.onerror = () => reject(transaction.error);
+          });
+
+          results.restored.push(storeName);
+          results.totalRecords += storeSnapshot.count;
+
+          if (this.enableLogging) {
+            console.log(`✅ TEST DB: Restored ${storeSnapshot.count} records to ${storeName}`);
+          }
+        } catch (error) {
+          results.errors.push({ store: storeName, error: error.message });
+          if (this.enableLogging) {
+            console.error(`❌ TEST DB: Failed to restore ${storeName}:`, error.message);
+          }
+        }
+      }
+
+      if (this.enableLogging) {
+        console.log(`🔄 TEST DB: Restoration complete - ${results.totalRecords} records restored to ${results.restored.length} stores`);
+      }
+
+      return results;
+    },
+
+    /**
+     * Smart test isolation that uses snapshots for efficiency
+     * @param {Object} options - Isolation options
+     * @returns {Promise<Object>} Isolation results
+     */
+    async smartTestIsolation(options = {}) {
+      const { useSnapshots = true, fullReset = false } = options;
+
+      if (!this.isTestMode) {
+        throw new Error('🚨 SAFETY: Test isolation only available in test mode');
+      }
+
+      const DATA_CATEGORIES = {
+        TEST_SESSION: ['sessions', 'attempts', 'tag_mastery', 'problems'],
+        CONFIG: ['settings', 'user_progress', 'notifications']
+      };
+
+      if (this.enableLogging) {
+        console.log(`🧹 TEST DB: Starting smart isolation (snapshots: ${useSnapshots}, full: ${fullReset})`);
+      }
+
+      const results = {
+        cleared: [],
+        restored: [],
+        errors: []
+      };
+
+      try {
+        // Always clear test session data (fast)
+        for (const storeName of DATA_CATEGORIES.TEST_SESSION) {
+          try {
+            await this.clear(storeName);
+            results.cleared.push(storeName);
+          } catch (error) {
+            results.errors.push({ store: storeName, error: error.message });
+          }
+        }
+
+        if (fullReset) {
+          // Clear config data too
+          for (const storeName of DATA_CATEGORIES.CONFIG) {
+            try {
+              await this.clear(storeName);
+              results.cleared.push(storeName);
+            } catch (error) {
+              results.errors.push({ store: storeName, error: error.message });
+            }
+          }
+        }
+
+        // Handle expensive derived data
+        if (useSnapshots && globalThis._testBaseline) {
+          // Fast: restore from snapshot
+          const restoreResults = await this.restoreFromBaseline();
+          results.restored = restoreResults.restored;
+          results.errors.push(...restoreResults.errors);
+        } else if (fullReset) {
+          // Slow: clear everything (will need re-seeding)
+          const DATA_CATEGORIES_ALL = {
+            STATIC: ['standard_problems', 'strategy_data', 'tag_relationships'],
+            EXPENSIVE_DERIVED: ['pattern_ladders', 'problem_relationships']
+          };
+
+          for (const storeName of [...DATA_CATEGORIES_ALL.STATIC, ...DATA_CATEGORIES_ALL.EXPENSIVE_DERIVED]) {
+            try {
+              await this.clear(storeName);
+              results.cleared.push(storeName);
+            } catch (error) {
+              results.errors.push({ store: storeName, error: error.message });
+            }
+          }
+        }
+
+        if (this.enableLogging) {
+          console.log(`✅ TEST DB: Smart isolation complete - cleared: ${results.cleared.length}, restored: ${results.restored.length}, errors: ${results.errors.length}`);
+        }
+
+        return results;
+      } catch (error) {
+        if (this.enableLogging) {
+          console.error(`❌ TEST DB: Smart isolation failed:`, error);
         }
         throw error;
       }
@@ -370,9 +648,20 @@ export function createDbHelper(config = {}) {
           last_updated: new Date().toISOString()
         });
 
-        // Problem relationships will be rebuilt through other services when needed
-        if (this.enableLogging) {
-          console.log('📝 TEST DB: Problem relationships will be rebuilt when needed');
+        // Rebuild problem relationships using production algorithm
+        try {
+          if (this.enableLogging) {
+            console.log('🔁 TEST DB: Rebuilding problem relationships...');
+          }
+          const { buildProblemRelationships } = require('../services/relationshipService.js');
+          await buildProblemRelationships();
+          if (this.enableLogging) {
+            console.log('✅ TEST DB: Problem relationships rebuilt successfully');
+          }
+        } catch (error) {
+          if (this.enableLogging) {
+            console.warn('⚠️ TEST DB: Problem relationships rebuild failed:', error.message);
+          }
         }
 
         if (this.enableLogging) {
@@ -430,7 +719,9 @@ export function createProductionDbHelper() {
  * Create a test database helper with isolated database
  */
 export function createTestDbHelper(testSession = null) {
-  const session = testSession || `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Check if a shared test session is available
+  const sharedSession = globalThis._sharedTestSession;
+  const session = testSession || sharedSession || 'test';
 
   return createDbHelper({
     dbName: "CodeMaster",
@@ -443,8 +734,8 @@ export function createTestDbHelper(testSession = null) {
 /**
  * Test helper factory for specific test scenarios
  */
-export function createScenarioTestDb(scenario = 'default') {
-  const testDb = createTestDbHelper();
+export function createScenarioTestDb(scenario = 'default', sharedSession = null) {
+  const testDb = createTestDbHelper(sharedSession);
 
   // Extend with scenario-specific methods
   testDb.seedScenario = async (scenarioName = scenario) => {
@@ -588,19 +879,25 @@ export function createScenarioTestDb(scenario = 'default') {
         }
       }
 
-      // 4. Basic problem relationships - Note: Will be built dynamically by algorithms
+      // 4. Build problem relationships using production algorithm
       try {
-        // Problem relationships are built dynamically based on standard problems
-        // by the buildRelationshipMap() function when the algorithms run
-        // We just mark this as successful since it's handled automatically
+        if (testDbRef.enableLogging) {
+          console.log('🔁 TEST DB: Building problem relationships using production algorithm...');
+        }
+
+        // Import and call the same relationship building service used in production
+        const { buildProblemRelationships } = require('../services/relationshipService.js');
+        await buildProblemRelationships();
+
         results.problemRelationships = true;
         if (testDbRef.enableLogging) {
-          console.log('✅ TEST DB: Problem relationships will be built dynamically by algorithms');
+          console.log('✅ TEST DB: Problem relationships built successfully using production algorithm');
         }
       } catch (error) {
         if (testDbRef.enableLogging) {
-          console.warn('⚠️ TEST DB: Basic problem relationships failed:', error.message);
+          console.warn('⚠️ TEST DB: Problem relationships building failed:', error.message);
         }
+        results.problemRelationships = false;
       }
 
       // 5. Setup basic user data
@@ -643,6 +940,31 @@ export function createScenarioTestDb(scenario = 'default') {
         console.error('❌ TEST DB: Production-like seeding failed:', error);
       }
       throw error;
+    }
+  };
+
+  // Test database context management methods
+  testDb.activateGlobalContext = function() {
+    // Store original context for restoration
+    testDb._originalActive = globalThis._testDatabaseActive;
+    testDb._originalHelper = globalThis._testDatabaseHelper;
+
+    // Set global test database context
+    globalThis._testDatabaseActive = true;
+    globalThis._testDatabaseHelper = testDb;
+
+    if (testDb.enableLogging) {
+      console.log('🔄 TEST DB: Activated global context - all services will now use test database');
+    }
+  };
+
+  testDb.deactivateGlobalContext = function() {
+    // Restore original context
+    globalThis._testDatabaseActive = testDb._originalActive;
+    globalThis._testDatabaseHelper = testDb._originalHelper;
+
+    if (testDb.enableLogging) {
+      console.log('🔄 TEST DB: Deactivated global context - services restored to main database');
     }
   };
 
