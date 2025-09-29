@@ -4,11 +4,24 @@ import { useNav } from "../../../shared/provider/navprovider";
 export default function Header({ title, onClose }) {
   const { isAppOpen, setIsAppOpen } = useNav();
 
-  const handleClose = () => {
-    if (onClose) {
-      onClose();
-    } else {
-      setIsAppOpen(!isAppOpen);
+  const handleClose = (event) => {
+    // Prevent event bubbling to avoid conflicts
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    // Force immediate close behavior
+    try {
+      if (onClose) {
+        onClose();
+      } else {
+        setIsAppOpen(false); // Always close, don't toggle
+      }
+    } catch (error) {
+      // Fallback: force close via direct state manipulation
+      console.warn('Close button error, forcing close:', error);
+      setIsAppOpen(false);
     }
   };
 
@@ -87,13 +100,24 @@ export default function Header({ title, onClose }) {
       </div>
       <button
         onClick={handleClose}
-        style={styles.closeButton}
+        onMouseDown={handleClose} // Add mousedown for immediate response
+        style={{
+          ...styles.closeButton,
+          pointerEvents: 'auto', // Ensure it always receives events
+          zIndex: 1000, // High z-index to avoid conflicts
+        }}
         aria-label={`Close ${title} panel`}
         title={`Close ${title} panel`}
+        type="button" // Explicit button type
         onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            handleClose();
+          if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+            handleClose(e);
           }
+        }}
+        // Double coverage - touchstart for mobile
+        onTouchStart={(e) => {
+          e.preventDefault();
+          handleClose(e);
         }}
       >
         <div style={styles.closeIcon} aria-hidden="true">
