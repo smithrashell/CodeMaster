@@ -44,7 +44,7 @@ export function usePageTour() {
       logger.info(`🎯 usePageTour: Route changed to "${pathname}"`);
       const pageId = getPageIdFromPath(pathname);
       logger.info(`🎯 usePageTour: Mapped to pageId "${pageId}"`);
-      
+
       if (!pageId) {
         setActiveTour(null);
         setShowTour(false);
@@ -59,7 +59,30 @@ export function usePageTour() {
       }
 
       try {
-        // Check if tour has already been completed (async database call)
+        // STEP 1: First check if installation/database seeding is complete
+        const installationStatus = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({ type: "checkInstallationOnboardingStatus" }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve(response);
+            }
+          });
+        });
+
+        logger.info(`🎯 usePageTour: Installation status for page ${pageId}:`, installationStatus);
+
+        if (!installationStatus.isComplete) {
+          logger.info(`⏳ Installation not complete - hiding page tour for: ${pageId}`, {
+            isComplete: installationStatus.isComplete,
+            timestamp: installationStatus.timestamp
+          });
+          setActiveTour(null);
+          setShowTour(false);
+          return;
+        }
+
+        // STEP 2: Installation complete, check if tour has already been completed
         const isCompleted = await isPageTourCompleted(pageId);
         if (isCompleted) {
           logger.info(`⏭️ Page tour already completed for: ${pageId}`);
@@ -68,16 +91,16 @@ export function usePageTour() {
           return;
         }
 
-        // Show tour for this page
-        logger.info(`🎯 Showing page tour for: ${pageId}`);
+        // STEP 3: Show tour for this page
+        logger.info(`✅ Installation complete and page tour not completed - showing tour for: ${pageId}`);
         setActiveTour(tourConfig);
-        
+
         // Small delay to ensure page elements are rendered
         setTimeout(() => {
           setShowTour(true);
         }, 500);
       } catch (error) {
-        logger.error(`❌ Error checking page tour status for ${pageId}:`, error);
+        logger.error(`❌ Error checking tour status for ${pageId}:`, error);
         // On error, don't show tour to avoid potential issues
         setActiveTour(null);
         setShowTour(false);
