@@ -30,12 +30,21 @@ export class QuickTestRunner {
       if (sessionData.problems && sessionData.problems.length > 0) {
         for (const problem of sessionData.problems) {
           const success = Math.random() > 0.5; // Random success
+
+          // Create mock problem object for the attempt
+          const mockProblem = {
+            id: problem.id,
+            leetcode_id: problem.id,
+            title: problem.title || `Quick Test Problem ${problem.id}`,
+            difficulty: problem.difficulty || 'Medium'
+          };
+
           await AttemptsService.addAttempt({
             leetcode_id: problem.id,
             success,
             time_spent: 300,
             source: 'quick_test'
-          });
+          }, mockProblem);
           console.log(`Attempted problem ${problem.id}: ${success ? 'Success' : 'Failed'}`);
         }
       }

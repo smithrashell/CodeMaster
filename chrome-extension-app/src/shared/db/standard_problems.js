@@ -220,19 +220,29 @@ export async function normalizeTagForStandardProblems() {
   });
 }
 
-export async function insertStandardProblems() {
-  const db = await openDB();
+export async function insertStandardProblems(passedDb = null) {
+  // Use passed database connection (for test scenarios) or default openDB
+  const db = passedDb || await openDB();
   const tx = db.transaction("standard_problems", "readwrite");
   const store = tx.objectStore("standard_problems");
 
-  const existing = await store.getAll();
-  if (existing.length > 0) {
+  // Check if already seeded
+  const existingCheck = await new Promise((resolve, reject) => {
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  if (existingCheck.length > 0) {
     logger.info("📚 standard_problems already seeded.");
+    console.log(`📚 SEEDING SKIPPED: ${existingCheck.length} problems already exist in ${db.name}`);
     return;
   }
 
   // Lazy load the large JSON file only when seeding
   const standardProblems = await loadStandardProblems();
+
+  console.log(`🌱 SEEDING: Starting to insert ${standardProblems.length} standard problems...`);
 
   await Promise.all(
     standardProblems.map((problem) => {
@@ -246,4 +256,5 @@ export async function insertStandardProblems() {
   );
 
   logger.info(`✅ Inserted ${standardProblems.length} standard problems.`);
+  console.log(`✅ SEEDING COMPLETE: ${standardProblems.length} problems inserted into ${db.name}`);
 }

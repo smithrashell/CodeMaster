@@ -655,6 +655,51 @@ export function clearFocusAreaAnalyticsCache() {
   analyticsCache.clear();
 }
 
+// Global dashboard cache invalidation function
+export function invalidateAllDashboardCaches() {
+  // Clear internal service caches
+  clearFocusAreaAnalyticsCache();
+
+  // Clear Chrome message cache for all dashboard data types
+  if (typeof window !== 'undefined') {
+    // Import the cache clearing function
+    import('../../shared/hooks/useChromeMessage.js').then(({ clearChromeMessageCache }) => {
+      // Clear all dashboard-related cache entries
+      const dashboardMessageTypes = [
+        'getStatsData',
+        'getLearningProgressData',
+        'getGoalsData',
+        'getSessionHistoryData',
+        'getProductivityInsightsData',
+        'getTagMasteryData',
+        'getLearningPathData',
+        'getMistakeAnalysisData'
+      ];
+
+      dashboardMessageTypes.forEach(type => {
+        clearChromeMessageCache(type);
+      });
+
+      console.log('🔄 Dashboard caches invalidated for all data types');
+    }).catch(error => {
+      console.warn('Failed to clear Chrome message cache:', error);
+    });
+  }
+}
+
+// Session-specific cache invalidation (called when sessions are completed)
+export function invalidateDashboardOnSessionComplete() {
+  console.log('📊 Session completed - invalidating dashboard caches');
+  invalidateAllDashboardCaches();
+
+  // Notify any listeners that data has been updated
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('dashboardDataUpdated', {
+      detail: { reason: 'sessionCompleted', timestamp: Date.now() }
+    }));
+  }
+}
+
 /**
  * Generate session analytics data structure matching mock service format
  */

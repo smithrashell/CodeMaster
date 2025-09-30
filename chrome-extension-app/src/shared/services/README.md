@@ -290,10 +290,50 @@ export const ServiceName = {
 
 ## Testing
 
+CodeMaster includes a comprehensive testing framework with automatic database isolation and snapshot-based state management.
+
+### Service Testing Coverage
+
 Each service has comprehensive test coverage in `__tests__/` directory:
 
 - **Unit Tests**: Individual service method testing
 - **Integration Tests**: Service-to-service interaction testing
 - **Mock Data**: Standardized test data via `mockDataFactories.js`
+- **System Tests**: End-to-end business logic validation
 
 Current test coverage: **110 total tests passing** with high coverage across all critical service functions.
+
+### Testing Framework Features
+
+- **🚀 Efficient Session Management**: One-time database seeding per test session
+- **⚡ Snapshot-based Isolation**: Fast restoration vs rebuilding expensive relationships
+- **🤖 Automatic State Management**: No manual cleanup required
+- **🔒 Production Safety**: Tests never touch production database
+- **📊 Comprehensive Coverage**: Tests all service interactions and business logic
+
+### Running Tests
+
+```javascript
+// Browser console (after loading extension)
+setupTests()                    // Start test session
+runMultipleTests()             // Run all tests with auto-isolation
+endTestSession()               // Clean up when done
+
+// Advanced testing
+await enableTesting({
+  mode: 'session',
+  seedLevel: 'full',
+  autoSnapshot: true
+})
+
+// Service-specific tests
+await runMultipleTests(['minimal', 'core', 'relationships'])
+```
+
+### Test Categories Available
+
+- **`minimal`**: Basic session creation and adaptation logic
+- **`core`**: Core business logic across all services
+- **`relationships`**: Problem and tag relationship testing
+- **`onboarding`**: User initialization and data seeding
+- **`sessionCreation`**: Session lifecycle and performance analysis

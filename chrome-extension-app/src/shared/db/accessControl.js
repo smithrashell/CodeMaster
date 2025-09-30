@@ -162,7 +162,8 @@ export function isTestEnvironment() {
  */
 export function checkProductionDatabaseAccess(dbName, context) {
   // If we're in test mode but trying to access production database
-  if (context.isTest && dbName === 'CodeMaster') {
+  // Note: Skip this check if global test database redirection is active
+  if (context.isTest && dbName === 'CodeMaster' && !globalThis._testDatabaseActive) {
     const error = new Error(
       `🚨 SAFETY VIOLATION: Test code attempted to access production database '${dbName}'. ` +
       `Use createTestDbHelper() instead of the production dbHelper.`
