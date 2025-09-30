@@ -4,9 +4,8 @@ const CopyPlugin = require("copy-webpack-plugin");
 module.exports = (env, argv) => {
   const baseConfig = configFactory(env, { mode: "production" });
 
-  // Determine if development mode (same logic as webpack.config.js)
-  const isUsingDevConfig = process.env.npm_lifecycle_script && process.env.npm_lifecycle_script.includes('webpack.dev');
-  const isDev = argv.mode === "development" || isUsingDevConfig;
+  // Force production mode
+  process.env.NODE_ENV = "production";
 
   // Add static assets copying
   baseConfig.plugins.push(
@@ -15,7 +14,11 @@ module.exports = (env, argv) => {
         {
           from: "public",
           globOptions: {
-            ignore: ["**/background.js", "**/app.html"], // Exclude background.js and app.html - handled by webpack
+            ignore: [
+              "**/background*.js", // Ignore all background script files
+              "**/background*.js.old", // Ignore backup files
+              "**/app.html"
+            ],
           }
         },
         {
@@ -46,24 +49,26 @@ module.exports = (env, argv) => {
     })
   );
 
-  // Build only essential entry points
+  // Production entry points - NO test utilities
   return {
     ...baseConfig,
     entry: {
       content: "./src/content/content.jsx",
-      background: isDev ? "./src/background/background.development.js" : "./src/background/background.production.js",
+      background: "./src/background/background.production.js", // Clean production background
       app: "./src/app/app.jsx",
     },
     mode: "production",
     optimization: {
-      minimize: false, // Disable minification to save memory
-      splitChunks: false, // Disable chunk splitting
-      usedExports: false, // Disable tree shaking - keep all code
-      sideEffects: false, // Disable side effects optimization
+      minimize: true, // Enable minification for production
+      splitChunks: false, // Disable chunk splitting for Chrome extension
+      usedExports: true, // Enable tree shaking
+      sideEffects: false,
     },
-    devtool: false,
+    devtool: false, // No source maps in production
     performance: {
-      hints: false, // Disable bundle size warnings for Chrome extension
+      hints: "warning", // Show performance warnings in production
+      maxAssetSize: 5000000, // 5MB limit for individual assets
+      maxEntrypointSize: 5000000,
     },
   };
 };
