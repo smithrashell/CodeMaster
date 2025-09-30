@@ -63,7 +63,11 @@ export function usePageTour() {
         const installationStatus = await new Promise((resolve, reject) => {
           chrome.runtime.sendMessage({ type: "checkInstallationOnboardingStatus" }, (response) => {
             if (chrome.runtime.lastError) {
-              reject(chrome.runtime.lastError);
+              reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+            } else if (!response) {
+              reject(new Error('No response from background script'));
+            } else if (response.error) {
+              reject(new Error(`Background script error: ${response.error}`));
             } else {
               resolve(response);
             }
@@ -100,7 +104,7 @@ export function usePageTour() {
           setShowTour(true);
         }, 500);
       } catch (error) {
-        logger.error(`❌ Error checking tour status for ${pageId}:`, error);
+        logger.error(`❌ Error checking tour status for ${pageId}:`, error, error.message, error.stack);
         // On error, don't show tour to avoid potential issues
         setActiveTour(null);
         setShowTour(false);
