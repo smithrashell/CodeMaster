@@ -5,15 +5,30 @@
 import { SessionService } from '../services/sessionService.js';
 import { AttemptsService } from '../services/attemptsService.js';
 // Dynamic import for buildAdaptiveSessionSettings to follow production flow
+import { createScenarioTestDb } from '../db/dbHelperFactory.js';
 
 export class MinimalSessionTester {
   constructor() {
     this.results = [];
   }
 
-  async testSessionLengthAdaptation() {
-    const startTime = Date.now();
-    console.log('🧪 Testing Session Length Adaptation (minimal logging)...');
+  async testSessionLengthAdaptation(options = {}) {
+    const { sharedSession = null } = options;
+
+    // Use the shared test database (set up by enableTesting())
+    if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {
+      throw new Error('❌ Test database must be set up before running tests. Call enableTesting() first.');
+    }
+
+    console.log(`🔗 Using shared test database: ${globalThis._testDatabaseHelper.dbName}`);
+    const testDb = globalThis._testDatabaseHelper;
+
+    try {
+      const dbInfo = testDb.getInfo ? testDb.getInfo() : { dbName: testDb.dbName };
+      console.log(`✅ Test database context active: ${dbInfo.dbName}`);
+
+      const startTime = Date.now();
+      console.log('🧪 Testing Session Length Adaptation (minimal logging)...');
 
     const profiles = [
       { name: 'struggling', baseAccuracy: 0.4 },
@@ -41,12 +56,20 @@ export class MinimalSessionTester {
                 timeSpent: 600
               });
 
+              // Create mock problem object for the attempt
+              const mockProblem = {
+                id: problem.id,
+                leetcode_id: problem.id,
+                title: problem.title || `Minimal Test Problem ${problem.id}`,
+                difficulty: problem.difficulty || 'Medium'
+              };
+
               await AttemptsService.addAttempt({
                 leetcode_id: problem.id,
                 success,
                 time_spent: 600,
                 source: 'minimal_test'
-              });
+              }, mockProblem);
             }
           }
 
@@ -94,6 +117,14 @@ export class MinimalSessionTester {
         profiles: this.results
       }
     };
+
+    } finally {
+      // Fast cleanup using snapshot restoration
+      if (globalThis._testDatabaseHelper) {
+        await globalThis._testDatabaseHelper.smartTestIsolation();
+        console.log('🔄 Test cleanup complete - environment ready for next test');
+      }
+    }
   }
 
   generateReport() {

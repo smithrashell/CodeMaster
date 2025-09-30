@@ -617,7 +617,13 @@ export class TagProblemIntegrationTester {
    * Setup test environment for integration tests
    */
   static async setupIntegrationTestEnvironment(profileKey) {
-    // Set up test database context FIRST - this intercepts all database calls
+    // Use existing shared test database if available (from testCoreBusinessLogic)
+    if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper) {
+      console.log('🔗 Using existing shared test database from testCoreBusinessLogic');
+      return globalThis._testDatabaseHelper;
+    }
+
+    // Fallback: Set up test database context FIRST - this intercepts all database calls
     const testDb = await testDbManager.prepareForTest('integration_test');
 
     // Set global flags to redirect all production database calls to test database

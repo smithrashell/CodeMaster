@@ -143,12 +143,20 @@ export class ComprehensiveSessionTester {
 
       // 6. Record attempts in database
       for (const attempt of attempts) {
+        // Create mock problem object for the attempt
+        const mockProblem = {
+          id: attempt.problemId,
+          leetcode_id: attempt.problemId,
+          title: `Test Problem ${attempt.problemId}`,
+          difficulty: 'Medium'
+        };
+
         await AttemptsService.addAttempt({
           leetcode_id: attempt.problemId,
           success: attempt.success,
           time_spent: attempt.timeSpent,
           source: 'comprehensive_test'
-        });
+        }, mockProblem);
       }
 
       // 7. Complete session and get analytics
@@ -678,12 +686,20 @@ export class ComprehensiveSessionTester {
         // Record successful attempts for some problems
         const successfulProblems = sessionData.problems ? sessionData.problems.slice(0, 2) : [];
         for (const problem of successfulProblems) {
+          // Create mock problem object for Leitner test
+          const mockProblem = {
+            id: problem.id,
+            leetcode_id: problem.id,
+            title: problem.title || `Leitner Test Problem ${problem.id}`,
+            difficulty: problem.difficulty || 'Medium'
+          };
+
           await AttemptsService.addAttempt({
             leetcode_id: problem.id,
             success: true,
             time_spent: 600,
             source: 'leitner_test'
-          });
+          }, mockProblem);
         }
 
         // Check if problems moved to higher box levels

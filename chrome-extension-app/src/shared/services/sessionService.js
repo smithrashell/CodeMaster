@@ -514,6 +514,21 @@ export const SessionService = {
         logger.warn("Failed to clear session cache (sync):", error);
       }
 
+      // Clear cached data for functions that still use caching (focus areas, learning paths)
+      try {
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+          const result = chrome.runtime.sendMessage({ type: "invalidateDashboardOnSessionComplete" });
+          if (result && typeof result.catch === 'function') {
+            result.catch((error) => {
+              logger.warn("Failed to clear cached analytics (async):", error);
+            });
+          }
+          logger.info(`📊 Cached analytics cleared for completed session ${sessionId}`);
+        }
+      } catch (error) {
+        logger.warn("Failed to clear cached analytics (sync):", error);
+      }
+
       // ✅ Run centralized session performance analysis
       console.log(`🔍 DEBUG: About to call summarizeSessionPerformance for session ${session.id}`);
       try {
@@ -1138,8 +1153,14 @@ export const SessionService = {
     // Generate problems using existing ProblemService logic
     const sessionProblems = await ProblemService.createSessionWithConfig(adaptiveConfig);
     
+    // Generate session ID with UID prefix for forensic database tracking during tests
+    const baseSessionId = uuidv4();
+    const sessionId = (globalThis._testDatabaseActive && globalThis._testDatabaseHelper?.testSessionUID)
+      ? `${globalThis._testDatabaseHelper.testSessionUID}_${baseSessionId}`
+      : baseSessionId;
+
     const generatedSession = {
-      id: uuidv4(),
+      id: sessionId,
       date: new Date().toISOString(),
       ...sessionProblems,
       status: 'in_progress', // Auto-start generated sessions

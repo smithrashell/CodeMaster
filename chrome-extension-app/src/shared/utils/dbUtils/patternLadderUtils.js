@@ -126,6 +126,12 @@ export function getValidProblems({
 function calculateRelationshipScore(problemId, attemptedProblems, relationshipMap) {
   if (!relationshipMap || attemptedProblems.length === 0) return 0;
 
+  // Ensure relationshipMap is a Map object with .get method
+  if (typeof relationshipMap.get !== 'function') {
+    console.warn('⚠️ relationshipMap is not a Map object, skipping relationship scoring');
+    return 0;
+  }
+
   let totalScore = 0;
   let relationshipCount = 0;
 

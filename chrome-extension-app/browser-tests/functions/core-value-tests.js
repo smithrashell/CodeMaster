@@ -10,6 +10,7 @@
  */
 
 import { TestDataIsolation } from '../../src/shared/utils/testDataIsolation.js';
+import { createScenarioTestDb } from '../../src/shared/db/dbHelperFactory.js';
 
 // Core value test suite - focuses on essential user journey
 globalThis.testCoreValueJourney = async function(options = {}) {
@@ -27,8 +28,10 @@ globalThis.testCoreValueJourney = async function(options = {}) {
   };
 
   try {
-    // Use test isolation for consistent state
-    await TestDataIsolation.enterTestMode('core_value_journey');
+    // Use lightweight test isolation for consistent state
+    const testDb = await createScenarioTestDb('core_value_journey');
+    await testDb.smartTeardown({ preserveSeededData: true });
+    testDb.activateGlobalContext(); // Enable test database for all services
 
     // 1. Test adaptive difficulty progression
     if (verbose) console.log('  📊 Testing difficulty progression...');
@@ -63,7 +66,7 @@ globalThis.testCoreValueJourney = async function(options = {}) {
       console.log('  ✅ Relationship Learning:', results.relationshipLearning.success);
     }
 
-    await TestDataIsolation.exitTestMode();
+    // Cleanup handled by smartTeardown
 
     return {
       success: results.overallSuccess,
@@ -73,12 +76,16 @@ globalThis.testCoreValueJourney = async function(options = {}) {
 
   } catch (error) {
     console.error('❌ Core value journey test failed:', error);
-    await TestDataIsolation.exitTestMode();
     return {
       success: false,
       error: error.message,
       message: 'Core value journey testing encountered errors'
     };
+  } finally {
+    // Deactivate test database context and cleanup
+    if (typeof testDb !== 'undefined' && testDb.deactivateGlobalContext) {
+      testDb.deactivateGlobalContext();
+    }
   }
 };
 

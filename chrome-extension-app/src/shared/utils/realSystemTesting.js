@@ -28,32 +28,27 @@ export class RealSystemTester {
    * Test complete learning flow using real system functions
    */
   static async testRealLearningFlow(options = {}) {
-    const { scenario = 'default', sessions = 3, quiet = false } = options;
+    const { scenario = 'default', sessions = 3, quiet = false, sharedSession = null } = options;
 
     if (!quiet) console.log('🎯 Testing Real Learning Flow with Existing Services + Test Database...');
 
-    // Create test database with seeding capabilities
-    const testDb = createScenarioTestDb('realLearningFlow');
+    // Use the existing shared test database (no individual database creation)
+    if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {
+      throw new Error('❌ Test database must be set up before running individual tests. Call testCoreBusinessLogic() first.');
+    }
+
+    if (!quiet) console.log(`🔗 Using shared test database`);
+    const testDb = globalThis._testDatabaseHelper;
 
     try {
-      // Activate test database context manually
-      const testName = `realLearningFlow_${Date.now()}`;
-
-      // Set up test database context
-      globalThis._testDatabaseActive = true;
-      globalThis._testDatabaseHelper = testDb;
-
       if (!quiet) {
-        const dbInfo = testDb.getInfo();
+        const dbInfo = testDb.getInfo ? testDb.getInfo() : { dbName: testDb.dbName };
         console.log(`✅ Test database context active: ${dbInfo.dbName}`);
       }
 
-      // Seed the test database with problems for testing
-      if (!quiet) console.log('🌱 Seeding test database with problems...');
-      const seedResults = await testDb.seedProductionLikeData();
+      // Test database already seeded by testCoreBusinessLogic()
       if (!quiet) {
-        const successCount = Object.values(seedResults).filter(Boolean).length;
-        console.log(`✅ Database seeded: ${successCount}/5 components loaded`);
+        console.log(`✅ Using shared test database with existing seed data`);
       }
 
       const results = {
@@ -95,10 +90,13 @@ export class RealSystemTester {
     } finally {
       // Clean up test database context
       try {
+        const testDbHelper = globalThis._testDatabaseHelper;
         delete globalThis._testDatabaseActive;
         delete globalThis._testDatabaseHelper;
-        await testDb.deleteDB();
-        if (!quiet) console.log('🗑️ Test database cleaned up');
+        if (testDbHelper && testDbHelper.deleteDB) {
+          await testDbHelper.deleteDB();
+          if (!quiet) console.log('🗑️ Test database cleaned up');
+        }
       } catch (cleanupError) {
         console.warn('⚠️ Test database cleanup failed:', cleanupError.message);
       }
@@ -159,9 +157,19 @@ export class RealSystemTester {
 
     if (!quiet) console.log('🎯 Testing Real Focus Coordination...');
 
+    // Use the existing shared test database (no individual database creation)
+    if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {
+      throw new Error('❌ Test database must be set up before running individual tests. Call testCoreBusinessLogic() first.');
+    }
+
+    if (!quiet) console.log(`🔗 Using shared test database`);
+    const testDb = globalThis._testDatabaseHelper;
+
     try {
-      const testSession = await TestDataIsolation.enterTestMode();
-      await TestDataIsolation.seedTestData('experienced_user');
+      if (!quiet) {
+        const dbInfo = testDb.getInfo ? testDb.getInfo() : { dbName: testDb.dbName };
+        console.log(`✅ Test database context active: ${dbInfo.dbName}`);
+      }
 
       const results = [];
 
@@ -202,13 +210,13 @@ export class RealSystemTester {
         }
       }
 
-      return { testSession, results, success: true };
+      return { results, success: true };
 
     } catch (error) {
       console.error('❌ Focus coordination test failed:', error);
       return { error: error.message };
     } finally {
-      await TestDataIsolation.exitTestMode(true);
+      await testDb.smartTeardown({ preserveSeededData: true });
     }
   }
 
@@ -216,13 +224,20 @@ export class RealSystemTester {
    * Test real relationship learning from completed sessions
    */
   static async testRealRelationshipLearning(options = {}) {
-    const { quiet = false } = options;
+    const { quiet = false, sharedSession = null } = options;
 
     if (!quiet) console.log('🧠 Testing Real Relationship Learning...');
 
+    // Use the existing shared test database (no individual database creation)
+    if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {
+      throw new Error('❌ Test database must be set up before running individual tests. Call testCoreBusinessLogic() first.');
+    }
+
+    if (!quiet) console.log(`🔗 Using shared test database`);
+    const testDb = globalThis._testDatabaseHelper;
+
     try {
-      const testSession = await TestDataIsolation.enterTestMode();
-      await TestDataIsolation.seedTestData('default');
+      // No teardown needed - using shared test database
 
       // Get initial relationship state
       const initialRelationships = await buildRelationshipMap();
@@ -247,7 +262,6 @@ export class RealSystemTester {
       }
 
       return {
-        testSession,
         initialRelationshipCount: initialCount,
         updatedRelationshipCount: updatedCount,
         learningOccurred,
@@ -260,7 +274,7 @@ export class RealSystemTester {
       console.error('❌ Relationship learning test failed:', error);
       return { error: error.message };
     } finally {
-      await TestDataIsolation.exitTestMode(true);
+      await testDb.smartTeardown({ preserveSeededData: true });
     }
   }
 
@@ -268,13 +282,20 @@ export class RealSystemTester {
    * Test real session creation with pathfinding algorithms
    */
   static async testRealSessionCreation(options = {}) {
-    const { quiet = false } = options;
+    const { quiet = false, sharedSession = null } = options;
 
     if (!quiet) console.log('🎯 Testing Real Session Creation with Pathfinding...');
 
+    // Use the existing shared test database (no individual database creation)
+    if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {
+      throw new Error('❌ Test database must be set up before running individual tests. Call testCoreBusinessLogic() first.');
+    }
+
+    if (!quiet) console.log(`🔗 Using shared test database`);
+    const testDb = globalThis._testDatabaseHelper;
+
     try {
-      const testSession = await TestDataIsolation.enterTestMode();
-      await TestDataIsolation.seedTestData('experienced_user');
+      // No teardown needed - using shared test database
 
       // Test multiple session creations to verify consistency
       const sessions = [];
@@ -296,13 +317,13 @@ export class RealSystemTester {
         }
       }
 
-      return { testSession, sessions, success: true };
+      return { sessions, success: true };
 
     } catch (error) {
       console.error('❌ Session creation test failed:', error);
       return { error: error.message };
     } finally {
-      await TestDataIsolation.exitTestMode(true);
+      await testDb.smartTeardown({ preserveSeededData: true });
     }
   }
 

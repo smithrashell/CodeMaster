@@ -6,6 +6,7 @@
  */
 
 import { TestDataIsolation } from './testDataIsolation.js';
+// import { createScenarioTestDb } from '../db/dbHelperFactory.js'; // Temporarily commented out to test circular dependency
 import { ProblemService } from '../services/problemService.js';
 import { SessionService } from '../services/sessionService.js';
 import { AttemptsService } from '../services/attemptsService.js';
@@ -29,9 +30,9 @@ export class RelationshipSystemTester {
     try {
       const testSession = await TestDataIsolation.enterTestMode();
       await TestDataIsolation.seedTestData('default');
+      testDb.activateGlobalContext(); // Enable test database for all services
 
       const results = {
-        testSession,
         sessions: [],
         relationshipEvolution: [],
         learningEffectiveness: {},
@@ -68,7 +69,7 @@ export class RelationshipSystemTester {
 
     } catch (error) {
       console.error('❌ Relationship data flow test failed:', error);
-      return { error: error.message, testSession: TestDataIsolation.getCurrentTestSession() };
+      return { error: error.message };
     } finally {
       await TestDataIsolation.exitTestMode(true);
     }
@@ -85,6 +86,7 @@ export class RelationshipSystemTester {
     try {
       const testSession = await TestDataIsolation.enterTestMode();
       await TestDataIsolation.seedTestData('experienced_user');
+      testDb.activateGlobalContext(); // Enable test database for all services
 
       // Create multiple sessions to test consistency
       const compositionResults = [];
