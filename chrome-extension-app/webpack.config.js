@@ -24,7 +24,7 @@ module.exports = (env, argv) => {
 
   return {
     entry: {
-      background: isDev ? "./public/background-dev.js" : "./public/background-production.js",
+      background: isDev ? "./src/background/background.development.js" : "./src/background/background.production.js",
       content: "./src/content/content.jsx",
       app: "./src/app/app.jsx",
     },
