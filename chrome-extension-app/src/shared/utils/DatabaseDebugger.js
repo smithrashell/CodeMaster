@@ -19,6 +19,13 @@ export function installDatabaseDebugger() {
   
   // Override indexedDB.open globally
   indexedDB.open = function(name, version) {
+    // 🔄 TEST DATABASE INTERCEPT: Check if test database is active FIRST
+    let actualName = name;
+    if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper && name === "CodeMaster") {
+      actualName = globalThis._testDatabaseHelper.dbName || 'CodeMaster_test';
+      // Remove excessive logging that was causing console pollution
+    }
+
     const timestamp = new Date().toISOString();
     const context = getDetailedContext();
     const stack = getCallStack();
@@ -26,7 +33,7 @@ export function installDatabaseDebugger() {
     // Log this database creation attempt
     const dbAttempt = {
       timestamp,
-      databaseName: name,
+      databaseName: actualName,
       version: version || 'default',
       context,
       stack
@@ -37,7 +44,7 @@ export function installDatabaseDebugger() {
     // Database intercept: ${name} v${version || 'default'}
     
     // Count how many times this specific database has been opened
-    const sameDbAttempts = dbCreationLog.filter(attempt => attempt.databaseName === name);
+    const sameDbAttempts = dbCreationLog.filter(attempt => attempt.databaseName === actualName);
 
     // Only warn about suspicious patterns, not legitimate Chrome extension multi-context access
     if (sameDbAttempts.length > 1) {
@@ -47,15 +54,15 @@ export function installDatabaseDebugger() {
 
       if (!isLegitimateMultiContext && sameDbAttempts.length > 3) {
         // Only warn if it's suspicious (same context, many attempts)
-        console.warn(`⚠️ Multiple database attempts (#${sameDbAttempts.length}) for database: ${name} in same context`);
+        console.warn(`⚠️ Multiple database attempts (#${sameDbAttempts.length}) for database: ${actualName} in same context`);
       } else if (sameDbAttempts.length <= 2) {
         // Normal case: just log quietly for first few attempts
-        console.debug(`📊 Database access #${sameDbAttempts.length} for: ${name} (context: ${context.type})`);
+        console.debug(`📊 Database access #${sameDbAttempts.length} for: ${actualName} (context: ${context.type})`);
       }
     }
     
-    // Call original indexedDB.open
-    const request = originalOpen.call(this, name, version);
+    // Call original indexedDB.open with actual database name
+    const request = originalOpen.call(this, actualName, version);
     
     // Log when the database actually opens
     const originalOnSuccess = request.onsuccess;

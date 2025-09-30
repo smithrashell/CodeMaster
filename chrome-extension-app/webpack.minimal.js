@@ -15,7 +15,7 @@ module.exports = (env, argv) => {
         {
           from: "public",
           globOptions: {
-            ignore: ["**/background.js", "**/background-dev.js", "**/background-production.js", "**/app.html"], // Exclude background scripts and app.html - handled by webpack entry points
+            ignore: ["**/background.js", "**/app.html"], // Exclude background.js and app.html - handled by webpack
           }
         },
         {
@@ -51,13 +51,15 @@ module.exports = (env, argv) => {
     ...baseConfig,
     entry: {
       content: "./src/content/content.jsx",
-      background: isDev ? "./public/background-dev.js" : "./public/background-production.js",
+      background: "./public/background.js",  // Use single unified background script
       app: "./src/app/app.jsx",
     },
     mode: "production",
     optimization: {
       minimize: false, // Disable minification to save memory
       splitChunks: false, // Disable chunk splitting
+      usedExports: false, // Disable tree shaking - keep all code
+      sideEffects: false, // Disable side effects optimization
     },
     devtool: false,
     performance: {

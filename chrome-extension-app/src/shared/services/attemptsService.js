@@ -409,11 +409,22 @@ class SessionAttributionEngine {
 
     // Save attempt record with source tracking
     const attemptSource = 'test_attempt'; // Default source for attempt tracking
-    const record = createAttemptRecord({
+
+    // Add UID prefix for forensic database tracking during tests
+    const baseAttemptData = {
       ...attemptData,
+      problem_id: problem.problem_id || problem.id, // Include problem UUID
       leetcode_id: problem.leetcode_id, // Include LeetCode ID for session processing
       source: attemptSource // Track attempt source for analytics
-    });
+    };
+
+    // Add test UID prefix to attempt ID if test database is active
+    if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper?.testSessionUID) {
+      const originalId = baseAttemptData.id || uuidv4();
+      baseAttemptData.id = `${globalThis._testDatabaseHelper.testSessionUID}_${originalId}`;
+    }
+
+    const record = createAttemptRecord(baseAttemptData);
     await putData(attemptStore, record);
 
     // Update problem record - ensure correct key field for database
@@ -631,6 +642,8 @@ async function addAttempt(attemptData, problem) {
     } catch (err) {
       // Silent fail - window might not be available in background context
     }
+
+    // Cache invalidation no longer needed - real-time dashboard data bypasses cache
 
     return result;
 

@@ -7,10 +7,11 @@
 // import { dbHelper } from '../db/index.js';
 
 export class TestDataIsolation {
-  static TEST_DB_NAME = 'codemaster_test_db';
-  static ORIGINAL_DB_NAME = 'codemaster_db';
+  static TEST_DB_NAME = 'CodeMaster_test';
+  static ORIGINAL_DB_NAME = 'CodeMaster';
   static isTestMode = false;
   static testSession = null;
+  static sharedTestSession = null;
 
   /**
    * Simple openDB function for test isolation
@@ -18,7 +19,7 @@ export class TestDataIsolation {
   static async openDB() {
     return new Promise((resolve, reject) => {
       const dbName = this.isTestMode ?
-        `${this.TEST_DB_NAME}_${this.testSession}` :
+        this.TEST_DB_NAME :
         this.ORIGINAL_DB_NAME;
 
       const request = indexedDB.open(dbName, 22);
@@ -44,7 +45,7 @@ export class TestDataIsolation {
   }
 
   /**
-   * Enter test mode - switches to isolated test database
+   * Enter test mode - switches to isolated test database using global context
    */
   static async enterTestMode(testSessionId = null) {
     if (this.isTestMode) {
@@ -55,13 +56,21 @@ export class TestDataIsolation {
     this.testSession = testSessionId || `test_${Date.now()}`;
     this.isTestMode = true;
 
-    // Store original database name
-    // Note: We'll use our own openDB method instead of modifying dbHelper
+    // Create lightweight test database helper without imports
+    const testDbHelper = await this.createLightweightTestDb();
 
-    console.log(`🧪 Entered test mode. Using test session: ${this.testSession}`);
+    // Store original global context for restoration
+    this.originalActive = globalThis._testDatabaseActive;
+    this.originalHelper = globalThis._testDatabaseHelper;
 
-    // Initialize test database with clean schema
-    await this.initializeTestDatabase();
+    // Activate global test database context
+    globalThis._testDatabaseActive = true;
+    globalThis._testDatabaseHelper = testDbHelper;
+
+    console.log(`🧪 Entered test mode with global context. Session: ${this.testSession}`);
+
+    // Clean existing user data while preserving expensive seeded data
+    await this.smartTeardown();
 
     return this.testSession;
   }
@@ -75,19 +84,14 @@ export class TestDataIsolation {
       return;
     }
 
-    const testDbName = `${this.TEST_DB_NAME}_${this.testSession}`;
+    // Restore original global context
+    globalThis._testDatabaseActive = this.originalActive;
+    globalThis._testDatabaseHelper = this.originalHelper;
 
-    // Switch back to original database
     this.isTestMode = false;
-
-    console.log(`✅ Exited test mode. Restored to production database`);
-
-    // Clean up test database if requested
-    if (cleanupTestData) {
-      await this.cleanupTestDatabase(testDbName);
-    }
-
     this.testSession = null;
+
+    console.log('🔄 Exited test mode. Restored main database context.');
   }
 
   /**
@@ -325,6 +329,67 @@ export class TestDataIsolation {
   }
 
   /**
+   * Create a shared test session that can be used by multiple test functions
+   */
+  static async createSharedTestSession(sessionId = null) {
+    this.sharedTestSession = sessionId || `shared_test_${Date.now()}`;
+    console.log(`🔗 Created shared test session: ${this.sharedTestSession}`);
+    return this.sharedTestSession;
+  }
+
+  /**
+   * Get the current shared test session ID
+   */
+  static getSharedTestSession() {
+    return this.sharedTestSession;
+  }
+
+  /**
+   * Enter test mode using a shared session ID
+   */
+  static async enterSharedTestMode(sharedSessionId = null) {
+    const sessionId = sharedSessionId || this.sharedTestSession;
+    if (!sessionId) {
+      throw new Error('No shared session ID provided. Call createSharedTestSession() first.');
+    }
+    return await this.enterTestMode(sessionId);
+  }
+
+  /**
+   * Clean up all test databases matching the pattern
+   */
+  static async cleanupAllTestDatabases() {
+    try {
+      const databases = await indexedDB.databases();
+      const testDatabases = databases.filter(db =>
+        db.name && db.name.startsWith(this.TEST_DB_NAME)
+      );
+
+      console.log(`🗑️ Found ${testDatabases.length} test databases to clean up`);
+
+      const cleanupPromises = testDatabases.map(db =>
+        this.cleanupTestDatabase(db.name)
+      );
+
+      await Promise.allSettled(cleanupPromises);
+
+      console.log(`✅ Cleaned up ${testDatabases.length} test databases`);
+      return testDatabases.length;
+    } catch (error) {
+      console.error('❌ Error during bulk cleanup:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Clear the shared test session
+   */
+  static clearSharedTestSession() {
+    this.sharedTestSession = null;
+    console.log('🔄 Cleared shared test session');
+  }
+
+  /**
    * Create isolated storage service for tests
    */
   static createTestStorageService() {
@@ -373,6 +438,77 @@ export class TestDataIsolation {
         });
       }
     };
+  }
+
+  /**
+   * Create lightweight test database helper without imports
+   */
+  static async createLightweightTestDb() {
+    const testDbName = `${this.TEST_DB_NAME}_${this.testSession}`;
+
+    return {
+      dbName: testDbName,
+      version: 47,
+      isTestMode: true,
+
+      async openDB() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(testDbName, 47);
+
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            const stores = [
+              'problems', 'sessions', 'attempts', 'tag_mastery',
+              'standard_problems', 'pattern_ladders', 'problem_relationships',
+              'session_analytics', 'settings'
+            ];
+            stores.forEach(storeName => {
+              if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
+              }
+            });
+          };
+        });
+      }
+    };
+  }
+
+  /**
+   * Smart teardown - clean user data while preserving expensive seeded data
+   */
+  static async smartTeardown() {
+    try {
+      const testDb = await this.openDB();
+
+      // Clear user data stores only
+      const userDataStores = [
+        'sessions',
+        'attempts',
+        'tag_mastery',
+        'session_analytics'
+      ];
+
+      for (const storeName of userDataStores) {
+        try {
+          const transaction = testDb.transaction(storeName, 'readwrite');
+          const store = transaction.objectStore(storeName);
+          await new Promise((resolve, reject) => {
+            const request = store.clear();
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+          });
+        } catch (error) {
+          // Store might not exist, continue
+        }
+      }
+
+      console.log('✅ Test database cleaned (preserved seeded data)');
+    } catch (error) {
+      console.warn('⚠️ Smart teardown failed:', error.message);
+    }
   }
 }
 

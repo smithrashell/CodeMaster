@@ -6,16 +6,28 @@ import { SessionService } from '../services/sessionService.js';
 import { StorageService } from '../services/storageService.js';
 // Dynamic import for buildAdaptiveSessionSettings to follow production flow
 import { storeSessionAnalytics } from '../db/sessionAnalytics.js';
+import { createScenarioTestDb } from '../db/dbHelperFactory.js';
 
 export class SilentSessionTester {
   async testSessionConsistency(options = {}) {
-    const startTime = Date.now();
-    const config = {
-      sessions: 5, // Reduced default for stability
-      profiles: ['struggling', 'average', 'excellent'],
-      quiet: true, // Minimize console output by default
-      ...options
-    };
+    // Use the existing shared test database (no individual database creation)
+    if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {
+      throw new Error('❌ Test database must be set up before running individual tests. Call testCoreBusinessLogic() first.');
+    }
+
+    const testDb = globalThis._testDatabaseHelper;
+
+    try {
+      const dbInfo = testDb.getInfo ? testDb.getInfo() : { dbName: testDb.dbName };
+      console.log(`✅ Test database context active: ${dbInfo.dbName}`);
+
+      const startTime = Date.now();
+      const config = {
+        sessions: 5, // Reduced default for stability
+        profiles: ['struggling', 'average', 'excellent'],
+        quiet: true, // Minimize console output by default
+        ...options
+      };
 
     if (!config.quiet) {
       console.log(`🧪 Starting session consistency test with ${config.sessions} sessions per profile`);
@@ -102,6 +114,11 @@ export class SilentSessionTester {
       },
       config: config
     };
+
+    } finally {
+      // Clean up test data, keeping expensive seeded data
+      await testDb.smartTeardown({ preserveSeededData: true });
+    }
   }
 
   async runSilentSession(sessionNum, profile, quiet = true) {

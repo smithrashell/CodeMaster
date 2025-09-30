@@ -11,15 +11,23 @@ import { handleDatabaseUpgrade } from "./migrationOrchestrator.js";
  */
 export function createDatabaseConnection(dbName, version, context, stack) {
   return new Promise((resolve, reject) => {
+    // 🔄 TEST DATABASE INTERCEPT: Check if test database is active
+    let actualDbName = dbName;
+    if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper && dbName === "CodeMaster") {
+      // Redirect CodeMaster database calls to test database
+      actualDbName = globalThis._testDatabaseHelper.dbName || 'CodeMaster_test';
+      // Remove excessive logging that was causing console pollution
+    }
+
     // DEBUGGING: Log the actual IndexedDB.open call
-    logger.group(`💾 INDEXEDDB OPEN: Opening ${dbName} v${version}`);
+    logger.group(`💾 INDEXEDDB OPEN: Opening ${actualDbName} v${version}`);
     console.info('🕐 Time:', new Date().toISOString());
     console.log('📍 Database connection context:', {
       contextType: context.contextType,
       location: context.location
     });
-    
-    const request = indexedDB.open(dbName, version);
+
+    const request = indexedDB.open(actualDbName, version);
     logger.debug('📨 IndexedDB request created');
 
     // Configure request handlers
@@ -90,9 +98,15 @@ export function logCachedConnection() {
  * @returns {Promise<IDBDatabase>} Database instance
  */
 export function openDatabase() {
-  const dbName = "CodeMaster";
+  let dbName = "CodeMaster";
   const version = 47;
-  
+
+  // 🔄 TEST DATABASE INTERCEPT: Check if test database is active
+  if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper) {
+    dbName = globalThis._testDatabaseHelper.dbName || 'CodeMaster_test';
+    console.log('🔄 OPENDATABASE INTERCEPT: Redirecting to test database:', dbName);
+  }
+
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(dbName, version);
     

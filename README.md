@@ -103,6 +103,49 @@ npm run test:watch   # Run tests in watch mode
 npm run format       # Format code with Prettier
 ```
 
+## 🧪 Testing Framework
+
+CodeMaster includes a comprehensive testing framework with automatic database isolation and snapshot-based state management.
+
+### Quick Testing
+
+```javascript
+// Browser console (after loading extension)
+setupTests()                    // Start test session
+runMultipleTests()             // Run all tests with auto-isolation
+endTestSession()               // Clean up when done
+```
+
+### Advanced Testing
+
+```javascript
+// Start test session with options
+await enableTesting({
+  mode: 'session',         // 'session' | 'single' | 'persistent'
+  seedLevel: 'full',       // 'minimal' | 'standard' | 'full'
+  autoSnapshot: true       // Create baseline snapshots for fast isolation
+})
+
+// Run specific tests
+await runMultipleTests(['minimal', 'core', 'relationships'])
+
+// Individual test execution
+await testCoreBusinessLogic()
+await testMinimal()
+
+// Session management
+getTestSessionInfo()           // Check session status
+await endTestSession()         // Clean up and restore production mode
+```
+
+### Key Features
+
+- **🚀 Efficient**: One-time database seeding per session (not per test)
+- **⚡ Fast Isolation**: Snapshot-based restoration vs rebuilding relationships
+- **🤖 Automatic**: No manual state management required
+- **🔒 Safe**: Production database never touched during testing
+- **📊 Comprehensive**: Tests all core business logic, relationships, and adaptive algorithms
+
 ### Project Structure
 
 ```

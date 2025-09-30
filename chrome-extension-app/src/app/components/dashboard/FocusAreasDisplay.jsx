@@ -26,9 +26,9 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: 'getFocusAreasData'
       });
-      
+
       const data = response?.result || {};
-      
+
       const userFocusAreas = data.focusAreas || [];
       if (userFocusAreas.length === 0) {
         setFocusAreas([]);
