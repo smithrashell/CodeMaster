@@ -1079,11 +1079,7 @@ async function _processAttempts(sessions) {
     const attempts = await getAttemptsBySessionId(session.id);
     const problems = session.problems || [];
 
-    console.log(`🔍 ATTEMPT PROCESSING DEBUG: Session ${session.id}:`, {
-      databaseAttemptsCount: attempts.length,
-      sessionProblemsCount: problems.length,
-      hasValidAttempts: attempts.length > 0
-    });
+    // Debug logging removed to prevent console spam
 
     // Skip sessions without attempts instead of throwing error
     if (attempts.length === 0) {
@@ -1097,12 +1093,7 @@ async function _processAttempts(sessions) {
     for (let attempt of attempts) {
       const leetcodeId = attempt.leetcode_id;
 
-      console.log(`🔍 Processing database attempt for LeetCode ID: ${leetcodeId}`, {
-        attemptId: attempt.id,
-        success: attempt.success,
-        time_spent: attempt.time_spent,
-        perceived_difficulty: attempt.perceived_difficulty
-      });
+      // Debug logging removed to prevent console spam
 
       // Find problem for tag information
       let problem = problemMap.get(leetcodeId) ||

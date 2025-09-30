@@ -33,6 +33,7 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 |----------|---------|------------|
 | [Contributing Guide](development/contributing.md) | Development workflow | Git workflow, testing, code review |
 | [Coding Standards](development/coding-standards.md) | Code style & conventions | ESLint rules, naming patterns, structure |
+| [**Testing Framework**](development/testing-framework.md) | **Comprehensive testing system** | **Session management, database isolation, snapshots** |
 | [Hooks Implementation](development/hooks-implementation.md) | React hooks patterns | Custom hooks, testing, performance |
 | [Component Refactoring](development/component-refactoring.md) | Refactoring guidelines | Patterns, migration strategy, best practices |
 
@@ -78,7 +79,7 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 - **Frontend**: React 18, Mantine UI, Chrome Extension APIs
 - **Database**: IndexedDB with custom abstraction layer
 - **Build**: Webpack with dev/prod configurations  
-- **Testing**: Jest, React Testing Library (110+ tests)
+- **Testing**: Advanced framework with snapshot isolation, session management (110+ tests)
 - **Algorithms**: FSRS spaced repetition, Leitner system, adaptive difficulty
 
 ### Key Statistics

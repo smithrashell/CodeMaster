@@ -1,5 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 // const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin"); // Removed - not used in production routes
 const webpack = require("webpack");
 require("dotenv").config();
@@ -23,14 +24,16 @@ module.exports = (env, argv) => {
 
   return {
     entry: {
-      background: "./public/background.js",
-      content: "./src/content/content.jsx", 
+      background: isDev ? "./public/background-dev.js" : "./public/background-production.js",
+      content: "./src/content/content.jsx",
       app: "./src/app/app.jsx",
     },
     output: {
       path: path.resolve(__dirname, "dist"),
       filename: "[name].js",
+      publicPath: "",  // Fix for service worker compatibility
     },
+    target: "webworker", // Correct target for service workers
     devtool: false, // Disable source maps to save memory
     watchOptions: {
       poll: 1000,
@@ -40,12 +43,59 @@ module.exports = (env, argv) => {
       new webpack.DefinePlugin({
         "process.env.NODE_ENV": JSON.stringify(nodeEnv),
         "process.env.USE_MOCK_SERVICE": JSON.stringify(process.env.USE_MOCK_SERVICE),
-        "process.env.ENABLE_TESTING": JSON.stringify(isDev), // Only enable testing in dev builds
+        "process.env.ENABLE_TESTING": JSON.stringify(isDev ? "true" : "false"), // Only enable testing in dev builds
       }),
       new HtmlWebpackPlugin({
         template: "./src/app/app.html",
         filename: "app.html",
         chunks: ["app"],
+      }),
+      new CopyWebpackPlugin({
+        patterns: [
+          {
+            from: "public/manifest.json",
+            to: "manifest.json",
+          },
+          {
+            from: "public/*.png",
+            to: "[name][ext]",
+          },
+          {
+            from: "public/images",
+            to: "images",
+            noErrorOnMissing: true,
+          },
+          {
+            from: "public/app.css",
+            to: "app.css",
+            noErrorOnMissing: true,
+          },
+          {
+            from: "src/content/css",
+            to: "content/css",
+            noErrorOnMissing: true,
+          },
+          {
+            from: "src/shared/components/css/timer.css",
+            to: "content/css/timer.css",
+            noErrorOnMissing: true,
+          },
+          {
+            from: "src/shared/components/css/timerBanner.css",
+            to: "content/css/timerBanner.css",
+            noErrorOnMissing: true,
+          },
+          {
+            from: "src/shared/constants/LeetCode_Tags_Combined.json",
+            to: "LeetCode_Tags_Combined.json",
+            noErrorOnMissing: true,
+          },
+          {
+            from: "src/shared/constants/strategy_data.json",
+            to: "strategy_data.json",
+            noErrorOnMissing: true,
+          },
+        ],
       }),
       // MonacoWebpackPlugin removed - flashcards feature not used in production
     ],

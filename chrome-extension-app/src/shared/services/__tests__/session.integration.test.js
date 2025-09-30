@@ -331,7 +331,13 @@ describe.skip('Session Logic Integration', () => {
       });
 
       // Add successful attempt
-      const attemptResult = await AttemptsService.addAttempt(mockAttemptData);
+      const mockProblem = {
+        id: mockAttemptData.problemId,
+        leetcode_id: mockAttemptData.problemId,
+        title: `Test Problem ${mockAttemptData.problemId}`,
+        difficulty: 'Medium'
+      };
+      const attemptResult = await AttemptsService.addAttempt(mockAttemptData, mockProblem);
 
       expect(attemptResult.status).toBe('success');
       expect(attemptResult.updatedBoxLevel).toBe(3);
@@ -376,7 +382,13 @@ describe.skip('Session Logic Integration', () => {
         }
       });
 
-      const attemptResult = await AttemptsService.addAttempt(failedAttemptData);
+      const mockProblem = {
+        id: failedAttemptData.problemId,
+        leetcode_id: failedAttemptData.problemId,
+        title: `Test Problem ${failedAttemptData.problemId}`,
+        difficulty: 'Hard'
+      };
+      const attemptResult = await AttemptsService.addAttempt(failedAttemptData, mockProblem);
 
       expect(attemptResult.updatedBoxLevel).toBe(2);
     });

@@ -150,23 +150,7 @@ const performContentOnboardingCheck = async (setShowContentOnboarding, setConten
   }
 
   try {
-    // STEP 1: First check if installation/database seeding is complete
-    const installationStatus = await ChromeAPIErrorHandler.sendMessageWithRetry({
-      type: "checkInstallationOnboardingStatus"
-    });
-
-    logger.info("📊 Main: Installation onboarding status received:", installationStatus);
-
-    if (!installationStatus.isComplete) {
-      logger.info("⏳ Installation onboarding not complete - hiding content onboarding", {
-        isComplete: installationStatus.isComplete,
-        timestamp: installationStatus.timestamp
-      });
-      setShowContentOnboarding(false);
-      return;
-    }
-
-    // STEP 2: Installation complete, now check content onboarding status
+    // Check content onboarding status
     const status = await ChromeAPIErrorHandler.sendMessageWithRetry({
       type: "checkContentOnboardingStatus"
     });
@@ -184,8 +168,7 @@ const performContentOnboardingCheck = async (setShowContentOnboarding, setConten
       return;
     }
 
-    logger.info("✅ Both installation and content onboarding checks passed - content onboarding will show", {
-      installation_complete: installationStatus.isComplete,
+    logger.info("✅ Content onboarding check passed - will show", {
       content_completed: status.is_completed,
       current_step: status.current_step,
       lastActiveStep: status.lastActiveStep

@@ -41,7 +41,7 @@ const dbHelper = {
   openDB() {
     // 🔄 TEST DATABASE INTERCEPT: If test database is active, redirect all calls
     if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper) {
-      console.log('🔄 GLOBAL Context switching: Intercepting openDB() call for test database');
+      // Silently redirect to test database
       return globalThis._testDatabaseHelper.openDB();
     }
 
@@ -662,21 +662,29 @@ const dbHelper = {
 };
 
 // 🔄 GLOBAL INTERCEPTION: Create a proxy wrapper for the entire dbHelper
-// This ensures ALL access to dbHelper.openDB goes through interception
+// This ensures ALL database operations go through test database interception
 const originalDbHelper = { ...dbHelper };
 
-// Create a proxy that intercepts all property access
+// Methods that need openDB interception
+const methodsUsingOpenDB = [
+  'openDB', 'getStore', 'openDBWithRetry', 'getStoreWithRetry',
+  'executeTransaction', 'getRecord', 'putRecord', 'deleteRecord',
+  'countRecords', 'getAllRecords'
+];
+
+// Create a proxy that intercepts all database-accessing methods
 export const dbHelperProxy = new Proxy(dbHelper, {
   get(target, prop) {
-    if (prop === 'openDB') {
-      return function() {
+    if (methodsUsingOpenDB.includes(prop)) {
+      return function(...args) {
         // Check for global test database interception
         if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper) {
-          console.log('🔄 PROXY INTERCEPTION: Redirecting openDB to test database');
-          return globalThis._testDatabaseHelper.openDB();
+          console.log(`🔄 PROXY INTERCEPTION: Redirecting ${prop} to test database`);
+          // Call the method on the test database helper
+          return globalThis._testDatabaseHelper[prop].apply(globalThis._testDatabaseHelper, args);
         }
-        // Otherwise call the original method
-        return originalDbHelper.openDB.call(target);
+        // Otherwise call the original method with proper context
+        return originalDbHelper[prop].apply(target, args);
       };
     }
     // For all other properties, return normally

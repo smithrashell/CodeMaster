@@ -579,6 +579,13 @@ export async function buildRelationshipMap() {
     request.onsuccess = () => {
       const graph = new Map();
 
+      // Handle the case where there are no relationships
+      if (!request.result || request.result.length === 0) {
+        console.log("✅ Problem relationships loaded: 0 relationships (empty database)");
+        resolve(graph); // Return empty Map instead of undefined
+        return;
+      }
+
       request.result.forEach((relationship) => {
         // Ensure consistent number types for Map keys
         const problemId1 = Number(relationship.problem_id1);
