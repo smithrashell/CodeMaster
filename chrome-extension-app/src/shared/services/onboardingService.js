@@ -381,7 +381,7 @@ export async function checkContentOnboardingStatus() {
         visitedStatistics: false,
         usedTimer: false,
       },
-      pageProgress: {
+      page_progress: {
         probgen: false,
         probtime: false,
         timer: false,
@@ -424,7 +424,7 @@ export async function checkContentOnboardingStatus() {
         visitedStatistics: false,
         usedTimer: false,
       },
-      pageProgress: {
+      page_progress: {
         probgen: false,
         probtime: false,
         timer: false,
@@ -591,7 +591,7 @@ export async function resetContentOnboarding() {
         visitedStatistics: false,
         usedTimer: false,
       },
-      pageProgress: {
+      page_progress: {
         probgen: false,
         probtime: false,
         timer: false,
@@ -675,7 +675,7 @@ export async function markPageTourCompleted(pageId) {
         completed_steps: [],
         started_at: new Date().toISOString(),
         completed_at: null,
-        pageProgress: {
+        page_progress: {
           probgen: false,
           probtime: false,
           timer: false,

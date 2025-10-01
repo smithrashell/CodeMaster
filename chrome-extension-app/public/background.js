@@ -18,6 +18,7 @@ import { DynamicPathOptimizationTester } from "../src/shared/utils/dynamicPathOp
 import { RealSystemTester } from "../src/shared/utils/realSystemTesting.js";
 import { TestDataIsolation } from "../src/shared/utils/testDataIsolation.js";
 import { RelationshipSystemTester } from "../src/shared/utils/relationshipSystemTesting.js";
+import { initializeCoreBusinessTests } from "../src/background/core-business-tests.js";
 import { connect } from "chrome-extension-hot-reload";
 import { 
   onboardUserIfNeeded,
@@ -201,6 +202,9 @@ globalThis.quickHealthCheck = async function() {
   if (sessionTestingEnabled) {
     console.log('🧪 Background session testing functions enabled');
 
+    // Initialize core business tests
+    initializeCoreBusinessTests();
+
     // Quick console commands for testing
     globalThis.testQuick = () => TestScenarios.quickTest().runSimulation();
     globalThis.testOnboarding = () => TestScenarios.onboarding().runSimulation();
@@ -252,6 +256,465 @@ globalThis.quickHealthCheck = async function() {
     globalThis.testFocusRelationships = (options) => RelationshipSystemTester.testFocusRelationshipIntegration({ quiet: false, ...options });
     globalThis.testRelationshipConsistency = (options) => RelationshipSystemTester.testRelationshipLearningConsistency({ quiet: false, ...options });
     globalThis.testAllRelationships = (options) => RelationshipSystemTester.runAllRelationshipTests({ quiet: false, ...options });
+
+    /**
+     * 🧪 Test Framework Management Functions
+     * Core functions for setting up and managing test database sessions
+     */
+
+    /**
+     * Enable test environment with automatic database setup and seeding
+     * @param {Object} options Configuration options
+     * @param {boolean} options.force Force re-initialization even if already active
+     * @param {string} options.seedLevel Seeding level: 'minimal', 'standard', 'full' (default)
+     * @param {boolean} options.autoSnapshot Create baseline snapshots after seeding (default: true)
+     * @returns {Promise<Object>} Status object with setup results
+     */
+    globalThis.enableTesting = async function(options = {}) {
+      console.log('🔥🔥🔥 enableTesting() CALLED - START 🔥🔥🔥');
+      const { force = false, seedLevel = 'full', autoSnapshot = true } = options;
+
+      try {
+        // Check if already enabled and seeded (idempotent)
+        if (globalThis._testDatabaseActive && globalThis._testDatabaseSeeded && !force) {
+          console.log('ℹ️ Test environment already active and seeded');
+          return {
+            success: true,
+            active: true,
+            message: 'Test environment already active',
+            seeded: true,
+            snapshotReady: !!globalThis._testBaseline
+          };
+        }
+
+        // If active but not seeded, allow seeding to proceed
+        if (globalThis._testDatabaseActive && !globalThis._testDatabaseSeeded) {
+          console.log('⚠️ Test environment active but not seeded - will seed now');
+        }
+
+        console.log('🧪 Enabling test environment...');
+
+        // Import required test database factory
+        const { createDbHelper } = await import('../src/shared/db/dbHelperFactory.js');
+
+        // Reuse existing testDb if already created, otherwise create new one
+        let testDb = globalThis._testDatabaseHelper;
+        if (!testDb) {
+          // Create/connect to single shared test database "CodeMaster_test"
+          // Factory now creates "CodeMaster_test" when testSession is null
+          testDb = createDbHelper({
+            dbName: "CodeMaster_test",
+            isTestMode: true,
+            enableLogging: true
+          });
+          console.log(`✅✅✅ NEW VERSION - Test database connected: ${testDb.dbName}`);
+        } else {
+          console.log(`♻️ Reusing existing test database: ${testDb.dbName}`);
+        }
+
+        // Import EXACTLY the same seeding functions production uses
+        const { insertStandardProblems } = await import('../src/shared/db/standard_problems.js');
+        const { insertStrategyData } = await import('../src/shared/db/strategy_data.js');
+        const { buildTagRelationships } = await import('../src/shared/db/tag_relationships.js');
+        const { buildProblemRelationships } = await import('../src/shared/services/relationshipService.js');
+
+        testDb.seedProductionLikeData = async function() {
+          const results = {
+            standardProblems: false,
+            strategyData: false,
+            tagRelationships: false,
+            problemRelationships: false,
+            sessionState: false
+          };
+
+          try {
+            // Set test database context for ALL seeding operations
+            const originalActive = globalThis._testDatabaseActive;
+            const originalHelper = globalThis._testDatabaseHelper;
+
+            globalThis._testDatabaseActive = true;
+            globalThis._testDatabaseHelper = testDb;
+
+            console.log('🌱 SEEDING TEST DATABASE - EXACTLY LIKE PRODUCTION');
+
+            // Step 1: Standard Problems (EXACTLY like production seedStandardProblems)
+            console.log('📦 Step 1: Inserting standard problems...');
+            try {
+              await insertStandardProblems();
+              results.standardProblems = true;
+              console.log('✅ Standard problems seeded successfully');
+            } catch (error) {
+              console.error('❌ Failed to seed standard problems:', error);
+            }
+
+            // Step 2: Strategy Data (EXACTLY like production seedStrategyData)
+            console.log('📊 Step 2: Inserting strategy data...');
+            try {
+              await insertStrategyData();
+              results.strategyData = true;
+              console.log('✅ Strategy data seeded successfully');
+            } catch (error) {
+              console.error('❌ Failed to seed strategy data:', error);
+            }
+
+            // Step 3: Tag Relationships (EXACTLY like production seedTagRelationships)
+            console.log('🔗 Step 3: Building tag relationships...');
+            try {
+              await buildTagRelationships();
+              results.tagRelationships = true;
+              console.log('✅ Tag relationships seeded successfully');
+            } catch (error) {
+              console.error('❌ Failed to seed tag relationships:', error);
+            }
+
+            // Step 4: Problem Relationships (EXACTLY like production seedProblemRelationships)
+            console.log('🔁 Step 4: Building problem relationships...');
+            try {
+              await buildProblemRelationships();
+              results.problemRelationships = true;
+              console.log('✅ Problem relationships seeded successfully');
+            } catch (error) {
+              console.error('❌ Failed to seed problem relationships:', error);
+            }
+
+            // Step 5: Session State (Initialize to bypass onboarding for tests)
+            console.log('🎯 Step 5: Initializing session state to bypass onboarding...');
+            try {
+              const db = await testDb.openDB();
+              const tx = db.transaction(['session_state'], 'readwrite');
+              const store = tx.objectStore('session_state');
+
+              // Create session state with 2 completed sessions to bypass onboarding (threshold is 1)
+              const sessionState = {
+                key: 'session_state',
+                num_sessions_completed: 2,
+                current_difficulty_cap: 'Medium',
+                tag_index: 0,
+                last_difficulty_increase: new Date().toISOString(),
+                _migrated: true
+              };
+
+              await new Promise((resolve, reject) => {
+                const req = store.put(sessionState);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+              });
+
+              results.sessionState = true;
+              console.log('✅ Session state initialized successfully (bypassing onboarding)');
+            } catch (error) {
+              console.error('❌ Failed to initialize session state:', error);
+            }
+
+            // Restore original context
+            globalThis._testDatabaseActive = originalActive;
+            globalThis._testDatabaseHelper = originalHelper;
+
+            // Log seeding summary (like production)
+            const successCount = Object.values(results).filter(Boolean).length;
+            console.log(`📦 Seeding summary: ${successCount}/5 data types seeded successfully`);
+
+            return results;
+          } catch (error) {
+            console.error('❌ Seeding failed:', error);
+            throw error;
+          }
+        };
+
+        // Check if database already has seed data (to avoid unnecessary re-seeding)
+        const db = await testDb.openDB();
+        const tx = db.transaction(['standard_problems', 'tag_relationships', 'problem_relationships'], 'readonly');
+        const standardProblemsCount = await new Promise((resolve) => {
+          const req = tx.objectStore('standard_problems').count();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(0);
+        });
+        const tagRelCount = await new Promise((resolve) => {
+          const req = tx.objectStore('tag_relationships').count();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(0);
+        });
+        const probRelCount = await new Promise((resolve) => {
+          const req = tx.objectStore('problem_relationships').count();
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => resolve(0);
+        });
+
+        const alreadySeeded = standardProblemsCount > 1000 && tagRelCount > 10 && probRelCount > 0;
+
+        let seedResults;
+        if (alreadySeeded && !force) {
+          console.log(`♻️ Test database already seeded: ${standardProblemsCount} problems, ${tagRelCount} tag rels, ${probRelCount} prob rels - SKIPPING SEEDING`);
+          seedResults = {
+            standardProblems: true,
+            strategyData: true,
+            tagRelationships: true,
+            problemRelationships: true
+          };
+        } else {
+          // Seed expensive data based on seed level
+          console.log(`🌱 Seeding test database (level: ${seedLevel})...`);
+
+          // Currently only seedProductionLikeData is implemented
+          // All seed levels use the same method for now
+          if (typeof testDb.seedProductionLikeData === 'function') {
+            seedResults = await testDb.seedProductionLikeData();
+          } else {
+            throw new Error('Test database seeding method not available');
+          }
+
+          const successfulSeeds = Object.values(seedResults).filter(Boolean).length;
+          const totalSeeds = Object.keys(seedResults).length;
+          console.log(`✅ Test database seeded: ${successfulSeeds}/${totalSeeds} components ready`);
+        }
+
+        // Create baseline snapshot for fast test isolation
+        if (autoSnapshot) {
+          console.log('📸 Creating baseline snapshot...');
+          await testDb.createBaseline();
+          console.log('✅ Baseline snapshot created');
+        }
+
+        // Set global test database flags
+        globalThis._testDatabaseActive = true;
+        globalThis._testDatabaseHelper = testDb;
+        globalThis._testDatabaseSeeded = true;
+
+        console.log('✅ Test environment ready!');
+
+        return {
+          success: true,
+          active: true,
+          message: 'Test environment initialized successfully',
+          dbName: testDb.dbName,
+          seeded: true,
+          snapshotReady: autoSnapshot,
+          seedResults
+        };
+
+      } catch (error) {
+        console.error('❌ Failed to enable test environment:', error);
+
+        // Clean up on failure
+        globalThis._testDatabaseActive = false;
+        globalThis._testDatabaseHelper = null;
+        globalThis._testDatabaseSeeded = false;
+
+        return {
+          success: false,
+          active: false,
+          message: `Failed to enable test environment: ${error.message}`,
+          error: error.message
+        };
+      }
+    };
+
+    /**
+     * Alias for enableTesting() for backward compatibility
+     */
+    globalThis.setupTests = async function(options = {}) {
+      return await globalThis.enableTesting(options);
+    };
+
+    /**
+     * End test session and optionally cleanup test database
+     * @param {Object} options Cleanup options
+     * @param {boolean} options.clearDatabase Delete test database (default: false)
+     * @param {boolean} options.restoreProduction Restore production database access (default: true)
+     * @returns {Promise<Object>} Cleanup results
+     */
+    globalThis.endTestSession = async function(options = {}) {
+      const { clearDatabase = false, restoreProduction = true } = options;
+
+      try {
+        if (!globalThis._testDatabaseActive) {
+          console.log('ℹ️ No active test session to end');
+          return {
+            success: true,
+            message: 'No active test session'
+          };
+        }
+
+        console.log('🧹 Ending test session...');
+
+        // Optionally delete test database
+        if (clearDatabase && globalThis._testDatabaseHelper) {
+          console.log('🗑️ Deleting test database...');
+          await globalThis._testDatabaseHelper.deleteDB();
+          console.log('✅ Test database deleted');
+        }
+
+        // Clear global flags
+        globalThis._testDatabaseActive = false;
+        globalThis._testDatabaseHelper = null;
+        globalThis._testDatabaseSeeded = false;
+        globalThis._testBaseline = null;
+
+        if (restoreProduction) {
+          console.log('✅ Production database access restored');
+        }
+
+        console.log('✅ Test session ended');
+
+        return {
+          success: true,
+          message: 'Test session ended successfully',
+          databaseDeleted: clearDatabase
+        };
+
+      } catch (error) {
+        console.error('❌ Failed to end test session:', error);
+        return {
+          success: false,
+          message: `Failed to end test session: ${error.message}`,
+          error: error.message
+        };
+      }
+    };
+
+    /**
+     * Get current test session information
+     * @returns {Object} Test session status
+     */
+    globalThis.getTestSessionInfo = function() {
+      return {
+        active: !!globalThis._testDatabaseActive,
+        databaseActive: !!globalThis._testDatabaseHelper,
+        databaseName: globalThis._testDatabaseHelper?.dbName || null,
+        seeded: !!globalThis._testDatabaseSeeded,
+        snapshotAvailable: !!globalThis._testBaseline,
+        mode: globalThis._testSessionMode || 'standard'
+      };
+    };
+
+    /**
+     * Run multiple tests with automatic isolation
+     * @param {Array<string>} testNames Array of test names to run (empty = run all available)
+     * @param {Object} options Test execution options
+     * @param {boolean} options.isolateBetweenTests Use snapshots for isolation (default: true)
+     * @param {boolean} options.showProgress Show progress indicators (default: true)
+     * @returns {Promise<Object>} Test execution results
+     */
+    globalThis.runMultipleTests = async function(testNames = [], options = {}) {
+      const { isolateBetweenTests = true, showProgress = true } = options;
+
+      try {
+        // Enable test environment first
+        const setupResult = await globalThis.enableTesting();
+        if (!setupResult.success) {
+          throw new Error('Failed to enable test environment');
+        }
+
+        const availableTests = {
+          'minimal': () => globalThis.testMinimal(),
+          'core': () => globalThis.testCoreBusinessLogic({ verbose: false }),
+          'relationships': () => globalThis.testAllRelationships({ quiet: true }),
+          'onboarding': () => globalThis.testOnboardingDetection({ verbose: false }),
+          'sessionCreation': () => globalThis.testRealSessionCreation({ quiet: true })
+        };
+
+        // Use provided test names or run all
+        const testsToRun = testNames.length > 0
+          ? testNames.filter(name => availableTests[name])
+          : Object.keys(availableTests);
+
+        if (testsToRun.length === 0) {
+          throw new Error('No valid tests to run');
+        }
+
+        console.log(`🚀 Starting multi-test execution (${testsToRun.length} tests)`);
+
+        const results = {
+          summary: {
+            total: testsToRun.length,
+            successful: 0,
+            failed: 0,
+            totalDuration: 0
+          },
+          results: [],
+          sessionId: globalThis._testDatabaseHelper?.testSession || 'unknown'
+        };
+
+        for (let i = 0; i < testsToRun.length; i++) {
+          const testName = testsToRun[i];
+
+          if (showProgress) {
+            console.log(`📋 [${i+1}/${testsToRun.length}] Running test: ${testName}`);
+          }
+
+          const startTime = Date.now();
+          let testResult;
+
+          try {
+            testResult = await availableTests[testName]();
+            const duration = Date.now() - startTime;
+
+            results.results.push({
+              testName,
+              success: true,
+              result: testResult,
+              duration,
+              timestamp: new Date().toISOString()
+            });
+
+            results.summary.successful++;
+            results.summary.totalDuration += duration;
+
+            if (showProgress) {
+              console.log(`✅ [${i+1}/${testsToRun.length}] ${testName} completed (${duration}ms)`);
+            }
+
+            // Isolate between tests if enabled
+            if (isolateBetweenTests && globalThis._testDatabaseHelper && i < testsToRun.length - 1) {
+              await globalThis._testDatabaseHelper.smartTestIsolation();
+            }
+
+          } catch (error) {
+            const duration = Date.now() - startTime;
+
+            results.results.push({
+              testName,
+              success: false,
+              error: error.message,
+              duration,
+              timestamp: new Date().toISOString()
+            });
+
+            results.summary.failed++;
+            results.summary.totalDuration += duration;
+
+            if (showProgress) {
+              console.log(`❌ [${i+1}/${testsToRun.length}] ${testName} failed: ${error.message}`);
+            }
+          }
+        }
+
+        // Print summary
+        console.log('\n📊 MULTI-TEST SUMMARY');
+        console.log(`✅ Successful: ${results.summary.successful}/${results.summary.total}`);
+        console.log(`❌ Failed: ${results.summary.failed}/${results.summary.total}`);
+        console.log(`⏱️ Total Duration: ${(results.summary.totalDuration / 1000).toFixed(1)}s`);
+        console.log(`📈 Success Rate: ${((results.summary.successful / results.summary.total) * 100).toFixed(1)}%`);
+
+        if (results.summary.failed > 0) {
+          console.log('\n❌ FAILED TESTS:');
+          results.results.filter(r => !r.success).forEach(r => {
+            console.log(`   • ${r.testName}: ${r.error}`);
+          });
+        }
+
+        return results;
+
+      } catch (error) {
+        console.error('❌ Multi-test execution failed:', error);
+        return {
+          success: false,
+          error: error.message,
+          summary: { total: 0, successful: 0, failed: 0, totalDuration: 0 },
+          results: []
+        };
+      }
+    };
 
     console.log('🧪 Testing framework loaded! Available commands:');
     console.log('');
@@ -319,6 +782,13 @@ console.log('  - testRelationshipUpdates()  // Test real-time relationship updat
 console.log('  - testFocusRelationships()   // Test focus coordination + relationship integration');
 console.log('  - testRelationshipConsistency() // Test relationship learning consistency');
 console.log('  - testAllRelationships()     // Run complete relationship system test suite');
+console.log('');
+console.log('🛡️ Test framework management:');
+console.log('  - enableTesting()            // Setup test database with auto-seeding (call before tests)');
+console.log('  - setupTests()               // Alias for enableTesting()');
+console.log('  - endTestSession()           // Cleanup test session and optionally delete test DB');
+console.log('  - getTestSessionInfo()       // Check current test session status');
+console.log('  - runMultipleTests([names])  // Run multiple tests with automatic isolation');
 console.log('');
 console.log('🛡️ Test isolation utilities:');
 console.log('  - enterTestMode(sessionId)   // Enter isolated test environment');
