@@ -51,7 +51,7 @@ module.exports = (env, argv) => {
     ...baseConfig,
     entry: {
       content: "./src/content/content.jsx",
-      background: isDev ? "./src/background/background.development.js" : "./src/background/background.production.js",
+      background: "./public/background.js",  // Use main background script directly
       app: "./src/app/app.jsx",
     },
     mode: "production",
