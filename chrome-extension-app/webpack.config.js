@@ -33,7 +33,7 @@ module.exports = (env, argv) => {
       filename: "[name].js",
       publicPath: "",  // Fix for service worker compatibility
     },
-    target: "webworker", // Correct target for service workers
+    target: "web", // Changed from "webworker" - background script will be handled separately
     devtool: false, // Disable source maps to save memory
     watchOptions: {
       poll: 1000,
