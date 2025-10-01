@@ -39,9 +39,18 @@ export function createDbHelper(config = {}) {
   } = config;
 
   // Calculate actual database name with test isolation
+  console.log('🔍 dbHelperFactory createDbHelper called with:', {
+    dbName,
+    isTestMode,
+    testSession,
+    willAddSuffix: isTestMode && testSession
+  });
+
   const actualDbName = isTestMode && testSession ?
     `${dbName}_test_${testSession}` :
     dbName;
+
+  console.log('🔍 Calculated actualDbName:', actualDbName);
 
   const helper = {
     dbName: actualDbName,
@@ -721,12 +730,18 @@ export function createProductionDbHelper() {
 export function createTestDbHelper(testSession = null) {
   // Check if a shared test session is available
   const sharedSession = globalThis._sharedTestSession;
-  const session = testSession || sharedSession || 'test';
+  const session = testSession || sharedSession;  // Removed || 'test' - if no session, use null
+
+  console.log('🔍 createTestDbHelper called with:', {
+    testSessionParam: testSession,
+    sharedSession,
+    finalSession: session
+  });
 
   return createDbHelper({
-    dbName: "CodeMaster",
+    dbName: "CodeMaster_test",  // Use full name since testSession will be null for single shared DB
     isTestMode: true,
-    testSession: session,
+    testSession: session,  // Will be null for shared test DB, creating "CodeMaster_test"
     enableLogging: true
   });
 }

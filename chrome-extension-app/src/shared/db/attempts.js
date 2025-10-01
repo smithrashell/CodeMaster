@@ -190,7 +190,17 @@ export async function getMostRecentAttempt(problemId) {
         reject(error);
         return;
       }
-      request = store.openCursor(problemId, "prev"); // Fetch most recent attempt
+
+      // Create a key range for compound index [problem_id, attempt_date]
+      // This will match all entries with the given problem_id, regardless of attempt_date
+      const keyRange = IDBKeyRange.bound(
+        [problemId, new Date(0)],           // Lower bound: problem_id with earliest date
+        [problemId, new Date(9999999999999)], // Upper bound: problem_id with latest date
+        false, // not lowerOpen
+        false  // not upperOpen
+      );
+
+      request = store.openCursor(keyRange, "prev"); // Fetch most recent attempt for this problem
     }
 
     request.onsuccess = (event) => {
