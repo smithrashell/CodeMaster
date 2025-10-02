@@ -328,6 +328,37 @@ function calculateMasteryThreshold(classification, problemCounts) {
   return Number(threshold.toFixed(2));
 }
 
+/**
+ * Calculates minimum attempts required for tag mastery based on problem distribution.
+ * Data-driven approach: scales with tag size and difficulty coverage requirements.
+ * @param {Object} problemCounts - { easy, medium, hard }
+ * @returns {number} Minimum attempts required (6-30 range)
+ */
+function calculateMinimumAttempts(problemCounts) {
+  const { easy = 0, medium = 0, hard = 0 } = problemCounts;
+  const total = easy + medium + hard;
+
+  // Count how many difficulty tiers exist for this tag
+  const tiers = (easy > 0 ? 1 : 0) + (medium > 0 ? 1 : 0) + (hard > 0 ? 1 : 0);
+
+  // Base coverage: require attempting problems from each difficulty tier
+  // Example: Array has 3 tiers → 6 base attempts (2 per tier)
+  const baseCoverage = tiers * 2;
+
+  // Scaling factor: grows sublinearly with total problem count
+  // sqrt(total/10) ensures large tags don't require excessive attempts
+  // Example: Array (1787 problems) → sqrt(178.7) ≈ 13.4 → 14
+  const scalingFactor = Math.ceil(Math.sqrt(total / 10));
+
+  // Combine base + scaling, clamped to reasonable bounds (6-30)
+  // Small tags (20 problems): ~6-8 attempts
+  // Medium tags (100 problems): ~10-12 attempts
+  // Large tags (1000+ problems): ~20-25 attempts
+  const minAttempts = baseCoverage + scalingFactor;
+
+  return Math.min(30, Math.max(6, minAttempts));
+}
+
 async function storeTagGraph(tagGraph, tagProblemCounts) {
   const db = await openDB();
   const tx = db.transaction("tag_relationships", "readwrite");
@@ -351,6 +382,7 @@ async function storeTagGraph(tagGraph, tagProblemCounts) {
     const problemCounts = tagProblemCounts.get(tag);
     const classification = "Core Concept"; // Will be updated by classifyTags()
     const masteryThreshold = calculateMasteryThreshold(classification, problemCounts);
+    const minAttemptsRequired = calculateMinimumAttempts(problemCounts);
 
     await store.put({
       id: tag,
@@ -359,7 +391,8 @@ async function storeTagGraph(tagGraph, tagProblemCounts) {
       difficulty_distribution: problemCounts || { easy: 0, medium: 0, hard: 0 },
       learning_order: 1, // Default, can be updated later
       prerequisite_tags: [], // Keep empty - using tier-based progression instead
-      mastery_threshold: masteryThreshold
+      mastery_threshold: masteryThreshold,
+      min_attempts_required: minAttemptsRequired
     });
   }
 

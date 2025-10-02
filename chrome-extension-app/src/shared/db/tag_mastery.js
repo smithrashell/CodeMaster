@@ -159,66 +159,8 @@ function calculateTagStats(allTags, userProblems) {
   return tagStats;
 }
 
-function calculateMasteryThresholds(stats, masteryRatio, tag) {
-  // 🔓 Progressive attempt-based escape hatch: Multiple thresholds based on struggle level
-  let masteryThreshold = 0.8; // Default 80% success rate
-  let escapeHatchActivated = false;
-  let escapeHatchType = "";
-
-  const failedAttempts = stats.total_attempts - stats.successful_attempts;
-
-  // Progressive softening based on struggle level:
-  // 1. Light struggle: 8+ attempts with 75-79% → allow graduation
-  // 2. Moderate struggle: 12+ attempts with 70-79% → allow graduation
-  // 3. Heavy struggle: 15+ attempts with 60%+ → allow graduation (existing)
-
-  if (
-    stats.total_attempts >= 8 &&
-    masteryRatio >= 0.75 &&
-    masteryRatio < 0.8
-  ) {
-    // Light struggle escape: 75-79% with 8+ attempts
-    masteryThreshold = 0.75;
-    escapeHatchActivated = true;
-    escapeHatchType = "light struggle (75% threshold)";
-    console.log(
-      `🔓 Light struggle escape hatch ACTIVATED for "${tag}": ${
-        stats.total_attempts
-      } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
-    );
-  } else if (
-    stats.total_attempts >= 12 &&
-    masteryRatio >= 0.7 &&
-    masteryRatio < 0.8
-  ) {
-    // Moderate struggle escape: 70-79% with 12+ attempts
-    masteryThreshold = 0.7;
-    escapeHatchActivated = true;
-    escapeHatchType = "moderate struggle (70% threshold)";
-    console.log(
-      `🔓 Moderate struggle escape hatch ACTIVATED for "${tag}": ${
-        stats.total_attempts
-      } attempts at ${(masteryRatio * 100).toFixed(1)}% accuracy`
-    );
-  } else if (failedAttempts >= 15 && masteryRatio >= 0.6) {
-    // Heavy struggle escape: 60%+ with 15+ failed attempts (existing logic)
-    masteryThreshold = 0.6;
-    escapeHatchActivated = true;
-    escapeHatchType = "heavy struggle (60% threshold)";
-    console.log(
-      `🔓 Heavy struggle escape hatch ACTIVATED for "${tag}": ${failedAttempts} failed attempts, allowing graduation at 60% (was ${(
-        masteryRatio * 100
-      ).toFixed(1)}%)`
-    );
-  }
-
-  return {
-    masteryThreshold,
-    escapeHatchActivated,
-    escapeHatchType,
-    failedAttempts
-  };
-}
+// Legacy escape hatch function removed - replaced with data-driven mastery gates
+// See updateTagMasteryForAttempt() and calculateTagMastery() for new implementation
 
 async function writeMasteryToDatabase(tagMasteryStore, masteryData) {
   const { tag, stats, decayScore, mastered } = masteryData;
@@ -270,6 +212,22 @@ export async function updateTagMasteryForAttempt(problem, attempt) {
       return;
     }
 
+    // Fetch tag relationships to get min_attempts_required and mastery_threshold
+    const tagRelationships = {};
+    const tagRelTx = db.transaction(["tag_relationships"], "readonly");
+    const tagRelStore = tagRelTx.objectStore("tag_relationships");
+
+    for (const tag of tags) {
+      const tagRel = await new Promise((resolve, reject) => {
+        const request = tagRelStore.get(tag);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      if (tagRel) {
+        tagRelationships[tag] = tagRel;
+      }
+    }
+
     const transaction = db.transaction(["tag_mastery"], "readwrite");
     const tagMasteryStore = transaction.objectStore("tag_mastery");
 
@@ -286,6 +244,7 @@ export async function updateTagMasteryForAttempt(problem, attempt) {
         tag: normalizeTag(tag),
         total_attempts: 0,
         successful_attempts: 0,
+        attempted_problem_ids: [],
         decay_score: 1,
         mastered: false,
         strength: 0,
@@ -300,19 +259,34 @@ export async function updateTagMasteryForAttempt(problem, attempt) {
       }
       masteryData.last_practiced = attemptDate;
 
+      // Track unique problems attempted (store as array, IndexedDB doesn't support Sets)
+      masteryData.attempted_problem_ids = masteryData.attempted_problem_ids || [];
+      const problemId = problem.problem_id || problem.leetcode_id || problem.id;
+      if (problemId && !masteryData.attempted_problem_ids.includes(problemId)) {
+        masteryData.attempted_problem_ids.push(problemId);
+      }
+
       // Calculate updated mastery metrics
       const masteryRatio = masteryData.total_attempts > 0
         ? masteryData.successful_attempts / masteryData.total_attempts
         : 0;
 
-      const {
-        masteryThreshold,
-        escapeHatchActivated,
-        escapeHatchType
-      } = calculateMasteryThresholds(masteryData, masteryRatio, tag);
+      // Get tag-specific requirements from tag_relationships
+      const tagRel = tagRelationships[tag];
+      const masteryThreshold = tagRel?.mastery_threshold || 0.80;
+      const minAttemptsRequired = tagRel?.min_attempts_required || 6;
+
+      // Calculate unique problems attempted
+      const uniqueProblems = new Set(masteryData.attempted_problem_ids).size;
+      const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7); // 70% must be unique
+
+      // Mastery gates: volume + uniqueness + accuracy
+      const volumeOK = masteryData.total_attempts >= minAttemptsRequired;
+      const uniqueOK = uniqueProblems >= minUniqueRequired;
+      const accuracyOK = masteryRatio >= masteryThreshold;
 
       const wasAlreadyMastered = masteryData.mastered;
-      masteryData.mastered = masteryRatio >= masteryThreshold;
+      masteryData.mastered = volumeOK && uniqueOK && accuracyOK;
 
       // Set mastery date if newly mastered
       if (masteryData.mastered && !wasAlreadyMastered) {
@@ -324,11 +298,15 @@ export async function updateTagMasteryForAttempt(problem, attempt) {
       console.log(`🧠 Updated mastery for "${tag}":`, {
         totalAttempts: masteryData.total_attempts,
         successfulAttempts: masteryData.successful_attempts,
+        uniqueProblems,
         accuracy: `${(masteryRatio * 100).toFixed(1)}%`,
         mastered: masteryData.mastered,
         newlyMastered: masteryData.mastered && !wasAlreadyMastered,
-        escapeHatchUsed: escapeHatchActivated,
-        escapeHatchType: escapeHatchType || "none"
+        gates: {
+          volume: `${volumeOK ? '✅' : '❌'} ${masteryData.total_attempts}/${minAttemptsRequired}`,
+          unique: `${uniqueOK ? '✅' : '❌'} ${uniqueProblems}/${minUniqueRequired}`,
+          accuracy: `${accuracyOK ? '✅' : '❌'} ${(masteryRatio * 100).toFixed(1)}%/${(masteryThreshold * 100).toFixed(0)}%`
+        }
       });
 
       // Save updated record
@@ -354,6 +332,20 @@ export async function calculateTagMastery() {
     const allTags = extractAllTags(standardProblems);
     const tagStats = calculateTagStats(allTags, userProblems);
 
+    // Fetch all tag relationships for mastery requirements
+    const tagRelationships = {};
+    const tagRelTx = db.transaction(["tag_relationships"], "readonly");
+    const tagRelStore = tagRelTx.objectStore("tag_relationships");
+    const allTagRels = await new Promise((resolve, reject) => {
+      const request = tagRelStore.getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    allTagRels.forEach(rel => {
+      tagRelationships[normalizeTag(rel.id)] = rel;
+    });
+
     // Step 6: Write to tag_mastery
     const updateTransaction = db.transaction(["tag_mastery"], "readwrite");
     const tagMasteryStore = updateTransaction.objectStore("tag_mastery");
@@ -372,25 +364,33 @@ export async function calculateTagMastery() {
       const decayScore =
         stats.total_attempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
 
-      const {
-        masteryThreshold,
-        escapeHatchActivated,
-        escapeHatchType,
-        failedAttempts
-      } = calculateMasteryThresholds(stats, masteryRatio, normalizedTag);
+      // Get tag-specific requirements from tag_relationships
+      const tagRel = tagRelationships[normalizedTag];
+      const masteryThreshold = tagRel?.mastery_threshold || 0.80;
+      const minAttemptsRequired = tagRel?.min_attempts_required || 6;
 
-      const mastered = masteryRatio >= masteryThreshold;
+      // Calculate unique problems (approximation: assume unique_problems = total_attempts for batch calculation)
+      // Real tracking happens in updateTagMasteryForAttempt
+      const uniqueProblems = stats.unique_problem_count || stats.total_attempts;
+      const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
+
+      // Mastery gates: volume + uniqueness + accuracy
+      const volumeOK = stats.total_attempts >= minAttemptsRequired;
+      const uniqueOK = uniqueProblems >= minUniqueRequired;
+      const accuracyOK = masteryRatio >= masteryThreshold;
+      const mastered = volumeOK && uniqueOK && accuracyOK;
 
       console.log(`🧠 Writing mastery for "${normalizedTag}":`, {
         totalAttempts: stats.total_attempts,
         successfulAttempts: stats.successful_attempts,
-        failedAttempts,
+        uniqueProblems,
         decayScore,
         mastered: mastered,
-        masteryThreshold: `${(masteryThreshold * 100).toFixed(0)}%`,
-        currentAccuracy: `${(masteryRatio * 100).toFixed(1)}%`,
-        escapeHatchUsed: escapeHatchActivated,
-        escapeHatchType: escapeHatchType || "none",
+        gates: {
+          volume: `${volumeOK ? '✅' : '❌'} ${stats.total_attempts}/${minAttemptsRequired}`,
+          unique: `${uniqueOK ? '✅' : '❌'} ${uniqueProblems}/${minUniqueRequired}`,
+          accuracy: `${accuracyOK ? '✅' : '❌'} ${(masteryRatio * 100).toFixed(1)}%/${(masteryThreshold * 100).toFixed(0)}%`
+        }
       });
 
       await writeMasteryToDatabase(tagMasteryStore, {
