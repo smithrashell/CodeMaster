@@ -55,10 +55,11 @@ export async function initializePatternLaddersForOnboarding() {
         tag,
         total_attempts: 0,
         successful_attempts: 0,
+        attempted_problem_ids: [],
         mastered: false,
-        last_attempted: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        strength: 0,
+        last_practiced: null,
+        mastery_date: null
       });
     }
 
