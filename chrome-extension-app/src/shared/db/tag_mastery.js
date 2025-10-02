@@ -46,6 +46,7 @@ export async function insertDefaultTagMasteryRecords() {
       tag: normalizeTag(t.id),
       total_attempts: 0,
       successful_attempts: 0,
+      attempted_problem_ids: [],
       decay_score: 1,
       mastered: false,
       strength: 0,
