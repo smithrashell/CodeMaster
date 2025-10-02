@@ -1557,6 +1557,15 @@ export const SessionService = {
         }
       };
 
+      // Ensure difficulty_time_stats exists (may be missing in old session states)
+      if (!sessionState.difficulty_time_stats) {
+        sessionState.difficulty_time_stats = {
+          easy: { problems: 0, total_time: 0, avg_time: 0 },
+          medium: { problems: 0, total_time: 0, avg_time: 0 },
+          hard: { problems: 0, total_time: 0, avg_time: 0 },
+        };
+      }
+
       // NOTE: Session count is incremented in checkAndCompleteSession, not here
       // sessionState.num_sessions_completed is managed by the session completion flow
 
