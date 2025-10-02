@@ -356,7 +356,7 @@ class SessionAttributionEngine {
    */
   static async processAttemptWithSession(session, attemptData, problem, source = 'session_problem') {
     const db = await openDB();
-    
+
     // Update problem Leitner box logic
     problem = await calculateLeitnerBox(problem, attemptData);
     
