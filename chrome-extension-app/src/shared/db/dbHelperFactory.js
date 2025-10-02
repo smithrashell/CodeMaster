@@ -84,17 +84,7 @@ export function createDbHelper(config = {}) {
       // Log database access attempt
       logDatabaseAccess(context, stack);
 
-      if (this.enableLogging) {
-        const uidPrefix = this.testSessionUID ? `[${this.testSessionUID}]` : '';
-        console.log(`🔍 ${uidPrefix} DATABASE ${this.isTestMode ? 'TEST' : 'PROD'} DEBUG: openDB() called for:`, {
-          dbName: this.dbName,
-          isTestMode: this.isTestMode,
-          testSession: this.testSession,
-          testSessionUID: this.testSessionUID,
-          context: context.contextType,
-          stackSnippet: stack.substring(0, 200)
-        });
-      }
+      // Removed verbose DATABASE DEBUG logging per user request
 
       // Return existing connection if available
       if (this.db && this.db.name === this.dbName) {
