@@ -41,13 +41,13 @@ export class FocusCoordinationService {
   /**
    * Main entry point for all focus area decisions
    * Integrates with existing systems to provide unified decision making
-   * @param {string} sessionStateKey - Session state key to read from
+   * @param {string|Object} sessionStateKeyOrObject - Session state key to read from, or session state object directly
    * @returns {Object} Complete focus decision with transparency data
    */
-  static async getFocusDecision(sessionStateKey) {
+  static async getFocusDecision(sessionStateKeyOrObject) {
     try {
       // STEP 1: Gather all inputs from existing systems
-      const inputs = await this.gatherSystemInputs(sessionStateKey);
+      const inputs = await this.gatherSystemInputs(sessionStateKeyOrObject);
       
       // STEP 2: Check escape hatches FIRST (existing system priority)
       const escapeHatches = await detectApplicableEscapeHatches(
@@ -78,7 +78,8 @@ export class FocusCoordinationService {
       const finalDecision = this.applyUserInfluence(
         algorithmDecision,
         inputs.userPreferences,
-        inputs.tierTags
+        inputs.tierTags,
+        inputs.selectedTier  // Pass selected tier to bypass filtering
       );
       
       // STEP 6: Return comprehensive decision with transparency
@@ -109,25 +110,36 @@ export class FocusCoordinationService {
   
   /**
    * Gathers inputs from all existing systems
-   * @param {string} sessionStateKey - Session state key
+   * @param {string|Object} sessionStateKeyOrObject - Session state key or session state object
    * @returns {Object} All system inputs
    */
-  static async gatherSystemInputs(sessionStateKey) {
+  static async gatherSystemInputs(sessionStateKeyOrObject) {
+    // If passed an object, use it directly; otherwise read from storage
+    const sessionStatePromise = typeof sessionStateKeyOrObject === 'string'
+      ? StorageService.getSessionState(sessionStateKeyOrObject)
+      : Promise.resolve(sessionStateKeyOrObject);
+
     const [
       systemRecommendation,
-      userPreferences,
+      userPrefsData,
       sessionState,
       settings
     ] = await Promise.all([
       TagService.getCurrentTier(),
       this.getUserPreferences(),
-      StorageService.getSessionState(sessionStateKey),
+      sessionStatePromise,
       StorageService.getSettings()
     ]);
-    
+
+    // If user has explicitly selected a tier, use ALL tags instead of just current tier
+    // This allows advanced users to practice from any tier
+    const userPreferences = userPrefsData.focusAreas;
+    const selectedTier = userPrefsData.selectedTier;
+
     return {
       systemRecommendation,
       userPreferences,
+      selectedTier,
       sessionState: sessionState || { num_sessions_completed: 0 },
       settings,
       masteryData: systemRecommendation.masteryData || [],
@@ -137,11 +149,14 @@ export class FocusCoordinationService {
   
   /**
    * Gets user preferences from settings
-   * @returns {Array} User focus area preferences
+   * @returns {Object} User focus area preferences with tier info
    */
   static async getUserPreferences() {
     const settings = await StorageService.getSettings();
-    return settings.focusAreas || [];
+    return {
+      focusAreas: settings.focusAreas || [],
+      selectedTier: settings.focusAreasTier || null
+    };
   }
   
   /**
@@ -155,23 +170,33 @@ export class FocusCoordinationService {
   static calculateAlgorithmDecision(systemRec, sessionState, escapeHatches) {
     const performance = this.getPerformanceMetrics(sessionState);
     const isOnboarding = this.isOnboarding(sessionState);
-    
-    // Get base system tags with proper fallback for empty arrays
-    const systemTags = (systemRec.focusTags && systemRec.focusTags.length > 0) ? systemRec.focusTags : ['array'];
-    
+
+    // Get base system tags - use allTagsInCurrentTier for expansion pool
+    const intelligentFocusTags = (systemRec.focusTags && systemRec.focusTags.length > 0) ? systemRec.focusTags : ['array'];
+    const expansionPool = (systemRec.allTagsInCurrentTier && systemRec.allTagsInCurrentTier.length > 0)
+      ? systemRec.allTagsInCurrentTier
+      : intelligentFocusTags;
+
     // Apply onboarding restrictions (CORE ALGORITHM)
     if (isOnboarding) {
       return {
-        tags: systemTags.slice(0, FOCUS_CONFIG.onboarding.maxTags),
+        tags: intelligentFocusTags.slice(0, FOCUS_CONFIG.onboarding.maxTags),
         reasoning: 'Onboarding: Deep focus on single concept for learning foundation',
         performanceLevel: 'onboarding',
-        availableTags: systemTags
+        availableTags: intelligentFocusTags
       };
     }
-    
+
     // Calculate optimal tag count based on performance (CORE ALGORITHM)
     const optimalTagCount = this.calculateOptimalTagCount(performance, escapeHatches);
-    let algorithmTags = systemTags.slice(0, optimalTagCount);
+
+    // Use intelligent focus tags first, then expand from tier tags if needed
+    let algorithmTags = [...intelligentFocusTags];
+    if (algorithmTags.length < optimalTagCount) {
+      // Add more tags from expansion pool (current tier) to reach optimal count
+      const additionalTags = expansionPool.filter(tag => !algorithmTags.includes(tag));
+      algorithmTags = [...algorithmTags, ...additionalTags].slice(0, optimalTagCount);
+    }
     
     // Apply escape hatch modifications if needed
     if (escapeHatches.sessionBased?.applicable) {
@@ -255,22 +280,24 @@ export class FocusCoordinationService {
    * @param {Object} algorithmDecision - Base algorithm decision
    * @param {Array} userPreferences - User focus area preferences
    * @param {Array} availableTags - All available tags in current tier
+   * @param {string|null} selectedTier - User's explicitly selected tier (bypasses filtering)
    * @returns {Object} Final decision with user influence
    */
-  static applyUserInfluence(algorithmDecision, userPreferences, availableTags) {
+  static applyUserInfluence(algorithmDecision, userPreferences, availableTags, selectedTier = null) {
     if (!userPreferences?.length) {
       return algorithmDecision; // Pure algorithm decision
     }
-    
-    // Filter user preferences to valid choices only
-    const validUserTags = userPreferences.filter(tag =>
-      availableTags.includes(tag)
-    );
-    
+
+    // If user explicitly selected a tier, use their tags AS-IS without filtering
+    // This allows advanced users to practice from any tier they choose
+    const validUserTags = selectedTier
+      ? userPreferences
+      : userPreferences.filter(tag => availableTags.includes(tag));
+
     if (!validUserTags.length) {
       return algorithmDecision; // No valid user preferences
     }
-    
+
     // USER INFLUENCE: Reorder algorithm's tags by user preference
     // Algorithm still controls the COUNT, user influences the ORDER
     const reorderedTags = this.reorderByUserPreference(
@@ -278,11 +305,11 @@ export class FocusCoordinationService {
       validUserTags,
       algorithmDecision.availableTags
     );
-    
+
     return {
       ...algorithmDecision,
       tags: reorderedTags,
-      reasoning: `${algorithmDecision.reasoning} + User preference ordering applied`
+      reasoning: `${algorithmDecision.reasoning} + User preference ordering applied${selectedTier ? ` (${selectedTier} tier)` : ''}`
     };
   }
   
