@@ -76,21 +76,22 @@ export const loadFocusAreasData = async (setters) => {
     });
 
     if (focusData) {
-      debug("✅ FocusAreasSelector: Setting focusData state", { focusData });
-      debug("🔍 LIFECYCLE: About to call setFocusAvailability", { focusData });
-      debug("🔍 LIFECYCLE: focusData starterCore", { starterCore: focusData.starterCore });
-      debug("🔍 LIFECYCLE: focusData tags", { tags: focusData.tags });
+      console.log("✅ FocusAreasSelector: Setting focusData state", { focusData });
+      console.log("🔍 LIFECYCLE: About to call setFocusAvailability", { focusData });
+      console.log("🔍 LIFECYCLE: focusData starterCore", { starterCore: focusData.starterCore });
+      console.log("🔍 LIFECYCLE: focusData tags", { tags: focusData.tags });
+      console.log("🔍 LIFECYCLE: focusData tags array?", Array.isArray(focusData.tags), "length:", focusData.tags?.length);
       setFocusAvailability(focusData);
       setCurrentTier(focusData.currentTier || "Unknown");
-      
+
       // Set custom mode if user has overrides, otherwise use system selection
       setShowCustomMode(focusData.userOverrideTags && focusData.userOverrideTags.length > 0);
       debug("🔍 FocusAreasSelector: showCustomMode set", { showCustomMode: focusData.userOverrideTags && focusData.userOverrideTags.length > 0 });
-      
+
       // Extract available tags for backward compatibility
       const selectableTags = focusData.tags.filter(tag => tag.selectable).map(tag => tag.tagId);
       setAvailableTags(selectableTags);
-      debug("🔍 FocusAreasSelector: Available tags set", { selectableTags });
+      console.log("🔍 FocusAreasSelector: Available tags set", { selectableTags });
     } else {
       // Fallback to original method
       const learningState = await new Promise((resolve) => {
@@ -111,13 +112,15 @@ export const loadFocusAreasData = async (setters) => {
 
     // Load saved focus areas from settings
     const savedFocusAreas = settings.focusAreas || [];
-    
+    console.log("🔍 LOAD: savedFocusAreas from settings", { savedFocusAreas, settings });
+
     // Filter out mastered tags from saved focus areas
     const masteredTags = focusData?.masteredTags || [];
     const activeFocusAreas = savedFocusAreas.filter(
       (tag) => !masteredTags.includes(tag)
     );
-    
+
+    console.log("🔍 LOAD: activeFocusAreas after filtering", { activeFocusAreas, masteredTags });
     setSelectedFocusAreas(activeFocusAreas);
     setHasChanges(false);
   } catch (err) {
@@ -227,10 +230,15 @@ export const getTagMasteryProgress = (tagName, masteryData) => {
 // Get selectable tag options for the multi-select
 export const getTagOptions = (focusAvailability, availableTags, masteredTags, masteryData) => {
   try {
-    debug("🔍 getTagOptions called", { focusAvailability });
-    
+    console.log("🔍 getTagOptions called", {
+      focusAvailability,
+      hasTags: focusAvailability?.tags,
+      isArray: Array.isArray(focusAvailability?.tags),
+      length: focusAvailability?.tags?.length
+    });
+
     if (!focusAvailability || !focusAvailability.tags || !Array.isArray(focusAvailability.tags)) {
-      debug("🔍 FocusAreasSelector: No focusAvailability tags, using fallback");
+      console.log("🔍 FocusAreasSelector: No focusAvailability tags, using fallback");
       
       const safeAvailableTags = Array.isArray(availableTags) ? availableTags : [];
       const safeMasteredTags = Array.isArray(masteredTags) ? masteredTags : [];
@@ -249,19 +257,24 @@ export const getTagOptions = (focusAvailability, availableTags, masteredTags, ma
     
     if (Array.isArray(focusAvailability.tags)) {
       focusAvailability.tags.forEach((tagInfo) => {
-        const tagName = typeof tagInfo === 'string' ? tagInfo : tagInfo?.tag;
-        if (!tagName) return;
-        
-        const isSelectable = typeof tagInfo === 'string' || (tagInfo?.reason !== 'preview-locked');
+        const tagName = typeof tagInfo === 'string' ? tagInfo : (tagInfo?.tagId || tagInfo?.tag);
+        if (!tagName) {
+          console.log("⚠️ Skipping tag with no name:", tagInfo);
+          return;
+        }
+
+        const isSelectable = typeof tagInfo === 'string' || (tagInfo?.selectable !== false);
         const progress = getTagMasteryProgress(tagName, masteryData);
-        
+
         const option = {
           value: tagName,
           label: tagName.charAt(0).toUpperCase() + tagName.slice(1).replace(/[-_]/g, " "),
           reason: typeof tagInfo === 'object' ? tagInfo.reason : 'available',
           progress,
         };
-        
+
+        console.log("🔍 Processing tag:", { tagName, isSelectable, option });
+
         if (isSelectable) {
           selectableOptions.push(option);
         } else {
@@ -269,6 +282,8 @@ export const getTagOptions = (focusAvailability, availableTags, masteredTags, ma
         }
       });
     }
+
+    console.log("🔍 Final tag options:", { selectableOptions, previewTags });
     
     return { selectableOptions: Array.isArray(selectableOptions) ? selectableOptions : [], previewTags: Array.isArray(previewTags) ? previewTags : [] };
   } catch (error) {
