@@ -534,9 +534,10 @@ export const SessionService = {
         }
 
         // ✅ Call FocusCoordinationService to update focus tags based on performance
+        // Pass the updated sessionState object directly to avoid re-reading stale data
         try {
           const { FocusCoordinationService } = await import('./focusCoordinationService.js');
-          const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
+          const focusDecision = await FocusCoordinationService.getFocusDecision(sessionState);
           const updatedSessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
 
           await StorageService.setSessionState("session_state", updatedSessionState);

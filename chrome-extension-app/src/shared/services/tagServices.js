@@ -433,7 +433,7 @@ function sortAndSelectFocusTags(unmasteredTags) {
 
   // Select top focus tags with strategic distribution
   const focusTags = [];
-  const maxFocusTags = 3; // Limit to prevent overwhelming user
+  const maxFocusTags = 5; // Allow up to 5 tags for intelligent focus selection
 
   for (const tag of sortedTags) {
     if (focusTags.length >= maxFocusTags) break;
