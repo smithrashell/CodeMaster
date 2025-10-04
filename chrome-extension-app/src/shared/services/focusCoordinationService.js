@@ -196,27 +196,52 @@ export class FocusCoordinationService {
   static calculateOptimalTagCount(performance, _escapeHatches) {
     const { accuracy, efficiency } = performance;
 
-    // Start with base count
-    let tagCount = 1;
+    // Adaptive tag count based on performance bands
+    // Performance bands (most restrictive first):
+    // < 40%: 1 tag (struggling significantly - need deep focus)
+    // 40-60%: 1-2 tags (struggling - reduce cognitive load)
+    // 60-75%: 2 tags (developing - moderate challenge)
+    // 75-80%: 2-3 tags (good - expanding capability)
+    // 80%+: 3-4 tags (excellent - ready for complexity)
+    // 14+ days stagnation: 4 tags (force variety to break plateau)
 
-    // Performance-based expansion
-    const hasGoodPerformance = accuracy >= FOCUS_CONFIG.performance.expansion.goodThreshold ||
-                              efficiency >= 0.6;
-    const hasExcellentPerformance = accuracy >= FOCUS_CONFIG.performance.expansion.excellentThreshold;
+    let tagCount = 1;
     const hasStagnation = performance.daysSinceProgress >= FOCUS_CONFIG.performance.expansion.stagnationDays;
 
-    if (hasExcellentPerformance || hasStagnation) {
-      tagCount = Math.min(4, FOCUS_CONFIG.limits.totalTags); // Significant expansion
-    } else if (hasGoodPerformance) {
-      tagCount = 2; // Moderate expansion
+    // Stagnation overrides everything - force expansion to break plateau
+    if (hasStagnation) {
+      tagCount = Math.min(4, FOCUS_CONFIG.limits.totalTags);
+    }
+    // Excellent performance - ready for full complexity
+    else if (accuracy >= FOCUS_CONFIG.performance.expansion.excellentThreshold) {
+      tagCount = Math.min(4, FOCUS_CONFIG.limits.totalTags);
+    }
+    // Good performance - moderate expansion
+    else if (accuracy >= FOCUS_CONFIG.performance.expansion.goodThreshold) {
+      tagCount = accuracy >= 0.78 ? 3 : 2; // 78%+ gets 3 tags, 75-78% gets 2 tags
+    }
+    // Developing (60-75%) - stay at 2 tags for consistent practice
+    else if (accuracy >= 0.6) {
+      tagCount = 2;
+    }
+    // Struggling (40-60%) - adaptive between 1-2 tags
+    else if (accuracy >= 0.4) {
+      tagCount = accuracy >= 0.55 ? 2 : 1; // 55%+ gets 2 tags, below gets 1
+    }
+    // Struggling significantly (<40%) - single focus
+    else {
+      tagCount = 1;
     }
 
     console.log(`🔍 DEBUG: Tag count calculation - FINAL RESULT: ${tagCount} tags`);
     console.log(`🔍 DEBUG: Performance values:`, {
       accuracy,
       efficiency,
-      hasExcellentPerformance,
-      hasGoodPerformance,
+      hasStagnation,
+      performanceBand: accuracy >= 0.8 ? 'excellent' :
+                       accuracy >= 0.75 ? 'good' :
+                       accuracy >= 0.6 ? 'developing' :
+                       accuracy >= 0.4 ? 'struggling' : 'struggling-significantly',
       excellentThreshold: FOCUS_CONFIG.performance.expansion.excellentThreshold,
       totalTagsLimit: FOCUS_CONFIG.limits.totalTags
     });
