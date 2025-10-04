@@ -108,11 +108,12 @@ export const loadFocusAreasData = async (setters) => {
     
     const settings = await ChromeAPIErrorHandler.sendMessageWithRetry({
       type: "getSettings"
-    }) || { focusAreas: [] };
+    }) || { focusAreas: [], focusAreasTier: null };
 
     // Load saved focus areas from settings
     const savedFocusAreas = settings.focusAreas || [];
-    console.log("🔍 LOAD: savedFocusAreas from settings", { savedFocusAreas, settings });
+    const savedTier = settings.focusAreasTier || null;
+    console.log("🔍 LOAD: savedFocusAreas from settings", { savedFocusAreas, savedTier, settings });
 
     // Filter out mastered tags from saved focus areas
     const masteredTags = focusData?.masteredTags || [];
@@ -122,6 +123,10 @@ export const loadFocusAreasData = async (setters) => {
 
     console.log("🔍 LOAD: activeFocusAreas after filtering", { activeFocusAreas, masteredTags });
     setSelectedFocusAreas(activeFocusAreas);
+
+    // Pass saved tier back to component if needed (would need to add to return value)
+    // For now, component will default to current tier if no tier is explicitly selected
+
     setHasChanges(false);
   } catch (err) {
     logger.error("Error loading focus areas data:", err);
@@ -132,25 +137,26 @@ export const loadFocusAreasData = async (setters) => {
 };
 
 // Settings operations helpers
-export const saveFocusAreasSettings = async (selectedFocusAreas, setters) => {
+export const saveFocusAreasSettings = async (selectedFocusAreas, selectedTier, setters) => {
   const { setSaving, setError, setHasChanges } = setters;
-  
+
   setSaving(true);
   setError(null);
 
   try {
-    // Save focus areas to settings via Chrome messaging
+    // Save focus areas and selected tier to settings via Chrome messaging
     const currentSettings = await ChromeAPIErrorHandler.sendMessageWithRetry({
       type: "getSettings"
     }) || {};
-    
+
     const updatedSettings = {
       ...currentSettings,
       focusAreas: selectedFocusAreas,
+      focusAreasTier: selectedTier, // Save which tier user selected from
     };
 
     const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
-      type: "setSettings", 
+      type: "setSettings",
       message: updatedSettings
     });
 
