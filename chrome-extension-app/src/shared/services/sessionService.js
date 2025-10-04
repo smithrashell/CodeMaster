@@ -479,11 +479,35 @@ export const SessionService = {
     logger.info("📎 Unattempted Problems:", unattemptedProblems);
 
     if (unattemptedProblems.length === 0) {
-      // ✅ Mark session as completed
+      // ✅ Mark session as completed and calculate accuracy
       session.status = "completed";
+
+      // Calculate and store accuracy: successful attempts / total attempts
+      const totalAttempts = session.attempts.length;
+      const successfulAttempts = session.attempts.filter(a => a.success).length;
+      session.accuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
+
+      // Calculate total time spent
+      session.duration = session.attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / 60; // Convert to minutes
+
+      // 🐛 DEBUG: Log accuracy calculation details
+      console.log(`🎯 ACCURACY CALCULATION DEBUG:`, {
+        sessionId: sessionId,
+        totalAttempts: totalAttempts,
+        successfulAttempts: successfulAttempts,
+        calculatedAccuracy: session.accuracy,
+        percentageAccuracy: Math.round(session.accuracy * 100) + '%',
+        attemptsDetails: session.attempts.map(a => ({
+          attempt_id: a.attempt_id,
+          leetcode_id: a.leetcode_id,
+          success: a.success,
+          success_type: typeof a.success
+        }))
+      });
+
       await updateSessionInDB(session);
 
-      logger.info(`✅ Session ${sessionId} marked as completed.`);
+      logger.info(`✅ Session ${sessionId} marked as completed with ${Math.round(session.accuracy * 100)}% accuracy.`);
 
       // ✅ CRITICAL FIX: Update session state to increment numSessionsCompleted
       try {
@@ -493,8 +517,35 @@ export const SessionService = {
         };
         sessionState.num_sessions_completed = (sessionState.num_sessions_completed || 0) + 1;
         sessionState.last_session_date = new Date().toISOString();
-        await StorageService.setSessionState("session_state", sessionState);
-        logger.info(`✅ Session state updated: num_sessions_completed = ${sessionState.num_sessions_completed}, last_session_date = ${sessionState.last_session_date}`);
+
+        // ✅ Update session state with performance metrics for focus expansion
+        const previousAccuracy = sessionState.last_performance?.accuracy || 0;
+        const currentAccuracy = session.accuracy || 0;
+
+        sessionState.last_performance = {
+          accuracy: currentAccuracy,
+          efficiency_score: currentAccuracy // Use accuracy as proxy for efficiency
+        };
+
+        // ✅ Track last_progress_date when meaningful progress occurs
+        const hasProgress = currentAccuracy > previousAccuracy || currentAccuracy >= 0.8;
+        if (hasProgress) {
+          sessionState.last_progress_date = new Date().toISOString();
+        }
+
+        // ✅ Call FocusCoordinationService to update focus tags based on performance
+        try {
+          const { FocusCoordinationService } = await import('./focusCoordinationService.js');
+          const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
+          const updatedSessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
+
+          await StorageService.setSessionState("session_state", updatedSessionState);
+          logger.info(`✅ Session state updated: num_sessions_completed = ${updatedSessionState.num_sessions_completed}, focus_tags = ${updatedSessionState.current_focus_tags?.join(', ')}, performance_level = ${updatedSessionState.performance_level}, progress = ${hasProgress}`);
+        } catch (focusError) {
+          logger.error("❌ Failed to update focus tags, using basic session state:", focusError);
+          await StorageService.setSessionState("session_state", sessionState);
+          logger.info(`✅ Session state updated (without focus update): num_sessions_completed = ${sessionState.num_sessions_completed}`);
+        }
       } catch (error) {
         logger.error("❌ Failed to update session state:", error);
       }
