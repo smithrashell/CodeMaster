@@ -211,12 +211,12 @@ async function getCurrentTier() {
       tierRequest.onerror = () => reject(tierRequest.error);
     });
 
+    // Use actual 'mastered' field from database which considers both success rate AND min_attempts_required
     const masteredTags = masteryData
       .filter(
         (tag) =>
           tierTags.includes(tag.tag) &&
-          tag.total_attempts > 0 &&
-          calculateSuccessRate(tag.successful_attempts, tag.total_attempts) >= (masteryThresholds[tag.tag] || 0.8)
+          tag.mastered === true
       )
       .map((tag) => tag.tag);
 
@@ -764,22 +764,22 @@ async function getAvailableTagsForFocus(userId) {
     const userOverrideTags = settings.focusAreas || [];
 
     // Create simple tag structure - current tier tags are selectable, add some preview tags
-    const tags = [
-      // Current tier tags (selectable)
-      ...currentTierTags.slice(0, 10).map(tagId => ({
-        tagId,
-        name: tagId.charAt(0).toUpperCase() + tagId.slice(1).replace(/[-_]/g, " "),
-        tier: "core",
-        selectable: true,
-        reason: "current-tier"
-      })),
-      // Add some preview tags (not selectable)
-      ...[
-        { tagId: "two-pointers", name: "Two Pointers", tier: "fundamental", selectable: false, reason: "preview-locked" },
-        { tagId: "sliding-window", name: "Sliding Window", tier: "fundamental", selectable: false, reason: "preview-locked" },
-        { tagId: "binary-search", name: "Binary Search", tier: "fundamental", selectable: false, reason: "preview-locked" }
-      ]
-    ];
+    const currentTierTagsList = currentTierTags.slice(0, 10).map(tagId => ({
+      tagId,
+      name: tagId.charAt(0).toUpperCase() + tagId.slice(1).replace(/[-_]/g, " "),
+      tier: "core",
+      selectable: true,
+      reason: "current-tier"
+    }));
+
+    // Preview tags (only add if not already in current tier)
+    const previewTagsList = [
+      { tagId: "two pointers", name: "Two Pointers", tier: "fundamental", selectable: false, reason: "preview-locked" },
+      { tagId: "sliding window", name: "Sliding Window", tier: "fundamental", selectable: false, reason: "preview-locked" },
+      { tagId: "binary search", name: "Binary Search", tier: "fundamental", selectable: false, reason: "preview-locked" }
+    ].filter(previewTag => !currentTierTags.includes(previewTag.tagId));
+
+    const tags = [...currentTierTagsList, ...previewTagsList];
 
     // Apply onboarding restrictions to caps and active tags
     const onboardingCaps = isOnboarding 

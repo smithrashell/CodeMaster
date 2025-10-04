@@ -10,8 +10,10 @@ export function useSVGRenderer({
   nodePositions,
   viewBox,
   hoveredNode,
+  setHoveredNode,
   draggedNode,
   hoveredConnection,
+  setHoveredConnection,
   isDragging,
   isNodesLocked,
   isDarkMode,
@@ -24,16 +26,17 @@ export function useSVGRenderer({
     svg.innerHTML = '';
     svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
 
-    // Render connections first (so they appear behind nodes)
-    SVGRenderService.renderConnections(svg, nodePositions, hoveredConnection, isDarkMode);
-    
+    // Render connections first (so they appear behind nodes) - only between visible tags
+    SVGRenderService.renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, pathData, setHoveredConnection);
+
     // Render nodes
     SVGRenderService.renderNodes(svg, pathData, {
       nodePositions,
       hoveredNode,
+      setHoveredNode,
       onNodeClick,
       isDarkMode
     });
 
-  }, [pathData, onNodeClick, nodePositions, viewBox, hoveredNode, draggedNode, hoveredConnection, isDragging, isNodesLocked, isDarkMode, svgRef]);
+  }, [pathData, onNodeClick, nodePositions, viewBox, hoveredNode, setHoveredNode, draggedNode, hoveredConnection, setHoveredConnection, isDragging, isNodesLocked, isDarkMode, svgRef]);
 }

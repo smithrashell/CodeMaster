@@ -38,8 +38,10 @@ export function filterSessionsByTimeRange(sessions, timeRange) {
   }
 
   return sessions.filter(session => {
-    if (!session.timestamp) return false;
-    const sessionDate = new Date(session.timestamp);
+    // Support multiple date field names (created_date, date, timestamp, Date)
+    const dateValue = session.created_date || session.date || session.timestamp || session.Date;
+    if (!dateValue) return false;
+    const sessionDate = new Date(dateValue);
     return sessionDate >= startDate;
   });
 }

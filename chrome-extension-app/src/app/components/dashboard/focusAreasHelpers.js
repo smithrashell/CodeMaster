@@ -59,8 +59,21 @@ export const formatFocusAreaData = (focusAreas, masteryData, masteredTags) => {
 // Helper functions moved from FocusAreasDisplay component
 export const getTagProgress = (tagName, masteryData) => {
   const tagData = masteryData.find((tag) => tag.tag === tagName);
-  if (!tagData || tagData.totalAttempts === 0) return 0;
-  return Math.round((tagData.successfulAttempts / tagData.totalAttempts) * 100);
+  if (!tagData) return 0;
+
+  // Get unique problems attempted from attempted_problem_ids
+  const attemptedProblems = tagData?.attempted_problem_ids || [];
+  const uniqueProblems = new Set(attemptedProblems).size;
+
+  // Get mastery requirement (default to 20 unique problems for mastery)
+  // This comes from tag_relationships.min_attempts_required * 0.7
+  // Most tags need 28 total attempts * 0.7 = ~20 unique
+  const minUniqueRequired = tagData?.min_unique_required || 20;
+
+  // Calculate progress as percentage toward unique problem goal
+  const progress = Math.min(100, Math.round((uniqueProblems / minUniqueRequired) * 100));
+
+  return progress;
 };
 
 export const getHintEffectiveness = (tagName, masteryData) => {

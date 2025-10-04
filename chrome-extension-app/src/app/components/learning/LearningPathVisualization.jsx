@@ -10,9 +10,9 @@ import { HoverTooltip } from './HoverTooltip.jsx';
 export function LearningPathVisualization({ pathData, onNodeClick }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
-  
+
   const {
-    hoveredNode, 
+    hoveredNode, setHoveredNode,
     isDarkMode, setIsDarkMode,
     viewBox, setViewBox,
     zoom, setZoom,
@@ -20,7 +20,7 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
     lastPanPoint, setLastPanPoint,
     draggedNode, setDraggedNode,
     nodePositions, setNodePositions,
-    hoveredConnection,
+    hoveredConnection, setHoveredConnection,
     isDragging, setIsDragging,
     dragStartPos, setDragStartPos,
     isNodesLocked, setIsNodesLocked
@@ -68,8 +68,10 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
     nodePositions,
     viewBox,
     hoveredNode,
+    setHoveredNode,
     draggedNode,
     hoveredConnection,
+    setHoveredConnection,
     isDragging,
     isNodesLocked,
     isDarkMode,
@@ -91,8 +93,8 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
         ref={svgRef}
         width="100%"
         height="100%"
-        style={{ 
-          background: isDarkMode 
+        style={{
+          background: isDarkMode
             ? 'linear-gradient(135deg, #1f2937 0%, #374151 100%)'
             : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
           borderRadius: '8px',
@@ -102,7 +104,12 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
         onWheel={handleWheel}
       />
       
-      <HoverTooltip hoveredNode={hoveredNode} isDarkMode={isDarkMode} />
+      <HoverTooltip
+        hoveredNode={hoveredNode}
+        hoveredConnection={hoveredConnection}
+        pathData={pathData}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }

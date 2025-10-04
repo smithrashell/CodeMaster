@@ -17,12 +17,18 @@ export const useSessionData = (appState, timeRange) => {
     
     // Process filtered sessions for charts (limit to last 14 for chart readability)
     const sessionsForChart = filteredSessions.slice(-14);
-    const processedData = sessionsForChart.map((session, index) => ({
-      name: `Day ${index + 1}`,
-      length: session.duration || Math.floor(Math.random() * 30) + 30, // Fallback to mock if no duration
-      accuracy: Math.round((session.accuracy || 0.75) * 100),
-      problems: session.problems?.length || 0
-    }));
+    const processedData = sessionsForChart.map((session, index) => {
+      // Support both snake_case and camelCase
+      const duration = session.duration || session.session_duration || 30;
+      const problemCount = session.problems?.length || session.problem_count || 0;
+
+      return {
+        name: `Day ${index + 1}`,
+        length: duration,
+        accuracy: Math.round((session.accuracy || 0) * 100),
+        problems: problemCount
+      };
+    });
 
     setSessionData(processedData);
     // Use filtered sessions for recent sessions table (limit to last 10 for table)

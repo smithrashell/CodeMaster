@@ -94,25 +94,32 @@ export const renderFocusAreasSelector = (
   handleFocusAreasChange,
   showCustomMode
 ) => {
+  console.log("🔍 RENDER: renderFocusAreasSelector called", { focusAvailability });
   const tagOptionsResult = getTagOptions() || {};
+  console.log("🔍 RENDER: tagOptionsResult", { tagOptionsResult, selectableLength: tagOptionsResult.selectableOptions?.length, previewLength: tagOptionsResult.previewTags?.length });
   const { selectableOptions = [], previewTags = [] } = tagOptionsResult;
+  console.log("🔍 RENDER: After destructure", { selectableOptions, previewTags });
   debug("🔍 Render: tagOptionsResult", { tagOptionsResult });
-  
+
   // Safety check - ensure arrays are valid
   if (!Array.isArray(selectableOptions)) {
     logger.error("❌ Render guard: selectableOptions is not an array:", selectableOptions);
     return <Alert color="red">Error loading focus areas. Please reload the page.</Alert>;
   }
-  
+
   // Handle brand new users with starter pack
   if (focusAvailability?.starterCore?.length > 0) {
     const starterCoreArray = focusAvailability?.starterCore || [];
+    console.log("🔍 RENDER: Showing starter pack", { starterCoreArray });
     return renderStarterPackSelector(starterCoreArray, selectedFocusAreas, handleFocusAreasChange);
   }
-  
+
+  console.log("🔍 RENDER: Checking if empty", { selectableLength: selectableOptions.length, previewLength: previewTags.length });
   if (selectableOptions.length === 0 && previewTags.length === 0) {
+    console.log("🔍 RENDER: Showing empty state");
     return renderEmptyState();
   }
-  
+
+  console.log("🔍 RENDER: Showing main selector");
   return renderMainSelector(selectableOptions, selectedFocusAreas, handleFocusAreasChange, showCustomMode);
 };

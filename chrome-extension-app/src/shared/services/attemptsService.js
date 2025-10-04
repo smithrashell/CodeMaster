@@ -442,7 +442,7 @@ class SessionAttributionEngine {
       leetcode_id: problem.leetcode_id, // LeetCode ID for lookups (snake_case)
       success: record.success,
       time_spent: record.time_spent,
-      difficulty: record.difficulty, // User-assessed difficulty from form
+      perceived_difficulty: record.perceived_difficulty || record.difficulty, // User-assessed difficulty from form
       source: source
     });
 
