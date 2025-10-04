@@ -1,26 +1,39 @@
 import { tagRelationships } from '../components/learning/TagRelationships.js';
 
 export class SVGRenderService {
-  static renderConnections(svg, nodePositions, hoveredConnection, isDarkMode) {
+  static renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, visibleTags = null, setHoveredConnection = null) {
+    // If visibleTags is provided, create a Set for fast lookup
+    const visibleTagSet = visibleTags ? new Set(visibleTags.map(node => node.tag)) : null;
+
     Object.entries(tagRelationships).forEach(([_tag, data]) => {
+      // Skip if source tag is not in visible tags
+      if (visibleTagSet && !visibleTagSet.has(_tag)) return;
+
       data.unlocks.forEach(unlockData => {
         const unlockedTag = typeof unlockData === 'string' ? unlockData : unlockData.tag;
+
+        // Skip if target tag is not in visible tags
+        if (visibleTagSet && !visibleTagSet.has(unlockedTag)) return;
+
         const connectionWeight = typeof unlockData === 'object' ? unlockData.weight : 70;
-        
+        const connectionDescription = typeof unlockData === 'object' ? unlockData.description : '';
+
         const fromPos = nodePositions[_tag] || data.position;
         const toPos = nodePositions[unlockedTag] || tagRelationships[unlockedTag]?.position;
-        
+
         if (fromPos && toPos) {
           const connectionId = `${_tag}->${unlockedTag}`;
           const isHovered = hoveredConnection === connectionId;
-          
+
           const connectionGroup = this.createConnectionGroup(fromPos, toPos, {
             weight: connectionWeight,
             isHovered,
             connectionId,
-            isDarkMode
+            isDarkMode,
+            description: connectionDescription,
+            setHoveredConnection
           });
-          
+
           svg.appendChild(connectionGroup);
         }
       });
@@ -28,11 +41,17 @@ export class SVGRenderService {
   }
 
   static createConnectionGroup(fromPos, toPos, config) {
-    const { weight, isHovered, connectionId, isDarkMode } = config;
+    const { weight, isHovered, connectionId, isDarkMode, setHoveredConnection } = config;
     const connectionGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     connectionGroup.setAttribute('class', 'connection-group');
     connectionGroup.setAttribute('data-connection', connectionId);
     connectionGroup.style.cursor = 'pointer';
+
+    // Add hover detection
+    if (setHoveredConnection) {
+      connectionGroup.addEventListener('mouseenter', () => setHoveredConnection(connectionId));
+      connectionGroup.addEventListener('mouseleave', () => setHoveredConnection(null));
+    }
     
     // Calculate line thickness based on weight (2-6px range)
     const strokeWidth = Math.max(2, Math.min(6, (weight / 100) * 4 + 2));
@@ -94,14 +113,14 @@ export class SVGRenderService {
   }
 
   static renderNodes(svg, pathData, config) {
-    const { nodePositions, hoveredNode, onNodeClick, isDarkMode } = config;
+    const { nodePositions, hoveredNode, onNodeClick, isDarkMode, setHoveredNode } = config;
     pathData.forEach(nodeData => {
-      const node = this.createNode(nodeData, nodePositions, hoveredNode, onNodeClick, isDarkMode);
+      const node = this.createNode(nodeData, nodePositions, hoveredNode, onNodeClick, isDarkMode, setHoveredNode);
       svg.appendChild(node);
     });
   }
 
-  static createNode(nodeData, nodePositions, hoveredNode, onNodeClick, isDarkMode) {
+  static createNode(nodeData, nodePositions, hoveredNode, onNodeClick, isDarkMode, setHoveredNode) {
     const position = nodePositions[nodeData.tag] || nodeData.position || { x: 0, y: 0 };
     const isHovered = hoveredNode === nodeData.tag;
     
@@ -110,6 +129,12 @@ export class SVGRenderService {
     nodeGroup.setAttribute('data-tag', nodeData.tag);
     nodeGroup.style.cursor = 'pointer';
     nodeGroup.setAttribute('transform', `translate(${position.x}, ${position.y})`);
+
+    // Add hover detection
+    if (setHoveredNode) {
+      nodeGroup.addEventListener('mouseenter', () => setHoveredNode(nodeData.tag));
+      nodeGroup.addEventListener('mouseleave', () => setHoveredNode(null));
+    }
     
     // Create background circle
     const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');

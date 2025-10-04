@@ -65,16 +65,14 @@ export class HintInteractionService {
         problemDifficulty = sessionContext.problem_difficulty;
       }
 
-      // Build the complete interaction record
+      // Build the complete interaction record (all snake_case to match database schema)
       const completeInteraction = {
         id: interactionId,
         problem_id: interactionData.problem_id || "unknown",
         hint_type: interactionData.hint_type || "general",
         hint_id:
           interactionData.hint_id ||
-          `${interactionData.hint_type}_${
-            interactionData.primary_tag
-          }_${Date.now()}`,
+          `${interactionData.hint_type}_${interactionData.primary_tag}_${Date.now()}`,
         timestamp: new Date().toISOString(),
         session_id: sessionId,
         box_level: boxLevel,
@@ -89,27 +87,18 @@ export class HintInteractionService {
         related_tag: interactionData.related_tag,
         content: interactionData.content || interactionData.tip,
         relationship_score: interactionData.relationship_score || null,
-        session_context: {
-          ...interactionData.session_context,
-          total_hints:
-            sessionContext.total_hints ||
-            interactionData.session_context?.total_hints,
-          hint_position: interactionData.session_context?.hint_position,
-          expanded_hints_count:
-            interactionData.session_context?.expanded_hints_count,
-          popover_open: interactionData.session_context?.popover_open,
-        },
+        session_context: interactionData.session_context || {},
 
         // Performance tracking
         processing_time: null, // Will be set below
       };
 
+      // Record processing time before saving
+      const processingTime = performance.now() - startTime;
+      completeInteraction.processing_time = processingTime;
+
       // Save to database - route through background script if in content script context
       const savedInteraction = await this._saveInteractionWithContext(completeInteraction, sessionContext);
-
-      // Record processing time for performance monitoring
-      const processingTime = performance.now() - startTime;
-      savedInteraction.processing_time = processingTime;
 
       // Keep only error logging for debugging - removed verbose success logging for performance
 

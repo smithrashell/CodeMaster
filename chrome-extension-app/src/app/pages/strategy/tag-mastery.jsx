@@ -50,16 +50,23 @@ export function TagMastery() {
   // Check if we have actual data to display
   const hasData = masteryData.masteryData && masteryData.masteryData.length > 0;
 
-  // Calculate mastery status KPIs only if we have data
-  const pathData = hasData ? masteryData.masteryData.map(tag => ({
-    ...tag,
-    progress: tag.totalAttempts > 0 ? Math.round((tag.successfulAttempts / tag.totalAttempts) * 100) : 0
-  })) : [];
+  // Calculate mastery status KPIs only if we have data (support both snake_case and PascalCase)
+  const pathData = hasData ? masteryData.masteryData.map(tag => {
+    const totalAttempts = tag.total_attempts ?? tag.totalAttempts ?? 0;
+    const successfulAttempts = tag.successful_attempts ?? tag.successfulAttempts ?? 0;
+    return {
+      ...tag,
+      progress: totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0
+    };
+  }) : [];
 
-  const masteredCount = pathData.filter(t => t.progress >= 80).length;
-  const inProgressCount = pathData.filter(t => t.progress >= 30 && t.progress < 80).length;
-  const notStartedCount = pathData.filter(t => t.progress < 30).length;
-  const overallMastery = pathData.length > 0 ? Math.round(pathData.reduce((acc, t) => acc + t.progress, 0) / pathData.length) : 0;
+  // Use the actual 'mastered' field from database which considers min_attempts_required
+  const masteredCount = pathData.filter(t => t.mastered === true).length;
+  const inProgressCount = pathData.filter(t => !t.mastered && t.progress > 0).length;
+  const notStartedCount = pathData.filter(t => t.progress === 0).length;
+
+  // Overall mastery is based on actually mastered tags, not just progress percentage
+  const overallMastery = pathData.length > 0 ? Math.round((masteredCount / pathData.length) * 100) : 0;
 
   const kpiData = [
     { label: "Mastered", value: masteredCount },
