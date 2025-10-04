@@ -12,6 +12,8 @@ import { getInteractionsBySession } from "../../shared/db/hint_interactions.js";
 import { getLatestSession } from "../../shared/db/sessions.js";
 import logger from "../../shared/utils/logger.js";
 import { calculateProgressPercentage, calculateSuccessRate, roundToPrecision } from "../../shared/utils/Utils.js";
+import { clearChromeMessageCache } from "../../shared/hooks/useChromeMessage.js";
+import { getTagRelationships } from "../../shared/db/tag_relationships.js";
 import {
   createProblemMappings,
   getTargetFocusAreas,
@@ -114,7 +116,7 @@ function applyFiltering({ allProblems, allAttempts, allSessions, problemTagsMap,
     });
 
     filteredProblems = allProblems.filter(problem => focusAreaProblemIds.has(problem.id));
-    filteredAttempts = allAttempts.filter(attempt => focusAreaProblemIds.has(attempt.ProblemID));
+    filteredAttempts = allAttempts.filter(attempt => focusAreaProblemIds.has(attempt.problem_id || attempt.ProblemID));
     
     // Filter sessions that contain focus area problems
     filteredSessions = allSessions.filter(session => {
@@ -129,7 +131,7 @@ function applyFiltering({ allProblems, allAttempts, allSessions, problemTagsMap,
     const endDate = dateRange.endDate ? new Date(dateRange.endDate) : new Date();
 
     filteredAttempts = filteredAttempts.filter((attempt) => {
-      const attemptDate = new Date(attempt.AttemptDate);
+      const attemptDate = new Date(attempt.attempt_date || attempt.AttemptDate);
       return attemptDate >= startDate && attemptDate <= endDate;
     });
 
@@ -167,9 +169,10 @@ function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDiff
     Hard: { successful: 0, total: 0 },
   };
 
-  // Calculate problem statistics by box level
+  // Calculate problem statistics by box level (support both snake_case and PascalCase)
   filteredProblems.forEach((problem) => {
-    switch (problem.BoxLevel) {
+    const boxLevel = problem.box_level || problem.BoxLevel || 1;
+    switch (boxLevel) {
       case 1:
         statistics.new++;
         break;
@@ -177,7 +180,7 @@ function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDiff
         statistics.mastered++;
         break;
       default:
-        if (problem.BoxLevel >= 2 && problem.BoxLevel <= 6) {
+        if (boxLevel >= 2 && boxLevel <= 6) {
           statistics.inProgress++;
         }
         break;
@@ -185,16 +188,18 @@ function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDiff
   });
   statistics.totalSolved = statistics.mastered + statistics.inProgress;
 
-  // Calculate time and success statistics by difficulty
+  // Calculate time and success statistics by difficulty (support both snake_case and PascalCase)
   filteredAttempts.forEach((attempt) => {
-    const officialDifficulty = problemDifficultyMap[attempt.ProblemID];
-    const timeSpent = Number(attempt.TimeSpent) || 0;
+    const problemId = attempt.problem_id || attempt.ProblemID;
+    const officialDifficulty = problemDifficultyMap[problemId];
+    const timeSpent = Number(attempt.time_spent || attempt.TimeSpent) || 0;
+    const success = attempt.success !== undefined ? attempt.success : attempt.Success;
 
     // Update overall statistics
     timeStats.overall.totalTime += timeSpent;
     timeStats.overall.count++;
     successStats.overall.total++;
-    if (attempt.Success) {
+    if (success) {
       successStats.overall.successful++;
     }
 
@@ -203,7 +208,7 @@ function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDiff
       timeStats[officialDifficulty].totalTime += timeSpent;
       timeStats[officialDifficulty].count++;
       successStats[officialDifficulty].total++;
-      if (attempt.Success) {
+      if (success) {
         successStats[officialDifficulty].successful++;
       }
     }
@@ -662,28 +667,23 @@ export function invalidateAllDashboardCaches() {
 
   // Clear Chrome message cache for all dashboard data types
   if (typeof window !== 'undefined') {
-    // Import the cache clearing function
-    import('../../shared/hooks/useChromeMessage.js').then(({ clearChromeMessageCache }) => {
-      // Clear all dashboard-related cache entries
-      const dashboardMessageTypes = [
-        'getStatsData',
-        'getLearningProgressData',
-        'getGoalsData',
-        'getSessionHistoryData',
-        'getProductivityInsightsData',
-        'getTagMasteryData',
-        'getLearningPathData',
-        'getMistakeAnalysisData'
-      ];
+    // Clear all dashboard-related cache entries
+    const dashboardMessageTypes = [
+      'getStatsData',
+      'getLearningProgressData',
+      'getGoalsData',
+      'getSessionHistoryData',
+      'getProductivityInsightsData',
+      'getTagMasteryData',
+      'getLearningPathData',
+      'getMistakeAnalysisData'
+    ];
 
-      dashboardMessageTypes.forEach(type => {
-        clearChromeMessageCache(type);
-      });
-
-      console.log('🔄 Dashboard caches invalidated for all data types');
-    }).catch(error => {
-      console.warn('Failed to clear Chrome message cache:', error);
+    dashboardMessageTypes.forEach(type => {
+      clearChromeMessageCache(type);
     });
+
+    console.log('🔄 Dashboard caches invalidated for all data types');
   }
 }
 
@@ -705,18 +705,19 @@ export function invalidateDashboardOnSessionComplete() {
  */
 export function generateSessionAnalytics(sessions, attempts) {
   const enhancedSessions = sessions.map((session, index) => {
-    // Calculate session metrics from attempts
-    const sessionAttempts = attempts.filter(attempt => 
-      attempt.SessionID === session.sessionId || 
-      (session.Date && Math.abs(new Date(session.Date) - new Date(attempt.AttemptDate)) < 60 * 60 * 1000) // Within 1 hour
-    );
+    // Calculate session metrics from attempts (support both snake_case and PascalCase)
+    const sessionAttempts = attempts.filter(attempt => {
+      const attemptSessionId = attempt.session_id || attempt.SessionID;
+      const attemptDate = attempt.attempt_date || attempt.AttemptDate;
+      return attemptSessionId === session.sessionId ||
+        (session.Date && Math.abs(new Date(session.Date) - new Date(attemptDate)) < 60 * 60 * 1000); // Within 1 hour
+    });
 
-    const duration = session.duration || 
-      (sessionAttempts.length > 0 ? sessionAttempts.reduce((sum, a) => sum + (Number(a.TimeSpent) || 0), 0) / 60 : 30); // Convert to minutes
-    
-    const accuracy = sessionAttempts.length > 0 ? 
-      sessionAttempts.filter(a => a.Success).length / sessionAttempts.length : 
-      0.7; // Default accuracy
+    const duration = session.duration ||
+      (sessionAttempts.length > 0 ? sessionAttempts.reduce((sum, a) => sum + (Number(a.time_spent || a.TimeSpent) || 0), 0) / 60 : 30); // Convert to minutes
+
+    // Use accuracy stored in session (calculated during session completion)
+    const accuracy = session.accuracy || 0;
 
     const completed = session.completed !== undefined ? session.completed : true;
 
@@ -727,9 +728,9 @@ export function generateSessionAnalytics(sessions, attempts) {
       accuracy: roundToPrecision(accuracy),
       completed,
       problems: session.problems || sessionAttempts.map(attempt => ({
-        id: attempt.ProblemID,
+        id: attempt.problem_id || attempt.ProblemID,
         difficulty: "Medium", // Would need to look up from standard problems
-        solved: attempt.Success
+        solved: attempt.success !== undefined ? attempt.success : attempt.Success
       }))
     };
   });
@@ -778,27 +779,85 @@ export function generateSessionAnalytics(sessions, attempts) {
 export async function generateMasteryData(learningState) {
   try {
     const settings = await StorageService.getSettings();
-    const focusTags = settings.focusAreas || [];
 
-    // Enhance mastery data with focus area information
-    const enhancedMasteryData = (learningState.masteryData || []).map(mastery => ({
-      ...mastery,
-      isFocus: focusTags.includes(mastery.tag),
-      progress: mastery.totalAttempts > 0 ? 
-        calculateProgressPercentage(mastery.successfulAttempts, mastery.totalAttempts) : 
-        0,
-      hintHelpfulness: calculateSuccessRate(mastery.successfulAttempts, mastery.totalAttempts) > 0.8 ? "low" :
-                      calculateSuccessRate(mastery.successfulAttempts, mastery.totalAttempts) > 0.5 ? "medium" : "high"
-    }));
+    // Use system-selected focus tags from learningState (which comes from TagService)
+    // This prioritizes the intelligent tag selection over manual user settings
+    const focusTags = learningState.focusTags || settings.focusAreas || [];
+
+    // Enhance mastery data with focus area information (support both snake_case and PascalCase)
+    const enhancedMasteryData = (learningState.masteryData || []).map(mastery => {
+      const totalAttempts = mastery.total_attempts ?? mastery.totalAttempts ?? 0;
+      const successfulAttempts = mastery.successful_attempts ?? mastery.successfulAttempts ?? 0;
+
+      return {
+        ...mastery,
+        isFocus: focusTags.includes(mastery.tag),
+        progress: totalAttempts > 0 ?
+          calculateProgressPercentage(successfulAttempts, totalAttempts) :
+          0,
+        hintHelpfulness: calculateSuccessRate(successfulAttempts, totalAttempts) > 0.8 ? "low" :
+                        calculateSuccessRate(successfulAttempts, totalAttempts) > 0.5 ? "medium" : "high"
+      };
+    });
+
+    // Get all tags from tag_relationships for comprehensive display
+    // This runs in background context so we CAN access IndexedDB
+    const allTagRelationships = await getTagRelationships();
+    const allKnownTags = Object.values(allTagRelationships).map(rel => rel.primary_tag || rel.tag);
+
+    // Create map of tags with mastery data
+    const masteryMap = new Map(enhancedMasteryData.map(m => [m.tag, m]));
+
+    // Build comprehensive tag list for "Overall Mastery" view
+    // - Tags with data: use actual mastery data
+    // - Tags without data: show as placeholder with 0 attempts
+    const allTagsWithData = allKnownTags.map(tagName => {
+      if (masteryMap.has(tagName)) {
+        return masteryMap.get(tagName);
+      } else {
+        return {
+          tag: tagName,
+          total_attempts: 0,
+          successful_attempts: 0,
+          mastered: false,
+          isFocus: focusTags.includes(tagName),
+          progress: 0,
+          hintHelpfulness: "low"
+        };
+      }
+    });
+
+    // Build current tier tag list
+    // - Only include tags that are in allTagsInCurrentTier
+    // - For tags with data: use actual mastery data
+    // - For tags without data: show as placeholder with 0 attempts
+    const tierTags = (learningState.allTagsInCurrentTier || []);
+    const currentTierTagsWithData = tierTags.map(tagName => {
+      if (masteryMap.has(tagName)) {
+        return masteryMap.get(tagName);
+      } else {
+        return {
+          tag: tagName,
+          total_attempts: 0,
+          successful_attempts: 0,
+          mastered: false,
+          isFocus: focusTags.includes(tagName),
+          progress: 0,
+          hintHelpfulness: "low"
+        };
+      }
+    });
 
     return {
       currentTier: learningState.currentTier || "Core Concept",
       masteredTags: learningState.masteredTags || [],
       allTagsInCurrentTier: learningState.allTagsInCurrentTier || [],
       focusTags,
-      tagsinTier: learningState.tagsinTier || [],
+      tagsinTier: learningState.tagsinTier || learningState.allTagsInCurrentTier || [], // Use allTagsInCurrentTier as fallback
       unmasteredTags: learningState.unmasteredTags || [],
-      masteryData: enhancedMasteryData,
+      masteryData: enhancedMasteryData, // Tags with actual attempts
+      allTagsData: allTagsWithData, // All known tags (for Overall view)
+      tierTagsData: currentTierTagsWithData, // Current tier tags (for Tier view)
       learningState: {
         ...learningState,
         focusTags,
@@ -806,7 +865,8 @@ export async function generateMasteryData(learningState) {
       }
     };
   } catch (error) {
-    logger.error("Error generating mastery data:", error);
+    logger.error("Error generating mastery data:", error.message || error.toString());
+    console.error("Full error stack:", error);
     return {
       currentTier: "Core Concept",
       masteredTags: [],
@@ -815,6 +875,8 @@ export async function generateMasteryData(learningState) {
       tagsinTier: [],
       unmasteredTags: [],
       masteryData: [],
+      allTagsData: [],
+      tierTagsData: [],
       learningState: {}
     };
   }
@@ -827,16 +889,16 @@ async function calculateOutcomeTrends(attempts, _sessions) {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   
-  // Weekly Accuracy Target
-  const weeklyAttempts = attempts.filter(attempt => 
-    new Date(attempt.AttemptDate) >= oneWeekAgo
+  // Weekly Accuracy Target (support both snake_case and PascalCase)
+  const weeklyAttempts = attempts.filter(attempt =>
+    new Date(attempt.attempt_date || attempt.AttemptDate) >= oneWeekAgo
   );
-  const weeklyAccuracy = weeklyAttempts.length > 0 
-    ? Math.round((weeklyAttempts.filter(a => a.Success).length / weeklyAttempts.length) * 100)
+  const weeklyAccuracy = weeklyAttempts.length > 0
+    ? Math.round((weeklyAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length / weeklyAttempts.length) * 100)
     : 0;
-  
+
   // Problems Per Week
-  const weeklyProblems = new Set(weeklyAttempts.map(a => a.ProblemID)).size;
+  const weeklyProblems = new Set(weeklyAttempts.map(a => a.problem_id || a.ProblemID)).size;
   
   // Hint Efficiency - use real analytics data via background script
   let hintEfficiency = "2.5";
@@ -950,9 +1012,9 @@ function generateEnhancedDailyMissions(settings, learningState, recentAttempts) 
     completed: lowBoxProblems >= 3
   });
   
-  // Mission 3: Accuracy target based on recent performance
-  const recentAccuracy = recentAttempts.length > 0 
-    ? Math.round((recentAttempts.filter(a => a.Success).length / recentAttempts.length) * 100)
+  // Mission 3: Accuracy target based on recent performance (support both snake_case and PascalCase)
+  const recentAccuracy = recentAttempts.length > 0
+    ? Math.round((recentAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length / recentAttempts.length) * 100)
     : 0;
   
   missions.push({
@@ -1012,8 +1074,8 @@ export async function generateGoalsData(providedData = {}) {
     // Get recent attempts for mission generation (last 24 hours)
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const recentAttempts = allAttempts.filter(attempt => 
-      new Date(attempt.AttemptDate) >= oneDayAgo
+    const recentAttempts = allAttempts.filter(attempt =>
+      new Date(attempt.attempt_date || attempt.AttemptDate) >= oneDayAgo
     );
     
     // Generate enhanced missions
@@ -1262,16 +1324,17 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
 
   // Get session IDs for this period
   const sessionIds = new Set(sessions.map(s => s.sessionId || s.SessionID));
-  
-  // Find attempts from these sessions
-  const periodAttempts = allAttempts.filter(attempt => 
-    sessionIds.has(attempt.SessionID) || sessionIds.has(attempt.sessionId)
-  );
+
+  // Find attempts from these sessions (support both snake_case and PascalCase)
+  const periodAttempts = allAttempts.filter(attempt => {
+    const attemptSessionId = attempt.session_id || attempt.SessionID;
+    return sessionIds.has(attemptSessionId) || sessionIds.has(attempt.sessionId);
+  });
 
   if (periodAttempts.length === 0) return 0;
 
   // Count successful problems
-  const successfulProblems = periodAttempts.filter(attempt => attempt.Success).length;
+  const successfulProblems = periodAttempts.filter(attempt => (attempt.success !== undefined ? attempt.success : attempt.Success)).length;
   
   // Try to get actual hint usage data from hint_interactions table
   let totalHintsUsed = 0;
@@ -1313,8 +1376,10 @@ function calculateTimerBehavior(attempts) {
   
   const recentAttempts = attempts.slice(-50); // Last 50 attempts for current behavior
   const timelyAttempts = recentAttempts.filter(attempt => {
-    // Consider an attempt timely if it was successful and not overly long
-    return attempt.Success && attempt.TimeSpent && attempt.TimeSpent < 3600; // Under 1 hour (TimeSpent is in seconds)
+    // Consider an attempt timely if it was successful and not overly long (support both snake_case and PascalCase)
+    const success = attempt.success !== undefined ? attempt.success : attempt.Success;
+    const timeSpent = attempt.time_spent || attempt.TimeSpent;
+    return success && timeSpent && timeSpent < 3600; // Under 1 hour (time_spent is in seconds)
   });
   
   const timelyPercentage = (timelyAttempts.length / recentAttempts.length) * 100;
@@ -1335,9 +1400,9 @@ function calculateLearningStatus(attempts, sessions) {
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   
-  // Check for recent attempts in last 7 days
-  const recentAttempts = attempts.filter(attempt => 
-    new Date(attempt.AttemptDate) >= sevenDaysAgo
+  // Check for recent attempts in last 7 days (support both snake_case and PascalCase)
+  const recentAttempts = attempts.filter(attempt =>
+    new Date(attempt.attempt_date || attempt.AttemptDate) >= sevenDaysAgo
   );
   
   // Check for recent sessions in last 7 days
@@ -1345,9 +1410,9 @@ function calculateLearningStatus(attempts, sessions) {
     new Date(session.Date) >= sevenDaysAgo
   );
   
-  // Check for any activity in last 30 days
-  const monthlyAttempts = attempts.filter(attempt => 
-    new Date(attempt.AttemptDate) >= thirtyDaysAgo
+  // Check for any activity in last 30 days (support both snake_case and PascalCase)
+  const monthlyAttempts = attempts.filter(attempt =>
+    new Date(attempt.attempt_date || attempt.AttemptDate) >= thirtyDaysAgo
   );
   
   // Determine status based on activity patterns
@@ -1370,22 +1435,24 @@ function calculateProgressTrend(attempts) {
     return { trend: "Insufficient Data", percentage: 0 };
   }
   
-  // Sort attempts by date
-  const sortedAttempts = attempts.sort((a, b) => new Date(a.AttemptDate) - new Date(b.AttemptDate));
-  
+  // Sort attempts by date (support both snake_case and PascalCase)
+  const sortedAttempts = attempts.sort((a, b) =>
+    new Date(a.attempt_date || a.AttemptDate) - new Date(b.attempt_date || b.AttemptDate)
+  );
+
   // Take last 40 attempts for comparison, split into two halves
   const recentAttempts = sortedAttempts.slice(-40);
   const midpoint = Math.floor(recentAttempts.length / 2);
   const olderHalf = recentAttempts.slice(0, midpoint);
   const newerHalf = recentAttempts.slice(midpoint);
-  
+
   if (olderHalf.length === 0 || newerHalf.length === 0) {
     return { trend: "Insufficient Data", percentage: 0 };
   }
-  
+
   // Calculate success rates for both halves
-  const olderSuccessRate = olderHalf.filter(a => a.Success).length / olderHalf.length;
-  const newerSuccessRate = newerHalf.filter(a => a.Success).length / newerHalf.length;
+  const olderSuccessRate = olderHalf.filter(a => (a.success !== undefined ? a.success : a.Success)).length / olderHalf.length;
+  const newerSuccessRate = newerHalf.filter(a => (a.success !== undefined ? a.success : a.Success)).length / newerHalf.length;
   
   // Calculate improvement
   const improvement = newerSuccessRate - olderSuccessRate;
@@ -1416,12 +1483,14 @@ function calculateTimerPercentage(attempts) {
   
   const recentAttempts = attempts.slice(-100); // Last 100 attempts
   const withinLimits = recentAttempts.filter(attempt => {
-    if (!attempt.TimeSpent) return false;
+    const timeSpent = attempt.time_spent || attempt.TimeSpent;
+    if (!timeSpent) return false;
     // Define reasonable time limits: Easy <20min, Medium <45min, Hard <90min
-    // TimeSpent is in seconds, so multiply minutes by 60
-    const timeLimit = attempt.Difficulty === "Easy" ? 1200 : 
-                     attempt.Difficulty === "Hard" ? 5400 : 2700;
-    return attempt.TimeSpent <= timeLimit;
+    // time_spent is in seconds, so multiply minutes by 60
+    const difficulty = attempt.difficulty || attempt.Difficulty;
+    const timeLimit = difficulty === "Easy" ? 1200 :
+                     difficulty === "Hard" ? 5400 : 2700;
+    return timeSpent <= timeLimit;
   });
   
   return Math.round((withinLimits.length / recentAttempts.length) * 100);
@@ -1798,9 +1867,9 @@ function analyzeReflectionThemes(attemptsWithReflections) {
  */
 function calculateReflectionPerformanceCorrelation(attemptsWithReflections, allAttempts) {
   if (attemptsWithReflections.length === 0) return 0;
-  
-  const reflectionSuccessRate = attemptsWithReflections.filter(a => a.Success).length / attemptsWithReflections.length;
-  const overallSuccessRate = allAttempts.filter(a => a.Success).length / allAttempts.length;
+
+  const reflectionSuccessRate = attemptsWithReflections.filter(a => (a.success !== undefined ? a.success : a.Success)).length / attemptsWithReflections.length;
+  const overallSuccessRate = allAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length / allAttempts.length;
   
   return Math.round((reflectionSuccessRate - overallSuccessRate) * 100);
 }
@@ -2111,8 +2180,8 @@ export async function getSessionMetrics(options = {}) {
     const guidedSessionIds = new Set(guidedSessions.map(s => s.id));
     const trackingSessionIds = new Set(trackingSessions.map(s => s.id));
     
-    const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.SessionID));
-    const trackingAttempts = attempts.filter(a => trackingSessionIds.has(a.SessionID));
+    const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.session_id || a.SessionID));
+    const trackingAttempts = attempts.filter(a => trackingSessionIds.has(a.session_id || a.SessionID));
     
     // Calculate metrics for guided sessions
     const guidedMetrics = calculateSessionTypeMetrics(guidedSessions, guidedAttempts, 'guided');
@@ -2156,24 +2225,27 @@ function calculateSessionTypeMetrics(sessions, attempts, type) {
   const activeSessions = sessions.filter(s => s.status === 'in_progress');
   const draftSessions = sessions.filter(s => s.status === 'draft');
   
-  // Success rate calculation
-  const successfulAttempts = attempts.filter(a => a.Success === true || a.Success === 1);
-  const successRate = attempts.length > 0 ? 
+  // Success rate calculation (support both snake_case and PascalCase)
+  const successfulAttempts = attempts.filter(a => {
+    const success = a.success !== undefined ? a.success : a.Success;
+    return success === true || success === 1;
+  });
+  const successRate = attempts.length > 0 ?
     Math.round((successfulAttempts.length / attempts.length) * 100) : 0;
-  
+
   // Average session length
   const avgSessionLength = calculateAverageSessionLength(sessions);
-  
+
   // Problems per session
   const avgProblemsPerSession = sessions.length > 0 ?
     Math.round(attempts.length / sessions.length * 10) / 10 : 0;
-  
+
   // Session completion rate (for guided sessions)
   const completionRate = type === 'guided' && sessions.length > 0 ?
     Math.round((completedSessions.length / sessions.length) * 100) : null;
-  
+
   // Time-based metrics
-  const totalTimeSpent = attempts.reduce((sum, a) => sum + (a.TimeSpent || 0), 0);
+  const totalTimeSpent = attempts.reduce((sum, a) => sum + (a.time_spent || a.TimeSpent || 0), 0);
   const avgTimePerProblem = attempts.length > 0 ?
     Math.round(totalTimeSpent / attempts.length) : 0;
   
@@ -2213,9 +2285,10 @@ function calculateTrackingAdoptionMetrics(sessions, attempts) {
   }
   
   if (!hasGuided) {
-    const trackingAttempts = attempts.filter(a =>
-      sessions.find(s => s.id === a.SessionID && s.session_type === 'tracking')
-    );
+    const trackingAttempts = attempts.filter(a => {
+      const sessionId = a.session_id || a.SessionID;
+      return sessions.find(s => s.id === sessionId && s.session_type === 'tracking');
+    });
     
     return {
       hasTrackingActivity: true,

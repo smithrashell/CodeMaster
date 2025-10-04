@@ -112,13 +112,32 @@ const performanceLogger = {
   }
 };
 
+// Dashboard request types that should never be cached
+const DASHBOARD_REQUEST_TYPES = [
+  'getStatsData',
+  'getSessionHistoryData',
+  'getTagMasteryData',
+  'getLearningProgressData',
+  'getProductivityInsightsData',
+  'getLearningPathData',
+  'getMistakeAnalysisData',
+  'getInterviewAnalyticsData',
+  'getHintAnalyticsData',
+  'getFocusAreasData'
+];
+
 // Helper functions for message handling
 const handleCacheCheck = ({ request, bypassCache, setData, setLoading, setError, onSuccess }) => {
   if (bypassCache) return false;
-  
+
+  // Never cache dashboard requests - they should always be fresh
+  if (DASHBOARD_REQUEST_TYPES.includes(request?.type)) {
+    return false;
+  }
+
   const cacheKey = getCacheKey(request);
   const cachedData = getCachedResponse(cacheKey);
-  
+
   if (cachedData) {
     console.info(`🚀 Cache hit for ${request?.type}`);
     setData(cachedData);
@@ -127,7 +146,7 @@ const handleCacheCheck = ({ request, bypassCache, setData, setLoading, setError,
     if (onSuccess) onSuccess(cachedData);
     return true;
   }
-  
+
   return false;
 };
 
@@ -154,15 +173,19 @@ const handleRequestDeduplication = async ({ request, setData, setLoading, setErr
 
 const handleSuccess = ({ response, request, startTime, currentRetryCount, cacheKey, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess }) => {
   if (!isMountedRef.current) return;
-  
+
   const duration = performance.now() - startTime;
   performanceLogger.logTiming(request, duration, true, currentRetryCount);
-  
+
   if (duration > 5000) {
     performanceLogger.logSlowRequest(request, duration);
   }
-  
-  setCachedResponse(cacheKey, response);
+
+  // Only cache non-dashboard requests
+  if (!DASHBOARD_REQUEST_TYPES.includes(request?.type)) {
+    setCachedResponse(cacheKey, response);
+  }
+
   setData(response);
   setLoading(false);
   setIsRetrying(false);
