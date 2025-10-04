@@ -28,7 +28,7 @@ export function useVisualizationEventHandlers({
     setZoom,
     setViewBox
   });
-  
+
   // Pan/Node Drag Event Handlers
   const handleMouseDown = useCallback((e) => {
     const startPos = { x: e.clientX, y: e.clientY };

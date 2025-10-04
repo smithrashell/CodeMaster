@@ -1109,17 +1109,13 @@ async function _processAttempts(sessions) {
         problem = sessionProblem;
       }
 
-      // Use perceived difficulty from complete attempt record
-      let rating;
-      if (attempt.perceived_difficulty) {
-        const difficultyMap = { 1: "easy", 2: "medium", 3: "hard" };
-        rating = difficultyMap[attempt.perceived_difficulty];
-        if (!rating) {
-          throw new Error(`Invalid perceived_difficulty value: ${attempt.perceived_difficulty} in attempt ${attempt.id}`);
-        }
-      } else {
-        rating = problem.difficulty ? problem.difficulty.toLowerCase() : "medium";
+      // Use problem difficulty for performance categorization (easy/medium/hard breakdown)
+      // Note: This is only for categorizing attempts, NOT for calculating accuracy
+      // Accuracy is simply: successful attempts / total attempts (calculated at line 1154)
+      if (!problem.difficulty) {
+        throw new Error(`Problem ${leetcodeId} in attempt ${attempt.id} is missing difficulty field - data integrity issue`);
       }
+      const rating = problem.difficulty.toLowerCase();
 
       const tags = problem.tags || [];
       const timeSpent = attempt.time_spent || 0;

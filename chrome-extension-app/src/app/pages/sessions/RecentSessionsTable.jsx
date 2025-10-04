@@ -28,15 +28,19 @@ export const RecentSessionsTable = ({ recentSessions }) => {
             {recentSessions.map((session, index) => {
               const hasAttempts = session.attempts && session.attempts.length > 0;
               const isCompleted = (session.status === "completed" || session.completed === true) && hasAttempts;
-              const sessionDate = session.Date || session.date || Date.now();
-              
+
+              // Support both snake_case and camelCase field names
+              const sessionDate = session.created_date || session.date || session.Date || Date.now();
+              const sessionDuration = session.duration || session.session_duration || 0;
+              const problemCount = session.problems?.length || session.problem_count || 0;
+
               return (
-                <tr key={session.sessionId || session.id || index} className="cm-table-row">
+                <tr key={session.session_id || session.sessionId || session.id || index} className="cm-table-row">
                   <td className="cm-table-td cm-table-primary">{new Date(sessionDate).toLocaleDateString()}</td>
                   <td className="cm-table-td cm-table-primary">
-                    {isCompleted ? (session.duration || 'N/A') + ' min' : 'Ongoing'}
+                    {isCompleted ? (sessionDuration || 'N/A') + ' min' : 'Ongoing'}
                   </td>
-                  <td className="cm-table-td cm-table-primary">{session.problems?.length || 0}</td>
+                  <td className="cm-table-td cm-table-primary">{problemCount}</td>
                   <td className="cm-table-td cm-table-primary">
                     {isCompleted ? `${Math.round((session.accuracy || 0) * 100)}%` : '—'}
                   </td>

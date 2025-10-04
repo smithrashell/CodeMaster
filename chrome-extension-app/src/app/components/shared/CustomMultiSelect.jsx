@@ -6,11 +6,11 @@ import MainInputContainer from './multiselect/MainInputContainer.jsx';
 import DropdownContent from './multiselect/DropdownContent.jsx';
 import { renderSelectedBadge, renderSearchInput, renderDropdownOption } from './multiselect/RenderHelpers.jsx';
 
-function CustomMultiSelect({ 
-  data = [], 
-  value = [], 
-  onChange, 
-  label, 
+function CustomMultiSelect({
+  data = [],
+  value = [],
+  onChange,
+  label,
   placeholder = "Select options...",
   maxValues,
   disabled = false,
@@ -18,6 +18,9 @@ function CustomMultiSelect({
   searchable = true,
   clearable = true
 }) {
+  const inputContainerRef = React.useRef(null);
+  const portalDropdownRef = React.useRef(null);
+
   const {
     opened,
     setOpened,
@@ -36,18 +39,38 @@ function CustomMultiSelect({
     getLabelForValue,
   } = useMultiSelectLogic(data, value, onChange, disabled, maxValues, searchable, searchQuery);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or scrolling
   useEffect(() => {
+    if (!opened) return;
+
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      // Check if click is outside both the input container and portal dropdown
+      const isOutsideInput = inputContainerRef.current && !inputContainerRef.current.contains(event.target);
+      const isOutsideDropdown = portalDropdownRef.current && !portalDropdownRef.current.contains(event.target);
+
+      if (isOutsideInput && isOutsideDropdown) {
         setOpened(false);
-        setHoveredItem(null); // Clear hover state when dropdown closes
+        setHoveredItem(null);
       }
     };
 
+    const handleScroll = (event) => {
+      // Don't close dropdown if scrolling inside the dropdown itself
+      if (portalDropdownRef.current && portalDropdownRef.current.contains(event.target)) {
+        return;
+      }
+      setOpened(false);
+      setHoveredItem(null);
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [dropdownRef, setHoveredItem, setOpened]);
+    window.addEventListener('scroll', handleScroll, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [opened, inputContainerRef, dropdownRef, setHoveredItem, setOpened]);
 
   // Debug logging
   debug("🔍 CustomMultiSelect: value prop", { value });
@@ -64,41 +87,45 @@ function CustomMultiSelect({
       )}
 
       {/* Custom Input with Internal Badges */}
-      <MainInputContainer
-        opened={opened}
-        disabled={disabled}
-        onClick={() => {
-          if (!disabled) {
-            const newOpened = !opened;
-            setOpened(newOpened);
-            if (!newOpened) {
-              setHoveredItem(null);
+      <div ref={inputContainerRef}>
+        <MainInputContainer
+          opened={opened}
+          disabled={disabled}
+          onClick={() => {
+            if (!disabled) {
+              const newOpened = !opened;
+              setOpened(newOpened);
+              if (!newOpened) {
+                setHoveredItem(null);
+              }
             }
-          }
-        }}
-        onMouseEnter={(e) => {
-          if (!disabled && !opened) {
-            e.target.style.borderColor = 'var(--mantine-color-gray-4)';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!disabled && !opened) {
-            e.target.style.borderColor = 'var(--mantine-color-default-border)';
-          }
-        }}
-        value={value}
-        clearable={clearable}
-        handleClearAll={handleClearAll}
-        renderSelectedBadge={(val) => renderSelectedBadge(val, disabled, clearable, handleRemoveItem, getLabelForValue)}
-        renderSearchInput={() => renderSearchInput({ searchable, opened, searchQuery, setSearchQuery, value, placeholder })}
-      />
+          }}
+          onMouseEnter={(e) => {
+            if (!disabled && !opened) {
+              e.target.style.borderColor = 'var(--mantine-color-gray-4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!disabled && !opened) {
+              e.target.style.borderColor = 'var(--mantine-color-default-border)';
+            }
+          }}
+          value={value}
+          clearable={clearable}
+          handleClearAll={handleClearAll}
+          renderSelectedBadge={(val) => renderSelectedBadge(val, disabled, clearable, handleRemoveItem, getLabelForValue)}
+          renderSearchInput={() => renderSearchInput({ searchable, opened, searchQuery, setSearchQuery, value, placeholder })}
+        />
+      </div>
 
       {/* Dropdown */}
       <DropdownContent
+        ref={portalDropdownRef}
         opened={opened}
         disabled={disabled}
         groupedData={groupedData}
         renderDropdownOption={(item) => renderDropdownOption({ item, value, maxValues, hoveredItem, setHoveredItem, handleToggleItem })}
+        targetRef={inputContainerRef}
       />
 
       {/* Description */}

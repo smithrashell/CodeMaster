@@ -98,24 +98,25 @@ const createFallbackHintData = (params) => {
 // Helper function to create hint click data
 export const createHintClickData = (params) => {
   const { problemId, hintId, hintType, hint, problemTags, isCurrentlyExpanded, opened, hints, expandedHints, index } = params;
-  
+
   if (!hint) {
     console.warn('⚠️ createHintClickData called with undefined hint:', params);
     return createFallbackHintData(params);
   }
-  
+
+  // Use snake_case to match database schema
   return {
-    problemId: problemId || "unknown",
-    hintId,
-    hintType,
-    primaryTag: hint.primaryTag || "unknown",
-    relatedTag: hint.relatedTag || "unknown",
+    problem_id: problemId || "unknown",
+    hint_id: hintId,
+    hint_type: hintType,
+    primary_tag: hint.primaryTag || "unknown",
+    related_tag: hint.relatedTag || "unknown",
     content: hint.tip || "No content available",
-    relationshipScore: hint.relationshipScore || null,
+    relationship_score: hint.relationshipScore || null,
     timestamp: new Date().toISOString(),
-    problemTags: problemTags || [],
+    problem_tags: problemTags || [],
     action: isCurrentlyExpanded ? "collapse" : "expand",
-    sessionContext: createSessionContext(opened, hints, index, isCurrentlyExpanded, expandedHints),
+    session_context: createSessionContext(opened, hints, index, isCurrentlyExpanded, expandedHints),
   };
 };
 
