@@ -367,17 +367,18 @@ class SessionAttributionEngine {
       attemptData.id
     );
 
-    // Remove completed problems from session (successful attempts)
-    if ((attemptData.Success || attemptData.success) && session.problems && Array.isArray(session.problems)) {
-      console.log(`🎯 Attempting to remove completed problem from session`, {
+    // Mark attempted problems in session (both successful and failed attempts)
+    if (session.problems && Array.isArray(session.problems)) {
+      console.log(`🎯 Marking problem as attempted in session`, {
         problemId: problem.id,
         problemLeetcode_id: problem.leetcode_id,
         sessionId: session.id,
         success: attemptData.Success || attemptData.success,
         currentProblemCount: session.problems.length
       });
-      
-      // Instead of destructively removing problems, mark them as attempted
+
+      // Mark problem as attempted regardless of success/failure
+      // This allows session to move forward even after failed attempts
       session.problems = session.problems.map(p => {
         const isAttempted = String(p.id) === String(problem.leetcode_id);
         console.log(`🔍 Problem attempt marking:`, {
