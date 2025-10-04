@@ -4,6 +4,8 @@ import {
   Card,
   Alert,
   Stack,
+  Group,
+  Button,
 } from "@mantine/core";
 import {
   loadFocusAreasData,
@@ -27,6 +29,7 @@ import {
 } from "./FocusAreasRenderHelpers.jsx";
 import {
   renderFocusAreasSelector,
+  TierTagsVisualization,
 } from "./FocusAreasSelectorRenderHelpers.jsx";
 // Note: Using Chrome messaging for all service calls to comply with extension architecture
 // All database access goes through background script
@@ -48,6 +51,9 @@ export function FocusAreasSelector() {
     hasChanges, setHasChanges
   } = useFocusAreasState();
 
+  // Track which tier the user is selecting from
+  const [selectedTier, setSelectedTier] = React.useState(null);
+
   // Helper function wrappers for the extracted functions
   const getTagMasteryProgressWrapper = (tagName) => getTagMasteryProgress(tagName, masteryData);
   const getTagOptionsWrapper = () => getTagOptions(focusAvailability, availableTags, masteredTags, masteryData);
@@ -68,9 +74,16 @@ export function FocusAreasSelector() {
     setHasChanges(true);
   };
 
+  const handleTierChange = (newTier) => {
+    // When switching tiers, clear current selection to enforce single-tier constraint
+    setSelectedTier(newTier);
+    setSelectedFocusAreas([]);
+    setHasChanges(true);
+  };
+
   const handleSave = async () => {
     const setters = { setSaving, setError, setHasChanges };
-    await saveFocusAreasSettings(selectedFocusAreas, setters);
+    await saveFocusAreasSettings(selectedFocusAreas, selectedTier, setters);
   };
 
   const handleReset = async () => {
@@ -96,30 +109,39 @@ export function FocusAreasSelector() {
           </Alert>
         )}
 
-        <ActiveSessionTagsPreview focusAvailability={focusAvailability} showCustomMode={showCustomMode} />
-
-        <CustomModeControls
+        {/* Tier Classification Visualization */}
+        <TierTagsVisualization
           focusAvailability={focusAvailability}
-          showCustomMode={showCustomMode}
-          setShowCustomMode={setShowCustomMode}
-          setSelectedFocusAreas={setSelectedFocusAreas}
-          setHasChanges={setHasChanges}
-          handleSave={handleSave}
-          handleReset={handleReset}
-          loadData={loadData}
-          saving={saving}
-          hasChanges={hasChanges}
-          loading={loading}
+          currentTier={currentTier}
           selectedFocusAreas={selectedFocusAreas}
+          masteryData={masteryData}
+          onFocusAreasChange={handleFocusAreasChange}
+          selectedTier={selectedTier}
+          onTierChange={handleTierChange}
         />
 
-        {renderFocusAreasSelector(
-          getTagOptionsWrapper,
-          focusAvailability,
-          selectedFocusAreas,
-          handleFocusAreasChange,
-          showCustomMode
-        )}
+        <ActiveSessionTagsPreview focusAvailability={focusAvailability} showCustomMode={showCustomMode} />
+
+        {/* Save/Reset Controls */}
+        <Group justify="flex-end" mt="md">
+          {hasChanges && (
+            <Button
+              variant="subtle"
+              color="gray"
+              onClick={handleReset}
+              disabled={saving}
+            >
+              Reset
+            </Button>
+          )}
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || saving}
+            loading={saving}
+          >
+            Save Focus Areas
+          </Button>
+        </Group>
 
         <CurrentFocusAreasSection 
           selectedFocusAreas={selectedFocusAreas} 
