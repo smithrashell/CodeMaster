@@ -1,55 +1,105 @@
 import { useState, useEffect } from "react";
 import { debug, warn } from "../../shared/utils/logger.js";
+import { tagRelationships } from "../components/learning/TagRelationships.js";
 
 // Data extraction helper functions
 const extractMasteryData = (appState) => {
-  return appState.mastery?.masteryData || 
-         appState.learningState?.masteryData || 
-         appState.progress?.learningState?.masteryData || 
+  // getLearningPathData returns the mastery object directly, not wrapped in appState.mastery
+  return appState?.masteryData ||
+         appState?.mastery?.masteryData ||
+         appState?.learningState?.masteryData ||
+         appState?.progress?.learningState?.masteryData ||
          [];
 };
 
 const extractFocusTags = (appState) => {
-  return appState.mastery?.focusTags || 
-         appState.learningState?.focusTags || 
-         appState.progress?.learningState?.focusTags || 
+  // getLearningPathData returns the mastery object directly, not wrapped in appState.mastery
+  return appState?.focusTags ||
+         appState?.mastery?.focusTags ||
+         appState?.learningState?.focusTags ||
+         appState?.progress?.learningState?.focusTags ||
          [];
 };
 
 const extractUnmasteredTags = (appState) => {
-  return appState.mastery?.unmasteredTags || 
-         appState.learningState?.unmasteredTags || 
-         appState.progress?.learningState?.unmasteredTags || 
+  // getLearningPathData returns the mastery object directly, not wrapped in appState.mastery
+  return appState?.unmasteredTags ||
+         appState?.mastery?.unmasteredTags ||
+         appState?.learningState?.unmasteredTags ||
+         appState?.progress?.learningState?.unmasteredTags ||
          [];
 };
 
 // Data processing helper
 const processLearningPathData = (masteryData, focusTags, unmasteredTags) => {
-  debug("Learning Path - extracted data", { 
+  debug("Learning Path - extracted data", {
     masteryCount: masteryData.length,
-    focusCount: focusTags.length, 
+    focusCount: focusTags.length,
     unmasteredCount: unmasteredTags.length
   });
 
-  if (!masteryData.length) {
-    warn("Learning Path - No mastery data available", { appState: "missing masteryData" });
-    return [];
-  }
+  // Create a map of mastery data for quick lookup
+  const masteryMap = new Map(masteryData.map(item => [item.tag, item]));
 
-  const processedData = masteryData.map((item) => {
-    const isFocus = focusTags.includes(item.tag);
-    const progress = item.progress || 0;
-    
-    return {
-      ...item,
-      isFocus,
-      progress: Math.min(progress, 100),
-      status: progress >= 90 ? 'mastered' : 
-              progress >= 50 ? 'learning' : 
-              isFocus ? 'available' : 'locked'
-    };
+  // Step 1: Collect tags with mastery data (tags user has attempted)
+  const tagsWithData = new Set(masteryData.map(item => item.tag));
+
+  // Step 2: Find all tags that are directly unlocked by tags with mastery data
+  const unlockedTags = new Set();
+  tagsWithData.forEach(tag => {
+    const relationship = tagRelationships[tag];
+    if (relationship?.unlocks) {
+      relationship.unlocks.forEach(unlockData => {
+        const unlockedTag = typeof unlockData === 'string' ? unlockData : unlockData.tag;
+        unlockedTags.add(unlockedTag);
+      });
+    }
   });
 
+  // Step 3: Combine both sets - tags with data + their immediate unlocks
+  const visibleTags = new Set([...tagsWithData, ...unlockedTags]);
+
+  // Step 4: Process only the visible tags
+  const processedData = Array.from(visibleTags).map((tag) => {
+    const masteryItem = masteryMap.get(tag);
+    const isFocus = focusTags.includes(tag);
+
+    if (masteryItem) {
+      // Tag has mastery data - process it
+      const totalAttempts = masteryItem.total_attempts ?? masteryItem.totalAttempts ?? 0;
+      const successfulAttempts = masteryItem.successful_attempts ?? masteryItem.successfulAttempts ?? 0;
+      const progress = totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0;
+
+      // Use actual 'mastered' field from database (considers min_attempts_required)
+      const status = masteryItem.mastered ? 'mastered' :
+                     totalAttempts > 0 ? 'learning' :
+                     isFocus ? 'available' : 'not-started';
+
+      return {
+        ...masteryItem,
+        isFocus,
+        progress: Math.min(progress, 100),
+        status
+      };
+    } else {
+      // Tag is unlocked but not attempted yet - show as available/locked
+      const tagRelationship = tagRelationships[tag];
+      const status = isFocus ? 'available' : 'locked';
+
+      return {
+        tag,
+        total_attempts: 0,
+        successful_attempts: 0,
+        mastered: false,
+        isFocus,
+        progress: 0,
+        status,
+        position: tagRelationship?.position
+      };
+    }
+  });
+
+  debug("Learning Path - visible tags", Array.from(visibleTags));
   debug("Learning Path - processed data sample", processedData.slice(0, 3));
   return processedData;
 };

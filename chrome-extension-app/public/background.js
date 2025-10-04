@@ -8671,27 +8671,18 @@ const generateCacheKey = (request) => {
       return (request.interactionData?.problemId || request.data?.problemId) ? 
         `problem_ctx_${request.interactionData?.problemId || request.data?.problemId}` : null;
     
-    // Dashboard data operations - simplified keys since no filters are passed
-    case 'getStatsData': 
-      return 'stats_data';
-    case 'getSessionHistoryData': 
-      return 'sessions_data';
-    case 'getTagMasteryData': 
-      return 'mastery_data';
-    case 'getLearningProgressData': 
-      return 'progress_data';
-    case 'getProductivityInsightsData': 
-      return 'productivity_data';
-    case 'getLearningPathData': 
-      return 'learning_path_data';
-    case 'getMistakeAnalysisData': 
-      return 'mistakes_data';
-    case 'getInterviewAnalyticsData': 
-      return 'interview_data';
-    case 'getHintAnalyticsData': 
-      return 'hints_data';
+    // Dashboard data operations - non-cacheable to ensure fresh data
+    case 'getStatsData':
+    case 'getSessionHistoryData':
+    case 'getTagMasteryData':
+    case 'getLearningProgressData':
+    case 'getProductivityInsightsData':
+    case 'getLearningPathData':
+    case 'getMistakeAnalysisData':
+    case 'getInterviewAnalyticsData':
+    case 'getHintAnalyticsData':
     case 'getFocusAreasData':
-      return `focus_areas_data`;
+      return null; // Dashboard data should always be fresh
     
     // Strategy operations
     case 'getStrategyForTag': 
@@ -9054,6 +9045,89 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
       case "getSettings":
         StorageService.getSettings().then(sendResponse).finally(finishRequest);
+        return true;
+      case "debugClearInvalidFocusAreas":
+        // Debug command to clear invalid focus areas from settings
+        StorageService.getSettings()
+          .then(async (settings) => {
+            console.log("🔍 DEBUG: Current focusAreas:", settings.focusAreas);
+
+            // Only keep valid focus areas (array is the only tag with real data)
+            const validFocusAreas = settings.focusAreas?.filter(tag =>
+              tag === "array" // Only keep array since it has real attempt data
+            ) || [];
+
+            settings.focusAreas = validFocusAreas;
+            console.log("🔍 DEBUG: Cleared invalid focusAreas, new value:", settings.focusAreas);
+
+            await StorageService.setSettings(settings);
+            sendResponse({ status: "success", focusAreas: settings.focusAreas });
+          })
+          .catch(error => {
+            console.error("❌ Error clearing invalid focus areas:", error);
+            sendResponse({ status: "error", message: error.message });
+          })
+          .finally(finishRequest);
+        return true;
+      case "debugDeleteInvalidMasteryEntries":
+        // Debug command to delete mastery entries with 0 attempts
+        (async () => {
+          try {
+            const db = await dbHelper.openDB();
+            const transaction = db.transaction(["tag_mastery"], "readwrite");
+            const store = transaction.objectStore("tag_mastery");
+
+            // Get all mastery records
+            const getAllRequest = store.getAll();
+
+            getAllRequest.onsuccess = async () => {
+              const allRecords = getAllRequest.result;
+              console.log("🔍 DEBUG: All mastery records:", allRecords);
+
+              const toDelete = [];
+
+              // Find records with 0 attempts
+              for (const record of allRecords) {
+                if (record.total_attempts === 0 && record.attempted_problem_ids.length === 0) {
+                  toDelete.push(record.tag);
+                }
+              }
+
+              console.log("🔍 DEBUG: Records to delete:", toDelete);
+
+              // Delete invalid records
+              const deleteTransaction = db.transaction(["tag_mastery"], "readwrite");
+              const deleteStore = deleteTransaction.objectStore("tag_mastery");
+
+              for (const tag of toDelete) {
+                deleteStore.delete(tag);
+                console.log(`🗑️ Deleted invalid mastery entry: ${tag}`);
+              }
+
+              deleteTransaction.oncomplete = () => {
+                console.log("✅ Cleanup complete");
+                sendResponse({ status: "success", deleted: toDelete });
+                finishRequest();
+              };
+
+              deleteTransaction.onerror = () => {
+                console.error("❌ Error during deletion");
+                sendResponse({ status: "error", message: "Delete transaction failed" });
+                finishRequest();
+              };
+            };
+
+            getAllRequest.onerror = () => {
+              console.error("❌ Error reading mastery data");
+              sendResponse({ status: "error", message: "Failed to read mastery data" });
+              finishRequest();
+            };
+          } catch (error) {
+            console.error("❌ Error in debugDeleteInvalidMasteryEntries:", error);
+            sendResponse({ status: "error", message: error.message });
+            finishRequest();
+          }
+        })();
         return true;
       case "clearSettingsCache":
         // Clear settings cache from background script cache
@@ -10008,21 +10082,23 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
             const { StorageService } = await import("../src/shared/services/storageService.js");
             const { TagService } = await import("../src/shared/services/tagServices.js");
 
-            // Load focus areas from settings with fallback
-            const settings = await StorageService.getSettings();
-            let focusAreas = settings.focusAreas || [];
+            // Get learning state data first (contains system-selected focus tags)
+            const learningState = await TagService.getCurrentLearningState();
+            console.log("🔍 FOCUS AREAS DEBUG: learningState =", learningState);
 
-            console.log("🔍 FOCUS AREAS DEBUG: Settings focusAreas =", focusAreas);
+            // Use system-selected focus tags from learning state (prioritize intelligent selection)
+            // Fall back to user settings only if learning state has no focus tags
+            const settings = await StorageService.getSettings();
+            let focusAreas = learningState.focusTags || settings.focusAreas || [];
+
+            console.log("🔍 FOCUS AREAS DEBUG: Settings focusAreas =", settings.focusAreas);
+            console.log("🔍 FOCUS AREAS DEBUG: Using focusAreas =", focusAreas);
 
             // Provide fallback focus areas if none configured (like content script pattern)
             if (focusAreas.length === 0) {
-              focusAreas = ["array", "hash table", "string", "dynamic programming", "tree"];
+              focusAreas = ["array"];
               console.log("🔄 BACKGROUND: Using fallback focus areas:", focusAreas);
             }
-
-            // Get learning state data
-            const learningState = await TagService.getCurrentLearningState();
-            console.log("🔍 FOCUS AREAS DEBUG: learningState =", learningState);
 
             // Check for graduation status
             const graduationStatus = await TagService.checkFocusAreasGraduation();

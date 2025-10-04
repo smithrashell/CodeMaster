@@ -23,20 +23,23 @@ const normalizeData = (data) => ({
   allTagsInCurrentTier: data?.allTagsInCurrentTier || [],
   focusTags: data?.focusTags || [],
   masteryData: data?.masteryData || [],
+  allTagsData: data?.allTagsData || [], // All known tags for Overall view
+  tierTagsData: data?.tierTagsData || [], // Current tier tags for Tier view
   unmasteredTags: data?.unmasteredTags || [],
   tagsinTier: data?.tagsinTier || [],
 });
 
-// Helper functions
+// Helper functions (support both snake_case and PascalCase)
 const generatePieData = (selectedTag, masteryData) => {
   if (selectedTag) {
-    const { successfulAttempts, totalAttempts } = selectedTag;
+    const successfulAttempts = selectedTag.successful_attempts ?? selectedTag.successfulAttempts ?? 0;
+    const totalAttempts = selectedTag.total_attempts ?? selectedTag.totalAttempts ?? 0;
     return [
       { name: "Successful", value: successfulAttempts },
       { name: "Failed", value: totalAttempts - successfulAttempts }
     ];
   }
-  
+
   const mastered = masteryData.filter(tag => tag.mastered).length;
   const unmastered = masteryData.length - mastered;
   return [
@@ -69,12 +72,15 @@ const processTagData = (masteryData, unmasteredTags, search, activeFocusFilter) 
 const createTableRows = (data, options, callbacks) => {
   const { highlightUnmastered } = options;
   const { setSelectedTag } = callbacks;
-  
+
   return data.map((tag) => {
-    const progress = Math.round((tag.successfulAttempts / tag.totalAttempts) * 100) || 0;
+    // Support both snake_case and PascalCase field names
+    const successfulAttempts = tag.successful_attempts ?? tag.successfulAttempts ?? 0;
+    const totalAttempts = tag.total_attempts ?? tag.totalAttempts ?? 0;
+    const progress = totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0;
     const isFocus = tag.isFocus;
     const isUnmastered = !tag.mastered;
-    
+
     return (
       <Table.Tr
         key={tag.tag}
@@ -94,7 +100,7 @@ const createTableRows = (data, options, callbacks) => {
           </Group>
         </Table.Td>
         <Table.Td>
-          <Text size="sm">{tag.totalAttempts}</Text>
+          <Text size="sm">{totalAttempts}</Text>
         </Table.Td>
         <Table.Td>
           <Text size="sm">{progress}%</Text>
@@ -224,20 +230,24 @@ export default function MasteryDashboard(props) {
 
 
   const pieTitle = selectedTag ? `Mastery: ${selectedTag.tag}` : "Mastery Overview";
-  const focusFiltered = processTagData(data.masteryData || [], data.unmasteredTags || [], search, activeFocusFilter);
 
+  // Use allTagsData for Overall view (includes all known tags with placeholders for unattempted)
+  // Fall back to masteryData if allTagsData is empty
+  const allTagsSource = (data.allTagsData && data.allTagsData.length > 0) ? data.allTagsData : data.masteryData;
+  const allTagsFiltered = processTagData(allTagsSource || [], data.unmasteredTags || [], search, activeFocusFilter);
 
-
-  /* ---------- tier subset ---------- */
-  const tierOnly = focusFiltered.filter((t) =>
-    (data.tagsinTier || []).includes(t.tag)
-  );
+  // Use tierTagsData for Tier view (includes all tier tags with placeholders for unattempted)
+  // Fall back to masteryData filtered by tier if tierTagsData is empty
+  const tierTagsSource = (data.tierTagsData && data.tierTagsData.length > 0)
+    ? data.tierTagsData
+    : (data.masteryData || []).filter(t => (data.tagsinTier || []).includes(t.tag));
+  const tierTagsFiltered = processTagData(tierTagsSource || [], data.unmasteredTags || [], search, activeFocusFilter);
 
   return (
-    <Tabs defaultValue="overall" onChange={() => setCurrentPage(0)}>
+    <Tabs defaultValue="tier" onChange={() => setCurrentPage(0)}>
       <Tabs.List>
-        <Tabs.Tab value="overall">Overall Mastery</Tabs.Tab>
         <Tabs.Tab value="tier">Current Tier Mastery</Tabs.Tab>
+        <Tabs.Tab value="overall">Overall Mastery (All Tags)</Tabs.Tab>
         {selectedTag && (
           <Button
             ml="auto"
@@ -250,8 +260,8 @@ export default function MasteryDashboard(props) {
         )}
       </Tabs.List>
 
-      {/* Overall */}
-      <Tabs.Panel value="overall" pt="md">
+      {/* Tier - Show only current tier tags */}
+      <Tabs.Panel value="tier" pt="md">
         <Grid>
           <Grid.Col span={6}>
             <TimeGranularChartCard
@@ -259,15 +269,15 @@ export default function MasteryDashboard(props) {
               chartType="pie"
               useTimeGranularity={false}
               data={generatePieData(selectedTag, data.masteryData)}
-              dataKeys={[{ key: "value", color: "#a9c1ff" }]}
+              dataKeys={[{ key: "value", color: "#82ca9d" }]}
             />
           </Grid.Col>
           <Grid.Col span={6}>
-            <TagTable 
-              source={focusFiltered} 
-              searchable 
-              highlightUnmastered 
-              withFocusBar 
+            <TagTable
+              source={tierTagsFiltered}
+              searchable={false}
+              highlightUnmastered
+              withFocusBar
               data={data}
               activeFocusFilter={activeFocusFilter}
               setActiveFocusFilter={setActiveFocusFilter}
@@ -282,8 +292,8 @@ export default function MasteryDashboard(props) {
         </Grid>
       </Tabs.Panel>
 
-      {/* Tier */}
-      <Tabs.Panel value="tier" pt="md">
+      {/* Overall - Show all tags (with and without attempts) */}
+      <Tabs.Panel value="overall" pt="md">
         <Grid>
           <Grid.Col span={6}>
             <TimeGranularChartCard
@@ -291,15 +301,15 @@ export default function MasteryDashboard(props) {
               chartType="pie"
               useTimeGranularity={false}
               data={generatePieData(selectedTag, data.masteryData)}
-              dataKeys={[{ key: "value", color: "#82ca9d" }]}
+              dataKeys={[{ key: "value", color: "#a9c1ff" }]}
             />
           </Grid.Col>
           <Grid.Col span={6}>
-            <TagTable 
-              source={tierOnly} 
-              searchable={false} 
-              highlightUnmastered 
-              withFocusBar 
+            <TagTable
+              source={allTagsFiltered}
+              searchable
+              highlightUnmastered
+              withFocusBar
               data={data}
               activeFocusFilter={activeFocusFilter}
               setActiveFocusFilter={setActiveFocusFilter}
