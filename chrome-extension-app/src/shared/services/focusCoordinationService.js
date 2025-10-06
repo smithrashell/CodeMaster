@@ -187,11 +187,10 @@ export class FocusCoordinationService {
     const performance = this.getPerformanceMetrics(sessionState, totalProblemsAttempted);
     const isOnboarding = this.isOnboarding(sessionState);
 
-    // Get base system tags - use allTagsInCurrentTier for expansion pool
+    // Get intelligent focus tags (relationship-scored, sorted by learning priority)
+    // These 5 tags are the expansion pool - algorithm expands within this intelligent selection
     const intelligentFocusTags = (systemRec.focusTags && systemRec.focusTags.length > 0) ? systemRec.focusTags : ['array'];
-    const expansionPool = (systemRec.allTagsInCurrentTier && systemRec.allTagsInCurrentTier.length > 0)
-      ? systemRec.allTagsInCurrentTier
-      : intelligentFocusTags;
+    const expansionPool = intelligentFocusTags; // Expand within intelligent selection, not entire tier
 
     console.log('🔍 FocusCoordinationService.calculateAlgorithmDecision:', {
       intelligentFocusTags,
@@ -213,13 +212,8 @@ export class FocusCoordinationService {
     // Calculate optimal tag count based on performance (CORE ALGORITHM)
     const optimalTagCount = this.calculateOptimalTagCount(performance, escapeHatches);
 
-    // Use intelligent focus tags first, then expand from tier tags if needed
-    let algorithmTags = [...intelligentFocusTags];
-    if (algorithmTags.length < optimalTagCount) {
-      // Add more tags from expansion pool (current tier) to reach optimal count
-      const additionalTags = expansionPool.filter(tag => !algorithmTags.includes(tag));
-      algorithmTags = [...algorithmTags, ...additionalTags].slice(0, optimalTagCount);
-    }
+    // Select optimal number of tags from intelligent focus tags (already sorted by priority)
+    const algorithmTags = intelligentFocusTags.slice(0, optimalTagCount);
 
     // Apply escape hatch modifications if needed
     if (escapeHatches.sessionBased?.applicable) {

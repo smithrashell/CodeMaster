@@ -95,7 +95,9 @@ export const TierTagsVisualization = ({
   masteryData,
   onFocusAreasChange,
   selectedTier,
-  onTierChange
+  onTierChange,
+  activeTab,
+  onSelectedTierChange
 }) => {
   // Map tier numbers to names
   const getTierName = (tierNum) => {
@@ -110,8 +112,8 @@ export const TierTagsVisualization = ({
                          currentTier === 'Fundamental Technique' ? 'fundamental' :
                          currentTier === 'Advanced Technique' ? 'advanced' : 'core';
 
-  // Use selectedTier if provided, otherwise default to current tier
-  const activeTab = selectedTier || currentTierTab;
+  // Use activeTab from parent if provided, otherwise default to current tier
+  const currentActiveTab = activeTab || currentTierTab;
 
   // Get tier difficulty descriptions
   const getTierDescription = (tier) => {
@@ -175,7 +177,7 @@ export const TierTagsVisualization = ({
   // Helper to render clickable tag badge with appropriate styling
   const renderTagBadge = (tag, tierKey) => {
     const isSelected = selectedFocusAreas.includes(tag.name);
-    const isActiveTier = tierKey === activeTab;
+    const isActiveTier = tierKey === currentActiveTab;
     const canSelect = isActiveTier && selectedFocusAreas.length < 3;
 
     let color = 'gray';
@@ -191,6 +193,27 @@ export const TierTagsVisualization = ({
     }
 
     const handleClick = () => {
+      console.log('🔍 Tag clicked:', {
+        tag: tag.name,
+        tierKey,
+        selectedTier,
+        isSelected,
+        isDifferentTier: selectedTier && selectedTier !== tierKey
+      });
+
+      // If clicking a tag from a different tier with existing selections, clear and start fresh
+      if (selectedTier && selectedTier !== tierKey && !isSelected) {
+        console.log('🔍 Clearing previous tier selections and starting fresh');
+        // Clear previous selections and select this tag
+        onFocusAreasChange?.([tag.name]);
+        onSelectedTierChange?.(tierKey);
+        // Switch to this tier's tab if not already there
+        if (!isActiveTier) {
+          onTierChange?.(tierKey);
+        }
+        return;
+      }
+
       if (!isActiveTier) {
         // Clicking a tag from a different tier switches to that tier
         onTierChange?.(tierKey);
@@ -200,8 +223,16 @@ export const TierTagsVisualization = ({
       // Toggle selection if in active tier
       if (isSelected) {
         onFocusAreasChange?.(selectedFocusAreas.filter(t => t !== tag.name));
+        // If all tags deselected, clear the selected tier
+        if (selectedFocusAreas.length === 1) {
+          onSelectedTierChange?.(null);
+        }
       } else if (canSelect || selectedFocusAreas.length === 0) {
         onFocusAreasChange?.([...selectedFocusAreas, tag.name]);
+        // Set the selected tier when first tag is selected
+        if (selectedFocusAreas.length === 0) {
+          onSelectedTierChange?.(tierKey);
+        }
       }
     };
 
@@ -237,6 +268,18 @@ export const TierTagsVisualization = ({
     onTierChange?.(newTab);
   };
 
+  // Check if user is viewing a different tier than their selection
+  const hasSelection = selectedFocusAreas.length > 0;
+  const isViewingDifferentTier = hasSelection && selectedTier && currentActiveTab !== selectedTier;
+
+  console.log('🔍 TierTagsVisualization state:', {
+    hasSelection,
+    selectedTier,
+    currentActiveTab,
+    isViewingDifferentTier,
+    selectedFocusAreas
+  });
+
   return (
     <Card withBorder p="md">
       <Stack gap="sm">
@@ -245,7 +288,7 @@ export const TierTagsVisualization = ({
           <Text size="xs" c="dimmed">Click tags to select (max 3 per tier)</Text>
         </Group>
 
-        <Tabs value={activeTab} onChange={handleTabChange}>
+        <Tabs value={currentActiveTab} onChange={handleTabChange}>
           <Tabs.List>
             <Tabs.Tab value="core">
               {getTierDescription('core').icon} Core Concepts
@@ -263,6 +306,14 @@ export const TierTagsVisualization = ({
 
           <Tabs.Panel value="core" pt="md">
             <Stack gap="sm">
+              {isViewingDifferentTier && currentActiveTab === 'core' && (
+                <Alert color="yellow" variant="light">
+                  <Text size="xs">
+                    You have {selectedFocusAreas.length} tag(s) selected from <strong>{getTierDescription(selectedTier).title}</strong>.
+                    Selecting a tag here will clear your previous selection.
+                  </Text>
+                </Alert>
+              )}
               <Card withBorder p="xs" style={{ backgroundColor: 'var(--mantine-color-blue-0)' }}>
                 <Stack gap={4}>
                   <Text size="xs" fw={500}>{getTierDescription('core').subtitle}</Text>
@@ -282,6 +333,14 @@ export const TierTagsVisualization = ({
 
           <Tabs.Panel value="fundamental" pt="md">
             <Stack gap="sm">
+              {isViewingDifferentTier && currentActiveTab === 'fundamental' && (
+                <Alert color="yellow" variant="light">
+                  <Text size="xs">
+                    You have {selectedFocusAreas.length} tag(s) selected from <strong>{getTierDescription(selectedTier).title}</strong>.
+                    Selecting a tag here will clear your previous selection.
+                  </Text>
+                </Alert>
+              )}
               <Card withBorder p="xs" style={{ backgroundColor: 'var(--mantine-color-indigo-0)' }}>
                 <Stack gap={4}>
                   <Text size="xs" fw={500}>{getTierDescription('fundamental').subtitle}</Text>
@@ -301,6 +360,14 @@ export const TierTagsVisualization = ({
 
           <Tabs.Panel value="advanced" pt="md">
             <Stack gap="sm">
+              {isViewingDifferentTier && currentActiveTab === 'advanced' && (
+                <Alert color="yellow" variant="light">
+                  <Text size="xs">
+                    You have {selectedFocusAreas.length} tag(s) selected from <strong>{getTierDescription(selectedTier).title}</strong>.
+                    Selecting a tag here will clear your previous selection.
+                  </Text>
+                </Alert>
+              )}
               <Card withBorder p="xs" style={{ backgroundColor: 'var(--mantine-color-violet-0)' }}>
                 <Stack gap={4}>
                   <Text size="xs" fw={500}>{getTierDescription('advanced').subtitle}</Text>
@@ -319,12 +386,12 @@ export const TierTagsVisualization = ({
           </Tabs.Panel>
         </Tabs>
 
-        {selectedFocusAreas.length > 0 && (
+        {selectedFocusAreas.length > 0 && selectedTier && (
           <Alert color="blue" variant="light">
             <Stack gap={4}>
-              <Text size="xs" fw={500}>Selected: {selectedFocusAreas.length}/3 tags from {getTierDescription(activeTab).title}</Text>
+              <Text size="xs" fw={500}>Selected: {selectedFocusAreas.length}/3 tags from {getTierDescription(selectedTier).title}</Text>
               <Text size="xs">
-                Your sessions will focus on {selectedFocusAreas.join(', ')} with {getTierDescription(activeTab).difficulty.toLowerCase()}
+                Your sessions will focus on {selectedFocusAreas.join(', ')} with {getTierDescription(selectedTier).difficulty.toLowerCase()}
               </Text>
             </Stack>
           </Alert>

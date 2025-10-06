@@ -1,42 +1,45 @@
-import { tagRelationships } from '../components/learning/TagRelationships.js';
-
 export class SVGRenderService {
-  static renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, visibleTags = null, setHoveredConnection = null) {
+  static renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, visibleTags = null, dynamicTagRelationships = {}, setHoveredConnection = null) {
+    console.log('🎨 SVGRenderService.renderConnections called:', {
+      relationshipCount: Object.keys(dynamicTagRelationships).length,
+      visibleTagCount: visibleTags?.length || 0,
+      sampleRelationship: Object.keys(dynamicTagRelationships)[0]
+    });
+
     // If visibleTags is provided, create a Set for fast lookup
     const visibleTagSet = visibleTags ? new Set(visibleTags.map(node => node.tag)) : null;
 
-    Object.entries(tagRelationships).forEach(([_tag, data]) => {
-      // Skip if source tag is not in visible tags
-      if (visibleTagSet && !visibleTagSet.has(_tag)) return;
+    // Use dynamic tag relationships (co-occurrence from attempts)
+    // Format: { "tag1:tag2": { tag1, tag2, strength, problems, successRate, successCount } }
+    Object.entries(dynamicTagRelationships).forEach(([key, connectionData]) => {
+      const { tag1, tag2, strength, successRate, problems } = connectionData;
 
-      data.unlocks.forEach(unlockData => {
-        const unlockedTag = typeof unlockData === 'string' ? unlockData : unlockData.tag;
+      // Skip if either tag is not in visible tags
+      if (visibleTagSet && (!visibleTagSet.has(tag1) || !visibleTagSet.has(tag2))) return;
 
-        // Skip if target tag is not in visible tags
-        if (visibleTagSet && !visibleTagSet.has(unlockedTag)) return;
+      const fromPos = nodePositions[tag1];
+      const toPos = nodePositions[tag2];
 
-        const connectionWeight = typeof unlockData === 'object' ? unlockData.weight : 70;
-        const connectionDescription = typeof unlockData === 'object' ? unlockData.description : '';
+      if (fromPos && toPos) {
+        const connectionId = `${tag1}<->${tag2}`;
+        const isHovered = hoveredConnection === connectionId;
 
-        const fromPos = nodePositions[_tag] || data.position;
-        const toPos = nodePositions[unlockedTag] || tagRelationships[unlockedTag]?.position;
+        // Use strength (number of problems) to determine weight (convert to 0-100 scale)
+        // Map strength: 1-2 problems = weak, 3-5 = medium, 6+ = strong
+        const normalizedWeight = Math.min(100, (strength / 10) * 100);
 
-        if (fromPos && toPos) {
-          const connectionId = `${_tag}->${unlockedTag}`;
-          const isHovered = hoveredConnection === connectionId;
+        const connectionGroup = this.createConnectionGroup(fromPos, toPos, {
+          weight: normalizedWeight,
+          isHovered,
+          connectionId,
+          isDarkMode,
+          description: `${strength} problem${strength > 1 ? 's' : ''} | ${successRate}% success`,
+          setHoveredConnection,
+          connectionData // Pass full data for tooltip
+        });
 
-          const connectionGroup = this.createConnectionGroup(fromPos, toPos, {
-            weight: connectionWeight,
-            isHovered,
-            connectionId,
-            isDarkMode,
-            description: connectionDescription,
-            setHoveredConnection
-          });
-
-          svg.appendChild(connectionGroup);
-        }
-      });
+        svg.appendChild(connectionGroup);
+      }
     });
   }
 

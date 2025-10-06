@@ -30,7 +30,7 @@ const normalizeData = (data) => ({
 });
 
 // Helper functions (support both snake_case and PascalCase)
-const generatePieData = (selectedTag, masteryData) => {
+const generatePieData = (selectedTag, masteryData, currentTab) => {
   if (selectedTag) {
     const successfulAttempts = selectedTag.successful_attempts ?? selectedTag.successfulAttempts ?? 0;
     const totalAttempts = selectedTag.total_attempts ?? selectedTag.totalAttempts ?? 0;
@@ -40,8 +40,10 @@ const generatePieData = (selectedTag, masteryData) => {
     ];
   }
 
-  const mastered = masteryData.filter(tag => tag.mastered).length;
-  const unmastered = masteryData.length - mastered;
+  // Filter data based on current tab context if provided
+  const dataToUse = masteryData || [];
+  const mastered = dataToUse.filter(tag => tag.mastered).length;
+  const unmastered = dataToUse.length - mastered;
   return [
     { name: "Mastered", value: mastered },
     { name: "Learning", value: unmastered }
@@ -56,7 +58,7 @@ const paginateData = (arr, currentPage, pageSize) => {
 const processTagData = (masteryData, unmasteredTags, search, activeFocusFilter) => {
   return masteryData
     .filter((tag) => {
-      if (search && !tag.tag.toLowerCase().includes(search.toLowerCase())) return false;
+      if (search && tag.tag && !tag.tag.toLowerCase().includes(search.toLowerCase())) return false;
       if (activeFocusFilter && tag.tag !== activeFocusFilter) return false;
       return true;
     })
@@ -86,7 +88,6 @@ const createTableRows = (data, options, callbacks) => {
         key={tag.tag}
         onClick={() => setSelectedTag(tag)}
         style={{
-          backgroundColor: highlightUnmastered && isUnmastered ? "var(--mantine-color-red-0)" : undefined,
           cursor: "pointer"
         }}
       >
@@ -96,7 +97,7 @@ const createTableRows = (data, options, callbacks) => {
               {tag.tag}
             </Text>
             {isFocus && <Badge size="xs" color="cyan">focus</Badge>}
-            {isUnmastered && <Badge size="xs" color="orange">learning</Badge>}
+            {isUnmastered && totalAttempts > 0 && <Badge size="xs" color="orange">learning</Badge>}
           </Group>
         </Table.Td>
         <Table.Td>
@@ -212,6 +213,7 @@ export default function MasteryDashboard(props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [activeFocusFilter, setActiveFocusFilter] = useState(null); // chip filter
+  const [activeTab, setActiveTab] = useState("tier"); // Track active tab
   const pageSize = 10;
 
   useEffect(() => {
@@ -229,7 +231,11 @@ export default function MasteryDashboard(props) {
   }
 
 
-  const pieTitle = selectedTag ? `Mastery: ${selectedTag.tag}` : "Mastery Overview";
+  // Dynamic pie chart title based on active tab and selection
+  const getPieTitle = (tab) => {
+    if (selectedTag) return `Mastery: ${selectedTag.tag}`;
+    return tab === "tier" ? "Current Tier Mastery Overview" : "Overall Mastery Overview";
+  };
 
   // Use allTagsData for Overall view (includes all known tags with placeholders for unattempted)
   // Fall back to masteryData if allTagsData is empty
@@ -244,7 +250,7 @@ export default function MasteryDashboard(props) {
   const tierTagsFiltered = processTagData(tierTagsSource || [], data.unmasteredTags || [], search, activeFocusFilter);
 
   return (
-    <Tabs defaultValue="tier" onChange={() => setCurrentPage(0)}>
+    <Tabs defaultValue="tier" onChange={(value) => { setCurrentPage(0); setActiveTab(value); }}>
       <Tabs.List>
         <Tabs.Tab value="tier">Current Tier Mastery</Tabs.Tab>
         <Tabs.Tab value="overall">Overall Mastery (All Tags)</Tabs.Tab>
@@ -265,10 +271,10 @@ export default function MasteryDashboard(props) {
         <Grid>
           <Grid.Col span={6}>
             <TimeGranularChartCard
-              title={pieTitle}
+              title={getPieTitle("tier")}
               chartType="pie"
               useTimeGranularity={false}
-              data={generatePieData(selectedTag, data.masteryData)}
+              data={generatePieData(selectedTag, tierTagsFiltered, "tier")}
               dataKeys={[{ key: "value", color: "#82ca9d" }]}
             />
           </Grid.Col>
@@ -276,7 +282,7 @@ export default function MasteryDashboard(props) {
             <TagTable
               source={tierTagsFiltered}
               searchable={false}
-              highlightUnmastered
+              highlightUnmastered={false}
               withFocusBar
               data={data}
               activeFocusFilter={activeFocusFilter}
@@ -297,10 +303,10 @@ export default function MasteryDashboard(props) {
         <Grid>
           <Grid.Col span={6}>
             <TimeGranularChartCard
-              title={pieTitle}
+              title={getPieTitle("overall")}
               chartType="pie"
               useTimeGranularity={false}
-              data={generatePieData(selectedTag, data.masteryData)}
+              data={generatePieData(selectedTag, allTagsFiltered, "overall")}
               dataKeys={[{ key: "value", color: "#a9c1ff" }]}
             />
           </Grid.Col>
