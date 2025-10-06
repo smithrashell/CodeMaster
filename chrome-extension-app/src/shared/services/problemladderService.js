@@ -72,7 +72,7 @@ export async function initializePatternLaddersForOnboarding() {
 
     const ladder = buildLadder({
       validProblems,
-      problemCounts: entry.problemCounts || {},
+      problemCounts: entry.difficulty_distribution || {},
       userProblemMap,
       relationshipMap,
       ladderSize,
@@ -274,7 +274,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
 
     const ladder = buildLadder({
       validProblems,
-      problemCounts: entry.problemCounts || {},
+      problemCounts: entry.difficulty_distribution || {},
       userProblemMap,
       relationshipMap,
       ladderSize,
