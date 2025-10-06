@@ -367,6 +367,8 @@ async function _handleGraduation(masteredTags, tierTags, masteryData, db, master
 
 // Helper function to sort and select focus tags
 function sortAndSelectFocusTags(unmasteredTags) {
+  console.log('🔍 TAG SORTING DEBUG: Sorting', unmasteredTags.length, 'candidate tags');
+
   // Sort by intelligent criteria optimized for pattern recognition learning
   const sortedTags = unmasteredTags.sort((a, b) => {
     // Primary: Relationship score (pattern recognition - build interconnected knowledge)
@@ -395,6 +397,13 @@ function sortAndSelectFocusTags(unmasteredTags) {
     return (b.totalProblems || 0) - (a.totalProblems || 0);
   });
 
+  console.log('🔍 TAG SORTING DEBUG: Top 10 sorted tags:', sortedTags.slice(0, 10).map(t => ({
+    tag: t.tag,
+    relationshipScore: t.relationshipScore,
+    attempts: t.total_attempts,
+    totalProblems: t.totalProblems
+  })));
+
   // Select top focus tags with strategic distribution
   const focusTags = [];
   const maxFocusTags = 5; // Allow up to 5 tags for intelligent focus selection
@@ -413,6 +422,8 @@ function sortAndSelectFocusTags(unmasteredTags) {
   }
 
   const selectedTags = focusTags.map((tag) => tag.tag);
+
+  console.log('🔍 TAG SORTING DEBUG: Final selected tags after diversity filter:', selectedTags);
 
   // 🛡️ SAFETY NET: Never return empty focus tags
   if (selectedTags.length === 0) {
@@ -454,10 +465,28 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   // Process attempted tags (those already in tag_mastery)
   const attemptedTags = processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds, tagRelationshipsData);
 
+  console.log('🔍 TAG SELECTION DEBUG: Attempted tags from tag_mastery:', attemptedTags.map(t => ({
+    tag: t.tag,
+    attempts: t.total_attempts,
+    successRate: t.successRate,
+    mastered: t.mastered,
+    relationshipScore: t.relationshipScore,
+    totalProblems: t.totalProblems
+  })));
+
   // Split attempted tags into mastered and unmastered
+  // Use actual 'mastered' field from database which considers volume + uniqueness + accuracy gates
   const unmasteredAttemptedTags = attemptedTags.filter(
-    (tag) => tag.successRate < tag.adjustedMasteryThreshold
+    (tag) => !tag.mastered
   );
+
+  console.log('🔍 TAG SELECTION DEBUG: Unmastered attempted tags (mastered field = false):', unmasteredAttemptedTags.map(t => ({
+    tag: t.tag,
+    mastered: t.mastered,
+    attempts: t.total_attempts,
+    successRate: t.successRate,
+    relationshipScore: t.relationshipScore
+  })));
 
   // ✨ NEW: Add unattempted tags from tier (organic discovery)
   // These tags aren't in tag_mastery yet but should be considered for selection
@@ -492,8 +521,23 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
     };
   });
 
+  console.log('🔍 TAG SELECTION DEBUG: Unattempted tags enriched with relationship scores:',
+    unattemptedTagsEnriched.slice(0, 10).map(t => ({
+      tag: t.tag,
+      relationshipScore: t.relationshipScore,
+      totalProblems: t.totalProblems
+    }))
+  );
+  console.log(`🔍 TAG SELECTION DEBUG: Total unattempted tags: ${unattemptedTagsEnriched.length}`);
+
   // Combine attempted and unattempted tags for unified selection
   const allCandidateTags = [...unmasteredAttemptedTags, ...unattemptedTagsEnriched];
+
+  console.log('🔍 TAG SELECTION DEBUG: Combined candidate tags for sorting:', {
+    unmasteredAttempted: unmasteredAttemptedTags.length,
+    unattempted: unattemptedTagsEnriched.length,
+    total: allCandidateTags.length
+  });
 
   const selectedTags = sortAndSelectFocusTags(allCandidateTags);
   logger.info("🧠 Selected intelligent focus tags:", selectedTags);
