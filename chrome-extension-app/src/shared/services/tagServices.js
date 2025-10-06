@@ -289,7 +289,7 @@ function applyTimeBasedEscapeHatch(tag, baseMasteryThreshold = 0.8) {
 }
 
 // Helper function to process and enrich tag data
-function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds) {
+function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds, tagRelationshipsData) {
   return masteryData
     .filter((tag) => tierTags.includes(tag.tag) && tag.total_attempts > 0)
     .map((tag) => {
@@ -299,6 +299,11 @@ function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryTh
       const baseMasteryThreshold = masteryThresholds[tag.tag] || 0.8;
       const { adjustedMasteryThreshold, timeBasedEscapeHatch } = applyTimeBasedEscapeHatch(tag, baseMasteryThreshold);
 
+      // Get problem count from tag_relationships for coverage-based tiebreaking
+      const tagRelationship = tagRelationshipsData.find(tr => tr.id === tag.tag);
+      const dist = tagRelationship?.difficulty_distribution || { easy: 0, medium: 0, hard: 0 };
+      const totalProblems = dist.easy + dist.medium + dist.hard;
+
       return {
         ...tag,
         successRate,
@@ -306,6 +311,7 @@ function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryTh
         timeBasedEscapeHatch,
         learningVelocity: calculateLearningVelocity(tag),
         relationshipScore: calculateRelationshipScore(tag.tag, masteryData, tagRelationships, masteryThresholds),
+        totalProblems, // Add problem count for tiebreaking
       };
     });
 }
@@ -380,7 +386,13 @@ function sortAndSelectFocusTags(unmasteredTags) {
     // Tertiary: Optimal learning score (learning opportunity within established patterns)
     const aOptimalLearning = getOptimalLearningScore(a.successRate, a.total_attempts);
     const bOptimalLearning = getOptimalLearningScore(b.successRate, b.total_attempts);
-    return bOptimalLearning - aOptimalLearning;
+    if (Math.abs(aOptimalLearning - bOptimalLearning) > 0.05) {
+      return bOptimalLearning - aOptimalLearning;
+    }
+
+    // Quaternary: Problem count (coverage - more problems = more practice variety)
+    // When all else is equal, prefer tags with more problem coverage
+    return (b.totalProblems || 0) - (a.totalProblems || 0);
   });
 
   // Select top focus tags with strategic distribution
@@ -440,7 +452,7 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   }, {});
 
   // Process attempted tags (those already in tag_mastery)
-  const attemptedTags = processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds);
+  const attemptedTags = processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds, tagRelationshipsData);
 
   // Split attempted tags into mastered and unmastered
   const unmasteredAttemptedTags = attemptedTags.filter(
@@ -462,6 +474,11 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
       masteryThresholds
     );
 
+    // Get problem count from tag_relationships for coverage-based tiebreaking
+    const tagRelationship = tagRelationshipsData.find(tr => tr.id === tagName);
+    const dist = tagRelationship?.difficulty_distribution || { easy: 0, medium: 0, hard: 0 };
+    const totalProblems = dist.easy + dist.medium + dist.hard;
+
     return {
       tag: tagName,
       total_attempts: 0,
@@ -470,7 +487,8 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
       adjustedMasteryThreshold: masteryThresholds[tagName] || 0.8,
       timeBasedEscapeHatch: false,
       learningVelocity: 0.5, // Neutral velocity for new tags
-      relationshipScore: relationshipScore
+      relationshipScore: relationshipScore,
+      totalProblems // Add problem count for tiebreaking
     };
   });
 
