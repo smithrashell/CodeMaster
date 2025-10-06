@@ -1,21 +1,27 @@
 import { useEffect } from 'react';
-import { tagRelationships } from './TagRelationships.js';
+import { calculateForceDirectedLayout } from './forceDirectedLayout.js';
 
 /**
  * Custom hooks for managing theme detection and node positioning effects
  */
 
 /**
- * Initialize node positions with tag relationships data
+ * Initialize node positions using force-directed layout based on dynamic tag relationships
  */
-export function useNodePositionInitialization(setNodePositions) {
+export function useNodePositionInitialization(setNodePositions, pathData, dynamicTagRelationships) {
   useEffect(() => {
-    const positions = {};
-    Object.entries(tagRelationships).forEach(([tag, data]) => {
-      positions[tag] = { ...data.position };
+    if (!pathData || pathData.length === 0) {
+      return;
+    }
+
+    console.log('🎨 Initializing node positions with force-directed layout:', {
+      pathDataCount: pathData.length,
+      relationshipCount: Object.keys(dynamicTagRelationships || {}).length
     });
+
+    const positions = calculateForceDirectedLayout(pathData, dynamicTagRelationships);
     setNodePositions(positions);
-  }, [setNodePositions]);
+  }, [setNodePositions, pathData, dynamicTagRelationships]);
 }
 
 /**

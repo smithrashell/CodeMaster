@@ -7,7 +7,7 @@ import { useSVGRenderer } from './useSVGRenderer.js';
 import { HoverTooltip } from './HoverTooltip.jsx';
 
 // LearningPathVisualization Component - Interactive Network Learning Path with Pan/Zoom/Drag
-export function LearningPathVisualization({ pathData, onNodeClick }) {
+export function LearningPathVisualization({ pathData, tagRelationships, onNodeClick }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -27,7 +27,7 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
   } = useLearningPathState();
 
   // Initialize node positions and handle theme detection
-  useNodePositionInitialization(setNodePositions);
+  useNodePositionInitialization(setNodePositions, pathData, tagRelationships);
   useThemeDetection(setIsDarkMode);
 
   // Event handlers for mouse interactions and zoom controls
@@ -64,6 +64,7 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
   // Handle SVG rendering
   useSVGRenderer({
     pathData,
+    tagRelationships,
     onNodeClick,
     nodePositions,
     viewBox,
@@ -108,6 +109,7 @@ export function LearningPathVisualization({ pathData, onNodeClick }) {
         hoveredNode={hoveredNode}
         hoveredConnection={hoveredConnection}
         pathData={pathData}
+        tagRelationships={tagRelationships}
         isDarkMode={isDarkMode}
       />
     </div>
