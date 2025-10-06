@@ -77,10 +77,16 @@ async function fetchDashboardData() {
  * Create mappings from standard problems to user problems for dashboard
  */
 function createDashboardProblemMappings(allProblems, allStandardProblems) {
+  console.log('🏗️ createDashboardProblemMappings called:', {
+    allProblemsCount: allProblems?.length || 0,
+    allStandardProblemsCount: allStandardProblems?.length || 0,
+    sampleStandardProblem: allStandardProblems?.[0]
+  });
+
   const problemDifficultyMap = {};
   const problemTagsMap = new Map();
   const standardProblemsMap = {};
-  
+
   allStandardProblems.forEach((standardProblem) => {
     standardProblemsMap[standardProblem.id] = standardProblem;
   });
@@ -316,7 +322,7 @@ function constructDashboardData({
   // Core metrics
   statistics, averageTime, successRate, timeAccuracy,
   // Progress metrics
-  timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage, 
+  timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
   nextReviewTime, nextReviewCount,
   // Analytics data
   sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
@@ -324,6 +330,8 @@ function constructDashboardData({
   filteredProblems, filteredAttempts, filteredSessions,
   // Original data and state
   allProblems, allAttempts, allSessions, learningState, boxLevelData,
+  // Problem mappings
+  standardProblemsMap,
   // Filter options
   focusAreaFilter, dateRange
 }) {
@@ -336,7 +344,7 @@ function constructDashboardData({
     hintsUsed,
     timeAccuracy,
     learningEfficiencyData,
-    
+
     // Flattened progress properties for Progress component
     boxLevelData: boxLevelData || {},
     timerBehavior,
@@ -349,6 +357,9 @@ function constructDashboardData({
     allAttempts: filteredAttempts || [],
     allProblems: filteredProblems || [],
     learningState: learningState || {},
+
+    // Problem mappings for tag relationships
+    standardProblemsMap: standardProblemsMap || {},
     
     // Keep nested structure for components that might still need it
     nested: {
@@ -416,7 +427,7 @@ export async function getDashboardStatistics(options = {}) {
     const { focusAreaFilter = null, dateRange = null } = options;
     
     const { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData } = await fetchDashboardData();
-    const { problemDifficultyMap, problemTagsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
+    const { problemDifficultyMap, problemTagsMap, standardProblemsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
 
     // Apply filtering based on focus areas and date range
     const { filteredProblems, filteredAttempts, filteredSessions } = applyFiltering({
@@ -454,7 +465,7 @@ export async function getDashboardStatistics(options = {}) {
       // Core metrics
       statistics, averageTime, successRate, timeAccuracy,
       // Progress metrics
-      timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage, 
+      timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
       nextReviewTime, nextReviewCount,
       // Analytics data
       sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
@@ -462,6 +473,8 @@ export async function getDashboardStatistics(options = {}) {
       filteredProblems, filteredAttempts, filteredSessions,
       // Original data and state
       allProblems, allAttempts, allSessions, learningState, boxLevelData,
+      // Problem mappings
+      standardProblemsMap,
       // Filter options
       focusAreaFilter, dateRange
     });
@@ -774,6 +787,104 @@ export function generateSessionAnalytics(sessions, attempts) {
 }
 
 /**
+ * Build dynamic tag relationships from actual attempt history
+ * Shows which tags appear together in problems the user has attempted
+ */
+function buildDynamicTagRelationships(attempts, problems) {
+  const tagCoOccurrence = new Map(); // Map of "tag1:tag2" -> { strength, problems, successCount }
+  // Map by leetcode_id since that's what attempts use
+  const problemMap = new Map(problems.map(p => [p.leetcode_id || p.id, p]));
+
+  console.log('🔨 buildDynamicTagRelationships:', {
+    attemptsCount: attempts.length,
+    problemsCount: problems.length,
+    sampleProblem: problems[0],
+    sampleAttempt: attempts[0]
+  });
+
+  let skipped = 0;
+  let processed = 0;
+
+  attempts.forEach(attempt => {
+    // Try multiple field names for problem ID
+    const problemId = attempt.leetcode_id || attempt.ProblemID || attempt.problem_id;
+    const problem = problemMap.get(problemId);
+
+    if (!problem) {
+      console.log('⚠️ No problem found for attempt:', { problemId, attempt });
+      skipped++;
+      return;
+    }
+
+    const tags = problem.tags;
+    if (!tags) {
+      console.log('⚠️ Problem has no tags:', problem);
+      skipped++;
+      return;
+    }
+    if (tags.length < 2) {
+      console.log('⚠️ Problem has only 1 tag:', tags, 'problem:', problem.id || problem.leetcode_id);
+      skipped++;
+      return;
+    }
+
+    processed++;
+    const success = attempt.success;
+
+    // Create connections between all tag pairs in this problem
+    for (let i = 0; i < tags.length; i++) {
+      for (let j = i + 1; j < tags.length; j++) {
+        const tag1 = tags[i].toLowerCase();
+        const tag2 = tags[j].toLowerCase();
+        const key = tag1 < tag2 ? `${tag1}:${tag2}` : `${tag2}:${tag1}`;
+
+        if (!tagCoOccurrence.has(key)) {
+          tagCoOccurrence.set(key, {
+            tag1: tag1 < tag2 ? tag1 : tag2,
+            tag2: tag1 < tag2 ? tag2 : tag1,
+            strength: 0,
+            problems: [],
+            successCount: 0
+          });
+        }
+
+        const connection = tagCoOccurrence.get(key);
+        connection.strength++;
+        if (success) connection.successCount++;
+
+        // Only keep top 3 problems for tooltip
+        if (connection.problems.length < 3) {
+          connection.problems.push({
+            id: problem.id,
+            title: problem.title || `Problem ${problem.id}`,
+            success: success,
+            difficulty: problem.difficulty
+          });
+        }
+      }
+    }
+  });
+
+  // Convert to object with success rates
+  const relationships = {};
+  tagCoOccurrence.forEach((data, key) => {
+    relationships[key] = {
+      ...data,
+      successRate: data.strength > 0 ? Math.round((data.successCount / data.strength) * 100) : 0
+    };
+  });
+
+  console.log('✅ buildDynamicTagRelationships complete:', {
+    processed,
+    skipped,
+    relationshipsCreated: Object.keys(relationships).length,
+    sampleRelationship: Object.keys(relationships)[0] ? relationships[Object.keys(relationships)[0]] : null
+  });
+
+  return relationships;
+}
+
+/**
  * Generate enhanced mastery data with focus areas integration
  */
 export async function generateMasteryData(learningState) {
@@ -803,7 +914,8 @@ export async function generateMasteryData(learningState) {
     // Get all tags from tag_relationships for comprehensive display
     // This runs in background context so we CAN access IndexedDB
     const allTagRelationships = await getTagRelationships();
-    const allKnownTags = Object.values(allTagRelationships).map(rel => rel.primary_tag || rel.tag);
+    // getTagRelationships returns an object where keys are tag IDs
+    const allKnownTags = Object.keys(allTagRelationships);
 
     // Create map of tags with mastery data
     const masteryMap = new Map(enhancedMasteryData.map(m => [m.tag, m]));
@@ -1903,16 +2015,50 @@ export async function getTagMasteryData(options = {}) {
 export async function getLearningPathData(options = {}) {
   try {
     const fullData = await getDashboardStatistics(options);
-    
-    return fullData.mastery || {
-      currentTier: "Core Concept",
-      masteredTags: [],
-      allTagsInCurrentTier: [],
-      focusTags: [],
-      tagsinTier: [],
-      unmasteredTags: [],
-      masteryData: [],
-      learningState: {}
+
+    console.log('🔍 DEBUG standardProblemsMap:', {
+      hasMap: !!fullData.standardProblemsMap,
+      mapType: typeof fullData.standardProblemsMap,
+      keys: fullData.standardProblemsMap ? Object.keys(fullData.standardProblemsMap).slice(0, 10) : [],
+      firstValue: fullData.standardProblemsMap ? fullData.standardProblemsMap[Object.keys(fullData.standardProblemsMap)[0]] : null
+    });
+
+    // Convert standardProblemsMap object to array
+    const standardProblemsArray = fullData.standardProblemsMap
+      ? Object.values(fullData.standardProblemsMap)
+      : [];
+
+    console.log('📊 getLearningPathData - fullData:', {
+      attemptsCount: fullData.allAttempts?.length || 0,
+      problemsCount: fullData.allProblems?.length || 0,
+      standardProblemsCount: standardProblemsArray.length
+    });
+
+    // Build dynamic tag relationships from actual attempts
+    // Use standard_problems which have Tags, not user problems
+    const tagRelationships = buildDynamicTagRelationships(
+      fullData.allAttempts || [],
+      standardProblemsArray
+    );
+
+    console.log('🔗 Dynamic tag relationships built:', {
+      relationshipCount: Object.keys(tagRelationships).length,
+      sampleKeys: Object.keys(tagRelationships).slice(0, 5),
+      sample: Object.keys(tagRelationships).length > 0 ? tagRelationships[Object.keys(tagRelationships)[0]] : null
+    });
+
+    return {
+      ...(fullData.mastery || {
+        currentTier: "Core Concept",
+        masteredTags: [],
+        allTagsInCurrentTier: [],
+        focusTags: [],
+        tagsinTier: [],
+        unmasteredTags: [],
+        masteryData: [],
+        learningState: {}
+      }),
+      tagRelationships // Add dynamic relationships
     };
   } catch (error) {
     logger.error("Error getting learning path data:", error);

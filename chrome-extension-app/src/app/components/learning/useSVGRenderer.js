@@ -6,6 +6,7 @@ import { SVGRenderService } from '../../services/svgRenderService.js';
  */
 export function useSVGRenderer({
   pathData,
+  tagRelationships,
   onNodeClick,
   nodePositions,
   viewBox,
@@ -27,7 +28,7 @@ export function useSVGRenderer({
     svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
 
     // Render connections first (so they appear behind nodes) - only between visible tags
-    SVGRenderService.renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, pathData, setHoveredConnection);
+    SVGRenderService.renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, pathData, tagRelationships, setHoveredConnection);
 
     // Render nodes
     SVGRenderService.renderNodes(svg, pathData, {
@@ -38,5 +39,5 @@ export function useSVGRenderer({
       isDarkMode
     });
 
-  }, [pathData, onNodeClick, nodePositions, viewBox, hoveredNode, setHoveredNode, draggedNode, hoveredConnection, setHoveredConnection, isDragging, isNodesLocked, isDarkMode, svgRef]);
+  }, [pathData, tagRelationships, onNodeClick, nodePositions, viewBox, hoveredNode, setHoveredNode, draggedNode, hoveredConnection, setHoveredConnection, isDragging, isNodesLocked, isDarkMode, svgRef]);
 }
