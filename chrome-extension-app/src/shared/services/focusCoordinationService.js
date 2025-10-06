@@ -11,6 +11,7 @@
 import { TagService } from './tagServices.js';
 import { StorageService } from './storageService.js';
 import { detectApplicableEscapeHatches} from '../utils/escapeHatchUtils.js';
+import { getAllFromStore } from '../db/common.js';
 
 /**
  * Configuration constants for focus coordination
@@ -68,7 +69,7 @@ export class FocusCoordinationService {
       }
       
       // STEP 4: Calculate algorithm decision (core logic)
-      const algorithmDecision = this.calculateAlgorithmDecision(
+      const algorithmDecision = await this.calculateAlgorithmDecision(
         inputs.systemRecommendation,
         inputs.sessionState,
         escapeHatches
@@ -136,6 +137,12 @@ export class FocusCoordinationService {
     const userPreferences = userPrefsData.focusAreas;
     const selectedTier = userPrefsData.selectedTier;
 
+    console.log('🔍 FocusCoordinationService.gatherSystemInputs:', {
+      sessionStatePerformance: sessionState?.last_performance,
+      systemRecommendationFocusTags: systemRecommendation.focusTags,
+      allTagsInCurrentTier: systemRecommendation.allTagsInCurrentTier?.length
+    });
+
     return {
       systemRecommendation,
       userPreferences,
@@ -167,8 +174,17 @@ export class FocusCoordinationService {
    * @param {Object} escapeHatches - Escape hatch results
    * @returns {Object} Algorithm decision
    */
-  static calculateAlgorithmDecision(systemRec, sessionState, escapeHatches) {
-    const performance = this.getPerformanceMetrics(sessionState);
+  static async calculateAlgorithmDecision(systemRec, sessionState, escapeHatches) {
+    // Get total problems attempted for volume-based gating
+    let totalProblemsAttempted = 0;
+    try {
+      const allProblems = await getAllFromStore('problems');
+      totalProblemsAttempted = allProblems?.length || 0;
+    } catch (error) {
+      console.warn('Failed to fetch total problems, defaulting to 0:', error);
+    }
+
+    const performance = this.getPerformanceMetrics(sessionState, totalProblemsAttempted);
     const isOnboarding = this.isOnboarding(sessionState);
 
     // Get base system tags - use allTagsInCurrentTier for expansion pool
@@ -176,6 +192,13 @@ export class FocusCoordinationService {
     const expansionPool = (systemRec.allTagsInCurrentTier && systemRec.allTagsInCurrentTier.length > 0)
       ? systemRec.allTagsInCurrentTier
       : intelligentFocusTags;
+
+    console.log('🔍 FocusCoordinationService.calculateAlgorithmDecision:', {
+      intelligentFocusTags,
+      expansionPoolSize: expansionPool.length,
+      performance,
+      isOnboarding
+    });
 
     // Apply onboarding restrictions (CORE ALGORITHM)
     if (isOnboarding) {
@@ -197,18 +220,24 @@ export class FocusCoordinationService {
       const additionalTags = expansionPool.filter(tag => !algorithmTags.includes(tag));
       algorithmTags = [...algorithmTags, ...additionalTags].slice(0, optimalTagCount);
     }
-    
+
     // Apply escape hatch modifications if needed
     if (escapeHatches.sessionBased?.applicable) {
       // Session-based escape hatch might affect difficulty progression
       // but doesn't change tag selection - handled in session generation
     }
-    
+
+    console.log('🔍 FocusCoordinationService algorithm result:', {
+      optimalTagCount,
+      algorithmTags,
+      reasoning: `Performance-based: ${optimalTagCount} tags optimal for current skill level`
+    });
+
     return {
       tags: algorithmTags,
       reasoning: `Performance-based: ${optimalTagCount} tags optimal for current skill level`,
       performanceLevel: performance.level,
-      availableTags: systemTags
+      availableTags: expansionPool
     };
   }
   
@@ -219,16 +248,21 @@ export class FocusCoordinationService {
    * @returns {number} Optimal tag count
    */
   static calculateOptimalTagCount(performance, _escapeHatches) {
-    const { accuracy, efficiency } = performance;
+    const { accuracy, efficiency, totalProblemsAttempted } = performance;
 
-    // Adaptive tag count based on performance bands
+    // Adaptive tag count based on performance bands + volume gating
     // Performance bands (most restrictive first):
     // < 40%: 1 tag (struggling significantly - need deep focus)
     // 40-60%: 1-2 tags (struggling - reduce cognitive load)
     // 60-75%: 2 tags (developing - moderate challenge)
     // 75-80%: 2-3 tags (good - expanding capability)
-    // 80%+: 3-4 tags (excellent - ready for complexity)
+    // 80%+: 2-4 tags (excellent - volume-gated expansion)
     // 14+ days stagnation: 4 tags (force variety to break plateau)
+
+    // VOLUME GATING: Require minimum problems before expanding
+    if (totalProblemsAttempted < 4) {
+      return 1;  // Stay at 1 tag until 4+ problems attempted
+    }
 
     let tagCount = 1;
     const hasStagnation = performance.daysSinceProgress >= FOCUS_CONFIG.performance.expansion.stagnationDays;
@@ -237,13 +271,23 @@ export class FocusCoordinationService {
     if (hasStagnation) {
       tagCount = Math.min(4, FOCUS_CONFIG.limits.totalTags);
     }
-    // Excellent performance - ready for full complexity
+    // Excellent performance - volume-gated expansion
     else if (accuracy >= FOCUS_CONFIG.performance.expansion.excellentThreshold) {
-      tagCount = Math.min(4, FOCUS_CONFIG.limits.totalTags);
+      if (totalProblemsAttempted >= 20) {
+        tagCount = 4;  // 20+ problems → 4 tags
+      } else if (totalProblemsAttempted >= 10) {
+        tagCount = 3;  // 10-19 problems → 3 tags
+      } else {
+        tagCount = 2;  // 4-9 problems → 2 tags
+      }
     }
-    // Good performance - moderate expansion
+    // Good performance - moderate expansion with volume gating
     else if (accuracy >= FOCUS_CONFIG.performance.expansion.goodThreshold) {
-      tagCount = accuracy >= 0.78 ? 3 : 2; // 78%+ gets 3 tags, 75-78% gets 2 tags
+      if (totalProblemsAttempted >= 10) {
+        tagCount = accuracy >= 0.78 ? 3 : 2;
+      } else {
+        tagCount = 2;  // 4-9 problems → 2 tags max
+      }
     }
     // Developing (60-75%) - stay at 2 tags for consistent practice
     else if (accuracy >= 0.6) {
@@ -262,6 +306,7 @@ export class FocusCoordinationService {
     console.log(`🔍 DEBUG: Performance values:`, {
       accuracy,
       efficiency,
+      totalProblemsAttempted,
       hasStagnation,
       performanceBand: accuracy >= 0.8 ? 'excellent' :
                        accuracy >= 0.75 ? 'good' :
@@ -371,9 +416,10 @@ export class FocusCoordinationService {
   /**
    * Gets performance metrics from session state
    * @param {Object} sessionState - Session state data
+   * @param {number} totalProblemsAttempted - Total problems from problems store
    * @returns {Object} Performance metrics
    */
-  static getPerformanceMetrics(sessionState) {
+  static getPerformanceMetrics(sessionState, totalProblemsAttempted = 0) {
     const lastPerformance = sessionState.last_performance || {};
     const accuracy = lastPerformance.accuracy || 0.0;
     const efficiency = lastPerformance.efficiency_score || 0.0;
@@ -383,6 +429,7 @@ export class FocusCoordinationService {
       lastPerformance,
       accuracy,
       efficiency,
+      totalProblemsAttempted,
       level: this.getPerformanceLevel(accuracy),
       thresholds: {
         good: FOCUS_CONFIG.performance.expansion.goodThreshold,
@@ -394,7 +441,8 @@ export class FocusCoordinationService {
       accuracy,
       efficiency,
       level: this.getPerformanceLevel(accuracy),
-      daysSinceProgress: this.calculateDaysSinceProgress(sessionState)
+      daysSinceProgress: this.calculateDaysSinceProgress(sessionState),
+      totalProblemsAttempted
     };
   }
   
