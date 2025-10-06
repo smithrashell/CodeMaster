@@ -76,7 +76,6 @@ export async function initializePatternLaddersForOnboarding() {
       userProblemMap,
       relationshipMap,
       ladderSize,
-      isOnboarding: true, // 🔰 Force Easy-only problems for onboarding
     });
     console.log("ladder", ladder);
 
@@ -278,7 +277,6 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       userProblemMap,
       relationshipMap,
       ladderSize,
-      isOnboarding: false, // Normal proportional distribution for experienced users
     });
 
     await upsertPatternLadder({
