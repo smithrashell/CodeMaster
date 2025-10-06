@@ -12,10 +12,6 @@ export default function Header({ title, onClose }) {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
-      // Use nativeEvent for stopImmediatePropagation if available
-      if (event.nativeEvent && typeof event.nativeEvent.stopImmediatePropagation === 'function') {
-        event.nativeEvent.stopImmediatePropagation();
-      }
     }
 
     // Prevent double-clicks with debounce
