@@ -1,16 +1,31 @@
 // HeaderWithClose.jsx
+import { useRef } from 'react';
 import Title from '../ui/Title.jsx';
 import { useNav } from "../../../shared/provider/navprovider";
+
 export default function Header({ title, onClose }) {
   const { isAppOpen, setIsAppOpen } = useNav();
+  const closeTimeoutRef = useRef(null);
 
   const handleClose = (event) => {
     // Prevent event bubbling to avoid conflicts
     if (event) {
       event.preventDefault();
       event.stopPropagation();
-      event.stopImmediatePropagation(); // Prevent other handlers on same element
+      // Use nativeEvent for stopImmediatePropagation if available
+      if (event.nativeEvent && typeof event.nativeEvent.stopImmediatePropagation === 'function') {
+        event.nativeEvent.stopImmediatePropagation();
+      }
     }
+
+    // Prevent double-clicks with debounce
+    if (closeTimeoutRef.current) {
+      return; // Already closing, ignore additional clicks
+    }
+
+    closeTimeoutRef.current = setTimeout(() => {
+      closeTimeoutRef.current = null;
+    }, 300); // 300ms debounce window
 
     // Force immediate close behavior with functional update to avoid race conditions
     try {
