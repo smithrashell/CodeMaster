@@ -664,6 +664,13 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   // Session-based escape hatch detection and activation
   const currentDifficulty = sessionState.current_difficulty_cap || "Easy";
 
+  console.log('🔍 applyEscapeHatchLogic ENTRY:', {
+    currentDifficulty,
+    accuracy: (accuracy * 100).toFixed(1) + '%',
+    numSessionsCompleted: sessionState.num_sessions_completed,
+    sessionsAtDifficulty: sessionState.escape_hatches?.sessions_at_current_difficulty
+  });
+
   // Ensure escape_hatches object exists (backward compatibility)
   if (!sessionState.escape_hatches) {
     sessionState.escape_hatches = {
@@ -757,7 +764,13 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   } else {
     escapeHatches.sessions_without_promotion = 0;
   }
-  
+
+  console.log('🔍 applyEscapeHatchLogic EXIT:', {
+    previousDifficulty: currentDifficulty,
+    newDifficulty: sessionState.current_difficulty_cap,
+    promoted: sessionState.current_difficulty_cap !== currentDifficulty
+  });
+
   return sessionState;
 }
 
@@ -913,8 +926,8 @@ export async function buildAdaptiveSessionSettings() {
     allowedTags = adaptiveResult.allowedTags;
     sessionState.tag_index = adaptiveResult.tag_index;
 
-    // Apply escape hatch logic for difficulty progression
-    sessionState = applyEscapeHatchLogic(sessionState, accuracy, settings, now);
+    // NOTE: Difficulty progression is handled by evaluateDifficultyProgression() on session COMPLETION
+    // NOT during session creation to avoid double progression
   }
 
   // Update session state using coordination service to avoid conflicts
