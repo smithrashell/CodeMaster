@@ -9,19 +9,20 @@ export default function Header({ title, onClose }) {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation(); // Prevent other handlers on same element
     }
 
-    // Force immediate close behavior
+    // Force immediate close behavior with functional update to avoid race conditions
     try {
       if (onClose) {
         onClose();
       } else {
-        setIsAppOpen(false); // Always close, don't toggle
+        setIsAppOpen(() => false); // Use functional update for immediate, predictable close
       }
     } catch (error) {
       // Fallback: force close via direct state manipulation
       console.warn('Close button error, forcing close:', error);
-      setIsAppOpen(false);
+      setIsAppOpen(() => false);
     }
   };
 
