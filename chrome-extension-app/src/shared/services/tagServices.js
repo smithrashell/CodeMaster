@@ -404,23 +404,9 @@ function sortAndSelectFocusTags(unmasteredTags) {
     totalProblems: t.totalProblems
   })));
 
-  // Select top focus tags with strategic distribution
-  const focusTags = [];
-  const maxFocusTags = 5; // Allow up to 5 tags for intelligent focus selection
-
-  for (const tag of sortedTags) {
-    if (focusTags.length >= maxFocusTags) break;
-
-    // Ensure diversity in difficulty/success rates
-    const hasConflictingFocus = focusTags.some(
-      (existing) => Math.abs(existing.successRate - tag.successRate) < 0.2
-    );
-
-    if (!hasConflictingFocus || focusTags.length === 0) {
-      focusTags.push(tag);
-    }
-  }
-
+  // Select top focus tags (multi-level sorting already handles prioritization)
+  const maxFocusTags = 5;
+  const focusTags = sortedTags.slice(0, maxFocusTags);
   const selectedTags = focusTags.map((tag) => tag.tag);
 
   console.log('🔍 TAG SORTING DEBUG: Final selected tags after diversity filter:', selectedTags);
