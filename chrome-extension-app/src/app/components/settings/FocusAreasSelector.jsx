@@ -54,6 +54,9 @@ export function FocusAreasSelector() {
   // Track which tier the user is selecting from
   const [selectedTier, setSelectedTier] = React.useState(null);
 
+  // Track which tab is currently being viewed (for browsing)
+  const [activeTab, setActiveTab] = React.useState(null);
+
   // Helper function wrappers for the extracted functions
   const getTagMasteryProgressWrapper = (tagName) => getTagMasteryProgress(tagName, masteryData);
   const getTagOptionsWrapper = () => getTagOptions(focusAvailability, availableTags, masteredTags, masteryData);
@@ -75,10 +78,8 @@ export function FocusAreasSelector() {
   };
 
   const handleTierChange = (newTier) => {
-    // When switching tiers, clear current selection to enforce single-tier constraint
-    setSelectedTier(newTier);
-    setSelectedFocusAreas([]);
-    setHasChanges(true);
+    // Just change the active tab for browsing
+    setActiveTab(newTier);
   };
 
   const handleSave = async () => {
@@ -118,6 +119,8 @@ export function FocusAreasSelector() {
           onFocusAreasChange={handleFocusAreasChange}
           selectedTier={selectedTier}
           onTierChange={handleTierChange}
+          activeTab={activeTab}
+          onSelectedTierChange={setSelectedTier}
         />
 
         <ActiveSessionTagsPreview focusAvailability={focusAvailability} showCustomMode={showCustomMode} />

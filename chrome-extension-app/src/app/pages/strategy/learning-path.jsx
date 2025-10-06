@@ -14,7 +14,7 @@ import LearningEfficiencyAnalytics from "../../components/learning/LearningEffic
 
 export function LearningPath() {
   const { data: appState, loading, error, refresh } = usePageData('learning-path');
-  const { pathData } = useLearningPathData(appState);
+  const { pathData, tagRelationships } = useLearningPathData(appState);
   const [selectedTag, setSelectedTag] = useState(null);
 
   if (loading) return <Container size="xl" p="md"><Text>Loading learning path data...</Text></Container>;
@@ -57,8 +57,9 @@ export function LearningPath() {
               {pathData.length === 0 ? (
                 <EmptyLearningPathState />
               ) : (
-                <LearningPathVisualization 
-                  pathData={pathData} 
+                <LearningPathVisualization
+                  pathData={pathData}
+                  tagRelationships={tagRelationships}
                   onNodeClick={(tag) => setSelectedTag(tag)}
                 />
               )}

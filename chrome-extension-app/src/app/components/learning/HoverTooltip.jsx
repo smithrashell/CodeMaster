@@ -1,20 +1,22 @@
 import React from 'react';
-import { Text } from '@mantine/core';
-import { tagRelationships } from './TagRelationships.js';
+import { Text, Stack } from '@mantine/core';
 
 /**
  * Hover tooltip component for displaying node and connection information
  */
-export function HoverTooltip({ hoveredNode, hoveredConnection, pathData, isDarkMode }) {
-  // Show connection tooltip
+export function HoverTooltip({ hoveredNode, hoveredConnection, pathData, tagRelationships, isDarkMode }) {
+  // Show connection tooltip with dynamic data
   if (hoveredConnection) {
-    const [fromTag, toTag] = hoveredConnection.split('->');
-    const relationship = tagRelationships[fromTag];
-    const unlockData = relationship?.unlocks.find(u =>
-      (typeof u === 'string' ? u : u.tag) === toTag
-    );
-    const weight = typeof unlockData === 'object' ? unlockData.weight : 70;
-    const description = typeof unlockData === 'object' ? unlockData.description : '';
+    // Parse connection ID (format: "tag1<->tag2")
+    const [tag1, tag2] = hoveredConnection.split('<->');
+
+    // Find connection data in dynamic relationships
+    const connectionKey = tag1 < tag2 ? `${tag1}:${tag2}` : `${tag2}:${tag1}`;
+    const connectionData = tagRelationships?.[connectionKey];
+
+    if (!connectionData) return null;
+
+    const { strength, successRate, problems } = connectionData;
 
     return (
       <div style={{
@@ -28,21 +30,33 @@ export function HoverTooltip({ hoveredNode, hoveredConnection, pathData, isDarkM
         fontSize: '12px',
         pointerEvents: 'none',
         zIndex: 15,
-        maxWidth: '280px',
+        maxWidth: '320px',
         border: '1px solid rgba(203, 213, 225, 0.8)',
         boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1)'
       }}>
-        <Text size="sm" fw={700} c={isDarkMode ? '#f8fafc' : '#1a202c'} mb={4}>
-          {fromTag} → {toTag}
+        <Text size="sm" fw={700} c={isDarkMode ? '#f8fafc' : '#1a202c'} mb={6}>
+          {tag1} ↔ {tag2}
         </Text>
-        <Text size="xs" c={isDarkMode ? '#cbd5e1' : '#64748b'} mb={6}>
-          Connection Strength: {weight}%
-        </Text>
-        {description && (
-          <Text size="xs" c={isDarkMode ? '#e2e8f0' : '#475569'}>
-            {description}
+        <Stack gap={4}>
+          <Text size="xs" c={isDarkMode ? '#cbd5e1' : '#64748b'}>
+            🔗 Connection Strength: {strength} problem{strength > 1 ? 's' : ''}
           </Text>
-        )}
+          <Text size="xs" c={isDarkMode ? '#cbd5e1' : '#64748b'}>
+            📊 Success Rate: {successRate}%
+          </Text>
+          {problems && problems.length > 0 && (
+            <>
+              <Text size="xs" fw={600} c={isDarkMode ? '#f8fafc' : '#1a202c'} mt={4}>
+                Example Problems:
+              </Text>
+              {problems.map((problem, idx) => (
+                <Text key={idx} size="xs" c={isDarkMode ? '#e2e8f0' : '#475569'} pl={8}>
+                  {problem.success ? '✓' : '✗'} {problem.title} ({problem.difficulty})
+                </Text>
+              ))}
+            </>
+          )}
+        </Stack>
       </div>
     );
   }

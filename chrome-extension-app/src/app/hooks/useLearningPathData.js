@@ -119,6 +119,7 @@ const generateRecommendations = (unmasteredTags, focusTags) => {
 export const useLearningPathData = (appState) => {
   const [pathData, setPathData] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
+  const [tagRelationships, setTagRelationships] = useState({});
 
   useEffect(() => {
     if (!appState) return;
@@ -128,12 +129,23 @@ export const useLearningPathData = (appState) => {
     const focusTags = extractFocusTags(appState);
     const unmasteredTags = extractUnmasteredTags(appState);
 
+    // Extract dynamic tag relationships from appState
+    const dynamicRelationships = appState?.tagRelationships || {};
+    console.log('🎯 useLearningPathData - extracting relationships:', {
+      hasAppState: !!appState,
+      hasTagRelationships: !!appState?.tagRelationships,
+      relationshipCount: Object.keys(dynamicRelationships).length,
+      appStateKeys: appState ? Object.keys(appState) : []
+    });
+    setTagRelationships(dynamicRelationships);
+
     // Debug: Check extracted data
-    debug("Learning Path - extracted data", { 
+    debug("Learning Path - extracted data", {
       masteryDataLength: masteryData.length,
       masteryData: masteryData,
       focusTags: focusTags,
-      unmasteredTags: unmasteredTags
+      unmasteredTags: unmasteredTags,
+      dynamicRelationships: Object.keys(dynamicRelationships).length
     });
 
     // Create progression data for visualization using helper function
@@ -149,5 +161,5 @@ export const useLearningPathData = (appState) => {
     setRecommendations(recs);
   }, [appState]);
 
-  return { pathData, recommendations };
+  return { pathData, recommendations, tagRelationships };
 };
