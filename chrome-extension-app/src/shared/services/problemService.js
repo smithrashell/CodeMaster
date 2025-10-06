@@ -27,6 +27,7 @@ import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { InterviewService } from "./interviewService.js";
 import logger from "../utils/logger.js";
 import { selectOptimalProblems } from "../db/problem_relationships.js";
+import { applySafetyGuardRails } from "../utils/sessionBalancing.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
 
@@ -450,9 +451,6 @@ export const ProblemService = {
     );
 
     // **Step 4.5: Apply safety guard rails to prevent extreme difficulty imbalances**
-    // Import guard rails function at runtime to avoid circular dependencies
-    const { applySafetyGuardRails } = await import('../utils/sessionBalancing.js');
-
     // Get session state for sessions_at_current_difficulty
     const sessionState = await StorageService.getSessionState();
     const sessionsAtCurrentDifficulty = sessionState?.escape_hatches?.sessions_at_current_difficulty || 0;
