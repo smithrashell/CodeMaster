@@ -119,52 +119,9 @@ async function checkTierProgression(tier, masteredTags, tierTags, isTierMastered
   return { allowTierAdvancement, tierEscapeHatchActivated };
 }
 
-// Helper function to seed new tags when needed
-async function seedNewTagsIfNeeded(context) {
-  const { db, masteryStore, masteredTags, tierTags, unmasteredTags, masteryData, tier, tierEscapeHatchActivated } = context;
-  const missingTags = tierTags.filter(
-    (tag) => !masteryData.some((m) => m.tag === tag)
-  );
-
-  if (unmasteredTags.length === 0 && missingTags.length > 0) {
-    const newTags = await getHighlyRelatedTags(
-      db,
-      masteredTags,
-      missingTags,
-      5
-    );
-
-    logger.info(
-      `🔹 Seeding ${newTags.length} new tags from ${tier} into tag_mastery`
-    );
-
-    await Promise.all(
-      newTags.map((newTag) => {
-        return new Promise((resolve, reject) => {
-          const putRequest = masteryStore.put({
-            tag: newTag,
-            total_attempts: 0,
-            successful_attempts: 0,
-            decay_score: 1,
-            mastered: false,
-          });
-          putRequest.onsuccess = () => resolve();
-          putRequest.onerror = () => reject(putRequest.error);
-        });
-      })
-    );
-
-    return {
-      classification: tier,
-      masteredTags,
-      allTagsInCurrentTier: tierTags,
-      focusTags: newTags,
-      masteryData,
-      tierEscapeHatchActivated,
-    };
-  }
-  return null;
-}
+// NOTE: seedNewTagsIfNeeded() removed - tags now discovered organically through problem attempts
+// No longer pre-seeding tags with 0 attempts into tag_mastery
+// Tags are added to tag_mastery ONLY when first attempted
 
 async function getCurrentTier() {
   const db = await openDB();
@@ -255,12 +212,8 @@ async function getCurrentTier() {
       };
     }
 
-    const seedResult = await seedNewTagsIfNeeded({
-      db, masteryStore, masteredTags, tierTags, unmasteredTags, masteryData, tier, tierEscapeHatchActivated
-    });
-    if (seedResult) {
-      return seedResult;
-    }
+    // ✅ Tier advancement allowed - continue to next tier
+    // No pre-seeding needed - tags will be added organically through problem attempts
   }
 
   // ✅ All tiers mastered — advance
@@ -350,10 +303,13 @@ function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryTh
 }
 
 // Helper function to handle graduation logic
+// NOTE: Graduation no longer pre-seeds tags into tag_mastery
+// Tags will be discovered organically through problem attempts
+// This function is kept for potential future graduation ceremony logic
 async function _handleGraduation(masteredTags, tierTags, masteryData, db, masteryStore) {
   // 🎓 Graduate when most of focus window is mastered (4 out of 5 tags)
   if (masteredTags.length >= 4) {
-    logger.info(`🎓 ${masteredTags.length} tags mastered, graduating to new focus set...`);
+    logger.info(`🎓 ${masteredTags.length} tags mastered, ready for new challenges...`);
 
     // Get unstarted tags for fresh learning
     const unstartedTags = tierTags.filter(
@@ -361,50 +317,35 @@ async function _handleGraduation(masteredTags, tierTags, masteryData, db, master
     );
 
     if (unstartedTags.length > 0) {
-      const newFocusTags = await getHighlyRelatedTags(
+      // Identify recommended tags for next focus (but don't pre-seed them)
+      const recommendedTags = await getHighlyRelatedTags(
         db,
         masteredTags.map((t) => t.tag),
         unstartedTags,
         5
       );
 
-      logger.info(`🎓 Graduating to new focus tags: ${newFocusTags.join(", ")}`);
-
-      // Initialize new focus tags in mastery data
-      await Promise.all(
-        newFocusTags.map((newTag) => {
-          return new Promise((resolve, reject) => {
-            const putRequest = masteryStore.put({
-              tag: newTag,
-              total_attempts: 0,
-              successful_attempts: 0,
-              decay_score: 1,
-              mastered: false,
-            });
-            putRequest.onsuccess = () => resolve();
-            putRequest.onerror = () => reject(putRequest.error);
-          });
-        })
-      );
+      logger.info(`🎓 Recommended new focus tags: ${recommendedTags.join(", ")} (will be added on first attempt)`);
 
       // 🔄 Reset tagIndex for new focus window
       await resetTagIndexForNewWindow();
 
-      // 📝 Update user settings with new focus areas
+      // 📝 Update user settings with recommended focus areas
+      // These are suggestions - tags won't enter tag_mastery until attempted
       try {
         const settings = await StorageService.getSettings();
         const updatedSettings = {
           ...settings,
-          focusAreas: newFocusTags.slice(0, 3), // Limit to 3 as per UI convention
+          focusAreas: recommendedTags.slice(0, 3), // Limit to 3 as per UI convention
         };
         await StorageService.setSettings(updatedSettings);
-        logger.info(`📝 Updated user focus areas settings with graduated tags: ${newFocusTags.slice(0, 3).join(', ')}`);
+        logger.info(`📝 Updated user focus areas settings with recommended tags: ${recommendedTags.slice(0, 3).join(', ')}`);
       } catch (error) {
         logger.error('❌ Failed to update focus areas settings after graduation:', error);
         // Don't fail the graduation just because settings update failed
       }
 
-      return newFocusTags;
+      return recommendedTags;
     }
   }
   return null;
@@ -412,23 +353,26 @@ async function _handleGraduation(masteredTags, tierTags, masteryData, db, master
 
 // Helper function to sort and select focus tags
 function sortAndSelectFocusTags(unmasteredTags) {
-  // Sort by intelligent criteria
+  // Sort by intelligent criteria optimized for pattern recognition learning
   const sortedTags = unmasteredTags.sort((a, b) => {
-    // Primary: Focus on tags with moderate success rate (learning opportunity)
+    // Primary: Relationship score (pattern recognition - build interconnected knowledge)
+    // Tags strongly related to already-attempted tags get highest priority
+    if (Math.abs(a.relationshipScore - b.relationshipScore) > 0.05) {
+      return b.relationshipScore - a.relationshipScore;
+    }
+
+    // Secondary: Attempt maturity (favor tags with more practice experience)
+    // More attempts = better foundation for pattern recognition
+    const aMaturity = Math.min(1, a.total_attempts / 8);
+    const bMaturity = Math.min(1, b.total_attempts / 8);
+    if (Math.abs(aMaturity - bMaturity) > 0.1) {
+      return bMaturity - aMaturity;
+    }
+
+    // Tertiary: Optimal learning score (learning opportunity within established patterns)
     const aOptimalLearning = getOptimalLearningScore(a.successRate, a.total_attempts);
     const bOptimalLearning = getOptimalLearningScore(b.successRate, b.total_attempts);
-
-    if (Math.abs(aOptimalLearning - bOptimalLearning) > 0.1) {
-      return bOptimalLearning - aOptimalLearning;
-    }
-
-    // Secondary: Learning velocity (improvement potential)
-    if (Math.abs(a.learningVelocity - b.learningVelocity) > 0.1) {
-      return b.learningVelocity - a.learningVelocity;
-    }
-
-    // Tertiary: Relationship score (connected learning)
-    return b.relationshipScore - a.relationshipScore;
+    return bOptimalLearning - aOptimalLearning;
   });
 
   // Select top focus tags with strategic distribution
@@ -487,22 +431,47 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
     return acc;
   }, {});
 
-  // Filter and process tags in current tier with time-based escape hatch logic
-  const allRelevantTags = processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds);
+  // Process attempted tags (those already in tag_mastery)
+  const attemptedTags = processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds);
 
-  // Split into mastered and unmastered using adjusted thresholds
-  const unmasteredTags = allRelevantTags.filter(
+  // Split attempted tags into mastered and unmastered
+  const unmasteredAttemptedTags = attemptedTags.filter(
     (tag) => tag.successRate < tag.adjustedMasteryThreshold
   );
-  const _masteredTags = allRelevantTags.filter(
-    (tag) => tag.successRate >= tag.adjustedMasteryThreshold
+
+  // ✨ NEW: Add unattempted tags from tier (organic discovery)
+  // These tags aren't in tag_mastery yet but should be considered for selection
+  const unattemptedTagNames = tierTags.filter(
+    (tag) => !masteryData.some((m) => m.tag === tag)
   );
 
-  // 🎓 Skip graduation logic when using readonly transaction (Focus Coordination Service handles this)
-  // Graduation logic is now handled by Focus Coordination Service through weighted integration
+  // Enrich unattempted tags with relationship scores based on attempted tags
+  const unattemptedTagsEnriched = unattemptedTagNames.map((tagName) => {
+    const relationshipScore = calculateRelationshipScore(
+      tagName,
+      masteryData, // Score based on what user has already attempted
+      tagRelationships,
+      masteryThresholds
+    );
 
-  const selectedTags = sortAndSelectFocusTags(unmasteredTags);
+    return {
+      tag: tagName,
+      total_attempts: 0,
+      successful_attempts: 0,
+      successRate: 0,
+      adjustedMasteryThreshold: masteryThresholds[tagName] || 0.8,
+      timeBasedEscapeHatch: false,
+      learningVelocity: 0.5, // Neutral velocity for new tags
+      relationshipScore: relationshipScore
+    };
+  });
+
+  // Combine attempted and unattempted tags for unified selection
+  const allCandidateTags = [...unmasteredAttemptedTags, ...unattemptedTagsEnriched];
+
+  const selectedTags = sortAndSelectFocusTags(allCandidateTags);
   logger.info("🧠 Selected intelligent focus tags:", selectedTags);
+  logger.info(`   📊 From ${unmasteredAttemptedTags.length} attempted + ${unattemptedTagsEnriched.length} unattempted tags`);
 
   // 🛡️ SAFETY NET: Ensure we always have focus tags
   if (!selectedTags || selectedTags.length === 0) {
@@ -540,10 +509,55 @@ function calculateLearningVelocity(tagData) {
 }
 
 /**
- * Calculates relationship score based on connected mastered tags
+ * Calculates proficiency-based weight for a tag based on success rate and attempt maturity
+ * @param {object} tagData - Tag mastery data
+ * @param {number} masteryThreshold - Tag-specific mastery threshold
+ * @returns {number} Weight between 0.1 and 1.0
+ */
+function calculateTagWeight(tagData, masteryThreshold = 0.8) {
+  if (!tagData || typeof tagData !== 'object') {
+    return 0;
+  }
+
+  const totalAttempts = tagData.total_attempts || 0;
+  const successfulAttempts = tagData.successful_attempts || 0;
+
+  if (totalAttempts === 0) {
+    return 0; // No attempts = no weight
+  }
+
+  const successRate = successfulAttempts / totalAttempts;
+
+  // Attempt maturity: caps at 8 attempts for full maturity
+  const attemptMaturity = Math.min(1, totalAttempts / 8);
+
+  // Proficiency weight tiers based on success rate:
+  // - 80%+ (mastered): 1.0 weight - full influence
+  // - 60-80% (strong foundation): 0.6 weight - good influence
+  // - 40-60% (learning): 0.3 weight - some influence
+  // - <40% (struggling): 0.1 weight - minimal influence
+  let proficiencyWeight;
+  if (successRate >= masteryThreshold) {
+    proficiencyWeight = 1.0; // Mastered
+  } else if (successRate >= 0.6) {
+    proficiencyWeight = 0.6; // Strong foundation
+  } else if (successRate >= 0.4) {
+    proficiencyWeight = 0.3; // Learning
+  } else {
+    proficiencyWeight = 0.1; // Struggling
+  }
+
+  return proficiencyWeight * attemptMaturity;
+}
+
+/**
+ * Calculates relationship score based on weighted proficiency of related tags
+ * Uses graduated weighting instead of binary mastered/unmastered to support
+ * pattern recognition and interconnected learning even with partial mastery.
  * @param {string} tag - The tag to calculate score for
  * @param {array} masteryData - All mastery data
  * @param {object} tagRelationships - Tag relationship data
+ * @param {object} masteryThresholds - Tag-specific mastery thresholds
  * @returns {number} Relationship score
  */
 function calculateRelationshipScore(tag, masteryData, tagRelationships, masteryThresholds = {}) {
@@ -554,26 +568,30 @@ function calculateRelationshipScore(tag, masteryData, tagRelationships, masteryT
     return 0;
   }
 
-  // Get mastered tags using tag-specific mastery thresholds
-  const masteredTags = masteryData
-    .filter((t) => {
-      // Handle undefined/null objects and use snake_case field names
-      if (!t || typeof t !== 'object') return false;
-      const totalAttempts = t.total_attempts || 0;
-      const successfulAttempts = t.successful_attempts || 0;
-      const threshold = masteryThresholds[t.tag] || 0.8;
-      return totalAttempts > 0 && successfulAttempts / totalAttempts >= threshold;
-    })
-    .map((t) => t.tag);
-
-  // Calculate relationship strength to mastered tags
+  // Calculate weighted relationship score using ALL attempted tags
+  // Tags with higher success rates contribute more to the recommendation
   let relationshipScore = 0;
-  for (const masteredTag of masteredTags) {
-    const weight = relationships[masteredTag] || 0;
-    relationshipScore += weight;
+
+  for (const attemptedTag of masteryData) {
+    if (!attemptedTag || typeof attemptedTag !== 'object') continue;
+
+    const totalAttempts = attemptedTag.total_attempts || 0;
+    if (totalAttempts === 0) continue; // Skip unattempted tags
+
+    const tagName = attemptedTag.tag;
+    const relationshipStrength = relationships[tagName] || 0;
+
+    if (relationshipStrength === 0) continue; // Skip unrelated tags
+
+    // Weight this tag's contribution by proficiency level
+    const threshold = masteryThresholds[tagName] || 0.8;
+    const tagWeight = calculateTagWeight(attemptedTag, threshold);
+
+    // Contribution = relationship strength × proficiency weight
+    relationshipScore += relationshipStrength * tagWeight;
   }
 
-  // Normalize by number of relationships
+  // Normalize by number of relationships to keep scores comparable
   const totalRelationships = Object.keys(relationships).length;
   return totalRelationships > 0 ? relationshipScore / totalRelationships : 0;
 }
@@ -744,11 +762,11 @@ async function graduateFocusAreas() {
 async function getAvailableTagsForFocus(userId) {
   try {
     logger.info("🔍 TAGSERVICE: getAvailableTagsForFocus called with userId:", userId);
-    
+
     // Get current learning state - this already has most of what we need!
     const learningState = await getCurrentLearningState();
     const settings = await StorageService.getSettings();
-    
+
     // Check onboarding status using same logic as session generation
     const sessionStateKey = `sessionState_${userId}`;
     const sessionState = (await StorageService.migrateSessionStateToIndexedDB()) ||
@@ -763,23 +781,33 @@ async function getAvailableTagsForFocus(userId) {
     const currentTierTags = learningState?.allTagsInCurrentTier || [];
     const userOverrideTags = settings.focusAreas || [];
 
-    // Create simple tag structure - current tier tags are selectable, add some preview tags
-    const currentTierTagsList = currentTierTags.slice(0, 10).map(tagId => ({
-      tagId,
-      name: tagId.charAt(0).toUpperCase() + tagId.slice(1).replace(/[-_]/g, " "),
-      tier: "core",
-      selectable: true,
-      reason: "current-tier"
+    // Get ALL tag classifications from tag_relationships
+    const db = await openDB();
+    const tagRelationships = await new Promise((resolve, reject) => {
+      const tx = db.transaction("tag_relationships", "readonly");
+      const store = tx.objectStore("tag_relationships");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+
+    // Map tag classification to tier number
+    const classificationToTier = {
+      "Core Concept": 0,
+      "Fundamental Technique": 1,
+      "Advanced Technique": 2
+    };
+
+    // Create tags list with proper tier classification from database
+    const tags = tagRelationships.map(entry => ({
+      tagId: entry.id,
+      tag: entry.id,
+      name: entry.id.charAt(0).toUpperCase() + entry.id.slice(1).replace(/[-_]/g, " "),
+      tier: classificationToTier[entry.classification] ?? 0,
+      classification: entry.classification,
+      selectable: true, // All tags are selectable now (single-tier enforced in UI)
+      reason: "available"
     }));
-
-    // Preview tags (only add if not already in current tier)
-    const previewTagsList = [
-      { tagId: "two pointers", name: "Two Pointers", tier: "fundamental", selectable: false, reason: "preview-locked" },
-      { tagId: "sliding window", name: "Sliding Window", tier: "fundamental", selectable: false, reason: "preview-locked" },
-      { tagId: "binary search", name: "Binary Search", tier: "fundamental", selectable: false, reason: "preview-locked" }
-    ].filter(previewTag => !currentTierTags.includes(previewTag.tagId));
-
-    const tags = [...currentTierTagsList, ...previewTagsList];
 
     // Apply onboarding restrictions to caps and active tags
     const onboardingCaps = isOnboarding 
