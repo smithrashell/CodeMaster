@@ -10082,27 +10082,22 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
             const { StorageService } = await import("../src/shared/services/storageService.js");
             const { TagService } = await import("../src/shared/services/tagServices.js");
 
-            // Get learning state data first (contains system-selected focus tags)
+            // Get session state which contains algorithmic focus tags
+            const sessionState = await StorageService.getSessionState("session_state");
+
+            // Get learning state for mastery data
             const learningState = await TagService.getCurrentLearningState();
-            console.log("🔍 FOCUS AREAS DEBUG: learningState =", learningState);
 
-            // Use system-selected focus tags from learning state (prioritize intelligent selection)
-            // Fall back to user settings only if learning state has no focus tags
-            const settings = await StorageService.getSettings();
-            let focusAreas = learningState.focusTags || settings.focusAreas || [];
+            // Use algorithmic focus tags from session_state (what sessions actually use)
+            // Fall back to tier tags only if session_state has no focus tags
+            let focusAreas = sessionState?.current_focus_tags || learningState.focusTags || ["array"];
 
-            console.log("🔍 FOCUS AREAS DEBUG: Settings focusAreas =", settings.focusAreas);
+            console.log("🔍 FOCUS AREAS DEBUG: session_state.current_focus_tags =", sessionState?.current_focus_tags);
+            console.log("🔍 FOCUS AREAS DEBUG: learningState.focusTags (tier tags) =", learningState.focusTags);
             console.log("🔍 FOCUS AREAS DEBUG: Using focusAreas =", focusAreas);
-
-            // Provide fallback focus areas if none configured (like content script pattern)
-            if (focusAreas.length === 0) {
-              focusAreas = ["array"];
-              console.log("🔄 BACKGROUND: Using fallback focus areas:", focusAreas);
-            }
 
             // Check for graduation status
             const graduationStatus = await TagService.checkFocusAreasGraduation();
-            console.log("🔍 FOCUS AREAS DEBUG: graduationStatus =", graduationStatus);
 
             const responseData = {
               result: {
