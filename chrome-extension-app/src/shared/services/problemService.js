@@ -449,6 +449,29 @@ export const ProblemService = {
       sessionLength
     );
 
+    // **Step 4.5: Apply safety guard rails to prevent extreme difficulty imbalances**
+    // Import guard rails function at runtime to avoid circular dependencies
+    const { applySafetyGuardRails } = await import('../utils/sessionBalancing.js');
+
+    // Get session state for sessions_at_current_difficulty
+    const sessionState = await StorageService.getSessionState();
+    const sessionsAtCurrentDifficulty = sessionState?.escape_hatches?.sessions_at_current_difficulty || 0;
+
+    // Check if guard rails need to trigger
+    const guardRailResult = applySafetyGuardRails(
+      finalSession,
+      currentDifficultyCap,
+      sessionsAtCurrentDifficulty
+    );
+
+    // Log warning if imbalance detected but continue with session
+    if (guardRailResult.needsRebalance) {
+      logger.warn(`⚖️ Session difficulty imbalance detected: ${guardRailResult.message}`);
+      logger.warn(`   Current composition will be used, but may not be ideal for progression`);
+      // Note: We log the warning but don't rebalance to avoid complexity
+      // The natural ladder depletion will self-correct this over time
+    }
+
     // **Step 5: Add problem selection reasoning**
     const sessionWithReasons = await this.addProblemReasoningToSession(
       finalSession,

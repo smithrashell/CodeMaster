@@ -661,14 +661,27 @@ function applyInterviewInsightsToTags(allowedTags, focusTags, interviewInsights,
  * Apply escape hatch logic for difficulty progression
  */
 export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
-  // Session-based escape hatch detection and activation
+  // Problem-based difficulty progression (consistent with tag mastery volume gates)
   const currentDifficulty = sessionState.current_difficulty_cap || "Easy";
+  const currentDifficultyKey = currentDifficulty.toLowerCase();
 
-  console.log('🔍 applyEscapeHatchLogic ENTRY:', {
+  // Ensure difficulty_time_stats exists
+  if (!sessionState.difficulty_time_stats) {
+    sessionState.difficulty_time_stats = {
+      easy: { problems: 0, total_time: 0, avg_time: 0 },
+      medium: { problems: 0, total_time: 0, avg_time: 0 },
+      hard: { problems: 0, total_time: 0, avg_time: 0 }
+    };
+  }
+
+  const stats = sessionState.difficulty_time_stats[currentDifficultyKey];
+  const problemsAtDifficulty = stats?.problems || 0;
+
+  console.log('🔍 applyEscapeHatchLogic ENTRY (problem-based):', {
     currentDifficulty,
+    problemsAtDifficulty,
     accuracy: (accuracy * 100).toFixed(1) + '%',
-    numSessionsCompleted: sessionState.num_sessions_completed,
-    sessionsAtDifficulty: sessionState.escape_hatches?.sessions_at_current_difficulty
+    numSessionsCompleted: sessionState.num_sessions_completed
   });
 
   // Ensure escape_hatches object exists (backward compatibility)
@@ -688,37 +701,41 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     sessionState.current_difficulty_cap = "Easy";
   }
 
-  // Track sessions at current difficulty level
+  // Track sessions at current difficulty level (for UI/analytics compatibility)
   escapeHatches.sessions_at_current_difficulty++;
 
-  // Check for session-based escape hatch (10+ sessions without promotion)
-  let promotionThreshold = 0.9; // Default 90% accuracy
-  let escapeHatchActivated = false;
+  // NEW: Problem-based promotion criteria
+  // Standard promotion: 4 problems at 80%+ accuracy
+  // Stagnation escape: 8 problems regardless of accuracy
+  const standardPromotion = problemsAtDifficulty >= 4 && accuracy >= 0.8;
+  const stagnationEscape = problemsAtDifficulty >= 8;
+  let promotionReason = null;
 
-  if (escapeHatches.sessions_at_current_difficulty >= 10) {
-    // Apply session-based escape hatch - lower threshold from 90% to 80%
-    promotionThreshold = 0.8;
-    escapeHatchActivated = true;
+  if (standardPromotion) {
+    promotionReason = "standard_volume_gate";
+    logger.info(`✅ Standard promotion criteria met: ${problemsAtDifficulty} problems at ${(accuracy * 100).toFixed(1)}% accuracy`);
+  } else if (stagnationEscape) {
+    promotionReason = "stagnation_escape_hatch";
+    logger.info(`🔓 Stagnation escape hatch ACTIVATED: ${problemsAtDifficulty} problems completed (accuracy: ${(accuracy * 100).toFixed(1)}%)`);
 
-    if (!escapeHatches.activated_escape_hatches.includes("session-based")) {
-      escapeHatches.activated_escape_hatches.push("session-based");
-      logger.info(
-        "🔓 Session-based escape hatch ACTIVATED: Lowering difficulty promotion threshold from 90% to 80%"
-      );
+    if (!escapeHatches.activated_escape_hatches.includes("problem-based-stagnation")) {
+      escapeHatches.activated_escape_hatches.push("problem-based-stagnation");
     }
   }
 
-  // Progressive difficulty cap unlocking with escape hatch threshold
   // Apply user difficulty ceiling (from Goals page guardrails)
   const userMaxDifficulty = settings.maxDifficulty || "Hard";
   const getDifficultyOrder = (difficulty) => {
     const order = { "Easy": 1, "Medium": 2, "Hard": 3 };
     return order[difficulty] || 1;
   };
-  
+
+  // Check if promotion should happen
+  const shouldPromote = standardPromotion || stagnationEscape;
+
   if (
-    accuracy >= promotionThreshold &&
-    (sessionState.current_difficulty_cap || "Easy").toLowerCase() === "easy" &&
+    shouldPromote &&
+    currentDifficulty === "Easy" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")
   ) {
     sessionState.current_difficulty_cap = "Medium";
@@ -726,17 +743,19 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     escapeHatches.sessions_at_current_difficulty = 0; // Reset counter
     escapeHatches.activated_escape_hatches = []; // Reset escape hatches for new difficulty
 
-    if (escapeHatchActivated) {
+    if (promotionReason === "stagnation_escape_hatch") {
       logger.info(
-        "🎯 Difficulty cap upgraded via ESCAPE HATCH: Easy → Medium (80% threshold)"
+        `🎯 Difficulty cap upgraded via STAGNATION ESCAPE: Easy → Medium (${problemsAtDifficulty} problems)`
       );
     } else {
-      logger.info("🎯 Difficulty cap upgraded: Easy → Medium");
+      logger.info(
+        `🎯 Difficulty cap upgraded: Easy → Medium (${problemsAtDifficulty} problems at ${(accuracy * 100).toFixed(1)}%)`
+      );
     }
     return sessionState; // Prevent double progression in same session
   } else if (
-    accuracy >= promotionThreshold &&
-    (sessionState.current_difficulty_cap || "Easy").toLowerCase() === "medium" &&
+    shouldPromote &&
+    currentDifficulty === "Medium" &&
     getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")
   ) {
     sessionState.current_difficulty_cap = "Hard";
@@ -744,18 +763,23 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     escapeHatches.sessions_at_current_difficulty = 0; // Reset counter
     escapeHatches.activated_escape_hatches = []; // Reset escape hatches for new difficulty
 
-    if (escapeHatchActivated) {
+    if (promotionReason === "stagnation_escape_hatch") {
       logger.info(
-        "🎯 Difficulty cap upgraded via ESCAPE HATCH: Medium → Hard (80% threshold)"
+        `🎯 Difficulty cap upgraded via STAGNATION ESCAPE: Medium → Hard (${problemsAtDifficulty} problems)`
       );
     } else {
-      logger.info("🎯 Difficulty cap upgraded: Medium → Hard");
+      logger.info(
+        `🎯 Difficulty cap upgraded: Medium → Hard (${problemsAtDifficulty} problems at ${(accuracy * 100).toFixed(1)}%)`
+      );
     }
   } else if (
-    accuracy >= promotionThreshold &&
+    shouldPromote &&
     getDifficultyOrder(sessionState.current_difficulty_cap) < getDifficultyOrder(userMaxDifficulty)
   ) {
     logger.info(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.current_difficulty_cap}, Max allowed: ${userMaxDifficulty}`);
+  } else if (!shouldPromote && problemsAtDifficulty > 0) {
+    const remaining = standardPromotion ? 0 : Math.max(0, 4 - problemsAtDifficulty);
+    logger.info(`📊 Progress toward promotion: ${problemsAtDifficulty}/4 problems at ${currentDifficulty} (${remaining} more needed)`);
   }
 
   // Track sessions without promotion for debugging
@@ -768,7 +792,8 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   console.log('🔍 applyEscapeHatchLogic EXIT:', {
     previousDifficulty: currentDifficulty,
     newDifficulty: sessionState.current_difficulty_cap,
-    promoted: sessionState.current_difficulty_cap !== currentDifficulty
+    promoted: sessionState.current_difficulty_cap !== currentDifficulty,
+    promotionReason
   });
 
   return sessionState;
