@@ -41,7 +41,7 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
     if (isAppOpen && !isMainMenu) {
       navigate("/");
     } else {
-      setIsAppOpen(!isAppOpen);
+      setIsAppOpen(prev => !prev); // Use functional update to avoid stale state
     }
   };
   
