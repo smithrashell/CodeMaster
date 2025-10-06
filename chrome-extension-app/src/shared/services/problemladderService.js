@@ -36,35 +36,9 @@ export async function initializePatternLaddersForOnboarding() {
     return;
   }
 
-  // 🛡️ INITIALIZATION FIX: Ensure tag mastery exists before getting learning state
-  const existingMastery = await getTagMastery();
-  if (!existingMastery || existingMastery.length === 0) {
-    console.log("🔰 Initializing tag mastery data for onboarding...");
-
-    // Initialize with safe default focus tags from tag relationships
-    const coreConceptTags = tagRelationships
-      .filter(entry => entry.classification === "Core Concept")
-      .map(entry => entry.id)
-      .slice(0, 3); // Take first 3 core concept tags
-
-    const defaultFocusTags = coreConceptTags.length > 0 ? coreConceptTags : ["array", "hash table", "string"];
-
-    // Create initial tag mastery records for default focus tags
-    for (const tag of defaultFocusTags) {
-      await upsertTagMastery({
-        tag,
-        total_attempts: 0,
-        successful_attempts: 0,
-        attempted_problem_ids: [],
-        mastered: false,
-        strength: 0,
-        last_practiced: null,
-        mastery_date: null
-      });
-    }
-
-    console.log("✅ Initialized tag mastery with focus tags:", defaultFocusTags);
-  }
+  // NOTE: Tag mastery initialization removed - tags now added organically on first attempt
+  // Pattern ladders can be built regardless of whether tags exist in tag_mastery
+  // Tags will be added to tag_mastery when user attempts their first problem
 
   const { allTagsInCurrentTier, focusTags } =
     await TagService.getCurrentLearningState();

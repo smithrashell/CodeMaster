@@ -22,15 +22,23 @@ async function handleOnboardingFallback(db) {
     req.onerror = () => reject(req.error);
   });
 
+  // Select tags with highest TOTAL problem count (Easy + Medium + Hard)
+  // This ensures beginners start with well-covered topics (array, hash table, string, etc.)
   const topTags = tagRelationships
+    .filter((entry) => entry.classification === "Core Concept") // Only Core Concept tags for onboarding
     .map((entry) => {
-      const totalWeight = (entry.related_tags || []).reduce(
-        (sum, relation) => sum + relation.strength,
-        0
-      );
-      return { tag: entry.id, weight: totalWeight };
+      const dist = entry.difficulty_distribution || { easy: 0, medium: 0, hard: 0 };
+      const totalProblems = dist.easy + dist.medium + dist.hard;
+      return { tag: entry.id, totalProblems, easyProblems: dist.easy };
     })
-    .sort((a, b) => b.weight - a.weight)
+    .sort((a, b) => {
+      // Primary: Total problem count (more problems = better coverage)
+      if (b.totalProblems !== a.totalProblems) {
+        return b.totalProblems - a.totalProblems;
+      }
+      // Secondary: Easy problem count (for true beginners)
+      return b.easyProblems - a.easyProblems;
+    })
     .slice(0, 5)
     .map((entry) => entry.tag);
 
