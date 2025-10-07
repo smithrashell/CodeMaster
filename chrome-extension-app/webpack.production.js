@@ -1,5 +1,6 @@
 const configFactory = require("./webpack.config");
 const CopyPlugin = require("copy-webpack-plugin");
+const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = (env, argv) => {
   const baseConfig = configFactory(env, { mode: "production" });
@@ -15,8 +16,8 @@ module.exports = (env, argv) => {
           from: "public",
           globOptions: {
             ignore: [
-              "**/background*.js", // Ignore all background script files
-              "**/background*.js.old", // Ignore backup files
+              "**/background*.js",
+              "**/background*.js.old",
               "**/app.html"
             ],
           }
@@ -54,20 +55,39 @@ module.exports = (env, argv) => {
     ...baseConfig,
     entry: {
       content: "./src/content/content.jsx",
-      background: "./src/background/background.production.js", // Clean production background
+      background: "./src/background/background.production.js",
       app: "./src/app/app.jsx",
     },
     mode: "production",
     optimization: {
-      minimize: true, // Enable minification for production
-      splitChunks: false, // Disable chunk splitting for Chrome extension
-      usedExports: true, // Enable tree shaking
+      minimize: true,
+      minimizer: [
+        new TerserPlugin({
+          terserOptions: {
+            compress: {
+              drop_console: false,
+              pure_funcs: [
+                'console.log',
+                'console.debug',
+                'console.info',
+                'console.trace',
+              ],
+            },
+            format: {
+              comments: false,
+            },
+          },
+          extractComments: false,
+        }),
+      ],
+      splitChunks: false,
+      usedExports: true,
       sideEffects: false,
     },
-    devtool: false, // No source maps in production
+    devtool: false,
     performance: {
-      hints: "warning", // Show performance warnings in production
-      maxAssetSize: 5000000, // 5MB limit for individual assets
+      hints: "warning",
+      maxAssetSize: 5000000,
       maxEntrypointSize: 5000000,
     },
   };
