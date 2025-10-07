@@ -21,14 +21,11 @@ import {
   SystemRecommendationsSection,
   ActiveSessionTagsPreview,
   MasteredTagsDisplay,
-  CustomModeControls,
-  SelectedTagBadges as _SelectedTagBadges,
   LoadingState,
   HeaderSection,
   CurrentFocusAreasSection,
 } from "./FocusAreasRenderHelpers.jsx";
 import {
-  renderFocusAreasSelector,
   TierTagsVisualization,
 } from "./FocusAreasSelectorRenderHelpers.jsx";
 // Note: Using Chrome messaging for all service calls to comply with extension architecture
@@ -57,9 +54,8 @@ export function FocusAreasSelector() {
   // Track which tab is currently being viewed (for browsing)
   const [activeTab, setActiveTab] = React.useState(null);
 
-  // Helper function wrappers for the extracted functions
+  // Helper function wrapper for the extracted function
   const getTagMasteryProgressWrapper = (tagName) => getTagMasteryProgress(tagName, masteryData);
-  const getTagOptionsWrapper = () => getTagOptions(focusAvailability, availableTags, masteredTags, masteryData);
 
   // Memoize stateSets to prevent recreation on every render
   const stateSets = React.useMemo(() => ({
@@ -68,7 +64,7 @@ export function FocusAreasSelector() {
   }), [setLoading, setError, setFocusAvailability, setCurrentTier, setShowCustomMode,
        setAvailableTags, setMasteredTags, setMasteryData, setSelectedFocusAreas, setHasChanges]);
 
-  const { loadData } = useFocusAreasLifecycle(focusAvailability, setFocusAvailability, loadFocusAreasData, stateSets);
+  useFocusAreasLifecycle(focusAvailability, setFocusAvailability, loadFocusAreasData, stateSets);
 
   const handleFocusAreasChange = (values) => {
     // Limit to maximum 3 focus areas
