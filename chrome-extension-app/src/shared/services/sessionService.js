@@ -14,6 +14,7 @@ import { ProblemService } from "../services/problemService.js";
 import { getTagMastery } from "../db/tag_mastery.js";
 import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../db/sessionAnalytics.js";
 import { StorageService } from "./storageService.js";
+import { FocusCoordinationService } from "./focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
@@ -536,7 +537,6 @@ export const SessionService = {
         // ✅ Call FocusCoordinationService to update focus tags based on performance
         // Pass the updated sessionState object directly to avoid re-reading stale data
         try {
-          const { FocusCoordinationService } = await import('./focusCoordinationService.js');
           const focusDecision = await FocusCoordinationService.getFocusDecision(sessionState);
           const updatedSessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
 

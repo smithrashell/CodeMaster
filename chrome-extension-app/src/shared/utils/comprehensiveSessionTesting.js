@@ -9,7 +9,7 @@ import { StorageService } from '../services/storageService.js';
 import { TagService } from '../services/tagServices.js';
 import { ScheduleService } from '../services/scheduleService.js';
 import FocusCoordinationService from '../services/focusCoordinationService.js';
-// Dynamic imports for ProblemService and buildAdaptiveSessionSettings to follow production flow
+import { buildAdaptiveSessionSettings } from '../db/sessions.js';
 
 export class ComprehensiveSessionTester {
   constructor(config = {}) {
@@ -131,7 +131,6 @@ export class ComprehensiveSessionTester {
       }
 
       // 3. Get session settings for validation
-      const { buildAdaptiveSessionSettings } = await import('../db/sessions.js');
       const settings = await buildAdaptiveSessionSettings();
 
       // 4. Validate session creation
@@ -596,7 +595,6 @@ export class ComprehensiveSessionTester {
 
     for (let i = 0; i < 3; i++) {
       try {
-        const { buildAdaptiveSessionSettings } = await import('../db/sessions.js');
         const settings = await buildAdaptiveSessionSettings();
 
         const settingsValidation = {
@@ -634,7 +632,6 @@ export class ComprehensiveSessionTester {
     for (let i = 0; i < 3; i++) {
       try {
         // Get settings first
-        const { buildAdaptiveSessionSettings } = await import('../db/sessions.js');
         const settings = await buildAdaptiveSessionSettings();
 
         // Test the full fetchAndAssembleSessionProblems pipeline
