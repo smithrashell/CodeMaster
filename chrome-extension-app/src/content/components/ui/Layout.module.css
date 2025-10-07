@@ -1,0 +1,105 @@
+/* Stack - Vertical layout with spacing */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--stack-gap, 8px);
+}
+
+/* Group - Horizontal layout with spacing */
+.group {
+  display: flex;
+  align-items: center;
+  gap: var(--group-gap, 12px);
+}
+
+.group.justifyBetween {
+  justify-content: space-between;
+}
+
+.group.justifyCenter {
+  justify-content: center;
+}
+
+.group.justifyStart {
+  justify-content: flex-start;
+}
+
+.group.justifyEnd {
+  justify-content: flex-end;
+}
+
+.group.wrapItems {
+  flex-wrap: wrap;
+}
+
+.group.gapXs {
+  gap: 4px;
+}
+
+.group.gapSm {
+  gap: 8px;
+}
+
+.group.gapMd {
+  gap: 12px;
+}
+
+.group.gapLg {
+  gap: 16px;
+}
+
+/* Card - Container with border and shadow - Theme aware */
+.card {
+  background-color: var(--mantine-color-body, white);
+  border: 1px solid var(--mantine-color-gray-3, #e9ecef);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  color: var(--mantine-color-text, #000000);
+}
+
+/* Dark theme support */
+[data-mantine-color-scheme="dark"] .card {
+  background-color: var(--mantine-color-dark-6, #2c2e33);
+  border-color: var(--mantine-color-dark-4, #373a40);
+  color: var(--mantine-color-dark-0, #c9c9c9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.card.withPadding {
+  padding: 16px;
+}
+
+.card.shadowSm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card.shadowMd {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Box - Generic container */
+.box {
+  display: block;
+}
+
+/* Stack spacing variants */
+.stack.gapXs {
+  gap: 4px;
+}
+
+.stack.gapSm {
+  gap: 8px;
+}
+
+.stack.gapMd {
+  gap: 12px;
+}
+
+.stack.gapLg {
+  gap: 16px;
+}
+
+.stack.gapXl {
+  gap: 20px;
+}
