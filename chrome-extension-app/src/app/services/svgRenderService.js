@@ -11,8 +11,8 @@ export class SVGRenderService {
 
     // Use dynamic tag relationships (co-occurrence from attempts)
     // Format: { "tag1:tag2": { tag1, tag2, strength, problems, successRate, successCount } }
-    Object.entries(dynamicTagRelationships).forEach(([key, connectionData]) => {
-      const { tag1, tag2, strength, successRate, problems } = connectionData;
+    Object.entries(dynamicTagRelationships).forEach(([_key, connectionData]) => {
+      const { tag1, tag2, strength, successRate, problems: _problems } = connectionData;
 
       // Skip if either tag is not in visible tags
       if (visibleTagSet && (!visibleTagSet.has(tag1) || !visibleTagSet.has(tag2))) return;
