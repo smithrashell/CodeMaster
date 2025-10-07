@@ -3,6 +3,19 @@
  * Focus: Critical validation and error handling that could break user progress tracking
  */
 
+// Mock all database dependencies to prevent production database access
+jest.mock('../../db/index.js');
+jest.mock('../../db/attempts.js');
+jest.mock('../sessionService.js');
+jest.mock('../../db/sessions.js');
+jest.mock('../problemService.js');
+jest.mock('../focusCoordinationService.js', () => ({
+  default: {
+    updateFocusAreas: jest.fn()
+  }
+}));
+jest.mock('../../utils/Utils.js');
+
 // Import the actual AttemptsService for testing
 import { AttemptsService } from '../attemptsService.js';
 
