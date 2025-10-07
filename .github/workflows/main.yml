@@ -24,8 +24,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint code (non-blocking for now)
-        run: npm run lint || echo "Linting failed but continuing"
+      - name: Lint code
+        run: npm run lint
 
       - name: Run tests (stub)
         run: npm test

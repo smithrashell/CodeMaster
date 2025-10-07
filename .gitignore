@@ -5,6 +5,7 @@ node_modules/
 /Frontend/node_modules/
 /Frontend/dist/
 /Frontend/coverage/
+/Frontend/.env
 /Backend/node_modules/
 /Backend/.env
 /Backend/package-lock.json
@@ -15,7 +16,48 @@ node_modules/
 
 # Test and development files
 test_*.ps1
+test-*.html
+test-*.js
+temp_*.txt
+*_config.json
+strategy_*.json
+strategy_*.js
+generate_*.js
 tstaus
 
 # API documentation (if it contains sensitive info)
 # API_USAGE_GUIDE.md
+
+# Backend and development files - keep out of version control
+Backend/
+archive/
+planning-docs/
+Screenshots/
+
+# Documentation and planning files
+*.csv
+*.db
+*_IMPLEMENTATION*.md
+*_ISSUES*.md
+*_ANALYSIS*.md
+*_GUIDE*.md
+*_PLAN*.md
+*_SUMMARY*.md
+*_AUDIT*.md
+COMPREHENSIVE_*.md
+DASHBOARD_*.md
+ENHANCED_*.md
+FOCUS_*.md
+LEARNING_*.md
+PRODUCTION_*.md
+
+# Git templates and development docs
+Git/
+docs/implementation/
+webpack-stats.json
+webpack.dev-minimal.js
+
+# Keep only essential project documentation
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md

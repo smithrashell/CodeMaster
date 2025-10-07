@@ -1,0 +1,58 @@
+html,
+body {
+  font-family: Arial, sans-serif;
+  background-color: var(--cm-bg);
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+}
+
+/* Force full width layout */
+.mantine-AppShell-root,
+.mantine-Container-root {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+/* Ensure app container uses full viewport */
+div[style*="display: flex"][style*="width: 100vw"] {
+  width: 100vw !important;
+  min-width: 100vw !important;
+  max-width: none !important;
+}
+
+#flashcard-container {
+  width: 80%;
+  margin: 20px auto;
+  padding: 20px;
+  background-color: var(--cm-dropdown-bg);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+}
+
+#flashcard {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#code-editor {
+  height: 300px;
+}
+
+#output {
+  background-color: var(--cm-bg-alt, var(--cm-bg));
+  padding: 10px;
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
