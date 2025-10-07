@@ -5,15 +5,13 @@
 import { SessionService } from '../services/sessionService.js';
 import { AttemptsService } from '../services/attemptsService.js';
 import { buildAdaptiveSessionSettings } from '../db/sessions.js';
-import { createScenarioTestDb } from '../db/dbHelperFactory.js';
 
 export class MinimalSessionTester {
   constructor() {
     this.results = [];
   }
 
-  async testSessionLengthAdaptation(options = {}) {
-    const { sharedSession = null } = options;
+  async testSessionLengthAdaptation(_options = {}) {
 
     // Use the shared test database (set up by enableTesting())
     if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {

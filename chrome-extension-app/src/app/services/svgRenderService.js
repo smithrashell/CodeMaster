@@ -1,5 +1,12 @@
 export class SVGRenderService {
-  static renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, visibleTags = null, dynamicTagRelationships = {}, setHoveredConnection = null) {
+  static renderConnections(svg, nodePositions, options = {}) {
+    const {
+      hoveredConnection,
+      isDarkMode,
+      visibleTags = null,
+      dynamicTagRelationships = {},
+      setHoveredConnection = null
+    } = options;
     console.log('🎨 SVGRenderService.renderConnections called:', {
       relationshipCount: Object.keys(dynamicTagRelationships).length,
       visibleTagCount: visibleTags?.length || 0,

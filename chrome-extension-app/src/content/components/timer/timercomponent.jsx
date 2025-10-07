@@ -680,7 +680,7 @@ const useTimerSetup = (options) => {
         setIsUnlimitedMode
       });
     }
-  }, [state?.LeetCodeID, sessionType, interviewConfig, calculateInterviewTimeLimit, setDisplayTime, setIsUnlimitedMode]);
+  }, [state, sessionType, interviewConfig, calculateInterviewTimeLimit, setDisplayTime, setIsUnlimitedMode]);
 
   return { timerRef, intervalIdRef, limitsQuery };
 };

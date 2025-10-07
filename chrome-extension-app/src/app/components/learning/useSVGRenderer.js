@@ -28,7 +28,13 @@ export function useSVGRenderer({
     svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
 
     // Render connections first (so they appear behind nodes) - only between visible tags
-    SVGRenderService.renderConnections(svg, nodePositions, hoveredConnection, isDarkMode, pathData, tagRelationships, setHoveredConnection);
+    SVGRenderService.renderConnections(svg, nodePositions, {
+      hoveredConnection,
+      isDarkMode,
+      visibleTags: pathData,
+      dynamicTagRelationships: tagRelationships,
+      setHoveredConnection
+    });
 
     // Render nodes
     SVGRenderService.renderNodes(svg, pathData, {
