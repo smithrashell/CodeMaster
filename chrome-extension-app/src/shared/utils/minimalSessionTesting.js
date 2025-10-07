@@ -4,7 +4,7 @@
 
 import { SessionService } from '../services/sessionService.js';
 import { AttemptsService } from '../services/attemptsService.js';
-// Dynamic import for buildAdaptiveSessionSettings to follow production flow
+import { buildAdaptiveSessionSettings } from '../db/sessions.js';
 import { createScenarioTestDb } from '../db/dbHelperFactory.js';
 
 export class MinimalSessionTester {
@@ -42,7 +42,6 @@ export class MinimalSessionTester {
         try {
           // Create session
           const sessionData = await SessionService.getOrCreateSession('standard');
-          const { buildAdaptiveSessionSettings } = await import('../db/sessions.js');
           const settings = await buildAdaptiveSessionSettings();
 
           // Simulate attempts

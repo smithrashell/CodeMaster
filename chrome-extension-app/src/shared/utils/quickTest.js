@@ -2,16 +2,16 @@
  * Quick Test - Verify session completion and onboarding progression
  */
 
+import { SessionService } from '../services/sessionService.js';
+import { StorageService } from '../services/storageService.js';
+import { AttemptsService } from '../services/attemptsService.js';
+import { FocusCoordinationService } from '../services/focusCoordinationService.js';
+
 export class QuickTestRunner {
   async testSessionCompletionFlow() {
     console.log('🧪 Testing Session Completion Flow...');
 
     try {
-      // Import required services
-      const { SessionService } = await import('../services/sessionService.js');
-      const { StorageService } = await import('../services/storageService.js');
-      const { AttemptsService } = await import('../services/attemptsService.js');
-      const { FocusCoordinationService } = await import('../services/focusCoordinationService.js');
 
       // Step 1: Check initial state
       console.log('\n📊 Step 1: Initial State Check');
