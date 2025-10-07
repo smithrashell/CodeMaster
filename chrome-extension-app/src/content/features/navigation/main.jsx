@@ -291,15 +291,16 @@ const NavigationSidebar = ({ isAppOpen, setIsAppOpen, currentProblem, problemDat
       <Header title="CodeMaster" onClose={() => setIsAppOpen(false)} />
       <div className="cm-sidenav__content">
         <nav id="nav">
-          <Link to="/Probgen">Generator</Link>
-          <Link to="/Probstat">Statistics</Link>
-          <Link to="/Settings">Settings</Link>
-          <ProblemLink 
+          <Link to="/Probgen" onClick={() => setIsAppOpen(false)}>Generator</Link>
+          <Link to="/Probstat" onClick={() => setIsAppOpen(false)}>Statistics</Link>
+          <Link to="/Settings" onClick={() => setIsAppOpen(false)}>Settings</Link>
+          <ProblemLink
             currentProblem={currentProblem}
             problemData={problemData}
             problemFound={problemFound}
             loading={loading}
             problemTitle={problemTitle}
+            onNavigate={() => setIsAppOpen(false)}
           />
         </nav>
         <ContentThemeToggle />

@@ -1,39 +1,21 @@
 // HeaderWithClose.jsx
-import { useRef } from 'react';
 import Title from '../ui/Title.jsx';
 import { useNav } from "../../../shared/provider/navprovider";
 
 export default function Header({ title, onClose }) {
-  const { isAppOpen, setIsAppOpen } = useNav();
-  const closeTimeoutRef = useRef(null);
+  const { setIsAppOpen } = useNav();
 
   const handleClose = (event) => {
-    // Prevent event bubbling to avoid conflicts
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
 
-    // Prevent double-clicks with debounce
-    if (closeTimeoutRef.current) {
-      return; // Already closing, ignore additional clicks
-    }
-
-    closeTimeoutRef.current = setTimeout(() => {
-      closeTimeoutRef.current = null;
-    }, 300); // 300ms debounce window
-
-    // Force immediate close behavior with functional update to avoid race conditions
-    try {
-      if (onClose) {
-        onClose();
-      } else {
-        setIsAppOpen(() => false); // Use functional update for immediate, predictable close
-      }
-    } catch (error) {
-      // Fallback: force close via direct state manipulation
-      console.warn('Close button error, forcing close:', error);
-      setIsAppOpen(() => false);
+    // Simple, direct close - no debounce, no complexity
+    if (onClose) {
+      onClose();
+    } else {
+      setIsAppOpen(false);
     }
   };
 
