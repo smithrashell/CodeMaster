@@ -4,7 +4,7 @@
 
 import { SessionService } from '../services/sessionService.js';
 import { StorageService } from '../services/storageService.js';
-// Dynamic import for buildAdaptiveSessionSettings to follow production flow
+import { buildAdaptiveSessionSettings, updateSessionInDB } from '../db/sessions.js';
 import { storeSessionAnalytics } from '../db/sessionAnalytics.js';
 import { createScenarioTestDb } from '../db/dbHelperFactory.js';
 
@@ -141,11 +141,9 @@ export class SilentSessionTester {
 
       // NOTE: Session length is based on HISTORICAL performance, not the simulated profile performance
       // The profile accuracy only affects the simulated attempts, not the initial session generation
-      const { buildAdaptiveSessionSettings } = await import('../db/sessions.js');
       const settings = await buildAdaptiveSessionSettings();
 
       // Debug: Always log session state to track progression
-      const { StorageService } = await import('../services/storageService.js');
       const currentState = await StorageService.getSessionState('session_state') || {};
 
       console.log(`🔍 SESSION DEBUG ${sessionNum} - PROFILE: ${profile.name} (${(profile.accuracy * 100)}% accuracy):`, {
@@ -206,7 +204,6 @@ export class SilentSessionTester {
           }
 
           // CRITICAL: Update session in database with attempts so checkAndCompleteSession can see them
-          const { updateSessionInDB } = await import('../db/sessions.js');
           await updateSessionInDB(sessionData);
           console.log(`📝 Updated session ${sessionData.id} with ${sessionData.attempts.length} attempts in database`);
         } catch (error) {
@@ -275,7 +272,6 @@ export class SilentSessionTester {
           sessionData.status = 'completed';
           sessionData.completed_at = new Date().toISOString();
 
-          const { updateSessionInDB } = await import('../db/sessions.js');
           await updateSessionInDB(sessionData);
 
           // Update session state directly for testing purposes
