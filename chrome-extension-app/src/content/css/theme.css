@@ -1,0 +1,1029 @@
+/* ========= Default (Light Mode) ========= */
+:root {
+  --cm-bg: #dceefb;
+  --cm-bg-secondary: #f8f9fa;
+  --cm-bg-tertiary: #dee2e6;
+  --cm-bg-quaternary: #ced4da;
+  --cm-text: #334155;
+  --cm-link: #444f5a;
+  --cm-link-hover: #1c2a3a;
+  --cm-highlight: #fabd22;
+  --cm-btn-bg: #0b7199;
+  --cm-btn-text: #fabd22;
+  --cm-spacing: 16px;
+  --cm-active-blue: #2563eb;
+  --cm-dropdown-color: #334155;
+  --cm-dropdown-bg: #ffffff;
+  --cm-overlay-z-base: 9990;
+
+  /* Dashboard specific variables */
+  --cm-card-bg: #ffffff;
+  --cm-card-shadow: rgba(0, 0, 0, 0.1);
+  --cm-border: #e5e7eb;
+
+  /* Mantine component variables */
+  --cm-navbar-bg: #ffffff;
+  --cm-navbar-border: #e5e7eb;
+  --cm-navbar-aside-bg: #f9fafb;
+  --cm-navbar-main-bg: #f3f4f6;
+  --cm-link-color: #6b7280;
+  --cm-link-hover-bg: #f3f4f6;
+  --cm-link-hover-color: #111827;
+  --cm-link-active-bg: #3b82f6;
+  --cm-link-active-color: #ffffff;
+  --cm-title-bg: #f9fafb;
+  --cm-title-border: #e5e7eb;
+  --cm-chart-grid: #f5f5f5;
+  --cm-tooltip-bg: #ffffff;
+  --cm-tooltip-border: #e5e7eb;
+  --cm-tooltip-text: #111827;
+
+  /* Chart color palette */
+  --cm-chart-primary: #3b82f6;
+  --cm-chart-success: #10b981;
+  --cm-chart-warning: #f59e0b;
+  --cm-chart-danger: #ef4444;
+  --cm-chart-info: #8b5cf6;
+  --cm-chart-secondary: #6b7280;
+
+  /* Semantic color variables for components */
+  --cm-success: #10b981;
+  --cm-warning: #f59e0b;
+  --cm-error: #ef4444;
+  --cm-accent: #3b82f6;
+  --cm-text-secondary: #6b7280;
+
+  /* Scrollbar theming variables - light mode */
+  --cm-scrollbar-track: #f8f9fa;
+  --cm-scrollbar-thumb: #cbd5e1;
+  --cm-scrollbar-thumb-hover: #9ca3af;
+  --cm-scrollbar-width: 8px;
+
+  /* Timer specific colors */
+  --cm-timer-bg: #ffffff;
+  --cm-timer-text: #000000;
+  --cm-timer-border: #cccccc;
+  
+  /* Text dimmed/muted colors - light mode */
+  --cm-text-dimmed: #6b7280;
+
+  /* Table enhancement colors - light theme */
+  --cm-table-accent: #0891b2; /* cyan-700 */
+  --cm-table-accent-hover: #0ea5e9; /* cyan-500 hover tint */
+  --cm-table-mastery-good: #16a34a; /* green-600 */
+  --cm-table-mastery-medium: #b45309; /* amber-700 */
+  --cm-table-mastery-low: #b91c1c; /* red-700 */
+  --cm-table-progress-track: #e5e7eb; /* neutral track background */
+  --cm-table-header-border: rgba(0,0,0,0.08); /* hairline border */
+  --cm-table-row-hover: rgba(0,0,0,0.03); /* subtle row hover */
+  --cm-table-text-muted: #6b7280; /* muted text */
+  --cm-table-text-primary: #0f172a; /* primary text */
+}
+
+body {
+  background-color: var(--cm-bg);
+  color: var(--cm-text);
+}
+
+/* ========= Accessibility Classes ========= */
+
+/* Enhanced focus indicators */
+.a11y-enhanced-focus *:focus {
+  outline: 3px solid #007bff !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Larger click targets */
+.a11y-large-targets button,
+.a11y-large-targets [role="button"],
+.a11y-large-targets a,
+.a11y-large-targets input,
+.a11y-large-targets select {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  padding: 12px 16px !important;
+}
+
+/* Reduced motion */
+.a11y-reduced-motion *,
+.a11y-reduced-motion *::before,
+.a11y-reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Extended hover states */
+.a11y-extended-hover *:hover {
+  transition-delay: 2s !important;
+}
+
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 10000;
+}
+
+.skip-to-content:focus {
+  top: 6px;
+}
+
+/* ========= Dark Mode Overrides ========= */
+body[data-theme="dark"] {
+  --cm-bg: #1f2937;
+  --cm-bg-secondary: #1f2a38;
+  --cm-bg-tertiary: #4b5563;
+  --cm-bg-quaternary: #6b7280;
+  --cm-bg-alt: #3b506e;
+  --cm-text: #f8fafc;
+  --cm-link: #cbd5e1;
+  --cm-link-hover: #ffffff;
+  --cm-highlight: #fbbf24;
+  --cm-btn-bg: #4f46e5;
+  --cm-btn-text: #ffffff;
+  --cm-dropdown-color: #f8fafc;
+  --cm-dropdown-bg: #374151;
+  --cm-overlay-z-base: 9990;
+
+  /* Dashboard specific variables - dark mode */
+  --cm-card-bg: #374151;
+  --cm-card-shadow: rgba(0, 0, 0, 0.3);
+  --cm-border: #4b5563;
+
+  /* Mantine component variables - dark mode */
+  --cm-navbar-bg: #374151;
+  --cm-navbar-border: #4b5563;
+  --cm-navbar-aside-bg: #1f2937;
+  --cm-navbar-main-bg: #374151;
+  --cm-link-color: #f3f4f6;
+  --cm-link-hover-bg: #4b5563;
+  --cm-link-hover-color: #ffffff;
+  --cm-link-active-bg: #3b82f6;
+  --cm-link-active-color: #ffffff;
+  --cm-title-bg: #1f2937;
+  --cm-title-border: #4b5563;
+  --cm-chart-grid: #4b5563;
+  --cm-tooltip-bg: #374151;
+  --cm-tooltip-border: #4b5563;
+  --cm-tooltip-text: #f9fafb;
+
+  /* Chart color palette - dark mode */
+  --cm-chart-primary: #60a5fa;
+  --cm-chart-success: #34d399;
+  --cm-chart-warning: #fbbf24;
+  --cm-chart-danger: #f87171;
+  --cm-chart-info: #a78bfa;
+  --cm-chart-secondary: #d1d5db;
+
+  /* Semantic color variables for components - dark mode */
+  --cm-success: #34d399;
+  --cm-warning: #fbbf24;
+  --cm-error: #f87171;
+  --cm-accent: #60a5fa;
+  --cm-text-secondary: #e5e7eb;
+
+  /* Scrollbar theming variables - dark mode */
+  --cm-scrollbar-track: #1f2937;
+  --cm-scrollbar-thumb: #4b5563;
+  --cm-scrollbar-thumb-hover: #6b7280;
+  --cm-scrollbar-width: 8px;
+
+  /* Timer specific colors - dark mode */
+  --cm-timer-bg: #374151;
+  --cm-timer-text: #ffffff;
+  --cm-timer-border: #4b5563;
+  
+  /* Text dimmed/muted colors - dark mode */
+  --cm-text-dimmed: #d1d5db;
+
+  /* Table enhancement colors - dark theme */
+  --cm-table-accent: #22d3ee; /* cyan-400 */
+  --cm-table-accent-hover: #67e8f9; /* cyan-300 hover tint */
+  --cm-table-mastery-good: #22c55e; /* green-500 */
+  --cm-table-mastery-medium: #f59e0b; /* amber-500 */
+  --cm-table-mastery-low: #ef4444; /* red-500 */
+  --cm-table-progress-track: rgba(255,255,255,0.08); /* neutral track background */
+  --cm-table-header-border: rgba(255,255,255,0.10); /* hairline border */
+  --cm-table-row-hover: rgba(255,255,255,0.04); /* subtle row hover */
+  --cm-table-text-muted: #9fb0c3; /* muted text */
+  --cm-table-text-primary: #e8edf5; /* primary text */
+}
+
+/* ========== Apply Variables to Your CSS ========== */
+.injected {
+  color: var(--cm-text);
+}
+
+.btn {
+  background-color: var(--cm-btn-bg);
+  color: var(--cm-btn-text);
+  border: none;
+  border-radius: 25%;
+}
+
+button {
+  margin-right: 5px;
+  color: var(--cm-btn-text);
+}
+
+/* #cd-menuButton,
+#homeIcon {
+  color: var(--cd-highlight);
+  background-color: #0c433d;
+} */
+
+/* Side Drawer */
+.cm-sidenav {
+  background-color: var(--cm-bg);
+  color: var(--cm-text);
+}
+
+.cm-sidenav a,
+.link {
+  color: var(--cm-link);
+}
+
+.cm-sidenav a:hover,
+.link:hover {
+  color: var(--cm-link-hover);
+}
+
+.link-disabled {
+  color: gray;
+  pointer-events: none;
+}
+
+.link-disabled:hover {
+  color: darkgray;
+  cursor: not-allowed;
+}
+
+/* Misc reused styles from your main.css (unchanged) */
+.cm-left {
+  left: -10px;
+  transition: eft 0.5s;
+}
+.cm-leftoffset {
+  left: 240px;
+}
+.cm-right {
+  right: 10px;
+}
+.codeMaster-Container {
+  transition: margin-left 0.5s;
+  padding: 0px;
+  margin-left: 250px;
+}
+@media screen and (max-height: 600px) {
+  .cm-sidenav {
+    padding-top: 10px;
+  }
+  .cm-sidenav a {
+    font-size: 16px;
+    padding: 8px 12px;
+  }
+}
+.cm-hidden {
+  display: none;
+}
+input[type="submit"] {
+  color: white;
+  font-weight: 600;
+}
+.disabled {
+  color: var(--cm-link);
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* this is for the label for sementcontrol  for time limit*/
+/* input label {
+  color: var(--cd-segmented-control-color);
+} */
+
+/* ========= Enhanced Theme Variables ========= */
+
+/* Font Size Variables */
+[data-font-size="small"] {
+  --cm-font-size-base: 12px;
+  --cm-font-size-sm: 11px;
+  --cm-font-size-lg: 14px;
+  --cm-font-size-xl: 16px;
+  --cm-line-height-base: 1.4;
+}
+
+[data-font-size="medium"],
+:root {
+  --cm-font-size-base: 14px;
+  --cm-font-size-sm: 12px;
+  --cm-font-size-lg: 16px;
+  --cm-font-size-xl: 18px;
+  --cm-line-height-base: 1.5;
+}
+
+[data-font-size="large"] {
+  --cm-font-size-base: 16px;
+  --cm-font-size-sm: 14px;
+  --cm-font-size-lg: 18px;
+  --cm-font-size-xl: 20px;
+  --cm-line-height-base: 1.6;
+}
+
+/* Layout Density Variables */
+[data-layout-density="compact"] {
+  --cm-spacing-xs: 4px;
+  --cm-spacing-sm: 8px;
+  --cm-spacing-md: 12px;
+  --cm-spacing-lg: 16px;
+  --cm-spacing-xl: 20px;
+  --cm-card-padding: 12px;
+  --cm-section-padding: 16px;
+}
+
+[data-layout-density="comfortable"],
+:root {
+  --cm-spacing-xs: 6px;
+  --cm-spacing-sm: 12px;
+  --cm-spacing-md: 18px;
+  --cm-spacing-lg: 24px;
+  --cm-spacing-xl: 32px;
+  --cm-card-padding: 20px;
+  --cm-section-padding: 24px;
+}
+
+/* Animation Variables */
+[data-animations="enabled"],
+:root {
+  --cm-animation-duration: 0.2s;
+  --cm-animation-timing: cubic-bezier(0.4, 0, 0.2, 1);
+  --cm-transition-fast: all 0.15s var(--cm-animation-timing);
+  --cm-transition-normal: all 0.2s var(--cm-animation-timing);
+  --cm-transition-slow: all 0.3s var(--cm-animation-timing);
+}
+
+[data-animations="disabled"] {
+  --cm-animation-duration: 0s;
+  --cm-animation-timing: linear;
+  --cm-transition-fast: none;
+  --cm-transition-normal: none;
+  --cm-transition-slow: none;
+}
+
+/* Apply enhanced variables to elements */
+body {
+  font-size: var(--cm-font-size-base, 14px);
+  line-height: var(--cm-line-height-base, 1.5);
+  /* Removed 'all' transition to prevent theme bleeding */
+}
+
+/* Enhanced spacing for cards and containers */
+.mantine-Card-root {
+  padding: var(--cm-card-padding, 20px) !important;
+  background-color: var(--cm-card-bg) !important;
+  color: var(--cm-text) !important;
+  border-color: var(--cm-border) !important;
+  /* Removed transition to prevent theme bleeding */
+}
+
+.mantine-Container-root {
+  padding: var(--cm-section-padding, 24px) !important;
+}
+
+/* Enhanced text sizes and colors */
+.mantine-Text-root {
+  font-size: var(--cm-font-size-base, 14px) !important;
+  color: var(--cm-text) !important;
+}
+
+
+.mantine-Title-root {
+  color: var(--cm-text) !important;
+}
+
+.mantine-Title-root[data-order="1"] {
+  font-size: var(--cm-font-size-xl, 18px) !important;
+}
+
+.mantine-Title-root[data-order="2"] {
+  font-size: var(--cm-font-size-lg, 16px) !important;
+}
+
+/* Card specific overrides to ensure proper theming */
+.mantine-Card-root,
+[data-mantine-card],
+.mantine-Paper-root {
+  background-color: var(--cm-card-bg) !important;
+  color: var(--cm-text) !important;
+  border-color: var(--cm-border) !important;
+}
+
+/* Additional text elements within cards */
+.mantine-Card-root .mantine-Text-root,
+.mantine-Card-root .mantine-Title-root,
+.mantine-Paper-root .mantine-Text-root,
+.mantine-Paper-root .mantine-Title-root {
+  color: var(--cm-text) !important;
+}
+
+
+/* Force text elements in dashboard to use proper colors - exclude badges */
+.dashboard-overview .mantine-Text-root,
+.dashboard-overview .mantine-Title-root,
+.dashboard-overview .mantine-Group-root .mantine-Text-root {
+  color: var(--cm-text) !important;
+}
+
+
+
+
+
+
+/* Ensure proper text colors in specific contexts */
+body[data-theme="dark"] .mantine-Text-root,
+body[data-theme="dark"] .mantine-Title-root {
+  color: var(--cm-text) !important;
+}
+
+
+
+/* ScrollArea within tables */
+.mantine-ScrollArea-root {
+  background-color: var(--cm-card-bg) !important;
+}
+
+/* Custom Table Styles - Clean and Simple */
+.cm-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--cm-card-bg);
+  color: var(--cm-text);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--cm-border);
+}
+
+.cm-table-header th.cm-table-th {
+  background-color: var(--cm-navbar-aside-bg);
+  color: var(--cm-text);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px 20px;
+  text-align: left;
+  border-bottom: 2px solid var(--cm-border);
+  border-right: 1px solid var(--cm-border);
+}
+
+.cm-table-header th.cm-table-th:last-child {
+  border-right: none;
+}
+
+.cm-table-body .cm-table-row {
+  background-color: var(--cm-card-bg);
+  transition: all 0.15s ease;
+  border-bottom: 1px solid var(--cm-border);
+}
+
+.cm-table-body .cm-table-row:nth-child(even) {
+  background-color: var(--cm-navbar-main-bg);
+}
+
+.cm-table-body .cm-table-row:hover {
+  background-color: var(--cm-link-hover-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cm-table-td {
+  padding: 16px 20px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  vertical-align: middle;
+  border-right: 1px solid var(--cm-border);
+}
+
+.cm-table-td:last-child {
+  border-right: none;
+}
+
+/* Primary data columns (Date, Duration, Problems, Accuracy) */
+.cm-table-td.cm-table-primary {
+  color: var(--cm-text);
+  font-weight: 500;
+}
+
+/* Secondary/Status column - dimmer text */
+.cm-table-td.cm-table-secondary {
+  color: var(--cm-text-secondary);
+  font-weight: 400;
+  opacity: 0.9;
+}
+
+/* Status indicators */
+.cm-table-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.cm-table-status.completed {
+  background-color: var(--cm-success);
+  color: white;
+}
+
+.cm-table-status.in-progress {
+  background-color: var(--cm-accent);
+  color: white;
+}
+
+/* Empty state */
+.cm-table-td.cm-table-empty {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--cm-text-secondary);
+  font-style: italic;
+}
+
+
+/* Responsive animations - REMOVED global transitions to prevent theme bleeding */
+
+/* ========= Enhanced Table Styling ========= */
+
+/* Enhanced table styles for MasteryDashboard */
+.cm-enhanced-table .mantine-Table-root {
+  background: transparent;
+}
+
+.cm-enhanced-table .mantine-Table-root thead th {
+  position: sticky !important;
+  top: 0 !important;
+  background: var(--cm-navbar-aside-bg) !important;
+  color: var(--cm-table-text-muted) !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  border-bottom: 1px solid var(--cm-table-header-border) !important;
+  z-index: 1 !important;
+}
+
+.cm-enhanced-table .mantine-Table-root tbody tr {
+  transition: background 0.15s, box-shadow 0.15s !important;
+  cursor: pointer !important;
+}
+
+.cm-enhanced-table .mantine-Table-root tbody tr:hover {
+  background: var(--cm-table-row-hover) !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.12) inset !important;
+}
+
+.cm-enhanced-table .mantine-Table-root td,
+.cm-enhanced-table .mantine-Table-root th {
+  border-color: var(--cm-table-header-border) !important;
+}
+
+/* Focus row accent */
+.cm-enhanced-table .cm-table-row-focus {
+  box-shadow: inset 2px 0 0 var(--cm-table-accent) !important;
+}
+
+/* Right-aligned numeric columns */
+.cm-enhanced-table .cm-table-cell-numeric {
+  text-align: right !important;
+}
+
+/* Enhanced badge styling */
+.cm-enhanced-table .cm-badge-focus {
+  color: var(--cm-table-accent) !important;
+  border: 1px solid var(--cm-table-accent) !important;
+  background: rgba(34,211,238,0.10) !important;
+}
+
+body[data-theme="dark"] .cm-enhanced-table .cm-badge-focus {
+  color: #a7f3ff !important;
+  border: 1px solid rgba(34,211,238,0.45) !important;
+  background: rgba(34,211,238,0.10) !important;
+}
+
+.cm-enhanced-table .cm-badge-practice {
+  color: var(--cm-table-mastery-medium) !important;
+  border: 1px solid var(--cm-table-mastery-medium) !important;
+  background: rgba(245,158,11,0.10) !important;
+}
+
+body[data-theme="dark"] .cm-enhanced-table .cm-badge-practice {
+  color: #fed7aa !important;
+  border: 1px solid rgba(245,158,11,0.45) !important;
+  background: rgba(245,158,11,0.12) !important;
+}
+
+/* Enhanced progress bars */
+.cm-enhanced-table .cm-progress-track {
+  background: var(--cm-table-progress-track) !important;
+}
+
+/* ========= SVG Text Override for Learning Path ========= */
+
+/* Force SVG text colors for dark mode */
+.svg-text-dark {
+  fill: #f8fafc !important;
+  color: #f8fafc !important;
+}
+
+.svg-text-light {
+  fill: #374151 !important;
+  color: #374151 !important;
+}
+
+/* Additional SVG text overrides */
+svg text.svg-text-dark {
+  fill: #f8fafc !important;
+}
+
+svg text.svg-text-light {
+  fill: #374151 !important;
+}
+
+/* Override Mantine Card text color for SVG elements */
+.mantine-Card-root svg text.svg-text-dark,
+.mantine-Paper-root svg text.svg-text-dark,
+[data-mantine-card] svg text.svg-text-dark {
+  fill: #f8fafc !important;
+  color: #f8fafc !important;
+}
+
+.mantine-Card-root svg text.svg-text-light,
+.mantine-Paper-root svg text.svg-text-light,
+[data-mantine-card] svg text.svg-text-light {
+  fill: #374151 !important;
+  color: #374151 !important;
+}
+
+/* Most specific override for all SVG text in cards */
+.mantine-Card-root svg text,
+.mantine-Paper-root svg text {
+  color: inherit !important;
+}
+
+/* Specific override for learning path card */
+.learning-path-card svg text {
+  color: unset !important;
+}
+
+.learning-path-card svg text.svg-text-dark {
+  fill: #f8fafc !important;
+  color: #f8fafc !important;
+}
+
+.learning-path-card svg text.svg-text-light {
+  fill: #374151 !important;
+  color: #374151 !important;
+}
+
+/* ========= Learning Path & Mistake Analysis Design Tokens ========= */
+
+/* Light theme design tokens */
+:root {
+  /* Enhanced surfaces */
+  --surface: #ffffff;
+  --panel: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --muted: #475569;
+
+  /* Enhanced accent colors */
+  --accent: #0ea5e9; /* cyan-500 */
+  --ok: #16a34a; /* green-600 */
+  --warn: #f59e0b; /* amber-500 */
+  --bad: #ef4444; /* red-500 */
+
+  /* Enhanced effects */
+  --hover: rgba(2,6,23,.04);
+  --shadow: 0 1px 2px rgba(2,6,23,.06), 0 8px 24px rgba(2,6,23,.06);
+}
+
+/* Dark theme design tokens */
+body[data-theme="dark"] {
+  --surface: var(--cm-card-bg);
+  --panel: #111827;
+  --border: var(--cm-border);
+  --text: var(--cm-text);
+  --muted: #9fb0c3;
+  --hover: rgba(255,255,255,.04);
+  --shadow: 0 1px 2px rgba(0,0,0,.1), 0 8px 24px rgba(0,0,0,.15);
+}
+
+/* ========= Global Scrollbar Theming ========= */
+
+/* Modern scrollbar theming for Webkit browsers (Chrome, Safari, Edge) - SCOPED TO EXTENSION */
+.cm-extension * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track);
+}
+
+/* Webkit scrollbar styling - SCOPED TO EXTENSION */
+.cm-extension *::-webkit-scrollbar {
+  width: var(--cm-scrollbar-width);
+  height: var(--cm-scrollbar-width);
+}
+
+.cm-extension *::-webkit-scrollbar-track {
+  background: var(--cm-scrollbar-track);
+  border-radius: 4px;
+}
+
+.cm-extension *::-webkit-scrollbar-thumb {
+  background: var(--cm-scrollbar-thumb);
+  border-radius: 4px;
+  border: 1px solid var(--cm-scrollbar-track);
+  transition: background-color 0.2s ease;
+}
+
+.cm-extension *::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-scrollbar-thumb-hover);
+}
+
+.cm-extension *::-webkit-scrollbar-corner {
+  background: var(--cm-scrollbar-track);
+}
+
+/* Specific overrides for modal content and forms */
+.modal-content, 
+.form-container, 
+.scrollable-content, 
+.mantine-Modal-content, 
+.mantine-ScrollArea-viewport {
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--cm-scrollbar-thumb) var(--cm-scrollbar-track) !important;
+}
+
+.modal-content::-webkit-scrollbar,
+.form-container::-webkit-scrollbar,
+.scrollable-content::-webkit-scrollbar,
+.mantine-Modal-content::-webkit-scrollbar,
+.mantine-ScrollArea-viewport::-webkit-scrollbar {
+  width: var(--cm-scrollbar-width) !important;
+}
+
+.modal-content::-webkit-scrollbar-track,
+.form-container::-webkit-scrollbar-track,
+.scrollable-content::-webkit-scrollbar-track,
+.mantine-Modal-content::-webkit-scrollbar-track,
+.mantine-ScrollArea-viewport::-webkit-scrollbar-track {
+  background: var(--cm-scrollbar-track) !important;
+}
+
+.modal-content::-webkit-scrollbar-thumb,
+.form-container::-webkit-scrollbar-thumb,
+.scrollable-content::-webkit-scrollbar-thumb,
+.mantine-Modal-content::-webkit-scrollbar-thumb,
+.mantine-ScrollArea-viewport::-webkit-scrollbar-thumb {
+  background: var(--cm-scrollbar-thumb) !important;
+  border-radius: 4px !important;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover,
+.form-container::-webkit-scrollbar-thumb:hover,
+.scrollable-content::-webkit-scrollbar-thumb:hover,
+.mantine-Modal-content::-webkit-scrollbar-thumb:hover,
+.mantine-ScrollArea-viewport::-webkit-scrollbar-thumb:hover {
+  background: var(--cm-scrollbar-thumb-hover) !important;
+}
+
+/* Extension-specific scrollbar theming for components that need it */
+
+
+/* ========= Mantine Icon Color Override for Dark Mode ========= */
+
+[data-theme="dark"] {
+  --mantine-color-dimmed: #ffffff !important;
+  
+  /* Fix slider marks and labels */
+  --mantine-color-text: #ffffff !important;
+  --mantine-color-body: #ffffff !important;
+  
+  /* Force all text to be white in dark mode */
+  color: #ffffff !important;
+}
+
+
+/* Additional dark mode text fixes - removed overly broad selector */
+
+/* Keep secondary/dimmed text appropriately gray */
+[data-theme="dark"] .mantine-Text-root[data-variant="dimmed"],
+[data-theme="dark"] [style*="dimmed"] {
+  color: #d1d5db !important;
+}
+
+/* ========= Custom Badge Styles ========= */
+
+.cm-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+/* Size variants */
+.cm-badge--xs {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.cm-badge--sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.cm-badge--md {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.cm-badge--lg {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+/* Light mode colors */
+.cm-badge--blue {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.cm-badge--cyan {
+  background-color: rgba(6, 182, 212, 0.1);
+  color: #0891b2;
+  border-color: rgba(6, 182, 212, 0.2);
+}
+
+.cm-badge--purple {
+  background-color: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+  border-color: rgba(139, 92, 246, 0.2);
+}
+
+.cm-badge--gray {
+  background-color: rgba(107, 114, 128, 0.1);
+  color: #374151;
+  border-color: rgba(107, 114, 128, 0.2);
+}
+
+.cm-badge--orange {
+  background-color: rgba(249, 115, 22, 0.1);
+  color: #ea580c;
+  border-color: rgba(249, 115, 22, 0.2);
+}
+
+.cm-badge--yellow {
+  background-color: rgba(234, 179, 8, 0.1);
+  color: #a16207;
+  border-color: rgba(234, 179, 8, 0.2);
+}
+
+.cm-badge--green {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.cm-badge--red {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.cm-badge--teal {
+  background-color: rgba(20, 184, 166, 0.1);
+  color: #0d9488;
+  border-color: rgba(20, 184, 166, 0.2);
+}
+
+/* Dark mode colors */
+body[data-theme="dark"] .cm-badge--blue {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--cyan {
+  background-color: rgba(6, 182, 212, 0.2);
+  color: #67e8f9;
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--purple {
+  background-color: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--gray {
+  background-color: rgba(107, 114, 128, 0.2);
+  color: #d1d5db;
+  border-color: rgba(107, 114, 128, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--orange {
+  background-color: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--yellow {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #fde047;
+  border-color: rgba(234, 179, 8, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--green {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border-color: rgba(16, 185, 129, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--red {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+body[data-theme="dark"] .cm-badge--teal {
+  background-color: rgba(20, 184, 166, 0.2);
+  color: #5eead4;
+  border-color: rgba(20, 184, 166, 0.4);
+}
+
+/* Variant styles */
+.cm-badge--filled {
+  color: white !important;
+}
+
+.cm-badge--filled.cm-badge--blue {
+  background-color: #3b82f6;
+}
+
+.cm-badge--filled.cm-badge--cyan {
+  background-color: #06b6d4;
+}
+
+.cm-badge--filled.cm-badge--purple {
+  background-color: #8b5cf6;
+}
+
+.cm-badge--filled.cm-badge--gray {
+  background-color: #6b7280;
+}
+
+.cm-badge--filled.cm-badge--orange {
+  background-color: #f97316;
+}
+
+.cm-badge--filled.cm-badge--yellow {
+  background-color: #eab308;
+}
+
+.cm-badge--filled.cm-badge--green {
+  background-color: #10b981;
+}
+
+.cm-badge--filled.cm-badge--red {
+  background-color: #ef4444;
+}
+
+.cm-badge--filled.cm-badge--teal {
+  background-color: #14b8a6;
+}
+
+.cm-badge--outline {
+  background-color: transparent !important;
+  border-width: 1px;
+  border-style: solid;
+}
+
+/* Light variant (default styling above is already light) */
+.cm-badge--light {
+  /* Uses default styling */
+}
+

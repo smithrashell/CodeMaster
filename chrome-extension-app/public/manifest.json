@@ -1,0 +1,70 @@
+{
+  "name": "CodeMaster - Algorithm Learning Assistant",
+  "version": "1.0.0",
+  "description": "Master algorithms with personalized spaced repetition, pattern ladders, and adaptive sessions. Track progress on LeetCode with intelligent learning analytics.",
+  "manifest_version": 3,
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "permissions": [
+    "tabs",
+    "bookmarks",
+    "activeTab",
+    "scripting",
+    "storage",
+    "debugger",
+    "downloads",
+    "notifications",
+    "alarms"
+  ],
+  "action": {
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    },
+    "default_title": "Open CodeMaster Dashboard"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://leetcode.com/*"
+      ],
+      "css": [
+        "content/css/main.css",
+        "content/css/timer.css",
+        "content/css/probrec.css",
+        "content/css/timerBanner.css"
+      ],
+      "run_at": "document_idle",
+      "js": [
+        "content.js"
+      ],
+      "media": []
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "app.html",
+        "app.js",
+        "app.css",
+        "LeetCode_Tags_Combined.json",
+        "strategy_data.json"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

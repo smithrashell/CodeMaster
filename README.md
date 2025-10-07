@@ -66,7 +66,7 @@ This improves testability and isolates session generation logic from state logic
 
 2. **Install dependencies**
    ```bash
-   cd Frontend
+   cd chrome-extension-app
    npm install
    ```
 
@@ -83,7 +83,7 @@ This improves testability and isolates session generation logic from state logic
    - Open Chrome and navigate to `chrome://extensions/`
    - Enable **Developer mode** (toggle in top right)
    - Click **Load unpacked**
-   - Select the `Frontend/dist` folder
+   - Select the `chrome-extension-app/dist` folder
    - The CodeMaster extension should now appear in your extensions
 
 5. **Start developing**
@@ -93,7 +93,7 @@ This improves testability and isolates session generation logic from state logic
 ### Development Commands
 
 ```bash
-# Frontend development (run from Frontend/ directory)
+# Chrome extension development (run from chrome-extension-app/ directory)
 npm run dev          # Development build with watch mode
 npm run build        # Production build
 npm run lint         # Code linting
@@ -103,11 +103,54 @@ npm run test:watch   # Run tests in watch mode
 npm run format       # Format code with Prettier
 ```
 
+## 🧪 Testing Framework
+
+CodeMaster includes a comprehensive testing framework with automatic database isolation and snapshot-based state management.
+
+### Quick Testing
+
+```javascript
+// Browser console (after loading extension)
+setupTests()                    // Start test session
+runMultipleTests()             // Run all tests with auto-isolation
+endTestSession()               // Clean up when done
+```
+
+### Advanced Testing
+
+```javascript
+// Start test session with options
+await enableTesting({
+  mode: 'session',         // 'session' | 'single' | 'persistent'
+  seedLevel: 'full',       // 'minimal' | 'standard' | 'full'
+  autoSnapshot: true       // Create baseline snapshots for fast isolation
+})
+
+// Run specific tests
+await runMultipleTests(['minimal', 'core', 'relationships'])
+
+// Individual test execution
+await testCoreBusinessLogic()
+await testMinimal()
+
+// Session management
+getTestSessionInfo()           // Check session status
+await endTestSession()         // Clean up and restore production mode
+```
+
+### Key Features
+
+- **🚀 Efficient**: One-time database seeding per session (not per test)
+- **⚡ Fast Isolation**: Snapshot-based restoration vs rebuilding relationships
+- **🤖 Automatic**: No manual state management required
+- **🔒 Safe**: Production database never touched during testing
+- **📊 Comprehensive**: Tests all core business logic, relationships, and adaptive algorithms
+
 ### Project Structure
 
 ```
 CodeMaster/
-├── Frontend/                 # Chrome extension source code
+├── chrome-extension-app/    # Chrome extension source code
 │   ├── src/
 │   │   ├── app/             # Standalone dashboard application
 │   │   ├── content/         # LeetCode page integration
@@ -115,15 +158,24 @@ CodeMaster/
 │   │   └── shared/          # Shared utilities, services, components
 │   ├── public/              # Extension manifest and assets
 │   └── dist/                # Built extension files (load this in Chrome)
-├── Backend/                 # Legacy LeetCode data generation (unused)
-└── docs/                    # Additional documentation
+├── docs/                    # Comprehensive documentation hub
+│   ├── getting-started/     # Installation and quick start guides
+│   ├── architecture/        # System design and technical architecture
+│   ├── development/         # Contributing, coding standards, testing
+│   ├── features/           # Learning algorithms and system features
+│   ├── api/                # Service and database API references
+│   └── troubleshooting/    # Common issues and solutions
+└── README.md               # Project overview and quick navigation
 ```
 
 ### Next Steps
 
-- 📖 **[Comprehensive Documentation](Frontend/README.md)** - Complete technical architecture guide
-- 🛠️ **[Development Setup](docs/environment-setup.md)** - Detailed development environment guide  
-- 🤝 **[Contributing](CONTRIBUTING.md)** - Developer workflow and contribution guidelines
-- 🐛 **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- 📖 **[Complete Documentation Hub](docs/README.md)** - Comprehensive technical documentation and guides
+- 🚀 **[Quick Start Installation](docs/getting-started/installation.md)** - Get running in 15 minutes
+- 🏗️ **[Architecture Overview](docs/architecture/overview.md)** - Understand the system design
+- 🤝 **[Contributing Guide](docs/development/contributing.md)** - Developer workflow and standards
+- 🛠️ **[API References](docs/api/)** - Services and database API documentation
+- 🎯 **[Learning Features](docs/features/)** - Leitner system, adaptive sessions, pattern ladders
+- 🐛 **[Troubleshooting](docs/troubleshooting/)** - Common issues and solutions
 
 
