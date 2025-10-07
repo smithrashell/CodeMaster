@@ -1,6 +1,6 @@
 import { dbHelper } from "./index.js";
 import logger from "../utils/logger.js";
-import STANDARD_PROBLEMS_DATA from "../constants/LeetCode_Tags_Combined.json" with { type: "json" };
+import STANDARD_PROBLEMS_DATA from "../constants/LeetCode_Tags_Combined.json";
 
 // Standard problems data
 let STANDARD_PROBLEMS = STANDARD_PROBLEMS_DATA;
