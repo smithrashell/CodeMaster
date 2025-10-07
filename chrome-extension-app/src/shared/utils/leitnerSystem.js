@@ -73,7 +73,12 @@ export async function evaluateAttempts(problem) {
 }
 
 function reassessBoxLevel(problem, attempts) {
-  attempts.sort((a, b) => new Date(a.attempt_date) - new Date(b.attempt_date));
+  // Sort by date - handle both uppercase and lowercase property names
+  attempts.sort((a, b) => {
+    const dateA = new Date(a.attempt_date || a.AttemptDate);
+    const dateB = new Date(b.attempt_date || b.AttemptDate);
+    return dateA - dateB;
+  });
 
   let stats = {
     total_attempts: 0,
@@ -85,17 +90,21 @@ function reassessBoxLevel(problem, attempts) {
   const FAILURE_THRESHOLD = 3;
   const COOLDOWN_REVIEW_INTERVAL = 3;
 
-  let currentBoxLevel = 1;
+  // Start from the problem's existing box level, or default to 1 if not set
+  let currentBoxLevel = problem.boxLevel || problem.box_level || 1;
   let consecutiveFailures = 0;
   let totalPerceivedDifficulty = 0;
 
   for (const attempt of attempts) {
     // Use perceived_difficulty for user difficulty assessment, not actual difficulty
-    totalPerceivedDifficulty += attempt.perceived_difficulty || 2; // Default to 2 (Medium)
+    // Handle both uppercase and lowercase property names
+    totalPerceivedDifficulty += attempt.perceived_difficulty || attempt.Difficulty || 2; // Default to 2 (Medium)
     stats.total_attempts++;
-    attempt.success ? stats.successful_attempts++ : stats.unsuccessful_attempts++;
+    // Handle both uppercase and lowercase Success property
+    const isSuccess = attempt.success !== undefined ? attempt.success : attempt.Success;
+    isSuccess ? stats.successful_attempts++ : stats.unsuccessful_attempts++;
 
-    if (attempt.success) {
+    if (isSuccess) {
       consecutiveFailures = 0;
       currentBoxLevel = Math.min(currentBoxLevel + 1, boxIntervals.length);
     } else {
