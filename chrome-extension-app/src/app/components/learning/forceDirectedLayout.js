@@ -21,7 +21,7 @@ export function calculateForceDirectedLayout(pathData, tagRelationships) {
   const connections = new Map();
   visibleTags.forEach(tag => connections.set(tag, []));
 
-  Object.entries(tagRelationships || {}).forEach(([key, data]) => {
+  Object.entries(tagRelationships || {}).forEach(([_key, data]) => {
     const { tag1, tag2, strength } = data;
     if (visibleTags.includes(tag1) && visibleTags.includes(tag2)) {
       connections.get(tag1)?.push({ target: tag2, strength });
@@ -50,7 +50,6 @@ export function calculateForceDirectedLayout(pathData, tagRelationships) {
   const repulsionStrength = 5000;
   const attractionStrength = 0.01;
   const damping = 0.8;
-  const minDistance = 120; // Minimum distance between nodes
 
   // Run force simulation
   for (let iter = 0; iter < iterations; iter++) {
@@ -86,7 +85,7 @@ export function calculateForceDirectedLayout(pathData, tagRelationships) {
     }
 
     // Attraction force along connections
-    Object.entries(tagRelationships || {}).forEach(([key, data]) => {
+    Object.entries(tagRelationships || {}).forEach(([_key, data]) => {
       const { tag1, tag2, strength } = data;
       if (!visibleTags.includes(tag1) || !visibleTags.includes(tag2)) return;
 
