@@ -47,20 +47,38 @@ export function calculateDecayScore(lastAttemptDate, successRate, stability) {
 }
 
 export function createAttemptRecord(attemptData) {
+  // Support both uppercase (legacy) and lowercase property names
   const baseRecord = {
     id: attemptData.id || uuidv4(), // Generate UUID if not provided
     session_id: attemptData.session_id,
-    problem_id: attemptData.problem_id,
-    leetcode_id: attemptData.leetcode_id,
-    success: attemptData.success,
-    attempt_date: attemptData.attempt_date,
-    time_spent: Number(attemptData.time_spent || 0),
-    perceived_difficulty: Number(attemptData.perceived_difficulty || 0),
-    comments: attemptData.comments || "",
-    // Preserve additional fields that might be present
-    hints_used: attemptData.hints_used,
-    source: attemptData.source,
+    problem_id: attemptData.problem_id !== undefined ? attemptData.problem_id : attemptData.ProblemID,
+    success: attemptData.success !== undefined ? attemptData.success : attemptData.Success,
+    attempt_date: attemptData.attempt_date || attemptData.AttemptDate,
+    time_spent: Number(attemptData.time_spent || attemptData.TimeSpent || 0),
+    comments: attemptData.comments || attemptData.Comments || "",
   };
+
+  // Add optional fields only if they have values
+  if (attemptData.leetcode_id !== undefined) {
+    baseRecord.leetcode_id = attemptData.leetcode_id;
+  }
+
+  if (attemptData.perceived_difficulty !== undefined && attemptData.perceived_difficulty !== 0) {
+    baseRecord.perceived_difficulty = Number(attemptData.perceived_difficulty);
+  }
+
+  if (attemptData.hints_used !== undefined) {
+    baseRecord.hints_used = attemptData.hints_used;
+  }
+
+  if (attemptData.source !== undefined) {
+    baseRecord.source = attemptData.source;
+  }
+
+  // Add difficulty field if present (legacy support)
+  if (attemptData.Difficulty !== undefined || attemptData.difficulty !== undefined) {
+    baseRecord.difficulty = Number(attemptData.difficulty || attemptData.Difficulty);
+  }
 
   // Add interview signals if present
   if (attemptData.interviewSignals) {
