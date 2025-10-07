@@ -27,6 +27,7 @@ jest.mock("../scheduleService", () => ({
 jest.mock("../storageService", () => ({
   StorageService: {
     getSettings: jest.fn(),
+    getSessionState: jest.fn(),
   },
 }));
 jest.mock("../../../content/services/problemReasoningService", () => ({
@@ -55,11 +56,12 @@ const createMockProblem = (overrides = {}) => ({
 });
 
 const createMockProblemInDb = (overrides = {}) => ({
-  id: 1,
+  leetcode_id: 1,
   title: "Two Sum",
   difficulty: "Easy",
   attempts: 5,
-  boxLevel: 2,
+  box_level: 2,
+  tags: [],
   ...overrides
 });
 
@@ -101,7 +103,21 @@ const assertProblemServiceCall = (mockFn, ...expectedArgs) => {
 };
 
 const assertProblemResult = (result, expectedProblem, expectedFound) => {
-  expect(result).toEqual({ problem: expectedProblem, found: expectedFound });
+  if (expectedProblem && typeof expectedProblem === 'object' && expectedProblem.box_level !== undefined) {
+    // For database problems with snake_case, check the merged camelCase result
+    expect(result.found).toBe(expectedFound);
+    expect(result.problem).toMatchObject({
+      id: expectedProblem.leetcode_id || expectedProblem.id,
+      leetcode_id: expectedProblem.leetcode_id || expectedProblem.id,
+      title: expectedProblem.title,
+      difficulty: expectedProblem.difficulty,
+      attempts: expectedProblem.attempts,
+      boxLevel: expectedProblem.box_level,
+      tags: expectedProblem.tags || []
+    });
+  } else {
+    expect(result).toEqual({ problem: expectedProblem, found: expectedFound });
+  }
 };
 
 const assertAttemptsServiceCall = (mockFn, expectedAttempt, expectedProblem) => {
