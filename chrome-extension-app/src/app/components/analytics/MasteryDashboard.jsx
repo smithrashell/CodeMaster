@@ -30,7 +30,7 @@ const normalizeData = (data) => ({
 });
 
 // Helper functions (support both snake_case and PascalCase)
-const generatePieData = (selectedTag, masteryData, currentTab) => {
+const generatePieData = (selectedTag, masteryData, _currentTab) => {
   if (selectedTag) {
     const successfulAttempts = selectedTag.successful_attempts ?? selectedTag.successfulAttempts ?? 0;
     const totalAttempts = selectedTag.total_attempts ?? selectedTag.totalAttempts ?? 0;
@@ -71,8 +71,7 @@ const processTagData = (masteryData, unmasteredTags, search, activeFocusFilter) 
     });
 };
 
-const createTableRows = (data, options, callbacks) => {
-  const { highlightUnmastered } = options;
+const createTableRows = (data, _options, callbacks) => {
   const { setSelectedTag } = callbacks;
 
   return data.map((tag) => {
@@ -213,7 +212,6 @@ export default function MasteryDashboard(props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [activeFocusFilter, setActiveFocusFilter] = useState(null); // chip filter
-  const [activeTab, setActiveTab] = useState("tier"); // Track active tab
   const pageSize = 10;
 
   useEffect(() => {
@@ -250,7 +248,7 @@ export default function MasteryDashboard(props) {
   const tierTagsFiltered = processTagData(tierTagsSource || [], data.unmasteredTags || [], search, activeFocusFilter);
 
   return (
-    <Tabs defaultValue="tier" onChange={(value) => { setCurrentPage(0); setActiveTab(value); }}>
+    <Tabs defaultValue="tier" onChange={() => { setCurrentPage(0); }}>
       <Tabs.List>
         <Tabs.Tab value="tier">Current Tier Mastery</Tabs.Tab>
         <Tabs.Tab value="overall">Overall Mastery (All Tags)</Tabs.Tab>
