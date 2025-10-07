@@ -306,7 +306,7 @@ export class TagProblemIntegrationTester {
   /**
    * Implementation: Test learning path coherence across both systems
    */
-  static async testLearningPathCoherence(quiet) {
+  static testLearningPathCoherence(quiet) {
     const results = [];
 
     try {
@@ -452,7 +452,7 @@ export class TagProblemIntegrationTester {
   /**
    * Implementation: Test session recommendation blending
    */
-  static async testSessionRecommendationBlending(_quiet) {
+  static testSessionRecommendationBlending(_quiet) {
     const results = [];
 
     // Test that session creation blends tag ladder + relationship recommendations
@@ -482,7 +482,7 @@ export class TagProblemIntegrationTester {
   /**
    * Implementation: Test difficulty progression coherence
    */
-  static async testDifficultyProgressionCoherence(quiet) {
+  static testDifficultyProgressionCoherence(quiet) {
     const results = [];
 
     // Test that difficulty progression respects both tag mastery AND relationship strength
@@ -525,7 +525,7 @@ export class TagProblemIntegrationTester {
   /**
    * Implementation: Test focus tag constraints
    */
-  static async testFocusTagConstraints(quiet) {
+  static testFocusTagConstraints(quiet) {
     const results = [];
 
     // Test that focus tags properly constrain problem relationship scoring
@@ -657,7 +657,7 @@ export class TagProblemIntegrationTester {
   /**
    * Clean up test database context after integration tests
    */
-  static async cleanupIntegrationTestEnvironment() {
+  static cleanupIntegrationTestEnvironment() {
     try {
       // Clean up global flags
       delete globalThis._testDatabaseActive;
@@ -673,19 +673,19 @@ export class TagProblemIntegrationTester {
    * Placeholder implementations for remaining test methods
    * These would be implemented based on specific testing needs
    */
-  static async testMultiSessionPathPlanning(_quiet) {
+  static testMultiSessionPathPlanning(_quiet) {
     return [{ test: 'multi_session_path_planning', passed: true, details: { placeholder: true } }];
   }
 
-  static async testSuccessBasedTransitions(_quiet) {
+  static testSuccessBasedTransitions(_quiet) {
     return [{ test: 'success_based_transitions', passed: true, details: { placeholder: true } }];
   }
 
-  static async testPlateauRecovery(_quiet) {
+  static testPlateauRecovery(_quiet) {
     return [{ test: 'plateau_recovery', passed: true, details: { placeholder: true } }];
   }
 
-  static async testTagExpansionGuidance(_quiet) {
+  static testTagExpansionGuidance(_quiet) {
     return [{ test: 'tag_expansion_guidance', passed: true, details: { placeholder: true } }];
   }
 

@@ -73,7 +73,7 @@ class TestDatabaseManager {
   /**
    * Get a completely fresh test database (for tests that need isolation)
    */
-  async getFreshTestDb(testName = 'isolated') {
+  getFreshTestDb(testName = 'isolated') {
     console.log(`🆕 Creating fresh isolated test database for: ${testName}`);
     return createScenarioTestDb('empty');
   }

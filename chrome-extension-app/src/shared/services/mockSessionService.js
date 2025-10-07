@@ -60,7 +60,7 @@ export class MockSessionService {
    * Mock implementation of getOrCreateSession
    * Returns realistic session data without database access
    */
-  async getOrCreateSession(sessionType = 'standard') {
+  getOrCreateSession(sessionType = 'standard') {
     this.sessionCounter++;
 
     const sessionId = `mock_session_${Date.now()}_${this.sessionCounter}`;
@@ -94,7 +94,7 @@ export class MockSessionService {
    * Mock implementation of checkAndCompleteSession
    * Updates mock state without database writes
    */
-  async checkAndCompleteSession(sessionId) {
+  checkAndCompleteSession(sessionId) {
     const session = this.mockSessions.get(sessionId);
 
     if (!session) {
@@ -128,7 +128,7 @@ export class MockSessionService {
    * Mock implementation of difficulty progression evaluation
    * Simulates progression logic without database dependencies
    */
-  async evaluateDifficultyProgression(accuracy, settings = {}) {
+  evaluateDifficultyProgression(accuracy, settings = {}) {
     const previousDifficulty = this.mockState.current_difficulty_cap;
     const now = new Date();
 
@@ -325,7 +325,7 @@ export class MockSessionService {
   /**
    * Mock implementation of buildAdaptiveSessionSettings
    */
-  async buildAdaptiveSessionSettings() {
+  buildAdaptiveSessionSettings() {
     return {
       sessionLength: this.calculateSessionLength(),
       numberOfNewProblems: Math.floor(this.calculateSessionLength() * 0.7),
@@ -339,7 +339,7 @@ export class MockSessionService {
   /**
    * Mock implementation of getSessionPerformance
    */
-  async getSessionPerformance(options = {}) {
+  getSessionPerformance(options = {}) {
     // Return mock performance data based on current state
     const { recentSessionsLimit: _recentSessionsLimit = 5 } = options;
 
