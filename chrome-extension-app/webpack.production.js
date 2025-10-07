@@ -59,10 +59,19 @@ module.exports = (env, argv) => {
       app: "./src/app/app.jsx",
     },
     mode: "production",
+    // Enable filesystem caching for faster subsequent builds
+    cache: {
+      type: 'filesystem',
+      buildDependencies: {
+        config: [__filename],
+      },
+      compression: 'gzip',
+    },
     optimization: {
       minimize: true,
       minimizer: [
         new TerserPlugin({
+          parallel: true, // Use multiple CPU cores
           terserOptions: {
             compress: {
               drop_console: false,
@@ -72,9 +81,13 @@ module.exports = (env, argv) => {
                 'console.info',
                 'console.trace',
               ],
+              passes: 2, // Faster than default 3
             },
             format: {
               comments: false,
+            },
+            mangle: {
+              safari10: false,
             },
           },
           extractComments: false,
