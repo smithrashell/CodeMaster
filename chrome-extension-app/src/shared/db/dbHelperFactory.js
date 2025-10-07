@@ -127,7 +127,7 @@ export function createDbHelper(config = {}) {
       return this.pendingConnection;
     },
 
-    async closeDB() {
+    closeDB() {
       if (this.db) {
         this.db.close();
         this.db = null;
