@@ -12,8 +12,11 @@ import { StorageService } from '../shared/services/storageService.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // Database imports - ALL static, NO dynamic imports
-import { dbHelper } from '../shared/db/index.js';
+import { createDbHelper } from '../shared/db/dbHelperFactory.js';
 import { fetchProblemById } from '../shared/db/standard_problems.js';
+
+// Create dbHelper instance for test file usage
+const dbHelper = createDbHelper();
 import { getAllFromStore } from '../shared/db/common.js';
 import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/sessions.js';
 import { buildRelationshipMap } from '../shared/db/problem_relationships.js';
@@ -387,7 +390,7 @@ export function initializeCoreBusinessTests() {
   };
 
   // Individual test functions
-  async function testSessionCreation(verbose) {
+  async function testSessionCreation(_verbose) {
     const start = Date.now();
     try {
       const problems = await ProblemService.createSession();
@@ -405,7 +408,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testProblemSelection(verbose) {
+  async function testProblemSelection(_verbose) {
     const start = Date.now();
     try {
       const problems = await ProblemService.createSession();
@@ -502,7 +505,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testAttemptTracking(verbose) {
+  async function testAttemptTracking(_verbose) {
     const start = Date.now();
     try {
       console.log('🧪 testAttemptTracking: Starting...');
@@ -541,7 +544,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testTagMastery(verbose) {
+  async function testTagMastery(_verbose) {
     const start = Date.now();
     try {
       // Test 1: Get current tier
@@ -614,7 +617,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testSpacedRepetition(verbose) {
+  async function testSpacedRepetition(_verbose) {
     const start = Date.now();
     try {
       // Test Leitner system: problems should be spaced based on success/failure
@@ -682,7 +685,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testDataPersistence(verbose) {
+  async function testDataPersistence(_verbose) {
     const start = Date.now();
     try {
       // Create test problem in problems store (production pattern)
@@ -794,7 +797,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testServiceIntegration(verbose) {
+  async function testServiceIntegration(_verbose) {
     const start = Date.now();
     try {
       // Test that services are available and can access seeded data
@@ -859,7 +862,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testDifficultyProgression(verbose) {
+  async function testDifficultyProgression(_verbose) {
     const start = Date.now();
     try {
       // Test pattern ladder: difficulty should progress based on performance
@@ -956,7 +959,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testProblemRelationships(verbose) {
+  async function testProblemRelationships(_verbose) {
     const start = Date.now();
     try {
       // Test that problem relationships guide next problem selection
@@ -1035,7 +1038,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testProductionWorkflow(verbose) {
+  async function testProductionWorkflow(_verbose) {
     const start = Date.now();
     try {
       // ENHANCED: Test complete multi-session learning cycle
@@ -1140,7 +1143,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testMasteryGates(verbose) {
+  async function testMasteryGates(_verbose) {
     const start = Date.now();
     try {
       // Test the new mastery gate system: volume + uniqueness + accuracy
@@ -1214,7 +1217,7 @@ export function initializeCoreBusinessTests() {
       while (attemptCount < minAttemptsRequired - 1) {
         const testProblem = await createTestProblem(arrayProblemIds[attemptCount]);
 
-        if (verbose) {
+        if (_verbose) {
           console.log(`Adding attempt ${attemptCount + 1}/${minAttemptsRequired - 1} for problem ${testProblem.title}`);
         }
 
@@ -1241,7 +1244,7 @@ export function initializeCoreBusinessTests() {
       let masteryData = await getTagMastery();
       let arrayMastery = masteryData.find(m => m.tag === 'array');
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`After ${minAttemptsRequired - 1} attempts, array mastery:`, {
           total_attempts: arrayMastery?.total_attempts,
           mastered: arrayMastery?.mastered
@@ -1412,7 +1415,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testAdaptiveSessionLength(verbose) {
+  async function testAdaptiveSessionLength(_verbose) {
     const start = Date.now();
     try {
       // Test that session length adapts to user performance and settings
@@ -1462,7 +1465,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testRelationshipMapUpdates(verbose) {
+  async function testRelationshipMapUpdates(_verbose) {
     const start = Date.now();
     try {
       // Test that solving problems updates the relationship map
@@ -1521,7 +1524,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testSessionCleanupSafety(verbose) {
+  async function testSessionCleanupSafety(_verbose) {
     const start = Date.now();
     try {
       // Test: Verify that completed/old sessions are cleaned up properly
@@ -1540,7 +1543,7 @@ export function initializeCoreBusinessTests() {
         }
       }
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Created session for cleanup test: ${sessionId}, problems: ${session.problems.length}`);
       }
 
@@ -1584,7 +1587,7 @@ export function initializeCoreBusinessTests() {
       const completedSession = await getSessionById(sessionId);
       const isCompleted = completedSession && completedSession.status === 'completed';
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Session cleanup test: sessionExists=${sessionExists}, isCompleted=${isCompleted}`);
       }
 
@@ -1608,7 +1611,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testMultiSessionCoexistence(verbose) {
+  async function testMultiSessionCoexistence(_verbose) {
     const start = Date.now();
     try {
       // Test: User can have ONE active session of EACH type simultaneously
@@ -1671,7 +1674,7 @@ export function initializeCoreBusinessTests() {
       const sessionTypes = new Set(activeSessions.map(s => s.session_type));
       const hasMultipleTypes = sessionTypes.size >= 2; // At least standard + interview or tracking
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Active sessions:`, {
           total: activeSessions.length,
           types: Array.from(sessionTypes),
@@ -1704,7 +1707,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testTrackingSessionRotation(verbose) {
+  async function testTrackingSessionRotation(_verbose) {
     const start = Date.now();
     try {
       // Test tracking session behavior - simplified since internal methods aren't exposed
@@ -1730,7 +1733,7 @@ export function initializeCoreBusinessTests() {
       const hasTrackingSession = trackingSessions.length > 0;
       const hasAttempts = trackingSessions[0]?.attempts?.length > 0;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('Tracking session:', {
           found: hasTrackingSession,
           attempts: trackingSessions[0]?.attempts?.length || 0
@@ -1759,14 +1762,14 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testSessionCompletionFlow(verbose) {
+  async function testSessionCompletionFlow(_verbose) {
     const start = Date.now();
     try {
       // Clean up test database to ensure no stale data
       if (globalThis._testDatabaseHelper) {
         try {
           await globalThis._testDatabaseHelper.smartTestIsolation();
-          if (verbose) console.log('✅ Test database cleaned');
+          if (_verbose) console.log('✅ Test database cleaned');
         } catch (cleanupError) {
           console.warn('⚠️ Pre-test cleanup failed:', cleanupError.message);
         }
@@ -1812,7 +1815,7 @@ export function initializeCoreBusinessTests() {
 
       const problems = session.problems; // Use ALL problems in session
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Session created: ${sessionId}, problems: ${problems.length}`);
       }
 
@@ -1845,7 +1848,7 @@ export function initializeCoreBusinessTests() {
       let updatedSession = await getSessionById(sessionId);
       const stillInProgress = updatedSession.status === 'in_progress';
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`After ${problems.length - 1}/${problems.length} attempts: ${updatedSession.status}`);
       }
 
@@ -1873,7 +1876,7 @@ export function initializeCoreBusinessTests() {
       updatedSession = await getSessionById(sessionId);
       const markedCompleted = updatedSession.status === 'completed';
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`After 3/3 attempts: ${updatedSession.status}`);
       }
 
@@ -1905,7 +1908,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testFocusTagProgression(verbose) {
+  async function testFocusTagProgression(_verbose) {
     const start = Date.now();
     try {
       // Test focus tag tier progression using real production functions
@@ -1917,7 +1920,7 @@ export function initializeCoreBusinessTests() {
       const initialTier = initialState.currentTier;
       const initialFocusTags = initialState.focusTags || [];
 
-      if (verbose) {
+      if (_verbose) {
         console.log('Initial learning state:', {
           tier: initialTier,
           focusTags: initialFocusTags
@@ -1951,7 +1954,7 @@ export function initializeCoreBusinessTests() {
       const stillInSameTier = updatedState.currentTier === initialTier;
       const hasFocusTags = updatedState.focusTags && updatedState.focusTags.length > 0;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('After mastering 3 tags:', {
           tier: updatedState.currentTier,
           focusTags: updatedState.focusTags,
@@ -1989,7 +1992,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testOnboardingInitialization(verbose) {
+  async function testOnboardingInitialization(_verbose) {
     const start = Date.now();
     try {
       // Test simplified onboarding initialization - just verify data creation
@@ -2001,7 +2004,7 @@ export function initializeCoreBusinessTests() {
       const existingLadders = await getAllFromStore('pattern_ladders');
       const hadExistingLadders = existingLadders.length > 0;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('Onboarding test:', {
           existingLadders: existingLadders.length,
           skippingInit: hadExistingLadders
@@ -2025,7 +2028,7 @@ export function initializeCoreBusinessTests() {
       const arrayLadder = ladders.find(l => l.tag === 'array');
       const hasArrayLadder = arrayLadder && arrayLadder.problems.length >= 5;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('After initialization:', {
           ladders: ladders.length,
           mastery: mastery.length,
