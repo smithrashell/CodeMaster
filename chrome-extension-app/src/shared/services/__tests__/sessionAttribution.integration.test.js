@@ -38,7 +38,7 @@ const transitionSession = (session, newStatus) => {
     return {
       ...session,
       status: newStatus,
-      lastActivityTime: new Date().toISOString()
+      last_activity_time: new Date().toISOString()
     };
   }
   return session;
