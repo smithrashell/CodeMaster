@@ -1765,6 +1765,17 @@ export function initializeCoreBusinessTests() {
     }
   }
 
+  // Helper to validate session problem has valid numeric ID
+  function validateSessionProblemId(problem, context, index = null) {
+    const indexStr = index !== null ? ` ${index}` : '';
+    if (!problem.id && problem.id !== 0) {
+      throw new Error(`${context}: Problem${indexStr} missing id: ${JSON.stringify(problem)}`);
+    }
+    if (typeof problem.id !== 'number') {
+      throw new Error(`${context}: Problem${indexStr} id must be number, got ${typeof problem.id}: ${problem.id}`);
+    }
+  }
+
   async function testSessionCompletionFlow(_verbose) {
     const start = Date.now();
     try {
@@ -1797,23 +1808,17 @@ export function initializeCoreBusinessTests() {
       const sessionId = session.id;
 
       // Validate ALL session problems have valid numeric IDs
-      for (let i = 0; i < session.problems.length; i++) {
-        if (!session.problems[i].id && session.problems[i].id !== 0) {
-          return {
-            success: false,
-            error: `Session problem ${i} has invalid id: ${session.problems[i].id}, title: ${session.problems[i].title}`,
-            details: 'Session created with invalid problem IDs - this is a session creation bug',
-            duration: Date.now() - start
-          };
+      try {
+        for (let i = 0; i < session.problems.length; i++) {
+          validateSessionProblemId(session.problems[i], 'Session Completion Flow', i);
         }
-        if (typeof session.problems[i].id !== 'number') {
-          return {
-            success: false,
-            error: `Session problem ${i} id is not a number: ${typeof session.problems[i].id} (${session.problems[i].id}), title: ${session.problems[i].title}`,
-            details: 'Session created with non-numeric problem IDs - this is a session creation bug',
-            duration: Date.now() - start
-          };
-        }
+      } catch (validationError) {
+        return {
+          success: false,
+          error: validationError.message,
+          details: 'Session created with invalid problem IDs - this is a session creation bug',
+          duration: Date.now() - start
+        };
       }
 
       const problems = session.problems; // Use ALL problems in session
@@ -1828,14 +1833,7 @@ export function initializeCoreBusinessTests() {
 
       // Attempt all but last problem - session problems have 'id' property which is the leetcode_id
       for (let i = 0; i < problems.length - 1; i++) {
-        // Validate session problem has valid id field
-        if (!problems[i].id && problems[i].id !== 0) {
-          throw new Error(`Session Completion Flow: Problem ${i} missing id: ${JSON.stringify(problems[i])}`);
-        }
-        if (typeof problems[i].id !== 'number') {
-          throw new Error(`Session Completion Flow: Problem ${i} id must be number, got ${typeof problems[i].id}: ${problems[i].id}`);
-        }
-
+        validateSessionProblemId(problems[i], 'Session Completion Flow', i);
         const problem = await createTestProblem(problems[i].id);
 
         await AttemptsService.addAttempt({
@@ -1857,14 +1855,7 @@ export function initializeCoreBusinessTests() {
 
       // Attempt final problem - session problems have 'id' property which is the leetcode_id
       const lastProblemIndex = problems.length - 1;
-      // Validate session problem has valid id field
-      if (!problems[lastProblemIndex].id && problems[lastProblemIndex].id !== 0) {
-        throw new Error(`Session Completion Flow: Final problem missing id: ${JSON.stringify(problems[lastProblemIndex])}`);
-      }
-      if (typeof problems[lastProblemIndex].id !== 'number') {
-        throw new Error(`Session Completion Flow: Final problem id must be number, got ${typeof problems[lastProblemIndex].id}: ${problems[lastProblemIndex].id}`);
-      }
-
+      validateSessionProblemId(problems[lastProblemIndex], 'Session Completion Flow (final)');
       const finalProblem = await createTestProblem(problems[lastProblemIndex].id);
 
       await AttemptsService.addAttempt({
