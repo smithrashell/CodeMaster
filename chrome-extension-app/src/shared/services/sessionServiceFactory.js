@@ -20,7 +20,7 @@ import { StorageService } from './storageService.js';
 /**
  * Get session service configuration
  */
-async function getSessionConfig() {
+function getSessionConfig() {
   try {
     // Use static imports
     return {

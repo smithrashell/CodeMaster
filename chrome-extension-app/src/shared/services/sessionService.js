@@ -1410,7 +1410,7 @@ export const SessionService = {
    * @param {Object} session - The session object
    * @returns {Object} Difficulty analysis with counts and percentages
    */
-  async analyzeSessionDifficulty(session) {
+  analyzeSessionDifficulty(session) {
     const difficultyCount = { Easy: 0, Medium: 0, Hard: 0 };
     const totalProblems = session.problems.length;
 

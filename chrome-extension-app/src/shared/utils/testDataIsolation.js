@@ -16,7 +16,7 @@ export class TestDataIsolation {
   /**
    * Simple openDB function for test isolation
    */
-  static async openDB() {
+  static openDB() {
     return new Promise((resolve, reject) => {
       const dbName = this.isTestMode ?
         this.TEST_DB_NAME :
@@ -78,7 +78,7 @@ export class TestDataIsolation {
   /**
    * Exit test mode - switches back to user database and optionally cleans up
    */
-  static async exitTestMode(cleanupTestData = true) {
+  static exitTestMode(_cleanupTestData = true) {
     if (!this.isTestMode) {
       console.warn('⚠️ Not in test mode.');
       return;
@@ -128,7 +128,7 @@ export class TestDataIsolation {
   /**
    * Clean up test database after testing
    */
-  static async cleanupTestDatabase(testDbName) {
+  static cleanupTestDatabase(testDbName) {
     try {
       // Delete the test database
       const deleteRequest = indexedDB.deleteDatabase(testDbName);
@@ -331,7 +331,7 @@ export class TestDataIsolation {
   /**
    * Create a shared test session that can be used by multiple test functions
    */
-  static async createSharedTestSession(sessionId = null) {
+  static createSharedTestSession(sessionId = null) {
     this.sharedTestSession = sessionId || `shared_test_${Date.now()}`;
     console.log(`🔗 Created shared test session: ${this.sharedTestSession}`);
     return this.sharedTestSession;
@@ -443,7 +443,7 @@ export class TestDataIsolation {
   /**
    * Create lightweight test database helper without imports
    */
-  static async createLightweightTestDb() {
+  static createLightweightTestDb() {
     const testDbName = `${this.TEST_DB_NAME}_${this.testSession}`;
 
     return {
@@ -451,7 +451,7 @@ export class TestDataIsolation {
       version: 47,
       isTestMode: true,
 
-      async openDB() {
+      openDB() {
         return new Promise((resolve, reject) => {
           const request = indexedDB.open(testDbName, 47);
 
