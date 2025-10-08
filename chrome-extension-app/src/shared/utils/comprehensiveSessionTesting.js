@@ -10,6 +10,7 @@ import { TagService } from '../services/tagServices.js';
 import { ScheduleService } from '../services/scheduleService.js';
 import FocusCoordinationService from '../services/focusCoordinationService.js';
 import { buildAdaptiveSessionSettings } from '../db/sessions.js';
+import { ProblemService } from '../services/problemService.js';
 
 export class ComprehensiveSessionTester {
   constructor(config = {}) {
@@ -353,7 +354,7 @@ export class ComprehensiveSessionTester {
   /**
    * Simulate realistic user attempts based on performance profile
    */
-  async simulateRealisticAttempts(problems, profileConfig) {
+  simulateRealisticAttempts(problems, profileConfig) {
     const attempts = [];
 
     for (let i = 0; i < problems.length; i++) {

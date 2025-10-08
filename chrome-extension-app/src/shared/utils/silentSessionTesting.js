@@ -6,7 +6,6 @@ import { SessionService } from '../services/sessionService.js';
 import { StorageService } from '../services/storageService.js';
 import { buildAdaptiveSessionSettings, updateSessionInDB } from '../db/sessions.js';
 import { storeSessionAnalytics } from '../db/sessionAnalytics.js';
-import { createScenarioTestDb } from '../db/dbHelperFactory.js';
 
 export class SilentSessionTester {
   async testSessionConsistency(options = {}) {
