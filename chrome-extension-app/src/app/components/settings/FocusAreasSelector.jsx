@@ -13,7 +13,7 @@ import {
   resetFocusAreasSettings,
   setupAttemptUpdateListener as _setupAttemptUpdateListener,
   getTagMasteryProgress,
-  getTagOptions,
+  getTagOptions as _getTagOptions,
   useFocusAreasState,
   useFocusAreasLifecycle,
 } from "./focusAreasHelpers.js";
@@ -35,7 +35,7 @@ import {
 
 export function FocusAreasSelector() {
   const {
-    availableTags, setAvailableTags,
+    availableTags: _availableTags, setAvailableTags,
     selectedFocusAreas, setSelectedFocusAreas,
     currentTier, setCurrentTier,
     masteredTags, setMasteredTags,

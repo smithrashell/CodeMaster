@@ -18,7 +18,7 @@ import { getAllFromStore } from '../db/common.js';
  */
 const FOCUS_CONFIG = {
   onboarding: {
-    sessionCount: 1,
+    sessionCount: 3,
     maxTags: 1
   },
   performance: {
@@ -253,11 +253,6 @@ export class FocusCoordinationService {
     // 80%+: 2-4 tags (excellent - volume-gated expansion)
     // 14+ days stagnation: 4 tags (force variety to break plateau)
 
-    // VOLUME GATING: Require minimum problems before expanding
-    if (totalProblemsAttempted < 4) {
-      return 1;  // Stay at 1 tag until 4+ problems attempted
-    }
-
     let tagCount = 1;
     const hasStagnation = performance.daysSinceProgress >= FOCUS_CONFIG.performance.expansion.stagnationDays;
 
@@ -271,8 +266,10 @@ export class FocusCoordinationService {
         tagCount = 4;  // 20+ problems → 4 tags
       } else if (totalProblemsAttempted >= 10) {
         tagCount = 3;  // 10-19 problems → 3 tags
-      } else {
+      } else if (totalProblemsAttempted >= 4) {
         tagCount = 2;  // 4-9 problems → 2 tags
+      } else {
+        tagCount = 2;  // < 4 problems but excellent performance → 2 tags
       }
     }
     // Good performance - moderate expansion with volume gating
@@ -280,7 +277,7 @@ export class FocusCoordinationService {
       if (totalProblemsAttempted >= 10) {
         tagCount = accuracy >= 0.78 ? 3 : 2;
       } else {
-        tagCount = 2;  // 4-9 problems → 2 tags max
+        tagCount = 2;  // Good performance allows 2 tags regardless of volume
       }
     }
     // Developing (60-75%) - stay at 2 tags for consistent practice
@@ -294,6 +291,12 @@ export class FocusCoordinationService {
     // Struggling significantly (<40%) - single focus
     else {
       tagCount = 1;
+    }
+
+    // VOLUME GATING: Minimum problems check (applied after performance-based calculation)
+    // Only restrict if performance is poor AND problem count is low
+    if (totalProblemsAttempted < 4 && accuracy < 0.6) {
+      tagCount = 1;  // Stay at 1 tag for struggling users with low volume
     }
 
     console.log(`🔍 DEBUG: Tag count calculation - FINAL RESULT: ${tagCount} tags`);

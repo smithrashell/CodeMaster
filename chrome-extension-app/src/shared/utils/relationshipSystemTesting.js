@@ -7,7 +7,6 @@
 
 import { TestDataIsolation } from './testDataIsolation.js';
 // import { createScenarioTestDb } from '../db/dbHelperFactory.js'; // Temporarily commented out to test circular dependency
-import { ProblemService } from '../services/problemService.js';
 import { SessionService } from '../services/sessionService.js';
 import { AttemptsService } from '../services/attemptsService.js';
 import { FocusCoordinationService } from '../services/focusCoordinationService.js';
@@ -28,9 +27,8 @@ export class RelationshipSystemTester {
     if (!quiet) console.log('🔗 Testing Complete Relationship Data Flow...');
 
     try {
-      const testSession = await TestDataIsolation.enterTestMode();
+      await TestDataIsolation.enterTestMode();
       await TestDataIsolation.seedTestData('default');
-      testDb.activateGlobalContext(); // Enable test database for all services
 
       const results = {
         sessions: [],
@@ -84,9 +82,8 @@ export class RelationshipSystemTester {
     if (!quiet) console.log('🎯 Testing Relationship-Based Session Composition...');
 
     try {
-      const testSession = await TestDataIsolation.enterTestMode();
+      await TestDataIsolation.enterTestMode();
       await TestDataIsolation.seedTestData('experienced_user');
-      testDb.activateGlobalContext(); // Enable test database for all services
 
       // Create multiple sessions to test consistency
       const compositionResults = [];
@@ -118,7 +115,6 @@ export class RelationshipSystemTester {
       }
 
       return {
-        testSession,
         compositionResults,
         averageInfluence: compositionResults.reduce((sum, r) => sum + r.relationshipInfluence.influenceScore, 0) / compositionResults.length,
         success: true
@@ -141,7 +137,7 @@ export class RelationshipSystemTester {
     if (!quiet) console.log('🧠 Testing Real-Time Relationship Updates...');
 
     try {
-      const testSession = await TestDataIsolation.enterTestMode();
+      await TestDataIsolation.enterTestMode();
       await TestDataIsolation.seedTestData('default');
 
       // Get initial relationship state
@@ -176,7 +172,6 @@ export class RelationshipSystemTester {
       }
 
       return {
-        testSession,
         initialState: { relationships: initialRelationships.size, strengths: initialStrengths.size },
         updatedState: { relationships: updatedRelationships.size, strengths: updatedStrengths.size },
         updateAnalysis,
@@ -201,7 +196,7 @@ export class RelationshipSystemTester {
     if (!quiet) console.log('🎯 Testing Focus + Relationship Integration...');
 
     try {
-      const testSession = await TestDataIsolation.enterTestMode();
+      await TestDataIsolation.enterTestMode();
       await TestDataIsolation.seedTestData('experienced_user');
 
       const integrationResults = [];
@@ -248,7 +243,6 @@ export class RelationshipSystemTester {
       }
 
       return {
-        testSession,
         integrationResults,
         averageAlignment: integrationResults.reduce((sum, r) => sum + r.integrationAnalysis.alignmentScore, 0) / integrationResults.length,
         success: true
@@ -314,7 +308,7 @@ export class RelationshipSystemTester {
   /**
    * Run a single session focused on relationship flow
    */
-  static async runRelationshipFlowSession(sessionNum, quiet = false) {
+  static async runRelationshipFlowSession(sessionNum, _quiet = false) {
     try {
       // Get pre-session relationship state
       const preRelationshipMap = await buildRelationshipMap();
@@ -409,7 +403,7 @@ export class RelationshipSystemTester {
   /**
    * Analyze how relationships influenced session composition
    */
-  static async analyzeRelationshipInfluence(sessionData, relationshipMap) {
+  static analyzeRelationshipInfluence(sessionData, relationshipMap) {
     if (!sessionData.problems || sessionData.problems.length === 0) {
       return { influenceScore: 0, connectedProblems: 0, analysisComplete: false };
     }

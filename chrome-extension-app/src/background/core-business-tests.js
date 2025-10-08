@@ -12,8 +12,11 @@ import { StorageService } from '../shared/services/storageService.js';
 import { v4 as uuidv4 } from 'uuid';
 
 // Database imports - ALL static, NO dynamic imports
-import { dbHelper } from '../shared/db/index.js';
+import { createDbHelper } from '../shared/db/dbHelperFactory.js';
 import { fetchProblemById } from '../shared/db/standard_problems.js';
+
+// Create dbHelper instance for test file usage
+const dbHelper = createDbHelper();
 import { getAllFromStore } from '../shared/db/common.js';
 import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/sessions.js';
 import { buildRelationshipMap } from '../shared/db/problem_relationships.js';
@@ -28,6 +31,16 @@ import { initializePatternLaddersForOnboarding } from '../shared/services/proble
  * @param {number} leetcodeId - LeetCode ID from standard_problems store
  * @returns {Promise<Object>} - Created problem object with problem_id
  */
+// Helper to validate leetcode_id field
+function validateLeetcodeId(problem, leetcodeId) {
+  if (!problem.leetcode_id && problem.leetcode_id !== 0) {
+    throw new Error(`createTestProblem failed: existing problem has no leetcode_id for ${leetcodeId}`);
+  }
+  if (typeof problem.leetcode_id !== 'number') {
+    throw new Error(`createTestProblem failed: existing problem leetcode_id must be a number, got ${typeof problem.leetcode_id}: ${problem.leetcode_id}`);
+  }
+}
+
 async function createTestProblem(leetcodeId) {
   try {
     console.log(`🔧 createTestProblem: START - LeetCode ID ${leetcodeId}`);
@@ -82,14 +95,7 @@ async function createTestProblem(leetcodeId) {
     };
 
     // Validate that leetcode_id is set correctly
-    if (!reusedProblem.leetcode_id && reusedProblem.leetcode_id !== 0) {
-      throw new Error(`createTestProblem failed: existing problem has no leetcode_id for ${leetcodeId}`);
-    }
-
-    // Also ensure it's a NUMBER, not undefined/null/string
-    if (typeof reusedProblem.leetcode_id !== 'number') {
-      throw new Error(`createTestProblem failed: existing problem leetcode_id must be a number, got ${typeof reusedProblem.leetcode_id}: ${reusedProblem.leetcode_id}`);
-    }
+    validateLeetcodeId(reusedProblem, leetcodeId);
 
     return reusedProblem;
   }
@@ -207,88 +213,84 @@ export function initializeCoreBusinessTests() {
   console.log('🧪 Initializing core business logic tests...');
 
   // Core business logic test (the main comprehensive test)
+  // Helper to setup and verify test database
+  async function setupTestEnvironment() {
+    if (typeof globalThis.enableTesting !== 'function') {
+      console.warn('⚠️ enableTesting() not available - tests may use production database');
+      return { success: true };
+    }
+
+    const setupResult = await globalThis.enableTesting();
+    if (!setupResult.success || !globalThis._testDatabaseActive) {
+      console.error('❌ Failed to enable test environment');
+      return {
+        success: false,
+        error: 'Failed to enable test environment',
+        testName: 'Test Setup'
+      };
+    }
+
+    // Verify database has standard problems
+    try {
+      const problemCount = await getAvailableProblemIds(1);
+      console.log(`✅ Database verification passed: ${problemCount.length} problems available`);
+    } catch (error) {
+      console.error('❌ Database not properly seeded:', error.message);
+      return {
+        success: false,
+        error: `Database not seeded with standard_problems: ${error.message}`,
+        testName: 'Database Verification'
+      };
+    }
+
+    // Verify all required stores exist and are seeded
+    try {
+      const storeChecks = {
+        standard_problems: await getAllFromStore('standard_problems'),
+        tag_relationships: await getAllFromStore('tag_relationships'),
+        problem_relationships: await getAllFromStore('problem_relationships'),
+        tag_mastery: await getAllFromStore('tag_mastery'),
+        pattern_ladders: await getAllFromStore('pattern_ladders')
+      };
+
+      console.log('📊 Database store status:');
+      for (const [store, data] of Object.entries(storeChecks)) {
+        console.log(`  ${store}: ${data.length} records`);
+      }
+
+      console.log('⏭️  Skipping pattern ladder initialization - session creation will use onboarding fallback');
+      console.log(`   tag_mastery: ${storeChecks.tag_mastery.length} records (empty = onboarding mode)`);
+      console.log(`   pattern_ladders: ${storeChecks.pattern_ladders.length} records`);
+    } catch (error) {
+      console.error('❌ Database verification/initialization failed:', error);
+      console.error('Stack:', error.stack);
+      return {
+        success: false,
+        error: `Failed to initialize test database: ${error.message}`,
+        testName: 'Database Initialization'
+      };
+    }
+
+    return { success: true };
+  }
+
   globalThis.testCoreBusinessLogic = async function(options = {}) {
     const { verbose = false, quick = false, cleanup = true } = options;
 
     // Auto-setup test environment
-    if (typeof globalThis.enableTesting === 'function') {
-      const setupResult = await globalThis.enableTesting();
-      if (!setupResult.success || !globalThis._testDatabaseActive) {
-        console.error('❌ Failed to enable test environment');
-        return {
-          passed: 0,
-          failed: 1,
-          tests: [{
-            name: 'Test Setup',
-            status: 'ERROR',
-            error: 'Failed to enable test environment',
-            duration: 0
-          }],
+    const setupResult = await setupTestEnvironment();
+    if (!setupResult.success) {
+      return {
+        passed: 0,
+        failed: 1,
+        tests: [{
+          name: setupResult.testName,
+          status: 'ERROR',
+          error: setupResult.error,
           duration: 0
-        };
-      }
-
-      // Verify database has standard problems
-      try {
-        const problemCount = await getAvailableProblemIds(1);
-        console.log(`✅ Database verification passed: ${problemCount.length} problems available`);
-      } catch (error) {
-        console.error('❌ Database not properly seeded:', error.message);
-        return {
-          passed: 0,
-          failed: 1,
-          tests: [{
-            name: 'Database Verification',
-            status: 'ERROR',
-            error: `Database not seeded with standard_problems: ${error.message}`,
-            duration: 0
-          }],
-          duration: 0
-        };
-      }
-
-      // Verify all required stores exist and are seeded
-      try {
-        const storeChecks = {
-          standard_problems: await getAllFromStore('standard_problems'),
-          tag_relationships: await getAllFromStore('tag_relationships'),
-          problem_relationships: await getAllFromStore('problem_relationships'),
-          tag_mastery: await getAllFromStore('tag_mastery'),
-          pattern_ladders: await getAllFromStore('pattern_ladders')
-        };
-
-        console.log('📊 Database store status:');
-        for (const [store, data] of Object.entries(storeChecks)) {
-          console.log(`  ${store}: ${data.length} records`);
-        }
-
-        // DON'T initialize pattern ladders - let session creation handle onboarding state
-        // The issue: initializing 3 tag_mastery records confuses getCurrentTier()
-        // into thinking all tiers are mastered, causing getNextFiveTagsFromNextTier()
-        // to be called which has IDBIndex issues.
-        // Better: Let test database stay in fresh state, session creation uses onboarding fallback
-        console.log('⏭️  Skipping pattern ladder initialization - session creation will use onboarding fallback');
-        console.log(`   tag_mastery: ${storeChecks.tag_mastery.length} records (empty = onboarding mode)`);
-        console.log(`   pattern_ladders: ${storeChecks.pattern_ladders.length} records`);
-
-        // Sessions created in tests will use handleOnboardingFallback() which is safe
-      } catch (error) {
-        console.error('❌ Database verification/initialization failed:', error);
-        console.error('Stack:', error.stack);
-        return {
-          passed: 0,
-          failed: 1,
-          tests: [{
-            name: 'Database Initialization',
-            status: 'ERROR',
-            error: `Failed to initialize test database: ${error.message}`,
-            duration: 0
-          }],
-          duration: 0
-        };
-      }
-    } else {
-      console.warn('⚠️ enableTesting() not available - tests may use production database');
+        }],
+        duration: 0
+      };
     }
 
     console.log('🧪 Starting Core Business Logic Tests...');
@@ -387,7 +389,7 @@ export function initializeCoreBusinessTests() {
   };
 
   // Individual test functions
-  async function testSessionCreation(verbose) {
+  async function testSessionCreation(_verbose) {
     const start = Date.now();
     try {
       const problems = await ProblemService.createSession();
@@ -405,7 +407,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testProblemSelection(verbose) {
+  async function testProblemSelection(_verbose) {
     const start = Date.now();
     try {
       const problems = await ProblemService.createSession();
@@ -502,7 +504,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testAttemptTracking(verbose) {
+  async function testAttemptTracking(_verbose) {
     const start = Date.now();
     try {
       console.log('🧪 testAttemptTracking: Starting...');
@@ -541,7 +543,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testTagMastery(verbose) {
+  async function testTagMastery(_verbose) {
     const start = Date.now();
     try {
       // Test 1: Get current tier
@@ -614,7 +616,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testSpacedRepetition(verbose) {
+  async function testSpacedRepetition(_verbose) {
     const start = Date.now();
     try {
       // Test Leitner system: problems should be spaced based on success/failure
@@ -682,7 +684,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testDataPersistence(verbose) {
+  async function testDataPersistence(_verbose) {
     const start = Date.now();
     try {
       // Create test problem in problems store (production pattern)
@@ -794,7 +796,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testServiceIntegration(verbose) {
+  async function testServiceIntegration(_verbose) {
     const start = Date.now();
     try {
       // Test that services are available and can access seeded data
@@ -859,7 +861,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testDifficultyProgression(verbose) {
+  async function testDifficultyProgression(_verbose) {
     const start = Date.now();
     try {
       // Test pattern ladder: difficulty should progress based on performance
@@ -956,7 +958,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testProblemRelationships(verbose) {
+  async function testProblemRelationships(_verbose) {
     const start = Date.now();
     try {
       // Test that problem relationships guide next problem selection
@@ -1035,7 +1037,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testProductionWorkflow(verbose) {
+  async function testProductionWorkflow(_verbose) {
     const start = Date.now();
     try {
       // ENHANCED: Test complete multi-session learning cycle
@@ -1140,7 +1142,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testMasteryGates(verbose) {
+  async function testMasteryGates(_verbose) {
     const start = Date.now();
     try {
       // Test the new mastery gate system: volume + uniqueness + accuracy
@@ -1214,7 +1216,7 @@ export function initializeCoreBusinessTests() {
       while (attemptCount < minAttemptsRequired - 1) {
         const testProblem = await createTestProblem(arrayProblemIds[attemptCount]);
 
-        if (verbose) {
+        if (_verbose) {
           console.log(`Adding attempt ${attemptCount + 1}/${minAttemptsRequired - 1} for problem ${testProblem.title}`);
         }
 
@@ -1241,7 +1243,7 @@ export function initializeCoreBusinessTests() {
       let masteryData = await getTagMastery();
       let arrayMastery = masteryData.find(m => m.tag === 'array');
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`After ${minAttemptsRequired - 1} attempts, array mastery:`, {
           total_attempts: arrayMastery?.total_attempts,
           mastered: arrayMastery?.mastered
@@ -1412,7 +1414,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testAdaptiveSessionLength(verbose) {
+  async function testAdaptiveSessionLength(_verbose) {
     const start = Date.now();
     try {
       // Test that session length adapts to user performance and settings
@@ -1462,7 +1464,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testRelationshipMapUpdates(verbose) {
+  async function testRelationshipMapUpdates(_verbose) {
     const start = Date.now();
     try {
       // Test that solving problems updates the relationship map
@@ -1521,7 +1523,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testSessionCleanupSafety(verbose) {
+  async function testSessionCleanupSafety(_verbose) {
     const start = Date.now();
     try {
       // Test: Verify that completed/old sessions are cleaned up properly
@@ -1540,7 +1542,7 @@ export function initializeCoreBusinessTests() {
         }
       }
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Created session for cleanup test: ${sessionId}, problems: ${session.problems.length}`);
       }
 
@@ -1584,7 +1586,7 @@ export function initializeCoreBusinessTests() {
       const completedSession = await getSessionById(sessionId);
       const isCompleted = completedSession && completedSession.status === 'completed';
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Session cleanup test: sessionExists=${sessionExists}, isCompleted=${isCompleted}`);
       }
 
@@ -1608,7 +1610,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testMultiSessionCoexistence(verbose) {
+  async function testMultiSessionCoexistence(_verbose) {
     const start = Date.now();
     try {
       // Test: User can have ONE active session of EACH type simultaneously
@@ -1671,7 +1673,7 @@ export function initializeCoreBusinessTests() {
       const sessionTypes = new Set(activeSessions.map(s => s.session_type));
       const hasMultipleTypes = sessionTypes.size >= 2; // At least standard + interview or tracking
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Active sessions:`, {
           total: activeSessions.length,
           types: Array.from(sessionTypes),
@@ -1704,7 +1706,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testTrackingSessionRotation(verbose) {
+  async function testTrackingSessionRotation(_verbose) {
     const start = Date.now();
     try {
       // Test tracking session behavior - simplified since internal methods aren't exposed
@@ -1730,7 +1732,7 @@ export function initializeCoreBusinessTests() {
       const hasTrackingSession = trackingSessions.length > 0;
       const hasAttempts = trackingSessions[0]?.attempts?.length > 0;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('Tracking session:', {
           found: hasTrackingSession,
           attempts: trackingSessions[0]?.attempts?.length || 0
@@ -1759,14 +1761,25 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testSessionCompletionFlow(verbose) {
+  // Helper to validate session problem has valid numeric ID
+  function validateSessionProblemId(problem, context, index = null) {
+    const indexStr = index !== null ? ` ${index}` : '';
+    if (!problem.id && problem.id !== 0) {
+      throw new Error(`${context}: Problem${indexStr} missing id: ${JSON.stringify(problem)}`);
+    }
+    if (typeof problem.id !== 'number') {
+      throw new Error(`${context}: Problem${indexStr} id must be number, got ${typeof problem.id}: ${problem.id}`);
+    }
+  }
+
+  async function testSessionCompletionFlow(_verbose) {
     const start = Date.now();
     try {
       // Clean up test database to ensure no stale data
       if (globalThis._testDatabaseHelper) {
         try {
           await globalThis._testDatabaseHelper.smartTestIsolation();
-          if (verbose) console.log('✅ Test database cleaned');
+          if (_verbose) console.log('✅ Test database cleaned');
         } catch (cleanupError) {
           console.warn('⚠️ Pre-test cleanup failed:', cleanupError.message);
         }
@@ -1791,28 +1804,22 @@ export function initializeCoreBusinessTests() {
       const sessionId = session.id;
 
       // Validate ALL session problems have valid numeric IDs
-      for (let i = 0; i < session.problems.length; i++) {
-        if (!session.problems[i].id && session.problems[i].id !== 0) {
-          return {
-            success: false,
-            error: `Session problem ${i} has invalid id: ${session.problems[i].id}, title: ${session.problems[i].title}`,
-            details: 'Session created with invalid problem IDs - this is a session creation bug',
-            duration: Date.now() - start
-          };
+      try {
+        for (let i = 0; i < session.problems.length; i++) {
+          validateSessionProblemId(session.problems[i], 'Session Completion Flow', i);
         }
-        if (typeof session.problems[i].id !== 'number') {
-          return {
-            success: false,
-            error: `Session problem ${i} id is not a number: ${typeof session.problems[i].id} (${session.problems[i].id}), title: ${session.problems[i].title}`,
-            details: 'Session created with non-numeric problem IDs - this is a session creation bug',
-            duration: Date.now() - start
-          };
-        }
+      } catch (validationError) {
+        return {
+          success: false,
+          error: validationError.message,
+          details: 'Session created with invalid problem IDs - this is a session creation bug',
+          duration: Date.now() - start
+        };
       }
 
       const problems = session.problems; // Use ALL problems in session
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`Session created: ${sessionId}, problems: ${problems.length}`);
       }
 
@@ -1822,14 +1829,7 @@ export function initializeCoreBusinessTests() {
 
       // Attempt all but last problem - session problems have 'id' property which is the leetcode_id
       for (let i = 0; i < problems.length - 1; i++) {
-        // Validate session problem has valid id field
-        if (!problems[i].id && problems[i].id !== 0) {
-          throw new Error(`Session Completion Flow: Problem ${i} missing id: ${JSON.stringify(problems[i])}`);
-        }
-        if (typeof problems[i].id !== 'number') {
-          throw new Error(`Session Completion Flow: Problem ${i} id must be number, got ${typeof problems[i].id}: ${problems[i].id}`);
-        }
-
+        validateSessionProblemId(problems[i], 'Session Completion Flow', i);
         const problem = await createTestProblem(problems[i].id);
 
         await AttemptsService.addAttempt({
@@ -1845,20 +1845,13 @@ export function initializeCoreBusinessTests() {
       let updatedSession = await getSessionById(sessionId);
       const stillInProgress = updatedSession.status === 'in_progress';
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`After ${problems.length - 1}/${problems.length} attempts: ${updatedSession.status}`);
       }
 
       // Attempt final problem - session problems have 'id' property which is the leetcode_id
       const lastProblemIndex = problems.length - 1;
-      // Validate session problem has valid id field
-      if (!problems[lastProblemIndex].id && problems[lastProblemIndex].id !== 0) {
-        throw new Error(`Session Completion Flow: Final problem missing id: ${JSON.stringify(problems[lastProblemIndex])}`);
-      }
-      if (typeof problems[lastProblemIndex].id !== 'number') {
-        throw new Error(`Session Completion Flow: Final problem id must be number, got ${typeof problems[lastProblemIndex].id}: ${problems[lastProblemIndex].id}`);
-      }
-
+      validateSessionProblemId(problems[lastProblemIndex], 'Session Completion Flow (final)');
       const finalProblem = await createTestProblem(problems[lastProblemIndex].id);
 
       await AttemptsService.addAttempt({
@@ -1873,7 +1866,7 @@ export function initializeCoreBusinessTests() {
       updatedSession = await getSessionById(sessionId);
       const markedCompleted = updatedSession.status === 'completed';
 
-      if (verbose) {
+      if (_verbose) {
         console.log(`After 3/3 attempts: ${updatedSession.status}`);
       }
 
@@ -1905,7 +1898,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testFocusTagProgression(verbose) {
+  async function testFocusTagProgression(_verbose) {
     const start = Date.now();
     try {
       // Test focus tag tier progression using real production functions
@@ -1917,7 +1910,7 @@ export function initializeCoreBusinessTests() {
       const initialTier = initialState.currentTier;
       const initialFocusTags = initialState.focusTags || [];
 
-      if (verbose) {
+      if (_verbose) {
         console.log('Initial learning state:', {
           tier: initialTier,
           focusTags: initialFocusTags
@@ -1951,7 +1944,7 @@ export function initializeCoreBusinessTests() {
       const stillInSameTier = updatedState.currentTier === initialTier;
       const hasFocusTags = updatedState.focusTags && updatedState.focusTags.length > 0;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('After mastering 3 tags:', {
           tier: updatedState.currentTier,
           focusTags: updatedState.focusTags,
@@ -1989,7 +1982,7 @@ export function initializeCoreBusinessTests() {
     }
   }
 
-  async function testOnboardingInitialization(verbose) {
+  async function testOnboardingInitialization(_verbose) {
     const start = Date.now();
     try {
       // Test simplified onboarding initialization - just verify data creation
@@ -2001,7 +1994,7 @@ export function initializeCoreBusinessTests() {
       const existingLadders = await getAllFromStore('pattern_ladders');
       const hadExistingLadders = existingLadders.length > 0;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('Onboarding test:', {
           existingLadders: existingLadders.length,
           skippingInit: hadExistingLadders
@@ -2025,7 +2018,7 @@ export function initializeCoreBusinessTests() {
       const arrayLadder = ladders.find(l => l.tag === 'array');
       const hasArrayLadder = arrayLadder && arrayLadder.problems.length >= 5;
 
-      if (verbose) {
+      if (_verbose) {
         console.log('After initialization:', {
           ladders: ladders.length,
           mastery: mastery.length,

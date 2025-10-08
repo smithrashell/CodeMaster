@@ -11,7 +11,6 @@ import { v4 as uuidv4 } from "uuid";
 
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
-import { getTagRelationships } from "./tag_relationships.js";
 import { scoreProblemsWithRelationships } from "./problem_relationships.js";
 
 // Import session functions are handled directly through SessionService
@@ -548,243 +547,262 @@ export async function fetchAdditionalProblems(
 ) {
   const { currentDifficultyCap = null, isOnboarding = false } = options;
   logger.info("🔰 fetchAdditionalProblems called with isOnboarding:", isOnboarding);
+
   try {
-    const { masteryData, _focusTags, allTagsInCurrentTier } =
-      await TagService.getCurrentLearningState();
-    const allProblems = await getAllStandardProblems();
-    const ladders = await getPatternLadders();
+    const context = await loadProblemSelectionContext(currentDifficultyCap);
+    logProblemSelectionStart(numNewProblems, context);
 
-
-    // Filter problems by difficulty cap if provided (for non-onboarding/adaptive progression)
-    let availableProblems = allProblems;
-    if (currentDifficultyCap) {
-      const difficultyMap = { "Easy": 1, "Medium": 2, "Hard": 3 };
-      const maxDifficulty = difficultyMap[currentDifficultyCap] || 3;
-      availableProblems = allProblems.filter(problem => {
-        const problemDifficultyString = problem.difficulty || "Medium";
-        const problemDifficultyNum = difficultyMap[problemDifficultyString] || 2;
-        return problemDifficultyNum <= maxDifficulty;
-      });
-      logger.info(`🎯 Difficulty cap applied: ${currentDifficultyCap} (${availableProblems.length}/${allProblems.length} problems)`);
-    }
-
-    // 🎯 Get coordinated focus decision (integrates all systems)
-    const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
-    
-    // Use coordinated focus decision for enhanced focus tags
-    const enhancedFocusTags = focusDecision.activeFocusTags;
-
-    logger.info("🧠 Starting intelligent problem selection...");
-    logger.info("🎯 Focus Coordination Service decision:", {
-      activeFocusTags: enhancedFocusTags,
-      reasoning: focusDecision.algorithmReasoning,
-      userPreferences: focusDecision.userPreferences,
-      systemRecommendation: focusDecision.systemRecommendation
-    });
-    logger.info("🧠 Needed problems:", numNewProblems);
-    logger.info("🔍 Debug data availability:", {
-      totalStandardProblems: availableProblems.length,
-      ladderTags: Object.keys(ladders || {}),
-      enhancedFocusTagsCount: enhancedFocusTags.length,
-      difficultyCapApplied: !!currentDifficultyCap
-    });
-    
-    // Backward compatibility logging
-    logger.info("🧠 Enhanced focus tags (from coordination service):", enhancedFocusTags);
-
-    // Get tag relationships for expansion and difficulty distributions
-    const _tagRelationships = await getTagRelationships();
-
-    // Get raw tag relationship data for difficulty distributions
-    const db = await openDB();
-    const tagRelationshipsRaw = await new Promise((resolve, reject) => {
-      const tx = db.transaction("tag_relationships", "readonly");
-      const store = tx.objectStore("tag_relationships");
-      const request = store.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-
-    // Calculate difficulty allowances for all tags with real distributions
-    const tagDifficultyAllowances = {};
-    for (const tag of enhancedFocusTags) {
-      const tagMastery = masteryData.find((m) => m.tag === tag) || {
-        tag,
-        totalAttempts: 0,
-        successfulAttempts: 0,
-        mastered: false,
-      };
-
-      // Add difficulty distribution from tag relationships
-      const tagRelData = tagRelationshipsRaw.find(tr => tr.id === tag);
-      if (tagRelData && tagRelData.difficulty_distribution) {
-        tagMastery.difficulty_distribution = tagRelData.difficulty_distribution;
-      }
-
-      tagDifficultyAllowances[tag] = getDifficultyAllowanceForTag(tagMastery);
-    }
-
-    const selectedProblems = [];
-    const usedProblemIds = new Set(excludeIds);
-
-    // Step 1: Primary focus (60% of problems) - Deep learning on highest priority tag
-    const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
-    const primaryTag = enhancedFocusTags[0]; // Highest priority tag (user selection or system recommendation)
-
-    logger.info(
-      `🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`
+    const tagDifficultyAllowances = calculateTagDifficultyAllowances(
+      context.enhancedFocusTags, context.masteryData, context.tagRelationshipsRaw
     );
-    const primaryProblems = await selectProblemsForTag(primaryTag, primaryFocusCount, {
-      difficultyAllowance: tagDifficultyAllowances[primaryTag],
-      ladders,
-      allProblems: availableProblems,
-      allTagsInCurrentTier,
+
+    const { selectedProblems, usedProblemIds } = await selectPrimaryAndExpansionProblems(
+      numNewProblems, context, tagDifficultyAllowances, currentDifficultyCap
+    );
+
+    await expandWithRemainingFocusTags({
+      numNewProblems, selectedProblems, usedProblemIds, context, currentDifficultyCap
+    });
+
+    fillRemainingWithRandomProblems(
+      numNewProblems, selectedProblems, usedProblemIds, context.availableProblems, excludeIds
+    );
+
+    logger.info(`✅ Final selection: ${selectedProblems.length} problems`);
+    return selectedProblems;
+  } catch (error) {
+    logger.error("❌ Error in fetchAdditionalProblems:", error);
+    return [];
+  }
+}
+
+async function loadProblemSelectionContext(currentDifficultyCap) {
+  const { masteryData, _focusTags, allTagsInCurrentTier } =
+    await TagService.getCurrentLearningState();
+  const allProblems = await getAllStandardProblems();
+  const ladders = await getPatternLadders();
+
+  let availableProblems = allProblems;
+  if (currentDifficultyCap) {
+    availableProblems = filterProblemsByDifficultyCap(allProblems, currentDifficultyCap);
+    logger.info(`🎯 Difficulty cap applied: ${currentDifficultyCap} (${availableProblems.length}/${allProblems.length} problems)`);
+  }
+
+  const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
+  const enhancedFocusTags = focusDecision.activeFocusTags;
+
+  const db = await openDB();
+  const tagRelationshipsRaw = await new Promise((resolve, reject) => {
+    const tx = db.transaction("tag_relationships", "readonly");
+    const store = tx.objectStore("tag_relationships");
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  return {
+    masteryData, allTagsInCurrentTier, availableProblems, ladders,
+    focusDecision, enhancedFocusTags, tagRelationshipsRaw
+  };
+}
+
+function filterProblemsByDifficultyCap(allProblems, currentDifficultyCap) {
+  const difficultyMap = { "Easy": 1, "Medium": 2, "Hard": 3 };
+  const maxDifficulty = difficultyMap[currentDifficultyCap] || 3;
+  return allProblems.filter(problem => {
+    const problemDifficultyString = problem.difficulty || "Medium";
+    const problemDifficultyNum = difficultyMap[problemDifficultyString] || 2;
+    return problemDifficultyNum <= maxDifficulty;
+  });
+}
+
+function logProblemSelectionStart(numNewProblems, context) {
+  logger.info("🧠 Starting intelligent problem selection...");
+  logger.info("🎯 Focus Coordination Service decision:", {
+    activeFocusTags: context.enhancedFocusTags,
+    reasoning: context.focusDecision.algorithmReasoning,
+    userPreferences: context.focusDecision.userPreferences,
+    systemRecommendation: context.focusDecision.systemRecommendation
+  });
+  logger.info("🧠 Needed problems:", numNewProblems);
+  logger.info("🔍 Debug data availability:", {
+    totalStandardProblems: context.availableProblems.length,
+    ladderTags: Object.keys(context.ladders || {}),
+    enhancedFocusTagsCount: context.enhancedFocusTags.length
+  });
+}
+
+function calculateTagDifficultyAllowances(enhancedFocusTags, masteryData, tagRelationshipsRaw) {
+  const tagDifficultyAllowances = {};
+  for (const tag of enhancedFocusTags) {
+    const tagMastery = masteryData.find((m) => m.tag === tag) || {
+      tag, totalAttempts: 0, successfulAttempts: 0, mastered: false
+    };
+
+    const tagRelData = tagRelationshipsRaw.find(tr => tr.id === tag);
+    if (tagRelData && tagRelData.difficulty_distribution) {
+      tagMastery.difficulty_distribution = tagRelData.difficulty_distribution;
+    }
+
+    tagDifficultyAllowances[tag] = getDifficultyAllowanceForTag(tagMastery);
+  }
+  return tagDifficultyAllowances;
+}
+
+async function selectPrimaryAndExpansionProblems(numNewProblems, context, tagDifficultyAllowances, currentDifficultyCap) {
+  const selectedProblems = [];
+  const usedProblemIds = new Set();
+
+  const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
+  const primaryTag = context.enhancedFocusTags[0];
+
+  logger.info(`🎯 Primary focus: ${primaryTag} (${primaryFocusCount} problems)`);
+  const primaryProblems = await selectProblemsForTag(primaryTag, primaryFocusCount, {
+    difficultyAllowance: tagDifficultyAllowances[primaryTag],
+    ladders: context.ladders,
+    allProblems: context.availableProblems,
+    allTagsInCurrentTier: context.allTagsInCurrentTier,
+    usedProblemIds,
+    currentDifficultyCap
+  });
+
+  selectedProblems.push(...primaryProblems);
+  primaryProblems.forEach((p) => usedProblemIds.add(p.id));
+
+  const expansionCount = numNewProblems - selectedProblems.length;
+  if (expansionCount > 0 && context.enhancedFocusTags.length > 1) {
+    await addExpansionProblems({
+      expansionCount, context, selectedProblems, usedProblemIds, currentDifficultyCap
+    });
+  }
+
+  logSelectedProblems(selectedProblems);
+
+  return { selectedProblems, usedProblemIds };
+}
+
+async function addExpansionProblems(params) {
+  const { expansionCount, context, selectedProblems, usedProblemIds, currentDifficultyCap } = params;
+  const expansionTag = context.enhancedFocusTags[1];
+  logger.info(`🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`);
+
+  const tagMastery = context.masteryData.find((m) => m.tag === expansionTag) || {
+    tag: expansionTag, totalAttempts: 0, successfulAttempts: 0, mastered: false
+  };
+
+  const tagRelData = context.tagRelationshipsRaw.find(tr => tr.id === expansionTag);
+  if (tagRelData && tagRelData.difficulty_distribution) {
+    tagMastery.difficulty_distribution = tagRelData.difficulty_distribution;
+  }
+
+  const allowance = getDifficultyAllowanceForTag(tagMastery);
+
+  const expansionProblems = await selectProblemsForTag(expansionTag, expansionCount, {
+    difficultyAllowance: allowance,
+    ladders: context.ladders,
+    allProblems: context.availableProblems,
+    allTagsInCurrentTier: context.allTagsInCurrentTier,
+    usedProblemIds,
+    currentDifficultyCap
+  });
+
+  selectedProblems.push(...expansionProblems);
+  expansionProblems.forEach((p) => usedProblemIds.add(p.id));
+
+  logger.info(`🔗 Added ${expansionProblems.length} problems from expansion tag: ${expansionTag}`);
+}
+
+function logSelectedProblems(selectedProblems) {
+  logger.info(`🎯 Selected ${selectedProblems.length} problems for learning`);
+  logger.info(`🎯 Selected problems by difficulty:`, {
+    Easy: selectedProblems.filter(p => p.difficulty === 'Easy').length,
+    Medium: selectedProblems.filter(p => p.difficulty === 'Medium').length,
+    Hard: selectedProblems.filter(p => p.difficulty === 'Hard').length,
+    problems: selectedProblems.map(p => ({id: p.id, difficulty: p.difficulty, title: p.title}))
+  });
+}
+
+async function expandWithRemainingFocusTags(params) {
+  const { numNewProblems, selectedProblems, usedProblemIds, context, currentDifficultyCap } = params;
+  const remainingAfterExpansion = numNewProblems - selectedProblems.length;
+  if (remainingAfterExpansion <= 0 || context.enhancedFocusTags.length <= 2) {
+    return;
+  }
+
+  logger.info(`🔗 Expanding to all remaining focus tags for ${remainingAfterExpansion} more problems...`);
+
+  for (let i = 2; i < context.enhancedFocusTags.length && selectedProblems.length < numNewProblems; i++) {
+    const expansionTag = context.enhancedFocusTags[i];
+    const needed = numNewProblems - selectedProblems.length;
+
+    const tagMastery = context.masteryData.find((m) => m.tag === expansionTag) || {
+      tag: expansionTag, totalAttempts: 0, successfulAttempts: 0, mastered: false
+    };
+
+    const allowance = getDifficultyAllowanceForTag(tagMastery);
+    const moreProblems = await selectProblemsForTag(expansionTag, needed, {
+      difficultyAllowance: allowance,
+      ladders: context.ladders,
+      allProblems: context.availableProblems,
+      allTagsInCurrentTier: context.allTagsInCurrentTier,
       usedProblemIds,
       currentDifficultyCap
     });
 
-    selectedProblems.push(...primaryProblems);
-    primaryProblems.forEach((p) => usedProblemIds.add(p.id));
+    selectedProblems.push(...moreProblems);
+    moreProblems.forEach((p) => usedProblemIds.add(p.id));
 
-    // Step 2: Focus tag expansion (40% of problems) - Use next focus tag
-    const expansionCount = numNewProblems - selectedProblems.length;
-    if (expansionCount > 0 && enhancedFocusTags.length > 1) {
-      const expansionTag = enhancedFocusTags[1]; // Use next highest priority tag for expansion
-      logger.info(
-        `🔗 Expanding to next focus tag: ${expansionTag} (${expansionCount} problems)`
-      );
-
-      const tagMastery = masteryData.find((m) => m.tag === expansionTag) || {
-        tag: expansionTag,
-        totalAttempts: 0,
-        successfulAttempts: 0,
-        mastered: false,
-      };
-
-      // Add difficulty distribution from tag relationships
-      const tagRelData = tagRelationshipsRaw.find(tr => tr.id === expansionTag);
-      if (tagRelData && tagRelData.difficulty_distribution) {
-        tagMastery.difficulty_distribution = tagRelData.difficulty_distribution;
-      }
-
-      const allowance = getDifficultyAllowanceForTag(tagMastery);
-
-      const expansionProblems = await selectProblemsForTag(expansionTag, expansionCount, {
-        difficultyAllowance: allowance,
-        ladders,
-        allProblems: availableProblems,
-        allTagsInCurrentTier,
-        usedProblemIds,
-        currentDifficultyCap
-      });
-
-      selectedProblems.push(...expansionProblems);
-      expansionProblems.forEach((p) => usedProblemIds.add(p.id));
-
-      logger.info(
-        `🔗 Added ${expansionProblems.length} problems from expansion tag: ${expansionTag}`
-      );
+    if (moreProblems.length > 0) {
+      logger.info(`🔗 Added ${moreProblems.length} problems from additional tag: ${expansionTag}`);
     }
-
-    logger.info(`🎯 Selected ${selectedProblems.length} problems for learning`);
-    logger.info(`🎯 Selected problems by difficulty:`, {
-      Easy: selectedProblems.filter(p => p.difficulty === 'Easy').length,
-      Medium: selectedProblems.filter(p => p.difficulty === 'Medium').length,
-      Hard: selectedProblems.filter(p => p.difficulty === 'Hard').length,
-      problems: selectedProblems.map(p => ({id: p.id, difficulty: p.difficulty, title: p.title}))
-    });
-    
-    // **INTELLIGENT EXPANSION**: Try broader tag search before falling back to random selection
-    logger.info(`🔍 Expansion check: selectedProblems.length=${selectedProblems.length}, numNewProblems=${numNewProblems}, availableProblems.length=${availableProblems.length}`);
-
-    // If still short, try expanding to all focus tags before random fallback
-    const remainingAfterExpansion = numNewProblems - selectedProblems.length;
-    if (remainingAfterExpansion > 0 && enhancedFocusTags.length > 2) {
-      logger.info(`🔗 Expanding to all remaining focus tags for ${remainingAfterExpansion} more problems...`);
-
-      for (let i = 2; i < enhancedFocusTags.length && selectedProblems.length < numNewProblems; i++) {
-        const expansionTag = enhancedFocusTags[i];
-        const needed = numNewProblems - selectedProblems.length;
-
-        const tagMastery = masteryData.find((m) => m.tag === expansionTag) || {
-          tag: expansionTag,
-          totalAttempts: 0,
-          successfulAttempts: 0,
-          mastered: false,
-        };
-
-        const allowance = getDifficultyAllowanceForTag(tagMastery);
-        const moreProblems = await selectProblemsForTag(expansionTag, needed, {
-          difficultyAllowance: allowance,
-          ladders,
-          allProblems: availableProblems,
-          allTagsInCurrentTier,
-          usedProblemIds,
-          currentDifficultyCap
-        });
-
-        selectedProblems.push(...moreProblems);
-        moreProblems.forEach((p) => usedProblemIds.add(p.id));
-
-        if (moreProblems.length > 0) {
-          logger.info(`🔗 Added ${moreProblems.length} problems from additional tag: ${expansionTag}`);
-        }
-      }
-    }
-
-    // **FALLBACK LOGIC**: Only use random selection if tag-based expansion still insufficient
-    if (selectedProblems.length < numNewProblems && availableProblems.length > 0) {
-      const remainingNeeded = numNewProblems - selectedProblems.length;
-      logger.info(`ℹ️ Tag-based selection found ${selectedProblems.length}/${numNewProblems} problems across all focus tags. Using random selection for final ${remainingNeeded} problems.`);
-      
-      // Filter out already selected problems
-      const selectedIds = new Set(selectedProblems.map(p => p.id));
-      logger.info(`🔍 Before fallback filter - selectedIds:`, Array.from(selectedIds).slice(0, 5));
-      
-      const fallbackProblems = availableProblems
-        .filter(p => {
-          const pId = p.id;
-          const isSelected = selectedIds.has(pId);
-          const isUsed = usedProblemIds.has(pId);
-          
-          // Debug first few failures
-          if (isSelected || isUsed) {
-            logger.info(`🚫 Filtered out problem ${pId}: isSelected=${isSelected}, isUsed=${isUsed}`);
-          }
-          
-          return !isSelected && !isUsed;
-        })
-        .slice(0, remainingNeeded);
-      
-      logger.info(`🔄 Fallback filter debug:`, {
-        availableProblemsCount: availableProblems.length,
-        selectedIdsCount: selectedIds.size,
-        usedProblemIdsCount: usedProblemIds.size,
-        afterFilterCount: fallbackProblems.length,
-        remainingNeeded: remainingNeeded,
-        firstFallbackIds: fallbackProblems.slice(0, 3).map(p => p.id)
-      });
-      
-      const beforeCount = selectedProblems.length;
-      selectedProblems.push(...fallbackProblems);
-      const afterCount = selectedProblems.length;
-      
-      logger.warn(`🔄 FALLBACK RESULT: Added ${fallbackProblems.length} problems. Before: ${beforeCount}, After: ${afterCount}`);
-      logger.info(`🔍 Fallback problems by difficulty:`, {
-        Easy: fallbackProblems.filter(p => p.difficulty === 'Easy').length,
-        Medium: fallbackProblems.filter(p => p.difficulty === 'Medium').length,
-        Hard: fallbackProblems.filter(p => p.difficulty === 'Hard').length,
-        problems: fallbackProblems.map(p => ({id: p.id, difficulty: p.difficulty, title: p.title}))
-      });
-    } else {
-      logger.info(`🔄 Fallback skipped: hasEnough=${selectedProblems.length >= numNewProblems}, hasAvailable=${availableProblems.length > 0}`);
-    }
-    
-    return selectedProblems;
-  } catch (error) {
-    logger.error("❌ Error in fetchAdditionalProblems():", error);
-    return [];
   }
+}
+
+function fillRemainingWithRandomProblems(numNewProblems, selectedProblems, usedProblemIds, availableProblems, _excludeIds) {
+  if (selectedProblems.length >= numNewProblems || availableProblems.length === 0) {
+    return;
+  }
+
+  const remainingNeeded = numNewProblems - selectedProblems.length;
+  logger.info(`ℹ️ Tag-based selection found ${selectedProblems.length}/${numNewProblems} problems across all focus tags. Using random selection for final ${remainingNeeded} problems.`);
+
+  const selectedIds = new Set(selectedProblems.map(p => p.id));
+  logger.info(`🔍 Before fallback filter - selectedIds:`, Array.from(selectedIds).slice(0, 5));
+
+  const fallbackProblems = availableProblems
+    .filter(p => {
+      const pId = p.id;
+      const isSelected = selectedIds.has(pId);
+      const isUsed = usedProblemIds.has(pId);
+
+      if (isSelected || isUsed) {
+        logger.info(`🚫 Filtered out problem ${pId}: isSelected=${isSelected}, isUsed=${isUsed}`);
+      }
+
+      return !isSelected && !isUsed;
+    })
+    .slice(0, remainingNeeded);
+
+  logger.info(`🔄 Fallback filter debug:`, {
+    availableProblemsCount: availableProblems.length,
+    selectedIdsCount: selectedIds.size,
+    usedProblemIdsCount: usedProblemIds.size,
+    afterFilterCount: fallbackProblems.length,
+    remainingNeeded: remainingNeeded,
+    firstFallbackIds: fallbackProblems.slice(0, 3).map(p => p.id)
+  });
+
+  const beforeCount = selectedProblems.length;
+  selectedProblems.push(...fallbackProblems);
+  const afterCount = selectedProblems.length;
+
+  logger.warn(`🔄 FALLBACK RESULT: Added ${fallbackProblems.length} problems. Before: ${beforeCount}, After: ${afterCount}`);
+  logger.info(`🔍 Fallback problems by difficulty:`, {
+    Easy: fallbackProblems.filter(p => p.difficulty === 'Easy').length,
+    Medium: fallbackProblems.filter(p => p.difficulty === 'Medium').length,
+    Hard: fallbackProblems.filter(p => p.difficulty === 'Hard').length,
+    problems: fallbackProblems.map(p => ({id: p.id, difficulty: p.difficulty, title: p.title}))
+  });
 }
 
 async function _getProblemSequenceScore(

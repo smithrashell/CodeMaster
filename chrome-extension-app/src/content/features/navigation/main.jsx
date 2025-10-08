@@ -8,8 +8,20 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ContentOnboardingTour } from "../../components/onboarding";
 import { ProblemPageTimerTour } from "../../components/onboarding/ProblemPageTimerTour";
 // PageSpecificTour moved to App.jsx Router level to detect all route changes
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
+import {
+  useUrlChangeHandler,
+  useProblemSubmissionListener,
+  useMainTourRecheck,
+  useTimerTourCheck
+} from "./useMainHooks.js";
+import {
+  useContentOnboardingCompleteHandler,
+  useContentOnboardingCloseHandler,
+  useTimerTourCompleteHandler,
+  useTimerTourCloseHandler
+} from "./useMainEventHandlers.js";
+import { getProblemSlugFromUrl, performContentOnboardingCheck } from "./mainHelpers.js";
 
 // Inline SVG Logo Component
 const CodeMasterLogo = ({ size = 32, style = {} }) => (
@@ -87,10 +99,7 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
 };
 
 // Function to extract the problem slug from the URL
-const getProblemSlugFromUrl = (url) => {
-  const match = url.match(/problems\/([^/]+)\/?/);
-  return match ? match[1] : null; // Return the problem slug or null if no match
-};
+// getProblemSlugFromUrl moved to mainHelpers.js
 
 // Helper function to handle Chrome runtime messaging for problem data
 const sendProblemMessage = (title, problemSlug, setProblemData, setProblemFound, setLoading) => {
@@ -140,85 +149,9 @@ const sendProblemMessage = (title, problemSlug, setProblemData, setProblemFound,
   );
 };
 
-// Helper function to check content onboarding status
-const performContentOnboardingCheck = async (setShowContentOnboarding, setContentOnboardingStatus) => {
-  // Manual override for testing
-  if (typeof window !== 'undefined' && localStorage.getItem('force-content-onboarding') === 'true') {
-    logger.info("🔧 MANUAL OVERRIDE: Forcing content onboarding to show");
-    setShowContentOnboarding(true);
-    return;
-  }
+// performContentOnboardingCheck moved to mainHelpers.js
 
-  try {
-    // Check content onboarding status
-    const status = await ChromeAPIErrorHandler.sendMessageWithRetry({
-      type: "checkContentOnboardingStatus"
-    });
-    logger.info("📊 Main: Content onboarding status received:", status);
-    setContentOnboardingStatus(status);
-
-    // Show onboarding tour if not completed
-    if (status.is_completed) {
-      logger.info("⏭️ Content onboarding already completed - will NOT show", {
-        is_completed: status.is_completed,
-        completed_at: status.completed_at,
-        current_step: status.current_step
-      });
-      setShowContentOnboarding(false);
-      return;
-    }
-
-    logger.info("✅ Content onboarding check passed - will show", {
-      content_completed: status.is_completed,
-      current_step: status.current_step,
-      lastActiveStep: status.lastActiveStep
-    });
-
-    // Small delay to ensure the DOM is ready
-    const delayTime = status.lastActiveStep ? 500 : 1000; // Shorter delay for resume
-    setTimeout(() => {
-      logger.info("🎯 Setting showContentOnboarding to true");
-      setShowContentOnboarding(true);
-    }, delayTime);
-  } catch (error) {
-    logger.error("❌ Error checking onboarding status:", error);
-
-    // Fallback: hide onboarding to prevent showing before system is ready
-    logger.info("🚫 Hiding content onboarding due to error - extension may not be ready");
-    setShowContentOnboarding(false);
-  }
-};
-
-// Helper function to setup URL change listeners
-const setupUrlChangeListeners = (handleUrlChange) => {
-  logger.info("🔧 SETTING UP URL CHANGE LISTENERS");
-  // Monkey-patch pushState and replaceState to detect changes
-  const originalPushState = window.history.pushState;
-  const originalReplaceState = window.history.replaceState;
-
-  window.history.pushState = function (...args) {
-    originalPushState.apply(window.history, args);
-    window.dispatchEvent(new Event("locationchange"));
-  };
-
-  window.history.replaceState = function (...args) {
-    originalReplaceState.apply(window.history, args);
-    window.dispatchEvent(new Event("locationchange"));
-  };
-
-  // Listen for popstate and locationchange events
-  window.addEventListener("popstate", handleUrlChange);
-  window.addEventListener("locationchange", handleUrlChange);
-
-  // Return cleanup function
-  return () => {
-    logger.info("🧹 CLEANING UP URL CHANGE LISTENERS");
-    window.history.pushState = originalPushState;
-    window.history.replaceState = originalReplaceState;
-    window.removeEventListener("popstate", handleUrlChange);
-    window.removeEventListener("locationchange", handleUrlChange);
-  };
-};
+// setupUrlChangeListeners moved to useMainHooks.js (useUrlChangeHandler)
 
 // Helper component for problem link rendering
 const ProblemLink = ({ currentProblem, problemData, problemFound, loading, problemTitle }) => {
@@ -350,247 +283,58 @@ const Main = () => {
   const [_theme, _setTheme] = useState("light");
   const [currentProblem, setCurrentProblem] = useState(
     getProblemSlugFromUrl(window.location.href)
-  ); // Initialize with the current URL slug
+  );
   const [_settings, _setSettings] = useState(null);
   const [showContentOnboarding, setShowContentOnboarding] = useState(false);
   const [contentOnboardingStatus, setContentOnboardingStatus] = useState(null);
   const [showTimerTour, setShowTimerTour] = useState(false);
-  
-  // Page-specific tour management moved to App.jsx Router level
-  
-  // Content onboarding is now always enabled
+
   const FORCE_DISABLE_ONBOARDING = false;
 
-  // Function to fetch problem data based on the problem slug
   const fetchProblemData = useFetchProblemData(setProblemTitle, setLoading, setProblemData, setProblemFound);
-  
-  // New approach using custom hook
+
   const {
     data: _onboardingData,
     loading: _onboardingLoading,
     error: _onboardingError,
   } = useOnboardingMessage();
 
-  // // UseEffect to handle initial data fetch on component mount
-
+  // Initial problem data fetch
   useEffect(() => {
-    // Run the initial data fetch once when the component mounts
     logger.info("Current problem slug:", currentProblem);
     fetchProblemData(currentProblem);
-  }, [currentProblem, fetchProblemData]); // Dependencies for problem data fetching
+  }, [currentProblem, fetchProblemData]);
 
-  // Check content onboarding status with resume capability
+  // Check content onboarding status on mount
   useEffect(() => {
-    // Quick test - uncomment this line to force show onboarding immediately
-    // setTimeout(() => setShowContentOnboarding(true), 2000); // DISABLED: Let completion logic control visibility
-    
-    // RESET CONTENT ONBOARDING - uncomment to reset and test (run once then comment out)
-    // setTimeout(async () => {
-    //   logger.info("🔄 RESETTING content onboarding to fix database corruption...");
-    //   await resetContentOnboarding();
-    // }, 1000);
-    
-    // Run immediately - no longer dependent on data onboarding
     performContentOnboardingCheck(setShowContentOnboarding, setContentOnboardingStatus);
-  }, []); // Empty dependency array - run once on mount
+  }, []);
 
-  // Function to handle URL changes after initial load  
+  // Handle URL changes
   const handleUrlChange = useCallback(() => {
     const newProblemSlug = getProblemSlugFromUrl(window.location.href);
     logger.info("🌐 URL CHANGED - New problem slug:", newProblemSlug);
     logger.info("🌐 Current problem slug:", currentProblem);
 
-    // Only trigger updates if the problem slug changes
     if (newProblemSlug && newProblemSlug !== currentProblem) {
       logger.info("🔄 Problem changed, updating data...");
-      setCurrentProblem(newProblemSlug); // Update the current problem slug
-      fetchProblemData(newProblemSlug); // Fetch new problem data
-
-      // Navigation logic removed to prevent potential loops
-      // The MemoryRouter should handle internal navigation
+      setCurrentProblem(newProblemSlug);
+      fetchProblemData(newProblemSlug);
       logger.info("📍 Current internal route:", pathname);
     }
   }, [currentProblem, fetchProblemData, pathname]);
 
-  // Use browser events to detect URL changes
-  useEffect(() => {
-    const cleanup = setupUrlChangeListeners(handleUrlChange);
-    return cleanup;
-  }, [handleUrlChange]); // Use memoized function
+  // Use custom hooks for complex logic
+  useUrlChangeHandler(handleUrlChange);
+  useProblemSubmissionListener(fetchProblemData, setProblemFound, setProblemData);
+  useMainTourRecheck(pathname, showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding);
+  useTimerTourCheck(pathname, contentOnboardingStatus, showContentOnboarding, setShowTimerTour);
 
-  // Listen for problem submission events to refresh problem data
-  useEffect(() => {
-    const handleProblemSubmission = async () => {
-      const problemSlug = getProblemSlugFromUrl(window.location.href);
-      if (problemSlug) {
-        logger.info("🔄 Problem submitted, refreshing problem data for:", problemSlug);
-
-        // Add a small additional delay to ensure the database is fully updated
-        // This helps ensure the problem is found in the database on the next lookup
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Reset the problem state first to trigger a clean fetch
-        setProblemFound(false);
-        setProblemData(null);
-
-        // Then fetch the updated problem data
-        fetchProblemData(problemSlug);
-
-        logger.info("🔄 Problem data refresh initiated");
-      } else {
-        logger.warn("⚠️ Problem submitted but no problem slug found in URL");
-      }
-    };
-
-    // Listen for Chrome extension messages
-    const messageListener = (message, _sender, sendResponse) => {
-      if (message.type === "problemSubmitted") {
-        logger.info("📨 Received problemSubmitted message");
-        handleProblemSubmission();
-        sendResponse({ status: "success" });
-      }
-    };
-
-    if (typeof chrome !== "undefined" && chrome.runtime) {
-      chrome.runtime.onMessage.addListener(messageListener);
-    }
-
-    return () => {
-      if (typeof chrome !== "undefined" && chrome.runtime) {
-        chrome.runtime.onMessage.removeListener(messageListener);
-      }
-    };
-  }, [fetchProblemData]);
-
-  // Re-check main tour status when navigating to different pages
-  useEffect(() => {
-    const recheckMainTourStatus = async () => {
-      // Only recheck if main tour is currently showing
-      if (!showContentOnboarding) return;
-      
-      try {
-        // Use the already loaded status if available, otherwise fetch fresh
-        let mainTourStatus = contentOnboardingStatus;
-        if (!mainTourStatus || !Object.prototype.hasOwnProperty.call(mainTourStatus, 'isCompleted')) {
-          mainTourStatus = await ChromeAPIErrorHandler.sendMessageWithRetry({
-            type: "checkContentOnboardingStatus"
-          });
-        }
-        
-        if (mainTourStatus && mainTourStatus.is_completed) {
-          logger.info("🎯 Main tour was completed, hiding it now");
-          setShowContentOnboarding(false);
-        }
-      } catch (error) {
-        logger.error("Error rechecking main tour status:", error);
-      }
-    };
-
-    recheckMainTourStatus();
-  }, [pathname, showContentOnboarding, contentOnboardingStatus]); // Re-check when page changes
-
-  // Timer tour logic - show on problem pages if main tour completed and timer tour not completed
-  useEffect(() => {
-    const checkTimerTour = async () => {
-      // Only check if we're on a problem page
-      const url = window.location.href;
-      const isProblemPage = url.includes('/problems/') && !url.includes('/problemset/');
-      
-      logger.info("🕐 Timer tour check:", {
-        url,
-        isProblemPage,
-        showContentOnboarding,
-        pathname,
-        contentOnboardingStatus: contentOnboardingStatus ? {
-          isCompleted: contentOnboardingStatus.is_completed,
-          currentStep: contentOnboardingStatus.current_step
-        } : null
-      });
-      
-      if (!isProblemPage) {
-        setShowTimerTour(false);
-        return;
-      }
-
-      // Use the already loaded contentOnboardingStatus if available
-      let mainTourStatus = contentOnboardingStatus;
-      if (!mainTourStatus) {
-        try {
-          mainTourStatus = await ChromeAPIErrorHandler.sendMessageWithRetry({
-            type: "checkContentOnboardingStatus"
-          });
-        } catch (error) {
-          logger.error("Error checking main tour status:", error);
-          setShowTimerTour(false);
-          return;
-        }
-      }
-
-      // Only show timer tour if main tour is completed
-      if (!mainTourStatus || !mainTourStatus.is_completed) {
-        logger.info("🕐 Main tour not completed yet, not showing timer tour", {
-          isCompleted: mainTourStatus?.isCompleted,
-          currentStep: mainTourStatus?.current_step
-        });
-        setShowTimerTour(false);
-        return;
-      }
-
-      // Check if timer tour is completed
-      try {
-        const isTimerTourCompleted = await ChromeAPIErrorHandler.sendMessageWithRetry({
-          type: 'checkPageTourStatus',
-          pageId: 'timer_mini_tour'
-        });
-
-        if (!isTimerTourCompleted) {
-          logger.info("🕐 Main tour completed, showing timer mini-tour on problem page");
-          setShowTimerTour(true);
-        } else {
-          logger.info("🕐 Timer tour already completed");
-          setShowTimerTour(false);
-        }
-      } catch (error) {
-        logger.error("Error checking timer tour completion status:", error);
-        setShowTimerTour(false);
-      }
-    };
-
-    // Add a small delay to let state settle
-    const timeoutId = setTimeout(() => {
-      checkTimerTour();
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [pathname, contentOnboardingStatus, showContentOnboarding]); // Re-check when page or main tour status changes
-
-  // Content onboarding handlers
-  const handleCompleteContentOnboarding = useCallback(() => {
-    setShowContentOnboarding(false);
-    logger.info("Content onboarding completed");
-  }, []);
-
-  const handleCloseContentOnboarding = useCallback(() => {
-    setShowContentOnboarding(false);
-  }, []);
-
-  // Timer tour handlers
-  const handleCompleteTimerTour = useCallback(async () => {
-    try {
-      await ChromeAPIErrorHandler.sendMessageWithRetry({
-        type: 'markPageTourCompleted',
-        pageId: 'timer_mini_tour'
-      });
-      setShowTimerTour(false);
-      logger.info("🕐 Timer tour completed");
-    } catch (error) {
-      logger.error("Error completing timer tour:", error);
-    }
-  }, []);
-
-  const handleCloseTimerTour = useCallback(() => {
-    setShowTimerTour(false);
-  }, []);
+  // Event handlers from custom hooks
+  const handleCompleteContentOnboarding = useContentOnboardingCompleteHandler(setShowContentOnboarding);
+  const handleCloseContentOnboarding = useContentOnboardingCloseHandler(setShowContentOnboarding);
+  const handleCompleteTimerTour = useTimerTourCompleteHandler(setShowTimerTour);
+  const handleCloseTimerTour = useTimerTourCloseHandler(setShowTimerTour);
 
   const shouldShowNav = pathname === "/";
   const _hideBackup = true;
