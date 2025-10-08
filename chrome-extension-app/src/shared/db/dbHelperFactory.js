@@ -266,6 +266,46 @@ export function createDbHelper(config = {}) {
       }
     },
 
+    async clearConfigStores(configStores, results) {
+      for (const storeName of configStores) {
+        try {
+          await this.clear(storeName);
+          results.cleared.push(storeName);
+          if (this.enableLogging) {
+            console.log(`✅ TEST DB: Cleared ${storeName} (config reset)`);
+          }
+        } catch (error) {
+          if (error.message.includes('object stores was not found')) {
+            if (this.enableLogging) {
+              console.log(`🔍 TEST DB: Store ${storeName} not found (skipping, likely not in schema)`);
+            }
+          } else {
+            results.errors.push({ store: storeName, error: error.message });
+            if (this.enableLogging) {
+              console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
+            }
+          }
+        }
+      }
+    },
+
+    async handleExpensiveDerivedData(expensiveDerived, results) {
+      const testModifiedStores = globalThis._testModifiedStores || new Set();
+
+      for (const storeName of expensiveDerived) {
+        if (testModifiedStores.has(storeName)) {
+          await this.clearStoreWithLogging(storeName, results, '(test-modified)');
+        } else {
+          results.preserved.push(storeName);
+          if (this.enableLogging) {
+            console.log(`💾 TEST DB: Preserved ${storeName} (unmodified)`);
+          }
+        }
+      }
+
+      globalThis._testModifiedStores = new Set();
+    },
+
     async smartTeardown(options = {}) {
       if (!this.isTestMode) {
         throw new Error('🚨 SAFETY: Cannot teardown production database');
@@ -318,27 +358,7 @@ export function createDbHelper(config = {}) {
 
         // Clear configuration data if requested
         if (clearUserData) {
-          for (const storeName of DATA_CATEGORIES.CONFIG) {
-            try {
-              await this.clear(storeName);
-              results.cleared.push(storeName);
-              if (this.enableLogging) {
-                console.log(`✅ TEST DB: Cleared ${storeName} (config reset)`);
-              }
-            } catch (error) {
-              // Only warn about missing stores if they're not expected to be missing
-              if (error.message.includes('object stores was not found')) {
-                if (this.enableLogging) {
-                  console.log(`🔍 TEST DB: Store ${storeName} not found (skipping, likely not in schema)`);
-                }
-              } else {
-                results.errors.push({ store: storeName, error: error.message });
-                if (this.enableLogging) {
-                  console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
-                }
-              }
-            }
-          }
+          await this.clearConfigStores(DATA_CATEGORIES.CONFIG, results);
         }
 
         // Handle expensive derived data based on test isolation level
@@ -352,21 +372,7 @@ export function createDbHelper(config = {}) {
           results.preserved = [...DATA_CATEGORIES.STATIC];
 
           // For expensive derived data, check if tests indicated they modified it
-          const testModifiedStores = globalThis._testModifiedStores || new Set();
-
-          for (const storeName of DATA_CATEGORIES.EXPENSIVE_DERIVED) {
-            if (testModifiedStores.has(storeName)) {
-              await this.clearStoreWithLogging(storeName, results, '(test-modified)');
-            } else {
-              results.preserved.push(storeName);
-              if (this.enableLogging) {
-                console.log(`💾 TEST DB: Preserved ${storeName} (unmodified)`);
-              }
-            }
-          }
-
-          // Clear the modification tracking for next test
-          globalThis._testModifiedStores = new Set();
+          await this.handleExpensiveDerivedData(DATA_CATEGORIES.EXPENSIVE_DERIVED, results);
 
           if (this.enableLogging) {
             console.log(`💾 TEST DB: Preserved static data: ${results.preserved.join(', ')}`);
