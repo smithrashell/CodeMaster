@@ -216,8 +216,15 @@ export function initializeCoreBusinessTests() {
   // Helper to setup and verify test database
   async function setupTestEnvironment() {
     if (typeof globalThis.enableTesting !== 'function') {
-      console.warn('⚠️ enableTesting() not available - tests may use production database');
-      return { success: true };
+      console.error('🚨 CRITICAL ERROR: enableTesting() function is not defined!');
+      console.error('🚨 Tests CANNOT run without test database isolation.');
+      console.error('🚨 This would corrupt the production database!');
+      return {
+        success: false,
+        error: 'enableTesting() function not available - cannot run tests without database isolation',
+        testName: 'Test Environment Setup',
+        critical: true
+      };
     }
 
     const setupResult = await globalThis.enableTesting();
@@ -2091,16 +2098,22 @@ export function initializeCoreBusinessTests() {
 
   // Expose individual test functions for debugging
   globalThis.testSessionCompletionFlow = async function(verbose = true) {
-    if (typeof globalThis.enableTesting === 'function') {
-      await globalThis.enableTesting();
+    if (typeof globalThis.enableTesting !== 'function') {
+      const error = '🚨 CRITICAL: enableTesting() not defined - cannot run test safely';
+      console.error(error);
+      return { success: false, error, critical: true };
     }
+    await globalThis.enableTesting();
     return await testSessionCompletionFlow(verbose);
   };
 
   globalThis.testFocusTagProgression = async function(verbose = true) {
-    if (typeof globalThis.enableTesting === 'function') {
-      await globalThis.enableTesting();
+    if (typeof globalThis.enableTesting !== 'function') {
+      const error = '🚨 CRITICAL: enableTesting() not defined - cannot run test safely';
+      console.error(error);
+      return { success: false, error, critical: true };
     }
+    await globalThis.enableTesting();
     return await testFocusTagProgression(verbose);
   };
 
