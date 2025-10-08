@@ -31,6 +31,148 @@ import { applySafetyGuardRails } from "../utils/sessionBalancing.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
 
+// Helper functions for fetchAndAssembleSessionProblems
+async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnboarding, allProblems) {
+  if (isOnboarding) {
+    logger.info("🔰 Skipping review problems during onboarding - focusing on new problem distribution");
+    return 0;
+  }
+
+  const settings = await StorageService.getSettings();
+  const reviewRatio = (settings.reviewRatio || 40) / 100;
+  const reviewTarget = Math.floor(sessionLength * reviewRatio);
+  logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
+
+  const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
+  logger.info(`🔍 DEBUG: reviewProblems before filtering:`, {
+    isArray: Array.isArray(reviewProblems),
+    length: reviewProblems?.length,
+    content: reviewProblems?.map(p => ({ id: p?.id, leetcode_id: p?.leetcode_id, title: p?.title }))
+  });
+
+  const validReviewProblems = reviewProblems.filter(p => p && (p.id || p.leetcode_id));
+  sessionProblems.push(...validReviewProblems);
+
+  logger.info(`🔄 Added ${validReviewProblems.length}/${reviewTarget} review problems (filtered from ${reviewProblems?.length || 0} candidates)`);
+
+  analyzeReviewProblems(reviewProblems, reviewTarget, allProblems);
+  return validReviewProblems.length;
+}
+
+function analyzeReviewProblems(reviewProblems, reviewTarget, allProblems) {
+  if (reviewProblems.length === 0 && reviewTarget > 0) {
+    const hasAttemptedProblems = allProblems.length > 0;
+    if (!hasAttemptedProblems) {
+      logger.info(`ℹ️ New user detected - no review problems available. Using 0/100 review/new ratio automatically.`);
+    } else {
+      logger.warn(`⚠️ No review problems found despite target of ${reviewTarget} for experienced user. Check ScheduleService.getDailyReviewSchedule()`);
+    }
+  } else if (reviewProblems.length < reviewTarget) {
+    logger.info(`ℹ️ Found ${reviewProblems.length}/${reviewTarget} review problems. Remaining ${reviewTarget - reviewProblems.length} slots will be filled with new problems.`);
+  }
+}
+
+async function addNewProblemsToSession(params) {
+  const { sessionLength, sessionProblems, excludeIds, userFocusAreas,
+    currentAllowedTags, currentDifficultyCap, isOnboarding } = params;
+
+  logger.info(`🔍 DEBUG: Before calculating newProblemsNeeded:`, {
+    sessionLength,
+    sessionProblemsLength: sessionProblems.length,
+    sessionProblemsContent: sessionProblems.map(p => ({ id: p?.id, leetcode_id: p?.leetcode_id, title: p?.title }))
+  });
+
+  const newProblemsNeeded = sessionLength - sessionProblems.length;
+  if (newProblemsNeeded <= 0) return;
+
+  const candidatesNeeded = Math.min(newProblemsNeeded * 3, 50);
+  const candidateProblems = await fetchAdditionalProblems(
+    candidatesNeeded,
+    excludeIds,
+    userFocusAreas,
+    currentAllowedTags,
+    {
+      userId: "session_state",
+      currentDifficultyCap,
+      isOnboarding
+    }
+  );
+
+  const newProblems = await selectNewProblems(candidateProblems, newProblemsNeeded, isOnboarding);
+  sessionProblems.push(...newProblems);
+  logger.info(`🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems${!isOnboarding ? ' with optimal path scoring' : ''}`);
+}
+
+async function selectNewProblems(candidateProblems, newProblemsNeeded, isOnboarding) {
+  if (!isOnboarding && candidateProblems.length >= newProblemsNeeded) {
+    logger.info(`🧮 Applying optimal path scoring to ${candidateProblems.length} candidates`);
+    try {
+      const tagMastery = await getTagMastery();
+      const userState = {
+        tagMastery: tagMastery.reduce((acc, tm) => {
+          acc[tm.tag] = {
+            mastered: tm.mastered,
+            successRate: tm.totalAttempts > 0 ? tm.successfulAttempts / tm.totalAttempts : 0,
+            attempts: tm.totalAttempts
+          };
+          return acc;
+        }, {})
+      };
+
+      const scoredProblems = await selectOptimalProblems(candidateProblems, userState);
+      const selected = scoredProblems.slice(0, newProblemsNeeded);
+      logger.info(`✅ Selected ${selected.length} optimal problems with scores: ${selected.map(p => `${p.id || p.leetcode_id}:${p.pathScore?.toFixed(2) || 'N/A'}`).join(', ')}`);
+      return selected;
+    } catch (error) {
+      logger.error("❌ Error applying optimal path scoring, falling back to standard selection:", error);
+      return candidateProblems.slice(0, newProblemsNeeded);
+    }
+  } else {
+    logger.info(`📚 Using ${Math.min(candidateProblems.length, newProblemsNeeded)} problems (onboarding: ${isOnboarding}, candidates: ${candidateProblems.length})`);
+    return candidateProblems.slice(0, newProblemsNeeded);
+  }
+}
+
+function addFallbackProblems(sessionProblems, sessionLength, allProblems) {
+  if (sessionProblems.length >= sessionLength) return;
+
+  const fallbackNeeded = sessionLength - sessionProblems.length;
+  const usedIds = new Set(sessionProblems.filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim()).map((p) => p.problem_id || p.leetcode_id));
+
+  const fallbackProblems = allProblems
+    .filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim())
+    .filter((p) => !usedIds.has(p.problem_id || p.leetcode_id))
+    .sort(problemSortingCriteria)
+    .slice(0, fallbackNeeded);
+
+  sessionProblems.push(...fallbackProblems);
+  logger.info(`🔄 Added ${fallbackProblems.length} fallback problems`);
+}
+
+async function checkSafetyGuardRails(finalSession, currentDifficultyCap) {
+  const sessionState = await StorageService.getSessionState();
+  const sessionsAtCurrentDifficulty = sessionState?.escape_hatches?.sessions_at_current_difficulty || 0;
+
+  const guardRailResult = applySafetyGuardRails(
+    finalSession,
+    currentDifficultyCap,
+    sessionsAtCurrentDifficulty
+  );
+
+  if (guardRailResult.needsRebalance) {
+    logger.warn(`⚖️ Session difficulty imbalance detected: ${guardRailResult.message}`);
+    logger.warn(`   Current composition will be used, but may not be ideal for progression`);
+  }
+}
+
+function logFinalSessionComposition(sessionWithReasons, sessionLength, reviewProblemsCount) {
+  logger.info(`🎯 Final session composition:`);
+  logger.info(`   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`);
+  logger.info(`   🔄 Review problems: ${reviewProblemsCount}`);
+  logger.info(`   🆕 New problems: ${sessionWithReasons.length - reviewProblemsCount}`);
+  logger.info(`   🧠 Problems with reasoning: ${sessionWithReasons.filter((p) => p.selectionReason).length}`);
+}
+
 /**
  * ProblemService - Handles all logic for problem management.
 
@@ -320,157 +462,26 @@ export const ProblemService = {
     const excludeIds = new Set(allProblems.filter(p => p && p.leetcode_id && p.title && p.title.trim()).map((p) => p.leetcode_id));
 
     const sessionProblems = [];
-    let reviewProblemsCount = 0;
 
-    // **Step 1: Review Problems (user-configurable ratio) - Skip during onboarding**
-    if (!isOnboarding) {
-      const settings = await StorageService.getSettings();
-      const reviewRatio = (settings.reviewRatio || 40) / 100; // Default to 40% if not set
-      const reviewTarget = Math.floor(sessionLength * reviewRatio);
-      logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
-      
-      const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
+    // **Step 1: Add review problems**
+    const reviewProblemsCount = await addReviewProblemsToSession(
+      sessionProblems, sessionLength, isOnboarding, allProblems
+    );
 
-      // Debug review problems before adding them
-      logger.info(`🔍 DEBUG: reviewProblems before filtering:`, {
-        isArray: Array.isArray(reviewProblems),
-        length: reviewProblems?.length,
-        content: reviewProblems?.map(p => ({ id: p?.id, leetcode_id: p?.leetcode_id, title: p?.title }))
-      });
-
-      // Filter out any null/undefined problems before adding
-      const validReviewProblems = reviewProblems.filter(p => p && (p.id || p.leetcode_id));
-      sessionProblems.push(...validReviewProblems);
-      reviewProblemsCount = validReviewProblems.length;
-
-      logger.info(`🔄 Added ${validReviewProblems.length}/${reviewTarget} review problems (filtered from ${reviewProblems?.length || 0} candidates)`);
-      
-      // Adaptive review problem analysis
-      if (reviewProblems.length === 0 && reviewTarget > 0) {
-        // Check if this is a new user scenario (no attempted problems)
-        const hasAttemptedProblems = allProblems.length > 0;
-
-        if (!hasAttemptedProblems) {
-          logger.info(`ℹ️ New user detected - no review problems available. Using 0/100 review/new ratio automatically.`);
-        } else {
-          // Experienced user with no review problems due - this might indicate scheduling issues
-          logger.warn(`⚠️ No review problems found despite target of ${reviewTarget} for experienced user. Check ScheduleService.getDailyReviewSchedule()`);
-        }
-      } else if (reviewProblems.length < reviewTarget) {
-        logger.info(`ℹ️ Found ${reviewProblems.length}/${reviewTarget} review problems. Remaining ${reviewTarget - reviewProblems.length} slots will be filled with new problems.`);
-      }
-    } else {
-      logger.info("🔰 Skipping review problems during onboarding - focusing on new problem distribution");
-    }
-
-    // **Step 2: New Problems (remaining session) - Enhanced with Optimal Path Scoring**
-    logger.info(`🔍 DEBUG: Before calculating newProblemsNeeded:`, {
-      sessionLength,
-      sessionProblemsLength: sessionProblems.length,
-      sessionProblemsContent: sessionProblems.map(p => ({ id: p?.id, leetcode_id: p?.leetcode_id, title: p?.title }))
+    // **Step 2: Add new problems**
+    await addNewProblemsToSession({
+      sessionLength, sessionProblems, excludeIds, userFocusAreas,
+      currentAllowedTags, currentDifficultyCap, isOnboarding
     });
 
-    const newProblemsNeeded = sessionLength - sessionProblems.length;
+    // **Step 3: Add fallback problems if needed**
+    addFallbackProblems(sessionProblems, sessionLength, allProblems);
 
-    if (newProblemsNeeded > 0) {
-      // Get candidate problems (fetch more than needed for optimal selection)
-      const candidatesNeeded = Math.min(newProblemsNeeded * 3, 50); // Get 3x candidates, max 50
-      const candidateProblems = await fetchAdditionalProblems(
-        candidatesNeeded,
-        excludeIds,
-        userFocusAreas,
-        currentAllowedTags,
-        {
-          userId: "session_state", // Pass userId for coordination service
-          currentDifficultyCap, // Pass difficulty cap for filtering
-          isOnboarding // Pass onboarding flag for 50/50 distribution
-        }
-      );
+    // **Step 4: Deduplicate and apply safety guard rails**
+    const finalSession = deduplicateById(sessionProblems).slice(0, sessionLength);
+    await checkSafetyGuardRails(finalSession, currentDifficultyCap);
 
-      let newProblems;
-
-      if (!isOnboarding && candidateProblems.length >= newProblemsNeeded) {
-        // **Phase 3: Apply Optimal Path Scoring for personalized session composition**
-        logger.info(`🧮 Applying optimal path scoring to ${candidateProblems.length} candidates`);
-
-        try {
-          // Get user state for tag mastery alignment
-          const tagMastery = await getTagMastery();
-          const userState = {
-            tagMastery: tagMastery.reduce((acc, tm) => {
-              acc[tm.tag] = {
-                mastered: tm.mastered,
-                successRate: tm.totalAttempts > 0 ? tm.successfulAttempts / tm.totalAttempts : 0,
-                attempts: tm.totalAttempts
-              };
-              return acc;
-            }, {})
-          };
-
-          // Score and select optimal problems
-          const scoredProblems = await selectOptimalProblems(candidateProblems, userState);
-          newProblems = scoredProblems.slice(0, newProblemsNeeded);
-
-          logger.info(`✅ Selected ${newProblems.length} optimal problems with scores: ${newProblems.map(p => `${p.id || p.leetcode_id}:${p.pathScore?.toFixed(2) || 'N/A'}`).join(', ')}`);
-        } catch (error) {
-          logger.error("❌ Error applying optimal path scoring, falling back to standard selection:", error);
-          // Fallback to first N problems if scoring fails
-          newProblems = candidateProblems.slice(0, newProblemsNeeded);
-        }
-      } else {
-        // Use all candidates during onboarding or when insufficient candidates
-        newProblems = candidateProblems.slice(0, newProblemsNeeded);
-        logger.info(`📚 Using ${newProblems.length} problems (onboarding: ${isOnboarding}, candidates: ${candidateProblems.length})`);
-      }
-
-      sessionProblems.push(...newProblems);
-      logger.info(
-        `🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems${!isOnboarding ? ' with optimal path scoring' : ''}`
-      );
-    }
-
-    // **Step 3: Fallback if still short**
-    if (sessionProblems.length < sessionLength) {
-      const fallbackNeeded = sessionLength - sessionProblems.length;
-      const usedIds = new Set(sessionProblems.filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim()).map((p) => p.problem_id || p.leetcode_id));
-
-      const fallbackProblems = allProblems
-        .filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim())
-        .filter((p) => !usedIds.has(p.problem_id || p.leetcode_id))
-        .sort(problemSortingCriteria)
-        .slice(0, fallbackNeeded);
-
-      sessionProblems.push(...fallbackProblems);
-      logger.info(`🔄 Added ${fallbackProblems.length} fallback problems`);
-    }
-
-    // **Step 4: Final session composition**
-    const finalSession = deduplicateById(sessionProblems).slice(
-      0,
-      sessionLength
-    );
-
-    // **Step 4.5: Apply safety guard rails to prevent extreme difficulty imbalances**
-    // Get session state for sessions_at_current_difficulty
-    const sessionState = await StorageService.getSessionState();
-    const sessionsAtCurrentDifficulty = sessionState?.escape_hatches?.sessions_at_current_difficulty || 0;
-
-    // Check if guard rails need to trigger
-    const guardRailResult = applySafetyGuardRails(
-      finalSession,
-      currentDifficultyCap,
-      sessionsAtCurrentDifficulty
-    );
-
-    // Log warning if imbalance detected but continue with session
-    if (guardRailResult.needsRebalance) {
-      logger.warn(`⚖️ Session difficulty imbalance detected: ${guardRailResult.message}`);
-      logger.warn(`   Current composition will be used, but may not be ideal for progression`);
-      // Note: We log the warning but don't rebalance to avoid complexity
-      // The natural ladder depletion will self-correct this over time
-    }
-
-    // **Step 5: Add problem selection reasoning**
+    // **Step 5: Add reasoning and log final composition**
     const sessionWithReasons = await this.addProblemReasoningToSession(
       finalSession,
       {
@@ -482,20 +493,7 @@ export const ProblemService = {
       }
     );
 
-    logger.info(`🎯 Final session composition:`);
-    logger.info(
-      `   📊 Total problems: ${sessionWithReasons.length}/${sessionLength}`
-    );
-    logger.info(`   🔄 Review problems: ${reviewProblemsCount}`);
-    logger.info(
-      `   🆕 New problems: ${sessionWithReasons.length - reviewProblemsCount}`
-    );
-    logger.info(
-      `   🧠 Problems with reasoning: ${
-        sessionWithReasons.filter((p) => p.selectionReason).length
-      }`
-    );
-
+    logFinalSessionComposition(sessionWithReasons, sessionLength, reviewProblemsCount);
     return sessionWithReasons;
   },
 

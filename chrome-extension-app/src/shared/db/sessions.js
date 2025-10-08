@@ -661,11 +661,29 @@ function applyInterviewInsightsToTags(allowedTags, focusTags, interviewInsights,
  * Apply escape hatch logic for difficulty progression
  */
 export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
-  // Problem-based difficulty progression (consistent with tag mastery volume gates)
-  const currentDifficulty = sessionState.current_difficulty_cap || "Easy";
-  const currentDifficultyKey = currentDifficulty.toLowerCase();
+  const currentDifficulty = initializeDifficultyState(sessionState);
+  const { problemsAtDifficulty } = getDifficultyStats(sessionState, currentDifficulty);
 
-  // Ensure difficulty_time_stats exists
+  logEscapeHatchEntry(currentDifficulty, problemsAtDifficulty, accuracy, sessionState);
+
+  const escapeHatches = initializeEscapeHatches(sessionState);
+  const { promotionReason, shouldPromote } = evaluatePromotion(problemsAtDifficulty, accuracy, escapeHatches);
+
+  const promotionContext = {
+    sessionState, currentDifficulty, shouldPromote, promotionReason,
+    problemsAtDifficulty, accuracy, settings, now, escapeHatches
+  };
+  const promoted = applyDifficultyPromotion(promotionContext);
+
+  updatePromotionTracking(sessionState, escapeHatches, currentDifficulty, shouldPromote, problemsAtDifficulty);
+  logEscapeHatchExit(currentDifficulty, sessionState, promoted, promotionReason);
+
+  return sessionState;
+}
+
+function initializeDifficultyState(sessionState) {
+  const currentDifficulty = sessionState.current_difficulty_cap || "Easy";
+
   if (!sessionState.difficulty_time_stats) {
     sessionState.difficulty_time_stats = {
       easy: { problems: 0, total_time: 0, avg_time: 0 },
@@ -674,17 +692,30 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     };
   }
 
+  if (!sessionState.current_difficulty_cap) {
+    sessionState.current_difficulty_cap = "Easy";
+  }
+
+  return currentDifficulty;
+}
+
+function getDifficultyStats(sessionState, currentDifficulty) {
+  const currentDifficultyKey = currentDifficulty.toLowerCase();
   const stats = sessionState.difficulty_time_stats[currentDifficultyKey];
   const problemsAtDifficulty = stats?.problems || 0;
+  return { stats, problemsAtDifficulty };
+}
 
+function logEscapeHatchEntry(currentDifficulty, problemsAtDifficulty, accuracy, sessionState) {
   console.log('🔍 applyEscapeHatchLogic ENTRY (problem-based):', {
     currentDifficulty,
     problemsAtDifficulty,
     accuracy: (accuracy * 100).toFixed(1) + '%',
     numSessionsCompleted: sessionState.num_sessions_completed
   });
+}
 
-  // Ensure escape_hatches object exists (backward compatibility)
+function initializeEscapeHatches(sessionState) {
   if (!sessionState.escape_hatches) {
     sessionState.escape_hatches = {
       sessions_at_current_difficulty: 0,
@@ -695,18 +726,11 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   }
 
   const escapeHatches = sessionState.escape_hatches;
-
-  // Ensure sessionState has current_difficulty_cap set
-  if (!sessionState.current_difficulty_cap) {
-    sessionState.current_difficulty_cap = "Easy";
-  }
-
-  // Track sessions at current difficulty level (for UI/analytics compatibility)
   escapeHatches.sessions_at_current_difficulty++;
+  return escapeHatches;
+}
 
-  // NEW: Problem-based promotion criteria
-  // Standard promotion: 4 problems at 80%+ accuracy
-  // Stagnation escape: 8 problems regardless of accuracy
+function evaluatePromotion(problemsAtDifficulty, accuracy, escapeHatches) {
   const standardPromotion = problemsAtDifficulty >= 4 && accuracy >= 0.8;
   const stagnationEscape = problemsAtDifficulty >= 8;
   let promotionReason = null;
@@ -723,98 +747,153 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
     }
   }
 
-  // Apply user difficulty ceiling (from Goals page guardrails)
+  const shouldPromote = standardPromotion || stagnationEscape;
+  return { promotionReason, shouldPromote };
+}
+
+function applyDifficultyPromotion(context) {
+  const { sessionState, currentDifficulty, shouldPromote, promotionReason,
+    problemsAtDifficulty, accuracy, settings, now, escapeHatches } = context;
+
   const userMaxDifficulty = settings.maxDifficulty || "Hard";
   const getDifficultyOrder = (difficulty) => {
     const order = { "Easy": 1, "Medium": 2, "Hard": 3 };
     return order[difficulty] || 1;
   };
 
-  // Check if promotion should happen
-  const shouldPromote = standardPromotion || stagnationEscape;
+  const promotionData = {
+    sessionState, escapeHatches, now, promotionReason, problemsAtDifficulty, accuracy
+  };
 
-  if (
-    shouldPromote &&
-    currentDifficulty === "Easy" &&
-    getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")
-  ) {
-    sessionState.current_difficulty_cap = "Medium";
-    escapeHatches.last_difficulty_promotion = now.toISOString();
-    escapeHatches.sessions_at_current_difficulty = 0; // Reset counter
-    escapeHatches.activated_escape_hatches = []; // Reset escape hatches for new difficulty
-
-    if (promotionReason === "stagnation_escape_hatch") {
-      logger.info(
-        `🎯 Difficulty cap upgraded via STAGNATION ESCAPE: Easy → Medium (${problemsAtDifficulty} problems)`
-      );
-    } else {
-      logger.info(
-        `🎯 Difficulty cap upgraded: Easy → Medium (${problemsAtDifficulty} problems at ${(accuracy * 100).toFixed(1)}%)`
-      );
-    }
-    return sessionState; // Prevent double progression in same session
-  } else if (
-    shouldPromote &&
-    currentDifficulty === "Medium" &&
-    getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")
-  ) {
-    sessionState.current_difficulty_cap = "Hard";
-    escapeHatches.last_difficulty_promotion = now.toISOString();
-    escapeHatches.sessions_at_current_difficulty = 0; // Reset counter
-    escapeHatches.activated_escape_hatches = []; // Reset escape hatches for new difficulty
-
-    if (promotionReason === "stagnation_escape_hatch") {
-      logger.info(
-        `🎯 Difficulty cap upgraded via STAGNATION ESCAPE: Medium → Hard (${problemsAtDifficulty} problems)`
-      );
-    } else {
-      logger.info(
-        `🎯 Difficulty cap upgraded: Medium → Hard (${problemsAtDifficulty} problems at ${(accuracy * 100).toFixed(1)}%)`
-      );
-    }
-  } else if (
-    shouldPromote &&
-    getDifficultyOrder(sessionState.current_difficulty_cap) < getDifficultyOrder(userMaxDifficulty)
-  ) {
+  if (shouldPromote && currentDifficulty === "Easy" && getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")) {
+    promoteDifficulty(promotionData, "Medium");
+    return true;
+  } else if (shouldPromote && currentDifficulty === "Medium" && getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")) {
+    promoteDifficulty(promotionData, "Hard");
+    return true;
+  } else if (shouldPromote && getDifficultyOrder(sessionState.current_difficulty_cap) < getDifficultyOrder(userMaxDifficulty)) {
     logger.info(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.current_difficulty_cap}, Max allowed: ${userMaxDifficulty}`);
-  } else if (!shouldPromote && problemsAtDifficulty > 0) {
-    const remaining = standardPromotion ? 0 : Math.max(0, 4 - problemsAtDifficulty);
+  }
+
+  return false;
+}
+
+function promoteDifficulty(context, newDifficulty) {
+  const { sessionState, escapeHatches, now, promotionReason, problemsAtDifficulty, accuracy } = context;
+  const oldDifficulty = sessionState.current_difficulty_cap;
+
+  sessionState.current_difficulty_cap = newDifficulty;
+  escapeHatches.last_difficulty_promotion = now.toISOString();
+  escapeHatches.sessions_at_current_difficulty = 0;
+  escapeHatches.activated_escape_hatches = [];
+
+  if (promotionReason === "stagnation_escape_hatch") {
+    logger.info(`🎯 Difficulty cap upgraded via STAGNATION ESCAPE: ${oldDifficulty} → ${newDifficulty} (${problemsAtDifficulty} problems)`);
+  } else {
+    logger.info(`🎯 Difficulty cap upgraded: ${oldDifficulty} → ${newDifficulty} (${problemsAtDifficulty} problems at ${(accuracy * 100).toFixed(1)}%)`);
+  }
+}
+
+function updatePromotionTracking(sessionState, escapeHatches, currentDifficulty, shouldPromote, problemsAtDifficulty) {
+  if (!shouldPromote && problemsAtDifficulty > 0) {
+    const remaining = Math.max(0, 4 - problemsAtDifficulty);
     logger.info(`📊 Progress toward promotion: ${problemsAtDifficulty}/4 problems at ${currentDifficulty} (${remaining} more needed)`);
   }
 
-  // Track sessions without promotion for debugging
   if (sessionState.current_difficulty_cap === currentDifficulty) {
     escapeHatches.sessions_without_promotion++;
   } else {
     escapeHatches.sessions_without_promotion = 0;
   }
+}
 
+function logEscapeHatchExit(currentDifficulty, sessionState, promoted, promotionReason) {
   console.log('🔍 applyEscapeHatchLogic EXIT:', {
     previousDifficulty: currentDifficulty,
     newDifficulty: sessionState.current_difficulty_cap,
-    promoted: sessionState.current_difficulty_cap !== currentDifficulty,
+    promoted,
     promotionReason
   });
+}
 
-  return sessionState;
+// Helper to analyze performance trend from recent sessions
+function analyzePerformanceTrend(recentAnalytics) {
+  const accuracies = recentAnalytics.map(session => session.accuracy || 0.5);
+  const avgRecent = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
+
+  // Count consecutive excellent sessions (90%+ accuracy)
+  let consecutiveExcellent = 0;
+  for (const session of recentAnalytics) {
+    if ((session.accuracy || 0) >= 0.9) {
+      consecutiveExcellent++;
+    } else {
+      break;
+    }
+  }
+
+  // Determine performance trend
+  let trend;
+  if (avgRecent >= 0.85 && consecutiveExcellent >= 2) {
+    trend = 'sustained_excellence';
+  } else if (avgRecent >= 0.7 && accuracies[0] > accuracies[Math.min(2, accuracies.length - 1)]) {
+    trend = 'improving';
+  } else if (avgRecent < 0.5) {
+    trend = 'struggling';
+  } else {
+    trend = 'stable';
+  }
+
+  return { trend, consecutiveExcellent, avgRecent };
 }
 
 export async function buildAdaptiveSessionSettings() {
   const sessionStateKey = "session_state";
   const now = new Date();
 
-  // Get focus decision from coordination service (integrates all systems)
+  const { focusDecision, focusTags, settings, userFocusAreas, sessionState } =
+    await loadSessionContext(sessionStateKey);
+
+  logSessionStateDebug(sessionState, focusDecision);
+
+  const performanceMetrics = await calculatePerformanceMetrics(sessionState);
+
+  const { sessionLength, numberOfNewProblems, allowedTags, updatedSessionState } =
+    await determineSessionParameters({
+      focusDecision, settings, sessionState, performanceMetrics, focusTags, now
+    });
+
+  await StorageService.setSessionState(sessionStateKey, updatedSessionState);
+
+  logAdaptiveConfig({
+    sessionLength, numberOfNewProblems, allowedTags, performanceMetrics,
+    onboarding: focusDecision.onboarding, sessionState: updatedSessionState
+  });
+
+  const finalDifficultyCap = focusDecision.onboarding ? "Easy" : updatedSessionState.current_difficulty_cap;
+  logDifficultyCapDebug(focusDecision.onboarding, updatedSessionState, finalDifficultyCap);
+
+  return {
+    sessionLength,
+    numberOfNewProblems,
+    currentAllowedTags: allowedTags,
+    currentDifficultyCap: finalDifficultyCap,
+    userFocusAreas,
+    sessionState: updatedSessionState,
+    isOnboarding: focusDecision.onboarding,
+  };
+}
+
+async function loadSessionContext(sessionStateKey) {
   const focusDecision = await FocusCoordinationService.getFocusDecision(sessionStateKey);
-  
-  // Get additional system data still needed for session building
   const { focusTags } = await TagService.getCurrentTier();
   const settings = await StorageService.getSettings();
   const userFocusAreas = focusDecision.userPreferences;
+  const sessionState = await initializeSessionState(sessionStateKey);
 
-  // Initialize session state
-  let sessionState = await initializeSessionState(sessionStateKey);
+  return { focusDecision, focusTags, settings, userFocusAreas, sessionState };
+}
 
-  // Debug session state tracking
+function logSessionStateDebug(sessionState, focusDecision) {
   console.log(`🔍 Session state debug:`, {
     numSessionsCompleted: sessionState.num_sessions_completed,
     focusDecisionOnboarding: focusDecision.onboarding,
@@ -826,8 +905,9 @@ export async function buildAdaptiveSessionSettings() {
     focusDecisionOnboarding: focusDecision.onboarding,
     sessionStateKeys: Object.keys(sessionState)
   });
+}
 
-  // Get performance trends from session analytics store (analyze last 5 sessions for momentum)
+async function calculatePerformanceMetrics(sessionState) {
   let accuracy = 0.5;
   let efficiencyScore = 0.5;
   let performanceTrend = 'stable';
@@ -839,52 +919,14 @@ export async function buildAdaptiveSessionSettings() {
       const lastSession = recentAnalytics[0];
       const currentDifficulty = (sessionState.current_difficulty_cap || "Easy").toLowerCase();
 
-      // Calculate current session accuracy (same logic as before)
-      const difficultyBreakdown = lastSession.difficulty_breakdown;
-      if (difficultyBreakdown && currentDifficulty) {
-        const currentDifficultyData = difficultyBreakdown[currentDifficulty];
-        if (currentDifficultyData && currentDifficultyData.attempts > 0) {
-          accuracy = currentDifficultyData.correct / currentDifficultyData.attempts;
-          logger.info(`🎯 Using ${currentDifficulty}-specific accuracy for difficulty progression: ${(accuracy * 100).toFixed(1)}% (${currentDifficultyData.correct}/${currentDifficultyData.attempts})`);
-        } else {
-          accuracy = lastSession.accuracy ?? 0.5;
-          logger.info(`🔍 No ${currentDifficulty} attempts found, using overall accuracy: ${(accuracy * 100).toFixed(1)}%`);
-        }
-      } else {
-        accuracy = lastSession.accuracy ?? 0.5;
-        logger.info(`🔍 Using overall session accuracy: ${(accuracy * 100).toFixed(1)}%`);
-      }
-
-      // Calculate efficiency from timing if available
+      accuracy = calculateAccuracyFromAnalytics(lastSession, currentDifficulty);
       efficiencyScore = lastSession.avg_time ? Math.max(0.3, Math.min(1.0, 1.0 - (lastSession.avg_time / 1800))) : 0.5;
 
-      // NEW: Analyze performance trend across recent sessions
       if (recentAnalytics.length >= 2) {
-        const accuracies = recentAnalytics.map(session => session.accuracy || 0.5);
-        const avgRecent = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
-
-        // Count consecutive excellent sessions (90%+ accuracy)
-        consecutiveExcellentSessions = 0;
-        for (const session of recentAnalytics) {
-          if ((session.accuracy || 0) >= 0.9) {
-            consecutiveExcellentSessions++;
-          } else {
-            break; // Stop at first non-excellent session
-          }
-        }
-
-        // Determine performance trend
-        if (avgRecent >= 0.85 && consecutiveExcellentSessions >= 2) {
-          performanceTrend = 'sustained_excellence';
-        } else if (avgRecent >= 0.7 && accuracies[0] > accuracies[Math.min(2, accuracies.length - 1)]) {
-          performanceTrend = 'improving';
-        } else if (avgRecent < 0.5) {
-          performanceTrend = 'struggling';
-        } else {
-          performanceTrend = 'stable';
-        }
-
-        logger.info(`📈 Performance analysis: trend=${performanceTrend}, avgAccuracy=${(avgRecent * 100).toFixed(1)}%, consecutiveExcellent=${consecutiveExcellentSessions}`);
+        const trendAnalysis = analyzePerformanceTrend(recentAnalytics);
+        performanceTrend = trendAnalysis.trend;
+        consecutiveExcellentSessions = trendAnalysis.consecutiveExcellent;
+        logger.info(`📈 Performance analysis: trend=${performanceTrend}, avgAccuracy=${(trendAnalysis.avgRecent * 100).toFixed(1)}%, consecutiveExcellent=${consecutiveExcellentSessions}`);
       }
     } else {
       logger.info("🔍 No recent session analytics found, using defaults");
@@ -893,24 +935,77 @@ export async function buildAdaptiveSessionSettings() {
     logger.warn("⚠️ Failed to get recent session analytics, using defaults:", error);
   }
 
-  // Default values with onboarding-aware user preference integration
-  let sessionLength = 4;
-  let numberOfNewProblems = 4;
-  
-  // Get interview insights for adaptive learning integration
+  return { accuracy, efficiencyScore, performanceTrend, consecutiveExcellentSessions };
+}
+
+function calculateAccuracyFromAnalytics(lastSession, currentDifficulty) {
+  const difficultyBreakdown = lastSession.difficulty_breakdown;
+  if (difficultyBreakdown && currentDifficulty) {
+    const currentDifficultyData = difficultyBreakdown[currentDifficulty];
+    if (currentDifficultyData && currentDifficultyData.attempts > 0) {
+      const accuracy = currentDifficultyData.correct / currentDifficultyData.attempts;
+      logger.info(`🎯 Using ${currentDifficulty}-specific accuracy for difficulty progression: ${(accuracy * 100).toFixed(1)}% (${currentDifficultyData.correct}/${currentDifficultyData.attempts})`);
+      return accuracy;
+    } else {
+      logger.info(`🔍 No ${currentDifficulty} attempts found, using overall accuracy: ${((lastSession.accuracy ?? 0.5) * 100).toFixed(1)}%`);
+      return lastSession.accuracy ?? 0.5;
+    }
+  } else {
+    logger.info(`🔍 Using overall session accuracy: ${((lastSession.accuracy ?? 0.5) * 100).toFixed(1)}%`);
+    return lastSession.accuracy ?? 0.5;
+  }
+}
+
+async function determineSessionParameters(context) {
+  const { focusDecision, settings, sessionState, performanceMetrics, focusTags, now } = context;
+
   const interviewInsights = await InterviewService.getInterviewInsightsForAdaptiveLearning();
+  logInterviewInsights(interviewInsights);
+
+  let allowedTags = validateAndGetAllowedTags(focusDecision, focusTags);
+  logFocusDecision(focusDecision, allowedTags, sessionState);
+
+  const sessionLogicContext = {
+    focusDecision, settings, sessionState, performanceMetrics,
+    interviewInsights, allowedTags, focusTags, now
+  };
+  const { sessionLength, numberOfNewProblems, finalAllowedTags, tag_index } =
+    await applySessionLogic(sessionLogicContext);
+
+  const updatedSessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
+  if (tag_index !== undefined) {
+    updatedSessionState.tag_index = tag_index;
+  }
+
+  return {
+    sessionLength,
+    numberOfNewProblems,
+    allowedTags: finalAllowedTags,
+    updatedSessionState
+  };
+}
+
+function logInterviewInsights(interviewInsights) {
   logger.info(`🎯 Interview insights for adaptive learning:`, {
     hasData: interviewInsights.hasInterviewData,
     transferAccuracy: interviewInsights.transferAccuracy,
     speedDelta: interviewInsights.speedDelta,
     recommendations: interviewInsights.recommendations
   });
-  
-  // Use coordinated focus decision (handles onboarding, performance, user preferences)
+}
+
+function validateAndGetAllowedTags(focusDecision, focusTags) {
   let allowedTags = focusDecision.activeFocusTags;
-  // Use FocusCoordinationService as single source of truth for onboarding
-  const onboarding = focusDecision.onboarding;
-  
+
+  if (!allowedTags || allowedTags.length === 0) {
+    allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, 1) : ["array"];
+    logger.warn(`⚠️ FocusCoordinationService returned empty tags, using fallback: ${allowedTags}`);
+  }
+
+  return allowedTags;
+}
+
+function logFocusDecision(focusDecision, allowedTags, sessionState) {
   console.log(`🔍 ONBOARDING DECISION: Using FocusCoordinationService as single source of truth:`, {
     onboarding: focusDecision.onboarding,
     numSessionsCompleted: sessionState.num_sessions_completed,
@@ -918,79 +1013,76 @@ export async function buildAdaptiveSessionSettings() {
     currentDifficultyCap: sessionState.current_difficulty_cap
   });
 
-  // Failsafe: If FocusCoordinationService returns empty/invalid tags, use proven fallback
-  if (!allowedTags || allowedTags.length === 0) {
-    allowedTags = focusTags && focusTags.length > 0 ? focusTags.slice(0, 1) : ["array"];
-    logger.warn(`⚠️ FocusCoordinationService returned empty tags, using fallback: ${allowedTags}`);
-  }
-  
   logger.info(`🎯 Focus Coordination Service decision:`, {
     activeFocusTags: allowedTags,
     reasoning: focusDecision.algorithmReasoning,
     onboarding: focusDecision.onboarding,
     performanceLevel: focusDecision.performanceLevel
   });
+}
+
+async function applySessionLogic(context) {
+  const { focusDecision, settings, sessionState, performanceMetrics,
+    interviewInsights, allowedTags, focusTags, now } = context;
+
+  const onboarding = focusDecision.onboarding;
 
   if (onboarding) {
-    // 🔰 ONBOARDING FIX: Ensure only 1 focus tag is used during onboarding
-    allowedTags = allowedTags.slice(0, 1);
-    logger.info(`🔰 Onboarding: Limited focus tags to: [${allowedTags.join(', ')}]`);
-    
-    // Handle onboarding mode session parameters
-    const onboardingResult = applyOnboardingSettings(settings, sessionState, allowedTags, focusDecision);
-    sessionLength = onboardingResult.sessionLength;
-    numberOfNewProblems = onboardingResult.numberOfNewProblems;
-  } else if (!onboarding) {
-    // Apply post-onboarding adaptive logic
+    const limitedTags = allowedTags.slice(0, 1);
+    logger.info(`🔰 Onboarding: Limited focus tags to: [${limitedTags.join(', ')}]`);
+
+    const onboardingResult = applyOnboardingSettings(settings, sessionState, limitedTags, focusDecision);
+    return {
+      sessionLength: onboardingResult.sessionLength,
+      numberOfNewProblems: onboardingResult.numberOfNewProblems,
+      finalAllowedTags: limitedTags,
+      tag_index: undefined
+    };
+  } else {
     const adaptiveResult = await applyPostOnboardingLogic({
-      accuracy, efficiencyScore, settings, interviewInsights,
-      allowedTags, focusTags, sessionState, now, performanceTrend, consecutiveExcellentSessions
+      accuracy: performanceMetrics.accuracy,
+      efficiencyScore: performanceMetrics.efficiencyScore,
+      settings,
+      interviewInsights,
+      allowedTags,
+      focusTags,
+      sessionState,
+      now,
+      performanceTrend: performanceMetrics.performanceTrend,
+      consecutiveExcellentSessions: performanceMetrics.consecutiveExcellentSessions
     });
-    sessionLength = adaptiveResult.sessionLength;
-    numberOfNewProblems = adaptiveResult.numberOfNewProblems;
-    allowedTags = adaptiveResult.allowedTags;
-    sessionState.tag_index = adaptiveResult.tag_index;
 
-    // NOTE: Difficulty progression is handled by evaluateDifficultyProgression() on session COMPLETION
-    // NOT during session creation to avoid double progression
+    return {
+      sessionLength: adaptiveResult.sessionLength,
+      numberOfNewProblems: adaptiveResult.numberOfNewProblems,
+      finalAllowedTags: adaptiveResult.allowedTags,
+      tag_index: adaptiveResult.tag_index
+    };
   }
+}
 
-  // Update session state using coordination service to avoid conflicts
-  sessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
-  
-  await StorageService.setSessionState(sessionStateKey, sessionState);
-
+function logAdaptiveConfig(config) {
+  const { sessionLength, numberOfNewProblems, allowedTags, performanceMetrics, onboarding, sessionState } = config;
   logger.info("🧠 Adaptive Session Config:", {
     sessionLength,
     numberOfNewProblems,
     allowedTags,
-    accuracy,
-    efficiencyScore,
+    accuracy: performanceMetrics.accuracy,
+    efficiencyScore: performanceMetrics.efficiencyScore,
     onboarding,
-    performanceTrend,
-    consecutiveExcellentSessions,
+    performanceTrend: performanceMetrics.performanceTrend,
+    consecutiveExcellentSessions: performanceMetrics.consecutiveExcellentSessions,
     sessionStateNumCompleted: sessionState.num_sessions_completed
   });
+}
 
-  // BUGFIX: Ensure onboarding sessions always start with Easy difficulty
-  const finalDifficultyCap = onboarding ? "Easy" : sessionState.current_difficulty_cap;
-
+function logDifficultyCapDebug(onboarding, sessionState, finalDifficultyCap) {
   console.log(`🔍 DIFFICULTY CAP DEBUG:`, {
     onboarding,
     sessionStateCurrentDifficulty: sessionState.current_difficulty_cap,
     finalDifficultyCap,
     numSessionsCompleted: sessionState.num_sessions_completed
   });
-
-  return {
-    sessionLength,
-    numberOfNewProblems,
-    currentAllowedTags: allowedTags,
-    currentDifficultyCap: finalDifficultyCap,
-    userFocusAreas,
-    sessionState,
-    isOnboarding: onboarding,
-  };
 }
 
 function computeSessionLength(accuracy, efficiencyScore, userPreferredLength = 4, performanceTrend = 'stable', consecutiveExcellentSessions = 0) {

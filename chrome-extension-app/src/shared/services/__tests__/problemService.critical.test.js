@@ -12,6 +12,7 @@ jest.mock("../scheduleService", () => ({
 jest.mock("../storageService", () => ({
   StorageService: {
     getSettings: jest.fn(),
+    getSessionState: jest.fn(),
   },
 }));
 jest.mock("../../../content/services/problemReasoningService", () => ({
@@ -159,12 +160,13 @@ describe("ProblemService - Critical User Retention Paths", () => {
       };
 
       const userProblem = {
-        id: 1,
+        leetcode_id: 1,
         title: "Two Sum",
         difficulty: "Easy",
         attempts: 3,
-        boxLevel: 2,
-        lastAttempted: "2024-01-15"
+        box_level: 2,
+        lastAttempted: "2024-01-15",
+        tags: []
       };
 
       // Mock: Problem exists in both stores
@@ -174,7 +176,16 @@ describe("ProblemService - Critical User Retention Paths", () => {
       const result = await ProblemService.getProblemByDescription("Two Sum", "two-sum");
 
       // CRITICAL: User progress data takes priority
-      expect(result.problem).toEqual(userProblem);
+      expect(result.problem).toMatchObject({
+        id: 1,
+        leetcode_id: 1,
+        title: "Two Sum",
+        difficulty: "Easy",
+        attempts: 3,
+        boxLevel: 2,
+        lastAttempted: "2024-01-15",
+        tags: []
+      });
       expect(result.found).toBe(true);
       expect(result.problem.attempts).toBe(3); // User-specific data preserved
     });

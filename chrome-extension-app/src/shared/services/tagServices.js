@@ -158,7 +158,7 @@ async function getCurrentTier() {
     return await handleOnboardingFallback(db);
   }
 
-  const masteryThresholds = allTagRelationships.reduce((acc, item) => {
+  const _masteryThresholds = allTagRelationships.reduce((acc, item) => {
     acc[item.id] = item.mastery_threshold || 0.8;
     return acc;
   }, {});
@@ -194,7 +194,7 @@ async function getCurrentTier() {
     const masteryThreshold = Math.ceil(tierTags.length * 0.8);
     const isTierMastered = masteredTags.length >= masteryThreshold;
 
-    const { allowTierAdvancement, tierEscapeHatchActivated } = await checkTierProgression(tier, masteredTags, tierTags, isTierMastered);
+    const { allowTierAdvancement, tierEscapeHatchActivated: _tierEscapeHatchActivated } = await checkTierProgression(tier, masteredTags, tierTags, isTierMastered);
 
     if (!allowTierAdvancement) {
       logger.info(
@@ -320,7 +320,7 @@ function processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryTh
 // NOTE: Graduation no longer pre-seeds tags into tag_mastery
 // Tags will be discovered organically through problem attempts
 // This function is kept for potential future graduation ceremony logic
-async function _handleGraduation(masteredTags, tierTags, masteryData, db, masteryStore) {
+async function _handleGraduation(masteredTags, tierTags, masteryData, db, _masteryStore) {
   // 🎓 Graduate when most of focus window is mastered (4 out of 5 tags)
   if (masteredTags.length >= 4) {
     logger.info(`🎓 ${masteredTags.length} tags mastered, ready for new challenges...`);
@@ -834,7 +834,7 @@ async function getAvailableTagsForFocus(userId) {
 
     const currentTier = learningState?.currentTier || "Core Concept";
     const systemSelectedTags = learningState?.focusTags || [];
-    const currentTierTags = learningState?.allTagsInCurrentTier || [];
+    const _currentTierTags = learningState?.allTagsInCurrentTier || [];
     const userOverrideTags = settings.focusAreas || [];
 
     // Get ALL tag classifications from tag_relationships

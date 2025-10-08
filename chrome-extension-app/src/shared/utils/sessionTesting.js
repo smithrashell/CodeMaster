@@ -512,7 +512,7 @@ export const TestScenarios = {
 };
 
 // Check if session testing should be enabled
-async function checkSessionTestingEnabled() {
+function checkSessionTestingEnabled() {
   try {
     // Use static imports
     return shouldEnableSessionTesting();
@@ -602,13 +602,13 @@ if (typeof window !== 'undefined') {
       };
 
       // Add mock service controls
-      window.enableMockSessions = async () => {
+      window.enableMockSessions = () => {
         // Use static imports
         enableMockServices();
         console.log("🎭 Mock session services enabled - reload to take effect");
       };
 
-      window.disableMockSessions = async () => {
+      window.disableMockSessions = () => {
         // Use static imports
         disableMockServices();
         console.log("🎭 Mock session services disabled - reload to take effect");
@@ -622,13 +622,13 @@ if (typeof window !== 'undefined') {
       };
 
       // Quick test function
-      window.testMockServices = async () => {
+      window.testMockServices = () => {
         // Use static imports
         return testMockServices();
       };
 
       // Progression test function
-      window.testProgression = async () => {
+      window.testProgression = () => {
         // Use static imports
         return testProgression();
       };
