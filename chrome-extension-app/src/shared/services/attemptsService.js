@@ -354,20 +354,8 @@ class SessionAttributionEngine {
   /**
    * Process attempt with session using existing logic
    */
-  static async processAttemptWithSession(session, attemptData, problem, source = 'session_problem') {
-    const db = await openDB();
-
-    // Update problem Leitner box logic
-    problem = await calculateLeitnerBox(problem, attemptData);
-    
-    // Add or update the problem in session
-    session = await ProblemService.addOrUpdateProblemInSession(
-      session,
-      problem,
-      attemptData.id
-    );
-
-    // Mark attempted problems in session (both successful and failed attempts)
+  // Helper to mark problem as attempted in session
+  static markProblemAttemptedInSession(session, problem, attemptData) {
     if (session.problems && Array.isArray(session.problems)) {
       console.log(`🎯 Marking problem as attempted in session`, {
         problemId: problem.id,
@@ -378,7 +366,6 @@ class SessionAttributionEngine {
       });
 
       // Mark problem as attempted regardless of success/failure
-      // This allows session to move forward even after failed attempts
       session.problems = session.problems.map(p => {
         const isAttempted = String(p.id) === String(problem.leetcode_id);
         console.log(`🔍 Problem attempt marking:`, {
@@ -398,6 +385,24 @@ class SessionAttributionEngine {
       const attemptedCount = session.problems.filter(p => p.attempted).length;
       console.log(`✅ Problem attempt marking result: ${attemptedCount}/${session.problems.length} problems attempted`);
     }
+    return session;
+  }
+
+  static async processAttemptWithSession(session, attemptData, problem, source = 'session_problem') {
+    const db = await openDB();
+
+    // Update problem Leitner box logic
+    problem = await calculateLeitnerBox(problem, attemptData);
+
+    // Add or update the problem in session
+    session = await ProblemService.addOrUpdateProblemInSession(
+      session,
+      problem,
+      attemptData.id
+    );
+
+    // Mark attempted problems in session (both successful and failed attempts)
+    session = this.markProblemAttemptedInSession(session, problem, attemptData);
 
     // Open a transaction for database operations
     const transaction = db.transaction(

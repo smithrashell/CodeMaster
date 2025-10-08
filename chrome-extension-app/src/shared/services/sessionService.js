@@ -445,6 +445,50 @@ export const SessionService = {
   },
 
   /**
+   * Helper to update session state after session completion
+   */
+  async updateSessionStateOnCompletion(session) {
+    try {
+      const sessionState = await StorageService.getSessionState("session_state") || {
+        id: "session_state",
+        num_sessions_completed: 0
+      };
+      sessionState.num_sessions_completed = (sessionState.num_sessions_completed || 0) + 1;
+      sessionState.last_session_date = new Date().toISOString();
+
+      // Update session state with performance metrics for focus expansion
+      const previousAccuracy = sessionState.last_performance?.accuracy || 0;
+      const currentAccuracy = session.accuracy || 0;
+
+      sessionState.last_performance = {
+        accuracy: currentAccuracy,
+        efficiency_score: currentAccuracy // Use accuracy as proxy for efficiency
+      };
+
+      // Track last_progress_date when meaningful progress occurs
+      const hasProgress = currentAccuracy > previousAccuracy || currentAccuracy >= 0.8;
+      if (hasProgress) {
+        sessionState.last_progress_date = new Date().toISOString();
+      }
+
+      // Call FocusCoordinationService to update focus tags based on performance
+      try {
+        const focusDecision = await FocusCoordinationService.getFocusDecision(sessionState);
+        const updatedSessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
+
+        await StorageService.setSessionState("session_state", updatedSessionState);
+        logger.info(`✅ Session state updated: num_sessions_completed = ${updatedSessionState.num_sessions_completed}, focus_tags = ${updatedSessionState.current_focus_tags?.join(', ')}, performance_level = ${updatedSessionState.performance_level}, progress = ${hasProgress}`);
+      } catch (focusError) {
+        logger.error("❌ Failed to update focus tags, using basic session state:", focusError);
+        await StorageService.setSessionState("session_state", sessionState);
+        logger.info(`✅ Session state updated (without focus update): num_sessions_completed = ${sessionState.num_sessions_completed}`);
+      }
+    } catch (error) {
+      logger.error("❌ Failed to update session state:", error);
+    }
+  },
+
+  /**
    * Checks if all session problems are attempted and marks the session as complete.
    */
   async checkAndCompleteSession(sessionId) {
@@ -511,45 +555,7 @@ export const SessionService = {
       logger.info(`✅ Session ${sessionId} marked as completed with ${Math.round(session.accuracy * 100)}% accuracy.`);
 
       // ✅ CRITICAL FIX: Update session state to increment numSessionsCompleted
-      try {
-        const sessionState = await StorageService.getSessionState("session_state") || {
-          id: "session_state",
-          num_sessions_completed: 0
-        };
-        sessionState.num_sessions_completed = (sessionState.num_sessions_completed || 0) + 1;
-        sessionState.last_session_date = new Date().toISOString();
-
-        // ✅ Update session state with performance metrics for focus expansion
-        const previousAccuracy = sessionState.last_performance?.accuracy || 0;
-        const currentAccuracy = session.accuracy || 0;
-
-        sessionState.last_performance = {
-          accuracy: currentAccuracy,
-          efficiency_score: currentAccuracy // Use accuracy as proxy for efficiency
-        };
-
-        // ✅ Track last_progress_date when meaningful progress occurs
-        const hasProgress = currentAccuracy > previousAccuracy || currentAccuracy >= 0.8;
-        if (hasProgress) {
-          sessionState.last_progress_date = new Date().toISOString();
-        }
-
-        // ✅ Call FocusCoordinationService to update focus tags based on performance
-        // Pass the updated sessionState object directly to avoid re-reading stale data
-        try {
-          const focusDecision = await FocusCoordinationService.getFocusDecision(sessionState);
-          const updatedSessionState = FocusCoordinationService.updateSessionState(sessionState, focusDecision);
-
-          await StorageService.setSessionState("session_state", updatedSessionState);
-          logger.info(`✅ Session state updated: num_sessions_completed = ${updatedSessionState.num_sessions_completed}, focus_tags = ${updatedSessionState.current_focus_tags?.join(', ')}, performance_level = ${updatedSessionState.performance_level}, progress = ${hasProgress}`);
-        } catch (focusError) {
-          logger.error("❌ Failed to update focus tags, using basic session state:", focusError);
-          await StorageService.setSessionState("session_state", sessionState);
-          logger.info(`✅ Session state updated (without focus update): num_sessions_completed = ${sessionState.num_sessions_completed}`);
-        }
-      } catch (error) {
-        logger.error("❌ Failed to update session state:", error);
-      }
+      await this.updateSessionStateOnCompletion(session);
 
       // ✅ Clear session cache since session status changed
       try {
