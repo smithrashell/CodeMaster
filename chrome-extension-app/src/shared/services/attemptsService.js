@@ -516,6 +516,24 @@ class SessionAttributionEngine {
  * @param {Object} problem - The problem object.
  * @returns {Promise<Object>} - A success message or an error.
  */
+// Helper to update pattern ladders and notify UI after attempt
+async function postAttemptUpdates(problem) {
+  // Update pattern ladders for this attempted problem
+  try {
+    await updatePatternLaddersOnAttempt(problem.leetcode_id || problem.id);
+  } catch (error) {
+    console.error("❌ Error updating pattern ladders after attempt:", error);
+    // Don't fail the attempt if pattern ladder update fails
+  }
+
+  // Notify UI to refresh focus area eligibility
+  try {
+    window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
+  } catch (err) {
+    // Silent fail - window might not be available in background context
+  }
+}
+
 async function addAttempt(attemptData, problem) {
   console.log("📌 SAE addAttempt called");
   try {
@@ -598,21 +616,7 @@ async function addAttempt(attemptData, problem) {
           userDifficulty: attemptData.difficulty
         });
 
-        // Update pattern ladders for this attempted problem
-        try {
-          await updatePatternLaddersOnAttempt(problem.leetcode_id || problem.id);
-        } catch (error) {
-          console.error("❌ Error updating pattern ladders after guided session attempt:", error);
-          // Don't fail the attempt if pattern ladder update fails
-        }
-
-        // Notify UI to refresh focus area eligibility
-        try {
-          window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
-        } catch (err) {
-          // Silent fail - window might not be available in background context
-        }
-
+        await postAttemptUpdates(problem);
         return result;
       }
       
@@ -629,20 +633,7 @@ async function addAttempt(attemptData, problem) {
 
     const result = await SessionAttributionEngine.attachToTrackingSession(trackingSession, attemptData, problem);
 
-    // Update pattern ladders for this attempted problem
-    try {
-      await updatePatternLaddersOnAttempt(problem.leetcode_id || problem.id);
-    } catch (error) {
-      console.error("❌ Error updating pattern ladders after attempt:", error);
-      // Don't fail the attempt if pattern ladder update fails
-    }
-
-    // Notify UI to refresh focus area eligibility
-    try {
-      window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
-    } catch (err) {
-      // Silent fail - window might not be available in background context
-    }
+    await postAttemptUpdates(problem);
 
     // Cache invalidation no longer needed - real-time dashboard data bypasses cache
 
