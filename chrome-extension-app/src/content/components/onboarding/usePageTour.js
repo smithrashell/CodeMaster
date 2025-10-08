@@ -1,11 +1,30 @@
 import logger from "../../../shared/utils/logger.js";
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { 
-  getTourConfig, 
-  isPageTourCompleted, 
-  markPageTourCompleted 
+import {
+  getTourConfig,
+  isPageTourCompleted,
+  markPageTourCompleted
 } from './pageTourConfigs';
+
+/**
+ * Helper to check installation status via Chrome messaging
+ */
+function checkInstallationStatus() {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ type: "checkInstallationOnboardingStatus" }, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+      } else if (!response) {
+        reject(new Error('No response from background script'));
+      } else if (response.error) {
+        reject(new Error(`Background script error: ${response.error}`));
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
 
 /**
  * Hook to manage page-specific tours
@@ -60,20 +79,7 @@ export function usePageTour() {
 
       try {
         // STEP 1: First check if installation/database seeding is complete
-        const installationStatus = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({ type: "checkInstallationOnboardingStatus" }, (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
-            } else if (!response) {
-              reject(new Error('No response from background script'));
-            } else if (response.error) {
-              reject(new Error(`Background script error: ${response.error}`));
-            } else {
-              resolve(response);
-            }
-          });
-        });
-
+        const installationStatus = await checkInstallationStatus();
         logger.info(`🎯 usePageTour: Installation status for page ${pageId}:`, installationStatus);
 
         if (!installationStatus.isComplete) {

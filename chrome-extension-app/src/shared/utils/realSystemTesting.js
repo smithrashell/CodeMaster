@@ -10,7 +10,6 @@
  * testAllRealSystem() - Run complete real system test suite
  */
 
-import { ProblemService } from '../services/problemService.js';
 import { SessionService } from '../services/sessionService.js';
 import { AttemptsService } from '../services/attemptsService.js';
 import { FocusCoordinationService } from '../services/focusCoordinationService.js';
@@ -19,8 +18,7 @@ import {
 } from '../db/problem_relationships.js';
 import { getTagMastery } from '../db/tag_mastery.js';
 import { v4 as uuidv4 } from 'uuid';
-import { withTestDatabase } from '../db/testDatabaseContext.js';
-import { createScenarioTestDb } from '../db/dbHelperFactory.js';
+import { TestDataIsolation } from './testDataIsolation.js';
 
 export class RealSystemTester {
 
@@ -28,7 +26,7 @@ export class RealSystemTester {
    * Test complete learning flow using real system functions
    */
   static async testRealLearningFlow(options = {}) {
-    const { scenario = 'default', sessions = 3, quiet = false, sharedSession = null } = options;
+    const { scenario = 'default', sessions = 3, quiet = false } = options;
 
     if (!quiet) console.log('🎯 Testing Real Learning Flow with Existing Services + Test Database...');
 
@@ -224,7 +222,7 @@ export class RealSystemTester {
    * Test real relationship learning from completed sessions
    */
   static async testRealRelationshipLearning(options = {}) {
-    const { quiet = false, sharedSession = null } = options;
+    const { quiet = false } = options;
 
     if (!quiet) console.log('🧠 Testing Real Relationship Learning...');
 
@@ -282,7 +280,7 @@ export class RealSystemTester {
    * Test real session creation with pathfinding algorithms
    */
   static async testRealSessionCreation(options = {}) {
-    const { quiet = false, sharedSession = null } = options;
+    const { quiet = false } = options;
 
     if (!quiet) console.log('🎯 Testing Real Session Creation with Pathfinding...');
 
@@ -373,7 +371,7 @@ export class RealSystemTester {
   /**
    * Helper: Analyze learning progression across sessions
    */
-  static async analyzeLearningProgression(sessions) {
+  static analyzeLearningProgression(sessions) {
     const progression = {
       sessionCount: sessions.length,
       averageSuccessRate: 0,
@@ -446,7 +444,7 @@ export class RealSystemTester {
   /**
    * Helper: Analyze session composition
    */
-  static async analyzeSessionComposition(sessionData) {
+  static analyzeSessionComposition(sessionData) {
     if (!sessionData.problems) {
       return { uniqueTags: [], difficultyDistribution: {}, totalProblems: 0 };
     }

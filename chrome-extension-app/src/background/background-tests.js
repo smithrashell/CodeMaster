@@ -33,7 +33,7 @@ export function initializeTestFunctions() {
   globalThis.testSilent = (options) => new SilentSessionTester().testSessionConsistency(options);
 
   // Integration tests
-  globalThis.testTagIntegration = async (options) => {
+  globalThis.testTagIntegration = (options) => {
     return TagProblemIntegrationTester.runAllIntegrationTests({ quiet: false, ...options });
   };
   globalThis.testTagLadderPathfinding = (options) => TagProblemIntegrationTester.testTagLadderPathfindingIntegration({ quiet: false, ...options });

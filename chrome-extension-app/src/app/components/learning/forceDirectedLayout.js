@@ -4,6 +4,35 @@
  */
 
 /**
+ * Apply repulsion forces between all node pairs (Coulomb's law)
+ */
+function applyRepulsionForces(visibleTags, positions, forces, repulsionStrength) {
+  for (let i = 0; i < visibleTags.length; i++) {
+    for (let j = i + 1; j < visibleTags.length; j++) {
+      const tag1 = visibleTags[i];
+      const tag2 = visibleTags[j];
+      const pos1 = positions[tag1];
+      const pos2 = positions[tag2];
+
+      const dx = pos2.x - pos1.x;
+      const dy = pos2.y - pos1.y;
+      const distSq = dx * dx + dy * dy;
+      const dist = Math.sqrt(distSq) || 1;
+
+      // Repulsion force (Coulomb's law)
+      const force = repulsionStrength / distSq;
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+
+      forces[tag1].fx -= fx;
+      forces[tag1].fy -= fy;
+      forces[tag2].fx += fx;
+      forces[tag2].fy += fy;
+    }
+  }
+}
+
+/**
  * Calculate force-directed layout positions for tags
  * @param {Array} pathData - Array of tag data with mastery info
  * @param {Object} tagRelationships - Dynamic relationships: { "tag1:tag2": { tag1, tag2, strength, ... } }
@@ -60,29 +89,7 @@ export function calculateForceDirectedLayout(pathData, tagRelationships) {
     });
 
     // Repulsion force between all nodes
-    for (let i = 0; i < visibleTags.length; i++) {
-      for (let j = i + 1; j < visibleTags.length; j++) {
-        const tag1 = visibleTags[i];
-        const tag2 = visibleTags[j];
-        const pos1 = positions[tag1];
-        const pos2 = positions[tag2];
-
-        const dx = pos2.x - pos1.x;
-        const dy = pos2.y - pos1.y;
-        const distSq = dx * dx + dy * dy;
-        const dist = Math.sqrt(distSq) || 1;
-
-        // Repulsion force (Coulomb's law)
-        const force = repulsionStrength / distSq;
-        const fx = (dx / dist) * force;
-        const fy = (dy / dist) * force;
-
-        forces[tag1].fx -= fx;
-        forces[tag1].fy -= fy;
-        forces[tag2].fx += fx;
-        forces[tag2].fy += fy;
-      }
-    }
+    applyRepulsionForces(visibleTags, positions, forces, repulsionStrength);
 
     // Attraction force along connections
     Object.entries(tagRelationships || {}).forEach(([_key, data]) => {
