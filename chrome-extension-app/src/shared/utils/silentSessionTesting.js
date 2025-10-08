@@ -8,6 +8,55 @@ import { buildAdaptiveSessionSettings, updateSessionInDB } from '../db/sessions.
 import { storeSessionAnalytics } from '../db/sessionAnalytics.js';
 
 export class SilentSessionTester {
+  // Helper to record simulated attempts for a session
+  async recordSessionAttempts(sessionData, profile) {
+    const attempts = [];
+    const problems = Array.isArray(sessionData) ? sessionData : (sessionData.problems || sessionData.sessionProblems || []);
+
+    if (problems && problems.length > 0) {
+      try {
+        // Ensure session has attempts array
+        if (!sessionData.attempts) {
+          sessionData.attempts = [];
+          console.log(`🔧 Initialized attempts array for session ${sessionData.id}`);
+        }
+
+        for (let i = 0; i < problems.length; i++) {
+          const problem = problems[i];
+          const success = Math.random() < profile.accuracy;
+          const timeSpent = 600 + Math.random() * 600;
+
+          attempts.push({ success, timeSpent });
+
+          // Record attempts to session so checkAndCompleteSession can see them
+          const problemId = problem.problem_id || problem.leetcode_id || problem.id;
+
+          if (!problemId) {
+            console.warn(`⚠️ Problem missing ID:`, problem);
+            continue;
+          }
+
+          sessionData.attempts.push({
+            problemId: problemId,
+            success: success,
+            timeSpent: timeSpent,
+            date: new Date().toISOString(),
+            source: 'silent_test'
+          });
+        }
+
+        // Update session in database with attempts
+        await updateSessionInDB(sessionData);
+        console.log(`📝 Updated session ${sessionData.id} with ${sessionData.attempts.length} attempts in database`);
+      } catch (error) {
+        console.error(`❌ Error recording attempts for session ${sessionData.id}:`, error);
+        throw error;
+      }
+    }
+
+    return attempts;
+  }
+
   // Helper to test sessions for a single profile
   async testProfileSessions(profileName, config) {
     try {
@@ -169,52 +218,8 @@ export class SilentSessionTester {
       });
 
       // Simulate performance
-      const attempts = [];
-      // sessionData IS the array of problems directly from createSession()
+      const attempts = await this.recordSessionAttempts(sessionData, profile);
       const problems = Array.isArray(sessionData) ? sessionData : (sessionData.problems || sessionData.sessionProblems || []);
-
-      if (problems && problems.length > 0) {
-        try {
-          // Ensure session has attempts array
-          if (!sessionData.attempts) {
-            sessionData.attempts = [];
-            console.log(`🔧 Initialized attempts array for session ${sessionData.id}`);
-          }
-
-          for (let i = 0; i < problems.length; i++) {
-            const problem = problems[i];
-            const success = Math.random() < profile.accuracy;
-            const timeSpent = 600 + Math.random() * 600;
-
-            attempts.push({ success, timeSpent });
-
-            // CRITICAL FIX: Record attempts to session so checkAndCompleteSession can see them
-            // Use the problem ID format that the session expects
-            const problemId = problem.problem_id || problem.leetcode_id || problem.id;
-
-            if (!problemId) {
-              console.warn(`⚠️ Problem missing ID:`, problem);
-              continue; // Skip problems without valid IDs
-            }
-
-            // Add attempt to session's attempts array (this is what checkAndCompleteSession checks)
-            sessionData.attempts.push({
-              problemId: problemId,
-              success: success,
-              timeSpent: timeSpent,
-              date: new Date().toISOString(),
-              source: 'silent_test'
-            });
-          }
-
-          // CRITICAL: Update session in database with attempts so checkAndCompleteSession can see them
-          await updateSessionInDB(sessionData);
-          console.log(`📝 Updated session ${sessionData.id} with ${sessionData.attempts.length} attempts in database`);
-        } catch (error) {
-          console.error(`❌ Error recording attempts for session ${sessionData.id}:`, error);
-          throw error; // Re-throw to fail the session and help debugging
-        }
-      }
 
       // IMMEDIATELY store simulated performance so next session can see it
       try {
