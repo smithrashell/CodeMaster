@@ -95,6 +95,174 @@ class HabitLearningCircuitBreaker {
   }
 }
 
+// Helper functions for summarizeSessionPerformance
+function createEmptySessionSummary(sessionId) {
+  return {
+    session_id: sessionId,
+    completed_at: new Date().toISOString(),
+    performance: {
+      accuracy: 0,
+      avgTime: 0,
+      strongTags: [],
+      weakTags: [],
+      timingFeedback: {},
+      easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+      medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+      hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+    },
+    mastery_progression: {
+      deltas: [],
+      new_masteries: 0,
+      decayed_masteries: 0,
+    },
+    difficulty_analysis: { predominantDifficulty: 'Unknown', totalProblems: 0 },
+    insights: { message: 'No attempts recorded in this session' }
+  };
+}
+
+function createAdHocSessionSummary(session) {
+  const totalAttempts = session.attempts.length;
+  const successfulAttempts = session.attempts.filter(a => a.success).length;
+  const accuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
+  const avgTime = totalAttempts > 0 ?
+    session.attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / totalAttempts : 0;
+
+  return {
+    session_id: session.id,
+    completed_at: new Date().toISOString(),
+    performance: {
+      accuracy: Math.round(accuracy * 100) / 100,
+      avgTime: Math.round(avgTime),
+      strongTags: [],
+      weakTags: [],
+      timingFeedback: {},
+      easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+      medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+      hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+    },
+    mastery_progression: {
+      deltas: [],
+      new_masteries: 0,
+      decayed_masteries: 0,
+    },
+    difficulty_analysis: {
+      predominantDifficulty: 'Mixed',
+      totalProblems: totalAttempts,
+      percentages: {},
+    },
+    insights: {
+      sessionType: 'ad_hoc',
+      message: `Completed ${totalAttempts} ad-hoc problem${totalAttempts !== 1 ? 's' : ''} with ${Math.round(accuracy * 100)}% accuracy`
+    },
+  };
+}
+
+async function getMasteryDeltas() {
+  console.log(`🔍 DEBUG: Step 1 - Getting pre-session tag mastery...`);
+  const preSessionTagMastery = await getTagMastery();
+  const preSessionMasteryMap = new Map(
+    (preSessionTagMastery || []).map((tm) => [tm.tag, tm])
+  );
+  return { preSessionMasteryMap };
+}
+
+async function updateRelationshipsAndGetPostMastery(session) {
+  logger.info("🔗 Updating problem relationships...");
+  await updateProblemRelationships(session);
+
+  const postSessionTagMastery = await getTagMastery();
+  const postSessionMasteryMap = new Map(
+    (postSessionTagMastery || []).map((tm) => [tm.tag, tm])
+  );
+
+  return { postSessionTagMastery, postSessionMasteryMap };
+}
+
+async function getPerformanceMetrics(session, postSessionTagMastery) {
+  logger.info("📈 Generating session performance metrics...");
+  const unmasteredTags = (postSessionTagMastery || [])
+    .filter((tm) => !tm.mastered)
+    .map((tm) => tm.tag);
+
+  let performanceMetrics;
+  try {
+    console.log(`🔍 DEBUG: Calling getSessionPerformance for session ${session.id}...`);
+    performanceMetrics = await getSessionPerformance({
+      recentSessionsLimit: 1,
+      unmasteredTags
+    });
+    console.log(`✅ DEBUG: getSessionPerformance completed successfully`);
+  } catch (performanceError) {
+    console.error(`❌ DEBUG: getSessionPerformance failed:`, performanceError);
+    logger.warn(`⚠️ Session performance calculation failed, using fallback:`, performanceError);
+    performanceMetrics = null;
+  }
+
+  performanceMetrics = performanceMetrics || {
+    accuracy: 0,
+    avgTime: 0,
+    strongTags: [],
+    weakTags: [],
+    timingFeedback: {},
+    easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+    medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+    hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
+  };
+
+  console.log(`🔍 DEBUG: Performance metrics retrieved:`, {
+    accuracy: performanceMetrics.accuracy,
+    avgTime: performanceMetrics.avgTime,
+    hasStrongTags: !!performanceMetrics.strongTags?.length,
+    hasWeakTags: !!performanceMetrics.weakTags?.length,
+    easyAttempts: performanceMetrics.easy?.attempts || 0,
+    mediumAttempts: performanceMetrics.medium?.attempts || 0,
+    hardAttempts: performanceMetrics.hard?.attempts || 0
+  });
+
+  return performanceMetrics;
+}
+
+async function storeSessionSummary(session, sessionSummary) {
+  console.log(`🔍 REAL SESSION DEBUG: About to call storeSessionAnalytics for ACTUAL session ${session.id}`);
+  console.log(`🔍 REAL SESSION DEBUG: SessionSummary structure:`, {
+    session_id: sessionSummary.session_id,
+    completed_at: sessionSummary.completed_at,
+    performance: {
+      accuracy: sessionSummary.performance?.accuracy,
+      avgTime: sessionSummary.performance?.avgTime,
+      hasEasy: !!sessionSummary.performance?.Easy,
+      hasMedium: !!sessionSummary.performance?.Medium,
+      hasHard: !!sessionSummary.performance?.Hard
+    },
+    mastery_progression: {
+      new_masteries: sessionSummary.mastery_progression?.new_masteries,
+      decayed_masteries: sessionSummary.mastery_progression?.decayed_masteries,
+      deltasCount: sessionSummary.mastery_progression?.deltas?.length || 0
+    },
+    difficulty_analysis: {
+      predominantDifficulty: sessionSummary.difficulty_analysis?.predominantDifficulty,
+      totalProblems: sessionSummary.difficulty_analysis?.totalProblems
+    }
+  });
+
+  try {
+    await storeSessionAnalytics(sessionSummary);
+    console.log(`✅ REAL SESSION DEBUG: storeSessionAnalytics completed successfully for ACTUAL session ${session.id}`);
+    await debugGetAllSessionAnalytics();
+    console.log(`🔍 REAL SESSION DEBUG: debugGetAllSessionAnalytics completed, continuing to next step...`);
+  } catch (analyticsError) {
+    logger.error(`❌ Failed to store session analytics for session ${session.id}:`, analyticsError);
+    logger.error(`❌ SessionSummary data:`, {
+      session_id: sessionSummary?.session_id,
+      completed_at: sessionSummary?.completed_at,
+      hasPerformance: !!sessionSummary?.performance,
+      performanceKeys: sessionSummary?.performance ? Object.keys(sessionSummary.performance) : [],
+      hasDifficulty: !!sessionSummary?.difficulty_analysis,
+      hasMastery: !!sessionSummary?.mastery_progression
+    });
+  }
+}
+
 export const SessionService = {
   // IndexedDB retry service for deduplication
   _retryService: new IndexedDBRetryService(),
@@ -190,145 +358,33 @@ export const SessionService = {
     logger.info(`📊 Starting performance summary for session ${session.id}`);
     console.log(`🔍 DEBUG: summarizeSessionPerformance ENTRY for session ${session.id}`);
 
-    // Validate session has attempts before processing
+    // Handle edge cases
     if (!session.attempts || session.attempts.length === 0) {
       logger.warn(`⚠️ Session ${session.id} has no attempts - skipping performance summary`);
       performanceMonitor.endQuery(queryContext, true, 0);
-      return {
-        session_id: session.id,
-        completed_at: new Date().toISOString(),
-        performance: {
-          accuracy: 0,
-          avgTime: 0,
-          strongTags: [],
-          weakTags: [],
-          timingFeedback: {},
-          easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-          medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-          hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-        },
-        mastery_progression: {
-          deltas: [],
-          new_masteries: 0,
-          decayed_masteries: 0,
-        },
-        difficulty_analysis: { predominantDifficulty: 'Unknown', totalProblems: 0 },
-        insights: { message: 'No attempts recorded in this session' }
-      };
+      return createEmptySessionSummary(session.id);
     }
 
-    // CRITICAL FIX: Handle ad-hoc sessions with empty problems arrays
     if (!session.problems || session.problems.length === 0) {
       logger.warn(`⚠️ Session ${session.id} has attempts but no problems (ad-hoc session) - using simplified analytics`);
-
-      // Calculate basic metrics from attempts only
-      const totalAttempts = session.attempts.length;
-      const successfulAttempts = session.attempts.filter(a => a.success).length;
-      const accuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
-      const avgTime = totalAttempts > 0 ?
-        session.attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / totalAttempts : 0;
-
       performanceMonitor.endQuery(queryContext, true, 0);
-      return {
-        session_id: session.id,
-        completed_at: new Date().toISOString(),
-        performance: {
-          accuracy: Math.round(accuracy * 100) / 100,
-          avgTime: Math.round(avgTime),
-          strongTags: [],
-          weakTags: [],
-          timingFeedback: {},
-          easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-          medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-          hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-        },
-        mastery_progression: {
-          deltas: [],
-          new_masteries: 0,
-          decayed_masteries: 0,
-        },
-        difficulty_analysis: {
-          predominantDifficulty: 'Mixed',
-          totalProblems: totalAttempts, // Use attempts count as proxy
-          percentages: {},
-        },
-        insights: {
-          sessionType: 'ad_hoc',
-          message: `Completed ${totalAttempts} ad-hoc problem${totalAttempts !== 1 ? 's' : ''} with ${Math.round(accuracy * 100)}% accuracy`
-        },
-      };
+      return createAdHocSessionSummary(session);
     }
 
     try {
       console.log(`🔍 DEBUG: Starting comprehensive session analysis for ${session.id}...`);
 
-      // 1️⃣ Capture pre-session state for delta calculations
-      console.log(`🔍 DEBUG: Step 1 - Getting pre-session tag mastery...`);
-      const preSessionTagMastery = await getTagMastery();
-      const preSessionMasteryMap = new Map(
-        (preSessionTagMastery || []).map((tm) => [tm.tag, tm])
-      );
+      // Get mastery state before and after
+      const { preSessionMasteryMap } = await getMasteryDeltas();
+      const { postSessionTagMastery, postSessionMasteryMap } = await updateRelationshipsAndGetPostMastery(session);
 
-      // 2️⃣ Update problem relationships based on session attempts
-      logger.info("🔗 Updating problem relationships...");
-      await updateProblemRelationships(session);
+      // Get performance metrics
+      const performanceMetrics = await getPerformanceMetrics(session, postSessionTagMastery);
 
-      // 3️⃣ Get updated tag mastery for delta calculation (mastery updated incrementally per attempt)
-      const postSessionTagMastery = await getTagMastery();
-      const postSessionMasteryMap = new Map(
-        (postSessionTagMastery || []).map((tm) => [tm.tag, tm])
-      );
+      // Calculate mastery deltas
+      const masteryDeltas = this.calculateMasteryDeltas(preSessionMasteryMap, postSessionMasteryMap);
 
-      // 5️⃣ Generate comprehensive session performance metrics
-      logger.info("📈 Generating session performance metrics...");
-      const unmasteredTags = (postSessionTagMastery || [])
-        .filter((tm) => !tm.mastered)
-        .map((tm) => tm.tag);
-
-      let performanceMetrics;
-      try {
-        console.log(`🔍 DEBUG: Calling getSessionPerformance for session ${session.id}...`);
-        // Use the fixed getSessionPerformance that now uses the combined index properly
-        performanceMetrics = await getSessionPerformance({
-          recentSessionsLimit: 1,
-          unmasteredTags
-        });
-        console.log(`✅ DEBUG: getSessionPerformance completed successfully`);
-      } catch (performanceError) {
-        console.error(`❌ DEBUG: getSessionPerformance failed:`, performanceError);
-        logger.warn(`⚠️ Session performance calculation failed, using fallback:`, performanceError);
-        performanceMetrics = null;
-      }
-
-      // Ensure fallback metrics if performance calculation failed
-      performanceMetrics = performanceMetrics || {
-        accuracy: 0,
-        avgTime: 0,
-        strongTags: [],
-        weakTags: [],
-        timingFeedback: {},
-        easy: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-        medium: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-        hard: { attempts: 0, correct: 0, time: 0, avgTime: 0 },
-      };
-
-      console.log(`🔍 DEBUG: Performance metrics retrieved:`, {
-        accuracy: performanceMetrics.accuracy,
-        avgTime: performanceMetrics.avgTime,
-        hasStrongTags: !!performanceMetrics.strongTags?.length,
-        hasWeakTags: !!performanceMetrics.weakTags?.length,
-        easyAttempts: performanceMetrics.easy?.attempts || 0,
-        mediumAttempts: performanceMetrics.medium?.attempts || 0,
-        hardAttempts: performanceMetrics.hard?.attempts || 0
-      });
-
-      // 6️⃣ Calculate mastery progression deltas
-      const masteryDeltas = this.calculateMasteryDeltas(
-        preSessionMasteryMap,
-        postSessionMasteryMap
-      );
-
-      // 7️⃣ Analyze session difficulty distribution
+      // Analyze difficulty distribution
       console.log(`🔍 DEBUG: Step 7 - Analyzing session difficulty distribution...`);
       let difficultyMix;
       try {
@@ -343,52 +399,21 @@ export const SessionService = {
         };
       }
 
-      // 8️⃣ Create comprehensive summary with snake_case properties
+      // Create comprehensive summary
       const sessionSummary = {
         session_id: session.id,
         completed_at: new Date().toISOString(),
         performance: performanceMetrics,
         mastery_progression: {
           deltas: masteryDeltas,
-          new_masteries: masteryDeltas.filter(
-            (d) => d.masteredChanged && d.postMastered
-          ).length,
-          decayed_masteries: masteryDeltas.filter(
-            (d) => d.masteredChanged && !d.postMastered
-          ).length,
+          new_masteries: masteryDeltas.filter((d) => d.masteredChanged && d.postMastered).length,
+          decayed_masteries: masteryDeltas.filter((d) => d.masteredChanged && !d.postMastered).length,
         },
         difficulty_analysis: difficultyMix,
-        insights: this.generateSessionInsights(
-          performanceMetrics,
-          masteryDeltas,
-          difficultyMix
-        ),
+        insights: this.generateSessionInsights(performanceMetrics, masteryDeltas, difficultyMix),
       };
 
-      // 9️⃣ Store session analytics in dedicated IndexedDB store
-      console.log(`🔍 REAL SESSION DEBUG: About to call storeSessionAnalytics for ACTUAL session ${session.id}`);
-      console.log(`🔍 REAL SESSION DEBUG: SessionSummary structure:`, {
-        session_id: sessionSummary.session_id,
-        completed_at: sessionSummary.completed_at,
-        performance: {
-          accuracy: sessionSummary.performance?.accuracy,
-          avgTime: sessionSummary.performance?.avgTime,
-          hasEasy: !!sessionSummary.performance?.Easy,
-          hasMedium: !!sessionSummary.performance?.Medium,
-          hasHard: !!sessionSummary.performance?.Hard
-        },
-        mastery_progression: {
-          new_masteries: sessionSummary.mastery_progression?.new_masteries,
-          decayed_masteries: sessionSummary.mastery_progression?.decayed_masteries,
-          deltasCount: sessionSummary.mastery_progression?.deltas?.length || 0
-        },
-        difficulty_analysis: {
-          predominantDifficulty: sessionSummary.difficulty_analysis?.predominantDifficulty,
-          totalProblems: sessionSummary.difficulty_analysis?.totalProblems
-        }
-      });
-
-      // 🔟 Update session state with performance data FIRST (before analytics to ensure it happens)
+      // Update session state with performance data
       try {
         await this.updateSessionStateWithPerformance(session, sessionSummary);
         console.log(`✅ REAL SESSION DEBUG: updateSessionStateWithPerformance completed successfully for session ${session.id}`);
@@ -397,41 +422,16 @@ export const SessionService = {
         logger.error(`❌ Failed to update session state for session ${session.id}:`, stateUpdateError);
       }
 
-      try {
-        await storeSessionAnalytics(sessionSummary);
-        console.log(`✅ REAL SESSION DEBUG: storeSessionAnalytics completed successfully for ACTUAL session ${session.id}`);
+      // Store session analytics
+      await storeSessionSummary(session, sessionSummary);
 
-        // Verify storage by checking all analytics
-        await debugGetAllSessionAnalytics();
-        console.log(`🔍 REAL SESSION DEBUG: debugGetAllSessionAnalytics completed, continuing to next step...`);
-      } catch (analyticsError) {
-        logger.error(`❌ Failed to store session analytics for session ${session.id}:`, analyticsError);
-        logger.error(`❌ SessionSummary data:`, {
-          session_id: sessionSummary?.session_id,
-          completed_at: sessionSummary?.completed_at,
-          hasPerformance: !!sessionSummary?.performance,
-          performanceKeys: sessionSummary?.performance ? Object.keys(sessionSummary.performance) : [],
-          hasDifficulty: !!sessionSummary?.difficulty_analysis,
-          hasMastery: !!sessionSummary?.mastery_progression
-        });
-        // Continue execution - don't fail entire session completion for analytics errors
-      }
-
-      // 🔟 Log structured analytics for dashboard integration (Chrome storage backup)
+      // Log analytics for dashboard
       console.log(`🔍 REAL SESSION DEBUG: About to call logSessionAnalytics for session ${session.id}`);
       this.logSessionAnalytics(sessionSummary);
       console.log(`🔍 REAL SESSION DEBUG: logSessionAnalytics completed for session ${session.id}`);
 
-      logger.info(
-        `✅ Session performance summary completed for ${session.id}`
-      );
-
-      performanceMonitor.endQuery(
-        queryContext,
-        true,
-        Object.keys(sessionSummary).length
-      );
-
+      logger.info(`✅ Session performance summary completed for ${session.id}`);
+      performanceMonitor.endQuery(queryContext, true, Object.keys(sessionSummary).length);
 
       return sessionSummary;
     } catch (error) {
