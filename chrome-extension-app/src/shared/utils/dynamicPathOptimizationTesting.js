@@ -21,10 +21,7 @@
 import {
   calculateOptimalPathScore,
   selectOptimalProblems,
-  updateSuccessPatterns,
-  getAllRelationshipStrengths,
-  getUserRecentAttempts,
-  scoreProblemsWithRelationships
+  updateSuccessPatterns
 } from '../db/problem_relationships.js';
 import { StorageService } from '../services/storageService.js';
 
@@ -507,7 +504,7 @@ export class DynamicPathOptimizationTester {
     return results;
   }
 
-  static async testDifficultTransitionWeakening(quiet) {
+  static testDifficultTransitionWeakening(quiet) {
     const results = [];
 
     // Test that difficult transitions weaken relationships
@@ -533,7 +530,7 @@ export class DynamicPathOptimizationTester {
     return results;
   }
 
-  static async testConfidenceBasedLearning(quiet) {
+  static testConfidenceBasedLearning(quiet) {
     const results = [];
 
     // Test that confidence adjusts learning magnitude
@@ -565,7 +562,7 @@ export class DynamicPathOptimizationTester {
     return results;
   }
 
-  static async testNeutralDecayMechanism(quiet) {
+  static testNeutralDecayMechanism(quiet) {
     const results = [];
 
     // Test that neutral decay prevents extreme values
@@ -599,7 +596,7 @@ export class DynamicPathOptimizationTester {
     return results;
   }
 
-  static async testUserPatternIndividualization(quiet) {
+  static testUserPatternIndividualization(quiet) {
     const results = [];
 
     // Test that system learns individual user patterns
@@ -636,43 +633,43 @@ export class DynamicPathOptimizationTester {
   // IMPLEMENTATION: Placeholder methods for remaining test suites
   // ============================================================================
 
-  static async testAccuracyPlateauDetection(_quiet) {
+  static testAccuracyPlateauDetection(_quiet) {
     return [{ test: 'accuracy_plateau_detection', passed: true, details: { placeholder: true } }];
   }
 
-  static async testStagnationPatternDetection(_quiet) {
+  static testStagnationPatternDetection(_quiet) {
     return [{ test: 'stagnation_pattern_detection', passed: true, details: { placeholder: true } }];
   }
 
-  static async testChallengeLevelBoostStrategy(_quiet) {
+  static testChallengeLevelBoostStrategy(_quiet) {
     return [{ test: 'challenge_level_boost_strategy', passed: true, details: { placeholder: true } }];
   }
 
-  static async testGradualRecoveryStrategy(_quiet) {
+  static testGradualRecoveryStrategy(_quiet) {
     return [{ test: 'gradual_recovery_strategy', passed: true, details: { placeholder: true } }];
   }
 
-  static async testPostPlateauAcceleration(_quiet) {
+  static testPostPlateauAcceleration(_quiet) {
     return [{ test: 'post_plateau_acceleration', passed: true, details: { placeholder: true } }];
   }
 
-  static async testCoherentSessionSequencing(_quiet) {
+  static testCoherentSessionSequencing(_quiet) {
     return [{ test: 'coherent_session_sequencing', passed: true, details: { placeholder: true } }];
   }
 
-  static async testLongTermMemoryInfluence(_quiet) {
+  static testLongTermMemoryInfluence(_quiet) {
     return [{ test: 'long_term_memory_influence', passed: true, details: { placeholder: true } }];
   }
 
-  static async testOptimalReviewSpacing(_quiet) {
+  static testOptimalReviewSpacing(_quiet) {
     return [{ test: 'optimal_review_spacing', passed: true, details: { placeholder: true } }];
   }
 
-  static async testExplorationExploitationBalance(_quiet) {
+  static testExplorationExploitationBalance(_quiet) {
     return [{ test: 'exploration_exploitation_balance', passed: true, details: { placeholder: true } }];
   }
 
-  static async testCrossSessionLearningTransfer(_quiet) {
+  static testCrossSessionLearningTransfer(_quiet) {
     return [{ test: 'cross_session_learning_transfer', passed: true, details: { placeholder: true } }];
   }
 

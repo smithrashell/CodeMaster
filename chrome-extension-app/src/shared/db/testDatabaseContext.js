@@ -18,7 +18,7 @@ class TestDatabaseContext {
    * Activate test database context
    * All database operations will now use test database
    */
-  async activate(testName = 'default') {
+  activate(testName = 'default') {
     if (this.isActive) {
       console.warn('⚠️ Test database context already active');
       return this.testDbHelper;

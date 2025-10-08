@@ -6,6 +6,14 @@
 import { FocusCoordinationService } from '../focusCoordinationService';
 import { TagService } from '../tagServices';
 import { StorageService } from '../storageService';
+import {
+  setupSessionStateMocks,
+  setupEscapeHatchMocks,
+  createSessionState,
+  assertPostOnboardingState,
+  assertOnboardingState,
+  assertFailsafeDecision
+} from './focusCoordinationServiceTestHelpers';
 
 // Mock all dependencies
 jest.mock('../tagServices');
@@ -38,91 +46,44 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
   describe('Onboarding Transition Bug Fix', () => {
     it('should correctly detect post-onboarding state when session count >= 3', async () => {
       // ARRANGE: User has completed 3 sessions (should be post-onboarding)
-      const sessionState = {
-        num_sessions_completed: 3,
-        last_performance: { accuracy: 0.7, efficiency_score: 0.6 }
-      };
-
-      StorageService.getSessionState.mockResolvedValue(sessionState);
-
-      const { detectApplicableEscapeHatches } = require('../../utils/escapeHatchUtils');
-      detectApplicableEscapeHatches.mockResolvedValue({
-        sessionBased: { applicable: false },
-        attemptBased: [],
-        timeBased: [],
-        recommendations: []
-      });
+      setupSessionStateMocks(StorageService, createSessionState(3));
+      setupEscapeHatchMocks();
 
       // ACT: Get focus decision
       const result = await FocusCoordinationService.getFocusDecision('session_state');
 
       // ASSERT: Should be post-onboarding with multiple tags
-      expect(result.onboarding).toBe(false);
-      expect(result.activeFocusTags.length).toBeGreaterThan(1);
-      expect(result.activeFocusTags).not.toEqual(['array']); // Should not fallback to single tag
+      assertPostOnboardingState(result);
     });
 
     it('should still use onboarding mode when session count < 3', async () => {
       // ARRANGE: User has completed only 2 sessions (should be onboarding)
-      const sessionState = {
-        num_sessions_completed: 2,
-        last_performance: { accuracy: 0.7, efficiency_score: 0.6 }
-      };
-
-      StorageService.getSessionState.mockResolvedValue(sessionState);
-
-      const { detectApplicableEscapeHatches } = require('../../utils/escapeHatchUtils');
-      detectApplicableEscapeHatches.mockResolvedValue({
-        sessionBased: { applicable: false },
-        attemptBased: [],
-        timeBased: [],
-        recommendations: []
-      });
+      setupSessionStateMocks(StorageService, createSessionState(2));
+      setupEscapeHatchMocks();
 
       // ACT: Get focus decision
       const result = await FocusCoordinationService.getFocusDecision('session_state');
 
       // ASSERT: Should be onboarding with single tag
-      expect(result.onboarding).toBe(true);
-      expect(result.activeFocusTags.length).toBe(1);
+      assertOnboardingState(result);
     });
 
     it('should handle missing session state gracefully', async () => {
       // ARRANGE: Session state is null/undefined (new user)
-      StorageService.getSessionState.mockResolvedValue(null);
-
-      const { detectApplicableEscapeHatches } = require('../../utils/escapeHatchUtils');
-      detectApplicableEscapeHatches.mockResolvedValue({
-        sessionBased: { applicable: false },
-        attemptBased: [],
-        timeBased: [],
-        recommendations: []
-      });
+      setupSessionStateMocks(StorageService, null);
+      setupEscapeHatchMocks();
 
       // ACT: Get focus decision
       const result = await FocusCoordinationService.getFocusDecision('session_state');
 
       // ASSERT: Should default to onboarding
-      expect(result.onboarding).toBe(true);
-      expect(result.activeFocusTags.length).toBe(1);
+      assertOnboardingState(result);
     });
 
     it('should use correct session state key passed as parameter', async () => {
       // ARRANGE: Test with different session state key
-      const customSessionState = {
-        num_sessions_completed: 5,
-        last_performance: { accuracy: 0.8, efficiency_score: 0.7 }
-      };
-
-      StorageService.getSessionState.mockResolvedValue(customSessionState);
-
-      const { detectApplicableEscapeHatches } = require('../../utils/escapeHatchUtils');
-      detectApplicableEscapeHatches.mockResolvedValue({
-        sessionBased: { applicable: false },
-        attemptBased: [],
-        timeBased: [],
-        recommendations: []
-      });
+      setupSessionStateMocks(StorageService, createSessionState(5, 0.8, 0.7));
+      setupEscapeHatchMocks();
 
       // ACT: Call with custom key
       await FocusCoordinationService.getFocusDecision('custom_session_key');
@@ -135,20 +96,8 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
   describe('Performance-Based Tag Expansion', () => {
     it('should expand to multiple tags for good performance post-onboarding', async () => {
       // ARRANGE: Post-onboarding user with good performance
-      const sessionState = {
-        num_sessions_completed: 5,
-        last_performance: { accuracy: 0.8, efficiency_score: 0.7 }
-      };
-
-      StorageService.getSessionState.mockResolvedValue(sessionState);
-
-      const { detectApplicableEscapeHatches } = require('../../utils/escapeHatchUtils');
-      detectApplicableEscapeHatches.mockResolvedValue({
-        sessionBased: { applicable: false },
-        attemptBased: [],
-        timeBased: [],
-        recommendations: []
-      });
+      setupSessionStateMocks(StorageService, createSessionState(5, 0.8, 0.7));
+      setupEscapeHatchMocks();
 
       // ACT: Get focus decision
       const result = await FocusCoordinationService.getFocusDecision('session_state');
@@ -161,20 +110,8 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
 
     it('should limit to fewer tags for developing performance', async () => {
       // ARRANGE: Post-onboarding user with developing performance
-      const sessionState = {
-        num_sessions_completed: 4,
-        last_performance: { accuracy: 0.5, efficiency_score: 0.4 }
-      };
-
-      StorageService.getSessionState.mockResolvedValue(sessionState);
-
-      const { detectApplicableEscapeHatches } = require('../../utils/escapeHatchUtils');
-      detectApplicableEscapeHatches.mockResolvedValue({
-        sessionBased: { applicable: false },
-        attemptBased: [],
-        timeBased: [],
-        recommendations: []
-      });
+      setupSessionStateMocks(StorageService, createSessionState(4, 0.5, 0.4));
+      setupEscapeHatchMocks();
 
       // ACT: Get focus decision
       const result = await FocusCoordinationService.getFocusDecision('session_state');
@@ -195,22 +132,20 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
       const result = await FocusCoordinationService.getFocusDecision('session_state');
 
       // ASSERT: Should return failsafe decision
-      expect(result.activeFocusTags).toEqual(['array']);
-      expect(result.onboarding).toBe(true);
+      assertFailsafeDecision(result);
       expect(result.algorithmReasoning).toBe('Failsafe: Single focus area for stability');
     });
 
     it('should return failsafe decision when TagService fails', async () => {
       // ARRANGE: TagService throws error
       TagService.getCurrentTier.mockRejectedValue(new Error('Tag service error'));
-      StorageService.getSessionState.mockResolvedValue({ num_sessions_completed: 3 });
+      setupSessionStateMocks(StorageService, createSessionState(3));
 
       // ACT: Get focus decision
       const result = await FocusCoordinationService.getFocusDecision('session_state');
 
       // ASSERT: Should return failsafe decision
-      expect(result.activeFocusTags).toEqual(['array']);
-      expect(result.onboarding).toBe(true);
+      assertFailsafeDecision(result);
     });
   });
 });
