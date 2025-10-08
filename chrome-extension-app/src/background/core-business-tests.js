@@ -871,6 +871,11 @@ export function initializeCoreBusinessTests() {
         id: 'session_state',
         num_sessions_completed: 1, // Just finished onboarding
         current_difficulty_cap: 'Easy',
+        difficulty_time_stats: {
+          easy: { problems: 0, total_time: 0, avg_time: 0 },
+          medium: { problems: 0, total_time: 0, avg_time: 0 },
+          hard: { problems: 0, total_time: 0, avg_time: 0 }
+        },
         escape_hatches: {
           sessions_at_current_difficulty: 0,
           last_difficulty_promotion: null,
