@@ -276,14 +276,16 @@ export const StorageService = {
       console.warn("StorageService.setSessionState() called in content script context");
       return { status: "error", message: "Not available in content scripts" };
     }
-    
+
     try {
       const db = await dbHelper.openDB();
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["session_state"], "readwrite");
         const store = transaction.objectStore("session_state");
-        const request = store.put({ id: key, ...data });
-        
+        // Ensure id is always set correctly by spreading data first, then overriding id
+        const record = { ...data, id: key };
+        const request = store.put(record);
+
         request.onsuccess = () => resolve({ status: "success" });
         request.onerror = () => reject(request.error);
       });
