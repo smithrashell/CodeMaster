@@ -213,88 +213,84 @@ export function initializeCoreBusinessTests() {
   console.log('🧪 Initializing core business logic tests...');
 
   // Core business logic test (the main comprehensive test)
+  // Helper to setup and verify test database
+  async function setupTestEnvironment() {
+    if (typeof globalThis.enableTesting !== 'function') {
+      console.warn('⚠️ enableTesting() not available - tests may use production database');
+      return { success: true };
+    }
+
+    const setupResult = await globalThis.enableTesting();
+    if (!setupResult.success || !globalThis._testDatabaseActive) {
+      console.error('❌ Failed to enable test environment');
+      return {
+        success: false,
+        error: 'Failed to enable test environment',
+        testName: 'Test Setup'
+      };
+    }
+
+    // Verify database has standard problems
+    try {
+      const problemCount = await getAvailableProblemIds(1);
+      console.log(`✅ Database verification passed: ${problemCount.length} problems available`);
+    } catch (error) {
+      console.error('❌ Database not properly seeded:', error.message);
+      return {
+        success: false,
+        error: `Database not seeded with standard_problems: ${error.message}`,
+        testName: 'Database Verification'
+      };
+    }
+
+    // Verify all required stores exist and are seeded
+    try {
+      const storeChecks = {
+        standard_problems: await getAllFromStore('standard_problems'),
+        tag_relationships: await getAllFromStore('tag_relationships'),
+        problem_relationships: await getAllFromStore('problem_relationships'),
+        tag_mastery: await getAllFromStore('tag_mastery'),
+        pattern_ladders: await getAllFromStore('pattern_ladders')
+      };
+
+      console.log('📊 Database store status:');
+      for (const [store, data] of Object.entries(storeChecks)) {
+        console.log(`  ${store}: ${data.length} records`);
+      }
+
+      console.log('⏭️  Skipping pattern ladder initialization - session creation will use onboarding fallback');
+      console.log(`   tag_mastery: ${storeChecks.tag_mastery.length} records (empty = onboarding mode)`);
+      console.log(`   pattern_ladders: ${storeChecks.pattern_ladders.length} records`);
+    } catch (error) {
+      console.error('❌ Database verification/initialization failed:', error);
+      console.error('Stack:', error.stack);
+      return {
+        success: false,
+        error: `Failed to initialize test database: ${error.message}`,
+        testName: 'Database Initialization'
+      };
+    }
+
+    return { success: true };
+  }
+
   globalThis.testCoreBusinessLogic = async function(options = {}) {
     const { verbose = false, quick = false, cleanup = true } = options;
 
     // Auto-setup test environment
-    if (typeof globalThis.enableTesting === 'function') {
-      const setupResult = await globalThis.enableTesting();
-      if (!setupResult.success || !globalThis._testDatabaseActive) {
-        console.error('❌ Failed to enable test environment');
-        return {
-          passed: 0,
-          failed: 1,
-          tests: [{
-            name: 'Test Setup',
-            status: 'ERROR',
-            error: 'Failed to enable test environment',
-            duration: 0
-          }],
+    const setupResult = await setupTestEnvironment();
+    if (!setupResult.success) {
+      return {
+        passed: 0,
+        failed: 1,
+        tests: [{
+          name: setupResult.testName,
+          status: 'ERROR',
+          error: setupResult.error,
           duration: 0
-        };
-      }
-
-      // Verify database has standard problems
-      try {
-        const problemCount = await getAvailableProblemIds(1);
-        console.log(`✅ Database verification passed: ${problemCount.length} problems available`);
-      } catch (error) {
-        console.error('❌ Database not properly seeded:', error.message);
-        return {
-          passed: 0,
-          failed: 1,
-          tests: [{
-            name: 'Database Verification',
-            status: 'ERROR',
-            error: `Database not seeded with standard_problems: ${error.message}`,
-            duration: 0
-          }],
-          duration: 0
-        };
-      }
-
-      // Verify all required stores exist and are seeded
-      try {
-        const storeChecks = {
-          standard_problems: await getAllFromStore('standard_problems'),
-          tag_relationships: await getAllFromStore('tag_relationships'),
-          problem_relationships: await getAllFromStore('problem_relationships'),
-          tag_mastery: await getAllFromStore('tag_mastery'),
-          pattern_ladders: await getAllFromStore('pattern_ladders')
-        };
-
-        console.log('📊 Database store status:');
-        for (const [store, data] of Object.entries(storeChecks)) {
-          console.log(`  ${store}: ${data.length} records`);
-        }
-
-        // DON'T initialize pattern ladders - let session creation handle onboarding state
-        // The issue: initializing 3 tag_mastery records confuses getCurrentTier()
-        // into thinking all tiers are mastered, causing getNextFiveTagsFromNextTier()
-        // to be called which has IDBIndex issues.
-        // Better: Let test database stay in fresh state, session creation uses onboarding fallback
-        console.log('⏭️  Skipping pattern ladder initialization - session creation will use onboarding fallback');
-        console.log(`   tag_mastery: ${storeChecks.tag_mastery.length} records (empty = onboarding mode)`);
-        console.log(`   pattern_ladders: ${storeChecks.pattern_ladders.length} records`);
-
-        // Sessions created in tests will use handleOnboardingFallback() which is safe
-      } catch (error) {
-        console.error('❌ Database verification/initialization failed:', error);
-        console.error('Stack:', error.stack);
-        return {
-          passed: 0,
-          failed: 1,
-          tests: [{
-            name: 'Database Initialization',
-            status: 'ERROR',
-            error: `Failed to initialize test database: ${error.message}`,
-            duration: 0
-          }],
-          duration: 0
-        };
-      }
-    } else {
-      console.warn('⚠️ enableTesting() not available - tests may use production database');
+        }],
+        duration: 0
+      };
     }
 
     console.log('🧪 Starting Core Business Logic Tests...');
