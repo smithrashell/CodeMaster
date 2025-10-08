@@ -294,12 +294,35 @@ const InterviewModeBanner = ({ isInterviewMode, sessionType, interviewConfig }) 
   );
 };
 
+// Hook to fetch problem attempt statistics
+function useProblemAttemptStats(problemId) {
+  const [attemptStats, setAttemptStats] = useState({ successful: 0, total: 0, lastSolved: null });
+
+  useEffect(() => {
+    if (problemId) {
+      chrome.runtime.sendMessage({
+        type: "getProblemAttemptStats",
+        problemId: problemId
+      }, (response) => {
+        if (response?.success) {
+          setAttemptStats({
+            successful: response.data?.successful || 0,
+            total: response.data?.total || 0,
+            lastSolved: response.data?.lastSolved || null
+          });
+        }
+      });
+    }
+  }, [problemId]);
+
+  return attemptStats;
+}
+
 const ProbDetail = ({ isLoading }) => {
   const { state: routeState } = useLocation();
   const { setIsAppOpen } = useNav();
   const navigate = useNavigate();
   const [showSkip, setShowSkip] = useState(false);
-  const [attemptStats, setAttemptStats] = useState({ successful: 0, total: 0, lastSolved: null });
   const [fetchedProblemData, setFetchedProblemData] = useState(null);
 
   const { problemData, interviewConfig, sessionType, isInterviewMode } = useProblemData(routeState);
@@ -327,6 +350,9 @@ const ProbDetail = ({ isLoading }) => {
     [finalProblemData?.leetcode_id]
   );
 
+  // Fetch attempt statistics for this problem
+  const attemptStats = useProblemAttemptStats(problemId);
+
   // Fetch missing problem data from database if needed
   useEffect(() => {
     if (needsDataFetch) {
@@ -352,24 +378,6 @@ const ProbDetail = ({ isLoading }) => {
   useEffect(() => {
     setShowSkip(!routeState?.problemFound);
   }, [routeState?.problemFound]);
-
-  // Fetch attempt statistics for this problem
-  useEffect(() => {
-    if (problemId) {
-      chrome.runtime.sendMessage({
-        type: "getProblemAttemptStats",
-        problemId: problemId
-      }, (response) => {
-        if (response?.success) {
-          setAttemptStats({
-            successful: response.data?.successful || 0,
-            total: response.data?.total || 0,
-            lastSolved: response.data?.lastSolved || null
-          });
-        }
-      });
-    }
-  }, [problemId]);
 
   const getDifficultyColor = useCallback((difficulty) => {
     if (!difficulty) return "gray";
