@@ -38,6 +38,35 @@ const dbHelper = {
   db: null,
   pendingConnection: null, // Track pending database connection promises
 
+  // Helper to recover invalid dbHelper state
+  recoverDbHelperState() {
+    console.error('🚨 CRITICAL ERROR: dbHelper or dbHelper.dbName is undefined!', {
+      thisObject: this,
+      hasThis: !!this,
+      hasDbName: this ? 'dbName' in this : false,
+      dbNameValue: this ? this.dbName : 'N/A',
+      thisKeys: Object.keys(this || {}),
+      stack: new Error().stack
+    });
+
+    console.log('🔧 Attempting to recover with default database configuration...');
+    try {
+      this.dbName = "CodeMaster";
+      this.version = 47;
+      this.db = null;
+      this.pendingConnection = null;
+
+      if (!this.dbName) {
+        throw new Error('Database helper recovery failed - still no dbName');
+      }
+
+      console.log('✅ Database helper recovered with default configuration');
+    } catch (error) {
+      console.error('❌ Database helper recovery failed:', error);
+      throw new Error('Database helper is in an invalid state and could not be recovered');
+    }
+  },
+
   openDB() {
     // 🔄 TEST DATABASE INTERCEPT: If test database is active, redirect all calls
     if (globalThis._testDatabaseActive && globalThis._testDatabaseHelper) {
@@ -47,33 +76,7 @@ const dbHelper = {
 
     // 🚨 SAFETY CHECK: Ensure this dbHelper has proper properties
     if (!this || !this.dbName) {
-      console.error('🚨 CRITICAL ERROR: dbHelper or dbHelper.dbName is undefined!', {
-        thisObject: this,
-        hasThis: !!this,
-        hasDbName: this ? 'dbName' in this : false,
-        dbNameValue: this ? this.dbName : 'N/A',
-        thisKeys: Object.keys(this || {}),
-        stack: new Error().stack
-      });
-
-      // Try to recover by reinitializing with default values
-      console.log('🔧 Attempting to recover with default database configuration...');
-      try {
-        // Restore basic properties directly
-        this.dbName = "CodeMaster";
-        this.version = 47;
-        this.db = null;
-        this.pendingConnection = null;
-
-        if (!this.dbName) {
-          throw new Error('Database helper recovery failed - still no dbName');
-        }
-
-        console.log('✅ Database helper recovered with default configuration');
-      } catch (error) {
-        console.error('❌ Database helper recovery failed:', error);
-        throw new Error('Database helper is in an invalid state and could not be recovered');
-      }
+      this.recoverDbHelperState();
     }
 
     const context = getExecutionContext();
