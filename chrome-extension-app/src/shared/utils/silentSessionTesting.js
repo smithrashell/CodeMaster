@@ -175,145 +175,18 @@ export class SilentSessionTester {
   }
 
   async runSilentSession(sessionNum, profile, quiet = true) {
-    // VERY OBVIOUS DEBUG LOG TO CONFIRM CODE CHANGES ARE ACTIVE
     console.log(`🚨 DEBUGGING ACTIVE: runSilentSession called for session ${sessionNum}, profile ${profile.name}`);
 
     try {
-      // Create session
-      const sessionData = await SessionService.getOrCreateSession('standard');
-
-      // DEBUG: Check what getOrCreateSession actually returns
-      console.log(`🔍 Session data structure for session ${sessionNum}:`, {
-        isArray: Array.isArray(sessionData),
-        hasId: !!sessionData?.id,
-        hasProblems: !!sessionData?.problems,
-        hasAttempts: !!sessionData?.attempts,
-        keysIfObject: Array.isArray(sessionData) ? 'IS_ARRAY' : Object.keys(sessionData || {}),
-        firstElementIfArray: Array.isArray(sessionData) ? sessionData[0] : 'NOT_ARRAY'
-      });
-
-      // NOTE: Session length is based on HISTORICAL performance, not the simulated profile performance
-      // The profile accuracy only affects the simulated attempts, not the initial session generation
+      const sessionData = await this.createSessionData(sessionNum, quiet);
       const settings = await buildAdaptiveSessionSettings();
 
-      // Debug: Always log session state to track progression
-      const currentState = await StorageService.getSessionState('session_state') || {};
+      await this.logSessionDebugInfo(sessionNum, profile, sessionData, settings);
 
-      console.log(`🔍 SESSION DEBUG ${sessionNum} - PROFILE: ${profile.name} (${(profile.accuracy * 100)}% accuracy):`, {
-        // Session state tracking
-        sessionCounter: currentState.num_sessions_completed,
-        isOnboardingByState: currentState.num_sessions_completed < 1,
-        isOnboardingBySettings: settings.isOnboarding,
-        lastSessionDate: currentState.last_session_date,
-
-        // Session settings
-        sessionLength: settings.sessionLength,
-        numberOfNewProblems: settings.numberOfNewProblems,
-        difficultyCap: settings.currentDifficultyCap,
-
-        // Session data
-        actualProblemCount: Array.isArray(sessionData) ? sessionData.length : (sessionData.problems ? sessionData.problems.length : 0),
-        sessionId: sessionData.id,
-        sessionStatus: sessionData.status
-      });
-
-      // Simulate performance
       const attempts = await this.recordSessionAttempts(sessionData, profile);
       const problems = Array.isArray(sessionData) ? sessionData : (sessionData.problems || sessionData.sessionProblems || []);
 
-      // IMMEDIATELY store simulated performance so next session can see it
-      try {
-        // Generate test session ID
-        const sessionId = `test_session_${sessionNum}`;
-
-        // Calculate session analytics based on simulated performance
-        const successfulAttempts = attempts.filter(a => a.success).length;
-        const totalTime = attempts.reduce((sum, a) => sum + a.timeSpent, 0);
-
-        // Create mock session analytics to build performance history
-        const accuracy = attempts.length > 0 ? successfulAttempts / attempts.length : 0;
-        const avgTime = attempts.length > 0 ? totalTime / attempts.length : 0;
-
-        const sessionAnalytics = {
-          session_id: sessionId, // Correct field name
-          completed_at: new Date().toISOString(),
-
-          // Performance metrics structure expected by storeSessionAnalytics
-          performance: {
-            accuracy: accuracy,
-            avgTime: avgTime,
-            totalProblems: attempts.length,
-            correctProblems: successfulAttempts
-          },
-
-          // Difficulty analysis structure
-          difficulty_analysis: {
-            predominantDifficulty: 'Easy', // Most problems are Easy in testing
-            totalProblems: attempts.length,
-            percentages: {
-              Easy: 100 // Simplified for testing
-            }
-          },
-
-          // Required for compatibility but not critical for session length
-          mastery_progression: {
-            new_masteries: 0,
-            decayed_masteries: 0,
-            deltas: []
-          },
-
-          // Additional testing marker
-          source: 'testing'
-        };
-
-        // Store analytics IMMEDIATELY so future sessions see this performance
-        await storeSessionAnalytics(sessionAnalytics);
-
-        if (!quiet) {
-          console.log(`📈 Stored performance for session ${sessionNum}: ${(accuracy * 100).toFixed(1)}% accuracy`);
-          console.log(`📊 Analytics available for next session: session_id=${sessionAnalytics.session_id}, accuracy=${accuracy}`);
-        }
-
-        // Use simplified completion flow to avoid triggering background evaluations
-        // that expect sessions to have attempts in the attempts store
-        try {
-          // Mark session as completed
-          sessionData.status = 'completed';
-          sessionData.completed_at = new Date().toISOString();
-
-          await updateSessionInDB(sessionData);
-
-          // Update session state directly for testing purposes
-          const currentState = await StorageService.getSessionState('session_state') || {};
-          const updatedSessionState = {
-            ...currentState,
-            num_sessions_completed: (currentState.num_sessions_completed || 0) + 1,
-            last_session_date: new Date().toISOString()
-          };
-          await StorageService.setSessionState('session_state', updatedSessionState);
-
-          console.log(`📝 Silent test: Updated session ${sessionData.id} to completed status directly`);
-        } catch (updateError) {
-          console.warn(`⚠️ Failed to update session status:`, updateError.message);
-          // Continue with test - status update failure shouldn't break testing
-        }
-
-        // Always log completion results to debug adaptation
-        const updatedState = await StorageService.getSessionState('session_state') || {};
-        console.log(`✅ Session ${sessionNum} COMPLETED for ${profile.name}:`, {
-          sessionId: sessionData.id,
-          beforeCompletion: currentState.num_sessions_completed,
-          afterCompletion: updatedState.num_sessions_completed,
-          stateIncremented: updatedState.num_sessions_completed > currentState.num_sessions_completed,
-          nowOnboarding: updatedState.num_sessions_completed < 1,
-          lastSessionDate: updatedState.last_session_date
-        });
-
-      } catch (error) {
-        if (!quiet) {
-          console.warn(`⚠️ Failed to store session analytics:`, error.message);
-        }
-      }
+      await this.storeSessionPerformance(sessionNum, attempts, sessionData, profile, quiet);
 
       return {
         sessionNum,
@@ -332,6 +205,116 @@ export class SilentSessionTester {
         error: error.message,
         success: false
       };
+    }
+  }
+
+  async createSessionData(sessionNum, quiet) {
+    const sessionData = await SessionService.getOrCreateSession('standard');
+
+    if (!quiet) {
+      console.log(`🔍 Session data structure for session ${sessionNum}:`, {
+        isArray: Array.isArray(sessionData),
+        hasId: !!sessionData?.id,
+        hasProblems: !!sessionData?.problems,
+        hasAttempts: !!sessionData?.attempts,
+        keysIfObject: Array.isArray(sessionData) ? 'IS_ARRAY' : Object.keys(sessionData || {}),
+        firstElementIfArray: Array.isArray(sessionData) ? sessionData[0] : 'NOT_ARRAY'
+      });
+    }
+
+    return sessionData;
+  }
+
+  async logSessionDebugInfo(sessionNum, profile, sessionData, settings) {
+    const currentState = await StorageService.getSessionState('session_state') || {};
+
+    console.log(`🔍 SESSION DEBUG ${sessionNum} - PROFILE: ${profile.name} (${(profile.accuracy * 100)}% accuracy):`, {
+      sessionCounter: currentState.num_sessions_completed,
+      isOnboardingByState: currentState.num_sessions_completed < 1,
+      isOnboardingBySettings: settings.isOnboarding,
+      lastSessionDate: currentState.last_session_date,
+      sessionLength: settings.sessionLength,
+      numberOfNewProblems: settings.numberOfNewProblems,
+      difficultyCap: settings.currentDifficultyCap,
+      actualProblemCount: Array.isArray(sessionData) ? sessionData.length : (sessionData.problems ? sessionData.problems.length : 0),
+      sessionId: sessionData.id,
+      sessionStatus: sessionData.status
+    });
+  }
+
+  async storeSessionPerformance(sessionNum, attempts, sessionData, profile, quiet) {
+    try {
+      const sessionId = `test_session_${sessionNum}`;
+      const successfulAttempts = attempts.filter(a => a.success).length;
+      const totalTime = attempts.reduce((sum, a) => sum + a.timeSpent, 0);
+      const accuracy = attempts.length > 0 ? successfulAttempts / attempts.length : 0;
+      const avgTime = attempts.length > 0 ? totalTime / attempts.length : 0;
+
+      const sessionAnalytics = {
+        session_id: sessionId,
+        completed_at: new Date().toISOString(),
+        performance: {
+          accuracy,
+          avgTime,
+          totalProblems: attempts.length,
+          correctProblems: successfulAttempts
+        },
+        difficulty_analysis: {
+          predominantDifficulty: 'Easy',
+          totalProblems: attempts.length,
+          percentages: { Easy: 100 }
+        },
+        mastery_progression: {
+          new_masteries: 0,
+          decayed_masteries: 0,
+          deltas: []
+        },
+        source: 'testing'
+      };
+
+      await storeSessionAnalytics(sessionAnalytics);
+
+      if (!quiet) {
+        console.log(`📈 Stored performance for session ${sessionNum}: ${(accuracy * 100).toFixed(1)}% accuracy`);
+        console.log(`📊 Analytics available for next session: session_id=${sessionAnalytics.session_id}, accuracy=${accuracy}`);
+      }
+
+      await this.updateSessionCompletion(sessionData, profile, sessionNum);
+
+    } catch (error) {
+      if (!quiet) {
+        console.warn(`⚠️ Failed to store session analytics:`, error.message);
+      }
+    }
+  }
+
+  async updateSessionCompletion(sessionData, profile, sessionNum) {
+    try {
+      sessionData.status = 'completed';
+      sessionData.completed_at = new Date().toISOString();
+      await updateSessionInDB(sessionData);
+
+      const currentState = await StorageService.getSessionState('session_state') || {};
+      const updatedSessionState = {
+        ...currentState,
+        num_sessions_completed: (currentState.num_sessions_completed || 0) + 1,
+        last_session_date: new Date().toISOString()
+      };
+      await StorageService.setSessionState('session_state', updatedSessionState);
+
+      console.log(`📝 Silent test: Updated session ${sessionData.id} to completed status directly`);
+
+      const updatedState = await StorageService.getSessionState('session_state') || {};
+      console.log(`✅ Session ${sessionNum} COMPLETED for ${profile.name}:`, {
+        sessionId: sessionData.id,
+        beforeCompletion: currentState.num_sessions_completed,
+        afterCompletion: updatedState.num_sessions_completed,
+        stateIncremented: updatedState.num_sessions_completed > currentState.num_sessions_completed,
+        nowOnboarding: updatedState.num_sessions_completed < 1,
+        lastSessionDate: updatedState.last_session_date
+      });
+    } catch (updateError) {
+      console.warn(`⚠️ Failed to update session status:`, updateError.message);
     }
   }
 
