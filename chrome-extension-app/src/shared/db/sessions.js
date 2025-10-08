@@ -669,10 +669,11 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   const escapeHatches = initializeEscapeHatches(sessionState);
   const { promotionReason, shouldPromote } = evaluatePromotion(problemsAtDifficulty, accuracy, escapeHatches);
 
-  const promoted = applyDifficultyPromotion(
+  const promotionContext = {
     sessionState, currentDifficulty, shouldPromote, promotionReason,
     problemsAtDifficulty, accuracy, settings, now, escapeHatches
-  );
+  };
+  const promoted = applyDifficultyPromotion(promotionContext);
 
   updatePromotionTracking(sessionState, escapeHatches, currentDifficulty, shouldPromote, problemsAtDifficulty);
   logEscapeHatchExit(currentDifficulty, sessionState, promoted, promotionReason);
@@ -750,25 +751,25 @@ function evaluatePromotion(problemsAtDifficulty, accuracy, escapeHatches) {
   return { promotionReason, shouldPromote };
 }
 
-function applyDifficultyPromotion(
-  sessionState, currentDifficulty, shouldPromote, promotionReason,
-  problemsAtDifficulty, accuracy, settings, now, escapeHatches
-) {
+function applyDifficultyPromotion(context) {
+  const { sessionState, currentDifficulty, shouldPromote, promotionReason,
+    problemsAtDifficulty, accuracy, settings, now, escapeHatches } = context;
+
   const userMaxDifficulty = settings.maxDifficulty || "Hard";
   const getDifficultyOrder = (difficulty) => {
     const order = { "Easy": 1, "Medium": 2, "Hard": 3 };
     return order[difficulty] || 1;
   };
 
-  const promotionContext = {
+  const promotionData = {
     sessionState, escapeHatches, now, promotionReason, problemsAtDifficulty, accuracy
   };
 
   if (shouldPromote && currentDifficulty === "Easy" && getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")) {
-    promoteDifficulty(promotionContext, "Medium");
+    promoteDifficulty(promotionData, "Medium");
     return true;
   } else if (shouldPromote && currentDifficulty === "Medium" && getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")) {
-    promoteDifficulty(promotionContext, "Hard");
+    promoteDifficulty(promotionData, "Hard");
     return true;
   } else if (shouldPromote && getDifficultyOrder(sessionState.current_difficulty_cap) < getDifficultyOrder(userMaxDifficulty)) {
     logger.info(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.current_difficulty_cap}, Max allowed: ${userMaxDifficulty}`);
@@ -863,8 +864,10 @@ export async function buildAdaptiveSessionSettings() {
 
   await StorageService.setSessionState(sessionStateKey, updatedSessionState);
 
-  logAdaptiveConfig(sessionLength, numberOfNewProblems, allowedTags, performanceMetrics,
-    focusDecision.onboarding, updatedSessionState);
+  logAdaptiveConfig({
+    sessionLength, numberOfNewProblems, allowedTags, performanceMetrics,
+    onboarding: focusDecision.onboarding, sessionState: updatedSessionState
+  });
 
   const finalDifficultyCap = focusDecision.onboarding ? "Easy" : updatedSessionState.current_difficulty_cap;
   logDifficultyCapDebug(focusDecision.onboarding, updatedSessionState, finalDifficultyCap);
@@ -1058,7 +1061,8 @@ async function applySessionLogic(context) {
   }
 }
 
-function logAdaptiveConfig(sessionLength, numberOfNewProblems, allowedTags, performanceMetrics, onboarding, sessionState) {
+function logAdaptiveConfig(config) {
+  const { sessionLength, numberOfNewProblems, allowedTags, performanceMetrics, onboarding, sessionState } = config;
   logger.info("🧠 Adaptive Session Config:", {
     sessionLength,
     numberOfNewProblems,
