@@ -250,6 +250,22 @@ export function createDbHelper(config = {}) {
       });
     },
 
+    // Helper to clear a store with logging
+    async clearStoreWithLogging(storeName, results, logSuffix = '') {
+      try {
+        await this.clear(storeName);
+        results.cleared.push(storeName);
+        if (this.enableLogging) {
+          console.log(`✅ TEST DB: Cleared ${storeName}${logSuffix ? ` ${logSuffix}` : ''}`);
+        }
+      } catch (error) {
+        results.errors.push({ store: storeName, error: error.message });
+        if (this.enableLogging) {
+          console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
+        }
+      }
+    },
+
     async smartTeardown(options = {}) {
       if (!this.isTestMode) {
         throw new Error('🚨 SAFETY: Cannot teardown production database');
@@ -297,18 +313,7 @@ export function createDbHelper(config = {}) {
       try {
         // Always clear test session data (fast to recreate)
         for (const storeName of DATA_CATEGORIES.TEST_SESSION) {
-          try {
-            await this.clear(storeName);
-            results.cleared.push(storeName);
-            if (this.enableLogging) {
-              console.log(`✅ TEST DB: Cleared ${storeName}`);
-            }
-          } catch (error) {
-            results.errors.push({ store: storeName, error: error.message });
-            if (this.enableLogging) {
-              console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
-            }
-          }
+          await this.clearStoreWithLogging(storeName, results);
         }
 
         // Clear configuration data if requested
@@ -340,18 +345,7 @@ export function createDbHelper(config = {}) {
         if (!preserveSeededData) {
           // Full teardown - clear everything including expensive data
           for (const storeName of [...DATA_CATEGORIES.STATIC, ...DATA_CATEGORIES.EXPENSIVE_DERIVED]) {
-            try {
-              await this.clear(storeName);
-              results.cleared.push(storeName);
-              if (this.enableLogging) {
-                console.log(`✅ TEST DB: Cleared ${storeName} (full teardown)`);
-              }
-            } catch (error) {
-              results.errors.push({ store: storeName, error: error.message });
-              if (this.enableLogging) {
-                console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
-              }
-            }
+            await this.clearStoreWithLogging(storeName, results, '(full teardown)');
           }
         } else {
           // Smart teardown - preserve expensive static data, conditionally clear derived data
@@ -362,18 +356,7 @@ export function createDbHelper(config = {}) {
 
           for (const storeName of DATA_CATEGORIES.EXPENSIVE_DERIVED) {
             if (testModifiedStores.has(storeName)) {
-              try {
-                await this.clear(storeName);
-                results.cleared.push(storeName);
-                if (this.enableLogging) {
-                  console.log(`✅ TEST DB: Cleared ${storeName} (test-modified)`);
-                }
-              } catch (error) {
-                results.errors.push({ store: storeName, error: error.message });
-                if (this.enableLogging) {
-                  console.warn(`⚠️ TEST DB: Failed to clear ${storeName}:`, error.message);
-                }
-              }
+              await this.clearStoreWithLogging(storeName, results, '(test-modified)');
             } else {
               results.preserved.push(storeName);
               if (this.enableLogging) {

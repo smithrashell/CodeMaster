@@ -31,6 +31,16 @@ import { initializePatternLaddersForOnboarding } from '../shared/services/proble
  * @param {number} leetcodeId - LeetCode ID from standard_problems store
  * @returns {Promise<Object>} - Created problem object with problem_id
  */
+// Helper to validate leetcode_id field
+function validateLeetcodeId(problem, leetcodeId) {
+  if (!problem.leetcode_id && problem.leetcode_id !== 0) {
+    throw new Error(`createTestProblem failed: existing problem has no leetcode_id for ${leetcodeId}`);
+  }
+  if (typeof problem.leetcode_id !== 'number') {
+    throw new Error(`createTestProblem failed: existing problem leetcode_id must be a number, got ${typeof problem.leetcode_id}: ${problem.leetcode_id}`);
+  }
+}
+
 async function createTestProblem(leetcodeId) {
   try {
     console.log(`🔧 createTestProblem: START - LeetCode ID ${leetcodeId}`);
@@ -85,14 +95,7 @@ async function createTestProblem(leetcodeId) {
     };
 
     // Validate that leetcode_id is set correctly
-    if (!reusedProblem.leetcode_id && reusedProblem.leetcode_id !== 0) {
-      throw new Error(`createTestProblem failed: existing problem has no leetcode_id for ${leetcodeId}`);
-    }
-
-    // Also ensure it's a NUMBER, not undefined/null/string
-    if (typeof reusedProblem.leetcode_id !== 'number') {
-      throw new Error(`createTestProblem failed: existing problem leetcode_id must be a number, got ${typeof reusedProblem.leetcode_id}: ${reusedProblem.leetcode_id}`);
-    }
+    validateLeetcodeId(reusedProblem, leetcodeId);
 
     return reusedProblem;
   }
