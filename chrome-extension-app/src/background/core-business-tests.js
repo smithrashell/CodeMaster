@@ -892,10 +892,10 @@ export function initializeCoreBusinessTests() {
       const session1Difficulties = session1.map(p => p.difficulty);
       const session1HasEasy = session1Difficulties.includes('Easy');
 
-      // Simulate mastering Easy problems (3 successful attempts)
-      // Use real Easy LeetCode IDs: 104 (Max Depth Binary Tree), 136 (Single Number), 169 (Majority Element)
-      const easyLeetcodeIds = [104, 136, 169];
-      for (let i = 0; i < 3; i++) {
+      // Simulate mastering Easy problems (4 successful attempts - required for progression)
+      // Use real Easy LeetCode IDs: 104 (Max Depth Binary Tree), 136 (Single Number), 169 (Majority Element), 206 (Reverse Linked List)
+      const easyLeetcodeIds = [104, 136, 169, 206];
+      for (let i = 0; i < 4; i++) {
         const easyProblem = session1.find(p => p.difficulty === 'Easy');
         if (easyProblem) {
           // Create test problem in problems store (production pattern)
@@ -913,10 +913,25 @@ export function initializeCoreBusinessTests() {
         }
       }
 
-      // Explicitly trigger difficulty progression evaluation (100% success on Easy)
+      // Update difficulty_time_stats to reflect the 4 Easy problems completed
+      // This is normally done by updateSessionStateWithPerformance after session completion
+      const currentState = await StorageService.getSessionState('session_state');
+      if (!currentState.difficulty_time_stats) {
+        currentState.difficulty_time_stats = {
+          easy: { problems: 0, total_time: 0, avg_time: 0 },
+          medium: { problems: 0, total_time: 0, avg_time: 0 },
+          hard: { problems: 0, total_time: 0, avg_time: 0 }
+        };
+      }
+      currentState.difficulty_time_stats.easy.problems += 4;
+      currentState.difficulty_time_stats.easy.total_time += 4 * 250000;
+      currentState.difficulty_time_stats.easy.avg_time = currentState.difficulty_time_stats.easy.total_time / currentState.difficulty_time_stats.easy.problems;
+      await StorageService.setSessionState('session_state', currentState);
+
+      // Explicitly trigger difficulty progression evaluation (100% success on 4 Easy problems)
       // Already imported statically
-      const currentSettings = await buildAdaptiveSessionSettings();
-      await evaluateDifficultyProgression(1.0, currentSettings);
+      const userSettings = await StorageService.getSettings();
+      await evaluateDifficultyProgression(1.0, userSettings);
 
       // Session 2: After mastering Easy, should see more Medium/Hard
       const session2 = await ProblemService.createSession();
