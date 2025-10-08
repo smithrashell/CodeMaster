@@ -89,6 +89,21 @@ export async function initializePatternLaddersForOnboarding() {
   console.log("🎉 Onboarding complete: pattern ladders initialized.");
 }
 
+// Helper to regenerate pattern ladder if completed
+async function checkAndRegenerateLadderIfCompleted(tag, ladder) {
+  const allAttempted = ladder.problems.every(p => p.attempted);
+  if (allAttempted) {
+    console.log(`🎉 Pattern ladder completed for tag: ${tag}`);
+    try {
+      await regenerateCompletedPatternLadder(tag);
+      console.log(`✅ Successfully regenerated completed pattern ladder: ${tag}`);
+    } catch (error) {
+      console.error(`❌ Failed to regenerate completed pattern ladder: ${tag}`, error);
+      // Continue execution - don't fail the attempt if regeneration fails
+    }
+  }
+}
+
 /**
  * Updates pattern ladders when a problem is attempted and checks for completion
  * @param {number} problemId - LeetCode problem ID that was attempted
@@ -119,20 +134,8 @@ export async function updatePatternLaddersOnAttempt(problemId) {
         updatedLadders.push(tag);
         console.log(`✅ Updated pattern ladder for tag: ${tag}`);
 
-        // Check if ladder is now complete
-        const allAttempted = ladder.problems.every(p => p.attempted);
-        if (allAttempted) {
-          console.log(`🎉 Pattern ladder completed for tag: ${tag}`);
-
-          // Trigger regeneration for completed ladder with error logging
-          try {
-            await regenerateCompletedPatternLadder(tag);
-            console.log(`✅ Successfully regenerated completed pattern ladder: ${tag}`);
-          } catch (error) {
-            console.error(`❌ Failed to regenerate completed pattern ladder: ${tag}`, error);
-            // Continue execution - don't fail the attempt if regeneration fails
-          }
-        }
+        // Check if ladder is now complete and regenerate if needed
+        await checkAndRegenerateLadderIfCompleted(tag, ladder);
       }
     }
 
