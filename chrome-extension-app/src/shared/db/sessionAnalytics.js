@@ -8,6 +8,23 @@ const openDB = dbHelper.openDB;
  * @returns {Promise<void>}
  */
 export async function storeSessionAnalytics(sessionSummary) {
+  validateSessionSummary(sessionSummary);
+  const db = await validateDatabase();
+
+  return new Promise((resolve, reject) => {
+    const { transaction, store } = createAnalyticsTransaction(db);
+    logStoreInfo(store, db);
+
+    const analyticsRecord = createAnalyticsRecord(sessionSummary);
+    validateAnalyticsRecord(analyticsRecord, store);
+
+    const request = store.put(analyticsRecord);
+    const context = { sessionSummary, store };
+    setupTransactionHandlers(request, transaction, context, resolve, reject);
+  });
+}
+
+function validateSessionSummary(sessionSummary) {
   console.log(`🔍 REAL SESSION ANALYTICS DEBUG: storeSessionAnalytics ENTRY`);
   console.log(`🔍 REAL SESSION ANALYTICS DEBUG: ACTUAL session ID: ${sessionSummary?.session_id}`);
   console.log(`🔍 REAL SESSION ANALYTICS DEBUG: Session ID is UUID? ${sessionSummary?.session_id?.length === 36 && sessionSummary?.session_id?.includes('-')}`);
@@ -29,165 +46,155 @@ export async function storeSessionAnalytics(sessionSummary) {
     console.error(`❌ ANALYTICS STORAGE DEBUG: sessionSummary.session_id is missing`);
     throw new Error("sessionSummary.session_id is required");
   }
+}
 
+async function validateDatabase() {
   const db = await openDB();
   console.log(`🔍 ANALYTICS STORAGE DEBUG: Database connection established`);
-
-  // Debug: Check if session_analytics store exists and its structure
   console.log(`🔍 ANALYTICS STORAGE DEBUG: Database stores:`, Array.from(db.objectStoreNames));
+
   if (!db.objectStoreNames.contains("session_analytics")) {
     console.error(`❌ ANALYTICS STORAGE DEBUG: session_analytics store does not exist!`);
     throw new Error("session_analytics store not found in database");
   }
 
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(["session_analytics"], "readwrite");
-    const store = transaction.objectStore("session_analytics");
+  return db;
+}
 
-    console.log(`🔍 ANALYTICS STORAGE DEBUG: Transaction and store created`);
-    console.log(`🔍 ANALYTICS STORAGE DEBUG: Store info:`, {
-      name: store.name,
-      keyPath: store.keyPath,
-      autoIncrement: store.autoIncrement,
-      indexNames: Array.from(store.indexNames)
-    });
+function createAnalyticsTransaction(db) {
+  const transaction = db.transaction(["session_analytics"], "readwrite");
+  const store = transaction.objectStore("session_analytics");
+  return { transaction, store };
+}
 
-    console.log(`🔍 ANALYTICS STORAGE DEBUG: Database state:`, {
-      name: db.name,
-      version: db.version,
-      objectStoreNames: Array.from(db.objectStoreNames)
-    });
-
-    // Create analytics record optimized for querying
-    const analyticsRecord = {
-      session_id: sessionSummary.session_id,  // This is the keyPath field
-      completed_at: sessionSummary.completed_at,
-
-      // Performance metrics for easy querying
-      accuracy: Math.round((sessionSummary.performance?.accuracy || 0) * 100) / 100,
-      avg_time: Math.round(sessionSummary.performance?.avgTime || 0),
-
-      // Difficulty analysis
-      predominant_difficulty:
-        sessionSummary.difficulty_analysis?.predominantDifficulty || 'Unknown',
-      total_problems: sessionSummary.difficulty_analysis?.totalProblems || 0,
-      difficulty_mix: sessionSummary.difficulty_analysis?.percentages || {},
-
-      // Mastery progression
-      new_masteries: sessionSummary.mastery_progression?.new_masteries || 0,
-      decayed_masteries: sessionSummary.mastery_progression?.decayed_masteries || 0,
-      mastery_deltas: sessionSummary.mastery_progression?.deltas || [],
-
-      // Tag performance
-      strong_tags: sessionSummary.performance?.strongTags || [],
-      weak_tags: sessionSummary.performance?.weakTags || [],
-      timing_feedback: sessionSummary.performance?.timingFeedback || {},
-
-      // Insights for user feedback
-      insights: sessionSummary.insights || {},
-
-      // Full difficulty breakdown
-      difficulty_breakdown: {
-        easy: sessionSummary.performance?.easy || sessionSummary.performance?.Easy || { attempts: 0, correct: 0, time: 0, avg_time: 0 },
-        medium: sessionSummary.performance?.medium || sessionSummary.performance?.Medium || { attempts: 0, correct: 0, time: 0, avg_time: 0 },
-        hard: sessionSummary.performance?.hard || sessionSummary.performance?.Hard || { attempts: 0, correct: 0, time: 0, avg_time: 0 },
-      },
-    };
-
-    // CRITICAL FIX: Ensure session_id is valid for IndexedDB
-    if (!analyticsRecord.session_id || typeof analyticsRecord.session_id !== 'string') {
-      console.error(`❌ CRITICAL: Invalid session_id for analytics storage:`, {
-        session_id: analyticsRecord.session_id,
-        type: typeof analyticsRecord.session_id,
-        original: sessionSummary.session_id
-      });
-      throw new Error(`Invalid session_id: ${analyticsRecord.session_id}`);
-    }
-
-    console.log(`🔍 ANALYTICS STORAGE DEBUG: Analytics record created:`, {
-      session_id: analyticsRecord.session_id,
-      completed_at: analyticsRecord.completed_at,
-      accuracy: analyticsRecord.accuracy,
-      avg_time: analyticsRecord.avg_time,
-      total_problems: analyticsRecord.total_problems,
-      new_masteries: analyticsRecord.new_masteries,
-      easyAttempts: analyticsRecord.difficulty_breakdown?.easy?.attempts || 0,
-      mediumAttempts: analyticsRecord.difficulty_breakdown?.medium?.attempts || 0,
-      hardAttempts: analyticsRecord.difficulty_breakdown?.hard?.attempts || 0
-    });
-
-    // Check if the record has the required keyPath field
-    console.log(`🔍 ANALYTICS STORAGE DEBUG: KeyPath validation:`, {
-      storeKeyPath: store.keyPath,
-      recordHasKeyPath: Object.prototype.hasOwnProperty.call(analyticsRecord, store.keyPath),
-      keyPathValue: analyticsRecord[store.keyPath],
-      fullRecord: analyticsRecord
-    });
-
-    console.log(`🔍 ANALYTICS STORAGE DEBUG: About to call store.put()...`);
-    const request = store.put(analyticsRecord);
-    console.log(`🔍 ANALYTICS STORAGE DEBUG: store.put() called, request created:`, !!request);
-
-    request.onsuccess = () => {
-      console.log(`✅ ANALYTICS STORAGE DEBUG: Session analytics stored successfully for session ${sessionSummary.session_id}`);
-      console.info(
-        `📊 Session analytics stored for session ${sessionSummary.session_id}`
-      );
-
-      // Verify storage by reading back
-      console.log(`🔍 ANALYTICS VERIFICATION: Reading back stored analytics...`);
-      const verificationRequest = store.get(sessionSummary.session_id);
-      verificationRequest.onsuccess = () => {
-        const storedRecord = verificationRequest.result;
-        if (storedRecord) {
-          console.log(`✅ ANALYTICS VERIFICATION: Record successfully stored and retrieved:`, {
-            session_id: storedRecord.session_id,
-            completed_at: storedRecord.completed_at,
-            accuracy: storedRecord.accuracy,
-            total_problems: storedRecord.total_problems
-          });
-        } else {
-          console.error(`❌ ANALYTICS VERIFICATION: No record found after storage!`);
-        }
-      };
-
-      resolve(analyticsRecord);
-    };
-
-    request.onerror = () => {
-      console.error(`❌ ANALYTICS STORAGE DEBUG: IndexedDB put operation failed:`, request.error);
-      console.error(
-        `❌ Failed to store session analytics for ${sessionSummary.session_id}:`,
-        request.error
-      );
-      reject(request.error);
-    };
-
-    transaction.onerror = (event) => {
-      console.error(`❌ ANALYTICS STORAGE DEBUG: Transaction failed:`, {
-        error: transaction.error,
-        target: event.target,
-        type: event.type
-      });
-      reject(transaction.error || new Error("Transaction failed"));
-    };
-
-    transaction.onabort = (event) => {
-      console.error(`❌ ANALYTICS STORAGE DEBUG: Transaction aborted:`, {
-        error: transaction.error,
-        target: event.target,
-        type: event.type
-      });
-      reject(new Error("Transaction aborted"));
-    };
-
-    transaction.oncomplete = (event) => {
-      console.log(`✅ ANALYTICS STORAGE DEBUG: Transaction completed successfully for session ${sessionSummary.session_id}`, {
-        type: event.type,
-        target: event.target
-      });
-    };
+function logStoreInfo(store, db) {
+  console.log(`🔍 ANALYTICS STORAGE DEBUG: Transaction and store created`);
+  console.log(`🔍 ANALYTICS STORAGE DEBUG: Store info:`, {
+    name: store.name,
+    keyPath: store.keyPath,
+    autoIncrement: store.autoIncrement,
+    indexNames: Array.from(store.indexNames)
   });
+
+  console.log(`🔍 ANALYTICS STORAGE DEBUG: Database state:`, {
+    name: db.name,
+    version: db.version,
+    objectStoreNames: Array.from(db.objectStoreNames)
+  });
+}
+
+function createAnalyticsRecord(sessionSummary) {
+  return {
+    session_id: sessionSummary.session_id,
+    completed_at: sessionSummary.completed_at,
+    accuracy: Math.round((sessionSummary.performance?.accuracy || 0) * 100) / 100,
+    avg_time: Math.round(sessionSummary.performance?.avgTime || 0),
+    predominant_difficulty: sessionSummary.difficulty_analysis?.predominantDifficulty || 'Unknown',
+    total_problems: sessionSummary.difficulty_analysis?.totalProblems || 0,
+    difficulty_mix: sessionSummary.difficulty_analysis?.percentages || {},
+    new_masteries: sessionSummary.mastery_progression?.new_masteries || 0,
+    decayed_masteries: sessionSummary.mastery_progression?.decayed_masteries || 0,
+    mastery_deltas: sessionSummary.mastery_progression?.deltas || [],
+    strong_tags: sessionSummary.performance?.strongTags || [],
+    weak_tags: sessionSummary.performance?.weakTags || [],
+    timing_feedback: sessionSummary.performance?.timingFeedback || {},
+    insights: sessionSummary.insights || {},
+    difficulty_breakdown: {
+      easy: sessionSummary.performance?.easy || sessionSummary.performance?.Easy || { attempts: 0, correct: 0, time: 0, avg_time: 0 },
+      medium: sessionSummary.performance?.medium || sessionSummary.performance?.Medium || { attempts: 0, correct: 0, time: 0, avg_time: 0 },
+      hard: sessionSummary.performance?.hard || sessionSummary.performance?.Hard || { attempts: 0, correct: 0, time: 0, avg_time: 0 },
+    },
+  };
+}
+
+function validateAnalyticsRecord(analyticsRecord, store) {
+  if (!analyticsRecord.session_id || typeof analyticsRecord.session_id !== 'string') {
+    console.error(`❌ CRITICAL: Invalid session_id for analytics storage:`, {
+      session_id: analyticsRecord.session_id,
+      type: typeof analyticsRecord.session_id,
+      original: analyticsRecord.session_id
+    });
+    throw new Error(`Invalid session_id: ${analyticsRecord.session_id}`);
+  }
+
+  console.log(`🔍 ANALYTICS STORAGE DEBUG: Analytics record created:`, {
+    session_id: analyticsRecord.session_id,
+    completed_at: analyticsRecord.completed_at,
+    accuracy: analyticsRecord.accuracy,
+    avg_time: analyticsRecord.avg_time,
+    total_problems: analyticsRecord.total_problems,
+    new_masteries: analyticsRecord.new_masteries,
+    easyAttempts: analyticsRecord.difficulty_breakdown?.easy?.attempts || 0,
+    mediumAttempts: analyticsRecord.difficulty_breakdown?.medium?.attempts || 0,
+    hardAttempts: analyticsRecord.difficulty_breakdown?.hard?.attempts || 0
+  });
+
+  console.log(`🔍 ANALYTICS STORAGE DEBUG: KeyPath validation:`, {
+    storeKeyPath: store.keyPath,
+    recordHasKeyPath: Object.prototype.hasOwnProperty.call(analyticsRecord, store.keyPath),
+    keyPathValue: analyticsRecord[store.keyPath],
+    fullRecord: analyticsRecord
+  });
+
+  console.log(`🔍 ANALYTICS STORAGE DEBUG: About to call store.put()...`);
+}
+
+function setupTransactionHandlers(request, transaction, context, resolve, reject) {
+  const { sessionSummary, store } = context;
+  console.log(`🔍 ANALYTICS STORAGE DEBUG: store.put() called, request created:`, !!request);
+
+  request.onsuccess = () => {
+    console.log(`✅ ANALYTICS STORAGE DEBUG: Session analytics stored successfully for session ${sessionSummary.session_id}`);
+    console.info(`📊 Session analytics stored for session ${sessionSummary.session_id}`);
+
+    const verificationRequest = store.get(sessionSummary.session_id);
+    verificationRequest.onsuccess = () => {
+      const storedRecord = verificationRequest.result;
+      if (storedRecord) {
+        console.log(`✅ ANALYTICS VERIFICATION: Record successfully stored and retrieved:`, {
+          session_id: storedRecord.session_id,
+          completed_at: storedRecord.completed_at,
+          accuracy: storedRecord.accuracy,
+          total_problems: storedRecord.total_problems
+        });
+      } else {
+        console.error(`❌ ANALYTICS VERIFICATION: No record found after storage!`);
+      }
+    };
+
+    resolve(request.result);
+  };
+
+  request.onerror = () => {
+    console.error(`❌ ANALYTICS STORAGE DEBUG: IndexedDB put operation failed:`, request.error);
+    console.error(`❌ Failed to store session analytics for ${sessionSummary.session_id}:`, request.error);
+    reject(request.error);
+  };
+
+  transaction.onerror = (event) => {
+    console.error(`❌ ANALYTICS STORAGE DEBUG: Transaction failed:`, {
+      error: transaction.error,
+      target: event.target,
+      type: event.type
+    });
+    reject(transaction.error || new Error("Transaction failed"));
+  };
+
+  transaction.onabort = (event) => {
+    console.error(`❌ ANALYTICS STORAGE DEBUG: Transaction aborted:`, {
+      error: transaction.error,
+      target: event.target,
+      type: event.type
+    });
+    reject(new Error("Transaction aborted"));
+  };
+
+  transaction.oncomplete = (event) => {
+    console.log(`✅ ANALYTICS STORAGE DEBUG: Transaction completed successfully for session ${sessionSummary.session_id}`, {
+      type: event.type,
+      target: event.target
+    });
+  };
 }
 
 /**
