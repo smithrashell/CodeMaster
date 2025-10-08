@@ -6,6 +6,39 @@ import MainInputContainer from './multiselect/MainInputContainer.jsx';
 import DropdownContent from './multiselect/DropdownContent.jsx';
 import { renderSelectedBadge, renderSearchInput, renderDropdownOption } from './multiselect/RenderHelpers.jsx';
 
+// Hook to handle click outside and scroll behavior
+function useDropdownCloseHandlers({ opened, inputContainerRef, portalDropdownRef, dropdownRef, setOpened, setHoveredItem }) {
+  useEffect(() => {
+    if (!opened) return;
+
+    const handleClickOutside = (event) => {
+      const isOutsideInput = inputContainerRef.current && !inputContainerRef.current.contains(event.target);
+      const isOutsideDropdown = portalDropdownRef.current && !portalDropdownRef.current.contains(event.target);
+
+      if (isOutsideInput && isOutsideDropdown) {
+        setOpened(false);
+        setHoveredItem(null);
+      }
+    };
+
+    const handleScroll = (event) => {
+      if (portalDropdownRef.current && portalDropdownRef.current.contains(event.target)) {
+        return;
+      }
+      setOpened(false);
+      setHoveredItem(null);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [opened, inputContainerRef, dropdownRef, setHoveredItem, setOpened, portalDropdownRef]);
+}
+
 function CustomMultiSelect({
   data = [],
   value = [],
@@ -40,37 +73,7 @@ function CustomMultiSelect({
   } = useMultiSelectLogic(data, value, onChange, disabled, maxValues, searchable, searchQuery);
 
   // Close dropdown when clicking outside or scrolling
-  useEffect(() => {
-    if (!opened) return;
-
-    const handleClickOutside = (event) => {
-      // Check if click is outside both the input container and portal dropdown
-      const isOutsideInput = inputContainerRef.current && !inputContainerRef.current.contains(event.target);
-      const isOutsideDropdown = portalDropdownRef.current && !portalDropdownRef.current.contains(event.target);
-
-      if (isOutsideInput && isOutsideDropdown) {
-        setOpened(false);
-        setHoveredItem(null);
-      }
-    };
-
-    const handleScroll = (event) => {
-      // Don't close dropdown if scrolling inside the dropdown itself
-      if (portalDropdownRef.current && portalDropdownRef.current.contains(event.target)) {
-        return;
-      }
-      setOpened(false);
-      setHoveredItem(null);
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', handleScroll, true);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, true);
-    };
-  }, [opened, inputContainerRef, dropdownRef, setHoveredItem, setOpened]);
+  useDropdownCloseHandlers({ opened, inputContainerRef, portalDropdownRef, dropdownRef, setOpened, setHoveredItem });
 
   // Debug logging
   debug("🔍 CustomMultiSelect: value prop", { value });
