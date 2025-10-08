@@ -18,8 +18,8 @@ import { DynamicPathOptimizationTester } from "../src/shared/utils/dynamicPathOp
 import { RealSystemTester } from "../src/shared/utils/realSystemTesting.js";
 import { TestDataIsolation } from "../src/shared/utils/testDataIsolation.js";
 import { RelationshipSystemTester } from "../src/shared/utils/relationshipSystemTesting.js";
-import { connect } from "chrome-extension-hot-reload";
-import { 
+// import { connect } from "chrome-extension-hot-reload"; // Disabled: causes service worker error code 15
+import {
   onboardUserIfNeeded,
   checkOnboardingStatus,
   completeOnboarding,
@@ -50,8 +50,9 @@ import {
 import FocusCoordinationService from "../src/shared/services/focusCoordinationService.js";
 import AccurateTimer from "../src/shared/utils/AccurateTimer.js";
 import { InterviewService } from "../src/shared/services/interviewService.js";
+import ChromeAPIErrorHandler from "../src/shared/services/ChromeAPIErrorHandler.js";
 
-connect(); // handles app and popup
+// connect(); // Disabled: causes service worker error code 15
 
 // Mark this as background script context for database access
 if (typeof globalThis !== 'undefined') {
