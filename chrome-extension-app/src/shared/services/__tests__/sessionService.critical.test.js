@@ -9,6 +9,10 @@ import {
 } from "../../db/sessions";
 import { ProblemService } from "../problemService";
 import { StorageService } from "../storageService";
+import {
+  setupSessionCreationMocks,
+  assertValidSession
+} from './sessionServiceTestHelpers';
 
 // Mock the database modules
 jest.mock("../../db/sessions");
@@ -67,24 +71,14 @@ describe("SessionService - Critical User Retention Paths", () => {
   describe("🔥 CRITICAL: User always sees active session when problems exist", () => {
     it("should return valid session when problems are available", async () => {
       // Simple test: verify createNewSession works with basic mocking
-      ProblemService.createSession.mockResolvedValue([
-        { id: 1, leetcode_id: 1, title: "Two Sum", difficulty: "Easy" },
-        { id: 2, leetcode_id: 2, title: "Add Two Numbers", difficulty: "Medium" },
-      ]);
+      setupSessionCreationMocks(ProblemService, getLatestSessionByType, saveNewSessionToDB, saveSessionToStorage);
 
-      // Mock database dependencies
-      getLatestSessionByType.mockResolvedValue(null);
-      saveNewSessionToDB.mockResolvedValue();
-      saveSessionToStorage.mockResolvedValue();
-      
-      // Test that session creation works 
+      // Test that session creation works
       const session = await SessionService.createNewSession('standard', 'draft');
-      
+
       // CRITICAL: When problems exist, user gets a session
-      expect(session).not.toBeNull();
+      assertValidSession(session, 'standard', 'draft');
       expect(session.problems).toHaveLength(2);
-      expect(session.status).toBe('draft');
-      expect(session.session_type).toBe('standard');
       expect(ProblemService.createSession).toHaveBeenCalled();
     });
 
