@@ -799,6 +799,36 @@ export function applyEscapeHatchLogic(sessionState, accuracy, settings, now) {
   return sessionState;
 }
 
+// Helper to analyze performance trend from recent sessions
+function analyzePerformanceTrend(recentAnalytics) {
+  const accuracies = recentAnalytics.map(session => session.accuracy || 0.5);
+  const avgRecent = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
+
+  // Count consecutive excellent sessions (90%+ accuracy)
+  let consecutiveExcellent = 0;
+  for (const session of recentAnalytics) {
+    if ((session.accuracy || 0) >= 0.9) {
+      consecutiveExcellent++;
+    } else {
+      break;
+    }
+  }
+
+  // Determine performance trend
+  let trend;
+  if (avgRecent >= 0.85 && consecutiveExcellent >= 2) {
+    trend = 'sustained_excellence';
+  } else if (avgRecent >= 0.7 && accuracies[0] > accuracies[Math.min(2, accuracies.length - 1)]) {
+    trend = 'improving';
+  } else if (avgRecent < 0.5) {
+    trend = 'struggling';
+  } else {
+    trend = 'stable';
+  }
+
+  return { trend, consecutiveExcellent, avgRecent };
+}
+
 export async function buildAdaptiveSessionSettings() {
   const sessionStateKey = "session_state";
   const now = new Date();
@@ -860,31 +890,10 @@ export async function buildAdaptiveSessionSettings() {
 
       // NEW: Analyze performance trend across recent sessions
       if (recentAnalytics.length >= 2) {
-        const accuracies = recentAnalytics.map(session => session.accuracy || 0.5);
-        const avgRecent = accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length;
-
-        // Count consecutive excellent sessions (90%+ accuracy)
-        consecutiveExcellentSessions = 0;
-        for (const session of recentAnalytics) {
-          if ((session.accuracy || 0) >= 0.9) {
-            consecutiveExcellentSessions++;
-          } else {
-            break; // Stop at first non-excellent session
-          }
-        }
-
-        // Determine performance trend
-        if (avgRecent >= 0.85 && consecutiveExcellentSessions >= 2) {
-          performanceTrend = 'sustained_excellence';
-        } else if (avgRecent >= 0.7 && accuracies[0] > accuracies[Math.min(2, accuracies.length - 1)]) {
-          performanceTrend = 'improving';
-        } else if (avgRecent < 0.5) {
-          performanceTrend = 'struggling';
-        } else {
-          performanceTrend = 'stable';
-        }
-
-        logger.info(`📈 Performance analysis: trend=${performanceTrend}, avgAccuracy=${(avgRecent * 100).toFixed(1)}%, consecutiveExcellent=${consecutiveExcellentSessions}`);
+        const trendAnalysis = analyzePerformanceTrend(recentAnalytics);
+        performanceTrend = trendAnalysis.trend;
+        consecutiveExcellentSessions = trendAnalysis.consecutiveExcellent;
+        logger.info(`📈 Performance analysis: trend=${performanceTrend}, avgAccuracy=${(trendAnalysis.avgRecent * 100).toFixed(1)}%, consecutiveExcellent=${consecutiveExcellentSessions}`);
       }
     } else {
       logger.info("🔍 No recent session analytics found, using defaults");
