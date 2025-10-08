@@ -11,6 +11,45 @@ export class MinimalSessionTester {
     this.results = [];
   }
 
+  // Helper to simulate a single session with attempts
+  async simulateSession(profile) {
+    const sessionData = await SessionService.getOrCreateSession('standard');
+    const settings = await buildAdaptiveSessionSettings();
+
+    const attempts = [];
+    if (sessionData.problems) {
+      for (const problem of sessionData.problems) {
+        const success = Math.random() < profile.baseAccuracy;
+        attempts.push({
+          problemId: problem.id,
+          success,
+          timeSpent: 600
+        });
+
+        // Create mock problem object for the attempt
+        const mockProblem = {
+          id: problem.id,
+          leetcode_id: problem.id,
+          title: problem.title || `Minimal Test Problem ${problem.id}`,
+          difficulty: problem.difficulty || 'Medium'
+        };
+
+        await AttemptsService.addAttempt({
+          leetcode_id: problem.id,
+          success,
+          time_spent: 600,
+          source: 'minimal_test'
+        }, mockProblem);
+      }
+    }
+
+    return {
+      sessionLength: sessionData.problems ? sessionData.problems.length : 0,
+      successRate: attempts.length > 0 ? attempts.filter(a => a.success).length / attempts.length : 0,
+      isOnboarding: settings.isOnboarding
+    };
+  }
+
   async testSessionLengthAdaptation(_options = {}) {
 
     // Use the shared test database (set up by enableTesting())
@@ -38,45 +77,11 @@ export class MinimalSessionTester {
 
       for (let i = 0; i < 5; i++) {
         try {
-          // Create session
-          const sessionData = await SessionService.getOrCreateSession('standard');
-          const settings = await buildAdaptiveSessionSettings();
-
-          // Simulate attempts
-          const attempts = [];
-          if (sessionData.problems) {
-            for (const problem of sessionData.problems) {
-              const success = Math.random() < profile.baseAccuracy;
-              attempts.push({
-                problemId: problem.id,
-                success,
-                timeSpent: 600
-              });
-
-              // Create mock problem object for the attempt
-              const mockProblem = {
-                id: problem.id,
-                leetcode_id: problem.id,
-                title: problem.title || `Minimal Test Problem ${problem.id}`,
-                difficulty: problem.difficulty || 'Medium'
-              };
-
-              await AttemptsService.addAttempt({
-                leetcode_id: problem.id,
-                success,
-                time_spent: 600,
-                source: 'minimal_test'
-              }, mockProblem);
-            }
-          }
-
+          const sessionResult = await this.simulateSession(profile);
           sessions.push({
             sessionNumber: i + 1,
-            sessionLength: sessionData.problems ? sessionData.problems.length : 0,
-            successRate: attempts.length > 0 ? attempts.filter(a => a.success).length / attempts.length : 0,
-            isOnboarding: settings.isOnboarding
+            ...sessionResult
           });
-
         } catch (error) {
           sessions.push({
             sessionNumber: i + 1,
