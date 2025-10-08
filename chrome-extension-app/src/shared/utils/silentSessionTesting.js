@@ -8,6 +8,56 @@ import { buildAdaptiveSessionSettings, updateSessionInDB } from '../db/sessions.
 import { storeSessionAnalytics } from '../db/sessionAnalytics.js';
 
 export class SilentSessionTester {
+  // Helper to test sessions for a single profile
+  async testProfileSessions(profileName, config) {
+    try {
+      if (!config.quiet) {
+        console.log(`\n🎭 Testing profile: ${profileName.toUpperCase()}`);
+      }
+
+      // Reset session state for clean testing per profile
+      await this.resetSessionState();
+
+      const profile = this.getProfile(profileName);
+      const sessionData = [];
+
+      for (let i = 0; i < config.sessions; i++) {
+        try {
+          const result = await this.runSilentSession(i + 1, profile, config.quiet);
+          if (result && result.success !== false) {
+            sessionData.push(result);
+          } else if (!config.quiet) {
+            console.warn(`⚠️ Session ${i + 1} failed for ${profileName}`);
+          }
+
+          // Small delay to prevent overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 50));
+
+        } catch (sessionError) {
+          if (!config.quiet) {
+            console.error(`❌ Error in session ${i + 1} for ${profileName}:`, sessionError.message);
+          }
+          // Continue with next session rather than crash entire test
+        }
+      }
+
+      return {
+        profile: profileName,
+        sessions: sessionData,
+        summary: this.analyzeSessions(sessionData)
+      };
+
+    } catch (profileError) {
+      console.error(`❌ Error testing profile ${profileName}:`, profileError.message);
+      // Add failed profile to results for visibility
+      return {
+        profile: profileName,
+        sessions: [],
+        summary: { error: `Profile test failed: ${profileError.message}` }
+      };
+    }
+  }
+
   async testSessionConsistency(options = {}) {
     // Use the existing shared test database (no individual database creation)
     if (!globalThis._testDatabaseActive || !globalThis._testDatabaseHelper) {
@@ -37,53 +87,8 @@ export class SilentSessionTester {
 
     for (let profileIndex = 0; profileIndex < config.profiles.length; profileIndex++) {
       const profileName = config.profiles[profileIndex];
-
-      try {
-        if (!config.quiet) {
-          console.log(`\n🎭 Testing profile: ${profileName.toUpperCase()}`);
-        }
-
-        // Reset session state for clean testing per profile
-        await this.resetSessionState();
-
-        const profile = this.getProfile(profileName);
-        const sessionData = [];
-
-        for (let i = 0; i < config.sessions; i++) {
-          try {
-            const result = await this.runSilentSession(i + 1, profile, config.quiet);
-            if (result && result.success !== false) {
-              sessionData.push(result);
-            } else if (!config.quiet) {
-              console.warn(`⚠️ Session ${i + 1} failed for ${profileName}`);
-            }
-
-            // Small delay to prevent overwhelming the system
-            await new Promise(resolve => setTimeout(resolve, 50));
-
-          } catch (sessionError) {
-            if (!config.quiet) {
-              console.error(`❌ Error in session ${i + 1} for ${profileName}:`, sessionError.message);
-            }
-            // Continue with next session rather than crash entire test
-          }
-        }
-
-        results.push({
-          profile: profileName,
-          sessions: sessionData,
-          summary: this.analyzeSessions(sessionData)
-        });
-
-      } catch (profileError) {
-        console.error(`❌ Error testing profile ${profileName}:`, profileError.message);
-        // Add failed profile to results for visibility
-        results.push({
-          profile: profileName,
-          sessions: [],
-          summary: { error: `Profile test failed: ${profileError.message}` }
-        });
-      }
+      const profileResult = await this.testProfileSessions(profileName, config);
+      results.push(profileResult);
     }
 
     // Show clean summary
