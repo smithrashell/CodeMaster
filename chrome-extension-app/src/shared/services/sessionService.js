@@ -1594,6 +1594,62 @@ export const SessionService = {
    * @param {Object} session - Completed session object
    * @param {Object} sessionSummary - Session performance summary
    */
+  // Helper to update difficulty time stats from session summary
+  updateDifficultyTimeStats(sessionState, sessionSummary) {
+    console.log(`🔍 DEBUG: Updating difficulty time stats from session summary...`);
+    const difficultyData = sessionSummary.difficulty_breakdown || sessionSummary.performance;
+
+    if (difficultyData) {
+      const difficultyMappings = [
+        { perfKey: 'easy', stateKey: 'easy' },
+        { perfKey: 'medium', stateKey: 'medium' },
+        { perfKey: 'hard', stateKey: 'hard' }
+      ];
+
+      for (const { perfKey, stateKey } of difficultyMappings) {
+        const perfStats = difficultyData[perfKey];
+        if (perfStats && perfStats.attempts > 0) {
+          console.log(`🔍 DEBUG: Processing ${perfKey} difficulty - attempts: ${perfStats.attempts}, time: ${perfStats.time}`);
+
+          sessionState.difficulty_time_stats[stateKey].problems += perfStats.attempts;
+          sessionState.difficulty_time_stats[stateKey].total_time += perfStats.time;
+          sessionState.difficulty_time_stats[stateKey].avg_time =
+            sessionState.difficulty_time_stats[stateKey].total_time /
+            sessionState.difficulty_time_stats[stateKey].problems;
+
+          console.log(`🔍 DEBUG: Updated ${stateKey} stats:`, sessionState.difficulty_time_stats[stateKey]);
+        }
+      }
+    }
+  },
+
+  // Helper to evaluate and update difficulty progression
+  async evaluateDifficultyProgressionAfterSession(sessionSummary) {
+    console.log(`🔍 DEBUG: Evaluating difficulty progression after session completion...`);
+    try {
+      const settings = await StorageService.getSettings();
+      const accuracy = sessionSummary.performance?.accuracy || 0;
+
+      // Validate accuracy value to prevent downstream errors
+      if (typeof accuracy !== 'number' || isNaN(accuracy) || accuracy < 0 || accuracy > 1) {
+        console.warn(`⚠️ Invalid accuracy value: ${accuracy}, skipping difficulty progression`);
+        logger.warn(`⚠️ Invalid accuracy value for difficulty progression: ${accuracy}`);
+        return;
+      }
+
+      console.log(`🔍 DEBUG: Calling evaluateDifficultyProgression with accuracy: ${(accuracy * 100).toFixed(1)}%`);
+      const updatedSessionState = await evaluateDifficultyProgression(accuracy, settings);
+      console.log(`✅ DEBUG: Difficulty progression evaluated. Current cap: ${updatedSessionState.current_difficulty_cap}`);
+    } catch (difficultyError) {
+      console.error(`❌ DEBUG: Difficulty progression evaluation failed (non-critical):`, difficultyError);
+      logger.error("❌ Failed to evaluate difficulty progression (session completion continues):", {
+        error: difficultyError.message,
+        stack: difficultyError.stack,
+        sessionId: sessionSummary.session_id
+      });
+    }
+  },
+
   async updateSessionStateWithPerformance(session, sessionSummary) {
     try {
       console.log(`🔍 REAL SESSION DEBUG: updateSessionStateWithPerformance ENTRY for ACTUAL session ${session.id}`);
@@ -1636,34 +1692,7 @@ export const SessionService = {
       });
 
       // Update difficulty time stats from session summary performance data
-      console.log(`🔍 DEBUG: Updating difficulty time stats from session summary...`);
-      // CRITICAL FIX: Use difficulty_breakdown instead of performance for difficulty stats
-      const difficultyData = sessionSummary.difficulty_breakdown || sessionSummary.performance;
-
-      if (difficultyData) {
-        // Map difficulty breakdown data to session state (using snake_case)
-        const difficultyMappings = [
-          { perfKey: 'easy', stateKey: 'easy' },
-          { perfKey: 'medium', stateKey: 'medium' },
-          { perfKey: 'hard', stateKey: 'hard' }
-        ];
-
-        for (const { perfKey, stateKey } of difficultyMappings) {
-          const perfStats = difficultyData[perfKey];
-          if (perfStats && perfStats.attempts > 0) {
-            console.log(`🔍 DEBUG: Processing ${perfKey} difficulty - attempts: ${perfStats.attempts}, time: ${perfStats.time}`);
-
-            // Update session state difficulty stats
-            sessionState.difficulty_time_stats[stateKey].problems += perfStats.attempts;
-            sessionState.difficulty_time_stats[stateKey].total_time += perfStats.time;
-            sessionState.difficulty_time_stats[stateKey].avg_time =
-              sessionState.difficulty_time_stats[stateKey].total_time /
-              sessionState.difficulty_time_stats[stateKey].problems;
-
-            console.log(`🔍 DEBUG: Updated ${stateKey} stats:`, sessionState.difficulty_time_stats[stateKey]);
-          }
-        }
-      }
+      this.updateDifficultyTimeStats(sessionState, sessionSummary);
 
       // Update last performance from session summary
       console.log(`🔍 DEBUG: Updating last performance from session summary...`);
@@ -1723,31 +1752,7 @@ export const SessionService = {
       });
 
       // 🎯 Evaluate difficulty progression after session completion (non-blocking)
-      console.log(`🔍 DEBUG: Evaluating difficulty progression after session completion...`);
-      try {
-        const settings = await StorageService.getSettings();
-        const accuracy = sessionSummary.performance?.accuracy || 0;
-
-        // Validate accuracy value to prevent downstream errors
-        if (typeof accuracy !== 'number' || isNaN(accuracy) || accuracy < 0 || accuracy > 1) {
-          console.warn(`⚠️ Invalid accuracy value: ${accuracy}, skipping difficulty progression`);
-          logger.warn(`⚠️ Invalid accuracy value for difficulty progression: ${accuracy}`);
-          return; // Don't fail the entire session for this
-        }
-
-        console.log(`🔍 DEBUG: Calling evaluateDifficultyProgression with accuracy: ${(accuracy * 100).toFixed(1)}%`);
-        const updatedSessionState = await evaluateDifficultyProgression(accuracy, settings);
-        console.log(`✅ DEBUG: Difficulty progression evaluated. Current cap: ${updatedSessionState.current_difficulty_cap}`);
-      } catch (difficultyError) {
-        // Log the error but don't fail the session - difficulty progression is not critical to session completion
-        console.error(`❌ DEBUG: Difficulty progression evaluation failed (non-critical):`, difficultyError);
-        logger.error("❌ Failed to evaluate difficulty progression (session completion continues):", {
-          error: difficultyError.message,
-          stack: difficultyError.stack,
-          sessionId: sessionSummary.session_id
-        });
-        // Continue with session completion - this is not a blocking error
-      }
+      await this.evaluateDifficultyProgressionAfterSession(sessionSummary);
 
     } catch (error) {
       console.error(`❌ DEBUG: updateSessionStateWithPerformance ERROR:`, error);
