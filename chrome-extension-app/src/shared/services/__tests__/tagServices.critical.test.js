@@ -570,7 +570,7 @@ describe.skip('TagServices - Critical Risk Areas', () => {
   // The current mocks don't trigger onsuccess/onerror callbacks, causing tests to hang
   // Consider using fake-indexeddb or implementing proper event-based mocks
 
-  beforeAll(async () => {
+  beforeAll(() => {
     // Set up proper globals for TagServices
     global.globalThis = global.globalThis || {};
     global.globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
