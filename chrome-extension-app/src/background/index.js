@@ -18,7 +18,7 @@ import { DynamicPathOptimizationTester } from "../shared/utils/dynamicPathOptimi
 import { RealSystemTester } from "../shared/utils/realSystemTesting.js";
 import { TestDataIsolation } from "../shared/utils/testDataIsolation.js";
 import { RelationshipSystemTester } from "../shared/utils/relationshipSystemTesting.js";
-// import { connect } from "chrome-extension-hot-reload"; // Disabled: causes service worker error code 15
+import { connect } from "chrome-extension-hot-reload";
 import {
   onboardUserIfNeeded,
   checkOnboardingStatus,
@@ -52,7 +52,7 @@ import AccurateTimer from "../shared/utils/AccurateTimer.js";
 import { InterviewService } from "../shared/services/interviewService.js";
 import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
 
-// connect(); // Disabled: causes service worker error code 15
+connect(); // Re-enabled: hot-reload notifies when extension needs reload
 
 // Mark this as background script context for database access
 if (typeof globalThis !== 'undefined') {
