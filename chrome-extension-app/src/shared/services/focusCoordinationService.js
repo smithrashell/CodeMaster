@@ -18,7 +18,7 @@ import { getAllFromStore } from '../db/common.js';
  */
 const FOCUS_CONFIG = {
   onboarding: {
-    sessionCount: 3,
+    sessionCount: 1,
     maxTags: 1
   },
   performance: {

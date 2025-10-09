@@ -35,7 +35,7 @@ module.exports = (env, argv) => {
       clean: true,  // Clean dist/ before each build
     },
     target: "web", // Changed from "webworker" - background script will be handled separately
-    devtool: isDev ? 'eval-source-map' : false, // Enable source maps in dev for better debugging
+    devtool: isDev ? 'cheap-source-map' : false, // Use cheap-source-map instead of eval for Chrome extension CSP compliance
 
     // Add filesystem cache for faster rebuilds in dev
     cache: isDev ? {

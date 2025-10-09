@@ -333,14 +333,25 @@ export function initializeCoreBusinessTests() {
     for (const test of tests) {
       if (quick && results.tests.length >= 5) break;
 
+      // Clean up variable data before each test (preserve seeded data)
+      if (globalThis._testDatabaseHelper) {
+        try {
+          await globalThis._testDatabaseHelper.smartTestIsolation();
+          if (verbose) console.log(`🧹 Cleaned test data before ${test.name}`);
+        } catch (cleanupError) {
+          console.warn(`⚠️ Pre-test cleanup failed for ${test.name}:`, cleanupError.message);
+        }
+      }
+
       try {
-        console.log(`Running ${test.name}...`);
+        if (verbose) console.log(`Running ${test.name}...`);
         const result = await test.fn(verbose);
 
         results.tests.push({
           name: test.name,
           status: result.success ? 'PASS' : 'FAIL',
           details: result.details,
+          error: result.error,
           duration: result.duration
         });
 
@@ -348,10 +359,12 @@ export function initializeCoreBusinessTests() {
           results.passed++;
         } else {
           results.failed++;
-          // ALWAYS show why tests failed (not just in verbose mode)
-          console.error(`❌ ${test.name} failed:`, result.error || result.details);
-          if (result.analysis) {
-            console.error(`   Analysis:`, result.analysis);
+          // Only show details in verbose mode - summary will show failed tests
+          if (verbose) {
+            console.error(`❌ ${test.name} failed:`, result.error || result.details);
+            if (result.analysis) {
+              console.error(`   Analysis:`, result.analysis);
+            }
           }
         }
       } catch (error) {
@@ -363,9 +376,11 @@ export function initializeCoreBusinessTests() {
           duration: 0
         });
 
-        // ALWAYS show errors (not just in verbose mode)
-        console.error(`💥 ${test.name} errored:`, error.message);
-        console.error(`   Stack:`, error.stack);
+        // Only show details in verbose mode
+        if (verbose) {
+          console.error(`💥 ${test.name} errored:`, error.message);
+          console.error(`   Stack:`, error.stack);
+        }
       }
     }
 
@@ -381,6 +396,16 @@ export function initializeCoreBusinessTests() {
     console.log(`   Failed: ${results.failed} ❌`);
     console.log(`   Success Rate: ${successRate}%`);
     console.log(`   Duration: ${results.duration}ms`);
+
+    // Show failed tests
+    if (results.failed > 0) {
+      console.log(`\n❌ Failed Tests:`);
+      results.tests
+        .filter(t => t.status === 'FAIL' || t.status === 'ERROR')
+        .forEach(t => {
+          console.log(`   • ${t.name}: ${t.error || t.details}`);
+        });
+    }
 
     if (cleanup && globalThis._testDatabaseHelper) {
       console.log('🧹 Running cleanup...');
@@ -1076,8 +1101,11 @@ export function initializeCoreBusinessTests() {
         dataFlowsCorrectly: false
       };
 
-      // Session 1: Create initial session
-      const session1 = await ProblemService.createSession();
+      // Session 1: Create initial session with real session object
+      const sessionObj1 = await SessionService.getOrCreateSession('standard');
+      const session1 = sessionObj1.problems;
+      const sessionId = sessionObj1.id;
+
       workflow.session1Created = session1 && session1.length > 0;
 
       if (!workflow.session1Created) {
@@ -1091,13 +1119,10 @@ export function initializeCoreBusinessTests() {
       // Get initial tier before attempts
       const tierBefore = await TagService.getCurrentTier();
 
-      // Simulate completing session 1 (solve multiple problems)
-      const sessionId = 'workflow-test-' + Date.now();
-
       // Use DB layer directly since service requires active session
       // Already imported statically
 
-      for (let i = 0; i < Math.min(3, session1.length); i++) {
+      for (let i = 0; i < session1.length; i++) {
         const sessionProblem = session1[i];
 
         // Create test problem in problems store using real LeetCode ID from session
@@ -1117,7 +1142,7 @@ export function initializeCoreBusinessTests() {
 
       // Complete session 1 explicitly to trigger progression evaluation
       try {
-        await SessionService.completeSession(sessionId);
+        await SessionService.checkAndCompleteSession(sessionId);
       } catch (error) {
         console.warn('Session completion warning:', error.message);
       }
@@ -2163,7 +2188,7 @@ export function initializeCoreBusinessTests() {
         await new Promise((resolve, reject) => {
           const req = stateTx.objectStore('session_state').put({
             key: 'session_state',
-            num_sessions_completed: 2,
+            num_sessions_completed: 3, // Exit onboarding (threshold is 3)
             current_difficulty_cap: 'Medium',
             tag_index: 0,
             last_difficulty_increase: new Date().toISOString(),
@@ -2214,25 +2239,46 @@ export function initializeCoreBusinessTests() {
   };
 
   // Expose individual test functions for debugging
-  globalThis.testSessionCompletionFlow = async function(verbose = true) {
+  const wrapTest = (testFn, name) => async function(verbose = true) {
     if (typeof globalThis.enableTesting !== 'function') {
       const error = '🚨 CRITICAL: enableTesting() not defined - cannot run test safely';
       console.error(error);
       return { success: false, error, critical: true };
     }
     await globalThis.enableTesting();
-    return await testSessionCompletionFlow(verbose);
-  };
 
-  globalThis.testFocusTagProgression = async function(verbose = true) {
-    if (typeof globalThis.enableTesting !== 'function') {
-      const error = '🚨 CRITICAL: enableTesting() not defined - cannot run test safely';
-      console.error(error);
-      return { success: false, error, critical: true };
+    // Clean up variable data before test (preserve seeded data)
+    if (globalThis._testDatabaseHelper) {
+      try {
+        await globalThis._testDatabaseHelper.smartTestIsolation();
+        if (verbose) console.log(`✅ Test database cleaned before ${name}`);
+      } catch (cleanupError) {
+        console.warn(`⚠️ Pre-test cleanup failed for ${name}:`, cleanupError.message);
+      }
     }
-    await globalThis.enableTesting();
-    return await testFocusTagProgression(verbose);
+
+    return await testFn(verbose);
   };
 
-  console.log('✅ Core business logic tests initialized');
+  globalThis.testSessionCreation = wrapTest(testSessionCreation, 'testSessionCreation');
+  globalThis.testProblemSelection = wrapTest(testProblemSelection, 'testProblemSelection');
+  globalThis.testAttemptTracking = wrapTest(testAttemptTracking, 'testAttemptTracking');
+  globalThis.testTagMastery = wrapTest(testTagMastery, 'testTagMastery');
+  globalThis.testSpacedRepetition = wrapTest(testSpacedRepetition, 'testSpacedRepetition');
+  globalThis.testDataPersistence = wrapTest(testDataPersistence, 'testDataPersistence');
+  globalThis.testServiceIntegration = wrapTest(testServiceIntegration, 'testServiceIntegration');
+  globalThis.testDifficultyProgression = wrapTest(testDifficultyProgression, 'testDifficultyProgression');
+  globalThis.testProblemRelationships = wrapTest(testProblemRelationships, 'testProblemRelationships');
+  globalThis.testProductionWorkflow = wrapTest(testProductionWorkflow, 'testProductionWorkflow');
+  globalThis.testMasteryGates = wrapTest(testMasteryGates, 'testMasteryGates');
+  globalThis.testAdaptiveSessionLength = wrapTest(testAdaptiveSessionLength, 'testAdaptiveSessionLength');
+  globalThis.testRelationshipMapUpdates = wrapTest(testRelationshipMapUpdates, 'testRelationshipMapUpdates');
+  globalThis.testSessionCleanupSafety = wrapTest(testSessionCleanupSafety, 'testSessionCleanupSafety');
+  globalThis.testMultiSessionCoexistence = wrapTest(testMultiSessionCoexistence, 'testMultiSessionCoexistence');
+  globalThis.testTrackingSessionRotation = wrapTest(testTrackingSessionRotation, 'testTrackingSessionRotation');
+  globalThis.testSessionCompletionFlow = wrapTest(testSessionCompletionFlow, 'testSessionCompletionFlow');
+  globalThis.testFocusTagProgression = wrapTest(testFocusTagProgression, 'testFocusTagProgression');
+  globalThis.testOnboardingInitialization = wrapTest(testOnboardingInitialization, 'testOnboardingInitialization');
+
+  console.log('✅ Core business logic tests initialized - 19 individual test functions available');
 }
