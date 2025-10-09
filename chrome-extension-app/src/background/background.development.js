@@ -13,8 +13,8 @@ console.warn('🔧 Build mode: DEVELOPMENT');
 globalThis.IS_PRODUCTION_BUILD = false;
 globalThis.ENABLE_TEST_FUNCTIONS = true;
 
-// Load the main background script (unminified source)
-import '../../public/background-original.js';
+// Load the main background script (now in proper location)
+import './index.js';
 
 // Load test functions and initialize them
 import { initializeCoreBusinessTests } from './core-business-tests.js';

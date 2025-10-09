@@ -12,7 +12,7 @@
  */
 
 // Import the main background script functionality
-// The actual handlers are in public/background.js
+// The actual handlers are in ./index.js
 // This file serves as the production entry point that webpack will bundle
 
 console.log('🚀 PRODUCTION: Background script initializing...');
@@ -24,6 +24,6 @@ globalThis.IS_PRODUCTION_BUILD = true;
 globalThis.ENABLE_TEST_FUNCTIONS = false;
 
 // Load the main background script
-require('../../public/background.js');
+import './index.js';
 
 console.log('✅ PRODUCTION: Background script loaded');
