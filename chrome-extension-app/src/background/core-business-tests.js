@@ -1124,6 +1124,9 @@ export function initializeCoreBusinessTests() {
       // Use DB layer directly since service requires active session
       // Already imported statically
 
+      // Record successful attempts for ALL problems in session1
+      // This should move them to higher box levels with cooldowns,
+      // forcing session2 to select different problems (learning progression)
       for (let i = 0; i < session1.length; i++) {
         const sessionProblem = session1[i];
 
@@ -1133,9 +1136,9 @@ export function initializeCoreBusinessTests() {
         await addAttemptToDB({
           problem_id: testProblem.problem_id,
           session_id: sessionId,
-          success: i % 2 === 0, // Alternate success/failure
+          success: true, // All successful to trigger box level progression
           time_spent: 300000 + (i * 100000),
-          hints_used: i,
+          hints_used: 0,
           tags: sessionProblem.tags || [],
           difficulty: sessionProblem.difficulty,
           attempt_date: new Date()  // Use Date object for compound index compatibility
@@ -2064,9 +2067,9 @@ export function initializeCoreBusinessTests() {
       const ladders = await getAllFromStore('pattern_ladders');
       const hasLadders = ladders.length > 0;
 
-      // Verify: Tag mastery initialized
-      const mastery = await getTagMastery();
-      const hasMastery = mastery.length > 0;
+      // NOTE: Tag mastery is no longer initialized during onboarding
+      // Tags are now added organically on first problem attempt
+      // This test only verifies ladder creation, not mastery initialization
 
       // Verify: Focus tags have larger ladders (12 problems)
       const arrayLadder = ladders.find(l => l.tag === 'array');
@@ -2075,24 +2078,22 @@ export function initializeCoreBusinessTests() {
       if (_verbose) {
         console.log('After initialization:', {
           ladders: ladders.length,
-          mastery: mastery.length,
           arrayLadderSize: arrayLadder?.problems.length
         });
       }
 
-      const success = hasLadders && hasMastery && hasArrayLadder;
+      const success = hasLadders && hasArrayLadder;
 
       return {
         success,
-        details: `Onboarding: ladders=${hasLadders ? '✅' : '❌'} mastery=${hasMastery ? '✅' : '❌'} array=${hasArrayLadder ? '✅' : '❌'}`,
+        details: `Onboarding: ladders=${hasLadders ? '✅' : '❌'} array=${hasArrayLadder ? '✅' : '❌'}`,
         analysis: {
           hadExistingLadders,
           laddersCreated: ladders.length,
-          masteryRecords: mastery.length,
           arrayLadderSize: arrayLadder?.problems.length || 0,
           hasLadders,
-          hasMastery,
-          hasArrayLadder
+          hasArrayLadder,
+          note: 'Tag mastery initialized on first attempt, not during onboarding'
         },
         duration: Date.now() - start
       };
