@@ -44,6 +44,7 @@ module.exports = (env, argv) => {
         "process.env.NODE_ENV": JSON.stringify(nodeEnv),
         "process.env.USE_MOCK_SERVICE": JSON.stringify(process.env.USE_MOCK_SERVICE),
         "process.env.ENABLE_TESTING": JSON.stringify(isDev ? "true" : "false"), // Only enable testing in dev builds
+        "BUILD_TIMESTAMP": JSON.stringify(new Date().toISOString()),
       }),
       new HtmlWebpackPlugin({
         template: "./src/app/app.html",
@@ -139,23 +140,45 @@ module.exports = (env, argv) => {
       extensions: [".jsx", ".js"],
     },
     optimization: {
+      minimize: isDev, // Enable minification even in dev mode to reduce file size for service worker
+      minimizer: isDev ? [
+        new (require('terser-webpack-plugin'))({
+          terserOptions: {
+            compress: {
+              // Preserve test functions assigned to globalThis
+              pure_funcs: [],
+            },
+            mangle: {
+              // Don't mangle globalThis properties
+              reserved: ['testCoreBusinessLogic', 'setupTestEnvironment', 'cleanupTestData'],
+            },
+          },
+        }),
+      ] : [],
       sideEffects: false,
       usedExports: true,
       splitChunks: {
-        chunks: 'all',
+        chunks(chunk) {
+          // Don't split the background chunk - service workers need single file
+          return chunk.name !== 'background';
+        },
         minSize: 10000,
         maxSize: 250000,
         cacheGroups: {
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
-            chunks: 'all',
+            chunks(chunk) {
+              return chunk.name !== 'background';
+            },
             maxSize: 400000,
           },
           common: {
             name: 'common',
             minChunks: 2,
-            chunks: 'all',
+            chunks(chunk) {
+              return chunk.name !== 'background';
+            },
             maxSize: 200000,
           },
         },
