@@ -1122,6 +1122,33 @@ export function initializeCoreBusinessTests() {
 
       workflow.session1Created = session1 && session1.length > 0;
 
+      // CRITICAL: Ensure session is saved to IndexedDB so addAttempt() can find it
+      // The Session Attribution Engine in addAttempt() queries IndexedDB for active sessions
+      // Without this, attempts go to a tracking session instead of the test session
+      const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
+        ? globalThis._testDatabaseHelper
+        : dbHelper;
+      const db = await helper.openDB();
+      const sessionTx = db.transaction(['sessions'], 'readwrite');
+      const sessionStore = sessionTx.objectStore('sessions');
+
+      // Save session to IndexedDB with in_progress status so it can be found
+      const sessionToSave = {
+        ...sessionObj1,
+        status: 'in_progress', // Ensure it's findable by getActiveGuidedSession()
+        attempts: sessionObj1.attempts || [],
+        date: sessionObj1.date || new Date().toISOString(),
+        last_activity_time: new Date().toISOString()
+      };
+
+      await new Promise((resolve, reject) => {
+        const request = sessionStore.put(sessionToSave);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+
+      console.log(`✅ TEST: Session ${sessionId} saved to IndexedDB with status: ${sessionToSave.status}`);
+
       if (!workflow.session1Created) {
         return {
           success: false,
