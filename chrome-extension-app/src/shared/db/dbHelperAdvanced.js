@@ -235,7 +235,7 @@ export async function smartTestIsolation(helper, options = {}) {
   }
 
   const DATA_CATEGORIES = {
-    TEST_SESSION: ['sessions', 'attempts', 'tag_mastery'],  // Don't clear 'problems' - it contains box_level/cooldown for spaced repetition
+    TEST_SESSION: ['sessions', 'attempts', 'tag_mastery', 'problems'],
     CONFIG: ['settings', 'user_progress', 'notifications']
   };
 
