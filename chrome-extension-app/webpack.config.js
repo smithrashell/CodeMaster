@@ -37,14 +37,10 @@ module.exports = (env, argv) => {
     target: "web", // Changed from "webworker" - background script will be handled separately
     devtool: isDev ? 'cheap-source-map' : false, // Use cheap-source-map instead of eval for Chrome extension CSP compliance
 
-    // Add filesystem cache for faster rebuilds in dev
-    cache: isDev ? {
-      type: 'filesystem',
-      cacheDirectory: path.resolve(__dirname, '.webpack-cache'),
-      buildDependencies: {
-        config: [__filename],  // Invalidate cache when webpack config changes
-      },
-    } : false,
+    // Disable filesystem cache in dev to prevent stale builds during watch mode
+    // The cache was causing webpack to miss file changes and serve stale bundles
+    // Memory cache is sufficient for dev rebuilds
+    cache: false,
 
     watchOptions: {
       poll: 1000,
