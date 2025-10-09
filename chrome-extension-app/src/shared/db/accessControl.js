@@ -61,30 +61,15 @@ export function getStackTrace() {
 export function validateDatabaseAccess(context, stack) {
   // 🚨 CRITICAL SAFETY NET: Block database access from content scripts
   // BUT allow access from marked background script context
-  console.log('🔍 DATABASE ACCESS CONTROL', {
-    hasGlobalThis: typeof globalThis !== 'undefined',
-    isBackgroundContext: typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT,
-    hasWindow: typeof window !== 'undefined',
-    hasChrome: typeof chrome !== 'undefined',
-    contextType: context.contextType
-  });
-  
+
   if (typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT) {
-    console.log('✅ DATABASE ACCESS: Allowed from marked background script context');
     return;
   }
-  
+
   if (typeof window !== "undefined" && window.location) {
     const isWebPage = window.location.protocol === "http:" || window.location.protocol === "https:";
     const isNotExtensionPage = !window.location.href.startsWith("chrome-extension://");
-    
-    console.log('📍 Window Context Check:', {
-      protocol: window.location.protocol,
-      href: window.location.href.substring(0, 100),
-      isWebPage,
-      isNotExtensionPage
-    });
-    
+
     if (isWebPage && isNotExtensionPage) {
       logger.groupEnd();
       const error = new Error(`🚫 DATABASE ACCESS BLOCKED: Content scripts cannot access IndexedDB directly. Context: ${context.contextType}, URL: ${context.location}`);
@@ -92,22 +77,14 @@ export function validateDatabaseAccess(context, stack) {
       console.error('📚 Blocked Call Stack:', stack);
       throw error;
     }
-    console.log('✅ DATABASE ACCESS: Extension page context allowed');
-  } else {
-    console.log('✅ DATABASE ACCESS: No window context, allowing (likely service worker)');
   }
-  
+
   // Additional safety check for chrome extension context
   // BUT allow access from marked background script context
   if (typeof chrome !== "undefined" && chrome.runtime && !(typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT)) {
     const hasTabsAPI = !!(chrome.tabs && chrome.tabs.query);
-    console.log('🔍 Chrome Extension Context Check:', {
-      hasChromeRuntime: !!(chrome.runtime),
-      hasTabsAPI,
-      isBackgroundContext: typeof globalThis !== 'undefined' && globalThis.IS_BACKGROUND_SCRIPT_CONTEXT
-    });
-    
-    if (!hasTabsAPI && typeof window !== "undefined" && 
+
+    if (!hasTabsAPI && typeof window !== "undefined" &&
         (window.location.protocol === "http:" || window.location.protocol === "https:")) {
       const error = new Error(`🚫 DATABASE ACCESS BLOCKED: Detected content script context without tabs API. Context: ${context.contextType}`);
       console.error(error.message);
@@ -122,10 +99,8 @@ export function validateDatabaseAccess(context, stack) {
  * @param {string} stack - Stack trace
  */
 export function logDatabaseAccess(context, stack) {
-  console.log(`🔍 DATABASE DEBUG: openDB() called from ${context.contextType}`, {
-    executionContext: context,
-    callStack: stack
-  });
+  // Verbose logging removed to prevent console pollution
+  // Use logger.debug() if debugging is needed
 }
 
 /**
