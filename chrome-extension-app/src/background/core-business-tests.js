@@ -1139,22 +1139,22 @@ export function initializeCoreBusinessTests() {
       // Record successful attempts for ALL problems in session1
       // This should move them to higher box levels with cooldowns,
       // forcing session2 to select different problems (learning progression)
+      // IMPORTANT: Use high-level AttemptsService.addAttempt() not low-level addAttemptToDB()
+      // Only the high-level service updates box levels and cooldowns
       for (let i = 0; i < session1.length; i++) {
         const sessionProblem = session1[i];
 
         // Create test problem in problems store using real LeetCode ID from session
         const testProblem = await createTestProblem(sessionProblem.id);
 
-        await addAttemptToDB({
+        await AttemptsService.addAttempt({
           problem_id: testProblem.problem_id,
           session_id: sessionId,
           success: true, // All successful to trigger box level progression
           time_spent: 300000 + (i * 100000),
           hints_used: 0,
-          tags: sessionProblem.tags || [],
-          difficulty: sessionProblem.difficulty,
-          attempt_date: new Date()  // Use Date object for compound index compatibility
-        });
+          attempt_date: new Date().toISOString()
+        }, testProblem);
       }
 
       // Complete session 1 explicitly to trigger progression evaluation
