@@ -1141,11 +1141,20 @@ export function initializeCoreBusinessTests() {
       // forcing session2 to select different problems (learning progression)
       // IMPORTANT: Use high-level AttemptsService.addAttempt() not low-level addAttemptToDB()
       // Only the high-level service updates box levels and cooldowns
+
+      // Store first test problem for verification later
+      let firstTestProblem = null;
+
       for (let i = 0; i < session1.length; i++) {
         const sessionProblem = session1[i];
 
         // Create test problem in problems store using real LeetCode ID from session
         const testProblem = await createTestProblem(sessionProblem.id);
+
+        // Save first problem for later verification
+        if (i === 0) {
+          firstTestProblem = testProblem;
+        }
 
         await AttemptsService.addAttempt({
           problem_id: testProblem.problem_id,
@@ -1164,10 +1173,7 @@ export function initializeCoreBusinessTests() {
         console.warn('Session completion warning:', error.message);
       }
 
-      // Verify attempts recorded
-      const firstProblem = session1[0];
-      // Create test problem to get the UUID
-      const firstTestProblem = await createTestProblem(firstProblem.id);
+      // Verify attempts recorded using the SAME problem object from the loop
       const recordedAttempt = await AttemptsService.getMostRecentAttempt(firstTestProblem.problem_id);
       workflow.attemptRecorded = recordedAttempt && recordedAttempt.problem_id === firstTestProblem.problem_id;
 
