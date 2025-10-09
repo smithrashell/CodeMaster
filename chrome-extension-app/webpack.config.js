@@ -44,6 +44,15 @@ module.exports = (env, argv) => {
       buildDependencies: {
         config: [__filename],  // Invalidate cache when webpack config changes
       },
+      // Use git commit hash as version to invalidate cache on branch switches/commits
+      version: (() => {
+        try {
+          const { execSync } = require('child_process');
+          return execSync('git rev-parse HEAD').toString().trim();
+        } catch {
+          return Date.now().toString(); // Fallback if not a git repo
+        }
+      })()
     } : false,
 
     watchOptions: {
