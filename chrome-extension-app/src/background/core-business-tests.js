@@ -2090,6 +2090,123 @@ export function initializeCoreBusinessTests() {
     return { success: true, message: 'Async test completed' };
   };
 
+  /**
+   * 🧪 Enable Test Environment
+   * Creates isolated test database and seeds it with production-like data
+   */
+  globalThis.enableTesting = async function(options = {}) {
+    console.log('🔥 enableTesting() CALLED - Setting up test environment...');
+    const { force = false } = options;
+
+    try {
+      // Check if already enabled and seeded (idempotent)
+      if (globalThis._testDatabaseActive && globalThis._testDatabaseSeeded && !force) {
+        console.log('ℹ️ Test environment already active and seeded');
+        return {
+          success: true,
+          active: true,
+          message: 'Test environment already active',
+          seeded: true
+        };
+      }
+
+      console.log('🧪 Enabling test environment...');
+
+      // Import required test database factory
+      const { createDbHelper } = await import('../shared/db/dbHelperFactory.js');
+
+      // Create test database helper
+      let testDb = globalThis._testDatabaseHelper;
+      if (!testDb) {
+        testDb = createDbHelper({
+          dbName: "CodeMaster_test",
+          isTestMode: true,
+          enableLogging: true
+        });
+        console.log(`✅ Test database created: ${testDb.dbName}`);
+      }
+
+      // Import seeding functions
+      const { insertStandardProblems } = await import('../shared/db/standard_problems.js');
+      const { insertStrategyData } = await import('../shared/db/strategy_data.js');
+      const { buildTagRelationships } = await import('../shared/db/tag_relationships.js');
+      const { buildProblemRelationships } = await import('../shared/services/relationshipService.js');
+
+      // Open database and check if already seeded
+      const db = await testDb.openDB();
+      const tx = db.transaction(['standard_problems'], 'readonly');
+      const count = await new Promise((resolve) => {
+        const req = tx.objectStore('standard_problems').count();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve(0);
+      });
+
+      let seedResults = {};
+      if (count > 1000 && !force) {
+        console.log(`♻️ Test database already seeded: ${count} problems - SKIPPING`);
+        seedResults = { standardProblems: true, strategyData: true, tagRelationships: true, problemRelationships: true, sessionState: true };
+      } else {
+        console.log(`🌱 Seeding test database...`);
+
+        // Set flags for seeding
+        globalThis._testDatabaseActive = true;
+        globalThis._testDatabaseHelper = testDb;
+
+        // Seed data
+        await insertStandardProblems(db);
+        await insertStrategyData(db);
+        await buildTagRelationships();
+        await buildProblemRelationships();
+
+        // Initialize session state
+        const stateTx = db.transaction(['session_state'], 'readwrite');
+        await new Promise((resolve, reject) => {
+          const req = stateTx.objectStore('session_state').put({
+            key: 'session_state',
+            num_sessions_completed: 2,
+            current_difficulty_cap: 'Medium',
+            tag_index: 0,
+            last_difficulty_increase: new Date().toISOString(),
+            _migrated: true
+          });
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+
+        seedResults = { standardProblems: true, strategyData: true, tagRelationships: true, problemRelationships: true, sessionState: true };
+        console.log('✅ Test database seeded successfully');
+      }
+
+      // Set global flags
+      globalThis._testDatabaseActive = true;
+      globalThis._testDatabaseHelper = testDb;
+      globalThis._testDatabaseSeeded = true;
+
+      console.log('✅ Test environment ready!');
+      return {
+        success: true,
+        active: true,
+        message: 'Test environment initialized successfully',
+        dbName: testDb.dbName,
+        seeded: true,
+        seedResults
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to enable test environment:', error);
+      globalThis._testDatabaseActive = false;
+      globalThis._testDatabaseHelper = null;
+      globalThis._testDatabaseSeeded = false;
+
+      return {
+        success: false,
+        active: false,
+        message: `Failed to enable test environment: ${error.message}`,
+        error: error.message
+      };
+    }
+  };
+
   // Convenience test runner
   globalThis.test = function() {
     console.log('🚀 Running quick core business logic test...');
