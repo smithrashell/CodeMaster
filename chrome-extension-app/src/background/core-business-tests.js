@@ -1188,8 +1188,10 @@ export function initializeCoreBusinessTests() {
 
       const success = Object.values(workflow).every(v => v === true);
 
-      // Find which workflow step failed (if any)
-      const failedSteps = Object.entries(workflow).filter(([, v]) => v === false).map(([k]) => k);
+      // Find which workflow step failed (if any) - check for non-true values
+      const failedSteps = Object.entries(workflow)
+        .filter(([, v]) => v !== true)
+        .map(([k, v]) => `${k}=${v}`);
 
       return {
         success,
@@ -1202,7 +1204,7 @@ export function initializeCoreBusinessTests() {
           tierAfter,
           hasNewProblems,
           attemptsCount: session1.length,
-          failedSteps
+          failedSteps: failedSteps.length > 0 ? failedSteps : 'none - check workflow values'
         },
         duration: Date.now() - start
       };
