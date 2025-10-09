@@ -32,11 +32,23 @@ module.exports = (env, argv) => {
       path: path.resolve(__dirname, "dist"),
       filename: "[name].js",
       publicPath: "",  // Fix for service worker compatibility
+      clean: true,  // Clean dist/ before each build
     },
     target: "web", // Changed from "webworker" - background script will be handled separately
-    devtool: false, // Disable source maps to save memory
+    devtool: isDev ? 'eval-source-map' : false, // Enable source maps in dev for better debugging
+
+    // Add filesystem cache for faster rebuilds in dev
+    cache: isDev ? {
+      type: 'filesystem',
+      cacheDirectory: path.resolve(__dirname, '.webpack-cache'),
+      buildDependencies: {
+        config: [__filename],  // Invalidate cache when webpack config changes
+      },
+    } : false,
+
     watchOptions: {
       poll: 1000,
+      aggregateTimeout: 300,  // Wait 300ms after change before rebuilding
       ignored: /node_modules/,
     },
     plugins: [
@@ -140,17 +152,17 @@ module.exports = (env, argv) => {
       extensions: [".jsx", ".js"],
     },
     optimization: {
-      minimize: isDev, // Enable minification even in dev mode to reduce file size for service worker
-      minimizer: isDev ? [
+      minimize: !isDev, // Only minify in production (dev minification only saves 20KB but breaks watch mode)
+      minimizer: !isDev ? [
         new (require('terser-webpack-plugin'))({
           terserOptions: {
             compress: {
-              // Preserve test functions assigned to globalThis
-              pure_funcs: [],
+              drop_console: false,  // Keep console logs
+              pure_funcs: ['console.debug', 'console.trace'],
             },
             mangle: {
               // Don't mangle globalThis properties
-              reserved: ['testCoreBusinessLogic', 'setupTestEnvironment', 'cleanupTestData'],
+              reserved: ['testCoreBusinessLogic', 'setupTestEnvironment', 'cleanupTestData', 'enableTesting'],
             },
           },
         }),
