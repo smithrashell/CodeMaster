@@ -1,23 +1,23 @@
-import { StorageService } from "../src/shared/services/storageService.js";
-import { ProblemService } from "../src/shared/services/problemService.js";
-import { SessionService } from "../src/shared/services/sessionService.js";
-import { AttemptsService } from "../src/shared/services/attemptsService.js";
-import { updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../src/shared/db/sessions.js";
-import { adaptiveLimitsService } from "../src/shared/services/adaptiveLimitsService.js";
-import { NavigationService } from "../src/shared/services/navigationService.js";
-import { TagService } from "../src/shared/services/tagServices.js";
-import { HintInteractionService } from "../src/shared/services/hintInteractionService.js";
-import { AlertingService } from "../src/shared/services/AlertingService.js";
-import { backupIndexedDB, getBackupFile } from "../src/shared/db/backupDB.js";
-import { SessionTester, TestScenarios } from "../src/shared/utils/sessionTesting.js";
-import { ComprehensiveSessionTester, ComprehensiveTestScenarios } from "../src/shared/utils/comprehensiveSessionTesting.js";
-import { MinimalSessionTester } from "../src/shared/utils/minimalSessionTesting.js";
-import { SilentSessionTester } from "../src/shared/utils/silentSessionTesting.js";
-import { TagProblemIntegrationTester } from "../src/shared/utils/integrationTesting.js";
-import { DynamicPathOptimizationTester } from "../src/shared/utils/dynamicPathOptimizationTesting.js";
-import { RealSystemTester } from "../src/shared/utils/realSystemTesting.js";
-import { TestDataIsolation } from "../src/shared/utils/testDataIsolation.js";
-import { RelationshipSystemTester } from "../src/shared/utils/relationshipSystemTesting.js";
+import { StorageService } from "../shared/services/storageService.js";
+import { ProblemService } from "../shared/services/problemService.js";
+import { SessionService } from "../shared/services/sessionService.js";
+import { AttemptsService } from "../shared/services/attemptsService.js";
+import { updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
+import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
+import { NavigationService } from "../shared/services/navigationService.js";
+import { TagService } from "../shared/services/tagServices.js";
+import { HintInteractionService } from "../shared/services/hintInteractionService.js";
+import { AlertingService } from "../shared/services/AlertingService.js";
+import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
+import { SessionTester, TestScenarios } from "../shared/utils/sessionTesting.js";
+import { ComprehensiveSessionTester, ComprehensiveTestScenarios } from "../shared/utils/comprehensiveSessionTesting.js";
+import { MinimalSessionTester } from "../shared/utils/minimalSessionTesting.js";
+import { SilentSessionTester } from "../shared/utils/silentSessionTesting.js";
+import { TagProblemIntegrationTester } from "../shared/utils/integrationTesting.js";
+import { DynamicPathOptimizationTester } from "../shared/utils/dynamicPathOptimizationTesting.js";
+import { RealSystemTester } from "../shared/utils/realSystemTesting.js";
+import { TestDataIsolation } from "../shared/utils/testDataIsolation.js";
+import { RelationshipSystemTester } from "../shared/utils/relationshipSystemTesting.js";
 // import { connect } from "chrome-extension-hot-reload"; // Disabled: causes service worker error code 15
 import {
   onboardUserIfNeeded,
@@ -29,9 +29,9 @@ import {
   checkPageTourStatus,
   markPageTourCompleted,
   resetPageTour
-} from "../src/shared/services/onboardingService.js";
-import { getStrategyForTag } from "../src/shared/db/strategy_data.js";
-import { getProblem, getProblemWithOfficialDifficulty } from "../src/shared/db/problems.js";
+} from "../shared/services/onboardingService.js";
+import { getStrategyForTag } from "../shared/db/strategy_data.js";
+import { getProblem, getProblemWithOfficialDifficulty } from "../shared/db/problems.js";
 import { 
   getDashboardStatistics,
   getFocusAreaAnalytics,
@@ -46,11 +46,11 @@ import {
   clearFocusAreaAnalyticsCache,
   getInterviewAnalyticsData,
   getSessionMetrics
-} from "../src/app/services/dashboardService.js";
-import FocusCoordinationService from "../src/shared/services/focusCoordinationService.js";
-import AccurateTimer from "../src/shared/utils/AccurateTimer.js";
-import { InterviewService } from "../src/shared/services/interviewService.js";
-import ChromeAPIErrorHandler from "../src/shared/services/ChromeAPIErrorHandler.js";
+} from "../app/services/dashboardService.js";
+import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
+import AccurateTimer from "../shared/utils/AccurateTimer.js";
+import { InterviewService } from "../shared/services/interviewService.js";
+import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
 
 // connect(); // Disabled: causes service worker error code 15
 
@@ -380,7 +380,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           // Try to import getAllFromStore dynamically
           let getAllFromStore;
           try {
-            const dbCommon = await import("../src/shared/db/common.js");
+            const dbCommon = await import("../shared/db/common.js");
             getAllFromStore = dbCommon.getAllFromStore;
           } catch (importError) {
             if (verbose) console.log('⚠️ Could not import getAllFromStore:', importError.message);
@@ -1852,7 +1852,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test session data validity
         try {
-          const { getAllFromStore } = await import('../src/shared/db/common.js');
+          const { getAllFromStore } = await import('../shared/db/common.js');
           const sessions = await getAllFromStore('sessions');
 
           if (sessions && sessions.length > 0) {
@@ -2084,7 +2084,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // Check database access
         try {
-          const { getAllFromStore } = await import('../src/shared/db/common.js');
+          const { getAllFromStore } = await import('../shared/db/common.js');
           const testData = await getAllFromStore('problems');
           results.serviceStatus.DatabaseAccess = {
             available: true,
@@ -2342,7 +2342,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     // Helper function for testing data flow integration
     globalThis.testDataFlowIntegrationCheck = async function() {
       try {
-        const { getAllFromStore } = await import('../src/shared/db/common.js');
+        const { getAllFromStore } = await import('../shared/db/common.js');
 
         // Test data flow across core data stores
         const dataFlowTests = [
@@ -2564,7 +2564,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test tag mastery integration
         try {
-          const { getAllFromStore } = await import('../src/shared/db/common.js');
+          const { getAllFromStore } = await import('../shared/db/common.js');
           const tagMasteryData = await getAllFromStore('tag_mastery');
 
           if (tagMasteryData && tagMasteryData.length > 0) {
@@ -2768,7 +2768,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test ladder coordination
         try {
-          const { getAllFromStore } = await import('../src/shared/db/common.js');
+          const { getAllFromStore } = await import('../shared/db/common.js');
           const patternLadders = await getAllFromStore('pattern_ladders');
 
           if (patternLadders && patternLadders.length > 0) {
@@ -3015,7 +3015,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 4. Test adaptive weighting
         try {
-          const { getAllFromStore } = await import('../src/shared/db/common.js');
+          const { getAllFromStore } = await import('../shared/db/common.js');
           const recentSessions = await getAllFromStore('sessions');
 
           if (recentSessions && recentSessions.length > 0) {
@@ -3168,7 +3168,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 1. Test session data availability for journey analysis
         try {
-          const { getAllFromStore } = await import('../src/shared/db/common.js');
+          const { getAllFromStore } = await import('../shared/db/common.js');
           const sessions = await getAllFromStore('sessions');
           const attempts = await getAllFromStore('attempts');
 
@@ -3275,7 +3275,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
       if (hasRealData) {
         // Analyze real session progression
-        const { getAllFromStore } = await import('../src/shared/db/common.js');
+        const { getAllFromStore } = await import('../shared/db/common.js');
         const sessions = await getAllFromStore('sessions');
 
         // Calculate journey metrics from real data
@@ -3323,7 +3323,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     // Helper function for testing progress tracking
     globalThis.testLearningJourney.testProgressTracking = async function() {
       try {
-        const { getAllFromStore } = await import('../src/shared/db/common.js');
+        const { getAllFromStore } = await import('../shared/db/common.js');
         const tagMastery = await getAllFromStore('tag_mastery');
 
         if (tagMastery && tagMastery.length > 0) {
@@ -6064,7 +6064,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test cross-session relationship data persistence
         try {
-          const { getAllFromStore } = await import("../src/shared/db/common.js");
+          const { getAllFromStore } = await import("../shared/db/common.js");
 
           // Test problem_relationships store access
           const relationshipData = await getAllFromStore('problem_relationships');
@@ -6750,7 +6750,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         // 4. Test update persistence and database consistency
         try {
           // Test that relationship updates are properly persisted
-          const { getAllFromStore } = await import("../src/shared/db/common.js");
+          const { getAllFromStore } = await import("../shared/db/common.js");
 
           // Check relationship updates in the database
           const relationshipData = await getAllFromStore('problem_relationships');
@@ -7356,7 +7356,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test database relationship validation
         try {
-          const { getAllFromStore } = await import('../src/shared/db/common.js');
+          const { getAllFromStore } = await import('../shared/db/common.js');
           const relationships = await getAllFromStore('problem_relationships');
 
           if (relationships && relationships.length > 0) {
@@ -8303,7 +8303,7 @@ const getStrategyMapData = async () => {
     const learningState = await TagService.getCurrentLearningState();
 
     // Get all tag relationships to build tier structure
-    const { dbHelper } = await import("../src/shared/db/index.js");
+    const { dbHelper } = await import("../shared/db/index.js");
     const db = await dbHelper.openDB();
 
     const tagRelationships = await new Promise((resolve, reject) => {
@@ -9412,7 +9412,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           try {
             console.log(`🔍 BACKGROUND DEBUG: Importing strategy_data.js...`);
             const { isStrategyDataLoaded } = await import(
-              "../src/shared/db/strategy_data.js"
+              "../shared/db/strategy_data.js"
             );
             console.log(
               `🔍 BACKGROUND DEBUG: Import successful, calling function...`
@@ -9513,7 +9513,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "getLearningStatus":
         (async () => {
           try {
-            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const { SessionService } = await import("../shared/services/sessionService.js");
             const cadenceData = await SessionService.getTypicalCadence();
             
             sendResponse({
@@ -9538,8 +9538,8 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "getFocusAreasData":
         (async () => {
           try {
-            const { StorageService } = await import("../src/shared/services/storageService.js");
-            const { TagService } = await import("../src/shared/services/tagServices.js");
+            const { StorageService } = await import("../shared/services/storageService.js");
+            const { TagService } = await import("../shared/services/tagServices.js");
             
             // Load focus areas from settings with fallback
             const settings = await StorageService.getSettings();
@@ -9583,7 +9583,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "graduateFocusAreas":
         (async () => {
           try {
-            const { TagService } = await import("../src/shared/services/tagServices.js");
+            const { TagService } = await import("../shared/services/tagServices.js");
             const result = await TagService.graduateFocusAreas();
             sendResponse({ result });
           } catch (error) {
@@ -9712,9 +9712,9 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         (async () => {
           try {
             console.log("🔍 getSimilarProblems: Starting similarity search...");
-            const { buildRelationshipMap } = await import("../src/shared/db/problem_relationships.js");
-            const { fetchAllProblems } = await import("../src/shared/db/problems.js");
-            const { getAllStandardProblems } = await import("../src/shared/db/standard_problems.js");
+            const { buildRelationshipMap } = await import("../shared/db/problem_relationships.js");
+            const { fetchAllProblems } = await import("../shared/db/problems.js");
+            const { getAllStandardProblems } = await import("../shared/db/standard_problems.js");
             
             // Get all data sources
             const relationshipMap = await buildRelationshipMap();
@@ -9796,7 +9796,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         (async () => {
           try {
             console.log("🔄 Starting problem relationships rebuild...");
-            const { buildProblemRelationships } = await import("../src/shared/services/relationshipService.js");
+            const { buildProblemRelationships } = await import("../shared/services/relationshipService.js");
             
             // Rebuild relationships
             await buildProblemRelationships();
@@ -9815,7 +9815,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           try {
             const { operation, params } = request;
             console.log(`📊 DATABASE_OPERATION: ${operation} on ${params.storeName}`, params);
-            const { getRecord, addRecord, updateRecord, deleteRecord, getAllFromStore } = await import("../src/shared/db/common.js");
+            const { getRecord, addRecord, updateRecord, deleteRecord, getAllFromStore } = await import("../shared/db/common.js");
 
             let result;
             switch (operation) {
@@ -9854,7 +9854,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("🔍 Getting session patterns for consistency analysis");
         (async () => {
           try {
-            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const { SessionService } = await import("../shared/services/sessionService.js");
             
             const [currentStreak, cadence, weeklyProgress] = await Promise.all([
               SessionService.getCurrentStreak(),
@@ -9882,8 +9882,8 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("🔔 Checking consistency alerts for reminders");
         (async () => {
           try {
-            const { SessionService } = await import("../src/shared/services/sessionService.js");
-            const { StorageService } = await import("../src/shared/services/storageService.js");
+            const { SessionService } = await import("../shared/services/sessionService.js");
+            const { StorageService } = await import("../shared/services/storageService.js");
             
             // Get user's reminder settings
             const settings = await StorageService.getSettings();
@@ -9914,7 +9914,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("🔥 Getting streak risk timing analysis");
         (async () => {
           try {
-            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const { SessionService } = await import("../shared/services/sessionService.js");
             const streakTiming = await SessionService.getStreakRiskTiming();
             
             console.log("✅ Streak risk timing retrieved:", streakTiming);
@@ -9930,7 +9930,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("👋 Getting re-engagement timing analysis");
         (async () => {
           try {
-            const { SessionService } = await import("../src/shared/services/sessionService.js");
+            const { SessionService } = await import("../shared/services/sessionService.js");
             const reEngagementTiming = await SessionService.getReEngagementTiming();
             
             console.log("✅ Re-engagement timing retrieved:", reEngagementTiming);
@@ -10266,7 +10266,7 @@ async function performConsistencyCheck() {
     console.log("🔍 Starting consistency check at", new Date().toLocaleString());
     
     // Get user settings to check if reminders are enabled
-    const { StorageService } = await import("../src/shared/services/storageService.js");
+    const { StorageService } = await import("../shared/services/storageService.js");
     const settings = await StorageService.getSettings();
     
     // CONSERVATIVE DEFAULT: All reminder types disabled by default for prerelease safety
@@ -10297,7 +10297,7 @@ async function performConsistencyCheck() {
     }
     
     // Run the comprehensive consistency check
-    const { SessionService } = await import("../src/shared/services/sessionService.js");
+    const { SessionService } = await import("../shared/services/sessionService.js");
     const consistencyCheck = await SessionService.checkConsistencyAlerts(reminderSettings);
     
     console.log(`📊 Consistency check result: ${consistencyCheck.alerts?.length || 0} alerts found`);
@@ -10855,7 +10855,7 @@ globalThis.testDataPersistenceReliability = async function(options = {}) {
 // Helper function for testing data integrity
 globalThis.testDataPersistenceReliability.testDataIntegrity = async function() {
   try {
-    const { getAllFromStore } = await import('../src/shared/db/common.js');
+    const { getAllFromStore } = await import('../shared/db/common.js');
     const sessions = await getAllFromStore('sessions');
 
     if (sessions && sessions.length > 0) {
@@ -11840,7 +11840,7 @@ globalThis.testPerformanceBenchmarks.benchmarkDatabaseOperations = async functio
 
   try {
     // Attempt real database operations for more accurate benchmarks
-    const { getAllFromStore } = await import('../src/shared/db/common.js');
+    const { getAllFromStore } = await import('../shared/db/common.js');
 
     const startTime = performance.now();
     const problems = await getAllFromStore('problems');
