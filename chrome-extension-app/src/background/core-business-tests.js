@@ -10,6 +10,7 @@ import { TagService } from '../shared/services/tagServices.js';
 import { ProblemService } from '../shared/services/problemService.js';
 import { StorageService } from '../shared/services/storageService.js';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '../shared/utils/logger.js';
 
 // Database imports - ALL static, NO dynamic imports
 import { createDbHelper } from '../shared/db/dbHelperFactory.js';
@@ -284,6 +285,12 @@ export function initializeCoreBusinessTests() {
   globalThis.testCoreBusinessLogic = async function(options = {}) {
     const { verbose = false, quick = false, cleanup = true } = options;
 
+    // Suppress DEBUG logs when verbose=false to reduce console noise
+    const originalLogLevel = logger.getLogLevel();
+    if (!verbose) {
+      logger.setLogLevel('ERROR');
+    }
+
     // Auto-setup test environment
     const setupResult = await setupTestEnvironment();
     if (!setupResult.success) {
@@ -415,6 +422,11 @@ export function initializeCoreBusinessTests() {
       } catch (cleanupError) {
         console.warn('⚠️ Cleanup failed:', cleanupError.message);
       }
+    }
+
+    // Restore original log level
+    if (!verbose) {
+      logger.setLogLevel(originalLogLevel);
     }
 
     return results;
