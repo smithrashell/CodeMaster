@@ -1175,6 +1175,17 @@ export function initializeCoreBusinessTests() {
 
       // Verify attempts recorded using the SAME problem object from the loop
       const recordedAttempt = await AttemptsService.getMostRecentAttempt(firstTestProblem.problem_id);
+
+      // Debug: Check what we got
+      if (!recordedAttempt) {
+        console.warn('⚠️ TEST: getMostRecentAttempt returned null for problem_id:', firstTestProblem.problem_id);
+        console.warn('⚠️ TEST: firstTestProblem:', {
+          problem_id: firstTestProblem.problem_id,
+          leetcode_id: firstTestProblem.leetcode_id,
+          title: firstTestProblem.title
+        });
+      }
+
       workflow.attemptRecorded = recordedAttempt && recordedAttempt.problem_id === firstTestProblem.problem_id;
 
       // Session 2: Create new session (should be influenced by session 1)
