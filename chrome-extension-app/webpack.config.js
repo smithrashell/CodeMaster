@@ -171,8 +171,8 @@ module.exports = (env, argv) => {
       usedExports: true,
       splitChunks: {
         chunks(chunk) {
-          // Don't split the background chunk - service workers need single file
-          return chunk.name !== 'background';
+          // Don't split background or content chunks - they need single files for Chrome extension
+          return chunk.name !== 'background' && chunk.name !== 'content';
         },
         minSize: 10000,
         maxSize: 250000,
@@ -181,7 +181,7 @@ module.exports = (env, argv) => {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             chunks(chunk) {
-              return chunk.name !== 'background';
+              return chunk.name !== 'background' && chunk.name !== 'content';
             },
             maxSize: 400000,
           },
@@ -189,7 +189,7 @@ module.exports = (env, argv) => {
             name: 'common',
             minChunks: 2,
             chunks(chunk) {
-              return chunk.name !== 'background';
+              return chunk.name !== 'background' && chunk.name !== 'content';
             },
             maxSize: 200000,
           },
