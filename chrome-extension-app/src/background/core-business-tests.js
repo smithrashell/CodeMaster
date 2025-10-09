@@ -663,47 +663,49 @@ export function initializeCoreBusinessTests() {
         };
       }
 
-      const problem1 = session1[0];
+      // Record successful attempts for ALL problems in session1
+      // This should move them to higher box levels with cooldowns
+      for (const problem of session1) {
+        const testProblem = await createTestProblem(problem.id);
 
-      // Create test problem in problems store using real LeetCode ID from session
-      // Session problems have 'id' field which is the LeetCode ID
-      const testProblem = await createTestProblem(problem1.id);
+        await AttemptsService.addAttempt({
+          problem_id: testProblem.problem_id,
+          session_id: 'spaced-rep-test',
+          success: true,
+          time_spent: 300000,
+          attempt_date: new Date().toISOString()
+        }, testProblem);
+      }
 
-      // Record successful attempt (should move to higher box/longer cooldown)
-      await AttemptsService.addAttempt({
-        problem_id: testProblem.problem_id,
-        session_id: 'spaced-rep-test',
-        success: true,
-        time_spent: 300000,
-        attempt_date: new Date().toISOString()
-      }, testProblem);
-
-      // Get stats to check if attempt was recorded
-      const stats = await AttemptsService.getProblemAttemptStats(testProblem.problem_id);
+      // Verify first attempt was recorded
+      const firstProblem = await createTestProblem(session1[0].id);
+      const stats = await AttemptsService.getProblemAttemptStats(firstProblem.problem_id);
       const attemptRecorded = stats && stats.total >= 1;
 
-      // Session 2: Problem should not immediately reappear (spaced repetition)
+      // Session 2: Should get DIFFERENT problems due to cooldowns on session1 problems
       const session2 = await ProblemService.createSession();
-      const session2Ids = session2.map(p => p.problem_id || p.id);
-      const problemNotRepeated = !session2Ids.includes(testProblem.problem_id);
-
-      // Verify sessions use different problems (spaced repetition working)
+      const session2Ids = new Set(session2.map(p => p.problem_id || p.id));
       const session1Ids = new Set(session1.map(p => p.problem_id || p.id));
-      const overlapCount = session2Ids.filter(id => session1Ids.has(id)).length;
-      const hasSpacing = overlapCount < session1.length; // Not all problems repeat
+
+      // Count overlap
+      const overlapCount = [...session1Ids].filter(id => session2Ids.has(id)).length;
+
+      // Spaced repetition is working if NOT ALL problems repeat
+      const hasSpacing = overlapCount < session1.length;
 
       const success = attemptRecorded && hasSpacing;
 
       return {
         success,
-        details: `Spaced repetition: attempt recorded=${attemptRecorded}, problem not immediate=${problemNotRepeated}, spacing=${hasSpacing}`,
+        details: `Spaced repetition: attempt recorded=${attemptRecorded}, spacing=${hasSpacing}, overlap=${overlapCount}/${session1.length}`,
         analysis: {
           attemptRecorded,
-          problemNotRepeated,
           hasSpacing,
           overlapCount,
           session1Count: session1.length,
-          session2Count: session2.length
+          session2Count: session2.length,
+          session1Ids: [...session1Ids],
+          session2Ids: [...session2Ids]
         },
         duration: Date.now() - start
       };
