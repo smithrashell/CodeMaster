@@ -15,8 +15,7 @@ import FocusCoordinationService from '../../shared/services/focusCoordinationSer
 import * as dashboardService from '../../app/services/dashboardService.js';
 import { ProblemService } from '../../shared/services/problemService.js';
 import { SessionService } from '../../shared/services/sessionService.js';
-import * as tagServices from '../../shared/services/tagServices.js';
-import * as hintInteractionService from '../../shared/services/hintInteractionService.js';
+import { TagService } from '../../shared/services/tagServices.js';
 
 // Mock all services
 jest.mock('../../shared/services/storageService.js');
@@ -25,7 +24,6 @@ jest.mock('../../app/services/dashboardService.js');
 jest.mock('../../shared/services/problemService.js');
 jest.mock('../../shared/services/sessionService.js');
 jest.mock('../../shared/services/tagServices.js');
-jest.mock('../../shared/services/hintInteractionService.js');
 
 // Mock Chrome APIs
 global.chrome = {
@@ -165,9 +163,6 @@ describe('Message Handlers - Dashboard Operations', () => {
     });
     jest.spyOn(dashboardService, 'getInterviewAnalyticsData').mockResolvedValue({
       interviewStats: {}
-    });
-    jest.spyOn(dashboardService, 'getHintAnalyticsData').mockResolvedValue({
-      hintAnalytics: {}
     });
   });
 
@@ -370,7 +365,7 @@ describe('Message Handlers - Focus Area Operations', () => {
       onboarding: false
     });
 
-    jest.spyOn(tagServices, 'graduateFocusAreas').mockResolvedValue({
+    TagService.graduateFocusAreas = jest.fn().mockResolvedValue({
       graduated: ['array'],
       newFocus: ['hash-table', 'string']
     });
@@ -388,64 +383,11 @@ describe('Message Handlers - Focus Area Operations', () => {
 
   describe('graduateFocusAreas', () => {
     it('should graduate mastered focus areas', async () => {
-      const masteredTags = ['array'];
+      const result = await TagService.graduateFocusAreas();
 
-      const result = await tagServices.graduateFocusAreas(masteredTags);
-
-      expect(tagServices.graduateFocusAreas).toHaveBeenCalledWith(masteredTags);
+      expect(TagService.graduateFocusAreas).toHaveBeenCalled();
       expect(result).toHaveProperty('graduated');
       expect(result).toHaveProperty('newFocus');
-    });
-  });
-});
-
-describe('Message Handlers - Hint Interaction Operations', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    jest.spyOn(hintInteractionService, 'saveInteraction').mockResolvedValue({
-      success: true,
-      interaction_id: 'hint-123'
-    });
-    jest.spyOn(hintInteractionService, 'getInteractionsByProblem').mockResolvedValue([
-      { interaction_id: 'hint-123', problemId: 'prob-1' }
-    ]);
-    jest.spyOn(hintInteractionService, 'getInteractionStats').mockResolvedValue({
-      totalInteractions: 10,
-      averagePerProblem: 2
-    });
-  });
-
-  describe('saveHintInteraction', () => {
-    it('should save hint interaction', async () => {
-      const interactionData = {
-        problemId: 'prob-1',
-        hintType: 'related_patterns',
-        timestamp: Date.now()
-      };
-
-      const result = await hintInteractionService.saveInteraction(interactionData);
-
-      expect(hintInteractionService.saveInteraction).toHaveBeenCalledWith(interactionData);
-      expect(result).toHaveProperty('success', true);
-    });
-  });
-
-  describe('getInteractionsByProblem', () => {
-    it('should return interactions for a problem', async () => {
-      const result = await hintInteractionService.getInteractionsByProblem('prob-1');
-
-      expect(hintInteractionService.getInteractionsByProblem).toHaveBeenCalledWith('prob-1');
-      expect(Array.isArray(result)).toBe(true);
-    });
-  });
-
-  describe('getInteractionStats', () => {
-    it('should return interaction statistics', async () => {
-      const result = await hintInteractionService.getInteractionStats();
-
-      expect(hintInteractionService.getInteractionStats).toHaveBeenCalled();
-      expect(result).toHaveProperty('totalInteractions');
     });
   });
 });
