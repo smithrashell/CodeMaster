@@ -9,12 +9,16 @@ import { AttemptsService } from "../shared/services/attemptsService.js";
 import { TagService } from "../shared/services/tagServices.js";
 import { HintInteractionService } from "../shared/services/hintInteractionService.js";
 import { AlertingService } from "../shared/services/AlertingService.js";
+import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
+import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
 import AccurateTimer from "../shared/utils/AccurateTimer.js";
 import { InterviewService } from "../shared/services/interviewService.js";
 import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
 
 // Database utilities (used in background script functions)
+import { dbHelper } from "../shared/db/index.js";
+import { getAllFromStore } from "../shared/db/common.js";
 import { updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
 
 // Onboarding (only functions passed as dependencies to messageRouter)
