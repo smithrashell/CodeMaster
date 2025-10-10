@@ -95,10 +95,10 @@ export function validateDatabaseAccess(context, stack) {
 
 /**
  * Logs database access attempt with full context
- * @param {Object} context - Execution context
- * @param {string} stack - Stack trace
+ * @param {Object} _context - Execution context (unused)
+ * @param {string} _stack - Stack trace (unused)
  */
-export function logDatabaseAccess(context, stack) {
+export function logDatabaseAccess(_context, _stack) {
   // Verbose logging removed to prevent console pollution
   // Use logger.debug() if debugging is needed
 }

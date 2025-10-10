@@ -14,7 +14,8 @@
   ],
   "globals": {
     "chrome": "readonly",
-    "browser": "readonly"
+    "browser": "readonly",
+    "BUILD_TIMESTAMP": "readonly"
   },
   "plugins": ["react", "react-hooks", "jsx-a11y"],
   "parserOptions": {
