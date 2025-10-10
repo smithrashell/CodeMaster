@@ -1200,8 +1200,36 @@ export function initializeCoreBusinessTests() {
         console.warn('Session completion warning:', error.message);
       }
 
+      // Debug: Check all attempts in database to see if they were saved
+      const helperForDebug = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
+        ? globalThis._testDatabaseHelper
+        : dbHelper;
+      const dbForCheck = await helperForDebug.openDB();
+      const allAttempts = await new Promise((resolve, reject) => {
+        const tx = dbForCheck.transaction(['attempts'], 'readonly');
+        const store = tx.objectStore('attempts');
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      });
+
+      // Targeted debug: Only check if attempts exist for our problem
+      const matchingAttempts = allAttempts.filter(a => a.problem_id === firstTestProblem.problem_id);
+      console.warn('\n\n');
+      console.warn('═══════════════════════════════════════════════════════════');
+      console.warn('🚨 PRODUCTION WORKFLOW - ATTEMPT RECORDING DEBUG 🚨');
+      console.warn('═══════════════════════════════════════════════════════════');
+      console.warn('Total attempts in database:', allAttempts.length);
+      console.warn('Querying for problem_id:', firstTestProblem.problem_id);
+      console.warn('Matching attempts found:', matchingAttempts.length);
+      console.warn('First matching attempt (ALL FIELDS):', matchingAttempts[0] ? matchingAttempts[0] : '❌ NONE FOUND');
+      console.warn('═══════════════════════════════════════════════════════════');
+      console.warn('\n\n');
+
       // Verify attempts recorded using the SAME problem object from the loop
+      console.warn('🔍 About to call getMostRecentAttempt with problem_id:', firstTestProblem.problem_id);
       const recordedAttempt = await AttemptsService.getMostRecentAttempt(firstTestProblem.problem_id);
+      console.warn('🔍 getMostRecentAttempt returned:', recordedAttempt);
 
       // Debug: Check what we got
       if (!recordedAttempt) {

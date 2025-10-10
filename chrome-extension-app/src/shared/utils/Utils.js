@@ -48,12 +48,17 @@ export function calculateDecayScore(lastAttemptDate, successRate, stability) {
 
 export function createAttemptRecord(attemptData) {
   // Support both uppercase (legacy) and lowercase property names
+  const rawDate = attemptData.attempt_date || attemptData.AttemptDate;
+  // CRITICAL: Ensure attempt_date is ALWAYS a Date object for IndexedDB compound index compatibility
+  // The compound index [problem_id, attempt_date] requires Date objects, not strings
+  const attemptDate = rawDate instanceof Date ? rawDate : new Date(rawDate);
+
   const baseRecord = {
     id: attemptData.id || uuidv4(), // Generate UUID if not provided
     session_id: attemptData.session_id,
     problem_id: attemptData.problem_id !== undefined ? attemptData.problem_id : attemptData.ProblemID,
     success: attemptData.success !== undefined ? attemptData.success : attemptData.Success,
-    attempt_date: attemptData.attempt_date || attemptData.AttemptDate,
+    attempt_date: attemptDate,  // Must be Date object for compound index [problem_id, attempt_date]
     time_spent: Number(attemptData.time_spent || attemptData.TimeSpent || 0),
     comments: attemptData.comments || attemptData.Comments || "",
   };
