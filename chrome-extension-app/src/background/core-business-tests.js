@@ -14,7 +14,10 @@ import logger from '../shared/utils/logger.js';
 
 // Database imports - ALL static, NO dynamic imports
 import { createDbHelper } from '../shared/db/dbHelperFactory.js';
-import { fetchProblemById } from '../shared/db/standard_problems.js';
+import { fetchProblemById, insertStandardProblems } from '../shared/db/standard_problems.js';
+import { insertStrategyData } from '../shared/db/strategy_data.js';
+import { buildTagRelationships } from '../shared/db/tag_relationships.js';
+import { buildProblemRelationships } from '../shared/services/relationshipService.js';
 
 // Create dbHelper instance for test file usage
 const dbHelper = createDbHelper();
@@ -2225,8 +2228,7 @@ export function initializeCoreBusinessTests() {
 
       console.log('🧪 Enabling test environment...');
 
-      // Import required test database factory
-      const { createDbHelper } = await import('../shared/db/dbHelperFactory.js');
+      // createDbHelper is now statically imported at the top
 
       // Create test database helper
       let testDb = globalThis._testDatabaseHelper;
@@ -2239,11 +2241,7 @@ export function initializeCoreBusinessTests() {
         console.log(`✅ Test database created: ${testDb.dbName}`);
       }
 
-      // Import seeding functions
-      const { insertStandardProblems } = await import('../shared/db/standard_problems.js');
-      const { insertStrategyData } = await import('../shared/db/strategy_data.js');
-      const { buildTagRelationships } = await import('../shared/db/tag_relationships.js');
-      const { buildProblemRelationships } = await import('../shared/services/relationshipService.js');
+      // Seeding functions are now statically imported at the top
 
       // Open database and check if already seeded
       const db = await testDb.openDB();

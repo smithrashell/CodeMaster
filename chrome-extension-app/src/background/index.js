@@ -10,7 +10,7 @@ import { HintInteractionService } from "../shared/services/hintInteractionServic
 import { AlertingService } from "../shared/services/AlertingService.js";
 import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
 import { SessionTester, TestScenarios } from "../shared/utils/sessionTesting.js";
-import { ComprehensiveSessionTester, ComprehensiveTestScenarios } from "../shared/utils/comprehensiveSessionTesting.js";
+import { ComprehensiveSessionTester as _ComprehensiveSessionTester, ComprehensiveTestScenarios } from "../shared/utils/comprehensiveSessionTesting.js";
 import { MinimalSessionTester } from "../shared/utils/minimalSessionTesting.js";
 import { SilentSessionTester } from "../shared/utils/silentSessionTesting.js";
 import { TagProblemIntegrationTester } from "../shared/utils/integrationTesting.js";
@@ -30,8 +30,13 @@ import {
   markPageTourCompleted,
   resetPageTour
 } from "../shared/services/onboardingService.js";
-import { getStrategyForTag } from "../shared/db/strategy_data.js";
-import { getProblem, getProblemWithOfficialDifficulty } from "../shared/db/problems.js";
+import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/strategy_data.js";
+import { getProblem, getProblemWithOfficialDifficulty, fetchAllProblems } from "../shared/db/problems.js";
+import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../shared/db/common.js";
+import { dbHelper } from "../shared/db/index.js";
+import { buildRelationshipMap } from "../shared/db/problem_relationships.js";
+import { getAllStandardProblems } from "../shared/db/standard_problems.js";
+import { buildProblemRelationships } from "../shared/services/relationshipService.js";
 import { 
   getDashboardStatistics,
   getFocusAreaAnalytics,
@@ -89,7 +94,7 @@ globalThis.testSimple = function() {
   return { success: true, message: 'Simple test completed' };
 };
 
-globalThis.testAsync = async function() {
+globalThis.testAsync = function() {
   console.log('✅ Async test function works!');
   return { success: true, message: 'Async test completed' };
 };
@@ -149,7 +154,7 @@ globalThis.runTestsSilent = async function() {
 };
 
 // Simple test to verify functions are available
-globalThis.quickHealthCheck = async function() {
+globalThis.quickHealthCheck = function() {
   console.log('🏥 CodeMaster Quick Health Check');
   console.log('================================');
 
@@ -362,7 +367,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
               currentStep: statusResult?.current_step
             });
           } else {
-            const mockStatus = {
+            const _mockStatus = {
               id: 'app_onboarding',
               is_completed: false,
               current_step: 1,
@@ -377,15 +382,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test data store validation logic
         try {
-          // Try to import getAllFromStore dynamically
-          let getAllFromStore;
-          try {
-            const dbCommon = await import("../shared/db/common.js");
-            getAllFromStore = dbCommon.getAllFromStore;
-          } catch (importError) {
-            if (verbose) console.log('⚠️ Could not import getAllFromStore:', importError.message);
-          }
-
+          // getAllFromStore is now statically imported at the top
           if (typeof getAllFromStore === 'function') {
             const dataStores = ['standard_problems', 'tag_relationships', 'problem_relationships', 'strategy_data', 'problems', 'tag_mastery'];
             const storeResults = {};
@@ -572,7 +569,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           const timer = new TimerClass(300); // 5 minutes
 
           const hasBasicProperties = timer.hasOwnProperty ?
-            (timer.hasOwnProperty('totalTime') || timer.hasOwnProperty('totalTimeInSeconds')) : true;
+            (Object.prototype.hasOwnProperty.call(timer, 'totalTime') || Object.prototype.hasOwnProperty.call(timer, 'totalTimeInSeconds')) : true;
 
           if (hasBasicProperties) {
             results.basicOperationsWorking = true;
@@ -923,14 +920,14 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 6. Test problem selection criteria
-        let criteriaValid = false;
+        let _criteriaValid = false;
         try {
           if (results.problemCriteria) {
             const hasTags = results.problemCriteria.allowedTags && Array.isArray(results.problemCriteria.allowedTags);
             const hasDifficulty = results.problemCriteria.difficulty || results.problemCriteria.difficulties;
             const hasConstraints = results.problemCriteria.maxHints !== undefined || results.problemCriteria.timePressure;
 
-            criteriaValid = hasTags || hasDifficulty || hasConstraints;
+            _criteriaValid = hasTags || hasDifficulty || hasConstraints;
 
             if (verbose) {
               console.log('✓ Problem criteria validation:', {
@@ -1699,7 +1696,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         // 4. Test escape hatch types and triggers
         let escapeHatchTypesValid = false;
         try {
-          const expectedHatchTypes = ['difficulty_reset', 'focus_shift', 'learning_reset'];
+          const _expectedHatchTypes = ['difficulty_reset', 'focus_shift', 'learning_reset'];
           const detectedHatchTypes = new Set();
 
           results.activatedEscapeHatches.forEach(result => {
@@ -1852,7 +1849,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test session data validity
         try {
-          const { getAllFromStore } = await import('../shared/db/common.js');
+          // getAllFromStore is now statically imported at the top
           const sessions = await getAllFromStore('sessions');
 
           if (sessions && sessions.length > 0) {
@@ -1933,7 +1930,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper function for validating session transitions
-    globalThis.testCoreSessionValidation.validateSessionTransitions = function(states) {
+    globalThis.testCoreSessionValidation.validateSessionTransitions = function(_states) {
       const validTransitions = [
         ['created', 'started'],
         ['started', 'in_progress'],
@@ -2084,7 +2081,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // Check database access
         try {
-          const { getAllFromStore } = await import('../shared/db/common.js');
+          // getAllFromStore is now statically imported at the top
           const testData = await getAllFromStore('problems');
           results.serviceStatus.DatabaseAccess = {
             available: true,
@@ -2248,7 +2245,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper function for testing service integration
-    globalThis.testCoreIntegrationCheck.testServiceIntegration = async function() {
+    globalThis.testCoreIntegrationCheck.testServiceIntegration = function() {
       const coreServices = [
         'ProblemService',
         'SessionService',
@@ -2294,7 +2291,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper function for testing cross-service communication
-    globalThis.testCoreIntegrationCheck.testCrossServiceCommunication = async function() {
+    globalThis.testCoreIntegrationCheck.testCrossServiceCommunication = function() {
       const communicationTests = [
         {
           flow: 'ProblemService → SessionService',
@@ -2342,7 +2339,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     // Helper function for testing data flow integration
     globalThis.testDataFlowIntegrationCheck = async function() {
       try {
-        const { getAllFromStore } = await import('../shared/db/common.js');
+        // getAllFromStore is now statically imported at the top
 
         // Test data flow across core data stores
         const dataFlowTests = [
@@ -2425,7 +2422,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper function for testing system health integration
-    globalThis.testCoreIntegrationCheck.testSystemHealthIntegration = async function() {
+    globalThis.testCoreIntegrationCheck.testSystemHealthIntegration = function() {
       const healthChecks = [
         {
           component: 'Chrome Extension APIs',
@@ -2564,7 +2561,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test tag mastery integration
         try {
-          const { getAllFromStore } = await import('../shared/db/common.js');
+          // getAllFromStore is now statically imported at the top
           const tagMasteryData = await getAllFromStore('tag_mastery');
 
           if (tagMasteryData && tagMasteryData.length > 0) {
@@ -2768,7 +2765,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test ladder coordination
         try {
-          const { getAllFromStore } = await import('../shared/db/common.js');
+          // getAllFromStore is now statically imported at the top
           const patternLadders = await getAllFromStore('pattern_ladders');
 
           if (patternLadders && patternLadders.length > 0) {
@@ -3015,7 +3012,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 4. Test adaptive weighting
         try {
-          const { getAllFromStore } = await import('../shared/db/common.js');
+          // getAllFromStore is now statically imported at the top
           const recentSessions = await getAllFromStore('sessions');
 
           if (recentSessions && recentSessions.length > 0) {
@@ -3168,9 +3165,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 1. Test session data availability for journey analysis
         try {
-          const { getAllFromStore } = await import('../shared/db/common.js');
+          // getAllFromStore is now statically imported at the top
           const sessions = await getAllFromStore('sessions');
-          const attempts = await getAllFromStore('attempts');
+          const _attempts = await getAllFromStore('attempts');
 
           if (sessions && sessions.length > 0) {
             results.sessionDataAvailable = true;
@@ -3275,7 +3272,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
       if (hasRealData) {
         // Analyze real session progression
-        const { getAllFromStore } = await import('../shared/db/common.js');
+        // getAllFromStore is now statically imported at the top
         const sessions = await getAllFromStore('sessions');
 
         // Calculate journey metrics from real data
@@ -3323,7 +3320,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     // Helper function for testing progress tracking
     globalThis.testLearningJourney.testProgressTracking = async function() {
       try {
-        const { getAllFromStore } = await import('../shared/db/common.js');
+        // getAllFromStore is now statically imported at the top
         const tagMastery = await getAllFromStore('tag_mastery');
 
         if (tagMastery && tagMastery.length > 0) {
@@ -3369,7 +3366,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper function for testing adaptive journey adjustments
-    globalThis.testLearningJourney.testAdaptiveJourneyAdjustments = async function() {
+    globalThis.testLearningJourney.testAdaptiveJourneyAdjustments = function() {
       // Simulate adaptive adjustment scenarios
       const adjustmentScenarios = [
         {
@@ -3471,7 +3468,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       return opportunities;
     };
 
-    globalThis.testAllIntegration = async function() {
+    globalThis.testAllIntegration = function() {
       console.log('🧬 Testing all integration systems...');
       try {
         console.log('✓ All integration systems - basic functionality verified');
@@ -4616,7 +4613,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
-    globalThis.testAllOptimization = async function() {
+    globalThis.testAllOptimization = function() {
       console.log('🎯 Testing all optimization systems...');
       try {
         console.log('✓ All optimization systems - basic functionality verified');
@@ -5000,7 +4997,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
-    globalThis.testBackgroundScriptCommunication = async function(options = {}) {
+    globalThis.testBackgroundScriptCommunication = function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📡 Testing background script communication...');
 
@@ -5178,7 +5175,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
-    globalThis.testContentScriptInjection = async function(options = {}) {
+    globalThis.testContentScriptInjection = function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📱 Testing content script injection and UI rendering...');
 
@@ -5264,46 +5261,38 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           focusTags: ['array', 'hash-table']
         };
 
-        try {
-          await new Promise((resolve, reject) => {
-            chrome.storage.local.set({ 'codemaster-test-settings': testSettings }, () => {
-              if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-              } else {
-                resolve();
-              }
-            });
+        await new Promise((resolve, reject) => {
+          chrome.storage.local.set({ 'codemaster-test-settings': testSettings }, () => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve();
+            }
           });
-          results.writeTestPassed = true;
-          if (verbose) console.log('✓ Settings write test passed');
-        } catch (writeError) {
-          throw writeError;
-        }
+        });
+        results.writeTestPassed = true;
+        if (verbose) console.log('✓ Settings write test passed');
 
         // 3. Test reading settings from storage
-        try {
-          const readData = await new Promise((resolve, reject) => {
-            chrome.storage.local.get('codemaster-test-settings', (result) => {
-              if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-              } else {
-                resolve(result);
-              }
-            });
-          });
-
-          if (readData && readData['codemaster-test-settings']) {
-            results.readTestPassed = true;
-            if (verbose) console.log('✓ Settings read test passed');
-
-            // 4. Test data persistence integrity
-            if (readData['codemaster-test-settings'].testTimestamp === testSettings.testTimestamp) {
-              results.persistenceVerified = true;
-              if (verbose) console.log('✓ Settings persistence verified');
+        const readData = await new Promise((resolve, reject) => {
+          chrome.storage.local.get('codemaster-test-settings', (result) => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve(result);
             }
+          });
+        });
+
+        if (readData && readData['codemaster-test-settings']) {
+          results.readTestPassed = true;
+          if (verbose) console.log('✓ Settings read test passed');
+
+          // 4. Test data persistence integrity
+          if (readData['codemaster-test-settings'].testTimestamp === testSettings.testTimestamp) {
+            results.persistenceVerified = true;
+            if (verbose) console.log('✓ Settings persistence verified');
           }
-        } catch (readError) {
-          throw readError;
         }
 
         // 5. Cleanup test data
@@ -5355,7 +5344,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     // 🔥 PHASE 1: CORE USER WORKFLOW TESTS
     // =============================================================================
 
-    globalThis.testHintInteraction = async function(options = {}) {
+    globalThis.testHintInteraction = function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('💡 Testing hint interaction workflow...');
 
@@ -5714,7 +5703,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
-    globalThis.testProblemSubmissionTracking = async function(options = {}) {
+    globalThis.testProblemSubmissionTracking = function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📝 Testing problem submission tracking workflow...');
 
@@ -5972,7 +5961,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
-    globalThis.testRealRelationshipLearning = async function() {
+    globalThis.testRealRelationshipLearning = function() {
       console.log('🔗 Testing real relationship learning...');
       try {
         console.log('✓ Real relationship learning - basic functionality verified');
@@ -5984,7 +5973,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
-    globalThis.testAllRealSystem = async function() {
+    globalThis.testAllRealSystem = function() {
       console.log('🎯 Testing all real system functions...');
       try {
         console.log('✓ All real system functions - basic functionality verified');
@@ -6064,7 +6053,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test cross-session relationship data persistence
         try {
-          const { getAllFromStore } = await import("../shared/db/common.js");
+          // getAllFromStore is now statically imported at the top
 
           // Test problem_relationships store access
           const relationshipData = await getAllFromStore('problem_relationships');
@@ -6750,7 +6739,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         // 4. Test update persistence and database consistency
         try {
           // Test that relationship updates are properly persisted
-          const { getAllFromStore } = await import("../shared/db/common.js");
+          // getAllFromStore is now statically imported at the top
 
           // Check relationship updates in the database
           const relationshipData = await getAllFromStore('problem_relationships');
@@ -7356,7 +7345,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test database relationship validation
         try {
-          const { getAllFromStore } = await import('../shared/db/common.js');
+          // getAllFromStore is now statically imported at the top
           const relationships = await getAllFromStore('problem_relationships');
 
           if (relationships && relationships.length > 0) {
@@ -7425,7 +7414,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper function for simulating relationship consistency
-    globalThis.testRelationshipConsistency.simulateRelationshipConsistency = async function() {
+    globalThis.testRelationshipConsistency.simulateRelationshipConsistency = function() {
       // Simulate bidirectional consistency check
       const bidirectionalScore = Math.random() * 0.3 + 0.7; // 70-100%
 
@@ -7516,7 +7505,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       };
     };
 
-    globalThis.testAllRelationships = async function() {
+    globalThis.testAllRelationships = function() {
       console.log('🔗 Testing all relationship systems...');
       try {
         console.log('✓ All relationship systems - basic functionality verified');
@@ -7774,7 +7763,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       for (const [categoryName, categoryResult] of Object.entries(categories)) {
         if (categoryResult.tests && categoryResult.tests.length > 0) {
           console.log(`\n  📂 ${categoryName.toUpperCase()}:`);
-          categoryResult.tests.forEach((test, index) => {
+          categoryResult.tests.forEach((test, _index) => {
             const icon = test.passed ? '✅' : '❌';
             const summary = test.summary || 'No summary available';
             console.log(`    ${icon} ${test.name}: ${summary}`);
@@ -8250,35 +8239,35 @@ const generateCacheKey = (request) => {
 };
 
 // Universal cache wrapper for all background script requests
-const handleRequest = async (request, sender, sendResponse) => {
+const handleRequest = (request, sender, sendResponse) => {
   const cacheKey = generateCacheKey(request);
-  
+
   // Check cache for cacheable requests
   if (cacheKey) {
     const cached = getCachedResponse(cacheKey);
     if (cached) {
       console.log(`🔥 Cache HIT: ${request.type} - ${cacheKey}`);
       sendResponse(cached);
-      return;
+      return Promise.resolve();
     }
     console.log(`💾 Cache MISS: ${request.type} - ${cacheKey}`);
   }
-  
+
   // For non-cacheable requests or cache misses, execute original handler
   // Wrap sendResponse to capture responses for caching
-  let capturedResponse = null;
+  let _capturedResponse = null;
   const wrappedSendResponse = (response) => {
-    capturedResponse = response;
-    
+    _capturedResponse = response;
+
     // Cache successful responses for cacheable requests
     if (cacheKey && response && !response.error) {
       setCachedResponse(cacheKey, response);
       console.log(`✅ Cached: ${request.type} - ${cacheKey}`);
     }
-    
+
     sendResponse(response);
   };
-  
+
   // Execute original handler with wrapped sendResponse
   return handleRequestOriginal(request, sender, wrappedSendResponse);
 };
@@ -8300,10 +8289,10 @@ const getStrategyMapData = async () => {
   try {
     // Get current tier and learning state from TagService
     const currentTierData = await TagService.getCurrentTier();
-    const learningState = await TagService.getCurrentLearningState();
+    const _learningState = await TagService.getCurrentLearningState();
 
     // Get all tag relationships to build tier structure
-    const { dbHelper } = await import("../shared/db/index.js");
+    // dbHelper is now statically imported at the top
     const db = await dbHelper.openDB();
 
     const tagRelationships = await new Promise((resolve, reject) => {
@@ -8588,11 +8577,11 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "getSettings":
         StorageService.getSettings().then(sendResponse).finally(finishRequest);
         return true;
-      case "clearSettingsCache":
+      case "clearSettingsCache": {
         // Clear settings cache from background script cache
         const settingsCacheKeys = ['settings_all', 'settings_'];
         let clearedCount = 0;
-        
+
         for (const [key] of responseCache.entries()) {
           if (settingsCacheKeys.some(prefix => key.startsWith(prefix))) {
             responseCache.delete(key);
@@ -8600,15 +8589,16 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
             clearedCount++;
           }
         }
-        
+
         console.log(`🔄 Cleared ${clearedCount} settings cache entries`);
-        
+
         // Also call StorageService method for any internal cleanup
         StorageService.clearSettingsCache();
         sendResponse({ status: "success", clearedCount });
         finishRequest();
         return true;
-      case "clearSessionCache":
+      }
+      case "clearSessionCache": {
         // Clear session-related cache from background script cache
         const sessionCacheKeys = ['createSession', 'getActiveSession', 'session_'];
         let sessionClearedCount = 0;
@@ -8625,6 +8615,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         sendResponse({ status: "success", clearedCount: sessionClearedCount });
         finishRequest();
         return true;
+      }
 
       case "getSessionState":
         StorageService.getSessionState("session_state")
@@ -8650,12 +8641,12 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           })
           .finally(finishRequest);
         return true;
-      case "countProblemsByBoxLevel":
+      case "countProblemsByBoxLevel": {
         // Support cache invalidation for fresh database reads
-        const countProblemsPromise = request.forceRefresh ? 
+        const countProblemsPromise = request.forceRefresh ?
           ProblemService.countProblemsByBoxLevelWithRetry({ priority: "high" }) :
           ProblemService.countProblemsByBoxLevel();
-          
+
         countProblemsPromise
           .then((counts) => {
             console.log("📊 Background: Problem counts retrieved", counts);
@@ -8667,6 +8658,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           })
           .finally(finishRequest);
         return true;
+      }
 
       case "addProblem":
         ProblemService.addOrUpdateProblemWithRetry(
@@ -8714,7 +8706,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           tabs.forEach((tab) => {
             // Only send to tabs that might have content scripts (http/https URLs)
             if (tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
-              chrome.tabs.sendMessage(tab.id, { type: "problemSubmitted" }, (response) => {
+              chrome.tabs.sendMessage(tab.id, { type: "problemSubmitted" }, (_response) => {
                 // Ignore errors from tabs without content scripts
                 if (chrome.runtime.lastError) {
                   console.log(`ℹ️ Tab ${tab.id} doesn't have content script:`, chrome.runtime.lastError.message);
@@ -8771,7 +8763,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           .finally(finishRequest);
         return true;
 
-      case "getOrCreateSession":
+      case "getOrCreateSession": {
         const startTime = Date.now();
         
         // Check if we should show interview banner instead of auto-creating session
@@ -8847,8 +8839,9 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
             finishRequest();
           });
         return true;
+      }
 
-      case "refreshSession":
+      case "refreshSession": {
         console.log("🔄 Refreshing session:", request.sessionType || 'standard');
         const refreshStartTime = Date.now();
         
@@ -8879,6 +8872,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           })
           .finally(finishRequest);
         return true;
+      }
 
       case "getCurrentSession":
         // DEPRECATED: Use getOrCreateSession instead 
@@ -8979,15 +8973,15 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         //  }).catch(error => console.log(error))
         //  console.log("result", result)
         StorageService.getSettings()
-          .then(async (settings) => {
+          .then((settings) => {
             console.log("getCurrentSession - checking interview mode:", settings?.interviewMode, "frequency:", settings?.interviewFrequency);
-            
+
             // Determine session type based on settings
             let sessionType = 'standard';
             if (settings?.interviewMode && settings.interviewMode !== "disabled") {
               sessionType = settings.interviewMode;
             }
-            
+
             return SessionService.getOrCreateSession(sessionType);
           })
           .then((session) => {
@@ -9266,14 +9260,15 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Background Script Health & Management ──────────────── **/
-      case "backgroundScriptHealth":
+      case "backgroundScriptHealth": {
         const healthReport = backgroundScriptHealth.getHealthReport();
         console.log("🏥 Background script health check:", healthReport);
         sendResponse({ status: "success", data: healthReport });
         finishRequest();
         return true;
+      }
 
-      case "TEST_FUNCTIONS_AVAILABLE":
+      case "TEST_FUNCTIONS_AVAILABLE": {
         console.log("🧪 Checking test function availability...");
         const testFunctionStatus = {
           testSimple: typeof globalThis.testSimple,
@@ -9287,6 +9282,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         sendResponse({ status: "success", data: testFunctionStatus });
         finishRequest();
         return true;
+      }
 
       case "RUN_SIMPLE_TEST":
         console.log("🧪 Running simple test...");
@@ -9321,7 +9317,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         return true;
 
       /** ──────────────── Strategy Data Operations ──────────────── **/
-      case "getStrategyForTag":
+      case "getStrategyForTag": {
         const cacheKey = `strategy_${request.tag}`;
         const cachedStrategy = getCachedResponse(cacheKey);
 
@@ -9367,6 +9363,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           }
         })().finally(finishRequest);
         return true;
+      }
 
       case "getStrategiesForTags":
         console.log(
@@ -9410,12 +9407,10 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         );
         (async () => {
           try {
-            console.log(`🔍 BACKGROUND DEBUG: Importing strategy_data.js...`);
-            const { isStrategyDataLoaded } = await import(
-              "../shared/db/strategy_data.js"
-            );
+            console.log(`🔍 BACKGROUND DEBUG: Using statically imported strategy_data.js...`);
+            // isStrategyDataLoaded is now statically imported at the top
             console.log(
-              `🔍 BACKGROUND DEBUG: Import successful, calling function...`
+              `🔍 BACKGROUND DEBUG: Calling function...`
             );
             const loaded = await isStrategyDataLoaded();
             console.log(
@@ -9513,7 +9508,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "getLearningStatus":
         (async () => {
           try {
-            const { SessionService } = await import("../shared/services/sessionService.js");
+            // SessionService is now statically imported at the top
             const cadenceData = await SessionService.getTypicalCadence();
             
             sendResponse({
@@ -9538,9 +9533,8 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "getFocusAreasData":
         (async () => {
           try {
-            const { StorageService } = await import("../shared/services/storageService.js");
-            const { TagService } = await import("../shared/services/tagServices.js");
-            
+            // StorageService and TagService are now statically imported at the top
+
             // Load focus areas from settings with fallback
             const settings = await StorageService.getSettings();
             let focusAreas = settings.focusAreas || [];
@@ -9583,7 +9577,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
       case "graduateFocusAreas":
         (async () => {
           try {
-            const { TagService } = await import("../shared/services/tagServices.js");
+            // TagService is now statically imported at the top
             const result = await TagService.graduateFocusAreas();
             sendResponse({ result });
           } catch (error) {
@@ -9712,13 +9706,11 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         (async () => {
           try {
             console.log("🔍 getSimilarProblems: Starting similarity search...");
-            const { buildRelationshipMap } = await import("../shared/db/problem_relationships.js");
-            const { fetchAllProblems } = await import("../shared/db/problems.js");
-            const { getAllStandardProblems } = await import("../shared/db/standard_problems.js");
-            
+            // buildRelationshipMap, fetchAllProblems, and getAllStandardProblems are now statically imported at the top
+
             // Get all data sources
             const relationshipMap = await buildRelationshipMap();
-            const allUserProblems = await fetchAllProblems();
+            const _allUserProblems = await fetchAllProblems();
             const standardProblems = await getAllStandardProblems();
             
             // Create comprehensive ID mapping from standard problems (the authoritative source)
@@ -9796,8 +9788,8 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         (async () => {
           try {
             console.log("🔄 Starting problem relationships rebuild...");
-            const { buildProblemRelationships } = await import("../shared/services/relationshipService.js");
-            
+            // buildProblemRelationships is now statically imported at the top
+
             // Rebuild relationships
             await buildProblemRelationships();
             console.log("✅ Problem relationships rebuilt successfully");
@@ -9815,7 +9807,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
           try {
             const { operation, params } = request;
             console.log(`📊 DATABASE_OPERATION: ${operation} on ${params.storeName}`, params);
-            const { getRecord, addRecord, updateRecord, deleteRecord, getAllFromStore } = await import("../shared/db/common.js");
+            // getRecord, addRecord, updateRecord, deleteRecord, and getAllFromStore are now statically imported at the top
 
             let result;
             switch (operation) {
@@ -9854,8 +9846,8 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("🔍 Getting session patterns for consistency analysis");
         (async () => {
           try {
-            const { SessionService } = await import("../shared/services/sessionService.js");
-            
+            // SessionService is now statically imported at the top
+
             const [currentStreak, cadence, weeklyProgress] = await Promise.all([
               SessionService.getCurrentStreak(),
               SessionService.getTypicalCadence(),
@@ -9882,9 +9874,8 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("🔔 Checking consistency alerts for reminders");
         (async () => {
           try {
-            const { SessionService } = await import("../shared/services/sessionService.js");
-            const { StorageService } = await import("../shared/services/storageService.js");
-            
+            // SessionService and StorageService are now statically imported at the top
+
             // Get user's reminder settings
             const settings = await StorageService.getSettings();
             const reminderSettings = settings?.reminder || { enabled: false };
@@ -9914,7 +9905,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("🔥 Getting streak risk timing analysis");
         (async () => {
           try {
-            const { SessionService } = await import("../shared/services/sessionService.js");
+            // SessionService is now statically imported at the top
             const streakTiming = await SessionService.getStreakRiskTiming();
             
             console.log("✅ Streak risk timing retrieved:", streakTiming);
@@ -9930,7 +9921,7 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
         console.log("👋 Getting re-engagement timing analysis");
         (async () => {
           try {
-            const { SessionService } = await import("../shared/services/sessionService.js");
+            // SessionService is now statically imported at the top
             const reEngagementTiming = await SessionService.getReEngagementTiming();
             
             console.log("✅ Re-engagement timing retrieved:", reEngagementTiming);
@@ -9953,9 +9944,9 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
   }
 };
 
-const contentPorts = {};
+const _contentPorts = {};
 
-chrome.action.onClicked.addListener(async (tab) => {
+chrome.action.onClicked.addListener(async (_tab) => {
   try {
     // Check if installation onboarding is complete first
     const onboardingStatus = await StorageService.get('installation_onboarding_complete');
@@ -10266,7 +10257,7 @@ async function performConsistencyCheck() {
     console.log("🔍 Starting consistency check at", new Date().toLocaleString());
     
     // Get user settings to check if reminders are enabled
-    const { StorageService } = await import("../shared/services/storageService.js");
+    // StorageService is now statically imported at the top
     const settings = await StorageService.getSettings();
     
     // CONSERVATIVE DEFAULT: All reminder types disabled by default for prerelease safety
@@ -10297,7 +10288,7 @@ async function performConsistencyCheck() {
     }
     
     // Run the comprehensive consistency check
-    const { SessionService } = await import("../shared/services/sessionService.js");
+    // SessionService is now statically imported at the top
     const consistencyCheck = await SessionService.checkConsistencyAlerts(reminderSettings);
     
     console.log(`📊 Consistency check result: ${consistencyCheck.alerts?.length || 0} alerts found`);
@@ -10386,10 +10377,10 @@ async function recordNotificationDate(dateString) {
  * Show browser notification for consistency reminder with Chrome API safety checks
  * @param {Object} alert - The alert object with message and data
  */
-async function showConsistencyNotification(alert) {
+function showConsistencyNotification(alert) {
   try {
     console.log("📢 Routing consistency notification to AlertingService:", alert.type);
-    
+
     // Route to appropriate AlertingService method based on alert type
     switch (alert.type) {
       case "streak_alert":
@@ -10398,14 +10389,14 @@ async function showConsistencyNotification(alert) {
           alert.data?.daysSince || 0
         );
         break;
-        
+
       case "cadence_nudge":
         AlertingService.sendCadenceNudge(
           alert.data?.typicalCadence || "daily",
           alert.data?.daysSince || 0
         );
         break;
-        
+
       case "weekly_goal":
         AlertingService.sendWeeklyGoalReminder({
           completedSessions: alert.data?.completedSessions || 0,
@@ -10413,14 +10404,14 @@ async function showConsistencyNotification(alert) {
           remainingDays: alert.data?.remainingDays || 0
         });
         break;
-        
+
       case "re_engagement":
         AlertingService.sendReEngagementPrompt(
           alert.data?.daysSince || 0,
           alert.data?.lastActivity || "session"
         );
         break;
-        
+
       default:
         console.warn(`Unknown alert type: ${alert.type}, using generic re-engagement`);
         AlertingService.sendReEngagementPrompt(
@@ -10429,9 +10420,9 @@ async function showConsistencyNotification(alert) {
         );
         break;
     }
-    
+
     console.log(`✅ Consistency notification sent via AlertingService: ${alert.type}`);
-    
+
   } catch (error) {
     console.error("❌ Error showing consistency notification:", error);
     console.warn("⚠️ Notification display failed - consistency reminders may not appear");
@@ -10855,7 +10846,7 @@ globalThis.testDataPersistenceReliability = async function(options = {}) {
 // Helper function for testing data integrity
 globalThis.testDataPersistenceReliability.testDataIntegrity = async function() {
   try {
-    const { getAllFromStore } = await import('../shared/db/common.js');
+    // getAllFromStore is now statically imported at the top
     const sessions = await getAllFromStore('sessions');
 
     if (sessions && sessions.length > 0) {
@@ -10914,7 +10905,7 @@ globalThis.testDataPersistenceReliability.testDataIntegrity = async function() {
 };
 
 // Helper function for testing persistence under stress
-globalThis.testDataPersistenceReliability.testPersistenceUnderStress = async function() {
+globalThis.testDataPersistenceReliability.testPersistenceUnderStress = function() {
   // Simulate stress test scenarios
   const stressScenarios = [
     {
@@ -10951,7 +10942,7 @@ globalThis.testDataPersistenceReliability.testPersistenceUnderStress = async fun
 };
 
 // Helper function for testing recovery mechanisms
-globalThis.testDataPersistenceReliability.testRecoveryMechanisms = async function() {
+globalThis.testDataPersistenceReliability.testRecoveryMechanisms = function() {
   // Simulate recovery mechanism tests
   const recoveryTests = [
     {
@@ -11090,7 +11081,7 @@ globalThis.testUIResponsiveness = async function(options = {}) {
 };
 
 // Helper functions for UI responsiveness testing
-globalThis.testUIResponsiveness.testRenderPerformance = async function() {
+globalThis.testUIResponsiveness.testRenderPerformance = function() {
   const performanceStartTime = performance.now();
 
   // Simulate typical UI operations
@@ -11129,7 +11120,7 @@ globalThis.testUIResponsiveness.testRenderPerformance = async function() {
   };
 };
 
-globalThis.testUIResponsiveness.testInteractionLatency = async function() {
+globalThis.testUIResponsiveness.testInteractionLatency = function() {
   // Simulate common user interactions and their latency
   const interactionTests = [
     { interaction: 'button_click', expectedLatency: 16, tolerance: 8 },
@@ -11168,7 +11159,7 @@ globalThis.testUIResponsiveness.testInteractionLatency = async function() {
   };
 };
 
-globalThis.testUIResponsiveness.testMemoryUsagePatterns = async function() {
+globalThis.testUIResponsiveness.testMemoryUsagePatterns = function() {
   // Simulate memory usage analysis
   const memoryScenarios = [
     {
@@ -11223,7 +11214,7 @@ globalThis.testUIResponsiveness.testMemoryUsagePatterns = async function() {
   };
 };
 
-globalThis.testUIResponsiveness.testPerformanceMetrics = async function() {
+globalThis.testUIResponsiveness.testPerformanceMetrics = function() {
   // Test performance metrics collection capabilities
   const metricsAvailable = {
     performanceAPI: typeof performance !== 'undefined',
@@ -11353,7 +11344,7 @@ globalThis.testAccessibilityCompliance = async function(options = {}) {
 };
 
 // Helper functions for accessibility testing
-globalThis.testAccessibilityCompliance.testAriaCompliance = async function() {
+globalThis.testAccessibilityCompliance.testAriaCompliance = function() {
   const ariaFeatures = [
     { feature: 'aria-label', importance: 'high', coverage: 0.85 },
     { feature: 'aria-labelledby', importance: 'high', coverage: 0.78 },
@@ -11379,7 +11370,7 @@ globalThis.testAccessibilityCompliance.testAriaCompliance = async function() {
   };
 };
 
-globalThis.testAccessibilityCompliance.testKeyboardNavigation = async function() {
+globalThis.testAccessibilityCompliance.testKeyboardNavigation = function() {
   const navigationTests = [
     { element: 'buttons', tabAccessible: true, enterActivation: true, spaceActivation: true },
     { element: 'links', tabAccessible: true, enterActivation: true, spaceActivation: false },
@@ -11411,7 +11402,7 @@ globalThis.testAccessibilityCompliance.testKeyboardNavigation = async function()
   };
 };
 
-globalThis.testAccessibilityCompliance.testScreenReaderCompatibility = async function() {
+globalThis.testAccessibilityCompliance.testScreenReaderCompatibility = function() {
   const screenReaderFeatures = [
     { feature: 'semantic_html', compatibility: 0.92, critical: true },
     { feature: 'heading_hierarchy', compatibility: 0.88, critical: true },
@@ -11438,7 +11429,7 @@ globalThis.testAccessibilityCompliance.testScreenReaderCompatibility = async fun
   };
 };
 
-globalThis.testAccessibilityCompliance.testColorContrast = async function() {
+globalThis.testAccessibilityCompliance.testColorContrast = function() {
   const contrastTests = [
     { element: 'primary_text', background: '#ffffff', foreground: '#000000', ratio: 21.0, wcagLevel: 'AAA' },
     { element: 'secondary_text', background: '#f5f5f5', foreground: '#333333', ratio: 12.6, wcagLevel: 'AAA' },
@@ -11566,7 +11557,7 @@ globalThis.testMemoryLeakPrevention = async function(options = {}) {
 };
 
 // Helper functions for memory leak testing
-globalThis.testMemoryLeakPrevention.testEventListenerCleanup = async function() {
+globalThis.testMemoryLeakPrevention.testEventListenerCleanup = function() {
   const eventCleanupScenarios = [
     { scenario: 'component_unmount', listeners: 5, cleanupRate: 1.0, leakRisk: 'low' },
     { scenario: 'page_navigation', listeners: 8, cleanupRate: 0.95, leakRisk: 'low' },
@@ -11591,7 +11582,7 @@ globalThis.testMemoryLeakPrevention.testEventListenerCleanup = async function() 
   };
 };
 
-globalThis.testMemoryLeakPrevention.testTimerCleanup = async function() {
+globalThis.testMemoryLeakPrevention.testTimerCleanup = function() {
   const timerTypes = [
     { type: 'setTimeout', active: 3, cleared: 3, leakPotential: 'low' },
     { type: 'setInterval', active: 2, cleared: 2, leakPotential: 'high' },
@@ -11614,7 +11605,7 @@ globalThis.testMemoryLeakPrevention.testTimerCleanup = async function() {
   };
 };
 
-globalThis.testMemoryLeakPrevention.testDomLeakPrevention = async function() {
+globalThis.testMemoryLeakPrevention.testDomLeakPrevention = function() {
   const domLeakScenarios = [
     { scenario: 'detached_elements', riskLevel: 'medium', prevention: 'automatic', effectiveness: 0.90 },
     { scenario: 'circular_references', riskLevel: 'high', prevention: 'manual', effectiveness: 0.85 },
@@ -11643,7 +11634,7 @@ globalThis.testMemoryLeakPrevention.testDomLeakPrevention = async function() {
   };
 };
 
-globalThis.testMemoryLeakPrevention.testServiceWorkerMemory = async function() {
+globalThis.testMemoryLeakPrevention.testServiceWorkerMemory = function() {
   const memoryManagementAreas = [
     { area: 'cache_management', efficiency: 0.92, automated: true },
     { area: 'background_tasks', efficiency: 0.88, automated: true },
@@ -11840,7 +11831,7 @@ globalThis.testPerformanceBenchmarks.benchmarkDatabaseOperations = async functio
 
   try {
     // Attempt real database operations for more accurate benchmarks
-    const { getAllFromStore } = await import('../shared/db/common.js');
+    // getAllFromStore is now statically imported at the top
 
     const startTime = performance.now();
     const problems = await getAllFromStore('problems');
@@ -11859,7 +11850,7 @@ globalThis.testPerformanceBenchmarks.benchmarkDatabaseOperations = async functio
 };
 
 // Helper function for service performance benchmarking
-globalThis.testPerformanceBenchmarks.benchmarkServiceOperations = async function() {
+globalThis.testPerformanceBenchmarks.benchmarkServiceOperations = function() {
   const benchmarks = {
     performanceScore: 0.75,
     sessionService: {
@@ -11903,7 +11894,7 @@ globalThis.testPerformanceBenchmarks.benchmarkServiceOperations = async function
 };
 
 // Helper function for memory performance analysis
-globalThis.testPerformanceBenchmarks.benchmarkMemoryUsage = async function() {
+globalThis.testPerformanceBenchmarks.benchmarkMemoryUsage = function() {
   const benchmarks = {
     efficiencyScore: 0.82,
     heapUsage: {
@@ -12110,7 +12101,7 @@ globalThis.testSystemStressConditions.testHighLoadScenarios = async function() {
 };
 
 // Helper function for resource exhaustion testing
-globalThis.testSystemStressConditions.testResourceExhaustion = async function() {
+globalThis.testSystemStressConditions.testResourceExhaustion = function() {
   const results = {
     recoveryScore: 0.78,
     memoryExhaustion: {
@@ -12146,7 +12137,7 @@ globalThis.testSystemStressConditions.testResourceExhaustion = async function() 
 };
 
 // Helper function for error recovery mechanism testing
-globalThis.testSystemStressConditions.testErrorRecoveryMechanisms = async function() {
+globalThis.testSystemStressConditions.testErrorRecoveryMechanisms = function() {
   const results = {
     effectivenessScore: 0.92,
     databaseFailures: {
@@ -12194,7 +12185,7 @@ globalThis.testSystemStressConditions.testErrorRecoveryMechanisms = async functi
 };
 
 // Helper function for graceful degradation testing
-globalThis.testSystemStressConditions.testGracefulDegradation = async function() {
+globalThis.testSystemStressConditions.testGracefulDegradation = function() {
   const results = {
     degradationScore: 0.83,
     featureFallbacks: {
@@ -12323,7 +12314,7 @@ globalThis.testProductionReadiness = async function(options = {}) {
 };
 
 // Helper function for security readiness evaluation
-globalThis.testProductionReadiness.evaluateSecurityReadiness = async function() {
+globalThis.testProductionReadiness.evaluateSecurityReadiness = function() {
   const results = {
     readinessScore: 0.85,
     dataProtection: {
@@ -12368,7 +12359,7 @@ globalThis.testProductionReadiness.evaluateSecurityReadiness = async function() 
 };
 
 // Helper function for scalability readiness evaluation
-globalThis.testProductionReadiness.evaluateScalabilityReadiness = async function() {
+globalThis.testProductionReadiness.evaluateScalabilityReadiness = function() {
   const results = {
     readinessScore: 0.74,
     dataScaling: {
@@ -12409,7 +12400,7 @@ globalThis.testProductionReadiness.evaluateScalabilityReadiness = async function
 };
 
 // Helper function for monitoring readiness evaluation
-globalThis.testProductionReadiness.evaluateMonitoringReadiness = async function() {
+globalThis.testProductionReadiness.evaluateMonitoringReadiness = function() {
   const results = {
     readinessScore: 0.79,
     errorTracking: {
@@ -12456,7 +12447,7 @@ globalThis.testProductionReadiness.evaluateMonitoringReadiness = async function(
 };
 
 // Helper function for deployment readiness evaluation
-globalThis.testProductionReadiness.evaluateDeploymentReadiness = async function() {
+globalThis.testProductionReadiness.evaluateDeploymentReadiness = function() {
   const results = {
     readinessScore: 0.88,
     buildSystem: {
@@ -12965,7 +12956,7 @@ globalThis.listAvailableTests = function() {
     'Core Systems': testFunctions.filter(t => t.includes('Service') || t.includes('Session') || t.includes('Core')),
     'Learning Algorithms': testFunctions.filter(t => t.includes('Learning') || t.includes('Difficulty') || t.includes('Algorithm') || t.includes('Pattern') || t.includes('Relationship')),
     'Performance & Production': testFunctions.filter(t => t.includes('Performance') || t.includes('Production') || t.includes('Stress') || t.includes('Memory')),
-    'Other Tests': testFunctions.filter(t => !['Browser Integration', 'User Workflows', 'Core Systems', 'Learning Algorithms', 'Performance & Production'].some(category =>
+    'Other Tests': testFunctions.filter(t => !['Browser Integration', 'User Workflows', 'Core Systems', 'Learning Algorithms', 'Performance & Production'].some(_category =>
       ['testExtensionLoadOnLeetCode', 'testBackgroundScriptCommunication', 'testTimerStartStop', 'testContentScriptInjection', 'testSettingsPersistence', 'testHintInteraction', 'testProblemNavigation', 'testFocusAreaSelection', 'testFirstUserOnboarding', 'testProblemSubmissionTracking'].includes(t)
     ))
   };
