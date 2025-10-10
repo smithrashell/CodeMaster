@@ -285,6 +285,75 @@ export function initializeCoreBusinessTests() {
     return { success: true };
   }
 
+  // Helper: Execute a single test with cleanup and error handling
+  async function executeSingleTest(test, verbose) {
+    // Clean up variable data before each test (preserve seeded data)
+    if (globalThis._testDatabaseHelper) {
+      try {
+        await globalThis._testDatabaseHelper.smartTestIsolation();
+        if (verbose) console.log(`🧹 Cleaned test data before ${test.name}`);
+      } catch (cleanupError) {
+        console.warn(`⚠️ Pre-test cleanup failed for ${test.name}:`, cleanupError.message);
+      }
+    }
+
+    try {
+      if (verbose) console.log(`Running ${test.name}...`);
+      const result = await test.fn(verbose);
+
+      const testResult = {
+        name: test.name,
+        status: result.success ? 'PASS' : 'FAIL',
+        details: result.details,
+        error: result.error,
+        duration: result.duration
+      };
+
+      if (!result.success && verbose) {
+        console.error(`❌ ${test.name} failed:`, result.error || result.details);
+        if (result.analysis) {
+          console.error(`   Analysis:`, result.analysis);
+        }
+      }
+
+      return testResult;
+    } catch (error) {
+      if (verbose) {
+        console.error(`💥 ${test.name} errored:`, error.message);
+        console.error(`   Stack:`, error.stack);
+      }
+
+      return {
+        name: test.name,
+        status: 'ERROR',
+        error: error.message,
+        duration: 0
+      };
+    }
+  }
+
+  // Helper: Print test summary
+  function printTestSummary(results) {
+    const totalTests = results.passed + results.failed;
+    const successRate = totalTests > 0 ? (results.passed / totalTests * 100).toFixed(1) : '0.0';
+
+    console.log(`\n📊 Core Business Logic Test Summary:`);
+    console.log(`   Total Tests: ${totalTests}`);
+    console.log(`   Passed: ${results.passed} ✅`);
+    console.log(`   Failed: ${results.failed} ❌`);
+    console.log(`   Success Rate: ${successRate}%`);
+    console.log(`   Duration: ${results.duration}ms`);
+
+    if (results.failed > 0) {
+      console.log(`\n❌ Failed Tests:`);
+      results.tests
+        .filter(t => t.status === 'FAIL' || t.status === 'ERROR')
+        .forEach(t => {
+          console.log(`   • ${t.name}: ${t.error || t.details}`);
+        });
+    }
+  }
+
   globalThis.testCoreBusinessLogic = async function(options = {}) {
     const { verbose = false, quick = false, cleanup = true } = options;
 
@@ -343,79 +412,18 @@ export function initializeCoreBusinessTests() {
     for (const test of tests) {
       if (quick && results.tests.length >= 5) break;
 
-      // Clean up variable data before each test (preserve seeded data)
-      if (globalThis._testDatabaseHelper) {
-        try {
-          await globalThis._testDatabaseHelper.smartTestIsolation();
-          if (verbose) console.log(`🧹 Cleaned test data before ${test.name}`);
-        } catch (cleanupError) {
-          console.warn(`⚠️ Pre-test cleanup failed for ${test.name}:`, cleanupError.message);
-        }
-      }
+      const testResult = await executeSingleTest(test, verbose);
+      results.tests.push(testResult);
 
-      try {
-        if (verbose) console.log(`Running ${test.name}...`);
-        const result = await test.fn(verbose);
-
-        results.tests.push({
-          name: test.name,
-          status: result.success ? 'PASS' : 'FAIL',
-          details: result.details,
-          error: result.error,
-          duration: result.duration
-        });
-
-        if (result.success) {
-          results.passed++;
-        } else {
-          results.failed++;
-          // Only show details in verbose mode - summary will show failed tests
-          if (verbose) {
-            console.error(`❌ ${test.name} failed:`, result.error || result.details);
-            if (result.analysis) {
-              console.error(`   Analysis:`, result.analysis);
-            }
-          }
-        }
-      } catch (error) {
+      if (testResult.status === 'PASS') {
+        results.passed++;
+      } else {
         results.failed++;
-        results.tests.push({
-          name: test.name,
-          status: 'ERROR',
-          error: error.message,
-          duration: 0
-        });
-
-        // Only show details in verbose mode
-        if (verbose) {
-          console.error(`💥 ${test.name} errored:`, error.message);
-          console.error(`   Stack:`, error.stack);
-        }
       }
     }
 
     results.duration = Date.now() - results.startTime;
-
-    // Summary
-    const totalTests = results.passed + results.failed;
-    const successRate = totalTests > 0 ? (results.passed / totalTests * 100).toFixed(1) : '0.0';
-
-    console.log(`\n📊 Core Business Logic Test Summary:`);
-    console.log(`   Total Tests: ${totalTests}`);
-    console.log(`   Passed: ${results.passed} ✅`);
-    console.log(`   Failed: ${results.failed} ❌`);
-    console.log(`   Success Rate: ${successRate}%`);
-    console.log(`   Duration: ${results.duration}ms`);
-
-    // Show failed tests
-    if (results.failed > 0) {
-      console.log(`\n❌ Failed Tests:`);
-      results.tests
-        .filter(t => t.status === 'FAIL' || t.status === 'ERROR')
-        .forEach(t => {
-          console.log(`   • ${t.name}: ${t.error || t.details}`);
-        });
-    }
+    printTestSummary(results);
 
     if (cleanup && globalThis._testDatabaseHelper) {
       console.log('🧹 Running cleanup...');
@@ -1106,10 +1114,62 @@ export function initializeCoreBusinessTests() {
     }
   }
 
+  // Helper: Save session to IndexedDB for production workflow test
+  async function saveSessionToDatabase(sessionObj) {
+    const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
+      ? globalThis._testDatabaseHelper
+      : dbHelper;
+    const db = await helper.openDB();
+    const sessionTx = db.transaction(['sessions'], 'readwrite');
+    const sessionStore = sessionTx.objectStore('sessions');
+
+    const sessionToSave = {
+      ...sessionObj,
+      status: 'in_progress',
+      attempts: sessionObj.attempts || [],
+      date: sessionObj.date || new Date().toISOString(),
+      last_activity_time: new Date().toISOString()
+    };
+
+    await new Promise((resolve, reject) => {
+      const request = sessionStore.put(sessionToSave);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+
+    console.log(`✅ TEST: Session ${sessionObj.id} saved to IndexedDB with status: ${sessionToSave.status}`);
+  }
+
+  // Helper: Debug attempt recording in production workflow test
+  async function debugAttemptRecording(firstTestProblem) {
+    const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
+      ? globalThis._testDatabaseHelper
+      : dbHelper;
+    const db = await helper.openDB();
+    const allAttempts = await new Promise((resolve, reject) => {
+      const tx = db.transaction(['attempts'], 'readonly');
+      const store = tx.objectStore('attempts');
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => reject(req.error);
+    });
+
+    const matchingAttempts = allAttempts.filter(a => a.problem_id === firstTestProblem.problem_id);
+    console.warn('\n\n');
+    console.warn('═══════════════════════════════════════════════════════════');
+    console.warn('🚨 PRODUCTION WORKFLOW - ATTEMPT RECORDING DEBUG 🚨');
+    console.warn('═══════════════════════════════════════════════════════════');
+    console.warn('Total attempts in database:', allAttempts.length);
+    console.warn('Querying for problem_id:', firstTestProblem.problem_id);
+    console.warn('Matching attempts found:', matchingAttempts.length);
+    console.warn('First matching attempt (ALL FIELDS):', matchingAttempts[0] ? matchingAttempts[0] : '❌ NONE FOUND');
+    console.warn('═══════════════════════════════════════════════════════════');
+    console.warn('\n\n');
+  }
+
   async function testProductionWorkflow(_verbose) {
     const start = Date.now();
     try {
-      // ENHANCED: Test complete multi-session learning cycle
       const workflow = {
         session1Created: false,
         attemptRecorded: false,
@@ -1125,32 +1185,8 @@ export function initializeCoreBusinessTests() {
 
       workflow.session1Created = session1 && session1.length > 0;
 
-      // CRITICAL: Ensure session is saved to IndexedDB so addAttempt() can find it
-      // The Session Attribution Engine in addAttempt() queries IndexedDB for active sessions
-      // Without this, attempts go to a tracking session instead of the test session
-      const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
-        ? globalThis._testDatabaseHelper
-        : dbHelper;
-      const db = await helper.openDB();
-      const sessionTx = db.transaction(['sessions'], 'readwrite');
-      const sessionStore = sessionTx.objectStore('sessions');
-
-      // Save session to IndexedDB with in_progress status so it can be found
-      const sessionToSave = {
-        ...sessionObj1,
-        status: 'in_progress', // Ensure it's findable by getActiveGuidedSession()
-        attempts: sessionObj1.attempts || [],
-        date: sessionObj1.date || new Date().toISOString(),
-        last_activity_time: new Date().toISOString()
-      };
-
-      await new Promise((resolve, reject) => {
-        const request = sessionStore.put(sessionToSave);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-
-      console.log(`✅ TEST: Session ${sessionId} saved to IndexedDB with status: ${sessionToSave.status}`);
+      // Save session to IndexedDB so addAttempt() can find it
+      await saveSessionToDatabase(sessionObj1);
 
       if (!workflow.session1Created) {
         return {
@@ -1163,25 +1199,13 @@ export function initializeCoreBusinessTests() {
       // Get initial tier before attempts
       const tierBefore = await TagService.getCurrentTier();
 
-      // Use DB layer directly since service requires active session
-      // Already imported statically
-
       // Record successful attempts for ALL problems in session1
-      // This should move them to higher box levels with cooldowns,
-      // forcing session2 to select different problems (learning progression)
-      // IMPORTANT: Use high-level AttemptsService.addAttempt() not low-level addAttemptToDB()
-      // Only the high-level service updates box levels and cooldowns
-
-      // Store first test problem for verification later
       let firstTestProblem = null;
 
       for (let i = 0; i < session1.length; i++) {
         const sessionProblem = session1[i];
-
-        // Create test problem in problems store using real LeetCode ID from session
         const testProblem = await createTestProblem(sessionProblem.id);
 
-        // Save first problem for later verification
         if (i === 0) {
           firstTestProblem = testProblem;
         }
@@ -1189,7 +1213,7 @@ export function initializeCoreBusinessTests() {
         await AttemptsService.addAttempt({
           problem_id: testProblem.problem_id,
           session_id: sessionId,
-          success: true, // All successful to trigger box level progression
+          success: true,
           time_spent: 300000 + (i * 100000),
           hints_used: 0,
           attempt_date: new Date().toISOString()
@@ -1203,38 +1227,14 @@ export function initializeCoreBusinessTests() {
         console.warn('Session completion warning:', error.message);
       }
 
-      // Debug: Check all attempts in database to see if they were saved
-      const helperForDebug = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
-        ? globalThis._testDatabaseHelper
-        : dbHelper;
-      const dbForCheck = await helperForDebug.openDB();
-      const allAttempts = await new Promise((resolve, reject) => {
-        const tx = dbForCheck.transaction(['attempts'], 'readonly');
-        const store = tx.objectStore('attempts');
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => reject(req.error);
-      });
+      // Debug attempt recording
+      await debugAttemptRecording(firstTestProblem);
 
-      // Targeted debug: Only check if attempts exist for our problem
-      const matchingAttempts = allAttempts.filter(a => a.problem_id === firstTestProblem.problem_id);
-      console.warn('\n\n');
-      console.warn('═══════════════════════════════════════════════════════════');
-      console.warn('🚨 PRODUCTION WORKFLOW - ATTEMPT RECORDING DEBUG 🚨');
-      console.warn('═══════════════════════════════════════════════════════════');
-      console.warn('Total attempts in database:', allAttempts.length);
-      console.warn('Querying for problem_id:', firstTestProblem.problem_id);
-      console.warn('Matching attempts found:', matchingAttempts.length);
-      console.warn('First matching attempt (ALL FIELDS):', matchingAttempts[0] ? matchingAttempts[0] : '❌ NONE FOUND');
-      console.warn('═══════════════════════════════════════════════════════════');
-      console.warn('\n\n');
-
-      // Verify attempts recorded using the SAME problem object from the loop
+      // Verify attempts recorded
       console.warn('🔍 About to call getMostRecentAttempt with problem_id:', firstTestProblem.problem_id);
       const recordedAttempt = await AttemptsService.getMostRecentAttempt(firstTestProblem.problem_id);
       console.warn('🔍 getMostRecentAttempt returned:', recordedAttempt);
 
-      // Debug: Check what we got
       if (!recordedAttempt) {
         console.warn('⚠️ TEST: getMostRecentAttempt returned null for problem_id:', firstTestProblem.problem_id);
         console.warn('⚠️ TEST: firstTestProblem:', {
@@ -1263,7 +1263,6 @@ export function initializeCoreBusinessTests() {
 
       const success = Object.values(workflow).every(v => v === true);
 
-      // Find which workflow step failed (if any) - check for non-true values
       const failedSteps = Object.entries(workflow)
         .filter(([, v]) => v !== true)
         .map(([k, v]) => `${k}=${v}`);
@@ -1292,12 +1291,72 @@ export function initializeCoreBusinessTests() {
     }
   }
 
+  // Helper: Reset tag mastery for testing
+  async function resetTagMastery(tag) {
+    await upsertTagMastery({
+      tag,
+      total_attempts: 0,
+      successful_attempts: 0,
+      attempted_problem_ids: [],
+      mastered: false,
+      strength: 0,
+      last_practiced: null,
+      mastery_date: null
+    });
+  }
+
+  // Helper: Add test attempt and update mastery
+  async function addTestAttempt(problemId, sessionId, success) {
+    const testProblem = await createTestProblem(problemId);
+    const attemptRecord = {
+      problem_id: testProblem.problem_id,
+      session_id: sessionId,
+      success,
+      time_spent: 300000,
+      attempt_date: new Date()
+    };
+    await addAttemptToDB(attemptRecord);
+    await updateTagMasteryForAttempt(testProblem, attemptRecord);
+    return testProblem;
+  }
+
+  // Helper: Get array mastery status
+  async function getArrayMastery() {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const masteryData = await getTagMastery();
+    return masteryData.find(m => m.tag === 'array');
+  }
+
+  // Helper: Format mastery gate test results
+  function formatMasteryGateResults(results, config) {
+    const { volumeGateWorks, allGatesPass, uniquenessTrackingWorks, uniquenessGateBlocks,
+            accuracyGateBlocks, regressionFixed, uniqueProblems, actualUniqueCount, actualSuccessRate } = results;
+    const { minAttemptsRequired, masteryThreshold, minUniqueRequired } = config;
+
+    const testResults = [volumeGateWorks, allGatesPass, uniquenessTrackingWorks,
+                         uniquenessGateBlocks, accuracyGateBlocks, regressionFixed];
+    const success = testResults.every(r => r === true);
+
+    return {
+      success,
+      details: `Gates: vol=${volumeGateWorks ? '✅' : '❌'} complete=${allGatesPass ? '✅' : '❌'} uniq=${uniquenessTrackingWorks ? '✅' : '❌'} uniqBlock=${uniquenessGateBlocks ? '✅' : '❌'} accBlock=${accuracyGateBlocks ? '✅' : '❌'} regression=${regressionFixed ? '✅' : '❌'}`,
+      analysis: {
+        minAttemptsRequired,
+        masteryThreshold: `${(masteryThreshold * 100).toFixed(0)}%`,
+        minUniqueRequired,
+        test1_volumeGate: { attempts: 5, mastered: !volumeGateWorks, passed: volumeGateWorks },
+        test2_allGates: { attempts: 6, mastered: allGatesPass, passed: allGatesPass },
+        test3_uniqueness: { attempts: 6, unique: uniqueProblems, passed: uniquenessTrackingWorks },
+        test4_uniquenessBlocks: { attempts: 10, unique: actualUniqueCount, mastered: !uniquenessGateBlocks, passed: uniquenessGateBlocks },
+        test5_accuracyBlocks: { attempts: 8, successRate: `${actualSuccessRate}%`, mastered: !accuracyGateBlocks, passed: accuracyGateBlocks },
+        test6_regression: { attempts: 4, mastered: !regressionFixed, passed: regressionFixed }
+      }
+    };
+  }
+
   async function testMasteryGates(_verbose) {
     const start = Date.now();
     try {
-      // Test the new mastery gate system: volume + uniqueness + accuracy
-      // This prevents the "4 problems → mastered" bug from regressing
-
       const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
         ? globalThis._testDatabaseHelper
         : dbHelper;
@@ -1306,8 +1365,6 @@ export function initializeCoreBusinessTests() {
       // Get tag relationships to find min_attempts_required
       const tagRelTx = db.transaction(['tag_relationships'], 'readonly');
       const tagRelStore = tagRelTx.objectStore('tag_relationships');
-
-      // Use "array" tag as test subject (should have high min_attempts_required)
       const arrayTagRel = await new Promise((resolve, reject) => {
         const req = tagRelStore.get('array');
         req.onsuccess = () => resolve(req.result);
@@ -1317,23 +1374,12 @@ export function initializeCoreBusinessTests() {
       const minAttemptsRequired = arrayTagRel?.min_attempts_required || 6;
       const masteryThreshold = arrayTagRel?.mastery_threshold || 0.75;
       const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
-
-      // Create unique test problems
-      // Already imported statically
-      // Already imported statically
-
-      // Test LeetCode IDs for array problems (real problems)
       const arrayProblemIds = [1, 26, 27, 35, 53, 66, 80, 118, 119, 121, 152, 153, 169, 189, 217, 238, 268, 283, 287, 414];
 
-      // Test 1: Volume gate - do exactly (minAttempts - 1) unique problems → should NOT be mastered
-      // CRITICAL: Clear any existing test data to ensure clean test state
-      // Already imported statically
-
-      // Clear previous test attempts for this session
+      // Clear previous test attempts
       const attemptsTx = db.transaction(['attempts'], 'readwrite');
       const attemptsStore = attemptsTx.objectStore('attempts');
       const attemptsCursor = attemptsStore.openCursor();
-
       await new Promise((resolve) => {
         attemptsCursor.onsuccess = (event) => {
           const cursor = event.target.result;
@@ -1348,77 +1394,24 @@ export function initializeCoreBusinessTests() {
         };
       });
 
-      // Reset array tag mastery to 0
-      await upsertTagMastery({
-        tag: 'array',
-        total_attempts: 0,
-        successful_attempts: 0,
-        attempted_problem_ids: [],
-        mastered: false,
-        strength: 0,
-        last_practiced: null,
-        mastery_date: null
-      });
-
-      let attemptCount = 0;
-      let volumeGateWorks = false;
-
-      while (attemptCount < minAttemptsRequired - 1) {
-        const testProblem = await createTestProblem(arrayProblemIds[attemptCount]);
-
+      // Test 1: Volume gate - do exactly (minAttempts - 1) unique problems
+      await resetTagMastery('array');
+      for (let i = 0; i < minAttemptsRequired - 1; i++) {
+        await addTestAttempt(arrayProblemIds[i], 'mastery-gate-test', true);
         if (_verbose) {
-          console.log(`Adding attempt ${attemptCount + 1}/${minAttemptsRequired - 1} for problem ${testProblem.title}`);
+          console.log(`Adding attempt ${i + 1}/${minAttemptsRequired - 1}`);
         }
-
-        const attemptRecord = {
-          problem_id: testProblem.problem_id,
-          session_id: 'mastery-gate-test',
-          success: true,
-          time_spent: 300000,
-          attempt_date: new Date()
-        };
-
-        await addAttemptToDB(attemptRecord);
-
-        // Manually update tag mastery (since we're bypassing AttemptsService)
-        await updateTagMasteryForAttempt(testProblem, attemptRecord);
-
-        attemptCount++;
       }
 
-      // Small delay for DB write
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      // Check mastery status - should NOT be mastered (volume gate blocks at minAttempts - 1)
-      let masteryData = await getTagMastery();
-      let arrayMastery = masteryData.find(m => m.tag === 'array');
-
+      let arrayMastery = await getArrayMastery();
+      const volumeGateWorks = !arrayMastery?.mastered;
       if (_verbose) {
-        console.log(`After ${minAttemptsRequired - 1} attempts, array mastery:`, {
-          total_attempts: arrayMastery?.total_attempts,
-          mastered: arrayMastery?.mastered
-        });
+        console.log(`After ${minAttemptsRequired - 1} attempts:`, { mastered: arrayMastery?.mastered });
       }
 
-      volumeGateWorks = !arrayMastery?.mastered;
-
-      // Test 2: Complete volume requirement → should be mastered
-      const finalProblem = await createTestProblem(arrayProblemIds[minAttemptsRequired - 1]);
-      const finalAttemptRecord = {
-        problem_id: finalProblem.problem_id,
-        session_id: 'mastery-gate-test',
-        success: true,
-        time_spent: 300000,
-        attempt_date: new Date()
-      };
-
-      await addAttemptToDB(finalAttemptRecord);
-      await updateTagMasteryForAttempt(finalProblem, finalAttemptRecord);
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      masteryData = await getTagMastery();
-      arrayMastery = masteryData.find(m => m.tag === 'array');
+      // Test 2: Complete volume requirement
+      await addTestAttempt(arrayProblemIds[minAttemptsRequired - 1], 'mastery-gate-test', true);
+      arrayMastery = await getArrayMastery();
       const allGatesPass = arrayMastery?.mastered === true;
 
       // Test 3: Verify uniqueness tracking
@@ -1426,133 +1419,41 @@ export function initializeCoreBusinessTests() {
       const uniquenessTrackingWorks = uniqueProblems >= minUniqueRequired;
 
       // Test 4: Uniqueness gate blocks - many attempts but repeated problems
-      // Reset mastery for isolated test
-      await upsertTagMastery({
-        tag: 'array',
-        total_attempts: 0,
-        successful_attempts: 0,
-        attempted_problem_ids: [],
-        mastered: false,
-        strength: 0,
-        last_practiced: null,
-        mastery_date: null
-      });
-
-      // Do 10 attempts but only use 3 unique problems (repeat them)
+      await resetTagMastery('array');
       for (let i = 0; i < 10; i++) {
-        const problemIndex = i % 3; // Cycles through first 3 problems
-        const testProblem = await createTestProblem(arrayProblemIds[problemIndex]);
-
-        const attemptRecord = {
-          problem_id: testProblem.problem_id,
-          session_id: 'mastery-gate-test-uniqueness',
-          success: true,
-          time_spent: 300000,
-          attempt_date: new Date()
-        };
-
-        await addAttemptToDB(attemptRecord);
-        await updateTagMasteryForAttempt(testProblem, attemptRecord);
+        const problemIndex = i % 3;
+        await addTestAttempt(arrayProblemIds[problemIndex], 'mastery-gate-test-uniqueness', true);
       }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      masteryData = await getTagMastery();
-      arrayMastery = masteryData.find(m => m.tag === 'array');
-
-      // Should NOT be mastered: 10 attempts, 100% accuracy, but only 3 unique (need 5)
+      arrayMastery = await getArrayMastery();
       const uniquenessGateBlocks = !arrayMastery?.mastered;
       const actualUniqueCount = new Set(arrayMastery?.attempted_problem_ids || []).size;
 
       // Test 5: Accuracy gate blocks - enough attempts and unique, but low success rate
-      await upsertTagMastery({
-        tag: 'array',
-        total_attempts: 0,
-        successful_attempts: 0,
-        attempted_problem_ids: [],
-        mastered: false,
-        strength: 0,
-        last_practiced: null,
-        mastery_date: null
-      });
-
-      // Do 8 attempts, 8 unique problems, but only 3 successful (37.5% < 75%)
+      await resetTagMastery('array');
       for (let i = 0; i < 8; i++) {
-        const testProblem = await createTestProblem(arrayProblemIds[i + 10]); // Use different problems
-        const attemptRecord = {
-          problem_id: testProblem.problem_id,
-          session_id: 'mastery-gate-test-accuracy',
-          success: i < 3, // Only first 3 are successful
-          time_spent: 300000,
-          attempt_date: new Date()
-        };
-
-        await addAttemptToDB(attemptRecord);
-        await updateTagMasteryForAttempt(testProblem, attemptRecord);
+        await addTestAttempt(arrayProblemIds[i + 10], 'mastery-gate-test-accuracy', i < 3);
       }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      masteryData = await getTagMastery();
-      arrayMastery = masteryData.find(m => m.tag === 'array');
-
-      // Should NOT be mastered: 8 attempts (>6), 8 unique (>5), but 37.5% success < 75%
+      arrayMastery = await getArrayMastery();
       const accuracyGateBlocks = !arrayMastery?.mastered;
       const actualSuccessRate = arrayMastery ?
         (arrayMastery.successful_attempts / arrayMastery.total_attempts * 100).toFixed(1) : 0;
 
       // Test 6: REGRESSION - The original "4 problems → mastered" bug
-      await upsertTagMastery({
-        tag: 'array',
-        total_attempts: 0,
-        successful_attempts: 0,
-        attempted_problem_ids: [],
-        mastered: false,
-        strength: 0,
-        last_practiced: null,
-        mastery_date: null
-      });
-
-      // Do exactly 4 successful, unique attempts (the original bug scenario)
+      await resetTagMastery('array');
       for (let i = 0; i < 4; i++) {
-        const testProblem = await createTestProblem(arrayProblemIds[i]);
-        const attemptRecord = {
-          problem_id: testProblem.problem_id,
-          session_id: 'mastery-gate-test-regression',
-          success: true,
-          time_spent: 300000,
-          attempt_date: new Date()
-        };
-
-        await addAttemptToDB(attemptRecord);
-        await updateTagMasteryForAttempt(testProblem, attemptRecord);
+        await addTestAttempt(arrayProblemIds[i], 'mastery-gate-test-regression', true);
       }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      masteryData = await getTagMastery();
-      arrayMastery = masteryData.find(m => m.tag === 'array');
-
-      // Should NOT be mastered: 4 attempts < 6 required (volume gate blocks)
+      arrayMastery = await getArrayMastery();
       const regressionFixed = !arrayMastery?.mastered;
 
-      const success = volumeGateWorks && allGatesPass && uniquenessTrackingWorks &&
-                     uniquenessGateBlocks && accuracyGateBlocks && regressionFixed;
+      const results = {
+        volumeGateWorks, allGatesPass, uniquenessTrackingWorks, uniquenessGateBlocks,
+        accuracyGateBlocks, regressionFixed, uniqueProblems, actualUniqueCount, actualSuccessRate
+      };
+      const config = { minAttemptsRequired, masteryThreshold, minUniqueRequired };
 
       return {
-        success,
-        details: `Gates: vol=${volumeGateWorks ? '✅' : '❌'} complete=${allGatesPass ? '✅' : '❌'} uniq=${uniquenessTrackingWorks ? '✅' : '❌'} uniqBlock=${uniquenessGateBlocks ? '✅' : '❌'} accBlock=${accuracyGateBlocks ? '✅' : '❌'} regression=${regressionFixed ? '✅' : '❌'}`,
-        analysis: {
-          minAttemptsRequired,
-          masteryThreshold: `${(masteryThreshold * 100).toFixed(0)}%`,
-          minUniqueRequired,
-          test1_volumeGate: { attempts: 5, mastered: !volumeGateWorks, passed: volumeGateWorks },
-          test2_allGates: { attempts: 6, mastered: allGatesPass, passed: allGatesPass },
-          test3_uniqueness: { attempts: 6, unique: uniqueProblems, passed: uniquenessTrackingWorks },
-          test4_uniquenessBlocks: { attempts: 10, unique: actualUniqueCount, mastered: !uniquenessGateBlocks, passed: uniquenessGateBlocks },
-          test5_accuracyBlocks: { attempts: 8, successRate: `${actualSuccessRate}%`, mastered: !accuracyGateBlocks, passed: accuracyGateBlocks },
-          test6_regression: { attempts: 4, mastered: !regressionFixed, passed: regressionFixed }
-        },
+        ...formatMasteryGateResults(results, config),
         duration: Date.now() - start
       };
     } catch (error) {
