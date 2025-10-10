@@ -49,9 +49,17 @@ module.exports = {
   
   // Test file patterns
   testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.(js|jsx|ts|tsx)',
+    '<rootDir>/src/**/__tests__/**/*.(test|spec).(js|jsx|ts|tsx)',
     '<rootDir>/src/**/*.(test|spec).(js|jsx|ts|tsx)',
     '<rootDir>/test/**/*.(test|spec).(js|jsx|ts|tsx)'
+  ],
+
+  // Ignore helper files that don't contain tests
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '.*Helpers\\.js$',
+    '.*TestHelpers\\.js$',
+    'mockDataFactories\\.js$'
   ],
   
   // Coverage configuration
