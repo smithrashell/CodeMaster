@@ -32,15 +32,16 @@ const createExpectedAttemptRecord = (overrides = {}) => ({
   session_id: undefined,
   problem_id: "prob-123",
   success: true,
-  attempt_date: "2024-01-01T10:00:00Z",
+  attempt_date: new Date("2024-01-01T10:00:00Z"), // Date object for IndexedDB compound index
   time_spent: 1800,
   difficulty: 6,
   comments: "",
   ...overrides,
 });
 
-const validateDateFormat = (dateString) => {
-  expect(new Date(dateString)).toBeInstanceOf(Date);
+const validateDateFormat = (date) => {
+  expect(date).toBeInstanceOf(Date);
+  expect(date.getTime()).not.toBeNaN();
 };
 
 // Test case helpers for createAttemptRecord
