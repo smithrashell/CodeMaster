@@ -366,7 +366,7 @@ async function _handleGraduation(masteredTags, tierTags, masteryData, db, _maste
 }
 
 // Helper function to sort and select focus tags
-function sortAndSelectFocusTags(unmasteredTags) {
+function sortAndSelectFocusTags(unmasteredTags, count = 5) {
   console.log('🔍 TAG SORTING DEBUG: Sorting', unmasteredTags.length, 'candidate tags');
 
   // Sort by intelligent criteria optimized for pattern recognition learning
@@ -405,7 +405,7 @@ function sortAndSelectFocusTags(unmasteredTags) {
   })));
 
   // Select top focus tags (multi-level sorting already handles prioritization)
-  const maxFocusTags = 5;
+  const maxFocusTags = count;
   const focusTags = sortedTags.slice(0, maxFocusTags);
   const selectedTags = focusTags.map((tag) => tag.tag);
 
@@ -420,11 +420,118 @@ function sortAndSelectFocusTags(unmasteredTags) {
   return selectedTags;
 }
 
-async function getIntelligentFocusTags(masteryData, tierTags) {
-  logger.info("🧠 Selecting intelligent focus tags...");
+/**
+ * Gets stable system focus pool or creates new one
+ * Pool persists across sessions until tags are mastered or tier changes
+ * @param {Array} masteryData - User's tag mastery data
+ * @param {Array} tierTags - All tags in current tier
+ * @param {string} currentTier - Current tier name
+ * @param {Array} excludeTags - Tags to exclude (user selections)
+ * @returns {Promise<Array>} Stable pool of system-selected tags
+ */
+async function getStableSystemPool(masteryData, tierTags, currentTier, excludeTags) {
+  const settings = await StorageService.getSettings();
+  const existing = settings.systemFocusPool;
+
+  // Need new pool? (tier change, first time, or corrupted)
+  if (!existing || existing.tier !== currentTier || !Array.isArray(existing.tags)) {
+    logger.info(`🔄 Creating new system focus pool for tier: ${currentTier}`);
+    return await createSystemPool(masteryData, tierTags, currentTier, excludeTags);
+  }
+
+  // Maintain existing pool
+  logger.info('✅ Maintaining existing system focus pool');
+  return await maintainSystemPool(existing, masteryData, tierTags, currentTier, excludeTags);
+}
+
+/**
+ * Creates a new stable system focus pool
+ * Called on tier change or first session
+ */
+async function createSystemPool(masteryData, tierTags, currentTier, excludeTags) {
+  const candidates = await getCandidatesForSystemPool(masteryData, tierTags, excludeTags);
+  const poolSize = Math.min(5 - excludeTags.length, 5); // Max 5 total, accounting for user selections
+  const selectedTags = sortAndSelectFocusTags(candidates, poolSize);
+
+  // Save new pool
+  const settings = await StorageService.getSettings();
+  await StorageService.setSettings({
+    ...settings,
+    systemFocusPool: {
+      tags: selectedTags,
+      tier: currentTier,
+      lastGenerated: new Date().toISOString()
+    }
+  });
+
+  logger.info(`✅ Created system focus pool (${selectedTags.length} tags):`, selectedTags);
+  return selectedTags;
+}
+
+/**
+ * Maintains existing stable system pool
+ * Removes mastered tags, refills empty slots
+ */
+async function maintainSystemPool(existing, masteryData, tierTags, currentTier, excludeTags) {
+  const poolSize = Math.min(5 - excludeTags.length, 5);
+
+  // Keep non-mastered tags
+  const keptTags = existing.tags.filter(tag => {
+    const tagData = masteryData.find(m => m.tag === tag);
+
+    // Remove if mastered
+    if (tagData?.mastered) {
+      logger.info(`🎓 Graduated from system pool: ${tag} (mastered)`);
+      return false;
+    }
+
+    // Keep everything else (attempted or unattempted)
+    return true;
+  });
+
+  logger.info(`✅ Kept ${keptTags.length}/${existing.tags.length} tags from system pool`);
+
+  // Refill if needed
+  if (keptTags.length < poolSize) {
+    const emptySlots = poolSize - keptTags.length;
+    logger.info(`🔄 Refilling ${emptySlots} empty slots in system pool`);
+
+    const candidates = await getCandidatesForSystemPool(
+      masteryData,
+      tierTags,
+      [...excludeTags, ...keptTags] // Exclude user tags + existing pool
+    );
+    const newTags = sortAndSelectFocusTags(candidates, emptySlots);
+
+    const updatedTags = [...keptTags, ...newTags];
+
+    // Save updated pool
+    const settings = await StorageService.getSettings();
+    await StorageService.setSettings({
+      ...settings,
+      systemFocusPool: {
+        tags: updatedTags,
+        tier: currentTier,
+        lastGenerated: existing.lastGenerated,
+        lastUpdated: new Date().toISOString()
+      }
+    });
+
+    logger.info(`✅ Refilled system pool with new tags:`, newTags);
+    return updatedTags;
+  }
+
+  return keptTags;
+}
+
+/**
+ * Gets candidate tags for system pool
+ * Excludes user-selected tags and already-committed tags
+ */
+async function getCandidatesForSystemPool(masteryData, tierTags, excludedTags) {
   const db = await openDB();
 
-  // Get tag relationships for intelligent expansion
+  // Get tag relationships (existing logic from getIntelligentFocusTags)
   const tagRelationshipsData = await new Promise((resolve, reject) => {
     const tx = db.transaction("tag_relationships", "readonly");
     const store = tx.objectStore("tag_relationships");
@@ -434,7 +541,6 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   });
 
   const tagRelationships = tagRelationshipsData.reduce((acc, item) => {
-    // Convert array format to object for consumer compatibility
     acc[item.id] = item.related_tags.reduce((tagObj, relation) => {
       tagObj[relation.tag] = relation.strength;
       return tagObj;
@@ -442,54 +548,37 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
     return acc;
   }, {});
 
-  // Create mastery threshold lookup from tag_relationships data
   const masteryThresholds = tagRelationshipsData.reduce((acc, item) => {
-    acc[item.id] = item.mastery_threshold || 0.8; // Fallback to 80% if not set
+    acc[item.id] = item.mastery_threshold || 0.8;
     return acc;
   }, {});
 
-  // Process attempted tags (those already in tag_mastery)
-  const attemptedTags = processAndEnrichTags(masteryData, tierTags, tagRelationships, masteryThresholds, tagRelationshipsData);
+  // Process attempted tags
+  const attemptedTags = processAndEnrichTags(
+    masteryData,
+    tierTags,
+    tagRelationships,
+    masteryThresholds,
+    tagRelationshipsData
+  );
 
-  console.log('🔍 TAG SELECTION DEBUG: Attempted tags from tag_mastery:', attemptedTags.map(t => ({
-    tag: t.tag,
-    attempts: t.total_attempts,
-    successRate: t.successRate,
-    mastered: t.mastered,
-    relationshipScore: t.relationshipScore,
-    totalProblems: t.totalProblems
-  })));
-
-  // Split attempted tags into mastered and unmastered
-  // Use actual 'mastered' field from database which considers volume + uniqueness + accuracy gates
   const unmasteredAttemptedTags = attemptedTags.filter(
-    (tag) => !tag.mastered
+    (tag) => !tag.mastered && !excludedTags.includes(tag.tag)
   );
 
-  console.log('🔍 TAG SELECTION DEBUG: Unmastered attempted tags (mastered field = false):', unmasteredAttemptedTags.map(t => ({
-    tag: t.tag,
-    mastered: t.mastered,
-    attempts: t.total_attempts,
-    successRate: t.successRate,
-    relationshipScore: t.relationshipScore
-  })));
-
-  // ✨ NEW: Add unattempted tags from tier (organic discovery)
-  // These tags aren't in tag_mastery yet but should be considered for selection
+  // Unattempted tags
   const unattemptedTagNames = tierTags.filter(
-    (tag) => !masteryData.some((m) => m.tag === tag)
+    (tag) => !masteryData.some((m) => m.tag === tag) && !excludedTags.includes(tag)
   );
 
-  // Enrich unattempted tags with relationship scores based on attempted tags
   const unattemptedTagsEnriched = unattemptedTagNames.map((tagName) => {
     const relationshipScore = calculateRelationshipScore(
       tagName,
-      masteryData, // Score based on what user has already attempted
+      masteryData,
       tagRelationships,
       masteryThresholds
     );
 
-    // Get problem count from tag_relationships for coverage-based tiebreaking
     const tagRelationship = tagRelationshipsData.find(tr => tr.id === tagName);
     const dist = tagRelationship?.difficulty_distribution || { easy: 0, medium: 0, hard: 0 };
     const totalProblems = dist.easy + dist.medium + dist.hard;
@@ -501,43 +590,79 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
       successRate: 0,
       adjustedMasteryThreshold: masteryThresholds[tagName] || 0.8,
       timeBasedEscapeHatch: false,
-      learningVelocity: 0.5, // Neutral velocity for new tags
-      relationshipScore: relationshipScore,
-      totalProblems // Add problem count for tiebreaking
+      learningVelocity: 0.5,
+      relationshipScore,
+      totalProblems
     };
   });
 
-  console.log('🔍 TAG SELECTION DEBUG: Unattempted tags enriched with relationship scores:',
-    unattemptedTagsEnriched.slice(0, 10).map(t => ({
-      tag: t.tag,
-      relationshipScore: t.relationshipScore,
-      totalProblems: t.totalProblems
-    }))
-  );
-  console.log(`🔍 TAG SELECTION DEBUG: Total unattempted tags: ${unattemptedTagsEnriched.length}`);
+  return [...unmasteredAttemptedTags, ...unattemptedTagsEnriched];
+}
 
-  // Combine attempted and unattempted tags for unified selection
-  const allCandidateTags = [...unmasteredAttemptedTags, ...unattemptedTagsEnriched];
+async function getIntelligentFocusTags(masteryData, tierTags) {
+  logger.info("🧠 Selecting intelligent focus tags with stable pool...");
 
-  console.log('🔍 TAG SELECTION DEBUG: Combined candidate tags for sorting:', {
-    unmasteredAttempted: unmasteredAttemptedTags.length,
-    unattempted: unattemptedTagsEnriched.length,
-    total: allCandidateTags.length
-  });
+  // Determine current tier from the tierTags being passed in
+  // Lookup the tier classification from the first tag in tierTags
+  let currentTier = "Core Concept"; // Default fallback
 
-  const selectedTags = sortAndSelectFocusTags(allCandidateTags);
-  logger.info("🧠 Selected intelligent focus tags:", selectedTags);
-  logger.info(`   📊 From ${unmasteredAttemptedTags.length} attempted + ${unattemptedTagsEnriched.length} unattempted tags`);
+  if (tierTags && tierTags.length > 0) {
+    try {
+      const db = await openDB();
+      const tx = db.transaction(["tag_relationships"], "readonly");
+      const relationshipsStore = tx.objectStore("tag_relationships");
+
+      const firstTagRelation = await new Promise((resolve, reject) => {
+        const req = relationshipsStore.get(tierTags[0]);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+
+      if (firstTagRelation && firstTagRelation.classification) {
+        currentTier = firstTagRelation.classification;
+        logger.info(`✅ Determined current tier: ${currentTier}`);
+      }
+    } catch (error) {
+      logger.warn(`⚠️ Could not determine tier, using default: ${currentTier}`, error);
+    }
+  }
+
+  // Get user manual selections
+  const settings = await StorageService.getSettings();
+  const userFocusAreas = settings.focusAreas || [];
+
+  logger.info(`📊 User has ${userFocusAreas.length} manual focus areas selected`);
+
+  // CASE 1: User has 3+ manual selections → use user choices only
+  if (userFocusAreas.length >= 3) {
+    logger.info('🎯 Using full user focus areas (3+ tags selected)');
+    return userFocusAreas.slice(0, 5); // Max 5, respects FOCUS_CONFIG.limits.totalTags
+  }
+
+  // CASE 2 & 3: Get stable system pool
+  const systemPool = await getStableSystemPool(masteryData, tierTags, currentTier, userFocusAreas);
+
+  // CASE 2: User has 1-2 manual selections → blend user + system pool
+  if (userFocusAreas.length > 0) {
+    logger.info('🎯 Blending user selections with stable system pool');
+    const remainingSlots = 5 - userFocusAreas.length;
+    const blendedTags = [...userFocusAreas, ...systemPool.slice(0, remainingSlots)];
+    logger.info(`✅ Final focus tags (user + system): ${blendedTags.join(', ')}`);
+    return blendedTags;
+  }
+
+  // CASE 3: User has NO manual selections → use stable system pool only
+  logger.info('🎯 Using stable system pool (no user selections)');
+  logger.info(`✅ Final focus tags (system only): ${systemPool.join(', ')}`);
 
   // 🛡️ SAFETY NET: Ensure we always have focus tags
-  if (!selectedTags || selectedTags.length === 0) {
-    logger.warn("⚠️ getIntelligentFocusTags failed, falling back to tier tags");
-    // Fall back to first available tier tags
-    const fallbackTags = tierTags.slice(0, 3);
+  if (!systemPool || systemPool.length === 0) {
+    logger.warn("⚠️ System pool empty, falling back to tier tags");
+    const fallbackTags = tierTags.slice(0, 5);
     return fallbackTags.length > 0 ? fallbackTags : ["array"];
   }
 
-  return selectedTags;
+  return systemPool;
 }
 
 /**

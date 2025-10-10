@@ -122,6 +122,7 @@ export const StorageService = {
       numberofNewProblemsPerSession: 2,
       adaptive: true,
       focusAreas: ["array"], // Start new users with one focus area
+      systemFocusPool: null, // Stable system-generated focus pool (created on first session)
       sessionsPerWeek: 5,
       reviewRatio: 40,
       timerDisplay: "mm:ss",
