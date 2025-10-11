@@ -317,6 +317,18 @@ console.log('🛡️ Test isolation utilities:');
 console.log('  - enterTestMode(sessionId)   // Enter isolated test environment');
 console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=true by default)');
     console.log('  - seedTestData(scenario)     // Seed test data (scenarios: default, experienced_user)');
+
+    // Helper function to validate a single data store
+    async function validateDataStore(store, verbose) {
+      try {
+        const data = await getAllFromStore(store);
+        return Array.isArray(data) ? data.length : 0;
+      } catch (storeError) {
+        if (verbose) console.log(`⚠️ Store ${store} check failed:`, storeError.message);
+        return -1;
+      }
+    }
+
     // 🔥 CRITICAL Priority Test Functions - Using static imports only
     globalThis.testOnboardingDetection = async function(options = {}) {
       const { verbose = false } = options;
@@ -374,13 +386,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             const storeResults = {};
 
             for (const store of dataStores) {
-              try {
-                const data = await getAllFromStore(store);
-                storeResults[store] = Array.isArray(data) ? data.length : 0;
-              } catch (storeError) {
-                storeResults[store] = -1;
-                if (verbose) console.log(`⚠️ Store ${store} check failed:`, storeError.message);
-              }
+              storeResults[store] = await validateDataStore(store, verbose);
             }
 
             results.dataStoresValidated = true;
@@ -479,6 +485,68 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         };
       }
     };
+
+    // Helper function to test timer pause/resume functionality
+    async function testTimerPauseResume(timer, verbose) {
+      timer.start();
+      await new Promise(resolve => setTimeout(resolve, 5));
+
+      const pauseResult = timer.pause();
+      const pausedElapsed = timer.getElapsedTime();
+
+      await new Promise(resolve => setTimeout(resolve, 5));
+
+      const resumeResult = timer.resume();
+      await new Promise(resolve => setTimeout(resolve, 5));
+
+      const finalElapsed = timer.getElapsedTime();
+      timer.stop();
+
+      if (pauseResult && resumeResult && finalElapsed >= pausedElapsed) {
+        if (verbose) console.log('✓ Pause/resume functionality working');
+        return true;
+      }
+      return false;
+    }
+
+    // Helper function to test timer time calculation accuracy
+    async function testTimerAccuracy(timer, verbose) {
+      const startTime = Date.now();
+      timer.start();
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const elapsed = timer.getElapsedTime();
+      const actualTime = Date.now() - startTime;
+
+      timer.stop();
+
+      const timingDifference = Math.abs(elapsed * 1000 - actualTime);
+      if (timingDifference < 100) {
+        if (verbose) console.log('✓ Time calculation accurate within tolerance');
+        return {
+          accurate: true,
+          accuracy: {
+            expected: Math.floor(actualTime / 1000),
+            actual: elapsed,
+            differenceMs: timingDifference
+          }
+        };
+      }
+      return { accurate: false, accuracy: null };
+    }
+
+    // Helper function to test timer static methods
+    function testTimerStaticMethods(TimerClass, verbose) {
+      if (typeof TimerClass.formatTime === 'function') {
+        const formatted = TimerClass.formatTime(125); // 2:05
+        if (typeof formatted === 'string' && formatted.includes(':')) {
+          if (verbose) console.log('✓ Static methods working:', formatted);
+          return true;
+        }
+      }
+      return false;
+    }
 
     globalThis.testAccurateTimer = async function(options = {}) {
       const { verbose = false } = options;
@@ -597,24 +665,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           const timer = new TimerClass(120); // 2 minutes
 
           if (typeof timer.pause === 'function' && typeof timer.resume === 'function') {
-            timer.start();
-            await new Promise(resolve => setTimeout(resolve, 5));
-
-            const pauseResult = timer.pause();
-            const pausedElapsed = timer.getElapsedTime();
-
-            await new Promise(resolve => setTimeout(resolve, 5));
-
-            const resumeResult = timer.resume();
-            await new Promise(resolve => setTimeout(resolve, 5));
-
-            const finalElapsed = timer.getElapsedTime();
-            timer.stop();
-
-            if (pauseResult && resumeResult && finalElapsed >= pausedElapsed) {
-              results.pauseResumeFunctional = true;
-              if (verbose) console.log('✓ Pause/resume functionality working');
-            }
+            results.pauseResumeFunctional = await testTimerPauseResume(timer, verbose);
           } else {
             results.pauseResumeFunctional = true; // Not required, mark as passed
             if (verbose) console.log('✓ Pause/resume not available (acceptable)');
@@ -628,26 +679,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           const TimerClass = typeof AccurateTimer !== 'undefined' ? AccurateTimer : globalThis.TestTimer;
           const timer = new TimerClass(0);
 
-          const startTime = Date.now();
-          timer.start();
-
-          await new Promise(resolve => setTimeout(resolve, 50));
-
-          const elapsed = timer.getElapsedTime();
-          const actualTime = Date.now() - startTime;
-
-          timer.stop();
-
-          const timingDifference = Math.abs(elapsed * 1000 - actualTime);
-          if (timingDifference < 100) {
-            results.timeCalculationAccurate = true;
-            results.timingAccuracy = {
-              expected: Math.floor(actualTime / 1000),
-              actual: elapsed,
-              differenceMs: timingDifference
-            };
-            if (verbose) console.log('✓ Time calculation accurate within tolerance');
-          }
+          const accuracyResult = await testTimerAccuracy(timer, verbose);
+          results.timeCalculationAccurate = accuracyResult.accurate;
+          results.timingAccuracy = accuracyResult.accuracy;
         } catch (calcError) {
           if (verbose) console.log('⚠️ Time calculation test failed:', calcError.message);
         }
@@ -656,12 +690,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         try {
           const TimerClass = typeof AccurateTimer !== 'undefined' ? AccurateTimer : globalThis.TestTimer;
 
-          if (typeof TimerClass.formatTime === 'function') {
-            const formatted = TimerClass.formatTime(125); // 2:05
-            if (typeof formatted === 'string' && formatted.includes(':')) {
-              results.staticMethodsWorking = true;
-              if (verbose) console.log('✓ Static methods working:', formatted);
-            }
+          const staticMethodsWork = testTimerStaticMethods(TimerClass, verbose);
+          if (staticMethodsWork) {
+            results.staticMethodsWorking = true;
           } else {
             results.staticMethodsWorking = true; // Not required
             if (verbose) console.log('✓ Static methods not available (acceptable)');
@@ -742,6 +773,72 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Validate interview configuration for a specific mode
+    function validateInterviewModeConfig(mode, config, results) {
+      if (config && typeof config === 'object') {
+        results.interviewModesSupported.push(mode);
+        results.configData[mode] = {
+          hints: config.hints?.max,
+          timing: config.timing?.pressure,
+          sessionLength: config.sessionLength
+        };
+      }
+    }
+
+    // Helper: Create simulated session data
+    function createSimulatedSessionData() {
+      return {
+        sessionCreated: true,
+        sessionData: {
+          sessionType: 'interview-like',
+          sessionLength: 4,
+          hasConfig: true,
+          hasCriteria: true,
+          simulated: true
+        },
+        problemCriteria: {
+          allowedTags: ['array', 'hash-table', 'dynamic-programming'],
+          difficulty: 'Medium',
+          maxHints: 2,
+          timePressure: true
+        }
+      };
+    }
+
+    // Helper: Process successful interview session creation
+    function processInterviewSession(interviewSession, results, verbose) {
+      if (interviewSession && interviewSession.sessionType) {
+        results.sessionCreated = true;
+        results.sessionData = {
+          sessionType: interviewSession.sessionType,
+          sessionLength: interviewSession.sessionLength,
+          hasConfig: !!interviewSession.config,
+          hasCriteria: !!interviewSession.selectionCriteria
+        };
+        results.problemCriteria = interviewSession.selectionCriteria;
+        if (verbose) console.log('✓ Interview session created:', results.sessionData);
+      }
+    }
+
+    // Helper: Check interview mode differences
+    function checkModeDifferences(standardConfig, interviewConfig, verbose) {
+      const hintsAreDifferent = standardConfig.hints !== interviewConfig.hints;
+      const timingIsDifferent = standardConfig.timing !== interviewConfig.timing;
+
+      const modeDifferencesDetected = hintsAreDifferent || timingIsDifferent;
+
+      if (verbose) {
+        console.log('✓ Mode differences detected:', {
+          hintsAreDifferent,
+          timingIsDifferent,
+          standardHints: standardConfig.hints,
+          interviewHints: interviewConfig.hints
+        });
+      }
+
+      return modeDifferencesDetected;
+    }
+
     globalThis.testInterviewLikeSessions = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎯 Testing interview-like session creation...');
@@ -775,14 +872,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             // Test actual configs
             for (const mode of interviewModes) {
               const config = InterviewService.getInterviewConfig(mode);
-              if (config && typeof config === 'object') {
-                results.interviewModesSupported.push(mode);
-                results.configData[mode] = {
-                  hints: config.hints?.max,
-                  timing: config.timing?.pressure,
-                  sessionLength: config.sessionLength
-                };
-              }
+              validateInterviewModeConfig(mode, config, results);
             }
             results.configsValidated = results.interviewModesSupported.length > 0;
             if (verbose) console.log('✓ Interview configs validated:', results.interviewModesSupported);
@@ -807,45 +897,20 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             // Test actual interview session creation
             try {
               const interviewSession = await InterviewService.createInterviewSession('interview-like');
-              if (interviewSession && interviewSession.sessionType) {
-                results.sessionCreated = true;
-                results.sessionData = {
-                  sessionType: interviewSession.sessionType,
-                  sessionLength: interviewSession.sessionLength,
-                  hasConfig: !!interviewSession.config,
-                  hasCriteria: !!interviewSession.selectionCriteria
-                };
-                results.problemCriteria = interviewSession.selectionCriteria;
-                if (verbose) console.log('✓ Interview session created:', results.sessionData);
-              }
+              processInterviewSession(interviewSession, results, verbose);
             } catch (sessionError) {
               if (verbose) console.log('⚠️ Interview session creation failed, will simulate:', sessionError.message);
               // Fall back to simulation
-              results.sessionCreated = true;
-              results.sessionData = {
-                sessionType: 'interview-like',
-                sessionLength: 4,
-                hasConfig: true,
-                hasCriteria: true,
-                simulated: true
-              };
+              const simulated = createSimulatedSessionData();
+              results.sessionCreated = simulated.sessionCreated;
+              results.sessionData = simulated.sessionData;
             }
           } else {
             // Simulate interview session creation
-            results.sessionCreated = true;
-            results.sessionData = {
-              sessionType: 'interview-like',
-              sessionLength: 4,
-              hasConfig: true,
-              hasCriteria: true,
-              simulated: true
-            };
-            results.problemCriteria = {
-              allowedTags: ['array', 'hash-table', 'dynamic-programming'],
-              difficulty: 'Medium',
-              maxHints: 2,
-              timePressure: true
-            };
+            const simulated = createSimulatedSessionData();
+            results.sessionCreated = simulated.sessionCreated;
+            results.sessionData = simulated.sessionData;
+            results.problemCriteria = simulated.problemCriteria;
             if (verbose) console.log('✓ Interview session simulated');
           }
         } catch (sessionCreationError) {
@@ -886,19 +951,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             const interviewConfig = results.configData['interview-like'] || results.configData['full-interview'];
 
             if (standardConfig && interviewConfig) {
-              const hintsAreDifferent = standardConfig.hints !== interviewConfig.hints;
-              const timingIsDifferent = standardConfig.timing !== interviewConfig.timing;
-
-              modeDifferencesDetected = hintsAreDifferent || timingIsDifferent;
-
-              if (verbose) {
-                console.log('✓ Mode differences detected:', {
-                  hintsAreDifferent,
-                  timingIsDifferent,
-                  standardHints: standardConfig.hints,
-                  interviewHints: interviewConfig.hints
-                });
-              }
+              modeDifferencesDetected = checkModeDifferences(standardConfig, interviewConfig, verbose);
             }
           }
         } catch (diffError) {
@@ -970,6 +1023,83 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Process full interview configuration
+    function processFullInterviewConfig(fullInterviewConfig, verbose) {
+      const config = {
+        hints: fullInterviewConfig.hints?.max || 0,
+        timing: fullInterviewConfig.timing?.pressure || false,
+        sessionLength: fullInterviewConfig.sessionLength,
+        strictMode: fullInterviewConfig.strictMode || false,
+        timeLimit: fullInterviewConfig.timeLimit,
+        allowSkipping: fullInterviewConfig.allowSkipping || false
+      };
+      if (verbose) console.log('✓ Full interview config validated:', config);
+      return config;
+    }
+
+    // Helper: Create simulated full interview config
+    function createSimulatedFullInterviewConfig(verbose, perProblemTime = 25) {
+      const config = {
+        hints: 0,
+        timing: true,
+        sessionLength: { min: 3, max: 4 },
+        strictMode: true,
+        timeLimit: { perProblem: perProblemTime },
+        allowSkipping: false,
+        simulated: true
+      };
+      if (verbose) console.log('✓ Full interview config simulated');
+      return config;
+    }
+
+    // Helper: Process full interview session
+    function processFullInterviewSession(fullInterviewSession, results, verbose) {
+      if (fullInterviewSession && fullInterviewSession.sessionType) {
+        results.sessionCreated = true;
+        results.sessionData = {
+          sessionType: fullInterviewSession.sessionType,
+          sessionLength: fullInterviewSession.sessionLength,
+          hasConfig: !!fullInterviewSession.config,
+          hasCriteria: !!fullInterviewSession.selectionCriteria,
+          config: fullInterviewSession.config,
+          constraints: {
+            hintsAllowed: fullInterviewSession.config?.hints?.max || 0,
+            timePressure: !!fullInterviewSession.config?.timing?.pressure,
+            strictMode: !!fullInterviewSession.config?.strictMode
+          }
+        };
+        if (verbose) console.log('✓ Full interview session created:', results.sessionData);
+      }
+    }
+
+    // Helper: Create simulated full interview session
+    function createSimulatedFullInterviewSession(includeSelectionCriteria = false) {
+      const sessionData = {
+        sessionType: 'full-interview',
+        sessionLength: 3,
+        hasConfig: true,
+        hasCriteria: true,
+        constraints: {
+          hintsAllowed: 0,
+          timePressure: true,
+          strictMode: true
+        },
+        simulated: true
+      };
+
+      if (includeSelectionCriteria) {
+        sessionData.selectionCriteria = {
+          allowedTags: ['array', 'hash-table', 'two-pointers'],
+          difficulty: ['Medium', 'Hard'],
+          maxHints: 0,
+          timePressure: true,
+          strictEvaluation: true
+        };
+      }
+
+      return sessionData;
+    }
+
     globalThis.testFullInterviewSessions = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🚫 Testing full interview session creation...');
@@ -1003,42 +1133,17 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             const fullInterviewConfig = InterviewService.getInterviewConfig('full-interview');
             if (fullInterviewConfig && typeof fullInterviewConfig === 'object') {
               results.fullInterviewConfigValidated = true;
-              results.fullInterviewConfig = {
-                hints: fullInterviewConfig.hints?.max || 0,
-                timing: fullInterviewConfig.timing?.pressure || false,
-                sessionLength: fullInterviewConfig.sessionLength,
-                strictMode: fullInterviewConfig.strictMode || false,
-                timeLimit: fullInterviewConfig.timeLimit,
-                allowSkipping: fullInterviewConfig.allowSkipping || false
-              };
-              if (verbose) console.log('✓ Full interview config validated:', results.fullInterviewConfig);
+              results.fullInterviewConfig = processFullInterviewConfig(fullInterviewConfig, verbose);
             } else {
               // Fall back to simulation
               results.fullInterviewConfigValidated = true;
-              results.fullInterviewConfig = {
-                hints: 0,
-                timing: true,
-                sessionLength: { min: 3, max: 4 },
-                strictMode: true,
-                timeLimit: { perProblem: 20 }, // 20 minutes per problem
-                allowSkipping: false,
-                simulated: true
-              };
+              results.fullInterviewConfig = createSimulatedFullInterviewConfig(verbose, 20);
               if (verbose) console.log('✓ Full interview config simulated (config not found)');
             }
           } else {
             // Simulate full interview config
             results.fullInterviewConfigValidated = true;
-            results.fullInterviewConfig = {
-              hints: 0,
-              timing: true,
-              sessionLength: { min: 3, max: 4 },
-              strictMode: true,
-              timeLimit: { perProblem: 25 }, // 25 minutes per problem
-              allowSkipping: false,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Full interview config simulated');
+            results.fullInterviewConfig = createSimulatedFullInterviewConfig(verbose, 25);
           }
         } catch (configError) {
           if (verbose) console.log('⚠️ Full interview config validation failed:', configError.message);
@@ -1050,61 +1155,17 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             // Test actual full interview session creation
             try {
               const fullInterviewSession = await InterviewService.createInterviewSession('full-interview');
-              if (fullInterviewSession && fullInterviewSession.sessionType) {
-                results.sessionCreated = true;
-                results.sessionData = {
-                  sessionType: fullInterviewSession.sessionType,
-                  sessionLength: fullInterviewSession.sessionLength,
-                  hasConfig: !!fullInterviewSession.config,
-                  hasCriteria: !!fullInterviewSession.selectionCriteria,
-                  config: fullInterviewSession.config,
-                  constraints: {
-                    hintsAllowed: fullInterviewSession.config?.hints?.max || 0,
-                    timePressure: !!fullInterviewSession.config?.timing?.pressure,
-                    strictMode: !!fullInterviewSession.config?.strictMode
-                  }
-                };
-                if (verbose) console.log('✓ Full interview session created:', results.sessionData);
-              }
+              processFullInterviewSession(fullInterviewSession, results, verbose);
             } catch (sessionError) {
               if (verbose) console.log('⚠️ Full interview session creation failed, will simulate:', sessionError.message);
               // Fall back to simulation
               results.sessionCreated = true;
-              results.sessionData = {
-                sessionType: 'full-interview',
-                sessionLength: 3,
-                hasConfig: true,
-                hasCriteria: true,
-                constraints: {
-                  hintsAllowed: 0,
-                  timePressure: true,
-                  strictMode: true
-                },
-                simulated: true
-              };
+              results.sessionData = createSimulatedFullInterviewSession(false);
             }
           } else {
             // Simulate full interview session creation
             results.sessionCreated = true;
-            results.sessionData = {
-              sessionType: 'full-interview',
-              sessionLength: 3,
-              hasConfig: true,
-              hasCriteria: true,
-              constraints: {
-                hintsAllowed: 0,
-                timePressure: true,
-                strictMode: true
-              },
-              selectionCriteria: {
-                allowedTags: ['array', 'hash-table', 'two-pointers'],
-                difficulty: ['Medium', 'Hard'],
-                maxHints: 0,
-                timePressure: true,
-                strictEvaluation: true
-              },
-              simulated: true
-            };
+            results.sessionData = createSimulatedFullInterviewSession(true);
             if (verbose) console.log('✓ Full interview session simulated');
           }
         } catch (sessionCreationError) {
@@ -1243,6 +1304,70 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Process session state from storage
+    function processSessionState(sessionState, verbose) {
+      const stateData = {
+        hasCurrentDifficulty: !!(sessionState?.current_difficulty_cap),
+        hasSessionCount: !!(sessionState?.num_sessions_completed !== undefined),
+        hasEscapeHatches: !!(sessionState?.escape_hatches),
+        currentDifficulty: sessionState?.current_difficulty_cap || 'Easy',
+        sessionCount: sessionState?.num_sessions_completed || 0
+      };
+      if (verbose) console.log('✓ Session state validated:', stateData);
+      return stateData;
+    }
+
+    // Helper: Create simulated session state
+    function createSimulatedSessionState(sessionCount, verbose, showLog = true) {
+      const stateData = {
+        hasCurrentDifficulty: true,
+        hasSessionCount: true,
+        hasEscapeHatches: true,
+        currentDifficulty: 'Easy',
+        sessionCount: sessionCount,
+        simulated: true
+      };
+      if (verbose && showLog) console.log('✓ Session state simulated (StorageService not available)');
+      return stateData;
+    }
+
+    // Helper: Test single progression accuracy level
+    async function testProgressionAccuracyLevel(accuracy, expectedDifficulty, index, verbose) {
+      try {
+        const progressionResult = await evaluateDifficultyProgression(accuracy, {});
+        const result = {
+          currentDifficulty: progressionResult?.current_difficulty_cap || 'Unknown',
+          sessionCount: progressionResult?.num_sessions_completed || 0,
+          hasEscapeHatches: !!progressionResult?.escape_hatches
+        };
+        if (verbose) console.log(`✓ Progression test ${accuracy * 100}%:`, result);
+        return result;
+      } catch (progError) {
+        if (verbose) console.log(`⚠️ Progression test ${accuracy * 100}% failed:`, progError.message);
+        return {
+          currentDifficulty: expectedDifficulty,
+          sessionCount: index + 1,
+          hasEscapeHatches: true,
+          simulated: true
+        };
+      }
+    }
+
+    // Helper: Create simulated progression results
+    function createSimulatedProgressionResults(accuracyLevels, expectedDifficulties) {
+      const results = {};
+      for (let i = 0; i < accuracyLevels.length; i++) {
+        const accuracy = accuracyLevels[i];
+        results[accuracy] = {
+          currentDifficulty: expectedDifficulties[i],
+          sessionCount: i + 3,
+          hasEscapeHatches: true,
+          simulated: true
+        };
+      }
+      return results;
+    }
+
     globalThis.testDifficultyProgression = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📈 Testing difficulty progression logic...');
@@ -1275,39 +1400,17 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             try {
               const sessionState = await StorageService.getSessionState();
               results.sessionStateValidated = true;
-              results.sessionStateData = {
-                hasCurrentDifficulty: !!(sessionState?.current_difficulty_cap),
-                hasSessionCount: !!(sessionState?.num_sessions_completed !== undefined),
-                hasEscapeHatches: !!(sessionState?.escape_hatches),
-                currentDifficulty: sessionState?.current_difficulty_cap || 'Easy',
-                sessionCount: sessionState?.num_sessions_completed || 0
-              };
-              if (verbose) console.log('✓ Session state validated:', results.sessionStateData);
+              results.sessionStateData = processSessionState(sessionState, verbose);
             } catch (stateError) {
               if (verbose) console.log('⚠️ Session state access failed, will simulate:', stateError.message);
               // Simulate session state
               results.sessionStateValidated = true;
-              results.sessionStateData = {
-                hasCurrentDifficulty: true,
-                hasSessionCount: true,
-                hasEscapeHatches: true,
-                currentDifficulty: 'Easy',
-                sessionCount: 3,
-                simulated: true
-              };
+              results.sessionStateData = createSimulatedSessionState(3, verbose, false);
             }
           } else {
             // Simulate session state
             results.sessionStateValidated = true;
-            results.sessionStateData = {
-              hasCurrentDifficulty: true,
-              hasSessionCount: true,
-              hasEscapeHatches: true,
-              currentDifficulty: 'Easy',
-              sessionCount: 5,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session state simulated (StorageService not available)');
+            results.sessionStateData = createSimulatedSessionState(5, verbose, true);
           }
         } catch (sessionStateError) {
           if (verbose) console.log('⚠️ Session state validation failed:', sessionStateError.message);
@@ -1322,37 +1425,17 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             // Test actual progression logic
             for (let i = 0; i < accuracyLevels.length; i++) {
               const accuracy = accuracyLevels[i];
-              try {
-                const progressionResult = await evaluateDifficultyProgression(accuracy, {});
-                results.progressionResults[accuracy] = {
-                  currentDifficulty: progressionResult?.current_difficulty_cap || 'Unknown',
-                  sessionCount: progressionResult?.num_sessions_completed || 0,
-                  hasEscapeHatches: !!progressionResult?.escape_hatches
-                };
-                if (verbose) console.log(`✓ Progression test ${accuracy * 100}%:`, results.progressionResults[accuracy]);
-              } catch (progError) {
-                if (verbose) console.log(`⚠️ Progression test ${accuracy * 100}% failed:`, progError.message);
-                // Add simulated result
-                results.progressionResults[accuracy] = {
-                  currentDifficulty: expectedDifficulties[i],
-                  sessionCount: i + 1,
-                  hasEscapeHatches: true,
-                  simulated: true
-                };
-              }
+              results.progressionResults[accuracy] = await testProgressionAccuracyLevel(
+                accuracy,
+                expectedDifficulties[i],
+                i,
+                verbose
+              );
             }
             results.progressionLogicTested = Object.keys(results.progressionResults).length > 0;
           } else {
             // Simulate progression logic
-            for (let i = 0; i < accuracyLevels.length; i++) {
-              const accuracy = accuracyLevels[i];
-              results.progressionResults[accuracy] = {
-                currentDifficulty: expectedDifficulties[i],
-                sessionCount: i + 3,
-                hasEscapeHatches: true,
-                simulated: true
-              };
-            }
+            results.progressionResults = createSimulatedProgressionResults(accuracyLevels, expectedDifficulties);
             results.progressionLogicTested = true;
             if (verbose) console.log('✓ Progression logic simulated');
           }
@@ -1622,53 +1705,66 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           }
         ];
 
+        // Helper: Process escape hatch result
+        function processEscapeHatchResult(escapeHatchResult, scenarioName, verbose) {
+          if (escapeHatchResult && escapeHatchResult.activated_escape_hatches) {
+            const result = {
+              scenario: scenarioName,
+              activated: escapeHatchResult.activated_escape_hatches,
+              newDifficulty: escapeHatchResult.current_difficulty_cap,
+              successful: true
+            };
+            if (verbose) console.log(`✓ ${scenarioName}:`, escapeHatchResult.activated_escape_hatches);
+            return result;
+          } else {
+            const result = {
+              scenario: scenarioName,
+              activated: [],
+              successful: false,
+              reason: 'No escape hatch activated'
+            };
+            if (verbose) console.log(`⚠️ ${scenarioName}: No escape hatch activated`);
+            return result;
+          }
+        }
+
+        // Helper: Create simulated escape hatch result
+        function createSimulatedEscapeHatchResult(scenarioName, expectedHatch) {
+          return {
+            scenario: scenarioName,
+            activated: [expectedHatch],
+            simulated: true,
+            successful: true
+          };
+        }
+
+        // Helper: Test single escape hatch scenario
+        async function testEscapeHatchScenario(scenario, verbose) {
+          try {
+            const escapeHatchResult = applyEscapeHatchLogic(
+              scenario.sessionState,
+              scenario.accuracy,
+              {}, // settings
+              Date.now()
+            );
+            return processEscapeHatchResult(escapeHatchResult, scenario.name, verbose);
+          } catch (hatchError) {
+            if (verbose) console.log(`⚠️ ${scenario.name} failed:`, hatchError.message);
+            return createSimulatedEscapeHatchResult(scenario.name, scenario.expectedHatch);
+          }
+        }
+
         try {
           for (const scenario of escapeHatchScenarios) {
             if (results.escapeHatchLogicAvailable) {
               // Test actual escape hatch logic
-              try {
-                const escapeHatchResult = applyEscapeHatchLogic(
-                  scenario.sessionState,
-                  scenario.accuracy,
-                  {}, // settings
-                  Date.now()
-                );
-
-                if (escapeHatchResult && escapeHatchResult.activated_escape_hatches) {
-                  results.activatedEscapeHatches.push({
-                    scenario: scenario.name,
-                    activated: escapeHatchResult.activated_escape_hatches,
-                    newDifficulty: escapeHatchResult.current_difficulty_cap,
-                    successful: true
-                  });
-                  if (verbose) console.log(`✓ ${scenario.name}:`, escapeHatchResult.activated_escape_hatches);
-                } else {
-                  results.activatedEscapeHatches.push({
-                    scenario: scenario.name,
-                    activated: [],
-                    successful: false,
-                    reason: 'No escape hatch activated'
-                  });
-                  if (verbose) console.log(`⚠️ ${scenario.name}: No escape hatch activated`);
-                }
-              } catch (hatchError) {
-                if (verbose) console.log(`⚠️ ${scenario.name} failed:`, hatchError.message);
-                // Add simulated result
-                results.activatedEscapeHatches.push({
-                  scenario: scenario.name,
-                  activated: [scenario.expectedHatch],
-                  simulated: true,
-                  successful: true
-                });
-              }
+              const result = await testEscapeHatchScenario(scenario, verbose);
+              results.activatedEscapeHatches.push(result);
             } else {
               // Simulate escape hatch activation
-              results.activatedEscapeHatches.push({
-                scenario: scenario.name,
-                activated: [scenario.expectedHatch],
-                simulated: true,
-                successful: true
-              });
+              results.activatedEscapeHatches.push(
+                createSimulatedEscapeHatchResult(scenario.name, scenario.expectedHatch)
+              );
             }
             results.stagnationScenariosTestCount++;
           }
