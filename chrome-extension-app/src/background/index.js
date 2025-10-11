@@ -1442,6 +1442,32 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     }
 
+    // Helper: Test escape hatch logic or simulate it
+    function handleEscapeHatchTesting(results, verbose) {
+      if (typeof applyEscapeHatchLogic !== 'function') {
+        results.escapeHatchLogicTested = true;
+        if (verbose) console.log('✓ Escape hatch logic simulated (function not available)');
+        return;
+      }
+
+      const mockSessionState = {
+        current_difficulty_cap: 'Easy',
+        num_sessions_completed: 10,
+        escape_hatches: {
+          sessions_at_current_difficulty: 8,
+          sessions_without_promotion: 8,
+          last_difficulty_promotion: null,
+          activated_escape_hatches: []
+        }
+      };
+
+      const escapeHatchResult = applyEscapeHatchLogic(mockSessionState, 0.40, {}, Date.now());
+      if (!escapeHatchResult) return;
+
+      results.escapeHatchLogicTested = true;
+      if (verbose) console.log('✓ Escape hatch logic tested');
+    }
+
     globalThis.testDifficultyProgression = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📈 Testing difficulty progression logic...');
@@ -1486,29 +1512,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 4. Test escape hatch logic
         try {
-          if (typeof applyEscapeHatchLogic === 'function') {
-            // Test escape hatch logic with stagnation scenario
-            const mockSessionState = {
-              current_difficulty_cap: 'Easy',
-              num_sessions_completed: 10,
-              escape_hatches: {
-                sessions_at_current_difficulty: 8,
-                sessions_without_promotion: 8,
-                last_difficulty_promotion: null,
-                activated_escape_hatches: []
-              }
-            };
-
-            const escapeHatchResult = applyEscapeHatchLogic(mockSessionState, 0.40, {}, Date.now());
-            if (escapeHatchResult) {
-              results.escapeHatchLogicTested = true;
-              if (verbose) console.log('✓ Escape hatch logic tested');
-            }
-          } else {
-            // Simulate escape hatch logic
-            results.escapeHatchLogicTested = true;
-            if (verbose) console.log('✓ Escape hatch logic simulated (function not available)');
-          }
+          handleEscapeHatchTesting(results, verbose);
         } catch (escapeHatchError) {
           if (verbose) console.log('⚠️ Escape hatch logic test failed:', escapeHatchError.message);
         }
@@ -2667,6 +2671,47 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     }
 
+    // Helper: Create simulated progression data
+    function createSimulatedProgressionData(testTag) {
+      return {
+        tag: testTag,
+        currentLevel: 2,
+        totalProblems: 45,
+        completedProblems: 12,
+        progressionWorking: true,
+        simulated: true
+      };
+    }
+
+    // Helper: Test tag ladder progression or simulate it
+    async function handleTagLadderProgression(results, verbose) {
+      const testTag = 'array';
+
+      if (!results.tagServiceAvailable || typeof TagService.calculateTagProgression !== 'function') {
+        results.ladderProgressionTested = true;
+        results.tagData.progression = createSimulatedProgressionData(testTag);
+        if (verbose) console.log('✓ Tag ladder progression simulated');
+        return;
+      }
+
+      const progression = await TagService.calculateTagProgression(testTag);
+      results.ladderProgressionTested = true;
+
+      if (progression) {
+        results.tagData.progression = {
+          tag: testTag,
+          currentLevel: progression.currentLevel || 1,
+          totalProblems: progression.totalProblems || 0,
+          completedProblems: progression.completedProblems || 0,
+          progressionWorking: true
+        };
+        if (verbose) console.log('✓ Tag ladder progression tested with real data');
+      } else {
+        results.tagData.progression = createSimulatedProgressionData(testTag);
+        if (verbose) console.log('✓ Tag ladder progression simulated (no data)');
+      }
+    }
+
     // 🧬 INTEGRATION Test Functions - Clean versions for default execution
     globalThis.testTagIntegration = async function(options = {}) {
       const { verbose = false } = options;
@@ -2728,45 +2773,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 4. Test tag ladder progression
         try {
-          if (results.tagServiceAvailable && typeof TagService.calculateTagProgression === 'function') {
-            const testTag = 'array';
-            const progression = await TagService.calculateTagProgression(testTag);
-            if (progression) {
-              results.ladderProgressionTested = true;
-              results.tagData.progression = {
-                tag: testTag,
-                currentLevel: progression.currentLevel || 1,
-                totalProblems: progression.totalProblems || 0,
-                completedProblems: progression.completedProblems || 0,
-                progressionWorking: true
-              };
-              if (verbose) console.log('✓ Tag ladder progression tested with real data');
-            } else {
-              // Simulate progression
-              results.ladderProgressionTested = true;
-              results.tagData.progression = {
-                tag: testTag,
-                currentLevel: 2,
-                totalProblems: 45,
-                completedProblems: 12,
-                progressionWorking: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Tag ladder progression simulated (no data)');
-            }
-          } else {
-            // Simulate ladder progression
-            results.ladderProgressionTested = true;
-            results.tagData.progression = {
-              tag: 'array',
-              currentLevel: 2,
-              totalProblems: 45,
-              completedProblems: 12,
-              progressionWorking: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Tag ladder progression simulated');
-          }
+          await handleTagLadderProgression(results, verbose);
         } catch (progressionError) {
           if (verbose) console.log('⚠️ Tag ladder progression test failed:', progressionError.message);
         }
@@ -3636,6 +3643,134 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Create simulated problem selection data
+    function createSimulatedProblemSelectionData() {
+      return {
+        tested: true,
+        algorithmsValidated: true,
+        sessionCount: 3,
+        adaptationMeasured: true,
+        simulated: true
+      };
+    }
+
+    // Helper: Test optimal problem selection or simulate it
+    async function handleProblemSelectionTesting(results, verbose) {
+      if (!results.optimizationTesterAvailable) {
+        results.problemSelectionTested = true;
+        results.optimizationData.problemSelection = createSimulatedProblemSelectionData();
+        if (verbose) console.log('✓ Problem selection optimization simulated');
+        return;
+      }
+
+      const optimizationResult = await DynamicPathOptimizationTester.testOptimalProblemSelection({ quiet: true });
+      results.problemSelectionTested = true;
+
+      if (optimizationResult && optimizationResult.success) {
+        results.optimizationData.problemSelection = {
+          tested: true,
+          algorithmsValidated: optimizationResult.algorithmsValidated || false,
+          sessionCount: optimizationResult.sessionCount || 0,
+          adaptationMeasured: optimizationResult.adaptationMeasured || false
+        };
+        if (verbose) console.log('✓ Problem selection optimization tested:', results.optimizationData.problemSelection);
+      } else {
+        results.optimizationData.problemSelection = {
+          tested: true,
+          algorithmsValidated: true,
+          sessionCount: 5,
+          adaptationMeasured: true,
+          simulated: true
+        };
+        if (verbose) console.log('✓ Problem selection optimization simulated (test failed)');
+      }
+    }
+
+    // Helper: Create simulated adaptation data
+    function createSimulatedAdaptationData() {
+      return {
+        problemsGenerated: 4,
+        hasTagFocus: true,
+        hasDifficultyBalance: true,
+        sessionComplete: true,
+        simulated: true
+      };
+    }
+
+    // Helper: Test adaptive algorithms or simulate them
+    async function handleAdaptiveAlgorithmsTesting(results, verbose) {
+      if (typeof ProblemService === 'undefined' || !ProblemService.adaptiveSessionProblems) {
+        results.adaptiveAlgorithmsTested = true;
+        results.optimizationData.adaptation = createSimulatedAdaptationData();
+        if (verbose) console.log('✓ Adaptive algorithms simulated (ProblemService not available)');
+        return;
+      }
+
+      const adaptiveProblems = await ProblemService.adaptiveSessionProblems({
+        sessionType: 'standard',
+        difficulty: 'Medium',
+        targetTags: ['array', 'hash-table'],
+        sessionLength: 3
+      });
+
+      results.adaptiveAlgorithmsTested = true;
+
+      if (adaptiveProblems && adaptiveProblems.length > 0) {
+        results.optimizationData.adaptation = {
+          problemsGenerated: adaptiveProblems.length,
+          hasTagFocus: adaptiveProblems.some(p => p.tags?.includes('array') || p.tags?.includes('hash-table')),
+          hasDifficultyBalance: adaptiveProblems.some(p => p.difficulty === 'Medium'),
+          sessionComplete: adaptiveProblems.length >= 3
+        };
+        if (verbose) console.log('✓ Adaptive algorithms tested:', results.optimizationData.adaptation);
+      } else {
+        results.optimizationData.adaptation = createSimulatedAdaptationData();
+        if (verbose) console.log('✓ Adaptive algorithms simulated (no problems returned)');
+      }
+    }
+
+    // Helper: Create simulated path optimization data
+    function createSimulatedPathOptimizationData() {
+      return {
+        pathGenerated: true,
+        focusIntegrated: true,
+        difficultyOptimized: true,
+        historyConsidered: true,
+        simulated: true
+      };
+    }
+
+    // Helper: Test path optimization with focus coordination or simulate it
+    async function handlePathOptimizationTesting(results, verbose) {
+      if (typeof FocusCoordinationService === 'undefined' || !FocusCoordinationService.optimizeSessionPath) {
+        results.pathOptimizationTested = true;
+        results.optimizationData.pathOptimization = createSimulatedPathOptimizationData();
+        if (verbose) console.log('✓ Path optimization simulated (FocusCoordinationService not available)');
+        return;
+      }
+
+      const pathOptimization = await FocusCoordinationService.optimizeSessionPath({
+        currentSession: { focus: ['array', 'dynamic-programming'] },
+        userHistory: { sessionCount: 10, averageAccuracy: 0.75 },
+        adaptiveSettings: { difficulty: 'Medium' }
+      });
+
+      results.pathOptimizationTested = true;
+
+      if (pathOptimization && pathOptimization.optimizedPath) {
+        results.optimizationData.pathOptimization = {
+          pathGenerated: true,
+          focusIntegrated: !!pathOptimization.focusAreas,
+          difficultyOptimized: !!pathOptimization.difficultyProgression,
+          historyConsidered: !!pathOptimization.historyIntegration
+        };
+        if (verbose) console.log('✓ Path optimization with focus coordination tested');
+      } else {
+        results.optimizationData.pathOptimization = createSimulatedPathOptimizationData();
+        if (verbose) console.log('✓ Path optimization simulated (no optimization returned)');
+      }
+    }
+
     // 🎯 OPTIMIZATION Test Functions - Clean versions for default execution
     globalThis.testPathOptimization = async function(options = {}) {
       const { verbose = false } = options;
@@ -3662,137 +3797,21 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test optimal problem selection using real optimization algorithms
         try {
-          if (results.optimizationTesterAvailable) {
-            // Test actual path optimization using DynamicPathOptimizationTester
-            const optimizationResult = await DynamicPathOptimizationTester.testOptimalProblemSelection({ quiet: true });
-            if (optimizationResult && optimizationResult.success) {
-              results.problemSelectionTested = true;
-              results.optimizationData.problemSelection = {
-                tested: true,
-                algorithmsValidated: optimizationResult.algorithmsValidated || false,
-                sessionCount: optimizationResult.sessionCount || 0,
-                adaptationMeasured: optimizationResult.adaptationMeasured || false
-              };
-              if (verbose) console.log('✓ Problem selection optimization tested:', results.optimizationData.problemSelection);
-            } else {
-              // Fall back to simulation if optimization test failed
-              results.problemSelectionTested = true;
-              results.optimizationData.problemSelection = {
-                tested: true,
-                algorithmsValidated: true,
-                sessionCount: 5,
-                adaptationMeasured: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Problem selection optimization simulated (test failed)');
-            }
-          } else {
-            // Simulate problem selection optimization
-            results.problemSelectionTested = true;
-            results.optimizationData.problemSelection = {
-              tested: true,
-              algorithmsValidated: true,
-              sessionCount: 3,
-              adaptationMeasured: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Problem selection optimization simulated');
-          }
+          await handleProblemSelectionTesting(results, verbose);
         } catch (selectionError) {
           if (verbose) console.log('⚠️ Problem selection testing failed:', selectionError.message);
         }
 
         // 3. Test learning path adaptation algorithms
         try {
-          if (typeof ProblemService !== 'undefined' && ProblemService.adaptiveSessionProblems) {
-            // Test actual adaptive problem selection
-            const adaptiveProblems = await ProblemService.adaptiveSessionProblems({
-              sessionType: 'standard',
-              difficulty: 'Medium',
-              targetTags: ['array', 'hash-table'],
-              sessionLength: 3
-            });
-
-            if (adaptiveProblems && adaptiveProblems.length > 0) {
-              results.adaptiveAlgorithmsTested = true;
-              results.optimizationData.adaptation = {
-                problemsGenerated: adaptiveProblems.length,
-                hasTagFocus: adaptiveProblems.some(p => p.tags?.includes('array') || p.tags?.includes('hash-table')),
-                hasDifficultyBalance: adaptiveProblems.some(p => p.difficulty === 'Medium'),
-                sessionComplete: adaptiveProblems.length >= 3
-              };
-              if (verbose) console.log('✓ Adaptive algorithms tested:', results.optimizationData.adaptation);
-            } else {
-              // Simulate adaptive algorithm testing
-              results.adaptiveAlgorithmsTested = true;
-              results.optimizationData.adaptation = {
-                problemsGenerated: 4,
-                hasTagFocus: true,
-                hasDifficultyBalance: true,
-                sessionComplete: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Adaptive algorithms simulated (no problems returned)');
-            }
-          } else {
-            // Simulate adaptive algorithm testing
-            results.adaptiveAlgorithmsTested = true;
-            results.optimizationData.adaptation = {
-              problemsGenerated: 4,
-              hasTagFocus: true,
-              hasDifficultyBalance: true,
-              sessionComplete: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Adaptive algorithms simulated (ProblemService not available)');
-          }
+          await handleAdaptiveAlgorithmsTesting(results, verbose);
         } catch (adaptiveError) {
           if (verbose) console.log('⚠️ Adaptive algorithms testing failed:', adaptiveError.message);
         }
 
         // 4. Test learning path optimization with focus coordination
         try {
-          if (typeof FocusCoordinationService !== 'undefined' && FocusCoordinationService.optimizeSessionPath) {
-            // Test focus-based path optimization
-            const pathOptimization = await FocusCoordinationService.optimizeSessionPath({
-              currentSession: { focus: ['array', 'dynamic-programming'] },
-              userHistory: { sessionCount: 10, averageAccuracy: 0.75 },
-              adaptiveSettings: { difficulty: 'Medium' }
-            });
-
-            if (pathOptimization && pathOptimization.optimizedPath) {
-              results.pathOptimizationTested = true;
-              results.optimizationData.pathOptimization = {
-                pathGenerated: true,
-                focusIntegrated: !!pathOptimization.focusAreas,
-                difficultyOptimized: !!pathOptimization.difficultyProgression,
-                historyConsidered: !!pathOptimization.historyIntegration
-              };
-              if (verbose) console.log('✓ Path optimization with focus coordination tested');
-            } else {
-              // Simulate path optimization
-              results.pathOptimizationTested = true;
-              results.optimizationData.pathOptimization = {
-                pathGenerated: true,
-                focusIntegrated: true,
-                difficultyOptimized: true,
-                historyConsidered: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Path optimization simulated (no optimization returned)');
-            }
-          } else {
-            // Simulate path optimization
-            results.pathOptimizationTested = true;
-            results.optimizationData.pathOptimization = {
-              pathGenerated: true,
-              focusIntegrated: true,
-              difficultyOptimized: true,
-              historyConsidered: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Path optimization simulated (FocusCoordinationService not available)');
-          }
+          await handlePathOptimizationTesting(results, verbose);
         } catch (pathError) {
           if (verbose) console.log('⚠️ Path optimization testing failed:', pathError.message);
         }
