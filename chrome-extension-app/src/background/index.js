@@ -17,6 +17,7 @@ import { InterviewService } from "../shared/services/interviewService.js";
 import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
 
 // Database utilities (used in background script functions)
+// eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../shared/db/index.js";
 import { getAllFromStore } from "../shared/db/common.js";
 import { updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
@@ -185,7 +186,7 @@ globalThis.quickHealthCheck = function() {
 };
 
 // Check if session testing should be enabled and conditionally expose functions
-(async () => {
+(() => {
   let sessionTestingEnabled = false;
   // Always enable session testing - no imports needed
   sessionTestingEnabled = true;
@@ -2432,11 +2433,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         {
           component: 'Dynamic Import Support',
           check: () => {
-            try {
-              return typeof Function('return import')() === 'function';
-            } catch (e) {
-              return false;
-            }
+            // Dynamic imports are not reliably supported in Chrome extensions (manifest v3)
+            // Per CLAUDE.md guidelines, use static imports only
+            return false;
           },
           critical: false
         }
