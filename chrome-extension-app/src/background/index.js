@@ -9280,31 +9280,50 @@ function showConsistencyNotification(alert) {
 /**
  * Handle notification clicks - route to appropriate action with Chrome API safety
  */
+async function handleNotificationClick(notificationId) {
+  if (!chrome?.storage?.local?.get) return;
+
+  const result = await chrome.storage.local.get(`notification_${notificationId}`);
+  const notificationData = result[`notification_${notificationId}`];
+
+  if (!notificationData) return;
+
+  console.log("📝 Notification data:", notificationData);
+  await routeToSession(notificationData);
+
+  // Clean up notification data (with API safety checks)
+  if (chrome?.notifications?.clear && chrome?.storage?.local?.remove) {
+    await chrome.notifications.clear(notificationId);
+    await chrome.storage.local.remove(`notification_${notificationId}`);
+  }
+}
+
+async function handleNotificationButtonClick(notificationId, buttonIndex) {
+  if (buttonIndex === 0 && chrome?.storage?.local?.get) {
+    const result = await chrome.storage.local.get(`notification_${notificationId}`);
+    const notificationData = result[`notification_${notificationId}`];
+
+    if (notificationData) {
+      await routeToSession(notificationData);
+    }
+  }
+  // Button 1 is "Later" - just dismiss the notification
+
+  // Clean up (with API safety checks)
+  if (chrome?.notifications?.clear && chrome?.storage?.local?.remove) {
+    await chrome.notifications.clear(notificationId);
+    await chrome.storage.local.remove(`notification_${notificationId}`);
+  }
+}
+
 function setupNotificationClickHandlers() {
   if (chrome?.notifications?.onClicked) {
     chrome.notifications.onClicked.addListener(async (notificationId) => {
       console.log(`🖱️ Notification clicked: ${notificationId}`);
-      
+
       if (notificationId.startsWith('consistency-')) {
         try {
-          // Get notification data (with API safety check)
-          if (chrome?.storage?.local?.get) {
-            const result = await chrome.storage.local.get(`notification_${notificationId}`);
-            const notificationData = result[`notification_${notificationId}`];
-            
-            if (notificationData) {
-              console.log("📝 Notification data:", notificationData);
-              
-              // Route to dashboard or session generation
-              await routeToSession(notificationData);
-              
-              // Clean up notification data (with API safety checks)
-              if (chrome?.notifications?.clear && chrome?.storage?.local?.remove) {
-                await chrome.notifications.clear(notificationId);
-                await chrome.storage.local.remove(`notification_${notificationId}`);
-              }
-            }
-          }
+          await handleNotificationClick(notificationId);
         } catch (error) {
           console.error("❌ Error handling notification click:", error);
         }
@@ -9315,26 +9334,10 @@ function setupNotificationClickHandlers() {
   if (chrome?.notifications?.onButtonClicked) {
     chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
       console.log(`🖱️ Notification button clicked: ${notificationId}, button: ${buttonIndex}`);
-      
+
       if (notificationId.startsWith('consistency-')) {
         try {
-          if (buttonIndex === 0) { // "Start Session" button
-            if (chrome?.storage?.local?.get) {
-              const result = await chrome.storage.local.get(`notification_${notificationId}`);
-              const notificationData = result[`notification_${notificationId}`];
-              
-              if (notificationData) {
-                await routeToSession(notificationData);
-              }
-            }
-          }
-          // Button 1 is "Later" - just dismiss the notification
-          
-          // Clean up (with API safety checks)
-          if (chrome?.notifications?.clear && chrome?.storage?.local?.remove) {
-            await chrome.notifications.clear(notificationId);
-            await chrome.storage.local.remove(`notification_${notificationId}`);
-          }
+          await handleNotificationButtonClick(notificationId, buttonIndex);
         } catch (error) {
           console.error("❌ Error handling notification button click:", error);
         }
