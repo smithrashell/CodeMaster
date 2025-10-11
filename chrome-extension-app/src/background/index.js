@@ -5376,16 +5376,22 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // Test basic timer functionality with performance API
         try {
-          if (typeof performance !== 'undefined' && performance.now) {
+          if (typeof performance === 'undefined' || !performance.now) {
+            // Performance API not available, skip test
+            if (verbose) console.log('⚠️ Performance API not available');
+          } else {
             const perfStart = performance.now();
             await new Promise(resolve => setTimeout(resolve, 100)); // 100ms test
             const perfEnd = performance.now();
             const duration = perfEnd - perfStart;
 
-            if (duration >= 90 && duration <= 150) { // Allow 60ms tolerance
+            const withinTolerance = duration >= 90 && duration <= 150; // Allow 60ms tolerance
+            if (withinTolerance) {
               results.timingAccuracy = true;
               results.timerDuration = Math.round(duration);
-              if (verbose) console.log(`✓ Timer accuracy test passed: ${results.timerDuration}ms`);
+            }
+            if (verbose && withinTolerance) {
+              console.log(`✓ Timer accuracy test passed: ${results.timerDuration}ms`);
             }
           }
         } catch (timerError) {
@@ -5972,19 +5978,22 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 6. Test welcome flow completion
-        if (typeof SessionService !== 'undefined') {
+        if (typeof SessionService === 'undefined') {
+          results.welcomeFlowCompleted = true;
+          if (verbose) console.log('✓ Welcome flow completion simulated (SessionService not available)');
+        } else {
           try {
             const welcomeSessionData = await SessionService.getOrCreateSession('standard');
-            if (welcomeSessionData && welcomeSessionData.problems && welcomeSessionData.problems.length > 0) {
+            const hasProblems = welcomeSessionData && welcomeSessionData.problems && welcomeSessionData.problems.length > 0;
+            if (hasProblems) {
               results.welcomeFlowCompleted = true;
-              if (verbose) console.log(`✓ Welcome flow completed with first session (${welcomeSessionData.problems.length} problems)`);
+            }
+            if (verbose && hasProblems) {
+              console.log(`✓ Welcome flow completed with first session (${welcomeSessionData.problems.length} problems)`);
             }
           } catch (welcomeError) {
             if (verbose) console.log('⚠️ Welcome flow completion failed:', welcomeError.message);
           }
-        } else {
-          results.welcomeFlowCompleted = true;
-          if (verbose) console.log('✓ Welcome flow completion simulated (SessionService not available)');
         }
 
         // 7. Overall success assessment
@@ -6189,7 +6198,11 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           };
 
           // 3. Test focus coordination if available
-          if (results.serviceAvailability.FocusCoordinationService) {
+          let focusErrorMsg = null;
+          if (!results.serviceAvailability.FocusCoordinationService) {
+            // Skip focus coordination test if service not available
+            results.focusCoordination = { success: false, reason: 'Service not available' };
+          } else {
             try {
               const focusDecision = await FocusCoordinationService.getFocusDecision('test_focus_user');
               results.focusCoordination = {
@@ -6203,8 +6216,11 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                 error: focusError.message,
                 success: false
               };
-              if (verbose) console.log('⚠️ Focus decision call failed (may be expected):', focusError.message);
+              focusErrorMsg = focusError.message;
             }
+          }
+          if (verbose && focusErrorMsg) {
+            console.log('⚠️ Focus decision call failed (may be expected):', focusErrorMsg);
           }
 
           results.sessions.push(sessionResult);
@@ -6331,31 +6347,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test relationship data flow using real system functions
         try {
-          if (results.relationshipTesterAvailable) {
-            // Test actual relationship data flow using RelationshipSystemTester
-            const relationshipFlowResult = await RelationshipSystemTester.testRelationshipDataFlow({ quiet: true });
-            if (relationshipFlowResult && relationshipFlowResult.success) {
-              results.relationshipDataFlowTested = true;
-              results.relationshipData.flow = {
-                relationshipsTracked: relationshipFlowResult.relationshipsTracked || 0,
-                dataFlowValidated: relationshipFlowResult.dataFlowValidated || false,
-                crossSessionContinuity: relationshipFlowResult.crossSessionContinuity || false,
-                relationshipUpdatesWorking: relationshipFlowResult.relationshipUpdatesWorking || false
-              };
-              if (verbose) console.log('✓ Relationship data flow tested:', results.relationshipData.flow);
-            } else {
-              // Fall back to simulation if relationship flow test failed
-              results.relationshipDataFlowTested = true;
-              results.relationshipData.flow = {
-                relationshipsTracked: 12,
-                dataFlowValidated: true,
-                crossSessionContinuity: true,
-                relationshipUpdatesWorking: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Relationship data flow simulated (test failed)');
-            }
-          } else {
+          if (!results.relationshipTesterAvailable) {
             // Simulate relationship data flow
             results.relationshipDataFlowTested = true;
             results.relationshipData.flow = {
@@ -6366,6 +6358,36 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
               simulated: true
             };
             if (verbose) console.log('✓ Relationship data flow simulated');
+          } else {
+            // Test actual relationship data flow using RelationshipSystemTester
+            const relationshipFlowResult = await RelationshipSystemTester.testRelationshipDataFlow({ quiet: true });
+            const isSuccess = relationshipFlowResult && relationshipFlowResult.success;
+
+            results.relationshipDataFlowTested = true;
+            if (isSuccess) {
+              results.relationshipData.flow = {
+                relationshipsTracked: relationshipFlowResult.relationshipsTracked || 0,
+                dataFlowValidated: relationshipFlowResult.dataFlowValidated || false,
+                crossSessionContinuity: relationshipFlowResult.crossSessionContinuity || false,
+                relationshipUpdatesWorking: relationshipFlowResult.relationshipUpdatesWorking || false
+              };
+            } else {
+              // Fall back to simulation if relationship flow test failed
+              results.relationshipData.flow = {
+                relationshipsTracked: 12,
+                dataFlowValidated: true,
+                crossSessionContinuity: true,
+                relationshipUpdatesWorking: true,
+                simulated: true
+              };
+            }
+            // Log results after conditional logic
+            if (verbose && isSuccess) {
+              console.log('✓ Relationship data flow tested:', results.relationshipData.flow);
+            }
+            if (verbose && !isSuccess) {
+              console.log('✓ Relationship data flow simulated (test failed)');
+            }
           }
         } catch (flowError) {
           if (verbose) console.log('⚠️ Relationship data flow testing failed:', flowError.message);
@@ -6413,38 +6435,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 4. Test relationship persistence and consistency
         try {
-          // Test relationship updates from problem attempts
-          if (typeof AttemptsService !== 'undefined' && AttemptsService.updateProblemRelationships) {
-            const mockAttemptData = {
-              problemId: 'test-problem-1',
-              relatedProblems: ['test-problem-2', 'test-problem-3'],
-              success: true,
-              skillsApplied: ['array', 'two-pointers'],
-              difficulty: 'Medium'
-            };
+          const attemptsServiceAvailable = typeof AttemptsService !== 'undefined' && AttemptsService.updateProblemRelationships;
 
-            try {
-              await AttemptsService.updateProblemRelationships(mockAttemptData);
-              results.relationshipPersistenceTested = true;
-              results.relationshipData.persistence = {
-                relationshipUpdatesWorking: true,
-                attemptBasedLearning: true,
-                skillMappingActive: true,
-                difficultyCorrelationTracked: true
-              };
-              if (verbose) console.log('✓ Relationship persistence tested via AttemptsService');
-            } catch (persistenceError) {
-              results.relationshipPersistenceTested = true;
-              results.relationshipData.persistence = {
-                relationshipUpdatesWorking: true,
-                attemptBasedLearning: true,
-                skillMappingActive: true,
-                difficultyCorrelationTracked: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Relationship persistence simulated (update failed)');
-            }
-          } else {
+          if (!attemptsServiceAvailable) {
             // Simulate relationship persistence
             results.relationshipPersistenceTested = true;
             results.relationshipData.persistence = {
@@ -6455,6 +6448,43 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
               simulated: true
             };
             if (verbose) console.log('✓ Relationship persistence simulated (AttemptsService not available)');
+          } else {
+            // Test relationship updates from problem attempts
+            const mockAttemptData = {
+              problemId: 'test-problem-1',
+              relatedProblems: ['test-problem-2', 'test-problem-3'],
+              success: true,
+              skillsApplied: ['array', 'two-pointers'],
+              difficulty: 'Medium'
+            };
+
+            let persistenceSuccess = false;
+            try {
+              await AttemptsService.updateProblemRelationships(mockAttemptData);
+              results.relationshipPersistenceTested = true;
+              results.relationshipData.persistence = {
+                relationshipUpdatesWorking: true,
+                attemptBasedLearning: true,
+                skillMappingActive: true,
+                difficultyCorrelationTracked: true
+              };
+              persistenceSuccess = true;
+            } catch (persistenceError) {
+              results.relationshipPersistenceTested = true;
+              results.relationshipData.persistence = {
+                relationshipUpdatesWorking: true,
+                attemptBasedLearning: true,
+                skillMappingActive: true,
+                difficultyCorrelationTracked: true,
+                simulated: true
+              };
+            }
+            if (verbose && persistenceSuccess) {
+              console.log('✓ Relationship persistence tested via AttemptsService');
+            }
+            if (verbose && !persistenceSuccess) {
+              console.log('✓ Relationship persistence simulated (update failed)');
+            }
           }
         } catch (persistenceError) {
           if (verbose) console.log('⚠️ Relationship persistence testing failed:', persistenceError.message);
@@ -6595,31 +6625,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test relationship-based session composition using real system functions
         try {
-          if (results.relationshipCompositionTesterAvailable) {
-            // Test actual session composition using RelationshipSystemTester
-            const compositionResult = await RelationshipSystemTester.testRelationshipSessionComposition({ quiet: true });
-            if (compositionResult && compositionResult.success) {
-              results.sessionCompositionTested = true;
-              results.compositionData.session = {
-                sessionsComposed: compositionResult.sessionsComposed || 0,
-                relationshipBasedSelection: compositionResult.relationshipBasedSelection || false,
-                compositionEffectiveness: compositionResult.compositionEffectiveness || 0,
-                diversityMaintained: compositionResult.diversityMaintained || false
-              };
-              if (verbose) console.log('✓ Session composition tested:', results.compositionData.session);
-            } else {
-              // Fall back to simulation if composition test failed
-              results.sessionCompositionTested = true;
-              results.compositionData.session = {
-                sessionsComposed: 8,
-                relationshipBasedSelection: true,
-                compositionEffectiveness: 0.82,
-                diversityMaintained: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Session composition simulated (test failed)');
-            }
-          } else {
+          if (!results.relationshipCompositionTesterAvailable) {
             // Simulate session composition
             results.sessionCompositionTested = true;
             results.compositionData.session = {
@@ -6630,6 +6636,35 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
               simulated: true
             };
             if (verbose) console.log('✓ Session composition simulated');
+          } else {
+            // Test actual session composition using RelationshipSystemTester
+            const compositionResult = await RelationshipSystemTester.testRelationshipSessionComposition({ quiet: true });
+            const isCompositionSuccess = compositionResult && compositionResult.success;
+
+            results.sessionCompositionTested = true;
+            if (isCompositionSuccess) {
+              results.compositionData.session = {
+                sessionsComposed: compositionResult.sessionsComposed || 0,
+                relationshipBasedSelection: compositionResult.relationshipBasedSelection || false,
+                compositionEffectiveness: compositionResult.compositionEffectiveness || 0,
+                diversityMaintained: compositionResult.diversityMaintained || false
+              };
+            } else {
+              // Fall back to simulation if composition test failed
+              results.compositionData.session = {
+                sessionsComposed: 8,
+                relationshipBasedSelection: true,
+                compositionEffectiveness: 0.82,
+                diversityMaintained: true,
+                simulated: true
+              };
+            }
+            if (verbose && isCompositionSuccess) {
+              console.log('✓ Session composition tested:', results.compositionData.session);
+            }
+            if (verbose && !isCompositionSuccess) {
+              console.log('✓ Session composition simulated (test failed)');
+            }
           }
         } catch (compositionError) {
           if (verbose) console.log('⚠️ Session composition testing failed:', compositionError.message);
@@ -6637,42 +6672,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test relationship-based problem selection algorithms
         try {
-          if (typeof ProblemService !== 'undefined' && ProblemService.selectProblemsWithRelationships) {
-            // Test actual relationship-based selection
-            const selectionCriteria = {
-              sessionType: 'standard',
-              difficulty: 'Medium',
-              focusTags: ['array', 'hash-table'],
-              sessionLength: 4,
-              useRelationships: true,
-              diversityFactor: 0.7
-            };
+          const problemServiceAvailable = typeof ProblemService !== 'undefined' && ProblemService.selectProblemsWithRelationships;
 
-            const selectedProblems = await ProblemService.selectProblemsWithRelationships(selectionCriteria);
-            if (selectedProblems && selectedProblems.length > 0) {
-              results.relationshipBasedSelectionTested = true;
-              results.compositionData.selection = {
-                problemsSelected: selectedProblems.length,
-                relationshipCoverage: this.analyzeRelationshipCoverage(selectedProblems),
-                difficultyProgression: this.analyzeDifficultyProgression(selectedProblems),
-                tagDiversity: this.analyzeTagDiversity(selectedProblems),
-                relationshipStrength: this.calculateAverageRelationshipStrength(selectedProblems)
-              };
-              if (verbose) console.log('✓ Relationship-based selection tested:', results.compositionData.selection);
-            } else {
-              // Simulate relationship-based selection
-              results.relationshipBasedSelectionTested = true;
-              results.compositionData.selection = {
-                problemsSelected: 4,
-                relationshipCoverage: { covered: 3, total: 4, percentage: 0.75 },
-                difficultyProgression: { appropriate: true, variance: 0.2 },
-                tagDiversity: { uniqueTags: 6, overlapRatio: 0.5 },
-                relationshipStrength: 0.68,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Relationship-based selection simulated (no problems returned)');
-            }
-          } else {
+          if (!problemServiceAvailable) {
             // Simulate relationship-based selection
             results.relationshipBasedSelectionTested = true;
             results.compositionData.selection = {
@@ -6684,6 +6686,46 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
               simulated: true
             };
             if (verbose) console.log('✓ Relationship-based selection simulated (ProblemService not available)');
+          } else {
+            // Test actual relationship-based selection
+            const selectionCriteria = {
+              sessionType: 'standard',
+              difficulty: 'Medium',
+              focusTags: ['array', 'hash-table'],
+              sessionLength: 4,
+              useRelationships: true,
+              diversityFactor: 0.7
+            };
+
+            const selectedProblems = await ProblemService.selectProblemsWithRelationships(selectionCriteria);
+            const hasProblems = selectedProblems && selectedProblems.length > 0;
+
+            results.relationshipBasedSelectionTested = true;
+            if (hasProblems) {
+              results.compositionData.selection = {
+                problemsSelected: selectedProblems.length,
+                relationshipCoverage: this.analyzeRelationshipCoverage(selectedProblems),
+                difficultyProgression: this.analyzeDifficultyProgression(selectedProblems),
+                tagDiversity: this.analyzeTagDiversity(selectedProblems),
+                relationshipStrength: this.calculateAverageRelationshipStrength(selectedProblems)
+              };
+            } else {
+              // Simulate relationship-based selection
+              results.compositionData.selection = {
+                problemsSelected: 4,
+                relationshipCoverage: { covered: 3, total: 4, percentage: 0.75 },
+                difficultyProgression: { appropriate: true, variance: 0.2 },
+                tagDiversity: { uniqueTags: 6, overlapRatio: 0.5 },
+                relationshipStrength: 0.68,
+                simulated: true
+              };
+            }
+            if (verbose && hasProblems) {
+              console.log('✓ Relationship-based selection tested:', results.compositionData.selection);
+            }
+            if (verbose && !hasProblems) {
+              console.log('✓ Relationship-based selection simulated (no problems returned)');
+            }
           }
         } catch (selectionError) {
           if (verbose) console.log('⚠️ Relationship-based selection testing failed:', selectionError.message);
@@ -6710,9 +6752,21 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           ];
 
           const effectivenessResults = [];
+          const sessionServiceAvailable = typeof SessionService !== 'undefined' && SessionService.evaluateCompositionEffectiveness;
+
           for (const scenario of compositionScenarios) {
             let effectivenessResult;
-            if (typeof SessionService !== 'undefined' && SessionService.evaluateCompositionEffectiveness) {
+            if (!sessionServiceAvailable) {
+              // Simulate composition effectiveness
+              effectivenessResult = {
+                scenario: scenario.name,
+                effectivenessScore: 0.75 + (Math.random() * 0.15), // 0.75-0.90
+                learningObjectivesMet: true,
+                relationshipUtilization: 0.60 + (Math.random() * 0.25), // 0.60-0.85
+                simulated: true,
+                successful: true
+              };
+            } else {
               // Test real composition effectiveness
               try {
                 const effectiveness = await SessionService.evaluateCompositionEffectiveness({
@@ -6737,16 +6791,6 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                   successful: true
                 };
               }
-            } else {
-              // Simulate composition effectiveness
-              effectivenessResult = {
-                scenario: scenario.name,
-                effectivenessScore: 0.75 + (Math.random() * 0.15), // 0.75-0.90
-                learningObjectivesMet: true,
-                relationshipUtilization: 0.60 + (Math.random() * 0.25), // 0.60-0.85
-                simulated: true,
-                successful: true
-              };
             }
             effectivenessResults.push(effectivenessResult);
           }
@@ -6934,31 +6978,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test real-time relationship updates using system functions
         try {
-          if (results.relationshipUpdatesTesterAvailable) {
-            // Test actual relationship updates using RelationshipSystemTester
-            const updatesResult = await RelationshipSystemTester.testRelationshipUpdates({ quiet: true });
-            if (updatesResult && updatesResult.success) {
-              results.realTimeUpdatesTested = true;
-              results.updatesData.realTime = {
-                updatesProcessed: updatesResult.updatesProcessed || 0,
-                realTimeProcessing: updatesResult.realTimeProcessing || false,
-                updateLatency: updatesResult.updateLatency || 0,
-                batchProcessingWorking: updatesResult.batchProcessingWorking || false
-              };
-              if (verbose) console.log('✓ Real-time relationship updates tested:', results.updatesData.realTime);
-            } else {
-              // Fall back to simulation if updates test failed
-              results.realTimeUpdatesTested = true;
-              results.updatesData.realTime = {
-                updatesProcessed: 15,
-                realTimeProcessing: true,
-                updateLatency: 25, // milliseconds
-                batchProcessingWorking: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Real-time relationship updates simulated (test failed)');
-            }
-          } else {
+          if (!results.relationshipUpdatesTesterAvailable) {
             // Simulate real-time updates
             results.realTimeUpdatesTested = true;
             results.updatesData.realTime = {
@@ -6969,6 +6989,35 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
               simulated: true
             };
             if (verbose) console.log('✓ Real-time relationship updates simulated');
+          } else {
+            // Test actual relationship updates using RelationshipSystemTester
+            const updatesResult = await RelationshipSystemTester.testRelationshipUpdates({ quiet: true });
+            const isUpdatesSuccess = updatesResult && updatesResult.success;
+
+            results.realTimeUpdatesTested = true;
+            if (isUpdatesSuccess) {
+              results.updatesData.realTime = {
+                updatesProcessed: updatesResult.updatesProcessed || 0,
+                realTimeProcessing: updatesResult.realTimeProcessing || false,
+                updateLatency: updatesResult.updateLatency || 0,
+                batchProcessingWorking: updatesResult.batchProcessingWorking || false
+              };
+            } else {
+              // Fall back to simulation if updates test failed
+              results.updatesData.realTime = {
+                updatesProcessed: 15,
+                realTimeProcessing: true,
+                updateLatency: 25, // milliseconds
+                batchProcessingWorking: true,
+                simulated: true
+              };
+            }
+            if (verbose && isUpdatesSuccess) {
+              console.log('✓ Real-time relationship updates tested:', results.updatesData.realTime);
+            }
+            if (verbose && !isUpdatesSuccess) {
+              console.log('✓ Real-time relationship updates simulated (test failed)');
+            }
           }
         } catch (realTimeError) {
           if (verbose) console.log('⚠️ Real-time relationship updates testing failed:', realTimeError.message);
@@ -7005,8 +7054,20 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           ];
 
           const updateResults = [];
+          const attemptsServiceAvailable = typeof AttemptsService !== 'undefined' && AttemptsService.updateRelationshipsFromCompletion;
+
           for (const scenario of completionScenarios) {
-            if (typeof AttemptsService !== 'undefined' && AttemptsService.updateRelationshipsFromCompletion) {
+            if (!attemptsServiceAvailable) {
+              // Simulate completion-based updates
+              updateResults.push({
+                problemId: scenario.problemId,
+                relationshipsUpdated: scenario.success ? 3 : 1,
+                strengthAdjustments: scenario.success ? 2 : 1,
+                newRelationshipsCreated: scenario.success ? 1 : 0,
+                simulated: true,
+                successful: true
+              });
+            } else {
               // Test real completion-based updates
               try {
                 const updateResult = await AttemptsService.updateRelationshipsFromCompletion(scenario);
@@ -7027,16 +7088,6 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                   successful: true
                 });
               }
-            } else {
-              // Simulate completion-based updates
-              updateResults.push({
-                problemId: scenario.problemId,
-                relationshipsUpdated: scenario.success ? 3 : 1,
-                strengthAdjustments: scenario.success ? 2 : 1,
-                newRelationshipsCreated: scenario.success ? 1 : 0,
-                simulated: true,
-                successful: true
-              });
             }
           }
 
@@ -7264,31 +7315,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test focus + relationship integration using system functions
         try {
-          if (results.focusRelationshipTesterAvailable) {
-            // Test actual focus integration using RelationshipSystemTester
-            const focusIntegrationResult = await RelationshipSystemTester.testFocusRelationshipIntegration({ quiet: true });
-            if (focusIntegrationResult && focusIntegrationResult.success) {
-              results.focusIntegrationTested = true;
-              results.focusData.integration = {
-                focusAreasIntegrated: focusIntegrationResult.focusAreasIntegrated || 0,
-                relationshipAwareFocus: focusIntegrationResult.relationshipAwareFocus || false,
-                adaptiveCoordination: focusIntegrationResult.adaptiveCoordination || false,
-                focusEffectiveness: focusIntegrationResult.focusEffectiveness || 0
-              };
-              if (verbose) console.log('✓ Focus + relationship integration tested:', results.focusData.integration);
-            } else {
-              // Fall back to simulation if focus integration test failed
-              results.focusIntegrationTested = true;
-              results.focusData.integration = {
-                focusAreasIntegrated: 6,
-                relationshipAwareFocus: true,
-                adaptiveCoordination: true,
-                focusEffectiveness: 0.84,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Focus + relationship integration simulated (test failed)');
-            }
-          } else {
+          if (!results.focusRelationshipTesterAvailable) {
             // Simulate focus integration
             results.focusIntegrationTested = true;
             results.focusData.integration = {
@@ -7299,6 +7326,35 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
               simulated: true
             };
             if (verbose) console.log('✓ Focus + relationship integration simulated');
+          } else {
+            // Test actual focus integration using RelationshipSystemTester
+            const focusIntegrationResult = await RelationshipSystemTester.testFocusRelationshipIntegration({ quiet: true });
+            const isFocusIntegrationSuccess = focusIntegrationResult && focusIntegrationResult.success;
+
+            results.focusIntegrationTested = true;
+            if (isFocusIntegrationSuccess) {
+              results.focusData.integration = {
+                focusAreasIntegrated: focusIntegrationResult.focusAreasIntegrated || 0,
+                relationshipAwareFocus: focusIntegrationResult.relationshipAwareFocus || false,
+                adaptiveCoordination: focusIntegrationResult.adaptiveCoordination || false,
+                focusEffectiveness: focusIntegrationResult.focusEffectiveness || 0
+              };
+            } else {
+              // Fall back to simulation if focus integration test failed
+              results.focusData.integration = {
+                focusAreasIntegrated: 6,
+                relationshipAwareFocus: true,
+                adaptiveCoordination: true,
+                focusEffectiveness: 0.84,
+                simulated: true
+              };
+            }
+            if (verbose && isFocusIntegrationSuccess) {
+              console.log('✓ Focus + relationship integration tested:', results.focusData.integration);
+            }
+            if (verbose && !isFocusIntegrationSuccess) {
+              console.log('✓ Focus + relationship integration simulated (test failed)');
+            }
           }
         } catch (integrationError) {
           if (verbose) console.log('⚠️ Focus + relationship integration testing failed:', integrationError.message);
