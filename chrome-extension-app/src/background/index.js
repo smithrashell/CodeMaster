@@ -3936,6 +3936,185 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Test pattern recognition
+    const testPatternRecognition = async (testerAvailable, verbose) => {
+      if (!testerAvailable) {
+        if (verbose) console.log('✓ Pattern recognition simulated');
+        return {
+          tested: true,
+          data: {
+            patternsDetected: 4,
+            successRateAnalyzed: true,
+            difficultyPatternsFound: true,
+            tagPatternsFound: true,
+            simulated: true
+          }
+        };
+      }
+
+      const patternResult = await DynamicPathOptimizationTester.testSuccessPatternLearning({ quiet: true });
+      if (patternResult && patternResult.success) {
+        const data = {
+          patternsDetected: patternResult.patternsDetected || 0,
+          successRateAnalyzed: patternResult.successRateAnalyzed || false,
+          difficultyPatternsFound: patternResult.difficultyPatternsFound || false,
+          tagPatternsFound: patternResult.tagPatternsFound || false
+        };
+        if (verbose) console.log('✓ Pattern recognition tested:', data);
+        return { tested: true, data };
+      }
+
+      // Fall back to simulation if pattern test failed
+      if (verbose) console.log('✓ Pattern recognition simulated (test failed)');
+      return {
+        tested: true,
+        data: {
+          patternsDetected: 5,
+          successRateAnalyzed: true,
+          difficultyPatternsFound: true,
+          tagPatternsFound: true,
+          simulated: true
+        }
+      };
+    };
+
+    // Helper: Test success pattern analysis
+    const testSuccessPatternAnalysis = async (verbose) => {
+      if (typeof SessionService !== 'undefined' && SessionService.analyzeSuccessPatterns) {
+        return await testWithSessionService(verbose);
+      }
+
+      if (typeof AttemptsService !== 'undefined' && AttemptsService.getSuccessPatterns) {
+        return await testWithAttemptsService(verbose);
+      }
+
+      // Simulate success pattern analysis
+      if (verbose) console.log('✓ Success pattern analysis simulated (services not available)');
+      return {
+        analyzed: true,
+        data: {
+          patternCount: 7,
+          highSuccessTags: 3,
+          lowSuccessTags: 1,
+          difficultyTrends: true,
+          timePatterns: true,
+          simulated: true
+        }
+      };
+    };
+
+    // Helper: Test with SessionService
+    const testWithSessionService = async (verbose) => {
+      const successPatterns = await SessionService.analyzeSuccessPatterns({
+        sessionCount: 10,
+        timeRange: '30d',
+        includeTagAnalysis: true,
+        includeDifficultyAnalysis: true
+      });
+
+      if (!successPatterns || !successPatterns.patterns) {
+        if (verbose) console.log('✓ Success pattern analysis simulated (no patterns returned)');
+        return {
+          analyzed: true,
+          data: {
+            patternCount: 8,
+            highSuccessTags: 3,
+            lowSuccessTags: 2,
+            difficultyTrends: true,
+            timePatterns: true,
+            simulated: true
+          }
+        };
+      }
+
+      const data = {
+        patternCount: successPatterns.patterns.length,
+        highSuccessTags: successPatterns.highSuccessTags?.length || 0,
+        lowSuccessTags: successPatterns.lowSuccessTags?.length || 0,
+        difficultyTrends: !!successPatterns.difficultyProgression,
+        timePatterns: !!successPatterns.timePatterns
+      };
+      if (verbose) console.log('✓ Success pattern analysis tested:', data);
+      return { analyzed: true, data };
+    };
+
+    // Helper: Test with AttemptsService
+    const testWithAttemptsService = async (verbose) => {
+      const attempts = await AttemptsService.getSuccessPatterns({ days: 30 });
+      if (!attempts || attempts.length === 0) {
+        return {
+          analyzed: true,
+          data: {
+            patternCount: 6,
+            highSuccessTags: 2,
+            lowSuccessTags: 1,
+            difficultyTrends: true,
+            timePatterns: true,
+            simulated: true
+          }
+        };
+      }
+
+      if (verbose) console.log('✓ Success pattern analysis via AttemptsService');
+      return {
+        analyzed: true,
+        data: {
+          patternCount: attempts.length,
+          highSuccessTags: Math.ceil(attempts.length * 0.4),
+          lowSuccessTags: Math.floor(attempts.length * 0.2),
+          difficultyTrends: true,
+          timePatterns: true,
+          source: 'AttemptsService'
+        }
+      };
+    };
+
+    // Helper: Test pattern predictions
+    const testPatternPredictions = async (successAnalysis, verbose) => {
+      if (typeof ProblemService === 'undefined' || !ProblemService.predictOptimalTags) {
+        if (verbose) console.log('✓ Pattern-based predictions simulated (ProblemService not available)');
+        return {
+          tested: true,
+          data: {
+            tagsRecommended: 3,
+            confidenceScore: 0.85,
+            patternBased: true,
+            adaptiveRecommendations: true,
+            simulated: true
+          }
+        };
+      }
+
+      const predictions = await ProblemService.predictOptimalTags({
+        userHistory: { sessionCount: 15, averageAccuracy: 0.72 },
+        recentPatterns: successAnalysis,
+        targetDifficulty: 'Medium'
+      });
+
+      if (!predictions || !predictions.recommendedTags) {
+        if (verbose) console.log('✓ Pattern-based predictions simulated (no predictions returned)');
+        return {
+          tested: true,
+          data: {
+            tagsRecommended: 4,
+            confidenceScore: 0.78,
+            patternBased: true,
+            adaptiveRecommendations: true,
+            simulated: true
+          }
+        };
+      }
+
+      const data = {
+        tagsRecommended: predictions.recommendedTags.length,
+        confidenceScore: predictions.confidence || 0,
+        patternBased: predictions.basedOnPatterns || false,
+        adaptiveRecommendations: !!predictions.adaptiveRecommendations
+      };
+      if (verbose) console.log('✓ Pattern-based predictions tested:', data);
+      return { tested: true, data };
+    };
+
     globalThis.testPatternLearning = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🧠 Testing success pattern learning...');
@@ -3961,165 +4140,27 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test success pattern learning using real optimization algorithms
         try {
-          if (results.patternLearningTesterAvailable) {
-            // Test actual pattern learning using DynamicPathOptimizationTester
-            const patternResult = await DynamicPathOptimizationTester.testSuccessPatternLearning({ quiet: true });
-            if (patternResult && patternResult.success) {
-              results.patternRecognitionTested = true;
-              results.patternData.recognition = {
-                patternsDetected: patternResult.patternsDetected || 0,
-                successRateAnalyzed: patternResult.successRateAnalyzed || false,
-                difficultyPatternsFound: patternResult.difficultyPatternsFound || false,
-                tagPatternsFound: patternResult.tagPatternsFound || false
-              };
-              if (verbose) console.log('✓ Pattern recognition tested:', results.patternData.recognition);
-            } else {
-              // Fall back to simulation if pattern test failed
-              results.patternRecognitionTested = true;
-              results.patternData.recognition = {
-                patternsDetected: 5,
-                successRateAnalyzed: true,
-                difficultyPatternsFound: true,
-                tagPatternsFound: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Pattern recognition simulated (test failed)');
-            }
-          } else {
-            // Simulate pattern recognition
-            results.patternRecognitionTested = true;
-            results.patternData.recognition = {
-              patternsDetected: 4,
-              successRateAnalyzed: true,
-              difficultyPatternsFound: true,
-              tagPatternsFound: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Pattern recognition simulated');
-          }
+          const recognition = await testPatternRecognition(results.patternLearningTesterAvailable, verbose);
+          results.patternRecognitionTested = recognition.tested;
+          results.patternData.recognition = recognition.data;
         } catch (recognitionError) {
           if (verbose) console.log('⚠️ Pattern recognition testing failed:', recognitionError.message);
         }
 
         // 3. Test success pattern analysis from session data
         try {
-          if (typeof SessionService !== 'undefined' && SessionService.analyzeSuccessPatterns) {
-            // Test actual success pattern analysis
-            const successPatterns = await SessionService.analyzeSuccessPatterns({
-              sessionCount: 10,
-              timeRange: '30d',
-              includeTagAnalysis: true,
-              includeDifficultyAnalysis: true
-            });
-
-            if (successPatterns && successPatterns.patterns) {
-              results.successPatternAnalyzed = true;
-              results.patternData.successAnalysis = {
-                patternCount: successPatterns.patterns.length,
-                highSuccessTags: successPatterns.highSuccessTags?.length || 0,
-                lowSuccessTags: successPatterns.lowSuccessTags?.length || 0,
-                difficultyTrends: !!successPatterns.difficultyProgression,
-                timePatterns: !!successPatterns.timePatterns
-              };
-              if (verbose) console.log('✓ Success pattern analysis tested:', results.patternData.successAnalysis);
-            } else {
-              // Simulate success pattern analysis
-              results.successPatternAnalyzed = true;
-              results.patternData.successAnalysis = {
-                patternCount: 8,
-                highSuccessTags: 3,
-                lowSuccessTags: 2,
-                difficultyTrends: true,
-                timePatterns: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Success pattern analysis simulated (no patterns returned)');
-            }
-          } else if (typeof AttemptsService !== 'undefined' && AttemptsService.getSuccessPatterns) {
-            // Alternative: Use AttemptsService for pattern analysis
-            const attempts = await AttemptsService.getSuccessPatterns({ days: 30 });
-            if (attempts && attempts.length > 0) {
-              results.successPatternAnalyzed = true;
-              results.patternData.successAnalysis = {
-                patternCount: attempts.length,
-                highSuccessTags: Math.ceil(attempts.length * 0.4),
-                lowSuccessTags: Math.floor(attempts.length * 0.2),
-                difficultyTrends: true,
-                timePatterns: true,
-                source: 'AttemptsService'
-              };
-              if (verbose) console.log('✓ Success pattern analysis via AttemptsService');
-            } else {
-              results.successPatternAnalyzed = true;
-              results.patternData.successAnalysis = {
-                patternCount: 6,
-                highSuccessTags: 2,
-                lowSuccessTags: 1,
-                difficultyTrends: true,
-                timePatterns: true,
-                simulated: true
-              };
-            }
-          } else {
-            // Simulate success pattern analysis
-            results.successPatternAnalyzed = true;
-            results.patternData.successAnalysis = {
-              patternCount: 7,
-              highSuccessTags: 3,
-              lowSuccessTags: 1,
-              difficultyTrends: true,
-              timePatterns: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Success pattern analysis simulated (services not available)');
-          }
+          const analysis = await testSuccessPatternAnalysis(verbose);
+          results.successPatternAnalyzed = analysis.analyzed;
+          results.patternData.successAnalysis = analysis.data;
         } catch (analysisError) {
           if (verbose) console.log('⚠️ Success pattern analysis failed:', analysisError.message);
         }
 
         // 4. Test pattern-based prediction for future sessions
         try {
-          if (typeof ProblemService !== 'undefined' && ProblemService.predictOptimalTags) {
-            // Test pattern-based predictions
-            const predictions = await ProblemService.predictOptimalTags({
-              userHistory: { sessionCount: 15, averageAccuracy: 0.72 },
-              recentPatterns: results.patternData.successAnalysis,
-              targetDifficulty: 'Medium'
-            });
-
-            if (predictions && predictions.recommendedTags) {
-              results.patternPredictionTested = true;
-              results.patternData.predictions = {
-                tagsRecommended: predictions.recommendedTags.length,
-                confidenceScore: predictions.confidence || 0,
-                patternBased: predictions.basedOnPatterns || false,
-                adaptiveRecommendations: !!predictions.adaptiveRecommendations
-              };
-              if (verbose) console.log('✓ Pattern-based predictions tested:', results.patternData.predictions);
-            } else {
-              // Simulate pattern-based predictions
-              results.patternPredictionTested = true;
-              results.patternData.predictions = {
-                tagsRecommended: 4,
-                confidenceScore: 0.78,
-                patternBased: true,
-                adaptiveRecommendations: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Pattern-based predictions simulated (no predictions returned)');
-            }
-          } else {
-            // Simulate pattern-based predictions
-            results.patternPredictionTested = true;
-            results.patternData.predictions = {
-              tagsRecommended: 3,
-              confidenceScore: 0.85,
-              patternBased: true,
-              adaptiveRecommendations: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Pattern-based predictions simulated (ProblemService not available)');
-          }
+          const predictions = await testPatternPredictions(results.patternData.successAnalysis, verbose);
+          results.patternPredictionTested = predictions.tested;
+          results.patternData.predictions = predictions.data;
         } catch (predictionError) {
           if (verbose) console.log('⚠️ Pattern-based prediction testing failed:', predictionError.message);
         }
@@ -4199,6 +4240,195 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Test plateau detection
+    const testPlateauDetection = async (testerAvailable, verbose) => {
+      if (!testerAvailable) {
+        if (verbose) console.log('✓ Plateau detection simulated');
+        return {
+          tested: true,
+          data: {
+            plateausDetected: 3,
+            stagnationPeriodAnalyzed: true,
+            performanceMetricsTracked: true,
+            plateauThresholdValidated: true,
+            simulated: true
+          }
+        };
+      }
+
+      const plateauResult = await DynamicPathOptimizationTester.testPlateauDetectionRecovery({ quiet: true });
+      if (plateauResult && plateauResult.success) {
+        const data = {
+          plateausDetected: plateauResult.plateausDetected || 0,
+          stagnationPeriodAnalyzed: plateauResult.stagnationPeriodAnalyzed || false,
+          performanceMetricsTracked: plateauResult.performanceMetricsTracked || false,
+          plateauThresholdValidated: plateauResult.plateauThresholdValidated || false
+        };
+        if (verbose) console.log('✓ Plateau detection tested:', data);
+        return { tested: true, data };
+      }
+
+      // Fall back to simulation if plateau test failed
+      if (verbose) console.log('✓ Plateau detection simulated (test failed)');
+      return {
+        tested: true,
+        data: {
+          plateausDetected: 2,
+          stagnationPeriodAnalyzed: true,
+          performanceMetricsTracked: true,
+          plateauThresholdValidated: true,
+          simulated: true
+        }
+      };
+    };
+
+    // Helper: Test plateau recovery strategies
+    const testPlateauRecoveryStrategies = async (verbose) => {
+      if (typeof SessionService === 'undefined' || !SessionService.adaptToPlateauScenario) {
+        if (verbose) console.log('✓ Recovery strategies simulated (SessionService not available)');
+        return {
+          tested: true,
+          data: {
+            strategyGenerated: 'focus_shift',
+            difficultyAdjusted: true,
+            focusAreasChanged: true,
+            sessionTypeModified: true,
+            recoveryTimelineSet: true,
+            simulated: true
+          }
+        };
+      }
+
+      const plateauScenario = {
+        sessionsStagnant: 8,
+        currentAccuracy: 0.45,
+        currentDifficulty: 'Medium',
+        lastImprovement: Date.now() - (7 * 24 * 60 * 60 * 1000),
+        focusAreas: ['array', 'hash-table']
+      };
+
+      const recoveryStrategy = await SessionService.adaptToPlateauScenario(plateauScenario);
+      if (!recoveryStrategy || !recoveryStrategy.strategy) {
+        if (verbose) console.log('✓ Recovery strategies simulated (no strategy returned)');
+        return {
+          tested: true,
+          data: {
+            strategyGenerated: 'difficulty_reduction',
+            difficultyAdjusted: true,
+            focusAreasChanged: true,
+            sessionTypeModified: false,
+            recoveryTimelineSet: true,
+            simulated: true
+          }
+        };
+      }
+
+      const data = {
+        strategyGenerated: recoveryStrategy.strategy,
+        difficultyAdjusted: !!recoveryStrategy.newDifficulty,
+        focusAreasChanged: !!recoveryStrategy.newFocusAreas,
+        sessionTypeModified: !!recoveryStrategy.newSessionType,
+        recoveryTimelineSet: !!recoveryStrategy.expectedRecoveryTime
+      };
+      if (verbose) console.log('✓ Recovery strategies tested:', data);
+      return { tested: true, data };
+    };
+
+    // Helper: Test single adaptive scenario response
+    const testAdaptiveScenarioResponse = async (scenario) => {
+      if (typeof evaluateDifficultyProgression !== 'function') {
+        return {
+          scenario: scenario.name,
+          responseGenerated: true,
+          adaptiveAction: scenario.expectedResponse,
+          timelineConsidered: true,
+          simulated: true,
+          successful: true
+        };
+      }
+
+      try {
+        const mockSessionState = {
+          current_difficulty_cap: 'Medium',
+          num_sessions_completed: scenario.duration + 10,
+          recent_accuracy: Math.max(0.2, 0.75 - scenario.accuracyDrop)
+        };
+
+        const progressionResult = await evaluateDifficultyProgression(
+          mockSessionState.recent_accuracy,
+          { plateauDetection: true }
+        );
+
+        if (progressionResult) {
+          return {
+            scenario: scenario.name,
+            responseGenerated: true,
+            adaptiveAction: progressionResult.adaptiveAction || 'difficulty_adjustment',
+            timelineConsidered: true,
+            successful: true
+          };
+        }
+
+        return {
+          scenario: scenario.name,
+          responseGenerated: true,
+          adaptiveAction: scenario.expectedResponse,
+          timelineConsidered: true,
+          simulated: true,
+          successful: true
+        };
+      } catch (adaptiveError) {
+        return {
+          scenario: scenario.name,
+          responseGenerated: true,
+          adaptiveAction: scenario.expectedResponse,
+          timelineConsidered: true,
+          simulated: true,
+          successful: true,
+          error: adaptiveError.message
+        };
+      }
+    };
+
+    // Helper: Test adaptive response to plateau scenarios
+    const testAdaptiveResponseScenarios = async (verbose) => {
+      const plateauScenarios = [
+        {
+          name: 'Short-term stagnation',
+          duration: 3,
+          accuracyDrop: 0.15,
+          expectedResponse: 'minor_adjustment'
+        },
+        {
+          name: 'Medium-term plateau',
+          duration: 7,
+          accuracyDrop: 0.25,
+          expectedResponse: 'strategy_change'
+        },
+        {
+          name: 'Long-term stagnation',
+          duration: 15,
+          accuracyDrop: 0.35,
+          expectedResponse: 'comprehensive_reset'
+        }
+      ];
+
+      const adaptiveResponses = [];
+      for (const scenario of plateauScenarios) {
+        const response = await testAdaptiveScenarioResponse(scenario);
+        adaptiveResponses.push(response);
+      }
+
+      if (verbose) {
+        console.log('✓ Adaptive response scenarios tested:', adaptiveResponses.length);
+      }
+
+      return {
+        tested: adaptiveResponses.length > 0,
+        data: adaptiveResponses
+      };
+    };
+
     globalThis.testPlateauRecovery = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📈 Testing plateau detection and recovery...');
@@ -4224,188 +4454,27 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test plateau detection using real optimization algorithms
         try {
-          if (results.plateauTesterAvailable) {
-            // Test actual plateau detection using DynamicPathOptimizationTester
-            const plateauResult = await DynamicPathOptimizationTester.testPlateauDetectionRecovery({ quiet: true });
-            if (plateauResult && plateauResult.success) {
-              results.plateauDetectionTested = true;
-              results.plateauData.detection = {
-                plateausDetected: plateauResult.plateausDetected || 0,
-                stagnationPeriodAnalyzed: plateauResult.stagnationPeriodAnalyzed || false,
-                performanceMetricsTracked: plateauResult.performanceMetricsTracked || false,
-                plateauThresholdValidated: plateauResult.plateauThresholdValidated || false
-              };
-              if (verbose) console.log('✓ Plateau detection tested:', results.plateauData.detection);
-            } else {
-              // Fall back to simulation if plateau test failed
-              results.plateauDetectionTested = true;
-              results.plateauData.detection = {
-                plateausDetected: 2,
-                stagnationPeriodAnalyzed: true,
-                performanceMetricsTracked: true,
-                plateauThresholdValidated: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Plateau detection simulated (test failed)');
-            }
-          } else {
-            // Simulate plateau detection
-            results.plateauDetectionTested = true;
-            results.plateauData.detection = {
-              plateausDetected: 3,
-              stagnationPeriodAnalyzed: true,
-              performanceMetricsTracked: true,
-              plateauThresholdValidated: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Plateau detection simulated');
-          }
+          const detection = await testPlateauDetection(results.plateauTesterAvailable, verbose);
+          results.plateauDetectionTested = detection.tested;
+          results.plateauData.detection = detection.data;
         } catch (detectionError) {
           if (verbose) console.log('⚠️ Plateau detection testing failed:', detectionError.message);
         }
 
         // 3. Test plateau recovery strategies
         try {
-          if (typeof SessionService !== 'undefined' && SessionService.adaptToPlateauScenario) {
-            // Test actual plateau recovery strategies
-            const plateauScenario = {
-              sessionsStagnant: 8,
-              currentAccuracy: 0.45,
-              currentDifficulty: 'Medium',
-              lastImprovement: Date.now() - (7 * 24 * 60 * 60 * 1000), // 7 days ago
-              focusAreas: ['array', 'hash-table']
-            };
-
-            const recoveryStrategy = await SessionService.adaptToPlateauScenario(plateauScenario);
-            if (recoveryStrategy && recoveryStrategy.strategy) {
-              results.recoveryStrategiesTested = true;
-              results.plateauData.recovery = {
-                strategyGenerated: recoveryStrategy.strategy,
-                difficultyAdjusted: !!recoveryStrategy.newDifficulty,
-                focusAreasChanged: !!recoveryStrategy.newFocusAreas,
-                sessionTypeModified: !!recoveryStrategy.newSessionType,
-                recoveryTimelineSet: !!recoveryStrategy.expectedRecoveryTime
-              };
-              if (verbose) console.log('✓ Recovery strategies tested:', results.plateauData.recovery);
-            } else {
-              // Simulate recovery strategies
-              results.recoveryStrategiesTested = true;
-              results.plateauData.recovery = {
-                strategyGenerated: 'difficulty_reduction',
-                difficultyAdjusted: true,
-                focusAreasChanged: true,
-                sessionTypeModified: false,
-                recoveryTimelineSet: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Recovery strategies simulated (no strategy returned)');
-            }
-          } else {
-            // Simulate recovery strategies
-            results.recoveryStrategiesTested = true;
-            results.plateauData.recovery = {
-              strategyGenerated: 'focus_shift',
-              difficultyAdjusted: true,
-              focusAreasChanged: true,
-              sessionTypeModified: true,
-              recoveryTimelineSet: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Recovery strategies simulated (SessionService not available)');
-          }
+          const recovery = await testPlateauRecoveryStrategies(verbose);
+          results.recoveryStrategiesTested = recovery.tested;
+          results.plateauData.recovery = recovery.data;
         } catch (recoveryError) {
           if (verbose) console.log('⚠️ Recovery strategies testing failed:', recoveryError.message);
         }
 
         // 4. Test adaptive response to plateau scenarios
         try {
-          const plateauScenarios = [
-            {
-              name: 'Short-term stagnation',
-              duration: 3, // 3 sessions
-              accuracyDrop: 0.15,
-              expectedResponse: 'minor_adjustment'
-            },
-            {
-              name: 'Medium-term plateau',
-              duration: 7, // 7 sessions
-              accuracyDrop: 0.25,
-              expectedResponse: 'strategy_change'
-            },
-            {
-              name: 'Long-term stagnation',
-              duration: 15, // 15 sessions
-              accuracyDrop: 0.35,
-              expectedResponse: 'comprehensive_reset'
-            }
-          ];
-
-          const adaptiveResponses = [];
-          for (const scenario of plateauScenarios) {
-            let response;
-            if (typeof evaluateDifficultyProgression === 'function') {
-              // Test real adaptive response using progression evaluation
-              try {
-                const mockSessionState = {
-                  current_difficulty_cap: 'Medium',
-                  num_sessions_completed: scenario.duration + 10,
-                  recent_accuracy: Math.max(0.2, 0.75 - scenario.accuracyDrop)
-                };
-
-                const progressionResult = await evaluateDifficultyProgression(
-                  mockSessionState.recent_accuracy,
-                  { plateauDetection: true }
-                );
-
-                if (progressionResult) {
-                  response = {
-                    scenario: scenario.name,
-                    responseGenerated: true,
-                    adaptiveAction: progressionResult.adaptiveAction || 'difficulty_adjustment',
-                    timelineConsidered: true,
-                    successful: true
-                  };
-                } else {
-                  response = {
-                    scenario: scenario.name,
-                    responseGenerated: true,
-                    adaptiveAction: scenario.expectedResponse,
-                    timelineConsidered: true,
-                    simulated: true,
-                    successful: true
-                  };
-                }
-              } catch (adaptiveError) {
-                response = {
-                  scenario: scenario.name,
-                  responseGenerated: true,
-                  adaptiveAction: scenario.expectedResponse,
-                  timelineConsidered: true,
-                  simulated: true,
-                  successful: true,
-                  error: adaptiveError.message
-                };
-              }
-            } else {
-              // Simulate adaptive response
-              response = {
-                scenario: scenario.name,
-                responseGenerated: true,
-                adaptiveAction: scenario.expectedResponse,
-                timelineConsidered: true,
-                simulated: true,
-                successful: true
-              };
-            }
-            adaptiveResponses.push(response);
-          }
-
-          results.adaptiveResponseTested = adaptiveResponses.length > 0;
-          results.plateauData.adaptiveResponses = adaptiveResponses;
-
-          if (verbose) {
-            console.log('✓ Adaptive response scenarios tested:', adaptiveResponses.length);
-          }
+          const adaptive = await testAdaptiveResponseScenarios(verbose);
+          results.adaptiveResponseTested = adaptive.tested;
+          results.plateauData.adaptiveResponses = adaptive.data;
         } catch (adaptiveError) {
           if (verbose) console.log('⚠️ Adaptive response testing failed:', adaptiveError.message);
         }
@@ -4483,6 +4552,226 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Test multi-session optimization
+    const testMultiSessionOptimization = async (testerAvailable, verbose) => {
+      if (!testerAvailable) {
+        if (verbose) console.log('✓ Multi-session optimization simulated');
+        return {
+          tested: true,
+          data: {
+            sessionsOptimized: 4,
+            pathContinuityMaintained: true,
+            adaptationMeasured: true,
+            optimizationEffective: true,
+            simulated: true
+          }
+        };
+      }
+
+      const multiSessionResult = await DynamicPathOptimizationTester.testMultiSessionOptimization({ quiet: true });
+      if (multiSessionResult && multiSessionResult.success) {
+        const data = {
+          sessionsOptimized: multiSessionResult.sessionsOptimized || 0,
+          pathContinuityMaintained: multiSessionResult.pathContinuityMaintained || false,
+          adaptationMeasured: multiSessionResult.adaptationMeasured || false,
+          optimizationEffective: multiSessionResult.optimizationEffective || false
+        };
+        if (verbose) console.log('✓ Multi-session optimization tested:', data);
+        return { tested: true, data };
+      }
+
+      // Fall back to simulation if multi-session test failed
+      if (verbose) console.log('✓ Multi-session optimization simulated (test failed)');
+      return {
+        tested: true,
+        data: {
+          sessionsOptimized: 5,
+          pathContinuityMaintained: true,
+          adaptationMeasured: true,
+          optimizationEffective: true,
+          simulated: true
+        }
+      };
+    };
+
+    // Helper: Test session progression with SessionService
+    const testSessionProgressionWithHistory = async (verbose) => {
+      const sessionHistory = await SessionService.getSessionHistory({ limit: 10 });
+      if (!sessionHistory || sessionHistory.length === 0) {
+        if (verbose) console.log('✓ Session progression simulated (no history returned)');
+        return {
+          tested: true,
+          data: {
+            historicalSessions: 8,
+            progressionTracked: true,
+            continuityMaintained: true,
+            performanceProgression: {
+              improving: true,
+              accuracyTrend: 'upward',
+              difficultyAdaptation: 'appropriate'
+            },
+            simulated: true
+          }
+        };
+      }
+
+      const data = {
+        historicalSessions: sessionHistory.length,
+        progressionTracked: sessionHistory.some(s => s.difficulty || s.focus),
+        continuityMaintained: sessionHistory.length > 1,
+        performanceProgression: this.analyzePerformanceProgression(sessionHistory)
+      };
+      if (verbose) console.log('✓ Session progression tested:', data);
+      return { tested: true, data };
+    };
+
+    // Helper: Test session progression
+    const testSessionProgression = async (verbose) => {
+      if (typeof SessionService !== 'undefined' && SessionService.getSessionHistory) {
+        return await testSessionProgressionWithHistory(verbose);
+      }
+
+      if (typeof StorageService !== 'undefined' && StorageService.getSessionState) {
+        const sessionState = await StorageService.getSessionState();
+        if (sessionState && sessionState.num_sessions_completed) {
+          if (verbose) console.log('✓ Session progression via StorageService');
+          return {
+            tested: true,
+            data: {
+              historicalSessions: sessionState.num_sessions_completed,
+              progressionTracked: true,
+              continuityMaintained: sessionState.num_sessions_completed > 1,
+              performanceProgression: {
+                improving: sessionState.current_difficulty_cap !== 'Easy',
+                accuracyTrend: 'tracked',
+                difficultyAdaptation: 'active'
+              },
+              source: 'StorageService'
+            }
+          };
+        }
+
+        return {
+          tested: true,
+          data: {
+            historicalSessions: 6,
+            progressionTracked: true,
+            continuityMaintained: true,
+            performanceProgression: {
+              improving: true,
+              accuracyTrend: 'upward',
+              difficultyAdaptation: 'appropriate'
+            },
+            simulated: true
+          }
+        };
+      }
+
+      // Simulate session progression
+      if (verbose) console.log('✓ Session progression simulated (services not available)');
+      return {
+        tested: true,
+        data: {
+          historicalSessions: 7,
+          progressionTracked: true,
+          continuityMaintained: true,
+          performanceProgression: {
+            improving: true,
+            accuracyTrend: 'upward',
+            difficultyAdaptation: 'appropriate'
+          },
+          simulated: true
+        }
+      };
+    };
+
+    // Helper: Test single cross-session optimization scenario
+    const testCrossSessionScenario = async (scenario) => {
+      if (typeof ProblemService === 'undefined' || !ProblemService.optimizeFromHistory) {
+        return {
+          scenario: scenario.name,
+          optimizationGenerated: true,
+          adaptationApplied: true,
+          learningPathAdjusted: true,
+          simulated: true,
+          successful: true
+        };
+      }
+
+      try {
+        const optimization = await ProblemService.optimizeFromHistory({
+          sessionHistory: scenario.sessions,
+          optimizationTarget: scenario.expectedOptimization
+        });
+
+        return {
+          scenario: scenario.name,
+          optimizationGenerated: !!optimization,
+          adaptationApplied: !!optimization?.adaptations,
+          learningPathAdjusted: !!optimization?.pathAdjustments,
+          successful: true
+        };
+      } catch (crossSessionError) {
+        return {
+          scenario: scenario.name,
+          optimizationGenerated: true,
+          adaptationApplied: true,
+          learningPathAdjusted: true,
+          simulated: true,
+          successful: true
+        };
+      }
+    };
+
+    // Helper: Test cross-session optimization
+    const testCrossSessionOptimization = async (verbose) => {
+      const learningScenarios = [
+        {
+          name: 'Difficulty progression',
+          sessions: [
+            { difficulty: 'Easy', accuracy: 0.85 },
+            { difficulty: 'Easy', accuracy: 0.90 },
+            { difficulty: 'Medium', accuracy: 0.70 },
+            { difficulty: 'Medium', accuracy: 0.80 }
+          ],
+          expectedOptimization: 'difficulty_advancement'
+        },
+        {
+          name: 'Focus area optimization',
+          sessions: [
+            { focus: ['array'], accuracy: 0.60 },
+            { focus: ['array', 'hash-table'], accuracy: 0.75 },
+            { focus: ['hash-table', 'tree'], accuracy: 0.80 }
+          ],
+          expectedOptimization: 'focus_expansion'
+        },
+        {
+          name: 'Learning pattern adaptation',
+          sessions: [
+            { sessionType: 'standard', timeSpent: 45, accuracy: 0.70 },
+            { sessionType: 'interview-like', timeSpent: 60, accuracy: 0.65 },
+            { sessionType: 'standard', timeSpent: 40, accuracy: 0.80 }
+          ],
+          expectedOptimization: 'session_type_preference'
+        }
+      ];
+
+      const optimizationResults = [];
+      for (const scenario of learningScenarios) {
+        const result = await testCrossSessionScenario(scenario);
+        optimizationResults.push(result);
+      }
+
+      if (verbose) {
+        console.log('✓ Cross-session optimization scenarios tested:', optimizationResults.length);
+      }
+
+      return {
+        tested: optimizationResults.length > 0,
+        data: optimizationResults
+      };
+    };
+
     globalThis.testMultiSessionPaths = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔄 Testing multi-session learning path optimization...');
@@ -4508,208 +4797,27 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test multi-session optimization using real algorithms
         try {
-          if (results.multiSessionTesterAvailable) {
-            // Test actual multi-session optimization using DynamicPathOptimizationTester
-            const multiSessionResult = await DynamicPathOptimizationTester.testMultiSessionOptimization({ quiet: true });
-            if (multiSessionResult && multiSessionResult.success) {
-              results.pathContinuityTested = true;
-              results.multiSessionData.optimization = {
-                sessionsOptimized: multiSessionResult.sessionsOptimized || 0,
-                pathContinuityMaintained: multiSessionResult.pathContinuityMaintained || false,
-                adaptationMeasured: multiSessionResult.adaptationMeasured || false,
-                optimizationEffective: multiSessionResult.optimizationEffective || false
-              };
-              if (verbose) console.log('✓ Multi-session optimization tested:', results.multiSessionData.optimization);
-            } else {
-              // Fall back to simulation if multi-session test failed
-              results.pathContinuityTested = true;
-              results.multiSessionData.optimization = {
-                sessionsOptimized: 5,
-                pathContinuityMaintained: true,
-                adaptationMeasured: true,
-                optimizationEffective: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Multi-session optimization simulated (test failed)');
-            }
-          } else {
-            // Simulate multi-session optimization
-            results.pathContinuityTested = true;
-            results.multiSessionData.optimization = {
-              sessionsOptimized: 4,
-              pathContinuityMaintained: true,
-              adaptationMeasured: true,
-              optimizationEffective: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Multi-session optimization simulated');
-          }
+          const optimization = await testMultiSessionOptimization(results.multiSessionTesterAvailable, verbose);
+          results.pathContinuityTested = optimization.tested;
+          results.multiSessionData.optimization = optimization.data;
         } catch (optimizationError) {
           if (verbose) console.log('⚠️ Multi-session optimization testing failed:', optimizationError.message);
         }
 
         // 3. Test session progression and continuity
         try {
-          if (typeof SessionService !== 'undefined' && SessionService.getSessionHistory) {
-            // Test actual session progression tracking
-            const sessionHistory = await SessionService.getSessionHistory({ limit: 10 });
-            if (sessionHistory && sessionHistory.length > 0) {
-              results.sessionProgressionTested = true;
-              results.multiSessionData.progression = {
-                historicalSessions: sessionHistory.length,
-                progressionTracked: sessionHistory.some(s => s.difficulty || s.focus),
-                continuityMaintained: sessionHistory.length > 1,
-                performanceProgression: this.analyzePerformanceProgression(sessionHistory)
-              };
-              if (verbose) console.log('✓ Session progression tested:', results.multiSessionData.progression);
-            } else {
-              // Simulate session progression
-              results.sessionProgressionTested = true;
-              results.multiSessionData.progression = {
-                historicalSessions: 8,
-                progressionTracked: true,
-                continuityMaintained: true,
-                performanceProgression: {
-                  improving: true,
-                  accuracyTrend: 'upward',
-                  difficultyAdaptation: 'appropriate'
-                },
-                simulated: true
-              };
-              if (verbose) console.log('✓ Session progression simulated (no history returned)');
-            }
-          } else if (typeof StorageService !== 'undefined' && StorageService.getSessionState) {
-            // Alternative: Use StorageService for session progression
-            const sessionState = await StorageService.getSessionState();
-            if (sessionState && sessionState.num_sessions_completed) {
-              results.sessionProgressionTested = true;
-              results.multiSessionData.progression = {
-                historicalSessions: sessionState.num_sessions_completed,
-                progressionTracked: true,
-                continuityMaintained: sessionState.num_sessions_completed > 1,
-                performanceProgression: {
-                  improving: sessionState.current_difficulty_cap !== 'Easy',
-                  accuracyTrend: 'tracked',
-                  difficultyAdaptation: 'active'
-                },
-                source: 'StorageService'
-              };
-              if (verbose) console.log('✓ Session progression via StorageService');
-            } else {
-              results.sessionProgressionTested = true;
-              results.multiSessionData.progression = {
-                historicalSessions: 6,
-                progressionTracked: true,
-                continuityMaintained: true,
-                performanceProgression: {
-                  improving: true,
-                  accuracyTrend: 'upward',
-                  difficultyAdaptation: 'appropriate'
-                },
-                simulated: true
-              };
-            }
-          } else {
-            // Simulate session progression
-            results.sessionProgressionTested = true;
-            results.multiSessionData.progression = {
-              historicalSessions: 7,
-              progressionTracked: true,
-              continuityMaintained: true,
-              performanceProgression: {
-                improving: true,
-                accuracyTrend: 'upward',
-                difficultyAdaptation: 'appropriate'
-              },
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session progression simulated (services not available)');
-          }
+          const progression = await testSessionProgression(verbose);
+          results.sessionProgressionTested = progression.tested;
+          results.multiSessionData.progression = progression.data;
         } catch (progressionError) {
           if (verbose) console.log('⚠️ Session progression testing failed:', progressionError.message);
         }
 
         // 4. Test cross-session learning optimization
         try {
-          const learningScenarios = [
-            {
-              name: 'Difficulty progression',
-              sessions: [
-                { difficulty: 'Easy', accuracy: 0.85 },
-                { difficulty: 'Easy', accuracy: 0.90 },
-                { difficulty: 'Medium', accuracy: 0.70 },
-                { difficulty: 'Medium', accuracy: 0.80 }
-              ],
-              expectedOptimization: 'difficulty_advancement'
-            },
-            {
-              name: 'Focus area optimization',
-              sessions: [
-                { focus: ['array'], accuracy: 0.60 },
-                { focus: ['array', 'hash-table'], accuracy: 0.75 },
-                { focus: ['hash-table', 'tree'], accuracy: 0.80 }
-              ],
-              expectedOptimization: 'focus_expansion'
-            },
-            {
-              name: 'Learning pattern adaptation',
-              sessions: [
-                { sessionType: 'standard', timeSpent: 45, accuracy: 0.70 },
-                { sessionType: 'interview-like', timeSpent: 60, accuracy: 0.65 },
-                { sessionType: 'standard', timeSpent: 40, accuracy: 0.80 }
-              ],
-              expectedOptimization: 'session_type_preference'
-            }
-          ];
-
-          const optimizationResults = [];
-          for (const scenario of learningScenarios) {
-            let optimizationResult;
-            if (typeof ProblemService !== 'undefined' && ProblemService.optimizeFromHistory) {
-              // Test real cross-session optimization
-              try {
-                const optimization = await ProblemService.optimizeFromHistory({
-                  sessionHistory: scenario.sessions,
-                  optimizationTarget: scenario.expectedOptimization
-                });
-
-                optimizationResult = {
-                  scenario: scenario.name,
-                  optimizationGenerated: !!optimization,
-                  adaptationApplied: !!optimization?.adaptations,
-                  learningPathAdjusted: !!optimization?.pathAdjustments,
-                  successful: true
-                };
-              } catch (crossSessionError) {
-                optimizationResult = {
-                  scenario: scenario.name,
-                  optimizationGenerated: true,
-                  adaptationApplied: true,
-                  learningPathAdjusted: true,
-                  simulated: true,
-                  successful: true
-                };
-              }
-            } else {
-              // Simulate cross-session optimization
-              optimizationResult = {
-                scenario: scenario.name,
-                optimizationGenerated: true,
-                adaptationApplied: true,
-                learningPathAdjusted: true,
-                simulated: true,
-                successful: true
-              };
-            }
-            optimizationResults.push(optimizationResult);
-          }
-
-          results.crossSessionOptimizationTested = optimizationResults.length > 0;
-          results.multiSessionData.crossSessionOptimization = optimizationResults;
-
-          if (verbose) {
-            console.log('✓ Cross-session optimization scenarios tested:', optimizationResults.length);
-          }
+          const crossSession = await testCrossSessionOptimization(verbose);
+          results.crossSessionOptimizationTested = crossSession.tested;
+          results.multiSessionData.crossSessionOptimization = crossSession.data;
         } catch (crossSessionError) {
           if (verbose) console.log('⚠️ Cross-session optimization testing failed:', crossSessionError.message);
         }
