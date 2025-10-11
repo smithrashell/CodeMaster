@@ -2,6 +2,26 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ CRITICAL RULES - READ FIRST ⚠️
+
+### **NEVER REVERT CODE WITHOUT EXPLICIT USER PERMISSION**
+
+**NEVER** run any of these commands without the user explicitly asking:
+- `git reset`
+- `git reset --hard`
+- `git checkout -- <file>`
+- `git checkout <commit> -- <file>`
+- `git revert`
+- `git stash drop`
+- Any other command that discards or reverts code changes
+
+**IF YOU NEED TO TEST SOMETHING:**
+- Create a new branch
+- Use `git stash` (but never `git stash drop`)
+- Ask the user first
+
+**LOSING USER'S WORK IS UNACCEPTABLE** - Always commit work before exploring alternatives.
+
 ## Development Commands
 
 - **Build for production**: `npm run build`
