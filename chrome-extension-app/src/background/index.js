@@ -839,6 +839,34 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       return modeDifferencesDetected;
     }
 
+    // Helper: Attempt interview session creation with fallback to simulation
+    async function attemptInterviewSessionCreation(results, verbose) {
+      try {
+        const interviewSession = await InterviewService.createInterviewSession('interview-like');
+        processInterviewSession(interviewSession, results, verbose);
+      } catch (sessionError) {
+        if (verbose) console.log('⚠️ Interview session creation failed, will simulate:', sessionError.message);
+        // Fall back to simulation
+        const simulated = createSimulatedSessionData();
+        results.sessionCreated = simulated.sessionCreated;
+        results.sessionData = simulated.sessionData;
+      }
+    }
+
+    // Helper: Handle interview session creation with service check
+    async function handleInterviewSessionCreation(results, verbose) {
+      if (results.interviewServiceAvailable && typeof InterviewService.createInterviewSession === 'function') {
+        await attemptInterviewSessionCreation(results, verbose);
+      } else {
+        // Simulate interview session creation
+        const simulated = createSimulatedSessionData();
+        results.sessionCreated = simulated.sessionCreated;
+        results.sessionData = simulated.sessionData;
+        results.problemCriteria = simulated.problemCriteria;
+        if (verbose) console.log('✓ Interview session simulated');
+      }
+    }
+
     globalThis.testInterviewLikeSessions = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎯 Testing interview-like session creation...');
@@ -893,26 +921,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 3. Test interview session creation
         try {
-          if (results.interviewServiceAvailable && typeof InterviewService.createInterviewSession === 'function') {
-            // Test actual interview session creation
-            try {
-              const interviewSession = await InterviewService.createInterviewSession('interview-like');
-              processInterviewSession(interviewSession, results, verbose);
-            } catch (sessionError) {
-              if (verbose) console.log('⚠️ Interview session creation failed, will simulate:', sessionError.message);
-              // Fall back to simulation
-              const simulated = createSimulatedSessionData();
-              results.sessionCreated = simulated.sessionCreated;
-              results.sessionData = simulated.sessionData;
-            }
-          } else {
-            // Simulate interview session creation
-            const simulated = createSimulatedSessionData();
-            results.sessionCreated = simulated.sessionCreated;
-            results.sessionData = simulated.sessionData;
-            results.problemCriteria = simulated.problemCriteria;
-            if (verbose) console.log('✓ Interview session simulated');
-          }
+          await handleInterviewSessionCreation(results, verbose);
         } catch (sessionCreationError) {
           if (verbose) console.log('⚠️ Interview session creation test failed:', sessionCreationError.message);
         }
@@ -1100,6 +1109,56 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       return sessionData;
     }
 
+    // Helper: Attempt full interview session creation with fallback to simulation
+    async function attemptFullInterviewSessionCreation(results, verbose) {
+      try {
+        const fullInterviewSession = await InterviewService.createInterviewSession('full-interview');
+        processFullInterviewSession(fullInterviewSession, results, verbose);
+      } catch (sessionError) {
+        if (verbose) console.log('⚠️ Full interview session creation failed, will simulate:', sessionError.message);
+        // Fall back to simulation
+        results.sessionCreated = true;
+        results.sessionData = createSimulatedFullInterviewSession(false);
+      }
+    }
+
+    // Helper: Handle full interview session creation with service check
+    async function handleFullInterviewSessionCreation(results, verbose) {
+      if (results.interviewServiceAvailable && typeof InterviewService.createInterviewSession === 'function') {
+        await attemptFullInterviewSessionCreation(results, verbose);
+      } else {
+        // Simulate full interview session creation
+        results.sessionCreated = true;
+        results.sessionData = createSimulatedFullInterviewSession(true);
+        if (verbose) console.log('✓ Full interview session simulated');
+      }
+    }
+
+    // Helper: Validate and process full interview config
+    function validateFullInterviewConfig(results, verbose) {
+      const fullInterviewConfig = InterviewService.getInterviewConfig('full-interview');
+      if (fullInterviewConfig && typeof fullInterviewConfig === 'object') {
+        results.fullInterviewConfigValidated = true;
+        results.fullInterviewConfig = processFullInterviewConfig(fullInterviewConfig, verbose);
+      } else {
+        // Fall back to simulation
+        results.fullInterviewConfigValidated = true;
+        results.fullInterviewConfig = createSimulatedFullInterviewConfig(verbose, 20);
+        if (verbose) console.log('✓ Full interview config simulated (config not found)');
+      }
+    }
+
+    // Helper: Handle full interview config validation with service check
+    function handleFullInterviewConfigValidation(results, verbose) {
+      if (results.interviewServiceAvailable && InterviewService.INTERVIEW_CONFIGS) {
+        validateFullInterviewConfig(results, verbose);
+      } else {
+        // Simulate full interview config
+        results.fullInterviewConfigValidated = true;
+        results.fullInterviewConfig = createSimulatedFullInterviewConfig(verbose, 25);
+      }
+    }
+
     globalThis.testFullInterviewSessions = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🚫 Testing full interview session creation...');
@@ -1128,46 +1187,14 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test full-interview configuration
         try {
-          if (results.interviewServiceAvailable && InterviewService.INTERVIEW_CONFIGS) {
-            // Test actual full-interview config
-            const fullInterviewConfig = InterviewService.getInterviewConfig('full-interview');
-            if (fullInterviewConfig && typeof fullInterviewConfig === 'object') {
-              results.fullInterviewConfigValidated = true;
-              results.fullInterviewConfig = processFullInterviewConfig(fullInterviewConfig, verbose);
-            } else {
-              // Fall back to simulation
-              results.fullInterviewConfigValidated = true;
-              results.fullInterviewConfig = createSimulatedFullInterviewConfig(verbose, 20);
-              if (verbose) console.log('✓ Full interview config simulated (config not found)');
-            }
-          } else {
-            // Simulate full interview config
-            results.fullInterviewConfigValidated = true;
-            results.fullInterviewConfig = createSimulatedFullInterviewConfig(verbose, 25);
-          }
+          handleFullInterviewConfigValidation(results, verbose);
         } catch (configError) {
           if (verbose) console.log('⚠️ Full interview config validation failed:', configError.message);
         }
 
         // 3. Test full interview session creation
         try {
-          if (results.interviewServiceAvailable && typeof InterviewService.createInterviewSession === 'function') {
-            // Test actual full interview session creation
-            try {
-              const fullInterviewSession = await InterviewService.createInterviewSession('full-interview');
-              processFullInterviewSession(fullInterviewSession, results, verbose);
-            } catch (sessionError) {
-              if (verbose) console.log('⚠️ Full interview session creation failed, will simulate:', sessionError.message);
-              // Fall back to simulation
-              results.sessionCreated = true;
-              results.sessionData = createSimulatedFullInterviewSession(false);
-            }
-          } else {
-            // Simulate full interview session creation
-            results.sessionCreated = true;
-            results.sessionData = createSimulatedFullInterviewSession(true);
-            if (verbose) console.log('✓ Full interview session simulated');
-          }
+          await handleFullInterviewSessionCreation(results, verbose);
         } catch (sessionCreationError) {
           if (verbose) console.log('⚠️ Full interview session creation test failed:', sessionCreationError.message);
         }
@@ -1368,6 +1395,53 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       return results;
     }
 
+    // Helper: Attempt to get session state from storage with fallback
+    async function attemptSessionStateRetrieval(results, verbose) {
+      try {
+        const sessionState = await StorageService.getSessionState();
+        results.sessionStateValidated = true;
+        results.sessionStateData = processSessionState(sessionState, verbose);
+      } catch (stateError) {
+        if (verbose) console.log('⚠️ Session state access failed, will simulate:', stateError.message);
+        // Simulate session state
+        results.sessionStateValidated = true;
+        results.sessionStateData = createSimulatedSessionState(3, verbose, false);
+      }
+    }
+
+    // Helper: Handle session state validation with service check
+    async function handleSessionStateValidation(results, verbose) {
+      if (typeof StorageService !== 'undefined' && typeof StorageService.getSessionState === 'function') {
+        await attemptSessionStateRetrieval(results, verbose);
+      } else {
+        // Simulate session state
+        results.sessionStateValidated = true;
+        results.sessionStateData = createSimulatedSessionState(5, verbose, true);
+      }
+    }
+
+    // Helper: Test progression logic or simulate it
+    async function handleProgressionLogicTesting(results, accuracyLevels, expectedDifficulties, verbose) {
+      if (results.progressionServiceAvailable) {
+        // Test actual progression logic
+        for (let i = 0; i < accuracyLevels.length; i++) {
+          const accuracy = accuracyLevels[i];
+          results.progressionResults[accuracy] = await testProgressionAccuracyLevel(
+            accuracy,
+            expectedDifficulties[i],
+            i,
+            verbose
+          );
+        }
+        results.progressionLogicTested = Object.keys(results.progressionResults).length > 0;
+      } else {
+        // Simulate progression logic
+        results.progressionResults = createSimulatedProgressionResults(accuracyLevels, expectedDifficulties);
+        results.progressionLogicTested = true;
+        if (verbose) console.log('✓ Progression logic simulated');
+      }
+    }
+
     globalThis.testDifficultyProgression = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📈 Testing difficulty progression logic...');
@@ -1396,22 +1470,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test session state structure
         try {
-          if (typeof StorageService !== 'undefined' && typeof StorageService.getSessionState === 'function') {
-            try {
-              const sessionState = await StorageService.getSessionState();
-              results.sessionStateValidated = true;
-              results.sessionStateData = processSessionState(sessionState, verbose);
-            } catch (stateError) {
-              if (verbose) console.log('⚠️ Session state access failed, will simulate:', stateError.message);
-              // Simulate session state
-              results.sessionStateValidated = true;
-              results.sessionStateData = createSimulatedSessionState(3, verbose, false);
-            }
-          } else {
-            // Simulate session state
-            results.sessionStateValidated = true;
-            results.sessionStateData = createSimulatedSessionState(5, verbose, true);
-          }
+          await handleSessionStateValidation(results, verbose);
         } catch (sessionStateError) {
           if (verbose) console.log('⚠️ Session state validation failed:', sessionStateError.message);
         }
@@ -1420,25 +1479,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         try {
           const accuracyLevels = [0.95, 0.75, 0.50, 0.25]; // High to low accuracy
           const expectedDifficulties = ['Hard', 'Medium', 'Easy', 'Easy']; // Expected progression
-
-          if (results.progressionServiceAvailable) {
-            // Test actual progression logic
-            for (let i = 0; i < accuracyLevels.length; i++) {
-              const accuracy = accuracyLevels[i];
-              results.progressionResults[accuracy] = await testProgressionAccuracyLevel(
-                accuracy,
-                expectedDifficulties[i],
-                i,
-                verbose
-              );
-            }
-            results.progressionLogicTested = Object.keys(results.progressionResults).length > 0;
-          } else {
-            // Simulate progression logic
-            results.progressionResults = createSimulatedProgressionResults(accuracyLevels, expectedDifficulties);
-            results.progressionLogicTested = true;
-            if (verbose) console.log('✓ Progression logic simulated');
-          }
+          await handleProgressionLogicTesting(results, accuracyLevels, expectedDifficulties, verbose);
         } catch (progressionError) {
           if (verbose) console.log('⚠️ Progression logic testing failed:', progressionError.message);
         }
@@ -1579,6 +1620,60 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Create mock escape hatch state
+    function createMockEscapeHatchState(sessionsCount, simulated = true) {
+      return {
+        sessionsAtCurrentDifficulty: sessionsCount,
+        sessionsWithoutPromotion: sessionsCount,
+        activatedHatches: [],
+        lastPromotion: null,
+        simulated: simulated
+      };
+    }
+
+    // Helper: Process escape hatch session state
+    function processEscapeHatchSessionState(sessionState, results, verbose) {
+      if (sessionState && sessionState.escape_hatches) {
+        results.sessionStateTestPassed = true;
+        results.escapeHatchData.currentState = {
+          sessionsAtCurrentDifficulty: sessionState.escape_hatches.sessions_at_current_difficulty || 0,
+          sessionsWithoutPromotion: sessionState.escape_hatches.sessions_without_promotion || 0,
+          activatedHatches: sessionState.escape_hatches.activated_escape_hatches || [],
+          lastPromotion: sessionState.escape_hatches.last_difficulty_promotion
+        };
+        if (verbose) console.log('✓ Session state with escape hatches validated:', results.escapeHatchData.currentState);
+      } else {
+        // Create mock state for testing
+        results.sessionStateTestPassed = true;
+        results.escapeHatchData.currentState = createMockEscapeHatchState(6, true);
+        if (verbose) console.log('✓ Session state simulated for escape hatch testing');
+      }
+    }
+
+    // Helper: Attempt to retrieve escape hatch session state
+    async function attemptEscapeHatchStateRetrieval(results, verbose) {
+      try {
+        const sessionState = await StorageService.getSessionState();
+        processEscapeHatchSessionState(sessionState, results, verbose);
+      } catch (stateError) {
+        if (verbose) console.log('⚠️ Session state access failed, using mock state:', stateError.message);
+        results.sessionStateTestPassed = true;
+        results.escapeHatchData.currentState = createMockEscapeHatchState(8, true);
+      }
+    }
+
+    // Helper: Handle escape hatch session state validation
+    async function handleEscapeHatchSessionStateValidation(results, verbose) {
+      if (typeof StorageService !== 'undefined' && typeof StorageService.getSessionState === 'function') {
+        await attemptEscapeHatchStateRetrieval(results, verbose);
+      } else {
+        // Simulate session state
+        results.sessionStateTestPassed = true;
+        results.escapeHatchData.currentState = createMockEscapeHatchState(7, true);
+        if (verbose) console.log('✓ Session state simulated (StorageService not available)');
+      }
+    }
+
     globalThis.testEscapeHatches = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔓 Testing escape hatch activation...');
@@ -1605,53 +1700,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test session state structure for escape hatches
         try {
-          if (typeof StorageService !== 'undefined' && typeof StorageService.getSessionState === 'function') {
-            try {
-              const sessionState = await StorageService.getSessionState();
-              if (sessionState && sessionState.escape_hatches) {
-                results.sessionStateTestPassed = true;
-                results.escapeHatchData.currentState = {
-                  sessionsAtCurrentDifficulty: sessionState.escape_hatches.sessions_at_current_difficulty || 0,
-                  sessionsWithoutPromotion: sessionState.escape_hatches.sessions_without_promotion || 0,
-                  activatedHatches: sessionState.escape_hatches.activated_escape_hatches || [],
-                  lastPromotion: sessionState.escape_hatches.last_difficulty_promotion
-                };
-                if (verbose) console.log('✓ Session state with escape hatches validated:', results.escapeHatchData.currentState);
-              } else {
-                // Create mock state for testing
-                results.sessionStateTestPassed = true;
-                results.escapeHatchData.currentState = {
-                  sessionsAtCurrentDifficulty: 6,
-                  sessionsWithoutPromotion: 6,
-                  activatedHatches: [],
-                  lastPromotion: null,
-                  simulated: true
-                };
-                if (verbose) console.log('✓ Session state simulated for escape hatch testing');
-              }
-            } catch (stateError) {
-              if (verbose) console.log('⚠️ Session state access failed, using mock state:', stateError.message);
-              results.sessionStateTestPassed = true;
-              results.escapeHatchData.currentState = {
-                sessionsAtCurrentDifficulty: 8,
-                sessionsWithoutPromotion: 8,
-                activatedHatches: [],
-                lastPromotion: null,
-                simulated: true
-              };
-            }
-          } else {
-            // Simulate session state
-            results.sessionStateTestPassed = true;
-            results.escapeHatchData.currentState = {
-              sessionsAtCurrentDifficulty: 7,
-              sessionsWithoutPromotion: 7,
-              activatedHatches: [],
-              lastPromotion: null,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session state simulated (StorageService not available)');
-          }
+          await handleEscapeHatchSessionStateValidation(results, verbose);
         } catch (sessionError) {
           if (verbose) console.log('⚠️ Session state validation failed:', sessionError.message);
         }
@@ -2568,6 +2617,56 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       };
     };
 
+    // Helper: Create simulated tag-problem mapping
+    function createSimulatedTagProblemMapping(testProblemId) {
+      return {
+        problemId: testProblemId,
+        tagsFound: 3,
+        primaryTag: 'array',
+        mappingWorking: true,
+        simulated: true
+      };
+    }
+
+    // Helper: Attempt tag-problem mapping test
+    async function attemptTagProblemMappingTest(testProblemId, results, verbose) {
+      const problemTags = await TagService.getTagsByProblemId(testProblemId);
+      if (problemTags && problemTags.length > 0) {
+        results.tagProblemMappingTested = true;
+        results.tagData.mapping = {
+          problemId: testProblemId,
+          tagsFound: problemTags.length,
+          primaryTag: problemTags[0]?.tag_name || 'unknown',
+          mappingWorking: true
+        };
+        if (verbose) console.log('✓ Tag-problem mapping tested with real data');
+      } else {
+        // Simulate mapping data
+        results.tagProblemMappingTested = true;
+        results.tagData.mapping = createSimulatedTagProblemMapping(testProblemId);
+        if (verbose) console.log('✓ Tag-problem mapping simulated (no data)');
+      }
+    }
+
+    // Helper: Handle tag-problem mapping integration test
+    async function handleTagProblemMappingTest(results, verbose) {
+      const testProblemId = 'two-sum';
+
+      if (results.tagServiceAvailable) {
+        // Test actual tag-problem relationships
+        if (typeof TagService.getTagsByProblemId === 'function') {
+          await attemptTagProblemMappingTest(testProblemId, results, verbose);
+        } else {
+          throw new Error('TagService.getTagsByProblemId not available');
+        }
+      } else {
+        // Simulate tag-problem mapping
+        results.tagProblemMappingTested = true;
+        results.tagData.mapping = createSimulatedTagProblemMapping(testProblemId);
+        if (verbose) console.log('✓ Tag-problem mapping simulated');
+      }
+    }
+
     // 🧬 INTEGRATION Test Functions - Clean versions for default execution
     globalThis.testTagIntegration = async function(options = {}) {
       const { verbose = false } = options;
@@ -2594,47 +2693,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test tag-problem mapping integration
         try {
-          if (results.tagServiceAvailable) {
-            // Test actual tag-problem relationships
-            if (typeof TagService.getTagsByProblemId === 'function') {
-              const testProblemId = 'two-sum';
-              const problemTags = await TagService.getTagsByProblemId(testProblemId);
-              if (problemTags && problemTags.length > 0) {
-                results.tagProblemMappingTested = true;
-                results.tagData.mapping = {
-                  problemId: testProblemId,
-                  tagsFound: problemTags.length,
-                  primaryTag: problemTags[0]?.tag_name || 'unknown',
-                  mappingWorking: true
-                };
-                if (verbose) console.log('✓ Tag-problem mapping tested with real data');
-              } else {
-                // Simulate mapping data
-                results.tagProblemMappingTested = true;
-                results.tagData.mapping = {
-                  problemId: testProblemId,
-                  tagsFound: 3,
-                  primaryTag: 'array',
-                  mappingWorking: true,
-                  simulated: true
-                };
-                if (verbose) console.log('✓ Tag-problem mapping simulated (no data)');
-              }
-            } else {
-              throw new Error('TagService.getTagsByProblemId not available');
-            }
-          } else {
-            // Simulate tag-problem mapping
-            results.tagProblemMappingTested = true;
-            results.tagData.mapping = {
-              problemId: 'two-sum',
-              tagsFound: 3,
-              primaryTag: 'array',
-              mappingWorking: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Tag-problem mapping simulated');
-          }
+          await handleTagProblemMappingTest(results, verbose);
         } catch (mappingError) {
           if (verbose) console.log('⚠️ Tag-problem mapping test failed:', mappingError.message);
         }
@@ -2773,6 +2832,54 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       };
     };
 
+    // Helper: Create simulated pathfinding algorithm data
+    function createSimulatedPathfindingData(targetTags) {
+      return {
+        targetTags,
+        pathLength: 8,
+        estimatedDuration: 12, // weeks
+        pathOptimized: true,
+        algorithmWorking: true,
+        simulated: true
+      };
+    }
+
+    // Helper: Process pathfinding learning path
+    function processPathfindingLearningPath(learningPath, targetTags, results, verbose, calculatePathDuration) {
+      if (learningPath && learningPath.length > 0) {
+        results.pathfindingAlgorithmTested = true;
+        results.pathfindingData.algorithm = {
+          targetTags,
+          pathLength: learningPath.length,
+          estimatedDuration: calculatePathDuration(learningPath),
+          pathOptimized: learningPath.some(step => step.prerequisites?.length > 0),
+          algorithmWorking: true
+        };
+        if (verbose) console.log('✓ Pathfinding algorithm tested with real data');
+      } else {
+        // Simulate pathfinding
+        results.pathfindingAlgorithmTested = true;
+        results.pathfindingData.algorithm = createSimulatedPathfindingData(targetTags);
+        if (verbose) console.log('✓ Pathfinding algorithm simulated (no path found)');
+      }
+    }
+
+    // Helper: Handle pathfinding algorithm test
+    async function handlePathfindingAlgorithmTest(results, verbose, calculatePathDuration) {
+      const targetTags = ['array', 'hash-table', 'two-pointers'];
+
+      if (results.tagServiceAvailable) {
+        // Test actual pathfinding algorithm
+        const learningPath = await TagService.findOptimalLearningPath(targetTags);
+        processPathfindingLearningPath(learningPath, targetTags, results, verbose, calculatePathDuration);
+      } else {
+        // Simulate pathfinding algorithm
+        results.pathfindingAlgorithmTested = true;
+        results.pathfindingData.algorithm = createSimulatedPathfindingData(targetTags);
+        if (verbose) console.log('✓ Pathfinding algorithm simulated');
+      }
+    }
+
     globalThis.testTagLadderPathfinding = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎯 Testing tag ladder pathfinding coordination...');
@@ -2798,47 +2905,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test pathfinding algorithm
         try {
-          if (results.tagServiceAvailable) {
-            // Test actual pathfinding algorithm
-            const targetTags = ['array', 'hash-table', 'two-pointers'];
-            const learningPath = await TagService.findOptimalLearningPath(targetTags);
-            if (learningPath && learningPath.length > 0) {
-              results.pathfindingAlgorithmTested = true;
-              results.pathfindingData.algorithm = {
-                targetTags,
-                pathLength: learningPath.length,
-                estimatedDuration: this.calculatePathDuration(learningPath),
-                pathOptimized: learningPath.some(step => step.prerequisites?.length > 0),
-                algorithmWorking: true
-              };
-              if (verbose) console.log('✓ Pathfinding algorithm tested with real data');
-            } else {
-              // Simulate pathfinding
-              results.pathfindingAlgorithmTested = true;
-              results.pathfindingData.algorithm = {
-                targetTags,
-                pathLength: 8,
-                estimatedDuration: 12, // weeks
-                pathOptimized: true,
-                algorithmWorking: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Pathfinding algorithm simulated (no path found)');
-            }
-          } else {
-            // Simulate pathfinding algorithm
-            const targetTags = ['array', 'hash-table', 'two-pointers'];
-            results.pathfindingAlgorithmTested = true;
-            results.pathfindingData.algorithm = {
-              targetTags,
-              pathLength: 8,
-              estimatedDuration: 12, // weeks
-              pathOptimized: true,
-              algorithmWorking: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Pathfinding algorithm simulated');
-          }
+          await handlePathfindingAlgorithmTest(results, verbose, this.calculatePathDuration.bind(this));
         } catch (algorithmError) {
           if (verbose) console.log('⚠️ Pathfinding algorithm test failed:', algorithmError.message);
         }
@@ -2991,6 +3058,50 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       };
     };
 
+    // Helper: Create simulated session blending data
+    function createSimulatedSessionBlendingData(testRecommendationSources) {
+      return {
+        sourcesBlended: testRecommendationSources.length,
+        finalProblemsCount: 6,
+        diversityScore: 0.78,
+        blendingWorking: true,
+        simulated: true
+      };
+    }
+
+    // Helper: Process blended session
+    function processBlendedSession(blendedSession, testRecommendationSources, results, verbose, calculateBlendingDiversity) {
+      if (blendedSession && blendedSession.problems && blendedSession.problems.length > 0) {
+        results.blendingAlgorithmTested = true;
+        results.blendingData.algorithm = {
+          sourcesBlended: testRecommendationSources.length,
+          finalProblemsCount: blendedSession.problems.length,
+          diversityScore: calculateBlendingDiversity(blendedSession.problems, testRecommendationSources),
+          blendingWorking: true
+        };
+        if (verbose) console.log('✓ Session blending algorithm tested with real data');
+      } else {
+        // Simulate blending
+        results.blendingAlgorithmTested = true;
+        results.blendingData.algorithm = createSimulatedSessionBlendingData(testRecommendationSources);
+        if (verbose) console.log('✓ Session blending algorithm simulated (no blended session)');
+      }
+    }
+
+    // Helper: Handle session blending algorithm test
+    async function handleSessionBlendingAlgorithmTest(results, testRecommendationSources, verbose, calculateBlendingDiversity) {
+      if (results.problemServiceAvailable) {
+        // Test actual blending
+        const blendedSession = await ProblemService.blendSessionRecommendations(testRecommendationSources);
+        processBlendedSession(blendedSession, testRecommendationSources, results, verbose, calculateBlendingDiversity);
+      } else {
+        // Simulate session blending
+        results.blendingAlgorithmTested = true;
+        results.blendingData.algorithm = createSimulatedSessionBlendingData(testRecommendationSources);
+        if (verbose) console.log('✓ Session blending algorithm simulated');
+      }
+    }
+
     globalThis.testSessionBlending = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔀 Testing session recommendation blending...');
@@ -3023,42 +3134,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
             { source: 'spaced_repetition', problems: ['binary-search', 'rotate-array'], weight: 0.1 }
           ];
 
-          if (results.problemServiceAvailable) {
-            // Test actual blending
-            const blendedSession = await ProblemService.blendSessionRecommendations(testRecommendationSources);
-            if (blendedSession && blendedSession.problems && blendedSession.problems.length > 0) {
-              results.blendingAlgorithmTested = true;
-              results.blendingData.algorithm = {
-                sourcesBlended: testRecommendationSources.length,
-                finalProblemsCount: blendedSession.problems.length,
-                diversityScore: this.calculateBlendingDiversity(blendedSession.problems, testRecommendationSources),
-                blendingWorking: true
-              };
-              if (verbose) console.log('✓ Session blending algorithm tested with real data');
-            } else {
-              // Simulate blending
-              results.blendingAlgorithmTested = true;
-              results.blendingData.algorithm = {
-                sourcesBlended: testRecommendationSources.length,
-                finalProblemsCount: 6,
-                diversityScore: 0.78,
-                blendingWorking: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Session blending algorithm simulated (no result)');
-            }
-          } else {
-            // Simulate blending algorithm
-            results.blendingAlgorithmTested = true;
-            results.blendingData.algorithm = {
-              sourcesBlended: testRecommendationSources.length,
-              finalProblemsCount: 6,
-              diversityScore: 0.78,
-              blendingWorking: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session blending algorithm simulated');
-          }
+          await handleSessionBlendingAlgorithmTest(results, testRecommendationSources, verbose, this.calculateBlendingDiversity.bind(this));
         } catch (blendingError) {
           if (verbose) console.log('⚠️ Session blending algorithm test failed:', blendingError.message);
         }
