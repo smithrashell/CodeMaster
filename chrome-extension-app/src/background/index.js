@@ -4909,6 +4909,209 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // 🎯 REAL SYSTEM Test Functions - Clean versions for default execution
+    // Helper function to test progress metrics component
+    async function testProgressMetricsComponent(verbose) {
+      const result = {
+        tested: false,
+        data: null
+      };
+
+      const progressMetrics = {
+        difficultyProgression: false,
+        tagMasteryTracking: false,
+        adaptiveResponseMeasured: false,
+        learningVelocityCalculated: false
+      };
+
+      // Test difficulty progression tracking
+      if (typeof evaluateDifficultyProgression === 'function') {
+        try {
+          const progressionResult = await evaluateDifficultyProgression(0.80, {});
+          if (progressionResult && progressionResult.current_difficulty_cap) {
+            progressMetrics.difficultyProgression = true;
+            if (verbose) console.log('✓ Difficulty progression tracking successful');
+          }
+        } catch (difficultyError) {
+          if (verbose) console.log('⚠️ Difficulty progression tracking failed:', difficultyError.message);
+        }
+      }
+
+      // Test tag mastery tracking
+      if (typeof TagService !== 'undefined' && TagService.getTagMasteryData) {
+        try {
+          const masteryData = await TagService.getTagMasteryData();
+          if (masteryData && masteryData.tagProgressions) {
+            progressMetrics.tagMasteryTracking = true;
+            if (verbose) console.log('✓ Tag mastery tracking successful');
+          }
+        } catch (masteryError) {
+          if (verbose) console.log('⚠️ Tag mastery tracking failed:', masteryError.message);
+        }
+      }
+
+      // Test adaptive response measurement
+      if (typeof adaptiveLimitsService !== 'undefined' && adaptiveLimitsService.updateLimits) {
+        try {
+          const adaptiveUpdate = await adaptiveLimitsService.updateLimits({
+            sessionType: 'standard',
+            recentPerformance: { accuracy: 0.75, averageTime: 25 }
+          });
+          if (adaptiveUpdate) {
+            progressMetrics.adaptiveResponseMeasured = true;
+            if (verbose) console.log('✓ Adaptive response measurement successful');
+          }
+        } catch (adaptiveError) {
+          if (verbose) console.log('⚠️ Adaptive response measurement failed:', adaptiveError.message);
+        }
+      }
+
+      // Simulate learning velocity if not available
+      progressMetrics.learningVelocityCalculated = true;
+
+      result.tested = Object.values(progressMetrics).some(Boolean);
+      result.data = progressMetrics;
+      if (verbose) console.log('✓ Progress tracking metrics tested:', progressMetrics);
+      return result;
+    }
+
+    // Helper function to test session lifecycle component
+    async function testSessionLifecycleComponent(verbose) {
+      const result = {
+        tested: false,
+        data: null
+      };
+
+      const servicesAvailable = typeof SessionService !== 'undefined' && typeof ProblemService !== 'undefined';
+      if (!servicesAvailable) {
+        result.tested = true;
+        result.data = {
+          sessionCreation: true,
+          problemSelection: true,
+          progressTracking: true,
+          sessionCompletion: true,
+          simulated: true
+        };
+        if (verbose) console.log('✓ Session lifecycle simulated (services not available)');
+        return result;
+      }
+
+      const sessionLifecycle = {
+        sessionCreation: false,
+        problemSelection: false,
+        progressTracking: false,
+        sessionCompletion: false
+      };
+
+      // Test session creation
+      try {
+        const newSession = await SessionService.getOrCreateSession('standard');
+        if (newSession && newSession.problems) {
+          sessionLifecycle.sessionCreation = true;
+          if (verbose) console.log('✓ Session creation successful');
+        }
+      } catch (creationError) {
+        if (verbose) console.log('⚠️ Session creation failed:', creationError.message);
+      }
+
+      // Test problem selection
+      try {
+        const problems = await ProblemService.adaptiveSessionProblems({
+          sessionType: 'standard',
+          difficulty: 'Medium',
+          sessionLength: 3
+        });
+        if (problems && problems.length > 0) {
+          sessionLifecycle.problemSelection = true;
+          if (verbose) console.log('✓ Problem selection successful');
+        }
+      } catch (selectionError) {
+        if (verbose) console.log('⚠️ Problem selection failed:', selectionError.message);
+      }
+
+      // Test progress tracking
+      try {
+        if (typeof AttemptsService !== 'undefined' && AttemptsService.recordAttempt) {
+          const mockAttempt = {
+            problemId: 'test-problem',
+            success: true,
+            timeSpent: 300,
+            hintsUsed: 1
+          };
+          await AttemptsService.recordAttempt(mockAttempt);
+          sessionLifecycle.progressTracking = true;
+          if (verbose) console.log('✓ Progress tracking successful');
+        }
+      } catch (trackingError) {
+        if (verbose) console.log('⚠️ Progress tracking failed:', trackingError.message);
+      }
+
+      // Test session completion
+      try {
+        if (typeof updateSessionInDB === 'function') {
+          await updateSessionInDB('test-session', {
+            completed: true,
+            completionTime: Date.now(),
+            accuracy: 0.75
+          });
+          sessionLifecycle.sessionCompletion = true;
+          if (verbose) console.log('✓ Session completion successful');
+        }
+      } catch (completionError) {
+        if (verbose) console.log('⚠️ Session completion failed:', completionError.message);
+      }
+
+      result.tested = Object.values(sessionLifecycle).some(Boolean);
+      result.data = sessionLifecycle;
+      if (verbose) console.log('✓ Session lifecycle tested:', sessionLifecycle);
+      return result;
+    }
+
+    // Helper function to test learning flow component
+    async function testLearningFlowComponent(realSystemTesterAvailable, verbose) {
+      const result = {
+        tested: false,
+        data: null
+      };
+
+      if (!realSystemTesterAvailable) {
+        result.tested = true;
+        result.data = {
+          sessionsCompleted: 5,
+          learningGoalsAchieved: true,
+          skillProgressionMeasured: true,
+          adaptiveAdjustmentsMade: true,
+          simulated: true
+        };
+        if (verbose) console.log('✓ Real learning flow simulated');
+        return result;
+      }
+
+      const learningFlowResult = await RealSystemTester.testRealLearningFlow({ quiet: true });
+      if (learningFlowResult && learningFlowResult.success) {
+        result.tested = true;
+        result.data = {
+          sessionsCompleted: learningFlowResult.sessionsCompleted || 0,
+          learningGoalsAchieved: learningFlowResult.learningGoalsAchieved || false,
+          skillProgressionMeasured: learningFlowResult.skillProgressionMeasured || false,
+          adaptiveAdjustmentsMade: learningFlowResult.adaptiveAdjustmentsMade || false
+        };
+        if (verbose) console.log('✓ Real learning flow tested:', result.data);
+        return result;
+      }
+
+      // Fall back to simulation if real learning flow test failed
+      result.tested = true;
+      result.data = {
+        sessionsCompleted: 6,
+        learningGoalsAchieved: true,
+        skillProgressionMeasured: true,
+        adaptiveAdjustmentsMade: true,
+        simulated: true
+      };
+      if (verbose) console.log('✓ Real learning flow simulated (test failed)');
+      return result;
+    }
+
     globalThis.testRealLearningFlow = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎓 Testing complete learning flow with real functions...');
@@ -4934,193 +5137,27 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
         // 2. Test complete learning flow using real system functions
         try {
-          if (results.realSystemTesterAvailable) {
-            // Test actual learning flow using RealSystemTester
-            const learningFlowResult = await RealSystemTester.testRealLearningFlow({ quiet: true });
-            if (learningFlowResult && learningFlowResult.success) {
-              results.learningFlowTested = true;
-              results.realLearningData.flow = {
-                sessionsCompleted: learningFlowResult.sessionsCompleted || 0,
-                learningGoalsAchieved: learningFlowResult.learningGoalsAchieved || false,
-                skillProgressionMeasured: learningFlowResult.skillProgressionMeasured || false,
-                adaptiveAdjustmentsMade: learningFlowResult.adaptiveAdjustmentsMade || false
-              };
-              if (verbose) console.log('✓ Real learning flow tested:', results.realLearningData.flow);
-            } else {
-              // Fall back to simulation if real learning flow test failed
-              results.learningFlowTested = true;
-              results.realLearningData.flow = {
-                sessionsCompleted: 6,
-                learningGoalsAchieved: true,
-                skillProgressionMeasured: true,
-                adaptiveAdjustmentsMade: true,
-                simulated: true
-              };
-              if (verbose) console.log('✓ Real learning flow simulated (test failed)');
-            }
-          } else {
-            // Simulate real learning flow
-            results.learningFlowTested = true;
-            results.realLearningData.flow = {
-              sessionsCompleted: 5,
-              learningGoalsAchieved: true,
-              skillProgressionMeasured: true,
-              adaptiveAdjustmentsMade: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Real learning flow simulated');
-          }
+          const flowResult = await testLearningFlowComponent(results.realSystemTesterAvailable, verbose);
+          results.learningFlowTested = flowResult.tested;
+          results.realLearningData.flow = flowResult.data;
         } catch (flowError) {
           if (verbose) console.log('⚠️ Real learning flow testing failed:', flowError.message);
         }
 
         // 3. Test complete session lifecycle using real services
         try {
-          if (typeof SessionService !== 'undefined' && typeof ProblemService !== 'undefined') {
-            // Test actual session lifecycle with real services
-            const sessionLifecycle = {
-              sessionCreation: false,
-              problemSelection: false,
-              progressTracking: false,
-              sessionCompletion: false
-            };
-
-            // Test session creation
-            try {
-              const newSession = await SessionService.getOrCreateSession('standard');
-              if (newSession && newSession.problems) {
-                sessionLifecycle.sessionCreation = true;
-                if (verbose) console.log('✓ Session creation successful');
-              }
-            } catch (creationError) {
-              if (verbose) console.log('⚠️ Session creation failed:', creationError.message);
-            }
-
-            // Test problem selection
-            try {
-              const problems = await ProblemService.adaptiveSessionProblems({
-                sessionType: 'standard',
-                difficulty: 'Medium',
-                sessionLength: 3
-              });
-              if (problems && problems.length > 0) {
-                sessionLifecycle.problemSelection = true;
-                if (verbose) console.log('✓ Problem selection successful');
-              }
-            } catch (selectionError) {
-              if (verbose) console.log('⚠️ Problem selection failed:', selectionError.message);
-            }
-
-            // Test progress tracking
-            try {
-              if (typeof AttemptsService !== 'undefined' && AttemptsService.recordAttempt) {
-                const mockAttempt = {
-                  problemId: 'test-problem',
-                  success: true,
-                  timeSpent: 300,
-                  hintsUsed: 1
-                };
-                await AttemptsService.recordAttempt(mockAttempt);
-                sessionLifecycle.progressTracking = true;
-                if (verbose) console.log('✓ Progress tracking successful');
-              }
-            } catch (trackingError) {
-              if (verbose) console.log('⚠️ Progress tracking failed:', trackingError.message);
-            }
-
-            // Test session completion
-            try {
-              if (typeof updateSessionInDB === 'function') {
-                await updateSessionInDB('test-session', {
-                  completed: true,
-                  completionTime: Date.now(),
-                  accuracy: 0.75
-                });
-                sessionLifecycle.sessionCompletion = true;
-                if (verbose) console.log('✓ Session completion successful');
-              }
-            } catch (completionError) {
-              if (verbose) console.log('⚠️ Session completion failed:', completionError.message);
-            }
-
-            results.sessionLifecycleTested = Object.values(sessionLifecycle).some(Boolean);
-            results.realLearningData.lifecycle = sessionLifecycle;
-
-            if (verbose) console.log('✓ Session lifecycle tested:', sessionLifecycle);
-          } else {
-            // Simulate session lifecycle
-            results.sessionLifecycleTested = true;
-            results.realLearningData.lifecycle = {
-              sessionCreation: true,
-              problemSelection: true,
-              progressTracking: true,
-              sessionCompletion: true,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session lifecycle simulated (services not available)');
-          }
+          const lifecycleResult = await testSessionLifecycleComponent(verbose);
+          results.sessionLifecycleTested = lifecycleResult.tested;
+          results.realLearningData.lifecycle = lifecycleResult.data;
         } catch (lifecycleError) {
           if (verbose) console.log('⚠️ Session lifecycle testing failed:', lifecycleError.message);
         }
 
         // 4. Test real progress tracking and learning analytics
         try {
-          const progressMetrics = {
-            difficultyProgression: false,
-            tagMasteryTracking: false,
-            adaptiveResponseMeasured: false,
-            learningVelocityCalculated: false
-          };
-
-          // Test difficulty progression tracking
-          if (typeof evaluateDifficultyProgression === 'function') {
-            try {
-              const progressionResult = await evaluateDifficultyProgression(0.80, {});
-              if (progressionResult && progressionResult.current_difficulty_cap) {
-                progressMetrics.difficultyProgression = true;
-                if (verbose) console.log('✓ Difficulty progression tracking successful');
-              }
-            } catch (difficultyError) {
-              if (verbose) console.log('⚠️ Difficulty progression tracking failed:', difficultyError.message);
-            }
-          }
-
-          // Test tag mastery tracking
-          if (typeof TagService !== 'undefined' && TagService.getTagMasteryData) {
-            try {
-              const masteryData = await TagService.getTagMasteryData();
-              if (masteryData && masteryData.tagProgressions) {
-                progressMetrics.tagMasteryTracking = true;
-                if (verbose) console.log('✓ Tag mastery tracking successful');
-              }
-            } catch (masteryError) {
-              if (verbose) console.log('⚠️ Tag mastery tracking failed:', masteryError.message);
-            }
-          }
-
-          // Test adaptive response measurement
-          if (typeof adaptiveLimitsService !== 'undefined' && adaptiveLimitsService.updateLimits) {
-            try {
-              const adaptiveUpdate = await adaptiveLimitsService.updateLimits({
-                sessionType: 'standard',
-                recentPerformance: { accuracy: 0.75, averageTime: 25 }
-              });
-              if (adaptiveUpdate) {
-                progressMetrics.adaptiveResponseMeasured = true;
-                if (verbose) console.log('✓ Adaptive response measurement successful');
-              }
-            } catch (adaptiveError) {
-              if (verbose) console.log('⚠️ Adaptive response measurement failed:', adaptiveError.message);
-            }
-          }
-
-          // Simulate learning velocity if not available
-          progressMetrics.learningVelocityCalculated = true;
-
-          results.progressTrackingTested = Object.values(progressMetrics).some(Boolean);
-          results.realLearningData.progressMetrics = progressMetrics;
-
-          if (verbose) console.log('✓ Progress tracking metrics tested:', progressMetrics);
+          const progressResult = await testProgressMetricsComponent(verbose);
+          results.progressTrackingTested = progressResult.tested;
+          results.realLearningData.progressMetrics = progressResult.data;
         } catch (progressError) {
           if (verbose) console.log('⚠️ Progress tracking testing failed:', progressError.message);
         }
