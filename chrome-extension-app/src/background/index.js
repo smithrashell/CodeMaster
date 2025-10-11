@@ -319,7 +319,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     console.log('  - seedTestData(scenario)     // Seed test data (scenarios: default, experienced_user)');
 
     // Helper function to validate a single data store
-    async function validateDataStore(store, verbose) {
+    const validateDataStore = async function(store, verbose) {
       try {
         const data = await getAllFromStore(store);
         return Array.isArray(data) ? data.length : 0;
@@ -487,7 +487,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper function to test timer pause/resume functionality
-    async function testTimerPauseResume(timer, verbose) {
+    const testTimerPauseResume = async function(timer, verbose) {
       timer.start();
       await new Promise(resolve => setTimeout(resolve, 5));
 
@@ -510,7 +510,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper function to test timer time calculation accuracy
-    async function testTimerAccuracy(timer, verbose) {
+    const testTimerAccuracy = async function(timer, verbose) {
       const startTime = Date.now();
       timer.start();
 
@@ -537,7 +537,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper function to test timer static methods
-    function testTimerStaticMethods(TimerClass, verbose) {
+    const testTimerStaticMethods = function(TimerClass, verbose) {
       if (typeof TimerClass.formatTime === 'function') {
         const formatted = TimerClass.formatTime(125); // 2:05
         if (typeof formatted === 'string' && formatted.includes(':')) {
@@ -774,7 +774,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Validate interview configuration for a specific mode
-    function validateInterviewModeConfig(mode, config, results) {
+    const validateInterviewModeConfig = function(mode, config, results) {
       if (config && typeof config === 'object') {
         results.interviewModesSupported.push(mode);
         results.configData[mode] = {
@@ -786,7 +786,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated session data
-    function createSimulatedSessionData() {
+    const createSimulatedSessionData = function() {
       return {
         sessionCreated: true,
         sessionData: {
@@ -806,7 +806,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Process successful interview session creation
-    function processInterviewSession(interviewSession, results, verbose) {
+    const processInterviewSession = function(interviewSession, results, verbose) {
       if (interviewSession && interviewSession.sessionType) {
         results.sessionCreated = true;
         results.sessionData = {
@@ -821,7 +821,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Check interview mode differences
-    function checkModeDifferences(standardConfig, interviewConfig, verbose) {
+    const checkModeDifferences = function(standardConfig, interviewConfig, verbose) {
       const hintsAreDifferent = standardConfig.hints !== interviewConfig.hints;
       const timingIsDifferent = standardConfig.timing !== interviewConfig.timing;
 
@@ -840,7 +840,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Attempt interview session creation with fallback to simulation
-    async function attemptInterviewSessionCreation(results, verbose) {
+    const attemptInterviewSessionCreation = async function(results, verbose) {
       try {
         const interviewSession = await InterviewService.createInterviewSession('interview-like');
         processInterviewSession(interviewSession, results, verbose);
@@ -854,7 +854,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle interview session creation with service check
-    async function handleInterviewSessionCreation(results, verbose) {
+    const handleInterviewSessionCreation = async function(results, verbose) {
       if (results.interviewServiceAvailable && typeof InterviewService.createInterviewSession === 'function') {
         await attemptInterviewSessionCreation(results, verbose);
       } else {
@@ -1033,7 +1033,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Process full interview configuration
-    function processFullInterviewConfig(fullInterviewConfig, verbose) {
+    const processFullInterviewConfig = function(fullInterviewConfig, verbose) {
       const config = {
         hints: fullInterviewConfig.hints?.max || 0,
         timing: fullInterviewConfig.timing?.pressure || false,
@@ -1047,7 +1047,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated full interview config
-    function createSimulatedFullInterviewConfig(verbose, perProblemTime = 25) {
+    const createSimulatedFullInterviewConfig = function(verbose, perProblemTime = 25) {
       const config = {
         hints: 0,
         timing: true,
@@ -1062,7 +1062,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Process full interview session
-    function processFullInterviewSession(fullInterviewSession, results, verbose) {
+    const processFullInterviewSession = function(fullInterviewSession, results, verbose) {
       if (fullInterviewSession && fullInterviewSession.sessionType) {
         results.sessionCreated = true;
         results.sessionData = {
@@ -1082,7 +1082,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated full interview session
-    function createSimulatedFullInterviewSession(includeSelectionCriteria = false) {
+    const createSimulatedFullInterviewSession = function(includeSelectionCriteria = false) {
       const sessionData = {
         sessionType: 'full-interview',
         sessionLength: 3,
@@ -1110,7 +1110,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Attempt full interview session creation with fallback to simulation
-    async function attemptFullInterviewSessionCreation(results, verbose) {
+    const attemptFullInterviewSessionCreation = async function(results, verbose) {
       try {
         const fullInterviewSession = await InterviewService.createInterviewSession('full-interview');
         processFullInterviewSession(fullInterviewSession, results, verbose);
@@ -1123,7 +1123,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle full interview session creation with service check
-    async function handleFullInterviewSessionCreation(results, verbose) {
+    const handleFullInterviewSessionCreation = async function(results, verbose) {
       if (results.interviewServiceAvailable && typeof InterviewService.createInterviewSession === 'function') {
         await attemptFullInterviewSessionCreation(results, verbose);
       } else {
@@ -1135,7 +1135,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Validate and process full interview config
-    function validateFullInterviewConfig(results, verbose) {
+    const validateFullInterviewConfig = function(results, verbose) {
       const fullInterviewConfig = InterviewService.getInterviewConfig('full-interview');
       if (fullInterviewConfig && typeof fullInterviewConfig === 'object') {
         results.fullInterviewConfigValidated = true;
@@ -1149,7 +1149,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle full interview config validation with service check
-    function handleFullInterviewConfigValidation(results, verbose) {
+    const handleFullInterviewConfigValidation = function(results, verbose) {
       if (results.interviewServiceAvailable && InterviewService.INTERVIEW_CONFIGS) {
         validateFullInterviewConfig(results, verbose);
       } else {
@@ -1332,7 +1332,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Process session state from storage
-    function processSessionState(sessionState, verbose) {
+    const processSessionState = function(sessionState, verbose) {
       const stateData = {
         hasCurrentDifficulty: !!(sessionState?.current_difficulty_cap),
         hasSessionCount: !!(sessionState?.num_sessions_completed !== undefined),
@@ -1345,7 +1345,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated session state
-    function createSimulatedSessionState(sessionCount, verbose, showLog = true) {
+    const createSimulatedSessionState = function(sessionCount, verbose, showLog = true) {
       const stateData = {
         hasCurrentDifficulty: true,
         hasSessionCount: true,
@@ -1359,7 +1359,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Test single progression accuracy level
-    async function testProgressionAccuracyLevel(accuracy, expectedDifficulty, index, verbose) {
+    const testProgressionAccuracyLevel = async function(accuracy, expectedDifficulty, index, verbose) {
       try {
         const progressionResult = await evaluateDifficultyProgression(accuracy, {});
         const result = {
@@ -1381,7 +1381,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated progression results
-    function createSimulatedProgressionResults(accuracyLevels, expectedDifficulties) {
+    const createSimulatedProgressionResults = function(accuracyLevels, expectedDifficulties) {
       const results = {};
       for (let i = 0; i < accuracyLevels.length; i++) {
         const accuracy = accuracyLevels[i];
@@ -1396,7 +1396,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Attempt to get session state from storage with fallback
-    async function attemptSessionStateRetrieval(results, verbose) {
+    const attemptSessionStateRetrieval = async function(results, verbose) {
       try {
         const sessionState = await StorageService.getSessionState();
         results.sessionStateValidated = true;
@@ -1410,7 +1410,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle session state validation with service check
-    async function handleSessionStateValidation(results, verbose) {
+    const handleSessionStateValidation = async function(results, verbose) {
       if (typeof StorageService !== 'undefined' && typeof StorageService.getSessionState === 'function') {
         await attemptSessionStateRetrieval(results, verbose);
       } else {
@@ -1421,7 +1421,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Test progression logic or simulate it
-    async function handleProgressionLogicTesting(results, accuracyLevels, expectedDifficulties, verbose) {
+    const handleProgressionLogicTesting = async function(results, accuracyLevels, expectedDifficulties, verbose) {
       if (results.progressionServiceAvailable) {
         // Test actual progression logic
         for (let i = 0; i < accuracyLevels.length; i++) {
@@ -1443,7 +1443,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Test escape hatch logic or simulate it
-    function handleEscapeHatchTesting(results, verbose) {
+    const handleEscapeHatchTesting = function(results, verbose) {
       if (typeof applyEscapeHatchLogic !== 'function') {
         results.escapeHatchLogicTested = true;
         if (verbose) console.log('✓ Escape hatch logic simulated (function not available)');
@@ -1625,7 +1625,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Create mock escape hatch state
-    function createMockEscapeHatchState(sessionsCount, simulated = true) {
+    const createMockEscapeHatchState = function(sessionsCount, simulated = true) {
       return {
         sessionsAtCurrentDifficulty: sessionsCount,
         sessionsWithoutPromotion: sessionsCount,
@@ -1636,7 +1636,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Process escape hatch session state
-    function processEscapeHatchSessionState(sessionState, results, verbose) {
+    const processEscapeHatchSessionState = function(sessionState, results, verbose) {
       if (sessionState && sessionState.escape_hatches) {
         results.sessionStateTestPassed = true;
         results.escapeHatchData.currentState = {
@@ -1655,7 +1655,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Attempt to retrieve escape hatch session state
-    async function attemptEscapeHatchStateRetrieval(results, verbose) {
+    const attemptEscapeHatchStateRetrieval = async function(results, verbose) {
       try {
         const sessionState = await StorageService.getSessionState();
         processEscapeHatchSessionState(sessionState, results, verbose);
@@ -1667,7 +1667,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle escape hatch session state validation
-    async function handleEscapeHatchSessionStateValidation(results, verbose) {
+    const handleEscapeHatchSessionStateValidation = async function(results, verbose) {
       if (typeof StorageService !== 'undefined' && typeof StorageService.getSessionState === 'function') {
         await attemptEscapeHatchStateRetrieval(results, verbose);
       } else {
@@ -1759,7 +1759,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         ];
 
         // Helper: Process escape hatch result
-        function processEscapeHatchResult(escapeHatchResult, scenarioName, verbose) {
+        const processEscapeHatchResult = function(escapeHatchResult, scenarioName, verbose) {
           if (escapeHatchResult && escapeHatchResult.activated_escape_hatches) {
             const result = {
               scenario: scenarioName,
@@ -1782,7 +1782,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // Helper: Create simulated escape hatch result
-        function createSimulatedEscapeHatchResult(scenarioName, expectedHatch) {
+        const createSimulatedEscapeHatchResult = function(scenarioName, expectedHatch) {
           return {
             scenario: scenarioName,
             activated: [expectedHatch],
@@ -1792,7 +1792,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // Helper: Test single escape hatch scenario
-        async function testEscapeHatchScenario(scenario, verbose) {
+        const testEscapeHatchScenario = async function(scenario, verbose) {
           try {
             const escapeHatchResult = applyEscapeHatchLogic(
               scenario.sessionState,
@@ -2622,7 +2622,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Create simulated tag-problem mapping
-    function createSimulatedTagProblemMapping(testProblemId) {
+    const createSimulatedTagProblemMapping = function(testProblemId) {
       return {
         problemId: testProblemId,
         tagsFound: 3,
@@ -2633,7 +2633,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Attempt tag-problem mapping test
-    async function attemptTagProblemMappingTest(testProblemId, results, verbose) {
+    const attemptTagProblemMappingTest = async function(testProblemId, results, verbose) {
       const problemTags = await TagService.getTagsByProblemId(testProblemId);
       if (problemTags && problemTags.length > 0) {
         results.tagProblemMappingTested = true;
@@ -2653,7 +2653,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle tag-problem mapping integration test
-    async function handleTagProblemMappingTest(results, verbose) {
+    const handleTagProblemMappingTest = async function(results, verbose) {
       const testProblemId = 'two-sum';
 
       if (results.tagServiceAvailable) {
@@ -2672,7 +2672,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated progression data
-    function createSimulatedProgressionData(testTag) {
+    const createSimulatedProgressionData = function(testTag) {
       return {
         tag: testTag,
         currentLevel: 2,
@@ -2684,7 +2684,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Test tag ladder progression or simulate it
-    async function handleTagLadderProgression(results, verbose) {
+    const handleTagLadderProgression = async function(results, verbose) {
       const testTag = 'array';
 
       if (!results.tagServiceAvailable || typeof TagService.calculateTagProgression !== 'function') {
@@ -2840,7 +2840,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Create simulated pathfinding algorithm data
-    function createSimulatedPathfindingData(targetTags) {
+    const createSimulatedPathfindingData = function(targetTags) {
       return {
         targetTags,
         pathLength: 8,
@@ -2852,7 +2852,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Process pathfinding learning path
-    function processPathfindingLearningPath(learningPath, targetTags, results, verbose, calculatePathDuration) {
+    const processPathfindingLearningPath = function(learningPath, targetTags, results, verbose, calculatePathDuration) {
       if (learningPath && learningPath.length > 0) {
         results.pathfindingAlgorithmTested = true;
         results.pathfindingData.algorithm = {
@@ -2872,7 +2872,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle pathfinding algorithm test
-    async function handlePathfindingAlgorithmTest(results, verbose, calculatePathDuration) {
+    const handlePathfindingAlgorithmTest = async function(results, verbose, calculatePathDuration) {
       const targetTags = ['array', 'hash-table', 'two-pointers'];
 
       if (results.tagServiceAvailable) {
@@ -3066,7 +3066,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Create simulated session blending data
-    function createSimulatedSessionBlendingData(testRecommendationSources) {
+    const createSimulatedSessionBlendingData = function(testRecommendationSources) {
       return {
         sourcesBlended: testRecommendationSources.length,
         finalProblemsCount: 6,
@@ -3077,7 +3077,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Process blended session
-    function processBlendedSession(blendedSession, testRecommendationSources, results, verbose, calculateBlendingDiversity) {
+    const processBlendedSession = function(blendedSession, testRecommendationSources, results, verbose, calculateBlendingDiversity) {
       if (blendedSession && blendedSession.problems && blendedSession.problems.length > 0) {
         results.blendingAlgorithmTested = true;
         results.blendingData.algorithm = {
@@ -3096,7 +3096,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Handle session blending algorithm test
-    async function handleSessionBlendingAlgorithmTest(results, testRecommendationSources, verbose, calculateBlendingDiversity) {
+    const handleSessionBlendingAlgorithmTest = async function(results, testRecommendationSources, verbose, calculateBlendingDiversity) {
       if (results.problemServiceAvailable) {
         // Test actual blending
         const blendedSession = await ProblemService.blendSessionRecommendations(testRecommendationSources);
@@ -3644,7 +3644,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // Helper: Create simulated problem selection data
-    function createSimulatedProblemSelectionData() {
+    const createSimulatedProblemSelectionData = function() {
       return {
         tested: true,
         algorithmsValidated: true,
@@ -3655,7 +3655,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Test optimal problem selection or simulate it
-    async function handleProblemSelectionTesting(results, verbose) {
+    const handleProblemSelectionTesting = async function(results, verbose) {
       if (!results.optimizationTesterAvailable) {
         results.problemSelectionTested = true;
         results.optimizationData.problemSelection = createSimulatedProblemSelectionData();
@@ -3687,7 +3687,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated adaptation data
-    function createSimulatedAdaptationData() {
+    const createSimulatedAdaptationData = function() {
       return {
         problemsGenerated: 4,
         hasTagFocus: true,
@@ -3698,7 +3698,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Test adaptive algorithms or simulate them
-    async function handleAdaptiveAlgorithmsTesting(results, verbose) {
+    const handleAdaptiveAlgorithmsTesting = async function(results, verbose) {
       if (typeof ProblemService === 'undefined' || !ProblemService.adaptiveSessionProblems) {
         results.adaptiveAlgorithmsTested = true;
         results.optimizationData.adaptation = createSimulatedAdaptationData();
@@ -3730,7 +3730,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Create simulated path optimization data
-    function createSimulatedPathOptimizationData() {
+    const createSimulatedPathOptimizationData = function() {
       return {
         pathGenerated: true,
         focusIntegrated: true,
@@ -3741,7 +3741,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper: Test path optimization with focus coordination or simulate it
-    async function handlePathOptimizationTesting(results, verbose) {
+    const handlePathOptimizationTesting = async function(results, verbose) {
       if (typeof FocusCoordinationService === 'undefined' || !FocusCoordinationService.optimizeSessionPath) {
         results.pathOptimizationTested = true;
         results.optimizationData.pathOptimization = createSimulatedPathOptimizationData();
@@ -4910,7 +4910,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
 
     // 🎯 REAL SYSTEM Test Functions - Clean versions for default execution
     // Helper function to test progress metrics component
-    async function testProgressMetricsComponent(verbose) {
+    const testProgressMetricsComponent = async function(verbose) {
       const result = {
         tested: false,
         data: null
@@ -4975,7 +4975,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper function to test session lifecycle component
-    async function testSessionLifecycleComponent(verbose) {
+    const testSessionLifecycleComponent = async function(verbose) {
       const result = {
         tested: false,
         data: null
@@ -5067,7 +5067,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper function to test learning flow component
-    async function testLearningFlowComponent(realSystemTesterAvailable, verbose) {
+    const testLearningFlowComponent = async function(realSystemTesterAvailable, verbose) {
       const result = {
         tested: false,
         data: null
@@ -8932,7 +8932,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 /**
  * Initialize the complete consistency system with API safety checks
  */
-function initializeConsistencySystem() {
+const initializeConsistencySystem = function() {
   try {
     console.log("🔧 Initializing consistency system with API safety checks...");
     
@@ -8964,7 +8964,7 @@ function initializeConsistencySystem() {
  * Initialize database and onboarding during extension installation
  * This ensures all data is ready before users can interact with the extension
  */
-async function initializeInstallationOnboarding() {
+const initializeInstallationOnboarding = async function() {
   try {
     console.log("🎯 Installation onboarding: Starting database initialization...");
     
@@ -9041,7 +9041,7 @@ async function initializeInstallationOnboarding() {
  * Initialize the daily consistency check alarm with Chrome API safety checks
  * Runs once per day at 6 PM to check for reminder conditions
  */
-async function initializeConsistencyAlarm() {
+const initializeConsistencyAlarm = async function() {
   try {
     // Check Chrome alarms API availability
     if (!chrome?.alarms?.create || !chrome?.alarms?.clear) {
@@ -9080,7 +9080,7 @@ async function initializeConsistencyAlarm() {
 /**
  * Handle alarm triggers - with Chrome API availability check
  */
-function setupAlarmListener() {
+const setupAlarmListener = function() {
   if (typeof chrome !== 'undefined' && chrome?.alarms?.onAlarm) {
     chrome.alarms.onAlarm.addListener(async (alarm) => {
       console.log(`⏰ Alarm triggered: ${alarm.name}`);
@@ -9100,7 +9100,7 @@ function setupAlarmListener() {
  * Perform the daily consistency check and show notifications if needed
  * This is the main function that determines what reminders to show
  */
-async function performConsistencyCheck() {
+const performConsistencyCheck = async function() {
   try {
     console.log("🔍 Starting consistency check at", new Date().toLocaleString());
     
@@ -9173,7 +9173,7 @@ async function performConsistencyCheck() {
  * Get the highest priority alert from the list
  * Priority order: high -> medium -> low
  */
-function getHighestPriorityAlert(alerts) {
+const getHighestPriorityAlert = function(alerts) {
   const priorityOrder = { high: 3, medium: 2, low: 1 };
   
   return alerts.reduce((highest, current) => {
@@ -9188,7 +9188,7 @@ function getHighestPriorityAlert(alerts) {
  * PRERELEASE SAFETY: Get the last notification date to enforce daily limits
  * @returns {Promise<string|null>} Last notification date string or null
  */
-async function getLastNotificationDate() {
+const getLastNotificationDate = async function() {
   try {
     if (!chrome?.storage?.local?.get) {
       console.warn("⚠️ Chrome storage API not available - cannot check last notification date");
@@ -9207,7 +9207,7 @@ async function getLastNotificationDate() {
  * PRERELEASE SAFETY: Record notification date for daily limit enforcement
  * @param {string} dateString - Date string to record
  */
-async function recordNotificationDate(dateString) {
+const recordNotificationDate = async function(dateString) {
   try {
     if (!chrome?.storage?.local?.set) {
       console.warn("⚠️ Chrome storage API not available - cannot record notification date");
@@ -9225,7 +9225,7 @@ async function recordNotificationDate(dateString) {
  * Show browser notification for consistency reminder with Chrome API safety checks
  * @param {Object} alert - The alert object with message and data
  */
-function showConsistencyNotification(alert) {
+const showConsistencyNotification = function(alert) {
   try {
     console.log("📢 Routing consistency notification to AlertingService:", alert.type);
 
@@ -9280,7 +9280,7 @@ function showConsistencyNotification(alert) {
 /**
  * Handle notification clicks - route to appropriate action with Chrome API safety
  */
-async function handleNotificationClick(notificationId) {
+const handleNotificationClick = async function(notificationId) {
   if (!chrome?.storage?.local?.get) return;
 
   const result = await chrome.storage.local.get(`notification_${notificationId}`);
@@ -9298,7 +9298,7 @@ async function handleNotificationClick(notificationId) {
   }
 }
 
-async function handleNotificationButtonClick(notificationId, buttonIndex) {
+const handleNotificationButtonClick = async function(notificationId, buttonIndex) {
   if (buttonIndex === 0 && chrome?.storage?.local?.get) {
     const result = await chrome.storage.local.get(`notification_${notificationId}`);
     const notificationData = result[`notification_${notificationId}`];
@@ -9316,7 +9316,7 @@ async function handleNotificationButtonClick(notificationId, buttonIndex) {
   }
 }
 
-function setupNotificationClickHandlers() {
+const setupNotificationClickHandlers = function() {
   if (chrome?.notifications?.onClicked) {
     chrome.notifications.onClicked.addListener(async (notificationId) => {
       console.log(`🖱️ Notification clicked: ${notificationId}`);
@@ -9356,7 +9356,7 @@ function setupNotificationClickHandlers() {
  * Route user to appropriate session/dashboard page
  * @param {Object} notificationData - Data about the notification type
  */
-async function routeToSession(notificationData) {
+const routeToSession = async function(notificationData) {
   try {
     console.log("🚀 Routing to session from notification:", notificationData.type);
     
@@ -9387,7 +9387,7 @@ async function routeToSession(notificationData) {
  * Log consistency check analytics for tracking system effectiveness
  * @param {Object} consistencyCheck - The consistency check result
  */
-function logConsistencyCheckAnalytics(consistencyCheck) {
+const logConsistencyCheckAnalytics = function(consistencyCheck) {
   try {
     const analyticsEvent = {
       type: "consistency_check_completed",
@@ -9419,7 +9419,7 @@ function logConsistencyCheckAnalytics(consistencyCheck) {
  * Log notification engagement for effectiveness tracking
  * @param {Object} notificationData - The notification data
  */
-function logNotificationEngagement(notificationData) {
+const logNotificationEngagement = function(notificationData) {
   try {
     const engagementEvent = {
       type: "notification_engaged",
@@ -9451,7 +9451,7 @@ function logNotificationEngagement(notificationData) {
  * Clean up stalled and abandoned sessions based on intelligent classification
  * Runs periodically to maintain session health
  */
-async function cleanupStalledSessions() {
+const cleanupStalledSessions = async function() {
   console.log('🧹 Starting session cleanup job...');
   
   try {
@@ -9545,7 +9545,7 @@ async function cleanupStalledSessions() {
 /**
  * Log session cleanup analytics for monitoring
  */
-function logSessionCleanupAnalytics(stalledSessions, actions) {
+const logSessionCleanupAnalytics = function(stalledSessions, actions) {
   try {
     const cleanupEvent = {
       type: "session_cleanup_completed",
@@ -10518,7 +10518,7 @@ globalThis.testMemoryLeakPrevention.testServiceWorkerMemory = function() {
  * Schedule periodic session cleanup
  * Runs every 6 hours to maintain session health
  */
-function scheduleSessionCleanup() {
+const scheduleSessionCleanup = function() {
   const CLEANUP_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
   
   console.log('🕐 Scheduling session cleanup job every 6 hours');
@@ -10545,7 +10545,7 @@ scheduleSessionCleanup();
  * Auto-generate sessions from tracking activity
  * Runs every 12 hours to check for session generation opportunities
  */
-function scheduleAutoGeneration() {
+const scheduleAutoGeneration = function() {
   const AUTO_GEN_INTERVAL = 12 * 60 * 60 * 1000; // 12 hours
   
   console.log('🎯 Scheduling auto-generation job every 12 hours');
