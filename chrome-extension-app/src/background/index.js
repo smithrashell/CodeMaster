@@ -2704,109 +2704,94 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // 🧬 INTEGRATION Test Functions - Clean versions for default execution
+    // Helper for tag mastery integration test
+    const testTagMasteryIntegration = async (context, verbose) => {
+      const tagMasteryData = await getAllFromStore('tag_mastery');
+
+      if (tagMasteryData && tagMasteryData.length > 0) {
+        const masteryAnalysis = context.analyzeTagMasteryIntegration(tagMasteryData);
+        if (verbose) console.log('✓ Tag mastery integration analyzed with real data');
+        return { tested: true, data: masteryAnalysis };
+      }
+
+      // Simulate mastery integration
+      const simulated = {
+        totalTags: 25,
+        masteredTags: 8,
+        inProgressTags: 12,
+        masteryRate: 0.32,
+        avgBoxLevel: 3.2,
+        simulated: true
+      };
+      if (verbose) console.log('✓ Tag mastery integration simulated (no data)');
+      return { tested: true, data: simulated };
+    };
+
     globalThis.testTagIntegration = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🧬 Testing tag + problem integration...');
 
       try {
-        let results = {
-          success: false,
-          summary: '',
-          tagServiceAvailable: false,
+        const results = {
+          tagServiceAvailable: typeof TagService !== 'undefined',
           tagProblemMappingTested: false,
           masteryIntegrationTested: false,
           ladderProgressionTested: false,
           tagData: {}
         };
 
-        // 1. Test TagService availability
-        if (typeof TagService !== 'undefined') {
-          results.tagServiceAvailable = true;
-          if (verbose) console.log('✓ TagService available');
-        } else {
-          if (verbose) console.log('⚠️ TagService not found, will simulate');
+        if (results.tagServiceAvailable && verbose) {
+          console.log('✓ TagService available');
+        } else if (verbose) {
+          console.log('⚠️ TagService not found, will simulate');
         }
 
-        // 2. Test tag-problem mapping integration
+        // Run tag integration tests
         try {
           await handleTagProblemMappingTest(results, verbose);
         } catch (mappingError) {
           if (verbose) console.log('⚠️ Tag-problem mapping test failed:', mappingError.message);
         }
 
-        // 3. Test tag mastery integration
         try {
-          // getAllFromStore is now statically imported at the top
-          const tagMasteryData = await getAllFromStore('tag_mastery');
-
-          if (tagMasteryData && tagMasteryData.length > 0) {
-            // Analyze real tag mastery integration
-            const masteryAnalysis = this.analyzeTagMasteryIntegration(tagMasteryData);
-            results.masteryIntegrationTested = true;
-            results.tagData.mastery = masteryAnalysis;
-            if (verbose) console.log('✓ Tag mastery integration analyzed with real data');
-          } else {
-            // Simulate mastery integration
-            results.masteryIntegrationTested = true;
-            results.tagData.mastery = {
-              totalTags: 25,
-              masteredTags: 8,
-              inProgressTags: 12,
-              masteryRate: 0.32,
-              avgBoxLevel: 3.2,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Tag mastery integration simulated (no data)');
-          }
+          const masteryResult = await testTagMasteryIntegration(this, verbose);
+          results.masteryIntegrationTested = masteryResult.tested;
+          results.tagData.mastery = masteryResult.data;
         } catch (masteryError) {
           if (verbose) console.log('⚠️ Tag mastery integration test failed:', masteryError.message);
         }
 
-        // 4. Test tag ladder progression
         try {
           await handleTagLadderProgression(results, verbose);
         } catch (progressionError) {
           if (verbose) console.log('⚠️ Tag ladder progression test failed:', progressionError.message);
         }
 
-        // 5. Evaluate overall tag integration
-        const tagIntegrationEffective = (
-          results.tagProblemMappingTested &&
-          results.masteryIntegrationTested &&
-          results.ladderProgressionTested
-        );
+        const allTested = results.tagProblemMappingTested && results.masteryIntegrationTested && results.ladderProgressionTested;
+        results.success = allTested;
+        results.summary = allTested
+          ? 'Tag + problem integration working effectively'
+          : 'Some tag integration components failed';
 
-        if (tagIntegrationEffective) {
-          results.success = true;
-          results.summary = 'Tag + problem integration working effectively';
-          if (verbose) {
+        if (verbose) {
+          if (allTested) {
             console.log('✅ Tag integration test PASSED');
             console.log('🧬 Tag Data:', results.tagData);
-          }
-        } else {
-          results.summary = 'Some tag integration components failed';
-          if (verbose) {
+          } else {
             console.log('⚠️ Tag integration test PARTIAL');
             console.log('🔍 Issues detected in tag integration');
           }
         }
 
-        // Return boolean for backward compatibility when not verbose
-        if (!verbose) {
-          return results.success;
-        }
-        return results;
+        return verbose ? results : results.success;
 
       } catch (error) {
         console.error('❌ testTagIntegration failed:', error);
-        if (!verbose) {
-          return false;
-        }
-        return {
+        return verbose ? {
           success: false,
           summary: `Tag integration test failed: ${error.message}`,
           error: error.message
-        };
+        } : false;
       }
     };
 
