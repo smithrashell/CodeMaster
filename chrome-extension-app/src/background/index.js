@@ -5639,12 +5639,78 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     // 🔥 PHASE 1: CORE USER WORKFLOW TESTS
     // =============================================================================
 
+    // Helper: Test hint-related services
+    const testHintServices = (results, verbose) => {
+      if (typeof globalThis.HintInteractionService !== 'undefined') {
+        results.hintServiceAvailable = true;
+        if (verbose) console.log('✓ HintInteractionService available');
+      }
+
+      const strategyServices = ['StrategyService', 'ProblemReasoningService'];
+      const availableStrategyServices = strategyServices.filter(service =>
+        typeof globalThis[service] !== 'undefined'
+      );
+
+      if (availableStrategyServices.length > 0) {
+        results.strategyServiceAvailable = true;
+        if (verbose) console.log('✓ Strategy services available:', availableStrategyServices.join(', '));
+      }
+    }
+
+    // Helper: Test hint data structure
+    const testHintDataStructure = (results, verbose) => {
+      const mockHintData = {
+        problemId: 'two-sum',
+        hints: [
+          { id: 'hint_1', type: 'approach', title: 'Hash Table Approach', content: 'Use a hash table to store complements' },
+          { id: 'hint_2', type: 'implementation', title: 'Two-Pass Implementation', content: 'First pass to build hash table, second pass to find complement' }
+        ]
+      };
+
+      if (mockHintData.hints && Array.isArray(mockHintData.hints) && mockHintData.hints.length > 0) {
+        results.hintDataStructureValid = true;
+        results.hintCount = mockHintData.hints.length;
+        results.sampleHints = mockHintData.hints.map(h => h.title);
+        if (verbose) console.log('✓ Hint data structure valid');
+      }
+    }
+
+    // Helper: Simulate hint interaction
+    const simulateHintInteraction = (results, verbose) => {
+      const mockInteraction = {
+        action: 'hint_clicked',
+        hintId: 'hint_1',
+        response: { content: 'Hash Table Approach: Use a hash table to store complements', success: true }
+      };
+
+      if (mockInteraction.action === 'hint_clicked' && mockInteraction.response.success) {
+        results.hintInteractionSimulated = true;
+        if (verbose) console.log('✓ Hint interaction workflow simulated');
+      }
+    }
+
+    // Helper: Evaluate hint interaction results
+    const evaluateHintInteractionResults = (results) => {
+      results.success = (results.hintServiceAvailable || results.strategyServiceAvailable) &&
+                       results.hintDataStructureValid && results.hintInteractionSimulated;
+
+      if (results.success) {
+        results.summary = `Hint interaction working: services ✓, data structure ✓, interaction workflow ✓. Sample hints: ${results.sampleHints.slice(0,2).join(', ')}`;
+      } else {
+        const issues = [];
+        if (!results.hintServiceAvailable && !results.strategyServiceAvailable) issues.push('hint services missing');
+        if (!results.hintDataStructureValid) issues.push('hint data structure invalid');
+        if (!results.hintInteractionSimulated) issues.push('interaction workflow failed');
+        results.summary = `Hint interaction issues: ${issues.join(', ')}`;
+      }
+    }
+
     globalThis.testHintInteraction = function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('💡 Testing hint interaction workflow...');
 
       try {
-        let results = {
+        const results = {
           success: false,
           summary: '',
           hintServiceAvailable: false,
@@ -5655,62 +5721,10 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           hintCount: 0
         };
 
-        // 1. Test hint-related services
-        if (typeof globalThis.HintInteractionService !== 'undefined') {
-          results.hintServiceAvailable = true;
-          if (verbose) console.log('✓ HintInteractionService available');
-        }
-
-        const strategyServices = ['StrategyService', 'ProblemReasoningService'];
-        const availableStrategyServices = strategyServices.filter(service =>
-          typeof globalThis[service] !== 'undefined'
-        );
-
-        if (availableStrategyServices.length > 0) {
-          results.strategyServiceAvailable = true;
-          if (verbose) console.log('✓ Strategy services available:', availableStrategyServices.join(', '));
-        }
-
-        // 2. Test hint data structure
-        const mockHintData = {
-          problemId: 'two-sum',
-          hints: [
-            { id: 'hint_1', type: 'approach', title: 'Hash Table Approach', content: 'Use a hash table to store complements' },
-            { id: 'hint_2', type: 'implementation', title: 'Two-Pass Implementation', content: 'First pass to build hash table, second pass to find complement' }
-          ]
-        };
-
-        if (mockHintData.hints && Array.isArray(mockHintData.hints) && mockHintData.hints.length > 0) {
-          results.hintDataStructureValid = true;
-          results.hintCount = mockHintData.hints.length;
-          results.sampleHints = mockHintData.hints.map(h => h.title);
-          if (verbose) console.log('✓ Hint data structure valid');
-        }
-
-        // 3. Simulate hint interaction
-        const mockInteraction = {
-          action: 'hint_clicked',
-          hintId: 'hint_1',
-          response: { content: 'Hash Table Approach: Use a hash table to store complements', success: true }
-        };
-
-        if (mockInteraction.action === 'hint_clicked' && mockInteraction.response.success) {
-          results.hintInteractionSimulated = true;
-          if (verbose) console.log('✓ Hint interaction workflow simulated');
-        }
-
-        results.success = (results.hintServiceAvailable || results.strategyServiceAvailable) &&
-                         results.hintDataStructureValid && results.hintInteractionSimulated;
-
-        if (results.success) {
-          results.summary = `Hint interaction working: services ✓, data structure ✓, interaction workflow ✓. Sample hints: ${results.sampleHints.slice(0,2).join(', ')}`;
-        } else {
-          const issues = [];
-          if (!results.hintServiceAvailable && !results.strategyServiceAvailable) issues.push('hint services missing');
-          if (!results.hintDataStructureValid) issues.push('hint data structure invalid');
-          if (!results.hintInteractionSimulated) issues.push('interaction workflow failed');
-          results.summary = `Hint interaction issues: ${issues.join(', ')}`;
-        }
+        testHintServices(results, verbose);
+        testHintDataStructure(results, verbose);
+        simulateHintInteraction(results, verbose);
+        evaluateHintInteractionResults(results);
 
         if (verbose) console.log('✅ Hint interaction test completed');
         return results;
@@ -9560,12 +9574,100 @@ const logSessionCleanupAnalytics = function(stalledSessions, actions) {
 
 // 🔒 PHASE 3: EXPERIENCE QUALITY Test Functions
 
+// Helper: Test database connection reliability
+async function testDatabaseConnection(results, verbose) {
+  try {
+    const stores = ['sessions', 'problems', 'attempts', 'tag_mastery'];
+    const connectionResults = stores.map(store => ({
+      store,
+      accessible: true,
+      recordCount: Math.floor(Math.random() * 100),
+      simulated: true
+    }));
+
+    const accessibleStores = connectionResults.filter(r => r.accessible).length;
+    results.databaseConnectionTested = true;
+    results.persistenceData.connection = {
+      storesChecked: stores.length,
+      accessibleStores,
+      connectionReliability: accessibleStores / stores.length,
+      storeResults: connectionResults
+    };
+
+    if (verbose) console.log('✓ Database connection reliability tested');
+  } catch (connectionError) {
+    if (verbose) console.log('⚠️ Database connection test failed:', connectionError.message);
+  }
+}
+
+// Helper: Test data integrity
+async function testDataIntegrityStep(results, verbose, testDataIntegrity) {
+  try {
+    const integrityTest = await testDataIntegrity();
+    results.dataIntegrityTested = true;
+    results.persistenceData.integrity = integrityTest;
+    if (verbose) console.log('✓ Data integrity validated');
+  } catch (integrityError) {
+    if (verbose) console.log('⚠️ Data integrity test failed:', integrityError.message);
+  }
+}
+
+// Helper: Test persistence under stress
+async function testStressStep(results, verbose, testPersistenceUnderStress) {
+  try {
+    const stressTest = await testPersistenceUnderStress();
+    results.persistenceUnderStressTested = true;
+    results.persistenceData.stressTest = stressTest;
+    if (verbose) console.log('✓ Persistence under stress tested');
+  } catch (stressError) {
+    if (verbose) console.log('⚠️ Persistence stress test failed:', stressError.message);
+  }
+}
+
+// Helper: Test recovery mechanisms
+async function testRecoveryStep(results, verbose, testRecoveryMechanisms) {
+  try {
+    const recoveryTest = await testRecoveryMechanisms();
+    results.recoveryMechanismsTested = true;
+    results.persistenceData.recovery = recoveryTest;
+    if (verbose) console.log('✓ Recovery mechanisms validated');
+  } catch (recoveryError) {
+    if (verbose) console.log('⚠️ Recovery mechanisms test failed:', recoveryError.message);
+  }
+}
+
+// Helper: Evaluate and format results
+function evaluatePersistenceResults(results, verbose) {
+  const persistenceReliable = (
+    results.databaseConnectionTested &&
+    results.dataIntegrityTested &&
+    results.persistenceUnderStressTested &&
+    results.recoveryMechanismsTested
+  );
+
+  results.success = persistenceReliable;
+  results.summary = persistenceReliable
+    ? 'Data persistence reliability validated successfully'
+    : 'Some data persistence reliability components failed';
+
+  if (verbose) {
+    const status = persistenceReliable ? 'PASSED' : 'PARTIAL';
+    const icon = persistenceReliable ? '✅' : '⚠️';
+    console.log(`${icon} Data persistence reliability test ${status}`);
+    if (persistenceReliable) {
+      console.log('🔒 Persistence Data:', results.persistenceData);
+    } else {
+      console.log('🔍 Issues detected in data persistence');
+    }
+  }
+}
+
 globalThis.testDataPersistenceReliability = async function(options = {}) {
   const { verbose = false } = options;
   if (verbose) console.log('🔒 Testing data persistence reliability...');
 
   try {
-    let results = {
+    const results = {
       success: false,
       summary: '',
       databaseConnectionTested: false,
@@ -9575,95 +9677,17 @@ globalThis.testDataPersistenceReliability = async function(options = {}) {
       persistenceData: {}
     };
 
-    // 1. Test database connection reliability (simplified - no imports)
-    try {
-      // Simulate database connection test without imports
-      const stores = ['sessions', 'problems', 'attempts', 'tag_mastery'];
-      const connectionResults = stores.map(store => ({
-        store,
-        accessible: true, // Assume accessible for now
-        recordCount: Math.floor(Math.random() * 100), // Simulated count
-        simulated: true
-      }));
+    await testDatabaseConnection(results, verbose);
+    await testDataIntegrityStep(results, verbose, this.testDataIntegrity);
+    await testStressStep(results, verbose, this.testPersistenceUnderStress);
+    await testRecoveryStep(results, verbose, this.testRecoveryMechanisms);
+    evaluatePersistenceResults(results, verbose);
 
-      const accessibleStores = connectionResults.filter(r => r.accessible).length;
-      results.databaseConnectionTested = true;
-      results.persistenceData.connection = {
-        storesChecked: stores.length,
-        accessibleStores,
-        connectionReliability: accessibleStores / stores.length,
-        storeResults: connectionResults
-      };
-
-      if (verbose) console.log('✓ Database connection reliability tested');
-    } catch (connectionError) {
-      if (verbose) console.log('⚠️ Database connection test failed:', connectionError.message);
-    }
-
-    // 2. Test data integrity
-    try {
-      const integrityTest = await this.testDataIntegrity();
-      results.dataIntegrityTested = true;
-      results.persistenceData.integrity = integrityTest;
-      if (verbose) console.log('✓ Data integrity validated');
-    } catch (integrityError) {
-      if (verbose) console.log('⚠️ Data integrity test failed:', integrityError.message);
-    }
-
-    // 3. Test persistence under stress
-    try {
-      const stressTest = await this.testPersistenceUnderStress();
-      results.persistenceUnderStressTested = true;
-      results.persistenceData.stressTest = stressTest;
-      if (verbose) console.log('✓ Persistence under stress tested');
-    } catch (stressError) {
-      if (verbose) console.log('⚠️ Persistence stress test failed:', stressError.message);
-    }
-
-    // 4. Test recovery mechanisms
-    try {
-      const recoveryTest = await this.testRecoveryMechanisms();
-      results.recoveryMechanismsTested = true;
-      results.persistenceData.recovery = recoveryTest;
-      if (verbose) console.log('✓ Recovery mechanisms validated');
-    } catch (recoveryError) {
-      if (verbose) console.log('⚠️ Recovery mechanisms test failed:', recoveryError.message);
-    }
-
-    // 5. Evaluate overall data persistence reliability
-    const persistenceReliable = (
-      results.databaseConnectionTested &&
-      results.dataIntegrityTested &&
-      results.persistenceUnderStressTested &&
-      results.recoveryMechanismsTested
-    );
-
-    if (persistenceReliable) {
-      results.success = true;
-      results.summary = 'Data persistence reliability validated successfully';
-      if (verbose) {
-        console.log('✅ Data persistence reliability test PASSED');
-        console.log('🔒 Persistence Data:', results.persistenceData);
-      }
-    } else {
-      results.summary = 'Some data persistence reliability components failed';
-      if (verbose) {
-        console.log('⚠️ Data persistence reliability test PARTIAL');
-        console.log('🔍 Issues detected in data persistence');
-      }
-    }
-
-    // Return boolean for backward compatibility when not verbose
-    if (!verbose) {
-      return results.success;
-    }
-    return results;
+    return verbose ? results : results.success;
 
   } catch (error) {
     console.error('❌ testDataPersistenceReliability failed:', error);
-    if (!verbose) {
-      return false;
-    }
+    if (!verbose) return false;
     return {
       success: false,
       summary: `Data persistence reliability test failed: ${error.message}`,
@@ -9812,12 +9836,86 @@ globalThis.testDataPersistenceReliability.testRecoveryMechanisms = function() {
   };
 };
 
+// Helper: Test render performance
+async function testRenderPerformanceStep(results, verbose, testRenderPerformance) {
+  try {
+    const renderPerformance = await testRenderPerformance();
+    results.renderPerformanceTested = true;
+    results.responsivenessData.render = renderPerformance;
+    if (verbose) console.log('✓ Render performance evaluated');
+  } catch (renderError) {
+    if (verbose) console.log('⚠️ Render performance test failed:', renderError.message);
+  }
+}
+
+// Helper: Test interaction latency
+async function testInteractionLatencyStep(results, verbose, testInteractionLatency) {
+  try {
+    const interactionLatency = await testInteractionLatency();
+    results.interactionLatencyTested = true;
+    results.responsivenessData.interaction = interactionLatency;
+    if (verbose) console.log('✓ Interaction latency measured');
+  } catch (latencyError) {
+    if (verbose) console.log('⚠️ Interaction latency test failed:', latencyError.message);
+  }
+}
+
+// Helper: Test memory usage patterns
+async function testMemoryUsagePatternsStep(results, verbose, testMemoryUsagePatterns) {
+  try {
+    const memoryUsage = await testMemoryUsagePatterns();
+    results.memoryUsageTested = true;
+    results.responsivenessData.memory = memoryUsage;
+    if (verbose) console.log('✓ Memory usage patterns analyzed');
+  } catch (memoryError) {
+    if (verbose) console.log('⚠️ Memory usage test failed:', memoryError.message);
+  }
+}
+
+// Helper: Test performance metrics
+async function testPerformanceMetricsStep(results, verbose, testPerformanceMetrics) {
+  try {
+    const performanceMetrics = await testPerformanceMetrics();
+    results.performanceMetricsTested = true;
+    results.responsivenessData.metrics = performanceMetrics;
+    if (verbose) console.log('✓ Performance metrics collected');
+  } catch (metricsError) {
+    if (verbose) console.log('⚠️ Performance metrics test failed:', metricsError.message);
+  }
+}
+
+// Helper: Evaluate UI responsiveness results
+function evaluateUIResponsivenessResults(results, verbose) {
+  const uiResponsive = (
+    results.renderPerformanceTested &&
+    results.interactionLatencyTested &&
+    results.memoryUsageTested &&
+    results.performanceMetricsTested
+  );
+
+  results.success = uiResponsive;
+  results.summary = uiResponsive
+    ? 'UI responsiveness validated successfully'
+    : 'Some UI responsiveness components failed';
+
+  if (verbose) {
+    const status = uiResponsive ? 'PASSED' : 'PARTIAL';
+    const icon = uiResponsive ? '✅' : '⚠️';
+    console.log(`${icon} UI responsiveness test ${status}`);
+    if (uiResponsive) {
+      console.log('⚡ Responsiveness Data:', results.responsivenessData);
+    } else {
+      console.log('🔍 Issues detected in UI responsiveness');
+    }
+  }
+}
+
 globalThis.testUIResponsiveness = async function(options = {}) {
   const { verbose = false } = options;
   if (verbose) console.log('⚡ Testing UI responsiveness...');
 
   try {
-    let results = {
+    const results = {
       success: false,
       summary: '',
       renderPerformanceTested: false,
@@ -9827,80 +9925,17 @@ globalThis.testUIResponsiveness = async function(options = {}) {
       responsivenessData: {}
     };
 
-    // 1. Test render performance
-    try {
-      const renderPerformance = await this.testRenderPerformance();
-      results.renderPerformanceTested = true;
-      results.responsivenessData.render = renderPerformance;
-      if (verbose) console.log('✓ Render performance evaluated');
-    } catch (renderError) {
-      if (verbose) console.log('⚠️ Render performance test failed:', renderError.message);
-    }
+    await testRenderPerformanceStep(results, verbose, this.testRenderPerformance);
+    await testInteractionLatencyStep(results, verbose, this.testInteractionLatency);
+    await testMemoryUsagePatternsStep(results, verbose, this.testMemoryUsagePatterns);
+    await testPerformanceMetricsStep(results, verbose, this.testPerformanceMetrics);
+    evaluateUIResponsivenessResults(results, verbose);
 
-    // 2. Test interaction latency
-    try {
-      const interactionLatency = await this.testInteractionLatency();
-      results.interactionLatencyTested = true;
-      results.responsivenessData.interaction = interactionLatency;
-      if (verbose) console.log('✓ Interaction latency measured');
-    } catch (latencyError) {
-      if (verbose) console.log('⚠️ Interaction latency test failed:', latencyError.message);
-    }
-
-    // 3. Test memory usage patterns
-    try {
-      const memoryUsage = await this.testMemoryUsagePatterns();
-      results.memoryUsageTested = true;
-      results.responsivenessData.memory = memoryUsage;
-      if (verbose) console.log('✓ Memory usage patterns analyzed');
-    } catch (memoryError) {
-      if (verbose) console.log('⚠️ Memory usage test failed:', memoryError.message);
-    }
-
-    // 4. Test performance metrics collection
-    try {
-      const performanceMetrics = await this.testPerformanceMetrics();
-      results.performanceMetricsTested = true;
-      results.responsivenessData.metrics = performanceMetrics;
-      if (verbose) console.log('✓ Performance metrics collected');
-    } catch (metricsError) {
-      if (verbose) console.log('⚠️ Performance metrics test failed:', metricsError.message);
-    }
-
-    // 5. Evaluate overall UI responsiveness
-    const uiResponsive = (
-      results.renderPerformanceTested &&
-      results.interactionLatencyTested &&
-      results.memoryUsageTested &&
-      results.performanceMetricsTested
-    );
-
-    if (uiResponsive) {
-      results.success = true;
-      results.summary = 'UI responsiveness validated successfully';
-      if (verbose) {
-        console.log('✅ UI responsiveness test PASSED');
-        console.log('⚡ Responsiveness Data:', results.responsivenessData);
-      }
-    } else {
-      results.summary = 'Some UI responsiveness components failed';
-      if (verbose) {
-        console.log('⚠️ UI responsiveness test PARTIAL');
-        console.log('🔍 Issues detected in UI responsiveness');
-      }
-    }
-
-    // Return boolean for backward compatibility when not verbose
-    if (!verbose) {
-      return results.success;
-    }
-    return results;
+    return verbose ? results : results.success;
 
   } catch (error) {
     console.error('❌ testUIResponsiveness failed:', error);
-    if (!verbose) {
-      return false;
-    }
+    if (!verbose) return false;
     return {
       success: false,
       summary: `UI responsiveness test failed: ${error.message}`,
@@ -10075,12 +10110,86 @@ globalThis.testUIResponsiveness.testPerformanceMetrics = function() {
   };
 };
 
+// Helper: Test ARIA compliance
+async function testAriaComplianceStep(results, verbose, testAriaCompliance) {
+  try {
+    const ariaCompliance = await testAriaCompliance();
+    results.ariaComplianceTested = true;
+    results.accessibilityData.aria = ariaCompliance;
+    if (verbose) console.log('✓ ARIA compliance evaluated');
+  } catch (ariaError) {
+    if (verbose) console.log('⚠️ ARIA compliance test failed:', ariaError.message);
+  }
+}
+
+// Helper: Test keyboard navigation
+async function testKeyboardNavigationStep(results, verbose, testKeyboardNavigation) {
+  try {
+    const keyboardNav = await testKeyboardNavigation();
+    results.keyboardNavigationTested = true;
+    results.accessibilityData.keyboard = keyboardNav;
+    if (verbose) console.log('✓ Keyboard navigation tested');
+  } catch (keyboardError) {
+    if (verbose) console.log('⚠️ Keyboard navigation test failed:', keyboardError.message);
+  }
+}
+
+// Helper: Test screen reader compatibility
+async function testScreenReaderCompatibilityStep(results, verbose, testScreenReaderCompatibility) {
+  try {
+    const screenReader = await testScreenReaderCompatibility();
+    results.screenReaderCompatibilityTested = true;
+    results.accessibilityData.screenReader = screenReader;
+    if (verbose) console.log('✓ Screen reader compatibility evaluated');
+  } catch (screenReaderError) {
+    if (verbose) console.log('⚠️ Screen reader compatibility test failed:', screenReaderError.message);
+  }
+}
+
+// Helper: Test color contrast
+async function testColorContrastStep(results, verbose, testColorContrast) {
+  try {
+    const colorContrast = await testColorContrast();
+    results.colorContrastTested = true;
+    results.accessibilityData.colorContrast = colorContrast;
+    if (verbose) console.log('✓ Color contrast analyzed');
+  } catch (contrastError) {
+    if (verbose) console.log('⚠️ Color contrast test failed:', contrastError.message);
+  }
+}
+
+// Helper: Evaluate accessibility compliance results
+function evaluateAccessibilityComplianceResults(results, verbose) {
+  const accessibilityCompliant = (
+    results.ariaComplianceTested &&
+    results.keyboardNavigationTested &&
+    results.screenReaderCompatibilityTested &&
+    results.colorContrastTested
+  );
+
+  results.success = accessibilityCompliant;
+  results.summary = accessibilityCompliant
+    ? 'Accessibility compliance validated successfully'
+    : 'Some accessibility compliance components failed';
+
+  if (verbose) {
+    const status = accessibilityCompliant ? 'PASSED' : 'PARTIAL';
+    const icon = accessibilityCompliant ? '✅' : '⚠️';
+    console.log(`${icon} Accessibility compliance test ${status}`);
+    if (accessibilityCompliant) {
+      console.log('♿ Accessibility Data:', results.accessibilityData);
+    } else {
+      console.log('🔍 Issues detected in accessibility compliance');
+    }
+  }
+}
+
 globalThis.testAccessibilityCompliance = async function(options = {}) {
   const { verbose = false } = options;
   if (verbose) console.log('♿ Testing accessibility compliance...');
 
   try {
-    let results = {
+    const results = {
       success: false,
       summary: '',
       ariaComplianceTested: false,
@@ -10090,80 +10199,17 @@ globalThis.testAccessibilityCompliance = async function(options = {}) {
       accessibilityData: {}
     };
 
-    // 1. Test ARIA compliance
-    try {
-      const ariaCompliance = await this.testAriaCompliance();
-      results.ariaComplianceTested = true;
-      results.accessibilityData.aria = ariaCompliance;
-      if (verbose) console.log('✓ ARIA compliance evaluated');
-    } catch (ariaError) {
-      if (verbose) console.log('⚠️ ARIA compliance test failed:', ariaError.message);
-    }
+    await testAriaComplianceStep(results, verbose, this.testAriaCompliance);
+    await testKeyboardNavigationStep(results, verbose, this.testKeyboardNavigation);
+    await testScreenReaderCompatibilityStep(results, verbose, this.testScreenReaderCompatibility);
+    await testColorContrastStep(results, verbose, this.testColorContrast);
+    evaluateAccessibilityComplianceResults(results, verbose);
 
-    // 2. Test keyboard navigation
-    try {
-      const keyboardNav = await this.testKeyboardNavigation();
-      results.keyboardNavigationTested = true;
-      results.accessibilityData.keyboard = keyboardNav;
-      if (verbose) console.log('✓ Keyboard navigation tested');
-    } catch (keyboardError) {
-      if (verbose) console.log('⚠️ Keyboard navigation test failed:', keyboardError.message);
-    }
-
-    // 3. Test screen reader compatibility
-    try {
-      const screenReader = await this.testScreenReaderCompatibility();
-      results.screenReaderCompatibilityTested = true;
-      results.accessibilityData.screenReader = screenReader;
-      if (verbose) console.log('✓ Screen reader compatibility evaluated');
-    } catch (screenReaderError) {
-      if (verbose) console.log('⚠️ Screen reader compatibility test failed:', screenReaderError.message);
-    }
-
-    // 4. Test color contrast and visual accessibility
-    try {
-      const colorContrast = await this.testColorContrast();
-      results.colorContrastTested = true;
-      results.accessibilityData.colorContrast = colorContrast;
-      if (verbose) console.log('✓ Color contrast analyzed');
-    } catch (contrastError) {
-      if (verbose) console.log('⚠️ Color contrast test failed:', contrastError.message);
-    }
-
-    // 5. Evaluate overall accessibility compliance
-    const accessibilityCompliant = (
-      results.ariaComplianceTested &&
-      results.keyboardNavigationTested &&
-      results.screenReaderCompatibilityTested &&
-      results.colorContrastTested
-    );
-
-    if (accessibilityCompliant) {
-      results.success = true;
-      results.summary = 'Accessibility compliance validated successfully';
-      if (verbose) {
-        console.log('✅ Accessibility compliance test PASSED');
-        console.log('♿ Accessibility Data:', results.accessibilityData);
-      }
-    } else {
-      results.summary = 'Some accessibility compliance components failed';
-      if (verbose) {
-        console.log('⚠️ Accessibility compliance test PARTIAL');
-        console.log('🔍 Issues detected in accessibility compliance');
-      }
-    }
-
-    // Return boolean for backward compatibility when not verbose
-    if (!verbose) {
-      return results.success;
-    }
-    return results;
+    return verbose ? results : results.success;
 
   } catch (error) {
     console.error('❌ testAccessibilityCompliance failed:', error);
-    if (!verbose) {
-      return false;
-    }
+    if (!verbose) return false;
     return {
       success: false,
       summary: `Accessibility compliance test failed: ${error.message}`,
@@ -10288,12 +10334,86 @@ globalThis.testAccessibilityCompliance.testColorContrast = function() {
   };
 };
 
+// Helper: Test event listener cleanup
+async function testEventListenerCleanupStep(results, verbose, testEventListenerCleanup) {
+  try {
+    const eventCleanup = await testEventListenerCleanup();
+    results.eventListenerCleanupTested = true;
+    results.memoryLeakData.eventCleanup = eventCleanup;
+    if (verbose) console.log('✓ Event listener cleanup validated');
+  } catch (eventError) {
+    if (verbose) console.log('⚠️ Event listener cleanup test failed:', eventError.message);
+  }
+}
+
+// Helper: Test timer cleanup
+async function testTimerCleanupStep(results, verbose, testTimerCleanup) {
+  try {
+    const timerCleanup = await testTimerCleanup();
+    results.timerCleanupTested = true;
+    results.memoryLeakData.timerCleanup = timerCleanup;
+    if (verbose) console.log('✓ Timer cleanup validated');
+  } catch (timerError) {
+    if (verbose) console.log('⚠️ Timer cleanup test failed:', timerError.message);
+  }
+}
+
+// Helper: Test DOM leak prevention
+async function testDomLeakPreventionStep(results, verbose, testDomLeakPrevention) {
+  try {
+    const domLeak = await testDomLeakPrevention();
+    results.domLeakPreventionTested = true;
+    results.memoryLeakData.domLeak = domLeak;
+    if (verbose) console.log('✓ DOM leak prevention validated');
+  } catch (domError) {
+    if (verbose) console.log('⚠️ DOM leak prevention test failed:', domError.message);
+  }
+}
+
+// Helper: Test service worker memory
+async function testServiceWorkerMemoryStep(results, verbose, testServiceWorkerMemory) {
+  try {
+    const serviceWorkerMemory = await testServiceWorkerMemory();
+    results.serviceWorkerMemoryTested = true;
+    results.memoryLeakData.serviceWorker = serviceWorkerMemory;
+    if (verbose) console.log('✓ Service worker memory management validated');
+  } catch (swError) {
+    if (verbose) console.log('⚠️ Service worker memory test failed:', swError.message);
+  }
+}
+
+// Helper: Evaluate memory leak prevention results
+function evaluateMemoryLeakPreventionResults(results, verbose) {
+  const memoryLeaksPrevented = (
+    results.eventListenerCleanupTested &&
+    results.timerCleanupTested &&
+    results.domLeakPreventionTested &&
+    results.serviceWorkerMemoryTested
+  );
+
+  results.success = memoryLeaksPrevented;
+  results.summary = memoryLeaksPrevented
+    ? 'Memory leak prevention validated successfully'
+    : 'Some memory leak prevention components failed';
+
+  if (verbose) {
+    const status = memoryLeaksPrevented ? 'PASSED' : 'PARTIAL';
+    const icon = memoryLeaksPrevented ? '✅' : '⚠️';
+    console.log(`${icon} Memory leak prevention test ${status}`);
+    if (memoryLeaksPrevented) {
+      console.log('🧠 Memory Leak Data:', results.memoryLeakData);
+    } else {
+      console.log('🔍 Issues detected in memory leak prevention');
+    }
+  }
+}
+
 globalThis.testMemoryLeakPrevention = async function(options = {}) {
   const { verbose = false } = options;
   if (verbose) console.log('🧠 Testing memory leak prevention...');
 
   try {
-    let results = {
+    const results = {
       success: false,
       summary: '',
       eventListenerCleanupTested: false,
@@ -10303,80 +10423,17 @@ globalThis.testMemoryLeakPrevention = async function(options = {}) {
       memoryLeakData: {}
     };
 
-    // 1. Test event listener cleanup
-    try {
-      const eventCleanup = await this.testEventListenerCleanup();
-      results.eventListenerCleanupTested = true;
-      results.memoryLeakData.eventCleanup = eventCleanup;
-      if (verbose) console.log('✓ Event listener cleanup validated');
-    } catch (eventError) {
-      if (verbose) console.log('⚠️ Event listener cleanup test failed:', eventError.message);
-    }
+    await testEventListenerCleanupStep(results, verbose, this.testEventListenerCleanup);
+    await testTimerCleanupStep(results, verbose, this.testTimerCleanup);
+    await testDomLeakPreventionStep(results, verbose, this.testDomLeakPrevention);
+    await testServiceWorkerMemoryStep(results, verbose, this.testServiceWorkerMemory);
+    evaluateMemoryLeakPreventionResults(results, verbose);
 
-    // 2. Test timer cleanup
-    try {
-      const timerCleanup = await this.testTimerCleanup();
-      results.timerCleanupTested = true;
-      results.memoryLeakData.timerCleanup = timerCleanup;
-      if (verbose) console.log('✓ Timer cleanup validated');
-    } catch (timerError) {
-      if (verbose) console.log('⚠️ Timer cleanup test failed:', timerError.message);
-    }
-
-    // 3. Test DOM leak prevention
-    try {
-      const domLeak = await this.testDomLeakPrevention();
-      results.domLeakPreventionTested = true;
-      results.memoryLeakData.domLeak = domLeak;
-      if (verbose) console.log('✓ DOM leak prevention validated');
-    } catch (domError) {
-      if (verbose) console.log('⚠️ DOM leak prevention test failed:', domError.message);
-    }
-
-    // 4. Test service worker memory management
-    try {
-      const serviceWorkerMemory = await this.testServiceWorkerMemory();
-      results.serviceWorkerMemoryTested = true;
-      results.memoryLeakData.serviceWorker = serviceWorkerMemory;
-      if (verbose) console.log('✓ Service worker memory management validated');
-    } catch (swError) {
-      if (verbose) console.log('⚠️ Service worker memory test failed:', swError.message);
-    }
-
-    // 5. Evaluate overall memory leak prevention
-    const memoryLeaksPrevented = (
-      results.eventListenerCleanupTested &&
-      results.timerCleanupTested &&
-      results.domLeakPreventionTested &&
-      results.serviceWorkerMemoryTested
-    );
-
-    if (memoryLeaksPrevented) {
-      results.success = true;
-      results.summary = 'Memory leak prevention validated successfully';
-      if (verbose) {
-        console.log('✅ Memory leak prevention test PASSED');
-        console.log('🧠 Memory Leak Data:', results.memoryLeakData);
-      }
-    } else {
-      results.summary = 'Some memory leak prevention components failed';
-      if (verbose) {
-        console.log('⚠️ Memory leak prevention test PARTIAL');
-        console.log('🔍 Issues detected in memory leak prevention');
-      }
-    }
-
-    // Return boolean for backward compatibility when not verbose
-    if (!verbose) {
-      return results.success;
-    }
-    return results;
+    return verbose ? results : results.success;
 
   } catch (error) {
     console.error('❌ testMemoryLeakPrevention failed:', error);
-    if (!verbose) {
-      return false;
-    }
+    if (!verbose) return false;
     return {
       success: false,
       summary: `Memory leak prevention test failed: ${error.message}`,

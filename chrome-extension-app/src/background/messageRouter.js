@@ -79,8 +79,8 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
     getStrategyMapData,
     getCachedResponse,
     setCachedResponse,
-    checkOnboardingStatus,
-    completeOnboarding
+    checkOnboardingStatus: _checkOnboardingStatus, // Used by onboarding handlers
+    completeOnboarding: _completeOnboarding // Used by onboarding handlers
   } = dependencies;
 
   // Create unified handler registry from extracted handler modules
