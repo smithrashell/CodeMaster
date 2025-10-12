@@ -4909,67 +4909,66 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // 🎯 REAL SYSTEM Test Functions - Clean versions for default execution
+    // Helper functions for testing progress metrics
+    const testDifficultyProgression = async (verbose) => {
+      if (typeof evaluateDifficultyProgression !== 'function') return false;
+
+      try {
+        const progressionResult = await evaluateDifficultyProgression(0.80, {});
+        const success = progressionResult && progressionResult.current_difficulty_cap;
+        if (success && verbose) console.log('✓ Difficulty progression tracking successful');
+        return success;
+      } catch (difficultyError) {
+        if (verbose) console.log('⚠️ Difficulty progression tracking failed:', difficultyError.message);
+        return false;
+      }
+    };
+
+    const testTagMastery = async (verbose) => {
+      if (typeof TagService === 'undefined' || !TagService.getTagMasteryData) return false;
+
+      try {
+        const masteryData = await TagService.getTagMasteryData();
+        const success = masteryData && masteryData.tagProgressions;
+        if (success && verbose) console.log('✓ Tag mastery tracking successful');
+        return success;
+      } catch (masteryError) {
+        if (verbose) console.log('⚠️ Tag mastery tracking failed:', masteryError.message);
+        return false;
+      }
+    };
+
+    const testAdaptiveResponse = async (verbose) => {
+      if (typeof adaptiveLimitsService === 'undefined' || !adaptiveLimitsService.updateLimits) return false;
+
+      try {
+        const adaptiveUpdate = await adaptiveLimitsService.updateLimits({
+          sessionType: 'standard',
+          recentPerformance: { accuracy: 0.75, averageTime: 25 }
+        });
+        const success = !!adaptiveUpdate;
+        if (success && verbose) console.log('✓ Adaptive response measurement successful');
+        return success;
+      } catch (adaptiveError) {
+        if (verbose) console.log('⚠️ Adaptive response measurement failed:', adaptiveError.message);
+        return false;
+      }
+    };
+
     // Helper function to test progress metrics component
     const testProgressMetricsComponent = async function(verbose) {
-      const result = {
-        tested: false,
-        data: null
-      };
-
       const progressMetrics = {
-        difficultyProgression: false,
-        tagMasteryTracking: false,
-        adaptiveResponseMeasured: false,
-        learningVelocityCalculated: false
+        difficultyProgression: await testDifficultyProgression(verbose),
+        tagMasteryTracking: await testTagMastery(verbose),
+        adaptiveResponseMeasured: await testAdaptiveResponse(verbose),
+        learningVelocityCalculated: true
       };
 
-      // Test difficulty progression tracking
-      if (typeof evaluateDifficultyProgression === 'function') {
-        try {
-          const progressionResult = await evaluateDifficultyProgression(0.80, {});
-          if (progressionResult && progressionResult.current_difficulty_cap) {
-            progressMetrics.difficultyProgression = true;
-            if (verbose) console.log('✓ Difficulty progression tracking successful');
-          }
-        } catch (difficultyError) {
-          if (verbose) console.log('⚠️ Difficulty progression tracking failed:', difficultyError.message);
-        }
-      }
+      const result = {
+        tested: Object.values(progressMetrics).some(Boolean),
+        data: progressMetrics
+      };
 
-      // Test tag mastery tracking
-      if (typeof TagService !== 'undefined' && TagService.getTagMasteryData) {
-        try {
-          const masteryData = await TagService.getTagMasteryData();
-          if (masteryData && masteryData.tagProgressions) {
-            progressMetrics.tagMasteryTracking = true;
-            if (verbose) console.log('✓ Tag mastery tracking successful');
-          }
-        } catch (masteryError) {
-          if (verbose) console.log('⚠️ Tag mastery tracking failed:', masteryError.message);
-        }
-      }
-
-      // Test adaptive response measurement
-      if (typeof adaptiveLimitsService !== 'undefined' && adaptiveLimitsService.updateLimits) {
-        try {
-          const adaptiveUpdate = await adaptiveLimitsService.updateLimits({
-            sessionType: 'standard',
-            recentPerformance: { accuracy: 0.75, averageTime: 25 }
-          });
-          if (adaptiveUpdate) {
-            progressMetrics.adaptiveResponseMeasured = true;
-            if (verbose) console.log('✓ Adaptive response measurement successful');
-          }
-        } catch (adaptiveError) {
-          if (verbose) console.log('⚠️ Adaptive response measurement failed:', adaptiveError.message);
-        }
-      }
-
-      // Simulate learning velocity if not available
-      progressMetrics.learningVelocityCalculated = true;
-
-      result.tested = Object.values(progressMetrics).some(Boolean);
-      result.data = progressMetrics;
       if (verbose) console.log('✓ Progress tracking metrics tested:', progressMetrics);
       return result;
     }
