@@ -2282,100 +2282,91 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper for running integration tests with consistent error handling
+    const runIntegrationTest = async (testFn, dataKey, successMsg, errorMsg, verbose) => {
+      try {
+        const result = await testFn();
+        if (verbose) console.log(successMsg);
+        return { tested: true, data: result, dataKey };
+      } catch (error) {
+        if (verbose) console.log(errorMsg, error.message);
+        return { tested: false, data: null, dataKey };
+      }
+    };
+
     globalThis.testCoreIntegrationCheck = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔗 Checking core integration status...');
 
       try {
-        let results = {
-          success: false,
-          summary: '',
-          serviceIntegrationTested: false,
-          crossServiceCommunicationTested: false,
-          dataFlowIntegrationTested: false,
-          systemHealthIntegrationTested: false,
-          integrationData: {}
+        const tests = await Promise.all([
+          runIntegrationTest(
+            () => this.testServiceIntegration(),
+            'services',
+            '✓ Service integration status checked',
+            '⚠️ Service integration check failed:',
+            verbose
+          ),
+          runIntegrationTest(
+            () => this.testCrossServiceCommunication(),
+            'communication',
+            '✓ Cross-service communication validated',
+            '⚠️ Cross-service communication test failed:',
+            verbose
+          ),
+          runIntegrationTest(
+            () => this.testDataFlowIntegration(),
+            'dataFlow',
+            '✓ Data flow integration validated',
+            '⚠️ Data flow integration test failed:',
+            verbose
+          ),
+          runIntegrationTest(
+            () => this.testSystemHealthIntegration(),
+            'systemHealth',
+            '✓ System health integration validated',
+            '⚠️ System health integration test failed:',
+            verbose
+          )
+        ]);
+
+        const integrationData = {};
+        tests.forEach(test => {
+          if (test.data) integrationData[test.dataKey] = test.data;
+        });
+
+        const allTested = tests.every(test => test.tested);
+        const results = {
+          success: allTested,
+          summary: allTested
+            ? 'Core integration status validated successfully'
+            : 'Some core integration components failed',
+          serviceIntegrationTested: tests[0].tested,
+          crossServiceCommunicationTested: tests[1].tested,
+          dataFlowIntegrationTested: tests[2].tested,
+          systemHealthIntegrationTested: tests[3].tested,
+          integrationData
         };
 
-        // 1. Test service integration status
-        try {
-          const serviceIntegration = await this.testServiceIntegration();
-          results.serviceIntegrationTested = true;
-          results.integrationData.services = serviceIntegration;
-          if (verbose) console.log('✓ Service integration status checked');
-        } catch (serviceError) {
-          if (verbose) console.log('⚠️ Service integration check failed:', serviceError.message);
-        }
-
-        // 2. Test cross-service communication
-        try {
-          const crossServiceComm = await this.testCrossServiceCommunication();
-          results.crossServiceCommunicationTested = true;
-          results.integrationData.communication = crossServiceComm;
-          if (verbose) console.log('✓ Cross-service communication validated');
-        } catch (commError) {
-          if (verbose) console.log('⚠️ Cross-service communication test failed:', commError.message);
-        }
-
-        // 3. Test data flow integration
-        try {
-          const dataFlowIntegration = await this.testDataFlowIntegration();
-          results.dataFlowIntegrationTested = true;
-          results.integrationData.dataFlow = dataFlowIntegration;
-          if (verbose) console.log('✓ Data flow integration validated');
-        } catch (dataFlowError) {
-          if (verbose) console.log('⚠️ Data flow integration test failed:', dataFlowError.message);
-        }
-
-        // 4. Test system health integration
-        try {
-          const systemHealthIntegration = await this.testSystemHealthIntegration();
-          results.systemHealthIntegrationTested = true;
-          results.integrationData.systemHealth = systemHealthIntegration;
-          if (verbose) console.log('✓ System health integration validated');
-        } catch (healthError) {
-          if (verbose) console.log('⚠️ System health integration test failed:', healthError.message);
-        }
-
-        // 5. Evaluate overall core integration status
-        const coreIntegrationHealthy = (
-          results.serviceIntegrationTested &&
-          results.crossServiceCommunicationTested &&
-          results.dataFlowIntegrationTested &&
-          results.systemHealthIntegrationTested
-        );
-
-        if (coreIntegrationHealthy) {
-          results.success = true;
-          results.summary = 'Core integration status validated successfully';
-          if (verbose) {
+        if (verbose) {
+          if (allTested) {
             console.log('✅ Core integration check test PASSED');
             console.log('🔗 Integration Data:', results.integrationData);
-          }
-        } else {
-          results.summary = 'Some core integration components failed';
-          if (verbose) {
+          } else {
             console.log('⚠️ Core integration check test PARTIAL');
             console.log('🔍 Issues detected in core integration');
           }
         }
 
-        // Return boolean for backward compatibility when not verbose
-        if (!verbose) {
-          return results.success;
-        }
-        return results;
+        return verbose ? results : results.success;
 
       } catch (error) {
         console.error('❌ testCoreIntegrationCheck failed:', error);
-        if (!verbose) {
-          return false;
-        }
-        return {
+        return verbose ? {
           success: false,
           summary: `Core integration check failed: ${error.message}`,
           error: error.message
-        };
+        } : false;
       }
     };
 
