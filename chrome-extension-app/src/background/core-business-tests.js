@@ -213,6 +213,7 @@ async function getAvailableProblemIds(count = 10) {
   }
 }
 
+// eslint-disable-next-line max-lines-per-function
 export function initializeCoreBusinessTests() {
   console.log('🧪 Initializing core business logic tests...');
 

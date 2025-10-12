@@ -40,6 +40,7 @@ jest.mock("../IndexedDBRetryService.js", () => ({
   })),
 }));
 
+// eslint-disable-next-line max-lines-per-function
 describe("SessionService - Critical User Retention Paths", () => {
   beforeEach(() => {
     jest.clearAllMocks();

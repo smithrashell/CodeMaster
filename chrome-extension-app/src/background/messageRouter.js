@@ -69,6 +69,7 @@ import { onboardingHandlers } from "./handlers/onboardingHandlers.js";
  * @param {Function} dependencies.completeOnboarding - Onboarding completion function
  * @returns {boolean} - True if response will be sent asynchronously
  */
+// eslint-disable-next-line max-lines-per-function, complexity
 export function routeMessage(request, sendResponse, finishRequest, dependencies = {}) {
   // Destructure dependencies for easier access
   const {
