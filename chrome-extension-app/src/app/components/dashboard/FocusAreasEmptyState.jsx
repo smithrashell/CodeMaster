@@ -1,8 +1,8 @@
 import React from "react";
-import { Card, Group, Text, Button } from "@mantine/core";
-import { IconTarget, IconSettings } from "@tabler/icons-react";
+import { Card, Group, Text } from "@mantine/core";
+import { IconTarget } from "@tabler/icons-react";
 
-export function FocusAreasEmptyState({ onNavigateToSettings }) {
+export function FocusAreasEmptyState({ onNavigateToSettings: _onNavigateToSettings }) {
   return (
     <Card withBorder>
       <Group gap="xs" mb="xs">
