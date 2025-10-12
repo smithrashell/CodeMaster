@@ -715,6 +715,58 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Get timer class (AccurateTimer or TestTimer)
+    const getTimerClass = function() {
+      return typeof AccurateTimer !== 'undefined' ? AccurateTimer : globalThis.TestTimer;
+    };
+
+    // Helper: Test pause/resume functionality
+    const testPauseResume = async function(results, verbose) {
+      try {
+        const timer = new (getTimerClass())(120);
+
+        if (typeof timer.pause === 'function' && typeof timer.resume === 'function') {
+          results.pauseResumeFunctional = await testTimerPauseResume(timer, verbose);
+        } else {
+          results.pauseResumeFunctional = true;
+          if (verbose) console.log('✓ Pause/resume not available (acceptable)');
+        }
+      } catch (pauseResumeError) {
+        if (verbose) console.log('⚠️ Pause/resume test failed:', pauseResumeError.message);
+      }
+    };
+
+    // Helper: Test time calculation accuracy
+    const testTimeCalculation = async function(results, verbose) {
+      try {
+        const timer = new (getTimerClass())(0);
+        const accuracyResult = await testTimerAccuracy(timer, verbose);
+        results.timeCalculationAccurate = accuracyResult.accurate;
+        results.timingAccuracy = accuracyResult.accuracy;
+      } catch (calcError) {
+        if (verbose) console.log('⚠️ Time calculation test failed:', calcError.message);
+      }
+    };
+
+    // Helper: Test timer static methods
+    const testStaticMethods = function(results, verbose) {
+      try {
+        const staticMethodsWork = testTimerStaticMethods(getTimerClass(), verbose);
+        results.staticMethodsWorking = staticMethodsWork || true;
+        if (!staticMethodsWork && verbose) {
+          console.log('✓ Static methods not available (acceptable)');
+        }
+      } catch (staticError) {
+        if (verbose) console.log('⚠️ Static methods test failed:', staticError.message);
+      }
+    };
+
+    // Helper: Format timer test result
+    const formatTimerTestResult = function(results, verbose) {
+      if (verbose) console.log('✅ AccurateTimer test completed');
+      return verbose ? results : results.success;
+    };
+
     globalThis.testAccurateTimer = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('⏱️ Testing AccurateTimer reliability...');
@@ -754,47 +806,10 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           results.testResults.startStop = startStopResult.testResults;
         }
 
-        // 4. Test pause/resume (if available)
-        try {
-          const TimerClass = typeof AccurateTimer !== 'undefined' ? AccurateTimer : globalThis.TestTimer;
-          const timer = new TimerClass(120); // 2 minutes
-
-          if (typeof timer.pause === 'function' && typeof timer.resume === 'function') {
-            results.pauseResumeFunctional = await testTimerPauseResume(timer, verbose);
-          } else {
-            results.pauseResumeFunctional = true; // Not required, mark as passed
-            if (verbose) console.log('✓ Pause/resume not available (acceptable)');
-          }
-        } catch (pauseResumeError) {
-          if (verbose) console.log('⚠️ Pause/resume test failed:', pauseResumeError.message);
-        }
-
-        // 5. Test time calculation accuracy
-        try {
-          const TimerClass = typeof AccurateTimer !== 'undefined' ? AccurateTimer : globalThis.TestTimer;
-          const timer = new TimerClass(0);
-
-          const accuracyResult = await testTimerAccuracy(timer, verbose);
-          results.timeCalculationAccurate = accuracyResult.accurate;
-          results.timingAccuracy = accuracyResult.accuracy;
-        } catch (calcError) {
-          if (verbose) console.log('⚠️ Time calculation test failed:', calcError.message);
-        }
-
-        // 6. Test static methods (if available)
-        try {
-          const TimerClass = typeof AccurateTimer !== 'undefined' ? AccurateTimer : globalThis.TestTimer;
-
-          const staticMethodsWork = testTimerStaticMethods(TimerClass, verbose);
-          if (staticMethodsWork) {
-            results.staticMethodsWorking = true;
-          } else {
-            results.staticMethodsWorking = true; // Not required
-            if (verbose) console.log('✓ Static methods not available (acceptable)');
-          }
-        } catch (staticError) {
-          if (verbose) console.log('⚠️ Static methods test failed:', staticError.message);
-        }
+        // 4-6. Test advanced timer features
+        await testPauseResume(results, verbose);
+        await testTimeCalculation(results, verbose);
+        testStaticMethods(results, verbose);
 
         // 7. Performance test
         results.performanceTestPassed = runTimerPerformanceTest(verbose);
@@ -809,18 +824,10 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         // 9. Generate summary
         results.summary = generateTimerTestSummary(results);
 
-        if (verbose) console.log('✅ AccurateTimer test completed');
-
-        // Return boolean for backward compatibility when not verbose
-        if (!verbose) {
-          return results.success;
-        }
-        return results;
+        return formatTimerTestResult(results, verbose);
 
       } catch (error) {
         console.error('❌ testAccurateTimer failed:', error);
-
-        // Return boolean for backward compatibility when not verbose
         if (!verbose) {
           return false;
         }
@@ -1028,6 +1035,30 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Test mode differences detection
+    const testModeDifferences = function(results, verbose) {
+      let modeDifferencesDetected = false;
+      try {
+        if (results.configData && Object.keys(results.configData).length >= 2) {
+          const standardConfig = results.configData['standard'];
+          const interviewConfig = results.configData['interview-like'] || results.configData['full-interview'];
+
+          if (standardConfig && interviewConfig) {
+            modeDifferencesDetected = checkModeDifferences(standardConfig, interviewConfig, verbose);
+          }
+        }
+      } catch (diffError) {
+        if (verbose) console.log('⚠️ Mode difference detection failed:', diffError.message);
+      }
+      return modeDifferencesDetected;
+    };
+
+    // Helper: Format test result based on verbose flag
+    const formatInterviewTestResult = function(results, verbose) {
+      if (verbose) console.log('✅ Interview-like sessions test completed');
+      return verbose ? results : results.success;
+    };
+
     globalThis.testInterviewLikeSessions = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎯 Testing interview-like session creation...');
@@ -1067,19 +1098,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         const parametersValid = validateInterviewSessionParameters(results.sessionData, verbose);
 
         // 5. Test interview mode differences
-        let modeDifferencesDetected = false;
-        try {
-          if (results.configData && Object.keys(results.configData).length >= 2) {
-            const standardConfig = results.configData['standard'];
-            const interviewConfig = results.configData['interview-like'] || results.configData['full-interview'];
-
-            if (standardConfig && interviewConfig) {
-              modeDifferencesDetected = checkModeDifferences(standardConfig, interviewConfig, verbose);
-            }
-          }
-        } catch (diffError) {
-          if (verbose) console.log('⚠️ Mode difference detection failed:', diffError.message);
-        }
+        const modeDifferencesDetected = testModeDifferences(results, verbose);
 
         // 6. Test problem selection criteria
         const _criteriaValid = validateProblemSelectionCriteria(results.problemCriteria, verbose);
@@ -1093,12 +1112,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         // 8. Generate summary
         results.summary = generateInterviewTestSummary(results, parametersValid, modeDifferencesDetected);
 
-        if (verbose) console.log('✅ Interview-like sessions test completed');
-        // Return boolean for backward compatibility when not verbose
-        if (!verbose) {
-          return results.success;
-        }
-        return results;
+        return formatInterviewTestResult(results, verbose);
 
       } catch (error) {
         console.error('❌ testInterviewLikeSessions failed:', error);
@@ -3450,6 +3464,97 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       };
     };
 
+    // Helper: Load session data for journey analysis
+    const loadSessionDataForJourney = async function(results, verbose) {
+      try {
+        const sessions = await getAllFromStore('sessions');
+        const _attempts = await getAllFromStore('attempts');
+
+        if (sessions && sessions.length > 0) {
+          results.sessionDataAvailable = true;
+          results.journeyData.sessions = {
+            totalSessions: sessions.length,
+            recentSessions: sessions.filter(s =>
+              new Date(s.created_at || s.session_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+            ).length,
+            hasRealData: true
+          };
+          if (verbose) console.log('✓ Session data available for journey analysis');
+        } else {
+          results.sessionDataAvailable = true;
+          results.journeyData.sessions = {
+            totalSessions: 24,
+            recentSessions: 8,
+            hasRealData: false,
+            simulated: true
+          };
+          if (verbose) console.log('✓ Session data simulated for journey analysis');
+        }
+      } catch (dataError) {
+        if (verbose) console.log('⚠️ Session data access failed:', dataError.message);
+      }
+    };
+
+    // Helper: Test journey optimization
+    const testJourneyOptimization = async function(context, results, verbose) {
+      try {
+        const journeyAnalysis = await context.analyzeLearningJourney(results.journeyData.sessions);
+        results.journeyOptimizationTested = true;
+        results.journeyData.optimization = journeyAnalysis;
+        if (verbose) console.log('✓ Learning journey optimization analyzed');
+      } catch (optimizationError) {
+        if (verbose) console.log('⚠️ Journey optimization test failed:', optimizationError.message);
+      }
+    };
+
+    // Helper: Test progress tracking and adaptive adjustments
+    const testProgressAndAdaptive = async function(context, results, verbose) {
+      try {
+        const progressTracking = await context.testProgressTracking();
+        results.progressTrackingTested = true;
+        results.journeyData.progress = progressTracking;
+        if (verbose) console.log('✓ Multi-session progress tracking tested');
+      } catch (progressError) {
+        if (verbose) console.log('⚠️ Progress tracking test failed:', progressError.message);
+      }
+
+      try {
+        const adaptiveAdjustments = await context.testAdaptiveJourneyAdjustments();
+        results.adaptiveAdjustmentTested = true;
+        results.journeyData.adaptiveAdjustments = adaptiveAdjustments;
+        if (verbose) console.log('✓ Adaptive journey adjustments tested');
+      } catch (adaptiveError) {
+        if (verbose) console.log('⚠️ Adaptive adjustment test failed:', adaptiveError.message);
+      }
+    };
+
+    // Helper: Evaluate and format journey results
+    const evaluateJourneyResults = function(results, verbose) {
+      const learningJourneyEffective = (
+        results.sessionDataAvailable &&
+        results.journeyOptimizationTested &&
+        results.progressTrackingTested &&
+        results.adaptiveAdjustmentTested
+      );
+
+      if (learningJourneyEffective) {
+        results.success = true;
+        results.summary = 'Multi-session learning journey optimization working effectively';
+        if (verbose) {
+          console.log('✅ Learning journey test PASSED');
+          console.log('🎓 Journey Data:', results.journeyData);
+        }
+      } else {
+        results.summary = 'Some learning journey components failed';
+        if (verbose) {
+          console.log('⚠️ Learning journey test PARTIAL');
+          console.log('🔍 Issues detected in learning journey optimization');
+        }
+      }
+
+      return verbose ? results : results.success;
+    };
+
     globalThis.testLearningJourney = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎓 Testing multi-session learning optimization...');
@@ -3465,95 +3570,11 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           journeyData: {}
         };
 
-        // 1. Test session data availability for journey analysis
-        try {
-          // getAllFromStore is now statically imported at the top
-          const sessions = await getAllFromStore('sessions');
-          const _attempts = await getAllFromStore('attempts');
+        await loadSessionDataForJourney(results, verbose);
+        await testJourneyOptimization(this, results, verbose);
+        await testProgressAndAdaptive(this, results, verbose);
 
-          if (sessions && sessions.length > 0) {
-            results.sessionDataAvailable = true;
-            results.journeyData.sessions = {
-              totalSessions: sessions.length,
-              recentSessions: sessions.filter(s =>
-                new Date(s.created_at || s.session_date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-              ).length,
-              hasRealData: true
-            };
-            if (verbose) console.log('✓ Session data available for journey analysis');
-          } else {
-            // Simulate session data
-            results.sessionDataAvailable = true;
-            results.journeyData.sessions = {
-              totalSessions: 24,
-              recentSessions: 8,
-              hasRealData: false,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session data simulated for journey analysis');
-          }
-        } catch (dataError) {
-          if (verbose) console.log('⚠️ Session data access failed:', dataError.message);
-        }
-
-        // 2. Test learning journey optimization
-        try {
-          const journeyAnalysis = await this.analyzeLearningJourney(results.journeyData.sessions);
-          results.journeyOptimizationTested = true;
-          results.journeyData.optimization = journeyAnalysis;
-          if (verbose) console.log('✓ Learning journey optimization analyzed');
-        } catch (optimizationError) {
-          if (verbose) console.log('⚠️ Journey optimization test failed:', optimizationError.message);
-        }
-
-        // 3. Test progress tracking across sessions
-        try {
-          const progressTracking = await this.testProgressTracking();
-          results.progressTrackingTested = true;
-          results.journeyData.progress = progressTracking;
-          if (verbose) console.log('✓ Multi-session progress tracking tested');
-        } catch (progressError) {
-          if (verbose) console.log('⚠️ Progress tracking test failed:', progressError.message);
-        }
-
-        // 4. Test adaptive journey adjustments
-        try {
-          const adaptiveAdjustments = await this.testAdaptiveJourneyAdjustments();
-          results.adaptiveAdjustmentTested = true;
-          results.journeyData.adaptiveAdjustments = adaptiveAdjustments;
-          if (verbose) console.log('✓ Adaptive journey adjustments tested');
-        } catch (adaptiveError) {
-          if (verbose) console.log('⚠️ Adaptive adjustment test failed:', adaptiveError.message);
-        }
-
-        // 5. Evaluate overall learning journey effectiveness
-        const learningJourneyEffective = (
-          results.sessionDataAvailable &&
-          results.journeyOptimizationTested &&
-          results.progressTrackingTested &&
-          results.adaptiveAdjustmentTested
-        );
-
-        if (learningJourneyEffective) {
-          results.success = true;
-          results.summary = 'Multi-session learning journey optimization working effectively';
-          if (verbose) {
-            console.log('✅ Learning journey test PASSED');
-            console.log('🎓 Journey Data:', results.journeyData);
-          }
-        } else {
-          results.summary = 'Some learning journey components failed';
-          if (verbose) {
-            console.log('⚠️ Learning journey test PARTIAL');
-            console.log('🔍 Issues detected in learning journey optimization');
-          }
-        }
-
-        // Return boolean for backward compatibility when not verbose
-        if (!verbose) {
-          return results.success;
-        }
-        return results;
+        return evaluateJourneyResults(results, verbose);
 
       } catch (error) {
         console.error('❌ testLearningJourney failed:', error);
@@ -5136,6 +5157,72 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // Helper function to test session lifecycle component
+    // Helper: Test session creation
+    const testLifecycleSessionCreation = async function(sessionLifecycle, verbose) {
+      try {
+        const newSession = await SessionService.getOrCreateSession('standard');
+        if (newSession && newSession.problems) {
+          sessionLifecycle.sessionCreation = true;
+          if (verbose) console.log('✓ Session creation successful');
+        }
+      } catch (creationError) {
+        if (verbose) console.log('⚠️ Session creation failed:', creationError.message);
+      }
+    };
+
+    // Helper: Test problem selection
+    const testProblemSelection = async function(sessionLifecycle, verbose) {
+      try {
+        const problems = await ProblemService.adaptiveSessionProblems({
+          sessionType: 'standard',
+          difficulty: 'Medium',
+          sessionLength: 3
+        });
+        if (problems && problems.length > 0) {
+          sessionLifecycle.problemSelection = true;
+          if (verbose) console.log('✓ Problem selection successful');
+        }
+      } catch (selectionError) {
+        if (verbose) console.log('⚠️ Problem selection failed:', selectionError.message);
+      }
+    };
+
+    // Helper: Test progress tracking
+    const testProgressTracking = async function(sessionLifecycle, verbose) {
+      try {
+        if (typeof AttemptsService !== 'undefined' && AttemptsService.recordAttempt) {
+          const mockAttempt = {
+            problemId: 'test-problem',
+            success: true,
+            timeSpent: 300,
+            hintsUsed: 1
+          };
+          await AttemptsService.recordAttempt(mockAttempt);
+          sessionLifecycle.progressTracking = true;
+          if (verbose) console.log('✓ Progress tracking successful');
+        }
+      } catch (trackingError) {
+        if (verbose) console.log('⚠️ Progress tracking failed:', trackingError.message);
+      }
+    };
+
+    // Helper: Test session completion
+    const testSessionCompletion = async function(sessionLifecycle, verbose) {
+      try {
+        if (typeof updateSessionInDB === 'function') {
+          await updateSessionInDB('test-session', {
+            completed: true,
+            completionTime: Date.now(),
+            accuracy: 0.75
+          });
+          sessionLifecycle.sessionCompletion = true;
+          if (verbose) console.log('✓ Session completion successful');
+        }
+      } catch (completionError) {
+        if (verbose) console.log('⚠️ Session completion failed:', completionError.message);
+      }
+    };
+
     const testSessionLifecycleComponent = async function(verbose) {
       const result = {
         tested: false,
@@ -5163,63 +5250,10 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         sessionCompletion: false
       };
 
-      // Test session creation
-      try {
-        const newSession = await SessionService.getOrCreateSession('standard');
-        if (newSession && newSession.problems) {
-          sessionLifecycle.sessionCreation = true;
-          if (verbose) console.log('✓ Session creation successful');
-        }
-      } catch (creationError) {
-        if (verbose) console.log('⚠️ Session creation failed:', creationError.message);
-      }
-
-      // Test problem selection
-      try {
-        const problems = await ProblemService.adaptiveSessionProblems({
-          sessionType: 'standard',
-          difficulty: 'Medium',
-          sessionLength: 3
-        });
-        if (problems && problems.length > 0) {
-          sessionLifecycle.problemSelection = true;
-          if (verbose) console.log('✓ Problem selection successful');
-        }
-      } catch (selectionError) {
-        if (verbose) console.log('⚠️ Problem selection failed:', selectionError.message);
-      }
-
-      // Test progress tracking
-      try {
-        if (typeof AttemptsService !== 'undefined' && AttemptsService.recordAttempt) {
-          const mockAttempt = {
-            problemId: 'test-problem',
-            success: true,
-            timeSpent: 300,
-            hintsUsed: 1
-          };
-          await AttemptsService.recordAttempt(mockAttempt);
-          sessionLifecycle.progressTracking = true;
-          if (verbose) console.log('✓ Progress tracking successful');
-        }
-      } catch (trackingError) {
-        if (verbose) console.log('⚠️ Progress tracking failed:', trackingError.message);
-      }
-
-      // Test session completion
-      try {
-        if (typeof updateSessionInDB === 'function') {
-          await updateSessionInDB('test-session', {
-            completed: true,
-            completionTime: Date.now(),
-            accuracy: 0.75
-          });
-          sessionLifecycle.sessionCompletion = true;
-          if (verbose) console.log('✓ Session completion successful');
-        }
-      } catch (completionError) {
-        if (verbose) console.log('⚠️ Session completion failed:', completionError.message);
-      }
+      await testLifecycleSessionCreation(sessionLifecycle, verbose);
+      await testProblemSelection(sessionLifecycle, verbose);
+      await testProgressTracking(sessionLifecycle, verbose);
+      await testSessionCompletion(sessionLifecycle, verbose);
 
       result.tested = Object.values(sessionLifecycle).some(Boolean);
       result.data = sessionLifecycle;
@@ -5726,6 +5760,74 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Test storage write operation
+    const testStorageWrite = async function(testSettings, verbose) {
+      await new Promise((resolve, reject) => {
+        chrome.storage.local.set({ 'codemaster-test-settings': testSettings }, () => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve();
+          }
+        });
+      });
+      if (verbose) console.log('✓ Settings write test passed');
+    };
+
+    // Helper: Test storage read and verify persistence
+    const testStorageRead = async function(testSettings, results, verbose) {
+      const readData = await new Promise((resolve, reject) => {
+        chrome.storage.local.get('codemaster-test-settings', (result) => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve(result);
+          }
+        });
+      });
+
+      if (readData && readData['codemaster-test-settings']) {
+        results.readTestPassed = true;
+        if (verbose) console.log('✓ Settings read test passed');
+
+        if (readData['codemaster-test-settings'].testTimestamp === testSettings.testTimestamp) {
+          results.persistenceVerified = true;
+          if (verbose) console.log('✓ Settings persistence verified');
+        }
+      }
+    };
+
+    // Helper: Cleanup test storage data
+    const cleanupStorageTest = async function(verbose) {
+      try {
+        await new Promise((resolve, reject) => {
+          chrome.storage.local.remove('codemaster-test-settings', () => {
+            if (chrome.runtime.lastError) {
+              reject(chrome.runtime.lastError);
+            } else {
+              resolve();
+            }
+          });
+        });
+        if (verbose) console.log('✓ Test data cleanup completed');
+      } catch (cleanupError) {
+        if (verbose) console.log('⚠️ Cleanup warning:', cleanupError.message);
+      }
+    };
+
+    // Helper: Generate settings persistence summary
+    const generateSettingsPersistenceSummary = function(results) {
+      if (results.success) {
+        return 'Settings persistence working: Chrome storage ✓, write/read ✓, integrity ✓';
+      }
+      const issues = [];
+      if (!results.chromeStorageAvailable) issues.push('Chrome storage unavailable');
+      if (!results.writeTestPassed) issues.push('write failed');
+      if (!results.readTestPassed) issues.push('read failed');
+      if (!results.persistenceVerified) issues.push('persistence failed');
+      return `Settings persistence issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testSettingsPersistence = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('💾 Testing settings persistence and storage...');
@@ -5755,71 +5857,21 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           focusTags: ['array', 'hash-table']
         };
 
-        await new Promise((resolve, reject) => {
-          chrome.storage.local.set({ 'codemaster-test-settings': testSettings }, () => {
-            if (chrome.runtime.lastError) {
-              reject(chrome.runtime.lastError);
-            } else {
-              resolve();
-            }
-          });
-        });
+        await testStorageWrite(testSettings, verbose);
         results.writeTestPassed = true;
-        if (verbose) console.log('✓ Settings write test passed');
 
-        // 3. Test reading settings from storage
-        const readData = await new Promise((resolve, reject) => {
-          chrome.storage.local.get('codemaster-test-settings', (result) => {
-            if (chrome.runtime.lastError) {
-              reject(chrome.runtime.lastError);
-            } else {
-              resolve(result);
-            }
-          });
-        });
+        // 3. Test reading settings and verify persistence
+        await testStorageRead(testSettings, results, verbose);
 
-        if (readData && readData['codemaster-test-settings']) {
-          results.readTestPassed = true;
-          if (verbose) console.log('✓ Settings read test passed');
+        // 4. Cleanup test data
+        await cleanupStorageTest(verbose);
 
-          // 4. Test data persistence integrity
-          if (readData['codemaster-test-settings'].testTimestamp === testSettings.testTimestamp) {
-            results.persistenceVerified = true;
-            if (verbose) console.log('✓ Settings persistence verified');
-          }
-        }
-
-        // 5. Cleanup test data
-        try {
-          await new Promise((resolve, reject) => {
-            chrome.storage.local.remove('codemaster-test-settings', () => {
-              if (chrome.runtime.lastError) {
-                reject(chrome.runtime.lastError);
-              } else {
-                resolve();
-              }
-            });
-          });
-          if (verbose) console.log('✓ Test data cleanup completed');
-        } catch (cleanupError) {
-          if (verbose) console.log('⚠️ Cleanup warning:', cleanupError.message);
-        }
-
-        // 6. Overall success assessment
+        // 5. Overall success assessment
         results.success = results.chromeStorageAvailable && results.writeTestPassed &&
                          results.readTestPassed && results.persistenceVerified;
 
-        // 7. Generate summary
-        if (results.success) {
-          results.summary = 'Settings persistence working: Chrome storage ✓, write/read ✓, integrity ✓';
-        } else {
-          const issues = [];
-          if (!results.chromeStorageAvailable) issues.push('Chrome storage unavailable');
-          if (!results.writeTestPassed) issues.push('write failed');
-          if (!results.readTestPassed) issues.push('read failed');
-          if (!results.persistenceVerified) issues.push('persistence failed');
-          results.summary = `Settings persistence issues: ${issues.join(', ')}`;
-        }
+        // 6. Generate summary
+        results.summary = generateSettingsPersistenceSummary(results);
 
         if (verbose) console.log('✅ Settings persistence test completed');
         return results;
@@ -8830,58 +8882,63 @@ const setCachedResponse = (key, data) => {
 };
 
 // Universal cache key generation for different request types
-const generateCacheKey = (request) => {
-  switch (request.type) {
-    // Problem-related operations
-    case 'getProblemByDescription': 
-      return `problem_slug_${request.slug}`;
-    case 'saveHintInteraction': 
-      return (request.interactionData?.problemId || request.data?.problemId) ? 
-        `problem_ctx_${request.interactionData?.problemId || request.data?.problemId}` : null;
-    
-    // Dashboard data operations - simplified keys since no filters are passed
-    case 'getStatsData': 
-      return 'stats_data';
-    case 'getSessionHistoryData': 
-      return 'sessions_data';
-    case 'getTagMasteryData': 
-      return 'mastery_data';
-    case 'getLearningProgressData': 
-      return 'progress_data';
-    case 'getProductivityInsightsData': 
-      return 'productivity_data';
-    case 'getLearningPathData': 
-      return 'learning_path_data';
-    case 'getMistakeAnalysisData': 
-      return 'mistakes_data';
-    case 'getInterviewAnalyticsData': 
-      return 'interview_data';
-    case 'getHintAnalyticsData': 
-      return 'hints_data';
-    case 'getFocusAreasData':
-      return `focus_areas_data`;
-    
-    // Strategy operations
-    case 'getStrategyForTag': 
-      return `strategy_${request.tag}`;
-    
-    // Settings operations (short TTL)
-    case 'getSettings': 
-      return `settings_${request.key || 'all'}`;
-    case 'getStorage': 
-      return `storage_${request.key}`;
-    
-    // Non-cacheable operations (return null)
-    case 'setSettings':
-    case 'setStorage': 
-    case 'removeStorage':
-    case 'addProblem':
-    case 'backupIndexedDB':
-    case 'createSession':
-    case 'graduateFocusAreas':
-    default: 
-      return null; // Not cacheable
+// Helper: Generate cache key for problem-related operations
+const getProblemCacheKey = (request) => {
+  if (request.type === 'getProblemByDescription') {
+    return `problem_slug_${request.slug}`;
   }
+  if (request.type === 'saveHintInteraction') {
+    const problemId = request.interactionData?.problemId || request.data?.problemId;
+    return problemId ? `problem_ctx_${problemId}` : null;
+  }
+  return null;
+};
+
+// Helper: Generate cache key for dashboard operations
+const getDashboardCacheKey = (request) => {
+  const dashboardKeys = {
+    'getStatsData': 'stats_data',
+    'getSessionHistoryData': 'sessions_data',
+    'getTagMasteryData': 'mastery_data',
+    'getLearningProgressData': 'progress_data',
+    'getProductivityInsightsData': 'productivity_data',
+    'getLearningPathData': 'learning_path_data',
+    'getMistakeAnalysisData': 'mistakes_data',
+    'getInterviewAnalyticsData': 'interview_data',
+    'getHintAnalyticsData': 'hints_data',
+    'getFocusAreasData': 'focus_areas_data'
+  };
+  return dashboardKeys[request.type] || null;
+};
+
+// Helper: Generate cache key for settings and strategy operations
+const getSettingsCacheKey = (request) => {
+  if (request.type === 'getSettings') {
+    return `settings_${request.key || 'all'}`;
+  }
+  if (request.type === 'getStorage') {
+    return `storage_${request.key}`;
+  }
+  if (request.type === 'getStrategyForTag') {
+    return `strategy_${request.tag}`;
+  }
+  return null;
+};
+
+// Helper: Check if operation is non-cacheable
+const isNonCacheable = (requestType) => {
+  const nonCacheableOps = ['setSettings', 'setStorage', 'removeStorage', 'addProblem', 'backupIndexedDB', 'createSession', 'graduateFocusAreas'];
+  return nonCacheableOps.includes(requestType);
+};
+
+const generateCacheKey = (request) => {
+  if (isNonCacheable(request.type)) {
+    return null;
+  }
+
+  return getProblemCacheKey(request) ||
+         getDashboardCacheKey(request) ||
+         getSettingsCacheKey(request);
 };
 
 // Universal cache wrapper for all background script requests
@@ -11785,10 +11842,196 @@ globalThis.runPhase6Tests = async function(options = {}) {
  * Universal Test Suite Runner - Core engine for all test execution
  * Handles test execution, timing, error handling, and reporting
  */
+// Helper: Execute a single test and record results
+const executeSingleTest = async function(testName, results, testStartTime, verbose, silent) {
+  try {
+    if (typeof globalThis[testName] !== 'function') {
+      if (!silent) console.log(`❌ ${testName} - NOT FOUND`);
+      results.errors++;
+      results.errorTests.push(testName);
+      results.details.push({
+        test: testName,
+        status: 'NOT_FOUND',
+        duration: Date.now() - testStartTime,
+        error: 'Test function not found'
+      });
+      return;
+    }
+
+    const testResult = await globalThis[testName](verbose ? { verbose: false } : {});
+    const testDuration = Date.now() - testStartTime;
+
+    if (testResult === true || (testResult && testResult.success)) {
+      results.passed++;
+      results.details.push({
+        test: testName,
+        status: 'PASSED',
+        duration: testDuration,
+        result: testResult
+      });
+    } else {
+      if (!silent) console.log(`❌ ${testName} - FAILED (${testDuration}ms)`);
+      results.failed++;
+      results.failedTests.push(testName);
+      results.details.push({
+        test: testName,
+        status: 'FAILED',
+        duration: testDuration,
+        result: testResult
+      });
+    }
+  } catch (error) {
+    const testDuration = Date.now() - testStartTime;
+    if (!silent) console.log(`💥 ${testName} - ERROR (${testDuration}ms): ${error.message}`);
+    results.errors++;
+    results.errorTests.push(testName);
+    results.details.push({
+      test: testName,
+      status: 'ERROR',
+      duration: testDuration,
+      error: error.message
+    });
+  }
+};
+
+// Helper: Print success rate interpretation
+const printSuccessRateInterpretation = function(successRate) {
+  if (successRate >= 90) {
+    console.log('🎉 EXCELLENT! System is performing at high quality!');
+  } else if (successRate >= 75) {
+    console.log('👍 GOOD! System is stable with minor issues');
+  } else if (successRate >= 50) {
+    console.log('⚠️  NEEDS ATTENTION! Several issues detected');
+  } else {
+    console.log('🚨 CRITICAL! Major system issues detected');
+  }
+};
+
+// Helper: Display validation errors
+const displayValidationErrors = function(validationErrors) {
+  if (!validationErrors || validationErrors.length === 0) return;
+  console.log(`   Validation Issues:`);
+  validationErrors.slice(0, 3).forEach((error, idx) => {
+    console.log(`     ${idx + 1}. ${error}`);
+  });
+  if (validationErrors.length > 3) {
+    console.log(`     ... and ${validationErrors.length - 3} more`);
+  }
+};
+
+// Helper: Format test result details
+const formatTestResult = function(result) {
+  if (result.summary && typeof result.summary === 'string') {
+    console.log(`   Reason: ${result.summary}`);
+    return;
+  }
+
+  if (result.summary && typeof result.summary === 'object') {
+    const summary = result.summary;
+    if (summary.totalSessions !== undefined) {
+      const errorMsg = summary.totalErrors > 0 ? ` with ${summary.totalErrors} validation errors` : ' with no errors';
+      console.log(`   Result: ${summary.successfulSessions}/${summary.totalSessions} sessions successful${errorMsg}`);
+    } else {
+      console.log(`   Result: ${JSON.stringify(summary, null, 2)}`);
+    }
+    return;
+  }
+
+  if (typeof result === 'object') {
+    if (result.summary && result.summary.totalSessions !== undefined) {
+      const s = result.summary;
+      const errorMsg = s.totalErrors > 0 ? ` with ${s.totalErrors} validation errors` : ' with no errors';
+      console.log(`   Result: ${s.successfulSessions}/${s.totalSessions} sessions successful${errorMsg}`);
+      displayValidationErrors(result.validationErrors);
+      return;
+    }
+    console.log(`   Result: Complex test result (${Object.keys(result).join(', ')})`);
+    if (result.error) {
+      console.log(`   Error: ${result.error}`);
+    } else if (result.message) {
+      console.log(`   Message: ${result.message}`);
+    }
+    return;
+  }
+
+  console.log(`   Reason: ${result}`);
+};
+
+// Helper: Print test summaries (failures and errors)
+const printTestSummaries = function(results) {
+  if (results.failed > 0) {
+    console.log(`\n🔍 FAILED TESTS SUMMARY (${results.failed} failures):`);
+    console.log('━'.repeat(50));
+    results.failedTests.forEach((testName, index) => {
+      const detail = results.details.find(d => d.test === testName && d.status === 'FAILED');
+      console.log(`${index + 1}. ❌ ${testName} (${detail?.duration || 0}ms)`);
+      if (detail?.result) {
+        formatTestResult(detail.result);
+      }
+    });
+  }
+
+  if (results.errors > 0) {
+    console.log(`\n💥 ERROR TESTS SUMMARY (${results.errors} errors):`);
+    console.log('━'.repeat(50));
+    results.errorTests.forEach((testName, index) => {
+      const detail = results.details.find(d => d.test === testName && d.status === 'ERROR');
+      console.log(`${index + 1}. 💥 ${testName} (${detail?.duration || 0}ms)`);
+      console.log(`   Error: ${detail?.error || 'Unknown error'}`);
+    });
+  }
+};
+
+// Helper: Print performance insights
+const printPerformanceInsights = function(results) {
+  if (results.details.length === 0) return;
+
+  const avgDuration = Math.round(
+    results.details.reduce((sum, d) => sum + d.duration, 0) / results.details.length
+  );
+  const slowTests = results.details
+    .filter(d => d.duration > avgDuration * 2)
+    .sort((a, b) => b.duration - a.duration)
+    .slice(0, 5);
+
+  if (slowTests.length > 0) {
+    console.log(`\n⏱️  SLOWEST TESTS (avg: ${avgDuration}ms):`);
+    console.log('━'.repeat(50));
+    slowTests.forEach((test, index) => {
+      const status = test.status === 'PASSED' ? '✅' : test.status === 'FAILED' ? '❌' : '💥';
+      console.log(`${index + 1}. ${status} ${test.test}: ${test.duration}ms`);
+    });
+  }
+};
+
+// Helper: Print actionable recommendations
+const printActionableRecommendations = function(results) {
+  if (results.failed === 0 && results.errors === 0) return;
+
+  console.log(`\n🔧 NEXT STEPS:`);
+  console.log('━'.repeat(50));
+
+  if (results.errorTests.some(t => t.includes('Extension') || t.includes('Background'))) {
+    console.log('• Extension may not be loaded properly - try reloading');
+  }
+  if (results.errorTests.some(t => t.includes('Service') || t.includes('Core'))) {
+    console.log('• Core services may be unavailable - check background script');
+  }
+  if (results.failedTests.some(t => t.includes('Database') || t.includes('Persistence'))) {
+    console.log('• Database issues detected - consider clearing extension data');
+  }
+  if (results.failedTests.some(t => t.includes('Performance') || t.includes('Memory'))) {
+    console.log('• Performance issues detected - monitor system resources');
+  }
+
+  console.log(`• Run individual tests for details: await testName({ verbose: true })`);
+  console.log(`• Focus on critical failures first`);
+};
+
 globalThis.runTestSuite = async function(tests, suiteName = 'Test Suite', verbose = false, silent = false) {
   if (!silent) {
     console.log(`\n🧪 ${suiteName.toUpperCase()}`);
-    console.log('='.repeat(Math.min(suiteName.length + 5, 50))); // Prevent huge separators
+    console.log('='.repeat(Math.min(suiteName.length + 5, 50)));
   }
 
   const results = {
@@ -11803,7 +12046,6 @@ globalThis.runTestSuite = async function(tests, suiteName = 'Test Suite', verbos
   };
   const startTime = Date.now();
 
-  // Progress tracking for long suites
   const showProgress = tests.length > 10;
   let progressCounter = 0;
 
@@ -11811,68 +12053,16 @@ globalThis.runTestSuite = async function(tests, suiteName = 'Test Suite', verbos
     const testStartTime = Date.now();
     progressCounter++;
 
-    // Minimal progress logging for service worker stability
     if (!silent && showProgress && progressCounter % 10 === 0) {
       console.log(`📊 Progress: ${progressCounter}/${tests.length} tests`);
     }
 
-    try {
-      // Minimal output during execution - only failures are logged immediately
-      if (typeof globalThis[testName] !== 'function') {
-        if (!silent) console.log(`❌ ${testName} - NOT FOUND`);
-        results.errors++;
-        results.errorTests.push(testName);
-        results.details.push({
-          test: testName,
-          status: 'NOT_FOUND',
-          duration: Date.now() - testStartTime,
-          error: 'Test function not found'
-        });
-        continue;
-      }
-
-      // Run test with minimal console noise
-      const testResult = await globalThis[testName](verbose ? { verbose: false } : {}); // Force quiet mode
-      const testDuration = Date.now() - testStartTime;
-
-      if (testResult === true || (testResult && testResult.success)) {
-        results.passed++;
-        results.details.push({
-          test: testName,
-          status: 'PASSED',
-          duration: testDuration,
-          result: testResult
-        });
-      } else {
-        // Only log failures immediately
-        if (!silent) console.log(`❌ ${testName} - FAILED (${testDuration}ms)`);
-        results.failed++;
-        results.failedTests.push(testName);
-        results.details.push({
-          test: testName,
-          status: 'FAILED',
-          duration: testDuration,
-          result: testResult
-        });
-      }
-    } catch (error) {
-      const testDuration = Date.now() - testStartTime;
-      if (!silent) console.log(`💥 ${testName} - ERROR (${testDuration}ms): ${error.message}`);
-      results.errors++;
-      results.errorTests.push(testName);
-      results.details.push({
-        test: testName,
-        status: 'ERROR',
-        duration: testDuration,
-        error: error.message
-      });
-    }
+    await executeSingleTest(testName, results, testStartTime, verbose, silent);
   }
 
   const totalDuration = Date.now() - startTime;
   const successRate = Math.round((results.passed / results.total) * 100);
 
-  // COMPREHENSIVE SUMMARY
   console.log(`\n📊 ${suiteName.toUpperCase()} FINAL RESULTS`);
   console.log('='.repeat(50));
   console.log(`✅ Passed: ${results.passed}/${results.total}`);
@@ -11881,144 +12071,11 @@ globalThis.runTestSuite = async function(tests, suiteName = 'Test Suite', verbos
   console.log(`⏱️  Duration: ${(totalDuration / 1000).toFixed(1)}s`);
   console.log(`🎯 Success Rate: ${successRate}%`);
 
-  // Success rate interpretation
-  if (successRate >= 90) {
-    console.log('🎉 EXCELLENT! System is performing at high quality!');
-  } else if (successRate >= 75) {
-    console.log('👍 GOOD! System is stable with minor issues');
-  } else if (successRate >= 50) {
-    console.log('⚠️  NEEDS ATTENTION! Several issues detected');
-  } else {
-    console.log('🚨 CRITICAL! Major system issues detected');
-  }
+  printSuccessRateInterpretation(successRate);
+  printTestSummaries(results);
+  printPerformanceInsights(results);
+  printActionableRecommendations(results);
 
-  // Helper to display validation errors
-  const displayValidationErrors = (validationErrors) => {
-    if (!validationErrors || validationErrors.length === 0) return;
-
-    console.log(`   Validation Issues:`);
-    validationErrors.slice(0, 3).forEach((error, idx) => {
-      console.log(`     ${idx + 1}. ${error}`);
-    });
-    if (validationErrors.length > 3) {
-      console.log(`     ... and ${validationErrors.length - 3} more`);
-    }
-  };
-
-  // Helper to format test result details
-  const formatTestResult = (result) => {
-    // Handle comprehensive test results that return complex objects
-    if (result.summary && typeof result.summary === 'string') {
-      console.log(`   Reason: ${result.summary}`);
-      return;
-    }
-
-    if (result.summary && typeof result.summary === 'object') {
-      // For comprehensive tests, show key metrics from the summary object
-      const summary = result.summary;
-      if (summary.totalSessions !== undefined) {
-        const errorMsg = summary.totalErrors > 0
-          ? ` with ${summary.totalErrors} validation errors`
-          : ' with no errors';
-        console.log(`   Result: ${summary.successfulSessions}/${summary.totalSessions} sessions successful${errorMsg}`);
-      } else {
-        console.log(`   Result: ${JSON.stringify(summary, null, 2)}`);
-      }
-      return;
-    }
-
-    if (typeof result === 'object') {
-      // Handle cases where the entire result is an object (like comprehensive tests)
-      if (result.summary && result.summary.totalSessions !== undefined) {
-        const s = result.summary;
-        const errorMsg = s.totalErrors > 0
-          ? ` with ${s.totalErrors} validation errors`
-          : ' with no errors';
-        console.log(`   Result: ${s.successfulSessions}/${s.totalSessions} sessions successful${errorMsg}`);
-        displayValidationErrors(result.validationErrors);
-        return;
-      }
-
-      // Fallback for unknown object structure
-      console.log(`   Result: Complex test result (${Object.keys(result).join(', ')})`);
-      if (result.error) {
-        console.log(`   Error: ${result.error}`);
-      } else if (result.message) {
-        console.log(`   Message: ${result.message}`);
-      }
-      return;
-    }
-
-    console.log(`   Reason: ${result}`);
-  };
-
-  // DETAILED FAILURE SUMMARY
-  if (results.failed > 0) {
-    console.log(`\n🔍 FAILED TESTS SUMMARY (${results.failed} failures):`);
-    console.log('━'.repeat(50));
-    results.failedTests.forEach((testName, index) => {
-      const detail = results.details.find(d => d.test === testName && d.status === 'FAILED');
-      console.log(`${index + 1}. ❌ ${testName} (${detail?.duration || 0}ms)`);
-      if (detail?.result) {
-        formatTestResult(detail.result);
-      }
-    });
-  }
-
-  // ERROR SUMMARY
-  if (results.errors > 0) {
-    console.log(`\n💥 ERROR TESTS SUMMARY (${results.errors} errors):`);
-    console.log('━'.repeat(50));
-    results.errorTests.forEach((testName, index) => {
-      const detail = results.details.find(d => d.test === testName && d.status === 'ERROR');
-      console.log(`${index + 1}. 💥 ${testName} (${detail?.duration || 0}ms)`);
-      console.log(`   Error: ${detail?.error || 'Unknown error'}`);
-    });
-  }
-
-  // PERFORMANCE INSIGHTS
-  if (results.details.length > 0) {
-    const avgDuration = Math.round(
-      results.details.reduce((sum, d) => sum + d.duration, 0) / results.details.length
-    );
-    const slowTests = results.details
-      .filter(d => d.duration > avgDuration * 2)
-      .sort((a, b) => b.duration - a.duration)
-      .slice(0, 5);
-
-    if (slowTests.length > 0) {
-      console.log(`\n⏱️  SLOWEST TESTS (avg: ${avgDuration}ms):`);
-      console.log('━'.repeat(50));
-      slowTests.forEach((test, index) => {
-        const status = test.status === 'PASSED' ? '✅' : test.status === 'FAILED' ? '❌' : '💥';
-        console.log(`${index + 1}. ${status} ${test.test}: ${test.duration}ms`);
-      });
-    }
-  }
-
-  // ACTIONABLE RECOMMENDATIONS
-  if (results.failed > 0 || results.errors > 0) {
-    console.log(`\n🔧 NEXT STEPS:`);
-    console.log('━'.repeat(50));
-
-    if (results.errorTests.some(t => t.includes('Extension') || t.includes('Background'))) {
-      console.log('• Extension may not be loaded properly - try reloading');
-    }
-    if (results.errorTests.some(t => t.includes('Service') || t.includes('Core'))) {
-      console.log('• Core services may be unavailable - check background script');
-    }
-    if (results.failedTests.some(t => t.includes('Database') || t.includes('Persistence'))) {
-      console.log('• Database issues detected - consider clearing extension data');
-    }
-    if (results.failedTests.some(t => t.includes('Performance') || t.includes('Memory'))) {
-      console.log('• Performance issues detected - monitor system resources');
-    }
-
-    console.log(`• Run individual tests for details: await testName({ verbose: true })`);
-    console.log(`• Focus on critical failures first`);
-  }
-
-  // Add completion timestamp and organize results
   results.completedAt = new Date().toLocaleString();
   results.successRate = successRate;
   results.totalDuration = totalDuration;
