@@ -1645,6 +1645,23 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       return `Difficulty progression issues: ${issues.join(', ')}`;
     };
 
+    // Helper: Finalize progression test results
+    const finalizeProgressionResults = function(results, progressionTrendsValid, progressionPersistent, verbose) {
+      results.success = results.sessionStateValidated &&
+                       results.progressionLogicTested &&
+                       results.escapeHatchLogicTested &&
+                       (progressionTrendsValid || results.difficultyLevelsSupported.length > 1) &&
+                       (progressionPersistent || results.sessionStateData?.simulated);
+
+      results.summary = generateProgressionSummary(results, progressionTrendsValid, progressionPersistent);
+
+      if (verbose) console.log('✅ Difficulty progression test completed');
+      if (!verbose) {
+        return results.success;
+      }
+      return results;
+    };
+
     globalThis.testDifficultyProgression = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📈 Testing difficulty progression logic...');
@@ -1695,19 +1712,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         const progressionTrendsValid = validateProgressionTrends(results.progressionResults, verbose);
         const progressionPersistent = validateProgressionPersistence(results.sessionStateData, verbose);
 
-        results.success = results.sessionStateValidated &&
-                         results.progressionLogicTested &&
-                         results.escapeHatchLogicTested &&
-                         (progressionTrendsValid || results.difficultyLevelsSupported.length > 1) &&
-                         (progressionPersistent || results.sessionStateData?.simulated);
-
-        results.summary = generateProgressionSummary(results, progressionTrendsValid, progressionPersistent);
-
-        if (verbose) console.log('✅ Difficulty progression test completed');
-        if (!verbose) {
-          return results.success;
-        }
-        return results;
+        return finalizeProgressionResults(results, progressionTrendsValid, progressionPersistent, verbose);
 
       } catch (error) {
         console.error('❌ testDifficultyProgression failed:', error);
