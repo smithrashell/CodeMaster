@@ -11062,71 +11062,50 @@ globalThis.testSystemStressConditions.testGracefulDegradation = function() {
  * Production Readiness Evaluation
  * Comprehensive assessment of deployment readiness across all critical areas
  */
+const calculateProductionReadinessScore = (results) => {
+  const readinessScores = [
+    results.securityReadiness.readinessScore || 0.6,
+    results.scalabilityReadiness.readinessScore || 0.6,
+    results.monitoringReadiness.readinessScore || 0.6,
+    results.deploymentReadiness.readinessScore || 0.6
+  ];
+  return readinessScores.reduce((sum, score) => sum + score, 0) / readinessScores.length;
+};
+
 globalThis.testProductionReadiness = async function(options = {}) {
   const { verbose = false } = options;
   if (verbose) console.log('🚀 Evaluating complete production readiness...');
 
   try {
-    let results = {
-      success: false,
-      summary: '',
-      securityReadiness: {},
-      scalabilityReadiness: {},
-      monitoringReadiness: {},
-      deploymentReadiness: {},
-      productionScore: 0
+    const results = {
+      securityReadiness: await runBenchmarkSafely(
+        () => globalThis.testProductionReadiness.evaluateSecurityReadiness(),
+        '✓ Security readiness evaluated',
+        '⚠️ Security readiness evaluation failed:',
+        verbose
+      ),
+      scalabilityReadiness: await runBenchmarkSafely(
+        () => globalThis.testProductionReadiness.evaluateScalabilityReadiness(),
+        '✓ Scalability readiness evaluated',
+        '⚠️ Scalability readiness evaluation failed:',
+        verbose
+      ),
+      monitoringReadiness: await runBenchmarkSafely(
+        () => globalThis.testProductionReadiness.evaluateMonitoringReadiness(),
+        '✓ Monitoring readiness evaluated',
+        '⚠️ Monitoring readiness evaluation failed:',
+        verbose
+      ),
+      deploymentReadiness: await runBenchmarkSafely(
+        () => globalThis.testProductionReadiness.evaluateDeploymentReadiness(),
+        '✓ Deployment readiness evaluated',
+        '⚠️ Deployment readiness evaluation failed:',
+        verbose
+      )
     };
 
-    // 1. Security Production Readiness
-    try {
-      const securityResults = await globalThis.testProductionReadiness.evaluateSecurityReadiness();
-      results.securityReadiness = securityResults;
-      if (verbose) console.log('✓ Security readiness evaluated');
-    } catch (securityError) {
-      results.securityReadiness = { error: securityError.message };
-      if (verbose) console.log('⚠️ Security readiness evaluation failed:', securityError.message);
-    }
-
-    // 2. Scalability Production Readiness
-    try {
-      const scalabilityResults = await globalThis.testProductionReadiness.evaluateScalabilityReadiness();
-      results.scalabilityReadiness = scalabilityResults;
-      if (verbose) console.log('✓ Scalability readiness evaluated');
-    } catch (scalabilityError) {
-      results.scalabilityReadiness = { error: scalabilityError.message };
-      if (verbose) console.log('⚠️ Scalability readiness evaluation failed:', scalabilityError.message);
-    }
-
-    // 3. Monitoring & Observability Readiness
-    try {
-      const monitoringResults = await globalThis.testProductionReadiness.evaluateMonitoringReadiness();
-      results.monitoringReadiness = monitoringResults;
-      if (verbose) console.log('✓ Monitoring readiness evaluated');
-    } catch (monitoringError) {
-      results.monitoringReadiness = { error: monitoringError.message };
-      if (verbose) console.log('⚠️ Monitoring readiness evaluation failed:', monitoringError.message);
-    }
-
-    // 4. Deployment Production Readiness
-    try {
-      const deploymentResults = await globalThis.testProductionReadiness.evaluateDeploymentReadiness();
-      results.deploymentReadiness = deploymentResults;
-      if (verbose) console.log('✓ Deployment readiness evaluated');
-    } catch (deploymentError) {
-      results.deploymentReadiness = { error: deploymentError.message };
-      if (verbose) console.log('⚠️ Deployment readiness evaluation failed:', deploymentError.message);
-    }
-
-    // Calculate overall production readiness score
-    const readinessScores = [
-      results.securityReadiness.readinessScore || 0.6,
-      results.scalabilityReadiness.readinessScore || 0.6,
-      results.monitoringReadiness.readinessScore || 0.6,
-      results.deploymentReadiness.readinessScore || 0.6
-    ];
-    results.productionScore = readinessScores.reduce((sum, score) => sum + score, 0) / readinessScores.length;
+    results.productionScore = calculateProductionReadinessScore(results);
     results.success = results.productionScore > 0.8;
-
     results.summary = `Production readiness evaluated with score: ${Math.round(results.productionScore * 100)}%`;
 
     if (verbose) {
