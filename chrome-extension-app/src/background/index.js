@@ -5824,67 +5824,76 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper functions for focus area selection test
+    const checkFocusServices = (verbose) => {
+      const focusServiceAvailable = typeof FocusCoordinationService !== 'undefined';
+      const sessionServiceAvailable = typeof SessionService !== 'undefined';
+
+      if (focusServiceAvailable && verbose) console.log('✓ FocusCoordinationService available');
+      if (sessionServiceAvailable && verbose) console.log('✓ SessionService available');
+      if (!sessionServiceAvailable) throw new Error('SessionService not available');
+
+      return { focusServiceAvailable, sessionServiceAvailable };
+    };
+
+    const simulateFocusSelection = (verbose) => {
+      const mockFocusSelection = {
+        selectedTags: ['array', 'hash-table', 'two-pointers'],
+        userPreferences: { difficulty: 'Easy', learningMode: 'focused' }
+      };
+
+      const isValid = mockFocusSelection.selectedTags && Array.isArray(mockFocusSelection.selectedTags);
+      if (isValid && verbose) console.log('✓ Focus selection simulated:', mockFocusSelection.selectedTags.join(', '));
+
+      return {
+        focusSelectionSimulated: isValid,
+        focusTags: isValid ? mockFocusSelection.selectedTags : []
+      };
+    };
+
+    const createFocusedSession = async (verbose) => {
+      const sessionData = await SessionService.getOrCreateSession('standard');
+      const isValid = sessionData && sessionData.problems && Array.isArray(sessionData.problems);
+
+      if (isValid && verbose) console.log(`✓ Session created with ${sessionData.problems.length} problems`);
+
+      return {
+        focusedSessionCreated: isValid,
+        focusedProblemCount: isValid ? sessionData.problems.length : 0
+      };
+    };
+
+    const buildFocusSummary = (results) => {
+      if (results.success) {
+        const focusInfo = results.focusTags.length > 0 ? ` Focus areas: ${results.focusTags.join(', ')}.` : '';
+        return `Focus area selection working: focus selection ✓, session creation ✓ (${results.focusedProblemCount} problems).${focusInfo}`;
+      }
+
+      const issues = [];
+      if (!results.sessionServiceAvailable) issues.push('SessionService missing');
+      if (!results.focusSelectionSimulated) issues.push('focus selection failed');
+      if (!results.focusedSessionCreated) issues.push('focused session creation failed');
+      return `Focus area selection issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testFocusAreaSelection = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎯 Testing focus area selection workflow...');
 
       try {
-        let results = {
-          success: false,
-          summary: '',
-          focusServiceAvailable: false,
-          sessionServiceAvailable: false,
-          focusSelectionSimulated: false,
-          focusedSessionCreated: false,
-          focusTags: [],
-          focusedProblemCount: 0
+        const serviceCheck = checkFocusServices(verbose);
+        const focusSelection = simulateFocusSelection(verbose);
+        const sessionCreation = await createFocusedSession(verbose);
+
+        const results = {
+          ...serviceCheck,
+          ...focusSelection,
+          ...sessionCreation,
+          success: serviceCheck.sessionServiceAvailable && focusSelection.focusSelectionSimulated && sessionCreation.focusedSessionCreated,
+          summary: ''
         };
 
-        // 1. Test services
-        if (typeof FocusCoordinationService !== 'undefined') {
-          results.focusServiceAvailable = true;
-          if (verbose) console.log('✓ FocusCoordinationService available');
-        }
-
-        if (typeof SessionService !== 'undefined') {
-          results.sessionServiceAvailable = true;
-          if (verbose) console.log('✓ SessionService available');
-        } else {
-          throw new Error('SessionService not available');
-        }
-
-        // 2. Simulate focus selection
-        const mockFocusSelection = {
-          selectedTags: ['array', 'hash-table', 'two-pointers'],
-          userPreferences: { difficulty: 'Easy', learningMode: 'focused' }
-        };
-
-        if (mockFocusSelection.selectedTags && Array.isArray(mockFocusSelection.selectedTags)) {
-          results.focusSelectionSimulated = true;
-          results.focusTags = mockFocusSelection.selectedTags;
-          if (verbose) console.log('✓ Focus selection simulated:', results.focusTags.join(', '));
-        }
-
-        // 3. Test focused session creation
-        const sessionData = await SessionService.getOrCreateSession('standard');
-        if (sessionData && sessionData.problems && Array.isArray(sessionData.problems)) {
-          results.focusedSessionCreated = true;
-          results.focusedProblemCount = sessionData.problems.length;
-          if (verbose) console.log(`✓ Session created with ${results.focusedProblemCount} problems`);
-        }
-
-        results.success = results.sessionServiceAvailable && results.focusSelectionSimulated && results.focusedSessionCreated;
-
-        if (results.success) {
-          const focusInfo = results.focusTags.length > 0 ? ` Focus areas: ${results.focusTags.join(', ')}.` : '';
-          results.summary = `Focus area selection working: focus selection ✓, session creation ✓ (${results.focusedProblemCount} problems).${focusInfo}`;
-        } else {
-          const issues = [];
-          if (!results.sessionServiceAvailable) issues.push('SessionService missing');
-          if (!results.focusSelectionSimulated) issues.push('focus selection failed');
-          if (!results.focusedSessionCreated) issues.push('focused session creation failed');
-          results.summary = `Focus area selection issues: ${issues.join(', ')}`;
-        }
+        results.summary = buildFocusSummary(results);
 
         if (verbose) console.log('✅ Focus area selection test completed');
         return results;
