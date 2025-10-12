@@ -10582,71 +10582,62 @@ scheduleAutoGeneration();
  * Advanced Performance Benchmarking System
  * Comprehensive testing of database, service, memory, and concurrency performance
  */
+// Helper to safely run benchmark and handle errors
+const runBenchmarkSafely = async (benchmarkFn, successMsg, errorMsg, verbose) => {
+  try {
+    const result = await benchmarkFn();
+    if (verbose) console.log(successMsg);
+    return result;
+  } catch (error) {
+    if (verbose) console.log(errorMsg, error.message);
+    return { error: error.message };
+  }
+};
+
+const calculatePerformanceScore = (results) => {
+  const scores = [
+    results.databasePerformance.performanceScore || 0.5,
+    results.servicePerformance.performanceScore || 0.5,
+    results.memoryBenchmarks.efficiencyScore || 0.5,
+    results.concurrencyTests.stabilityScore || 0.5
+  ];
+  return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+};
+
 globalThis.testPerformanceBenchmarks = async function(options = {}) {
   const { verbose = false } = options;
   if (verbose) console.log('⚡ Running comprehensive performance benchmarks...');
 
   try {
-    let results = {
-      success: false,
-      summary: '',
-      databasePerformance: {},
-      servicePerformance: {},
-      memoryBenchmarks: {},
-      concurrencyTests: {},
-      overallPerformanceScore: 0
+    const results = {
+      databasePerformance: await runBenchmarkSafely(
+        () => globalThis.testPerformanceBenchmarks.benchmarkDatabaseOperations(),
+        '✓ Database performance benchmarked',
+        '⚠️ Database benchmark failed:',
+        verbose
+      ),
+      servicePerformance: await runBenchmarkSafely(
+        () => globalThis.testPerformanceBenchmarks.benchmarkServiceOperations(),
+        '✓ Service performance benchmarked',
+        '⚠️ Service benchmark failed:',
+        verbose
+      ),
+      memoryBenchmarks: await runBenchmarkSafely(
+        () => globalThis.testPerformanceBenchmarks.benchmarkMemoryUsage(),
+        '✓ Memory performance analyzed',
+        '⚠️ Memory benchmark failed:',
+        verbose
+      ),
+      concurrencyTests: await runBenchmarkSafely(
+        () => globalThis.testPerformanceBenchmarks.testConcurrencyLimits(),
+        '✓ Concurrency limits tested',
+        '⚠️ Concurrency test failed:',
+        verbose
+      )
     };
 
-    // 1. Database Performance Benchmarks
-    try {
-      const dbBenchmarks = await globalThis.testPerformanceBenchmarks.benchmarkDatabaseOperations();
-      results.databasePerformance = dbBenchmarks;
-      if (verbose) console.log('✓ Database performance benchmarked');
-    } catch (dbError) {
-      results.databasePerformance = { error: dbError.message };
-      if (verbose) console.log('⚠️ Database benchmark failed:', dbError.message);
-    }
-
-    // 2. Service Performance Benchmarks
-    try {
-      const serviceBenchmarks = await globalThis.testPerformanceBenchmarks.benchmarkServiceOperations();
-      results.servicePerformance = serviceBenchmarks;
-      if (verbose) console.log('✓ Service performance benchmarked');
-    } catch (serviceError) {
-      results.servicePerformance = { error: serviceError.message };
-      if (verbose) console.log('⚠️ Service benchmark failed:', serviceError.message);
-    }
-
-    // 3. Memory Performance Analysis
-    try {
-      const memoryBenchmarks = await globalThis.testPerformanceBenchmarks.benchmarkMemoryUsage();
-      results.memoryBenchmarks = memoryBenchmarks;
-      if (verbose) console.log('✓ Memory performance analyzed');
-    } catch (memoryError) {
-      results.memoryBenchmarks = { error: memoryError.message };
-      if (verbose) console.log('⚠️ Memory benchmark failed:', memoryError.message);
-    }
-
-    // 4. Concurrency Stress Testing
-    try {
-      const concurrencyResults = await globalThis.testPerformanceBenchmarks.testConcurrencyLimits();
-      results.concurrencyTests = concurrencyResults;
-      if (verbose) console.log('✓ Concurrency limits tested');
-    } catch (concurrencyError) {
-      results.concurrencyTests = { error: concurrencyError.message };
-      if (verbose) console.log('⚠️ Concurrency test failed:', concurrencyError.message);
-    }
-
-    // Calculate overall performance score
-    const scores = [
-      results.databasePerformance.performanceScore || 0.5,
-      results.servicePerformance.performanceScore || 0.5,
-      results.memoryBenchmarks.efficiencyScore || 0.5,
-      results.concurrencyTests.stabilityScore || 0.5
-    ];
-    results.overallPerformanceScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    results.overallPerformanceScore = calculatePerformanceScore(results);
     results.success = results.overallPerformanceScore > 0.7;
-
     results.summary = `Performance benchmarks completed with score: ${Math.round(results.overallPerformanceScore * 100)}%`;
 
     if (verbose) {
