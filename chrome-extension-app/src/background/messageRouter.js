@@ -59,6 +59,10 @@ import {
 // Relationship service import
 import { buildProblemRelationships } from "../shared/services/relationshipService.js";
 
+// Handler imports (extracted for reduced complexity)
+import { sessionHandlers } from "./handlers/sessionHandlers.js";
+import { problemHandlers } from "./handlers/problemHandlers.js";
+
 /**
  * Main message routing function
  * Handles all incoming Chrome messages and delegates to appropriate handlers
@@ -91,6 +95,21 @@ export async function routeMessage(request, sendResponse, finishRequest, depende
     checkOnboardingStatus,
     completeOnboarding
   } = dependencies;
+
+  // Create unified handler registry from extracted handler modules
+  const handlerRegistry = {
+    ...sessionHandlers,
+    ...problemHandlers,
+  };
+
+  // Check if this message type has an extracted handler
+  const handler = handlerRegistry[request.type];
+  if (handler) {
+    // Delegate to extracted handler
+    return handler(request, dependencies, sendResponse, finishRequest);
+  }
+
+  // Fall through to switch statement for non-extracted handlers
     switch (request.type) {
       case "backupIndexedDB":
         console.log("📌 Starting backup process...");
