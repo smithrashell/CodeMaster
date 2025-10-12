@@ -10822,71 +10822,50 @@ globalThis.testPerformanceBenchmarks.testConcurrencyLimits = async function() {
  * Advanced System Stress Testing
  * Comprehensive testing under extreme load and resource constraints
  */
+const calculateStressResilienceScore = (results) => {
+  const resilience = [
+    results.highLoadTesting.resilienceScore || 0.5,
+    results.resourceExhaustionTesting.recoveryScore || 0.5,
+    results.errorRecoveryTesting.effectivenessScore || 0.5,
+    results.gracefulDegradationTesting.degradationScore || 0.5
+  ];
+  return resilience.reduce((sum, score) => sum + score, 0) / resilience.length;
+};
+
 globalThis.testSystemStressConditions = async function(options = {}) {
   const { verbose = false } = options;
   if (verbose) console.log('💥 Testing system under stress conditions...');
 
   try {
-    let results = {
-      success: false,
-      summary: '',
-      highLoadTesting: {},
-      resourceExhaustionTesting: {},
-      errorRecoveryTesting: {},
-      gracefulDegradationTesting: {},
-      stressResilienceScore: 0
+    const results = {
+      highLoadTesting: await runBenchmarkSafely(
+        () => globalThis.testSystemStressConditions.testHighLoadScenarios(),
+        '✓ High load scenarios tested',
+        '⚠️ High load test failed:',
+        verbose
+      ),
+      resourceExhaustionTesting: await runBenchmarkSafely(
+        () => globalThis.testSystemStressConditions.testResourceExhaustion(),
+        '✓ Resource exhaustion tested',
+        '⚠️ Resource exhaustion test failed:',
+        verbose
+      ),
+      errorRecoveryTesting: await runBenchmarkSafely(
+        () => globalThis.testSystemStressConditions.testErrorRecoveryMechanisms(),
+        '✓ Error recovery mechanisms tested',
+        '⚠️ Error recovery test failed:',
+        verbose
+      ),
+      gracefulDegradationTesting: await runBenchmarkSafely(
+        () => globalThis.testSystemStressConditions.testGracefulDegradation(),
+        '✓ Graceful degradation tested',
+        '⚠️ Graceful degradation test failed:',
+        verbose
+      )
     };
 
-    // 1. High Load Testing
-    try {
-      const highLoadResults = await globalThis.testSystemStressConditions.testHighLoadScenarios();
-      results.highLoadTesting = highLoadResults;
-      if (verbose) console.log('✓ High load scenarios tested');
-    } catch (loadError) {
-      results.highLoadTesting = { error: loadError.message };
-      if (verbose) console.log('⚠️ High load test failed:', loadError.message);
-    }
-
-    // 2. Resource Exhaustion Testing
-    try {
-      const exhaustionResults = await globalThis.testSystemStressConditions.testResourceExhaustion();
-      results.resourceExhaustionTesting = exhaustionResults;
-      if (verbose) console.log('✓ Resource exhaustion tested');
-    } catch (exhaustionError) {
-      results.resourceExhaustionTesting = { error: exhaustionError.message };
-      if (verbose) console.log('⚠️ Resource exhaustion test failed:', exhaustionError.message);
-    }
-
-    // 3. Error Recovery Testing
-    try {
-      const recoveryResults = await globalThis.testSystemStressConditions.testErrorRecoveryMechanisms();
-      results.errorRecoveryTesting = recoveryResults;
-      if (verbose) console.log('✓ Error recovery mechanisms tested');
-    } catch (recoveryError) {
-      results.errorRecoveryTesting = { error: recoveryError.message };
-      if (verbose) console.log('⚠️ Error recovery test failed:', recoveryError.message);
-    }
-
-    // 4. Graceful Degradation Testing
-    try {
-      const degradationResults = await globalThis.testSystemStressConditions.testGracefulDegradation();
-      results.gracefulDegradationTesting = degradationResults;
-      if (verbose) console.log('✓ Graceful degradation tested');
-    } catch (degradationError) {
-      results.gracefulDegradationTesting = { error: degradationError.message };
-      if (verbose) console.log('⚠️ Graceful degradation test failed:', degradationError.message);
-    }
-
-    // Calculate stress resilience score
-    const resilience = [
-      results.highLoadTesting.resilienceScore || 0.5,
-      results.resourceExhaustionTesting.recoveryScore || 0.5,
-      results.errorRecoveryTesting.effectivenessScore || 0.5,
-      results.gracefulDegradationTesting.degradationScore || 0.5
-    ];
-    results.stressResilienceScore = resilience.reduce((sum, score) => sum + score, 0) / resilience.length;
+    results.stressResilienceScore = calculateStressResilienceScore(results);
     results.success = results.stressResilienceScore > 0.75;
-
     results.summary = `Stress testing completed with resilience score: ${Math.round(results.stressResilienceScore * 100)}%`;
 
     if (verbose) {
