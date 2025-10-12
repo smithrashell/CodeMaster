@@ -557,7 +557,7 @@ export async function fetchAdditionalProblems(
     );
 
     const { selectedProblems, usedProblemIds } = await selectPrimaryAndExpansionProblems(
-      numNewProblems, context, tagDifficultyAllowances, currentDifficultyCap
+      numNewProblems, context, tagDifficultyAllowances, currentDifficultyCap, excludeIds
     );
 
     await expandWithRemainingFocusTags({
@@ -649,9 +649,9 @@ function calculateTagDifficultyAllowances(enhancedFocusTags, masteryData, tagRel
   return tagDifficultyAllowances;
 }
 
-async function selectPrimaryAndExpansionProblems(numNewProblems, context, tagDifficultyAllowances, currentDifficultyCap) {
+async function selectPrimaryAndExpansionProblems(numNewProblems, context, tagDifficultyAllowances, currentDifficultyCap, excludeIds = new Set()) {
   const selectedProblems = [];
-  const usedProblemIds = new Set();
+  const usedProblemIds = new Set(excludeIds);
 
   const primaryFocusCount = Math.ceil(numNewProblems * 0.6);
   const primaryTag = context.enhancedFocusTags[0];
