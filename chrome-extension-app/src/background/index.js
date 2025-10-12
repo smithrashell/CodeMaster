@@ -2863,6 +2863,74 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     }
 
+    // Helper: Check TagService pathfinding availability
+    const checkTagServicePathfinding = function(verbose) {
+      if (typeof TagService !== 'undefined' && typeof TagService.findOptimalLearningPath === 'function') {
+        if (verbose) console.log('✓ TagService pathfinding available');
+        return true;
+      }
+      if (verbose) console.log('⚠️ TagService pathfinding not found, will simulate');
+      return false;
+    };
+
+    // Helper: Test ladder coordination with real or simulated data
+    const testLadderCoordination = async function(analyzeLadderCoordinationFn, verbose) {
+      try {
+        const patternLadders = await getAllFromStore('pattern_ladders');
+
+        if (patternLadders && patternLadders.length > 0) {
+          const coordinationAnalysis = analyzeLadderCoordinationFn(patternLadders);
+          if (verbose) console.log('✓ Ladder coordination analyzed with real data');
+          return { tested: true, data: coordinationAnalysis };
+        }
+
+        if (verbose) console.log('✓ Ladder coordination simulated (no data)');
+        return {
+          tested: true,
+          data: {
+            totalLadders: 15,
+            activeLadders: 8,
+            coordinatedLadders: 6,
+            coordinationRate: 0.75,
+            avgLadderProgress: 0.42,
+            simulated: true
+          }
+        };
+      } catch (coordinationError) {
+        if (verbose) console.log('⚠️ Ladder coordination test failed:', coordinationError.message);
+        return { tested: false, data: null };
+      }
+    };
+
+    // Helper: Test optimal path generation scenarios
+    const testOptimalPathGeneration = function(generateOptimalPathFn, verbose) {
+      try {
+        const testScenarios = [
+          { currentLevel: 1, targetTags: ['array'], timeConstraint: 4 },
+          { currentLevel: 2, targetTags: ['dynamic-programming'], timeConstraint: 8 },
+          { currentLevel: 3, targetTags: ['graph', 'tree'], timeConstraint: 12 }
+        ];
+
+        const pathGenerationResults = testScenarios.map(scenario => generateOptimalPathFn(scenario));
+        const successfulPaths = pathGenerationResults.filter(result => result.success).length;
+
+        if (verbose) console.log('✓ Optimal path generation tested');
+        return {
+          tested: successfulPaths > 0,
+          data: {
+            scenariosTested: testScenarios.length,
+            successfulPaths,
+            pathGenerationRate: successfulPaths / testScenarios.length,
+            averagePathEfficiency: pathGenerationResults.reduce((sum, result) =>
+              sum + (result.efficiency || 0), 0) / pathGenerationResults.length
+          }
+        };
+      } catch (pathGenError) {
+        if (verbose) console.log('⚠️ Optimal path generation test failed:', pathGenError.message);
+        return { tested: false, data: null };
+      }
+    };
+
     globalThis.testTagLadderPathfinding = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎯 Testing tag ladder pathfinding coordination...');
@@ -2879,12 +2947,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         };
 
         // 1. Test TagService pathfinding capabilities
-        if (typeof TagService !== 'undefined' && typeof TagService.findOptimalLearningPath === 'function') {
-          results.tagServiceAvailable = true;
-          if (verbose) console.log('✓ TagService pathfinding available');
-        } else {
-          if (verbose) console.log('⚠️ TagService pathfinding not found, will simulate');
-        }
+        results.tagServiceAvailable = checkTagServicePathfinding(verbose);
 
         // 2. Test pathfinding algorithm
         try {
@@ -2894,59 +2957,14 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 3. Test ladder coordination
-        try {
-          // getAllFromStore is now statically imported at the top
-          const patternLadders = await getAllFromStore('pattern_ladders');
-
-          if (patternLadders && patternLadders.length > 0) {
-            // Analyze ladder coordination
-            const coordinationAnalysis = this.analyzeLadderCoordination(patternLadders);
-            results.ladderCoordinationTested = true;
-            results.pathfindingData.coordination = coordinationAnalysis;
-            if (verbose) console.log('✓ Ladder coordination analyzed with real data');
-          } else {
-            // Simulate ladder coordination
-            results.ladderCoordinationTested = true;
-            results.pathfindingData.coordination = {
-              totalLadders: 15,
-              activeLadders: 8,
-              coordinatedLadders: 6,
-              coordinationRate: 0.75,
-              avgLadderProgress: 0.42,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Ladder coordination simulated (no data)');
-          }
-        } catch (coordinationError) {
-          if (verbose) console.log('⚠️ Ladder coordination test failed:', coordinationError.message);
-        }
+        const coordinationResult = await testLadderCoordination(this.analyzeLadderCoordination.bind(this), verbose);
+        results.ladderCoordinationTested = coordinationResult.tested;
+        results.pathfindingData.coordination = coordinationResult.data;
 
         // 4. Test optimal path generation
-        try {
-          const testScenarios = [
-            { currentLevel: 1, targetTags: ['array'], timeConstraint: 4 }, // 4 weeks
-            { currentLevel: 2, targetTags: ['dynamic-programming'], timeConstraint: 8 },
-            { currentLevel: 3, targetTags: ['graph', 'tree'], timeConstraint: 12 }
-          ];
-
-          const pathGenerationResults = testScenarios.map(scenario => {
-            return this.generateOptimalPath(scenario);
-          });
-
-          const successfulPaths = pathGenerationResults.filter(result => result.success).length;
-          results.optimalPathGenerationTested = successfulPaths > 0;
-          results.pathfindingData.pathGeneration = {
-            scenariosTested: testScenarios.length,
-            successfulPaths,
-            pathGenerationRate: successfulPaths / testScenarios.length,
-            averagePathEfficiency: pathGenerationResults.reduce((sum, result) =>
-              sum + (result.efficiency || 0), 0) / pathGenerationResults.length
-          };
-
-          if (verbose) console.log('✓ Optimal path generation tested');
-        } catch (pathGenError) {
-          if (verbose) console.log('⚠️ Optimal path generation test failed:', pathGenError.message);
-        }
+        const pathGenResult = testOptimalPathGeneration(this.generateOptimalPath.bind(this), verbose);
+        results.optimalPathGenerationTested = pathGenResult.tested;
+        results.pathfindingData.pathGeneration = pathGenResult.data;
 
         // 5. Evaluate overall pathfinding effectiveness
         const pathfindingEffective = (
@@ -4748,6 +4766,66 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       };
     };
 
+    // Helper: Check multi-session tester availability
+    const checkMultiSessionTesterAvailability = function(verbose) {
+      if (typeof DynamicPathOptimizationTester !== 'undefined' && DynamicPathOptimizationTester.testMultiSessionOptimization) {
+        if (verbose) console.log('✓ DynamicPathOptimizationTester multi-session optimization available');
+        return true;
+      }
+      if (verbose) console.log('⚠️ DynamicPathOptimizationTester not found, will simulate');
+      return false;
+    };
+
+    // Helper: Validate multi-session learning effectiveness
+    const validateMultiSessionEffectiveness = function(multiSessionData, verbose) {
+      try {
+        const { optimization, progression, crossSessionOptimization } = multiSessionData;
+
+        const pathsOptimized = (optimization?.sessionsOptimized || 0) > 2;
+        const progressionMaintained = progression?.continuityMaintained && progression?.progressionTracked;
+        const crossSessionLearning = crossSessionOptimization && crossSessionOptimization.length > 0 && crossSessionOptimization.every(c => c.successful);
+        const learningAdaptation = optimization?.adaptationMeasured && progression?.performanceProgression?.improving;
+
+        const multiSessionEffective = pathsOptimized && progressionMaintained && crossSessionLearning && learningAdaptation;
+
+        if (verbose) {
+          console.log('✓ Multi-session learning effectiveness validation:', {
+            pathsOptimized,
+            progressionMaintained,
+            crossSessionLearning,
+            learningAdaptation,
+            effective: multiSessionEffective
+          });
+        }
+        return multiSessionEffective;
+      } catch (effectivenessError) {
+        if (verbose) console.log('⚠️ Multi-session learning effectiveness validation failed:', effectivenessError.message);
+        return false;
+      }
+    };
+
+    // Helper: Generate multi-session test summary
+    const generateMultiSessionSummary = function(results, multiSessionEffective) {
+      if (results.success) {
+        const optimizationInfo = results.multiSessionData.optimization?.sessionsOptimized ?
+          ` Optimized ${results.multiSessionData.optimization.sessionsOptimized} sessions.` : '';
+        const progressionInfo = results.multiSessionData.progression?.historicalSessions ?
+          ` Tracked ${results.multiSessionData.progression.historicalSessions} historical sessions.` : '';
+        const crossSessionInfo = results.multiSessionData.crossSessionOptimization?.length ?
+          ` Tested ${results.multiSessionData.crossSessionOptimization.length} cross-session scenarios.` : '';
+        const simulatedInfo = Object.values(results.multiSessionData).some(data =>
+          data?.simulated || (Array.isArray(data) && data.some(item => item?.simulated))) ? ' (simulated)' : '';
+        return `Multi-session learning paths working: continuity ✓, progression ✓, cross-session optimization ✓.${optimizationInfo}${progressionInfo}${crossSessionInfo}${simulatedInfo}`;
+      }
+
+      const issues = [];
+      if (!results.pathContinuityTested) issues.push('path continuity failed');
+      if (!results.sessionProgressionTested) issues.push('session progression failed');
+      if (!results.crossSessionOptimizationTested) issues.push('cross-session optimization failed');
+      if (!multiSessionEffective) issues.push('multi-session learning ineffective');
+      return `Multi-session learning paths issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testMultiSessionPaths = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔄 Testing multi-session learning path optimization...');
@@ -4764,12 +4842,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         };
 
         // 1. Test multi-session optimization tester availability
-        if (typeof DynamicPathOptimizationTester !== 'undefined' && DynamicPathOptimizationTester.testMultiSessionOptimization) {
-          results.multiSessionTesterAvailable = true;
-          if (verbose) console.log('✓ DynamicPathOptimizationTester multi-session optimization available');
-        } else {
-          if (verbose) console.log('⚠️ DynamicPathOptimizationTester not found, will simulate');
-        }
+        results.multiSessionTesterAvailable = checkMultiSessionTesterAvailability(verbose);
 
         // 2. Test multi-session optimization using real algorithms
         try {
@@ -4799,32 +4872,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 5. Test multi-session learning effectiveness
-        let multiSessionEffective = false;
-        try {
-          const optimization = results.multiSessionData.optimization;
-          const progression = results.multiSessionData.progression;
-          const crossSession = results.multiSessionData.crossSessionOptimization;
-
-          // Validate that multi-session optimization produces meaningful improvements
-          const pathsOptimized = (optimization?.sessionsOptimized || 0) > 2;
-          const progressionMaintained = progression?.continuityMaintained && progression?.progressionTracked;
-          const crossSessionLearning = crossSession && crossSession.length > 0 && crossSession.every(c => c.successful);
-          const learningAdaptation = optimization?.adaptationMeasured && progression?.performanceProgression?.improving;
-
-          multiSessionEffective = pathsOptimized && progressionMaintained && crossSessionLearning && learningAdaptation;
-
-          if (verbose) {
-            console.log('✓ Multi-session learning effectiveness validation:', {
-              pathsOptimized,
-              progressionMaintained,
-              crossSessionLearning,
-              learningAdaptation,
-              effective: multiSessionEffective
-            });
-          }
-        } catch (effectivenessError) {
-          if (verbose) console.log('⚠️ Multi-session learning effectiveness validation failed:', effectivenessError.message);
-        }
+        const multiSessionEffective = validateMultiSessionEffectiveness(results.multiSessionData, verbose);
 
         // 6. Overall success assessment
         results.success = results.pathContinuityTested &&
@@ -4833,24 +4881,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                          multiSessionEffective;
 
         // 7. Generate summary
-        if (results.success) {
-          const optimizationInfo = results.multiSessionData.optimization?.sessionsOptimized ?
-            ` Optimized ${results.multiSessionData.optimization.sessionsOptimized} sessions.` : '';
-          const progressionInfo = results.multiSessionData.progression?.historicalSessions ?
-            ` Tracked ${results.multiSessionData.progression.historicalSessions} historical sessions.` : '';
-          const crossSessionInfo = results.multiSessionData.crossSessionOptimization?.length ?
-            ` Tested ${results.multiSessionData.crossSessionOptimization.length} cross-session scenarios.` : '';
-          const simulatedInfo = Object.values(results.multiSessionData).some(data =>
-            data?.simulated || (Array.isArray(data) && data.some(item => item?.simulated))) ? ' (simulated)' : '';
-          results.summary = `Multi-session learning paths working: continuity ✓, progression ✓, cross-session optimization ✓.${optimizationInfo}${progressionInfo}${crossSessionInfo}${simulatedInfo}`;
-        } else {
-          const issues = [];
-          if (!results.pathContinuityTested) issues.push('path continuity failed');
-          if (!results.sessionProgressionTested) issues.push('session progression failed');
-          if (!results.crossSessionOptimizationTested) issues.push('cross-session optimization failed');
-          if (!multiSessionEffective) issues.push('multi-session learning ineffective');
-          results.summary = `Multi-session learning paths issues: ${issues.join(', ')}`;
-        }
+        results.summary = generateMultiSessionSummary(results, multiSessionEffective);
 
         if (verbose) console.log('✅ Multi-session learning path optimization test completed');
         // Return boolean for backward compatibility when not verbose
@@ -5087,6 +5118,66 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       return result;
     }
 
+    // Helper: Check real system tester availability
+    const checkRealSystemTesterAvailability = function(verbose) {
+      if (typeof RealSystemTester !== 'undefined' && RealSystemTester.testRealLearningFlow) {
+        if (verbose) console.log('✓ RealSystemTester real learning flow available');
+        return true;
+      }
+      if (verbose) console.log('⚠️ RealSystemTester not found, will simulate');
+      return false;
+    };
+
+    // Helper: Validate real learning flow effectiveness
+    const validateRealLearningEffectiveness = function(realLearningData, verbose) {
+      try {
+        const { flow, lifecycle, progressMetrics } = realLearningData;
+
+        const flowComplete = (flow?.sessionsCompleted || 0) > 2 && flow?.learningGoalsAchieved;
+        const lifecycleWorking = lifecycle && Object.values(lifecycle).filter(Boolean).length >= 3;
+        const progressMeasured = progressMetrics && Object.values(progressMetrics).filter(Boolean).length >= 2;
+        const adaptiveSystemActive = flow?.adaptiveAdjustmentsMade && progressMetrics?.adaptiveResponseMeasured;
+
+        const realLearningEffective = flowComplete && lifecycleWorking && progressMeasured && adaptiveSystemActive;
+
+        if (verbose) {
+          console.log('✓ Real learning flow effectiveness validation:', {
+            flowComplete,
+            lifecycleWorking,
+            progressMeasured,
+            adaptiveSystemActive,
+            effective: realLearningEffective
+          });
+        }
+        return realLearningEffective;
+      } catch (effectivenessError) {
+        if (verbose) console.log('⚠️ Real learning flow effectiveness validation failed:', effectivenessError.message);
+        return false;
+      }
+    };
+
+    // Helper: Generate real learning flow summary
+    const generateRealLearningFlowSummary = function(results, realLearningEffective) {
+      if (results.success) {
+        const flowInfo = results.realLearningData.flow?.sessionsCompleted ?
+          ` Completed ${results.realLearningData.flow.sessionsCompleted} learning sessions.` : '';
+        const lifecycleInfo = results.realLearningData.lifecycle ?
+          ` Lifecycle components: ${Object.values(results.realLearningData.lifecycle).filter(Boolean).length}/4 working.` : '';
+        const progressInfo = results.realLearningData.progressMetrics ?
+          ` Progress metrics: ${Object.values(results.realLearningData.progressMetrics).filter(Boolean).length}/4 tracked.` : '';
+        const simulatedInfo = Object.values(results.realLearningData).some(data =>
+          data?.simulated || (typeof data === 'object' && Object.values(data || {}).includes(true))) ? ' (simulated)' : '';
+        return `Real learning flow working: flow ✓, lifecycle ✓, progress tracking ✓.${flowInfo}${lifecycleInfo}${progressInfo}${simulatedInfo}`;
+      }
+
+      const issues = [];
+      if (!results.learningFlowTested) issues.push('learning flow failed');
+      if (!results.sessionLifecycleTested) issues.push('session lifecycle failed');
+      if (!results.progressTrackingTested) issues.push('progress tracking failed');
+      if (!realLearningEffective) issues.push('learning flow ineffective');
+      return `Real learning flow issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testRealLearningFlow = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎓 Testing complete learning flow with real functions...');
@@ -5103,12 +5194,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         };
 
         // 1. Test real system tester availability
-        if (typeof RealSystemTester !== 'undefined' && RealSystemTester.testRealLearningFlow) {
-          results.realSystemTesterAvailable = true;
-          if (verbose) console.log('✓ RealSystemTester real learning flow available');
-        } else {
-          if (verbose) console.log('⚠️ RealSystemTester not found, will simulate');
-        }
+        results.realSystemTesterAvailable = checkRealSystemTesterAvailability(verbose);
 
         // 2. Test complete learning flow using real system functions
         try {
@@ -5138,32 +5224,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 5. Test real learning flow effectiveness
-        let realLearningEffective = false;
-        try {
-          const flow = results.realLearningData.flow;
-          const lifecycle = results.realLearningData.lifecycle;
-          const progress = results.realLearningData.progressMetrics;
-
-          // Validate that real learning flow produces meaningful educational outcomes
-          const flowComplete = (flow?.sessionsCompleted || 0) > 2 && flow?.learningGoalsAchieved;
-          const lifecycleWorking = lifecycle && Object.values(lifecycle).filter(Boolean).length >= 3;
-          const progressMeasured = progress && Object.values(progress).filter(Boolean).length >= 2;
-          const adaptiveSystemActive = flow?.adaptiveAdjustmentsMade && progress?.adaptiveResponseMeasured;
-
-          realLearningEffective = flowComplete && lifecycleWorking && progressMeasured && adaptiveSystemActive;
-
-          if (verbose) {
-            console.log('✓ Real learning flow effectiveness validation:', {
-              flowComplete,
-              lifecycleWorking,
-              progressMeasured,
-              adaptiveSystemActive,
-              effective: realLearningEffective
-            });
-          }
-        } catch (effectivenessError) {
-          if (verbose) console.log('⚠️ Real learning flow effectiveness validation failed:', effectivenessError.message);
-        }
+        const realLearningEffective = validateRealLearningEffectiveness(results.realLearningData, verbose);
 
         // 6. Overall success assessment
         results.success = results.learningFlowTested &&
@@ -5172,24 +5233,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                          realLearningEffective;
 
         // 7. Generate summary
-        if (results.success) {
-          const flowInfo = results.realLearningData.flow?.sessionsCompleted ?
-            ` Completed ${results.realLearningData.flow.sessionsCompleted} learning sessions.` : '';
-          const lifecycleInfo = results.realLearningData.lifecycle ?
-            ` Lifecycle components: ${Object.values(results.realLearningData.lifecycle).filter(Boolean).length}/4 working.` : '';
-          const progressInfo = results.realLearningData.progressMetrics ?
-            ` Progress metrics: ${Object.values(results.realLearningData.progressMetrics).filter(Boolean).length}/4 tracked.` : '';
-          const simulatedInfo = Object.values(results.realLearningData).some(data =>
-            data?.simulated || (typeof data === 'object' && Object.values(data || {}).includes(true))) ? ' (simulated)' : '';
-          results.summary = `Real learning flow working: flow ✓, lifecycle ✓, progress tracking ✓.${flowInfo}${lifecycleInfo}${progressInfo}${simulatedInfo}`;
-        } else {
-          const issues = [];
-          if (!results.learningFlowTested) issues.push('learning flow failed');
-          if (!results.sessionLifecycleTested) issues.push('session lifecycle failed');
-          if (!results.progressTrackingTested) issues.push('progress tracking failed');
-          if (!realLearningEffective) issues.push('learning flow ineffective');
-          results.summary = `Real learning flow issues: ${issues.join(', ')}`;
-        }
+        results.summary = generateRealLearningFlowSummary(results, realLearningEffective);
 
         if (verbose) console.log('✅ Real learning flow test completed');
         // Return boolean for backward compatibility when not verbose
