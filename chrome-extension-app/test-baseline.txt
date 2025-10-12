@@ -1,0 +1,105 @@
+
+> codemaster@1.0.0 test
+> jest --passWithNoTests --silent
+
+FAIL src/background/__tests__/globalExports.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../shared/services/tagService.js' from 'src/background/__tests__/globalExports.test.js'
+
+    [0m [90m 23 |[39m jest[33m.[39mmock([32m'../../shared/services/sessionService.js'[39m)[33m;[39m
+     [90m 24 |[39m jest[33m.[39mmock([32m'../../shared/services/attemptsService.js'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 25 |[39m jest[33m.[39mmock([32m'../../shared/services/tagService.js'[39m)[33m;[39m
+     [90m    |[39m      [31m[1m^[22m[39m
+     [90m 26 |[39m jest[33m.[39mmock([32m'../../shared/services/hintInteractionService.js'[39m)[33m;[39m
+     [90m 27 |[39m jest[33m.[39mmock([32m'../../shared/services/focusCoordinationService.js'[39m)[33m;[39m
+     [90m 28 |[39m[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)
+      at Object.mock (src/background/__tests__/globalExports.test.js:25:6)
+
+PASS src/shared/utils/__tests__/Utils.test.js
+PASS src/shared/services/__tests__/focusCoordinationService.test.js
+FAIL src/background/__tests__/messageHandlers.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../shared/services/tagService.js' from 'src/background/__tests__/messageHandlers.test.js'
+
+    [0m [90m 28 |[39m jest[33m.[39mmock([32m'../../shared/services/sessionService.js'[39m)[33m;[39m
+     [90m 29 |[39m jest[33m.[39mmock([32m'../../shared/services/attemptsService.js'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 30 |[39m jest[33m.[39mmock([32m'../../shared/services/tagService.js'[39m)[33m;[39m
+     [90m    |[39m      [31m[1m^[22m[39m
+     [90m 31 |[39m jest[33m.[39mmock([32m'../../shared/services/hintInteractionService.js'[39m)[33m;[39m
+     [90m 32 |[39m jest[33m.[39mmock([32m'../../shared/services/scheduleService.js'[39m)[33m;[39m
+     [90m 33 |[39m[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)
+      at Object.mock (src/background/__tests__/messageHandlers.test.js:30:6)
+
+PASS src/app/__tests__/dashboard.refresh.test.js
+PASS src/shared/utils/__tests__/leitnerSystem.test.js
+PASS src/shared/components/__tests__/timerbutton.test.jsx
+PASS src/shared/hooks/useChromeMessage.test.jsx
+PASS src/app/services/__tests__/dashboardService.critical.test.js
+PASS src/shared/services/__tests__/attemptsService.critical.test.js
+PASS src/shared/services/__tests__/sessionService.test.js
+PASS src/app/services/__tests__/dashboardService.test.js
+PASS src/shared/services/__tests__/sessionService.enhanced.test.js
+PASS src/app/components/__tests__/onboarding.infrastructure.test.js
+PASS src/shared/services/__tests__/backgroundScript.integration.test.js
+PASS src/shared/services/__tests__/sessionService.critical.test.js
+PASS src/shared/services/__tests__/problemService.test.js
+PASS src/app/services/__tests__/dataConsistency.infrastructure.test.js
+PASS src/shared/services/__tests__/attemptsService.test.js
+PASS src/shared/db/__tests__/migration.safety.test.js
+PASS src/shared/services/__tests__/storageService.critical.test.js
+PASS src/shared/services/__tests__/storageService.test.js
+PASS src/shared/services/__tests__/problemService.critical.test.js
+PASS src/shared/utils/__tests__/AccurateTimer.test.js
+PASS src/shared/services/__tests__/sessionAttribution.integration.test.js
+PASS src/shared/utils/__tests__/tagMasteryCalculations.test.js
+PASS src/shared/services/__tests__/background.critical.test.js
+PASS src/shared/components/__tests__/ErrorBoundary.test.jsx (5.706 s)
+PASS src/app/hooks/__tests__/chromeMessaging.infrastructure.test.js (6.259 s)
+PASS src/app/__tests__/integration/dashboard.integration.test.js (6.777 s)
+PASS src/shared/services/__tests__/errorRecovery.infrastructure.test.js (9.076 s)
+PASS src/content/services/__tests__/contentScript.critical.test.js (11.225 s)
+
+Summary of all failing tests
+FAIL src/background/__tests__/globalExports.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../shared/services/tagService.js' from 'src/background/__tests__/globalExports.test.js'
+
+    [0m [90m 23 |[39m jest[33m.[39mmock([32m'../../shared/services/sessionService.js'[39m)[33m;[39m
+     [90m 24 |[39m jest[33m.[39mmock([32m'../../shared/services/attemptsService.js'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 25 |[39m jest[33m.[39mmock([32m'../../shared/services/tagService.js'[39m)[33m;[39m
+     [90m    |[39m      [31m[1m^[22m[39m
+     [90m 26 |[39m jest[33m.[39mmock([32m'../../shared/services/hintInteractionService.js'[39m)[33m;[39m
+     [90m 27 |[39m jest[33m.[39mmock([32m'../../shared/services/focusCoordinationService.js'[39m)[33m;[39m
+     [90m 28 |[39m[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)
+      at Object.mock (src/background/__tests__/globalExports.test.js:25:6)
+
+FAIL src/background/__tests__/messageHandlers.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../shared/services/tagService.js' from 'src/background/__tests__/messageHandlers.test.js'
+
+    [0m [90m 28 |[39m jest[33m.[39mmock([32m'../../shared/services/sessionService.js'[39m)[33m;[39m
+     [90m 29 |[39m jest[33m.[39mmock([32m'../../shared/services/attemptsService.js'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 30 |[39m jest[33m.[39mmock([32m'../../shared/services/tagService.js'[39m)[33m;[39m
+     [90m    |[39m      [31m[1m^[22m[39m
+     [90m 31 |[39m jest[33m.[39mmock([32m'../../shared/services/hintInteractionService.js'[39m)[33m;[39m
+     [90m 32 |[39m jest[33m.[39mmock([32m'../../shared/services/scheduleService.js'[39m)[33m;[39m
+     [90m 33 |[39m[0m
+
+      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)
+      at Object.mock (src/background/__tests__/messageHandlers.test.js:30:6)
+
+
+Test Suites: 2 failed, 2 skipped, 30 passed, 32 of 34 total
+Tests:       63 skipped, 382 passed, 445 total
+Snapshots:   0 total
+Time:        13.763 s

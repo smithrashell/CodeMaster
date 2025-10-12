@@ -1,0 +1,86 @@
+
+> codemaster@1.0.0 lint
+> eslint src --ext .js,.jsx
+
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\app\services\__tests__\dashboardService.critical.test.js
+  37:62  warning  Arrow function has too many lines (477). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\app\services\__tests__\dataConsistency.infrastructure.test.js
+  14:74  warning  Arrow function has too many lines (382). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\core-business-tests.js
+  216:8  warning  Function 'initializeCoreBusinessTests' has too many lines (1578). Maximum allowed is 100  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\index.js
+    333:42  warning  Async function has too many lines (130). Maximum allowed is 100  max-lines-per-function
+    333:42  warning  Async function has a complexity of 34. Maximum allowed is 20     complexity
+    551:36  warning  Async function has too many lines (179). Maximum allowed is 100  max-lines-per-function
+    551:36  warning  Async function has a complexity of 56. Maximum allowed is 20     complexity
+    870:44  warning  Async function has too many lines (135). Maximum allowed is 100  max-lines-per-function
+    870:44  warning  Async function has a complexity of 56. Maximum allowed is 20     complexity
+   1162:44  warning  Async function has too many lines (140). Maximum allowed is 100  max-lines-per-function
+   1162:44  warning  Async function has a complexity of 66. Maximum allowed is 20     complexity
+   1471:44  warning  Async function has too many lines (128). Maximum allowed is 100  max-lines-per-function
+   1471:44  warning  Async function has a complexity of 47. Maximum allowed is 20     complexity
+   1681:36  warning  Async function has too many lines (203). Maximum allowed is 100  max-lines-per-function
+   1681:36  warning  Async function has a complexity of 38. Maximum allowed is 20     complexity
+   1795:41  warning  Async function has no 'await' expression                         require-await
+   1921:44  warning  Async function has too many lines (123). Maximum allowed is 100  max-lines-per-function
+   1921:44  warning  Async function has a complexity of 29. Maximum allowed is 20     complexity
+   2866:43  warning  Async function has too many lines (103). Maximum allowed is 100  max-lines-per-function
+   2866:43  warning  Async function has a complexity of 25. Maximum allowed is 20     complexity
+   3088:38  warning  Async function has too many lines (108). Maximum allowed is 100  max-lines-per-function
+   3088:38  warning  Async function has a complexity of 25. Maximum allowed is 20     complexity
+   3290:38  warning  Async function has a complexity of 26. Maximum allowed is 20     complexity
+   3751:39  warning  Async function has a complexity of 36. Maximum allowed is 20     complexity
+   4094:38  warning  Async function has too many lines (102). Maximum allowed is 100  max-lines-per-function
+   4094:38  warning  Async function has a complexity of 43. Maximum allowed is 20     complexity
+   4408:38  warning  Async function has a complexity of 39. Maximum allowed is 20     complexity
+   4751:40  warning  Async function has too many lines (101). Maximum allowed is 100  max-lines-per-function
+   4751:40  warning  Async function has a complexity of 39. Maximum allowed is 20     complexity
+   4953:43  warning  Async function has a complexity of 24. Maximum allowed is 20     complexity
+   5090:39  warning  Async function has too many lines (101). Maximum allowed is 100  max-lines-per-function
+   5090:39  warning  Async function has a complexity of 39. Maximum allowed is 20     complexity
+   5530:42  warning  Async function has a complexity of 25. Maximum allowed is 20     complexity
+   5642:38  warning  Function has a complexity of 23. Maximum allowed is 20           complexity
+   5881:42  warning  Async function has too many lines (109). Maximum allowed is 100  max-lines-per-function
+   5881:42  warning  Async function has a complexity of 42. Maximum allowed is 20     complexity
+   6013:48  warning  Function has too many lines (105). Maximum allowed is 100        max-lines-per-function
+   6013:48  warning  Function has a complexity of 29. Maximum allowed is 20           complexity
+   6303:39  warning  Async function has too many lines (204). Maximum allowed is 100  max-lines-per-function
+   6303:39  warning  Async function has a complexity of 63. Maximum allowed is 20     complexity
+   6581:46  warning  Async function has too many lines (208). Maximum allowed is 100  max-lines-per-function
+   6581:46  warning  Async function has a complexity of 66. Maximum allowed is 20     complexity
+   7011:42  warning  Async function has too many lines (209). Maximum allowed is 100  max-lines-per-function
+   7011:42  warning  Async function has a complexity of 63. Maximum allowed is 20     complexity
+   7318:41  warning  Async function has too many lines (226). Maximum allowed is 100  max-lines-per-function
+   7318:41  warning  Async function has a complexity of 69. Maximum allowed is 20     complexity
+   7652:46  warning  Async function has too many lines (106). Maximum allowed is 100  max-lines-per-function
+   7652:46  warning  Async function has a complexity of 24. Maximum allowed is 20     complexity
+   8554:26  warning  Arrow function has a complexity of 27. Maximum allowed is 20     complexity
+   9563:45  warning  Async function has a complexity of 23. Maximum allowed is 20     complexity
+   9815:35  warning  Async function has a complexity of 23. Maximum allowed is 20     complexity
+  10078:42  warning  Async function has a complexity of 23. Maximum allowed is 20     complexity
+  10291:39  warning  Async function has a complexity of 23. Maximum allowed is 20     complexity
+  11466:27  warning  Async function has too many lines (199). Maximum allowed is 100  max-lines-per-function
+  11466:27  warning  Async function has a complexity of 28. Maximum allowed is 20     complexity
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\messageRouter.js
+  81:8  warning  Async function 'routeMessage' has too many lines (1251). Maximum allowed is 100  max-lines-per-function
+  81:8  warning  Async function 'routeMessage' has a complexity of 107. Maximum allowed is 20     complexity
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\errorRecovery.infrastructure.test.js
+  12:75  warning  Arrow function has too many lines (428). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\problemService.critical.test.js
+  41:60  warning  Arrow function has too many lines (487). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\session.integration.test.js
+  36:44  warning  Arrow function has too many lines (583). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\sessionService.critical.test.js
+  43:60  warning  Arrow function has too many lines (375). Maximum allowed is 130  max-lines-per-function
+
+✖ 61 problems (0 errors, 61 warnings)
+
