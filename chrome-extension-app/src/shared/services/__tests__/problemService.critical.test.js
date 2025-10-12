@@ -38,6 +38,7 @@ import { ScheduleService } from "../scheduleService";
 import { StorageService } from "../storageService";
 import { InterviewService } from "../interviewService";
 
+// eslint-disable-next-line max-lines-per-function
 describe("ProblemService - Critical User Retention Paths", () => {
   beforeEach(() => {
     jest.clearAllMocks();

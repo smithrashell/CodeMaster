@@ -33,6 +33,7 @@ jest.mock('../../utils/logger.js', () => ({
   },
 }));
 
+// eslint-disable-next-line max-lines-per-function
 describe.skip('Session Logic Integration', () => {
   let mockSendMessage;
   let SessionService;

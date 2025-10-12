@@ -34,6 +34,90 @@ import { ProblemService } from "../../../shared/services/problemService";
 // import { StorageService } from "../../../shared/services/storageService"; // Unused in current tests
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
+// Helper functions for test setup
+function setupEmptyStateMocks() {
+  fetchAllProblems.mockResolvedValue([]);
+  getAllAttempts.mockResolvedValue([]);
+  getAllSessions.mockResolvedValue([]);
+  getAllStandardProblems.mockResolvedValue([]);
+  TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
+  ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
+  HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
+}
+
+function setupUserProgressMocks() {
+  fetchAllProblems.mockResolvedValue([
+    { id: 1, problem_id: 1, leetcode_id: 1, box_level: 2, attempt_stats: { total_attempts: 3, successful_attempts: 2 } },
+    { id: 2, problem_id: 2, leetcode_id: 2, box_level: 7, attempt_stats: { total_attempts: 5, successful_attempts: 4 } }
+  ]);
+
+  getAllAttempts.mockResolvedValue([
+    { ProblemID: 1, Success: true, TimeSpent: 1200, AttemptDate: "2024-01-15T10:00:00Z" },
+    { ProblemID: 2, Success: false, TimeSpent: 1800, AttemptDate: "2024-01-15T11:00:00Z" },
+    { ProblemID: 2, Success: true, TimeSpent: 1500, AttemptDate: "2024-01-15T12:00:00Z" }
+  ]);
+
+  getAllSessions.mockResolvedValue([
+    { sessionId: "session-1", Date: "2024-01-15T10:00:00Z", completed: true, duration: 45 },
+    { sessionId: "session-2", Date: "2024-01-14T14:00:00Z", completed: true, duration: 30 }
+  ]);
+
+  getAllStandardProblems.mockResolvedValue([
+    { id: 1, difficulty: "Easy", tags: ["array"] },
+    { id: 2, difficulty: "Medium", tags: ["hash-table"] }
+  ]);
+
+  TagService.getCurrentLearningState.mockResolvedValue({
+    currentTier: "Core Concepts",
+    masteredTags: ["array"],
+    unmasteredTags: ["hash-table"],
+    masteryData: [
+      { tag: "array", mastered: true, totalAttempts: 3, successfulAttempts: 2 },
+      { tag: "hash-table", mastered: false, totalAttempts: 2, successfulAttempts: 1 }
+    ]
+  });
+
+  ProblemService.countProblemsByBoxLevel.mockResolvedValue({
+    1: 5, 2: 3, 3: 2, 4: 1, 5: 1, 6: 1, 7: 2
+  });
+
+  HintInteractionService.getSystemAnalytics.mockResolvedValue({
+    overview: { totalInteractions: 8 },
+    trends: { hintTypePopularity: [
+      { hintType: "contextual", count: 3 },
+      { hintType: "general", count: 3 },
+      { hintType: "primer", count: 2 }
+    ]}
+  });
+}
+
+function setupDatabaseFailureMocks() {
+  fetchAllProblems.mockRejectedValue(new Error("Database connection lost"));
+  getAllAttempts.mockRejectedValue(new Error("Database connection lost"));
+  getAllSessions.mockRejectedValue(new Error("Database connection lost"));
+  getAllStandardProblems.mockRejectedValue(new Error("Database connection lost"));
+  TagService.getCurrentLearningState.mockRejectedValue(new Error("Service unavailable"));
+  ProblemService.countProblemsByBoxLevel.mockRejectedValue(new Error("Service unavailable"));
+}
+
+function createLargeMockDataset() {
+  return {
+    problems: Array.from({ length: 5000 }, (_, i) => ({
+      id: i,
+      problem_id: i,
+      box_level: (i % 7) + 1,
+      attempt_stats: { total_attempts: i % 10, successful_attempts: i % 5 }
+    })),
+    attempts: Array.from({ length: 15000 }, (_, i) => ({
+      ProblemID: i % 5000,
+      Success: i % 3 === 0,
+      TimeSpent: 900 + (i % 1200),
+      AttemptDate: new Date(Date.now() - (i * 60000)).toISOString()
+    }))
+  };
+}
+
+// eslint-disable-next-line max-lines-per-function
 describe("DashboardService - Critical User Retention Paths", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -44,13 +128,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
   describe("🔥 CRITICAL: Dashboard must handle all user states", () => {
     it("should display empty state gracefully for new users", async () => {
       // Mock scenario: Brand new user with no data (legitimate empty state)
-      fetchAllProblems.mockResolvedValue([]);
-      getAllAttempts.mockResolvedValue([]);
-      getAllSessions.mockResolvedValue([]);
-      getAllStandardProblems.mockResolvedValue([]);
-      TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
-      ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
+      setupEmptyStateMocks();
 
       const result = await getDashboardStatistics();
 
@@ -66,49 +144,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
 
     it("should load and display existing user data correctly", async () => {
       // Mock minimal data scenario - user with some progress
-      fetchAllProblems.mockResolvedValue([
-        { id: 1, problem_id: 1, leetcode_id: 1, box_level: 2, attempt_stats: { total_attempts: 3, successful_attempts: 2 } },
-        { id: 2, problem_id: 2, leetcode_id: 2, box_level: 7, attempt_stats: { total_attempts: 5, successful_attempts: 4 } }
-      ]);
-
-      getAllAttempts.mockResolvedValue([
-        { ProblemID: 1, Success: true, TimeSpent: 1200, AttemptDate: "2024-01-15T10:00:00Z" },
-        { ProblemID: 2, Success: false, TimeSpent: 1800, AttemptDate: "2024-01-15T11:00:00Z" },
-        { ProblemID: 2, Success: true, TimeSpent: 1500, AttemptDate: "2024-01-15T12:00:00Z" }
-      ]);
-
-      getAllSessions.mockResolvedValue([
-        { sessionId: "session-1", Date: "2024-01-15T10:00:00Z", completed: true, duration: 45 },
-        { sessionId: "session-2", Date: "2024-01-14T14:00:00Z", completed: true, duration: 30 }
-      ]);
-
-      getAllStandardProblems.mockResolvedValue([
-        { id: 1, difficulty: "Easy", tags: ["array"] },
-        { id: 2, difficulty: "Medium", tags: ["hash-table"] }
-      ]);
-
-      TagService.getCurrentLearningState.mockResolvedValue({
-        currentTier: "Core Concepts",
-        masteredTags: ["array"],
-        unmasteredTags: ["hash-table"],
-        masteryData: [
-          { tag: "array", mastered: true, totalAttempts: 3, successfulAttempts: 2 },
-          { tag: "hash-table", mastered: false, totalAttempts: 2, successfulAttempts: 1 }
-        ]
-      });
-
-      ProblemService.countProblemsByBoxLevel.mockResolvedValue({
-        1: 5, 2: 3, 3: 2, 4: 1, 5: 1, 6: 1, 7: 2
-      });
-
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({
-        overview: { totalInteractions: 8 },
-        trends: { hintTypePopularity: [
-          { hintType: "contextual", count: 3 },
-          { hintType: "general", count: 3 },
-          { hintType: "primer", count: 2 }
-        ]}
-      });
+      setupUserProgressMocks();
 
       const result = await getDashboardStatistics();
 
@@ -124,12 +160,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
 
     it("should handle complete database failure gracefully for user retention", async () => {
       // Mock scenario: All database calls fail
-      fetchAllProblems.mockRejectedValue(new Error("Database connection lost"));
-      getAllAttempts.mockRejectedValue(new Error("Database connection lost"));
-      getAllSessions.mockRejectedValue(new Error("Database connection lost"));
-      getAllStandardProblems.mockRejectedValue(new Error("Database connection lost"));
-      TagService.getCurrentLearningState.mockRejectedValue(new Error("Service unavailable"));
-      ProblemService.countProblemsByBoxLevel.mockRejectedValue(new Error("Service unavailable"));
+      setupDatabaseFailureMocks();
 
       // Should throw error so background script can handle gracefully
       await expect(getDashboardStatistics()).rejects.toThrow();
@@ -342,19 +373,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
   describe("⚡ CRITICAL: Performance under load", () => {
     it("should handle large datasets without performance degradation", async () => {
       // Create large datasets that could cause performance issues
-      const largeProblems = Array.from({ length: 5000 }, (_, i) => ({
-        id: i,
-        problem_id: i,
-        box_level: (i % 7) + 1,
-        attempt_stats: { total_attempts: i % 10, successful_attempts: i % 5 }
-      }));
-
-      const largeAttempts = Array.from({ length: 15000 }, (_, i) => ({
-        ProblemID: i % 5000,
-        Success: i % 3 === 0,
-        TimeSpent: 900 + (i % 1200),
-        AttemptDate: new Date(Date.now() - (i * 60000)).toISOString()
-      }));
+      const { problems: largeProblems, attempts: largeAttempts } = createLargeMockDataset();
 
       fetchAllProblems.mockResolvedValue(largeProblems);
       getAllAttempts.mockResolvedValue(largeAttempts);

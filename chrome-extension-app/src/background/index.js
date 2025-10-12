@@ -1254,23 +1254,64 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     }
 
+    // Helper: Initialize test results structure
+    // eslint-disable-next-line no-inner-declarations
+    function initializeFullInterviewResults() {
+      return {
+        success: false,
+        summary: '',
+        interviewServiceAvailable: false,
+        fullInterviewConfigValidated: false,
+        sessionCreated: false,
+        constraintsValidated: false,
+        sessionData: null,
+        fullInterviewConfig: {},
+        constraintValidation: {},
+        comparisonWithStandard: {}
+      };
+    }
+
+    // Helper: Validate full interview constraints
+    // eslint-disable-next-line no-inner-declarations
+    function _validateFullInterviewConstraints(sessionData) {
+      const constraints = sessionData.constraints || {};
+      return {
+        noHints: constraints.hintsAllowed === 0,
+        strictTiming: constraints.strictTiming === true,
+        noSkipping: constraints.allowSkipping === false,
+        allValid: constraints.hintsAllowed === 0 &&
+                  constraints.strictTiming === true &&
+                  constraints.allowSkipping === false
+      };
+    }
+
+    // Helper: Compare interview modes
+    // eslint-disable-next-line no-inner-declarations
+    function _compareInterviewModes(fullSession, standardSession) {
+      const fullConstraints = fullSession.constraints || {};
+      const standardConstraints = standardSession.constraints || {};
+
+      return {
+        hintsComparison: {
+          full: fullConstraints.hintsAllowed || 0,
+          standard: standardConstraints.hintsAllowed || 3,
+          isStricter: fullConstraints.hintsAllowed < standardConstraints.hintsAllowed
+        },
+        timingComparison: {
+          full: fullConstraints.strictTiming || false,
+          standard: standardConstraints.strictTiming || false,
+          isStricter: fullConstraints.strictTiming && !standardConstraints.strictTiming
+        }
+      };
+    }
+
+    // eslint-disable-next-line max-lines-per-function, complexity
     globalThis.testFullInterviewSessions = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🚫 Testing full interview session creation...');
 
       try {
-        let results = {
-          success: false,
-          summary: '',
-          interviewServiceAvailable: false,
-          fullInterviewConfigValidated: false,
-          sessionCreated: false,
-          constraintsValidated: false,
-          sessionData: null,
-          fullInterviewConfig: {},
-          constraintValidation: {},
-          comparisonWithStandard: {}
-        };
+        let results = initializeFullInterviewResults();
 
         // 1. Test InterviewService availability for full interview mode
         if (typeof InterviewService !== 'undefined') {
@@ -1299,7 +1340,6 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           if (results.sessionData) {
             // Validate that full interview has the strictest constraints
             const constraints = results.sessionData.constraints || {};
-
             results.constraintValidation = {
               noHints: constraints.hintsAllowed === 0,
               timePressureEnabled: !!constraints.timePressure,
@@ -1795,6 +1835,192 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     }
 
+    // Helper: Validate escape hatch types from activated hatches
+    const validateEscapeHatchTypes = function(results, verbose) {
+      try {
+        const detectedHatchTypes = new Set();
+
+        results.activatedEscapeHatches.forEach(result => {
+          if (result.activated && Array.isArray(result.activated)) {
+            result.activated.forEach(hatch => detectedHatchTypes.add(hatch));
+          }
+        });
+
+        const isValid = detectedHatchTypes.size > 0;
+        results.escapeHatchData.detectedTypes = Array.from(detectedHatchTypes);
+
+        if (verbose) {
+          console.log('✓ Escape hatch types detected:', results.escapeHatchData.detectedTypes);
+        }
+
+        return isValid;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Escape hatch types validation failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Validate escape hatch activation patterns
+    const validateActivationPatterns = function(results, escapeHatchScenarios, verbose) {
+      try {
+        const successfulActivations = results.activatedEscapeHatches.filter(result => result.successful);
+        const failedActivations = results.activatedEscapeHatches.filter(result => !result.successful);
+
+        // Validate that stagnation scenarios trigger escape hatches (at least 60% success)
+        const isValid = successfulActivations.length >= Math.floor(escapeHatchScenarios.length * 0.6);
+
+        results.escapeHatchData.activationStats = {
+          successful: successfulActivations.length,
+          failed: failedActivations.length,
+          successRate: successfulActivations.length / results.activatedEscapeHatches.length
+        };
+
+        if (verbose) {
+          console.log('✓ Activation patterns analysis:', results.escapeHatchData.activationStats);
+        }
+
+        return isValid;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Activation patterns validation failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Generate success summary for escape hatches
+    const generateEscapeHatchSuccessSummary = function(results) {
+      const scenariosInfo = results.stagnationScenariosTestCount > 0 ?
+        ` Tested ${results.stagnationScenariosTestCount} stagnation scenarios.` : '';
+      const typesInfo = results.escapeHatchData.detectedTypes?.length > 0 ?
+        ` Types: ${results.escapeHatchData.detectedTypes.join(', ')}.` : '';
+      const statsInfo = results.escapeHatchData.activationStats ?
+        ` Success rate: ${Math.round(results.escapeHatchData.activationStats.successRate * 100)}%.` : '';
+      const simulatedInfo = results.activatedEscapeHatches.some(h => h.simulated) ? ' (simulated)' : '';
+
+      return `Escape hatches working: state ✓, scenarios ✓, activation ✓.${scenariosInfo}${typesInfo}${statsInfo}${simulatedInfo}`;
+    };
+
+    // Helper: Generate failure summary for escape hatches
+    const generateEscapeHatchFailureSummary = function(results, escapeHatchTypesValid, activationPatternsValid) {
+      const issues = [];
+      if (!results.sessionStateTestPassed) issues.push('session state failed');
+      if (!results.escapeHatchScenariosValidated) issues.push('scenario testing failed');
+      if (!escapeHatchTypesValid && !results.escapeHatchLogicAvailable) issues.push('hatch types invalid');
+      if (!activationPatternsValid && results.activatedEscapeHatches.length === 0) issues.push('activation patterns invalid');
+      return `Escape hatches issues: ${issues.join(', ')}`;
+    };
+
+    // Helper: Get escape hatch test scenarios
+    const getEscapeHatchScenarios = function() {
+      return [
+        {
+          name: 'Stagnation at Easy',
+          sessionState: {
+            current_difficulty_cap: 'Easy',
+            num_sessions_completed: 12,
+            escape_hatches: {
+              sessions_at_current_difficulty: 8,
+              sessions_without_promotion: 8,
+              last_difficulty_promotion: null,
+              activated_escape_hatches: []
+            }
+          },
+          accuracy: 0.30,
+          expectedHatch: 'difficulty_reset'
+        },
+        {
+          name: 'Long stagnation at Medium',
+          sessionState: {
+            current_difficulty_cap: 'Medium',
+            num_sessions_completed: 20,
+            escape_hatches: {
+              sessions_at_current_difficulty: 12,
+              sessions_without_promotion: 12,
+              last_difficulty_promotion: Date.now() - (14 * 24 * 60 * 60 * 1000),
+              activated_escape_hatches: []
+            }
+          },
+          accuracy: 0.45,
+          expectedHatch: 'focus_shift'
+        },
+        {
+          name: 'Struggling with high session count',
+          sessionState: {
+            current_difficulty_cap: 'Hard',
+            num_sessions_completed: 50,
+            escape_hatches: {
+              sessions_at_current_difficulty: 20,
+              sessions_without_promotion: 20,
+              last_difficulty_promotion: Date.now() - (21 * 24 * 60 * 60 * 1000),
+              activated_escape_hatches: ['difficulty_reset']
+            }
+          },
+          accuracy: 0.25,
+          expectedHatch: 'learning_reset'
+        }
+      ];
+    };
+
+    // Helper: Process escape hatch result
+    const processEscapeHatchResult = function(escapeHatchResult, scenarioName, verbose) {
+      if (escapeHatchResult && escapeHatchResult.activated_escape_hatches) {
+        const result = {
+          scenario: scenarioName,
+          activated: escapeHatchResult.activated_escape_hatches,
+          newDifficulty: escapeHatchResult.current_difficulty_cap,
+          successful: true
+        };
+        if (verbose) console.log(`✓ ${scenarioName}:`, escapeHatchResult.activated_escape_hatches);
+        return result;
+      }
+
+      const result = {
+        scenario: scenarioName,
+        activated: [],
+        successful: false,
+        reason: 'No escape hatch activated'
+      };
+      if (verbose) console.log(`⚠️ ${scenarioName}: No escape hatch activated`);
+      return result;
+    };
+
+    // Helper: Create simulated escape hatch result
+    const createSimulatedEscapeHatchResult = function(scenarioName, expectedHatch) {
+      return {
+        scenario: scenarioName,
+        activated: [expectedHatch],
+        simulated: true,
+        successful: true
+      };
+    };
+
+    // Helper: Test single escape hatch scenario
+    const testEscapeHatchScenario = function(scenario, verbose) {
+      try {
+        const escapeHatchResult = applyEscapeHatchLogic(
+          scenario.sessionState,
+          scenario.accuracy,
+          {},
+          Date.now()
+        );
+        return processEscapeHatchResult(escapeHatchResult, scenario.name, verbose);
+      } catch (error) {
+        if (verbose) console.log(`⚠️ ${scenario.name} failed:`, error.message);
+        return createSimulatedEscapeHatchResult(scenario.name, scenario.expectedHatch);
+      }
+    };
+
+    // Helper: Test all escape hatch scenarios
+    const testAllEscapeHatchScenarios = function(results, escapeHatchScenarios, verbose) {
+      for (const scenario of escapeHatchScenarios) {
+        const result = results.escapeHatchLogicAvailable ?
+          testEscapeHatchScenario(scenario, verbose) :
+          createSimulatedEscapeHatchResult(scenario.name, scenario.expectedHatch);
+        results.activatedEscapeHatches.push(result);
+      }
+      results.stagnationScenariosTestCount = escapeHatchScenarios.length;
+      results.escapeHatchScenariosValidated = true;
+    };
+
     globalThis.testEscapeHatches = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔓 Testing escape hatch activation...');
@@ -1827,167 +2053,20 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 3. Test escape hatch scenarios
-        const escapeHatchScenarios = [
-          {
-            name: 'Stagnation at Easy',
-            sessionState: {
-              current_difficulty_cap: 'Easy',
-              num_sessions_completed: 12,
-              escape_hatches: {
-                sessions_at_current_difficulty: 8,
-                sessions_without_promotion: 8,
-                last_difficulty_promotion: null,
-                activated_escape_hatches: []
-              }
-            },
-            accuracy: 0.30,
-            expectedHatch: 'difficulty_reset' // Should trigger difficulty reset
-          },
-          {
-            name: 'Long stagnation at Medium',
-            sessionState: {
-              current_difficulty_cap: 'Medium',
-              num_sessions_completed: 20,
-              escape_hatches: {
-                sessions_at_current_difficulty: 12,
-                sessions_without_promotion: 12,
-                last_difficulty_promotion: Date.now() - (14 * 24 * 60 * 60 * 1000), // 14 days ago
-                activated_escape_hatches: []
-              }
-            },
-            accuracy: 0.45,
-            expectedHatch: 'focus_shift' // Should trigger focus area change
-          },
-          {
-            name: 'Struggling with high session count',
-            sessionState: {
-              current_difficulty_cap: 'Hard',
-              num_sessions_completed: 50,
-              escape_hatches: {
-                sessions_at_current_difficulty: 20,
-                sessions_without_promotion: 20,
-                last_difficulty_promotion: Date.now() - (21 * 24 * 60 * 60 * 1000), // 21 days ago
-                activated_escape_hatches: ['difficulty_reset']
-              }
-            },
-            accuracy: 0.25,
-            expectedHatch: 'learning_reset' // Should trigger comprehensive reset
-          }
-        ];
-
-        // Helper: Process escape hatch result
-        const processEscapeHatchResult = function(escapeHatchResult, scenarioName, verbose) {
-          if (escapeHatchResult && escapeHatchResult.activated_escape_hatches) {
-            const result = {
-              scenario: scenarioName,
-              activated: escapeHatchResult.activated_escape_hatches,
-              newDifficulty: escapeHatchResult.current_difficulty_cap,
-              successful: true
-            };
-            if (verbose) console.log(`✓ ${scenarioName}:`, escapeHatchResult.activated_escape_hatches);
-            return result;
-          } else {
-            const result = {
-              scenario: scenarioName,
-              activated: [],
-              successful: false,
-              reason: 'No escape hatch activated'
-            };
-            if (verbose) console.log(`⚠️ ${scenarioName}: No escape hatch activated`);
-            return result;
-          }
-        }
-
-        // Helper: Create simulated escape hatch result
-        const createSimulatedEscapeHatchResult = function(scenarioName, expectedHatch) {
-          return {
-            scenario: scenarioName,
-            activated: [expectedHatch],
-            simulated: true,
-            successful: true
-          };
-        }
-
-        // Helper: Test single escape hatch scenario
-        const testEscapeHatchScenario = function(scenario, verbose) {
-          try {
-            const escapeHatchResult = applyEscapeHatchLogic(
-              scenario.sessionState,
-              scenario.accuracy,
-              {}, // settings
-              Date.now()
-            );
-            return processEscapeHatchResult(escapeHatchResult, scenario.name, verbose);
-          } catch (hatchError) {
-            if (verbose) console.log(`⚠️ ${scenario.name} failed:`, hatchError.message);
-            return createSimulatedEscapeHatchResult(scenario.name, scenario.expectedHatch);
-          }
-        }
+        const escapeHatchScenarios = getEscapeHatchScenarios();
 
         try {
-          for (const scenario of escapeHatchScenarios) {
-            if (results.escapeHatchLogicAvailable) {
-              // Test actual escape hatch logic
-              const result = testEscapeHatchScenario(scenario, verbose);
-              results.activatedEscapeHatches.push(result);
-            } else {
-              // Simulate escape hatch activation
-              results.activatedEscapeHatches.push(
-                createSimulatedEscapeHatchResult(scenario.name, scenario.expectedHatch)
-              );
-            }
-            results.stagnationScenariosTestCount++;
-          }
-
-          results.escapeHatchScenariosValidated = results.activatedEscapeHatches.length > 0;
+          testAllEscapeHatchScenarios(results, escapeHatchScenarios, verbose);
           if (verbose) console.log('✓ Escape hatch scenarios tested:', results.stagnationScenariosTestCount);
         } catch (scenarioError) {
           if (verbose) console.log('⚠️ Escape hatch scenario testing failed:', scenarioError.message);
         }
 
         // 4. Test escape hatch types and triggers
-        let escapeHatchTypesValid = false;
-        try {
-          const _expectedHatchTypes = ['difficulty_reset', 'focus_shift', 'learning_reset'];
-          const detectedHatchTypes = new Set();
-
-          results.activatedEscapeHatches.forEach(result => {
-            if (result.activated && Array.isArray(result.activated)) {
-              result.activated.forEach(hatch => detectedHatchTypes.add(hatch));
-            }
-          });
-
-          escapeHatchTypesValid = detectedHatchTypes.size > 0;
-          results.escapeHatchData.detectedTypes = Array.from(detectedHatchTypes);
-
-          if (verbose) {
-            console.log('✓ Escape hatch types detected:', results.escapeHatchData.detectedTypes);
-          }
-        } catch (typesError) {
-          if (verbose) console.log('⚠️ Escape hatch types validation failed:', typesError.message);
-        }
+        const escapeHatchTypesValid = validateEscapeHatchTypes(results, verbose);
 
         // 5. Test escape hatch activation patterns
-        let activationPatternsValid = false;
-        try {
-          const successfulActivations = results.activatedEscapeHatches.filter(result => result.successful);
-          const failedActivations = results.activatedEscapeHatches.filter(result => !result.successful);
-
-          // Validate that stagnation scenarios trigger escape hatches
-          activationPatternsValid = successfulActivations.length >= Math.floor(escapeHatchScenarios.length * 0.6); // At least 60% success
-
-          results.escapeHatchData.activationStats = {
-            successful: successfulActivations.length,
-            failed: failedActivations.length,
-            successRate: successfulActivations.length / results.activatedEscapeHatches.length
-          };
-
-          if (verbose) {
-            console.log('✓ Activation patterns analysis:', results.escapeHatchData.activationStats);
-          }
-        } catch (patternsError) {
-          if (verbose) console.log('⚠️ Activation patterns validation failed:', patternsError.message);
-        }
+        const activationPatternsValid = validateActivationPatterns(results, escapeHatchScenarios, verbose);
 
         // 6. Overall success assessment
         results.success = results.sessionStateTestPassed &&
@@ -1996,23 +2075,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                          (activationPatternsValid || results.activatedEscapeHatches.length > 0);
 
         // 7. Generate summary
-        if (results.success) {
-          const scenariosInfo = results.stagnationScenariosTestCount > 0 ?
-            ` Tested ${results.stagnationScenariosTestCount} stagnation scenarios.` : '';
-          const typesInfo = results.escapeHatchData.detectedTypes?.length > 0 ?
-            ` Types: ${results.escapeHatchData.detectedTypes.join(', ')}.` : '';
-          const statsInfo = results.escapeHatchData.activationStats ?
-            ` Success rate: ${Math.round(results.escapeHatchData.activationStats.successRate * 100)}%.` : '';
-          const simulatedInfo = results.activatedEscapeHatches.some(h => h.simulated) ? ' (simulated)' : '';
-          results.summary = `Escape hatches working: state ✓, scenarios ✓, activation ✓.${scenariosInfo}${typesInfo}${statsInfo}${simulatedInfo}`;
-        } else {
-          const issues = [];
-          if (!results.sessionStateTestPassed) issues.push('session state failed');
-          if (!results.escapeHatchScenariosValidated) issues.push('scenario testing failed');
-          if (!escapeHatchTypesValid && !results.escapeHatchLogicAvailable) issues.push('hatch types invalid');
-          if (!activationPatternsValid && results.activatedEscapeHatches.length === 0) issues.push('activation patterns invalid');
-          results.summary = `Escape hatches issues: ${issues.join(', ')}`;
-        }
+        results.summary = results.success ?
+          generateEscapeHatchSuccessSummary(results) :
+          generateEscapeHatchFailureSummary(results, escapeHatchTypesValid, activationPatternsValid);
 
         if (verbose) console.log('✅ Escape hatches test completed');
         // Return boolean for backward compatibility when not verbose
@@ -3931,6 +3996,59 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     }
 
+    // Helper: Validate optimization effectiveness metrics
+    const validateOptimizationEffectiveness = function(results, verbose) {
+      try {
+        const selectionData = results.optimizationData.problemSelection;
+        const adaptationData = results.optimizationData.adaptation;
+        const pathData = results.optimizationData.pathOptimization;
+
+        const problemsSelected = selectionData?.sessionCount > 0 || adaptationData?.problemsGenerated > 0;
+        const algorithmsWorking = selectionData?.algorithmsValidated && adaptationData?.hasTagFocus;
+        const pathIntegration = pathData?.pathGenerated && pathData?.focusIntegrated;
+
+        const isValid = problemsSelected && algorithmsWorking && pathIntegration;
+
+        if (verbose) {
+          console.log('✓ Optimization effectiveness validation:', {
+            problemsSelected,
+            algorithmsWorking,
+            pathIntegration,
+            effective: isValid
+          });
+        }
+
+        return isValid;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Optimization effectiveness validation failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Generate success summary for path optimization
+    const generateSuccessSummary = function(results) {
+      const selectionInfo = results.optimizationData.problemSelection?.sessionCount ?
+        ` Tested ${results.optimizationData.problemSelection.sessionCount} sessions.` : '';
+      const adaptationInfo = results.optimizationData.adaptation?.problemsGenerated ?
+        ` Generated ${results.optimizationData.adaptation.problemsGenerated} adaptive problems.` : '';
+      const pathInfo = results.optimizationData.pathOptimization?.focusIntegrated ?
+        ' Focus-integrated path optimization.' : '';
+      const simulatedInfo = Object.values(results.optimizationData).some(data => data?.simulated) ?
+        ' (simulated)' : '';
+
+      return `Learning path optimization working: problem selection ✓, adaptive algorithms ✓, path optimization ✓.${selectionInfo}${adaptationInfo}${pathInfo}${simulatedInfo}`;
+    };
+
+    // Helper: Generate failure summary for path optimization
+    const generateFailureSummary = function(results, optimizationEffectivenessValid) {
+      const issues = [];
+      if (!results.problemSelectionTested) issues.push('problem selection failed');
+      if (!results.adaptiveAlgorithmsTested) issues.push('adaptive algorithms failed');
+      if (!results.pathOptimizationTested) issues.push('path optimization failed');
+      if (!optimizationEffectivenessValid) issues.push('optimization effectiveness invalid');
+      return `Learning path optimization issues: ${issues.join(', ')}`;
+    };
+
     // 🎯 OPTIMIZATION Test Functions - Clean versions for default execution
     globalThis.testPathOptimization = async function(options = {}) {
       const { verbose = false } = options;
@@ -3977,30 +4095,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 5. Test optimization effectiveness metrics
-        let optimizationEffectivenessValid = false;
-        try {
-          const selectionData = results.optimizationData.problemSelection;
-          const adaptationData = results.optimizationData.adaptation;
-          const pathData = results.optimizationData.pathOptimization;
-
-          // Validate that optimization produces meaningful improvements
-          const problemsSelected = selectionData?.sessionCount > 0 || adaptationData?.problemsGenerated > 0;
-          const algorithmsWorking = selectionData?.algorithmsValidated && adaptationData?.hasTagFocus;
-          const pathIntegration = pathData?.pathGenerated && pathData?.focusIntegrated;
-
-          optimizationEffectivenessValid = problemsSelected && algorithmsWorking && pathIntegration;
-
-          if (verbose) {
-            console.log('✓ Optimization effectiveness validation:', {
-              problemsSelected,
-              algorithmsWorking,
-              pathIntegration,
-              effective: optimizationEffectivenessValid
-            });
-          }
-        } catch (effectivenessError) {
-          if (verbose) console.log('⚠️ Optimization effectiveness validation failed:', effectivenessError.message);
-        }
+        const optimizationEffectivenessValid = validateOptimizationEffectiveness(results, verbose);
 
         // 6. Overall success assessment
         results.success = results.problemSelectionTested &&
@@ -4009,22 +4104,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                          optimizationEffectivenessValid;
 
         // 7. Generate summary
-        if (results.success) {
-          const selectionInfo = results.optimizationData.problemSelection?.sessionCount ?
-            ` Tested ${results.optimizationData.problemSelection.sessionCount} sessions.` : '';
-          const adaptationInfo = results.optimizationData.adaptation?.problemsGenerated ?
-            ` Generated ${results.optimizationData.adaptation.problemsGenerated} adaptive problems.` : '';
-          const pathInfo = results.optimizationData.pathOptimization?.focusIntegrated ? ' Focus-integrated path optimization.' : '';
-          const simulatedInfo = Object.values(results.optimizationData).some(data => data?.simulated) ? ' (simulated)' : '';
-          results.summary = `Learning path optimization working: problem selection ✓, adaptive algorithms ✓, path optimization ✓.${selectionInfo}${adaptationInfo}${pathInfo}${simulatedInfo}`;
-        } else {
-          const issues = [];
-          if (!results.problemSelectionTested) issues.push('problem selection failed');
-          if (!results.adaptiveAlgorithmsTested) issues.push('adaptive algorithms failed');
-          if (!results.pathOptimizationTested) issues.push('path optimization failed');
-          if (!optimizationEffectivenessValid) issues.push('optimization effectiveness invalid');
-          results.summary = `Learning path optimization issues: ${issues.join(', ')}`;
-        }
+        results.summary = results.success ?
+          generateSuccessSummary(results) :
+          generateFailureSummary(results, optimizationEffectivenessValid);
 
         if (verbose) console.log('✅ Learning path optimization test completed');
         // Return boolean for backward compatibility when not verbose
@@ -4599,6 +4681,61 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       };
     };
 
+    // Helper: Validate plateau recovery effectiveness
+    const validatePlateauRecoveryEffectiveness = function(results, verbose) {
+      try {
+        const detection = results.plateauData.detection;
+        const recovery = results.plateauData.recovery;
+        const adaptive = results.plateauData.adaptiveResponses;
+
+        const plateausDetected = (detection?.plateausDetected || 0) > 0;
+        const recoveryStrategies = recovery?.strategyGenerated && recovery?.difficultyAdjusted;
+        const adaptiveResponsesValid = adaptive && adaptive.length > 0 && adaptive.every(r => r.successful);
+        const comprehensiveRecovery = detection?.stagnationPeriodAnalyzed && recovery?.recoveryTimelineSet;
+
+        const isEffective = plateausDetected && recoveryStrategies && adaptiveResponsesValid && comprehensiveRecovery;
+
+        if (verbose) {
+          console.log('✓ Plateau recovery effectiveness validation:', {
+            plateausDetected,
+            recoveryStrategies,
+            adaptiveResponsesValid,
+            comprehensiveRecovery,
+            effective: isEffective
+          });
+        }
+
+        return isEffective;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Plateau recovery effectiveness validation failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Generate success summary for plateau recovery
+    const generatePlateauRecoverySuccessSummary = function(results) {
+      const detectionInfo = results.plateauData.detection?.plateausDetected ?
+        ` Detected ${results.plateauData.detection.plateausDetected} plateau scenarios.` : '';
+      const recoveryInfo = results.plateauData.recovery?.strategyGenerated ?
+        ` Recovery strategy: ${results.plateauData.recovery.strategyGenerated}.` : '';
+      const adaptiveInfo = results.plateauData.adaptiveResponses?.length ?
+        ` Tested ${results.plateauData.adaptiveResponses.length} adaptive responses.` : '';
+      const simulatedInfo = Object.values(results.plateauData).some(data =>
+        data?.simulated || (Array.isArray(data) && data.some(item => item?.simulated))) ? ' (simulated)' : '';
+
+      return `Plateau detection and recovery working: detection ✓, recovery strategies ✓, adaptive responses ✓.${detectionInfo}${recoveryInfo}${adaptiveInfo}${simulatedInfo}`;
+    };
+
+    // Helper: Generate failure summary for plateau recovery
+    const generatePlateauRecoveryFailureSummary = function(results, plateauRecoveryEffective) {
+      const issues = [];
+      if (!results.plateauDetectionTested) issues.push('plateau detection failed');
+      if (!results.recoveryStrategiesTested) issues.push('recovery strategies failed');
+      if (!results.adaptiveResponseTested) issues.push('adaptive responses failed');
+      if (!plateauRecoveryEffective) issues.push('recovery ineffective');
+      return `Plateau detection and recovery issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testPlateauRecovery = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📈 Testing plateau detection and recovery...');
@@ -4650,32 +4787,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
         }
 
         // 5. Test plateau recovery effectiveness validation
-        let plateauRecoveryEffective = false;
-        try {
-          const detection = results.plateauData.detection;
-          const recovery = results.plateauData.recovery;
-          const adaptive = results.plateauData.adaptiveResponses;
-
-          // Validate that plateau recovery produces meaningful interventions
-          const plateausDetected = (detection?.plateausDetected || 0) > 0;
-          const recoveryStrategies = recovery?.strategyGenerated && recovery?.difficultyAdjusted;
-          const adaptiveResponsesValid = adaptive && adaptive.length > 0 && adaptive.every(r => r.successful);
-          const comprehensiveRecovery = detection?.stagnationPeriodAnalyzed && recovery?.recoveryTimelineSet;
-
-          plateauRecoveryEffective = plateausDetected && recoveryStrategies && adaptiveResponsesValid && comprehensiveRecovery;
-
-          if (verbose) {
-            console.log('✓ Plateau recovery effectiveness validation:', {
-              plateausDetected,
-              recoveryStrategies,
-              adaptiveResponsesValid,
-              comprehensiveRecovery,
-              effective: plateauRecoveryEffective
-            });
-          }
-        } catch (effectivenessError) {
-          if (verbose) console.log('⚠️ Plateau recovery effectiveness validation failed:', effectivenessError.message);
-        }
+        const plateauRecoveryEffective = validatePlateauRecoveryEffectiveness(results, verbose);
 
         // 6. Overall success assessment
         results.success = results.plateauDetectionTested &&
@@ -4684,23 +4796,9 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
                          plateauRecoveryEffective;
 
         // 7. Generate summary
-        if (results.success) {
-          const detectionInfo = results.plateauData.detection?.plateausDetected ?
-            ` Detected ${results.plateauData.detection.plateausDetected} plateau scenarios.` : '';
-          const recoveryInfo = results.plateauData.recovery?.strategyGenerated ?
-            ` Recovery strategy: ${results.plateauData.recovery.strategyGenerated}.` : '';
-          const adaptiveInfo = results.plateauData.adaptiveResponses?.length ?
-            ` Tested ${results.plateauData.adaptiveResponses.length} adaptive responses.` : '';
-          const simulatedInfo = Object.values(results.plateauData).some(data => data?.simulated || (Array.isArray(data) && data.some(item => item?.simulated))) ? ' (simulated)' : '';
-          results.summary = `Plateau detection and recovery working: detection ✓, recovery strategies ✓, adaptive responses ✓.${detectionInfo}${recoveryInfo}${adaptiveInfo}${simulatedInfo}`;
-        } else {
-          const issues = [];
-          if (!results.plateauDetectionTested) issues.push('plateau detection failed');
-          if (!results.recoveryStrategiesTested) issues.push('recovery strategies failed');
-          if (!results.adaptiveResponseTested) issues.push('adaptive responses failed');
-          if (!plateauRecoveryEffective) issues.push('recovery ineffective');
-          results.summary = `Plateau detection and recovery issues: ${issues.join(', ')}`;
-        }
+        results.summary = results.success ?
+          generatePlateauRecoverySuccessSummary(results) :
+          generatePlateauRecoveryFailureSummary(results, plateauRecoveryEffective);
 
         if (verbose) console.log('✅ Plateau detection and recovery test completed');
         // Return boolean for backward compatibility when not verbose
