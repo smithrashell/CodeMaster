@@ -1,0 +1,190 @@
+
+> codemaster@1.0.0 lint
+> eslint src --ext .js,.jsx
+
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\app\services\__tests__\dashboardService.critical.test.js
+  37:62  warning  Arrow function has too many lines (477). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\app\services\__tests__\dataConsistency.infrastructure.test.js
+  14:74  warning  Arrow function has too many lines (382). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\core-business-tests.js
+  216:8  warning  Function 'initializeCoreBusinessTests' has too many lines (1578). Maximum allowed is 100  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\index.js
+    322:5   error    Move function declaration to function body root                     no-inner-declarations
+    333:42  warning  Async function has too many lines (130). Maximum allowed is 100     max-lines-per-function
+    333:42  warning  Async function has a complexity of 34. Maximum allowed is 20        complexity
+    490:5   error    Move function declaration to function body root                     no-inner-declarations
+    513:5   error    Move function declaration to function body root                     no-inner-declarations
+    540:5   error    Move function declaration to function body root                     no-inner-declarations
+    551:36  warning  Async function has too many lines (179). Maximum allowed is 100     max-lines-per-function
+    551:36  warning  Async function has a complexity of 56. Maximum allowed is 20        complexity
+    777:5   error    Move function declaration to function body root                     no-inner-declarations
+    789:5   error    Move function declaration to function body root                     no-inner-declarations
+    809:5   error    Move function declaration to function body root                     no-inner-declarations
+    824:5   error    Move function declaration to function body root                     no-inner-declarations
+    843:5   error    Move function declaration to function body root                     no-inner-declarations
+    857:5   error    Move function declaration to function body root                     no-inner-declarations
+    870:44  warning  Async function has too many lines (135). Maximum allowed is 100     max-lines-per-function
+    870:44  warning  Async function has a complexity of 56. Maximum allowed is 20        complexity
+   1036:5   error    Move function declaration to function body root                     no-inner-declarations
+   1050:5   error    Move function declaration to function body root                     no-inner-declarations
+   1065:5   error    Move function declaration to function body root                     no-inner-declarations
+   1085:5   error    Move function declaration to function body root                     no-inner-declarations
+   1113:5   error    Move function declaration to function body root                     no-inner-declarations
+   1126:5   error    Move function declaration to function body root                     no-inner-declarations
+   1138:5   error    Move function declaration to function body root                     no-inner-declarations
+   1152:5   error    Move function declaration to function body root                     no-inner-declarations
+   1162:44  warning  Async function has too many lines (140). Maximum allowed is 100     max-lines-per-function
+   1162:44  warning  Async function has a complexity of 66. Maximum allowed is 20        complexity
+   1335:5   error    Move function declaration to function body root                     no-inner-declarations
+   1348:5   error    Move function declaration to function body root                     no-inner-declarations
+   1362:5   error    Move function declaration to function body root                     no-inner-declarations
+   1384:5   error    Move function declaration to function body root                     no-inner-declarations
+   1399:5   error    Move function declaration to function body root                     no-inner-declarations
+   1413:5   error    Move function declaration to function body root                     no-inner-declarations
+   1424:5   error    Move function declaration to function body root                     no-inner-declarations
+   1446:5   error    Move function declaration to function body root                     no-inner-declarations
+   1471:44  warning  Async function has too many lines (128). Maximum allowed is 100     max-lines-per-function
+   1471:44  warning  Async function has a complexity of 47. Maximum allowed is 20        complexity
+   1628:5   error    Move function declaration to function body root                     no-inner-declarations
+   1639:5   error    Move function declaration to function body root                     no-inner-declarations
+   1658:5   error    Move function declaration to function body root                     no-inner-declarations
+   1670:5   error    Move function declaration to function body root                     no-inner-declarations
+   1681:36  warning  Async function has too many lines (203). Maximum allowed is 100     max-lines-per-function
+   1681:36  warning  Async function has a complexity of 38. Maximum allowed is 20        complexity
+   1762:9   error    Move function declaration to function body root                     no-inner-declarations
+   1785:9   error    Move function declaration to function body root                     no-inner-declarations
+   1795:9   error    Move function declaration to function body root                     no-inner-declarations
+   1795:9   warning  Async function 'testEscapeHatchScenario' has no 'await' expression  require-await
+   1921:44  warning  Async function has too many lines (123). Maximum allowed is 100     max-lines-per-function
+   1921:44  warning  Async function has a complexity of 29. Maximum allowed is 20        complexity
+   2285:43  warning  Async function has a complexity of 23. Maximum allowed is 20        complexity
+   2625:5   error    Move function declaration to function body root                     no-inner-declarations
+   2636:5   error    Move function declaration to function body root                     no-inner-declarations
+   2656:5   error    Move function declaration to function body root                     no-inner-declarations
+   2675:5   error    Move function declaration to function body root                     no-inner-declarations
+   2687:5   error    Move function declaration to function body root                     no-inner-declarations
+   2716:37  warning  Async function has a complexity of 23. Maximum allowed is 20        complexity
+   2843:5   error    Move function declaration to function body root                     no-inner-declarations
+   2855:5   error    Move function declaration to function body root                     no-inner-declarations
+   2875:5   error    Move function declaration to function body root                     no-inner-declarations
+   2890:43  warning  Async function has too many lines (103). Maximum allowed is 100     max-lines-per-function
+   2890:43  warning  Async function has a complexity of 25. Maximum allowed is 20        complexity
+   3069:5   error    Move function declaration to function body root                     no-inner-declarations
+   3080:5   error    Move function declaration to function body root                     no-inner-declarations
+   3099:5   error    Move function declaration to function body root                     no-inner-declarations
+   3112:38  warning  Async function has too many lines (108). Maximum allowed is 100     max-lines-per-function
+   3112:38  warning  Async function has a complexity of 25. Maximum allowed is 20        complexity
+   3314:38  warning  Async function has a complexity of 26. Maximum allowed is 20        complexity
+   3647:5   error    Move function declaration to function body root                     no-inner-declarations
+   3658:5   error    Move function declaration to function body root                     no-inner-declarations
+   3690:5   error    Move function declaration to function body root                     no-inner-declarations
+   3701:5   error    Move function declaration to function body root                     no-inner-declarations
+   3733:5   error    Move function declaration to function body root                     no-inner-declarations
+   3744:5   error    Move function declaration to function body root                     no-inner-declarations
+   3775:39  warning  Async function has a complexity of 36. Maximum allowed is 20        complexity
+   4118:38  warning  Async function has too many lines (102). Maximum allowed is 100     max-lines-per-function
+   4118:38  warning  Async function has a complexity of 43. Maximum allowed is 20        complexity
+   4432:38  warning  Async function has a complexity of 39. Maximum allowed is 20        complexity
+   4775:40  warning  Async function has too many lines (101). Maximum allowed is 100     max-lines-per-function
+   4775:40  warning  Async function has a complexity of 39. Maximum allowed is 20        complexity
+   4912:39  warning  Async function has too many lines (242). Maximum allowed is 100     max-lines-per-function
+   4912:39  warning  Async function has a complexity of 92. Maximum allowed is 20        complexity
+   4948:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   4959:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   4991:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   4993:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   4996:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5006:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5008:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   5011:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5016:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5025:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   5028:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5033:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5040:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   5043:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5079:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5081:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   5084:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5092:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5094:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   5097:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5108:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5110:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   5113:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5351:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5381:40  warning  Async function has a complexity of 23. Maximum allowed is 20        complexity
+   5518:42  warning  Async function has a complexity of 25. Maximum allowed is 20        complexity
+   5630:38  warning  Function has a complexity of 23. Maximum allowed is 20              complexity
+   5785:41  warning  Async function has a complexity of 22. Maximum allowed is 20        complexity
+   5860:42  warning  Async function has too many lines (106). Maximum allowed is 100     max-lines-per-function
+   5860:42  warning  Async function has a complexity of 41. Maximum allowed is 20        complexity
+   5943:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   5989:48  warning  Function has too many lines (105). Maximum allowed is 100           max-lines-per-function
+   5989:48  warning  Function has a complexity of 29. Maximum allowed is 20              complexity
+   6169:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6272:39  warning  Async function has too many lines (193). Maximum allowed is 100     max-lines-per-function
+   6272:39  warning  Async function has a complexity of 59. Maximum allowed is 20        complexity
+   6308:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6319:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6398:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6408:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6536:46  warning  Async function has too many lines (231). Maximum allowed is 100     max-lines-per-function
+   6536:46  warning  Async function has a complexity of 67. Maximum allowed is 20        complexity
+   6572:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6583:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6624:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6636:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6680:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6875:42  warning  Async function has too many lines (232). Maximum allowed is 100     max-lines-per-function
+   6875:42  warning  Async function has a complexity of 72. Maximum allowed is 20        complexity
+   6911:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6922:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   6974:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   7205:41  warning  Async function has too many lines (259). Maximum allowed is 100     max-lines-per-function
+   7205:41  warning  Async function has a complexity of 74. Maximum allowed is 20        complexity
+   7241:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   7252:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   7289:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   7291:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4              max-depth
+   7301:17  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   7572:46  warning  Async function has too many lines (103). Maximum allowed is 100     max-lines-per-function
+   7572:46  warning  Async function has a complexity of 32. Maximum allowed is 20        complexity
+   7606:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   7614:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   8470:26  warning  Arrow function has a complexity of 27. Maximum allowed is 20        complexity
+   9196:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   9220:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+   9476:45  warning  Async function has a complexity of 23. Maximum allowed is 20        complexity
+   9728:35  warning  Async function has a complexity of 23. Maximum allowed is 20        complexity
+   9991:42  warning  Async function has a complexity of 23. Maximum allowed is 20        complexity
+  10204:39  warning  Async function has a complexity of 23. Maximum allowed is 20        complexity
+  10468:40  warning  Async function has a complexity of 22. Maximum allowed is 20        complexity
+  10717:41  warning  Async function has a complexity of 22. Maximum allowed is 20        complexity
+  10978:38  warning  Async function has a complexity of 22. Maximum allowed is 20        complexity
+  11430:27  warning  Async function has too many lines (190). Maximum allowed is 100     max-lines-per-function
+  11430:27  warning  Async function has a complexity of 28. Maximum allowed is 20        complexity
+  11574:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4              max-depth
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\messageRouter.js
+  81:8  warning  Async function 'routeMessage' has too many lines (1251). Maximum allowed is 100  max-lines-per-function
+  81:8  warning  Async function 'routeMessage' has a complexity of 107. Maximum allowed is 20     complexity
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\errorRecovery.infrastructure.test.js
+  12:75  warning  Arrow function has too many lines (428). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\problemService.critical.test.js
+  41:60  warning  Arrow function has too many lines (487). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\session.integration.test.js
+  36:44  warning  Arrow function has too many lines (583). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\sessionService.critical.test.js
+  43:60  warning  Arrow function has too many lines (375). Maximum allowed is 130  max-lines-per-function
+
+✖ 165 problems (50 errors, 115 warnings)
+

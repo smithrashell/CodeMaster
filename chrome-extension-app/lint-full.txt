@@ -1,0 +1,252 @@
+
+> codemaster@1.0.0 lint
+> eslint src --ext .js,.jsx
+
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\app\services\__tests__\dashboardService.critical.test.js
+  37:62  warning  Arrow function has too many lines (477). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\app\services\__tests__\dataConsistency.infrastructure.test.js
+  14:74  warning  Arrow function has too many lines (382). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\core-business-tests.js
+   216:8   warning  Function 'initializeCoreBusinessTests' has too many lines (1618). Maximum allowed is 100  max-lines-per-function
+   288:38  warning  Async function has too many lines (124). Maximum allowed is 100                           max-lines-per-function
+   288:38  warning  Async function has a complexity of 23. Maximum allowed is 20                              complexity
+   375:13  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                    max-depth
+  1109:3   warning  Async function 'testProductionWorkflow' has too many lines (132). Maximum allowed is 100  max-lines-per-function
+  1295:3   warning  Async function 'testMasteryGates' has too many lines (196). Maximum allowed is 100        max-lines-per-function
+  1295:3   warning  Async function 'testMasteryGates' has a complexity of 26. Maximum allowed is 20           complexity
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\background\index.js
+     36:1   warning  '../shared/db/index.js' import is restricted from being used by a pattern. Import specific db modules instead of index  no-restricted-imports
+     97:24  warning  Async function has no 'await' expression                                                                                require-await
+    157:31  warning  Async function has no 'await' expression                                                                                require-await
+    203:11  warning  Async arrow function has no 'await' expression                                                                          require-await
+    335:42  warning  Async function has too many lines (136). Maximum allowed is 100                                                         max-lines-per-function
+    335:42  warning  Async function has a complexity of 37. Maximum allowed is 20                                                            complexity
+    391:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+    396:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+    497:36  warning  Async function has too many lines (207). Maximum allowed is 100                                                         max-lines-per-function
+    497:36  warning  Async function has a complexity of 65. Maximum allowed is 20                                                            complexity
+    630:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+    677:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+    759:44  warning  Async function has too many lines (193). Maximum allowed is 100                                                         max-lines-per-function
+    759:44  warning  Async function has a complexity of 68. Maximum allowed is 20                                                            complexity
+    792:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+    824:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+    833:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+    836:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+    908:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+    987:44  warning  Async function has too many lines (235). Maximum allowed is 100                                                         max-lines-per-function
+    987:44  warning  Async function has a complexity of 86. Maximum allowed is 20                                                            complexity
+   1028:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1041:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1067:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1081:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   1084:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1260:44  warning  Async function has too many lines (216). Maximum allowed is 100                                                         max-lines-per-function
+   1260:44  warning  Async function has a complexity of 68. Maximum allowed is 20                                                            complexity
+   1299:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1301:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1339:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1346:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   1348:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   1395:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1513:36  warning  Async function has too many lines (238). Maximum allowed is 100                                                         max-lines-per-function
+   1513:36  warning  Async function has a complexity of 56. Maximum allowed is 20                                                            complexity
+   1542:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1550:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   1561:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   1564:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1643:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   1651:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   1658:19  warning  Blocks are nested too deeply (7). Maximum allowed is 4                                                                  max-depth
+   1666:19  warning  Blocks are nested too deeply (7). Maximum allowed is 4                                                                  max-depth
+   1669:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   1786:44  warning  Async function has too many lines (123). Maximum allowed is 100                                                         max-lines-per-function
+   1786:44  warning  Async function has a complexity of 29. Maximum allowed is 20                                                            complexity
+   2150:43  warning  Async function has a complexity of 23. Maximum allowed is 20                                                            complexity
+   2248:66  warning  Async function has no 'await' expression                                                                                require-await
+   2294:73  warning  Async function has no 'await' expression                                                                                require-await
+   2425:71  warning  Async function has no 'await' expression                                                                                require-await
+   2451:29  warning  The Function constructor is eval                                                                                        no-new-func
+   2492:37  warning  Async function has too many lines (159). Maximum allowed is 100                                                         max-lines-per-function
+   2492:37  warning  Async function has a complexity of 40. Maximum allowed is 20                                                            complexity
+   2522:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   2530:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   2541:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   2604:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   2616:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   2696:43  warning  Async function has too many lines (140). Maximum allowed is 100                                                         max-lines-per-function
+   2696:43  warning  Async function has a complexity of 31. Maximum allowed is 20                                                            complexity
+   2734:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   2746:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   2914:38  warning  Async function has too many lines (140). Maximum allowed is 100                                                         max-lines-per-function
+   2914:38  warning  Async function has a complexity of 32. Maximum allowed is 20                                                            complexity
+   2957:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   2968:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3151:38  warning  Async function has a complexity of 26. Maximum allowed is 20                                                            complexity
+   3369:69  warning  Async function has no 'await' expression                                                                                require-await
+   3471:37  warning  Async function has no 'await' expression                                                                                require-await
+   3484:39  warning  Async function has too many lines (196). Maximum allowed is 100                                                         max-lines-per-function
+   3484:39  warning  Async function has a complexity of 59. Maximum allowed is 20                                                            complexity
+   3520:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3531:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3568:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3579:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3615:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3626:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3764:38  warning  Async function has too many lines (228). Maximum allowed is 100                                                         max-lines-per-function
+   3764:38  warning  Async function has a complexity of 76. Maximum allowed is 20                                                            complexity
+   3800:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3811:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3849:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3861:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   3876:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4027:38  warning  Async function has too many lines (247). Maximum allowed is 100                                                         max-lines-per-function
+   4027:38  warning  Async function has a complexity of 62. Maximum allowed is 20                                                            complexity
+   4063:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4074:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4114:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4126:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4173:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4185:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4311:40  warning  Async function has too many lines (269). Maximum allowed is 100                                                         max-lines-per-function
+   4311:40  warning  Async function has a complexity of 66. Maximum allowed is 20                                                            complexity
+   4347:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4358:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4389:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4404:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4422:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4616:38  warning  Async function has no 'await' expression                                                                                require-await
+   4629:39  warning  Async function has too many lines (242). Maximum allowed is 100                                                         max-lines-per-function
+   4629:39  warning  Async function has a complexity of 92. Maximum allowed is 20                                                            complexity
+   4665:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4676:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4708:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4710:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4713:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4723:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4725:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4728:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4733:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4742:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4745:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4750:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4757:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4760:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4796:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4798:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4801:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4809:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4811:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4814:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4825:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   4827:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   4830:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   5000:52  warning  Async function has no 'await' expression                                                                                require-await
+   5068:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   5098:40  warning  Async function has a complexity of 23. Maximum allowed is 20                                                            complexity
+   5178:45  warning  Async function has no 'await' expression                                                                                require-await
+   5235:42  warning  Async function has a complexity of 25. Maximum allowed is 20                                                            complexity
+   5347:38  warning  Async function has no 'await' expression                                                                                require-await
+   5347:38  warning  Async function has a complexity of 23. Maximum allowed is 20                                                            complexity
+   5502:41  warning  Async function has a complexity of 22. Maximum allowed is 20                                                            complexity
+   5577:42  warning  Async function has too many lines (106). Maximum allowed is 100                                                         max-lines-per-function
+   5577:42  warning  Async function has a complexity of 41. Maximum allowed is 20                                                            complexity
+   5660:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   5706:48  warning  Async function has too many lines (105). Maximum allowed is 100                                                         max-lines-per-function
+   5706:48  warning  Async function has no 'await' expression                                                                                require-await
+   5706:48  warning  Async function has a complexity of 29. Maximum allowed is 20                                                            complexity
+   5886:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   5964:47  warning  Async function has no 'await' expression                                                                                require-await
+   5976:36  warning  Async function has no 'await' expression                                                                                require-await
+   5989:39  warning  Async function has too many lines (193). Maximum allowed is 100                                                         max-lines-per-function
+   5989:39  warning  Async function has a complexity of 59. Maximum allowed is 20                                                            complexity
+   6025:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6036:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6115:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6125:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6253:46  warning  Async function has too many lines (231). Maximum allowed is 100                                                         max-lines-per-function
+   6253:46  warning  Async function has a complexity of 67. Maximum allowed is 20                                                            complexity
+   6289:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6300:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6341:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6353:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6397:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6592:42  warning  Async function has too many lines (232). Maximum allowed is 100                                                         max-lines-per-function
+   6592:42  warning  Async function has a complexity of 72. Maximum allowed is 20                                                            complexity
+   6628:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6639:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6691:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6922:41  warning  Async function has too many lines (259). Maximum allowed is 100                                                         max-lines-per-function
+   6922:41  warning  Async function has a complexity of 74. Maximum allowed is 20                                                            complexity
+   6958:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   6969:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   7006:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   7008:17  warning  Blocks are nested too deeply (6). Maximum allowed is 4                                                                  max-depth
+   7018:17  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   7289:46  warning  Async function has too many lines (103). Maximum allowed is 100                                                         max-lines-per-function
+   7289:46  warning  Async function has a complexity of 32. Maximum allowed is 20                                                            complexity
+   7323:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   7331:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   7417:78  warning  Async function has no 'await' expression                                                                                require-await
+   7508:39  warning  Async function has no 'await' expression                                                                                require-await
+   8187:26  warning  Arrow function has a complexity of 27. Maximum allowed is 20                                                            complexity
+   8242:61  warning  Async arrow function has no 'await' expression                                                                          require-await
+   8357:31  warning  Async arrow function has too many lines (1262). Maximum allowed is 100                                                  max-lines-per-function
+   8357:31  warning  Async arrow function has a complexity of 113. Maximum allowed is 20                                                     complexity
+   8773:13  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+   8976:34  warning  Async arrow function has no 'await' expression                                                                          require-await
+  10380:1   warning  Async function 'showConsistencyNotification' has no 'await' expression                                                  require-await
+  10454:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+  10478:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+  10734:45  warning  Async function has a complexity of 23. Maximum allowed is 20                                                            complexity
+  10908:72  warning  Async function has no 'await' expression                                                                                require-await
+  10945:68  warning  Async function has no 'await' expression                                                                                require-await
+  10986:35  warning  Async function has a complexity of 23. Maximum allowed is 20                                                            complexity
+  11084:57  warning  Async function has no 'await' expression                                                                                require-await
+  11123:58  warning  Async function has no 'await' expression                                                                                require-await
+  11162:59  warning  Async function has no 'await' expression                                                                                require-await
+  11217:58  warning  Async function has no 'await' expression                                                                                require-await
+  11249:42  warning  Async function has a complexity of 23. Maximum allowed is 20                                                            complexity
+  11347:61  warning  Async function has no 'await' expression                                                                                require-await
+  11373:65  warning  Async function has no 'await' expression                                                                                require-await
+  11405:72  warning  Async function has no 'await' expression                                                                                require-await
+  11432:60  warning  Async function has no 'await' expression                                                                                require-await
+  11462:39  warning  Async function has a complexity of 23. Maximum allowed is 20                                                            complexity
+  11560:64  warning  Async function has no 'await' expression                                                                                require-await
+  11585:56  warning  Async function has no 'await' expression                                                                                require-await
+  11608:61  warning  Async function has no 'await' expression                                                                                require-await
+  11637:63  warning  Async function has no 'await' expression                                                                                require-await
+  11726:40  warning  Async function has a complexity of 22. Maximum allowed is 20                                                            complexity
+  11853:67  warning  Async function has no 'await' expression                                                                                require-await
+  11897:61  warning  Async function has no 'await' expression                                                                                require-await
+  11975:41  warning  Async function has a complexity of 22. Maximum allowed is 20                                                            complexity
+  12104:64  warning  Async function has no 'await' expression                                                                                require-await
+  12140:69  warning  Async function has no 'await' expression                                                                                require-await
+  12188:65  warning  Async function has no 'await' expression                                                                                require-await
+  12236:38  warning  Async function has a complexity of 22. Maximum allowed is 20                                                            complexity
+  12317:64  warning  Async function has no 'await' expression                                                                                require-await
+  12362:67  warning  Async function has no 'await' expression                                                                                require-await
+  12403:66  warning  Async function has no 'await' expression                                                                                require-await
+  12450:66  warning  Async function has no 'await' expression                                                                                require-await
+  12688:27  warning  Async function has too many lines (190). Maximum allowed is 100                                                         max-lines-per-function
+  12688:27  warning  Async function has a complexity of 28. Maximum allowed is 20                                                            complexity
+  12832:15  warning  Blocks are nested too deeply (5). Maximum allowed is 4                                                                  max-depth
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\errorRecovery.infrastructure.test.js
+  12:75  warning  Arrow function has too many lines (428). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\problemService.critical.test.js
+  41:60  warning  Arrow function has too many lines (487). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\session.integration.test.js
+  36:44  warning  Arrow function has too many lines (583). Maximum allowed is 130  max-lines-per-function
+
+C:\Users\rashe\Projects\CodingProjects\CodeMaster\chrome-extension-app\src\shared\services\__tests__\sessionService.critical.test.js
+  43:60  warning  Arrow function has too many lines (375). Maximum allowed is 130  max-lines-per-function
+
+✖ 229 problems (0 errors, 229 warnings)
+
