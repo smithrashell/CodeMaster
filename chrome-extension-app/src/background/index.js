@@ -5396,72 +5396,66 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper to process session generation results
+    const processSessionData = (sessionData, verbose) => {
+      const hasSession = sessionData && sessionData.id;
+      const hasProblems = sessionData && sessionData.problems && Array.isArray(sessionData.problems);
+
+      if (hasSession && verbose) console.log('✓ Session created:', sessionData.id);
+
+      const problemData = {
+        problemsGenerated: hasProblems && sessionData.problems.length > 0,
+        problemCount: hasProblems ? sessionData.problems.length : 0,
+        problemTitles: hasProblems
+          ? sessionData.problems.slice(0, 3).map(p => p.title || p.name || 'Unknown').filter(t => t !== 'Unknown')
+          : []
+      };
+
+      if (hasProblems && verbose) {
+        console.log(`✓ Problems generated: ${problemData.problemCount} problems`);
+        console.log('✓ Sample problems:', problemData.problemTitles);
+      }
+
+      return { sessionCreated: hasSession, ...problemData };
+    };
+
+    const buildSessionSummary = (results) => {
+      if (results.success) {
+        const problemSummary = results.problemTitles.length > 0
+          ? ` Problems: ${results.problemTitles.join(', ')}${results.problemCount > 3 ? '...' : ''}`
+          : '';
+        return `Session generated successfully: ${results.problemCount} problems created.${problemSummary}`;
+      }
+
+      const issues = [];
+      if (!results.sessionServiceAvailable) issues.push('SessionService missing');
+      if (!results.sessionCreated) issues.push('session creation failed');
+      if (!results.problemsGenerated) issues.push('no problems generated');
+      return `Session generation issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testSessionGeneration = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🎯 Testing session generation workflow...');
 
       try {
-        let results = {
-          success: false,
-          summary: '',
-          sessionServiceAvailable: false,
-          sessionCreated: false,
-          problemsGenerated: false,
-          problemCount: 0,
-          problemTitles: []
-        };
-
-        // 1. Test SessionService availability
-        if (typeof SessionService !== 'undefined') {
-          results.sessionServiceAvailable = true;
-          if (verbose) console.log('✓ SessionService available');
-        } else {
+        if (typeof SessionService === 'undefined') {
           throw new Error('SessionService not available');
         }
 
-        // 2. Test actual session generation
-        try {
-          const sessionData = await SessionService.getOrCreateSession('standard');
-          if (sessionData && sessionData.id) {
-            results.sessionCreated = true;
-            if (verbose) console.log('✓ Session created:', sessionData.id);
-          }
+        const sessionServiceAvailable = true;
+        if (verbose) console.log('✓ SessionService available');
 
-          // 3. Test problems were generated
-          if (sessionData && sessionData.problems && Array.isArray(sessionData.problems)) {
-            results.problemsGenerated = sessionData.problems.length > 0;
-            results.problemCount = sessionData.problems.length;
-            results.problemTitles = sessionData.problems
-              .slice(0, 3)
-              .map(p => p.title || p.name || 'Unknown')
-              .filter(title => title !== 'Unknown');
+        const sessionData = await SessionService.getOrCreateSession('standard');
+        const sessionResults = processSessionData(sessionData, verbose);
 
-            if (verbose) {
-              console.log(`✓ Problems generated: ${results.problemCount} problems`);
-              console.log('✓ Sample problems:', results.problemTitles);
-            }
-          }
-        } catch (sessionError) {
-          if (verbose) console.log('⚠️ Session generation failed:', sessionError.message);
-          throw sessionError;
-        }
+        const results = {
+          sessionServiceAvailable,
+          ...sessionResults,
+          success: sessionServiceAvailable && sessionResults.sessionCreated && sessionResults.problemsGenerated
+        };
 
-        // 4. Overall success assessment
-        results.success = results.sessionServiceAvailable && results.sessionCreated && results.problemsGenerated;
-
-        // 5. Generate summary
-        if (results.success) {
-          const problemSummary = results.problemTitles.length > 0
-            ? ` Problems: ${results.problemTitles.join(', ')}${results.problemCount > 3 ? '...' : ''}`
-            : '';
-          results.summary = `Session generated successfully: ${results.problemCount} problems created.${problemSummary}`;
-        } else {
-          const issues = [];
-          if (!results.sessionServiceAvailable) issues.push('SessionService missing');
-          if (!results.sessionCreated) issues.push('session creation failed');
-          if (!results.problemsGenerated) issues.push('no problems generated');
-          results.summary = `Session generation issues: ${issues.join(', ')}`;
-        }
+        results.summary = buildSessionSummary(results);
 
         if (verbose) console.log('✅ Session generation test completed');
         return results;
