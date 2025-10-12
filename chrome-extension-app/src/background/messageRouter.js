@@ -10,9 +10,7 @@
 
 // Service imports
 import { StorageService } from "../shared/services/storageService.js";
-import { ProblemService } from "../shared/services/problemService.js";
 import { SessionService } from "../shared/services/sessionService.js";
-import { AttemptsService } from "../shared/services/attemptsService.js";
 import { TagService } from "../shared/services/tagServices.js";
 import { HintInteractionService } from "../shared/services/hintInteractionService.js";
 import { InterviewService } from "../shared/services/interviewService.js";
@@ -25,7 +23,7 @@ import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
 import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/strategy_data.js";
 import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../shared/db/common.js";
 import { buildRelationshipMap } from "../shared/db/problem_relationships.js";
-import { getProblem, getProblemWithOfficialDifficulty, fetchAllProblems } from "../shared/db/problems.js";
+import { getProblem, fetchAllProblems } from "../shared/db/problems.js";
 import { getAllStandardProblems } from "../shared/db/standard_problems.js";
 
 // Onboarding imports
@@ -52,8 +50,7 @@ import {
   getLearningPathData,
   getMistakeAnalysisData,
   clearFocusAreaAnalyticsCache,
-  getInterviewAnalyticsData,
-  getSessionMetrics
+  getInterviewAnalyticsData
 } from "../app/services/dashboardService.js";
 
 // Relationship service import
@@ -87,8 +84,8 @@ export async function routeMessage(request, sendResponse, finishRequest, depende
   const {
     responseCache,
     backgroundScriptHealth,
-    withTimeout,
-    cleanupStalledSessions,
+    withTimeout: _withTimeout, // Used by extracted handlers
+    cleanupStalledSessions: _cleanupStalledSessions, // Used by extracted handlers
     getStrategyMapData,
     getCachedResponse,
     setCachedResponse,
