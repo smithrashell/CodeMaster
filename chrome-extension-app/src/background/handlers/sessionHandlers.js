@@ -16,7 +16,7 @@ import { getSessionMetrics } from "../../app/services/dashboardService.js";
  * Handler: getSession
  * Retrieves the current session
  */
-export async function handleGetSession(request, dependencies, sendResponse, finishRequest) {
+export function handleGetSession(request, dependencies, sendResponse, finishRequest) {
   SessionService.getSession()
     .then((session) => sendResponse({ session }))
     .catch(() => sendResponse({ error: "Failed to get session" }))
@@ -116,7 +116,7 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
  * Handler: refreshSession
  * Refreshes an existing session with timeout monitoring
  */
-export async function handleRefreshSession(request, dependencies, sendResponse, finishRequest) {
+export function handleRefreshSession(request, dependencies, sendResponse, finishRequest) {
   const { withTimeout } = dependencies;
   console.log("🔄 Refreshing session:", request.sessionType || 'standard');
   const refreshStartTime = Date.now();
@@ -155,7 +155,7 @@ export async function handleRefreshSession(request, dependencies, sendResponse, 
  * DEPRECATED: Use getOrCreateSession instead
  * Kept for backward compatibility
  */
-export async function handleGetCurrentSession(request, dependencies, sendResponse, finishRequest) {
+export function handleGetCurrentSession(request, dependencies, sendResponse, finishRequest) {
   console.warn("⚠️ getCurrentSession is deprecated, use getOrCreateSession instead");
 
   StorageService.getSettings()
@@ -191,7 +191,7 @@ export async function handleGetCurrentSession(request, dependencies, sendRespons
  * Handler: manualSessionCleanup
  * Triggers manual cleanup of stalled sessions
  */
-export async function handleManualSessionCleanup(request, dependencies, sendResponse, finishRequest) {
+export function handleManualSessionCleanup(request, dependencies, sendResponse, finishRequest) {
   const { cleanupStalledSessions } = dependencies;
   console.log("🧹 Manual session cleanup triggered");
   cleanupStalledSessions()
@@ -211,7 +211,7 @@ export async function handleManualSessionCleanup(request, dependencies, sendResp
  * Handler: getSessionAnalytics
  * Retrieves session analytics including stalled sessions
  */
-export async function handleGetSessionAnalytics(request, dependencies, sendResponse, finishRequest) {
+export function handleGetSessionAnalytics(request, dependencies, sendResponse, finishRequest) {
   console.log("📊 Getting session analytics");
   (async () => {
     try {
@@ -245,7 +245,7 @@ export async function handleGetSessionAnalytics(request, dependencies, sendRespo
  * Handler: classifyAllSessions
  * Classifies all sessions by state
  */
-export async function handleClassifyAllSessions(request, dependencies, sendResponse, finishRequest) {
+export function handleClassifyAllSessions(request, dependencies, sendResponse, finishRequest) {
   console.log("🔍 Classifying all sessions");
   (async () => {
     try {
@@ -272,7 +272,7 @@ export async function handleClassifyAllSessions(request, dependencies, sendRespo
  * Handler: generateSessionFromTracking
  * Generates session from tracking data
  */
-export async function handleGenerateSessionFromTracking(request, dependencies, sendResponse, finishRequest) {
+export function handleGenerateSessionFromTracking(request, dependencies, sendResponse, finishRequest) {
   console.log("🎯 Manual session generation from tracking triggered");
   SessionService.checkAndGenerateFromTracking()
     .then((session) => {
@@ -291,7 +291,7 @@ export async function handleGenerateSessionFromTracking(request, dependencies, s
  * Handler: getSessionMetrics
  * Retrieves separated session metrics
  */
-export async function handleGetSessionMetrics(request, dependencies, sendResponse, finishRequest) {
+export function handleGetSessionMetrics(request, dependencies, sendResponse, finishRequest) {
   console.log("📊 Getting separated session metrics");
   getSessionMetrics(request.options || {})
     .then((result) => {
@@ -310,7 +310,7 @@ export async function handleGetSessionMetrics(request, dependencies, sendRespons
  * Handler: checkInterviewFrequency
  * Checks if interview session should be created based on frequency
  */
-export async function handleCheckInterviewFrequency(request, dependencies, sendResponse, finishRequest) {
+export function handleCheckInterviewFrequency(request, dependencies, sendResponse, finishRequest) {
   console.log("🕐 Checking interview frequency requirements");
   StorageService.getSettings()
     .then(async (settings) => {
@@ -348,7 +348,7 @@ export async function handleCheckInterviewFrequency(request, dependencies, sendR
  * Handler: completeInterviewSession
  * Completes an interview session
  */
-export async function handleCompleteInterviewSession(request, dependencies, sendResponse, finishRequest) {
+export function handleCompleteInterviewSession(request, dependencies, sendResponse, finishRequest) {
   console.log(`🎯 Completing interview session ${request.sessionId}`);
   SessionService.checkAndCompleteInterviewSession(request.sessionId)
     .then((result) => {
@@ -374,7 +374,7 @@ export async function handleCompleteInterviewSession(request, dependencies, send
  * Handler: getSessionPatterns
  * Gets session patterns for consistency analysis
  */
-export async function handleGetSessionPatterns(request, dependencies, sendResponse, finishRequest) {
+export function handleGetSessionPatterns(request, dependencies, sendResponse, finishRequest) {
   console.log("🔍 Getting session patterns for consistency analysis");
   (async () => {
     try {
@@ -405,7 +405,7 @@ export async function handleGetSessionPatterns(request, dependencies, sendRespon
  * Handler: checkConsistencyAlerts
  * Checks consistency alerts for reminders
  */
-export async function handleCheckConsistencyAlerts(request, dependencies, sendResponse, finishRequest) {
+export function handleCheckConsistencyAlerts(request, dependencies, sendResponse, finishRequest) {
   console.log("🔔 Checking consistency alerts for reminders");
   (async () => {
     try {
@@ -439,7 +439,7 @@ export async function handleCheckConsistencyAlerts(request, dependencies, sendRe
  * Handler: getStreakRiskTiming
  * Gets streak risk timing analysis
  */
-export async function handleGetStreakRiskTiming(request, dependencies, sendResponse, finishRequest) {
+export function handleGetStreakRiskTiming(request, dependencies, sendResponse, finishRequest) {
   console.log("🔥 Getting streak risk timing analysis");
   (async () => {
     try {
@@ -459,7 +459,7 @@ export async function handleGetStreakRiskTiming(request, dependencies, sendRespo
  * Handler: getReEngagementTiming
  * Gets re-engagement timing analysis
  */
-export async function handleGetReEngagementTiming(request, dependencies, sendResponse, finishRequest) {
+export function handleGetReEngagementTiming(request, dependencies, sendResponse, finishRequest) {
   console.log("👋 Getting re-engagement timing analysis");
   (async () => {
     try {

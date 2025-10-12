@@ -79,7 +79,7 @@ import { problemHandlers } from "./handlers/problemHandlers.js";
  * @param {Function} dependencies.completeOnboarding - Onboarding completion function
  * @returns {boolean} - True if response will be sent asynchronously
  */
-export async function routeMessage(request, sendResponse, finishRequest, dependencies = {}) {
+export function routeMessage(request, sendResponse, finishRequest, dependencies = {}) {
   // Destructure dependencies for easier access
   const {
     responseCache,

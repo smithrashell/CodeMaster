@@ -20,7 +20,7 @@ import { getProblemWithOfficialDifficulty } from "../../shared/db/problems.js";
  * Handler: getProblemByDescription
  * Retrieves problem by description and slug
  */
-export async function handleGetProblemByDescription(request, dependencies, sendResponse, finishRequest) {
+export function handleGetProblemByDescription(request, dependencies, sendResponse, finishRequest) {
   console.log(
     "🧼 getProblemByDescription:",
     request.description,
@@ -43,7 +43,7 @@ export async function handleGetProblemByDescription(request, dependencies, sendR
  * Handler: countProblemsByBoxLevel
  * Counts problems by box level with optional cache invalidation
  */
-export async function handleCountProblemsByBoxLevel(request, dependencies, sendResponse, finishRequest) {
+export function handleCountProblemsByBoxLevel(request, dependencies, sendResponse, finishRequest) {
   // Support cache invalidation for fresh database reads
   const countProblemsPromise = request.forceRefresh ?
     ProblemService.countProblemsByBoxLevelWithRetry({ priority: "high" }) :
@@ -69,7 +69,7 @@ export async function handleCountProblemsByBoxLevel(request, dependencies, sendR
  * CRITICAL BEHAVIOR: Clears 6 dashboard cache keys after adding problem
  * This cache invalidation MUST happen regardless of success field value
  */
-export async function handleAddProblem(request, dependencies, sendResponse, finishRequest) {
+export function handleAddProblem(request, dependencies, sendResponse, finishRequest) {
   const { responseCache } = dependencies;
 
   ProblemService.addOrUpdateProblemWithRetry(
@@ -118,7 +118,7 @@ export async function handleAddProblem(request, dependencies, sendResponse, fini
  * CRITICAL BEHAVIOR: Broadcasts to all tabs to refresh navigation state
  * Uses chrome.tabs.query() and chrome.tabs.sendMessage() for cross-tab communication
  */
-export async function handleProblemSubmitted(request, dependencies, sendResponse, finishRequest) {
+export function handleProblemSubmitted(request, dependencies, sendResponse, finishRequest) {
   console.log("🔄 Problem submitted - notifying all content scripts to refresh");
   // Forward the message to all tabs to refresh navigation state
   chrome.tabs.query({}, (tabs) => {
@@ -145,7 +145,7 @@ export async function handleProblemSubmitted(request, dependencies, sendResponse
  * Handler: skipProblem
  * Acknowledges problem skip request
  */
-export async function handleSkipProblem(request, dependencies, sendResponse, finishRequest) {
+export function handleSkipProblem(request, dependencies, sendResponse, finishRequest) {
   console.log("⏭️ Skipping problem:", request.consentScriptData?.leetcode_id || "unknown");
   // Acknowledge the skip request - no additional processing needed
   sendResponse({ message: "Problem skipped successfully" });
@@ -157,7 +157,7 @@ export async function handleSkipProblem(request, dependencies, sendResponse, fin
  * Handler: getAllProblems
  * Retrieves all problems from database
  */
-export async function handleGetAllProblems(request, dependencies, sendResponse, finishRequest) {
+export function handleGetAllProblems(request, dependencies, sendResponse, finishRequest) {
   ProblemService.getAllProblems()
     .then(sendResponse)
     .catch(() => sendResponse({ error: "Failed to retrieve problems" }))
@@ -169,7 +169,7 @@ export async function handleGetAllProblems(request, dependencies, sendResponse, 
  * Handler: getProblemById
  * Retrieves a single problem by ID with official difficulty
  */
-export async function handleGetProblemById(request, dependencies, sendResponse, finishRequest) {
+export function handleGetProblemById(request, dependencies, sendResponse, finishRequest) {
   getProblemWithOfficialDifficulty(request.problemId)
     .then((problemData) => sendResponse({ success: true, data: problemData }))
     .catch((error) => {
@@ -184,7 +184,7 @@ export async function handleGetProblemById(request, dependencies, sendResponse, 
  * Handler: getProblemAttemptStats
  * Retrieves attempt statistics for a problem
  */
-export async function handleGetProblemAttemptStats(request, dependencies, sendResponse, finishRequest) {
+export function handleGetProblemAttemptStats(request, dependencies, sendResponse, finishRequest) {
   AttemptsService.getProblemAttemptStats(request.problemId)
     .then((stats) => sendResponse({ success: true, data: stats }))
     .catch((error) => {
