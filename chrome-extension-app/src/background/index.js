@@ -330,15 +330,143 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     }
 
     // 🔥 CRITICAL Priority Test Functions - Using static imports only
+    // Helper: Check onboarding service availability
+    const checkOnboardingServiceAvailability = (verbose) => {
+      const isAvailable = typeof onboardUserIfNeeded === 'function' && typeof checkOnboardingStatus === 'function';
+      if (isAvailable && verbose) {
+        console.log('✓ Onboarding service functions available');
+      } else if (verbose) {
+        console.log('⚠️ Onboarding service functions not found in background scope');
+      }
+      return isAvailable;
+    };
+
+    // Helper: Check onboarding status
+    const checkOnboardingStatusHelper = async (serviceAvailable, verbose) => {
+      try {
+        if (serviceAvailable) {
+          const statusResult = await checkOnboardingStatus();
+          if (verbose) console.log('✓ Onboarding status checked:', {
+            isCompleted: statusResult?.is_completed,
+            currentStep: statusResult?.current_step
+          });
+          return true;
+        }
+
+        if (verbose) console.log('✓ Onboarding status simulated (service not available)');
+        return true;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Onboarding status check failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Validate data stores
+    const validateDataStoresHelper = async (verbose) => {
+      try {
+        if (typeof getAllFromStore === 'function') {
+          const dataStores = ['standard_problems', 'tag_relationships', 'problem_relationships', 'strategy_data', 'problems', 'tag_mastery'];
+          const storeResults = {};
+
+          for (const store of dataStores) {
+            storeResults[store] = await validateDataStore(store, verbose);
+          }
+
+          const criticalStores = ['standard_problems', 'tag_relationships', 'strategy_data'];
+          const criticalDataPresent = criticalStores.every(store =>
+            storeResults[store] && storeResults[store] > 0
+          );
+
+          if (verbose) {
+            console.log('✓ Data stores validated:', storeResults);
+            console.log(`✓ Critical data present: ${criticalDataPresent}`);
+            console.log(`✓ Onboarding needed: ${!criticalDataPresent}`);
+          }
+
+          return {
+            validated: true,
+            counts: storeResults,
+            criticalPresent: criticalDataPresent,
+            onboardingNeeded: !criticalDataPresent
+          };
+        }
+
+        if (verbose) console.log('✓ Data store validation simulated (getAllFromStore not available)');
+        return {
+          validated: true,
+          counts: {
+            'standard_problems': 2984,
+            'tag_relationships': 156,
+            'strategy_data': 48,
+            'problems': 0,
+            'tag_mastery': 0
+          },
+          criticalPresent: true,
+          onboardingNeeded: false
+        };
+      } catch (error) {
+        if (verbose) console.log('⚠️ Data store validation failed:', error.message);
+        return {
+          validated: false,
+          counts: {},
+          criticalPresent: false,
+          onboardingNeeded: null
+        };
+      }
+    };
+
+    // Helper: Test onboarding execution
+    const testOnboardingExecution = (onboardingNeeded, serviceAvailable, verbose) => {
+      if (onboardingNeeded && serviceAvailable) {
+        try {
+          if (verbose) console.log('✓ Onboarding would execute (function callable)');
+          return {
+            callable: true,
+            wouldExecute: true,
+            reason: 'Missing critical data detected'
+          };
+        } catch (error) {
+          if (verbose) console.log('⚠️ Onboarding execution test failed:', error.message);
+          return {
+            callable: false,
+            error: error.message
+          };
+        }
+      }
+
+      if (verbose) console.log('✓ Onboarding not needed or service unavailable');
+      return {
+        callable: true,
+        wouldExecute: false,
+        reason: onboardingNeeded ? 'Service not available' : 'No onboarding needed'
+      };
+    };
+
+    // Helper: Generate onboarding detection summary
+    const generateOnboardingDetectionSummary = (results) => {
+      if (results.success) {
+        const statusInfo = results.onboardingNeeded !== null ?
+          ` Onboarding needed: ${results.onboardingNeeded}.` : '';
+        const dataInfo = Object.keys(results.dataStoreCounts).length > 0 ?
+          ` Data stores: ${Object.entries(results.dataStoreCounts).filter(([,count]) => count > 0).length}/${Object.keys(results.dataStoreCounts).length} populated.` : '';
+        return `Onboarding detection working: status check ✓, data validation ✓.${statusInfo}${dataInfo}`;
+      }
+
+      const issues = [];
+      if (!results.onboardingStatusChecked) issues.push('status check failed');
+      if (!results.dataStoresValidated) issues.push('data validation failed');
+      return `Onboarding detection issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testOnboardingDetection = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔍 Testing onboarding detection logic...');
 
       try {
-        let results = {
+        const results = {
           success: false,
           summary: '',
-          onboardingServiceAvailable: false,
+          onboardingServiceAvailable: checkOnboardingServiceAvailability(verbose),
           onboardingStatusChecked: false,
           dataStoresValidated: false,
           onboardingNeeded: null,
@@ -347,125 +475,25 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           dataStoreCounts: {}
         };
 
-        // 1. Test onboarding service availability
-        if (typeof onboardUserIfNeeded === 'function' && typeof checkOnboardingStatus === 'function') {
-          results.onboardingServiceAvailable = true;
-          if (verbose) console.log('✓ Onboarding service functions available');
-        } else {
-          if (verbose) console.log('⚠️ Onboarding service functions not found in background scope');
-        }
+        results.onboardingStatusChecked = await checkOnboardingStatusHelper(results.onboardingServiceAvailable, verbose);
 
-        // 2. Test onboarding status detection
-        try {
-          if (results.onboardingServiceAvailable) {
-            const statusResult = await checkOnboardingStatus();
-            results.onboardingStatusChecked = true;
-            if (verbose) console.log('✓ Onboarding status checked:', {
-              isCompleted: statusResult?.is_completed,
-              currentStep: statusResult?.current_step
-            });
-          } else {
-            const _mockStatus = {
-              id: 'app_onboarding',
-              is_completed: false,
-              current_step: 1,
-              started_at: new Date().toISOString()
-            };
-            results.onboardingStatusChecked = true;
-            if (verbose) console.log('✓ Onboarding status simulated (service not available)');
-          }
-        } catch (statusError) {
-          if (verbose) console.log('⚠️ Onboarding status check failed:', statusError.message);
-        }
+        const dataValidation = await validateDataStoresHelper(verbose);
+        results.dataStoresValidated = dataValidation.validated;
+        results.dataStoreCounts = dataValidation.counts;
+        results.criticalDataPresent = dataValidation.criticalPresent;
+        results.onboardingNeeded = dataValidation.onboardingNeeded;
 
-        // 3. Test data store validation logic
-        try {
-          // getAllFromStore is now statically imported at the top
-          if (typeof getAllFromStore === 'function') {
-            const dataStores = ['standard_problems', 'tag_relationships', 'problem_relationships', 'strategy_data', 'problems', 'tag_mastery'];
-            const storeResults = {};
+        results.onboardingResult = testOnboardingExecution(
+          results.onboardingNeeded,
+          results.onboardingServiceAvailable,
+          verbose
+        );
 
-            for (const store of dataStores) {
-              storeResults[store] = await validateDataStore(store, verbose);
-            }
-
-            results.dataStoresValidated = true;
-            results.dataStoreCounts = storeResults;
-
-            const criticalStores = ['standard_problems', 'tag_relationships', 'strategy_data'];
-            results.criticalDataPresent = criticalStores.every(store =>
-              storeResults[store] && storeResults[store] > 0
-            );
-
-            results.onboardingNeeded = !results.criticalDataPresent;
-
-            if (verbose) {
-              console.log('✓ Data stores validated:', storeResults);
-              console.log(`✓ Critical data present: ${results.criticalDataPresent}`);
-              console.log(`✓ Onboarding needed: ${results.onboardingNeeded}`);
-            }
-          } else {
-            results.dataStoresValidated = true;
-            results.dataStoreCounts = {
-              'standard_problems': 2984,
-              'tag_relationships': 156,
-              'strategy_data': 48,
-              'problems': 0,
-              'tag_mastery': 0
-            };
-            results.criticalDataPresent = true;
-            results.onboardingNeeded = false;
-            if (verbose) console.log('✓ Data store validation simulated (getAllFromStore not available)');
-          }
-        } catch (validationError) {
-          if (verbose) console.log('⚠️ Data store validation failed:', validationError.message);
-        }
-
-        // 4. Test onboarding execution if needed
-        if (results.onboardingNeeded && results.onboardingServiceAvailable) {
-          try {
-            results.onboardingResult = {
-              callable: true,
-              wouldExecute: true,
-              reason: 'Missing critical data detected'
-            };
-            if (verbose) console.log('✓ Onboarding would execute (function callable)');
-          } catch (onboardingError) {
-            results.onboardingResult = {
-              callable: false,
-              error: onboardingError.message
-            };
-            if (verbose) console.log('⚠️ Onboarding execution test failed:', onboardingError.message);
-          }
-        } else {
-          results.onboardingResult = {
-            callable: true,
-            wouldExecute: false,
-            reason: results.onboardingNeeded ? 'Service not available' : 'No onboarding needed'
-          };
-          if (verbose) console.log('✓ Onboarding not needed or service unavailable');
-        }
-
-        // 5. Overall success assessment
         results.success = results.onboardingStatusChecked && results.dataStoresValidated;
-
-        // 6. Generate summary
-        if (results.success) {
-          const statusInfo = results.onboardingNeeded !== null ?
-            ` Onboarding needed: ${results.onboardingNeeded}.` : '';
-          const dataInfo = Object.keys(results.dataStoreCounts).length > 0 ?
-            ` Data stores: ${Object.entries(results.dataStoreCounts).filter(([,count]) => count > 0).length}/${Object.keys(results.dataStoreCounts).length} populated.` : '';
-          results.summary = `Onboarding detection working: status check ✓, data validation ✓.${statusInfo}${dataInfo}`;
-        } else {
-          const issues = [];
-          if (!results.onboardingStatusChecked) issues.push('status check failed');
-          if (!results.dataStoresValidated) issues.push('data validation failed');
-          results.summary = `Onboarding detection issues: ${issues.join(', ')}`;
-        }
+        results.summary = generateOnboardingDetectionSummary(results);
 
         if (verbose) console.log('✅ Onboarding detection test completed');
 
-        // Return boolean for backward compatibility when not verbose
         if (!verbose) {
           return results.success;
         }
@@ -1468,12 +1496,108 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       if (verbose) console.log('✓ Escape hatch logic tested');
     }
 
+    // Helper: Extract supported difficulty levels
+    const extractSupportedDifficulties = (progressionResults, verbose) => {
+      try {
+        const supportedDifficulties = new Set();
+        Object.values(progressionResults).forEach(result => {
+          if (result.currentDifficulty && result.currentDifficulty !== 'Unknown') {
+            supportedDifficulties.add(result.currentDifficulty);
+          }
+        });
+
+        const levels = Array.from(supportedDifficulties);
+        if (verbose) console.log('✓ Supported difficulty levels:', levels);
+        return levels;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Difficulty level detection failed:', error.message);
+        return [];
+      }
+    };
+
+    // Helper: Validate progression trends
+    const validateProgressionTrends = (progressionResults, verbose) => {
+      try {
+        if (Object.keys(progressionResults).length < 2) return false;
+
+        const accuracies = Object.keys(progressionResults).map(Number).sort((a, b) => b - a);
+        const highAccuracyResult = progressionResults[accuracies[0]];
+        const lowAccuracyResult = progressionResults[accuracies[accuracies.length - 1]];
+
+        const difficultyOrder = ['Easy', 'Medium', 'Hard'];
+        const highDifficultyIndex = difficultyOrder.indexOf(highAccuracyResult.currentDifficulty);
+        const lowDifficultyIndex = difficultyOrder.indexOf(lowAccuracyResult.currentDifficulty);
+
+        const trendsValid = highDifficultyIndex >= lowDifficultyIndex;
+
+        if (verbose) {
+          console.log('✓ Progression trends validation:', {
+            highAccuracy: { accuracy: accuracies[0], difficulty: highAccuracyResult.currentDifficulty },
+            lowAccuracy: { accuracy: accuracies[accuracies.length - 1], difficulty: lowAccuracyResult.currentDifficulty },
+            trendsValid
+          });
+        }
+
+        return trendsValid;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Progression trends validation failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Validate progression persistence
+    const validateProgressionPersistence = (sessionStateData, verbose) => {
+      try {
+        if (!sessionStateData || !sessionStateData.hasSessionCount || !sessionStateData.hasCurrentDifficulty) {
+          return false;
+        }
+
+        const persistent = sessionStateData.sessionCount >= 0 &&
+                          ['Easy', 'Medium', 'Hard'].includes(sessionStateData.currentDifficulty);
+
+        if (verbose) {
+          console.log('✓ Progression persistence check:', {
+            sessionCount: sessionStateData.sessionCount,
+            currentDifficulty: sessionStateData.currentDifficulty,
+            persistent
+          });
+        }
+
+        return persistent;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Progression persistence test failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Generate progression summary
+    const generateProgressionSummary = (results, trendsValid, persistent) => {
+      if (results.success) {
+        const levelsInfo = results.difficultyLevelsSupported.length > 0 ?
+          ` Levels: ${results.difficultyLevelsSupported.join(', ')}.` : '';
+        const testsInfo = Object.keys(results.progressionResults).length > 0 ?
+          ` Tested ${Object.keys(results.progressionResults).length} accuracy scenarios.` : '';
+        const currentInfo = results.sessionStateData ?
+          ` Current: ${results.sessionStateData.currentDifficulty} (${results.sessionStateData.sessionCount} sessions).` : '';
+        const simulatedInfo = results.sessionStateData?.simulated ? ' (simulated)' : '';
+        return `Difficulty progression working: state ✓, logic ✓, escape hatches ✓.${levelsInfo}${testsInfo}${currentInfo}${simulatedInfo}`;
+      }
+
+      const issues = [];
+      if (!results.sessionStateValidated) issues.push('session state validation failed');
+      if (!results.progressionLogicTested) issues.push('progression logic failed');
+      if (!results.escapeHatchLogicTested) issues.push('escape hatch logic failed');
+      if (!trendsValid && results.difficultyLevelsSupported.length <= 1) issues.push('progression trends invalid');
+      if (!persistent && !results.sessionStateData?.simulated) issues.push('progression not persistent');
+      return `Difficulty progression issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testDifficultyProgression = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('📈 Testing difficulty progression logic...');
 
       try {
-        let results = {
+        const results = {
           success: false,
           summary: '',
           progressionServiceAvailable: false,
@@ -1486,7 +1610,6 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           progressionResults: {}
         };
 
-        // 1. Test difficulty progression service availability
         if (typeof evaluateDifficultyProgression === 'function') {
           results.progressionServiceAvailable = true;
           if (verbose) console.log('✓ evaluateDifficultyProgression function available');
@@ -1494,118 +1617,40 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           if (verbose) console.log('⚠️ evaluateDifficultyProgression not found, will simulate');
         }
 
-        // 2. Test session state structure
         try {
           await handleSessionStateValidation(results, verbose);
-        } catch (sessionStateError) {
-          if (verbose) console.log('⚠️ Session state validation failed:', sessionStateError.message);
+        } catch (error) {
+          if (verbose) console.log('⚠️ Session state validation failed:', error.message);
         }
 
-        // 3. Test progression logic with different accuracy levels
         try {
-          const accuracyLevels = [0.95, 0.75, 0.50, 0.25]; // High to low accuracy
-          const expectedDifficulties = ['Hard', 'Medium', 'Easy', 'Easy']; // Expected progression
+          const accuracyLevels = [0.95, 0.75, 0.50, 0.25];
+          const expectedDifficulties = ['Hard', 'Medium', 'Easy', 'Easy'];
           await handleProgressionLogicTesting(results, accuracyLevels, expectedDifficulties, verbose);
-        } catch (progressionError) {
-          if (verbose) console.log('⚠️ Progression logic testing failed:', progressionError.message);
+        } catch (error) {
+          if (verbose) console.log('⚠️ Progression logic testing failed:', error.message);
         }
 
-        // 4. Test escape hatch logic
         try {
           handleEscapeHatchTesting(results, verbose);
-        } catch (escapeHatchError) {
-          if (verbose) console.log('⚠️ Escape hatch logic test failed:', escapeHatchError.message);
+        } catch (error) {
+          if (verbose) console.log('⚠️ Escape hatch logic test failed:', error.message);
         }
 
-        // 5. Test supported difficulty levels
-        try {
-          const supportedDifficulties = new Set();
-          Object.values(results.progressionResults).forEach(result => {
-            if (result.currentDifficulty && result.currentDifficulty !== 'Unknown') {
-              supportedDifficulties.add(result.currentDifficulty);
-            }
-          });
+        results.difficultyLevelsSupported = extractSupportedDifficulties(results.progressionResults, verbose);
 
-          results.difficultyLevelsSupported = Array.from(supportedDifficulties);
-          if (verbose) console.log('✓ Supported difficulty levels:', results.difficultyLevelsSupported);
-        } catch (difficultyError) {
-          if (verbose) console.log('⚠️ Difficulty level detection failed:', difficultyError.message);
-        }
+        const progressionTrendsValid = validateProgressionTrends(results.progressionResults, verbose);
+        const progressionPersistent = validateProgressionPersistence(results.sessionStateData, verbose);
 
-        // 6. Test progression trends
-        let progressionTrendsValid = false;
-        try {
-          if (Object.keys(results.progressionResults).length >= 2) {
-            const accuracies = Object.keys(results.progressionResults).map(Number).sort((a, b) => b - a);
-            const highAccuracyResult = results.progressionResults[accuracies[0]];
-            const lowAccuracyResult = results.progressionResults[accuracies[accuracies.length - 1]];
-
-            const difficultyOrder = ['Easy', 'Medium', 'Hard'];
-            const highDifficultyIndex = difficultyOrder.indexOf(highAccuracyResult.currentDifficulty);
-            const lowDifficultyIndex = difficultyOrder.indexOf(lowAccuracyResult.currentDifficulty);
-
-            progressionTrendsValid = highDifficultyIndex >= lowDifficultyIndex;
-
-            if (verbose) {
-              console.log('✓ Progression trends validation:', {
-                highAccuracy: { accuracy: accuracies[0], difficulty: highAccuracyResult.currentDifficulty },
-                lowAccuracy: { accuracy: accuracies[accuracies.length - 1], difficulty: lowAccuracyResult.currentDifficulty },
-                trendsValid: progressionTrendsValid
-              });
-            }
-          }
-        } catch (trendsError) {
-          if (verbose) console.log('⚠️ Progression trends validation failed:', trendsError.message);
-        }
-
-        // 7. Test progression persistence
-        let progressionPersistent = false;
-        try {
-          if (results.sessionStateData && results.sessionStateData.hasSessionCount && results.sessionStateData.hasCurrentDifficulty) {
-            progressionPersistent = results.sessionStateData.sessionCount >= 0 &&
-                                   ['Easy', 'Medium', 'Hard'].includes(results.sessionStateData.currentDifficulty);
-
-            if (verbose) {
-              console.log('✓ Progression persistence check:', {
-                sessionCount: results.sessionStateData.sessionCount,
-                currentDifficulty: results.sessionStateData.currentDifficulty,
-                persistent: progressionPersistent
-              });
-            }
-          }
-        } catch (persistenceError) {
-          if (verbose) console.log('⚠️ Progression persistence test failed:', persistenceError.message);
-        }
-
-        // 8. Overall success assessment
         results.success = results.sessionStateValidated &&
                          results.progressionLogicTested &&
                          results.escapeHatchLogicTested &&
                          (progressionTrendsValid || results.difficultyLevelsSupported.length > 1) &&
                          (progressionPersistent || results.sessionStateData?.simulated);
 
-        // 9. Generate summary
-        if (results.success) {
-          const levelsInfo = results.difficultyLevelsSupported.length > 0 ?
-            ` Levels: ${results.difficultyLevelsSupported.join(', ')}.` : '';
-          const testsInfo = Object.keys(results.progressionResults).length > 0 ?
-            ` Tested ${Object.keys(results.progressionResults).length} accuracy scenarios.` : '';
-          const currentInfo = results.sessionStateData ?
-            ` Current: ${results.sessionStateData.currentDifficulty} (${results.sessionStateData.sessionCount} sessions).` : '';
-          const simulatedInfo = results.sessionStateData?.simulated ? ' (simulated)' : '';
-          results.summary = `Difficulty progression working: state ✓, logic ✓, escape hatches ✓.${levelsInfo}${testsInfo}${currentInfo}${simulatedInfo}`;
-        } else {
-          const issues = [];
-          if (!results.sessionStateValidated) issues.push('session state validation failed');
-          if (!results.progressionLogicTested) issues.push('progression logic failed');
-          if (!results.escapeHatchLogicTested) issues.push('escape hatch logic failed');
-          if (!progressionTrendsValid && results.difficultyLevelsSupported.length <= 1) issues.push('progression trends invalid');
-          if (!progressionPersistent && !results.sessionStateData?.simulated) issues.push('progression not persistent');
-          results.summary = `Difficulty progression issues: ${issues.join(', ')}`;
-        }
+        results.summary = generateProgressionSummary(results, progressionTrendsValid, progressionPersistent);
 
         if (verbose) console.log('✅ Difficulty progression test completed');
-        // Return boolean for backward compatibility when not verbose
         if (!verbose) {
           return results.success;
         }
@@ -1918,12 +1963,119 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     };
 
     // 📋 CORE Test Functions - Clean versions for default execution
+
+    // Helper: Test session creation functionality
+    const testSessionCreation = (verbose) => {
+      try {
+        if (typeof SessionService !== 'undefined' && typeof SessionService.createSession === 'function') {
+          const testSession = {
+            focus_area: 'array',
+            session_type: 'practice',
+            time_limit: 1800,
+            problem_count: 5
+          };
+
+          if (verbose) console.log('✓ Session creation functionality validated');
+          return {
+            tested: true,
+            data: {
+              testSessionConfig: testSession,
+              creationWorking: true,
+              sessionServiceAvailable: true
+            }
+          };
+        }
+
+        if (verbose) console.log('✓ Session creation functionality simulated');
+        return {
+          tested: true,
+          data: {
+            creationWorking: true,
+            sessionServiceAvailable: false,
+            simulated: true
+          }
+        };
+      } catch (error) {
+        if (verbose) console.log('⚠️ Session creation test failed:', error.message);
+        return { tested: false, data: {} };
+      }
+    };
+
+    // Helper: Test session lifecycle management
+    const testSessionLifecycle = (validateTransitionsFn, verbose) => {
+      try {
+        const lifecycleStates = ['created', 'started', 'in_progress', 'paused', 'completed', 'abandoned'];
+        const validTransitions = validateTransitionsFn(lifecycleStates);
+
+        if (verbose) console.log('✓ Session lifecycle management validated');
+        return {
+          tested: true,
+          data: {
+            statesSupported: lifecycleStates.length,
+            validTransitions: validTransitions.validCount,
+            invalidTransitions: validTransitions.invalidCount,
+            lifecycleValid: validTransitions.validCount > validTransitions.invalidCount
+          }
+        };
+      } catch (error) {
+        if (verbose) console.log('⚠️ Session lifecycle test failed:', error.message);
+        return { tested: false, data: {} };
+      }
+    };
+
+    // Helper: Test session data validity
+    const testSessionDataValidity = async (validateDataFn, verbose) => {
+      try {
+        const sessions = await getAllFromStore('sessions');
+
+        if (sessions && sessions.length > 0) {
+          const dataValidation = validateDataFn(sessions);
+          if (verbose) console.log('✓ Session data validity checked with real data');
+          return {
+            tested: true,
+            data: {
+              ...dataValidation,
+              hasRealData: true
+            }
+          };
+        }
+
+        if (verbose) console.log('✓ Session data validity simulated');
+        return {
+          tested: true,
+          data: {
+            totalSessions: 15,
+            validSessions: 14,
+            validityRate: 0.93,
+            commonIssues: ['missing_timestamps', 'incomplete_metrics'],
+            hasRealData: false,
+            simulated: true
+          }
+        };
+      } catch (error) {
+        if (verbose) console.log('⚠️ Session data validity test failed:', error.message);
+        return { tested: false, data: {} };
+      }
+    };
+
+    // Helper: Test session metrics calculation
+    const testSessionMetricsCalc = (testMetricsFn, verbose) => {
+      try {
+        const metricsTest = testMetricsFn();
+        if (verbose) console.log('✓ Session metrics calculation validated');
+        return { tested: true, data: metricsTest };
+      } catch (error) {
+        if (verbose) console.log('⚠️ Session metrics test failed:', error.message);
+        return { tested: false, data: {} };
+      }
+    };
+
     globalThis.testCoreSessionValidation = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('🔍 Validating core session functionality...');
 
       try {
-        let results = {
+        const results = {
           success: false,
           summary: '',
           sessionCreationTested: false,
@@ -1933,96 +2085,22 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           validationData: {}
         };
 
-        // 1. Test session creation functionality
-        try {
-          if (typeof SessionService !== 'undefined' && typeof SessionService.createSession === 'function') {
-            const testSession = {
-              focus_area: 'array',
-              session_type: 'practice',
-              time_limit: 1800,
-              problem_count: 5
-            };
+        const creationResult = testSessionCreation(verbose);
+        results.sessionCreationTested = creationResult.tested;
+        results.validationData.creation = creationResult.data;
 
-            // Test session creation (simulate - don't create real session)
-            results.sessionCreationTested = true;
-            results.validationData.creation = {
-              testSessionConfig: testSession,
-              creationWorking: true,
-              sessionServiceAvailable: true
-            };
-            if (verbose) console.log('✓ Session creation functionality validated');
-          } else {
-            // Simulate session creation test
-            results.sessionCreationTested = true;
-            results.validationData.creation = {
-              creationWorking: true,
-              sessionServiceAvailable: false,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session creation functionality simulated');
-          }
-        } catch (creationError) {
-          if (verbose) console.log('⚠️ Session creation test failed:', creationError.message);
-        }
+        const lifecycleResult = testSessionLifecycle(this.validateSessionTransitions, verbose);
+        results.sessionLifecycleTested = lifecycleResult.tested;
+        results.validationData.lifecycle = lifecycleResult.data;
 
-        // 2. Test session lifecycle management
-        try {
-          const lifecycleStates = ['created', 'started', 'in_progress', 'paused', 'completed', 'abandoned'];
-          const validTransitions = this.validateSessionTransitions(lifecycleStates);
+        const dataResult = await testSessionDataValidity(this.validateSessionData, verbose);
+        results.sessionDataValidityTested = dataResult.tested;
+        results.validationData.dataValidity = dataResult.data;
 
-          results.sessionLifecycleTested = true;
-          results.validationData.lifecycle = {
-            statesSupported: lifecycleStates.length,
-            validTransitions: validTransitions.validCount,
-            invalidTransitions: validTransitions.invalidCount,
-            lifecycleValid: validTransitions.validCount > validTransitions.invalidCount
-          };
-          if (verbose) console.log('✓ Session lifecycle management validated');
-        } catch (lifecycleError) {
-          if (verbose) console.log('⚠️ Session lifecycle test failed:', lifecycleError.message);
-        }
+        const metricsResult = testSessionMetricsCalc(this.testSessionMetrics, verbose);
+        results.sessionMetricsTested = metricsResult.tested;
+        results.validationData.metrics = metricsResult.data;
 
-        // 3. Test session data validity
-        try {
-          // getAllFromStore is now statically imported at the top
-          const sessions = await getAllFromStore('sessions');
-
-          if (sessions && sessions.length > 0) {
-            const dataValidation = this.validateSessionData(sessions);
-            results.sessionDataValidityTested = true;
-            results.validationData.dataValidity = {
-              ...dataValidation,
-              hasRealData: true
-            };
-            if (verbose) console.log('✓ Session data validity checked with real data');
-          } else {
-            // Simulate data validation
-            results.sessionDataValidityTested = true;
-            results.validationData.dataValidity = {
-              totalSessions: 15,
-              validSessions: 14,
-              validityRate: 0.93,
-              commonIssues: ['missing_timestamps', 'incomplete_metrics'],
-              hasRealData: false,
-              simulated: true
-            };
-            if (verbose) console.log('✓ Session data validity simulated');
-          }
-        } catch (dataError) {
-          if (verbose) console.log('⚠️ Session data validity test failed:', dataError.message);
-        }
-
-        // 4. Test session metrics calculation
-        try {
-          const metricsTest = this.testSessionMetrics();
-          results.sessionMetricsTested = true;
-          results.validationData.metrics = metricsTest;
-          if (verbose) console.log('✓ Session metrics calculation validated');
-        } catch (metricsError) {
-          if (verbose) console.log('⚠️ Session metrics test failed:', metricsError.message);
-        }
-
-        // 5. Evaluate overall core session validation
         const coreSessionValid = (
           results.sessionCreationTested &&
           results.sessionLifecycleTested &&
@@ -2045,7 +2123,6 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
           }
         }
 
-        // Return boolean for backward compatibility when not verbose
         if (!verbose) {
           return results.success;
         }
@@ -5956,124 +6033,143 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
       }
     };
 
+    // Helper: Check onboarding services availability
+    const checkOnboardingServices = (verbose) => {
+      const services = ['OnboardingService', 'UserPreferencesService', 'SettingsService'];
+      const available = services.filter(s => typeof globalThis[s] !== 'undefined');
+      if (available.length > 0 && verbose) {
+        console.log('✓ Onboarding services available:', available.join(', '));
+      }
+      return available.length > 0;
+    };
+
+    // Helper: Check settings service availability
+    const checkSettingsService = (verbose) => {
+      const isAvailable = typeof SettingsService !== 'undefined' || typeof chrome !== 'undefined';
+      if (isAvailable && verbose) {
+        console.log('✓ Settings service available for onboarding configuration');
+      }
+      return isAvailable;
+    };
+
+    // Helper: Simulate onboarding steps workflow
+    const simulateOnboardingSteps = (verbose) => {
+      const mockFlow = {
+        steps: [
+          { id: 'welcome', title: 'Welcome to CodeMaster', completed: true },
+          { id: 'preferences', title: 'Set Learning Preferences', completed: true },
+          { id: 'first-session', title: 'Generate First Session', completed: true },
+          { id: 'tutorial', title: 'Feature Tutorial', completed: true }
+        ],
+        currentStep: 'completed',
+        completedSteps: 4
+      };
+
+      if (mockFlow.steps && mockFlow.completedSteps > 0) {
+        const stepIds = mockFlow.steps.map(s => s.id);
+        if (verbose) console.log('✓ Onboarding steps simulated:', stepIds.join(' → '));
+        return stepIds;
+      }
+      return [];
+    };
+
+    // Helper: Simulate user profile creation
+    const simulateUserProfile = (verbose) => {
+      const profile = {
+        userId: 'new_user_' + Date.now(),
+        isFirstTime: true,
+        preferences: { focusAreas: ['array', 'hash-table'], difficulty: 'Medium' },
+        onboardingCompleted: true
+      };
+
+      const isValid = profile.userId && profile.preferences;
+      if (isValid && verbose) console.log('✓ User profile creation simulated');
+      return isValid;
+    };
+
+    // Helper: Check initial settings configuration
+    const checkSettingsConfig = (verbose) => {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        if (verbose) console.log('✓ Chrome storage available for settings configuration');
+        return { configured: true, type: 'chrome_storage' };
+      }
+      if (verbose) console.log('✓ Local storage fallback for settings configuration');
+      return { configured: true, type: 'local_storage' };
+    };
+
+    // Helper: Test welcome flow completion
+    const testWelcomeFlow = async (verbose) => {
+      if (typeof SessionService === 'undefined') {
+        if (verbose) console.log('✓ Welcome flow completion simulated (SessionService not available)');
+        return true;
+      }
+
+      try {
+        const sessionData = await SessionService.getOrCreateSession('standard');
+        const hasProblems = sessionData && sessionData.problems && sessionData.problems.length > 0;
+        if (hasProblems) {
+          if (verbose) console.log(`✓ Welcome flow completed with first session (${sessionData.problems.length} problems)`);
+          return true;
+        }
+        return false;
+      } catch (error) {
+        if (verbose) console.log('⚠️ Welcome flow completion failed:', error.message);
+        return false;
+      }
+    };
+
+    // Helper: Generate onboarding summary
+    const generateOnboardingSummary = (results) => {
+      if (results.success) {
+        const stepsInfo = results.onboardingSteps.length > 0 ?
+          ` Steps: ${results.onboardingSteps.join(' → ')}.` : '';
+        const configInfo = results.configurationType ? ` Config: ${results.configurationType}.` : '';
+        return `First user onboarding working: profile creation ✓, settings config ✓, welcome flow ✓.${stepsInfo}${configInfo}`;
+      }
+
+      const issues = [];
+      if (!results.onboardingServiceAvailable && !results.settingsServiceAvailable) issues.push('onboarding services missing');
+      if (!results.onboardingStepsSimulated) issues.push('onboarding steps failed');
+      if (!results.userProfileCreated) issues.push('user profile creation failed');
+      if (!results.initialSettingsConfigured) issues.push('settings configuration failed');
+      if (!results.welcomeFlowCompleted) issues.push('welcome flow failed');
+      return `First user onboarding issues: ${issues.join(', ')}`;
+    };
+
     globalThis.testFirstUserOnboarding = async function(options = {}) {
       const { verbose = false } = options;
       if (verbose) console.log('👋 Testing first user onboarding workflow...');
 
       try {
-        let results = {
+        const results = {
           success: false,
           summary: '',
-          onboardingServiceAvailable: false,
-          settingsServiceAvailable: false,
+          onboardingServiceAvailable: checkOnboardingServices(verbose),
+          settingsServiceAvailable: checkSettingsService(verbose),
           onboardingStepsSimulated: false,
-          userProfileCreated: false,
+          userProfileCreated: simulateUserProfile(verbose),
           initialSettingsConfigured: false,
           welcomeFlowCompleted: false,
           onboardingSteps: [],
           configurationType: null
         };
 
-        // 1. Test onboarding-related services availability
-        const onboardingServices = ['OnboardingService', 'UserPreferencesService', 'SettingsService'];
-        const availableOnboardingServices = onboardingServices.filter(service =>
-          typeof globalThis[service] !== 'undefined'
-        );
+        results.onboardingSteps = simulateOnboardingSteps(verbose);
+        results.onboardingStepsSimulated = results.onboardingSteps.length > 0;
 
-        if (availableOnboardingServices.length > 0) {
-          results.onboardingServiceAvailable = true;
-          if (verbose) console.log('✓ Onboarding services available:', availableOnboardingServices.join(', '));
-        }
+        const settingsConfig = checkSettingsConfig(verbose);
+        results.initialSettingsConfigured = settingsConfig.configured;
+        results.configurationType = settingsConfig.type;
 
-        // 2. Test settings service for configuration
-        if (typeof SettingsService !== 'undefined' || typeof chrome !== 'undefined') {
-          results.settingsServiceAvailable = true;
-          if (verbose) console.log('✓ Settings service available for onboarding configuration');
-        }
+        results.welcomeFlowCompleted = await testWelcomeFlow(verbose);
 
-        // 3. Simulate onboarding steps workflow
-        const mockOnboardingFlow = {
-          steps: [
-            { id: 'welcome', title: 'Welcome to CodeMaster', completed: true },
-            { id: 'preferences', title: 'Set Learning Preferences', completed: true },
-            { id: 'first-session', title: 'Generate First Session', completed: true },
-            { id: 'tutorial', title: 'Feature Tutorial', completed: true }
-          ],
-          currentStep: 'completed',
-          completedSteps: 4
-        };
-
-        if (mockOnboardingFlow.steps && mockOnboardingFlow.completedSteps > 0) {
-          results.onboardingStepsSimulated = true;
-          results.onboardingSteps = mockOnboardingFlow.steps.map(s => s.id);
-          if (verbose) console.log('✓ Onboarding steps simulated:', results.onboardingSteps.join(' → '));
-        }
-
-        // 4. Test user profile creation/initialization
-        const mockUserProfile = {
-          userId: 'new_user_' + Date.now(),
-          isFirstTime: true,
-          preferences: { focusAreas: ['array', 'hash-table'], difficulty: 'Medium' },
-          onboardingCompleted: true
-        };
-
-        if (mockUserProfile.userId && mockUserProfile.preferences) {
-          results.userProfileCreated = true;
-          if (verbose) console.log('✓ User profile creation simulated');
-        }
-
-        // 5. Test initial settings configuration
-        if (typeof chrome !== 'undefined' && chrome.storage) {
-          results.configurationType = 'chrome_storage';
-          results.initialSettingsConfigured = true;
-          if (verbose) console.log('✓ Chrome storage available for settings configuration');
-        } else {
-          results.configurationType = 'local_storage';
-          results.initialSettingsConfigured = true;
-          if (verbose) console.log('✓ Local storage fallback for settings configuration');
-        }
-
-        // 6. Test welcome flow completion
-        if (typeof SessionService === 'undefined') {
-          results.welcomeFlowCompleted = true;
-          if (verbose) console.log('✓ Welcome flow completion simulated (SessionService not available)');
-        } else {
-          try {
-            const welcomeSessionData = await SessionService.getOrCreateSession('standard');
-            const hasProblems = welcomeSessionData && welcomeSessionData.problems && welcomeSessionData.problems.length > 0;
-            if (hasProblems) {
-              results.welcomeFlowCompleted = true;
-            }
-            if (verbose && hasProblems) {
-              console.log(`✓ Welcome flow completed with first session (${welcomeSessionData.problems.length} problems)`);
-            }
-          } catch (welcomeError) {
-            if (verbose) console.log('⚠️ Welcome flow completion failed:', welcomeError.message);
-          }
-        }
-
-        // 7. Overall success assessment
         results.success = (results.onboardingServiceAvailable || results.settingsServiceAvailable) &&
                          results.onboardingStepsSimulated &&
                          results.userProfileCreated &&
                          results.initialSettingsConfigured &&
                          results.welcomeFlowCompleted;
 
-        // 8. Generate summary
-        if (results.success) {
-          const stepsInfo = results.onboardingSteps.length > 0 ?
-            ` Steps: ${results.onboardingSteps.join(' → ')}.` : '';
-          const configInfo = results.configurationType ? ` Config: ${results.configurationType}.` : '';
-          results.summary = `First user onboarding working: profile creation ✓, settings config ✓, welcome flow ✓.${stepsInfo}${configInfo}`;
-        } else {
-          const issues = [];
-          if (!results.onboardingServiceAvailable && !results.settingsServiceAvailable) issues.push('onboarding services missing');
-          if (!results.onboardingStepsSimulated) issues.push('onboarding steps failed');
-          if (!results.userProfileCreated) issues.push('user profile creation failed');
-          if (!results.initialSettingsConfigured) issues.push('settings configuration failed');
-          if (!results.welcomeFlowCompleted) issues.push('welcome flow failed');
-          results.summary = `First user onboarding issues: ${issues.join(', ')}`;
-        }
+        results.summary = generateOnboardingSummary(results);
 
         if (verbose) console.log('✅ First user onboarding test completed');
         return results;
