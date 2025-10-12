@@ -10,21 +10,11 @@ export function FocusAreasEmptyState({ onNavigateToSettings }) {
         <Text size="sm" fw={500}>Focus Areas</Text>
       </Group>
       <Text size="sm" c="dimmed" mb="xs">
-        No focus areas selected
+        No active focus areas yet
       </Text>
       <Text size="xs" c="dimmed" mb="md">
-        Set focus areas to prioritize specific tags in your learning sessions
+        Focus areas are automatically selected by the algorithm based on your performance. Start a practice session to see them.
       </Text>
-      {onNavigateToSettings && (
-        <Button
-          size="xs"
-          variant="light"
-          leftSection={<IconSettings size={14} />}
-          onClick={onNavigateToSettings}
-        >
-          Configure Focus Areas
-        </Button>
-      )}
     </Card>
   );
 }

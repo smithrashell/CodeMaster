@@ -26,17 +26,6 @@ import { buildRelationshipMap } from "../shared/db/problem_relationships.js";
 import { getProblem, fetchAllProblems } from "../shared/db/problems.js";
 import { getAllStandardProblems } from "../shared/db/standard_problems.js";
 
-// Onboarding imports
-import {
-  onboardUserIfNeeded,
-  checkContentOnboardingStatus,
-  updateContentOnboardingStep,
-  completeContentOnboarding,
-  checkPageTourStatus,
-  markPageTourCompleted,
-  resetPageTour
-} from "../shared/services/onboardingService.js";
-
 // Dashboard service imports
 import {
   getDashboardStatistics,
@@ -59,6 +48,7 @@ import { buildProblemRelationships } from "../shared/services/relationshipServic
 // Handler imports (extracted for reduced complexity)
 import { sessionHandlers } from "./handlers/sessionHandlers.js";
 import { problemHandlers } from "./handlers/problemHandlers.js";
+import { onboardingHandlers } from "./handlers/onboardingHandlers.js";
 
 /**
  * Main message routing function
@@ -97,6 +87,7 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
   const handlerRegistry = {
     ...sessionHandlers,
     ...problemHandlers,
+    ...onboardingHandlers,
   };
 
   // Check if this message type has an extracted handler
@@ -150,130 +141,9 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
           .then(sendResponse)
           .finally(finishRequest);
         return true;
-      /** ──────────────── User Onboarding ──────────────── **/
-      case "onboardingUserIfNeeded":
-        onboardUserIfNeeded()
-          .then((result) => {
-            // Handle both old and new response formats
-            if (result && typeof result === 'object' && 'success' in result) {
-              sendResponse(result);
-            } else {
-              // Legacy format - assume success
-              sendResponse({ success: true, message: "Onboarding completed" });
-            }
-          })
-          .catch((error) => {
-            console.error("❌ Error onboarding user:", error);
-            // Return a graceful error that doesn't break the UI
-            sendResponse({ 
-              success: false, 
-              error: error.message,
-              fallback: true 
-            });
-          })
-          .finally(finishRequest);
-        return true;
-      
-      case "checkInstallationOnboardingStatus":
-        StorageService.get('installation_onboarding_complete')
-          .then((result) => {
-            console.log("🔍 Installation onboarding status check:", result);
-            sendResponse({ 
-              isComplete: result?.completed === true,
-              timestamp: result?.timestamp,
-              version: result?.version,
-              error: result?.error
-            });
-          })
-          .catch((error) => {
-            console.error("❌ Error checking installation onboarding status:", error);
-            sendResponse({ 
-              isComplete: false, 
-              error: error.message 
-            });
-          })
-          .finally(finishRequest);
-        return true;
-      
-      case "checkContentOnboardingStatus":
-        checkContentOnboardingStatus()
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error checking content onboarding status:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
 
-      case "checkOnboardingStatus":
-        checkOnboardingStatus()
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error checking onboarding status:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
+      /** ──────────────── User Onboarding (extracted to handlers/onboardingHandlers.js) ──────────────── **/
 
-      case "completeOnboarding":
-        completeOnboarding()
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error completing onboarding:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
-
-      case "updateContentOnboardingStep":
-        updateContentOnboardingStep(request.step)
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error updating content onboarding step:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
-      
-      case "completeContentOnboarding":
-        completeContentOnboarding()
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error completing content onboarding:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
-      
-      case "checkPageTourStatus":
-        checkPageTourStatus(request.pageId)
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error checking page tour status:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
-      
-      case "markPageTourCompleted":
-        markPageTourCompleted(request.pageId)
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error marking page tour completed:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
-      
-      case "resetPageTour":
-        resetPageTour(request.pageId)
-          .then(sendResponse)
-          .catch((error) => {
-            console.error("❌ Error resetting page tour:", error);
-            sendResponse({ error: error.message });
-          })
-          .finally(finishRequest);
-        return true;
       /** ──────────────── User Settings ──────────────── **/
       case "setSettings":
         StorageService.setSettings(request.message)
@@ -748,15 +618,18 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
           try {
             // StorageService and TagService are now statically imported at the top
 
-            // Load focus areas from settings with fallback
-            const settings = await StorageService.getSettings();
-            let focusAreas = settings.focusAreas || [];
-            
-            // Provide fallback focus areas if none configured (like content script pattern)
-            if (focusAreas.length === 0) {
-              focusAreas = ["array", "hash table", "string", "dynamic programming", "tree"];
-              console.log("🔄 BACKGROUND: Using fallback focus areas");
-            }
+            // ONLY read from session state - no fallbacks to avoid inconsistency
+            // Dashboard displays what the algorithm actually selected for sessions
+            const sessionState = await StorageService.getSessionState();
+
+            // Use algorithm's live decision or empty array (UI will show "start a session" message)
+            const focusAreas = sessionState?.current_focus_tags || [];
+
+            console.log("🎯 Dashboard focus areas (algorithm-selected only):", {
+              hasSessionState: !!sessionState,
+              focusAreas,
+              source: focusAreas.length > 0 ? 'session_state (algorithm)' : 'none (no session yet)'
+            });
             
             // Get learning state data
             const learningState = await TagService.getCurrentLearningState();
