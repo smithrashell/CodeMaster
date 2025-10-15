@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { scoreProblemsWithRelationships } from "./problem_relationships.js";
+import { regenerateCompletedPatternLadder } from "../services/problemladderService.js";
 
 // Import session functions are handled directly through SessionService
 
@@ -1137,6 +1138,23 @@ function normalizeTags(tags) {
 }
 
 /**
+ * Gets a single pattern ladder by tag name
+ * @param {string} tag - The tag name to fetch ladder for
+ * @returns {Promise<Object|null>} The ladder object or null if not found
+ */
+async function getSingleLadder(tag) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("pattern_ladders", "readonly");
+    const store = transaction.objectStore("pattern_ladders");
+    const request = store.get(tag);
+
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
  * Selects problems for a specific tag with progressive difficulty
  * @param {string} tag - The tag to select problems for
  * @param {number} count - Number of problems to select
@@ -1152,9 +1170,32 @@ async function selectProblemsForTag(tag, count, config) {
   const { difficultyAllowance, ladders, allProblems, allTagsInCurrentTier, usedProblemIds, recentAttempts = [], currentDifficultyCap = null } = config;
   logger.info(`🎯 Selecting ${count} problems for tag: ${tag}`);
 
-  const ladder = ladders?.[tag]?.problems || [];
+  let ladder = ladders?.[tag]?.problems || [];
   const allTagsInCurrentTierSet = new Set(allTagsInCurrentTier);
-  
+
+  // PHASE 2: Proactive ladder regeneration - regenerate if ladder is too depleted
+  const available = ladder.filter(p => !p.attempted && !usedProblemIds.has(p.id));
+  const neededThreshold = count * 0.6; // Need at least 60% of request
+
+  if (available.length < neededThreshold) {
+    logger.info(`🔄 Ladder "${tag}" has ${available.length}/${Math.ceil(neededThreshold)} needed (${ladder.length} total). Regenerating...`);
+
+    try {
+      // Regenerate using existing function (re-scores with fresh relationships)
+      await regenerateCompletedPatternLadder(tag);
+
+      // Reload the regenerated ladder
+      const reloadedLadder = await getSingleLadder(tag);
+      if (reloadedLadder && reloadedLadder.problems) {
+        ladder = reloadedLadder.problems;
+        logger.info(`✅ Regenerated ladder "${tag}" now has ${ladder.length} problems (${ladder.filter(p => !p.attempted).length} unattempted)`);
+      }
+    } catch (error) {
+      logger.error(`❌ Failed to regenerate ladder "${tag}":`, error);
+      // Continue with existing ladder on error
+    }
+  }
+
   logger.info(`🔍 Tag selection debug for "${tag}":`, {
     ladderProblemsCount: ladder.length,
     allTagsInCurrentTierCount: allTagsInCurrentTier.length,
@@ -1193,37 +1234,80 @@ async function selectProblemsForTag(tag, count, config) {
     5 // Look at last 5 attempts
   );
 
-  problemsWithRelationships.sort((a, b) => {
-    // Primary: Relationship score (higher is better)
-    const relationshipDiff = (b.relationshipScore || 0) - (a.relationshipScore || 0);
-    if (Math.abs(relationshipDiff) > 0.01) { // Only consider significant differences
-      return relationshipDiff;
-    }
+  // Calculate composite scores that balance all factors
+  problemsWithRelationships.forEach(problem => {
+    // Normalize relationship score (0-1 range, assume max is 1.0)
+    const normalizedRelationship = Math.min((problem.relationshipScore || 0), 1.0);
 
-    // Secondary: Respect difficulty cap - prioritize problems at cap level
+    // Calculate cap proximity score (0-1 range)
+    let capProximityScore = 0.5; // Default neutral score
     if (currentDifficultyCap) {
       const capScore = getDifficultyScore(currentDifficultyCap);
-      const aDistanceFromCap = Math.abs(a.difficultyScore - capScore);
-      const bDistanceFromCap = Math.abs(b.difficultyScore - capScore);
-
-      if (aDistanceFromCap !== bDistanceFromCap) {
-        return aDistanceFromCap - bDistanceFromCap; // Closer to cap = selected first
-      }
+      const maxDistance = 2; // Max distance is Easy to Hard (3 - 1 = 2)
+      const distance = Math.abs(problem.difficultyScore - capScore);
+      capProximityScore = 1 - (distance / maxDistance); // Closer to cap = higher score
     }
 
-    // Tertiary: Difficulty score (easier first) - only if no cap specified
-    if (a.difficultyScore !== b.difficultyScore) {
-      return a.difficultyScore - b.difficultyScore;
-    }
+    // Allowance weight is already normalized (0-1 range, sums to 1.0)
+    const normalizedAllowance = problem.allowanceWeight || 0;
 
-    // Quaternary: Allowance weight
-    return b.allowanceWeight - a.allowanceWeight;
+    // Composite score: weighted combination of all factors
+    // Relationship: 40% - learning path connections
+    // Cap proximity: 40% - respect difficulty cap preference
+    // Allowance: 20% - natural tag distribution
+    problem.compositeScore =
+      (normalizedRelationship * 0.4) +
+      (capProximityScore * 0.4) +
+      (normalizedAllowance * 0.2);
   });
+
+  // Sort by composite score (higher is better)
+  problemsWithRelationships.sort((a, b) => {
+    const scoreDiff = b.compositeScore - a.compositeScore;
+    if (Math.abs(scoreDiff) > 0.001) {
+      return scoreDiff;
+    }
+    // Tiebreaker: prefer easier problems if scores are equal
+    return a.difficultyScore - b.difficultyScore;
+  });
+
+  // Log composite score distribution for debugging
+  if (problemsWithRelationships.length > 0) {
+    const scoresByDifficulty = {
+      Easy: problemsWithRelationships.filter(p => p.difficulty === 'Easy').slice(0, 3),
+      Medium: problemsWithRelationships.filter(p => p.difficulty === 'Medium').slice(0, 3),
+      Hard: problemsWithRelationships.filter(p => p.difficulty === 'Hard').slice(0, 3)
+    };
+
+    logger.info(`🎯 Composite score distribution for "${tag}" (top 3 per difficulty):`, {
+      Easy: scoresByDifficulty.Easy.map(p => ({
+        id: p.id,
+        title: p.title?.substring(0, 30),
+        composite: p.compositeScore?.toFixed(3),
+        relationship: p.relationshipScore?.toFixed(3),
+        allowance: p.allowanceWeight?.toFixed(3)
+      })),
+      Medium: scoresByDifficulty.Medium.map(p => ({
+        id: p.id,
+        title: p.title?.substring(0, 30),
+        composite: p.compositeScore?.toFixed(3),
+        relationship: p.relationshipScore?.toFixed(3),
+        allowance: p.allowanceWeight?.toFixed(3)
+      })),
+      Hard: scoresByDifficulty.Hard.map(p => ({
+        id: p.id,
+        title: p.title?.substring(0, 30),
+        composite: p.compositeScore?.toFixed(3),
+        relationship: p.relationshipScore?.toFixed(3),
+        allowance: p.allowanceWeight?.toFixed(3)
+      }))
+    });
+  }
 
   logger.info(
     `🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`
   );
-  
+
   // Add detailed debug info if no problems found
   if (eligibleProblems.length === 0 && ladder.length > 0) {
     logger.warn(`🔍 Why no problems for "${tag}"? Analyzing first ladder problem:`, {
