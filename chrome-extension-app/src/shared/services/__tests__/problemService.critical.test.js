@@ -82,7 +82,7 @@ describe("ProblemService - Critical User Retention Paths", () => {
       // Mock empty initial fetch but fallback problems available
       problemsDb.fetchAllProblems.mockResolvedValue([]);
       problemsDb.fetchAdditionalProblems.mockResolvedValue([
-        { id: 1, leetcode_id: 1, title: "Fallback Problem", difficulty: "Easy" }
+        { id: 1, leetcode_id: 1, title: "Fallback Problem", difficulty: "Easy", tags: ["Array"], slug: "fallback-problem" }
       ]);
 
       StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
@@ -338,7 +338,7 @@ describe("ProblemService - Critical User Retention Paths", () => {
       });
 
       problemsDb.fetchAllProblems.mockResolvedValue([
-        { id: 1, leetcode_id: 1, title: "Fallback Problem", difficulty: "Easy" }
+        { id: 1, leetcode_id: 1, title: "Fallback Problem", difficulty: "Easy", tags: ["Array"], slug: "fallback-problem" }
       ]);
       problemsDb.fetchAdditionalProblems.mockResolvedValue([]);
       StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
@@ -446,7 +446,7 @@ describe("ProblemService - Critical User Retention Paths", () => {
       });
 
       problemsDb.fetchAllProblems.mockResolvedValue([
-        { id: 1, leetcode_id: 1, title: "Recovery Problem", difficulty: "Easy" }
+        { id: 1, leetcode_id: 1, title: "Recovery Problem", difficulty: "Easy", tags: ["Array"], slug: "recovery-problem" }
       ]);
       problemsDb.fetchAdditionalProblems.mockResolvedValue([]);
       StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
@@ -489,10 +489,10 @@ describe("ProblemService - Critical User Retention Paths", () => {
 
     it("should validate problem data integrity before session creation", async () => {
       const problematicProblems = [
-        { id: 1, leetcode_id: 1, title: "Valid Problem", difficulty: "Easy" }, // Valid
-        { id: null, leetcode_id: null, title: "Invalid Problem", difficulty: "Easy" }, // Invalid ID
-        { id: 2, leetcode_id: 2, title: "", difficulty: "Easy" }, // Empty title
-        { id: 3, leetcode_id: 3, title: "Problem 3", difficulty: "InvalidDifficulty" }, // Invalid difficulty
+        { id: 1, leetcode_id: 1, title: "Valid Problem", difficulty: "Easy", tags: ["Array"], slug: "valid-problem" }, // Valid
+        { id: null, leetcode_id: null, title: "Invalid Problem", difficulty: "Easy", tags: ["Array"], slug: "invalid-problem" }, // Invalid ID
+        { id: 2, leetcode_id: 2, title: "", difficulty: "Easy", tags: ["Array"], slug: "problem-2" }, // Empty title
+        { id: 3, leetcode_id: 3, title: "Problem 3", difficulty: "InvalidDifficulty", tags: ["Array"], slug: "problem-3" }, // Invalid difficulty
         null, // Completely invalid
         undefined, // Also invalid
       ];
@@ -508,7 +508,7 @@ describe("ProblemService - Critical User Retention Paths", () => {
 
       problemsDb.fetchAllProblems.mockResolvedValue(problematicProblems);
       problemsDb.fetchAdditionalProblems.mockResolvedValue([
-        { id: 4, leetcode_id: 4, title: "Additional Valid Problem", difficulty: "Easy" }
+        { id: 4, leetcode_id: 4, title: "Additional Valid Problem", difficulty: "Easy", tags: ["Array"], slug: "additional-valid-problem" }
       ]);
       StorageService.getSettings.mockResolvedValue({ reviewRatio: 40 });
       ScheduleService.getDailyReviewSchedule.mockResolvedValue([]);
