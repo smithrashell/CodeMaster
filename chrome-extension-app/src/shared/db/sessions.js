@@ -206,7 +206,7 @@ export const updateSessionInDB = async (session) => {
  * Atomically gets latest session or creates new one if none exists.
  * Prevents race conditions by doing both operations in single transaction.
  * @param {string} sessionType - Type of session to get or create
- * @param {string} status - Status to check for ('in_progress' or 'draft')
+ * @param {string} status - Status to check for ('in_progress')
  * @param {Object} newSessionData - Data for new session if creation needed
  * @returns {Promise<Object>} - Existing or newly created session
  */
@@ -753,26 +753,18 @@ function evaluatePromotion(problemsAtDifficulty, accuracy, escapeHatches) {
 
 function applyDifficultyPromotion(context) {
   const { sessionState, currentDifficulty, shouldPromote, promotionReason,
-    problemsAtDifficulty, accuracy, settings, now, escapeHatches } = context;
-
-  const userMaxDifficulty = settings.maxDifficulty || "Hard";
-  const getDifficultyOrder = (difficulty) => {
-    const order = { "Easy": 1, "Medium": 2, "Hard": 3 };
-    return order[difficulty] || 1;
-  };
+    problemsAtDifficulty, accuracy, now, escapeHatches } = context;
 
   const promotionData = {
     sessionState, escapeHatches, now, promotionReason, problemsAtDifficulty, accuracy
   };
 
-  if (shouldPromote && currentDifficulty === "Easy" && getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Medium")) {
+  if (shouldPromote && currentDifficulty === "Easy") {
     promoteDifficulty(promotionData, "Medium");
     return true;
-  } else if (shouldPromote && currentDifficulty === "Medium" && getDifficultyOrder(userMaxDifficulty) >= getDifficultyOrder("Hard")) {
+  } else if (shouldPromote && currentDifficulty === "Medium") {
     promoteDifficulty(promotionData, "Hard");
     return true;
-  } else if (shouldPromote && getDifficultyOrder(sessionState.current_difficulty_cap) < getDifficultyOrder(userMaxDifficulty)) {
-    logger.info(`🛡️ Difficulty progression blocked by user guardrail: Current ${sessionState.current_difficulty_cap}, Max allowed: ${userMaxDifficulty}`);
   }
 
   return false;
@@ -814,6 +806,55 @@ function logEscapeHatchExit(currentDifficulty, sessionState, promoted, promotion
     promoted,
     promotionReason
   });
+}
+
+/**
+ * Checks recent sessions for demotion based on sustained poor performance
+ * @param {Object} sessionState - Current session state
+ * @returns {Promise<Object>} Updated session state (may be demoted)
+ */
+async function checkForDemotion(sessionState) {
+  const currentCap = sessionState.current_difficulty_cap || "Easy";
+
+  // Can't demote from Easy
+  if (currentCap === "Easy") {
+    return sessionState;
+  }
+
+  try {
+    // Use existing getRecentSessionAnalytics (already imported line 8)
+    const recentSessions = await getRecentSessionAnalytics(3);
+
+    if (recentSessions.length < 3) {
+      logger.info(`🔍 Demotion check: Not enough history (${recentSessions.length}/3)`);
+      return sessionState;
+    }
+
+    // Count low-accuracy sessions
+    const lowAccuracyCount = recentSessions.filter(s => (s.accuracy || 0) < 0.5).length;
+
+    if (lowAccuracyCount >= 3) {
+      const targetDifficulty = currentCap === "Hard" ? "Medium" : "Easy";
+      const oldDifficulty = currentCap;
+
+      sessionState.current_difficulty_cap = targetDifficulty;
+
+      // Reset escape hatches
+      if (sessionState.escape_hatches) {
+        sessionState.escape_hatches.sessions_at_current_difficulty = 0;
+      }
+
+      logger.info(`🔽 Difficulty Demotion: ${oldDifficulty} → ${targetDifficulty}`);
+      logger.info(`   Recent accuracies: ${recentSessions.map(s => `${((s.accuracy || 0) * 100).toFixed(0)}%`).join(', ')}`);
+    } else {
+      logger.info(`✓ Demotion check passed: ${lowAccuracyCount}/3 low-accuracy sessions`);
+    }
+
+    return sessionState;
+  } catch (error) {
+    logger.error("❌ Error in demotion check:", error);
+    return sessionState; // Don't fail progression
+  }
 }
 
 // Helper to analyze performance trend from recent sessions
@@ -1536,6 +1577,9 @@ export async function evaluateDifficultyProgression(accuracy, settings) {
 
     const previousDifficulty = sessionState.current_difficulty_cap;
     const now = new Date();
+
+    // Check for demotion BEFORE promotion logic
+    sessionState = await checkForDemotion(sessionState);
 
     // Apply difficulty progression logic
     let updatedSessionState;
