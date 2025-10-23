@@ -8,7 +8,7 @@ import {
   countProblemsByBoxLevelWithRetry,
   fetchAllProblemsWithRetry,
 } from "../db/problems.js";
-import { getProblemFromStandardProblems } from "../db/standard_problems.js";
+import { getProblemFromStandardProblems, fetchProblemById } from "../db/standard_problems.js";
 import { AttemptsService } from "./attemptsService.js";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -28,6 +28,7 @@ import { InterviewService } from "./interviewService.js";
 import logger from "../utils/logger.js";
 import { selectOptimalProblems } from "../db/problem_relationships.js";
 import { applySafetyGuardRails } from "../utils/sessionBalancing.js";
+import { normalizeProblems } from "./problemNormalizer.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
 
@@ -38,25 +39,195 @@ async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnbo
     return 0;
   }
 
+  // 🔧 PRIORITY-BASED REVIEW SELECTION
+  // Changed approach: Get ALL due review problems, then prioritize them for session inclusion
+  // This ensures spaced repetition works correctly - if problems are due, they should appear
+
   const settings = await StorageService.getSettings();
   const reviewRatio = (settings.reviewRatio || 40) / 100;
   const reviewTarget = Math.floor(sessionLength * reviewRatio);
-  logger.info(`🔄 Using review ratio: ${(reviewRatio * 100).toFixed(0)}% (${reviewTarget}/${sessionLength} problems)`);
 
-  const reviewProblems = await ScheduleService.getDailyReviewSchedule(reviewTarget);
+  // Get ALL problems due for review (no artificial limit)
+  const allReviewProblems = await ScheduleService.getDailyReviewSchedule(null);
+  logger.info(`🔍 DEBUG: Found ${allReviewProblems?.length || 0} total problems due for review`);
+
+  // 🔧 CRITICAL FIX: Enrich review problems with core metadata from standard_problems
+  // Review problems from the 'problems' database only have Leitner tracking data (box_level, review_schedule, etc.)
+  // but are missing core fields like difficulty, tags, slug from the source JSON
+  logger.info(`🔄 Enriching ${allReviewProblems?.length || 0} review problems with data from standard_problems...`);
+  const enrichedReviewProblems = await Promise.all(
+    (allReviewProblems || []).map(async (reviewProblem) => {
+      const leetcodeId = reviewProblem.leetcode_id || reviewProblem.id;
+
+      if (!leetcodeId) {
+        logger.warn(`⚠️ Review problem missing leetcode_id:`, reviewProblem);
+        return reviewProblem;
+      }
+
+      // Fetch core metadata from standard_problems
+      const standardProblem = await fetchProblemById(Number(leetcodeId));
+
+      if (!standardProblem) {
+        logger.error(`❌ Could not find problem ${leetcodeId} in standard_problems. Review problem may be from old data.`);
+        return reviewProblem; // Return as-is, will fail validation and provide clear error
+      }
+
+      // Merge: review problem data (Leitner tracking) + standard problem data (core metadata)
+      const enriched = {
+        ...reviewProblem,
+        // Core metadata from standard_problems (only if missing in review problem)
+        difficulty: reviewProblem.difficulty || standardProblem.difficulty,
+        tags: reviewProblem.tags || standardProblem.tags,
+        slug: reviewProblem.slug || standardProblem.slug,
+        title: reviewProblem.title || standardProblem.title,
+        // Ensure both id fields exist
+        id: Number(leetcodeId),
+        leetcode_id: Number(leetcodeId)
+      };
+
+      logger.info(`✅ Enriched problem ${leetcodeId}:`, {
+        title: enriched.title,
+        difficulty: enriched.difficulty,
+        tagsCount: enriched.tags?.length,
+        hasSlug: !!enriched.slug
+      });
+
+      return enriched;
+    })
+  );
+
   logger.info(`🔍 DEBUG: reviewProblems before filtering:`, {
-    isArray: Array.isArray(reviewProblems),
-    length: reviewProblems?.length,
-    content: reviewProblems?.map(p => ({ id: p?.id, leetcode_id: p?.leetcode_id, title: p?.title }))
+    isArray: Array.isArray(enrichedReviewProblems),
+    length: enrichedReviewProblems?.length,
+    first5: enrichedReviewProblems?.slice(0, 5).map(p => ({
+      id: p?.id,
+      leetcode_id: p?.leetcode_id,
+      problem_id: p?.problem_id,
+      title: p?.title,
+      difficulty: p?.difficulty,
+      review_schedule: p?.review_schedule,
+      allKeys: Object.keys(p || {})
+    }))
   });
 
-  const validReviewProblems = reviewProblems.filter(p => p && (p.id || p.leetcode_id));
-  sessionProblems.push(...validReviewProblems);
+  // Normalize problems: ensure they have 'id' field for frontend compatibility
+  const validReviewProblems = (enrichedReviewProblems || [])
+    .filter(p => {
+      const isValid = p && (p.id || p.leetcode_id);
+      if (!isValid && p) {
+        logger.warn(`🔍 DEBUG: Filtering out invalid review problem:`, {
+          hasP: !!p,
+          hasId: !!p.id,
+          hasLeetcodeId: !!p.leetcode_id,
+          hasProblemId: !!p.problem_id,
+          keys: Object.keys(p)
+        });
+      }
+      return isValid;
+    })
+    .map(p => {
+      // Normalize: Ensure 'id' field exists (frontend expects this)
+      const normalized = {
+        ...p,
+        id: p.id || p.leetcode_id  // Ensure id field exists
+      };
 
-  logger.info(`🔄 Added ${validReviewProblems.length}/${reviewTarget} review problems (filtered from ${reviewProblems?.length || 0} candidates)`);
+      // 🔧 FIX: Normalize field names for frontend compatibility
+      // Frontend expects PascalCase 'LeetCodeAddress', DB stores snake_case 'leetcode_address'
+      if (p.leetcode_address && !normalized.LeetCodeAddress) {
+        normalized.LeetCodeAddress = p.leetcode_address;
+      }
 
-  analyzeReviewProblems(reviewProblems, reviewTarget, allProblems);
-  return validReviewProblems.length;
+      // 🔧 FIX: Ensure slug exists for URL generation fallback
+      // Try multiple possible slug field names from database
+      if (!normalized.slug) {
+        normalized.slug = p.slug || p.title_slug || p.titleSlug || p.TitleSlug;
+      }
+
+      // 🔧 FIX: If still no slug, generate one from title as last resort
+      if (!normalized.slug && (p.title || p.Title || p.ProblemDescription)) {
+        const title = p.title || p.Title || p.ProblemDescription;
+        normalized.slug = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+        logger.warn(`⚠️ Generated slug from title for problem: ${title} → ${normalized.slug}`);
+      }
+
+      // 🔍 DEBUG: Log what fields we have for URL generation
+      logger.info(`🔗 Review problem URL fields for "${p.title || p.Title}":`, {
+        has_leetcode_address: !!p.leetcode_address,
+        has_LeetCodeAddress: !!normalized.LeetCodeAddress,
+        has_slug: !!normalized.slug,
+        LeetCodeAddress: normalized.LeetCodeAddress,
+        slug: normalized.slug
+      });
+
+      // 🔧 FIX: Include attempt data so frontend can distinguish review vs new problems
+      // Frontend checks problem.attempts to determine if NEW badge should show
+      // Review problems have attempt_stats in DB but need attempts array for frontend
+      if (p.attempt_stats) {
+        // Always set attempts from attempt_stats, even if attempts array already exists (might be empty/stale)
+        normalized.attempts = p.attempt_stats.total_attempts > 0 ?
+          [{ count: p.attempt_stats.total_attempts }] : [];
+      } else if (!normalized.attempts) {
+        // If no attempt_stats and no attempts array, ensure empty array for new problems
+        normalized.attempts = [];
+      }
+
+      return normalized;
+    });
+
+  logger.info(`🔍 DEBUG: After filtering and normalizing - valid review problems: ${validReviewProblems.length}`);
+
+  // 🔍 NORMALIZATION DEBUG: Log what fields were added
+  if (validReviewProblems.length > 0) {
+    logger.info(`🔍 NORMALIZATION CHECK - First review problem after normalization:`, {
+      id: validReviewProblems[0].id,
+      leetcode_id: validReviewProblems[0].leetcode_id,
+      problem_id: validReviewProblems[0].problem_id,
+      hasAttempts: !!validReviewProblems[0].attempts,
+      attemptsLength: validReviewProblems[0].attempts?.length,
+      attemptsContent: validReviewProblems[0].attempts,
+      hasAttemptStats: !!validReviewProblems[0].attempt_stats,
+      attemptStatsTotal: validReviewProblems[0].attempt_stats?.total_attempts
+    });
+  }
+
+  // Priority logic: Take up to sessionLength worth of review problems if available
+  // This allows reviews to dominate the session when many are due (proper spaced repetition)
+  const reviewProblemsToAdd = validReviewProblems.slice(0, Math.min(sessionLength, validReviewProblems.length));
+
+  logger.info(`🔍 DEBUG: Before push - sessionProblems.length: ${sessionProblems.length}`);
+  logger.info(`🔍 DEBUG: About to push ${reviewProblemsToAdd.length} problems:`,
+    reviewProblemsToAdd.slice(0, 3).map(p => ({
+      id: p?.id,
+      leetcode_id: p?.leetcode_id,
+      title: p?.title,
+      hasAttempts: !!p.attempts,
+      attemptsLength: p.attempts?.length
+    }))
+  );
+
+  sessionProblems.push(...reviewProblemsToAdd);
+
+  logger.info(`🔍 DEBUG: After push - sessionProblems.length: ${sessionProblems.length}`);
+  logger.info(`🔍 DEBUG: sessionProblems content:`,
+    sessionProblems.slice(0, 3).map(p => ({
+      id: p?.id,
+      leetcode_id: p?.leetcode_id,
+      title: p?.title
+    }))
+  );
+
+  logger.info(`🔄 Added ${reviewProblemsToAdd.length} review problems to session (${validReviewProblems.length} total due, target was ${reviewTarget})`);
+
+  if (reviewProblemsToAdd.length > reviewTarget) {
+    logger.info(`ℹ️ Review problems (${reviewProblemsToAdd.length}) exceeded target ratio (${reviewTarget}) - prioritizing spaced repetition over new content`);
+  }
+
+  analyzeReviewProblems(validReviewProblems, reviewTarget, allProblems);
+  return reviewProblemsToAdd.length;
 }
 
 function analyzeReviewProblems(reviewProblems, reviewTarget, allProblems) {
@@ -99,8 +270,57 @@ async function addNewProblemsToSession(params) {
   );
 
   const newProblems = await selectNewProblems(candidateProblems, newProblemsNeeded, isOnboarding);
-  sessionProblems.push(...newProblems);
-  logger.info(`🆕 Added ${newProblems.length}/${newProblemsNeeded} new problems${!isOnboarding ? ' with optimal path scoring' : ''}`);
+
+  // 🔧 FIX: Normalize new problems with same field mapping as review problems
+  const normalizedNewProblems = newProblems.map(p => {
+    const normalized = {
+      ...p,
+      id: p.id || p.leetcode_id  // Ensure id field exists
+    };
+
+    // Normalize field names for frontend compatibility
+    if (p.leetcode_address && !normalized.LeetCodeAddress) {
+      normalized.LeetCodeAddress = p.leetcode_address;
+    }
+
+    // Ensure slug exists for URL generation fallback
+    if (!normalized.slug) {
+      normalized.slug = p.slug || p.title_slug || p.titleSlug || p.TitleSlug;
+    }
+
+    // If still no slug, generate one from title as last resort
+    if (!normalized.slug && (p.title || p.Title || p.ProblemDescription)) {
+      const title = p.title || p.Title || p.ProblemDescription;
+      normalized.slug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      logger.warn(`⚠️ Generated slug from title for new problem: ${title} → ${normalized.slug}`);
+    }
+
+    // 🔍 DEBUG: Log what fields we have for URL generation
+    logger.info(`🔗 New problem URL fields for "${p.title || p.Title}":`, {
+      has_leetcode_address: !!p.leetcode_address,
+      has_LeetCodeAddress: !!normalized.LeetCodeAddress,
+      has_slug: !!normalized.slug,
+      LeetCodeAddress: normalized.LeetCodeAddress,
+      slug: normalized.slug
+    });
+
+    // New problems should have empty attempts array
+    // Check attempt_stats first (in case problem was attempted before but marked as "new")
+    if (p.attempt_stats) {
+      normalized.attempts = p.attempt_stats.total_attempts > 0 ?
+        [{ count: p.attempt_stats.total_attempts }] : [];
+    } else if (!normalized.attempts) {
+      normalized.attempts = [];
+    }
+
+    return normalized;
+  });
+
+  sessionProblems.push(...normalizedNewProblems);
+  logger.info(`🆕 Added ${normalizedNewProblems.length}/${newProblemsNeeded} new problems${!isOnboarding ? ' with optimal path scoring' : ''}`);
 }
 
 async function selectNewProblems(candidateProblems, newProblemsNeeded, isOnboarding) {
@@ -478,22 +698,83 @@ export const ProblemService = {
     addFallbackProblems(sessionProblems, sessionLength, allProblems);
 
     // **Step 4: Deduplicate and apply safety guard rails**
-    const finalSession = deduplicateById(sessionProblems).slice(0, sessionLength);
+    logger.info(`🔍 DEBUG: Before deduplication - sessionProblems.length: ${sessionProblems.length}`);
+    logger.info(`🔍 DEBUG: First 3 problems before dedup:`,
+      sessionProblems.slice(0, 3).map(p => ({
+        id: p?.id,
+        leetcode_id: p?.leetcode_id,
+        title: p?.title
+      }))
+    );
+
+    const deduplicated = deduplicateById(sessionProblems);
+
+    logger.info(`🔍 DEBUG: After deduplication - deduplicated.length: ${deduplicated.length}`);
+    logger.info(`🔍 DEBUG: First 3 problems after dedup:`,
+      deduplicated.slice(0, 3).map(p => ({
+        id: p?.id,
+        leetcode_id: p?.leetcode_id,
+        title: p?.title
+      }))
+    );
+
+    const finalSession = deduplicated.slice(0, sessionLength);
+
+    logger.info(`🔍 DEBUG: After slice to sessionLength(${sessionLength}) - finalSession.length: ${finalSession.length}`);
+
     await checkSafetyGuardRails(finalSession, currentDifficultyCap);
 
-    // **Step 5: Add reasoning and log final composition**
+    // **Step 5: Normalize all problems to standard structure**
+    logger.info("🔄 Normalizing session problems to standard structure...");
+    const normalizedProblems = normalizeProblems(
+      finalSession.map((p, index) => ({
+        ...p,
+        _sourceIndex: index,
+        _hasUUID: !!p.problem_id
+      })),
+      'session_creation'
+    );
+    logger.info(`✅ Normalized ${normalizedProblems.length} problems`);
+
+    // **Step 6: Add reasoning to normalized problems**
     const sessionWithReasons = await this.addProblemReasoningToSession(
-      finalSession,
+      normalizedProblems,
       {
         sessionLength,
         reviewCount: reviewProblemsCount,
-        newCount: finalSession.length - reviewProblemsCount,
+        newCount: normalizedProblems.length - reviewProblemsCount,
         allowedTags: currentAllowedTags,
         difficultyCap: currentDifficultyCap,
       }
     );
 
     logFinalSessionComposition(sessionWithReasons, sessionLength, reviewProblemsCount);
+
+    // Log what we're actually returning to help debug frontend display issues
+    logger.info(`🔍 DEBUG: Returning session with ${sessionWithReasons.length} problems to frontend:`,
+      sessionWithReasons.map(p => ({
+        id: p.id,
+        leetcode_id: p.leetcode_id,
+        title: p.title,
+        hasId: !!p.id,
+        hasLeetcodeId: !!p.leetcode_id
+      }))
+    );
+
+    // 🔍 NORMALIZATION DEBUG: Final check before returning
+    if (sessionWithReasons.length > 0) {
+      logger.info(`🔍 NORMALIZATION CHECK - First problem being returned from fetchAndAssembleSessionProblems:`, {
+        id: sessionWithReasons[0].id,
+        leetcode_id: sessionWithReasons[0].leetcode_id,
+        problem_id: sessionWithReasons[0].problem_id,
+        hasAttempts: !!sessionWithReasons[0].attempts,
+        attemptsLength: sessionWithReasons[0].attempts?.length,
+        attemptsContent: sessionWithReasons[0].attempts,
+        hasAttemptStats: !!sessionWithReasons[0].attempt_stats,
+        allKeys: Object.keys(sessionWithReasons[0])
+      });
+    }
+
     return sessionWithReasons;
   },
 
@@ -552,8 +833,12 @@ export const ProblemService = {
         throw new Error("Failed to select any problems for interview session");
       }
 
-      // Add interview metadata to problems
-      const interviewProblems = selectedProblems.map(problem => ({
+      // Normalize problems first
+      logger.info("🔄 Normalizing interview problems...");
+      const normalizedProblems = normalizeProblems(selectedProblems, 'interview');
+
+      // Add interview metadata to normalized problems
+      const interviewProblems = normalizedProblems.map(problem => ({
         ...problem,
         interviewMode: mode,
         interviewConstraints: InterviewService.getInterviewConfig(mode),
@@ -563,7 +848,7 @@ export const ProblemService = {
         }
       }));
 
-      logger.info(`🎯 Interview session assembled successfully: ${interviewProblems.length} problems`);
+      logger.info(`✅ Interview session assembled successfully: ${interviewProblems.length} normalized problems`);
       return interviewProblems;
       
     } catch (error) {
@@ -839,14 +1124,36 @@ const _shuffleArray = (array) => {
  */
 const deduplicateById = (problems) => {
   const seen = new Set();
-  return problems.filter((problem) => {
-    // Use consistent 'id' field (LeetCode ID)
-    if (!problem.id || seen.has(problem.id)) {
+  let kept = 0;
+  let filtered = 0;
+
+  const result = problems.filter((problem, index) => {
+    // Use id or leetcode_id (problems may have either field)
+    const problemId = problem.id || problem.leetcode_id;
+
+    // Debug first few problems
+    if (index < 3) {
+      logger.info(`🔍 DEBUG deduplicateById [${index}]:`, {
+        title: problem.title,
+        id: problem.id,
+        leetcode_id: problem.leetcode_id,
+        problemId,
+        hasProblemId: !!problemId,
+        alreadySeen: seen.has(problemId)
+      });
+    }
+
+    if (!problemId || seen.has(problemId)) {
+      filtered++;
       return false;
     }
-    seen.add(problem.id);
+    seen.add(problemId);
+    kept++;
     return true;
   });
+
+  logger.info(`🔍 DEBUG deduplicateById summary: kept=${kept}, filtered=${filtered}, total=${problems.length}`);
+  return result;
 };
 
 function problemSortingCriteria(a, b) {
