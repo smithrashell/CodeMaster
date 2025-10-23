@@ -1084,10 +1084,10 @@ export const ProblemService = {
 
     if (existingProblem) {
       const updatedproblems = session.problems.map((curr) =>
-        curr.id === existingProblem.id ? problem : curr
+        curr.id === existingProblem.id ? { ...curr, problem_id: problem.problem_id, attempted: true, attempt_date: new Date().toISOString() } : curr
       );
       session.problems = updatedproblems;
-      logger.info("✅updatedSession", session);
+      logger.info("✅ Updated session problem with problem_id and attempted flag");
     }
     return session;
   },
