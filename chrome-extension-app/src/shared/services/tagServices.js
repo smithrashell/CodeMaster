@@ -958,7 +958,15 @@ async function getAvailableTagsForFocus(userId) {
     logger.info(`🔰 Onboarding status: ${isOnboarding} (sessions completed: ${sessionState.num_sessions_completed})`);
 
     const currentTier = learningState?.currentTier || "Core Concept";
-    const systemSelectedTags = learningState?.focusTags || [];
+
+    // PURE SYSTEM RECOMMENDATIONS - from stable system pool (algorithm only, no user influence)
+    const pureSystemTags = settings.systemFocusPool?.tags || [];
+    logger.info(`🎯 Pure system recommendations (algorithm only): [${pureSystemTags.join(', ')}]`);
+
+    // ACTIVE FOCUS TAGS - what sessions actually use (may include user blending)
+    const activeFocusTags = learningState?.focusTags || [];
+    logger.info(`🎯 Active focus tags (may include user blending): [${activeFocusTags.join(', ')}]`);
+
     const _currentTierTags = learningState?.allTagsInCurrentTier || [];
     const userOverrideTags = settings.focusAreas || [];
 
@@ -980,15 +988,22 @@ async function getAvailableTagsForFocus(userId) {
     };
 
     // Create tags list with proper tier classification from database
-    const tags = tagRelationships.map(entry => ({
-      tagId: entry.id,
-      tag: entry.id,
-      name: entry.id.charAt(0).toUpperCase() + entry.id.slice(1).replace(/[-_]/g, " "),
-      tier: classificationToTier[entry.classification] ?? 0,
-      classification: entry.classification,
-      selectable: true, // All tags are selectable now (single-tier enforced in UI)
-      reason: "available"
-    }));
+    // Use Map to deduplicate by tagId (defensive programming in case db has duplicates)
+    const tagsMap = new Map();
+    tagRelationships.forEach(entry => {
+      if (!tagsMap.has(entry.id)) {
+        tagsMap.set(entry.id, {
+          tagId: entry.id,
+          tag: entry.id,
+          name: entry.id.charAt(0).toUpperCase() + entry.id.slice(1).replace(/[-_]/g, " "),
+          tier: classificationToTier[entry.classification] ?? 0,
+          classification: entry.classification,
+          selectable: true, // All tags are selectable now (single-tier enforced in UI)
+          reason: "available"
+        });
+      }
+    });
+    const tags = Array.from(tagsMap.values());
 
     // Apply onboarding restrictions to caps and active tags
     const onboardingCaps = isOnboarding 
@@ -1001,9 +1016,9 @@ async function getAvailableTagsForFocus(userId) {
     if (userOverrideTags.length > 0) {
       effectiveActiveSessionTags = userOverrideTags.slice(0, maxFocusTags);
     } else {
-      effectiveActiveSessionTags = systemSelectedTags.slice(0, maxFocusTags);
+      effectiveActiveSessionTags = activeFocusTags.slice(0, maxFocusTags);
     }
-    
+
     logger.info(`🔰 Focus areas limit: ${isOnboarding ? '1 (onboarding)' : '3+ (post-onboarding)'}`);
     logger.info(`🔰 Effective active session tags: [${effectiveActiveSessionTags.join(', ')}]`);
 
@@ -1013,9 +1028,9 @@ async function getAvailableTagsForFocus(userId) {
       tags,
       starterCore: [],
       currentTier,
-      systemSelectedTags,
+      systemSelectedTags: pureSystemTags, // Pure algorithm picks, no user influence
       userOverrideTags,
-      activeSessionTags: effectiveActiveSessionTags,
+      activeSessionTags: effectiveActiveSessionTags, // What will actually be used in sessions
       isOnboarding, // Add onboarding status for UI feedback
     };
 

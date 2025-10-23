@@ -83,7 +83,7 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
       <Group gap="xs" mb="md" justify="space-between">
         <Group gap="xs">
           <IconTarget size={16} />
-          <Text size="sm" fw={500}>Focus Areas</Text>
+          <Text size="sm" fw={500}>Current Focus Areas</Text>
         </Group>
         {onNavigateToSettings && (
           <Button
@@ -91,7 +91,7 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
             variant="subtle"
             onClick={onNavigateToSettings}
           >
-            Edit
+            Configure Next Session
           </Button>
         )}
       </Group>
@@ -123,7 +123,7 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
       <Group gap="xs" mt="md" align="center">
         <IconInfoCircle size={12} />
         <Text size="xs" c="dimmed">
-          Focus areas receive 20% higher priority in practice sessions
+          These tags are currently prioritized in your active session (20% higher selection rate)
         </Text>
       </Group>
     </Card>

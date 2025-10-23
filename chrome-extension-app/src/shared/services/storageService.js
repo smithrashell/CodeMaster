@@ -123,6 +123,7 @@ export const StorageService = {
       adaptive: true,
       focusAreas: ["array"], // Start new users with one focus area
       systemFocusPool: null, // Stable system-generated focus pool (created on first session)
+      focusAreasLastChanged: null, // Timestamp when user last changed focus areas (for session staleness detection)
       sessionsPerWeek: 5,
       reviewRatio: 40,
       timerDisplay: "mm:ss",
@@ -150,7 +151,7 @@ export const StorageService = {
       // TODO: Re-enable for future release when display settings are fully implemented
       // display: {
       //   sidebarWidth: "normal",
-      //   cardSpacing: "comfortable", 
+      //   cardSpacing: "comfortable",
       //   autoCollapseSidebar: true,
       //   chartStyle: "modern",
       //   chartColorScheme: "blue",
@@ -253,16 +254,38 @@ export const StorageService = {
       console.warn("StorageService.getSessionState() called in content script context");
       return null;
     }
-    
+
     try {
       const db = await dbHelper.openDB();
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["session_state"], "readonly");
         const store = transaction.objectStore("session_state");
         const request = store.get(key);
-        
+
         request.onsuccess = () => {
-          resolve(request.result || null);
+          const result = request.result;
+          if (!result) {
+            resolve(null);
+            return;
+          }
+
+          // Detect malformed data (string spread as indexed object) and treat as null
+          // Malformed data looks like: {0: '2', 1: '0', 2: '2', ..., id: 'key'}
+          const keys = Object.keys(result);
+          const hasNumericKeys = keys.some(k => k !== 'id' && !isNaN(k));
+          if (hasNumericKeys && !result.hasOwnProperty('value')) {
+            console.warn(`⚠️ Detected malformed data for key "${key}", returning null`);
+            resolve(null);
+            return;
+          }
+
+          // Handle primitives stored in value property
+          if (result.hasOwnProperty('value') && Object.keys(result).length === 2 && result.id === key) {
+            resolve(result.value);
+          } else {
+            // Return full object for complex data
+            resolve(result);
+          }
         };
         request.onerror = () => reject(request.error);
       });
@@ -283,8 +306,10 @@ export const StorageService = {
       return new Promise((resolve, reject) => {
         const transaction = db.transaction(["session_state"], "readwrite");
         const store = transaction.objectStore("session_state");
-        // Ensure id is always set correctly by spreading data first, then overriding id
-        const record = { ...data, id: key };
+        // Handle both object and primitive values correctly
+        const record = typeof data === 'object' && data !== null && !Array.isArray(data)
+          ? { ...data, id: key }  // Spread object data
+          : { id: key, value: data };  // Wrap primitives in value property
         const request = store.put(record);
 
         request.onsuccess = () => resolve({ status: "success" });

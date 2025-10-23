@@ -15,6 +15,7 @@ import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.
 import AccurateTimer from "../shared/utils/AccurateTimer.js";
 import { InterviewService } from "../shared/services/interviewService.js";
 import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
+import StorageCleanupManager from "../shared/utils/storageCleanup.js";
 
 // Database utilities (used in background script functions)
 // eslint-disable-next-line no-restricted-imports
@@ -62,10 +63,13 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   console.log('🔧 SERVICE WORKER: Activated background script...');
   console.log('🔧 SERVICE WORKER: Claiming all clients');
-  // Claim all clients immediately
+  // Claim all clients immediately and start periodic cleanup
   event.waitUntil(
     self.clients.claim().then(() => {
       console.log('✅ SERVICE WORKER: All clients claimed, service worker active');
+
+      // Start 24-hour periodic cleanup (runs immediately + every 24h)
+      StorageCleanupManager.startPeriodicCleanup();
     })
   );
 });
@@ -8852,9 +8856,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
   } else {
     console.log('🧪 Session testing disabled - functions not available');
   }
-})().catch(error => {
-  console.warn('⚠️ Failed to check session testing configuration:', error);
-});
+})();
 
 // Global error handlers to prevent service worker crashes
 self.addEventListener('error', (event) => {

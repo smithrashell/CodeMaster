@@ -10,16 +10,13 @@
     "128": "icon128.png"
   },
   "host_permissions": [
-    "<all_urls>"
+    "https://leetcode.com/*"
   ],
   "permissions": [
     "tabs",
-    "bookmarks",
     "activeTab",
     "scripting",
     "storage",
-    "debugger",
-    "downloads",
     "notifications",
     "alarms"
   ],
@@ -63,7 +60,7 @@
         "strategy_data.json"
       ],
       "matches": [
-        "<all_urls>"
+        "https://leetcode.com/*"
       ]
     }
   ]

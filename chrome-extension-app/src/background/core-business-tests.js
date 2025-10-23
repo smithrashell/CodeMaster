@@ -1709,7 +1709,7 @@ export function initializeCoreBusinessTests() {
       // Verify: All sessions coexist
       const allSessions = await getAllFromStore('sessions');
       const activeSessions = allSessions.filter(s =>
-        s.status === 'in_progress' || s.status === 'draft'
+        s.status === 'in_progress'
       );
 
       // Find tracking session (created by addAttempt)
@@ -1870,9 +1870,9 @@ export function initializeCoreBusinessTests() {
         console.log(`Session created: ${sessionId}, problems: ${problems.length}`);
       }
 
-      // Verify: Session starts as draft or in_progress
+      // Verify: Session starts as in_progress
       const initialStatus = session.status;
-      const validInitialStatus = initialStatus === 'draft' || initialStatus === 'in_progress';
+      const validInitialStatus = initialStatus === 'in_progress';
 
       // Attempt all but last problem - session problems have 'id' property which is the leetcode_id
       for (let i = 0; i < problems.length - 1; i++) {

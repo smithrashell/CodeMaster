@@ -24,6 +24,7 @@ import {
   LoadingState,
   HeaderSection,
   CurrentFocusAreasSection,
+  SystemOverviewSection,
 } from "./FocusAreasRenderHelpers.jsx";
 import {
   TierTagsVisualization,
@@ -40,6 +41,7 @@ export function FocusAreasSelector() {
     currentTier, setCurrentTier,
     masteredTags, setMasteredTags,
     masteryData, setMasteryData,
+    currentSessionTags, setCurrentSessionTags,
     focusAvailability, setFocusAvailability,
     showCustomMode, setShowCustomMode,
     loading, setLoading,
@@ -54,15 +56,18 @@ export function FocusAreasSelector() {
   // Track which tab is currently being viewed (for browsing)
   const [activeTab, setActiveTab] = React.useState(null);
 
+  // Track explanation expand/collapse
+  const [showExplanation, setShowExplanation] = React.useState(false);
+
   // Helper function wrapper for the extracted function
   const getTagMasteryProgressWrapper = (tagName) => getTagMasteryProgress(tagName, masteryData);
 
   // Memoize stateSets to prevent recreation on every render
   const stateSets = React.useMemo(() => ({
     setLoading, setError, setFocusAvailability, setCurrentTier, setShowCustomMode,
-    setAvailableTags, setMasteredTags, setMasteryData, setSelectedFocusAreas, setHasChanges,
+    setAvailableTags, setMasteredTags, setMasteryData, setSelectedFocusAreas, setCurrentSessionTags, setHasChanges,
   }), [setLoading, setError, setFocusAvailability, setCurrentTier, setShowCustomMode,
-       setAvailableTags, setMasteredTags, setMasteryData, setSelectedFocusAreas, setHasChanges]);
+       setAvailableTags, setMasteredTags, setMasteryData, setSelectedFocusAreas, setCurrentSessionTags, setHasChanges]);
 
   useFocusAreasLifecycle(focusAvailability, setFocusAvailability, loadFocusAreasData, stateSets);
 
@@ -98,6 +103,18 @@ export function FocusAreasSelector() {
       <Stack gap="md">
         <HeaderSection currentTier={currentTier} />
 
+        {/* System Overview - How Focus Areas Work */}
+        <SystemOverviewSection
+          showExplanation={showExplanation}
+          onToggle={() => setShowExplanation(!showExplanation)}
+        />
+
+        {/* Current Focus Areas - MOVED TO TOP for visibility */}
+        <CurrentFocusAreasSection
+          currentSessionTags={currentSessionTags}
+          getTagMasteryProgress={getTagMasteryProgressWrapper}
+        />
+
         <SystemRecommendationsSection focusAvailability={focusAvailability} />
 
         {error && (
@@ -119,7 +136,11 @@ export function FocusAreasSelector() {
           onSelectedTierChange={setSelectedTier}
         />
 
-        <ActiveSessionTagsPreview focusAvailability={focusAvailability} showCustomMode={showCustomMode} />
+        {/* Your Next Session Will Focus - REACTIVE to selectedFocusAreas */}
+        <ActiveSessionTagsPreview
+          selectedFocusAreas={selectedFocusAreas}
+          systemSelectedTags={focusAvailability.systemSelectedTags}
+        />
 
         {/* Save/Reset Controls */}
         <Group justify="flex-end" mt="md">
@@ -141,11 +162,6 @@ export function FocusAreasSelector() {
             Save Focus Areas
           </Button>
         </Group>
-
-        <CurrentFocusAreasSection 
-          selectedFocusAreas={selectedFocusAreas} 
-          getTagMasteryProgress={getTagMasteryProgressWrapper} 
-        />
 
         <MasteredTagsDisplay masteredTags={masteredTags} />
 

@@ -24,20 +24,13 @@ const openDB = dbHelper.openDB;
 class SessionAttributionEngine {
   /**
    * Get active guided session (standard, interview-like, or full-interview)
-   * Checks both draft and in_progress status
+   * Checks in_progress status
    */
   static async getActiveGuidedSession() {
-    // First try in_progress sessions
+    // Get in_progress sessions
     let session = await getLatestSessionByType('standard', 'in_progress') ||
                   await getLatestSessionByType('interview-like', 'in_progress') ||
                   await getLatestSessionByType('full-interview', 'in_progress');
-
-    // If no in_progress found, check draft sessions
-    if (!session) {
-      session = await getLatestSessionByType('standard', 'draft') ||
-                await getLatestSessionByType('interview-like', 'draft') ||
-                await getLatestSessionByType('full-interview', 'draft');
-    }
 
     // Debug: Log session structure to understand ID issue
     if (session) {
@@ -68,70 +61,51 @@ class SessionAttributionEngine {
       });
       return false;
     }
-    
-    console.log("🔍 isMatchingProblem: Starting normalized match check");
+
+    console.log("🔍 isMatchingProblem: Starting strict match check");
     console.log("🔍 Raw problem object:", {
-      id: problem.id,
       leetcode_id: problem.leetcode_id,
       problem_id: problem.problem_id,
-      title: problem.title,
-      allKeys: Object.keys(problem)
+      title: problem.title
     });
-    
-    // Normalize current problem IDs for comparison
-    const problemIds = [
-      problem.id,
-      problem.leetcode_id,
-      problem.problem_id
-    ].filter(id => id != null).map(id => String(id));
-    
-    console.log("🔍 Current problem normalized IDs:", problemIds);
-    
+
+    // Strict matching - problem must have leetcode_id
+    const problemLeetCodeId = Number(problem.leetcode_id);
+    if (isNaN(problemLeetCodeId)) {
+      console.error("❌ Problem missing valid leetcode_id:", problem);
+      throw new Error(`Problem "${problem.title}" missing valid leetcode_id`);
+    }
+
+    console.log("🔍 Problem leetcode_id:", problemLeetCodeId);
+
     for (let i = 0; i < session.problems.length; i++) {
       const sessionProblem = session.problems[i];
-      
-      // Session problems use LeetCode numeric IDs, database problems use UUIDs
-      // Match by LeetCode ID: session.id (268) should equal problem.leetcode_id (268)
-      const sessionLeetCodeId = String(sessionProblem.id); // Session stores LeetCode ID as 'id'
-      const problemLeetCodeId = String(problem.leetcode_id); // Database problem has leetcode_id field
-      
+
+      // Session problems must be normalized with leetcode_id field
+      const sessionLeetCodeId = Number(sessionProblem.leetcode_id);
+
+      if (isNaN(sessionLeetCodeId)) {
+        console.error(`❌ Session problem ${i} missing valid leetcode_id:`, sessionProblem);
+        throw new Error(`Session problem "${sessionProblem.title}" missing valid leetcode_id - normalization failed`);
+      }
+
       console.log(`🔍 Comparing session problem ${i}:`, {
         sessionLeetCodeId,
         problemLeetCodeId,
         match: sessionLeetCodeId === problemLeetCodeId,
         sessionProblem: {
-          id: sessionProblem.id,
           title: sessionProblem.title,
-          slug: sessionProblem.slug
-        },
-        databaseProblem: {
-          problem_id: problem.problem_id, // UUID primary key
-          leetcode_id: problem.leetcode_id, // LeetCode reference
-          title: problem.title
+          leetcode_id: sessionProblem.leetcode_id
         }
       });
-      
-      // Match by LeetCode ID only
-      const hasMatch = sessionLeetCodeId === problemLeetCodeId;
-      
-      if (hasMatch) {
-        console.log(`✅ Found matching problem at index ${i}:`, {
-          matchedLeetCodeId: sessionLeetCodeId,
-          sessionProblem: {
-            id: sessionProblem.id,
-            title: sessionProblem.title,
-            slug: sessionProblem.slug
-          },
-          databaseProblem: {
-            problem_id: problem.problem_id,
-            leetcode_id: problem.leetcode_id,
-            title: problem.title
-          }
-        });
+
+      // Strict number comparison
+      if (sessionLeetCodeId === problemLeetCodeId) {
+        console.log(`✅ Found matching problem at index ${i}: LeetCode ID ${sessionLeetCodeId}`);
         return true;
       }
     }
-    
+
     console.log("❌ No matching problem found in session");
     return false;
   }
@@ -313,24 +287,13 @@ class SessionAttributionEngine {
    */
   static async attachToGuidedSession(session, attemptData, problem) {
     debug('📚 Attaching to guided session', { sessionId: session.id });
-    
-    // If this is a draft session, transition it to in_progress on first attempt
-    if (session.status === 'draft') {
-      console.log('▶️ Transitioning draft session to in_progress:', session.id);
-      session.status = 'in_progress';
-      session.last_activity_time = new Date().toISOString();
-      
-      // Update session in database with new status
-      await updateSessionInDB(session);
-      await saveSessionToStorage(session, true);
-    } else {
-      // Update session activity for already active sessions
-      await this.updateSessionActivity(session);
-    }
-    
+
+    // Update session activity
+    await this.updateSessionActivity(session);
+
     // Associate attempt with session
     attemptData.session_id = session.id; // Standardized snake_case for database
-    
+
     // Process attempt with existing session logic
     return this.processAttemptWithSession(session, attemptData, problem, 'session_problem');
   }
@@ -367,9 +330,13 @@ class SessionAttributionEngine {
 
       // Mark problem as attempted regardless of success/failure
       session.problems = session.problems.map(p => {
-        const isAttempted = String(p.id) === String(problem.leetcode_id);
+        // Match by LeetCode ID - check both p.id (normalized) and p.leetcode_id (from problems store)
+        const sessionLeetcodeId = p.leetcode_id || p.id;
+        const isAttempted = String(sessionLeetcodeId) === String(problem.leetcode_id);
         console.log(`🔍 Problem attempt marking:`, {
           sessionProblemId: p.id,
+          sessionProblemLeetcodeId: p.leetcode_id,
+          resolvedSessionLeetcodeId: sessionLeetcodeId,
           sessionProblemTitle: p.title,
           databaseProblemLeetcodeId: problem.leetcode_id,
           isAttempted,
@@ -592,7 +559,7 @@ async function addAttempt(attemptData, problem) {
       });
       console.log("🔄 Session invalid - falling back to tracking session");
     } else if (guidedSession.problems.length === 0) {
-      console.log(`⚠️ Guided session ${guidedSession.id} has empty problems array - likely a draft session`);
+      console.log(`⚠️ Guided session ${guidedSession.id} has empty problems array`);
       console.log("🔄 Session has no problems - falling back to tracking session");
     } else {
       console.log(`🔍 Found guided session: ${guidedSession.session_type} (${guidedSession.status})`);

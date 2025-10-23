@@ -34,8 +34,7 @@ const useGuardrails = () => {
   return useState({
     minReviewRatio: 40, // System default - matches Focus Priorities reviewRatio
     maxNewProblems: 8, // System default (will be adjusted for onboarding)
-    difficultyCapEnabled: false, // System default - no artificial difficulty cap
-    maxDifficulty: "Hard", // System default - allow all difficulties
+    difficultyCapEnabled: false, // System default - adaptive progression disabled
     hintLimitEnabled: false, // System default - no artificial hint limits
     maxHintsPerProblem: 0 // System default - unlimited hints
   });
@@ -112,7 +111,6 @@ function updateLearningPlanData({
     minReviewRatio: appState.learningPlan.guardrails?.minReviewRatio || 30,
     maxNewProblems: sessionLimits.maxNewProblems, // Onboarding-aware: 4 during onboarding, 8 after
     difficultyCapEnabled: sessionLimits.isOnboarding, // Enable difficulty cap during onboarding
-    maxDifficulty: sessionLimits.isOnboarding ? "Medium" : "Hard", // Cap difficulty during onboarding
     hintLimitEnabled: appState.learningPlan.guardrails?.hintLimitEnabled || false,
     maxHintsPerProblem: appState.learningPlan.guardrails?.maxHintsPerProblem || 0
   }));
