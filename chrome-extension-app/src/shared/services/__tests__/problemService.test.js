@@ -52,6 +52,9 @@ const createMockProblem = (overrides = {}) => ({
   id: 1,
   title: "Two Sum",
   difficulty: "Easy",
+  tags: ["Array", "Hash Table"],
+  slug: "two-sum",
+  leetcode_id: 1,
   ...overrides
 });
 
@@ -59,9 +62,10 @@ const createMockProblemInDb = (overrides = {}) => ({
   leetcode_id: 1,
   title: "Two Sum",
   difficulty: "Easy",
+  tags: ["Array", "Hash Table"],
+  slug: "two-sum",
   attempts: 5,
   box_level: 2,
-  tags: [],
   ...overrides
 });
 
