@@ -69,7 +69,7 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
     25000, // 25 second timeout for session creation
     `SessionService.getOrCreateSession(${sessionType})`
   )
-    .then((session) => {
+    .then(async (session) => {
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
 
@@ -77,13 +77,35 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
       let isSessionStale = false;
       if (session) {
         const classification = SessionService.classifySessionState(session);
-        isSessionStale = !['active', 'unclear'].includes(classification);
+        const classificationStale = !['active', 'unclear'].includes(classification);
+
+        // Check if focus areas changed after session creation (read from settings)
+        const settings = await StorageService.getSettings();
+        const focusAreasChanged = settings?.focusAreasLastChanged;
+        console.log('🔍 DEBUG: Raw focusAreasChanged from settings:', focusAreasChanged, 'type:', typeof focusAreasChanged);
+
+        const sessionCreated = new Date(session.created_at || session.date);
+        console.log('🔍 DEBUG: Session created timestamp:', session.created_at || session.date, 'parsed:', sessionCreated.toISOString());
+
+        const focusAreasChangedDate = focusAreasChanged ? new Date(focusAreasChanged) : null;
+        console.log('🔍 DEBUG: Focus areas changed date:', focusAreasChangedDate ? focusAreasChangedDate.toISOString() : 'null');
+
+        const focusChangeStale = focusAreasChangedDate && focusAreasChangedDate > sessionCreated;
+        console.log('🔍 DEBUG: Comparison - focusAreasChangedDate > sessionCreated:', focusChangeStale);
+        console.log('🔍 DEBUG: Time difference (ms):', focusAreasChangedDate ? (focusAreasChangedDate.getTime() - sessionCreated.getTime()) : 'N/A');
+
+        isSessionStale = classificationStale || focusChangeStale;
+
         console.log('🔍 Background: Session staleness check:', {
           sessionId: session.id?.substring(0, 8),
           sessionType: session.sessionType,
           classification: classification,
+          classificationStale: classificationStale,
+          focusChangeStale: focusChangeStale,
           isSessionStale: isSessionStale,
-          lastActivityTime: session.lastActivityTime
+          lastActivityTime: session.lastActivityTime,
+          sessionCreated: session.created_at || session.date,
+          focusAreasLastChanged: focusAreasChanged
         });
       }
 
@@ -126,9 +148,17 @@ export function handleRefreshSession(request, dependencies, sendResponse, finish
     20000, // 20 second timeout for refresh
     `SessionService.refreshSession(${request.sessionType || 'standard'})`
   )
-    .then((session) => {
+    .then(async (session) => {
       const refreshDuration = Date.now() - refreshStartTime;
       console.log("✅ Session refreshed in", refreshDuration + "ms");
+
+      // Clear focus area change flag since we just regenerated the session
+      const settings = await StorageService.getSettings();
+      await StorageService.setSettings({
+        ...settings,
+        focusAreasLastChanged: null
+      });
+      console.log("🔄 Cleared focus area change flag after regeneration");
 
       sendResponse({
         session: session,

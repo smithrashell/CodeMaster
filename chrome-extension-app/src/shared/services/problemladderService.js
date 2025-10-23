@@ -174,7 +174,7 @@ export async function regenerateCompletedPatternLadder(completedTag) {
   ]);
 
   const userProblemMap = new Map(userProblems.map((p) => [p.leetcode_id, p]));
-  const relationshipMap = buildRelationshipMap(problemRelationships);
+  const relationshipMap = await buildRelationshipMap();
 
   // Get learning state for dynamic ladder sizing
   const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();
@@ -245,7 +245,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
   ]);
 
   const userProblemMap = new Map(userProblems.map((p) => [p.leetcode_id, p]));
-  const relationshipMap = buildRelationshipMap(problemRelationships);
+  const relationshipMap = await buildRelationshipMap();
 
   // Get learning state for dynamic ladder sizing
   const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();

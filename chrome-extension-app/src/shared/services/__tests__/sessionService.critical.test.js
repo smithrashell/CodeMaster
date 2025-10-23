@@ -75,10 +75,10 @@ describe("SessionService - Critical User Retention Paths", () => {
       setupSessionCreationMocks(ProblemService, getLatestSessionByType, saveNewSessionToDB, saveSessionToStorage);
 
       // Test that session creation works
-      const session = await SessionService.createNewSession('standard', 'draft');
+      const session = await SessionService.createNewSession('standard');
 
       // CRITICAL: When problems exist, user gets a session
-      assertValidSession(session, 'standard', 'draft');
+      assertValidSession(session, 'standard', 'in_progress');
       expect(session.problems).toHaveLength(2);
       expect(ProblemService.createSession).toHaveBeenCalled();
     });
@@ -91,7 +91,7 @@ describe("SessionService - Critical User Retention Paths", () => {
       saveSessionToStorage.mockResolvedValue();
 
       // Test createNewSession directly with empty problems (avoid getOrCreateSession complexity)
-      const session = await SessionService.createNewSession('standard', 'draft');
+      const session = await SessionService.createNewSession('standard');
 
       // CRITICAL: When no problems exist, should return null gracefully
       expect(session).toBeNull(); // Should return null when no problems available
@@ -278,7 +278,7 @@ describe("SessionService - Critical User Retention Paths", () => {
         const session = {
           id: "test-uuid-123",
           date: new Date().toISOString(),
-          status: 'draft',
+          status: 'in_progress',
           origin: "generator",
           problems: fallbackProblems,
           attempts: [],

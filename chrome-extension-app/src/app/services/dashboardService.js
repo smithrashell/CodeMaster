@@ -2369,8 +2369,7 @@ export async function getSessionMetrics(options = {}) {
 function calculateSessionTypeMetrics(sessions, attempts, type) {
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const activeSessions = sessions.filter(s => s.status === 'in_progress');
-  const draftSessions = sessions.filter(s => s.status === 'draft');
-  
+
   // Success rate calculation (support both snake_case and PascalCase)
   const successfulAttempts = attempts.filter(a => {
     const success = a.success !== undefined ? a.success : a.Success;
@@ -2394,13 +2393,12 @@ function calculateSessionTypeMetrics(sessions, attempts, type) {
   const totalTimeSpent = attempts.reduce((sum, a) => sum + (a.time_spent || a.TimeSpent || 0), 0);
   const avgTimePerProblem = attempts.length > 0 ?
     Math.round(totalTimeSpent / attempts.length) : 0;
-  
+
   return {
     totalSessions: sessions.length,
     sessionsByStatus: {
       completed: completedSessions.length,
-      active: activeSessions.length,
-      draft: draftSessions.length
+      active: activeSessions.length
     },
     completionRate,
     totalAttempts: attempts.length,

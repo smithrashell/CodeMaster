@@ -57,7 +57,7 @@ export function createMockSession(overrides = {}) {
   return {
     id: 1,
     session_type: 'standard',
-    status: 'draft',
+    status: 'in_progress',
     problems: createMockProblems(2),
     num_sessions_completed: 0,
     current_streak: 0,
@@ -68,7 +68,7 @@ export function createMockSession(overrides = {}) {
 /**
  * Asserts session is valid
  */
-export function assertValidSession(session, expectedType = 'standard', expectedStatus = 'draft') {
+export function assertValidSession(session, expectedType = 'standard', expectedStatus = 'in_progress') {
   expect(session).not.toBeNull();
   expect(session.problems).toBeDefined();
   expect(session.problems.length).toBeGreaterThan(0);

@@ -9,6 +9,7 @@ export const useFocusAreasState = () => {
   const [currentTier, setCurrentTier] = useState("");
   const [masteredTags, setMasteredTags] = useState([]);
   const [masteryData, setMasteryData] = useState([]);
+  const [currentSessionTags, setCurrentSessionTags] = useState([]); // Active session tags
   const [focusAvailability, setFocusAvailability] = useState({
     access: { core: "confirmed", fundamental: "none", advanced: "none" },
     caps: { core: Infinity, fundamental: 3, advanced: 3 },
@@ -31,6 +32,7 @@ export const useFocusAreasState = () => {
     currentTier, setCurrentTier,
     masteredTags, setMasteredTags,
     masteryData, setMasteryData,
+    currentSessionTags, setCurrentSessionTags, // Add to return
     focusAvailability, setFocusAvailability,
     showCustomMode, setShowCustomMode,
     loading, setLoading,
@@ -52,14 +54,25 @@ export const loadFocusAreasData = async (setters) => {
     setMasteredTags,
     setMasteryData,
     setSelectedFocusAreas,
+    setCurrentSessionTags,
     setHasChanges,
   } = setters;
 
   debug("🔍 LIFECYCLE: loadData called");
   setLoading(true);
   setError(null);
-  
+
   try {
+    // Fetch current session state to get active focus tags
+    const sessionState = await ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: "getSessionState",
+      key: "session_state"
+    });
+
+    const currentSessionTags = sessionState?.current_focus_tags || [];
+    setCurrentSessionTags(currentSessionTags);
+    debug("🔍 FocusAreasSelector: Current session tags", { currentSessionTags });
+
     // Load available tags for focus (current + preview) via new message handler
     debug("🔍 FocusAreasSelector: Calling getAvailableTagsForFocus");
     const focusData = await new Promise((resolve) => {
@@ -153,6 +166,7 @@ export const saveFocusAreasSettings = async (selectedFocusAreas, selectedTier, s
       ...currentSettings,
       focusAreas: selectedFocusAreas,
       focusAreasTier: selectedTier, // Save which tier user selected from
+      focusAreasLastChanged: new Date().toISOString(), // Track change for session staleness
     };
 
     const response = await ChromeAPIErrorHandler.sendMessageWithRetry({

@@ -33,14 +33,8 @@ const shouldCompleteSession = (session) => {
   return true;
 };
 
-const transitionSession = (session, newStatus) => {
-  if (session.status === 'draft' && newStatus === 'in_progress') {
-    return {
-      ...session,
-      status: newStatus,
-      last_activity_time: new Date().toISOString()
-    };
-  }
+const transitionSession = (session, _newStatus) => {
+  // Sessions are now created as in_progress, no transition needed
   return session;
 };
 
@@ -98,15 +92,14 @@ describe('SessionAttributionEngine Logic', () => {
   });
 
   test('should handle session transition states correctly', () => {
-    const draftSession = {
-      id: 'draft-session',
-      status: 'draft',
+    const activeSession = {
+      id: 'active-session',
+      status: 'in_progress',
       problems: []
     };
 
-    const transitioned = transitionSession(draftSession, 'in_progress');
+    const transitioned = transitionSession(activeSession, 'in_progress');
     expect(transitioned.status).toBe('in_progress');
-    expect(transitioned.last_activity_time).toBeDefined();
   });
 });
 

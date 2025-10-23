@@ -110,7 +110,7 @@ export function usePageTour() {
           setShowTour(true);
         }, 500);
       } catch (error) {
-        logger.error(`❌ Error checking tour status for ${pageId}:`, error, error.message, error.stack);
+        logger.error(`❌ Error checking tour status for ${pageId}:`, error);
         // On error, don't show tour to avoid potential issues
         setActiveTour(null);
         setShowTour(false);

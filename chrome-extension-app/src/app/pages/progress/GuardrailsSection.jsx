@@ -60,24 +60,12 @@ export function GuardrailsSection({
         </div>
 
         <Switch
-          label="Enable difficulty cap"
+          label="Enable adaptive difficulty progression"
+          description="System automatically progresses from Easy → Medium → Hard based on your performance"
           checked={guardrails.difficultyCapEnabled}
           onChange={(event) => onGuardrailChange('difficultyCapEnabled', event.currentTarget.checked)}
           color="orange"
         />
-
-        {guardrails.difficultyCapEnabled && (
-          <Select
-            label="Max difficulty"
-            value={guardrails.maxDifficulty}
-            onChange={(value) => onGuardrailChange('maxDifficulty', value)}
-            data={[
-              { value: "Easy", label: "Easy" },
-              { value: "Medium", label: "Medium" },
-              { value: "Hard", label: "Hard" }
-            ]}
-          />
-        )}
       </Stack>
     </Card>
   );
