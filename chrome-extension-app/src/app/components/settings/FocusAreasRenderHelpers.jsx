@@ -10,6 +10,7 @@ import {
   Loader,
   Title,
   Card,
+  Collapse,
 } from "@mantine/core";
 import { IconTrophy as IconTrophyIcon, IconRefresh, IconTarget, IconInfoCircle } from "@tabler/icons-react";
 
@@ -79,11 +80,62 @@ export const HeaderSection = ({ currentTier }) => (
   </>
 );
 
-// Current focus areas section
-export const CurrentFocusAreasSection = ({ selectedFocusAreas, getTagMasteryProgress }) => (
+// System overview explanation section
+export const SystemOverviewSection = ({ showExplanation, onToggle }) => (
+  <Alert icon={<IconInfoCircle />} color="blue" variant="light">
+    <Group justify="space-between" wrap="nowrap">
+      <div>
+        <Text size="sm" fw={500}>How Focus Areas Work</Text>
+        <Text size="xs" c="dimmed">
+          Our algorithm adapts your practice based on performance and learning patterns
+        </Text>
+      </div>
+      <Button variant="subtle" size="xs" onClick={onToggle}>
+        {showExplanation ? 'Hide' : 'Learn More'}
+      </Button>
+    </Group>
+
+    <Collapse in={showExplanation}>
+      <Stack gap="xs" mt="sm">
+        <Text size="xs">
+          <Text component="span" fw={500}>1. Current Focus Areas:</Text> What you&apos;re actively practicing right now.
+          These update automatically based on your performance (e.g., if you master a tag, we&apos;ll add a new challenge).
+        </Text>
+        <Text size="xs">
+          <Text component="span" fw={500}>2. System Recommendations:</Text> Tags our algorithm selected using pattern
+          recognition, relationship mapping, and your success rates. These are purely algorithmic picks.
+        </Text>
+        <Text size="xs">
+          <Text component="span" fw={500}>3. Your Selections:</Text> Choose 1-3 tags to prioritize. Your selections get
+          20% more weight in problem selection, but the algorithm still ensures balanced learning.
+        </Text>
+        <Text size="xs">
+          <Text component="span" fw={500}>4. Next Session Preview:</Text> Shows exactly which tags will be active when
+          you generate your next session (combines your preferences with algorithm picks).
+        </Text>
+      </Stack>
+    </Collapse>
+  </Alert>
+);
+
+// Current focus areas section - Shows what's ACTIVE in current session
+export const CurrentFocusAreasSection = ({ currentSessionTags, getTagMasteryProgress }) => (
   <Stack gap="xs">
-    <Text size="sm" fw={500}>Current Focus Areas:</Text>
-    <SelectedTagBadges selectedFocusAreas={selectedFocusAreas} getTagMasteryProgress={getTagMasteryProgress} />
+    <Group gap="xs" align="center">
+      <Text size="sm" fw={500}>Current Focus Areas</Text>
+      <Badge size="xs" color="green" variant="light">Active Now</Badge>
+      <Tooltip
+        multiline
+        w={280}
+        label="This shows what's currently active in your session. It updates automatically based on your performance - you can't directly edit this. When you master tags or show significant progress, the algorithm will adapt your focus areas."
+      >
+        <IconInfoCircle size={14} style={{ cursor: "help" }} />
+      </Tooltip>
+    </Group>
+    <Text size="xs" c="dimmed">
+      Based on your performance and mastery progress. <Text component="span" fw={500}>Updates automatically</Text> when you complete sessions.
+    </Text>
+    <SelectedTagBadges selectedFocusAreas={currentSessionTags} getTagMasteryProgress={getTagMasteryProgress} />
   </Stack>
 );
 
@@ -95,8 +147,15 @@ export const SystemRecommendationsSection = ({ focusAvailability }) => (
       <Group gap="xs" mb="xs">
         <Text size="sm" fw={500}>System Recommendations</Text>
         <Badge variant="light" color="cyan" size="xs">
-          System Recommended
+          Algorithm Selected
         </Badge>
+        <Tooltip
+          multiline
+          w={320}
+          label="These tags were intelligently selected using: (1) Pattern relationships - tags connected to what you've practiced, (2) Your success rates and attempt history, (3) Optimal learning zones - not too easy, not too hard. The algorithm picks these regardless of your manual selections."
+        >
+          <IconInfoCircle size={14} style={{ cursor: "help" }} />
+        </Tooltip>
       </Group>
       <Group gap="xs">
         {(focusAvailability?.systemSelectedTags || []).length > 0 ? (
@@ -110,7 +169,9 @@ export const SystemRecommendationsSection = ({ focusAvailability }) => (
         )}
       </Group>
       <Text size="xs" c="dimmed" mt="xs">
-        Based on your performance and learning progress
+        Chosen by analyzing your <Text component="span" fw={500}>performance patterns</Text>,{' '}
+        <Text component="span" fw={500}>tag relationships</Text>, and{' '}
+        <Text component="span" fw={500}>learning velocity</Text>
       </Text>
     </div>
 
@@ -146,29 +207,36 @@ export const SystemRecommendationsSection = ({ focusAvailability }) => (
   </>
 );
 
-// Active session tags preview section
-export const ActiveSessionTagsPreview = ({ focusAvailability, showCustomMode }) => {
-  if (!focusAvailability?.activeSessionTags || focusAvailability.activeSessionTags.length === 0) {
+// Active session tags preview section - REACTIVE to user selections
+export const ActiveSessionTagsPreview = ({ selectedFocusAreas, systemSelectedTags }) => {
+  // Show selected tags if user has any, otherwise show system recommendations
+  const previewTags = selectedFocusAreas.length > 0
+    ? selectedFocusAreas
+    : systemSelectedTags;
+
+  if (!previewTags || previewTags.length === 0) {
     return null;
   }
+
+  const isUserSelection = selectedFocusAreas.length > 0;
 
   return (
     <Stack gap="xs">
       <Group gap="xs" align="center">
         <Text size="sm" fw={500}>Your next session will focus on:</Text>
-        <Badge 
-          size="sm" 
-          color={showCustomMode ? "violet" : "blue"} 
+        <Badge
+          size="sm"
+          color={isUserSelection ? "violet" : "blue"}
           variant="light"
         >
-          {showCustomMode ? "Your Preferences" : "System Recommended"}
+          {isUserSelection ? "Your Preferences" : "System Recommended"}
         </Badge>
       </Group>
       <Group gap="xs">
-        {focusAvailability.activeSessionTags.map((tag) => (
+        {previewTags.map((tag) => (
           <Badge
             key={tag}
-            color={showCustomMode ? "violet" : "cyan"}
+            color={isUserSelection ? "violet" : "cyan"}
             variant="filled"
             size="sm"
           >
@@ -177,9 +245,9 @@ export const ActiveSessionTagsPreview = ({ focusAvailability, showCustomMode }) 
         ))}
       </Group>
       <Text size="xs" c="dimmed">
-        {showCustomMode 
-          ? "Your preferences get priority in problem selection"
-          : "Intelligently selected based on your learning progress"
+        {isUserSelection
+          ? "Your selections get 20% higher weight in problem selection, but the algorithm ensures you still practice related patterns for complete mastery."
+          : "Pure algorithm selection based on your learning efficiency and pattern recognition progress. Select tags above to add your preferences."
         }
       </Text>
     </Stack>

@@ -116,7 +116,7 @@ const shouldShowInterviewBanner = (settings, settingsLoaded) => {
 const processSessionLoaderResponse = (response, handlers, sessionCreationAttempted, settings, pathName = '') => {
   const { setProblems, setSessionData, setShowRegenerationBanner, setShowInterviewBanner, settingsLoaded } = handlers;
   if (response.session) {
-    // Store session data and show problems immediately for both draft and in_progress
+    // Store session data and show problems immediately
     setSessionData(response.session);
     
     // Check if session is stale - hide regeneration banner if session is fresh
@@ -906,8 +906,10 @@ const ProblemsList = ({ problems, sessionData, onLinkClick }) => {
   return (
     <div className="cm-simple-problems-list">
       {unattemptedProblems.map((problem) => {
-      const isNewProblem =
-        !problem.attempts || problem.attempts.length === 0;
+      // Check both attempts array (normalized) and attempt_stats (from DB) for attempt history
+      const hasAttempts = problem.attempts && problem.attempts.length > 0;
+      const hasAttemptStats = problem.attempt_stats && problem.attempt_stats.total_attempts > 0;
+      const isNewProblem = !hasAttempts && !hasAttemptStats;
 
       return (
         <div key={uuidv4()} role="listitem">

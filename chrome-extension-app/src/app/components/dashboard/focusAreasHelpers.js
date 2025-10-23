@@ -92,11 +92,27 @@ export const formatTagName = (tag) => {
 };
 
 export const createPlaceholderCards = (focusAreasLength) => {
-  if (focusAreasLength >= 3) return [];
-  
-  return Array(3 - focusAreasLength).fill(null).map((_, index) => ({
+  // Max 5 focus areas supported
+  // 1-3 tags: Show 1 row (3 slots) - fill to 3
+  // 4-5 tags: Show 2 rows (6 slots) - fill to 6
+  // This avoids showing mostly empty rows
+
+  if (focusAreasLength === 0) {
+    // Show 3 placeholders for empty state
+    return Array(3).fill(null).map((_, index) => ({
+      key: `placeholder-${index}`,
+      placeholder: true,
+      text: "Select focus areas to get started"
+    }));
+  }
+
+  // Determine how many slots to show based on current count
+  const targetSlots = focusAreasLength >= 4 ? 6 : 3;
+  const placeholdersNeeded = Math.max(0, targetSlots - focusAreasLength);
+
+  return Array(placeholdersNeeded).fill(null).map((_, index) => ({
     key: `placeholder-${index}`,
     placeholder: true,
-    text: focusAreasLength === 0 ? "Select focus areas to get started" : "Add another focus area"
+    text: "Add another focus area"
   }));
 };

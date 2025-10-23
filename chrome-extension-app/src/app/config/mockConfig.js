@@ -57,8 +57,8 @@ export const shouldUseMockSession = () => {
     return false;
   }
 
-  // Default: Use mocks for safe testing by default
-  return true;
+  // Default: Use real services for production
+  return false;
 };
 
 /**

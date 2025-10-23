@@ -50,8 +50,10 @@ function handleCheckInstallationOnboardingStatus(request, dependencies, sendResp
   StorageService.get('installation_onboarding_complete')
     .then((result) => {
       console.log("🔍 Installation onboarding status check:", result);
+      // Handle both boolean and object formats
+      const isComplete = result === true || result?.completed === true;
       sendResponse({
-        isComplete: result?.completed === true,
+        isComplete,
         timestamp: result?.timestamp,
         version: result?.version,
         error: result?.error

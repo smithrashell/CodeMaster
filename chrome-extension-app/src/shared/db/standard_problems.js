@@ -223,11 +223,11 @@ export async function normalizeTagForStandardProblems() {
 export async function insertStandardProblems(passedDb = null) {
   // Use passed database connection (for test scenarios) or default openDB
   const db = passedDb || await openDB();
-  const tx = db.transaction("standard_problems", "readwrite");
-  const store = tx.objectStore("standard_problems");
 
-  // Check if already seeded
+  // Check if already seeded (separate readonly transaction)
   const existingCheck = await new Promise((resolve, reject) => {
+    const tx = db.transaction("standard_problems", "readonly");
+    const store = tx.objectStore("standard_problems");
     const request = store.getAll();
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -243,6 +243,10 @@ export async function insertStandardProblems(passedDb = null) {
   const standardProblems = await loadStandardProblems();
 
   console.log(`🌱 SEEDING: Starting to insert ${standardProblems.length} standard problems...`);
+
+  // Create a new readwrite transaction for inserting
+  const tx = db.transaction("standard_problems", "readwrite");
+  const store = tx.objectStore("standard_problems");
 
   await Promise.all(
     standardProblems.map((problem) => {

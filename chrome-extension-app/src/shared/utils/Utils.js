@@ -162,7 +162,7 @@ export async function clearOrRenameStoreField(
 
 export function getDifficultyAllowanceForTag(data = null) {
   // Default natural distribution if no tag-specific data available
-  const defaultDistribution = { Easy: 0.6, Medium: 0.3, Hard: 0.1 };
+  const defaultDistribution = { easy: 0.6, medium: 0.3, hard: 0.1 };
 
   // If no mastery data, use natural distribution with slight easy bias for safety
   if (!data || typeof data.totalAttempts !== "number") {
@@ -173,49 +173,71 @@ export function getDifficultyAllowanceForTag(data = null) {
   const naturalDistribution = data.difficulty_distribution || defaultDistribution;
   const totalProblems = (naturalDistribution.easy || 0) + (naturalDistribution.medium || 0) + (naturalDistribution.hard || 0);
 
+  console.log(`🎯 Difficulty allowance for tag:`, {
+    hasDistribution: !!data.difficulty_distribution,
+    naturalDistribution,
+    totalProblems,
+    attempts: data.totalAttempts,
+    successRate: data.totalAttempts > 0 ? (data.successfulAttempts / data.totalAttempts) : 0
+  });
+
   let baseAllowance;
   if (totalProblems > 0) {
-    // Use actual proportions from real problem distribution
+    // Use actual proportions from real problem distribution (tag's natural difficulty mix)
     baseAllowance = {
       Easy: (naturalDistribution.easy || 0) / totalProblems,
       Medium: (naturalDistribution.medium || 0) / totalProblems,
       Hard: (naturalDistribution.hard || 0) / totalProblems
     };
+    console.log(`✅ Using tag's natural distribution:`, baseAllowance);
   } else {
-    // Fallback to default distribution
-    baseAllowance = defaultDistribution;
+    // Fallback to default distribution (shouldn't happen with correct data)
+    baseAllowance = { Easy: 0.6, Medium: 0.3, Hard: 0.1 };
+    console.log(`⚠️ Using fallback distribution (no tag data):`, baseAllowance);
   }
 
-  const successRate = data.successfulAttempts / data.totalAttempts;
+  const successRate = data.totalAttempts > 0 ? data.successfulAttempts / data.totalAttempts : 0;
   const attempts = data.totalAttempts;
 
   // Apply readiness multipliers based on user performance
+  // BUT preserve the tag's natural difficulty distribution as much as possible
   const allowance = { ...baseAllowance };
 
-  // Reduce harder difficulties based on readiness, but don't eliminate them entirely
-  // This preserves natural distribution while respecting user skill level
+  console.log(`📊 Performance stats:`, { successRate, attempts });
 
-  // Medium problems: reduce if user isn't ready
-  if (successRate < 0.7 || attempts < 3) {
-    allowance.Medium *= 0.3; // Reduce but don't eliminate
-  } else if (successRate >= 0.85 && attempts >= 5) {
-    allowance.Medium *= 1.2; // Slight boost for high performers
+  // For new tags (< 3 attempts), use the tag's natural distribution
+  // Don't apply aggressive reductions - let the user experience the tag naturally
+  if (attempts >= 3) {
+    // Medium problems: only adjust after we have some data
+    if (successRate < 0.6) {
+      allowance.Medium *= 0.7; // Light reduction if struggling
+      console.log(`⚖️ Reducing Medium (low success):`, allowance.Medium);
+    } else if (successRate >= 0.85 && attempts >= 5) {
+      allowance.Medium *= 1.1; // Slight boost for high performers
+      console.log(`📈 Boosting Medium (high success):`, allowance.Medium);
+    }
+
+    // Hard problems: more conservative, but still preserve natural distribution
+    if (successRate < 0.7 && attempts >= 5) {
+      allowance.Hard *= 0.5; // Reduce if struggling with some experience
+      console.log(`⚖️ Reducing Hard (low success):`, allowance.Hard);
+    } else if (successRate >= 0.9 && attempts >= 8) {
+      allowance.Hard *= 1.05; // Keep/boost for experts
+      console.log(`📈 Boosting Hard (expert level):`, allowance.Hard);
+    }
+  } else {
+    console.log(`🆕 New tag (${attempts} attempts) - using natural distribution without adjustment`);
   }
 
-  // Hard problems: more conservative scaling
-  if (successRate < 0.8 || attempts < 5) {
-    allowance.Hard *= 0.1; // Significantly reduce but don't eliminate
-  } else if (successRate >= 0.9 && attempts >= 8) {
-    allowance.Hard *= 1.0; // Keep natural proportion for experts
-  }
-
-  // Normalize to ensure weights don't exceed 1.0
+  // Normalize to ensure weights sum to 1.0
   const total = allowance.Easy + allowance.Medium + allowance.Hard;
   if (total > 0) {
     allowance.Easy /= total;
     allowance.Medium /= total;
     allowance.Hard /= total;
   }
+
+  console.log(`✅ Final difficulty allowance:`, allowance);
 
   return allowance;
 }

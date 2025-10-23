@@ -44,9 +44,9 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
   });
 
   describe('Onboarding Transition Bug Fix', () => {
-    it('should correctly detect post-onboarding state when session count >= 3', async () => {
-      // ARRANGE: User has completed 3 sessions (should be post-onboarding)
-      setupSessionStateMocks(StorageService, createSessionState(3));
+    it('should correctly detect post-onboarding state when session count >= 1', async () => {
+      // ARRANGE: User has completed 1 session (should be post-onboarding)
+      setupSessionStateMocks(StorageService, createSessionState(1));
       setupEscapeHatchMocks();
 
       // ACT: Get focus decision
@@ -56,9 +56,9 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
       assertPostOnboardingState(result);
     });
 
-    it('should still use onboarding mode when session count < 3', async () => {
-      // ARRANGE: User has completed only 2 sessions (should be onboarding)
-      setupSessionStateMocks(StorageService, createSessionState(2));
+    it('should still use onboarding mode when session count < 1', async () => {
+      // ARRANGE: User has completed only 0 sessions (should be onboarding)
+      setupSessionStateMocks(StorageService, createSessionState(0));
       setupEscapeHatchMocks();
 
       // ACT: Get focus decision
@@ -81,8 +81,8 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
     });
 
     it('should use correct session state key passed as parameter', async () => {
-      // ARRANGE: Test with different session state key
-      setupSessionStateMocks(StorageService, createSessionState(5, 0.8, 0.7));
+      // ARRANGE: Test with different session state key (2 sessions = post-onboarding)
+      setupSessionStateMocks(StorageService, createSessionState(2, 0.8, 0.7));
       setupEscapeHatchMocks();
 
       // ACT: Call with custom key
@@ -95,8 +95,8 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
 
   describe('Performance-Based Tag Expansion', () => {
     it('should expand to multiple tags for good performance post-onboarding', async () => {
-      // ARRANGE: Post-onboarding user with good performance
-      setupSessionStateMocks(StorageService, createSessionState(5, 0.8, 0.7));
+      // ARRANGE: Post-onboarding user with good performance (2 sessions = post-onboarding)
+      setupSessionStateMocks(StorageService, createSessionState(2, 0.8, 0.7));
       setupEscapeHatchMocks();
 
       // ACT: Get focus decision
@@ -109,8 +109,8 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
     });
 
     it('should limit to fewer tags for developing performance', async () => {
-      // ARRANGE: Post-onboarding user with developing performance
-      setupSessionStateMocks(StorageService, createSessionState(4, 0.5, 0.4));
+      // ARRANGE: Post-onboarding user with developing performance (2 sessions = post-onboarding)
+      setupSessionStateMocks(StorageService, createSessionState(2, 0.5, 0.4));
       setupEscapeHatchMocks();
 
       // ACT: Get focus decision
@@ -137,9 +137,9 @@ describe('FocusCoordinationService - Session State Synchronization', () => {
     });
 
     it('should return failsafe decision when TagService fails', async () => {
-      // ARRANGE: TagService throws error
+      // ARRANGE: TagService throws error (1 session = post-onboarding)
       TagService.getCurrentTier.mockRejectedValue(new Error('Tag service error'));
-      setupSessionStateMocks(StorageService, createSessionState(3));
+      setupSessionStateMocks(StorageService, createSessionState(1));
 
       // ACT: Get focus decision
       const result = await FocusCoordinationService.getFocusDecision('session_state');

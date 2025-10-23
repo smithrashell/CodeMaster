@@ -619,26 +619,24 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
           try {
             // StorageService and TagService are now statically imported at the top
 
-            // ONLY read from session state - no fallbacks to avoid inconsistency
-            // Dashboard displays what the algorithm actually selected for sessions
+            // ONLY show focus areas from active session state
+            // Dashboard displays what's currently active, not future configuration
             const sessionState = await StorageService.getSessionState();
-
-            // Use algorithm's live decision or empty array (UI will show "start a session" message)
             const focusAreas = sessionState?.current_focus_tags || [];
 
-            console.log("🎯 Dashboard focus areas (algorithm-selected only):", {
+            console.log("🎯 Dashboard focus areas (active session only):", {
               hasSessionState: !!sessionState,
               focusAreas,
-              source: focusAreas.length > 0 ? 'session_state (algorithm)' : 'none (no session yet)'
+              source: focusAreas.length > 0 ? 'active_session' : 'no_active_session'
             });
-            
+
             // Get learning state data
             const learningState = await TagService.getCurrentLearningState();
-            
+
             // Check for graduation status
             const graduationStatus = await TagService.checkFocusAreasGraduation();
-            
-            sendResponse({ 
+
+            sendResponse({
               result: {
                 focusAreas,
                 masteryData: learningState.masteryData || [],
@@ -648,8 +646,8 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
             });
           } catch (error) {
             console.error("❌ Error in getFocusAreasData handler:", error);
-            sendResponse({ 
-              result: { 
+            sendResponse({
+              result: {
                 focusAreas: [],
                 masteryData: [],
                 masteredTags: [],

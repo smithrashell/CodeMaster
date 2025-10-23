@@ -590,7 +590,7 @@ function runSessionStateConsistencyTests() {
     it("should maintain session state consistency during concurrent operations", async () => {
       const sessionId = "consistency-test-session";
       let stateVersion = 0;
-      let currentState = { id: sessionId, status: "draft", problems: [], attempts: [] };
+      let currentState = { id: sessionId, status: "in_progress", problems: [], attempts: [] };
       
       const updateSessionState = async (updateFn, delay = 50) => {
         await simulateNetworkDelay(delay);
