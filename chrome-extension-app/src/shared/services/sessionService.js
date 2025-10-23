@@ -22,6 +22,8 @@ import logger from "../utils/logger.js";
 import { roundToPrecision } from "../utils/Utils.js";
 import { openDatabase } from "../db/connectionUtils.js";
 
+// Session Creation Lock - Prevents race conditions
+const sessionCreationLocks = new Map();
 /**
  * Circuit Breaker for Enhanced Habit Learning Features
  * Provides automatic fallback to current system if enhanced features fail
@@ -510,18 +512,40 @@ export const SessionService = {
       return [];
     }
 
-    // Get all attempts related to this session - handle multiple ID formats
-    const attemptedProblemIds = new Set(
-      session.attempts.map((a) => a.problemId || a.leetcode_id || a.id)
+    // Get all attempts related to this session - strict number comparison
+    const attemptedLeetcodeIds = new Set(
+      session.attempts
+        .map((a) => Number(a.leetcode_id))
+        .filter(id => !isNaN(id))
     );
 
-    // Check if all scheduled problems have been attempted - handle multiple ID formats
+    // Check if all scheduled problems have been attempted
+    // All problems should be normalized with leetcode_id field
     const unattemptedProblems = session.problems.filter((problem) => {
-      const problemId = problem.problem_id || problem.leetcode_id || problem.id;
-      return !attemptedProblemIds.has(problemId);
+      const problemLeetcodeId = Number(problem.leetcode_id);
+
+      if (isNaN(problemLeetcodeId)) {
+        logger.error(`❌ Problem missing valid leetcode_id:`, {
+          problem,
+          title: problem.title
+        });
+        throw new Error(`Problem "${problem.title}" missing valid leetcode_id - normalization failed`);
+      }
+
+      const isUnattempted = !attemptedLeetcodeIds.has(problemLeetcodeId);
+
+      if (isUnattempted) {
+        logger.info(`📎 Unattempted problem found:`, {
+          leetcode_id: problemLeetcodeId,
+          title: problem.title,
+          problem_id: problem.problem_id
+        });
+      }
+
+      return isUnattempted;
     });
 
-    logger.info("📎 Unattempted Problems:", unattemptedProblems);
+    logger.info("📎 Unattempted Problems Count:", unattemptedProblems.length);
 
     if (unattemptedProblems.length === 0) {
       // ✅ Mark session as completed and calculate accuracy
@@ -753,16 +777,11 @@ export const SessionService = {
    */
   async resumeSession(sessionType = null) {
     logger.info(`🔍 resumeSession ENTRY: sessionType=${sessionType}`);
-    
-    // Look for both in_progress and draft sessions (guided sessions can be in draft status)
+
+    // Look for in_progress sessions
     logger.info(`🔍 Calling getLatestSessionByType for in_progress sessions...`);
     let latestSession = await getLatestSessionByType(sessionType, "in_progress");
-    
-    // If no in_progress session, look for draft sessions (for guided sessions)
-    if (!latestSession) {
-      logger.info(`🔍 No in_progress session found, checking for draft sessions...`);
-      latestSession = await getLatestSessionByType(sessionType, "draft");
-    }
+
     logger.info(`🔍 resumeSession getLatestSessionByType result:`, {
       found: !!latestSession,
       id: latestSession?.id?.substring(0, 8) + '...',
@@ -809,36 +828,26 @@ export const SessionService = {
   /**
    * Creates a new session with fresh problems.
    * @param {string} sessionType - Session type ('standard', 'interview-like', 'full-interview')
-   * @param {string} status - Initial status ('in_progress' for user-initiated, 'draft' for auto-generated)
    * @returns {Promise<Object|null>} - Session object or null on failure
    */
-  async createNewSession(sessionType = 'standard', status = 'in_progress') {
+  async createNewSession(sessionType = 'standard') {
     const queryContext = performanceMonitor.startQuery("createNewSession", {
       operation: "session_creation",
-      sessionType,
-      initialStatus: status
+      sessionType
     });
 
     try {
-      logger.info(`📌 Creating new ${sessionType} session with status: ${status}`);
+      logger.info(`📌 Creating new ${sessionType} session with status: in_progress`);
 
-      // Enforce one active session per type: mark existing in_progress/draft sessions as completed
+      // Enforce one active session per type: mark existing in_progress sessions as completed
       logger.info(`🔍 Checking for existing active ${sessionType} sessions to mark as completed...`);
-      
+
       const existingInProgress = await getLatestSessionByType(sessionType, "in_progress");
       if (existingInProgress) {
         logger.info(`⏹️ Marking existing in_progress ${sessionType} session as completed:`, existingInProgress.id.substring(0, 8));
         existingInProgress.status = "completed";
-        existingInProgress.last_activity_time = new Date().toISOString();
+        // Don't update last_activity_time - it should reflect when user last worked on it
         await updateSessionInDB(existingInProgress);
-      }
-
-      const existingDraft = await getLatestSessionByType(sessionType, "draft");
-      if (existingDraft && existingDraft.id !== existingInProgress?.id) {
-        logger.info(`⏹️ Marking existing draft ${sessionType} session as completed:`, existingDraft.id.substring(0, 8));
-        existingDraft.status = "completed";
-        existingDraft.last_activity_time = new Date().toISOString();
-        await updateSessionInDB(existingDraft);
       }
 
       // Use appropriate service based on session type
@@ -875,14 +884,14 @@ export const SessionService = {
       const newSession = {
         id: uuidv4(),
         date: new Date().toISOString(),
-        status: status, // Use provided status (draft or in_progress)
+        status: "in_progress", // All new sessions start as in_progress
         origin: "generator", // Always generator for guided sessions
         last_activity_time: new Date().toISOString(),
         problems: problems,
         attempts: [],
         current_problem_index: 0,
         session_type: sessionType,
-        
+
         // Add interview-specific fields if it's an interview session
         ...(sessionType !== 'standard' && sessionData.interviewConfig && {
           interviewConfig: sessionData.interviewConfig,
@@ -890,6 +899,19 @@ export const SessionService = {
           createdAt: sessionData.createdAt
         })
       };
+
+      // 🔍 NORMALIZATION DEBUG: Check if normalized fields are present before saving
+      if (newSession.problems.length > 0) {
+        logger.info(`🔍 NORMALIZATION CHECK - First problem in newSession before DB save:`, {
+          id: newSession.problems[0].id,
+          leetcode_id: newSession.problems[0].leetcode_id,
+          problem_id: newSession.problems[0].problem_id,
+          hasAttempts: !!newSession.problems[0].attempts,
+          attemptsLength: newSession.problems[0].attempts?.length,
+          attemptsContent: newSession.problems[0].attempts,
+          hasAttemptStats: !!newSession.problems[0].attempt_stats
+        });
+      }
 
       logger.info("📌 newSession:", newSession);
 
@@ -939,37 +961,49 @@ export const SessionService = {
 
   async _doGetOrCreateSession(sessionType = 'standard') {
     logger.info(`🔍 _doGetOrCreateSession ENTRY: sessionType=${sessionType}`);
-    
-    logger.info(`🔍 Getting settings...`);
-    // Skip migration - just get settings directly (has built-in fallbacks and defaults)
-    const _settings = await StorageService.getSettings();
-    logger.info(`✅ Settings loaded successfully`);
-    // StorageService.getSettings() always returns settings (defaults if needed), no null check required
 
-    // Try atomic resume/create to prevent race conditions
-    logger.info(`🔍 Attempting atomic resume or create for ${sessionType}...`);
-
-    // First try to find existing in_progress sessions
-    let session = await getOrCreateSessionAtomic(sessionType, 'in_progress', null);
-    if (session) {
-      logger.info("✅ Found existing in_progress session:", session.id);
-      return session;
+    // 🔒 RACE CONDITION FIX: Check if another request is already creating a session for this type
+    if (sessionCreationLocks.has(sessionType)) {
+      logger.info(`⏳ Another request is creating ${sessionType} session, waiting...`);
+      const existingPromise = sessionCreationLocks.get(sessionType);
+      return await existingPromise;
     }
 
-    // Then try draft sessions
-    session = await getOrCreateSessionAtomic(sessionType, 'draft', null);
-    if (session) {
-      logger.info("✅ Found existing draft session:", session.id);
-      return session;
-    }
+    // Create promise for this session creation to prevent concurrent creates
+    const creationPromise = (async () => {
+      try {
+        logger.info(`🔍 Getting settings...`);
+        const _settings = await StorageService.getSettings();
+        logger.info(`✅ Settings loaded successfully`);
 
-    logger.info(`🆕 No existing session found, creating new ${sessionType} session`);
+        // Try atomic resume/create to prevent race conditions
+        logger.info(`🔍 Attempting atomic resume or create for ${sessionType}...`);
 
-    // Generated/Guided sessions should start as draft - they only become in_progress after first problem completion
-    const newSession = await this.createNewSession(sessionType, 'draft');
+        // First try to find existing in_progress sessions using atomic operation
+        let session = await getOrCreateSessionAtomic(sessionType, 'in_progress', null);
+        if (session) {
+          logger.info("✅ Found existing in_progress session:", session.id);
+          return session;
+        }
 
-    logger.info(`✅ New session created:`, newSession?.id);
-    return newSession;
+        logger.info(`🆕 No existing session found, creating new ${sessionType} session`);
+
+        // Create new session as in_progress
+        const newSession = await this.createNewSession(sessionType);
+
+        logger.info(`✅ New session created:`, newSession?.id);
+        return newSession;
+      } finally {
+        // Release lock after creation completes (success or failure)
+        sessionCreationLocks.delete(sessionType);
+        logger.info(`🔓 Released session creation lock for ${sessionType}`);
+      }
+    })();
+
+    // Store promise to block concurrent requests
+    sessionCreationLocks.set(sessionType, creationPromise);
+
+    return await creationPromise;
   },
 
   // Removed getDraftSession and startSession - sessions auto-start immediately now
@@ -1002,10 +1036,7 @@ export const SessionService = {
    */
   _classifyGeneratorSession(session, metrics) {
     const { hoursStale, attemptCount, progressRatio, sessionProblemsAttempted, outsideSessionAttempts } = metrics;
-    if (session.status === 'draft' && hoursStale > 2) {
-      return 'draft_expired';
-    }
-    
+
     if (attemptCount === 0 && hoursStale > 24) {
       return 'abandoned_at_start';
     }
@@ -1092,13 +1123,19 @@ export const SessionService = {
    */
   async detectStalledSessions() {
     logger.info('🔍 Detecting stalled sessions...');
-    
+
     const allSessions = await this.getAllSessionsFromDB();
     const stalledSessions = [];
-    
+
     for (const session of allSessions) {
+      // Only process expired sessions for cleanup (they were already marked expired by user regeneration)
+      // NEVER touch in_progress or completed sessions
+      if (session.status !== 'expired') {
+        continue;
+      }
+
       const classification = this.classifySessionState(session);
-      
+
       if (!['active', 'unclear'].includes(classification)) {
         stalledSessions.push({
           session,
@@ -1107,11 +1144,11 @@ export const SessionService = {
         });
       }
     }
-    
-    logger.info(`Found ${stalledSessions.length} stalled sessions:`, 
+
+    logger.info(`Found ${stalledSessions.length} stalled sessions:`,
       stalledSessions.map(s => `${s.session.id.substring(0,8)}:${s.classification}`)
     );
-    
+
     return stalledSessions;
   },
 
@@ -1335,7 +1372,7 @@ export const SessionService = {
     const currentSession = await this.resumeSession(sessionType);
     if (currentSession && forceNew) {
       currentSession.status = 'expired';
-      currentSession.last_activity_time = new Date().toISOString();
+      // Don't update last_activity_time - it should reflect when user last worked on it
       await updateSessionInDB(currentSession);
       logger.info(`Marked session ${currentSession.id} as expired`);
     }
