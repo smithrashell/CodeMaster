@@ -1,0 +1,300 @@
+-                { scenario: 'tree, graph', adaptiveChanges: true, successful: true, simulated: true }
+-              ],
+-              simulated: true
+-            };
+-            if (verbose) console.log('✓ Focus coordination service simulated (FocusCoordinationService not available)');
++          const coordinationResults = [];
++          for (const scenario of focusScenarios) {
++            const result = await globalThis.processFocusCoordinationScenario(scenario);
++            coordinationResults.push(result);
+           }
+-        } catch (coordinationError) {
+-          if (verbose) console.log('⚠️ Focus coordination service testing failed:', coordinationError.message);
++
++          results.coordinationServiceTested = coordinationResults.length > 0;
++          results.focusData.coordination = {
++            scenariosTested: coordinationResults.length,
++            successfulCoordination: coordinationResults.filter(r => r.successful).length,
++            averageRelationshipInfluence: coordinationResults.reduce((sum, r) => sum + (r.relationshipInfluence || 0), 0) / coordinationResults.length,
++            adaptiveChangesDetected: coordinationResults.filter(r => r.adaptiveChanges).length,
++            coordinationResults
++          };
++
++          if (verbose) console.log('✓ Focus coordination service tested:', results.focusData.coordination);
++        } else {
++          results.coordinationServiceTested = true;
++          results.focusData.coordination = {
++            scenariosTested: 2,
++            successfulCoordination: 2,
++            averageRelationshipInfluence: 0.72,
++            adaptiveChangesDetected: 2,
++            coordinationResults: [
++              { scenario: 'array, hash-table', adaptiveChanges: true, successful: true, simulated: true },
++              { scenario: 'tree, graph', adaptiveChanges: true, successful: true, simulated: true }
++            ],
++            simulated: true
++          };
++          if (verbose) console.log('✓ Focus coordination service simulated (FocusCoordinationService not available)');
+         }
++      } catch (coordinationError) {
++        if (verbose) console.log('⚠️ Focus coordination service testing failed:', coordinationError.message);
++      }
++    };
+ 
+-        // 4. Test adaptive problem selection with focus + relationships
+-        try {
+-          if (typeof ProblemService !== 'undefined') {
+-            // Test adaptive selection that considers both focus and relationships
+-            const adaptiveSelectionCriteria = {
+-              focusAreas: ['array', 'dynamic-programming'],
+-              userWeaknesses: ['backtracking'],
+-              relationshipWeight: 0.7, // High relationship influence
+-              diversityFactor: 0.6,
+-              sessionLength: 4,
+-              difficulty: 'Medium'
+-            };
++    // Helper: Test adaptive selection
++    const testAdaptiveSelection = async function(results, verbose) {
++      try {
++        if (typeof ProblemService !== 'undefined') {
++          const adaptiveSelectionCriteria = {
++            focusAreas: ['array', 'dynamic-programming'],
++            userWeaknesses: ['backtracking'],
++            relationshipWeight: 0.7,
++            diversityFactor: 0.6,
++            sessionLength: 4,
++            difficulty: 'Medium'
++          };
+ 
+-            let adaptiveSelectionResult;
+-            if (ProblemService.selectWithFocusAndRelationships) {
+-              adaptiveSelectionResult = await ProblemService.selectWithFocusAndRelationships(adaptiveSelectionCriteria);
+-            } else if (ProblemService.adaptiveSessionProblems) {
+-              adaptiveSelectionResult = await ProblemService.adaptiveSessionProblems({
+-                sessionType: 'standard',
+-                targetTags: adaptiveSelectionCriteria.focusAreas,
+-                difficulty: adaptiveSelectionCriteria.difficulty,
+-                sessionLength: adaptiveSelectionCriteria.sessionLength
+-              });
+-            }
++          let adaptiveSelectionResult;
++          if (ProblemService.selectWithFocusAndRelationships) {
++            adaptiveSelectionResult = await ProblemService.selectWithFocusAndRelationships(adaptiveSelectionCriteria);
++          } else if (ProblemService.adaptiveSessionProblems) {
++            adaptiveSelectionResult = await ProblemService.adaptiveSessionProblems({
++              sessionType: 'standard',
++              targetTags: adaptiveSelectionCriteria.focusAreas,
++              difficulty: adaptiveSelectionCriteria.difficulty,
++              sessionLength: adaptiveSelectionCriteria.sessionLength
++            });
++          }
+ 
+-            if (adaptiveSelectionResult && adaptiveSelectionResult.length > 0) {
+-              results.adaptiveSelectionTested = true;
+-              results.focusData.adaptiveSelection = {
+-                problemsSelected: adaptiveSelectionResult.length,
+-                focusCoverage: this.calculateFocusCoverage(adaptiveSelectionResult, adaptiveSelectionCriteria.focusAreas),
+-                relationshipDensity: this.calculateRelationshipDensity(adaptiveSelectionResult),
+-                diversityScore: this.calculateSelectionDiversity(adaptiveSelectionResult),
+-                weaknessAddressing: this.checkWeaknessAddressing(adaptiveSelectionResult, adaptiveSelectionCriteria.userWeaknesses)
+-              };
+-              if (verbose) console.log('✓ Adaptive selection with focus + relationships tested:', results.focusData.adaptiveSelection);
+-            } else {
+-              // Simulate adaptive selection
+-              results.adaptiveSelectionTested = true;
+-              results.focusData.adaptiveSelection = {
+-                problemsSelected: 4,
+-                focusCoverage: { covered: 3, total: 4, percentage: 0.75 },
+-                relationshipDensity: { connections: 8, averageStrength: 0.68 },
+-                diversityScore: 0.73,
+-                weaknessAddressing: { addressed: 1, total: 1, percentage: 1.0 },
+-                simulated: true
+-              };
+-              if (verbose) console.log('✓ Adaptive selection simulated (no problems returned)');
+-            }
++          if (adaptiveSelectionResult && adaptiveSelectionResult.length > 0) {
++            results.adaptiveSelectionTested = true;
++            results.focusData.adaptiveSelection = {
++              problemsSelected: adaptiveSelectionResult.length,
++              focusCoverage: globalThis.calculateFocusCoverage(adaptiveSelectionResult, adaptiveSelectionCriteria.focusAreas),
++              relationshipDensity: globalThis.calculateRelationshipDensity(adaptiveSelectionResult),
++              diversityScore: globalThis.calculateSelectionDiversity(adaptiveSelectionResult),
++              weaknessAddressing: globalThis.checkWeaknessAddressing(adaptiveSelectionResult, adaptiveSelectionCriteria.userWeaknesses)
++            };
++            if (verbose) console.log('✓ Adaptive selection with focus + relationships tested:', results.focusData.adaptiveSelection);
+           } else {
+-            // Simulate adaptive selection
+             results.adaptiveSelectionTested = true;
+             results.focusData.adaptiveSelection = {
+               problemsSelected: 4,
+               focusCoverage: { covered: 3, total: 4, percentage: 0.75 },
+-              relationshipDensity: { connections: 6, averageStrength: 0.71 },
+-              diversityScore: 0.76,
++              relationshipDensity: { connections: 8, averageStrength: 0.68 },
++              diversityScore: 0.73,
+               weaknessAddressing: { addressed: 1, total: 1, percentage: 1.0 },
+               simulated: true
+             };
+-            if (verbose) console.log('✓ Adaptive selection simulated (ProblemService not available)');
++            if (verbose) console.log('✓ Adaptive selection simulated (no problems returned)');
+           }
+-        } catch (adaptiveError) {
+-          if (verbose) console.log('⚠️ Adaptive selection testing failed:', adaptiveError.message);
++        } else {
++          results.adaptiveSelectionTested = true;
++          results.focusData.adaptiveSelection = {
++            problemsSelected: 4,
++            focusCoverage: { covered: 3, total: 4, percentage: 0.75 },
++            relationshipDensity: { connections: 6, averageStrength: 0.71 },
++            diversityScore: 0.76,
++            weaknessAddressing: { addressed: 1, total: 1, percentage: 1.0 },
++            simulated: true
++          };
++          if (verbose) console.log('✓ Adaptive selection simulated (ProblemService not available)');
+         }
++      } catch (adaptiveError) {
++        if (verbose) console.log('⚠️ Adaptive selection testing failed:', adaptiveError.message);
++      }
++    };
+ 
+-        // 5. Test focus + relationship effectiveness
+-        let focusRelationshipEffective = false;
+-        try {
+-          const integration = results.focusData.integration;
+-          const coordination = results.focusData.coordination;
+-          const adaptiveSelection = results.focusData.adaptiveSelection;
++    // Helper: Validate focus effectiveness
++    const validateFocusEffectiveness = function(results, verbose) {
++      try {
++        const integration = results.focusData.integration;
++        const coordination = results.focusData.coordination;
++        const adaptiveSelection = results.focusData.adaptiveSelection;
+ 
+-          // Validate that focus + relationship integration produces meaningful learning improvements
+-          const integrationWorking = (integration?.focusAreasIntegrated || 0) > 3 && integration?.relationshipAwareFocus;
+-          const coordinationWorking = (coordination?.successfulCoordination || 0) > 0 && (coordination?.averageRelationshipInfluence || 0) > 0.5;
+-          const selectionWorking = (adaptiveSelection?.problemsSelected || 0) > 0 && (adaptiveSelection?.focusCoverage?.percentage || 0) > 0.5;
+-          const adaptiveResponseActive = integration?.adaptiveCoordination && (coordination?.adaptiveChangesDetected || 0) > 0;
++        const integrationWorking = (integration?.focusAreasIntegrated || 0) > 3 && integration?.relationshipAwareFocus;
++        const coordinationWorking = (coordination?.successfulCoordination || 0) > 0 && (coordination?.averageRelationshipInfluence || 0) > 0.5;
++        const selectionWorking = (adaptiveSelection?.problemsSelected || 0) > 0 && (adaptiveSelection?.focusCoverage?.percentage || 0) > 0.5;
++        const adaptiveResponseActive = integration?.adaptiveCoordination && (coordination?.adaptiveChangesDetected || 0) > 0;
+ 
+-          focusRelationshipEffective = integrationWorking && coordinationWorking && selectionWorking && adaptiveResponseActive;
++        const focusRelationshipEffective = integrationWorking && coordinationWorking && selectionWorking && adaptiveResponseActive;
+ 
+-          if (verbose) {
+-            console.log('✓ Focus + relationship effectiveness validation:', {
+-              integrationWorking,
+-              coordinationWorking,
+-              selectionWorking,
+-              adaptiveResponseActive,
+-              effective: focusRelationshipEffective
+-            });
+-          }
+-        } catch (effectivenessError) {
+-          if (verbose) console.log('⚠️ Focus + relationship effectiveness validation failed:', effectivenessError.message);
++        if (verbose) {
++          console.log('✓ Focus + relationship effectiveness validation:', {
++            integrationWorking,
++            coordinationWorking,
++            selectionWorking,
++            adaptiveResponseActive,
++            effective: focusRelationshipEffective
++          });
+         }
++        return focusRelationshipEffective;
++      } catch (effectivenessError) {
++        if (verbose) console.log('⚠️ Focus + relationship effectiveness validation failed:', effectivenessError.message);
++        return false;
++      }
++    };
++
++    // Helper: Generate test summary
++    const generateFocusTestSummary = function(results) {
++      if (results.success) {
++        const integrationInfo = results.focusData.integration?.focusAreasIntegrated ?
++          ` Integrated ${results.focusData.integration.focusAreasIntegrated} focus areas.` : '';
++        const coordinationInfo = results.focusData.coordination?.successfulCoordination ?
++          ` ${results.focusData.coordination.successfulCoordination}/${results.focusData.coordination.scenariosTested} coordination scenarios successful.` : '';
++        const selectionInfo = results.focusData.adaptiveSelection?.problemsSelected ?
++          ` Selected ${results.focusData.adaptiveSelection.problemsSelected} problems with focus + relationship awareness.` : '';
++        const effectivenessInfo = results.focusData.integration?.focusEffectiveness ?
++          ` Effectiveness: ${Math.round(results.focusData.integration.focusEffectiveness * 100)}%.` : '';
++        const simulatedInfo = Object.values(results.focusData).some(data => data?.simulated) ? ' (simulated)' : '';
++        return `Focus + relationship integration working: integration ✓, coordination ✓, adaptive selection ✓.${integrationInfo}${coordinationInfo}${selectionInfo}${effectivenessInfo}${simulatedInfo}`;
++      } else {
++        const issues = [];
++        if (!results.focusIntegrationTested) issues.push('focus integration failed');
++        if (!results.coordinationServiceTested) issues.push('coordination service failed');
++        if (!results.adaptiveSelectionTested) issues.push('adaptive selection failed');
++        return `Focus + relationship integration issues: ${issues.join(', ')}`;
++      }
++    };
++
++    globalThis.testFocusRelationships = async function(options = {}) {
++      const { verbose = false } = options;
++      if (verbose) console.log('🎯 Testing focus coordination + relationship integration...');
++
++      try {
++        let results = {
++          success: false,
++          summary: '',
++          focusRelationshipTesterAvailable: false,
++          focusIntegrationTested: false,
++          coordinationServiceTested: false,
++          adaptiveSelectionTested: false,
++          focusData: {}
++        };
++
++        if (typeof RelationshipSystemTester !== 'undefined' && RelationshipSystemTester.testFocusRelationshipIntegration) {
++          results.focusRelationshipTesterAvailable = true;
++          if (verbose) console.log('✓ RelationshipSystemTester focus integration available');
++        } else {
++          if (verbose) console.log('⚠️ RelationshipSystemTester not found, will simulate');
++        }
++
++        await testFocusIntegration(results, verbose);
++        await testCoordinationService(results, verbose);
++        await testAdaptiveSelection(results, verbose);
++
++        const focusRelationshipEffective = validateFocusEffectiveness(results, verbose);
+ 
+-        // 6. Overall success assessment
+         results.success = results.focusIntegrationTested &&
+                          results.coordinationServiceTested &&
+                          results.adaptiveSelectionTested &&
+                          focusRelationshipEffective;
+ 
+-        // 7. Generate summary
+-        if (results.success) {
+-          const integrationInfo = results.focusData.integration?.focusAreasIntegrated ?
+-            ` Integrated ${results.focusData.integration.focusAreasIntegrated} focus areas.` : '';
+-          const coordinationInfo = results.focusData.coordination?.successfulCoordination ?
+-            ` ${results.focusData.coordination.successfulCoordination}/${results.focusData.coordination.scenariosTested} coordination scenarios successful.` : '';
+-          const selectionInfo = results.focusData.adaptiveSelection?.problemsSelected ?
+-            ` Selected ${results.focusData.adaptiveSelection.problemsSelected} problems with focus + relationship awareness.` : '';
+-          const effectivenessInfo = results.focusData.integration?.focusEffectiveness ?
+-            ` Effectiveness: ${Math.round(results.focusData.integration.focusEffectiveness * 100)}%.` : '';
+-          const simulatedInfo = Object.values(results.focusData).some(data => data?.simulated) ? ' (simulated)' : '';
+-          results.summary = `Focus + relationship integration working: integration ✓, coordination ✓, adaptive selection ✓.${integrationInfo}${coordinationInfo}${selectionInfo}${effectivenessInfo}${simulatedInfo}`;
+-        } else {
+-          const issues = [];
+-          if (!results.focusIntegrationTested) issues.push('focus integration failed');
+-          if (!results.coordinationServiceTested) issues.push('coordination service failed');
+-          if (!results.adaptiveSelectionTested) issues.push('adaptive selection failed');
+-          if (!focusRelationshipEffective) issues.push('focus + relationship integration ineffective');
+-          results.summary = `Focus + relationship integration issues: ${issues.join(', ')}`;
+-        }
++        results.summary = generateFocusTestSummary(results);
+ 
+         if (verbose) console.log('✅ Focus coordination + relationship integration test completed');
+-        // Return boolean for backward compatibility when not verbose
+-        if (!verbose) {
+-          return results.success;
+-        }
+-        return results;
++        return verbose ? results : results.success;
+ 
+       } catch (error) {
+         console.error('❌ testFocusRelationships failed:', error);

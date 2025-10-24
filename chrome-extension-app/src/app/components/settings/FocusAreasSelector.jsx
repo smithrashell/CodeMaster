@@ -43,7 +43,7 @@ export function FocusAreasSelector() {
     masteryData, setMasteryData,
     currentSessionTags, setCurrentSessionTags,
     focusAvailability, setFocusAvailability,
-    showCustomMode, setShowCustomMode,
+    showCustomMode: _showCustomMode, setShowCustomMode,
     loading, setLoading,
     saving, setSaving,
     error, setError,

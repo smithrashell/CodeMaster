@@ -273,14 +273,14 @@ export const StorageService = {
           // Malformed data looks like: {0: '2', 1: '0', 2: '2', ..., id: 'key'}
           const keys = Object.keys(result);
           const hasNumericKeys = keys.some(k => k !== 'id' && !isNaN(k));
-          if (hasNumericKeys && !result.hasOwnProperty('value')) {
+          if (hasNumericKeys && !Object.prototype.hasOwnProperty.call(result, 'value')) {
             console.warn(`⚠️ Detected malformed data for key "${key}", returning null`);
             resolve(null);
             return;
           }
 
           // Handle primitives stored in value property
-          if (result.hasOwnProperty('value') && Object.keys(result).length === 2 && result.id === key) {
+          if (Object.prototype.hasOwnProperty.call(result, 'value') && Object.keys(result).length === 2 && result.id === key) {
             resolve(result.value);
           } else {
             // Return full object for complex data

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Review System</title>
+</head>
+<body>
+    <h1>Review System Debug</h1>
+    <button onclick="debugReviewSystem()">Check Review System</button>
+    <pre id="output"></pre>
+
+    <script type="module">
+        async function debugReviewSystem() {
+            const output = document.getElementById('output');
+            output.textContent = 'Checking review system...\n\n';
+
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('CodeMaster', 47);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                // Get all problems
+                const tx = db.transaction('problems', 'readonly');
+                const store = tx.objectStore('problems');
+                const allProblems = await new Promise((resolve, reject) => {
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result || []);
+                    request.onerror = () => reject(request.error);
+                });
+
+                output.textContent += `Total problems in database: ${allProblems.length}\n\n`;
+
+                // Check for review schedule fields
+                const withReviewSchedule = allProblems.filter(p =>
+                    p.review_schedule || p.ReviewSchedule
+                );
+
+                output.textContent += `Problems with review_schedule field: ${withReviewSchedule.length}\n`;
+
+                if (withReviewSchedule.length === 0) {
+                    output.textContent += '\n❌ NO PROBLEMS HAVE REVIEW SCHEDULES SET!\n';
+                    output.textContent += 'This means the Leitner system is not working.\n\n';
+
+                    // Sample a problem to see its structure
+                    if (allProblems.length > 0) {
+                        output.textContent += 'Sample problem structure:\n';
+                        const sample = allProblems[0];
+                        output.textContent += JSON.stringify(Object.keys(sample), null, 2) + '\n';
+                    }
+
+                    db.close();
+                    return;
+                }
+
+                // Check how many are due for review
+                const now = new Date();
+                const dueForReview = withReviewSchedule.filter(p => {
+                    const reviewDate = new Date(p.review_schedule || p.ReviewSchedule);
+                    return reviewDate <= now;
+                });
+
+                output.textContent += `Problems due for review (past date): ${dueForReview.length}\n`;
+                output.textContent += `Problems not yet due: ${withReviewSchedule.length - dueForReview.length}\n\n`;
+
+                // Show sample problems due for review
+                if (dueForReview.length > 0) {
+                    output.textContent += '=== SAMPLE PROBLEMS DUE FOR REVIEW ===\n';
+                    dueForReview.slice(0, 5).forEach((p, idx) => {
+                        output.textContent += `\n${idx + 1}. ${p.title || p.ProblemDescription}\n`;
+                        output.textContent += `   Leetcode ID: ${p.leetcode_id || 'N/A'}\n`;
+                        output.textContent += `   Review date: ${p.review_schedule || p.ReviewSchedule}\n`;
+                        output.textContent += `   Tags: ${JSON.stringify(p.tags || p.Tags)}\n`;
+                        output.textContent += `   Box level: ${p.box_level || 'N/A'}\n`;
+                    });
+                } else {
+                    output.textContent += '\n✅ All problems are up to date - none due for review yet.\n';
+
+                    // Show next upcoming review
+                    const upcoming = withReviewSchedule
+                        .map(p => ({
+                            ...p,
+                            reviewDate: new Date(p.review_schedule || p.ReviewSchedule)
+                        }))
+                        .sort((a, b) => a.reviewDate - b.reviewDate);
+
+                    if (upcoming.length > 0) {
+                        output.textContent += `\nNext review due: ${upcoming[0].reviewDate.toLocaleString()}\n`;
+                        output.textContent += `Problem: ${upcoming[0].title || upcoming[0].ProblemDescription}\n`;
+                    }
+                }
+
+                // Check tag mastery to see current tier
+                output.textContent += '\n\n=== CURRENT TIER CHECK ===\n';
+                const txTags = db.transaction('tag_mastery', 'readonly');
+                const storeTagMastery = txTags.objectStore('tag_mastery');
+                const allTags = await new Promise((resolve, reject) => {
+                    const request = storeTagMastery.getAll();
+                    request.onsuccess = () => resolve(request.result || []);
+                    request.onerror = () => reject(request.error);
+                });
+
+                if (allTags.length > 0) {
+                    output.textContent += `Total tags tracked: ${allTags.length}\n`;
+
+                    // Find current tier (tags that are being learned)
+                    const currentTierTags = allTags
+                        .filter(t => t.is_in_current_tier || t.mastery_level === 'learning')
+                        .map(t => t.tag_name || t.TagName);
+
+                    output.textContent += `Current tier tags: ${JSON.stringify(currentTierTags)}\n\n`;
+
+                    // Check if review problems match current tier
+                    if (dueForReview.length > 0 && currentTierTags.length > 0) {
+                        const tierMatchedProblems = dueForReview.filter(p => {
+                            const problemTags = p.tags || p.Tags || [];
+                            return problemTags.every(tag => currentTierTags.includes(tag));
+                        });
+
+                        output.textContent += `Problems due that match current tier: ${tierMatchedProblems.length}\n`;
+
+                        if (tierMatchedProblems.length === 0 && dueForReview.length > 0) {
+                            output.textContent += '\n⚠️ ISSUE FOUND: Problems are due for review, but none match your current tier!\n';
+                            output.textContent += 'This means the tier filtering is too strict.\n\n';
+
+                            // Show what tags the due problems have
+                            output.textContent += 'Tags on problems due for review:\n';
+                            const allTagsOnDueProblems = new Set();
+                            dueForReview.forEach(p => {
+                                (p.tags || p.Tags || []).forEach(tag => allTagsOnDueProblems.add(tag));
+                            });
+                            output.textContent += JSON.stringify(Array.from(allTagsOnDueProblems), null, 2) + '\n';
+                        } else if (tierMatchedProblems.length > 0) {
+                            output.textContent += '\n✅ Review system should be working!\n';
+                            output.textContent += `${tierMatchedProblems.length} problems should appear in your next session.\n`;
+                        }
+                    }
+                } else {
+                    output.textContent += '❌ No tag mastery data found!\n';
+                    output.textContent += 'Tag mastery system may not be initialized.\n';
+                }
+
+                db.close();
+
+            } catch (error) {
+                output.textContent += `\n❌ ERROR: ${error.message}\n${error.stack}\n`;
+            }
+        }
+
+        // Make function globally available
+        window.debugReviewSystem = debugReviewSystem;
+    </script>
+</body>
+</html>

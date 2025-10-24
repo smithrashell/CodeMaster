@@ -1,0 +1,732 @@
+diff --git a/chrome-extension-app/src/background/index.js b/chrome-extension-app/src/background/index.js
+index 5bfe70a..8efe6fc 100644
+--- a/chrome-extension-app/src/background/index.js
++++ b/chrome-extension-app/src/background/index.js
+@@ -1792,7 +1792,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+         }
+ 
+         // Helper: Test single escape hatch scenario
+-        const testEscapeHatchScenario = async function(scenario, verbose) {
++        const testEscapeHatchScenario = function(scenario, verbose) {
+           try {
+             const escapeHatchResult = applyEscapeHatchLogic(
+               scenario.sessionState,
+@@ -1811,7 +1811,7 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+           for (const scenario of escapeHatchScenarios) {
+             if (results.escapeHatchLogicAvailable) {
+               // Test actual escape hatch logic
+-              const result = await testEscapeHatchScenario(scenario, verbose);
++              const result = testEscapeHatchScenario(scenario, verbose);
+               results.activatedEscapeHatches.push(result);
+             } else {
+               // Simulate escape hatch activation
+@@ -3103,6 +3103,81 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+       }
+     }
+ 
++    // Helper: Test multi-source integration
++    const testMultiSourceIntegrationStep = function(results, testMultiSourceIntegration, verbose) {
++      const integrationScenarios = [
++        { focusWeight: 0.5, relationshipWeight: 0.3, adaptiveWeight: 0.2 },
++        { focusWeight: 0.3, relationshipWeight: 0.4, adaptiveWeight: 0.3 },
++        { focusWeight: 0.6, relationshipWeight: 0.2, adaptiveWeight: 0.2 }
++      ];
++
++      const integrationResults = integrationScenarios.map(scenario => {
++        return testMultiSourceIntegration(scenario);
++      });
++
++      const successfulIntegrations = integrationResults.filter(result => result.success).length;
++      results.multiSourceIntegrationTested = successfulIntegrations > 0;
++      results.blendingData.integration = {
++        scenariosTested: integrationScenarios.length,
++        successfulIntegrations,
++        integrationSuccessRate: successfulIntegrations / integrationScenarios.length,
++        averageBlendQuality: integrationResults.reduce((sum, result) =>
++          sum + (result.blendQuality || 0), 0) / integrationResults.length
++      };
++
++      if (verbose) console.log('✓ Multi-source integration tested');
++    }
++
++    // Helper: Test adaptive weighting
++    const testAdaptiveWeightingStep = async function(results, analyzeAdaptiveWeighting, verbose) {
++      const recentSessions = await getAllFromStore('sessions');
++
++      if (recentSessions && recentSessions.length > 0) {
++        // Analyze adaptive weighting based on recent performance
++        const weightingAnalysis = analyzeAdaptiveWeighting(recentSessions.slice(-10));
++        results.adaptiveWeightingTested = true;
++        results.blendingData.weighting = weightingAnalysis;
++        if (verbose) console.log('✓ Adaptive weighting analyzed with real session data');
++      } else {
++        // Simulate adaptive weighting
++        results.adaptiveWeightingTested = true;
++        results.blendingData.weighting = {
++          weightAdjustments: 8,
++          performanceCorrelation: 0.73,
++          adaptationEffectiveness: 0.82,
++          weightingStability: 0.65,
++          simulated: true
++        };
++        if (verbose) console.log('✓ Adaptive weighting simulated (no session data)');
++      }
++    }
++
++    // Helper: Evaluate and format session blending results
++    const evaluateSessionBlendingResults = function(results, verbose) {
++      const sessionBlendingEffective = (
++        results.blendingAlgorithmTested &&
++        results.multiSourceIntegrationTested &&
++        results.adaptiveWeightingTested
++      );
++
++      if (sessionBlendingEffective) {
++        results.success = true;
++        results.summary = 'Session recommendation blending working effectively';
++        if (verbose) {
++          console.log('✅ Session blending test PASSED');
++          console.log('🔀 Blending Data:', results.blendingData);
++        }
++      } else {
++        results.summary = 'Some session blending components failed';
++        if (verbose) {
++          console.log('⚠️ Session blending test PARTIAL');
++          console.log('🔍 Issues detected in session blending');
++        }
++      }
++
++      return verbose ? results : results.success;
++    }
++
+     globalThis.testSessionBlending = async function(options = {}) {
+       const { verbose = false } = options;
+       if (verbose) console.log('🔀 Testing session recommendation blending...');
+@@ -3142,85 +3217,20 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+ 
+         // 3. Test multi-source integration
+         try {
+-          const integrationScenarios = [
+-            { focusWeight: 0.5, relationshipWeight: 0.3, adaptiveWeight: 0.2 },
+-            { focusWeight: 0.3, relationshipWeight: 0.4, adaptiveWeight: 0.3 },
+-            { focusWeight: 0.6, relationshipWeight: 0.2, adaptiveWeight: 0.2 }
+-          ];
+-
+-          const integrationResults = integrationScenarios.map(scenario => {
+-            return this.testMultiSourceIntegration(scenario);
+-          });
+-
+-          const successfulIntegrations = integrationResults.filter(result => result.success).length;
+-          results.multiSourceIntegrationTested = successfulIntegrations > 0;
+-          results.blendingData.integration = {
+-            scenariosTested: integrationScenarios.length,
+-            successfulIntegrations,
+-            integrationSuccessRate: successfulIntegrations / integrationScenarios.length,
+-            averageBlendQuality: integrationResults.reduce((sum, result) =>
+-              sum + (result.blendQuality || 0), 0) / integrationResults.length
+-          };
+-
+-          if (verbose) console.log('✓ Multi-source integration tested');
++          testMultiSourceIntegrationStep(results, this.testMultiSourceIntegration.bind(this), verbose);
+         } catch (integrationError) {
+           if (verbose) console.log('⚠️ Multi-source integration test failed:', integrationError.message);
+         }
+ 
+         // 4. Test adaptive weighting
+         try {
+-          // getAllFromStore is now statically imported at the top
+-          const recentSessions = await getAllFromStore('sessions');
+-
+-          if (recentSessions && recentSessions.length > 0) {
+-            // Analyze adaptive weighting based on recent performance
+-            const weightingAnalysis = this.analyzeAdaptiveWeighting(recentSessions.slice(-10));
+-            results.adaptiveWeightingTested = true;
+-            results.blendingData.weighting = weightingAnalysis;
+-            if (verbose) console.log('✓ Adaptive weighting analyzed with real session data');
+-          } else {
+-            // Simulate adaptive weighting
+-            results.adaptiveWeightingTested = true;
+-            results.blendingData.weighting = {
+-              weightAdjustments: 8,
+-              performanceCorrelation: 0.73,
+-              adaptationEffectiveness: 0.82,
+-              weightingStability: 0.65,
+-              simulated: true
+-            };
+-            if (verbose) console.log('✓ Adaptive weighting simulated (no session data)');
+-          }
++          await testAdaptiveWeightingStep(results, this.analyzeAdaptiveWeighting.bind(this), verbose);
+         } catch (weightingError) {
+           if (verbose) console.log('⚠️ Adaptive weighting test failed:', weightingError.message);
+         }
+ 
+         // 5. Evaluate overall session blending effectiveness
+-        const sessionBlendingEffective = (
+-          results.blendingAlgorithmTested &&
+-          results.multiSourceIntegrationTested &&
+-          results.adaptiveWeightingTested
+-        );
+-
+-        if (sessionBlendingEffective) {
+-          results.success = true;
+-          results.summary = 'Session recommendation blending working effectively';
+-          if (verbose) {
+-            console.log('✅ Session blending test PASSED');
+-            console.log('🔀 Blending Data:', results.blendingData);
+-          }
+-        } else {
+-          results.summary = 'Some session blending components failed';
+-          if (verbose) {
+-            console.log('⚠️ Session blending test PARTIAL');
+-            console.log('🔍 Issues detected in session blending');
+-          }
+-        }
+-
+-        // Return boolean for backward compatibility when not verbose
+-        if (!verbose) {
+-          return results.success;
+-        }
+-        return results;
++        return evaluateSessionBlendingResults(results, verbose);
+ 
+       } catch (error) {
+         console.error('❌ testSessionBlending failed:', error);
+@@ -4109,6 +4119,63 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+       return { tested: true, data };
+     };
+ 
++    // Helper: Validate pattern learning effectiveness
++    const validatePatternLearningEffectiveness = function(patternData, verbose) {
++      const recognition = patternData.recognition;
++      const analysis = patternData.successAnalysis;
++      const predictions = patternData.predictions;
++
++      // Validate that pattern learning produces meaningful insights
++      const patternsDetected = (recognition?.patternsDetected || 0) > 0;
++      const successAnalyzed = (analysis?.patternCount || 0) > 0 && analysis?.highSuccessTags > 0;
++      const predictionsGenerated = (predictions?.tagsRecommended || 0) > 0 && (predictions?.confidenceScore || 0) > 0.5;
++      const patternIntegration = recognition?.successRateAnalyzed && analysis?.difficultyTrends && predictions?.patternBased;
++
++      const effective = patternsDetected && successAnalyzed && predictionsGenerated && patternIntegration;
++
++      if (verbose) {
++        console.log('✓ Pattern learning effectiveness validation:', {
++          patternsDetected,
++          successAnalyzed,
++          predictionsGenerated,
++          patternIntegration,
++          effective
++        });
++      }
++
++      return effective;
++    };
++
++    // Helper: Generate pattern learning summary
++    const generatePatternLearningSummary = function(results, patternLearningEffective) {
++      const success = results.patternRecognitionTested &&
++                     results.successPatternAnalyzed &&
++                     results.patternPredictionTested &&
++                     patternLearningEffective;
++
++      results.success = success;
++
++      if (success) {
++        const recognitionInfo = results.patternData.recognition?.patternsDetected ?
++          ` Detected ${results.patternData.recognition.patternsDetected} patterns.` : '';
++        const analysisInfo = results.patternData.successAnalysis?.patternCount ?
++          ` Analyzed ${results.patternData.successAnalysis.patternCount} success patterns.` : '';
++        const predictionInfo = results.patternData.predictions?.tagsRecommended ?
++          ` Generated ${results.patternData.predictions.tagsRecommended} tag recommendations.` : '';
++        const confidenceInfo = results.patternData.predictions?.confidenceScore ?
++          ` Confidence: ${Math.round(results.patternData.predictions.confidenceScore * 100)}%.` : '';
++        const simulatedInfo = Object.values(results.patternData).some(data => data?.simulated) ? ' (simulated)' : '';
++        results.summary = `Success pattern learning working: recognition ✓, analysis ✓, predictions ✓.${recognitionInfo}${analysisInfo}${predictionInfo}${confidenceInfo}${simulatedInfo}`;
++      } else {
++        const issues = [];
++        if (!results.patternRecognitionTested) issues.push('pattern recognition failed');
++        if (!results.successPatternAnalyzed) issues.push('success analysis failed');
++        if (!results.patternPredictionTested) issues.push('pattern predictions failed');
++        if (!patternLearningEffective) issues.push('pattern learning ineffective');
++        results.summary = `Success pattern learning issues: ${issues.join(', ')}`;
++      }
++    };
++
+     globalThis.testPatternLearning = async function(options = {}) {
+       const { verbose = false } = options;
+       if (verbose) console.log('🧠 Testing success pattern learning...');
+@@ -4162,64 +4229,17 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+         // 5. Test pattern learning effectiveness
+         let patternLearningEffective = false;
+         try {
+-          const recognition = results.patternData.recognition;
+-          const analysis = results.patternData.successAnalysis;
+-          const predictions = results.patternData.predictions;
+-
+-          // Validate that pattern learning produces meaningful insights
+-          const patternsDetected = (recognition?.patternsDetected || 0) > 0;
+-          const successAnalyzed = (analysis?.patternCount || 0) > 0 && analysis?.highSuccessTags > 0;
+-          const predictionsGenerated = (predictions?.tagsRecommended || 0) > 0 && (predictions?.confidenceScore || 0) > 0.5;
+-          const patternIntegration = recognition?.successRateAnalyzed && analysis?.difficultyTrends && predictions?.patternBased;
+-
+-          patternLearningEffective = patternsDetected && successAnalyzed && predictionsGenerated && patternIntegration;
+-
+-          if (verbose) {
+-            console.log('✓ Pattern learning effectiveness validation:', {
+-              patternsDetected,
+-              successAnalyzed,
+-              predictionsGenerated,
+-              patternIntegration,
+-              effective: patternLearningEffective
+-            });
+-          }
++          patternLearningEffective = validatePatternLearningEffectiveness(results.patternData, verbose);
+         } catch (effectivenessError) {
+           if (verbose) console.log('⚠️ Pattern learning effectiveness validation failed:', effectivenessError.message);
+         }
+ 
+-        // 6. Overall success assessment
+-        results.success = results.patternRecognitionTested &&
+-                         results.successPatternAnalyzed &&
+-                         results.patternPredictionTested &&
+-                         patternLearningEffective;
+-
+-        // 7. Generate summary
+-        if (results.success) {
+-          const recognitionInfo = results.patternData.recognition?.patternsDetected ?
+-            ` Detected ${results.patternData.recognition.patternsDetected} patterns.` : '';
+-          const analysisInfo = results.patternData.successAnalysis?.patternCount ?
+-            ` Analyzed ${results.patternData.successAnalysis.patternCount} success patterns.` : '';
+-          const predictionInfo = results.patternData.predictions?.tagsRecommended ?
+-            ` Generated ${results.patternData.predictions.tagsRecommended} tag recommendations.` : '';
+-          const confidenceInfo = results.patternData.predictions?.confidenceScore ?
+-            ` Confidence: ${Math.round(results.patternData.predictions.confidenceScore * 100)}%.` : '';
+-          const simulatedInfo = Object.values(results.patternData).some(data => data?.simulated) ? ' (simulated)' : '';
+-          results.summary = `Success pattern learning working: recognition ✓, analysis ✓, predictions ✓.${recognitionInfo}${analysisInfo}${predictionInfo}${confidenceInfo}${simulatedInfo}`;
+-        } else {
+-          const issues = [];
+-          if (!results.patternRecognitionTested) issues.push('pattern recognition failed');
+-          if (!results.successPatternAnalyzed) issues.push('success analysis failed');
+-          if (!results.patternPredictionTested) issues.push('pattern predictions failed');
+-          if (!patternLearningEffective) issues.push('pattern learning ineffective');
+-          results.summary = `Success pattern learning issues: ${issues.join(', ')}`;
+-        }
++        // 6. Overall success assessment and summary generation
++        generatePatternLearningSummary(results, patternLearningEffective);
+ 
+         if (verbose) console.log('✅ Success pattern learning test completed');
+         // Return boolean for backward compatibility when not verbose
+-        if (!verbose) {
+-          return results.success;
+-        }
+-        return results;
++        return verbose ? results : results.success;
+ 
+       } catch (error) {
+         console.error('❌ testPatternLearning failed:', error);
+@@ -6068,6 +6088,96 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+       }
+     };
+ 
++    // Helper: Simulate problem submission
++    const simulateProblemSubmission = function(verbose) {
++      const mockSubmission = {
++        problemId: 'two-sum',
++        submission: {
++          code: 'function twoSum(nums, target) { /* solution */ }',
++          result: 'accepted',
++          runtime: 68,
++          submittedAt: Date.now()
++        },
++        attempt: {
++          startTime: Date.now() - 300000,
++          endTime: Date.now(),
++          duration: 300000,
++          hintsUsed: 1,
++          successful: true
++        }
++      };
++
++      if (mockSubmission.problemId && mockSubmission.submission && mockSubmission.attempt) {
++        if (verbose) console.log('✓ Problem submission simulated:', mockSubmission.submission.result);
++        return { success: true, type: mockSubmission.submission.result };
++      }
++      return { success: false, type: null };
++    };
++
++    // Helper: Record attempt
++    const recordSubmissionAttempt = function(results, verbose) {
++      const mockAttemptRecord = {
++        id: 'attempt_' + Date.now(),
++        problemId: 'two-sum',
++        duration: 300000,
++        successful: true,
++        hintsUsed: 1
++      };
++
++      if (results.attemptsServiceAvailable || results.sessionServiceAvailable) {
++        results.attemptRecorded = true;
++        results.attemptData = {
++          duration: mockAttemptRecord.duration / 1000,
++          successful: mockAttemptRecord.successful,
++          hintsUsed: mockAttemptRecord.hintsUsed
++        };
++        if (verbose) console.log('✓ Attempt recorded:', results.attemptData);
++      }
++    };
++
++    // Helper: Update progress metrics
++    const updateProgressMetrics = function(results, verbose) {
++      const mockProgressUpdate = {
++        afterSubmission: {
++          totalSolved: 43,
++          successRate: 72.9
++        }
++      };
++
++      if (mockProgressUpdate.afterSubmission) {
++        results.progressUpdated = true;
++        results.progressMetrics = {
++          totalSolved: mockProgressUpdate.afterSubmission.totalSolved,
++          successRate: mockProgressUpdate.afterSubmission.successRate,
++          improvement: true
++        };
++        if (verbose) console.log('✓ Progress update simulated:', results.progressMetrics);
++      }
++    };
++
++    // Helper: Generate submission tracking summary
++    const generateSubmissionTrackingSummary = function(results) {
++      results.success = (results.attemptsServiceAvailable || results.sessionServiceAvailable) &&
++                       results.submissionSimulated &&
++                       results.attemptRecorded &&
++                       results.progressUpdated;
++
++      if (results.success) {
++        const attemptInfo = results.attemptData ?
++          ` Attempt: ${results.attemptData.duration}s, hints: ${results.attemptData.hintsUsed}, success: ${results.attemptData.successful}.` : '';
++        const progressInfo = results.progressMetrics.totalSolved ?
++          ` Progress: ${results.progressMetrics.totalSolved} solved, ${results.progressMetrics.successRate}% success rate.` : '';
++        results.summary = `Problem submission tracking working: submission ✓ (${results.submissionType}), recording ✓, progress ✓.${attemptInfo}${progressInfo}`;
++      } else {
++        const issues = [];
++        if (!results.attemptsServiceAvailable && !results.sessionServiceAvailable) issues.push('tracking services missing');
++        if (!results.submissionSimulated) issues.push('submission simulation failed');
++        if (!results.attemptRecorded) issues.push('attempt recording failed');
++        if (!results.progressUpdated) issues.push('progress update failed');
++        results.summary = `Problem submission tracking issues: ${issues.join(', ')}`;
++      }
++    };
++
+     globalThis.testProblemSubmissionTracking = function(options = {}) {
+       const { verbose = false } = options;
+       if (verbose) console.log('📝 Testing problem submission tracking workflow...');
+@@ -6099,87 +6209,18 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+         }
+ 
+         // 3. Simulate problem submission workflow
+-        const mockSubmission = {
+-          problemId: 'two-sum',
+-          submission: {
+-            code: 'function twoSum(nums, target) { /* solution */ }',
+-            result: 'accepted',
+-            runtime: 68,
+-            submittedAt: Date.now()
+-          },
+-          attempt: {
+-            startTime: Date.now() - 300000, // 5 minutes ago
+-            endTime: Date.now(),
+-            duration: 300000, // 5 minutes
+-            hintsUsed: 1,
+-            successful: true
+-          }
+-        };
+-
+-        if (mockSubmission.problemId && mockSubmission.submission && mockSubmission.attempt) {
+-          results.submissionSimulated = true;
+-          results.submissionType = mockSubmission.submission.result;
+-          if (verbose) console.log('✓ Problem submission simulated:', results.submissionType);
+-        }
++        const submission = simulateProblemSubmission(verbose);
++        results.submissionSimulated = submission.success;
++        results.submissionType = submission.type;
+ 
+         // 4. Test attempt recording
+-        const mockAttemptRecord = {
+-          id: 'attempt_' + Date.now(),
+-          problemId: 'two-sum',
+-          duration: 300000,
+-          successful: true,
+-          hintsUsed: 1
+-        };
+-
+-        if (results.attemptsServiceAvailable || results.sessionServiceAvailable) {
+-          results.attemptRecorded = true;
+-          results.attemptData = {
+-            duration: mockAttemptRecord.duration / 1000,
+-            successful: mockAttemptRecord.successful,
+-            hintsUsed: mockAttemptRecord.hintsUsed
+-          };
+-          if (verbose) console.log('✓ Attempt recorded:', results.attemptData);
+-        }
++        recordSubmissionAttempt(results, verbose);
+ 
+         // 5. Test progress updates
+-        const mockProgressUpdate = {
+-          afterSubmission: {
+-            totalSolved: 43,
+-            successRate: 72.9
+-          }
+-        };
+-
+-        if (mockProgressUpdate.afterSubmission) {
+-          results.progressUpdated = true;
+-          results.progressMetrics = {
+-            totalSolved: mockProgressUpdate.afterSubmission.totalSolved,
+-            successRate: mockProgressUpdate.afterSubmission.successRate,
+-            improvement: true
+-          };
+-          if (verbose) console.log('✓ Progress update simulated:', results.progressMetrics);
+-        }
+-
+-        // 6. Overall success assessment
+-        results.success = (results.attemptsServiceAvailable || results.sessionServiceAvailable) &&
+-                         results.submissionSimulated &&
+-                         results.attemptRecorded &&
+-                         results.progressUpdated;
++        updateProgressMetrics(results, verbose);
+ 
+-        // 7. Generate summary
+-        if (results.success) {
+-          const attemptInfo = results.attemptData ?
+-            ` Attempt: ${results.attemptData.duration}s, hints: ${results.attemptData.hintsUsed}, success: ${results.attemptData.successful}.` : '';
+-          const progressInfo = results.progressMetrics.totalSolved ?
+-            ` Progress: ${results.progressMetrics.totalSolved} solved, ${results.progressMetrics.successRate}% success rate.` : '';
+-          results.summary = `Problem submission tracking working: submission ✓ (${results.submissionType}), recording ✓, progress ✓.${attemptInfo}${progressInfo}`;
+-        } else {
+-          const issues = [];
+-          if (!results.attemptsServiceAvailable && !results.sessionServiceAvailable) issues.push('tracking services missing');
+-          if (!results.submissionSimulated) issues.push('submission simulation failed');
+-          if (!results.attemptRecorded) issues.push('attempt recording failed');
+-          if (!results.progressUpdated) issues.push('progress update failed');
+-          results.summary = `Problem submission tracking issues: ${issues.join(', ')}`;
+-        }
++        // 6. Overall success assessment and summary generation
++        generateSubmissionTrackingSummary(results);
+ 
+         if (verbose) console.log('✅ Problem submission tracking test completed');
+         return results;
+@@ -7707,6 +7748,93 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+       }
+     };
+ 
++    // Helper: Test relationship consistency with system tester
++    const testRelationshipConsistencyWithTester = async function(results, verbose, simulateRelationshipConsistency) {
++      const applyConsistencyData = (target, data) => {
++        target.bidirectionalConsistency = data.bidirectional;
++        target.temporalConsistency = data.temporal;
++        target.learningEffectiveness = data.effectiveness;
++        target.consistencyMetrics = data.metrics;
++      };
++
++      const testWithSystemTester = async (results, verbose) => {
++        const consistencyResult = await RelationshipSystemTester.testRelationshipLearningConsistency({ quiet: true });
++        if (consistencyResult && consistencyResult.success) {
++          results.bidirectionalConsistency = consistencyResult.bidirectionalConsistency || false;
++          results.temporalConsistency = consistencyResult.temporalConsistency || false;
++          results.learningEffectiveness = consistencyResult.learningEffectiveness || false;
++          results.consistencyMetrics = consistencyResult.metrics || {};
++          if (verbose) console.log('✓ Real relationship consistency tested');
++          return;
++        }
++        // Simulate if test failed
++        const simulatedConsistency = await simulateRelationshipConsistency();
++        applyConsistencyData(results, simulatedConsistency);
++        if (verbose) console.log('✓ Relationship consistency simulated (test failed)');
++      };
++
++      if (results.relationshipSystemTesterAvailable) {
++        await testWithSystemTester(results, verbose);
++      } else {
++        // Simulate consistency testing
++        const simulatedConsistency = await simulateRelationshipConsistency();
++        applyConsistencyData(results, simulatedConsistency);
++        if (verbose) console.log('✓ Relationship consistency simulated');
++      }
++    };
++
++    // Helper: Validate database relationships
++    const validateDatabaseRelationships = async function(results, analyzeBidirectionalConsistency, analyzeTemporalConsistency, verbose) {
++      const relationships = await getAllFromStore('problem_relationships');
++
++      if (relationships && relationships.length > 0) {
++        // Analyze bidirectional consistency
++        const bidirectionalAnalysis = analyzeBidirectionalConsistency(relationships);
++        results.relationshipData.bidirectionalAnalysis = bidirectionalAnalysis;
++
++        // Analyze temporal consistency
++        const temporalAnalysis = analyzeTemporalConsistency(relationships);
++        results.relationshipData.temporalAnalysis = temporalAnalysis;
++
++        if (verbose) console.log('✓ Database relationship validation completed');
++      } else {
++        // Simulate relationship data analysis
++        results.relationshipData = {
++          bidirectionalAnalysis: { consistent: 85, total: 100, ratio: 0.85 },
++          temporalAnalysis: { consistent: 78, total: 100, decayRate: 0.15 },
++          simulated: true
++        };
++        if (verbose) console.log('✓ Relationship data analysis simulated (no data)');
++      }
++    };
++
++    // Helper: Evaluate and format relationship consistency results
++    const evaluateRelationshipConsistencyResults = function(results, verbose) {
++      const overallConsistency = (
++        results.bidirectionalConsistency &&
++        results.temporalConsistency &&
++        results.learningEffectiveness
++      );
++
++      if (overallConsistency) {
++        results.success = true;
++        results.summary = 'Relationship learning consistency validated successfully';
++        if (verbose) {
++          console.log('✅ Relationship consistency test PASSED');
++          console.log('📊 Consistency Metrics:', results.consistencyMetrics);
++          console.log('🔗 Relationship Data:', results.relationshipData);
++        }
++      } else {
++        results.summary = 'Some relationship consistency issues detected';
++        if (verbose) {
++          console.log('⚠️ Relationship consistency test PARTIAL');
++          console.log('🔍 Issues detected in consistency validation');
++        }
++      }
++
++      return verbose ? results : results.success;
++    };
++
+     globalThis.testRelationshipConsistency = async function(options = {}) {
+       const { verbose = false } = options;
+       if (verbose) console.log('⚖️ Testing relationship learning consistency...');
+@@ -7732,98 +7860,21 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
+         }
+ 
+         // 2. Test relationship learning consistency
+-        const applyConsistencyData = (target, data) => {
+-          target.bidirectionalConsistency = data.bidirectional;
+-          target.temporalConsistency = data.temporal;
+-          target.learningEffectiveness = data.effectiveness;
+-          target.consistencyMetrics = data.metrics;
+-        };
+-
+-        const testWithSystemTester = async (results, verbose) => {
+-          const consistencyResult = await RelationshipSystemTester.testRelationshipLearningConsistency({ quiet: true });
+-          if (consistencyResult && consistencyResult.success) {
+-            results.bidirectionalConsistency = consistencyResult.bidirectionalConsistency || false;
+-            results.temporalConsistency = consistencyResult.temporalConsistency || false;
+-            results.learningEffectiveness = consistencyResult.learningEffectiveness || false;
+-            results.consistencyMetrics = consistencyResult.metrics || {};
+-            if (verbose) console.log('✓ Real relationship consistency tested');
+-            return;
+-          }
+-          // Simulate if test failed
+-          const simulatedConsistency = await this.simulateRelationshipConsistency();
+-          applyConsistencyData(results, simulatedConsistency);
+-          if (verbose) console.log('✓ Relationship consistency simulated (test failed)');
+-        };
+-
+         try {
+-          if (results.relationshipSystemTesterAvailable) {
+-            await testWithSystemTester(results, verbose);
+-          } else {
+-            // Simulate consistency testing
+-            const simulatedConsistency = await this.simulateRelationshipConsistency();
+-            applyConsistencyData(results, simulatedConsistency);
+-            if (verbose) console.log('✓ Relationship consistency simulated');
+-          }
++          await testRelationshipConsistencyWithTester(results, verbose, this.simulateRelationshipConsistency.bind(this));
+         } catch (consistencyError) {
+           if (verbose) console.log('⚠️ Relationship consistency testing failed:', consistencyError.message);
+         }
+ 
+         // 3. Test database relationship validation
+         try {
+-          // getAllFromStore is now statically imported at the top
+-          const relationships = await getAllFromStore('problem_relationships');
+-
+-          if (relationships && relationships.length > 0) {
+-            // Analyze bidirectional consistency
+-            const bidirectionalAnalysis = this.analyzeBidirectionalConsistency(relationships);
+-            results.relationshipData.bidirectionalAnalysis = bidirectionalAnalysis;
+-
+-            // Analyze temporal consistency
+-            const temporalAnalysis = this.analyzeTemporalConsistency(relationships);
+-            results.relationshipData.temporalAnalysis = temporalAnalysis;
+-
+-            if (verbose) console.log('✓ Database relationship validation completed');
+-          } else {
+-            // Simulate relationship data analysis
+-            results.relationshipData = {
+-              bidirectionalAnalysis: { consistent: 85, total: 100, ratio: 0.85 },
+-              temporalAnalysis: { consistent: 78, total: 100, decayRate: 0.15 },
+-              simulated: true
+-            };
+-            if (verbose) console.log('✓ Relationship data analysis simulated (no data)');
+-          }
++          await validateDatabaseRelationships(results, this.analyzeBidirectionalConsistency.bind(this), this.analyzeTemporalConsistency.bind(this), verbose);
+         } catch (dbError) {
+           if (verbose) console.log('⚠️ Database relationship validation failed:', dbError.message);
+         }
+ 
+         // 4. Evaluate overall consistency
+-        const overallConsistency = (
+-          results.bidirectionalConsistency &&
+-          results.temporalConsistency &&
+-          results.learningEffectiveness
+-        );
+-
+-        if (overallConsistency) {
+-          results.success = true;
+-          results.summary = 'Relationship learning consistency validated successfully';
+-          if (verbose) {
+-            console.log('✅ Relationship consistency test PASSED');
+-            console.log('📊 Consistency Metrics:', results.consistencyMetrics);
+-            console.log('🔗 Relationship Data:', results.relationshipData);
+-          }
+-        } else {
+-          results.summary = 'Some relationship consistency issues detected';
+-          if (verbose) {
+-            console.log('⚠️ Relationship consistency test PARTIAL');
+-            console.log('🔍 Issues detected in consistency validation');
+-          }
+-        }
+-
+-        // Return boolean for backward compatibility when not verbose
+-        if (!verbose) {
+-          return results.success;
+-        }
+-        return results;
++        return evaluateRelationshipConsistencyResults(results, verbose);
+ 
+       } catch (error) {
+         console.error('❌ testRelationshipConsistency failed:', error);
+@@ -9619,7 +9670,7 @@ const logSessionCleanupAnalytics = function(stalledSessions, actions) {
+ // 🔒 PHASE 3: EXPERIENCE QUALITY Test Functions
+ 
+ // Helper: Test database connection reliability
+-async function testDatabaseConnection(results, verbose) {
++function testDatabaseConnection(results, verbose) {
+   try {
+     const stores = ['sessions', 'problems', 'attempts', 'tag_mastery'];
+     const connectionResults = stores.map(store => ({
+@@ -9721,7 +9772,7 @@ globalThis.testDataPersistenceReliability = async function(options = {}) {
+       persistenceData: {}
+     };
+ 
+-    await testDatabaseConnection(results, verbose);
++    testDatabaseConnection(results, verbose);
+     await testDataIntegrityStep(results, verbose, this.testDataIntegrity);
+     await testStressStep(results, verbose, this.testPersistenceUnderStress);
+     await testRecoveryStep(results, verbose, this.testRecoveryMechanisms);
