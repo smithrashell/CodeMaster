@@ -25,14 +25,14 @@ This guide covers common issues you might encounter while developing or using th
 1. **Check manifest.json syntax**
    ```bash
    # Validate JSON syntax
-   cd Frontend/public
+   cd chrome-extension-app/public
    node -e "console.log(JSON.parse(require('fs').readFileSync('manifest.json')))"
    ```
 
 2. **Verify required files exist**
    ```bash
    # Check if all referenced files exist
-   ls Frontend/dist/
+   ls chrome-extension-app/dist/
    # Should contain: popup.html, background.js, content.js, etc.
    ```
 
@@ -687,8 +687,8 @@ npm --version
 chrome --version  # If available from command line
 
 # Extension information
-ls -la Frontend/dist/
-cat Frontend/public/manifest.json
+ls -la chrome-extension-app/dist/
+cat chrome-extension-app/public/manifest.json
 
 # Build information
 npm run build 2>&1 | head -20
