@@ -4,6 +4,89 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased] - 2025-10-24
+
+### Fixed
+
+**Session Race Condition** ([9c8f3ce](https://github.com/smithrashell/CodeMaster/commit/9c8f3ce)):
+- Concurrent session creation causing duplicates
+- Implemented in-memory lock with timeout to prevent race conditions
+- Ensures only one session creation operation runs at a time
+
+**Problem Metadata Loss** ([da0eb94](https://github.com/smithrashell/CodeMaster/commit/da0eb94)):
+- Marking problems as attempted was losing slug and tag metadata
+- Fixed preservation of problem relationships and metadata
+- Critical for maintaining problem relationship tracking
+
+**Difficulty Cap Scoring** ([b263da0](https://github.com/smithrashell/CodeMaster/commit/b263da0)):
+- Sessions with difficulty cap set to "Hard" were not including Hard problems
+- Replaced tiered sorting with composite scoring system balancing all factors
+- **Composite Score Formula**: `(relationshipScore × 0.4) + (capProximityScore × 0.4) + (allowanceWeight × 0.2)`
+- Hard problems now have competitive scores even with lower natural distribution
+- Added detailed logging of composite scores by difficulty for debugging
+
+**Handler Architecture** ([9711393](https://github.com/smithrashell/CodeMaster/commit/9711393), [f55acaa](https://github.com/smithrashell/CodeMaster/commit/f55acaa)):
+- Removed 24 unnecessary async keywords from handlers without await
+- Cleaned up unused imports after handler extraction
+- Fixed require-await warnings (84 → 61)
+
+### Changed
+
+**Background Script Organization** ([b45353](https://github.com/smithrashell/CodeMaster/commit/b45353), [c1f1072](https://github.com/smithrashell/CodeMaster/commit/c1f1072)):
+- **Phase 1**: Extracted 23 message handlers into separate modules
+  - 15 session handlers → `handlers/sessionHandlers.js`
+  - 8 problem handlers → `handlers/problemHandlers.js`
+- **Phase 2**: Removed 23 duplicate switch cases (597 lines removed, 36% reduction)
+- **Impact**: Complexity reduced from 108 → 73 (-32%), file size reduced 36%
+- Preserved all critical behavior including interview banner logic, cache invalidation, and cross-tab broadcasts
+
+**Test Suite Complexity** ([c22dce3](https://github.com/smithrashell/CodeMaster/commit/c22dce3) through [700f343](https://github.com/smithrashell/CodeMaster/commit/700f343)):
+- **Batch 1**: Extracted 9 helpers (57 → 51 warnings)
+- **Batch 2**: Extracted 11 helpers (51 → 41 warnings)
+- **Batch 3**: Extracted 18 helpers, refactored 4 test functions (41 → 34 warnings)
+- **Batch 4**: Extracted 20 helpers, reduced 4 functions from 200+ to ~50 lines (34 → 26 warnings)
+  - Fixed 4 effectiveness checks missing from error summaries
+  - Changed `this.` to `globalThis.` for proper scoping
+- **Batch 5**: Extracted 9 helpers from timer and interview tests (26 → 24 warnings)
+- **Batch 6**: Extracted finalizeProgressionResults helper (24 → 14 warnings)
+- **Batch 7**: Extracted 7 helpers from 7 test functions (14 → 6 warnings)
+- **Batch 8**: Final elimination of all warnings through strategic refactoring and targeted ESLint disables
+
+**ESLint Zero Warnings** ([87d40d2](https://github.com/smithrashell/CodeMaster/commit/87d40d2)):
+- Eliminated all 11 remaining ESLint warnings through strategic refactoring
+- Extracted dataConsistencyHelpers.js and errorRecoveryHelpers.js
+- Refactored background/index.js for improved maintainability
+- Added targeted ESLint disables only for unavoidable test complexity
+
+**Onboarding Handler Extraction** ([44b4ea1](https://github.com/smithrashell/CodeMaster/commit/44b4ea1)):
+- Created `handlers/onboardingHandlers.js` with 10 handler functions
+- Removed 10 onboarding cases from routeMessage switch statement
+- Reduced messageRouter.js complexity from 73 → below 20
+
+**Code Quality Improvements** ([bdc0eac](https://github.com/smithrashell/CodeMaster/commit/bdc0eac), [a7b4bbd](https://github.com/smithrashell/CodeMaster/commit/a7b4bbd)):
+- Removed unused imports/params (60 → 57 warnings)
+- Fixed problem exclusion logic in selectPrimaryAndExpansionProblems
+- Changed function declarations to arrow functions (no-inner-declarations compliance)
+- Extracted helpers from 5 test functions reducing complexity from 23 → 19
+
+### Technical Debt
+
+- **Zero ESLint Warnings**: Complete elimination through systematic refactoring over 8 batches
+- **Function Complexity**: Reduced cyclomatic complexity across 40+ test functions
+- **Code Organization**: Background script modularized with clean separation of concerns
+  - Session handlers: 15 functions extracted
+  - Problem handlers: 8 functions extracted
+  - Onboarding handlers: 10 functions extracted
+- **Test Infrastructure**: All 432 tests passing, 63 skipped
+- **Commit History**: 263 commits with conventional format and proper scopes
+
+*This release continues production stability with comprehensive ESLint compliance and systematic code organization.*
+
+**Branch Summary**: 263 commits focused on ESLint zero-warning achievement, systematic test refactoring, background script modularization, and session management bug fixes.
+
+---
+
+
 ## [Unreleased] - 2025-09-04
 
 ### Added
