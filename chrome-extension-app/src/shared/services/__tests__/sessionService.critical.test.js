@@ -146,8 +146,8 @@ describe("SessionService - Critical User Retention Paths", () => {
           { id: 3, title: "Problem 3", leetcode_id: 3, slug: "problem-3", difficulty: "Hard", Tags: ["graph"] }
         ],
         attempts: [
-          { problemId: 1, success: true },
-          { problemId: 2, success: false }
+          { problemId: 1, leetcode_id: 1, success: true },
+          { problemId: 2, leetcode_id: 2, success: false }
         ],
         current_problem_index: 2 // User was on problem 3
       };
@@ -175,9 +175,9 @@ describe("SessionService - Critical User Retention Paths", () => {
           { id: 3, title: "Problem 3", leetcode_id: 3, slug: "problem-3", difficulty: "Hard", Tags: ["graph"] }
         ],
         attempts: [
-          { problemId: 1 },
-          { problemId: 2 },
-          { problemId: 3 }
+          { problemId: 1, leetcode_id: 1 },
+          { problemId: 2, leetcode_id: 2 },
+          { problemId: 3, leetcode_id: 3 }
         ]
       };
 
@@ -204,7 +204,7 @@ describe("SessionService - Critical User Retention Paths", () => {
       const session = {
         id: sessionId,
         problems: [{ id: 1, title: "Problem 1", leetcode_id: 1, slug: "problem-1", difficulty: "Easy", Tags: ["array"] }],
-        attempts: [{ problemId: 1 }]
+        attempts: [{ problemId: 1, leetcode_id: 1 }]
       };
 
       getSessionById.mockResolvedValue(session);
