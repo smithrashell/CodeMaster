@@ -1,0 +1,2467 @@
+[
+  {
+    "tag": "array",
+    "overview": "The foundational data structure for indexed access and sequential processing, appearing in over 1/3 of all problems.",
+    "patterns": [
+      "greedy",
+      "dynamic programming",
+      "math",
+      "sorting",
+      "simulation",
+      "hash table"
+    ],
+    "related": [
+      "hash table",
+      "two pointers",
+      "sorting",
+      "dynamic programming",
+      "greedy",
+      "math"
+    ],
+    "strategy": "Use index-based traversal and consider multiple pointers for optimization. Prefix sums and sliding windows often eliminate nested loops.",
+    "strategies": [
+      {
+        "when": "hash table",
+        "tip": "Use hash table to store array indices and eliminate nested loops from O(n²) to O(n)."
+      },
+      {
+        "when": "sorting",
+        "tip": "Sort the array first to enable two-pointer techniques and binary search optimizations."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use prefix sums with DP to optimize subarray computations from O(n²) to O(n)."
+      },
+      {
+        "when": "greedy",
+        "tip": "Combine array with greedy to leverage the strengths of both approaches."
+      },
+      {
+        "when": "matrix",
+        "tip": "Combine array and matrix to leverage both data structures' strengths."
+      },
+      {
+        "when": "math",
+        "tip": "Apply array with math to combine their complementary strengths."
+      },
+      {
+        "when": "string",
+        "tip": "Apply array with string to combine their complementary strengths."
+      },
+      {
+        "when": "binary search",
+        "tip": "Sort array elements first, then use binary search for O(log n) lookup operations."
+      },
+      {
+        "when": "prefix sum",
+        "tip": "Apply array with prefix sum to combine their complementary strengths."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Apply array with two pointers to combine their complementary strengths."
+      },
+      {
+        "when": "simulation",
+        "tip": "Apply array with simulation to combine their complementary strengths."
+      },
+      {
+        "when": "bit manipulation",
+        "tip": "Apply array with bit manipulation to combine their complementary strengths."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Combine array and heap (priority queue) to leverage both data structures' strengths."
+      },
+      {
+        "when": "counting",
+        "tip": "Apply array with counting to combine their complementary strengths."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Apply array with sliding window to combine their complementary strengths."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Combine array with breadth-first search to leverage the strengths of both approaches."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Combine array with depth-first search to leverage the strengths of both approaches."
+      },
+      {
+        "when": "stack",
+        "tip": "Use stack to track array indices and solve next greater/smaller element problems."
+      },
+      {
+        "when": "design",
+        "tip": "Apply array with design to combine their complementary strengths."
+      },
+      {
+        "when": "enumeration",
+        "tip": "Apply array with enumeration to combine their complementary strengths."
+      },
+      {
+        "when": "monotonic stack",
+        "tip": "Use monotonic stack to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Use backtracking to optimize the array operations for better time complexity."
+      },
+      {
+        "when": "graph",
+        "tip": "Use graph to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "union find",
+        "tip": "Use union find to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "tree",
+        "tip": "Use tree to complement array operations and improve overall efficiency."
+      },
+      {
+        "when": "number theory",
+        "tip": "Use number theory to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "ordered set",
+        "tip": "Use ordered set to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "trie",
+        "tip": "Use trie to complement array operations and improve overall efficiency."
+      },
+      {
+        "when": "divide and conquer",
+        "tip": "Use divide and conquer to optimize the array operations for better time complexity."
+      },
+      {
+        "when": "queue",
+        "tip": "Use queue to complement array operations and improve overall efficiency."
+      },
+      {
+        "when": "geometry",
+        "tip": "Use geometry to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Use segment tree to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "bitmask",
+        "tip": "Use bitmask to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "binary indexed tree",
+        "tip": "Use binary indexed tree to enhance array performance for this specific problem type."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Apply array with binary tree for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "linked list",
+        "tip": "Apply array with linked list for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "shortest path",
+        "tip": "Leverage array and shortest path together for optimal solution efficiency."
+      },
+      {
+        "when": "string matching",
+        "tip": "Leverage array and string matching together for optimal solution efficiency."
+      },
+      {
+        "when": "hash function",
+        "tip": "Leverage array and hash function together for optimal solution efficiency."
+      },
+      {
+        "when": "combinatorics",
+        "tip": "Leverage array and combinatorics together for optimal solution efficiency."
+      },
+      {
+        "when": "game theory",
+        "tip": "Leverage array and game theory together for optimal solution efficiency."
+      },
+      {
+        "when": "memoization",
+        "tip": "Leverage array and memoization together for optimal solution efficiency."
+      },
+      {
+        "when": "counting sort",
+        "tip": "Leverage array and counting sort together for optimal solution efficiency."
+      },
+      {
+        "when": "interactive",
+        "tip": "Leverage array and interactive together for optimal solution efficiency."
+      },
+      {
+        "when": "monotonic queue",
+        "tip": "Leverage array and monotonic queue together for optimal solution efficiency."
+      },
+      {
+        "when": "data stream",
+        "tip": "Leverage array and data stream together for optimal solution efficiency."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Leverage array and topological sort together for optimal solution efficiency."
+      },
+      {
+        "when": "rolling hash",
+        "tip": "Leverage array and rolling hash together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "backtracking",
+    "overview": "Algorithmic approach that incrementally builds solutions and abandons candidates that cannot lead to valid solutions.",
+    "patterns": [
+      "string",
+      "dynamic programming",
+      "recursion",
+      "enumeration",
+      "depth-first search"
+    ],
+    "related": [
+      "string",
+      "dynamic programming",
+      "recursion",
+      "enumeration",
+      "depth-first search"
+    ],
+    "strategy": "Use for generating all possible solutions systematically. Implement proper pruning to avoid unnecessary exploration of invalid paths.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to optimize the backtracking operations for better time complexity."
+      },
+      {
+        "when": "hash table",
+        "tip": "Apply hash table techniques to enhance backtracking performance in specific scenarios."
+      }
+    ]
+  },
+  {
+    "tag": "biconnected component",
+    "overview": "Algorithmic approach involving biconnected component for efficient problem solving.",
+    "patterns": [],
+    "related": [],
+    "strategy": "Apply biconnected component techniques to solve problems efficiently with optimal time and space complexity.",
+    "strategies": []
+  },
+  {
+    "tag": "binary indexed tree",
+    "overview": "Efficient data structure for calculating prefix sums and handling range queries with point updates.",
+    "patterns": [
+      "segment tree",
+      "divide and conquer",
+      "array",
+      "dynamic programming"
+    ],
+    "related": [],
+    "strategy": "Use for range sum queries and point updates in O(log n) time. Build using binary representation of indices for efficient traversal.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to enhance binary indexed tree performance for this specific problem type."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Leverage binary indexed tree and segment tree together for optimal solution efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Leverage binary indexed tree and binary search together for optimal solution efficiency."
+      },
+      {
+        "when": "ordered set",
+        "tip": "Leverage binary indexed tree and ordered set together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "binary search",
+    "overview": "Efficient search algorithm that repeatedly divides sorted search space in half to find target values.",
+    "patterns": ["array", "math", "greedy", "sorting"],
+    "related": ["array", "sorting", "math"],
+    "strategy": "Look for monotonic properties in the search space. Use template: while(left < right) with careful boundary handling to avoid infinite loops.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Sort array elements first, then use binary search for O(log n) lookup operations."
+      },
+      {
+        "when": "sorting",
+        "tip": "Apply binary search first to establish solution structure, then use sorting for optimization."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Use two pointers with binary search approach to handle specific problem constraints."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to optimize the binary search operations for better time complexity."
+      },
+      {
+        "when": "prefix sum",
+        "tip": "Use prefix sum with binary search approach to handle specific problem constraints."
+      },
+      {
+        "when": "greedy",
+        "tip": "Combine binary search and greedy to handle different aspects of the problem efficiently."
+      },
+      {
+        "when": "math",
+        "tip": "Use math to enhance binary search performance for this specific problem type."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Use sliding window with binary search approach to handle specific problem constraints."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Combine binary search and dynamic programming to handle different aspects of the problem efficiently."
+      },
+      {
+        "when": "string",
+        "tip": "Use string to enhance binary search performance for this specific problem type."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Apply heap (priority queue) techniques to enhance binary search performance in specific scenarios."
+      },
+      {
+        "when": "ordered set",
+        "tip": "Leverage binary search and ordered set together for optimal solution efficiency."
+      },
+      {
+        "when": "matrix",
+        "tip": "Apply matrix techniques to enhance binary search performance in specific scenarios."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Leverage binary search and segment tree together for optimal solution efficiency."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage binary search and design together for optimal solution efficiency."
+      },
+      {
+        "when": "binary indexed tree",
+        "tip": "Leverage binary search and binary indexed tree together for optimal solution efficiency."
+      },
+      {
+        "when": "bit manipulation",
+        "tip": "Combine binary search and bit manipulation for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "interactive",
+        "tip": "Leverage binary search and interactive together for optimal solution efficiency."
+      },
+      {
+        "when": "counting",
+        "tip": "Leverage binary search and counting together for optimal solution efficiency."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search to enhance binary search performance in specific problem constraints."
+      }
+    ]
+  },
+  {
+    "tag": "binary search tree",
+    "overview": "Binary tree with ordering property where left subtree values are less than node, which is less than right subtree values.",
+    "patterns": [
+      "dynamic programming",
+      "binary tree",
+      "tree",
+      "depth-first search",
+      "recursion"
+    ],
+    "related": [
+      "binary tree",
+      "tree",
+      "dynamic programming",
+      "depth-first search",
+      "recursion"
+    ],
+    "strategy": "Leverage BST property for O(log n) operations. Inorder traversal gives sorted sequence for many problems.",
+    "strategies": [
+      {
+        "when": "tree",
+        "tip": "Use tree to complement binary search tree operations and improve overall efficiency."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Use binary tree to complement binary search tree operations and improve overall efficiency."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search to optimize the binary search tree operations for better time complexity."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply binary search tree with stack for problems requiring multiple data access patterns."
+      }
+    ]
+  },
+  {
+    "tag": "binary tree",
+    "overview": "Tree data structure where each node has at most two children, referred to as left and right child.",
+    "patterns": [
+      "binary search tree",
+      "tree",
+      "dynamic programming",
+      "depth-first search",
+      "recursion"
+    ],
+    "related": [
+      "binary search tree",
+      "tree",
+      "dynamic programming",
+      "depth-first search",
+      "recursion"
+    ],
+    "strategy": "Master three traversal orders: inorder, preorder, postorder. Consider level-order traversal for breadth-first problems.",
+    "strategies": [
+      {
+        "when": "tree",
+        "tip": "Combine binary tree and tree to leverage both data structures' strengths."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Combine binary tree with depth-first search to leverage the strengths of both approaches."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Combine binary tree with breadth-first search to leverage the strengths of both approaches."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Use binary search tree to complement binary tree operations and improve overall efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to complement binary tree operations and improve overall efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply binary tree with stack for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "array",
+        "tip": "Apply binary tree with array for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Apply dynamic programming techniques to enhance binary tree performance in specific scenarios."
+      },
+      {
+        "when": "string",
+        "tip": "Leverage binary tree and string together for optimal solution efficiency."
+      },
+      {
+        "when": "divide and conquer",
+        "tip": "Apply divide and conquer techniques to enhance binary tree performance in specific scenarios."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage binary tree and design together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "bit manipulation",
+    "overview": "Techniques for manipulating individual bits in binary representations to solve problems efficiently.",
+    "patterns": ["array", "math", "string", "dynamic programming"],
+    "related": ["array", "math", "string", "dynamic programming"],
+    "strategy": "Master basic operations: AND, OR, XOR, bit shifts. XOR is particularly useful for finding unique elements and toggling states.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply bit manipulation with array to combine their complementary strengths."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to enhance bit manipulation performance for this specific problem type."
+      },
+      {
+        "when": "greedy",
+        "tip": "Combine bit manipulation and greedy for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Combine bit manipulation and binary search for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "sorting",
+        "tip": "Combine bit manipulation and sorting for problems requiring both pattern recognition and algorithmic efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "bitmask",
+    "overview": "Technique using bit patterns to represent sets of states or subsets efficiently in dynamic programming.",
+    "patterns": ["dynamic programming", "backtracking"],
+    "related": [],
+    "strategy": "Use for subset enumeration and state compression in DP. Each bit represents inclusion/exclusion of an element.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to enhance bitmask performance for this specific problem type."
+      }
+    ]
+  },
+  {
+    "tag": "brainteaser",
+    "overview": "Logic puzzles and mathematical problems that require creative thinking and pattern recognition.",
+    "patterns": ["math", "string", "geometry"],
+    "related": ["math", "string"],
+    "strategy": "Look for mathematical patterns and edge cases. Often involves modular arithmetic, probability, or logical deduction.",
+    "strategies": []
+  },
+  {
+    "tag": "breadth-first search",
+    "overview": "Graph traversal algorithm that explores neighbors before moving to next level vertices, guaranteeing shortest paths.",
+    "patterns": ["graph", "topological sort", "depth-first search", "matrix"],
+    "related": [
+      "graph",
+      "topological sort",
+      "depth-first search",
+      "tree",
+      "binary search tree",
+      "binary tree"
+    ],
+    "strategy": "Use for shortest path in unweighted graphs and level-order tree traversal. Queue-based implementation is standard.",
+    "strategies": [
+      {
+        "when": "depth-first search",
+        "tip": "Apply breadth-first search first to establish solution structure, then use depth-first search for optimization."
+      },
+      {
+        "when": "tree",
+        "tip": "Combine breadth-first search with tree to leverage the strengths of both approaches."
+      },
+      {
+        "when": "array",
+        "tip": "Combine breadth-first search with array to leverage the strengths of both approaches."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Combine breadth-first search with binary tree to leverage the strengths of both approaches."
+      },
+      {
+        "when": "graph",
+        "tip": "Use graph to enhance breadth-first search performance for this specific problem type."
+      },
+      {
+        "when": "matrix",
+        "tip": "Use matrix to optimize the breadth-first search operations for better time complexity."
+      },
+      {
+        "when": "union find",
+        "tip": "Use union find with breadth-first search approach to handle specific problem constraints."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to optimize the breadth-first search operations for better time complexity."
+      },
+      {
+        "when": "string",
+        "tip": "Leverage breadth-first search and string together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Apply heap (priority queue) techniques to enhance breadth-first search performance in specific scenarios."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Combine breadth-first search and topological sort for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "shortest path",
+        "tip": "Leverage breadth-first search and shortest path together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "bucket sort",
+    "overview": "Algorithmic approach involving bucket sort for efficient problem solving.",
+    "patterns": [],
+    "related": [],
+    "strategy": "Apply bucket sort techniques to solve problems efficiently with optimal time and space complexity.",
+    "strategies": []
+  },
+  {
+    "tag": "combinatorics",
+    "overview": "Branch of mathematics concerning counting, arrangement, and selection of objects in systematic ways.",
+    "patterns": ["dynamic programming", "math"],
+    "related": [],
+    "strategy": "Use factorial, combination, and permutation formulas. Dynamic programming helps with complex counting problems involving constraints.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Leverage combinatorics and array together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "counting",
+    "overview": "Problems involving frequency analysis, occurrence tracking, and statistical counting operations on data.",
+    "patterns": [
+      "array",
+      "string",
+      "hash table",
+      "math",
+      "dynamic programming"
+    ],
+    "related": ["array", "string", "hash table", "math", "dynamic programming"],
+    "strategy": "Use hash maps for frequency counting. Consider prefix sums for range counting queries and sliding window for subarray counts.",
+    "strategies": [
+      {
+        "when": "hash table",
+        "tip": "Apply counting with hash table to combine their complementary strengths."
+      },
+      {
+        "when": "array",
+        "tip": "Apply counting with array to combine their complementary strengths."
+      },
+      {
+        "when": "sorting",
+        "tip": "Use sorting to enhance counting performance for this specific problem type."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage counting and heap (priority queue) together for optimal solution efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Leverage counting and binary search together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "counting sort",
+    "overview": "Algorithmic approach involving counting sort for efficient problem solving.",
+    "patterns": [],
+    "related": [],
+    "strategy": "Apply counting sort techniques to solve problems efficiently with optimal time and space complexity.",
+    "strategies": [
+      {
+        "when": "sorting",
+        "tip": "Leverage counting sort and sorting together for optimal solution efficiency."
+      },
+      {
+        "when": "array",
+        "tip": "Leverage counting sort and array together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "data stream",
+    "overview": "Problems involving processing continuous streams of data with constraints on memory and time.",
+    "patterns": ["design", "hash table", "queue", "simulation"],
+    "related": ["design", "hash table", "queue"],
+    "strategy": "Use sliding window techniques and efficient data structures. Consider space-time tradeoffs for online algorithms.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Leverage data stream and array together for optimal solution efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Leverage data stream and hash table together for optimal solution efficiency."
+      },
+      {
+        "when": "queue",
+        "tip": "Leverage data stream and queue together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "depth-first search",
+    "overview": "Graph traversal algorithm that explores as far as possible along each branch before backtracking.",
+    "patterns": [
+      "backtracking",
+      "binary search tree",
+      "tree",
+      "dynamic programming",
+      "graph",
+      "topological sort"
+    ],
+    "related": [
+      "backtracking",
+      "binary search tree",
+      "tree",
+      "dynamic programming",
+      "graph"
+    ],
+    "strategy": "Use for path finding, cycle detection, and topological sorting. Mark visited nodes to avoid infinite loops in cyclic graphs.",
+    "strategies": [
+      {
+        "when": "tree",
+        "tip": "Combine depth-first search with tree to leverage the strengths of both approaches."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Apply depth-first search first to establish solution structure, then use breadth-first search for optimization."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Combine depth-first search with binary tree to leverage the strengths of both approaches."
+      },
+      {
+        "when": "array",
+        "tip": "Combine depth-first search with array to leverage the strengths of both approaches."
+      },
+      {
+        "when": "graph",
+        "tip": "Use graph to enhance depth-first search performance for this specific problem type."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to optimize the depth-first search operations for better time complexity."
+      },
+      {
+        "when": "union find",
+        "tip": "Use union find with depth-first search approach to handle specific problem constraints."
+      },
+      {
+        "when": "matrix",
+        "tip": "Use matrix to optimize the depth-first search operations for better time complexity."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Use binary search tree to optimize the depth-first search operations for better time complexity."
+      },
+      {
+        "when": "string",
+        "tip": "Use string to enhance depth-first search performance for this specific problem type."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply stack techniques to enhance depth-first search performance in specific scenarios."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use dynamic programming to enhance depth-first search performance in specific problem constraints."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Combine depth-first search and topological sort for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage depth-first search and design together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Apply heap (priority queue) techniques to enhance depth-first search performance in specific scenarios."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search to enhance depth-first search performance in specific problem constraints."
+      }
+    ]
+  },
+  {
+    "tag": "design",
+    "overview": "Problems requiring the implementation of data structures or systems with specific operational requirements.",
+    "patterns": [
+      "hash table",
+      "simulation",
+      "data stream",
+      "queue",
+      "tree",
+      "binary search tree"
+    ],
+    "related": [
+      "hash table",
+      "simulation",
+      "tree",
+      "binary search tree",
+      "stack"
+    ],
+    "strategy": "Focus on API design and efficient data structure choice. Consider time-space complexity tradeoffs for different operations.",
+    "strategies": [
+      {
+        "when": "hash table",
+        "tip": "Apply design with hash table to combine their complementary strengths."
+      },
+      {
+        "when": "array",
+        "tip": "Apply design with array to combine their complementary strengths."
+      },
+      {
+        "when": "queue",
+        "tip": "Leverage design and queue together for optimal solution efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Leverage design and stack together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage design and heap (priority queue) together for optimal solution efficiency."
+      },
+      {
+        "when": "tree",
+        "tip": "Leverage design and tree together for optimal solution efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Leverage design and binary search together for optimal solution efficiency."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Leverage design and depth-first search together for optimal solution efficiency."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Leverage design and segment tree together for optimal solution efficiency."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Leverage design and binary tree together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "divide and conquer",
+    "overview": "Algorithm design paradigm that recursively breaks problems into smaller independent subproblems.",
+    "patterns": ["array", "dynamic programming", "recursion"],
+    "related": [],
+    "strategy": "Divide problem into independent subproblems, solve recursively, then combine results. Often yields O(n log n) time complexity.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to optimize the divide and conquer operations for better time complexity."
+      },
+      {
+        "when": "sorting",
+        "tip": "Use sorting to enhance divide and conquer performance in specific problem constraints."
+      },
+      {
+        "when": "tree",
+        "tip": "Apply tree techniques to enhance divide and conquer performance in specific scenarios."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Apply binary tree techniques to enhance divide and conquer performance in specific scenarios."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Apply heap (priority queue) techniques to enhance divide and conquer performance in specific scenarios."
+      },
+      {
+        "when": "merge sort",
+        "tip": "Leverage divide and conquer and merge sort together for optimal solution efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Apply hash table techniques to enhance divide and conquer performance in specific scenarios."
+      }
+    ]
+  },
+  {
+    "tag": "doubly-linked list",
+    "overview": "Linked list variant where each node has pointers to both next and previous nodes for bidirectional traversal.",
+    "patterns": ["dynamic programming", "backtracking", "recursion"],
+    "related": ["dynamic programming", "backtracking", "linked list"],
+    "strategy": "Leverage bidirectional pointers for efficient insertion and deletion. Useful for implementing LRU caches and deques.",
+    "strategies": []
+  },
+  {
+    "tag": "dynamic programming",
+    "overview": "Problem-solving technique that breaks complex problems into overlapping subproblems with optimal substructure.",
+    "patterns": [
+      "string",
+      "backtracking",
+      "recursion",
+      "array",
+      "greedy",
+      "math"
+    ],
+    "related": [
+      "string",
+      "backtracking",
+      "recursion",
+      "array",
+      "greedy",
+      "math"
+    ],
+    "strategy": "Identify overlapping subproblems and optimal substructure. Start with recursive solution, then add memoization or build bottom-up table.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use prefix sums with DP to optimize subarray computations from O(n²) to O(n)."
+      },
+      {
+        "when": "matrix",
+        "tip": "Use matrix to optimize the dynamic programming operations for better time complexity."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to store computed subproblem results and avoid redundant calculations."
+      },
+      {
+        "when": "sorting",
+        "tip": "Combine dynamic programming and sorting to handle different aspects of the problem efficiently."
+      },
+      {
+        "when": "binary search",
+        "tip": "Combine dynamic programming and binary search to handle different aspects of the problem efficiently."
+      },
+      {
+        "when": "tree",
+        "tip": "Use tree to optimize the dynamic programming operations for better time complexity."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search to enhance dynamic programming performance in specific problem constraints."
+      },
+      {
+        "when": "prefix sum",
+        "tip": "Combine dynamic programming and prefix sum for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Combine dynamic programming and two pointers for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply stack techniques to enhance dynamic programming performance in specific scenarios."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Combine sliding window technique with DP memoization for efficient range processing."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Apply binary tree techniques to enhance dynamic programming performance in specific scenarios."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Apply heap (priority queue) techniques to enhance dynamic programming performance in specific scenarios."
+      },
+      {
+        "when": "monotonic stack",
+        "tip": "Combine dynamic programming and monotonic stack for problems requiring both pattern recognition and algorithmic efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "enumeration",
+    "overview": "Systematic counting or listing of all possible cases or solutions to explore the complete solution space.",
+    "patterns": [
+      "string",
+      "math",
+      "array",
+      "backtracking",
+      "dynamic programming"
+    ],
+    "related": [
+      "string",
+      "math",
+      "array",
+      "backtracking",
+      "dynamic programming"
+    ],
+    "strategy": "Generate all valid cases systematically. Use backtracking for complex constraints and pruning for efficiency.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply enumeration with array to combine their complementary strengths."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to enhance enumeration performance for this specific problem type."
+      },
+      {
+        "when": "sorting",
+        "tip": "Leverage enumeration and sorting together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "eulerian circuit",
+    "overview": "Path in graph that visits every edge exactly once, fundamental concept in graph theory and traversal problems.",
+    "patterns": [
+      "strongly connected component",
+      "graph",
+      "topological sort",
+      "breadth-first search"
+    ],
+    "related": [],
+    "strategy": "Check that all vertices have even degree for undirected graphs. Use Hierholzer's algorithm for circuit construction.",
+    "strategies": []
+  },
+  {
+    "tag": "game theory",
+    "overview": "Mathematical framework for analyzing strategic decision-making between rational players in competitive scenarios.",
+    "patterns": ["dynamic programming", "simulation"],
+    "related": ["dynamic programming", "simulation"],
+    "strategy": "Analyze winning and losing positions using minimax algorithm. Consider optimal play from both players' perspectives.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Leverage game theory and array together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "geometry",
+    "overview": "Problems involving geometric shapes, coordinates, distances, and spatial relationships in 2D or 3D space.",
+    "patterns": ["math", "simulation", "sorting"],
+    "related": ["math", "simulation"],
+    "strategy": "Use coordinate geometry formulas for distance and area calculations. Consider precision issues with floating-point arithmetic.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to enhance geometry performance for this specific problem type."
+      }
+    ]
+  },
+  {
+    "tag": "graph",
+    "overview": "Data structure representing relationships between entities through vertices connected by edges.",
+    "patterns": [
+      "topological sort",
+      "breadth-first search",
+      "depth-first search",
+      "eulerian circuit",
+      "strongly connected component"
+    ],
+    "related": [
+      "topological sort",
+      "breadth-first search",
+      "depth-first search"
+    ],
+    "strategy": "Choose DFS for path-related problems, BFS for shortest paths. Consider adjacency list vs matrix representation based on density.",
+    "strategies": [
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search to enhance graph performance for this specific problem type."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Use breadth-first search to enhance graph performance for this specific problem type."
+      },
+      {
+        "when": "array",
+        "tip": "Use array to enhance graph performance for this specific problem type."
+      },
+      {
+        "when": "topological sort",
+        "tip": "Use topological sort to enhance graph performance for this specific problem type."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Use heap (priority queue) to enhance graph performance for this specific problem type."
+      },
+      {
+        "when": "hash table",
+        "tip": "Leverage graph and hash table together for optimal solution efficiency."
+      },
+      {
+        "when": "tree",
+        "tip": "Leverage graph and tree together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "greedy",
+    "overview": "Algorithm paradigm that makes locally optimal choices at each step to find global optimum solution.",
+    "patterns": ["array", "dynamic programming", "sorting", "string", "math"],
+    "related": ["array", "dynamic programming", "sorting", "string", "math"],
+    "strategy": "Identify problems with optimal substructure but no overlapping subproblems. Sort data first when order matters for greedy choice.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Combine greedy with array to leverage the strengths of both approaches."
+      },
+      {
+        "when": "sorting",
+        "tip": "Apply greedy first to establish solution structure, then use sorting for optimization."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to optimize the greedy operations for better time complexity."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Use heap (priority queue) to optimize the greedy operations for better time complexity."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Use two pointers with greedy approach to handle specific problem constraints."
+      },
+      {
+        "when": "binary search",
+        "tip": "Combine greedy and binary search to handle different aspects of the problem efficiently."
+      },
+      {
+        "when": "stack",
+        "tip": "Use stack to optimize the greedy operations for better time complexity."
+      },
+      {
+        "when": "prefix sum",
+        "tip": "Combine greedy and prefix sum for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "monotonic stack",
+        "tip": "Combine greedy and monotonic stack for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "bit manipulation",
+        "tip": "Combine greedy and bit manipulation for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "matrix",
+        "tip": "Apply matrix techniques to enhance greedy performance in specific scenarios."
+      }
+    ]
+  },
+  {
+    "tag": "hash function",
+    "overview": "Function that maps data of arbitrary size to fixed-size values, used in hashing and string algorithms.",
+    "patterns": ["string", "sliding window"],
+    "related": [],
+    "strategy": "Use for fast string comparison and pattern matching. Rolling hash enables efficient sliding window string operations.",
+    "strategies": [
+      {
+        "when": "rolling hash",
+        "tip": "Use rolling hash to enhance hash function performance for this specific problem type."
+      },
+      {
+        "when": "string",
+        "tip": "Leverage hash function and string together for optimal solution efficiency."
+      },
+      {
+        "when": "string matching",
+        "tip": "Leverage hash function and string matching together for optimal solution efficiency."
+      },
+      {
+        "when": "array",
+        "tip": "Leverage hash function and array together for optimal solution efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Leverage hash function and hash table together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "hash table",
+    "overview": "Data structure providing O(1) average-case lookup, insertion, and deletion operations using key-value mapping.",
+    "patterns": ["array", "string", "counting", "sliding window"],
+    "related": ["array", "string", "counting", "two pointers"],
+    "strategy": "Use for frequency counting, fast lookups, and eliminating nested loops. Consider space-time tradeoffs and collision handling.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use hash table to store array indices and eliminate nested loops from O(n²) to O(n)."
+      },
+      {
+        "when": "string",
+        "tip": "Apply hash table with string to combine their complementary strengths."
+      },
+      {
+        "when": "counting",
+        "tip": "Apply hash table with counting to combine their complementary strengths."
+      },
+      {
+        "when": "sorting",
+        "tip": "Combine hash table with sorting to leverage the strengths of both approaches."
+      },
+      {
+        "when": "math",
+        "tip": "Apply hash table with math to combine their complementary strengths."
+      },
+      {
+        "when": "design",
+        "tip": "Apply hash table with design to combine their complementary strengths."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Apply hash table with sliding window to combine their complementary strengths."
+      },
+      {
+        "when": "greedy",
+        "tip": "Use greedy to optimize the hash table operations for better time complexity."
+      },
+      {
+        "when": "bit manipulation",
+        "tip": "Use bit manipulation to enhance hash table performance for this specific problem type."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search to optimize the hash table operations for better time complexity."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search to optimize the hash table operations for better time complexity."
+      },
+      {
+        "when": "prefix sum",
+        "tip": "Use prefix sum to enhance hash table performance for this specific problem type."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Use two pointers to enhance hash table performance for this specific problem type."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Use heap (priority queue) to complement hash table operations and improve overall efficiency."
+      },
+      {
+        "when": "tree",
+        "tip": "Map tree node values to frequencies using hash table for duplicate detection."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use hash table to store computed subproblem results and avoid redundant calculations."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Use breadth-first search to optimize the hash table operations for better time complexity."
+      },
+      {
+        "when": "matrix",
+        "tip": "Use matrix to complement hash table operations and improve overall efficiency."
+      },
+      {
+        "when": "simulation",
+        "tip": "Use simulation to enhance hash table performance for this specific problem type."
+      },
+      {
+        "when": "trie",
+        "tip": "Use trie to complement hash table operations and improve overall efficiency."
+      },
+      {
+        "when": "enumeration",
+        "tip": "Use enumeration to enhance hash table performance for this specific problem type."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Use binary tree to complement hash table operations and improve overall efficiency."
+      },
+      {
+        "when": "linked list",
+        "tip": "Apply hash table with linked list for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "backtracking",
+        "tip": "Apply backtracking techniques to enhance hash table performance in specific scenarios."
+      },
+      {
+        "when": "ordered set",
+        "tip": "Leverage hash table and ordered set together for optimal solution efficiency."
+      },
+      {
+        "when": "union find",
+        "tip": "Leverage hash table and union find together for optimal solution efficiency."
+      },
+      {
+        "when": "hash function",
+        "tip": "Leverage hash table and hash function together for optimal solution efficiency."
+      },
+      {
+        "when": "graph",
+        "tip": "Leverage hash table and graph together for optimal solution efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply hash table with stack for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "data stream",
+        "tip": "Leverage hash table and data stream together for optimal solution efficiency."
+      },
+      {
+        "when": "number theory",
+        "tip": "Leverage hash table and number theory together for optimal solution efficiency."
+      },
+      {
+        "when": "divide and conquer",
+        "tip": "Apply divide and conquer techniques to enhance hash table performance in specific scenarios."
+      }
+    ]
+  },
+  {
+    "tag": "heap (priority queue)",
+    "overview": "Complete binary tree with heap property, enabling efficient priority queue operations and selection algorithms.",
+    "patterns": ["sorting", "greedy", "array"],
+    "related": ["sorting", "greedy", "array"],
+    "strategy": "Use for top-k problems and maintaining extremes efficiently. Min-heap for smallest elements, max-heap for largest elements.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Combine heap (priority queue) and array to leverage both data structures' strengths."
+      },
+      {
+        "when": "sorting",
+        "tip": "Combine heap (priority queue) with sorting to leverage the strengths of both approaches."
+      },
+      {
+        "when": "greedy",
+        "tip": "Use greedy to optimize the heap (priority queue) operations for better time complexity."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to complement heap (priority queue) operations and improve overall efficiency."
+      },
+      {
+        "when": "graph",
+        "tip": "Use graph to enhance heap (priority queue) performance for this specific problem type."
+      },
+      {
+        "when": "matrix",
+        "tip": "Use matrix to complement heap (priority queue) operations and improve overall efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Apply binary search techniques to enhance heap (priority queue) performance in specific scenarios."
+      },
+      {
+        "when": "shortest path",
+        "tip": "Leverage heap (priority queue) and shortest path together for optimal solution efficiency."
+      },
+      {
+        "when": "simulation",
+        "tip": "Leverage heap (priority queue) and simulation together for optimal solution efficiency."
+      },
+      {
+        "when": "string",
+        "tip": "Leverage heap (priority queue) and string together for optimal solution efficiency."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage heap (priority queue) and design together for optimal solution efficiency."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Apply breadth-first search techniques to enhance heap (priority queue) performance in specific scenarios."
+      },
+      {
+        "when": "ordered set",
+        "tip": "Leverage heap (priority queue) and ordered set together for optimal solution efficiency."
+      },
+      {
+        "when": "math",
+        "tip": "Leverage heap (priority queue) and math together for optimal solution efficiency."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Apply dynamic programming techniques to enhance heap (priority queue) performance in specific scenarios."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Leverage heap (priority queue) and sliding window together for optimal solution efficiency."
+      },
+      {
+        "when": "queue",
+        "tip": "Apply heap (priority queue) with queue for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Apply depth-first search techniques to enhance heap (priority queue) performance in specific scenarios."
+      },
+      {
+        "when": "counting",
+        "tip": "Leverage heap (priority queue) and counting together for optimal solution efficiency."
+      },
+      {
+        "when": "divide and conquer",
+        "tip": "Apply divide and conquer techniques to enhance heap (priority queue) performance in specific scenarios."
+      },
+      {
+        "when": "monotonic queue",
+        "tip": "Leverage heap (priority queue) and monotonic queue together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "interactive",
+    "overview": "Problems where solution must interact with hidden system through queries, with limited query budget.",
+    "patterns": ["binary search", "graph"],
+    "related": [],
+    "strategy": "Minimize number of queries through binary search or strategic probing. Analyze information gained from each query.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Leverage interactive and array together for optimal solution efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Leverage interactive and binary search together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "iterator",
+    "overview": "Design pattern for traversing collections without exposing underlying representation, enabling clean iteration.",
+    "patterns": ["binary search tree", "array", "design"],
+    "related": ["binary search tree", "array", "design"],
+    "strategy": "Implement stateful traversal with clear separation of concerns. Handle edge cases like empty collections and concurrent modification.",
+    "strategies": []
+  },
+  {
+    "tag": "line sweep",
+    "overview": "Algorithmic technique that processes geometric objects by sweeping a line across the plane systematically.",
+    "patterns": ["segment tree", "array"],
+    "related": [],
+    "strategy": "Sort events by coordinate and process in order. Use data structures to maintain active objects during sweep.",
+    "strategies": []
+  },
+  {
+    "tag": "linked list",
+    "overview": "Linear data structure where elements are stored in nodes containing data and pointer to next node.",
+    "patterns": [
+      "two pointers",
+      "dynamic programming",
+      "backtracking",
+      "recursion"
+    ],
+    "related": [
+      "two pointers",
+      "dynamic programming",
+      "backtracking",
+      "recursion"
+    ],
+    "strategy": "Use two pointers for cycle detection and finding middle. Dummy nodes simplify edge case handling in modifications.",
+    "strategies": [
+      {
+        "when": "two pointers",
+        "tip": "Leverage linked list and two pointers together for optimal solution efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Apply linked list with hash table for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "array",
+        "tip": "Apply linked list with array for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply linked list with stack for problems requiring multiple data access patterns."
+      }
+    ]
+  },
+  {
+    "tag": "math",
+    "overview": "Problems requiring mathematical concepts, formulas, number theory, and computational mathematics.",
+    "patterns": [
+      "array",
+      "dynamic programming",
+      "string",
+      "greedy",
+      "simulation",
+      "counting"
+    ],
+    "related": [
+      "array",
+      "dynamic programming",
+      "string",
+      "greedy",
+      "simulation",
+      "counting"
+    ],
+    "strategy": "Look for mathematical patterns and closed-form solutions. Consider modular arithmetic for large numbers and overflow prevention.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply math with array to combine their complementary strengths."
+      },
+      {
+        "when": "hash table",
+        "tip": "Apply math with hash table to combine their complementary strengths."
+      },
+      {
+        "when": "sorting",
+        "tip": "Use sorting to enhance math performance for this specific problem type."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search to enhance math performance for this specific problem type."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Leverage math and two pointers together for optimal solution efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Leverage math and stack together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage math and heap (priority queue) together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "matrix",
+    "overview": "Two-dimensional array structure useful for grid-based problems and spatial relationship modeling.",
+    "patterns": [
+      "array",
+      "simulation",
+      "dynamic programming",
+      "depth-first search",
+      "breadth-first search"
+    ],
+    "related": [
+      "array",
+      "simulation",
+      "dynamic programming",
+      "depth-first search",
+      "backtracking"
+    ],
+    "strategy": "Consider direction vectors for neighbor access. Use DFS/BFS for connected component problems and path finding.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Combine matrix and array to leverage both data structures' strengths."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Use breadth-first search to optimize the matrix operations for better time complexity."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use dynamic programming to optimize the matrix operations for better time complexity."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search to optimize the matrix operations for better time complexity."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to complement matrix operations and improve overall efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Use heap (priority queue) to complement matrix operations and improve overall efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Apply binary search techniques to enhance matrix performance in specific scenarios."
+      },
+      {
+        "when": "sorting",
+        "tip": "Apply sorting techniques to enhance matrix performance in specific scenarios."
+      },
+      {
+        "when": "greedy",
+        "tip": "Apply greedy techniques to enhance matrix performance in specific scenarios."
+      }
+    ]
+  },
+  {
+    "tag": "memoization",
+    "overview": "Optimization technique storing results of expensive function calls to avoid recomputation in recursive solutions.",
+    "patterns": ["dynamic programming", "recursion"],
+    "related": [],
+    "strategy": "Add cache to recursive solutions with overlapping subproblems. Use dictionary or array for storage based on state space.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Leverage memoization and array together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "merge sort",
+    "overview": "Divide-and-conquer sorting algorithm with guaranteed O(n log n) time complexity and stable sorting property.",
+    "patterns": ["quickselect", "sorting"],
+    "related": [],
+    "strategy": "Use for stable sorting and when worst-case O(n log n) is required. Excellent for external sorting of large datasets.",
+    "strategies": [
+      {
+        "when": "divide and conquer",
+        "tip": "Leverage merge sort and divide and conquer together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "minimum spanning tree",
+    "overview": "Subset of edges in weighted graph that connects all vertices with minimum total weight, no cycles.",
+    "patterns": ["graph", "topological sort", "union find"],
+    "related": ["graph", "topological sort"],
+    "strategy": "Use Kruskal's algorithm with union-find or Prim's algorithm with priority queue for efficient MST construction.",
+    "strategies": []
+  },
+  {
+    "tag": "monotonic queue",
+    "overview": "Algorithmic approach involving monotonic queue for efficient problem solving.",
+    "patterns": [],
+    "related": [],
+    "strategy": "Apply monotonic queue techniques to solve problems efficiently with optimal time and space complexity.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Leverage monotonic queue and array together for optimal solution efficiency."
+      },
+      {
+        "when": "queue",
+        "tip": "Leverage monotonic queue and queue together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage monotonic queue and heap (priority queue) together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "monotonic stack",
+    "overview": "Stack variant that maintains elements in monotonic order, useful for finding next greater/smaller elements.",
+    "patterns": ["array", "stack"],
+    "related": [],
+    "strategy": "Maintain increasing or decreasing order by popping elements. Useful for histogram problems and temperature-like queries.",
+    "strategies": [
+      {
+        "when": "stack",
+        "tip": "Use stack to enhance monotonic stack performance for this specific problem type."
+      },
+      {
+        "when": "array",
+        "tip": "Use array to enhance monotonic stack performance for this specific problem type."
+      },
+      {
+        "when": "greedy",
+        "tip": "Combine monotonic stack and greedy for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Combine monotonic stack and dynamic programming for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "sorting",
+        "tip": "Combine monotonic stack and sorting for problems requiring both pattern recognition and algorithmic efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "number theory",
+    "overview": "Branch of mathematics studying properties and relationships of integers, primes, and modular arithmetic.",
+    "patterns": ["math"],
+    "related": ["math"],
+    "strategy": "Master GCD, LCM, and modular arithmetic operations. Use sieve algorithms for prime-related problems efficiently.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to enhance number theory performance for this specific problem type."
+      },
+      {
+        "when": "hash table",
+        "tip": "Leverage number theory and hash table together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "ordered set",
+    "overview": "Data structure maintaining elements in sorted order with efficient insertion, deletion, and range queries.",
+    "patterns": ["design", "segment tree"],
+    "related": [],
+    "strategy": "Use balanced BST or segment tree for order statistics. Consider treap or skip list for implementation alternatives.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to enhance ordered set performance for this specific problem type."
+      },
+      {
+        "when": "binary search",
+        "tip": "Leverage ordered set and binary search together for optimal solution efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Leverage ordered set and hash table together for optimal solution efficiency."
+      },
+      {
+        "when": "segment tree",
+        "tip": "Leverage ordered set and segment tree together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage ordered set and heap (priority queue) together for optimal solution efficiency."
+      },
+      {
+        "when": "binary indexed tree",
+        "tip": "Leverage ordered set and binary indexed tree together for optimal solution efficiency."
+      },
+      {
+        "when": "sorting",
+        "tip": "Leverage ordered set and sorting together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "prefix sum",
+    "overview": "Preprocessing technique storing cumulative sums to answer range sum queries efficiently in constant time.",
+    "patterns": ["array", "matrix", "sliding window", "math"],
+    "related": ["array", "matrix", "sliding window", "math"],
+    "strategy": "Build prefix array where prefix[i] = sum from 0 to i. Range sum = prefix[j] - prefix[i-1] for range [i,j].",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply prefix sum with array to combine their complementary strengths."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to enhance prefix sum performance for this specific problem type."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search with prefix sum approach to handle specific problem constraints."
+      },
+      {
+        "when": "sorting",
+        "tip": "Use sorting with prefix sum approach to handle specific problem constraints."
+      },
+      {
+        "when": "greedy",
+        "tip": "Combine prefix sum and greedy for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Combine prefix sum and dynamic programming for problems requiring both pattern recognition and algorithmic efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "probability and statistics",
+    "overview": "Mathematical concepts dealing with uncertainty, randomness, statistical analysis, and probabilistic reasoning.",
+    "patterns": ["math", "dynamic programming"],
+    "related": [],
+    "strategy": "Apply probability rules and expected value calculations. Use combinatorial counting and Bayes' theorem for complex scenarios.",
+    "strategies": []
+  },
+  {
+    "tag": "queue",
+    "overview": "First-In-First-Out (FIFO) data structure supporting enqueue and dequeue operations for sequential processing.",
+    "patterns": ["simulation", "design", "data stream"],
+    "related": ["simulation", "design", "stack"],
+    "strategy": "Use for level-order traversals and problems requiring processing in arrival order. Consider circular queue for efficiency.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to complement queue operations and improve overall efficiency."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage queue and design together for optimal solution efficiency."
+      },
+      {
+        "when": "monotonic queue",
+        "tip": "Leverage queue and monotonic queue together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Apply queue with heap (priority queue) for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "data stream",
+        "tip": "Leverage queue and data stream together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "quickselect",
+    "overview": "Selection algorithm for finding k-th smallest element with average O(n) time complexity using partitioning.",
+    "patterns": ["sorting", "merge sort"],
+    "related": [],
+    "strategy": "Use partitioning logic from quicksort but recurse only on relevant side. Randomization improves average case performance.",
+    "strategies": []
+  },
+  {
+    "tag": "radix sort",
+    "overview": "Algorithmic approach involving radix sort for efficient problem solving.",
+    "patterns": [],
+    "related": [],
+    "strategy": "Apply radix sort techniques to solve problems efficiently with optimal time and space complexity.",
+    "strategies": []
+  },
+  {
+    "tag": "randomized",
+    "overview": "Algorithms that use random choices during execution to achieve better average-case performance or simplicity.",
+    "patterns": ["simulation", "design"],
+    "related": ["simulation", "design"],
+    "strategy": "Use randomization for load balancing and average-case optimization. Consider Monte Carlo methods for approximation problems.",
+    "strategies": []
+  },
+  {
+    "tag": "recursion",
+    "overview": "Problem-solving approach where function calls itself with smaller subproblems until reaching base cases.",
+    "patterns": [
+      "dynamic programming",
+      "backtracking",
+      "binary search tree",
+      "tree",
+      "binary tree"
+    ],
+    "related": [
+      "dynamic programming",
+      "backtracking",
+      "binary search tree",
+      "tree",
+      "binary tree"
+    ],
+    "strategy": "Define base cases clearly and ensure progress toward base case. Consider memoization for overlapping subproblems.",
+    "strategies": [
+      {
+        "when": "stack",
+        "tip": "Leverage recursion and stack together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "rejection sampling",
+    "overview": "Algorithmic approach involving rejection sampling for efficient problem solving.",
+    "patterns": [],
+    "related": [],
+    "strategy": "Apply rejection sampling techniques to solve problems efficiently with optimal time and space complexity.",
+    "strategies": []
+  },
+  {
+    "tag": "reservoir sampling",
+    "overview": "Algorithmic approach involving reservoir sampling for efficient problem solving.",
+    "patterns": [],
+    "related": [],
+    "strategy": "Apply reservoir sampling techniques to solve problems efficiently with optimal time and space complexity.",
+    "strategies": []
+  },
+  {
+    "tag": "rolling hash",
+    "overview": "Hash function that efficiently updates hash value as window slides, enabling fast string pattern matching.",
+    "patterns": ["string", "string matching"],
+    "related": [],
+    "strategy": "Use for substring search and comparison in sliding window. Polynomial rolling hash with large prime modulus prevents collisions.",
+    "strategies": [
+      {
+        "when": "hash function",
+        "tip": "Use hash function to enhance rolling hash performance for this specific problem type."
+      },
+      {
+        "when": "string",
+        "tip": "Leverage rolling hash and string together for optimal solution efficiency."
+      },
+      {
+        "when": "string matching",
+        "tip": "Leverage rolling hash and string matching together for optimal solution efficiency."
+      },
+      {
+        "when": "array",
+        "tip": "Leverage rolling hash and array together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "segment tree",
+    "overview": "Binary tree data structure for answering range queries and updates efficiently with logarithmic complexity.",
+    "patterns": ["array", "binary indexed tree"],
+    "related": [],
+    "strategy": "Build tree bottom-up for range queries in O(log n). Use lazy propagation for efficient range updates.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to enhance segment tree performance for this specific problem type."
+      },
+      {
+        "when": "binary indexed tree",
+        "tip": "Leverage segment tree and binary indexed tree together for optimal solution efficiency."
+      },
+      {
+        "when": "binary search",
+        "tip": "Leverage segment tree and binary search together for optimal solution efficiency."
+      },
+      {
+        "when": "ordered set",
+        "tip": "Leverage segment tree and ordered set together for optimal solution efficiency."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage segment tree and design together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "shortest path",
+    "overview": "Finding minimum cost path between vertices in weighted graphs using various algorithmic approaches.",
+    "patterns": ["graph", "topological sort", "breadth-first search"],
+    "related": ["graph", "topological sort", "breadth-first search"],
+    "strategy": "Use BFS for unweighted graphs, Dijkstra for non-negative weights. Consider Floyd-Warshall for all-pairs shortest paths.",
+    "strategies": [
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage shortest path and heap (priority queue) together for optimal solution efficiency."
+      },
+      {
+        "when": "array",
+        "tip": "Leverage shortest path and array together for optimal solution efficiency."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Leverage shortest path and breadth-first search together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "simulation",
+    "overview": "Direct implementation of problem requirements by mimicking the described process step-by-step systematically.",
+    "patterns": [
+      "array",
+      "string",
+      "matrix",
+      "math",
+      "graph",
+      "topological sort"
+    ],
+    "related": ["array", "string", "matrix", "math", "stack"],
+    "strategy": "Break down complex requirements into simple steps. Handle edge cases carefully and validate intermediate states.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply simulation with array to combine their complementary strengths."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to enhance simulation performance for this specific problem type."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage simulation and heap (priority queue) together for optimal solution efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Leverage simulation and stack together for optimal solution efficiency."
+      },
+      {
+        "when": "sorting",
+        "tip": "Leverage simulation and sorting together for optimal solution efficiency."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Leverage simulation and two pointers together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "sliding window",
+    "overview": "Technique maintaining a window of elements and sliding it across data structure to solve subarray problems.",
+    "patterns": ["string", "array", "hash table", "two pointers"],
+    "related": ["string", "array", "hash table", "two pointers"],
+    "strategy": "Identify subarray/substring problems with constraints. Expand window when possible, contract when constraint is violated.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply sliding window with array to combine their complementary strengths."
+      },
+      {
+        "when": "hash table",
+        "tip": "Apply sliding window with hash table to combine their complementary strengths."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search with sliding window approach to handle specific problem constraints."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Combine sliding window technique with DP memoization for efficient range processing."
+      },
+      {
+        "when": "sorting",
+        "tip": "Combine sliding window and sorting for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage sliding window and heap (priority queue) together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "sorting",
+    "overview": "Algorithms for arranging elements in specific order, often serving as preprocessing step for other algorithms.",
+    "patterns": ["array", "greedy", "two pointers", "string", "math"],
+    "related": ["array", "greedy", "two pointers", "string", "hash table"],
+    "strategy": "Consider whether order matters for the solution approach. Custom comparators enable complex sorting criteria and logic.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Sort the array first to enable two-pointer techniques and binary search optimizations."
+      },
+      {
+        "when": "greedy",
+        "tip": "Apply sorting first to establish solution structure, then use greedy for optimization."
+      },
+      {
+        "when": "hash table",
+        "tip": "Combine sorting with hash table to leverage the strengths of both approaches."
+      },
+      {
+        "when": "binary search",
+        "tip": "Apply sorting first to establish solution structure, then use binary search for optimization."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Sort array first to enable two-pointer technique for finding target sums or pairs."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Combine sorting with heap (priority queue) to leverage the strengths of both approaches."
+      },
+      {
+        "when": "string",
+        "tip": "Apply sorting with string to combine their complementary strengths."
+      },
+      {
+        "when": "math",
+        "tip": "Use math to enhance sorting performance for this specific problem type."
+      },
+      {
+        "when": "counting",
+        "tip": "Use counting to enhance sorting performance for this specific problem type."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Combine sorting and dynamic programming to handle different aspects of the problem efficiently."
+      },
+      {
+        "when": "prefix sum",
+        "tip": "Use prefix sum with sorting approach to handle specific problem constraints."
+      },
+      {
+        "when": "matrix",
+        "tip": "Apply matrix techniques to enhance sorting performance in specific scenarios."
+      },
+      {
+        "when": "simulation",
+        "tip": "Leverage sorting and simulation together for optimal solution efficiency."
+      },
+      {
+        "when": "sliding window",
+        "tip": "Combine sorting and sliding window for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "enumeration",
+        "tip": "Leverage sorting and enumeration together for optimal solution efficiency."
+      },
+      {
+        "when": "counting sort",
+        "tip": "Leverage sorting and counting sort together for optimal solution efficiency."
+      },
+      {
+        "when": "divide and conquer",
+        "tip": "Use divide and conquer to enhance sorting performance in specific problem constraints."
+      },
+      {
+        "when": "bit manipulation",
+        "tip": "Combine sorting and bit manipulation for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply stack techniques to enhance sorting performance in specific scenarios."
+      },
+      {
+        "when": "ordered set",
+        "tip": "Leverage sorting and ordered set together for optimal solution efficiency."
+      },
+      {
+        "when": "monotonic stack",
+        "tip": "Combine sorting and monotonic stack for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "union find",
+        "tip": "Combine sorting and union find for problems requiring both pattern recognition and algorithmic efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "stack",
+    "overview": "Last-In-First-Out (LIFO) data structure supporting push, pop, and peek operations for sequential processing.",
+    "patterns": ["string", "simulation", "array", "dynamic programming"],
+    "related": ["string", "simulation", "array", "dynamic programming"],
+    "strategy": "Use for problems requiring reversal, matching brackets, or maintaining order constraints. Consider monotonic stack variants.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use stack to track array indices and solve next greater/smaller element problems."
+      },
+      {
+        "when": "string",
+        "tip": "Apply stack with string to combine their complementary strengths."
+      },
+      {
+        "when": "monotonic stack",
+        "tip": "Use monotonic stack to enhance stack performance for this specific problem type."
+      },
+      {
+        "when": "greedy",
+        "tip": "Use greedy to optimize the stack operations for better time complexity."
+      },
+      {
+        "when": "tree",
+        "tip": "Use tree to complement stack operations and improve overall efficiency."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Apply stack with binary tree for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Apply depth-first search techniques to enhance stack performance in specific scenarios."
+      },
+      {
+        "when": "simulation",
+        "tip": "Leverage stack and simulation together for optimal solution efficiency."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Leverage stack and two pointers together for optimal solution efficiency."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage stack and design together for optimal solution efficiency."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Apply dynamic programming techniques to enhance stack performance in specific scenarios."
+      },
+      {
+        "when": "linked list",
+        "tip": "Apply stack with linked list for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "math",
+        "tip": "Leverage stack and math together for optimal solution efficiency."
+      },
+      {
+        "when": "recursion",
+        "tip": "Leverage stack and recursion together for optimal solution efficiency."
+      },
+      {
+        "when": "sorting",
+        "tip": "Apply sorting techniques to enhance stack performance in specific scenarios."
+      },
+      {
+        "when": "hash table",
+        "tip": "Apply stack with hash table for problems requiring multiple data access patterns."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Apply stack with binary search tree for problems requiring multiple data access patterns."
+      }
+    ]
+  },
+  {
+    "tag": "string",
+    "overview": "Character sequence problems involving pattern matching, manipulation, and analysis of textual data structures.",
+    "patterns": [
+      "hash table",
+      "dynamic programming",
+      "greedy",
+      "simulation",
+      "sliding window",
+      "backtracking"
+    ],
+    "related": [
+      "hash table",
+      "dynamic programming",
+      "greedy",
+      "simulation",
+      "two pointers",
+      "counting"
+    ],
+    "strategy": "Consider character frequency maps and sliding window techniques. Pattern matching often benefits from KMP or Z-algorithm.",
+    "strategies": [
+      {
+        "when": "hash table",
+        "tip": "Apply string with hash table to combine their complementary strengths."
+      },
+      {
+        "when": "array",
+        "tip": "Apply string with array to combine their complementary strengths."
+      },
+      {
+        "when": "two pointers",
+        "tip": "Apply string with two pointers to combine their complementary strengths."
+      },
+      {
+        "when": "sorting",
+        "tip": "Apply string with sorting to combine their complementary strengths."
+      },
+      {
+        "when": "stack",
+        "tip": "Apply string with stack to combine their complementary strengths."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search to enhance string performance for this specific problem type."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search to enhance string performance for this specific problem type."
+      },
+      {
+        "when": "hash function",
+        "tip": "Leverage string and hash function together for optimal solution efficiency."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Leverage string and breadth-first search together for optimal solution efficiency."
+      },
+      {
+        "when": "rolling hash",
+        "tip": "Leverage string and rolling hash together for optimal solution efficiency."
+      },
+      {
+        "when": "heap (priority queue)",
+        "tip": "Leverage string and heap (priority queue) together for optimal solution efficiency."
+      },
+      {
+        "when": "tree",
+        "tip": "Leverage string and tree together for optimal solution efficiency."
+      },
+      {
+        "when": "binary tree",
+        "tip": "Leverage string and binary tree together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "string matching",
+    "overview": "Finding occurrences of pattern strings within text using efficient algorithms like KMP, Rabin-Karp, or Z-algorithm.",
+    "patterns": ["string", "dynamic programming"],
+    "related": [],
+    "strategy": "Use KMP for single pattern matching, Aho-Corasick for multiple patterns. Rolling hash enables fast average-case matching.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Leverage string matching and array together for optimal solution efficiency."
+      },
+      {
+        "when": "hash function",
+        "tip": "Leverage string matching and hash function together for optimal solution efficiency."
+      },
+      {
+        "when": "rolling hash",
+        "tip": "Leverage string matching and rolling hash together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "strongly connected component",
+    "overview": "Maximal set of vertices in directed graph where every vertex is reachable from every other vertex.",
+    "patterns": [
+      "eulerian circuit",
+      "graph",
+      "topological sort",
+      "breadth-first search"
+    ],
+    "related": [],
+    "strategy": "Use Tarjan's or Kosaraju's algorithm for SCC detection. Essential for analyzing graph connectivity and cycles.",
+    "strategies": []
+  },
+  {
+    "tag": "suffix array",
+    "overview": "Sorted array of all suffixes of string, enabling efficient pattern matching and substring operations.",
+    "patterns": ["string", "binary search"],
+    "related": ["string", "binary search"],
+    "strategy": "Build suffix array with O(n log n) algorithms. Use for multiple pattern queries and longest common substring problems.",
+    "strategies": []
+  },
+  {
+    "tag": "topological sort",
+    "overview": "Linear ordering of vertices in directed acyclic graph respecting edge directions, used in dependency resolution.",
+    "patterns": ["graph", "breadth-first search", "depth-first search"],
+    "related": ["graph", "breadth-first search", "depth-first search"],
+    "strategy": "Use Kahn's algorithm (BFS-based) or DFS-based approach. Check for cycles before attempting topological ordering.",
+    "strategies": [
+      {
+        "when": "graph",
+        "tip": "Use graph to enhance topological sort performance for this specific problem type."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Combine topological sort and depth-first search for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Combine topological sort and breadth-first search for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "array",
+        "tip": "Leverage topological sort and array together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "tree",
+    "overview": "Hierarchical data structure with nodes connected by edges, forming connected acyclic graph structure.",
+    "patterns": [
+      "binary search tree",
+      "binary tree",
+      "dynamic programming",
+      "depth-first search",
+      "recursion"
+    ],
+    "related": [
+      "binary search tree",
+      "binary tree",
+      "dynamic programming",
+      "depth-first search",
+      "recursion"
+    ],
+    "strategy": "Use recursion for natural tree traversal patterns. Consider iterative approaches with explicit stacks for optimization.",
+    "strategies": [
+      {
+        "when": "binary tree",
+        "tip": "Combine tree and binary tree to leverage both data structures' strengths."
+      },
+      {
+        "when": "depth-first search",
+        "tip": "Combine tree with depth-first search to leverage the strengths of both approaches."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Combine tree with breadth-first search to leverage the strengths of both approaches."
+      },
+      {
+        "when": "binary search tree",
+        "tip": "Use binary search tree to complement tree operations and improve overall efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Map tree node values to frequencies using hash table for duplicate detection."
+      },
+      {
+        "when": "array",
+        "tip": "Use array to complement tree operations and improve overall efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Use stack to complement tree operations and improve overall efficiency."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Use dynamic programming to optimize the tree operations for better time complexity."
+      },
+      {
+        "when": "string",
+        "tip": "Leverage tree and string together for optimal solution efficiency."
+      },
+      {
+        "when": "design",
+        "tip": "Leverage tree and design together for optimal solution efficiency."
+      },
+      {
+        "when": "graph",
+        "tip": "Leverage tree and graph together for optimal solution efficiency."
+      },
+      {
+        "when": "divide and conquer",
+        "tip": "Apply divide and conquer techniques to enhance tree performance in specific scenarios."
+      }
+    ]
+  },
+  {
+    "tag": "trie",
+    "overview": "Tree-like data structure for storing strings with shared prefixes efficiently, enabling fast prefix operations.",
+    "patterns": ["string", "design", "string matching"],
+    "related": ["string", "design"],
+    "strategy": "Build trie for prefix-related string problems. Each node represents character, paths from root represent complete strings.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Use array to complement trie operations and improve overall efficiency."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to complement trie operations and improve overall efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "two pointers",
+    "overview": "Technique using two indices to traverse data structure from different positions or directions efficiently.",
+    "patterns": ["array", "string", "sorting", "linked list", "sliding window"],
+    "related": ["array", "string", "sorting", "linked list", "hash table"],
+    "strategy": "Use for array/string problems needing O(n) time complexity. Consider fast-slow pointers for cycle detection in linked lists.",
+    "strategies": [
+      {
+        "when": "array",
+        "tip": "Apply two pointers with array to combine their complementary strengths."
+      },
+      {
+        "when": "string",
+        "tip": "Apply two pointers with string to combine their complementary strengths."
+      },
+      {
+        "when": "sorting",
+        "tip": "Sort array first to enable two-pointer technique for finding target sums or pairs."
+      },
+      {
+        "when": "binary search",
+        "tip": "Use binary search with two pointers approach to handle specific problem constraints."
+      },
+      {
+        "when": "hash table",
+        "tip": "Use hash table to enhance two pointers performance for this specific problem type."
+      },
+      {
+        "when": "greedy",
+        "tip": "Use greedy with two pointers approach to handle specific problem constraints."
+      },
+      {
+        "when": "linked list",
+        "tip": "Leverage two pointers and linked list together for optimal solution efficiency."
+      },
+      {
+        "when": "stack",
+        "tip": "Leverage two pointers and stack together for optimal solution efficiency."
+      },
+      {
+        "when": "dynamic programming",
+        "tip": "Combine two pointers and dynamic programming for problems requiring both pattern recognition and algorithmic efficiency."
+      },
+      {
+        "when": "simulation",
+        "tip": "Leverage two pointers and simulation together for optimal solution efficiency."
+      },
+      {
+        "when": "math",
+        "tip": "Leverage two pointers and math together for optimal solution efficiency."
+      }
+    ]
+  },
+  {
+    "tag": "union find",
+    "overview": "Data structure for tracking disjoint sets with efficient union and find operations for connectivity queries.",
+    "patterns": ["graph", "topological sort", "depth-first search"],
+    "related": [],
+    "strategy": "Use path compression and union by rank for optimal performance. Excellent for connectivity problems and cycle detection.",
+    "strategies": [
+      {
+        "when": "depth-first search",
+        "tip": "Use depth-first search with union find approach to handle specific problem constraints."
+      },
+      {
+        "when": "breadth-first search",
+        "tip": "Use breadth-first search with union find approach to handle specific problem constraints."
+      },
+      {
+        "when": "array",
+        "tip": "Use array to enhance union find performance for this specific problem type."
+      },
+      {
+        "when": "hash table",
+        "tip": "Leverage union find and hash table together for optimal solution efficiency."
+      },
+      {
+        "when": "sorting",
+        "tip": "Combine union find and sorting for problems requiring both pattern recognition and algorithmic efficiency."
+      }
+    ]
+  }
+]
