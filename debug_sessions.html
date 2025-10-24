@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Sessions Database</title>
+</head>
+<body>
+    <h1>Session Database Debug</h1>
+    <button onclick="debugSessions()">Check Sessions</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function debugSessions() {
+            const output = document.getElementById('output');
+            output.textContent = 'Opening database...\n';
+
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('CodeMaster', 47);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                output.textContent += 'Database opened successfully\n\n';
+
+                // Get all sessions
+                const transaction = db.transaction('sessions', 'readonly');
+                const store = transaction.objectStore('sessions');
+
+                output.textContent += '=== AVAILABLE INDEXES ===\n';
+                const indexNames = Array.from(store.indexNames);
+                output.textContent += JSON.stringify(indexNames, null, 2) + '\n\n';
+
+                const allSessions = await new Promise((resolve, reject) => {
+                    const request = store.getAll();
+                    request.onsuccess = () => resolve(request.result || []);
+                    request.onerror = () => reject(request.error);
+                });
+
+                output.textContent += `=== FOUND ${allSessions.length} SESSIONS ===\n\n`;
+
+                // Group by status
+                const byStatus = {};
+                allSessions.forEach(s => {
+                    const status = s.status || 'unknown';
+                    if (!byStatus[status]) byStatus[status] = [];
+                    byStatus[status].push(s);
+                });
+
+                output.textContent += '=== SESSIONS BY STATUS ===\n';
+                Object.entries(byStatus).forEach(([status, sessions]) => {
+                    output.textContent += `${status}: ${sessions.length}\n`;
+                });
+                output.textContent += '\n';
+
+                // Show field names for each session
+                output.textContent += '=== FIELD NAME CHECK ===\n';
+                allSessions.slice(0, 5).forEach((session, idx) => {
+                    output.textContent += `\nSession ${idx + 1}:\n`;
+                    output.textContent += `  ID: ${session.id ? session.id.substring(0, 12) + '...' : 'N/A'}\n`;
+                    output.textContent += `  Status: ${session.status}\n`;
+                    output.textContent += `  session_type: ${session.session_type || 'MISSING'}\n`;
+                    output.textContent += `  sessionType: ${session.sessionType || 'MISSING'}\n`;
+                    output.textContent += `  SessionType: ${session.SessionType || 'MISSING'}\n`;
+                    output.textContent += `  date: ${session.date}\n`;
+                    output.textContent += `  last_activity_time: ${session.last_activity_time || 'MISSING'}\n`;
+                    output.textContent += `  All keys: ${JSON.stringify(Object.keys(session).slice(0, 15))}\n`;
+                });
+
+                // Test composite index lookup
+                output.textContent += '\n\n=== TESTING COMPOSITE INDEX LOOKUP ===\n';
+                const indexTest = store.index('by_session_type_status');
+
+                // Test lookup for standard + draft
+                const testLookup = await new Promise((resolve, reject) => {
+                    const request = indexTest.get(['standard', 'draft']);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                if (testLookup) {
+                    output.textContent += `Found session with ['standard', 'draft']:\n`;
+                    output.textContent += `  ID: ${testLookup.id.substring(0, 12)}...\n`;
+                    output.textContent += `  Status: ${testLookup.status}\n`;
+                    output.textContent += `  session_type: ${testLookup.session_type}\n`;
+                } else {
+                    output.textContent += `No session found with ['standard', 'draft']\n`;
+                }
+
+                // Test lookup for standard + in_progress
+                const testLookup2 = await new Promise((resolve, reject) => {
+                    const request = indexTest.get(['standard', 'in_progress']);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                if (testLookup2) {
+                    output.textContent += `\nFound session with ['standard', 'in_progress']:\n`;
+                    output.textContent += `  ID: ${testLookup2.id.substring(0, 12)}...\n`;
+                    output.textContent += `  Status: ${testLookup2.status}\n`;
+                    output.textContent += `  session_type: ${testLookup2.session_type}\n`;
+                } else {
+                    output.textContent += `\nNo session found with ['standard', 'in_progress']\n`;
+                }
+
+                db.close();
+            } catch (error) {
+                output.textContent += `\nERROR: ${error.message}\n${error.stack}\n`;
+            }
+        }
+    </script>
+</body>
+</html>
