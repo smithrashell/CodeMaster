@@ -132,17 +132,7 @@ export const codeMasterTheme = createTheme({
     },
     
     Card: {
-      styles: (_theme) => ({
-        root: {
-          backgroundColor: 'var(--cm-card-bg)',
-          color: 'var(--cm-text)',
-          borderColor: 'var(--cm-border)',
-        },
-      }),
-    },
-    
-    Card: {
-      styles: (theme) => ({
+      styles: () => ({
         root: {
           backgroundColor: 'var(--cm-card-bg)',
           color: 'var(--cm-text)',
