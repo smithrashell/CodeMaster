@@ -21,6 +21,7 @@ import {
 import { updateProblemRelationships } from "../../db/problem_relationships";
 import { calculateTagMastery } from "../../db/tag_mastery";
 import { ProblemService } from "../problemService";
+import { StorageService } from "../storageService";
 
 // Mock the database modules
 jest.mock("../../db/sessions");
@@ -53,9 +54,9 @@ const createMockSession = (overrides = {}) => ({
   id: "test-session-123",
   status: "in_progress",
   problems: [
-    { id: 1, title: "Problem 1" },
-    { id: 2, title: "Problem 2" },
-    { id: 3, title: "Problem 3" },
+    { id: 1, title: "Problem 1", leetcode_id: 1, slug: "problem-1", difficulty: "Easy", Tags: ["array"] },
+    { id: 2, title: "Problem 2", leetcode_id: 2, slug: "problem-2", difficulty: "Medium", Tags: ["string"] },
+    { id: 3, title: "Problem 3", leetcode_id: 3, slug: "problem-3", difficulty: "Hard", Tags: ["graph"] },
   ],
   attempts: [{ problemId: 1 }, { problemId: 2 }, { problemId: 3 }],
   ...overrides,
@@ -72,6 +73,8 @@ const setupMocksForCompletedSession = (session) => {
   updateSessionInDB.mockResolvedValue();
   calculateTagMastery.mockResolvedValue();
   updateProblemRelationships.mockResolvedValue();
+  StorageService.getSessionState = jest.fn().mockResolvedValue({ numSessionsCompleted: 5 });
+  StorageService.setSessionState = jest.fn().mockResolvedValue();
 };
 
 const expectSessionCompletion = (sessionId, _session) => {
@@ -118,7 +121,9 @@ const runCheckAndCompleteSessionTests = () => {
       expect(getSessionById).toHaveBeenCalledWith(sessionId);
       expect(updateSessionInDB).not.toHaveBeenCalled();
       expect(calculateTagMastery).not.toHaveBeenCalled();
-      expect(result).toEqual([{ id: 2, title: "Problem 2" }]);
+      expect(result).toEqual([
+        expect.objectContaining({ id: 2, title: "Problem 2" })
+      ]);
     });
 
     it("should return false when session not found", async () => {
@@ -136,7 +141,10 @@ const runCheckAndCompleteSessionTests = () => {
       const mockSession = createMockSession({
         id: sessionId,
         status: "completed",
-        problems: [{ id: 1, title: "Problem 1" }, { id: 2, title: "Problem 2" }],
+        problems: [
+          { id: 1, title: "Problem 1", leetcode_id: 1, slug: "problem-1", difficulty: "Easy", Tags: ["array"] },
+          { id: 2, title: "Problem 2", leetcode_id: 2, slug: "problem-2", difficulty: "Medium", Tags: ["string"] }
+        ],
         attempts: [{ problemId: 1 }, { problemId: 2 }],
       });
 

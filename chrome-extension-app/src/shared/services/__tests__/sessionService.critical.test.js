@@ -141,9 +141,9 @@ describe("SessionService - Critical User Retention Paths", () => {
         session_type: "standard",
         status: "in_progress",
         problems: [
-          { id: 1, title: "Problem 1" },
-          { id: 2, title: "Problem 2" },
-          { id: 3, title: "Problem 3" }
+          { id: 1, title: "Problem 1", leetcode_id: 1, slug: "problem-1", difficulty: "Easy", Tags: ["array"] },
+          { id: 2, title: "Problem 2", leetcode_id: 2, slug: "problem-2", difficulty: "Medium", Tags: ["string"] },
+          { id: 3, title: "Problem 3", leetcode_id: 3, slug: "problem-3", difficulty: "Hard", Tags: ["graph"] }
         ],
         attempts: [
           { problemId: 1, success: true },
@@ -170,9 +170,9 @@ describe("SessionService - Critical User Retention Paths", () => {
       const completedSession = {
         id: sessionId,
         problems: [
-          { problem_id: 1 }, 
-          { problem_id: 2 },
-          { problem_id: 3 }
+          { id: 1, title: "Problem 1", leetcode_id: 1, slug: "problem-1", difficulty: "Easy", Tags: ["array"] },
+          { id: 2, title: "Problem 2", leetcode_id: 2, slug: "problem-2", difficulty: "Medium", Tags: ["string"] },
+          { id: 3, title: "Problem 3", leetcode_id: 3, slug: "problem-3", difficulty: "Hard", Tags: ["graph"] }
         ],
         attempts: [
           { problemId: 1 },
@@ -203,7 +203,7 @@ describe("SessionService - Critical User Retention Paths", () => {
       const sessionId = "state-corruption-test";
       const session = {
         id: sessionId,
-        problems: [{ problem_id: 1 }],
+        problems: [{ id: 1, title: "Problem 1", leetcode_id: 1, slug: "problem-1", difficulty: "Easy", Tags: ["array"] }],
         attempts: [{ problemId: 1 }]
       };
 
