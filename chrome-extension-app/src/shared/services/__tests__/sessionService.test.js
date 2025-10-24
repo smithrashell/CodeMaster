@@ -58,7 +58,7 @@ const createMockSession = (overrides = {}) => ({
     { id: 2, title: "Problem 2", leetcode_id: 2, slug: "problem-2", difficulty: "Medium", Tags: ["string"] },
     { id: 3, title: "Problem 3", leetcode_id: 3, slug: "problem-3", difficulty: "Hard", Tags: ["graph"] },
   ],
-  attempts: [{ problemId: 1 }, { problemId: 2 }, { problemId: 3 }],
+  attempts: [{ problemId: 1, leetcode_id: 1 }, { problemId: 2, leetcode_id: 2 }, { problemId: 3, leetcode_id: 3 }],
   ...overrides,
 });
 
@@ -111,7 +111,7 @@ const runCheckAndCompleteSessionTests = () => {
       const sessionId = "test-session-456";
       const mockSession = createMockSession({
         id: sessionId,
-        attempts: [{ problemId: 1 }, { problemId: 3 }],
+        attempts: [{ problemId: 1, leetcode_id: 1 }, { problemId: 3, leetcode_id: 3 }],
       });
 
       getSessionById.mockResolvedValue(mockSession);
@@ -145,7 +145,7 @@ const runCheckAndCompleteSessionTests = () => {
           { id: 1, title: "Problem 1", leetcode_id: 1, slug: "problem-1", difficulty: "Easy", Tags: ["array"] },
           { id: 2, title: "Problem 2", leetcode_id: 2, slug: "problem-2", difficulty: "Medium", Tags: ["string"] }
         ],
-        attempts: [{ problemId: 1 }, { problemId: 2 }],
+        attempts: [{ problemId: 1, leetcode_id: 1 }, { problemId: 2, leetcode_id: 2 }],
       });
 
       setupMocksForCompletedSession(mockSession);
