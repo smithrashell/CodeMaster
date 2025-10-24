@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Index Lookup</title>
+</head>
+<body>
+    <h1>Test Composite Index Lookup</h1>
+    <button onclick="testIndexLookup()">Run Test</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function testIndexLookup() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing index lookup...\n\n';
+
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('CodeMaster', 47);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                // Test 1: Get all sessions first
+                output.textContent += '=== TEST 1: Get All Sessions ===\n';
+                const tx1 = db.transaction('sessions', 'readonly');
+                const store1 = tx1.objectStore('sessions');
+                const allSessions = await new Promise((resolve, reject) => {
+                    const request = store1.getAll();
+                    request.onsuccess = () => resolve(request.result || []);
+                    request.onerror = () => reject(request.error);
+                });
+
+                output.textContent += `Found ${allSessions.length} sessions:\n`;
+                allSessions.forEach(s => {
+                    output.textContent += `  - ${s.id.substring(0, 8)}... session_type="${s.session_type}" status="${s.status}"\n`;
+                });
+
+                const draftSessions = allSessions.filter(s => s.status === 'draft');
+                output.textContent += `\nDraft sessions: ${draftSessions.length}\n`;
+                if (draftSessions.length > 0) {
+                    output.textContent += `  Draft session ID: ${draftSessions[0].id}\n`;
+                    output.textContent += `  session_type: "${draftSessions[0].session_type}"\n`;
+                    output.textContent += `  status: "${draftSessions[0].status}"\n`;
+                }
+
+                // Test 2: Try index lookup with exact same values
+                output.textContent += '\n=== TEST 2: Composite Index Lookup ===\n';
+                const tx2 = db.transaction('sessions', 'readonly');
+                const store2 = tx2.objectStore('sessions');
+
+                // Check if index exists
+                output.textContent += 'Available indexes: ' + JSON.stringify(Array.from(store2.indexNames)) + '\n\n';
+
+                const index = store2.index('by_session_type_status');
+
+                // Test lookup with ['standard', 'draft']
+                output.textContent += 'Attempting index.get(["standard", "draft"])...\n';
+                const result = await new Promise((resolve, reject) => {
+                    const request = index.get(['standard', 'draft']);
+
+                    request.onsuccess = () => {
+                        output.textContent += 'Index lookup completed\n';
+                        resolve(request.result);
+                    };
+
+                    request.onerror = () => {
+                        output.textContent += 'Index lookup ERROR: ' + request.error + '\n';
+                        reject(request.error);
+                    };
+                });
+
+                if (result) {
+                    output.textContent += '✅ SUCCESS: Found session via index\n';
+                    output.textContent += `   ID: ${result.id}\n`;
+                    output.textContent += `   session_type: "${result.session_type}"\n`;
+                    output.textContent += `   status: "${result.status}"\n`;
+                } else {
+                    output.textContent += '❌ FAILED: Index returned null\n';
+                    output.textContent += '\nThis is the bug! Index exists but returns null.\n';
+                }
+
+                // Test 3: Try openCursor on the index
+                output.textContent += '\n=== TEST 3: Index Cursor Scan ===\n';
+                const tx3 = db.transaction('sessions', 'readonly');
+                const store3 = tx3.objectStore('sessions');
+                const index3 = store3.index('by_session_type_status');
+
+                const cursorResults = await new Promise((resolve, reject) => {
+                    const results = [];
+                    const request = index3.openCursor();
+
+                    request.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            results.push({
+                                key: cursor.key,
+                                id: cursor.value.id.substring(0, 8),
+                                session_type: cursor.value.session_type,
+                                status: cursor.value.status
+                            });
+                            cursor.continue();
+                        } else {
+                            resolve(results);
+                        }
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+
+                output.textContent += `Found ${cursorResults.length} entries in index:\n`;
+                cursorResults.forEach(r => {
+                    output.textContent += `  Key: [${r.key}] -> ${r.id}... (type="${r.session_type}", status="${r.status}")\n`;
+                });
+
+                // Test 4: Try getAll on index with key range
+                output.textContent += '\n=== TEST 4: Index getAll with KeyRange ===\n';
+                const tx4 = db.transaction('sessions', 'readonly');
+                const store4 = tx4.objectStore('sessions');
+                const index4 = store4.index('by_session_type_status');
+
+                const keyRange = IDBKeyRange.only(['standard', 'draft']);
+                const getAllResult = await new Promise((resolve, reject) => {
+                    const request = index4.getAll(keyRange);
+                    request.onsuccess = () => resolve(request.result || []);
+                    request.onerror = () => reject(request.error);
+                });
+
+                output.textContent += `getAll result: ${getAllResult.length} sessions\n`;
+                getAllResult.forEach(s => {
+                    output.textContent += `  - ${s.id.substring(0, 8)}... type="${s.session_type}" status="${s.status}"\n`;
+                });
+
+                db.close();
+
+                output.textContent += '\n=== DIAGNOSIS ===\n';
+                if (!result && draftSessions.length > 0) {
+                    output.textContent += '🔴 CONFIRMED BUG: Draft session exists but index.get() returns null\n';
+                    output.textContent += 'The composite index is not working correctly.\n';
+                } else if (result) {
+                    output.textContent += '✅ Index is working correctly\n';
+                }
+
+            } catch (error) {
+                output.textContent += `\n❌ ERROR: ${error.message}\n${error.stack}\n`;
+            }
+        }
+    </script>
+</body>
+</html>

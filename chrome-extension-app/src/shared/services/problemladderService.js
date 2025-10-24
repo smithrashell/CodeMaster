@@ -164,7 +164,7 @@ export async function regenerateCompletedPatternLadder(completedTag) {
     userProblems = [],
     tagMasteryRecords = [],
     tagRelationships = [],
-    problemRelationships = [],
+    _problemRelationships = [],
   ] = await Promise.all([
     getAllFromStore("standard_problems"),
     getAllFromStore("problems"),
@@ -235,7 +235,7 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
     userProblems = [],
     tagMasteryRecords = [],
     tagRelationships = [],
-    problemRelationships = [],
+    _problemRelationships = [],
   ] = await Promise.all([
     getAllFromStore("standard_problems"),
     getAllFromStore("problems"),
