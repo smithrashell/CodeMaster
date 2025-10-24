@@ -6,6 +6,10 @@ node_modules/
 /Frontend/dist/
 /Frontend/coverage/
 /Frontend/.env
+/chrome-extension-app/node_modules/
+/chrome-extension-app/dist/
+/chrome-extension-app/coverage/
+/chrome-extension-app/.env
 /Backend/node_modules/
 /Backend/.env
 /Backend/package-lock.json
@@ -24,6 +28,11 @@ strategy_*.json
 strategy_*.js
 generate_*.js
 tstaus
+lint-*.txt
+batch-*.txt
+batch*.txt
+lint*.txt
+capability-*.json
 
 # API documentation (if it contains sensitive info)
 # API_USAGE_GUIDE.md

@@ -67,7 +67,7 @@ git config --global alias.st status
    ```bash
    git clone https://github.com/your-username/codemaster.git
    cd codemaster
-   cd Frontend
+   cd chrome-extension-app
    npm install
    ```
 
@@ -80,7 +80,7 @@ git config --global alias.st status
 3. **Load Extension in Chrome**
    - Go to `chrome://extensions/`
    - Click **Load unpacked**
-   - Navigate to and select `Frontend/dist/` folder
+   - Navigate to and select `chrome-extension-app/dist/` folder
    - Extension should appear with CodeMaster icon
 
 ### Extension Development Workflow
@@ -107,7 +107,7 @@ After making changes:
 
 ```
 codemaster/
-├── Frontend/
+├── chrome-extension-app/
 │   ├── src/             # Source code
 │   ├── dist/            # Built extension (load this in Chrome)
 │   ├── public/          # Static assets and manifest
@@ -138,7 +138,7 @@ npm run test:ci          # CI-friendly test run
 
 ### Environment Variables
 
-Create `.env` file in `Frontend/` directory:
+Create `.env` file in `chrome-extension-app/` directory:
 
 ```env
 # Development settings
@@ -308,7 +308,7 @@ Key mocks are pre-configured:
       "request": "launch",
       "name": "Debug Chrome Extension",
       "url": "chrome://extensions/",
-      "webRoot": "${workspaceFolder}/Frontend/src"
+      "webRoot": "${workspaceFolder}/chrome-extension-app/src"
     }
   ]
 }
@@ -494,7 +494,7 @@ Understand CSP restrictions in `manifest.json`:
 
 After completing environment setup:
 
-1. **Read Architecture Guide**: [Frontend/README.md](../Frontend/README.md)
+1. **Read Architecture Guide**: [chrome-extension-app/README.md](../chrome-extension-app/README.md)
 2. **Review Contribution Guidelines**: [CONTRIBUTING.md](../CONTRIBUTING.md)
 3. **Explore Codebase**: Start with `src/shared/` directory
 4. **Run Tests**: Ensure everything works with `npm test`

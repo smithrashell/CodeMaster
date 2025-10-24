@@ -133,7 +133,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 The service layer provides 17 specialized services for business logic. All services follow consistent patterns and never expose IndexedDB directly.
 
-> **Reference**: Complete service documentation in [Frontend/src/shared/services/README.md](../Frontend/src/shared/services/README.md)
+> **Reference**: Complete service documentation in [chrome-extension-app/src/shared/services/README.md](../chrome-extension-app/src/shared/services/README.md)
 
 ### Core Services
 
@@ -315,7 +315,7 @@ const insights = await DashboardService.generateInsights({
 
 The database layer provides IndexedDB abstraction with 13 specialized stores. Components never access this layer directly - always through services.
 
-> **Reference**: Complete database documentation in [Frontend/src/shared/db/README.md](../Frontend/src/shared/db/README.md)
+> **Reference**: Complete database documentation in [chrome-extension-app/src/shared/db/README.md](../chrome-extension-app/src/shared/db/README.md)
 
 ### Database Helper
 
@@ -845,4 +845,4 @@ const performanceLogger = {
 
 ---
 
-This API documentation provides comprehensive coverage of all interfaces in the CodeMaster Chrome extension. For implementation details, refer to the source code and the excellent existing mini-READMEs in the Frontend/src/shared/ directories.
+This API documentation provides comprehensive coverage of all interfaces in the CodeMaster Chrome extension. For implementation details, refer to the source code and the excellent existing mini-READMEs in the chrome-extension-app/src/shared/ directories.

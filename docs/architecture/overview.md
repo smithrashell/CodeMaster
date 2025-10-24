@@ -182,7 +182,7 @@ flowchart TD
 
 ### Core Technical Documentation
 
-**[Frontend/README.md](../Frontend/README.md)** - 792-line architectural bible
+**[chrome-extension-app/README.md](../chrome-extension-app/README.md)** - 792-line architectural bible
 - Complete system architecture with real interaction flows
 - Hook patterns and component integration guidelines
 - Testing strategies and performance considerations
@@ -190,12 +190,12 @@ flowchart TD
 
 ### Specialized Documentation
 
-**Database Layer** - [Frontend/src/shared/db/README.md](../Frontend/src/shared/db/README.md)
+**Database Layer** - [chrome-extension-app/src/shared/db/README.md](../chrome-extension-app/src/shared/db/README.md)
 - 13-store IndexedDB schema (208 lines)
 - Transaction patterns and performance optimization
 - Migration strategies and error handling
 
-**Service Layer** - [Frontend/src/shared/services/README.md](../Frontend/src/shared/services/README.md)  
+**Service Layer** - [chrome-extension-app/src/shared/services/README.md](../chrome-extension-app/src/shared/services/README.md)  
 - 17 services with comprehensive API documentation (192 lines)
 - Business logic patterns and integration points
 - Testing strategies and error handling

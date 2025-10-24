@@ -491,7 +491,7 @@ Each service maintains comprehensive documentation:
 ```
 
 ## References
-- [Service Layer Documentation](../../../Frontend/src/shared/services/README.md)
+- [Service Layer Documentation](../../../chrome-extension-app/src/shared/services/README.md)
 - [Clean Architecture Principles](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 - [Domain-Driven Design](https://martinfowler.com/bliki/DomainDrivenDesign.html)
 

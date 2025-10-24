@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] - 2025-10-24
 
+### Changed
+
+**Directory Restructuring** ([PR #143](https://github.com/smithrashell/CodeMaster/pull/143)):
+- Removed obsolete `Frontend/` directory (previously renamed to `chrome-extension-app/`)
+- Cleaned up temporary development files and test artifacts
+- Updated all documentation references from `Frontend/` to `chrome-extension-app/`
+- **Migration Note**: If you have local changes, they should be in `chrome-extension-app/` directory
+  - The main source code directory is now `chrome-extension-app/`
+  - All build outputs go to `chrome-extension-app/dist/`
+  - Load unpacked extension from `chrome-extension-app/dist/` in Chrome
+
 ### Fixed
 
 **Session Race Condition** ([9c8f3ce](https://github.com/smithrashell/CodeMaster/commit/9c8f3ce)):

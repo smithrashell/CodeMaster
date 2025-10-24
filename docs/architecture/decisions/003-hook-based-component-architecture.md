@@ -407,7 +407,7 @@ const useOptimizedHook = (config) => {
 - [React Hooks Documentation](https://react.dev/reference/react)
 - [Chrome Extension API Reference](https://developer.chrome.com/docs/extensions/reference/)
 - [Testing Library Hooks](https://testing-library.com/docs/react-testing-library/api/#renderhook)
-- [Frontend Hook Documentation](../../../Frontend/README.md#hook-patterns)
+- [Frontend Hook Documentation](../../../chrome-extension-app/README.md#hook-patterns)
 
 ## Related ADRs
 - ADR-001: Chrome Extension Architecture

@@ -34,7 +34,7 @@ Welcome to the CodeMaster Chrome extension project! This guide will help you get
 
 2. **Install dependencies**
    ```bash
-   cd Frontend
+   cd chrome-extension-app
    npm install
    ```
 
@@ -46,7 +46,7 @@ Welcome to the CodeMaster Chrome extension project! This guide will help you get
 4. **Load extension in Chrome**
    - Navigate to `chrome://extensions/`
    - Enable Developer mode
-   - Click "Load unpacked" and select `Frontend/dist/`
+   - Click "Load unpacked" and select `chrome-extension-app/dist/`
 
 ### Development Commands
 
@@ -73,7 +73,7 @@ CodeMaster follows a layered architecture pattern:
 ### Directory Structure
 
 ```
-Frontend/src/
+chrome-extension-app/src/
 ├── app/              # Standalone dashboard application
 ├── content/          # LeetCode page content scripts
 ├── popup/            # Extension popup interface
@@ -535,9 +535,9 @@ Include:
 
 ### Documentation Links
 
-- **[Frontend README.md](Frontend/README.md)** - Comprehensive technical architecture
-- **[Database Layer](Frontend/src/shared/db/README.md)** - IndexedDB schema and utilities
-- **[Services Layer](Frontend/src/shared/services/README.md)** - Business logic documentation
+- **[chrome-extension-app README.md](chrome-extension-app/README.md)** - Comprehensive technical architecture
+- **[Database Layer](chrome-extension-app/src/shared/db/README.md)** - IndexedDB schema and utilities
+- **[Services Layer](chrome-extension-app/src/shared/services/README.md)** - Business logic documentation
 - **[Chrome Extension Guide](docs/environment-setup.md)** - Detailed development setup
 
 ### Learning Resources
