@@ -1,0 +1,191 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "node": true,
+    "webextensions": true,
+    "jest": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "plugin:jsx-a11y/recommended"
+  ],
+  "globals": {
+    "chrome": "readonly",
+    "browser": "readonly",
+    "BUILD_TIMESTAMP": "readonly"
+  },
+  "plugins": ["react", "react-hooks", "jsx-a11y"],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "rules": {
+    // === ERRORS (Will break build) ===
+    "no-undef": "error",
+    "no-unused-vars": ["error", {
+      "vars": "all",
+      "args": "after-used",
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_",
+      "ignoreRestSiblings": true
+    }],
+    "no-console": ["warn", {
+      "allow": ["warn", "error", "info", "log"]
+    }],
+    "no-debugger": "error",
+    "no-async-promise-executor": "error",
+
+    // === DATABASE SAFETY ===
+    "no-restricted-imports": ["error", {
+      "paths": [
+        {
+          "name": "../db/index.js",
+          "importNames": ["dbHelper"],
+          "message": "🚨 SAFETY: Test files should use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+        },
+        {
+          "name": "../../shared/db/index.js",
+          "importNames": ["dbHelper"],
+          "message": "🚨 SAFETY: Test files should use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+        }
+      ]
+    }],
+
+    // === WARNINGS (Won't break build) ===
+    "complexity": ["warn", 20],
+    "max-lines-per-function": ["warn", {
+      "max": 100,
+      "skipBlankLines": true,
+      "skipComments": true
+    }],
+    "max-params": ["warn", 5],
+    "max-depth": ["warn", 4],
+    "require-await": "warn",
+    "prefer-promise-reject-errors": "warn",
+    "no-implied-eval": "warn",
+    "no-new-func": "warn",
+    
+    // === CHROME EXTENSION COMPATIBILITY ===
+    "no-restricted-syntax": ["error", {
+      "selector": "ImportExpression",
+      "message": "Dynamic imports are not allowed in Chrome extensions. Use static imports instead."
+    }],
+
+    // === REACT SPECIFIC ===
+    "react/react-in-jsx-scope": "off",
+    "react/prop-types": "off",
+
+    // === CHROME EXTENSION SPECIFIC ===
+    "no-restricted-imports": ["warn", {
+      "patterns": [{
+        "group": ["**/db/index.js"],
+        "message": "Import specific db modules instead of index"
+      }]
+    }]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.js", "**/*.spec.js", "**/test/**/*.js"],
+      "env": {
+        "jest": true
+      },
+      "rules": {
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "no-console": "off",
+        "no-restricted-syntax": "off"
+      }
+    },
+    {
+      "files": ["**/db/**/*.js"],
+      "rules": {
+        "complexity": ["warn", 25],
+        "max-lines-per-function": ["warn", 150]
+      }
+    },
+    {
+      "files": ["**/services/**/*.js"],
+      "rules": {
+        "max-lines-per-function": ["warn", 130],
+        "complexity": ["warn", 30],
+        "max-params": ["warn", 6]
+      }
+    },
+    {
+      "files": ["**/utils/**/*.js"],
+      "rules": {
+        "max-lines-per-function": ["warn", 130],
+        "complexity": ["warn", 30],
+        "max-params": ["warn", 6],
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/components/**/*.jsx", "**/pages/**/*.jsx"],
+      "rules": {
+        "max-lines-per-function": ["warn", 130],
+        "complexity": ["warn", 30]
+      }
+    },
+    {
+      "files": ["**/pages/**/*.jsx", "**/components/**/*.jsx", "**/popup/**/*.jsx", "**/content/**/*.jsx"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [
+            {
+              "group": ["**/shared/db/*", "**/app/services/dashboardService*"],
+              "message": "UI components must use useChromeMessage/ChromeAPIErrorHandler instead of direct database or service access"
+            },
+            {
+              "group": ["**/shared/services/*", "!**/shared/services/ChromeAPIErrorHandler*"],
+              "message": "UI components must use Chrome messaging instead of direct service imports. Use ChromeAPIErrorHandler or useChromeMessage."
+            }
+          ]
+        }]
+      }
+    },
+    {
+      "files": ["**/algorithms/**/*.js", "**/utils/Leitner*.js", "**/utils/FSRS*.js"],
+      "rules": {
+        "max-lines-per-function": ["warn", 150],
+        "complexity": ["warn", 35],
+        "max-params": ["warn", 7]
+      }
+    },
+    {
+      "files": ["**/*test*.js", "**/*testing*.js", "**/*.test.js", "**/__tests__/**/*.js"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "paths": [
+            {
+              "name": "../shared/db/index.js",
+              "importNames": ["dbHelper"],
+              "message": "🚨 SAFETY: Test files must use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+            },
+            {
+              "name": "../../shared/db/index.js",
+              "importNames": ["dbHelper"],
+              "message": "🚨 SAFETY: Test files must use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+            },
+            {
+              "name": "../../../shared/db/index.js",
+              "importNames": ["dbHelper"],
+              "message": "🚨 SAFETY: Test files must use createTestDbHelper() from dbHelperFactory.js instead of production dbHelper"
+            }
+          ]
+        }]
+      }
+    }
+  ],
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
+}

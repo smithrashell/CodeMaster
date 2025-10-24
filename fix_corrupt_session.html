@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Corrupt Session</title>
+</head>
+<body>
+    <h1>Session Repair Tool</h1>
+    <button onclick="fixCorruptSession()">Analyze Corrupt Session</button>
+    <button onclick="fixCorruptSession_removeAttempts()" style="margin-left: 10px;">Fix: Remove Bad Attempts</button>
+    <button onclick="fixCorruptSession_deleteSession()" style="margin-left: 10px;">Fix: Delete Session</button>
+    <pre id="output"></pre>
+
+    <script>
+        async function fixCorruptSession() {
+            const output = document.getElementById('output');
+            output.textContent = 'Opening database...\n';
+
+            const request = indexedDB.open('leetcode_session_manager', 22);
+
+            request.onsuccess = async (event) => {
+                const db = event.target.result;
+                const sessionId = '3e2dbbf3-900d-48eb-b21b-817d29c496c0';
+
+                output.textContent += 'Database opened. Fetching corrupt session...\n';
+
+                const tx = db.transaction(['sessions'], 'readonly');
+                const store = tx.objectStore('sessions');
+                const getRequest = store.get(sessionId);
+
+                getRequest.onsuccess = () => {
+                    const session = getRequest.result;
+
+                    if (!session) {
+                        output.textContent += 'Session not found - may already be deleted!\n';
+                        return;
+                    }
+
+                    output.textContent += 'Found session: ' + session.id + '\n';
+                    output.textContent += 'Attempts before: ' + (session.attempts ? session.attempts.length : 0) + '\n';
+                    output.textContent += 'Problems in session: ' + (session.problems ? session.problems.length : 0) + '\n\n';
+
+                    // Show the problematic attempt
+                    const problemIds = new Set(session.problems.map(p => p.id || p.leetcode_id));
+                    const badAttempts = session.attempts ? session.attempts.filter(att =>
+                        !problemIds.has(att.leetcode_id)
+                    ) : [];
+
+                    output.textContent += 'Bad attempts found: ' + badAttempts.length + '\n';
+                    badAttempts.forEach(att => {
+                        output.textContent += '  - Attempt ' + att.attempt_id + ' for leetcode_id ' + att.leetcode_id + '\n';
+                    });
+
+                    // Option 1: Remove bad attempts
+                    output.textContent += '\n--- OPTION 1: Remove bad attempts ---\n';
+                    const cleanedAttempts = session.attempts ? session.attempts.filter(att =>
+                        problemIds.has(att.leetcode_id)
+                    ) : [];
+                    output.textContent += 'Would keep ' + cleanedAttempts.length + '/' + (session.attempts ? session.attempts.length : 0) + ' attempts\n';
+
+                    // Option 2: Delete entire session
+                    output.textContent += '\n--- OPTION 2: Delete entire session ---\n';
+                    output.textContent += 'Would delete session ' + sessionId + '\n';
+
+                    output.textContent += '\n\nClick the appropriate fix button above.\n';
+                };
+
+                getRequest.onerror = () => {
+                    output.textContent += 'Error getting session: ' + getRequest.error + '\n';
+                };
+            };
+
+            request.onerror = () => {
+                output.textContent += 'Error opening database: ' + request.error + '\n';
+            };
+        }
+
+        async function fixCorruptSession_removeAttempts() {
+            const output = document.getElementById('output');
+            output.textContent = 'Removing bad attempts...\n';
+
+            const request = indexedDB.open('leetcode_session_manager', 22);
+
+            request.onsuccess = async (event) => {
+                const db = event.target.result;
+                const sessionId = '3e2dbbf3-900d-48eb-b21b-817d29c496c0';
+
+                const tx = db.transaction(['sessions'], 'readwrite');
+                const store = tx.objectStore('sessions');
+                const getRequest = store.get(sessionId);
+
+                getRequest.onsuccess = () => {
+                    const session = getRequest.result;
+
+                    if (!session) {
+                        output.textContent += 'Session not found!\n';
+                        return;
+                    }
+
+                    const problemIds = new Set(session.problems.map(p => p.id || p.leetcode_id));
+
+                    // Remove bad attempts
+                    const before = session.attempts ? session.attempts.length : 0;
+                    session.attempts = session.attempts ? session.attempts.filter(att =>
+                        problemIds.has(att.leetcode_id)
+                    ) : [];
+                    const after = session.attempts.length;
+
+                    const putRequest = store.put(session);
+                    putRequest.onsuccess = () => {
+                        output.textContent += '✅ Session fixed! Bad attempts removed.\n';
+                        output.textContent += 'Attempts before: ' + before + '\n';
+                        output.textContent += 'Attempts after: ' + after + '\n';
+                        output.textContent += 'Removed: ' + (before - after) + ' bad attempts\n';
+                    };
+                    putRequest.onerror = () => {
+                        output.textContent += '❌ Error updating session: ' + putRequest.error + '\n';
+                    };
+                };
+
+                getRequest.onerror = () => {
+                    output.textContent += '❌ Error getting session: ' + getRequest.error + '\n';
+                };
+            };
+
+            request.onerror = () => {
+                output.textContent += '❌ Error opening database: ' + request.error + '\n';
+            };
+        }
+
+        async function fixCorruptSession_deleteSession() {
+            const output = document.getElementById('output');
+            output.textContent = 'Deleting corrupt session...\n';
+
+            const request = indexedDB.open('leetcode_session_manager', 22);
+
+            request.onsuccess = async (event) => {
+                const db = event.target.result;
+                const sessionId = '3e2dbbf3-900d-48eb-b21b-817d29c496c0';
+
+                const tx = db.transaction(['sessions'], 'readwrite');
+                const store = tx.objectStore('sessions');
+                const deleteRequest = store.delete(sessionId);
+
+                deleteRequest.onsuccess = () => {
+                    output.textContent += '✅ Corrupt session deleted!\n';
+                };
+                deleteRequest.onerror = () => {
+                    output.textContent += '❌ Error deleting session: ' + deleteRequest.error + '\n';
+                };
+            };
+
+            request.onerror = () => {
+                output.textContent += '❌ Error opening database: ' + request.error + '\n';
+            };
+        }
+    </script>
+</body>
+</html>
