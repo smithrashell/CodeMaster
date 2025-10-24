@@ -1,0 +1,620 @@
+import { useState, useEffect } from "react";
+import { Card, Text, Title, Button, Stack, Alert, Group, SegmentedControl, Tooltip, Slider } from "@mantine/core";
+import { IconSettings, IconInfoCircle, IconTrophy, IconClock, IconCalendar } from "@tabler/icons-react";
+import {
+  SliderMarksSessionLength,
+  SliderMarksNewProblemsPerSession,
+  GradientSegmentedControlTimeLimit,
+  ToggleSelectRemainders,
+} from "../../../shared/components/nantine.jsx";
+import AdaptiveSessionToggle from "../../../content/features/settings/AdaptiveSessionToggle.js";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
+import { SettingsResetButton } from "./SettingsResetButton.jsx";
+import SessionLimits from "../../../shared/utils/sessionLimits.js";
+
+// Session Controls Component (when adaptive is off)
+function SessionControls({ settings, updateSettings, maxNewProblems }) {
+  if (settings?.adaptive) return null;
+
+  return (
+    <Stack gap="md">
+      <div>
+        <Text size="sm" fw={500} mb="xs">Session Length</Text>
+        <SliderMarksSessionLength
+          value={settings?.sessionLength}
+          onChange={(value) =>
+            updateSettings({ ...settings, sessionLength: value })
+          }
+        />
+      </div>
+
+      <div>
+        <Text size="sm" fw={500} mb="xs">New Problems Per Session</Text>
+        <SliderMarksNewProblemsPerSession
+          value={Math.min(settings?.numberofNewProblemsPerSession || 1, maxNewProblems || 8)}
+          onChange={(value) =>
+            updateSettings({
+              ...settings,
+              numberofNewProblemsPerSession: value,
+            })
+          }
+          max={maxNewProblems || 8}
+        />
+      </div>
+    </Stack>
+  );
+}
+
+// Interview Readiness Hook
+function useInterviewReadiness(settings) {
+  const [readiness, setReadiness] = useState({
+    interviewLikeUnlocked: true, // Default to true for better UX
+    fullInterviewUnlocked: true, // Default to true for better UX
+    reasoning: "Loading interview capabilities..."
+  });
+
+  useEffect(() => {
+    const checkReadiness = async () => {
+      console.log("🎯 Checking interview readiness...", { settings: !!settings });
+      
+      try {
+        if (typeof chrome !== "undefined" && chrome.runtime) {
+          console.log("🎯 Chrome runtime available, sending message...");
+          
+          // Set timeout to prevent hanging
+          const timeout = setTimeout(() => {
+            console.log("🎯 Interview readiness check timed out, using fallback");
+            setReadiness({
+              interviewLikeUnlocked: true,
+              fullInterviewUnlocked: true,
+              reasoning: "Timeout - interview features available"
+            });
+          }, 3000);
+          
+          chrome.runtime.sendMessage(
+            { type: "getInterviewReadiness" },
+            (response) => {
+              clearTimeout(timeout);
+              console.log("🎯 Interview readiness response:", response, "Error:", chrome.runtime.lastError);
+              if (response && !chrome.runtime.lastError) {
+                setReadiness(response);
+              } else {
+                console.log("🎯 Using development fallback for interview readiness");
+                // Fallback for development/testing
+                setReadiness({
+                  interviewLikeUnlocked: true, // Allow testing
+                  fullInterviewUnlocked: true, // Allow testing
+                  reasoning: "Development mode - all modes unlocked"
+                });
+              }
+            }
+          );
+        } else {
+          console.log("🎯 Chrome runtime not available, using fallback");
+          // Direct fallback when no Chrome runtime
+          setReadiness({
+            interviewLikeUnlocked: true,
+            fullInterviewUnlocked: true,
+            reasoning: "Browser mode - interview features available for testing"
+          });
+        }
+      } catch (error) {
+        console.warn("🎯 Interview readiness check failed:", error);
+        // Fallback readiness
+        setReadiness({
+          interviewLikeUnlocked: true,
+          fullInterviewUnlocked: true,
+          reasoning: "Error fallback - interview features available"
+        });
+      }
+    };
+
+    if (settings) {
+      checkReadiness();
+    }
+  }, [settings]);
+
+  return readiness;
+}
+
+// Interview Mode Controls Component
+function InterviewModeControls({ settings, updateSettings, interviewReadiness }) {
+  console.log("🎯 InterviewModeControls rendering with:", { 
+    hasSettings: !!settings, 
+    interviewMode: settings?.interviewMode,
+    readiness: interviewReadiness 
+  });
+  
+  const getInterviewModeData = () => [
+    { 
+      label: "Disabled", 
+      value: "disabled",
+      description: "Standard learning sessions with full support"
+    },
+    { 
+      label: "Interview-Like", 
+      value: "interview-like",
+      disabled: false, // Always enable for testing - remove readiness check
+      description: "Limited hints, mild time pressure"
+    },
+    { 
+      label: "Full Interview", 
+      value: "full-interview",
+      disabled: false, // Always enable for testing - remove readiness check  
+      description: "No hints, strict timing, realistic conditions"
+    }
+  ];
+
+  const currentMode = settings?.interviewMode || "disabled";
+  const currentModeData = getInterviewModeData().find(mode => mode.value === currentMode);
+
+  // Always render the component, even if settings aren't loaded yet
+  if (!settings) {
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <IconTrophy size={16} />
+          <Text size="sm" fw={500}>Interview Practice Mode</Text>
+          <Tooltip 
+            label="Loading interview settings..." 
+            withArrow 
+            position="top"
+            classNames={{
+              tooltip: 'cm-force-tooltip-visible'
+            }}
+          >
+            <IconInfoCircle size={14} style={{ cursor: "help", color: 'var(--mantine-color-dimmed)' }} />
+          </Tooltip>
+        </div>
+        <Alert variant="light" color="gray" size="xs">
+          ⏳ Loading interview settings...
+        </Alert>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+        <IconTrophy size={16} />
+        <Text size="sm" fw={500}>Interview Practice Mode</Text>
+        <Tooltip 
+          label="Progressive interview simulation modes to test skill transfer under pressure"
+          withArrow
+          position="top"
+          classNames={{
+            tooltip: 'cm-force-tooltip-visible'
+          }}
+        >
+          <IconInfoCircle size={14} style={{ cursor: "help", color: 'var(--mantine-color-dimmed)' }} />
+        </Tooltip>
+      </div>
+
+      <SegmentedControl
+        value={currentMode}
+        onChange={(value) => updateSettings({ ...settings, interviewMode: value })}
+        data={getInterviewModeData()}
+        fullWidth
+        size="sm"
+        color="var(--cm-active-blue)"
+      />
+      
+      {currentModeData && (
+        <Text size="xs" c="dimmed" mt="xs">
+          <IconClock size={12} style={{ marginRight: '4px' }} />
+          {currentModeData.description}
+        </Text>
+      )}
+      
+      {currentMode !== "disabled" && (
+        <Alert variant="light" color="blue" mt="xs" size="xs">
+          🎯 Interview mode will apply to your next session generation
+        </Alert>
+      )}
+
+
+      {/* Interview Frequency Controls - Show only when interview mode is enabled */}
+      {currentMode !== "disabled" && (
+        <Stack gap="md" mt="md" pt="md" style={{ borderTop: '1px solid var(--mantine-color-gray-3)' }}>
+          <div>
+            <Text size="sm" fw={500} mb="xs" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <IconCalendar size={16} />
+              Interview Frequency
+              <Tooltip 
+                label="When should interview sessions be automatically suggested?"
+                withArrow 
+                position="top"
+                classNames={{
+                  tooltip: 'cm-force-tooltip-visible'
+                }}
+              >
+                <IconInfoCircle size={14} style={{ cursor: "help", color: 'var(--mantine-color-dimmed)' }} />
+              </Tooltip>
+            </Text>
+
+            <SegmentedControl
+              value={settings?.interviewFrequency || "manual"}
+              onChange={(value) => updateSettings({ ...settings, interviewFrequency: value })}
+              data={[
+                { label: "Manual", value: "manual" },
+                { label: "Weekly", value: "weekly" },
+                { label: "Level Up", value: "level-up" }
+              ]}
+              fullWidth
+              size="sm"
+              color="var(--cm-active-blue)"
+            />
+
+            <Text size="xs" c="dimmed" mt="xs">
+              {settings?.interviewFrequency === "manual" && "🎯 Interview sessions available on demand"}
+              {settings?.interviewFrequency === "weekly" && "⏰ System will suggest interview sessions every 7-10 days"}
+              {settings?.interviewFrequency === "level-up" && "📈 Interview sessions suggested after tag mastery improvements"}
+            </Text>
+          </div>
+
+          {/* Readiness Threshold - Show only for level-up frequency */}
+          {settings?.interviewFrequency === "level-up" && (
+            <div>
+              <Text size="sm" fw={500} mb="xs" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconTrophy size={16} />
+                Readiness Threshold
+                <Tooltip 
+                  label="Minimum performance score needed before suggesting Full Interview mode"
+                  withArrow 
+                  position="top"
+                  styles={{
+                    tooltip: {
+                      zIndex: 1000,
+                      fontSize: '11px'
+                    }
+                  }}
+                >
+                  <IconInfoCircle size={14} style={{ cursor: "help", color: 'var(--mantine-color-dimmed)' }} />
+                </Tooltip>
+              </Text>
+
+              <Slider
+                value={(settings?.interviewReadinessThreshold || 0.7) * 100}
+                onChange={(value) => updateSettings({ 
+                  ...settings, 
+                  interviewReadinessThreshold: value / 100 
+                })}
+                min={50}
+                max={100}
+                step={5}
+                marks={[
+                  { value: 50, label: 'Conservative' },
+                  { value: 70, label: '70%' },
+                  { value: 85, label: '85%' },
+                  { value: 100, label: 'Confident' }
+                ]}
+                color="var(--cm-active-blue)"
+              />
+
+              <Text size="xs" c="dimmed" mt="xs" ta="center">
+                🎯 Full Interview mode unlocks at {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}% mastery
+              </Text>
+            </div>
+          )}
+        </Stack>
+      )}
+    </div>
+  );
+}
+
+// Settings Save Hook
+function useSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
+  return async (settings) => {
+    if (!settings) return;
+
+    setIsSaving(true);
+    setSaveStatus(null);
+
+    try {
+      chrome.runtime.sendMessage(
+        { type: "setSettings", message: settings },
+        (response) => {
+          // eslint-disable-next-line no-console
+          console.log("AdaptiveSettingsCard: Settings saved:", response);
+
+          chrome.runtime.sendMessage(
+            { type: "clearSettingsCache" },
+            (cacheResponse) => {
+              // eslint-disable-next-line no-console
+              console.log("AdaptiveSettingsCard: Settings cache cleared:", cacheResponse);
+            }
+          );
+
+          if (response?.status === "success") {
+            setSaveStatus({ type: "success", message: "Settings saved successfully!" });
+            setHasChanges(false);
+          } else {
+            setSaveStatus({ type: "error", message: "Failed to save settings. Please try again." });
+          }
+        }
+      );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("AdaptiveSettingsCard: Error saving settings:", error);
+      setSaveStatus({ type: "error", message: "Failed to save settings. Please try again." });
+    } finally {
+      setIsSaving(false);
+      setTimeout(() => setSaveStatus(null), 3000);
+    }
+  };
+}
+
+
+export function AdaptiveSettingsCard() {
+  const [settings, setSettings] = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [maxNewProblems, setMaxNewProblems] = useState(8); // Safe default, prevents breaking
+
+  // Load settings using Chrome message hook
+  const {
+    data: _chromeSettings,
+    loading,
+    error,
+  } = useChromeMessage({ type: "getSettings" }, [], {
+    onSuccess: (response) => {
+      if (response) {
+        setSettings(response);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn("No settings received, using defaults.");
+      }
+    },
+  });
+
+  // Check interview readiness
+  const interviewReadiness = useInterviewReadiness(settings);
+  
+  // Debug settings loading
+  console.log("🔧 AdaptiveSettingsCard state:", { 
+    hasSettings: !!settings, 
+    loading, 
+    error, 
+    interviewMode: settings?.interviewMode,
+    interviewReadiness 
+  });
+
+  // Always ensure settings exist for form controls
+  const workingSettings = settings || {
+    adaptive: true,
+    sessionLength: 8,
+    numberofNewProblemsPerSession: 3,
+    limit: "Auto",
+    reminder: { enabled: true, time: "12" },
+    interviewMode: "disabled",
+    interviewReadinessThreshold: 0.7,
+    interviewFrequency: "manual"
+  };
+
+  // Use settings save hook
+  const handleSave = useSettingsSave(setSaveStatus, setHasChanges, setIsSaving);
+
+  // Ensure settings have proper default values for sessionLength and interview mode
+  useEffect(() => {
+    if (settings && (typeof settings.sessionLength !== 'number' || !settings.interviewMode)) {
+      console.log("🔧 Initializing missing interview settings:", { 
+        sessionLength: settings.sessionLength, 
+        interviewMode: settings.interviewMode 
+      });
+      
+      const defaultSettings = {
+        adaptive: true,
+        sessionLength: 8,
+        numberofNewProblemsPerSession: 3,
+        limit: "Auto",
+        reminder: {
+          enabled: true,
+          time: "12",
+        },
+        // Interview-specific defaults
+        interviewMode: "disabled",
+        interviewReadinessThreshold: 0.8,
+        interviewFrequency: "manual",
+        ...settings
+      };
+      
+      // Only update if the sessionLength or interviewMode is actually missing/invalid
+      if (settings.sessionLength !== defaultSettings.sessionLength || !settings.interviewMode) {
+        console.log("🔧 Setting default interview settings:", defaultSettings);
+        setSettings(defaultSettings);
+      }
+    }
+  }, [settings]);
+
+  // Update max new problems dynamically when settings change (non-blocking)
+  useEffect(() => {
+    const updateMaxNewProblems = async () => {
+      try {
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 2000)
+        );
+        
+        const sessionStatePromise = chrome?.runtime?.sendMessage({ type: "getSessionState" });
+        const sessionState = await Promise.race([sessionStatePromise, timeoutPromise]);
+        
+        const newMax = SessionLimits.getMaxNewProblems(sessionState, settings?.sessionLength);
+        setMaxNewProblems(newMax);
+      } catch (error) {
+        // Silent fallback to prevent breaking settings load
+        const fallbackMax = SessionLimits.getMaxNewProblems(null, settings?.sessionLength);
+        setMaxNewProblems(fallbackMax);
+      }
+    };
+
+    if (settings) {
+      // Run async without blocking component render
+      updateMaxNewProblems().catch(() => {
+        // Final fallback if everything fails
+        setMaxNewProblems(8);
+      });
+    }
+  }, [settings]);
+
+  // Reset settings to defaults
+  const handleReset = async () => {
+    const defaultSettings = {
+      adaptive: true,
+      sessionLength: 8,
+      numberofNewProblemsPerSession: 3,
+      limit: "Auto",
+      reminder: {
+        enabled: true,
+        time: "12",
+      },
+      interviewMode: "disabled",
+      interviewReadinessThreshold: 0.8,
+      interviewFrequency: "manual",
+    };
+    
+    setSettings(defaultSettings);
+    setHasChanges(true);
+    setSaveStatus({ type: "success", message: "Settings reset to defaults!" });
+    
+    // Auto-save after reset
+    setTimeout(() => {
+      handleSave(defaultSettings);
+    }, 500);
+  };
+
+  // Update settings and mark as changed
+  const updateSettings = (newSettings) => {
+    setSettings(newSettings);
+    setHasChanges(true);
+    setSaveStatus(null);
+  };
+
+  if (loading) {
+    return (
+      <Card withBorder p="lg" radius="md">
+        <Stack gap="md">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <IconSettings size={20} />
+            <Title order={4}>Session Settings</Title>
+          </div>
+          <Text size="sm" c="dimmed">Loading settings...</Text>
+        </Stack>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card withBorder p="lg" radius="md">
+        <Stack gap="md">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <IconSettings size={20} />
+            <Title order={4}>Session Settings</Title>
+          </div>
+          <Alert color="red" variant="light">
+            Failed to load settings. Please refresh the page.
+          </Alert>
+        </Stack>
+      </Card>
+    );
+  }
+
+  return (
+    <Card withBorder p="lg" radius="md">
+      <Stack gap="md">
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <IconSettings size={20} />
+          <Title order={4}>Session Settings</Title>
+        </div>
+
+        <Text size="sm" c="dimmed">
+          Configure your learning session parameters. These settings sync with the quick settings in the content overlay.
+        </Text>
+
+        {/* Save Status */}
+        {saveStatus && (
+          <Alert 
+            color={saveStatus.type === "success" ? "green" : "red"} 
+            variant="light"
+          >
+            {saveStatus.message}
+          </Alert>
+        )}
+
+        {/* Adaptive Sessions Toggle */}
+        <div>
+          <AdaptiveSessionToggle
+            adaptive={settings?.adaptive}
+            onChange={(val) => updateSettings({ ...settings, adaptive: val })}
+          />
+        </div>
+
+        {/* Session Controls (conditionally shown when adaptive is off) */}
+        <SessionControls settings={settings} updateSettings={updateSettings} maxNewProblems={maxNewProblems} />
+
+        {/* Time Limits */}
+        <div>
+          <Text size="sm" fw={500} mb="xs">Time Limits</Text>
+          <GradientSegmentedControlTimeLimit
+            value={settings?.limit}
+            onChange={(value) => updateSettings({ ...settings, limit: value })}
+          />
+        </div>
+        
+        {/* Interview Mode Controls */}
+        <InterviewModeControls 
+          settings={workingSettings} 
+          updateSettings={(newSettings) => {
+            setSettings(newSettings);
+            updateSettings(newSettings);
+          }} 
+          interviewReadiness={interviewReadiness}
+        />
+
+        {/* Reminders */}
+        <div>
+          <Text size="sm" fw={500} mb="xs">Reminders</Text>
+          <ToggleSelectRemainders
+            reminder={settings?.reminder}
+            onChange={(updatedReminder) =>
+              updateSettings({
+                ...settings,
+                reminder: { ...settings.reminder, ...updatedReminder },
+              })
+            }
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <Group justify="space-between" pt="md">
+          <SettingsResetButton
+            onReset={handleReset}
+            disabled={loading || isSaving}
+            settingsType="session settings"
+            variant="subtle"
+          />
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <IconInfoCircle size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
+              <Text size="xs" c="dimmed">
+                Changes also sync to content overlay
+              </Text>
+            </div>
+            
+            <Button
+              onClick={() => handleSave(settings)}
+              loading={isSaving}
+              disabled={!hasChanges || loading}
+              size="sm"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </Group>
+      </Stack>
+    </Card>
+  );
+}
