@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Frontend  # if your package.json is inside Frontend/
+        working-directory: chrome-extension-app
 
     steps:
       - uses: actions/checkout@v3
