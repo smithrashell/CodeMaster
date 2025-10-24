@@ -141,6 +141,16 @@ export const codeMasterTheme = createTheme({
       }),
     },
     
+    Card: {
+      styles: (theme) => ({
+        root: {
+          backgroundColor: 'var(--cm-card-bg)',
+          color: 'var(--cm-text)',
+          borderColor: 'var(--cm-border)',
+        },
+      }),
+    },
+    
     MultiSelect: {
       styles: (_theme) => ({
         input: {
