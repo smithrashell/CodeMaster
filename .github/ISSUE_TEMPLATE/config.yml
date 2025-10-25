@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/smithrashell/CodeMaster/tree/main/docs
+    about: Check our comprehensive documentation
+  - name: 💬 Discussions
+    url: https://github.com/smithrashell/CodeMaster/discussions
+    about: Ask questions and discuss ideas
