@@ -286,7 +286,7 @@ self.addEventListener('message', async (event) => {
 ## References
 - [IndexedDB API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
 - [Chrome Extension Storage Guidelines](https://developer.chrome.com/docs/extensions/reference/storage/)
-- [Database Schema Documentation](../../../Frontend/src/shared/db/README.md)
+- [Database Schema Documentation](../../../chrome-extension-app/src/shared/db/README.md)
 
 ## Related ADRs
 - ADR-001: Chrome Extension Architecture
