@@ -105,29 +105,35 @@ Chrome Extension APIs ← Background Script ← Chrome Runtime
 
 ## 🔄 Development Workflow
 
-### Branch Naming Convention
+### Guidelines Documentation
 
-- `feat/feature-name-123` - New features (reference issue number)
-- `fix/bug-description-123` - Bug fixes
-- `docs/documentation-update-123` - Documentation changes
-- `refactor/component-name-123` - Code refactoring
-- `test/test-description-123` - Test additions/improvements
+For detailed information on development workflows, please see:
 
-### Commit Message Format
+- **[Branching Guidelines](docs/BRANCHING_GUIDELINES.md)** - Branch naming conventions and workflow
+- **[Commit Guidelines](docs/COMMIT_GUIDELINES.md)** - Commit message standards and best practices
+- **[Issue Template](.github/ISSUE_TEMPLATE.md)** - Creating well-structured issues
+- **[Pull Request Template](.github/PULL_REQUEST_TEMPLATE.md)** - PR checklist and format
 
-Follow conventional commit standards:
+### Quick Reference
 
-```
-type(scope): brief description
+#### Branch Naming Convention
 
-Detailed description if needed
+Format: `<type>/<scope>-<summary>-<issue#>`
 
-Fixes #123
-```
+Examples:
+- `feat/tag-mastery-visualization-45` - New features
+- `fix/session-race-condition-123` - Bug fixes
+- `docs/update-setup-guide-89` - Documentation changes
+- `refactor/session-orchestrator-67` - Code refactoring
+- `test/session-service-coverage-91` - Test additions/improvements
 
-**Types**: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+**See [Branching Guidelines](docs/BRANCHING_GUIDELINES.md) for complete details.**
 
-**Examples**:
+#### Commit Message Format
+
+Format: `<type>(<scope>): <short summary>`
+
+Examples:
 ```
 feat(hooks): implement useChromeMessage hook for Chrome API standardization
 
@@ -136,15 +142,20 @@ fix(timer): resolve timer component re-rendering issue in content script
 docs(readme): add comprehensive installation instructions
 ```
 
+**See [Commit Guidelines](docs/COMMIT_GUIDELINES.md) for complete details and examples.**
+
 ### Development Process
 
-1. **Create feature branch** from `main`
-2. **Implement changes** following code standards
-3. **Write/update tests** ensuring coverage
-4. **Run linting and tests** locally
-5. **Test Chrome extension** functionality
-6. **Commit with proper messages**
-7. **Push and create pull request**
+1. **Create issue** - Document the work to be done
+2. **Create feature branch** from `main` following naming convention
+3. **Implement changes** following code standards
+4. **Write/update tests** ensuring coverage
+5. **Run linting and tests** locally
+6. **Test Chrome extension** functionality
+7. **Commit with proper messages** following commit guidelines
+8. **Push and create pull request** using PR template
+9. **Address review feedback** if needed
+10. **Merge** once approved
 
 ---
 
