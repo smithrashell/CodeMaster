@@ -53,6 +53,10 @@ Screenshots/
 *_PLAN*.md
 *_SUMMARY*.md
 *_AUDIT*.md
+
+# Exception: Keep official project guidelines
+!COMMIT_GUIDELINES.md
+!BRANCHING_GUIDELINES.md
 COMPREHENSIVE_*.md
 DASHBOARD_*.md
 ENHANCED_*.md
