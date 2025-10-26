@@ -12,7 +12,7 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 **New to the codebase?** Follow this learning path:
 1. Start with the [Chrome Extension Architecture](architecture/chrome-extension.md) to understand how everything connects
 2. Explore the [Database Schema](architecture/database-schema.md) to understand data relationships
-3. Review the [Service Layer](architecture/service-layer.md) to understand business logic organization
+3. Review the [Services API Reference](api/services-api.md) to understand business logic organization
 
 ## 📖 Core Systems Documentation
 
@@ -23,7 +23,7 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 | [Architecture Overview](architecture/overview.md) | High-level system design | Components, data flow, technology stack |
 | [Chrome Extension Architecture](architecture/chrome-extension.md) | Extension-specific architecture | Entry points, messaging, content scripts |
 | [Database Schema](architecture/database-schema.md) | Complete IndexedDB structure | 13 stores, relationships, migrations |
-| [Service Layer](architecture/service-layer.md) | Business logic organization | 17 services, patterns, integration |
+| [Services API Reference](api/services-api.md) | Business logic organization | 17 services, patterns, integration |
 | [Session Management](architecture/session-management.md) | Session lifecycle & analytics | Creation, tracking, completion |
 | [Chrome API Usage](architecture/chrome-api-usage.md) | Chrome extension integration | Messaging patterns, permissions, security |
 
@@ -36,11 +36,6 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 | [**Testing Framework**](development/testing-framework.md) | **Comprehensive testing system** | **Session management, database isolation, snapshots** |
 | [Hooks Implementation](development/hooks-implementation.md) | React hooks patterns | Custom hooks, testing, performance |
 | [Component Refactoring](development/component-refactoring.md) | Refactoring guidelines | Patterns, migration strategy, best practices |
-
-**GitHub Workflow** 🆕
-- [Commit Guidelines](COMMIT_GUIDELINES.md) - Commit message standards
-- [Branching Guidelines](BRANCHING_GUIDELINES.md) - Branch naming conventions
-- [GitHub CLI Guide](GITHUB_CLI_GUIDE.md) - Using `gh` CLI with templates
 
 **Developer Guides** 🆕
 - [Component Development](guides/component-development.md) - Creating new components
@@ -145,7 +140,7 @@ graph TB
 ### I want to...
 
 **Understand the system:**
-- [Architecture Overview](architecture/overview.md) → [Database Schema](architecture/database-schema.md) → [Service Layer](architecture/service-layer.md)
+- [Architecture Overview](architecture/overview.md) → [Database Schema](architecture/database-schema.md) → [Services API](api/services-api.md)
 
 **Add a new feature:**
 - [Contributing Guide](development/contributing.md) → [Coding Standards](development/coding-standards.md) → [Services API](api/services-api.md)
@@ -157,7 +152,7 @@ graph TB
 - [Performance Guide](troubleshooting/performance.md) → [Database API](api/database-api.md) → [Chrome API Usage](architecture/chrome-api-usage.md)
 
 **Understand learning algorithms:**
-- [Leitner System](features/leitner-system.md) → [Adaptive Sessions](features/adaptive-sessions.md) → [Pattern Ladders](features/pattern-ladders.md)
+- [Leitner System](features/leitner-system.md) → [Adaptive Sessions](features/adaptive-sessions.md)
 
 **Work with Chrome extension features:**
 - [Chrome Extension Architecture](architecture/chrome-extension.md) → [Chrome API Usage](architecture/chrome-api-usage.md)
