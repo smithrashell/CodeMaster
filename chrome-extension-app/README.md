@@ -34,7 +34,6 @@ This Chrome extension frontend uses React 18 with a custom hook-based architectu
 - **[Emergency Fixes](docs/troubleshooting/EMERGENCY_FIX.md)** - Critical issue resolution procedures
 - **[File Changes Summary](docs/troubleshooting/FILE_CHANGES_SUMMARY.md)** - Change tracking and impact analysis
 - **[Retry Usage Examples](docs/troubleshooting/RETRY_USAGE_EXAMPLES.md)** - Error handling patterns
-- **[Session Change Tracking](docs/planning/SESSION_CHANGE_TRACKING.md)** - Session system development planning
 - **[Dashboard Data Structure Audit](docs/planning/DASHBOARD_DATA_STRUCTURE_AUDIT.md)** - Data flow analysis
 
 ### Development Tools
@@ -435,7 +434,7 @@ CodeMaster uses IndexedDB for persistent local storage with a comprehensive sche
 - **`settings`**: User preferences and configuration
 - **`backup_storage`**: Database backup and recovery
 
-_For complete schema documentation, see: [IndexedDB Schema Documentation](INDEXEDDB_SCHEMA.md)_
+_For complete schema documentation, see: [Database Schema Documentation](../docs/architecture/database-schema.md)_
 
 ### Component-Store Access Patterns
 

@@ -12,7 +12,7 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 **New to the codebase?** Follow this learning path:
 1. Start with the [Chrome Extension Architecture](architecture/chrome-extension.md) to understand how everything connects
 2. Explore the [Database Schema](architecture/database-schema.md) to understand data relationships
-3. Review the [Service Layer](architecture/service-layer.md) to understand business logic organization
+3. Review the [Services API Reference](api/services-api.md) to understand business logic organization
 
 ## 📖 Core Systems Documentation
 
@@ -23,7 +23,7 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 | [Architecture Overview](architecture/overview.md) | High-level system design | Components, data flow, technology stack |
 | [Chrome Extension Architecture](architecture/chrome-extension.md) | Extension-specific architecture | Entry points, messaging, content scripts |
 | [Database Schema](architecture/database-schema.md) | Complete IndexedDB structure | 13 stores, relationships, migrations |
-| [Service Layer](architecture/service-layer.md) | Business logic organization | 17 services, patterns, integration |
+| [Services API Reference](api/services-api.md) | Business logic organization | 17 services, patterns, integration |
 | [Session Management](architecture/session-management.md) | Session lifecycle & analytics | Creation, tracking, completion |
 | [Chrome API Usage](architecture/chrome-api-usage.md) | Chrome extension integration | Messaging patterns, permissions, security |
 
@@ -37,32 +37,49 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 | [Hooks Implementation](development/hooks-implementation.md) | React hooks patterns | Custom hooks, testing, performance |
 | [Component Refactoring](development/component-refactoring.md) | Refactoring guidelines | Patterns, migration strategy, best practices |
 
+**Developer Guides** 🆕
+- [Component Development](guides/component-development.md) - Creating new components
+- [Service Development](guides/service-development.md) - Creating new services
+- [Chrome Messaging](guides/chrome-messaging.md) - useChromeMessage patterns
+
 ### 🎯 Learning Features
 
 | Document | Purpose | Key Topics |
 |----------|---------|------------|
 | [Leitner Spaced Repetition](features/leitner-system.md) | Spaced repetition system | Box progression, FSRS, scheduling |
 | [Adaptive Sessions](features/adaptive-sessions.md) | Personalized learning sessions | Problem selection, difficulty scaling, real-time adaptation |
-| [Pattern Ladders](features/pattern-ladders.md) | Progressive skill building | Tag-based progression, difficulty scaling |
-| [Strategy Hints](features/strategy-hints.md) | Contextual learning assistance | Hint generation, progressive disclosure |
+| [Interview Sessions](features/interview-sessions.md) | Interview preparation mode | Timed sessions, performance tracking |
+| [Session Types](features/session-types.md) | Different session modes | Review, adaptive, interview |
+| [Tracking Sessions](features/tracking-sessions.md) | Session analytics | Performance metrics, completion tracking |
+
+**New Features** 🆕
+- [Onboarding System](features/onboarding-system.md) - User onboarding tours
+- [Enhanced Hint System](features/hint-system.md) - Contextual hints with analytics
+- [Data Integrity Monitoring](features/data-integrity.md) - Database health checks
 
 ## 🛠️ API Reference
 
 ### Service APIs
-- [**Services API Reference**](api/services-api.md) - Complete guide to all 17 business logic services
+- [**Services API Reference**](api/services-api.md) - Complete guide to all 17+ business logic services
   - Core Services: ProblemService, SessionService, TagService, AttemptsService
-  - Infrastructure: ChromeAPIErrorHandler, IndexedDBRetryService
+  - Infrastructure: ChromeAPIErrorHandler, IndexedDBRetryService, DatabaseProxy
   - Features: StrategyService, DashboardService, OnboardingService
 
-### Database APIs  
+### Database APIs
 - [**Database API Reference**](api/database-api.md) - Complete IndexedDB layer documentation
   - Store APIs: problems, sessions, attempts, tag_mastery, pattern_ladders
   - Utilities: backupDB, restoreDB, migrations, performance optimization
   - Schema: Relationships, indexes, version management
 
+### Hook APIs 🆕
+- [**Hooks API Reference**](api/hooks-api.md) - Custom React hooks
+  - useChromeMessage - Chrome messaging hook
+  - useStrategy - Strategy and hints
+  - useThemeColors - Theme integration
+
 ### Chrome Extension APIs
-- **Chrome Messaging Patterns** - useChromeMessage hook, background script handlers
-- **Content Script Integration** - LeetCode page interaction, problem extraction  
+- [**Chrome Messaging Guide**](guides/chrome-messaging.md) - useChromeMessage patterns
+- **Content Script Integration** - LeetCode page interaction, problem extraction
 - **Storage & Permissions** - Chrome storage API, extension permissions
 
 ## 🐛 Troubleshooting & Support
@@ -123,7 +140,7 @@ graph TB
 ### I want to...
 
 **Understand the system:**
-- [Architecture Overview](architecture/overview.md) → [Database Schema](architecture/database-schema.md) → [Service Layer](architecture/service-layer.md)
+- [Architecture Overview](architecture/overview.md) → [Database Schema](architecture/database-schema.md) → [Services API](api/services-api.md)
 
 **Add a new feature:**
 - [Contributing Guide](development/contributing.md) → [Coding Standards](development/coding-standards.md) → [Services API](api/services-api.md)
@@ -135,7 +152,7 @@ graph TB
 - [Performance Guide](troubleshooting/performance.md) → [Database API](api/database-api.md) → [Chrome API Usage](architecture/chrome-api-usage.md)
 
 **Understand learning algorithms:**
-- [Leitner System](features/leitner-system.md) → [Adaptive Sessions](features/adaptive-sessions.md) → [Pattern Ladders](features/pattern-ladders.md)
+- [Leitner System](features/leitner-system.md) → [Adaptive Sessions](features/adaptive-sessions.md)
 
 **Work with Chrome extension features:**
 - [Chrome Extension Architecture](architecture/chrome-extension.md) → [Chrome API Usage](architecture/chrome-api-usage.md)
@@ -184,10 +201,20 @@ When updating documentation:
 - **Architecture Discussions** - Use GitHub discussions or technical RFC process
 - **Security Issues** - Follow responsible disclosure process in contributing guide
 
+## 📦 Archived Documentation
+
+Historical documentation has been moved to [docs/archive/](archive/) for reference:
+- Implementation summaries and planning documents
+- Temporary analysis and audit files
+- Feature development tracking
+- Bug investigation summaries
+
+These documents are preserved for historical context but are no longer actively maintained.
+
 ---
 
-*This documentation hub is continuously updated to reflect the latest system state. Last updated: $(date +%Y-%m-%d)*
+*This documentation hub is continuously updated to reflect the latest system state. Last updated: 2025-10-25*
 
-**Getting Started?** → [Environment Setup](getting-started/environment-setup.md)  
-**Need Help?** → [Troubleshooting](troubleshooting/common-issues.md)  
+**Getting Started?** → [Environment Setup](getting-started/environment-setup.md)
+**Need Help?** → [Troubleshooting](troubleshooting/common-issues.md)
 **Want to Contribute?** → [Contributing Guide](development/contributing.md)

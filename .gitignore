@@ -39,7 +39,8 @@ capability-*.json
 
 # Backend and development files - keep out of version control
 Backend/
-archive/
+# archive/ - Allow docs/archive for documentation history
+# Use specific patterns instead if needed
 planning-docs/
 Screenshots/
 
