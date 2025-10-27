@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import Header from "../../components/navigation/header";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useNav } from "../../../shared/provider/navprovider";
+import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 
 // Loading component
 const _LoadingState = () => (
@@ -86,7 +87,8 @@ const StatsBreakdown = ({ boxLevelData, totalProblems }) => (
 );
 
 const ProbStat = () => {
-  const { setIsAppOpen } = useNav();
+  const { isAppOpen, setIsAppOpen } = useNav();
+  const { shouldRender, isClosing } = useAnimatedClose(isAppOpen);
   const { state: routeState } = useLocation();
 
   const handleClose = () => {
@@ -141,8 +143,8 @@ const ProbStat = () => {
   );
   const hasData = Object.keys(boxLevelData).length > 0;
 
-  return (
-    <div id="cm-mySidenav" className="cm-sidenav">
+  return shouldRender ? (
+    <div id="cm-mySidenav" className={`cm-sidenav${isClosing ? ' cm-closing' : ''}`}>
       <Header title="Statistics" onClose={handleClose} />
       <div className="cm-sidenav__content cd-stats-container">
         {loading ? (
@@ -180,7 +182,7 @@ const ProbStat = () => {
         )}
       </div>
     </div>
-  );
+  ) : null;
 };
 
 export default ProbStat;
