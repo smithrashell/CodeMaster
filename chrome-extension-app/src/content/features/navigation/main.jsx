@@ -51,16 +51,33 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   const isMainMenu = currPath === "/";
 
   const handleClick = () => {
-    // CM button behavior:
-    // - If closed: open the sidebar
-    // - If open on subpage: navigate to home (stay open)
-    // - If open on main page: navigate to home (no-op, already there)
+    /*
+      UX DECISION: CM Button Handles Navigation Only (Not Closing)
+
+      The CM button is responsible for navigation and opening, but NOT closing.
+      This provides clear separation of concerns:
+      - CM button (CodeMaster logo): Navigation (open sidebar, go to home)
+      - X button (close icon): Closing sidebar
+
+      Benefits of this approach:
+      1. Users have a dedicated "close" action (X button) that works everywhere
+      2. CM button becomes a consistent "home/open" button (predictable behavior)
+      3. Eliminates confusion where CM button sometimes opens, sometimes closes
+      4. Prevents conflicts between navigation and closing actions
+
+      Prior behavior had CM button toggle open/close, which conflicted with
+      the X button and caused the close functionality to fail on subpages.
+
+      Behavior:
+      - If closed: Open the sidebar (shows main menu)
+      - If open on subpage: Navigate to home (sidebar stays open)
+      - If open on main page: No action (already at destination)
+    */
     if (!isAppOpen) {
       setIsAppOpen(true);
     } else if (!isMainMenu) {
       navigate("/");
     }
-    // If already on main page and open, do nothing
   };
 
   const handleLabelChange = (isAppOpen, isMainMenu) => {
@@ -230,6 +247,23 @@ const NavigationSidebar = ({ setIsAppOpen, currentProblem, problemData, problemF
       <Header title="CodeMaster" onClose={() => setIsAppOpen(false)} />
       <div className="cm-sidenav__content">
         <nav id="nav">
+          {/*
+            UX DECISION: Navigation Links Keep Sidebar Open
+
+            These links navigate between pages WITHOUT closing the sidebar.
+            This allows users to browse between Generator/Statistics/Settings
+            while keeping the sidebar visible.
+
+            Benefits:
+            - Users can quickly switch between features
+            - Reduces clicks needed for multi-step workflows
+            - Sidebar state persists during navigation
+            - Only the X button closes the sidebar (clear user intent)
+
+            Prior behavior: Links had onClick={() => setIsAppOpen(false)}
+            which closed the sidebar on every navigation, forcing users to
+            reopen it repeatedly when switching between views.
+          */}
           <Link to="/Probgen">Generator</Link>
           <Link to="/Probstat">Statistics</Link>
           <Link to="/Settings">Settings</Link>
@@ -347,6 +381,25 @@ const Main = () => {
 
   return (
     <div className={`cm-app-container ${isAppOpen ? "cm-app-open" : "cm-app-closed"}`}>
+      {/*
+        ARCHITECTURAL DECISION: <Outlet /> Rendering
+
+        The <Outlet /> is always rendered (not wrapped in conditional display).
+        This allows subpage components (Generator, Statistics, Settings) to:
+        1. Mount and manage their own sidebar visibility independently
+        2. Control their own animations via useAnimatedClose hook
+        3. Remain mounted when navigating between pages while sidebar is open
+
+        Each subpage component uses conditional rendering (shouldRender) from
+        useAnimatedClose to handle its own visibility, rather than relying on
+        a parent wrapper. This provides:
+        - Smoother animations (components control their own transitions)
+        - Better separation of concerns (each page owns its visibility logic)
+        - No conflicts between parent and child visibility states
+
+        Prior architecture had a display:none wrapper here which caused the
+        close button to fail on subpages (issue #146).
+      */}
       <Outlet />
       {shouldRenderNav && (
         <NavigationSidebar
