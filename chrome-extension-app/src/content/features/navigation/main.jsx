@@ -9,6 +9,7 @@ import { ContentOnboardingTour } from "../../components/onboarding";
 import { ProblemPageTimerTour } from "../../components/onboarding/ProblemPageTimerTour";
 // PageSpecificTour moved to App.jsx Router level to detect all route changes
 import logger from "../../../shared/utils/logger.js";
+import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 import {
   useUrlChangeHandler,
   useProblemSubmissionListener,
@@ -50,20 +51,25 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   const isMainMenu = currPath === "/";
 
   const handleClick = () => {
-    if (isAppOpen && !isMainMenu) {
+    // CM button behavior:
+    // - If closed: open the sidebar
+    // - If open on subpage: navigate to home (stay open)
+    // - If open on main page: navigate to home (no-op, already there)
+    if (!isAppOpen) {
+      setIsAppOpen(true);
+    } else if (!isMainMenu) {
       navigate("/");
-    } else {
-      setIsAppOpen(prev => !prev); // Use functional update to avoid stale state
     }
+    // If already on main page and open, do nothing
   };
-  
+
   const handleLabelChange = (isAppOpen, isMainMenu) => {
-    if (isAppOpen && !isMainMenu) {
-      return "Go Home";
-    } else if (isAppOpen && isMainMenu) {
-      return "Close Menu";
-    } else if (!isAppOpen && isMainMenu) {
+    if (!isAppOpen) {
       return "Open Menu";
+    } else if (!isMainMenu) {
+      return "Go Home";
+    } else {
+      return "Home";
     }
   };
   
@@ -215,25 +221,24 @@ const ProblemLink = ({ currentProblem, problemData, problemFound, loading, probl
 };
 
 // Helper component for navigation sidebar
-const NavigationSidebar = ({ isAppOpen, setIsAppOpen, currentProblem, problemData, problemFound, loading, problemTitle }) => {
+const NavigationSidebar = ({ setIsAppOpen, currentProblem, problemData, problemFound, loading, problemTitle, isClosing }) => {
   return (
     <div
       id="cm-mySidenav"
-      className={isAppOpen ? "cm-sidenav" : "cm-sidenav cm-hidden"}
+      className={`cm-sidenav${isClosing ? ' cm-closing' : ''}`}
     >
       <Header title="CodeMaster" onClose={() => setIsAppOpen(false)} />
       <div className="cm-sidenav__content">
         <nav id="nav">
-          <Link to="/Probgen" onClick={() => setIsAppOpen(false)}>Generator</Link>
-          <Link to="/Probstat" onClick={() => setIsAppOpen(false)}>Statistics</Link>
-          <Link to="/Settings" onClick={() => setIsAppOpen(false)}>Settings</Link>
+          <Link to="/Probgen">Generator</Link>
+          <Link to="/Probstat">Statistics</Link>
+          <Link to="/Settings">Settings</Link>
           <ProblemLink
             currentProblem={currentProblem}
             problemData={problemData}
             problemFound={problemFound}
             loading={loading}
             problemTitle={problemTitle}
-            onNavigate={() => setIsAppOpen(false)}
           />
         </nav>
         <ContentThemeToggle />
@@ -276,6 +281,8 @@ const Main = () => {
   const _navigate = useNavigate();
   const { pathname } = useLocation();
   const { isAppOpen, setIsAppOpen } = useNav();
+  const shouldShowNav = pathname === "/";
+  const { shouldRender: shouldRenderNav, isClosing: isNavClosing } = useAnimatedClose(isAppOpen && shouldShowNav);
   const [problemTitle, setProblemTitle] = useState("");
   const [problemFound, setProblemFound] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -336,25 +343,22 @@ const Main = () => {
   const handleCompleteTimerTour = useTimerTourCompleteHandler(setShowTimerTour);
   const handleCloseTimerTour = useTimerTourCloseHandler(setShowTimerTour);
 
-  const shouldShowNav = pathname === "/";
   const _hideBackup = true;
-  
+
   return (
     <div className={`cm-app-container ${isAppOpen ? "cm-app-open" : "cm-app-closed"}`}>
-      <div style={{ display: isAppOpen ? "block" : "none" }}>
-        <Outlet />
-        {shouldShowNav && (
-          <NavigationSidebar
-            isAppOpen={isAppOpen}
-            setIsAppOpen={setIsAppOpen}
-            currentProblem={currentProblem}
-            problemData={problemData}
-            problemFound={problemFound}
-            loading={loading}
-            problemTitle={problemTitle}
-          />
-        )}
-      </div>
+      <Outlet />
+      {shouldRenderNav && (
+        <NavigationSidebar
+          setIsAppOpen={setIsAppOpen}
+          currentProblem={currentProblem}
+          problemData={problemData}
+          problemFound={problemFound}
+          loading={loading}
+          problemTitle={problemTitle}
+          isClosing={isNavClosing}
+        />
+      )}
 
       {/* Content Script Onboarding Tour */}
       {!FORCE_DISABLE_ONBOARDING && (
