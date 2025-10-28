@@ -47,7 +47,7 @@ All notable changes to this project will be documented in this file.
 - Added comprehensive unit tests for close button functionality
 - Added code comments documenting the animation prevention logic
 
-**Onboarding Typos** ([#147](https://github.com/smithrashell/CodeMaster/issues/147)):
+**Onboarding Typos** ([d713ed0](https://github.com/smithrashell/CodeMaster/commit/d713ed0), [#147](https://github.com/smithrashell/CodeMaster/issues/147)):
 - Fixed spelling errors in WelcomeModal: "stuctures" → "structures", "algorthims" → "algorithms"
 - Fixed missing word in ContentOnboardingTour: added "sidebar" to complete sentence
 - Improved professional presentation of first-time user experience
