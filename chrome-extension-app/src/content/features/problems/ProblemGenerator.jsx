@@ -9,6 +9,7 @@ import { useSimilarProblems } from "../../components/problem/useSimilarProblems"
 import { useNav } from "../../../shared/provider/navprovider";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
 import { usePageTour } from "../../components/onboarding/usePageTour";
+import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 
 // Custom hook for settings loading and management
 const useSettingsManager = () => {
@@ -1032,7 +1033,8 @@ const ProblemGeneratorContent = ({
   </>
 );
 function ProbGen() {
-  const { setIsAppOpen } = useNav();
+  const { isAppOpen, setIsAppOpen } = useNav();
+  const { shouldRender, isClosing } = useAnimatedClose(isAppOpen);
   const [problems, setProblems] = useState([]);
   const [cacheClearedRecently, setCacheClearedRecently] = useState(false);
   
@@ -1104,8 +1106,8 @@ function ProbGen() {
       `https://leetcode.com/problems/${problem.slug}/description/`;
   };
 
-  return (
-    <div id="cm-mySidenav" className="cm-sidenav problink">
+  return shouldRender ? (
+    <div id="cm-mySidenav" className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}>
       <Header title="Generator" onClose={handleClose} />
       <div className="cm-sidenav__content">
         <ProblemGeneratorContent
@@ -1125,7 +1127,7 @@ function ProbGen() {
         />
       </div>
     </div>
-  );
+  ) : null;
 }
 
 export default ProbGen;
