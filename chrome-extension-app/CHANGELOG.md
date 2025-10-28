@@ -41,6 +41,17 @@ All notable changes to this project will be documented in this file.
 - Cleaned up unused imports after handler extraction
 - Fixed require-await warnings (84 → 61)
 
+**Close Button Subviews** ([f7e9a16](https://github.com/smithrashell/CodeMaster/commit/f7e9a16), [#146](https://github.com/smithrashell/CodeMaster/issues/146)):
+- Fixed close button not working on all subviews (Settings, Statistics, Problem Generator)
+- Prevented unnecessary animation on initial closed state
+- Added comprehensive unit tests for close button functionality
+- Added code comments documenting the animation prevention logic
+
+**Onboarding Typos** ([d713ed0](https://github.com/smithrashell/CodeMaster/commit/d713ed0), [#147](https://github.com/smithrashell/CodeMaster/issues/147)):
+- Fixed spelling errors in WelcomeModal: "stuctures" → "structures", "algorthims" → "algorithms"
+- Fixed missing word in ContentOnboardingTour: added "sidebar" to complete sentence
+- Improved professional presentation of first-time user experience
+
 ### Changed
 
 **Background Script Organization** ([b45353](https://github.com/smithrashell/CodeMaster/commit/b45353), [c1f1072](https://github.com/smithrashell/CodeMaster/commit/c1f1072)):
