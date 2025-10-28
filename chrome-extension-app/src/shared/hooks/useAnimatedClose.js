@@ -20,8 +20,9 @@ export const useAnimatedClose = (isOpen, animationDuration = SIDEBAR_CLOSE_DURAT
       // Opening: render immediately and clear any pending close animation
       setShouldRender(true);
       setIsClosing(false);
-    } else {
-      // Closing: start animation, then unmount after delay
+    } else if (shouldRender) {
+      // Closing: Only animate if we're currently rendering (transitioning from open to closed)
+      // Don't animate if starting closed (shouldRender is already false)
       setIsClosing(true);
       timer = setTimeout(() => {
         setShouldRender(false);
@@ -34,7 +35,7 @@ export const useAnimatedClose = (isOpen, animationDuration = SIDEBAR_CLOSE_DURAT
         clearTimeout(timer);
       }
     };
-  }, [isOpen, animationDuration]);
+  }, [isOpen, animationDuration, shouldRender]);
 
   return { shouldRender, isClosing };
 };
