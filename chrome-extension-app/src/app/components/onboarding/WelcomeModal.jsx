@@ -30,7 +30,7 @@ import { BrainIcon } from "../../../shared/components/ui/Icons";
 const ONBOARDING_STEPS = [
   {
     title: "Welcome to CodeMaster",
-    subtitle: "Your data stuctures and algorthims personal trainer ",
+    subtitle: "Your data structures and algorithms personal trainer",
     content: "WelcomeStep",
   },
   {
