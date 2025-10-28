@@ -400,7 +400,7 @@ const TOUR_STEPS = [
     id: "cm-button-interactive",
     title: "Opening the Menu",
     content:
-      "Perfect! Now open CodeMaster. The  will appear on the left side.",
+      "Perfect! Now open CodeMaster. The sidebar will appear on the left side.",
     target: "#cm-menuButton",
     position: "auto",
     highlightType: "pointer",
