@@ -10,6 +10,7 @@ import Header from "../../components/navigation/header.jsx";
 import { useChromeMessage, clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
+import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 import SessionLimits from "../../../shared/utils/sessionLimits.js";
 import { component, debug, system } from "../../../shared/utils/logger.js";
 
@@ -763,7 +764,8 @@ const SessionControls = ({ workingSettings, setSettings, maxNewProblems }) => {
 };
 
 const Settings = () => {
-  const { setIsAppOpen } = useNav();
+  const { isAppOpen, setIsAppOpen } = useNav();
+  const { shouldRender, isClosing } = useAnimatedClose(isAppOpen);
   const { settings, setSettings, maxNewProblems, _loading, _error } = useSettingsState();
   const interviewReadiness = useInterviewReadiness(settings);
   
@@ -784,8 +786,8 @@ const Settings = () => {
   // Auto-constrain new problems per session when session length changes
   useAutoConstrainNewProblems(workingSettings, maxNewProblems, setSettings);
 
-  return (
-    <div id="cm-mySidenav" className="cm-sidenav problink">
+  return shouldRender ? (
+    <div id="cm-mySidenav" className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}>
       <Header title="Settings" onClose={handleClose} />
 
       <div className="cm-sidenav__content ">
@@ -842,7 +844,7 @@ const Settings = () => {
         />
       </div>
     </div>
-  );
+  ) : null;
 };
 
 export default Settings;

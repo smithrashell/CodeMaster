@@ -368,8 +368,16 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   display: flex;
   flex-direction: column;
   z-index: var(--cm-z-sidebar);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  transition: transform 0.3s ease;
   box-sizing: border-box;
+  /* Slide-in animation by default */
+  transform: translateX(0);
+}
+
+/* Closing animation - slide out to the left */
+.cm-extension .cm-sidenav.cm-closing {
+  transform: translateX(-100%);
+  pointer-events: none;
   /* Ensure it doesn't cause horizontal scrolling */
   overflow: hidden;
 }
