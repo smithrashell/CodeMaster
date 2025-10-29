@@ -993,13 +993,18 @@ export const ProblemService = {
       const tagMasteryData = await getTagMastery();
       const userPerformance = this.buildUserPerformanceContext(tagMasteryData);
 
-      // Generate reasoning for each problem
-      const problemsWithReasons =
-        ProblemReasoningService.generateSessionReasons(
-          problems,
+      // Generate reasoning for all problems (strategy pattern handles new vs review)
+      const problemsWithReasons = problems.map(problem => {
+        const reason = ProblemReasoningService.generateSelectionReason(
+          problem,
           sessionContext,
           userPerformance
         );
+        return {
+          ...problem,
+          selectionReason: reason
+        };
+      });
 
       logger.info(
         `✅ Added reasoning to ${
