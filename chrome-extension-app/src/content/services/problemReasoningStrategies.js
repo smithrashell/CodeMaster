@@ -45,8 +45,10 @@ export class SpacedRepetitionStrategy extends ReasoningStrategy {
   }
 
   applies(problem, __sessionContext, __userPerformance) {
-    const isReviewProblem = problem.attempts && problem.attempts.length > 0;
-    if (!isReviewProblem) return false;
+    // Check if problem has been attempted before
+    const hasAttempts = problem.attempt_stats && problem.attempt_stats.total_attempts > 0;
+
+    if (!hasAttempts) return false;
 
     const daysSinceLastAttempt = this.calculateDaysSinceLastAttempt(problem);
     return daysSinceLastAttempt >= 7;
@@ -54,13 +56,13 @@ export class SpacedRepetitionStrategy extends ReasoningStrategy {
 
   generateReason(problem, __sessionContext, __userPerformance) {
     const daysSinceLastAttempt = this.calculateDaysSinceLastAttempt(problem);
-    
+
     return {
       type: REASON_TYPES.SPACED_REPETITION,
       details: {
         daysSinceLastAttempt,
         optimalInterval: 7,
-        previousAttempts: problem.attempts.length,
+        previousAttempts: problem.attempt_stats?.total_attempts || 0,
       },
       shortText: `Review: ${daysSinceLastAttempt}d ago`,
       fullText: `Time for spaced repetition review - last attempted ${daysSinceLastAttempt} days ago. This helps strengthen long-term retention.`,
@@ -68,18 +70,15 @@ export class SpacedRepetitionStrategy extends ReasoningStrategy {
   }
 
   calculateDaysSinceLastAttempt(problem) {
-    if (!problem.attempts || problem.attempts.length === 0) return 0;
-
     try {
-      const lastAttempt = problem.attempts
-        .map((attempt) => new Date(attempt.AttemptDate || attempt.date))
-        .filter((date) => !isNaN(date))
-        .sort((a, b) => b - a)[0];
+      // Use last_attempt_date directly from problem object
+      if (!problem.last_attempt_date) return 0;
 
-      if (!lastAttempt) return 0;
+      const lastAttemptDate = new Date(problem.last_attempt_date);
+      if (isNaN(lastAttemptDate)) return 0;
 
       const now = new Date();
-      const daysDiff = Math.floor((now - lastAttempt) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.floor((now - lastAttemptDate) / (1000 * 60 * 60 * 24));
       return Math.max(0, daysDiff);
     } catch (error) {
       console.error("Error calculating days since last attempt:", error);
@@ -204,8 +203,10 @@ export class PerformanceRecoveryStrategy extends ReasoningStrategy {
   }
 
   applies(problem, _sessionContext, _userPerformance) {
-    const isReviewProblem = problem.attempts && problem.attempts.length > 0;
-    return isReviewProblem && this.hasRecentFailures(problem);
+    // Check if problem has been attempted before
+    const hasAttempts = !!(problem.attempt_stats && problem.attempt_stats.total_attempts > 0);
+
+    return hasAttempts && this.hasRecentFailures(problem);
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
@@ -221,15 +222,12 @@ export class PerformanceRecoveryStrategy extends ReasoningStrategy {
   }
 
   hasRecentFailures(problem) {
-    if (!problem.attempts || problem.attempts.length < 2) return false;
+    if (!problem.attempt_stats || problem.attempt_stats.total_attempts < 2) return false;
 
     try {
-      const sortedAttempts = [...problem.attempts].sort(
-        (a, b) => new Date(b.AttemptDate || b.date) - new Date(a.AttemptDate || a.date)
-      );
-
-      const lastTwo = sortedAttempts.slice(0, 2);
-      return lastTwo.every((attempt) => !attempt.Success);
+      const { total_attempts, unsuccessful_attempts } = problem.attempt_stats;
+      // Consider it a recent failure pattern if more than half the attempts failed
+      return unsuccessful_attempts >= (total_attempts / 2);
     } catch (error) {
       console.error("Error checking recent failures:", error);
       return false;
@@ -237,34 +235,22 @@ export class PerformanceRecoveryStrategy extends ReasoningStrategy {
   }
 
   countRecentFailures(problem) {
-    if (!problem.attempts) return 0;
-    
+    if (!problem.attempt_stats) return 0;
+
     try {
-      const sortedAttempts = [...problem.attempts].sort(
-        (a, b) => new Date(b.AttemptDate || b.date) - new Date(a.AttemptDate || a.date)
-      );
-      
-      let failures = 0;
-      for (const attempt of sortedAttempts) {
-        if (!attempt.Success) failures++;
-        else break;
-      }
-      return failures;
+      return problem.attempt_stats.unsuccessful_attempts || 0;
     } catch (error) {
       return 0;
     }
   }
 
   getLastSuccessDate(problem) {
-    if (!problem.attempts) return null;
-    
     try {
-      const sortedAttempts = [...problem.attempts].sort(
-        (a, b) => new Date(b.AttemptDate || b.date) - new Date(a.AttemptDate || a.date)
-      );
-      
-      const lastSuccess = sortedAttempts.find((attempt) => attempt.Success);
-      return lastSuccess ? (lastSuccess.AttemptDate || lastSuccess.date) : null;
+      // If problem has successful attempts, return last attempt date
+      if (problem.attempt_stats?.successful_attempts > 0 && problem.last_attempt_date) {
+        return problem.last_attempt_date;
+      }
+      return null;
     } catch (error) {
       return null;
     }
@@ -316,7 +302,8 @@ export class NewProblemStrategy extends ReasoningStrategy {
   }
 
   applies(problem, _sessionContext, _userPerformance) {
-    return !problem.attempts || problem.attempts.length === 0;
+    // New problem = no attempt_stats or zero attempts
+    return !problem.attempt_stats || problem.attempt_stats.total_attempts === 0;
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
@@ -343,36 +330,37 @@ export class ReviewProblemStrategy extends ReasoningStrategy {
   }
 
   applies(problem, _sessionContext, _userPerformance) {
-    return problem.attempts && problem.attempts.length > 0;
+    // Review problem = has attempt_stats with at least one attempt
+    return !!(problem.attempt_stats && problem.attempt_stats.total_attempts > 0);
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
     const daysSinceLastAttempt = this.calculateDaysSinceLastAttempt(problem);
-    
+
+    // Get total attempts from attempt_stats
+    const totalAttempts = problem.attempt_stats?.total_attempts || 0;
+
     return {
       type: REASON_TYPES.REVIEW_PROBLEM,
       details: {
-        totalAttempts: problem.attempts.length,
+        totalAttempts,
         daysSinceLastAttempt,
       },
-      shortText: `Review: ${problem.attempts.length} attempts`,
-      fullText: `Review problem to maintain proficiency - you've attempted this ${problem.attempts.length} time(s) before.`,
+      shortText: `Review: ${totalAttempts} attempt${totalAttempts !== 1 ? 's' : ''}`,
+      fullText: `Review problem to maintain proficiency - you've attempted this ${totalAttempts} time(s) before.`,
     };
   }
 
   calculateDaysSinceLastAttempt(problem) {
-    if (!problem.attempts || problem.attempts.length === 0) return 0;
-
     try {
-      const lastAttempt = problem.attempts
-        .map((attempt) => new Date(attempt.AttemptDate || attempt.date))
-        .filter((date) => !isNaN(date))
-        .sort((a, b) => b - a)[0];
+      // Use last_attempt_date directly from problem object
+      if (!problem.last_attempt_date) return 0;
 
-      if (!lastAttempt) return 0;
+      const lastAttemptDate = new Date(problem.last_attempt_date);
+      if (isNaN(lastAttemptDate)) return 0;
 
       const now = new Date();
-      const daysDiff = Math.floor((now - lastAttempt) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.floor((now - lastAttemptDate) / (1000 * 60 * 60 * 24));
       return Math.max(0, daysDiff);
     } catch (error) {
       console.error("Error calculating days since last attempt:", error);

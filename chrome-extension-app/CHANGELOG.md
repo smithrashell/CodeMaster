@@ -4,7 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased] - 2025-10-24
+## [Unreleased] - 2025-10-29
+
+### Fixed
+
+**Problem Reasoning for Attempted Problems** ([Issue #151](https://github.com/smithrashell/CodeMaster/issues/151)):
+- Fixed attempted problems incorrectly showing as "new" in problem generator
+- Root cause: Strategies were checking for non-existent `problem.attempts` array
+- Solution: Updated all reasoning strategies to use actual data structure (`attempt_stats`, `last_attempt_date`)
+- Strategies fixed:
+  - `SpacedRepetitionStrategy` - Now uses `attempt_stats.total_attempts`
+  - `PerformanceRecoveryStrategy` - Uses `unsuccessful_attempts` ratio for failure detection
+  - `NewProblemStrategy` - Correctly identifies problems with no attempts
+  - `ReviewProblemStrategy` - Properly identifies previously attempted problems
+- Added 40 comprehensive tests to prevent regression
+- All tests passing with full coverage of edge cases (null, undefined, invalid dates)
 
 ### Changed
 
