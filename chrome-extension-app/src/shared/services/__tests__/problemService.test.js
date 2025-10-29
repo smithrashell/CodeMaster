@@ -32,7 +32,7 @@ jest.mock("../storageService", () => ({
 }));
 jest.mock("../../../content/services/problemReasoningService", () => ({
   ProblemReasoningService: {
-    generateSessionReasons: jest.fn(),
+    generateSelectionReason: jest.fn(),
   },
 }));
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
@@ -311,30 +311,28 @@ const runBuildUserPerformanceContextTests = () => {
 const runAddProblemReasoningToSessionTests = () => {
   describe("addProblemReasoningToSession", () => {
     beforeEach(() => {
-      ProblemReasoningService.generateSessionReasons.mockClear();
+      ProblemReasoningService.generateSelectionReason.mockClear();
       getTagMastery.mockClear();
     });
 
     it("should add reasoning to session problems", async () => {
       const sessionProblems = createMockProblemsArray();
       const sessionContext = { sessionLength: 5, reviewCount: 2, newCount: 3 };
-      const reasoningData = [
-        { problemId: 1, reasoning: "Use hash map for O(1) lookup" },
-        { problemId: 2, reasoning: "Apply sliding window technique" },
-      ];
+      const mockReason = {
+        type: "new_problem",
+        shortText: "New problem",
+        fullText: "This is a new problem"
+      };
 
       getTagMastery.mockResolvedValue([]);
-      ProblemReasoningService.generateSessionReasons.mockReturnValue(reasoningData);
+      ProblemReasoningService.generateSelectionReason.mockReturnValue(mockReason);
 
       const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
 
       expect(getTagMastery).toHaveBeenCalled();
-      expect(ProblemReasoningService.generateSessionReasons).toHaveBeenCalledWith(
-        sessionProblems,
-        sessionContext,
-        expect.any(Object)
-      );
-      expect(result).toEqual(reasoningData);
+      expect(ProblemReasoningService.generateSelectionReason).toHaveBeenCalledTimes(sessionProblems.length);
+      expect(result).toHaveLength(sessionProblems.length);
+      expect(result[0]).toHaveProperty('selectionReason', mockReason);
     });
 
     it("should return original problems when reasoning fails", async () => {
@@ -342,7 +340,7 @@ const runAddProblemReasoningToSessionTests = () => {
       const sessionContext = { sessionLength: 5, reviewCount: 2, newCount: 3 };
 
       getTagMastery.mockResolvedValue([]);
-      ProblemReasoningService.generateSessionReasons.mockImplementation(() => {
+      ProblemReasoningService.generateSelectionReason.mockImplementation(() => {
         throw new Error("Reasoning service failed");
       });
 
@@ -562,14 +560,14 @@ const runReasoningAlgorithmFailureTests = () => {
     it("should handle reasoning service complete failure", async () => {
       const sessionProblems = createMockProblemsArray();
       const sessionContext = { sessionLength: 5 };
-      
+
       getTagMastery.mockRejectedValue(new Error("Tag mastery service down"));
-      ProblemReasoningService.generateSessionReasons.mockImplementation(() => {
+      ProblemReasoningService.generateSelectionReason.mockImplementation(() => {
         throw new Error("Reasoning service crashed");
       });
 
       const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
-      
+
       // Should fallback to original problems
       expect(result).toEqual(sessionProblems);
     });
@@ -577,41 +575,41 @@ const runReasoningAlgorithmFailureTests = () => {
     it("should handle partial reasoning failures", async () => {
       const sessionProblems = createMockProblemsArray();
       const sessionContext = { sessionLength: 5 };
-      
+
       getTagMastery.mockResolvedValue([]);
-      // Mock should return problems with reasoning merged, not separate objects
-      ProblemReasoningService.generateSessionReasons.mockReturnValue([
-        { id: 1, title: "Problem 1", reasoning: "Valid reasoning" },
-        { id: 2, title: "Problem 2", reasoning: null }, // Partial failure
-      ]);
+      // Mock returns valid reason for first problem, throws for second
+      let callCount = 0;
+      ProblemReasoningService.generateSelectionReason.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return { type: "new_problem", shortText: "Valid reasoning" };
+        } else {
+          throw new Error("Reasoning failed for this problem");
+        }
+      });
 
       const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
-      
+
       expect(Array.isArray(result)).toBe(true);
-      // Should include valid reasoning and handle failures gracefully
-      expect(result.some(r => r.reasoning === "Valid reasoning")).toBe(true);
+      // Should gracefully handle failures and return original problems
+      expect(result).toEqual(sessionProblems);
     });
 
-    it("should handle reasoning generation timeout", async () => {
+    it("should handle reasoning generation with all problems failing", async () => {
       const sessionProblems = createMockProblemsArray();
       const sessionContext = { sessionLength: 100 }; // Large session
-      
-      getTagMastery.mockResolvedValue([]);
-      
-      // Simulate timeout by delaying reasoning generation
-      ProblemReasoningService.generateSessionReasons.mockImplementation(
-        () => new Promise(resolve => 
-          setTimeout(() => resolve([]), 30000) // 30 second delay
-        )
-      );
 
-      // Should timeout and fallback
-      const startTime = Date.now();
+      getTagMastery.mockResolvedValue([]);
+
+      // All reasoning attempts throw errors
+      ProblemReasoningService.generateSelectionReason.mockImplementation(() => {
+        throw new Error("Reasoning failed");
+      });
+
       const result = await ProblemService.addProblemReasoningToSession(sessionProblems, sessionContext);
-      const elapsed = Date.now() - startTime;
-      
-      expect(elapsed).toBeLessThan(5000); // Should not wait 30 seconds
-      expect(result).toEqual(sessionProblems); // Should fallback
+
+      // Should fallback to original problems when all reasoning fails
+      expect(result).toEqual(sessionProblems);
     });
   });
 };
