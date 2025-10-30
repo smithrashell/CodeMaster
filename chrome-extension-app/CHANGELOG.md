@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased] - 2025-10-30
+
+### Fixed
+
+**Box Level Distribution Statistics** ([Issue #156](https://github.com/smithrashell/CodeMaster/issues/156)):
+- Fixed Statistics page displaying incorrect box level distribution (all problems shown in Box 1 at 100%)
+- Root cause: `countProblemsByBoxLevelWithRetry()` in `problems.js:1760` reading non-existent `problem.box` field
+- Database correctly stores problems in `box_level` field (Box 2: 3 problems, Box 3: 4 problems)
+- Secondary issue: Function returned array format `[0, 5, 3, 2, 0]` instead of object `{1: 5, 2: 3, 3: 2}`
+- Solution:
+  - Changed `problem.box` to `problem.box_level` on line 1760
+  - Changed return format from array to object to match non-retry version and UI expectations
+  - Updated JSDoc comment from `Promise<Array>` to `Promise<Object>` with example
+  - Added fallback consistency (`box_level = 1`) to non-retry version
+- Added 7 comprehensive regression tests to prevent this bug from recurring
+- Statistics page now accurately displays current box levels from database
+- Files modified: `chrome-extension-app/src/shared/db/problems.js`, `chrome-extension-app/src/shared/db/__tests__/problems.boxlevel.test.js`
+
 ## [Unreleased] - 2025-10-29
 
 ### Fixed
@@ -54,6 +72,17 @@ All notable changes to this project will be documented in this file.
 - Removed 24 unnecessary async keywords from handlers without await
 - Cleaned up unused imports after handler extraction
 - Fixed require-await warnings (84 → 61)
+
+**Close Button Subviews** ([f7e9a16](https://github.com/smithrashell/CodeMaster/commit/f7e9a16), [#146](https://github.com/smithrashell/CodeMaster/issues/146)):
+- Fixed close button not working on all subviews (Settings, Statistics, Problem Generator)
+- Prevented unnecessary animation on initial closed state
+- Added comprehensive unit tests for close button functionality
+- Added code comments documenting the animation prevention logic
+
+**Onboarding Typos** ([d713ed0](https://github.com/smithrashell/CodeMaster/commit/d713ed0), [#147](https://github.com/smithrashell/CodeMaster/issues/147)):
+- Fixed spelling errors in WelcomeModal: "stuctures" → "structures", "algorthims" → "algorithms"
+- Fixed missing word in ContentOnboardingTour: added "sidebar" to complete sentence
+- Improved professional presentation of first-time user experience
 
 ### Changed
 
