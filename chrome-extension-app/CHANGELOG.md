@@ -7,6 +7,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2025-10-30
 
 ### Fixed
+**Attempted Problems in New Problem Pool** ([Issue #160](https://github.com/smithrashell/CodeMaster/issues/160)):
+- Fixed attempted problems incorrectly appearing in new problem pool during session generation
+- Root cause: `loadProblemSelectionContext()` in `problems.js:580` not filtering out attempted problems from `standard_problems` store
+- Impact: Prevents duplicates where same problem appears as both review and "new" problem
+- Solution: Added filtering logic to exclude attempted problems (from `problems` store) before returning available problem pool
+- Ensures proper separation between review pool (attempted) and new pool (unattempted)
+- Verified working by user: Sessions generate without issues after fix
+- File modified: `chrome-extension-app/src/shared/db/problems.js`
+
 
 **Box Level Distribution Statistics** ([Issue #159](https://github.com/smithrashell/CodeMaster/issues/159)):
 - Fixed Statistics page displaying incorrect box level distribution (all problems shown in Box 1 at 100%)
