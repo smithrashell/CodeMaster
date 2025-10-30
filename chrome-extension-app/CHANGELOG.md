@@ -7,6 +7,14 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2025-10-30
 
 ### Fixed
+**Goals Page Onboarding Badges Shown Incorrectly** ([Issue #164](https://github.com/smithrashell/CodeMaster/issues/164)):
+- Fixed Goals page incorrectly showing onboarding restrictions after completing sessions
+- Root cause: Field name mismatch - page used `numSessionsCompleted` (camelCase) but `FocusCoordinationService.isOnboarding()` expected `num_sessions_completed` (snake_case)
+- Impact: Users with 3+ completed sessions still saw "ONBOARDING: MAX 6" badge and single-tag limit
+- Solution: Changed field name to match expected format in `goals.jsx:338`
+- Users now see proper post-onboarding UI (no badges, full session length range, up to 3 focus tags)
+- File modified: `chrome-extension-app/src/app/pages/progress/goals.jsx`
+
 **Attempted Problems in New Problem Pool** ([Issue #160](https://github.com/smithrashell/CodeMaster/issues/160)):
 - Fixed attempted problems incorrectly appearing in new problem pool during session generation
 - Root cause: `loadProblemSelectionContext()` in `problems.js:580` not filtering out attempted problems from `standard_problems` store
