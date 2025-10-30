@@ -583,10 +583,24 @@ async function loadProblemSelectionContext(currentDifficultyCap) {
   const allProblems = await getAllStandardProblems();
   const ladders = await getPatternLadders();
 
-  let availableProblems = allProblems;
+  // Get attempted problems from problems store
+  // All problems in this store have been attempted by the user
+  const attemptedProblems = await fetchAllProblems();
+  const attemptedProblemIds = new Set(
+    attemptedProblems.map(p => Number(p.leetcode_id))
+  );
+  logger.info(`🎯 Excluding ${attemptedProblemIds.size} attempted problems from selection`);
+
+  // Filter out attempted problems
+  let availableProblems = allProblems.filter(problem => {
+    const problemId = Number(problem.id || problem.leetcode_id);
+    return !attemptedProblemIds.has(problemId);
+  });
+  logger.info(`🎯 Available problems after filtering attempts: ${availableProblems.length}/${allProblems.length}`);
+
   if (currentDifficultyCap) {
-    availableProblems = filterProblemsByDifficultyCap(allProblems, currentDifficultyCap);
-    logger.info(`🎯 Difficulty cap applied: ${currentDifficultyCap} (${availableProblems.length}/${allProblems.length} problems)`);
+    availableProblems = filterProblemsByDifficultyCap(availableProblems, currentDifficultyCap);
+    logger.info(`🎯 Difficulty cap applied: ${currentDifficultyCap} (${availableProblems.length} problems)`);
   }
 
   const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
