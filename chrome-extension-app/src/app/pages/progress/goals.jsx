@@ -335,7 +335,7 @@ export function Goals() {
   // Check if user is in onboarding mode using SessionLimits utility
   const getSessionState = () => {
     return {
-      numSessionsCompleted: appState?.allSessions ? appState.allSessions.length : 0
+      num_sessions_completed: appState?.allSessions ? appState.allSessions.length : 0
     };
   };
   const isOnboarding = SessionLimits.isOnboarding(getSessionState());
