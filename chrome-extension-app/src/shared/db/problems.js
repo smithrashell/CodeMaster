@@ -450,7 +450,7 @@ export async function countProblemsByBoxLevel() {
     request.onsuccess = function (event) {
       const cursor = event.target.result;
       if (cursor) {
-        const { box_level } = cursor.value;
+        const { box_level = 1 } = cursor.value;
         boxLevelCounts[box_level] = (boxLevelCounts[box_level] || 0) + 1;
         cursor.continue();
       } else {
@@ -1718,7 +1718,10 @@ export function saveUpdatedProblemWithRetry(problem, options = {}) {
  * Count problems by box level with retry logic
  * Enhanced version of countProblemsByBoxLevel() with timeout and retry handling
  * @param {Object} options - Retry configuration options
- * @returns {Promise<Array>} Box level counts
+ * @returns {Promise<Object>} Box level counts as {boxLevel: count}
+ * @example
+ * // Returns: {1: 5, 2: 3, 3: 2, 4: 1}
+ * const counts = await countProblemsByBoxLevelWithRetry();
  */
 export function countProblemsByBoxLevelWithRetry(options = {}) {
   const {
@@ -1740,14 +1743,14 @@ export function countProblemsByBoxLevelWithRetry(options = {}) {
         request.onerror = () => reject(request.error);
       });
 
-      // Count problems by box level
-      const boxCounts = [0, 0, 0, 0, 0]; // Boxes 0-4
+      // Count problems by box level - return object format to match non-retry version
+      const boxLevelCounts = {};
       problems.forEach((problem) => {
-        const box = Math.min(problem.box || 1, 4); // Cap at box 4
-        boxCounts[box]++;
+        const box_level = problem.box_level || 1;
+        boxLevelCounts[box_level] = (boxLevelCounts[box_level] || 0) + 1;
       });
 
-      return boxCounts;
+      return boxLevelCounts;
     },
     {
       timeout,

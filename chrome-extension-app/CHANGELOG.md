@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased] - 2025-10-30
+
+### Fixed
+
+**Box Level Distribution Statistics** ([Issue #159](https://github.com/smithrashell/CodeMaster/issues/159)):
+- Fixed Statistics page displaying incorrect box level distribution (all problems shown in Box 1 at 100%)
+- Root cause: `countProblemsByBoxLevelWithRetry()` in `problems.js:1760` reading non-existent `problem.box` field
+- Database correctly stores problems in `box_level` field (Box 2: 3 problems, Box 3: 4 problems)
+- Secondary issue: Function returned array format `[0, 5, 3, 2, 0]` instead of object `{1: 5, 2: 3, 3: 2}`
+- Solution:
+  - Changed `problem.box` to `problem.box_level` on line 1760
+  - Changed return format from array to object to match non-retry version and UI expectations
+  - Updated JSDoc comment from `Promise<Array>` to `Promise<Object>` with example
+  - Added fallback consistency (`box_level = 1`) to non-retry version
+- Added 7 comprehensive regression tests to prevent this bug from recurring
+- Statistics page now accurately displays current box levels from database
+- Files modified: `chrome-extension-app/src/shared/db/problems.js`, `chrome-extension-app/src/shared/db/__tests__/problems.boxlevel.test.js`
+
 ## [Unreleased] - 2025-10-29
 
 ### Fixed
