@@ -7,6 +7,22 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2025-10-30
 
 ### Fixed
+**Goals Page Onboarding Badges Shown Incorrectly** ([Issue #164](https://github.com/smithrashell/CodeMaster/issues/164)):
+- Fixed Goals page incorrectly showing onboarding restrictions after completing sessions
+- Root cause: `getGoalsData()` not including `sessions` data in response, causing Goals page to think user had 0 sessions
+- Impact: Users with completed sessions still saw "ONBOARDING: MAX 6" badges and onboarding restrictions
+- Solution:
+  - Updated `getGoalsData()` in `dashboardService.js` to always include `sessions: { allSessions: [...] }` in response
+  - Fixed Goals page to read from `appState.sessions?.allSessions?.length` for onboarding detection
+  - Removed unused `SessionLimits` import and simplified onboarding logic
+- Users now see proper post-onboarding UI (no badges, full session length range) after completing first session
+- Tests updated to verify `sessions` data is always returned
+- Files modified:
+  - `chrome-extension-app/src/app/services/dashboardService.js`
+  - `chrome-extension-app/src/app/pages/progress/goals.jsx`
+  - `chrome-extension-app/src/app/services/__tests__/dashboardService.test.js`
+  - `chrome-extension-app/src/background/__tests__/messageHandlers.test.js`
+
 **Attempted Problems in New Problem Pool** ([Issue #160](https://github.com/smithrashell/CodeMaster/issues/160)):
 - Fixed attempted problems incorrectly appearing in new problem pool during session generation
 - Root cause: `loadProblemSelectionContext()` in `problems.js:580` not filtering out attempted problems from `standard_problems` store

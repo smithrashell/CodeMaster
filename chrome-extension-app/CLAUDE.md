@@ -22,6 +22,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **LOSING USER'S WORK IS UNACCEPTABLE** - Always commit work before exploring alternatives.
 
+### **COMMIT MESSAGE RULES**
+
+**ALL commits must use single-line messages** - Multi-line commits are automatically rejected by git hooks.
+
+**Format**: `type(scope): description`
+
+**Examples**:
+- `fix(goals): remove onboarding badges after session completion`
+- `feat(dashboard): add statistics chart for hint usage`
+- `refactor(db): simplify session query logic`
+
+**Commit Types**:
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation changes
+- `style` - Code style changes
+- `refactor` - Code refactoring
+- `test` - Adding or updating tests
+- `chore` - Maintenance tasks
+
+**Setup Git Hooks** (for enforcing commit rules):
+```bash
+.githooks/setup.sh
+```
+
+See `.githooks/README.md` for more details.
+
 ## Development Commands
 
 - **Build for production**: `npm run build`
