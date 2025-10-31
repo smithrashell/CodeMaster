@@ -138,7 +138,8 @@ describe('Message Handlers - Dashboard Operations', () => {
 
     // Mock dashboard service methods using jest.spyOn
     jest.spyOn(dashboardService, 'getGoalsData').mockResolvedValue({
-      learningPlan: { focus: { primaryTags: ['array'] } }
+      learningPlan: { focus: { primaryTags: ['array'] } },
+      sessions: { allSessions: [] }
     });
     jest.spyOn(dashboardService, 'getStatsData').mockResolvedValue({
       statistics: { totalSolved: 50 }
@@ -456,7 +457,8 @@ describe('Message Handlers - Concurrent Operations', () => {
     jest.clearAllMocks();
 
     jest.spyOn(dashboardService, 'getGoalsData').mockResolvedValue({
-      learningPlan: {}
+      learningPlan: {},
+      sessions: { allSessions: [] }
     });
   });
 

@@ -279,10 +279,28 @@ describe("Page-specific data functions", () => {
   });
 
   describe("getGoalsData", () => {
-    it("should return goals data", async () => {
+    it("should return goals data with learningPlan and sessions", async () => {
       const result = await getGoalsData();
 
       expect(result.learningPlan).toBeDefined();
+      expect(result.sessions).toBeDefined();
+      expect(result.sessions.allSessions).toBeDefined();
+      expect(Array.isArray(result.sessions.allSessions)).toBe(true);
+    });
+
+    it("should include sessions when providedData is passed", async () => {
+      const providedData = {
+        settings: { sessionsPerWeek: 5 },
+        allAttempts: [],
+        allSessions: [],
+        learningState: null
+      };
+
+      const result = await getGoalsData({}, providedData);
+
+      expect(result.learningPlan).toBeDefined();
+      expect(result.sessions).toBeDefined();
+      expect(result.sessions.allSessions).toBeDefined();
     });
   });
 });
