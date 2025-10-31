@@ -4,9 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased] - 2025-10-30
+## [Unreleased] - 2025-10-31
 
 ### Fixed
+**Content Onboarding Tour Step 4 Not Showing** ([Issue #165](https://github.com/smithrashell/CodeMaster/issues/165)):
+- Fixed content onboarding tour stopping at step 3 and never showing step 4
+- Root cause: `useMainTourRecheck` hook had `pathname` in dependency array, causing tour to recheck and hide on every URL change
+- Impact: Users unable to complete onboarding, tour interrupted ~0.75 seconds after step 3 by URL change events
+- Solution:
+  - Removed `pathname` from `useMainTourRecheck` dependency array in `useMainHooks.js:120`
+  - Updated function signature and call site to remove unused pathname parameter
+  - Tour now only rechecks on visibility/completion status changes, not on URL navigation
+- Users can now complete all 9 tour steps without interruption
+- Files modified:
+  - `chrome-extension-app/src/content/features/navigation/useMainHooks.js`
+  - `chrome-extension-app/src/content/features/navigation/main.jsx`
+
 **Goals Page Onboarding Badges Shown Incorrectly** ([Issue #164](https://github.com/smithrashell/CodeMaster/issues/164)):
 - Fixed Goals page incorrectly showing onboarding restrictions after completing sessions
 - Root cause: `getGoalsData()` not including `sessions` data in response, causing Goals page to think user had 0 sessions

@@ -90,9 +90,10 @@ export function useProblemSubmissionListener(fetchProblemData, setProblemFound, 
 }
 
 /**
- * Re-checks main tour status when navigating to different pages
+ * Re-checks main tour status when tour visibility or completion status changes
+ * Note: Does NOT recheck on pathname changes to avoid interrupting tour in progress
  */
-export function useMainTourRecheck(pathname, showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding) {
+export function useMainTourRecheck(showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding) {
   useEffect(() => {
     const recheckMainTourStatus = async () => {
       // Only recheck if main tour is currently showing
@@ -117,7 +118,8 @@ export function useMainTourRecheck(pathname, showContentOnboarding, contentOnboa
     };
 
     recheckMainTourStatus();
-  }, [pathname, showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding]);
+  }, [showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding]);
+  // Removed pathname dependency to prevent tour interruption on URL changes
 }
 
 /**
