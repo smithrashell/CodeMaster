@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
-import SessionLimits from "../../../shared/utils/sessionLimits.js";
 import { CadenceSettingsSection } from "./CadenceSettingsSection.jsx";
 import { FocusPrioritiesSection } from "./FocusPrioritiesSection.jsx";
 import { GuardrailsSection } from "./GuardrailsSection.jsx";
@@ -78,14 +77,14 @@ const calculateOutcomeTrends = (appState, getAccuracyStatus, getProblemsStatus, 
 /**
  * Update all learning plan data when appState changes
  */
-function updateLearningPlanData({ 
-  appState, 
-  isOnboarding, 
+function updateLearningPlanData({
+  appState,
+  isOnboarding,
   getters,
   setters,
-  generators 
+  generators
 }) {
-  const { getSessionState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus } = getters;
+  const { getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus } = getters;
   const { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions, setOutcomeTrends } = setters;
   const { generateMissionsWithRealProgress } = generators;
   // Update cadence settings with real user data, maintaining system defaults as fallbacks
@@ -96,21 +95,19 @@ function updateLearningPlanData({
 
   // Update focus priorities with real system recommendations and user preferences
   setFocusPriorities(prev => ({
-    primaryTags: appState.learningPlan.focus?.userFocusAreas || 
-                appState.learningPlan.focus?.systemFocusTags || 
+    primaryTags: appState.learningPlan.focus?.userFocusAreas ||
+                appState.learningPlan.focus?.systemFocusTags ||
                 ['Array', 'Hash Table', 'String', 'Sorting', 'Math'], // System default recommendations
     difficultyDistribution: appState.learningPlan.focus?.difficultyDistribution || prev.difficultyDistribution,
     reviewRatio: appState.learningPlan.focus?.reviewRatio || 40
   }));
 
   // Update guardrails with onboarding-aware limits
-  const sessionState = getSessionState();
-  const sessionLimits = SessionLimits.getSessionLimits(sessionState);
-  
+  // Use isOnboarding directly: 4 new problems during onboarding, 8 after
   setGuardrails(_prev => ({
     minReviewRatio: appState.learningPlan.guardrails?.minReviewRatio || 30,
-    maxNewProblems: sessionLimits.maxNewProblems, // Onboarding-aware: 4 during onboarding, 8 after
-    difficultyCapEnabled: sessionLimits.isOnboarding, // Enable difficulty cap during onboarding
+    maxNewProblems: isOnboarding ? 4 : 8, // Onboarding-aware: 4 during onboarding, 8 after
+    difficultyCapEnabled: isOnboarding, // Enable difficulty cap during onboarding
     hintLimitEnabled: appState.learningPlan.guardrails?.hintLimitEnabled || false,
     maxHintsPerProblem: appState.learningPlan.guardrails?.maxHintsPerProblem || 0
   }));
@@ -332,13 +329,10 @@ export function Goals() {
   const statusUtils = useStatusUtils();
   const { getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus } = statusUtils;
 
-  // Check if user is in onboarding mode using SessionLimits utility
-  const getSessionState = () => {
-    return {
-      numSessionsCompleted: appState?.allSessions ? appState.allSessions.length : 0
-    };
-  };
-  const isOnboarding = SessionLimits.isOnboarding(getSessionState());
+  // Check if user is in onboarding mode (threshold: 1 session)
+  // Use the same path as line 48: appState.sessions?.allSessions
+  const numSessions = appState?.sessions?.allSessions?.length || 0;
+  const isOnboarding = numSessions < 1;
 
   // Create save settings function
   const saveSettings = createSaveSettings(cadenceSettings, focusPriorities, guardrails);
@@ -359,7 +353,7 @@ export function Goals() {
       updateLearningPlanData({
         appState,
         isOnboarding,
-        getters: { getSessionState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus },
+        getters: { getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus },
         setters: { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions, setOutcomeTrends },
         generators: { generateMissionsWithRealProgress }
       });

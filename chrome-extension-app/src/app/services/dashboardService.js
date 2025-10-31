@@ -1781,16 +1781,32 @@ export async function getGoalsData(options = {}, providedData = null) {
   try {
     if (providedData) {
       // Use provided data directly
-      return await generateGoalsData(providedData);
+      const goalsData = await generateGoalsData(providedData);
+      // Fetch sessions data separately for onboarding detection
+      const allSessions = await getAllSessions();
+      const sessionAnalytics = generateSessionAnalytics(allSessions, []);
+      return {
+        ...goalsData,
+        sessions: sessionAnalytics
+      };
     } else {
       // Fallback: try existing method but catch errors gracefully
       try {
         const fullData = await getDashboardStatistics(options);
-        return fullData.goals || await generateGoalsData();
+        const goalsData = fullData.goals || await generateGoalsData();
+        // Include sessions data for onboarding detection
+        return {
+          ...goalsData,
+          sessions: fullData.sessions || { allSessions: [] }
+        };
       } catch (error) {
         // If getDashboardStatistics fails, use fallback
         logger.warn("getDashboardStatistics failed, using fallback goals data");
-        return await generateGoalsData();
+        const fallbackData = await generateGoalsData();
+        return {
+          ...fallbackData,
+          sessions: { allSessions: [] }
+        };
       }
     }
   } catch (error) {
@@ -1808,7 +1824,8 @@ export async function getGoalsData(options = {}, providedData = null) {
           hintEfficiency: { value: 0, status: "behind", display: "<0 per problem" },
           learningVelocity: { value: "Steady", status: "adaptive" }
         }
-      }
+      },
+      sessions: { allSessions: [] }
     };
   }
 }
