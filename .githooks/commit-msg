@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Git commit-msg hook to enforce single-line commit messages
+# This prevents multi-line commits and enforces the project's commit style
+
+COMMIT_MSG_FILE=$1
+COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+
+# Count non-empty lines (excluding comments)
+LINE_COUNT=$(echo "$COMMIT_MSG" | grep -v "^#" | grep -v "^$" | wc -l)
+
+# Check if there's more than one non-empty line
+if [ "$LINE_COUNT" -gt 1 ]; then
+    echo "❌ ERROR: Multi-line commit messages are not allowed in this repository."
+    echo ""
+    echo "Your commit message has $LINE_COUNT lines."
+    echo ""
+    echo "Please use a single-line commit message following this format:"
+    echo "  type(scope): description"
+    echo ""
+    echo "Examples:"
+    echo "  fix(goals): remove onboarding badges after session completion"
+    echo "  feat(dashboard): add new statistics chart"
+    echo "  refactor(db): simplify session query logic"
+    echo ""
+    echo "Commit types: feat, fix, docs, style, refactor, test, chore"
+    echo ""
+    exit 1
+fi
+
+# Check commit message length (recommended max 72 characters)
+MSG_LENGTH=$(echo "$COMMIT_MSG" | head -n 1 | wc -c)
+if [ "$MSG_LENGTH" -gt 100 ]; then
+    echo "⚠️  WARNING: Commit message is very long ($MSG_LENGTH characters)."
+    echo "Consider keeping it under 72 characters for better readability."
+    echo ""
+fi
+
+exit 0
