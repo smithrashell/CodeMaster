@@ -127,7 +127,12 @@ export const useMenuStateMonitor = () => {
   useEffect(() => {
     const checkMenuState = () => {
       const menuElement = document.querySelector("#cm-mySidenav");
-      const isOpen = menuElement && !menuElement.classList.contains("cm-hidden");
+      if (!menuElement) {
+        // Menu doesn't exist yet - keep state as false (menu is closed/not rendered)
+        setMenuOpenState(false);
+        return false;
+      }
+      const isOpen = !menuElement.classList.contains("cm-hidden");
       setMenuOpenState(isOpen);
       return isOpen;
     };
@@ -135,20 +140,42 @@ export const useMenuStateMonitor = () => {
     // Initial check
     checkMenuState();
 
+    let menuObserverAttached = false;
+    const menuObserver = new MutationObserver(() => {
+      checkMenuState();
+    });
+
+    // Observer to watch for menu element being added to DOM
+    const domObserver = new MutationObserver(() => {
+      const menuElement = document.querySelector("#cm-mySidenav");
+      if (menuElement && !menuObserverAttached) {
+        menuObserverAttached = true;
+        checkMenuState();
+        menuObserver.observe(menuElement, {
+          attributes: true,
+          attributeFilter: ['class']
+        });
+        domObserver.disconnect(); // Stop watching once we found it
+      }
+    });
+
     // Watch for menu visibility changes
     const menuElement = document.querySelector("#cm-mySidenav");
     if (menuElement) {
-      const observer = new MutationObserver(() => {
-        checkMenuState();
-      });
-
-      observer.observe(menuElement, {
+      menuObserver.observe(menuElement, {
         attributes: true,
         attributeFilter: ['class']
       });
-
-      return () => observer.disconnect();
+      menuObserverAttached = true;
+    } else {
+      // Watch for menu element to be added
+      domObserver.observe(document.body, { childList: true, subtree: true });
     }
+
+    return () => {
+      menuObserver.disconnect();
+      domObserver.disconnect();
+    };
   }, []);
 
   return menuOpenState;

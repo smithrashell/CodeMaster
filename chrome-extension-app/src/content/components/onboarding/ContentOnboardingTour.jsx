@@ -562,46 +562,138 @@ const useTourPositioning = (isVisible, currentStepData, currentStep) => {
 
 // Custom hook for menu state monitoring
 const useMenuStateMonitoring = (isVisible) => {
-  const [menuOpenState, setMenuOpenState] = useState(false);
+  const [menuOpenState, setMenuOpenState] = useState(() => {
+    logger.info(`🔍 useState INITIALIZER called, returning false`);
+    return false;
+  });
+
+  logger.info(`🔍 useMenuStateMonitoring CALLED: isVisible=${isVisible}, current menuOpenState=${menuOpenState}`);
 
   useEffect(() => {
-    if (!isVisible) return;
+    logger.info(`🔍 useMenuStateMonitoring effect: isVisible=${isVisible}, currentState=${menuOpenState}`);
+    if (!isVisible) {
+      logger.info(`⚠️ useMenuStateMonitoring: not visible, returning early`);
+      return;
+    }
 
     const checkMenuState = () => {
       const menuElement = document.querySelector("#cm-mySidenav");
-      const isOpen = menuElement && !menuElement.classList.contains("cm-hidden");
+      if (!menuElement) {
+        // Menu doesn't exist yet - keep state as false (menu is closed/not rendered)
+        logger.info(`🔍 Menu state check: Menu element not found, keeping state as false`);
+        setMenuOpenState(false);
+        return false;
+      }
+      const isOpen = !menuElement.classList.contains("cm-hidden");
+      logger.info(`🔍 Menu state check: isOpen=${isOpen}, element=true, hasClass=${menuElement.classList.contains("cm-hidden")}`);
       setMenuOpenState(isOpen);
-      logger.info("Menu state check:", { isOpen, element: !!menuElement });
+      return isOpen;
     };
 
     checkMenuState();
 
-    const observer = new MutationObserver((mutations) => {
+    let menuObserverAttached = false;
+    const menuObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.type === "attributes" && mutation.attributeName === "class") {
+          logger.info(`🔍 MutationObserver detected class change on menu`);
           checkMenuState();
         }
       });
     });
 
+    // Observer to watch for menu element being added to DOM
+    const domObserver = new MutationObserver(() => {
+      const menuElement = document.querySelector("#cm-mySidenav");
+      if (menuElement && !menuObserverAttached) {
+        logger.info(`✅ Menu element appeared in DOM, attaching observer`);
+        menuObserverAttached = true;
+        checkMenuState();
+        menuObserver.observe(menuElement, { attributes: true });
+        domObserver.disconnect(); // Stop watching once we found it
+      }
+    });
+
     const menuElement = document.querySelector("#cm-mySidenav");
     if (menuElement) {
-      observer.observe(menuElement, { attributes: true });
+      menuObserver.observe(menuElement, { attributes: true });
+      menuObserverAttached = true;
+      logger.info(`✅ MutationObserver attached to existing menu`);
+    } else {
+      // Watch for menu element to be added
+      domObserver.observe(document.body, { childList: true, subtree: true });
+      logger.info(`👀 Watching for menu element to appear in DOM`);
     }
 
-    return () => observer.disconnect();
+    return () => {
+      logger.info(`🧹 useMenuStateMonitoring cleanup`);
+      menuObserver.disconnect();
+      domObserver.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isVisible]);
 
+  logger.info(`🔍 useMenuStateMonitoring returning: ${menuOpenState}`);
   return menuOpenState;
+};
+
+// Custom hook to monitor for target element existence
+const useTargetElementMonitoring = (isVisible, currentStepData) => {
+  const [targetExists, setTargetExists] = useState(false);
+
+  useEffect(() => {
+    if (!isVisible || !currentStepData.target) {
+      return;
+    }
+
+    const checkTargetExists = () => {
+      const targetElement = document.querySelector(currentStepData.target);
+      const exists = !!targetElement;
+      if (exists !== targetExists) {
+        logger.info(`🎯 Target element ${currentStepData.target} ${exists ? 'appeared' : 'disappeared'}`);
+        setTargetExists(exists);
+      }
+      return exists;
+    };
+
+    // Initial check
+    checkTargetExists();
+
+    // Watch for target element to appear
+    const targetObserver = new MutationObserver(() => {
+      checkTargetExists();
+    });
+
+    // Watch the menu element specifically for menu-related targets
+    if (currentStepData.requiresMenuOpen) {
+      const menuElement = document.querySelector("#cm-mySidenav");
+      if (menuElement) {
+        targetObserver.observe(menuElement, { childList: true, subtree: true });
+        logger.info(`👀 Watching menu for target element: ${currentStepData.target}`);
+      } else {
+        // Watch body if menu doesn't exist yet
+        targetObserver.observe(document.body, { childList: true, subtree: true });
+        logger.info(`👀 Watching body for target element: ${currentStepData.target}`);
+      }
+    }
+
+    return () => {
+      targetObserver.disconnect();
+    };
+  }, [isVisible, currentStepData.target, currentStepData.requiresMenuOpen, targetExists]);
+
+  return targetExists;
 };
 
 // Custom hook for tour navigation logic
 const useTourNavigation = (currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete, onClose, navigate }) => {
   const proceedToNextStep = useCallback(() => {
+    logger.info(`🚶 proceedToNextStep called: currentStep=${currentStep}, nextStep=${currentStep + 1}`);
     if (currentStep < TOUR_STEPS.length - 1) {
       const nextStep = currentStep + 1;
+      logger.info(`✅ Advancing to step ${nextStep}: ${TOUR_STEPS[nextStep]?.id}`);
       setCurrentStep(nextStep);
-      
+
       // Check if next step requires user interaction
       if (TOUR_STEPS[nextStep]?.waitForUserClick) {
         setIsWaitingForInteraction(true);
@@ -609,11 +701,13 @@ const useTourNavigation = (currentStep, { setCurrentStep, setIsWaitingForInterac
         setIsWaitingForInteraction(false);
       }
     } else {
+      logger.info(`🎉 Tour complete, calling onComplete()`);
       onComplete();
     }
   }, [currentStep, onComplete, setCurrentStep, setIsWaitingForInteraction]);
 
   const handleNext = useCallback(() => {
+    logger.info(`👆 handleNext clicked: currentStep=${currentStep}`);
     const currentStepData = TOUR_STEPS[currentStep];
 
     // Auto-trigger UI element if specified
@@ -779,9 +873,21 @@ const getStepIcon = (stepId) => {
 
 // Helper function to check if step should be shown
 const shouldShowStep = (currentStepData, menuOpenState) => {
+  // Check if menu needs to be open
   if (currentStepData.requiresMenuOpen && !menuOpenState) {
+    logger.info(`❌ shouldShowStep: Menu required but not open (menuOpenState=${menuOpenState})`);
     return false;
   }
+
+  // Check if target element exists (except for center/completion steps)
+  if (currentStepData.target && currentStepData.screenKey !== "completion") {
+    const targetElement = document.querySelector(currentStepData.target);
+    if (!targetElement) {
+      logger.info(`❌ shouldShowStep: Target element not found: ${currentStepData.target}`);
+      return false;
+    }
+  }
+
   return true;
 };
 
@@ -921,6 +1027,8 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   // Use extracted hooks
   const { tourPosition, arrowPosition, hasInitiallyPositioned } = useTourPositioning(isVisible, currentStepData, currentStep);
   const menuOpenState = useMenuStateMonitoring(isVisible);
+  // Monitor for target element existence (triggers re-render when element appears)
+  useTargetElementMonitoring(isVisible, currentStepData);
   const { handleNext, handlePrevious, handleNavigation } = useTourNavigation(
     currentStep, { setCurrentStep, setIsWaitingForInteraction, onComplete: handleTourComplete, onClose: handleTourClose, navigate }
   );
@@ -930,12 +1038,17 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   // Use extracted effect for interaction handling
   useInteractionHandlingEffect(isWaitingForInteraction, currentStepData, setIsWaitingForInteraction, handleNext, onComplete);
 
+  // Debug logging for step 4 issue
+  logger.info(`🔍 RENDER CHECK: step=${currentStep}, isVisible=${isVisible}, menuOpenState=${menuOpenState}, requiresMenuOpen=${currentStepData?.requiresMenuOpen}, shouldShow=${shouldShowStep(currentStepData, menuOpenState)}`);
+
   if (!isVisible || !shouldShowStep(currentStepData, menuOpenState)) {
+    logger.info(`❌ BLOCKING RENDER: isVisible=${isVisible}, shouldShow=${shouldShowStep(currentStepData, menuOpenState)}, step=${currentStep}, stepId=${currentStepData?.id}`);
     return null;
   }
 
   // Don't show tour until positioning is complete to prevent flash
   if (!hasInitiallyPositioned || !tourPosition) {
+    logger.info(`❌ BLOCKING RENDER (positioning): hasPositioned=${hasInitiallyPositioned}, hasPosition=${!!tourPosition}, step=${currentStep}`);
     return null;
   }
 

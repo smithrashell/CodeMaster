@@ -90,10 +90,10 @@ export function useProblemSubmissionListener(fetchProblemData, setProblemFound, 
 }
 
 /**
- * Re-checks main tour status when tour visibility or completion status changes
- * Note: Does NOT recheck on pathname changes to avoid interrupting tour in progress
+ * Re-checks main tour status when navigating to different pages
+ * Safe to recheck on pathname changes now that DOM element monitoring is fixed
  */
-export function useMainTourRecheck(showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding) {
+export function useMainTourRecheck(pathname, showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding) {
   useEffect(() => {
     const recheckMainTourStatus = async () => {
       // Only recheck if main tour is currently showing
@@ -118,8 +118,7 @@ export function useMainTourRecheck(showContentOnboarding, contentOnboardingStatu
     };
 
     recheckMainTourStatus();
-  }, [showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding]);
-  // Removed pathname dependency to prevent tour interruption on URL changes
+  }, [pathname, showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding]);
 }
 
 /**
