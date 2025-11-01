@@ -4,21 +4,43 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased] - 2025-10-31
+## [Unreleased] - 2025-11-01
 
 ### Fixed
-**Content Onboarding Tour Step 4 Not Showing** ([Issue #165](https://github.com/smithrashell/CodeMaster/issues/165)):
-- Fixed content onboarding tour stopping at step 3 and never showing step 4
-- Root cause: `useMainTourRecheck` hook had `pathname` in dependency array, causing tour to recheck and hide on every URL change
-- Impact: Users unable to complete onboarding, tour interrupted ~0.75 seconds after step 3 by URL change events
+**Tour Steps Missing Across All Tours** ([Issue #165](https://github.com/smithrashell/CodeMaster/issues/165)):
+- Fixed multiple onboarding tours with missing steps (main content tour step 4, timer tour step 2, page-specific tours)
+- Root cause: DOM monitoring code (`bodyObserver`) was accidentally removed during ESLint refactoring (commit 8aad9fd)
+  - Original implementation (commit 33aac47) had `bodyObserver` watching for menu element being added to DOM
+  - Menu state was set to `null` instead of `false` when menu didn't exist, blocking tour rendering
+  - No observer to detect when menu element appeared, preventing tour from continuing
+- Impact: Users unable to complete onboarding tours - tour cards disappeared when advancing to steps requiring menu
 - Solution:
-  - Removed `pathname` from `useMainTourRecheck` dependency array in `useMainHooks.js:120`
-  - Updated function signature and call site to remove unused pathname parameter
-  - Tour now only rechecks on visibility/completion status changes, not on URL navigation
-- Users can now complete all 9 tour steps without interruption
+  - Restored DOM monitoring (`domObserver`) in all tour components to watch for menu element appearing
+  - Fixed `menuOpenState` to return `false` instead of `null` when menu doesn't exist
+  - Added `useTargetElementMonitoring` hook to wait for target elements before rendering steps
+  - Updated `shouldShowStep` to validate target element existence
+  - Re-added `pathname` dependency to `useMainTourRecheck` (safe now with proper DOM monitoring)
+- Tours affected and fixed:
+  - `ContentOnboardingTour.jsx` - Main content onboarding (9 steps)
+  - `PageSpecificTour.jsx` - Problem Generator, Statistics, Settings tours
+  - `TimerTourPositioningHooks.js` - Timer mini-tour (3 steps)
 - Files modified:
+  - `chrome-extension-app/src/content/components/onboarding/ContentOnboardingTour.jsx`
+  - `chrome-extension-app/src/content/components/onboarding/PageSpecificTour.jsx`
+  - `chrome-extension-app/src/content/components/onboarding/TimerTourPositioningHooks.js`
   - `chrome-extension-app/src/content/features/navigation/useMainHooks.js`
   - `chrome-extension-app/src/content/features/navigation/main.jsx`
+
+**Close Button Not Working on Problem Details Page**:
+- Fixed close (X) button not working on Problem Details page (accessed via `/ProbTime` route)
+- Root cause: `ProblemTime.jsx` was missed in previous close button fix (PR #154) that fixed Generator, Statistics, and Settings
+- Impact: Users couldn't close sidebar on Problem Submission/Details pages, had to use CM button instead
+- Solution: Applied `useAnimatedClose` hook pattern to `ProblemTime.jsx`:
+  - Added `useAnimatedClose` import and hook usage
+  - Added conditional rendering with `shouldRender` check
+  - Added `cm-closing` CSS class for 300ms slide-out animation
+- File modified:
+  - `chrome-extension-app/src/content/features/problems/ProblemTime.jsx`
 
 **Goals Page Onboarding Badges Shown Incorrectly** ([Issue #164](https://github.com/smithrashell/CodeMaster/issues/164)):
 - Fixed Goals page incorrectly showing onboarding restrictions after completing sessions
