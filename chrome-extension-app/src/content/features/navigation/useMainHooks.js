@@ -91,6 +91,7 @@ export function useProblemSubmissionListener(fetchProblemData, setProblemFound, 
 
 /**
  * Re-checks main tour status when navigating to different pages
+ * Safe to recheck on pathname changes now that DOM element monitoring is fixed
  */
 export function useMainTourRecheck(pathname, showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding) {
   useEffect(() => {

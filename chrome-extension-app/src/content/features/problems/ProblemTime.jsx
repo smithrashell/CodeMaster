@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useNav } from "../../../shared/provider/navprovider";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
+import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 import ProbSubmission from "../problems/ProblemSubmission";
 import ProbDetail from "../problems/ProblemDetail";
 import Header from "../../components/navigation/header.jsx";
@@ -11,7 +12,8 @@ import Header from "../../components/navigation/header.jsx";
 const ProbTime = () => {
   const { state: routeState, pathname } = useLocation();
   const navigate = useNavigate();
-  const { setIsAppOpen } = useNav();
+  const { isAppOpen, setIsAppOpen } = useNav();
+  const { shouldRender, isClosing } = useAnimatedClose(isAppOpen);
 
   const handleClose = () => {
     setIsAppOpen(false);
@@ -55,8 +57,8 @@ const ProbTime = () => {
 
   // Render the form if coming from the Timer route
 
-  return (
-    <div id="cm-mySidenav" className="cm-sidenav problink">
+  return shouldRender ? (
+    <div id="cm-mySidenav" className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}>
       <Header
         title={
           previousRoute == "/Timer" ? "Problem Submission" : "Problem Details"
@@ -71,7 +73,7 @@ const ProbTime = () => {
         )}
       </div>
     </div>
-  );
+  ) : null;
 };
 
 export default ProbTime;
