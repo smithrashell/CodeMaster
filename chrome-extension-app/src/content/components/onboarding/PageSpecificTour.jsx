@@ -393,25 +393,54 @@ function useMenuStateMonitor() {
   useEffect(() => {
     const checkMenuState = () => {
       const menuElement = document.querySelector("#cm-mySidenav");
-      const isOpen =
-        menuElement && !menuElement.classList.contains("cm-hidden");
+      if (!menuElement) {
+        // Menu doesn't exist yet - keep state as false (menu is closed/not rendered)
+        setMenuOpenState(false);
+        return false;
+      }
+      const isOpen = !menuElement.classList.contains("cm-hidden");
       setMenuOpenState(isOpen);
+      return isOpen;
     };
 
-    // Check immediately and set up observer
+    // Check immediately
     checkMenuState();
 
-    // Watch for menu state changes
-    const observer = new MutationObserver(checkMenuState);
+    let menuObserverAttached = false;
+    const menuObserver = new MutationObserver(() => {
+      checkMenuState();
+    });
+
+    // Observer to watch for menu element being added to DOM
+    const domObserver = new MutationObserver(() => {
+      const menuElement = document.querySelector("#cm-mySidenav");
+      if (menuElement && !menuObserverAttached) {
+        menuObserverAttached = true;
+        checkMenuState();
+        menuObserver.observe(menuElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+        domObserver.disconnect(); // Stop watching once we found it
+      }
+    });
+
     const menuElement = document.querySelector("#cm-mySidenav");
     if (menuElement) {
-      observer.observe(menuElement, {
+      menuObserver.observe(menuElement, {
         attributes: true,
         attributeFilter: ["class"],
       });
+      menuObserverAttached = true;
+    } else {
+      // Watch for menu element to be added
+      domObserver.observe(document.body, { childList: true, subtree: true });
     }
 
-    return () => observer.disconnect();
+    return () => {
+      menuObserver.disconnect();
+      domObserver.disconnect();
+    };
   }, []);
 
   return menuOpenState;
@@ -673,6 +702,51 @@ function getStepIcon(stepType) {
   }
 }
 
+// Custom hook to monitor for target element existence
+function useTargetElementMonitoring(isVisible, currentStepData) {
+  const [targetExists, setTargetExists] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isVisible || !currentStepData?.target) {
+      return;
+    }
+
+    const checkTargetExists = () => {
+      const targetElement = document.querySelector(currentStepData.target);
+      const exists = !!targetElement;
+      if (exists !== targetExists) {
+        setTargetExists(exists);
+      }
+      return exists;
+    };
+
+    // Initial check
+    checkTargetExists();
+
+    // Watch for target element to appear
+    const targetObserver = new MutationObserver(() => {
+      checkTargetExists();
+    });
+
+    // Watch the menu element specifically for menu-related targets
+    if (currentStepData.requiresMenuOpen) {
+      const menuElement = document.querySelector("#cm-mySidenav");
+      if (menuElement) {
+        targetObserver.observe(menuElement, { childList: true, subtree: true });
+      } else {
+        // Watch body if menu doesn't exist yet
+        targetObserver.observe(document.body, { childList: true, subtree: true });
+      }
+    }
+
+    return () => {
+      targetObserver.disconnect();
+    };
+  }, [isVisible, currentStepData?.target, currentStepData?.requiresMenuOpen, targetExists]);
+
+  return targetExists;
+}
+
 // Helper function to check if step should be shown
 function shouldShowStep(currentStepData, menuOpenState) {
   // For steps that require menu open, check if we can auto-trigger it
@@ -683,6 +757,15 @@ function shouldShowStep(currentStepData, menuOpenState) {
     }
     return false; // Hide step if menu is required but can't be opened
   }
+
+  // Check if target element exists (skip for center/null target steps)
+  if (currentStepData?.target) {
+    const targetElement = document.querySelector(currentStepData.target);
+    if (!targetElement) {
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -707,19 +790,21 @@ export function PageSpecificTour({
   const currentStepData = steps[currentStep];
 
   const menuOpenState = useMenuStateMonitor();
+  // Monitor for target element existence (triggers re-render when element appears)
+  useTargetElementMonitoring(isVisible, currentStepData);
   const { tourPosition, arrowPosition, hasInitiallyPositioned } = useSmartPositioning(isVisible, currentStepData, currentStep, menuOpenState);
   const { handleNext, handlePrevious, handleSkip, forceHoverState } = useTourNavigation(
-    currentStep, 
-    setCurrentStep, 
-    steps, 
-    onComplete, 
+    currentStep,
+    setCurrentStep,
+    steps,
+    onComplete,
     onClose
   );
 
   // Use custom hooks for complex effects
   useForceHoverEffect(isVisible, currentStepData, currentStep, forceHoverState);
   useAutoTriggerEffects(isVisible, currentStepData, menuOpenState);
-  
+
   // Handle early tour completion on specific interactions
   useEarlyTourCompletion(isVisible, tourConfig, _tourId, onComplete);
 

@@ -368,7 +368,7 @@ const Main = () => {
   // Use custom hooks for complex logic
   useUrlChangeHandler(handleUrlChange);
   useProblemSubmissionListener(fetchProblemData, setProblemFound, setProblemData);
-  useMainTourRecheck(showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding);
+  useMainTourRecheck(pathname, showContentOnboarding, contentOnboardingStatus, setShowContentOnboarding);
   useTimerTourCheck(pathname, contentOnboardingStatus, showContentOnboarding, setShowTimerTour);
 
   // Event handlers from custom hooks
