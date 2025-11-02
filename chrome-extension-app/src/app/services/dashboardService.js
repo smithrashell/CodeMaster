@@ -108,7 +108,10 @@ function createDashboardProblemMappings(allProblems, allStandardProblems) {
 function applyFiltering({ allProblems, allAttempts, allSessions, problemTagsMap, focusAreaFilter, dateRange }) {
   let filteredProblems = allProblems;
   let filteredAttempts = allAttempts;
-  let filteredSessions = allSessions;
+
+  // Filter to only include completed sessions
+  // Dashboard should not display incomplete/abandoned sessions
+  let filteredSessions = allSessions.filter(session => session.status === 'completed');
 
   // Apply focus area filtering if specified
   if (focusAreaFilter && focusAreaFilter.length > 0) {
