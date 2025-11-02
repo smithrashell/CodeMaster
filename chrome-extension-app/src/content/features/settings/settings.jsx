@@ -673,7 +673,12 @@ const handleInterviewSettingsUpdate = (workingSettings, newSettings, handleSave)
 const useAutoConstrainNewProblems = (workingSettings, maxNewProblems, setSettings) => {
   useEffect(() => {
     if (workingSettings?.sessionLength && workingSettings?.numberofNewProblemsPerSession) {
-      const maxAllowed = Math.min(maxNewProblems, workingSettings.sessionLength);
+      // If sessionLength is 'auto', only constrain by maxNewProblems
+      // Otherwise, use the smaller of maxNewProblems or sessionLength
+      const maxAllowed = workingSettings.sessionLength === 'auto'
+        ? maxNewProblems
+        : Math.min(maxNewProblems, workingSettings.sessionLength);
+
       if (workingSettings.numberofNewProblemsPerSession > maxAllowed) {
         setSettings(prev => ({
           ...prev,

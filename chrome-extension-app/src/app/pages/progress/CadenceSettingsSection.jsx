@@ -50,9 +50,10 @@ export function CadenceSettingsSection({
             )}
           </Group>
           <Select
-            value={cadenceSettings.sessionLength.toString()}
-            onChange={(value) => onCadenceChange('sessionLength', parseInt(value))}
+            value={cadenceSettings.sessionLength === 'auto' ? 'auto' : cadenceSettings.sessionLength.toString()}
+            onChange={(value) => onCadenceChange('sessionLength', value === 'auto' ? 'auto' : parseInt(value))}
             data={[
+              { value: "auto", label: "Auto (system decides)" },
               { value: "3", label: "3 problems" },
               { value: "4", label: "4 problems" },
               { value: "5", label: "5 problems" },
@@ -63,9 +64,16 @@ export function CadenceSettingsSection({
               ])
             ]}
           />
-          {isOnboarding && (
+          {isOnboarding ? (
             <Text size="xs" c="orange" mt="md">
               🔰 During onboarding, maximum session length is capped at 6 problems for optimal learning
+            </Text>
+          ) : (
+            <Text size="xs" c="dimmed" mt="xs">
+              {cadenceSettings.sessionLength === 'auto'
+                ? "📊 Algorithm adjusts session length based on performance (3-12 problems)"
+                : `🔒 Sessions will never exceed ${cadenceSettings.sessionLength} problems`
+              }
             </Text>
           )}
         </div>

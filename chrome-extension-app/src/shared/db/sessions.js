@@ -1198,25 +1198,23 @@ function computeSessionLength(accuracy, efficiencyScore, userPreferredLength = 4
 }
 
 /**
- * Blend user session length preference with adaptive calculation
- * Uses 70% adaptive intelligence, 30% user preference for optimal balance
+ * Apply user session length preference as a hard maximum
+ * Supports "Auto" mode for full adaptive control, or numeric max for hard cap
  */
 function applySessionLengthPreference(adaptiveLength, userPreferredLength) {
-  if (!userPreferredLength || userPreferredLength <= 0) {
-    return adaptiveLength; // Use pure adaptive if no valid preference
+  // Auto mode: let algorithm decide fully (null, 0, 'auto', or undefined)
+  if (!userPreferredLength || userPreferredLength === 'auto' || userPreferredLength <= 0) {
+    return adaptiveLength;
   }
-  
-  // Blend: 70% adaptive intelligence, 30% user preference
-  const blended = Math.round(adaptiveLength * 0.7 + userPreferredLength * 0.3);
-  
-  // Keep within adaptive system bounds (3-12 problems)
-  const result = Math.max(3, Math.min(12, blended));
-  
-  if (result !== adaptiveLength) {
-    logger.info(`🎛️ Session length blended: Adaptive ${adaptiveLength} + User ${userPreferredLength} = ${result}`);
+
+  // Numeric value: treat as hard maximum cap (never exceed user preference)
+  const cappedLength = Math.min(adaptiveLength, userPreferredLength);
+
+  if (cappedLength !== adaptiveLength) {
+    logger.info(`🔒 Session length capped: Adaptive ${adaptiveLength} → User max ${userPreferredLength} = ${cappedLength}`);
   }
-  
-  return result;
+
+  return cappedLength;
 }
 
 // Helper function to filter sessions by time or recent count

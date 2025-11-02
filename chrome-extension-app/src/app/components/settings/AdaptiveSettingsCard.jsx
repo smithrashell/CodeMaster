@@ -262,7 +262,7 @@ function InterviewModeControls({ settings, updateSettings, _interviewReadiness }
 function getDefaultSettings() {
   return {
     adaptive: true,
-    sessionLength: 8,
+    sessionLength: 'auto', // Auto mode lets algorithm decide (3-12 problems based on performance)
     numberofNewProblemsPerSession: 3,
     limit: "Auto",
     reminder: {
@@ -409,9 +409,12 @@ function useMaxNewProblems(settings) {
 // Settings initialization hook
 function useSettingsInitialization(settings, setSettings) {
   useEffect(() => {
-    if (settings && (typeof settings.sessionLength !== 'number' || !settings.interviewMode)) {
+    // sessionLength can be 'auto' or a number
+    const hasValidSessionLength = typeof settings?.sessionLength === 'number' || settings?.sessionLength === 'auto';
+
+    if (settings && (!hasValidSessionLength || !settings.interviewMode)) {
       const defaultSettings = { ...getDefaultSettings(), ...settings };
-      
+
       // Only update if the sessionLength or interviewMode is actually missing/invalid
       if (settings.sessionLength !== defaultSettings.sessionLength || !settings.interviewMode) {
         setSettings(defaultSettings);
