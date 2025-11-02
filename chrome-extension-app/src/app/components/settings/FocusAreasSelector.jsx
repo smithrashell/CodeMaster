@@ -32,8 +32,6 @@ import {
 // Note: Using Chrome messaging for all service calls to comply with extension architecture
 // All database access goes through background script
 
-
-
 export function FocusAreasSelector() {
   const {
     availableTags: _availableTags, setAvailableTags,
@@ -58,7 +56,6 @@ export function FocusAreasSelector() {
 
   // Track explanation expand/collapse
   const [showExplanation, setShowExplanation] = React.useState(false);
-
   // Helper function wrapper for the extracted function
   const getTagMasteryProgressWrapper = (tagName) => getTagMasteryProgress(tagName, masteryData);
 
@@ -93,7 +90,6 @@ export function FocusAreasSelector() {
     await resetFocusAreasSettings(setters);
   };
 
-
   if (loading) {
     return <LoadingState />;
   }
@@ -108,7 +104,6 @@ export function FocusAreasSelector() {
           showExplanation={showExplanation}
           onToggle={() => setShowExplanation(!showExplanation)}
         />
-
         {/* Current Focus Areas - MOVED TO TOP for visibility */}
         <CurrentFocusAreasSection
           currentSessionTags={currentSessionTags}
@@ -122,7 +117,6 @@ export function FocusAreasSelector() {
             {error}
           </Alert>
         )}
-
         {/* Tier Classification Visualization */}
         <TierTagsVisualization
           focusAvailability={focusAvailability}
@@ -135,7 +129,6 @@ export function FocusAreasSelector() {
           activeTab={activeTab}
           onSelectedTierChange={setSelectedTier}
         />
-
         {/* Your Next Session Will Focus - REACTIVE to selectedFocusAreas */}
         <ActiveSessionTagsPreview
           selectedFocusAreas={selectedFocusAreas}
