@@ -1,6 +1,6 @@
 import logger from "../../../shared/utils/logger.js";
 import { Container, Grid, Title, Group, Button, Text } from "@mantine/core";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
@@ -157,33 +157,8 @@ const createSettingsHandlers = (settings, handlers, context) => {
   };
 };
 
-// Helper function to save settings using consolidated messaging utility
-const createSaveSettings = (cadenceSettings, focusPriorities, guardrails) => {
-  return async () => {
-    try {
-      // Get current settings first to preserve other settings
-      const currentSettings = await settingsMessaging.getAllSettings();
-      
-      const updatedSettings = {
-        ...currentSettings,
-        sessionsPerWeek: cadenceSettings.sessionsPerWeek,
-        sessionLength: cadenceSettings.sessionLength,
-        focusAreas: focusPriorities.primaryTags,
-        difficultyDistribution: focusPriorities.difficultyDistribution,
-        reviewRatio: focusPriorities.reviewRatio,
-        numberofNewProblemsPerSession: guardrails.maxNewProblems
-      };
-
-      const response = await settingsMessaging.saveSettings(updatedSettings);
-      
-      if (!response || response.status !== "success") {
-        logger.error("Failed to save settings");
-      }
-    } catch (error) {
-      logger.error("Failed to save settings:", error);
-    }
-  };
-};
+// NOTE: createSaveSettings has been removed - now using useCallback in Goals component
+// to avoid stale closure bugs where old state values were being saved
 
 // Helper component for loading and error states
 function LoadingErrorStates({ loading, error, refresh }) {
@@ -334,9 +309,33 @@ export function Goals() {
   const numSessions = appState?.sessions?.allSessions?.length || 0;
   const isOnboarding = numSessions < 1;
 
-  // Create save settings function
-  const saveSettings = createSaveSettings(cadenceSettings, focusPriorities, guardrails);
-  
+  // Create save settings function using useCallback to avoid stale closures
+  // This ensures we always read the latest state values when saving
+  const saveSettings = useCallback(async () => {
+    try {
+      // Get current settings first to preserve other settings
+      const currentSettings = await settingsMessaging.getAllSettings();
+
+      const updatedSettings = {
+        ...currentSettings,
+        sessionsPerWeek: cadenceSettings.sessionsPerWeek,
+        sessionLength: cadenceSettings.sessionLength,
+        focusAreas: focusPriorities.primaryTags,
+        difficultyDistribution: focusPriorities.difficultyDistribution,
+        reviewRatio: focusPriorities.reviewRatio,
+        numberofNewProblemsPerSession: guardrails.maxNewProblems
+      };
+
+      const response = await settingsMessaging.saveSettings(updatedSettings);
+
+      if (!response || response.status !== "success") {
+        logger.error("Failed to save settings");
+      }
+    } catch (error) {
+      logger.error("Failed to save settings:", error);
+    }
+  }, [cadenceSettings, focusPriorities, guardrails]);
+
   // Create handlers
   const handlers = createSettingsHandlers(
     { cadenceSettings, focusPriorities, guardrails },

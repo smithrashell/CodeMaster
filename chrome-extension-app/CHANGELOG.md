@@ -7,6 +7,63 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2025-11-02
 
 ### Fixed
+**"Max Session Length" Not Enforced as Maximum** ([Issue #162](https://github.com/smithrashell/CodeMaster/issues/162)):
+- Fixed "Max session length (problems)" setting not being enforced as a hard maximum cap
+- Root cause: `applySessionLengthPreference()` function in `sessions.js` was blending user preference with adaptive algorithm (70/30 split)
+  - Users who set max to 5 problems could still receive 10+ problems when algorithm suggested higher counts
+  - Function formula: `(algorithmSuggestion × 0.7) + (userPreference × 0.3)` violated user expectations
+- Impact: Users unable to enforce session length limits due to time constraints or cognitive load preferences
+  - Setting "Max 5 problems" could still generate 8-10+ problem sessions
+  - Misleading UX: Label said "Max" but behavior was "preference blending"
+  - Users with limited time/energy couldn't reliably control session workload
+- Solution: Changed behavior to enforce hard maximum cap + added "Auto" mode
+  - **Core Logic**: Modified `applySessionLengthPreference()` to use `Math.min(adaptiveLength, userPreferredLength)` instead of blending
+  - **Auto Mode**: Added support for `sessionLength: 'auto'` to let algorithm fully control (3-12 problems based on performance)
+  - **UI Updates**: Added "Auto (system decides)" option to session length dropdowns
+  - **Helper Text**: Added dynamic explanations showing current mode behavior
+  - **New Defaults**: Changed default `sessionLength` from numeric to `'auto'` for new users
+- Behavior changes:
+  - Auto mode: Algorithm freely adjusts (3-12 problems) - RECOMMENDED for adaptive learning
+  - Numeric (3-10): Hard cap enforced - never exceeds user's maximum
+  - User sets 5, algorithm suggests 3 → User gets 3 ✅
+  - User sets 5, algorithm suggests 12 → User gets 5 ✅ (previously got 10)
+  - User sets "Auto", algorithm suggests 12 → User gets 12 ✅
+- **Additional fixes for Issue #162**:
+  - **Onboarding Session Length Not Respecting User Preference**:
+    - Root cause: `applyOnboardingSettings()` hardcoded session length to 4, completely ignoring user preference
+    - Impact: Users who set 5 or 6 problems during onboarding only received 4 problems
+    - Solution: Updated logic to respect user preference up to onboarding max (6 problems)
+      - Uses `SessionLimits.getMaxSessionLength(sessionState)` for centralized limit
+      - Calls `normalizeSessionLengthForCalculation()` to handle 'auto' mode → 4
+      - Applies cap: `Math.min(normalizedUserLength, maxOnboardingSessionLength)`
+    - File: `chrome-extension-app/src/shared/db/sessions.js` (lines 465-499)
+  - **Stale Closure Bug in Goals Page Save**:
+    - Root cause: `createSaveSettings()` factory function created stale closures over initial state values
+    - Impact: Selecting "4 problems" in dropdown saved as 5 in database (off-by-one effect)
+    - Solution: Replaced factory function with `useCallback` hook to always read latest state
+      - Proper dependency array: `[cadenceSettings, focusPriorities, guardrails]`
+      - Prevents closure over stale state values
+      - Ensures saved values match displayed values
+    - File: `chrome-extension-app/src/app/pages/progress/goals.jsx` (lines 312-337)
+  - **Session Length Normalization Helper**:
+    - Added `normalizeSessionLengthForCalculation()` helper function (lines 1202-1218)
+    - Converts 'auto'/''/null/undefined/0 → 4 (default base length)
+    - Validates numeric values and returns default for invalid input
+    - Used by both onboarding and post-onboarding logic for consistency
+  - **Linting Cleanup**:
+    - Fixed FocusAreasSelector.jsx max-lines-per-function warning (reduced 135 → 130 lines)
+    - File: `chrome-extension-app/src/app/components/settings/FocusAreasSelector.jsx`
+- Files modified:
+  - `chrome-extension-app/src/shared/db/sessions.js` - Core logic fix + onboarding fix + helper function
+  - `chrome-extension-app/src/app/pages/progress/CadenceSettingsSection.jsx` - Added Auto option + helper text
+  - `chrome-extension-app/src/app/pages/progress/goals.jsx` - Fixed stale closure bug with useCallback
+  - `chrome-extension-app/src/app/components/settings/defaultSettings.js` - Changed default to 'auto'
+  - `chrome-extension-app/src/app/components/settings/AdaptiveSettingsCard.jsx` - Changed default + validation for 'auto'
+  - `chrome-extension-app/src/app/components/settings/FocusAreasSelector.jsx` - Linting cleanup
+  - `chrome-extension-app/src/shared/services/storageService.js` - Changed default + migration check for 'auto'
+  - `chrome-extension-app/src/content/features/settings/settings.jsx` - Fixed constraint logic for 'auto' mode
+  - `chrome-extension-app/src/shared/services/__tests__/storageService.critical.test.js` - Updated test expectations
+
 **Dashboard Overview Showing Incomplete Sessions** ([Issue #152](https://github.com/smithrashell/CodeMaster/issues/152)):
 - Fixed dashboard Overview page displaying incomplete/in-progress sessions instead of only completed sessions
 - Root cause: `applyFiltering()` function in `dashboardService.js` was not filtering sessions by completion status

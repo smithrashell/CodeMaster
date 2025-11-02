@@ -109,7 +109,7 @@ const runSettingsIntegrityTests = () => {
       
       // Verify default values
       expect(settings.theme).toBe('light');
-      expect(settings.sessionLength).toBe(5);
+      expect(settings.sessionLength).toBe('auto'); // Default is 'auto' mode for full adaptive control
       expect(settings.adaptive).toBe(true);
       expect(Array.isArray(settings.focusAreas)).toBe(true);
     });
@@ -158,7 +158,8 @@ const runErrorRecoveryTests = () => {
       expect(defaults).toHaveProperty('theme');
       expect(defaults).toHaveProperty('sessionLength');
       expect(defaults.theme).toBe('light');
-      expect(typeof defaults.sessionLength).toBe('number');
+      // sessionLength can be 'auto' (string) or a number
+      expect(defaults.sessionLength === 'auto' || typeof defaults.sessionLength === 'number').toBe(true);
     });
 
     it('should provide valid accessibility defaults', () => {
@@ -181,15 +182,18 @@ const runDataTypeIntegrityTests = () => {
   describe('Data Type Integrity', () => {
     it('should maintain correct data types for critical settings', () => {
       const defaults = StorageService._createDefaultSettings();
-      
+
       // Type validation for critical settings
-      expect(typeof defaults.sessionLength).toBe('number');
+      // sessionLength can be 'auto' (string) or a number
+      expect(defaults.sessionLength === 'auto' || typeof defaults.sessionLength === 'number').toBe(true);
       expect(typeof defaults.adaptive).toBe('boolean');
       expect(typeof defaults.numberofNewProblemsPerSession).toBe('number');
       expect(Array.isArray(defaults.focusAreas)).toBe(true);
       
       // Validate ranges for numeric values
-      expect(defaults.sessionLength).toBeGreaterThan(0);
+      if (typeof defaults.sessionLength === 'number') {
+        expect(defaults.sessionLength).toBeGreaterThan(0);
+      }
       expect(defaults.numberofNewProblemsPerSession).toBeGreaterThan(0);
     });
 

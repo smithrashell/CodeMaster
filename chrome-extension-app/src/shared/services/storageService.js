@@ -116,7 +116,7 @@ export const StorageService = {
   _createDefaultSettings() {
     return {
       theme: "light",
-      sessionLength: 5,
+      sessionLength: 'auto', // Auto mode lets algorithm decide (3-12 problems based on performance)
       limit: "off",
       reminder: { value: false, label: "6" },
       numberofNewProblemsPerSession: 2,
@@ -330,7 +330,7 @@ export const StorageService = {
       // If we got default settings, try to migrate from Chrome storage
       if (
         existingSettings.theme === "light" &&
-        existingSettings.sessionLength === 5
+        (existingSettings.sessionLength === 'auto' || existingSettings.sessionLength === 5)
       ) {
         const chromeSettings = await new Promise((resolve) => {
           chrome.storage.local.get(["settings"], (result) => {
