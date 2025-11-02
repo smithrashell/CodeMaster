@@ -60,7 +60,8 @@ function createMockData() {
         id: "session1",
         Date: "2025-01-01T10:00:00Z",
         problems: [{ id: "1", solved: true }],
-        sessionType: "adaptive"
+        sessionType: "adaptive",
+        status: "completed"
       }
     ],
     mockStandardProblems: [

@@ -4,9 +4,30 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased] - 2025-11-01
+## [Unreleased] - 2025-11-02
 
 ### Fixed
+**Dashboard Overview Showing Incomplete Sessions** ([Issue #152](https://github.com/smithrashell/CodeMaster/issues/152)):
+- Fixed dashboard Overview page displaying incomplete/in-progress sessions instead of only completed sessions
+- Root cause: `applyFiltering()` function in `dashboardService.js` was not filtering sessions by completion status
+  - Function applied focus area and date range filters but never checked `session.status === 'completed'`
+  - All sessions (completed and in-progress) were passed through to dashboard statistics
+- Impact: Dashboard showed misleading progress data including abandoned/incomplete sessions
+  - Session history displayed incomplete sessions
+  - Session statistics potentially included incomplete session data
+  - Users saw inaccurate progress metrics and session counts
+- Solution: Added status filter to `applyFiltering()` function:
+  - Filter sessions to only include those with `status === 'completed'`
+  - Applied at the start of filtering pipeline before focus area and date filters
+  - Ensures all dashboard pages (Overview, Session History, Productivity Insights) only display completed sessions
+- Test updates:
+  - Updated mock session data in `dashboardService.test.js` to include `status: "completed"` field
+  - Updated mock session data in `dashboardService.critical.test.js` to include `status: "completed"` field
+- Files modified:
+  - `chrome-extension-app/src/app/services/dashboardService.js`
+  - `chrome-extension-app/src/app/services/__tests__/dashboardService.test.js`
+  - `chrome-extension-app/src/app/services/__tests__/dashboardService.critical.test.js`
+
 **Tour Steps Missing Across All Tours** ([Issue #165](https://github.com/smithrashell/CodeMaster/issues/165)):
 - Fixed multiple onboarding tours with missing steps (main content tour step 4, timer tour step 2, page-specific tours)
 - Root cause: DOM monitoring code (`bodyObserver`) was accidentally removed during ESLint refactoring (commit 8aad9fd)

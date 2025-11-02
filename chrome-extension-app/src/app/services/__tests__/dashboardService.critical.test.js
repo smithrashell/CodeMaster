@@ -346,8 +346,8 @@ describe("DashboardService - Critical User Retention Paths", () => {
       ]);
       
       getAllSessions.mockResolvedValue([
-        { sessionId: "s1", Date: "2024-01-15", completed: true, duration: 45 },
-        { sessionId: "s2", Date: "2024-01-14", completed: true, duration: 30 }
+        { sessionId: "s1", Date: "2024-01-15", completed: true, duration: 45, status: "completed" },
+        { sessionId: "s2", Date: "2024-01-14", completed: true, duration: 30, status: "completed" }
       ]);
       
       getAllStandardProblems.mockResolvedValue([
