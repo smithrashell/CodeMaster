@@ -139,7 +139,12 @@ export function ElementHighlighter({
     const element = document.querySelector(targetSelector);
     if (element) {
       setTargetElement(element);
-      updateElementRect(element);
+
+      // Delay measurement until fonts/styles fully settle
+      // Fixes cut-off on first render due to style application timing
+      setTimeout(() => {
+        updateElementRect(element);
+      }, 100);
 
       // Scroll element into view if needed
       element.scrollIntoView({
@@ -162,13 +167,45 @@ export function ElementHighlighter({
 
   const updateElementRect = (element) => {
     const rect = element.getBoundingClientRect();
+    const computed = window.getComputedStyle(element);
+
+    // Default to original rect dimensions
+    let finalWidth = rect.width;
+    let finalLeft = rect.left;
+    let finalHeight = rect.height;
+    let finalTop = rect.top;
+
+    // For navigation links in the sidebar, exclude padding from highlight box
+    // This makes the blue box fit the text content instead of the full clickable area
+    const shouldExcludePadding =
+      element.tagName === 'A' &&
+      element.closest('#cm-mySidenav') !== null;
+
+    if (shouldExcludePadding) {
+      // Extract all padding values
+      const paddingLeft = parseFloat(computed.paddingLeft) || 0;
+      const paddingRight = parseFloat(computed.paddingRight) || 0;
+      const paddingTop = parseFloat(computed.paddingTop) || 0;
+      const paddingBottom = parseFloat(computed.paddingBottom) || 0;
+
+      // Calculate buffer based on font size for better scaling across zoom levels
+      const fontSize = parseFloat(computed.fontSize) || 18;
+      const BUFFER = Math.max(2, Math.round(fontSize * 0.11)); // ~10% of font size, minimum 2px
+
+      // Adjust both horizontal and vertical dimensions to exclude padding
+      finalWidth = rect.width - paddingLeft - paddingRight + (BUFFER * 2);
+      finalLeft = rect.left + paddingLeft - BUFFER;
+      finalHeight = rect.height - paddingTop - paddingBottom + (BUFFER * 2);
+      finalTop = rect.top + paddingTop - BUFFER;
+    }
+
     setElementRect({
-      top: rect.top + window.scrollY,
-      left: rect.left + window.scrollX,
-      width: rect.width,
-      height: rect.height,
-      viewportTop: rect.top,
-      viewportLeft: rect.left,
+      top: finalTop + window.scrollY,
+      left: finalLeft + window.scrollX,
+      width: finalWidth,
+      height: finalHeight,
+      viewportTop: finalTop,
+      viewportLeft: finalLeft,
     });
   };
 

@@ -42,6 +42,23 @@ All notable changes to this project will be documented in this file.
 - File modified:
   - `chrome-extension-app/src/content/features/problems/ProblemTime.jsx`
 
+**Onboarding Tour Highlight Box Misalignment on Navigation Links** ([Issue #148](https://github.com/smithrashell/CodeMaster/issues/148)):
+- Fixed blue highlight box around Generator/Statistics/Settings buttons appearing shifted too far right and cut off on first render during onboarding tour
+- Root cause: Navigation links have `padding: 12px 20px` which extends clickable area beyond text
+  - `ElementHighlighter` used `getBoundingClientRect()` which captured full padded area
+  - Highlight box dimensions included padding, making it appear wider and taller than the text
+  - Dimensions measured before browser finished applying all styles, causing cut-off on first render
+- Impact: Unprofessional appearance - blue boxes didn't visually align with button text, shifted notably to the right, and were cut off initially
+- Solution: Modified `ElementHighlighter.updateElementRect()` to detect sidebar navigation links and exclude padding:
+  - Added padding detection using `getComputedStyle()` for `<a>` elements in `#cm-mySidenav`
+  - Excluded both horizontal (left/right) and vertical (top/bottom) padding from dimensions
+  - Added dynamic buffer calculation based on font size: `Math.max(2, fontSize * 0.11)` for better scaling across zoom levels
+  - Adjusted both width/left AND height/top positions to center highlight on text content
+  - Added 100ms delay before measuring dimensions to ensure fonts and styles fully settle, fixing cut-off on first render
+  - Highlight boxes now fit text content instead of full clickable area
+- File modified:
+  - `chrome-extension-app/src/content/components/onboarding/ElementHighlighter.jsx`
+
 **Goals Page Onboarding Badges Shown Incorrectly** ([Issue #164](https://github.com/smithrashell/CodeMaster/issues/164)):
 - Fixed Goals page incorrectly showing onboarding restrictions after completing sessions
 - Root cause: `getGoalsData()` not including `sessions` data in response, causing Goals page to think user had 0 sessions
