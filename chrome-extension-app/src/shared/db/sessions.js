@@ -463,33 +463,38 @@ async function initializeSessionState(sessionStateKey) {
  * Apply onboarding mode settings with safety constraints
  */
 function applyOnboardingSettings(settings, sessionState, allowedTags, focusDecision) {
-  logger.info("🔰 Onboarding mode: Enforcing fixed session parameters for optimal learning");
-  
-  // ONBOARDING FIX: Force 4 problems for first few sessions regardless of user preference
-  let sessionLength = 4;
-  let numberOfNewProblems = 4;
-  
+  logger.info("🔰 Onboarding mode: Enforcing session parameters for optimal learning");
+
+  // Get onboarding max session length from centralized SessionLimits
+  const maxOnboardingSessionLength = SessionLimits.getMaxSessionLength(sessionState); // 6 during onboarding
+
+  // Respect user preference up to onboarding maximum (converts 'auto' to 4, caps numeric values at 6)
   const userSessionLength = settings.sessionLength;
+  const normalizedUserLength = normalizeSessionLengthForCalculation(userSessionLength);
+  let sessionLength = Math.min(normalizedUserLength, maxOnboardingSessionLength);
+  let numberOfNewProblems = sessionLength;
+
   logger.info(`🔰 Session length calculation debug:`, {
-    onboardingSessionLength: 4,
     userSessionLength: userSessionLength,
-    action: "enforcing_onboarding_length"
+    normalizedUserLength: normalizedUserLength,
+    maxOnboardingSessionLength: maxOnboardingSessionLength,
+    finalSessionLength: sessionLength,
+    action: "respecting_user_preference_with_onboarding_cap"
   });
-  
-  // During onboarding, we ENFORCE 4 problems regardless of user preference for optimal learning progression
-  logger.info(`🔰 Onboarding session length enforced: 4 problems (user preference ${userSessionLength} will be respected after onboarding)`);
-  
-  // Apply user new problems cap with dynamic onboarding limit  
+
+  logger.info(`🔰 Onboarding session length: ${sessionLength} problems (user preference ${userSessionLength}, max ${maxOnboardingSessionLength})`);
+
+  // Apply user new problems cap with dynamic onboarding limit
   const userMaxNewProblems = settings.numberofNewProblemsPerSession;
   const maxNewProblems = SessionLimits.getMaxNewProblems(sessionState);
   if (userMaxNewProblems && userMaxNewProblems > 0) {
-    numberOfNewProblems = Math.min(userMaxNewProblems, maxNewProblems);
+    numberOfNewProblems = Math.min(numberOfNewProblems, userMaxNewProblems, maxNewProblems);
     logger.info(`🔰 User new problems preference applied: ${userMaxNewProblems} → capped at ${numberOfNewProblems} for onboarding`);
   }
-  
+
   // Focus tags already handled by coordination service
   logger.info(`🔰 Focus tags from coordination service: [${allowedTags.join(', ')}] (${focusDecision.reasoning})`);
-  
+
   return { sessionLength, numberOfNewProblems };
 }
 
@@ -509,11 +514,12 @@ async function applyPostOnboardingLogic({
   }
 
   // Calculate adaptive session length with trend analysis
-  const adaptiveSessionLength = computeSessionLength(accuracy, efficiencyScore, settings.sessionLength || 4, performanceTrend, consecutiveExcellentSessions);
-  
-  // Apply user preference blending (70% adaptive, 30% user preference)
-  const userPreferredLength = settings.sessionLength;
-  let sessionLength = applySessionLengthPreference(adaptiveSessionLength, userPreferredLength);
+  // Normalize user setting to numeric value (converts 'auto' to 4, handles invalid values)
+  const baseLength = normalizeSessionLengthForCalculation(settings.sessionLength);
+  const adaptiveSessionLength = computeSessionLength(accuracy, efficiencyScore, baseLength, performanceTrend, consecutiveExcellentSessions);
+
+  // Apply user preference as hard maximum cap (for numeric values) or let algorithm decide (for 'auto')
+  let sessionLength = applySessionLengthPreference(adaptiveSessionLength, settings.sessionLength);
 
   // Apply interview insights to session parameters
   sessionLength = applyInterviewInsightsToSessionLength(
@@ -1198,25 +1204,41 @@ function computeSessionLength(accuracy, efficiencyScore, userPreferredLength = 4
 }
 
 /**
- * Blend user session length preference with adaptive calculation
- * Uses 70% adaptive intelligence, 30% user preference for optimal balance
+ * Normalizes session length setting to a numeric value for calculations
+ * Converts 'auto', null, undefined, or 0 to the default base length
+ * @param {string|number|null|undefined} userSetting - User's session length setting
+ * @param {number} defaultBase - Default base length to use for auto mode (default: 4)
+ * @returns {number} Numeric value safe for mathematical operations
+ */
+function normalizeSessionLengthForCalculation(userSetting, defaultBase = 4) {
+  // Auto mode or falsy values → use default base
+  if (!userSetting || userSetting === 'auto' || userSetting <= 0) {
+    return defaultBase;
+  }
+
+  // Numeric value → ensure it's a valid number
+  const numeric = Number(userSetting);
+  return isNaN(numeric) ? defaultBase : numeric;
+}
+
+/**
+ * Apply user session length preference as a hard maximum
+ * Supports "Auto" mode for full adaptive control, or numeric max for hard cap
  */
 function applySessionLengthPreference(adaptiveLength, userPreferredLength) {
-  if (!userPreferredLength || userPreferredLength <= 0) {
-    return adaptiveLength; // Use pure adaptive if no valid preference
+  // Auto mode: let algorithm decide fully (null, 0, 'auto', or undefined)
+  if (!userPreferredLength || userPreferredLength === 'auto' || userPreferredLength <= 0) {
+    return adaptiveLength;
   }
-  
-  // Blend: 70% adaptive intelligence, 30% user preference
-  const blended = Math.round(adaptiveLength * 0.7 + userPreferredLength * 0.3);
-  
-  // Keep within adaptive system bounds (3-12 problems)
-  const result = Math.max(3, Math.min(12, blended));
-  
-  if (result !== adaptiveLength) {
-    logger.info(`🎛️ Session length blended: Adaptive ${adaptiveLength} + User ${userPreferredLength} = ${result}`);
+
+  // Numeric value: treat as hard maximum cap (never exceed user preference)
+  const cappedLength = Math.min(adaptiveLength, userPreferredLength);
+
+  if (cappedLength !== adaptiveLength) {
+    logger.info(`🔒 Session length capped: Adaptive ${adaptiveLength} → User max ${userPreferredLength} = ${cappedLength}`);
   }
-  
-  return result;
+
+  return cappedLength;
 }
 
 // Helper function to filter sessions by time or recent count

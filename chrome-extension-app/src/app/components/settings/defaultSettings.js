@@ -1,7 +1,7 @@
 // Default settings configuration
 export const DEFAULT_SETTINGS = {
   adaptive: true,
-  sessionLength: 5,
+  sessionLength: 'auto', // Auto mode lets algorithm decide (3-12 problems based on performance)
   numberofNewProblemsPerSession: 2,
   limit: "off",
   reminder: { value: false, label: "6" },
