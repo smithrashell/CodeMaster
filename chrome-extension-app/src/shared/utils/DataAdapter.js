@@ -110,7 +110,156 @@ function getGroupKey(dateStr, range = "weekly") {
   return "";
 }
 
-// --- Accuracy Trend (still session-based) ---
+// --- Individual Session Accuracy (for Session History page) ---
+// Returns one data point per session
+export function getIndividualSessionAccuracyData(sessions) {
+  // Check cache first for performance
+  const cacheKey = createCacheKey(sessions, 'individual', 'getIndividualSessionAccuracyData');
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+
+  // Validate sessions input
+  if (!Array.isArray(sessions)) {
+    console.warn(
+      "Invalid sessions array provided to getIndividualSessionAccuracyData:",
+      sessions
+    );
+    return [];
+  }
+
+  const now = new Date();
+
+  // Map each session to individual data point
+  const sessionDataPoints = sessions
+    .map((session) => {
+      // Validate session structure - use lowercase date property
+      const sessionDate = session.date;
+      if (!session || !sessionDate) {
+        console.warn("Session missing date property:", session);
+        return null;
+      }
+
+      const date = new Date(sessionDate);
+      // Skip future sessions
+      if (date > now) return null;
+
+      // Validate attempts array
+      if (!Array.isArray(session.attempts) || session.attempts.length === 0) {
+        console.warn("Session missing or invalid attempts array:", session);
+        return null;
+      }
+
+      // Calculate accuracy for this specific session
+      let correct = 0;
+      let total = 0;
+      session.attempts.forEach((attempt) => {
+        if (attempt && typeof attempt.success !== "undefined") {
+          total += 1;
+          if (attempt.success) correct += 1;
+        }
+      });
+
+      if (total === 0) return null;
+
+      const accuracy = Math.round((correct / total) * 100);
+
+      // Use session date as the label for individual sessions
+      return {
+        name: format(date, "MMM dd, HH:mm"),
+        accuracy,
+        date: date.getTime(), // for sorting
+        sessionId: session.id || sessionDate // for uniqueness
+      };
+    })
+    .filter(Boolean); // Remove null entries
+
+  // Sort by date chronologically
+  const result = sessionDataPoints.sort((a, b) => a.date - b.date);
+
+  // Cache the result for better performance
+  setCachedResult(cacheKey, result);
+
+  return result;
+}
+
+// --- Individual Session Learning Efficiency ---
+// Returns learning efficiency (problems per hint) for each session
+export function getIndividualSessionEfficiencyData(sessions) {
+  // Check cache first for performance
+  const cacheKey = createCacheKey(sessions, 'individual', 'getIndividualSessionEfficiencyData');
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+
+  // Validate sessions input
+  if (!Array.isArray(sessions)) {
+    console.warn(
+      "Invalid sessions array provided to getIndividualSessionEfficiencyData:",
+      sessions
+    );
+    return [];
+  }
+
+  const now = new Date();
+
+  // Map each session to individual efficiency data point
+  const sessionDataPoints = sessions
+    .map((session) => {
+      // Validate session structure
+      const sessionDate = session.date;
+      if (!session || !sessionDate) {
+        console.warn("Session missing date property:", session);
+        return null;
+      }
+
+      const date = new Date(sessionDate);
+      // Skip future sessions
+      if (date > now) return null;
+
+      // Validate attempts array
+      if (!Array.isArray(session.attempts) || session.attempts.length === 0) {
+        return null;
+      }
+
+      // Count successful problems
+      const successfulProblems = session.attempts.filter(
+        attempt => attempt && attempt.success
+      ).length;
+
+      // Get actual hints used from session (populated by dashboardService)
+      const hintsUsed = session.hintsUsed || 0;
+
+      // Only include sessions with successful problems
+      if (successfulProblems === 0) return null;
+
+      // Calculate efficiency as "hints per problem" (lower is better)
+      // 0.0 hints per problem = perfect (solved without help)
+      // 2.5 hints per problem = needed help
+      const efficiency = hintsUsed / successfulProblems;
+
+      return {
+        name: format(date, "MMM dd, HH:mm"),
+        efficiency: Math.round(efficiency * 100) / 100, // 2 decimal places
+        date: date.getTime(), // for sorting
+        sessionId: session.id || sessionDate
+      };
+    })
+    .filter(Boolean); // Remove null entries
+
+  // Sort by date chronologically
+  const result = sessionDataPoints.sort((a, b) => a.date - b.date);
+
+  // Cache the result for better performance
+  setCachedResult(cacheKey, result);
+
+  return result;
+}
+
+// --- Aggregated Accuracy Trend (for Overview page) ---
+// Aggregates sessions by time period
 export function getAccuracyTrendData(sessions, range = "weekly") {
   // Check cache first for performance
   const cacheKey = createCacheKey(sessions, range, 'getAccuracyTrendData');
@@ -118,7 +267,7 @@ export function getAccuracyTrendData(sessions, range = "weekly") {
   if (cachedResult) {
     return cachedResult;
   }
-  
+
   const grouped = {};
 
   // Validate sessions input
@@ -131,10 +280,10 @@ export function getAccuracyTrendData(sessions, range = "weekly") {
   }
 
   sessions.forEach((session) => {
-    // Validate session structure - handle Date, date, and created_date properties
-    const sessionDate = session.Date || session.date || session.created_date;
+    // Validate session structure - use lowercase date property
+    const sessionDate = session.date;
     if (!session || !sessionDate) {
-      console.warn("Session missing Date property:", session);
+      console.warn("Session missing date property:", session);
       return;
     }
 
@@ -176,14 +325,13 @@ export function getAccuracyTrendData(sessions, range = "weekly") {
       const accuracy = Math.round((val.correct / val.total) * 100);
       return accuracy > 0 ? { name: key, accuracy } : null;
     })
-    .filter(Boolean); // ✅ Remove 0-accuracy rows
+    .filter(Boolean);
 
-  // ✅ SORT IT PROPERLY
   const result = sortByLabel(raw, range);
-  
+
   // Cache the result for better performance
   setCachedResult(cacheKey, result);
-  
+
   return result;
 }
 
@@ -208,8 +356,8 @@ export function getAttemptBreakdownData(sessions, range = "weekly") {
   }
 
   sessions.forEach((session) => {
-    // Handle Date, date, and created_date properties for consistency
-    const sessionDate = session.Date || session.date || session.created_date;
+    // Use lowercase date property
+    const sessionDate = session.date;
 
     session.attempts.forEach((attempt) => {
       const problemId = attempt.problemId || attempt.problem_id || attempt.leetcode_id;
@@ -283,10 +431,10 @@ export function getProblemActivityData(sessions, range = "weekly") {
   }
 
   sessions.forEach((session) => {
-    // Handle Date, date, and created_date properties for consistency
-    const sessionDate = session.Date || session.date || session.created_date;
+    // Use lowercase date property
+    const sessionDate = session.date;
     if (!sessionDate) {
-      console.warn("Session missing Date property in getProblemActivityData:", session);
+      console.warn("Session missing date property in getProblemActivityData:", session);
       return;
     }
     

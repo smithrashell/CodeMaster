@@ -104,7 +104,10 @@ describe("getDashboardStatistics", () => {
       expect(result.statistics).toBeDefined();
       expect(result.averageTime).toBeDefined();
       expect(result.successRate).toBeDefined();
-      expect(result.allSessions).toEqual(mockData.mockSessions);
+      expect(result.allSessions).toBeDefined();
+      expect(result.allSessions).toHaveLength(mockData.mockSessions.length);
+      // Verify sessions have been enriched with hint counts
+      expect(result.allSessions[0]).toHaveProperty('hintsUsed');
       expect(result.sessions).toBeDefined();
       expect(result.mastery).toBeDefined();
       expect(result.goals).toBeDefined();

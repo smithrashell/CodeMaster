@@ -133,7 +133,7 @@ export class HintInteractionService {
 
       const analytics = {
         totalInteractions: interactions.length,
-        uniqueSessions: new Set(interactions.map((i) => i.sessionId)).size,
+        uniqueSessions: new Set(interactions.map((i) => i.session_id)).size,
         byAction: {},
         byHintType: {},
         engagementRate: 0,
@@ -141,22 +141,22 @@ export class HintInteractionService {
         timeline: interactions
           .map((i) => ({
             timestamp: i.timestamp,
-            action: i.userAction,
-            hintType: i.hintType,
+            action: i.user_action,
+            hintType: i.hint_type,
           }))
           .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)),
       };
 
       // Calculate breakdowns
       interactions.forEach((interaction) => {
-        analytics.byAction[interaction.userAction] =
-          (analytics.byAction[interaction.userAction] || 0) + 1;
-        analytics.byHintType[interaction.hintType] =
-          (analytics.byHintType[interaction.hintType] || 0) + 1;
+        analytics.byAction[interaction.user_action] =
+          (analytics.byAction[interaction.user_action] || 0) + 1;
+        analytics.byHintType[interaction.hint_type] =
+          (analytics.byHintType[interaction.hint_type] || 0) + 1;
 
         // Track hint popularity
-        const hintKey = `${interaction.hintType}-${interaction.primaryTag}${
-          interaction.relatedTag ? "-" + interaction.relatedTag : ""
+        const hintKey = `${interaction.hint_type}-${interaction.primary_tag}${
+          interaction.related_tag ? "-" + interaction.related_tag : ""
         }`;
         analytics.mostPopularHints[hintKey] =
           (analytics.mostPopularHints[hintKey] || 0) + 1;
@@ -186,7 +186,7 @@ export class HintInteractionService {
       const analytics = {
         sessionId,
         totalInteractions: interactions.length,
-        uniqueProblems: new Set(interactions.map((i) => i.problemId)).size,
+        uniqueProblems: new Set(interactions.map((i) => i.problem_id)).size,
         byAction: {},
         byHintType: {},
         averageEngagementRate: 0,
@@ -197,23 +197,23 @@ export class HintInteractionService {
       // Group by problem to calculate per-problem engagement
       const byProblem = {};
       interactions.forEach((interaction) => {
-        if (!byProblem[interaction.problemId]) {
-          byProblem[interaction.problemId] = [];
+        if (!byProblem[interaction.problem_id]) {
+          byProblem[interaction.problem_id] = [];
         }
-        byProblem[interaction.problemId].push(interaction);
+        byProblem[interaction.problem_id].push(interaction);
 
         // Overall breakdowns
-        analytics.byAction[interaction.userAction] =
-          (analytics.byAction[interaction.userAction] || 0) + 1;
-        analytics.byHintType[interaction.hintType] =
-          (analytics.byHintType[interaction.hintType] || 0) + 1;
+        analytics.byAction[interaction.user_action] =
+          (analytics.byAction[interaction.user_action] || 0) + 1;
+        analytics.byHintType[interaction.hint_type] =
+          (analytics.byHintType[interaction.hint_type] || 0) + 1;
       });
 
       // Calculate engagement per problem and average
       let totalEngagement = 0;
       Object.values(byProblem).forEach((problemInteractions) => {
         const expansions = problemInteractions.filter(
-          (i) => i.userAction === "expand"
+          (i) => i.user_action === "expand"
         ).length;
         const engagement =
           problemInteractions.length > 0
@@ -232,9 +232,9 @@ export class HintInteractionService {
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
         .map((i) => ({
           timestamp: i.timestamp,
-          problemId: i.problemId,
-          action: i.userAction,
-          hintType: i.hintType,
+          problemId: i.problem_id,
+          action: i.user_action,
+          hintType: i.hint_type,
         }));
 
       return analytics;
@@ -265,13 +265,13 @@ export class HintInteractionService {
 
       if (filters.difficulty) {
         interactions = interactions.filter(
-          (i) => i.problemDifficulty === filters.difficulty
+          (i) => i.problem_difficulty === filters.difficulty
         );
       }
 
       if (filters.hintType) {
         interactions = interactions.filter(
-          (i) => i.hintType === filters.hintType
+          (i) => i.hint_type === filters.hintType
         );
       }
 
@@ -343,8 +343,8 @@ export class HintInteractionService {
   static _calculateHintTypePopularity(interactions) {
     const popularity = {};
     interactions.forEach((interaction) => {
-      popularity[interaction.hintType] =
-        (popularity[interaction.hintType] || 0) + 1;
+      popularity[interaction.hint_type] =
+        (popularity[interaction.hint_type] || 0) + 1;
     });
 
     return Object.entries(popularity)
@@ -355,12 +355,12 @@ export class HintInteractionService {
   static _calculateDifficultyBreakdown(interactions) {
     const breakdown = {};
     interactions.forEach((interaction) => {
-      const diff = interaction.problemDifficulty;
+      const diff = interaction.problem_difficulty;
       if (!breakdown[diff]) {
         breakdown[diff] = { total: 0, expanded: 0 };
       }
       breakdown[diff].total++;
-      if (interaction.userAction === "expand") {
+      if (interaction.user_action === "expand") {
         breakdown[diff].expanded++;
       }
     });
