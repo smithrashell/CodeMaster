@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added time range filter to Overview page
   - Options: "Last 7 days", "Last 30 days", "Quarter to date", "Year to date", "All time"
   - Filter applies to Accuracy and Learning Efficiency charts
-  - **Known Issue**: Filter does not yet apply to KPI cards (see #178)
+  - **Known Issue**: Filter does not yet apply to KPI cards (see #171)
 - Added individual session efficiency calculation in DataAdapter
   - New function: `getIndividualSessionEfficiencyData()`
   - Calculates efficiency per session: `hintsUsed / successfulProblems`
@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No ESLint errors (7 minor warnings about function length)
 
 ### Known Issues
-- Overview page time filter only applies to charts, not KPI metric cards (#178)
+- Overview page time filter only applies to charts, not KPI metric cards (#171)
   - KPI cards (Total Problems Solved, Average Time, Success Rate, Hints Used) always show "All time" data
   - Will be addressed in future update for consistency
 
