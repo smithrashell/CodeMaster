@@ -1,5 +1,6 @@
 import React from "react";
 import { SimpleGrid, Card, Text, Group } from "@mantine/core";
+import { calculateStudyStreak } from "../../utils/productivityUtils";
 
 // Reusable Slim KPI Card Component
 function SlimKPI({ title, value, sub }) {
@@ -15,11 +16,21 @@ function SlimKPI({ title, value, sub }) {
 }
 
 export function ProductivityKPIs({ totalSessions, avgAccuracy, peakHour, timeRange, appState }) {
-  const reflectionRate = Math.round(((appState?.reflectionData?.reflectionsCount || 0) / Math.max(totalSessions * 3, 1)) * 100);
+  // Calculate actual study streak from session dates
+  const studyStreak = calculateStudyStreak(appState?.allSessions || []);
+
+  // Calculate reflection rate using actual problem count instead of assuming 3 per session
+  const totalProblems = (appState?.allSessions || [])
+    .filter(s => s.status === 'completed')
+    .reduce((sum, s) => sum + (s.problems?.length || 0), 0);
+
+  const reflectionRate = totalProblems > 0
+    ? Math.round(((appState?.reflectionData?.reflectionsCount || 0) / totalProblems) * 100)
+    : 0;
 
   return (
     <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
-      <SlimKPI title="Study Streak" value="7" sub="days" />
+      <SlimKPI title="Study Streak" value={studyStreak} sub="days" />
       <SlimKPI title="Sessions" value={totalSessions} sub={timeRange.toLowerCase()} />
       <SlimKPI title="Accuracy" value={`${avgAccuracy}%`} sub="average" />
       <SlimKPI title="Peak Hour" value={peakHour} sub="best time" />

@@ -381,7 +381,7 @@ class SessionAttributionEngine {
     const sessionStore = transaction.objectStore("sessions");
 
     // Save attempt record with source tracking
-    const attemptSource = 'test_attempt'; // Default source for attempt tracking
+    const attemptSource = source; // Use source parameter (session_problem by default)
 
     // Add UID prefix for forensic database tracking during tests
     const baseAttemptData = {

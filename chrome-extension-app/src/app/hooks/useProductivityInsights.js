@@ -15,18 +15,20 @@ export function useProductivityInsights(appState, productivityData, totalSession
         body: `You're sharpest at ${bestTime.time} with ${bestTime.avgAccuracy}% accuracy.`
       });
       
-      const mostActive = productivityData.reduce((most, current) => 
-        current.sessions > most.sessions ? current : most
+      const mostActive = productivityData.reduce((most, current) =>
+        current.attempts > most.attempts ? current : most
       );
       generatedInsights.push({
         title: "Most active",
-        body: `${mostActive.time} has the highest session count (${mostActive.sessions}).`
+        body: `${mostActive.time} has the highest attempt count (${mostActive.attempts} problems solved).`
       });
 
       // Reflection insights
       const reflectionData = appState?.reflectionData || {};
       const reflectionsCount = reflectionData.reflectionsCount || 0;
-      const totalProblems = totalSessions * 3; // Assuming ~3 problems per session
+      const totalProblems = (appState?.allSessions || [])
+        .filter(s => s.status === 'completed')
+        .reduce((sum, s) => sum + (s.problems?.length || 0), 0);
       const reflectionRate = totalProblems > 0 ? (reflectionsCount / totalProblems) * 100 : 0;
 
       if (reflectionRate > 75) {

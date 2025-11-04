@@ -1914,23 +1914,41 @@ export async function getProductivityInsightsData(options = {}) {
  */
 function calculateReflectionInsights(dashboardData) {
   try {
-    const allAttempts = dashboardData.attempts || [];
-    
+    const allAttempts = dashboardData.allAttempts || [];
+
     // Count attempts with reflections (non-empty comments field)
-    const attemptsWithReflections = allAttempts.filter(attempt => 
-      attempt.Comments && attempt.Comments.trim().length > 0
-    );
+    // Check both Comments (PascalCase) and comments (lowercase) for compatibility
+    const attemptsWithReflections = allAttempts.filter(attempt => {
+      const commentText = attempt.comments || attempt.Comments;
+      return commentText && commentText.trim().length > 0;
+    });
     
     const reflectionsCount = attemptsWithReflections.length;
     const totalAttempts = allAttempts.length;
     const reflectionRate = totalAttempts > 0 ? (reflectionsCount / totalAttempts) * 100 : 0;
-    
+
+    // Debug logging
+    console.log('🔍 calculateReflectionInsights Debug:', {
+      totalAttempts,
+      reflectionsCount,
+      reflectionRate,
+      sampleAttemptWithComment: attemptsWithReflections[0],
+      first3Attempts: allAttempts.slice(0, 3).map(a => ({
+        hasComments: !!a.comments,
+        hasCommentsCapital: !!a.Comments,
+        commentValue: a.comments || a.Comments || 'EMPTY'
+      }))
+    });
+
     // Analyze common themes in reflections
     const commonThemes = analyzeReflectionThemes(attemptsWithReflections);
     
     // Calculate reflection quality metrics
-    const avgReflectionLength = reflectionsCount > 0 
-      ? attemptsWithReflections.reduce((sum, attempt) => sum + attempt.Comments.length, 0) / reflectionsCount
+    const avgReflectionLength = reflectionsCount > 0
+      ? attemptsWithReflections.reduce((sum, attempt) => {
+          const commentText = attempt.comments || attempt.Comments;
+          return sum + (commentText ? commentText.length : 0);
+        }, 0) / reflectionsCount
       : 0;
     
     // Correlation with performance
@@ -1975,8 +1993,9 @@ function analyzeReflectionThemes(attemptsWithReflections) {
   const themeCounts = {};
   
   attemptsWithReflections.forEach(attempt => {
-    const reflection = attempt.Comments.toLowerCase();
-    
+    const commentText = attempt.comments || attempt.Comments;
+    const reflection = (commentText || '').toLowerCase();
+
     Object.entries(themeKeywords).forEach(([theme, keywords]) => {
       const hasTheme = keywords.some(keyword => reflection.includes(keyword));
       if (hasTheme) {
