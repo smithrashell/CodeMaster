@@ -34,13 +34,15 @@ const filterSessionsByTimeRange = (sessions, timeRange) => {
 const calculateHourlyPerformance = (sessions) => {
   const hourlyPerformance = {};
 
-  // Extract all attempts from all sessions
+  // Extract attempted problems from all sessions
   sessions.forEach(session => {
+    const problems = session.problems || [];
     const attempts = session.attempts || [];
-    attempts.forEach(attempt => {
-      const attemptDate = attempt.attempt_date;
-      if (attemptDate) {
-        const hour = new Date(attemptDate).getHours();
+
+    problems.forEach(problem => {
+      // Only process problems that have been attempted
+      if (problem.attempted && problem.attempt_date) {
+        const hour = new Date(problem.attempt_date).getHours();
         const timeSlot = `${hour}:00`;
 
         if (!hourlyPerformance[timeSlot]) {
@@ -51,11 +53,16 @@ const calculateHourlyPerformance = (sessions) => {
           };
         }
 
+        // Find matching attempt to get success status and time spent
+        const matchingAttempt = attempts.find(
+          a => a.problem_id === problem.problem_id || a.leetcode_id === problem.leetcode_id
+        );
+
         hourlyPerformance[timeSlot].totalAttempts += 1;
-        if (attempt.success) {
+        if (matchingAttempt?.success) {
           hourlyPerformance[timeSlot].successfulAttempts += 1;
         }
-        hourlyPerformance[timeSlot].totalTime += (attempt.time_spent || 0);
+        hourlyPerformance[timeSlot].totalTime += (matchingAttempt?.time_spent || 0);
       }
     });
   });
@@ -91,13 +98,14 @@ const calculateWeeklyHeatmap = (sessions) => {
     }
   }
 
-  // Populate with attempt data (when problems were actually solved)
+  // Populate with problem attempt data (when problems were actually solved)
   sessions.forEach(session => {
-    const attempts = session.attempts || [];
-    attempts.forEach(attempt => {
-      const attemptDate = attempt.attempt_date;
-      if (attemptDate) {
-        const date = new Date(attemptDate);
+    const problems = session.problems || [];
+
+    problems.forEach(problem => {
+      // Only count problems that have been attempted
+      if (problem.attempted && problem.attempt_date) {
+        const date = new Date(problem.attempt_date);
         const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
         const hour = date.getHours();
 
@@ -123,6 +131,19 @@ export function useProductivityData(appState, timeRange) {
     // Get all sessions and apply time range filter
     const allSessions = appState.allSessions || [];
     const sessions = filterSessionsByTimeRange(allSessions, timeRange);
+
+    // Debug logging
+    console.log('🔍 useProductivityData Debug:', {
+      timeRange,
+      totalSessions: allSessions.length,
+      filteredSessions: sessions.length,
+      firstSession: sessions[0],
+      firstSessionProblems: sessions[0]?.problems?.length,
+      firstSessionAttempts: sessions[0]?.attempts?.length,
+      sampleProblem: sessions[0]?.problems?.[0],
+      sampleAttempt: sessions[0]?.attempts?.[0],
+      attemptedProblems: sessions[0]?.problems?.filter(p => p.attempted)
+    });
 
     // Calculate hourly performance for chart data
     const chartData = calculateHourlyPerformance(sessions);
