@@ -34,8 +34,9 @@ const filterSessionsByTimeRange = (sessions, timeRange) => {
 const calculateHourlyPerformance = (sessions) => {
   const hourlyPerformance = {};
   sessions.forEach(session => {
-    if (session.Date) {
-      const hour = new Date(session.Date).getHours();
+    const sessionDate = session.date || session.Date;
+    if (sessionDate) {
+      const hour = new Date(sessionDate).getHours();
       const timeSlot = `${hour}:00`;
       if (!hourlyPerformance[timeSlot]) {
         hourlyPerformance[timeSlot] = { totalSessions: 0, totalAccuracy: 0, totalProblems: 0 };
