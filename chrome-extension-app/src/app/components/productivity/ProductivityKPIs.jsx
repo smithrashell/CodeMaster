@@ -14,12 +14,61 @@ function SlimKPI({ title, value, sub }) {
   );
 }
 
+// Calculate consecutive days with sessions
+function calculateStudyStreak(sessions) {
+  if (!sessions || sessions.length === 0) return 0;
+
+  // Get unique dates and sort descending (newest first)
+  const uniqueDates = [...new Set(
+    sessions
+      .filter(s => s.status === 'completed')
+      .map(s => new Date(s.date || s.Date).toDateString())
+  )].sort((a, b) => new Date(b) - new Date(a));
+
+  if (uniqueDates.length === 0) return 0;
+
+  let streak = 1;
+  const today = new Date().toDateString();
+
+  // Check if most recent session is today or yesterday
+  const mostRecent = uniqueDates[0];
+  const daysSinceRecent = Math.floor((new Date(today) - new Date(mostRecent)) / (1000 * 60 * 60 * 24));
+
+  // If most recent session is more than 1 day ago, streak is broken
+  if (daysSinceRecent > 1) return 0;
+
+  // Count consecutive days
+  for (let i = 0; i < uniqueDates.length - 1; i++) {
+    const currentDate = new Date(uniqueDates[i]);
+    const nextDate = new Date(uniqueDates[i + 1]);
+    const dayDiff = Math.floor((currentDate - nextDate) / (1000 * 60 * 60 * 24));
+
+    if (dayDiff === 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 export function ProductivityKPIs({ totalSessions, avgAccuracy, peakHour, timeRange, appState }) {
-  const reflectionRate = Math.round(((appState?.reflectionData?.reflectionsCount || 0) / Math.max(totalSessions * 3, 1)) * 100);
+  // Calculate actual study streak from session dates
+  const studyStreak = calculateStudyStreak(appState?.allSessions || []);
+
+  // Calculate reflection rate using actual problem count instead of assuming 3 per session
+  const totalProblems = (appState?.allSessions || [])
+    .filter(s => s.status === 'completed')
+    .reduce((sum, s) => sum + (s.problems?.length || 0), 0);
+
+  const reflectionRate = totalProblems > 0
+    ? Math.round(((appState?.reflectionData?.reflectionsCount || 0) / totalProblems) * 100)
+    : 0;
 
   return (
     <SimpleGrid cols={{ base: 2, sm: 5 }} spacing="sm">
-      <SlimKPI title="Study Streak" value="7" sub="days" />
+      <SlimKPI title="Study Streak" value={studyStreak} sub="days" />
       <SlimKPI title="Sessions" value={totalSessions} sub={timeRange.toLowerCase()} />
       <SlimKPI title="Accuracy" value={`${avgAccuracy}%`} sub="average" />
       <SlimKPI title="Peak Hour" value={peakHour} sub="best time" />
