@@ -30,33 +30,50 @@ const filterSessionsByTimeRange = (sessions, timeRange) => {
   });
 };
 
-// Calculate hourly performance data for charts
+// Calculate hourly performance data using attempt timestamps (not session creation time)
 const calculateHourlyPerformance = (sessions) => {
   const hourlyPerformance = {};
+
+  // Extract all attempts from all sessions
   sessions.forEach(session => {
-    const sessionDate = session.date || session.Date;
-    if (sessionDate) {
-      const hour = new Date(sessionDate).getHours();
-      const timeSlot = `${hour}:00`;
-      if (!hourlyPerformance[timeSlot]) {
-        hourlyPerformance[timeSlot] = { totalSessions: 0, totalAccuracy: 0, totalProblems: 0 };
+    const attempts = session.attempts || [];
+    attempts.forEach(attempt => {
+      const attemptDate = attempt.attempt_date;
+      if (attemptDate) {
+        const hour = new Date(attemptDate).getHours();
+        const timeSlot = `${hour}:00`;
+
+        if (!hourlyPerformance[timeSlot]) {
+          hourlyPerformance[timeSlot] = {
+            totalAttempts: 0,
+            successfulAttempts: 0,
+            totalTime: 0
+          };
+        }
+
+        hourlyPerformance[timeSlot].totalAttempts += 1;
+        if (attempt.success) {
+          hourlyPerformance[timeSlot].successfulAttempts += 1;
+        }
+        hourlyPerformance[timeSlot].totalTime += (attempt.time_spent || 0);
       }
-      hourlyPerformance[timeSlot].totalSessions += 1;
-      hourlyPerformance[timeSlot].totalAccuracy += (session.accuracy || 0.75);
-      hourlyPerformance[timeSlot].totalProblems += (session.problems?.length || 0);
-    }
+    });
   });
 
-  // Convert to chart data
+  // Convert to chart data with accuracy calculated from actual attempts
   return Object.entries(hourlyPerformance).map(([time, data]) => ({
     time,
-    avgAccuracy: Math.round((data.totalAccuracy / data.totalSessions) * 100),
-    sessions: data.totalSessions,
-    avgProblems: Math.round(data.totalProblems / data.totalSessions)
+    avgAccuracy: data.totalAttempts > 0
+      ? Math.round((data.successfulAttempts / data.totalAttempts) * 100)
+      : 0,
+    sessions: data.totalAttempts, // Number of attempts (problems solved) in this hour
+    avgTime: data.totalAttempts > 0
+      ? Math.round(data.totalTime / data.totalAttempts)
+      : 0
   })).sort((a, b) => parseInt(a.time) - parseInt(b.time));
 };
 
-// Calculate weekly heatmap data (day of week x hour)
+// Calculate weekly heatmap data using attempt timestamps (day of week x hour)
 const calculateWeeklyHeatmap = (sessions) => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const heatmapData = [];
@@ -74,20 +91,23 @@ const calculateWeeklyHeatmap = (sessions) => {
     }
   }
 
-  // Populate with session data
+  // Populate with attempt data (when problems were actually solved)
   sessions.forEach(session => {
-    const sessionDate = session.date || session.Date;
-    if (sessionDate) {
-      const date = new Date(sessionDate);
-      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
-      const hour = date.getHours();
+    const attempts = session.attempts || [];
+    attempts.forEach(attempt => {
+      const attemptDate = attempt.attempt_date;
+      if (attemptDate) {
+        const date = new Date(attemptDate);
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+        const hour = date.getHours();
 
-      // Find matching cell and increment count
-      const cell = heatmapData.find(d => d.dayIndex === dayOfWeek && d.hour === hour);
-      if (cell) {
-        cell.count += 1;
+        // Find matching cell and increment count
+        const cell = heatmapData.find(d => d.dayIndex === dayOfWeek && d.hour === hour);
+        if (cell) {
+          cell.count += 1;
+        }
       }
-    }
+    });
   });
 
   return heatmapData;
