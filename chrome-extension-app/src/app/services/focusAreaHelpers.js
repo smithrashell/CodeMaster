@@ -55,7 +55,7 @@ export function filterDataByDateRange(allAttempts, allSessions, startDate, endDa
   });
 
   const filteredSessions = allSessions.filter((session) => {
-    const sessionDate = new Date(session.Date);
+    const sessionDate = new Date(session.date);
     return sessionDate >= start && sessionDate <= end;
   });
 

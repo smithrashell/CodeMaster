@@ -51,7 +51,6 @@ export function StatsMetrics({
         details={[
           { label: "Contextual", value: hintsUsed?.contextual ?? 0 },
           { label: "General", value: hintsUsed?.general ?? 0 },
-          { label: "Primer", value: hintsUsed?.primer ?? 0 },
         ]}
         loading={loading}
       />
