@@ -14,7 +14,7 @@ export function ProductivityInsights() {
   const [timeRange, setTimeRange] = useState("Last 7 days");
 
   // Use custom hooks for data processing
-  const { productivityData, heatmapData, totalSessions, studyStreak, avgAccuracy, peakHour } = useProductivityData(appState, timeRange);
+  const { productivityData, heatmapData, difficultyProgressionData, totalSessions, studyStreak, avgAccuracy, peakHour } = useProductivityData(appState, timeRange);
   const insights = useProductivityInsights(appState, productivityData, totalSessions);
 
   if (loading) return <Container size="xl" p="md"><Text>Loading productivity insights...</Text></Container>;
@@ -73,7 +73,7 @@ export function ProductivityInsights() {
 
         {/* Charts */}
         <ProductivityCharts
-          productivityData={productivityData}
+          difficultyProgressionData={difficultyProgressionData}
           heatmapData={heatmapData}
           timeRange={timeRange}
           peakHour={peakHour}
