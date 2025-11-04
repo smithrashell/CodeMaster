@@ -1,28 +1,84 @@
 import React from "react";
 import { Card, Badge, Group, Title, Stack, Text, Divider, rem } from "@mantine/core";
-import { IconTarget, IconClock, IconBulb, IconTrendingUp } from "@tabler/icons-react";
+import { IconTarget, IconClock, IconBulb, IconTrendingUp, IconFlame } from "@tabler/icons-react";
 
-export function RecommendationsCard() {
-  const recommendations = [
-    {
-      icon: IconClock,
-      color: 'var(--mantine-color-green-5)',
-      title: 'Peak scheduling',
-      text: <>Schedule hard topics during your <Text span fw={600} c="white">07:30–09:30</Text> window</>
-    },
-    {
-      icon: IconBulb,
-      color: 'var(--mantine-color-blue-5)',
-      title: 'Consistency',
-      text: <>Maintain a <Text span fw={600} c="white">consistent daily</Text> session time</>
-    },
-    {
-      icon: IconTrendingUp,
-      color: 'var(--mantine-color-orange-5)',
-      title: 'Progress tracking',
-      text: <>Track <Text span fw={600} c="white">weekly % accuracy</Text> trend</>
+export function RecommendationsCard({ peakHour, studyStreak, avgAccuracy, totalSessions }) {
+  // Generate dynamic recommendations based on actual user data
+  const getRecommendations = () => {
+    const recs = [];
+
+    // 1. Peak Scheduling - Based on actual peak performance hour
+    if (peakHour && peakHour !== "N/A") {
+      const hourNum = parseInt(peakHour);
+      const endHour = (hourNum + 2) % 24;
+      const endHourStr = `${endHour.toString().padStart(2, '0')}:00`;
+      recs.push({
+        icon: IconClock,
+        color: 'var(--mantine-color-green-5)',
+        title: 'Peak scheduling',
+        text: <>Schedule hard topics during your <Text span fw={600} c="white">{peakHour}–{endHourStr}</Text> window</>
+      });
+    } else {
+      recs.push({
+        icon: IconClock,
+        color: 'var(--mantine-color-green-5)',
+        title: 'Peak scheduling',
+        text: <>Complete more sessions to discover your optimal performance window</>
+      });
     }
-  ];
+
+    // 2. Consistency - Based on study streak
+    if (studyStreak > 0) {
+      recs.push({
+        icon: IconFlame,
+        color: 'var(--mantine-color-orange-5)',
+        title: 'Consistency',
+        text: <>Great! Keep your <Text span fw={600} c="white">{studyStreak}-day streak</Text> going strong</>
+      });
+    } else {
+      recs.push({
+        icon: IconBulb,
+        color: 'var(--mantine-color-blue-5)',
+        title: 'Consistency',
+        text: <>Build momentum with <Text span fw={600} c="white">daily sessions</Text> to start a streak</>
+      });
+    }
+
+    // 3. Progress Tracking - Based on accuracy
+    if (totalSessions === 0) {
+      recs.push({
+        icon: IconTrendingUp,
+        color: 'var(--mantine-color-blue-5)',
+        title: 'Progress tracking',
+        text: <>Complete sessions to start tracking your <Text span fw={600} c="white">accuracy trends</Text></>
+      });
+    } else if (avgAccuracy >= 80) {
+      recs.push({
+        icon: IconTrendingUp,
+        color: 'var(--mantine-color-green-5)',
+        title: 'Progress tracking',
+        text: <>Excellent <Text span fw={600} c="white">{avgAccuracy}% accuracy</Text>! Consider tackling harder problems</>
+      });
+    } else if (avgAccuracy < 60) {
+      recs.push({
+        icon: IconTrendingUp,
+        color: 'var(--mantine-color-yellow-5)',
+        title: 'Progress tracking',
+        text: <>Review fundamentals to boost your <Text span fw={600} c="white">{avgAccuracy}% accuracy</Text></>
+      });
+    } else {
+      recs.push({
+        icon: IconTrendingUp,
+        color: 'var(--mantine-color-blue-5)',
+        title: 'Progress tracking',
+        text: <>Solid <Text span fw={600} c="white">{avgAccuracy}% accuracy</Text> — track weekly trends</>
+      });
+    }
+
+    return recs;
+  };
+
+  const recommendations = getRecommendations();
 
   return (
     <Card
