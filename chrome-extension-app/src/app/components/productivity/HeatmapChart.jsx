@@ -34,25 +34,6 @@ export function HeatmapChart({ data }) {
   return (
     <Box style={{ width: '100%', height: '100%', overflowX: 'auto' }}>
       <Stack gap={4}>
-        {/* Header with hour labels */}
-        <Group gap={0} style={{ marginBottom: '4px' }}>
-          <Box style={{ width: '40px' }} /> {/* Space for day labels */}
-          {[0, 6, 12, 18, 23].map(hour => (
-            <Text
-              key={hour}
-              size="10px"
-              c="dimmed"
-              style={{
-                width: '40px',
-                textAlign: 'center',
-                marginLeft: hour === 0 ? '0px' : hour === 6 ? '200px' : hour === 12 ? '200px' : hour === 18 ? '200px' : '160px'
-              }}
-            >
-              {hour}h
-            </Text>
-          ))}
-        </Group>
-
         {/* Heatmap grid */}
         {dayNames.map(day => (
           <Group key={day} gap={2} wrap="nowrap">

@@ -26,7 +26,9 @@ export function useProductivityInsights(appState, productivityData, totalSession
       // Reflection insights
       const reflectionData = appState?.reflectionData || {};
       const reflectionsCount = reflectionData.reflectionsCount || 0;
-      const totalProblems = totalSessions * 3; // Assuming ~3 problems per session
+      const totalProblems = (appState?.allSessions || [])
+        .filter(s => s.status === 'completed')
+        .reduce((sum, s) => sum + (s.problems?.length || 0), 0);
       const reflectionRate = totalProblems > 0 ? (reflectionsCount / totalProblems) * 100 : 0;
 
       if (reflectionRate > 75) {

@@ -3,7 +3,7 @@ import { Grid, Card, Group, Title, Badge, Text, Stack } from "@mantine/core";
 import TimeGranularChartCard from "../charts/TimeGranularChartCard";
 import { HeatmapChart } from "./HeatmapChart";
 
-export function ProductivityCharts({ difficultyProgressionData, heatmapData, timeRange, peakHour }) {
+export function ProductivityCharts({ difficultyProgressionData, heatmapData, timeRange }) {
   return (
     <Grid gutter="lg">
       <Grid.Col span={{ base: 12, lg: 6 }}>
