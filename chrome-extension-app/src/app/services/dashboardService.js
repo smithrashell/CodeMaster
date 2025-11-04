@@ -145,7 +145,7 @@ function applyFiltering({ allProblems, allAttempts, allSessions, problemTagsMap,
     });
 
     filteredSessions = filteredSessions.filter((session) => {
-      const sessionDate = new Date(session.Date);
+      const sessionDate = new Date(session.date);
       return sessionDate >= startDate && sessionDate <= endDate;
     });
   }
@@ -726,7 +726,7 @@ export function generateSessionAnalytics(sessions, attempts) {
       const attemptSessionId = attempt.session_id || attempt.SessionID;
       const attemptDate = attempt.attempt_date || attempt.AttemptDate;
       return attemptSessionId === session.sessionId ||
-        (session.Date && Math.abs(new Date(session.Date) - new Date(attemptDate)) < 60 * 60 * 1000); // Within 1 hour
+        (session.date && Math.abs(new Date(session.date) - new Date(attemptDate)) < 60 * 60 * 1000); // Within 1 hour
     });
 
     const duration = session.duration ||
@@ -753,7 +753,7 @@ export function generateSessionAnalytics(sessions, attempts) {
 
   const sessionAnalytics = enhancedSessions.map(session => ({
     sessionId: session.sessionId,
-    completedAt: session.Date || new Date().toISOString(),
+    completedAt: session.date || new Date().toISOString(),
     accuracy: session.accuracy,
     avgTime: session.duration,
     totalProblems: session.problems?.length || 0,
@@ -1261,7 +1261,7 @@ function calculateStreakDays(sessions) {
   let currentDate = new Date();
   
   for (const session of sortedSessions) {
-    const sessionDate = new Date(session.Date);
+    const sessionDate = new Date(session.date);
     const daysDiff = Math.floor((currentDate - sessionDate) / (1000 * 60 * 60 * 24));
     
     if (daysDiff <= streak + 1) {
@@ -1284,8 +1284,8 @@ function findBestPerformanceHour(sessions) {
   const hourlyPerformance = {};
   
   sessions.forEach(session => {
-    if (session.Date) {
-      const hour = new Date(session.Date).getHours();
+    if (session.date) {
+      const hour = new Date(session.date).getHours();
       const hourKey = `${hour.toString().padStart(2, '0')}:00`;
       
       if (!hourlyPerformance[hourKey]) {
@@ -1366,6 +1366,20 @@ function _generateDailyMissions(settings) {
  * Learning efficiency = problems solved per hint used over time
  */
 async function generateLearningEfficiencyChartData(sessions, attempts) {
+  // Debug: Check if function is called
+  console.log('🔍 generateLearningEfficiencyChartData called:', {
+    sessionsCount: sessions?.length || 0,
+    attemptsCount: attempts?.length || 0,
+    hasSessions: !!sessions,
+    hasAttempts: !!attempts,
+    sampleSession: sessions?.[0] ? {
+      Date: sessions[0].Date,
+      createdAt: sessions[0].createdAt,
+      dateType: typeof sessions[0].Date,
+      createdAtType: typeof sessions[0].createdAt
+    } : null
+  });
+
   // Group sessions by time periods
   const now = new Date();
   const weekly = [];
@@ -1378,13 +1392,15 @@ async function generateLearningEfficiencyChartData(sessions, attempts) {
     weekStart.setDate(weekStart.getDate() - (i * 7));
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    
+
     const weekSessions = sessions.filter(session => {
-      const sessionDate = new Date(session.Date || session.createdAt);
+      const sessionDate = new Date(session.date);
       return sessionDate >= weekStart && sessionDate <= weekEnd;
     });
 
+    console.log(`🔍 Week ${12 - i}: Found ${weekSessions.length} sessions, calling calculatePeriodEfficiency`);
     const efficiency = await calculatePeriodEfficiency(weekSessions, attempts);
+    console.log(`🔍 Week ${12 - i}: Efficiency = ${efficiency}`);
     weekly.push({
       name: `Week ${12 - i}`,
       efficiency: Math.round(efficiency * 10) / 10
@@ -1397,7 +1413,7 @@ async function generateLearningEfficiencyChartData(sessions, attempts) {
     const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
     
     const monthSessions = sessions.filter(session => {
-      const sessionDate = new Date(session.Date || session.createdAt);
+      const sessionDate = new Date(session.date);
       return sessionDate >= monthStart && sessionDate <= monthEnd;
     });
 
@@ -1416,7 +1432,7 @@ async function generateLearningEfficiencyChartData(sessions, attempts) {
     const yearEnd = new Date(year, 11, 31);
     
     const yearSessions = sessions.filter(session => {
-      const sessionDate = new Date(session.Date || session.createdAt);
+      const sessionDate = new Date(session.date);
       return sessionDate >= yearStart && sessionDate <= yearEnd;
     });
 
@@ -1450,37 +1466,51 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
 
   // Count successful problems
   const successfulProblems = periodAttempts.filter(attempt => (attempt.success !== undefined ? attempt.success : attempt.Success)).length;
-  
+
   // Try to get actual hint usage data from hint_interactions table
   let totalHintsUsed = 0;
   try {
     // Use static import for hint functions
-    
+
     // Get hint interactions for all sessions in this period
-    const hintPromises = Array.from(sessionIds).map(sessionId => 
+    const hintPromises = Array.from(sessionIds).map(sessionId =>
       getInteractionsBySession(sessionId).catch(() => [])
     );
     const hintResults = await Promise.all(hintPromises);
-    
+
     // Count total hints used across all sessions
     totalHintsUsed = hintResults.flat().length;
+
+    // Debug logging
+    console.log('📊 Learning Efficiency Debug:', {
+      sessionIds: Array.from(sessionIds),
+      totalSessions: sessions.length,
+      totalAttempts: periodAttempts.length,
+      successfulProblems,
+      totalHintsUsed,
+      hintResultsCount: hintResults.map(r => r.length)
+    });
   } catch (error) {
     // If hint data is not available, fall back to estimation
     logger.warn("Could not fetch hint data, using estimation:", error);
     totalHintsUsed = 0;
   }
-  
+
   // If no actual hint data available, estimate based on attempts and success patterns
   if (totalHintsUsed === 0) {
     const totalAttempts = periodAttempts.length;
     const failedAttempts = totalAttempts - successfulProblems;
-    
+
     // Estimation: 1 hint per successful problem on first try, 2-3 hints per failed attempt
     totalHintsUsed = successfulProblems * 1.0 + failedAttempts * 2.5;
+
+    console.log('📊 Using estimation - totalHintsUsed:', totalHintsUsed);
   }
-  
+
   // Return efficiency (problems per hint), with minimum value to avoid division issues
-  return totalHintsUsed > 0 ? successfulProblems / totalHintsUsed : 0;
+  const efficiency = totalHintsUsed > 0 ? successfulProblems / totalHintsUsed : 0;
+  console.log('📊 Final efficiency:', efficiency);
+  return efficiency;
 }
 
 /**
@@ -1521,8 +1551,8 @@ function calculateLearningStatus(attempts, sessions) {
   );
   
   // Check for recent sessions in last 7 days
-  const recentSessions = sessions.filter(session => 
-    new Date(session.Date) >= sevenDaysAgo
+  const recentSessions = sessions.filter(session =>
+    new Date(session.date) >= sevenDaysAgo
   );
   
   // Check for any activity in last 30 days (support both snake_case and PascalCase)
