@@ -7,6 +7,51 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2025-11-02
 
 ### Fixed
+**Productivity Insights Page Data Accuracy and UX Issues** ([Issue #176](https://github.com/smithrashell/CodeMaster/issues/176)):
+- Fixed multiple data accuracy and UX issues on the Productivity Insights page
+- Root causes:
+  - Property name mismatch: UI code checking `session.Date` without fallback to `session.date`
+  - Hardcoded calculations: Study streak hardcoded to 7 days, total problems assumed to be 3 per session
+  - Debug logging in production code
+  - Duplicate code: `calculateStudyStreak` function duplicated in two locations
+  - Chart redundancy: Time-of-day performance chart showed same data as Weekly Pattern heatmap
+  - Terminology: "Problems Solved" misleading when it counted attempts
+  - Layout issues: Hour markers misaligned with heatmap grid
+- Impact: Dashboard showed incorrect metrics, misleading insights, and confusing visualizations
+  - All KPIs showing zeros despite completed sessions
+  - Study streak not calculated from actual data
+  - Recommendations not personalized
+  - Difficulty progression not visible
+  - Heatmap hour markers misaligned
+- Solution: Comprehensive fixes to data pipeline, calculations, and UI
+  - **Data Access**: Updated hooks to handle both `session.date` and `session.Date` property names
+  - **Study Streak**: Implemented real calculation from session dates, extracted to shared utility
+  - **KPIs**: Fixed Sessions count to show completed sessions (not attempts), improved accuracy calculations
+  - **Insights**: Updated to show attempt counts instead of session counts for clarity
+  - **Recommendations**: Made all recommendations dynamic based on user's actual performance data
+  - **Charts**: Replaced redundant time-of-day chart with Difficulty Progression chart showing problem mix
+  - **Heatmap**: Removed hour markers for cleaner layout (day labels sufficient)
+  - **Terminology**: Renamed "Problems Solved" to "Problems Attempted" on Session History page
+  - **Code Quality**: Removed debug console.log statements, fixed ESLint violations
+  - **Refactoring**: Created `productivityUtils.js` shared utility to eliminate code duplication
+- Files modified:
+  - `chrome-extension-app/src/app/hooks/useProductivityData.js` - Fixed property access, removed console.log, import shared utility
+  - `chrome-extension-app/src/app/hooks/useProductivityInsights.js` - Fixed hardcoded totalProblems calculation
+  - `chrome-extension-app/src/app/components/productivity/ProductivityKPIs.jsx` - Fixed streak calculation, removed console.log, import shared utility
+  - `chrome-extension-app/src/app/components/productivity/InsightsCard.jsx` - Updated to show attempt counts
+  - `chrome-extension-app/src/app/components/productivity/RecommendationsCard.jsx` - Made recommendations dynamic
+  - `chrome-extension-app/src/app/components/productivity/ProductivityCharts.jsx` - Replaced time-of-day with difficulty progression chart
+  - `chrome-extension-app/src/app/components/productivity/HeatmapChart.jsx` - Removed hour markers for cleaner layout
+  - `chrome-extension-app/src/app/pages/sessions/session-history.jsx` - Renamed "Problems Solved" to "Problems Attempted"
+  - `chrome-extension-app/src/app/utils/productivityUtils.js` - New shared utility for calculateStudyStreak
+- Commits:
+  - `2a2c3f4` fix(productivity-insights): count actual sessions not attempts in Sessions KPI
+  - `336ab10` feat(productivity-insights): make Recommendations dynamic based on user data
+  - `ddcb86c` fix(productivity-insights): update Key Insights to show attempt count instead of session count
+  - `e97d2c5` feat(productivity-insights): replace redundant time-of-day chart with difficulty progression
+  - `e5fbb22` refactor(session-history): rename Problems Solved to Problems Attempted for clarity
+
+### Fixed
 **"Max Session Length" Not Enforced as Maximum** ([Issue #162](https://github.com/smithrashell/CodeMaster/issues/162)):
 - Fixed "Max session length (problems)" setting not being enforced as a hard maximum cap
 - Root cause: `applySessionLengthPreference()` function in `sessions.js` was blending user preference with adaptive algorithm (70/30 split)

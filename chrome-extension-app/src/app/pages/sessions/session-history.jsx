@@ -65,7 +65,7 @@ export function Metrics() {
           <SlimKPI title="Total Sessions" value={kpis.totalSessions} sub="completed" />
           <SlimKPI title="Avg Accuracy" value={kpis.avgAccuracy} sub="success rate" />
           <SlimKPI title="Avg Duration" value={kpis.avgSessionTime} sub="per session" />
-          <SlimKPI title="Problems Solved" value={kpis.problemsSolved} sub="total" />
+          <SlimKPI title="Problems Attempted" value={kpis.problemsSolved} sub="in sessions" />
         </SimpleGrid>
 
         {/* Session Trends Charts - Equal weight */}
