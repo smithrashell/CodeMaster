@@ -3,9 +3,11 @@
  */
 import { useState, useEffect } from "react";
 import { filterSessionsByTimeRange, calculateKPIs } from "./sessionTimeUtils";
+import { getIndividualSessionAccuracyData } from "../../../shared/utils/DataAdapter";
 
 export const useSessionData = (appState, timeRange) => {
-  const [sessionData, setSessionData] = useState([]);
+  const [sessionLengthData, setSessionLengthData] = useState([]);
+  const [accuracyData, setAccuracyData] = useState([]);
   const [recentSessions, setRecentSessions] = useState([]);
 
   useEffect(() => {
@@ -14,45 +16,49 @@ export const useSessionData = (appState, timeRange) => {
     // Get all sessions and apply time range filter
     const allSessions = appState.allSessions || [];
     const filteredSessions = filterSessionsByTimeRange(allSessions, timeRange);
-    
-    // Process filtered sessions for charts (limit to last 14 for chart readability)
-    const sessionsForChart = filteredSessions.slice(-14);
-    const processedData = sessionsForChart.map((session, index) => {
-      // Support both snake_case and camelCase
-      const duration = session.duration || session.session_duration || 30;
-      const problemCount = session.problems?.length || session.problem_count || 0;
 
-      return {
-        name: `Day ${index + 1}`,
-        length: duration,
-        accuracy: Math.round((session.accuracy || 0) * 100),
-        problems: problemCount
-      };
+    // Filter to only completed sessions with attempts
+    const completedSessions = filteredSessions.filter(session => {
+      const hasAttempts = session.attempts && session.attempts.length > 0;
+      return (session.status === "completed" || session.completed === true) && hasAttempts;
     });
 
-    setSessionData(processedData);
+    // Process session length data - limit to last 20 for readability
+    const sessionsForLengthChart = completedSessions.slice(-20);
+    const lengthData = sessionsForLengthChart.map((session, index) => {
+      const duration = session.duration || session.session_duration || 30;
+      return {
+        name: `Session ${index + 1}`,
+        length: duration
+      };
+    });
+    setSessionLengthData(lengthData);
+
+    // Use DataAdapter for accuracy data - shows individual sessions
+    const accuracyChartData = getIndividualSessionAccuracyData(completedSessions);
+    setAccuracyData(accuracyChartData);
+
     // Use filtered sessions for recent sessions table (limit to last 10 for table)
-    setRecentSessions(filteredSessions.slice(-10));
+    setRecentSessions(completedSessions.slice(-10));
   }, [appState, timeRange]);
 
   // Calculate KPI values from filtered data
-  const filteredSessionsForKPI = appState?.allSessions 
-    ? filterSessionsByTimeRange(appState.allSessions, timeRange) 
+  const filteredSessionsForKPI = appState?.allSessions
+    ? filterSessionsByTimeRange(appState.allSessions, timeRange)
     : [];
-  
+
   // Only count sessions that are actually completed (same logic as Recent Sessions table)
   const completedSessions = filteredSessionsForKPI.filter(session => {
     const hasAttempts = session.attempts && session.attempts.length > 0;
     return (session.status === "completed" || session.completed === true) && hasAttempts;
   });
-  
+
   const kpis = calculateKPIs(completedSessions);
 
   return {
-    sessionData,
     recentSessions,
-    sessionLengthData: sessionData,
-    accuracyData: sessionData.map(d => ({ name: d.name, accuracy: d.accuracy })),
+    sessionLengthData,
+    accuracyData,
     kpis
   };
 };
