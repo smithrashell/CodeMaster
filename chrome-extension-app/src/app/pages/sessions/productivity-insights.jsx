@@ -14,7 +14,7 @@ export function ProductivityInsights() {
   const [timeRange, setTimeRange] = useState("Last 7 days");
 
   // Use custom hooks for data processing
-  const { productivityData, totalSessions, avgAccuracy, peakHour } = useProductivityData(appState, timeRange);
+  const { productivityData, heatmapData, totalSessions, avgAccuracy, peakHour } = useProductivityData(appState, timeRange);
   const insights = useProductivityInsights(appState, productivityData, totalSessions);
 
   if (loading) return <Container size="xl" p="md"><Text>Loading productivity insights...</Text></Container>;
@@ -67,8 +67,9 @@ export function ProductivityInsights() {
         </SimpleGrid>
 
         {/* Charts */}
-        <ProductivityCharts 
+        <ProductivityCharts
           productivityData={productivityData}
+          heatmapData={heatmapData}
           timeRange={timeRange}
           peakHour={peakHour}
         />
