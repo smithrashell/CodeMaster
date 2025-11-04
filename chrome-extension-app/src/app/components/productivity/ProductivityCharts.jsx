@@ -13,7 +13,7 @@ export function ProductivityCharts({ productivityData, heatmapData, timeRange, p
             <Badge variant="light" color="gray" size="sm">{timeRange}</Badge>
           </Group>
           <Text size="xs" c="dimmed" mb="sm">
-            📊 Bars = sessions per hour (0–23) • 📈 Line = accuracy % (right axis)
+            📊 Bars = attempts per hour (0–23) • 📈 Line = accuracy % (right axis)
           </Text>
           <div style={{ height: 300 }}>
             <TimeGranularChartCard
@@ -22,13 +22,13 @@ export function ProductivityCharts({ productivityData, heatmapData, timeRange, p
               useTimeGranularity={false}
               data={productivityData}
               dataKeys={[
-                { key: "sessions", color: "#8884d8", name: "Sessions" },
+                { key: "attempts", color: "#8884d8", name: "Attempts" },
                 { key: "avgAccuracy", color: "#82ca9d", name: "Accuracy %" }
               ]}
               yAxisFormatter={(v) => v}
               tooltipFormatter={(value, name) => [
-                name === "Accuracy %" ? `${value}%` : `${value} sessions`, 
-                name === "Accuracy %" ? "Avg Accuracy" : "Session Count"
+                name === "Accuracy %" ? `${value}%` : `${value} attempts`,
+                name === "Accuracy %" ? "Avg Accuracy" : "Problem Count"
               ]}
             />
           </div>
@@ -45,7 +45,7 @@ export function ProductivityCharts({ productivityData, heatmapData, timeRange, p
             <Badge variant="light" color="gray" size="sm">{timeRange}</Badge>
           </Group>
           <Text size="xs" c="dimmed" mb="sm">
-            Heatmap: Hour (0-23) by Day of week, Color intensity = session count
+            Heatmap: Hour (0-23) by Day of week, Color intensity = attempt count
           </Text>
           <div style={{ height: 300, overflowY: 'auto' }}>
             <HeatmapChart data={heatmapData} />
