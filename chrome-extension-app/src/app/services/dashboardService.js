@@ -1914,7 +1914,7 @@ export async function getProductivityInsightsData(options = {}) {
  */
 function calculateReflectionInsights(dashboardData) {
   try {
-    const allAttempts = dashboardData.attempts || [];
+    const allAttempts = dashboardData.allAttempts || [];
 
     // Count attempts with reflections (non-empty comments field)
     // Check both Comments (PascalCase) and comments (lowercase) for compatibility
@@ -1926,7 +1926,20 @@ function calculateReflectionInsights(dashboardData) {
     const reflectionsCount = attemptsWithReflections.length;
     const totalAttempts = allAttempts.length;
     const reflectionRate = totalAttempts > 0 ? (reflectionsCount / totalAttempts) * 100 : 0;
-    
+
+    // Debug logging
+    console.log('🔍 calculateReflectionInsights Debug:', {
+      totalAttempts,
+      reflectionsCount,
+      reflectionRate,
+      sampleAttemptWithComment: attemptsWithReflections[0],
+      first3Attempts: allAttempts.slice(0, 3).map(a => ({
+        hasComments: !!a.comments,
+        hasCommentsCapital: !!a.Comments,
+        commentValue: a.comments || a.Comments || 'EMPTY'
+      }))
+    });
+
     // Analyze common themes in reflections
     const commonThemes = analyzeReflectionThemes(attemptsWithReflections);
     

@@ -62,6 +62,14 @@ export function ProductivityKPIs({ totalSessions, avgAccuracy, peakHour, timeRan
     .filter(s => s.status === 'completed')
     .reduce((sum, s) => sum + (s.problems?.length || 0), 0);
 
+  // Debug logging
+  console.log('🔍 ProductivityKPIs Debug:', {
+    reflectionData: appState?.reflectionData,
+    reflectionsCount: appState?.reflectionData?.reflectionsCount,
+    totalProblems,
+    totalAttempts: appState?.reflectionData?.totalAttempts
+  });
+
   const reflectionRate = totalProblems > 0
     ? Math.round(((appState?.reflectionData?.reflectionsCount || 0) / totalProblems) * 100)
     : 0;
