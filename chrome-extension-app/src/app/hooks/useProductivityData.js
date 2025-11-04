@@ -160,9 +160,49 @@ const calculateWeeklyHeatmap = (sessions) => {
   return heatmapData;
 };
 
+// Calculate difficulty progression over time (sessions)
+const calculateDifficultyProgression = (sessions) => {
+  // Sort sessions by date (oldest to newest)
+  const sortedSessions = sessions
+    .filter(s => s.status === 'completed')
+    .sort((a, b) => new Date(a.date || a.Date) - new Date(b.date || b.Date));
+
+  // Group by date and count difficulties
+  return sortedSessions.map(session => {
+    const problems = session.problems || [];
+    const attemptedProblems = problems.filter(p => p.attempted);
+
+    const difficultyCount = {
+      Easy: 0,
+      Medium: 0,
+      Hard: 0
+    };
+
+    attemptedProblems.forEach(problem => {
+      const difficulty = problem.difficulty;
+      if (difficultyCount.hasOwnProperty(difficulty)) {
+        difficultyCount[difficulty]++;
+      }
+    });
+
+    // Format date for display
+    const sessionDate = new Date(session.date || session.Date);
+    const dateStr = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    return {
+      date: dateStr,
+      Easy: difficultyCount.Easy,
+      Medium: difficultyCount.Medium,
+      Hard: difficultyCount.Hard,
+      total: attemptedProblems.length
+    };
+  });
+};
+
 export function useProductivityData(appState, timeRange) {
   const [productivityData, setProductivityData] = useState([]);
   const [heatmapData, setHeatmapData] = useState([]);
+  const [difficultyProgressionData, setDifficultyProgressionData] = useState([]);
 
   useEffect(() => {
     if (!appState) return;
@@ -191,6 +231,10 @@ export function useProductivityData(appState, timeRange) {
     // Calculate weekly heatmap data
     const heatmap = calculateWeeklyHeatmap(sessions);
     setHeatmapData(heatmap);
+
+    // Calculate difficulty progression
+    const difficultyProgression = calculateDifficultyProgression(sessions);
+    setDifficultyProgressionData(difficultyProgression);
   }, [appState, timeRange]);
 
   // Calculate summary metrics
@@ -214,6 +258,7 @@ export function useProductivityData(appState, timeRange) {
   return {
     productivityData,
     heatmapData,
+    difficultyProgressionData,
     totalSessions,
     studyStreak,
     avgAccuracy,
