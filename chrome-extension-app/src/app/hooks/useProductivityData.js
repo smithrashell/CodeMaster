@@ -73,7 +73,7 @@ const calculateHourlyPerformance = (sessions) => {
     avgAccuracy: data.totalAttempts > 0
       ? Math.round((data.successfulAttempts / data.totalAttempts) * 100)
       : 0,
-    sessions: data.totalAttempts, // Number of attempts (problems solved) in this hour
+    attempts: data.totalAttempts, // Number of attempts (problems solved) in this hour
     avgTime: data.totalAttempts > 0
       ? Math.round(data.totalTime / data.totalAttempts)
       : 0
@@ -155,7 +155,11 @@ export function useProductivityData(appState, timeRange) {
   }, [appState, timeRange]);
 
   // Calculate summary metrics
-  const totalSessions = productivityData.reduce((sum, d) => sum + d.sessions, 0);
+  // Count actual completed sessions in the time range (not attempts)
+  const allSessions = appState?.allSessions || [];
+  const filteredSessions = filterSessionsByTimeRange(allSessions, timeRange);
+  const totalSessions = filteredSessions.filter(s => s.status === 'completed').length;
+
   const avgAccuracy = productivityData.length > 0
     ? Math.round(productivityData.reduce((sum, d) => sum + d.avgAccuracy, 0) / productivityData.length)
     : 0;
