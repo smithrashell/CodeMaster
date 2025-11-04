@@ -7,6 +7,42 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] - 2025-11-02
 
 ### Fixed
+**Hint Tracking Shows Incorrect Category Breakdown** ([Issue #163](https://github.com/smithrashell/CodeMaster/issues/163)):
+- Fixed hint category breakdown displaying all zeros despite total hints being tracked correctly
+- Fixed Learning Efficiency chart showing "No Data" despite hints being used
+- Root causes:
+  1. **Snake_case vs camelCase property name mismatch in `HintInteractionService.js`**
+     - Database stores hint data as `hint_type`, `user_action`, `problem_id`, etc. (snake_case)
+     - Service was accessing `hintType`, `userAction`, `problemId`, etc. (camelCase)
+     - Result: Properties returned `undefined`, causing breakdown to show 0/0/0
+  2. **Session ID property mismatch in `dashboardService.js`**
+     - Session objects have `id` property
+     - `calculatePeriodEfficiency()` was accessing `sessionId` or `SessionID`
+     - Result: Couldn't find hint interactions for efficiency calculation
+- Impact: User metrics showed misleading data affecting multiple features
+  - Total hints: 4 ✅ (worked because records existed)
+  - Contextual/General/Primer breakdown: 0/0/0 ❌ (failed due to undefined properties)
+  - Learning Efficiency chart showed "No Data" ❌ (couldn't find sessions)
+  - Undermined user confidence in tracking system
+- Solution: Fixed all property access mismatches
+  - **HintInteractionService.js**: Fixed all property access to use snake_case
+    - `getProblemAnalytics()`: Fixed timeline, byAction, byHintType aggregations
+    - `getSessionAnalytics()`: Fixed problem grouping, engagement calculations, interaction patterns
+    - `getSystemAnalytics()`: Fixed difficulty and hintType filters
+    - `_calculateHintTypePopularity()`: Fixed popularity aggregation
+    - `_calculateDifficultyBreakdown()`: Fixed difficulty and action access
+  - **dashboardService.js**: Fixed session ID access in efficiency calculation
+    - `calculatePeriodEfficiency()`: Changed `s.sessionId || s.SessionID` to `s.id || s.sessionId || s.SessionID`
+    - Now correctly finds hint interactions for efficiency metrics
+- Files modified:
+  - `chrome-extension-app/src/shared/services/hintInteractionService.js` - Fixed all camelCase to snake_case property access
+  - `chrome-extension-app/src/app/services/dashboardService.js` - Fixed session ID property mismatch
+- Testing:
+  - All tests passing (35/35 suites, 494/557 tests)
+  - No ESLint errors
+  - Hint breakdown now correctly shows category totals that add up to total count
+  - Learning Efficiency chart should now display data when hints are used
+
 **Productivity Insights Page Data Accuracy and UX Issues** ([Issue #176](https://github.com/smithrashell/CodeMaster/issues/176)):
 - Fixed multiple data accuracy and UX issues on the Productivity Insights page
 - Root causes:
