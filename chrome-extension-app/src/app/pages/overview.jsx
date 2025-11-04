@@ -1,4 +1,5 @@
-import { Container, Grid, Title, Button, Group } from "@mantine/core";
+import { useState } from "react";
+import { Container, Grid, Title, Button, Group, Select } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import { IconRefresh } from "@tabler/icons-react";
 import { EmptyStateCard } from "../components/onboarding/EmptyStateCard";
@@ -9,11 +10,13 @@ import { StatsMetrics } from "../components/overview/StatsMetrics";
 import { StatsCharts } from "../components/overview/StatsCharts";
 import { StatsLoadingState } from "../components/overview/StatsLoadingState";
 import { StatsErrorState } from "../components/overview/StatsErrorState";
+import { TIME_RANGE_OPTIONS } from "./sessions/sessionTimeUtils";
 
 
 export function Stats() {
   const { data: appState, loading, error, refresh } = usePageData('stats');
   const navigate = useNavigate();
+  const [timeRange, setTimeRange] = useState("All time");
   
   const {
     statistics,
@@ -23,7 +26,7 @@ export function Stats() {
     learningEfficiencyData,
     accuracyData,
     showStartSessionButton
-  } = useStatsState(appState);
+  } = useStatsState(appState, timeRange);
 
   const handleStartFirstSession = () => {
     window.open("https://leetcode.com/problems/", "_blank");
@@ -44,14 +47,22 @@ export function Stats() {
         <Title order={2}>
           General Performance Summary
         </Title>
-        <Button 
-          leftSection={<IconRefresh size={16} />} 
-          variant="light" 
-          onClick={refresh}
-          size="sm"
-        >
-          Refresh
-        </Button>
+        <Group gap="sm">
+          <Select
+            size="sm"
+            data={TIME_RANGE_OPTIONS}
+            value={timeRange}
+            onChange={setTimeRange}
+          />
+          <Button
+            leftSection={<IconRefresh size={16} />}
+            variant="light"
+            onClick={refresh}
+            size="sm"
+          >
+            Refresh
+          </Button>
+        </Group>
       </Group>
 
       {showStartSessionButton ? (

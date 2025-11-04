@@ -1,33 +1,29 @@
 import { useEffect, useState } from "react";
 import { checkContentOnboardingStatus } from "../../shared/services/onboardingService.js";
 import { shouldUseMockDashboard } from "../config/mockConfig.js";
+import { filterSessionsByTimeRange } from "../pages/sessions/sessionTimeUtils.js";
 
 /**
- * Process session data for accuracy and breakdown charts
+ * Process session data for accuracy and efficiency charts
+ * Shows individual sessions, not aggregated
  */
-function processSessionData(allSessions, setAccuracyData, setBreakdownData) {
+function processSessionData(allSessions, timeRange, setAccuracyData, setEfficiencyData) {
   if (allSessions && Array.isArray(allSessions)) {
-    const { getAccuracyTrendData, getAttemptBreakdownData } = require("../../shared/utils/DataAdapter.js");
-    
-    const weekly = getAccuracyTrendData(allSessions, "weekly");
-    const monthly = getAccuracyTrendData(allSessions, "monthly");
-    const yearly = getAccuracyTrendData(allSessions, "yearly");
+    const { getIndividualSessionAccuracyData, getIndividualSessionEfficiencyData } = require("../../shared/utils/DataAdapter.js");
 
-    setAccuracyData({ weekly, monthly, yearly });
+    // Filter sessions by time range first
+    const filteredSessions = filterSessionsByTimeRange(allSessions, timeRange);
 
-    const weeklyBreakdown = getAttemptBreakdownData(allSessions, "weekly");
-    const monthlyBreakdown = getAttemptBreakdownData(allSessions, "monthly");
-    const yearlyBreakdown = getAttemptBreakdownData(allSessions, "yearly");
+    // Get individual session data (no aggregation)
+    const individualAccuracyData = getIndividualSessionAccuracyData(filteredSessions);
+    const individualEfficiencyData = getIndividualSessionEfficiencyData(filteredSessions);
 
-    setBreakdownData({
-      weekly: weeklyBreakdown,
-      monthly: monthlyBreakdown,
-      yearly: yearlyBreakdown,
-    });
+    setAccuracyData(individualAccuracyData);
+    setEfficiencyData(individualEfficiencyData);
   } else {
     console.warn("allSessions is not available or not an array:", allSessions);
-    setAccuracyData({ weekly: [], monthly: [], yearly: [] });
-    setBreakdownData({ weekly: [], monthly: [], yearly: [] });
+    setAccuracyData([]);
+    setEfficiencyData([]);
   }
 }
 
@@ -48,24 +44,15 @@ function detectAvailableData(appState, statistics, allSessions) {
   );
 }
 
-export function useStatsState(appState) {
+export function useStatsState(appState, timeRange = "All time") {
   const [statistics, setStatistics] = useState(appState?.statistics);
   const [averageTime, setAverageTime] = useState(appState?.averageTime);
   const [successRate, setSuccessRate] = useState(appState?.successRate);
   const [allSessions, setAllSessions] = useState(appState?.allSessions);
   const [hintsUsed, setHintsUsed] = useState(appState?.hintsUsed);
-  const [learningEfficiencyData, setLearningEfficiencyData] = useState(appState?.learningEfficiencyData);
   const [contentOnboardingCompleted, setContentOnboardingCompleted] = useState(null);
-  const [accuracyData, setAccuracyData] = useState({
-    weekly: null,
-    monthly: null,
-    yearly: null,
-  });
-  const [_breakdownData, setBreakdownData] = useState({
-    weekly: null,
-    monthly: null,
-    yearly: null,
-  });
+  const [accuracyData, setAccuracyData] = useState([]);
+  const [efficiencyData, setEfficiencyData] = useState([]);
 
   // Check content onboarding status
   useEffect(() => {
@@ -97,12 +84,11 @@ export function useStatsState(appState) {
       setSuccessRate(appState.successRate);
       setAllSessions(appState.allSessions);
       setHintsUsed(appState.hintsUsed);
-      setLearningEfficiencyData(appState.learningEfficiencyData);
 
-      // Process session data for charts
-      processSessionData(appState.allSessions, setAccuracyData, setBreakdownData);
+      // Process session data for charts (individual sessions, not aggregated)
+      processSessionData(appState.allSessions, timeRange, setAccuracyData, setEfficiencyData);
     }
-  }, [appState, contentOnboardingCompleted]);
+  }, [appState, timeRange, contentOnboardingCompleted]);
 
   // Enhanced data detection logic - check multiple data sources
   const hasData = detectAvailableData(appState, statistics, allSessions);
@@ -134,7 +120,7 @@ export function useStatsState(appState) {
     successRate,
     allSessions,
     hintsUsed,
-    learningEfficiencyData,
+    learningEfficiencyData: efficiencyData, // Use individual session efficiency
     contentOnboardingCompleted,
     accuracyData,
     hasData,

@@ -58,6 +58,41 @@ function getInitialFocusAreas(providedFocusAreas) {
 }
 
 /**
+ * Enrich sessions with actual hint counts from hint_interactions table
+ */
+async function enrichSessionsWithHintCounts(sessions) {
+  if (!Array.isArray(sessions) || sessions.length === 0) {
+    return sessions;
+  }
+
+  // Get hint counts for all sessions in parallel
+  const sessionsWithHints = await Promise.all(
+    sessions.map(async (session) => {
+      try {
+        const sessionId = session.id || session.sessionId || session.SessionID;
+        if (!sessionId) {
+          return { ...session, hintsUsed: 0 };
+        }
+
+        // Get hint interactions for this session
+        const hintInteractions = await getInteractionsBySession(sessionId);
+        const hintsUsed = Array.isArray(hintInteractions) ? hintInteractions.length : 0;
+
+        return {
+          ...session,
+          hintsUsed
+        };
+      } catch (error) {
+        logger.warn(`Failed to get hint count for session ${session.id}:`, error);
+        return { ...session, hintsUsed: 0 };
+      }
+    })
+  );
+
+  return sessionsWithHints;
+}
+
+/**
  * Fetch all required data for dashboard statistics
  */
 async function fetchDashboardData() {
@@ -70,7 +105,10 @@ async function fetchDashboardData() {
     ProblemService.countProblemsByBoxLevel()
   ]);
 
-  return { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData };
+  // Enrich sessions with actual hint counts from hint_interactions table
+  const enrichedSessions = await enrichSessionsWithHintCounts(allSessions);
+
+  return { allProblems, allAttempts, allSessions: enrichedSessions, allStandardProblems, learningState, boxLevelData };
 }
 
 /**
@@ -1253,7 +1291,7 @@ function calculateStreakDays(sessions) {
   
   const sortedSessions = sessions
     .filter(s => s.completed)
-    .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
   
   if (sortedSessions.length === 0) return 0;
   
@@ -1373,9 +1411,9 @@ async function generateLearningEfficiencyChartData(sessions, attempts) {
     hasSessions: !!sessions,
     hasAttempts: !!attempts,
     sampleSession: sessions?.[0] ? {
-      Date: sessions[0].Date,
+      date: sessions[0].date,
       createdAt: sessions[0].createdAt,
-      dateType: typeof sessions[0].Date,
+      dateType: typeof sessions[0].date,
       createdAtType: typeof sessions[0].createdAt
     } : null
   });
@@ -1507,8 +1545,8 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
     console.log('📊 Using estimation - totalHintsUsed:', totalHintsUsed);
   }
 
-  // Return efficiency (problems per hint), with minimum value to avoid division issues
-  const efficiency = totalHintsUsed > 0 ? successfulProblems / totalHintsUsed : 0;
+  // Return efficiency (hints per problem), lower is better
+  const efficiency = successfulProblems > 0 ? totalHintsUsed / successfulProblems : 0;
   console.log('📊 Final efficiency:', efficiency);
   return efficiency;
 }
