@@ -15,12 +15,12 @@ export function useProductivityInsights(appState, productivityData, totalSession
         body: `You're sharpest at ${bestTime.time} with ${bestTime.avgAccuracy}% accuracy.`
       });
       
-      const mostActive = productivityData.reduce((most, current) => 
-        current.sessions > most.sessions ? current : most
+      const mostActive = productivityData.reduce((most, current) =>
+        current.attempts > most.attempts ? current : most
       );
       generatedInsights.push({
         title: "Most active",
-        body: `${mostActive.time} has the highest session count (${mostActive.sessions}).`
+        body: `${mostActive.time} has the highest attempt count (${mostActive.attempts} problems solved).`
       });
 
       // Reflection insights
