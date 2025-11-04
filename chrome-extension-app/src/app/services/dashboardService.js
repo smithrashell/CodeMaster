@@ -1438,7 +1438,7 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
   if (sessions.length === 0) return 0;
 
   // Get session IDs for this period
-  const sessionIds = new Set(sessions.map(s => s.sessionId || s.SessionID));
+  const sessionIds = new Set(sessions.map(s => s.id || s.sessionId || s.SessionID));
 
   // Find attempts from these sessions (support both snake_case and PascalCase)
   const periodAttempts = allAttempts.filter(attempt => {
