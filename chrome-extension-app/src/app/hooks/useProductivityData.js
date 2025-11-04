@@ -56,8 +56,46 @@ const calculateHourlyPerformance = (sessions) => {
   })).sort((a, b) => parseInt(a.time) - parseInt(b.time));
 };
 
+// Calculate weekly heatmap data (day of week x hour)
+const calculateWeeklyHeatmap = (sessions) => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const heatmapData = [];
+
+  // Initialize heatmap structure: 7 days x 24 hours
+  for (let day = 0; day < 7; day++) {
+    for (let hour = 0; hour < 24; hour++) {
+      heatmapData.push({
+        day: dayNames[day],
+        dayIndex: day,
+        hour: hour,
+        hourLabel: `${hour.toString().padStart(2, '0')}:00`,
+        count: 0
+      });
+    }
+  }
+
+  // Populate with session data
+  sessions.forEach(session => {
+    const sessionDate = session.date || session.Date;
+    if (sessionDate) {
+      const date = new Date(sessionDate);
+      const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+      const hour = date.getHours();
+
+      // Find matching cell and increment count
+      const cell = heatmapData.find(d => d.dayIndex === dayOfWeek && d.hour === hour);
+      if (cell) {
+        cell.count += 1;
+      }
+    }
+  });
+
+  return heatmapData;
+};
+
 export function useProductivityData(appState, timeRange) {
   const [productivityData, setProductivityData] = useState([]);
+  const [heatmapData, setHeatmapData] = useState([]);
 
   useEffect(() => {
     if (!appState) return;
@@ -65,25 +103,30 @@ export function useProductivityData(appState, timeRange) {
     // Get all sessions and apply time range filter
     const allSessions = appState.allSessions || [];
     const sessions = filterSessionsByTimeRange(allSessions, timeRange);
-    
+
     // Calculate hourly performance for chart data
     const chartData = calculateHourlyPerformance(sessions);
     setProductivityData(chartData);
+
+    // Calculate weekly heatmap data
+    const heatmap = calculateWeeklyHeatmap(sessions);
+    setHeatmapData(heatmap);
   }, [appState, timeRange]);
 
   // Calculate summary metrics
   const totalSessions = productivityData.reduce((sum, d) => sum + d.sessions, 0);
-  const avgAccuracy = productivityData.length > 0 
+  const avgAccuracy = productivityData.length > 0
     ? Math.round(productivityData.reduce((sum, d) => sum + d.avgAccuracy, 0) / productivityData.length)
     : 0;
-  const peakHour = productivityData.length > 0 
-    ? productivityData.reduce((best, current) => 
+  const peakHour = productivityData.length > 0
+    ? productivityData.reduce((best, current) =>
         current.avgAccuracy > best.avgAccuracy ? current : best
-      ).time 
+      ).time
     : "N/A";
 
   return {
     productivityData,
+    heatmapData,
     totalSessions,
     avgAccuracy,
     peakHour
