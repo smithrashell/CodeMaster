@@ -20,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New informational Alert explains adaptive difficulty is automatic
   - Clearer UX that doesn't suggest a choice where none exists
 
+### Removed
+- Removed artificial review ratio sliders that conflicted with Leitner system (#174)
+  - Removed "Min review ratio" slider from Guardrails section
+  - Removed "Review ratio" slider from Focus Priorities section
+  - Leitner spaced repetition system now naturally determines review problem count
+  - Review problems appear based on when they're due, not arbitrary percentage targets
+  - Session composition: ALL due review problems (up to session length) + remaining slots filled with new problems
+  - Example: If 3 problems are due for review, session includes all 3 (not capped by percentage)
+  - Prevents artificial caps that would skip due review problems
+  - Aligns with proper spaced repetition methodology
+
 ### Added
 - Added independent time range filters to Progress page charts (#172)
   - Each chart has its own filter dropdown in the chart card header

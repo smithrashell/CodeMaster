@@ -58,18 +58,6 @@ export function GuardrailsSection({
 
       <Stack gap="md">
         <div>
-          <Text size="sm" fw={500} mb="xs">Min review ratio: {guardrails.minReviewRatio}%</Text>
-          <Slider
-            value={guardrails.minReviewRatio}
-            onChange={(value) => onGuardrailChange('minReviewRatio', value)}
-            min={0}
-            max={60}
-            step={5}
-            color="orange"
-          />
-        </div>
-
-        <div>
           <Group gap="xs" mb="xs">
             <Text size="sm" fw={500}>Max new problems per session</Text>
             {isOnboarding && (

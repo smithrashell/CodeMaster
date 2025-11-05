@@ -103,28 +103,7 @@ function DifficultyDistributionSection({ focusPriorities }) {
   );
 }
 
-// Helper component for Review Ratio slider
-function ReviewRatioSection({ focusPriorities, onFocusPrioritiesChange, onSaveSettings }) {
-  return (
-    <div>
-      <Text size="sm" fw={500} mb="xs">Review ratio: {focusPriorities.reviewRatio}%</Text>
-      <Slider
-        value={focusPriorities.reviewRatio}
-        onChange={(value) => {
-          onFocusPrioritiesChange('reviewRatio', value);
-          setTimeout(onSaveSettings, 1000);
-        }}
-        min={0}
-        max={80}
-        step={10}
-        color="violet"
-      />
-      <Text size="xs" c="dimmed" mt="xs">
-        Balance between new problems and review
-      </Text>
-    </div>
-  );
-}
+// Review Ratio slider removed - Leitner system naturally determines review problems based on spaced repetition schedule
 
 export function FocusPrioritiesSection({ 
   appState, 
@@ -146,18 +125,7 @@ export function FocusPrioritiesSection({
         <UserFocusAreasSection appState={appState} isOnboarding={isOnboarding} navigate={navigate} />
         <ActiveSessionFocus appState={appState} />
         
-        <Grid gutter="lg">
-          <Grid.Col span={6}>
-            <DifficultyDistributionSection focusPriorities={focusPriorities} />
-          </Grid.Col>
-          <Grid.Col span={6}>
-            <ReviewRatioSection 
-              focusPriorities={focusPriorities}
-              onFocusPrioritiesChange={onFocusPrioritiesChange}
-              onSaveSettings={onSaveSettings}
-            />
-          </Grid.Col>
-        </Grid>
+        <DifficultyDistributionSection focusPriorities={focusPriorities} />
       </Stack>
     </Card>
   );

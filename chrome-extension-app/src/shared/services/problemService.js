@@ -39,17 +39,14 @@ async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnbo
     return 0;
   }
 
-  // 🔧 PRIORITY-BASED REVIEW SELECTION
-  // Changed approach: Get ALL due review problems, then prioritize them for session inclusion
-  // This ensures spaced repetition works correctly - if problems are due, they should appear
+  // 🔧 LEITNER SYSTEM: Natural review problem selection
+  // Get ALL problems due for review based on spaced repetition schedule
+  // No artificial caps - if problems are due, they should be reviewed
+  // Review problems can take up the entire session if many are due (proper spaced repetition)
 
-  const settings = await StorageService.getSettings();
-  const reviewRatio = (settings.reviewRatio || 40) / 100;
-  const reviewTarget = Math.floor(sessionLength * reviewRatio);
-
-  // Get ALL problems due for review (no artificial limit)
+  // Get ALL problems due for review from Leitner system
   const allReviewProblems = await ScheduleService.getDailyReviewSchedule(null);
-  logger.info(`🔍 DEBUG: Found ${allReviewProblems?.length || 0} total problems due for review`);
+  logger.info(`🔍 DEBUG: Found ${allReviewProblems?.length || 0} total problems due for review from Leitner system`);
 
   // 🔧 CRITICAL FIX: Enrich review problems with core metadata from standard_problems
   // Review problems from the 'problems' database only have Leitner tracking data (box_level, review_schedule, etc.)
@@ -220,26 +217,30 @@ async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnbo
     }))
   );
 
-  logger.info(`🔄 Added ${reviewProblemsToAdd.length} review problems to session (${validReviewProblems.length} total due, target was ${reviewTarget})`);
+  logger.info(`🔄 Added ${reviewProblemsToAdd.length} review problems to session (${validReviewProblems.length} total due from Leitner system)`);
 
-  if (reviewProblemsToAdd.length > reviewTarget) {
-    logger.info(`ℹ️ Review problems (${reviewProblemsToAdd.length}) exceeded target ratio (${reviewTarget}) - prioritizing spaced repetition over new content`);
+  if (reviewProblemsToAdd.length === sessionLength) {
+    logger.info(`ℹ️ Session filled entirely with review problems (${reviewProblemsToAdd.length}/${sessionLength}) - spaced repetition takes priority`);
+  } else if (reviewProblemsToAdd.length > 0) {
+    logger.info(`ℹ️ Session has ${reviewProblemsToAdd.length} review problems, ${sessionLength - reviewProblemsToAdd.length} slots available for new problems`);
   }
 
-  analyzeReviewProblems(validReviewProblems, reviewTarget, allProblems);
+  analyzeReviewProblems(validReviewProblems, sessionLength, allProblems);
   return reviewProblemsToAdd.length;
 }
 
-function analyzeReviewProblems(reviewProblems, reviewTarget, allProblems) {
-  if (reviewProblems.length === 0 && reviewTarget > 0) {
+function analyzeReviewProblems(reviewProblems, sessionLength, allProblems) {
+  if (reviewProblems.length === 0) {
     const hasAttemptedProblems = allProblems.length > 0;
     if (!hasAttemptedProblems) {
-      logger.info(`ℹ️ New user detected - no review problems available. Using 0/100 review/new ratio automatically.`);
+      logger.info(`ℹ️ New user detected - no review problems available. Session will contain only new problems.`);
     } else {
-      logger.warn(`⚠️ No review problems found despite target of ${reviewTarget} for experienced user. Check ScheduleService.getDailyReviewSchedule()`);
+      logger.info(`ℹ️ No review problems due today. Session will contain only new problems.`);
     }
-  } else if (reviewProblems.length < reviewTarget) {
-    logger.info(`ℹ️ Found ${reviewProblems.length}/${reviewTarget} review problems. Remaining ${reviewTarget - reviewProblems.length} slots will be filled with new problems.`);
+  } else if (reviewProblems.length < sessionLength) {
+    logger.info(`ℹ️ Found ${reviewProblems.length} review problems due. Remaining ${sessionLength - reviewProblems.length} slots will be filled with new problems.`);
+  } else {
+    logger.info(`ℹ️ Found ${reviewProblems.length} review problems due (more than session length of ${sessionLength}). Prioritizing spaced repetition.`);
   }
 }
 
