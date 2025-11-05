@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed Focus Areas showing 'array' tag instead of empty state when no focus area is selected (#173)
   - Changed default `focusAreas` from `["array"]` to `[]` for new users
-  - Updated hardcoded fallback from `["array"]` to `["array", "string", "hash table"]` for better fundamental concepts coverage
+  - Removed silent hardcoded fallbacks that hid data integrity issues
+  - System now throws explicit errors when focus tag generation fails (instead of hiding problems)
   - Empty focus areas now display "No focus areas selected" in UI
   - System automatically recommends focus areas based on learning state when user has no manual selection
 - Fixed Progress page charts showing aggregated data instead of per-session data (#172)

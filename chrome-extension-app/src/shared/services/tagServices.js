@@ -201,10 +201,30 @@ async function getCurrentTier() {
         `✅ User is in ${tier}, working on ${unmasteredTags.length} tags.`
       );
 
-      // 🛡️ FINAL SAFETY NET: Ensure focus tags are never empty
-      const safeFocusTags = unmasteredTags && unmasteredTags.length > 0
-        ? unmasteredTags
-        : (tierTags.length > 0 ? tierTags.slice(0, 3) : ["array", "string", "hash table"]);
+      // 🛡️ CRITICAL: Focus tags should never be empty
+      if (!unmasteredTags || unmasteredTags.length === 0) {
+        if (tierTags.length > 0) {
+          // Use tier tags if available
+          logger.warn(`⚠️ No unmastered tags, using tier tags as fallback`);
+          const safeFocusTags = tierTags.slice(0, 3);
+
+          return {
+            classification: tier,
+            masteredTags,
+            allTagsInCurrentTier: tierTags,
+            focusTags: safeFocusTags,
+            masteryData,
+            tierEscapeHatchActivated: false,
+          };
+        }
+
+        // Complete failure - no tags available
+        logger.error("❌ CRITICAL: No focus tags available!");
+        logger.error("Context:", { tier, masteredTagsCount: masteredTags.length, tierTagsCount: tierTags.length });
+        throw new Error("Unable to determine focus tags - no unmastered or tier tags available. This indicates a data integrity issue.");
+      }
+
+      const safeFocusTags = unmasteredTags;
 
       if (safeFocusTags !== unmasteredTags) {
         logger.warn(`⚠️ getCurrentTier using fallback focus tags: ${safeFocusTags}`);
@@ -655,11 +675,12 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   logger.info('🎯 Using stable system pool (no user selections)');
   logger.info(`✅ Final focus tags (system only): ${systemPool.join(', ')}`);
 
-  // 🛡️ SAFETY NET: Ensure we always have focus tags
+  // 🛡️ CRITICAL: System pool should never be empty in normal operation
   if (!systemPool || systemPool.length === 0) {
-    logger.warn("⚠️ System pool empty, falling back to tier tags");
-    const fallbackTags = tierTags.slice(0, 5);
-    return fallbackTags.length > 0 ? fallbackTags : ["array", "string", "hash table"];
+    logger.error("❌ CRITICAL: System pool generation failed!");
+    logger.error("This indicates a serious data integrity issue");
+    logger.error("Context:", { tierTags, currentTier, masteryDataCount: masteryData?.length });
+    throw new Error("Unable to generate focus tags - system pool is empty. This indicates a data integrity issue.");
   }
 
   return systemPool;
