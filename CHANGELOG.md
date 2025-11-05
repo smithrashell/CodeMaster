@@ -7,7 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added independent time range filters to Progress page charts (#172)
+  - Each chart has its own filter dropdown in the chart card header
+  - "New vs Review Problems per Session" chart has its own time range filter
+  - "Problem Activity per Session" chart has its own time range filter
+  - Filter options: Last 7 days, Last 30 days, Quarter to date, Year to date, All time
+  - Works client-side on already-loaded data (instant filtering, no refresh needed)
+  - Same pattern as Session History page for consistency
+
 ### Fixed
+- Fixed Progress page charts showing aggregated data instead of per-session data (#172)
+  - Replaced "Promotion & Demotion Trends" with "New vs Review Problems per Session" stacked bar chart
+  - Changed "Problem Activity Over Time" to "Problem Activity per Session" showing individual session bars
+  - Both charts now display individual sessions as data points (matching Overview page pattern)
+  - Each session shows as its own bar instead of being aggregated by week/month/year
+  - Added `getNewVsReviewProblemsPerSession()` function to show breakdown of new vs review problems per session
+  - Added `getIndividualSessionActivityData()` function for per-session activity metrics
 - Fixed Learning Efficiency chart showing "No Data" despite having completed sessions (#163)
 - Fixed property name mismatches: Changed all `session.Date` (PascalCase) to `session.date` (lowercase) across 12 locations
   - dashboardService.js: 9 instances (lines 148, 729, 756, 1264, 1288, 1294, 1397, 1416, 1435)
