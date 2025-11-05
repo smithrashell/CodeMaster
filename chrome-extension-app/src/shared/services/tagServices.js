@@ -204,7 +204,7 @@ async function getCurrentTier() {
       // 🛡️ FINAL SAFETY NET: Ensure focus tags are never empty
       const safeFocusTags = unmasteredTags && unmasteredTags.length > 0
         ? unmasteredTags
-        : (tierTags.length > 0 ? tierTags.slice(0, 3) : ["array"]);
+        : (tierTags.length > 0 ? tierTags.slice(0, 3) : ["array", "string", "hash table"]);
 
       if (safeFocusTags !== unmasteredTags) {
         logger.warn(`⚠️ getCurrentTier using fallback focus tags: ${safeFocusTags}`);
@@ -659,7 +659,7 @@ async function getIntelligentFocusTags(masteryData, tierTags) {
   if (!systemPool || systemPool.length === 0) {
     logger.warn("⚠️ System pool empty, falling back to tier tags");
     const fallbackTags = tierTags.slice(0, 5);
-    return fallbackTags.length > 0 ? fallbackTags : ["array"];
+    return fallbackTags.length > 0 ? fallbackTags : ["array", "string", "hash table"];
   }
 
   return systemPool;

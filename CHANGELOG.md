@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Same pattern as Session History page for consistency
 
 ### Fixed
+- Fixed Focus Areas showing 'array' tag instead of empty state when no focus area is selected (#173)
+  - Changed default `focusAreas` from `["array"]` to `[]` for new users
+  - Updated hardcoded fallback from `["array"]` to `["array", "string", "hash table"]` for better fundamental concepts coverage
+  - Empty focus areas now display "No focus areas selected" in UI
+  - System automatically recommends focus areas based on learning state when user has no manual selection
 - Fixed Progress page charts showing aggregated data instead of per-session data (#172)
   - Replaced "Promotion & Demotion Trends" with "New vs Review Problems per Session" stacked bar chart
   - Changed "Problem Activity Over Time" to "Problem Activity per Session" showing individual session bars
