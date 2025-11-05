@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Works client-side on already-loaded data (instant filtering, no refresh needed)
   - Same pattern as Session History page for consistency
 
+### Added
+- **Pattern Ladder Coverage Mastery Gate**: Tags now require 70% pattern ladder completion for mastery
+  - Ensures exposure to diverse problem patterns, not just volume
+  - Pattern ladders follow natural difficulty distribution (prevents Easy-only mastery)
+  - Covers both pattern diversity AND difficulty breadth in a single gate
+  - New 4-gate system: Volume (attempts) + Variety (unique problems) + Accuracy (success rate) + Ladder Coverage (pattern exposure)
+  - Console logs now show ladder progress: `ladder: ✅ 9/12 (75%/70%)`
+
 ### Fixed
 - Fixed Focus Areas showing 'array' tag instead of empty state when no focus area is selected (#173)
   - Changed default `focusAreas` from `["array"]` to `[]` for new users across all initialization paths
@@ -25,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now throws explicit errors when focus tag generation fails (instead of hiding problems)
   - Empty focus areas now display "No focus areas selected" in UI
   - System automatically recommends focus areas based on learning state when user has no manual selection
+- Fixed coreLadder remnants from deprecated architecture decision (Sept 2025)
+  - Removed coreLadder writes from problemladderService.js (was writing unused data to tag_mastery)
+  - Removed coreLadder schema from DataIntegritySchemas.js
+  - pattern_ladders store is the single source of truth for ladder data
+  - Eliminated data duplication and stale data issues
 - Fixed Progress page charts showing aggregated data instead of per-session data (#172)
   - Replaced "Promotion & Demotion Trends" with "New vs Review Problems per Session" stacked bar chart
   - Changed "Problem Activity Over Time" to "Problem Activity per Session" showing individual session bars
