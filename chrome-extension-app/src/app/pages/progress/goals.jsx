@@ -256,8 +256,9 @@ function GoalsLayout({
 
       <Grid gutter="md" mt="md" align="stretch">
         <Grid.Col span={{ base: 12, lg: 6 }}>
-          <GuardrailsSection 
+          <GuardrailsSection
             guardrails={guardrails}
+            sessionLength={cadenceSettings.sessionLength}
             isOnboarding={isOnboarding}
             onGuardrailChange={handleGuardrailChange}
           />

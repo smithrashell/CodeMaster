@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed guardrails validation issues on Goals page (#174)
+  - Max new problems dropdown now dynamically limits options based on session length
+  - Prevents confusing state where max new problems can exceed total session length
+  - Auto-adjusts max new problems when session length changes to a lower value
+  - Shows helpful text indicating the session length constraint
+  - Example: With session length = 5, dropdown only shows options 2-5 (not 8 or 10)
+- Replaced confusing adaptive difficulty toggle with informational alert (#174)
+  - Removed non-functional "Enable adaptive difficulty progression" toggle
+  - Adaptive difficulty is always active via escape hatches (cannot be disabled)
+  - New informational Alert explains adaptive difficulty is automatic
+  - Clearer UX that doesn't suggest a choice where none exists
+
 ### Added
 - Added independent time range filters to Progress page charts (#172)
   - Each chart has its own filter dropdown in the chart card header
