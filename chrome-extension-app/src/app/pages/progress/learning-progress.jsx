@@ -44,9 +44,9 @@ export function Progress() {
         <Title order={2}>
           Leitner System Tracking
         </Title>
-        <Button 
-          leftSection={<IconRefresh size={16} />} 
-          variant="light" 
+        <Button
+          leftSection={<IconRefresh size={16} />}
+          variant="light"
           onClick={refresh}
           size="sm"
         >
@@ -91,7 +91,7 @@ export function Progress() {
 
       {/* Charts Section */}
       <ProgressCharts
-        promotionData={progressData.promotionData}
+        reviewProblemsData={progressData.reviewProblemsData}
         activityData={progressData.activityData}
       />
     </Container>

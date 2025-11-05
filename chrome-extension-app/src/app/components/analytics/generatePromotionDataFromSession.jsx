@@ -3,19 +3,23 @@ export function getPromotionDemotionData(
   problems,
   granularity = "weekly"
 ) {
-  const problemMap = new Map(problems.map((p) => [p.id, p]));
+  const problemMap = new Map(problems.map((p) => [p.id || p.problem_id, p]));
   const historyByProblem = new Map();
 
   // 1️⃣ Group attempts by problem and sort them
   for (const attempt of attempts) {
-    const pid = attempt.ProblemID;
+    // Support both snake_case and PascalCase
+    const pid = attempt.problem_id || attempt.ProblemID;
+    const attemptDate = attempt.attempt_date || attempt.AttemptDate;
+    const success = attempt.success !== undefined ? attempt.success : attempt.Success;
+
     const prob = problemMap.get(pid);
-    if (!pid || !attempt.AttemptDate || !prob) continue;
+    if (!pid || !attemptDate || !prob) continue;
 
     if (!historyByProblem.has(pid)) historyByProblem.set(pid, []);
     historyByProblem.get(pid).push({
-      date: new Date(attempt.AttemptDate),
-      success: attempt.Success,
+      date: new Date(attemptDate),
+      success: success,
       metadata: prob, // attach the full problem
     });
   }
@@ -32,8 +36,9 @@ export function getPromotionDemotionData(
         problemId: pid,
         date: a.date,
         boxLevel,
-        tags: a.metadata.Tags,
-        rating: a.metadata.Rating,
+        // Support both snake_case and PascalCase for problem properties
+        tags: a.metadata.tags || a.metadata.Tags,
+        rating: a.metadata.rating || a.metadata.Rating,
       });
 
       boxLevel = a.success ? boxLevel + 1 : Math.max(1, boxLevel - 1);

@@ -46,6 +46,57 @@ export function filterSessionsByTimeRange(sessions, timeRange) {
   });
 }
 
+/**
+ * Filter chart data by time range using timestamp
+ * @param {Array} data - Array of chart data points with date property (timestamp)
+ * @param {string} timeRange - Time range option
+ * @returns {Array} Filtered data
+ */
+export function filterChartDataByTimeRange(data, timeRange) {
+  if (!data || !Array.isArray(data)) {
+    console.warn("Invalid data provided to filterChartDataByTimeRange:", data);
+    return [];
+  }
+
+  if (data.length === 0) return [];
+
+  // "All time" returns all data
+  if (timeRange === "All time") return data;
+
+  const now = new Date();
+  let startDate;
+
+  switch (timeRange) {
+    case "Last 7 days":
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case "Last 30 days":
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case "Quarter to date": {
+      const quarter = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), quarter * 3, 1);
+      break;
+    }
+    case "Year to date":
+      startDate = new Date(now.getFullYear(), 0, 1);
+      break;
+    default:
+      return data;
+  }
+
+  const startTimestamp = startDate.getTime();
+
+  return data.filter(item => {
+    if (!item || !item.date) return false;
+    // Handle both timestamp numbers and date strings
+    const itemTimestamp = typeof item.date === 'number'
+      ? item.date
+      : new Date(item.date).getTime();
+    return !isNaN(itemTimestamp) && itemTimestamp >= startTimestamp;
+  });
+}
+
 export function calculateKPIs(sessions) {
   if (!sessions || sessions.length === 0) {
     return {
