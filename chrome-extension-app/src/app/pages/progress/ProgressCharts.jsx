@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Grid, Card, Group, Title, Select } from "@mantine/core";
 import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
-import { TIME_RANGE_OPTIONS } from "../sessions/sessionTimeUtils";
+import { TIME_RANGE_OPTIONS, filterChartDataByTimeRange } from "../sessions/sessionTimeUtils";
 
 const CHART_HEIGHT = 320;
 
@@ -9,67 +9,13 @@ export function ProgressCharts({ reviewProblemsData, activityData }) {
   const [newVsReviewTimeRange, setNewVsReviewTimeRange] = useState("Last 7 days");
   const [activityTimeRange, setActivityTimeRange] = useState("Last 7 days");
 
-  // Filter data based on individual time ranges
-  // Note: We need to work with the raw session data, not pre-processed chart data
-  // So we'll need to pass allSessions instead
+  // Filter data based on individual time ranges using shared utility
   const filteredReviewData = useMemo(() => {
-    if (!reviewProblemsData || reviewProblemsData.length === 0) return [];
-
-    // Filter by date range
-    const now = new Date();
-    let startDate;
-
-    switch (newVsReviewTimeRange) {
-      case "Last 7 days":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "Last 30 days":
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case "Quarter to date": {
-        const quarter = Math.floor(now.getMonth() / 3);
-        startDate = new Date(now.getFullYear(), quarter * 3, 1);
-        break;
-      }
-      case "Year to date":
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      case "All time":
-      default:
-        return reviewProblemsData;
-    }
-
-    return reviewProblemsData.filter(item => item.date >= startDate.getTime());
+    return filterChartDataByTimeRange(reviewProblemsData, newVsReviewTimeRange);
   }, [reviewProblemsData, newVsReviewTimeRange]);
 
   const filteredActivityData = useMemo(() => {
-    if (!activityData || activityData.length === 0) return [];
-
-    // Filter by date range
-    const now = new Date();
-    let startDate;
-
-    switch (activityTimeRange) {
-      case "Last 7 days":
-        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-      case "Last 30 days":
-        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-      case "Quarter to date": {
-        const quarter = Math.floor(now.getMonth() / 3);
-        startDate = new Date(now.getFullYear(), quarter * 3, 1);
-        break;
-      }
-      case "Year to date":
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      case "All time":
-      default:
-        return activityData;
-    }
-
-    return activityData.filter(item => item.date >= startDate.getTime());
+    return filterChartDataByTimeRange(activityData, activityTimeRange);
   }, [activityData, activityTimeRange]);
 
   return (
