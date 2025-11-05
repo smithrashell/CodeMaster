@@ -91,7 +91,7 @@ export function Progress() {
 
       {/* Charts Section */}
       <ProgressCharts
-        promotionData={progressData.promotionData}
+        reviewProblemsData={progressData.reviewProblemsData}
         activityData={progressData.activityData}
       />
     </Container>

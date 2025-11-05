@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Fixed Promotion & Demotion Trends chart showing "No Data to display" despite completed review sessions (#172)
-  - Fixed property name case mismatches in `generatePromotionDataFromSession.jsx`
-  - Now supports both snake_case (`problem_id`, `attempt_date`, `success`) and PascalCase (`ProblemID`, `AttemptDate`, `Success`)
-  - Fixed problem metadata property access (`tags`/`Tags`, `rating`/`Rating`)
-  - Chart now correctly displays weekly promotion/demotion trends based on spaced repetition box level changes
+- Fixed Progress page charts showing aggregated data instead of per-session data (#172)
+  - Replaced "Promotion & Demotion Trends" chart with "Problems Reviewed per Session" chart
+  - Changed "Problem Activity Over Time" to "Problem Activity per Session" showing individual session bars
+  - Both charts now display individual sessions as data points (matching Overview page pattern)
+  - Each session shows as its own bar instead of being aggregated by week/month/year
+  - Added `getReviewProblemsPerSession()` function to count review problems per session
+  - Added `getIndividualSessionActivityData()` function for per-session activity metrics
 - Fixed Learning Efficiency chart showing "No Data" despite having completed sessions (#163)
 - Fixed property name mismatches: Changed all `session.Date` (PascalCase) to `session.date` (lowercase) across 12 locations
   - dashboardService.js: 9 instances (lines 148, 729, 756, 1264, 1288, 1294, 1397, 1416, 1435)
