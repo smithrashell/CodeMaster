@@ -361,7 +361,7 @@ async function getHintAnalytics() {
  */
 function constructDashboardData({
   // Core metrics
-  statistics, averageTime, successRate, timeAccuracy,
+  statistics, averageTime, successRate,
   // Progress metrics
   timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
   nextReviewTime, nextReviewCount,
@@ -383,7 +383,6 @@ function constructDashboardData({
     successRate,
     allSessions: filteredSessions,
     hintsUsed,
-    timeAccuracy,
     learningEfficiencyData,
 
     // Flattened progress properties for Progress component
@@ -486,10 +485,10 @@ export async function getDashboardStatistics(options = {}) {
 
     // Generate analytics and derived data
     const { sessionAnalytics, masteryData, goalsData, learningEfficiencyData } = await generateAnalyticsData(filteredSessions, filteredAttempts, learningState);
-    
+
     // Calculate progress metrics
     const { timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage } = calculateProgressMetrics(filteredAttempts, filteredSessions);
-    
+
     // Calculate next review data and get hint analytics
     const [nextReviewData, hintsUsed] = await Promise.all([
       calculateNextReviewData(),
@@ -498,13 +497,10 @@ export async function getDashboardStatistics(options = {}) {
     const nextReviewTime = nextReviewData?.nextReviewTime || "Schedule unavailable";
     const nextReviewCount = nextReviewData?.nextReviewCount || 0;
 
-    // Calculate time accuracy (how close user estimates are to actual time)
-    const timeAccuracy = Math.floor(75 + Math.random() * 20); // 75-95% accuracy - TODO: implement real calculation
-
     // Construct and return final dashboard data
     return constructDashboardData({
       // Core metrics
-      statistics, averageTime, successRate, timeAccuracy,
+      statistics, averageTime, successRate,
       // Progress metrics
       timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
       nextReviewTime, nextReviewCount,
