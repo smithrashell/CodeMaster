@@ -258,11 +258,11 @@ export function getIndividualSessionEfficiencyData(sessions) {
   return result;
 }
 
-// --- Individual Session Review Problems Count ---
-// Returns count of review problems per session
-export function getReviewProblemsPerSession(sessions) {
+// --- Individual Session New vs Review Problems Breakdown ---
+// Returns count of new and review problems per session
+export function getNewVsReviewProblemsPerSession(sessions) {
   // Check cache first for performance
-  const cacheKey = createCacheKey(sessions, 'individual', 'getReviewProblemsPerSession');
+  const cacheKey = createCacheKey(sessions, 'individual', 'getNewVsReviewProblemsPerSession');
   const cachedResult = getCachedResult(cacheKey);
   if (cachedResult) {
     return cachedResult;
@@ -271,7 +271,7 @@ export function getReviewProblemsPerSession(sessions) {
   // Validate sessions input
   if (!Array.isArray(sessions)) {
     console.warn(
-      "Invalid sessions array provided to getReviewProblemsPerSession:",
+      "Invalid sessions array provided to getNewVsReviewProblemsPerSession:",
       sessions
     );
     return [];
@@ -279,7 +279,7 @@ export function getReviewProblemsPerSession(sessions) {
 
   const now = new Date();
 
-  // Map each session to review problem count
+  // Map each session to new vs review problem counts
   const sessionDataPoints = sessions
     .map((session) => {
       // Validate session structure
@@ -298,14 +298,24 @@ export function getReviewProblemsPerSession(sessions) {
         return null;
       }
 
-      // Count review problems (problems with selectionReason.type === "review_problem")
-      const reviewProblems = session.problems.filter(
-        problem => problem?.selectionReason?.type === "review_problem"
-      ).length;
+      // Count new vs review problems
+      let newProblems = 0;
+      let reviewProblems = 0;
+
+      session.problems.forEach(problem => {
+        if (!problem) return;
+        const selectionType = problem?.selectionReason?.type;
+        if (selectionType === "review_problem") {
+          reviewProblems++;
+        } else if (selectionType === "new_problem") {
+          newProblems++;
+        }
+      });
 
       return {
         name: format(date, "MMM dd, HH:mm"),
-        reviewCount: reviewProblems,
+        newProblems,
+        reviewProblems,
         date: date.getTime(), // for sorting
         sessionId: session.id || sessionDate
       };
