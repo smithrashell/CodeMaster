@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed Progress page charts showing aggregated data instead of per-session data (#172)
-  - Replaced "Promotion & Demotion Trends" chart with "Problems Reviewed per Session" chart
+  - Replaced "Promotion & Demotion Trends" with "New vs Review Problems per Session" stacked bar chart
   - Changed "Problem Activity Over Time" to "Problem Activity per Session" showing individual session bars
   - Both charts now display individual sessions as data points (matching Overview page pattern)
   - Each session shows as its own bar instead of being aggregated by week/month/year
-  - Added `getReviewProblemsPerSession()` function to count review problems per session
+  - Added `getNewVsReviewProblemsPerSession()` function to show breakdown of new vs review problems per session
   - Added `getIndividualSessionActivityData()` function for per-session activity metrics
 - Fixed Learning Efficiency chart showing "No Data" despite having completed sessions (#163)
 - Fixed property name mismatches: Changed all `session.Date` (PascalCase) to `session.date` (lowercase) across 12 locations

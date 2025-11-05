@@ -8,16 +8,20 @@ export function ProgressCharts({ reviewProblemsData, activityData }) {
     <Grid gutter="md" mt="md" align="stretch">
       <Grid.Col span={{ base: 12, lg: 6 }}>
         <TimeGranularChartCard
-          title="Problems Reviewed per Session"
+          title="New vs Review Problems per Session"
           chartType="bar"
           useTimeGranularity={false}
           height={CHART_HEIGHT}
           data={reviewProblemsData}
           dataKeys={[
-            { key: "reviewCount", color: "#8884d8" },
+            { key: "newProblems", color: "#8884d8" },
+            { key: "reviewProblems", color: "#82ca9d" },
           ]}
           yAxisFormatter={(v) => v}
-          tooltipFormatter={(value, name) => [`${value} review problems`, name]}
+          tooltipFormatter={(value, name) => {
+            const label = name === "newProblems" ? "new problems" : "review problems";
+            return [`${value} ${label}`, name];
+          }}
         />
       </Grid.Col>
 

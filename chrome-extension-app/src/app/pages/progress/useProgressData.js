@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getReviewProblemsPerSession, getIndividualSessionActivityData } from "../../../shared/utils/DataAdapter";
+import { getNewVsReviewProblemsPerSession, getIndividualSessionActivityData } from "../../../shared/utils/DataAdapter";
 
 export function useProgressData(appState) {
   const [boxLevelData, setBoxLevelData] = useState(appState?.boxLevelData || {});
@@ -36,11 +36,11 @@ export function useProgressData(appState) {
     setNextReviewTime(appState.nextReviewTime);
     setNextReviewCount(appState.nextReviewCount);
 
-    // Calculate review problems per session (individual sessions, not aggregated)
+    // Calculate new vs review problems per session (individual sessions, not aggregated)
     if (appState.allSessions) {
-      const reviewData = getReviewProblemsPerSession(appState.allSessions);
-      console.info("✅ Calculated review problems per session:", reviewData);
-      setReviewProblemsData(reviewData);
+      const newVsReviewData = getNewVsReviewProblemsPerSession(appState.allSessions);
+      console.info("✅ Calculated new vs review problems per session:", newVsReviewData);
+      setReviewProblemsData(newVsReviewData);
 
       // Calculate activity data per session (individual sessions, not aggregated)
       const individualActivityData = getIndividualSessionActivityData(appState.allSessions);
