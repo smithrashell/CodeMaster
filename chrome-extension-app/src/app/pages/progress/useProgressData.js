@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import { getPromotionDemotionData } from "../../components/analytics/generatePromotionDataFromSession";
-import { getProblemActivityData } from "../../../shared/utils/DataAdapter";
+import { getReviewProblemsPerSession, getIndividualSessionActivityData } from "../../../shared/utils/DataAdapter";
 
 export function useProgressData(appState) {
   const [boxLevelData, setBoxLevelData] = useState(appState?.boxLevelData || {});
-  const [promotionData, setPromotionData] = useState(null);
+  const [reviewProblemsData, setReviewProblemsData] = useState(null);
   const [activityData, setActivityData] = useState(null);
   const [strategySuccessRate, setStrategySuccessRate] = useState(appState?.strategySuccessRate);
   const [timerBehavior, setTimerBehavior] = useState(appState?.timerBehavior);
@@ -37,59 +36,26 @@ export function useProgressData(appState) {
     setNextReviewTime(appState.nextReviewTime);
     setNextReviewCount(appState.nextReviewCount);
 
-    // Use pre-generated promotion data from mock service if available
-    if (appState.promotionData) {
-      console.info("✅ Using pre-generated promotion data:", appState.promotionData);
-      setPromotionData(appState.promotionData);
-    } else if (appState.allAttempts && appState.allProblems) {
-      // Fallback to calculating promotion data from raw data
-      const weekly = getPromotionDemotionData(
-        appState.allAttempts,
-        appState.allProblems,
-        "weekly"
-      );
-      const monthly = getPromotionDemotionData(
-        appState.allAttempts,
-        appState.allProblems,
-        "monthly"
-      );
-      const yearly = getPromotionDemotionData(
-        appState.allAttempts,
-        appState.allProblems,
-        "yearly"
-      );
-      console.info("✅ Calculated promotion data:", { weekly, monthly, yearly });
-      setPromotionData({ weekly, monthly, yearly });
-    }
-
+    // Calculate review problems per session (individual sessions, not aggregated)
     if (appState.allSessions) {
-      const activityData = getProblemActivityData(
-        appState.allSessions,
-        "weekly"
-      );
-      const monthlyActivityData = getProblemActivityData(
-        appState.allSessions,
-        "monthly"
-      );
-      const yearlyActivityData = getProblemActivityData(
-        appState.allSessions,
-        "yearly"
-      );
-      setActivityData({
-        weekly: activityData,
-        monthly: monthlyActivityData,
-        yearly: yearlyActivityData,
-      });
+      const reviewData = getReviewProblemsPerSession(appState.allSessions);
+      console.info("✅ Calculated review problems per session:", reviewData);
+      setReviewProblemsData(reviewData);
+
+      // Calculate activity data per session (individual sessions, not aggregated)
+      const individualActivityData = getIndividualSessionActivityData(appState.allSessions);
+      console.info("✅ Calculated individual session activity data:", individualActivityData);
+      setActivityData(individualActivityData);
     }
   }, [appState]);
 
   useEffect(() => {
-    console.info("📊 Rendered promotionData:", promotionData);
-  }, [promotionData]);
+    console.info("📊 Rendered reviewProblemsData:", reviewProblemsData);
+  }, [reviewProblemsData]);
 
   return {
     boxLevelData,
-    promotionData,
+    reviewProblemsData,
     activityData,
     strategySuccessRate,
     timerBehavior,

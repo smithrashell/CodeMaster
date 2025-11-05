@@ -3,28 +3,29 @@ import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard
 
 const CHART_HEIGHT = 320;
 
-export function ProgressCharts({ promotionData, activityData }) {
+export function ProgressCharts({ reviewProblemsData, activityData }) {
   return (
     <Grid gutter="md" mt="md" align="stretch">
       <Grid.Col span={{ base: 12, lg: 6 }}>
         <TimeGranularChartCard
-          title="Promotion & Demotion Trends"
-          chartType="line"
+          title="Problems Reviewed per Session"
+          chartType="bar"
+          useTimeGranularity={false}
           height={CHART_HEIGHT}
-          data={promotionData}
+          data={reviewProblemsData}
           dataKeys={[
-            { key: "promotions", color: "#82ca9d" },
-            { key: "demotions", color: "#ff7300" },
+            { key: "reviewCount", color: "#8884d8" },
           ]}
           yAxisFormatter={(v) => v}
-          tooltipFormatter={(value, name) => [`${value}`, name]}
+          tooltipFormatter={(value, name) => [`${value} review problems`, name]}
         />
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, lg: 6 }}>
         <TimeGranularChartCard
-          title="Problem Activity Over Time"
+          title="Problem Activity per Session"
           chartType="bar"
+          useTimeGranularity={false}
           height={CHART_HEIGHT}
           data={activityData}
           dataKeys={[

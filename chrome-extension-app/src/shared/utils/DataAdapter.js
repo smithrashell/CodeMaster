@@ -258,6 +258,144 @@ export function getIndividualSessionEfficiencyData(sessions) {
   return result;
 }
 
+// --- Individual Session Review Problems Count ---
+// Returns count of review problems per session
+export function getReviewProblemsPerSession(sessions) {
+  // Check cache first for performance
+  const cacheKey = createCacheKey(sessions, 'individual', 'getReviewProblemsPerSession');
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+
+  // Validate sessions input
+  if (!Array.isArray(sessions)) {
+    console.warn(
+      "Invalid sessions array provided to getReviewProblemsPerSession:",
+      sessions
+    );
+    return [];
+  }
+
+  const now = new Date();
+
+  // Map each session to review problem count
+  const sessionDataPoints = sessions
+    .map((session) => {
+      // Validate session structure
+      const sessionDate = session.date;
+      if (!session || !sessionDate) {
+        console.warn("Session missing date property:", session);
+        return null;
+      }
+
+      const date = new Date(sessionDate);
+      // Skip future sessions
+      if (date > now) return null;
+
+      // Validate problems array
+      if (!Array.isArray(session.problems) || session.problems.length === 0) {
+        return null;
+      }
+
+      // Count review problems (problems with selectionReason.type === "review_problem")
+      const reviewProblems = session.problems.filter(
+        problem => problem?.selectionReason?.type === "review_problem"
+      ).length;
+
+      return {
+        name: format(date, "MMM dd, HH:mm"),
+        reviewCount: reviewProblems,
+        date: date.getTime(), // for sorting
+        sessionId: session.id || sessionDate
+      };
+    })
+    .filter(Boolean); // Remove null entries
+
+  // Sort by date chronologically
+  const result = sessionDataPoints.sort((a, b) => a.date - b.date);
+
+  // Cache the result for better performance
+  setCachedResult(cacheKey, result);
+
+  return result;
+}
+
+// --- Individual Session Activity Data ---
+// Returns attempted/passed/failed per session (not aggregated)
+export function getIndividualSessionActivityData(sessions) {
+  // Check cache first for performance
+  const cacheKey = createCacheKey(sessions, 'individual', 'getIndividualSessionActivityData');
+  const cachedResult = getCachedResult(cacheKey);
+  if (cachedResult) {
+    return cachedResult;
+  }
+
+  // Validate sessions input
+  if (!Array.isArray(sessions)) {
+    console.warn(
+      "Invalid sessions array provided to getIndividualSessionActivityData:",
+      sessions
+    );
+    return [];
+  }
+
+  const now = new Date();
+
+  // Map each session to activity data
+  const sessionDataPoints = sessions
+    .map((session) => {
+      // Validate session structure
+      const sessionDate = session.date;
+      if (!session || !sessionDate) {
+        console.warn("Session missing date property:", session);
+        return null;
+      }
+
+      const date = new Date(sessionDate);
+      // Skip future sessions
+      if (date > now) return null;
+
+      // Validate attempts array
+      if (!Array.isArray(session.attempts) || session.attempts.length === 0) {
+        return null;
+      }
+
+      // Count attempts by success/failure
+      let attempted = 0;
+      let passed = 0;
+      let failed = 0;
+
+      session.attempts.forEach((attempt) => {
+        if (!attempt) return;
+        attempted += 1;
+        if (attempt.success) {
+          passed += 1;
+        } else {
+          failed += 1;
+        }
+      });
+
+      return {
+        name: format(date, "MMM dd, HH:mm"),
+        attempted,
+        passed,
+        failed,
+        date: date.getTime(), // for sorting
+        sessionId: session.id || sessionDate
+      };
+    })
+    .filter(Boolean); // Remove null entries
+
+  // Sort by date chronologically
+  const result = sessionDataPoints.sort((a, b) => a.date - b.date);
+
+  // Cache the result for better performance
+  setCachedResult(cacheKey, result);
+
+  return result;
+}
+
 // --- Aggregated Accuracy Trend (for Overview page) ---
 // Aggregates sessions by time period
 export function getAccuracyTrendData(sessions, range = "weekly") {
