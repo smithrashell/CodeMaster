@@ -30,15 +30,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tooltip now displays "Lower is better" to guide users
 - Removed "Primer" from Hints Used breakdown (primers are educational content, not tracked as interactive hints)
 
+### Removed
+- Removed Time Accuracy placeholder metric from Average Time Per Problem card
+  - Was showing random values (75-95%) with no real calculation
+  - Proper implementation requires tracking recommended time limits at attempt creation
+  - Created Issue #180 to document full implementation requirements
+
 ### Added
 - Added `enrichSessionsWithHintCounts()` function to populate real hint usage data from `hint_interactions` table
   - Sessions now have `hintsUsed` property with actual count from database
   - Replaced estimation formula with real interaction data
   - Parallel processing with `Promise.all()` for performance
-- Added time range filter to Overview page
+- Added time range filter to Overview page that now applies to both charts AND KPI cards (#171)
   - Options: "Last 7 days", "Last 30 days", "Quarter to date", "Year to date", "All time"
   - Filter applies to Accuracy and Learning Efficiency charts
-  - **Known Issue**: Filter does not yet apply to KPI cards (see #178)
+  - Filter also recalculates KPI metric cards (Total Problems Solved, Average Time, Success Rate, Hints Used)
+  - New `recalculateKPIsFromSessions()` function in useStatsState.js
+  - KPIs dynamically update based on filtered session data
 - Added individual session efficiency calculation in DataAdapter
   - New function: `getIndividualSessionEfficiencyData()`
   - Calculates efficiency per session: `hintsUsed / successfulProblems`
@@ -46,13 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical
 - Updated test `dashboardService.test.js` to expect `hintsUsed` property on enriched sessions
-- All tests passing (494 passed, 63 skipped, 557 total)
+- All tests passing (33 test suites, all passed)
 - No ESLint errors (7 minor warnings about function length)
-
-### Known Issues
-- Overview page time filter only applies to charts, not KPI metric cards (#178)
-  - KPI cards (Total Problems Solved, Average Time, Success Rate, Hints Used) always show "All time" data
-  - Will be addressed in future update for consistency
 
 ## Previous Changes
 
