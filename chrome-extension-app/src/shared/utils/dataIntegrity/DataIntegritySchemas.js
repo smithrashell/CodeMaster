@@ -203,18 +203,6 @@ export class DataIntegritySchemas {
         minimum: 0,
         maximum: 1,
       },
-      coreLadder: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            difficulty: this.COMMON_TYPES.difficulty,
-            completed: {
-              type: "boolean",
-            },
-          },
-        },
-      },
       totalAttempts: {
         type: "integer",
         minimum: 0,

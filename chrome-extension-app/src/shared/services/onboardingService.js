@@ -173,7 +173,7 @@ async function initializeUserSettings() {
       limit: "off",
       reminder: { value: false, label: "6" },
       theme: "light",
-      focusAreas: ["array"], // Start with one focus area for new users
+      focusAreas: [], // Empty by default - system will recommend based on learning state
       timerDisplay: "mm:ss",
       breakReminders: { enabled: false, interval: 25 },
       notifications: { sound: false, browser: false, visual: true },
