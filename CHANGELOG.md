@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Console logs now show ladder progress: `ladder: ✅ 9/12 (75%/70%)`
 
 ### Fixed
+- Fixed duplicate session creation on database initialization
+  - Race condition in sessionCreationLocks allowed two simultaneous requests to both create sessions
+  - Lock was being set AFTER async promise creation, leaving window for duplicates
+  - Now sets lock IMMEDIATELY before any async work to prevent race condition
+  - Fixes issue where two identical sessions would be created ~100ms apart after DB reset
 - Fixed Focus Areas showing 'array' tag instead of empty state when no focus area is selected (#173)
   - Changed default `focusAreas` from `["array"]` to `[]` for new users across all initialization paths
   - Updated storageService.js, onboardingService.js, and initialize-settings.js to use empty array

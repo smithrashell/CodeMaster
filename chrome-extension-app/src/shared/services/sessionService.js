@@ -969,41 +969,52 @@ export const SessionService = {
       return await existingPromise;
     }
 
-    // Create promise for this session creation to prevent concurrent creates
-    const creationPromise = (async () => {
-      try {
-        logger.info(`🔍 Getting settings...`);
-        const _settings = await StorageService.getSettings();
-        logger.info(`✅ Settings loaded successfully`);
+    // Create placeholder promise and set lock IMMEDIATELY to prevent race condition
+    let resolveCreation;
+    let rejectCreation;
+    const creationPromise = new Promise((resolve, reject) => {
+      resolveCreation = resolve;
+      rejectCreation = reject;
+    });
 
-        // Try atomic resume/create to prevent race conditions
-        logger.info(`🔍 Attempting atomic resume or create for ${sessionType}...`);
-
-        // First try to find existing in_progress sessions using atomic operation
-        let session = await getOrCreateSessionAtomic(sessionType, 'in_progress', null);
-        if (session) {
-          logger.info("✅ Found existing in_progress session:", session.id);
-          return session;
-        }
-
-        logger.info(`🆕 No existing session found, creating new ${sessionType} session`);
-
-        // Create new session as in_progress
-        const newSession = await this.createNewSession(sessionType);
-
-        logger.info(`✅ New session created:`, newSession?.id);
-        return newSession;
-      } finally {
-        // Release lock after creation completes (success or failure)
-        sessionCreationLocks.delete(sessionType);
-        logger.info(`🔓 Released session creation lock for ${sessionType}`);
-      }
-    })();
-
-    // Store promise to block concurrent requests
+    // Store promise to block concurrent requests BEFORE starting async work
     sessionCreationLocks.set(sessionType, creationPromise);
+    logger.info(`🔒 Set session creation lock for ${sessionType}`);
 
-    return await creationPromise;
+    // Now perform the actual async session creation
+    try {
+      logger.info(`🔍 Getting settings...`);
+      const _settings = await StorageService.getSettings();
+      logger.info(`✅ Settings loaded successfully`);
+
+      // Try atomic resume/create to prevent race conditions
+      logger.info(`🔍 Attempting atomic resume or create for ${sessionType}...`);
+
+      // First try to find existing in_progress sessions using atomic operation
+      let session = await getOrCreateSessionAtomic(sessionType, 'in_progress', null);
+      if (session) {
+        logger.info("✅ Found existing in_progress session:", session.id);
+        resolveCreation(session);
+        return session;
+      }
+
+      logger.info(`🆕 No existing session found, creating new ${sessionType} session`);
+
+      // Create new session as in_progress
+      const newSession = await this.createNewSession(sessionType);
+
+      logger.info(`✅ New session created:`, newSession?.id);
+      resolveCreation(newSession);
+      return newSession;
+    } catch (error) {
+      logger.error(`❌ Error in session creation for ${sessionType}:`, error);
+      rejectCreation(error);
+      throw error;
+    } finally {
+      // Release lock after creation completes (success or failure)
+      sessionCreationLocks.delete(sessionType);
+      logger.info(`🔓 Released session creation lock for ${sessionType}`);
+    }
   },
 
   // Removed getDraftSession and startSession - sessions auto-start immediately now
