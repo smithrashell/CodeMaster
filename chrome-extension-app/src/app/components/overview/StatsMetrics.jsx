@@ -1,12 +1,12 @@
 import { Grid } from "@mantine/core";
 import MetricCard from "../analytics/MetricCard";
 
-export function StatsMetrics({ 
-  statistics, 
-  averageTime, 
-  successRate, 
-  hintsUsed, 
-  loading 
+export function StatsMetrics({
+  statistics,
+  averageTime,
+  successRate,
+  hintsUsed,
+  loading
 }) {
   return (
     <Grid gutter="sm">
@@ -29,7 +29,6 @@ export function StatsMetrics({
           { label: "Easy", value: averageTime?.Easy ?? 0 },
           { label: "Medium", value: averageTime?.Medium ?? 0 },
           { label: "Hard", value: averageTime?.Hard ?? 0 },
-          { label: "Time Accuracy", value: `${averageTime?.timeAccuracy ?? 0}%` },
         ]}
         loading={loading}
       />
