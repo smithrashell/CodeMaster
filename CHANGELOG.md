@@ -18,7 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed Focus Areas showing 'array' tag instead of empty state when no focus area is selected (#173)
-  - Changed default `focusAreas` from `["array"]` to `[]` for new users
+  - Changed default `focusAreas` from `["array"]` to `[]` for new users across all initialization paths
+  - Updated storageService.js, onboardingService.js, and initialize-settings.js to use empty array
+  - Updated dashboardService.js fallbacks to use empty array instead of `["array"]`
   - Removed silent hardcoded fallbacks that hid data integrity issues
   - System now throws explicit errors when focus tag generation fails (instead of hiding problems)
   - Empty focus areas now display "No focus areas selected" in UI
