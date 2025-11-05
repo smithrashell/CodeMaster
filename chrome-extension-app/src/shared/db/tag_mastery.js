@@ -249,6 +249,36 @@ async function fetchTagRelationships(db, tags) {
   return tagRelationships;
 }
 
+async function getLadderCoverage(db, tag) {
+  try {
+    const transaction = db.transaction(["pattern_ladders"], "readonly");
+    const store = transaction.objectStore("pattern_ladders");
+
+    const ladder = await new Promise((resolve, reject) => {
+      const request = store.get(tag);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    if (!ladder || !ladder.problems || ladder.problems.length === 0) {
+      return { attempted: 0, total: 0, percentage: 0 };
+    }
+
+    const attemptedCount = ladder.problems.filter(p => p.attempted).length;
+    const totalCount = ladder.problems.length;
+    const percentage = totalCount > 0 ? attemptedCount / totalCount : 0;
+
+    return {
+      attempted: attemptedCount,
+      total: totalCount,
+      percentage
+    };
+  } catch (error) {
+    console.error(`Error getting ladder coverage for ${tag}:`, error);
+    return { attempted: 0, total: 0, percentage: 0 };
+  }
+}
+
 async function updateTagMasteryRecords(db, tags, context) {
   const transaction = db.transaction(["tag_mastery"], "readwrite");
   const tagMasteryStore = transaction.objectStore("tag_mastery");
@@ -260,8 +290,9 @@ async function updateTagMasteryRecords(db, tags, context) {
     updateMasteryCounters(masteryData, context.problem, context.isSuccess, context.attemptDate);
     const masteryRatio = calculateMasteryRatio(masteryData);
     const masteryRequirements = getMasteryRequirements(context.tagRelationships, tag);
-    updateMasteryStatus(masteryData, masteryRatio, masteryRequirements, context.attemptDate);
-    logMasteryUpdate(tag, masteryData, masteryRatio, masteryRequirements);
+    const ladderCoverage = await getLadderCoverage(db, tag);
+    updateMasteryStatus(masteryData, masteryRatio, masteryRequirements, ladderCoverage, context.attemptDate);
+    logMasteryUpdate(tag, masteryData, masteryRatio, masteryRequirements, ladderCoverage);
 
     await saveMasteryRecord(tagMasteryStore, masteryData);
   }
@@ -314,18 +345,20 @@ function getMasteryRequirements(tagRelationships, tag) {
   const masteryThreshold = tagRel?.mastery_threshold || 0.80;
   const minAttemptsRequired = tagRel?.min_attempts_required || 6;
   const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
+  const minLadderCoverage = 0.70; // 70% of pattern ladder must be completed
 
-  return { masteryThreshold, minAttemptsRequired, minUniqueRequired };
+  return { masteryThreshold, minAttemptsRequired, minUniqueRequired, minLadderCoverage };
 }
 
-function updateMasteryStatus(masteryData, masteryRatio, requirements, attemptDate) {
+function updateMasteryStatus(masteryData, masteryRatio, requirements, ladderCoverage, attemptDate) {
   const uniqueProblems = new Set(masteryData.attempted_problem_ids).size;
   const volumeOK = masteryData.total_attempts >= requirements.minAttemptsRequired;
   const uniqueOK = uniqueProblems >= requirements.minUniqueRequired;
   const accuracyOK = masteryRatio >= requirements.masteryThreshold;
+  const ladderOK = ladderCoverage.percentage >= requirements.minLadderCoverage;
 
   const wasAlreadyMastered = masteryData.mastered;
-  masteryData.mastered = volumeOK && uniqueOK && accuracyOK;
+  masteryData.mastered = volumeOK && uniqueOK && accuracyOK && ladderOK;
 
   if (masteryData.mastered && !wasAlreadyMastered) {
     masteryData.mastery_date = attemptDate;
@@ -334,11 +367,12 @@ function updateMasteryStatus(masteryData, masteryRatio, requirements, attemptDat
   masteryData.strength = Math.round(masteryRatio * 100);
 }
 
-function logMasteryUpdate(tag, masteryData, masteryRatio, requirements) {
+function logMasteryUpdate(tag, masteryData, masteryRatio, requirements, ladderCoverage) {
   const uniqueProblems = new Set(masteryData.attempted_problem_ids).size;
   const volumeOK = masteryData.total_attempts >= requirements.minAttemptsRequired;
   const uniqueOK = uniqueProblems >= requirements.minUniqueRequired;
   const accuracyOK = masteryRatio >= requirements.masteryThreshold;
+  const ladderOK = ladderCoverage.percentage >= requirements.minLadderCoverage;
   const wasAlreadyMastered = !masteryData.mastery_date || masteryData.mastery_date !== new Date().toISOString();
 
   console.log(`🧠 Updated mastery for "${tag}":`, {
@@ -351,7 +385,8 @@ function logMasteryUpdate(tag, masteryData, masteryRatio, requirements) {
     gates: {
       volume: `${volumeOK ? '✅' : '❌'} ${masteryData.total_attempts}/${requirements.minAttemptsRequired}`,
       unique: `${uniqueOK ? '✅' : '❌'} ${uniqueProblems}/${requirements.minUniqueRequired}`,
-      accuracy: `${accuracyOK ? '✅' : '❌'} ${(masteryRatio * 100).toFixed(1)}%/${(requirements.masteryThreshold * 100).toFixed(0)}%`
+      accuracy: `${accuracyOK ? '✅' : '❌'} ${(masteryRatio * 100).toFixed(1)}%/${(requirements.masteryThreshold * 100).toFixed(0)}%`,
+      ladder: `${ladderOK ? '✅' : '❌'} ${ladderCoverage.attempted}/${ladderCoverage.total} (${(ladderCoverage.percentage * 100).toFixed(0)}%/${(requirements.minLadderCoverage * 100).toFixed(0)}%)`
     }
   });
 }
@@ -413,12 +448,17 @@ export async function calculateTagMastery() {
       // Real tracking happens in updateTagMasteryForAttempt
       const uniqueProblems = stats.unique_problem_count || stats.total_attempts;
       const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
+      const minLadderCoverage = 0.70;
 
-      // Mastery gates: volume + uniqueness + accuracy
+      // Get ladder coverage
+      const ladderCoverage = await getLadderCoverage(db, normalizedTag);
+
+      // Mastery gates: volume + uniqueness + accuracy + ladder coverage
       const volumeOK = stats.total_attempts >= minAttemptsRequired;
       const uniqueOK = uniqueProblems >= minUniqueRequired;
       const accuracyOK = masteryRatio >= masteryThreshold;
-      const mastered = volumeOK && uniqueOK && accuracyOK;
+      const ladderOK = ladderCoverage.percentage >= minLadderCoverage;
+      const mastered = volumeOK && uniqueOK && accuracyOK && ladderOK;
 
       console.log(`🧠 Writing mastery for "${normalizedTag}":`, {
         totalAttempts: stats.total_attempts,
@@ -429,7 +469,8 @@ export async function calculateTagMastery() {
         gates: {
           volume: `${volumeOK ? '✅' : '❌'} ${stats.total_attempts}/${minAttemptsRequired}`,
           unique: `${uniqueOK ? '✅' : '❌'} ${uniqueProblems}/${minUniqueRequired}`,
-          accuracy: `${accuracyOK ? '✅' : '❌'} ${(masteryRatio * 100).toFixed(1)}%/${(masteryThreshold * 100).toFixed(0)}%`
+          accuracy: `${accuracyOK ? '✅' : '❌'} ${(masteryRatio * 100).toFixed(1)}%/${(masteryThreshold * 100).toFixed(0)}%`,
+          ladder: `${ladderOK ? '✅' : '❌'} ${ladderCoverage.attempted}/${ladderCoverage.total} (${(ladderCoverage.percentage * 100).toFixed(0)}%/${(minLadderCoverage * 100).toFixed(0)}%)`
         }
       });
 
