@@ -296,6 +296,13 @@ async function updateTagMasteryRecords(db, tags, context) {
 
     await saveMasteryRecord(tagMasteryStore, masteryData);
   }
+
+  // Wait for transaction to complete before returning
+  await new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(new Error('Transaction aborted'));
+  });
 }
 
 function getMasteryRecord(tagMasteryStore, tag) {
