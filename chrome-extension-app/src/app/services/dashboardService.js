@@ -1132,11 +1132,15 @@ export async function generateGoalsData(providedData = {}) {
   try {
     // Get consistent focus areas from background script (no direct service calls)
     const initialFocusAreas = getInitialFocusAreas(providedData.focusAreas);
-    
+
+    // Debug: Log what settings are being loaded
+    console.log("🔍 generateGoalsData - providedData.settings:", providedData.settings);
+    console.log("🔍 generateGoalsData - sessionLength from settings:", providedData.settings?.sessionLength);
+
     // Use provided data or fallbacks - no direct service calls
     const settings = providedData.settings || {
       sessionsPerWeek: 5,
-      sessionLength: 4,
+      sessionLength: "auto",
       focusAreas: initialFocusAreas,
       difficultyDistribution: { easy: 20, medium: 60, hard: 20 },
       reviewRatio: 40,
@@ -1190,7 +1194,7 @@ export async function generateGoalsData(providedData = {}) {
     logger.error("Error generating goals data:", error);
     return {
       learningPlan: {
-        cadence: { sessionsPerWeek: 5, sessionLength: 5, flexibleSchedule: true },
+        cadence: { sessionsPerWeek: 5, sessionLength: "auto", flexibleSchedule: true },
         focus: { primaryTags: [], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
         guardrails: { minReviewRatio: 30, maxNewProblems: 5, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
         outcomeTrends: {
@@ -1759,7 +1763,7 @@ export async function getGoalsData(options = {}, providedData = null) {
     // Return fallback goals data instead of throwing
     return {
       learningPlan: {
-        cadence: { sessionsPerWeek: 5, sessionLength: 5, flexibleSchedule: true },
+        cadence: { sessionsPerWeek: 5, sessionLength: "auto", flexibleSchedule: true },
         focus: { primaryTags: ["array"], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
         guardrails: { minReviewRatio: 30, maxNewProblems: 4, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
         outcomeTrends: {
