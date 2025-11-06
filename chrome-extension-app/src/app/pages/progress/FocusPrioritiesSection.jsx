@@ -74,35 +74,7 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
   );
 }
 
-// Helper component for Difficulty Distribution display
-function DifficultyDistributionSection({ focusPriorities }) {
-  return (
-    <div>
-      <Text size="sm" fw={500} mb="xs">Difficulty distribution</Text>
-      <Group gap="md">
-        <div style={{ textAlign: 'center' }}>
-          <Text size="md" fw={600} style={{ color: 'var(--mantine-color-green-6)' }}>
-            {focusPriorities.difficultyDistribution.easy}%
-          </Text>
-          <Text size="xs" c="dimmed">Easy</Text>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text size="md" fw={600} style={{ color: 'var(--mantine-color-yellow-6)' }}>
-            {focusPriorities.difficultyDistribution.medium}%
-          </Text>
-          <Text size="xs" c="dimmed">Medium</Text>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text size="md" fw={600} style={{ color: 'var(--mantine-color-red-6)' }}>
-            {focusPriorities.difficultyDistribution.hard}%
-          </Text>
-          <Text size="xs" c="dimmed">Hard</Text>
-        </div>
-      </Group>
-    </div>
-  );
-}
-
+// Difficulty Distribution display removed - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
 // Review Ratio slider removed - Leitner system naturally determines review problems based on spaced repetition schedule
 
 export function FocusPrioritiesSection({ 
@@ -124,8 +96,6 @@ export function FocusPrioritiesSection({
         <SystemFocusTagsSection appState={appState} />
         <UserFocusAreasSection appState={appState} isOnboarding={isOnboarding} navigate={navigate} />
         <ActiveSessionFocus appState={appState} />
-        
-        <DifficultyDistributionSection focusPriorities={focusPriorities} />
       </Stack>
     </Card>
   );

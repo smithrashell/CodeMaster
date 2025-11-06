@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Example: If 3 problems are due for review, session includes all 3 (not capped by percentage)
   - Prevents artificial caps that would skip due review problems
   - Aligns with proper spaced repetition methodology
+- Removed non-functional difficulty distribution display (#174)
+  - Removed "Difficulty distribution" display from Focus Priorities section
+  - Was read-only, not editable by users
+  - Setting was saved but never actually used
+  - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
+  - Removed confusing display that suggested user control where none existed
 
 ### Added
 - Added independent time range filters to Progress page charts (#172)
