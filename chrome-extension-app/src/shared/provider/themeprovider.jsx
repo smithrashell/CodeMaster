@@ -64,11 +64,6 @@ const STORAGE_KEYS = {
   THEME_SETTINGS: "cm-theme-settings",
 };
 
-// Get initial theme - just return default, let Chrome storage be authoritative
-const getInitialTheme = () => {
-  return DEFAULT_THEME_SETTINGS.colorScheme;
-};
-
 // Helper function to process settings from Chrome storage response
 const processSettings = (response) => {
   return {
@@ -85,9 +80,15 @@ const processSettings = (response) => {
 // Helper function to save Chrome settings
 const saveChromeSettings = async (settings, currentChromeSettings) => {
   try {
+    // IMMEDIATELY save to localStorage for instant persistence (prevents race conditions)
+    // This ensures theme persists even if Chrome storage save hasn't completed yet
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settings));
+    }
+
     // Use provided current settings or fetch if not available
     let baseSettings = currentChromeSettings || {};
-    
+
     if (!currentChromeSettings) {
       // Fallback to direct Chrome messaging if current settings not available
       baseSettings = await new Promise((resolve) => {
@@ -104,7 +105,7 @@ const saveChromeSettings = async (settings, currentChromeSettings) => {
       layoutDensity: settings.layoutDensity,
       animationsEnabled: settings.animationsEnabled,
     };
-    
+
     chrome.runtime.sendMessage({
       type: "setSettings",
       message: updatedSettings,
@@ -118,8 +119,10 @@ const saveChromeSettings = async (settings, currentChromeSettings) => {
     });
   } catch (error) {
     console.error("Failed to save Chrome settings:", error);
-    // Fallback to localStorage
-    localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settings));
+    // Fallback to localStorage (already saved above, but keep for edge cases)
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settings));
+    }
   }
 };
 
@@ -214,12 +217,29 @@ const createChromeSettingsHook = (applySettings) => ({
   }
 });
 
+// Helper function to get initial settings from localStorage
+const getInitialSettings = () => {
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem(STORAGE_KEYS.THEME_SETTINGS);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return { ...DEFAULT_THEME_SETTINGS, ...parsed };
+      } catch (e) {
+        console.warn("Failed to parse stored theme settings:", e);
+      }
+    }
+  }
+  return DEFAULT_THEME_SETTINGS;
+};
+
 // Helper function to manage theme state
 const useThemeState = () => {
-  const [colorScheme, setColorScheme] = useState(getInitialTheme());
-  const [fontSize, setFontSize] = useState(DEFAULT_THEME_SETTINGS.fontSize);
-  const [layoutDensity, setLayoutDensity] = useState(DEFAULT_THEME_SETTINGS.layoutDensity);
-  const [animationsEnabled, setAnimationsEnabled] = useState(DEFAULT_THEME_SETTINGS.animationsEnabled);
+  const initialSettings = getInitialSettings();
+  const [colorScheme, setColorScheme] = useState(initialSettings.colorScheme);
+  const [fontSize, setFontSize] = useState(initialSettings.fontSize);
+  const [layoutDensity, setLayoutDensity] = useState(initialSettings.layoutDensity);
+  const [animationsEnabled, setAnimationsEnabled] = useState(initialSettings.animationsEnabled);
   const [_isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
