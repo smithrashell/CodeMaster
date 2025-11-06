@@ -280,6 +280,15 @@ async function getLadderCoverage(db, tag) {
 }
 
 async function updateTagMasteryRecords(db, tags, context) {
+  // CRITICAL FIX: Fetch all ladder coverage data BEFORE starting the transaction
+  // to prevent transaction timeout when awaiting async operations
+  const ladderCoverageMap = new Map();
+  for (const tag of tags) {
+    const coverage = await getLadderCoverage(db, tag);
+    ladderCoverageMap.set(tag, coverage);
+  }
+
+  // Now start the transaction and do all updates synchronously
   const transaction = db.transaction(["tag_mastery"], "readwrite");
   const tagMasteryStore = transaction.objectStore("tag_mastery");
 
@@ -290,7 +299,7 @@ async function updateTagMasteryRecords(db, tags, context) {
     updateMasteryCounters(masteryData, context.problem, context.isSuccess, context.attemptDate);
     const masteryRatio = calculateMasteryRatio(masteryData);
     const masteryRequirements = getMasteryRequirements(context.tagRelationships, tag);
-    const ladderCoverage = await getLadderCoverage(db, tag);
+    const ladderCoverage = ladderCoverageMap.get(tag); // Get from pre-fetched map
     updateMasteryStatus(masteryData, masteryRatio, masteryRequirements, ladderCoverage, context.attemptDate);
     logMasteryUpdate(tag, masteryData, masteryRatio, masteryRequirements, ladderCoverage);
 
