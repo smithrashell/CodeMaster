@@ -1,4 +1,4 @@
-import { Card, Title, Group, Stack, Text, Badge, Button, Grid, Slider } from "@mantine/core";
+import { Card, Title, Group, Stack, Text, Badge, Button } from "@mantine/core";
 import { IconTarget, IconEdit } from "@tabler/icons-react";
 import { ActiveSessionFocus } from "./ActiveSessionFocus.jsx";
 
@@ -77,13 +77,13 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
 // Difficulty Distribution display removed - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
 // Review Ratio slider removed - Leitner system naturally determines review problems based on spaced repetition schedule
 
-export function FocusPrioritiesSection({ 
-  appState, 
-  focusPriorities, 
-  isOnboarding, 
+export function FocusPrioritiesSection({
+  appState,
+  focusPriorities: _focusPriorities,
+  isOnboarding,
   navigate,
-  onFocusPrioritiesChange,
-  onSaveSettings
+  onFocusPrioritiesChange: _onFocusPrioritiesChange,
+  onSaveSettings: _onSaveSettings
 }) {
   return (
     <Card withBorder p="lg" h={SECTION_HEIGHT}>
