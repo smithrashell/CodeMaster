@@ -1,6 +1,6 @@
 /**
  * Helper functions to calculate today's progress statistics
- * These functions query real data from appState instead of hardcoded values
+ * These functions query attempts data directly to include current active session
  */
 
 /**
@@ -23,129 +23,90 @@ function isToday(dateString) {
 }
 
 /**
- * Calculate the number of problems solved today
+ * Get today's attempts from appState (includes current active session)
+ */
+function getTodaysAttempts(appState) {
+  // Attempts are stored with attempt_date field
+  const allAttempts = appState?.attempts || [];
+  return allAttempts.filter(attempt =>
+    attempt.attempt_date && isToday(attempt.attempt_date)
+  );
+}
+
+/**
+ * Calculate the number of problems solved today (includes current session)
  */
 export function getTodaysProblemsSolved(appState) {
-  const todaysSessions = appState?.sessions?.allSessions?.filter(session =>
-    session.date && isToday(session.date)
-  ) || [];
+  const todaysAttempts = getTodaysAttempts(appState);
 
-  // Sum up successful problems from today's sessions
-  return todaysSessions.reduce((total, session) => {
-    const successfulProblems = session.problems?.filter(p => p.success === true).length || 0;
-    return total + successfulProblems;
-  }, 0);
+  // Count successful attempts (success === true)
+  return todaysAttempts.filter(attempt => attempt.success === true).length;
 }
 
 /**
- * Calculate today's accuracy rate
+ * Calculate today's accuracy rate (includes current session)
  */
 export function getTodaysAccuracy(appState) {
-  const todaysSessions = appState?.sessions?.allSessions?.filter(session =>
-    session.date && isToday(session.date)
-  ) || [];
+  const todaysAttempts = getTodaysAttempts(appState);
 
-  if (todaysSessions.length === 0) return 0;
+  if (todaysAttempts.length === 0) return 0;
 
-  let totalProblems = 0;
-  let successfulProblems = 0;
+  const successfulAttempts = todaysAttempts.filter(attempt => attempt.success === true).length;
 
-  todaysSessions.forEach(session => {
-    const problems = session.problems || [];
-    totalProblems += problems.length;
-    successfulProblems += problems.filter(p => p.success === true).length;
-  });
-
-  if (totalProblems === 0) return 0;
-
-  return Math.round((successfulProblems / totalProblems) * 100);
+  return Math.round((successfulAttempts / todaysAttempts.length) * 100);
 }
 
 /**
- * Count review problems completed today
+ * Count review problems completed today (includes current session)
  * Review problems are identified by box_level > 0
  */
 export function getTodaysReviewProblems(appState) {
-  const todaysSessions = appState?.sessions?.allSessions?.filter(session =>
-    session.date && isToday(session.date)
-  ) || [];
+  const todaysAttempts = getTodaysAttempts(appState);
 
-  return todaysSessions.reduce((total, session) => {
-    const reviewProblems = session.problems?.filter(p =>
-      p.box_level > 0 && p.success === true
-    ).length || 0;
-    return total + reviewProblems;
-  }, 0);
+  // Count successful review attempts (box_level > 0)
+  return todaysAttempts.filter(attempt =>
+    attempt.box_level > 0 && attempt.success === true
+  ).length;
 }
 
 /**
- * Calculate average hints per problem today
+ * Calculate average hints per problem today (includes current session)
  */
 export function getTodaysHintEfficiency(appState) {
-  const todaysSessions = appState?.sessions?.allSessions?.filter(session =>
-    session.date && isToday(session.date)
-  ) || [];
+  const todaysAttempts = getTodaysAttempts(appState);
 
-  if (todaysSessions.length === 0) return 0;
+  if (todaysAttempts.length === 0) return 0;
 
-  let totalHints = 0;
-  let totalProblems = 0;
+  const totalHints = todaysAttempts.reduce((sum, attempt) =>
+    sum + (attempt.hints_used || 0), 0
+  );
 
-  todaysSessions.forEach(session => {
-    const problems = session.problems || [];
-    totalProblems += problems.length;
-
-    // Sum up hints used for each problem
-    problems.forEach(problem => {
-      const hints = problem.hintsUsed || 0;
-      totalHints += hints;
-    });
-  });
-
-  if (totalProblems === 0) return 0;
-
-  return totalHints / totalProblems;
+  return totalHints / todaysAttempts.length;
 }
 
 /**
- * Calculate average time per problem today (in minutes)
+ * Calculate average time per problem today in minutes (includes current session)
  */
 export function getTodaysAverageTime(appState) {
-  const todaysSessions = appState?.sessions?.allSessions?.filter(session =>
-    session.date && isToday(session.date)
-  ) || [];
+  const todaysAttempts = getTodaysAttempts(appState);
 
-  if (todaysSessions.length === 0) return 0;
+  if (todaysAttempts.length === 0) return 0;
 
-  let totalTime = 0;
-  let totalProblems = 0;
-
-  todaysSessions.forEach(session => {
-    const problems = session.problems || [];
-    totalProblems += problems.length;
-
-    // Sum up time spent on each problem (in seconds)
-    problems.forEach(problem => {
-      const timeSpent = problem.timeSpent || 0;
-      totalTime += timeSpent;
-    });
-  });
-
-  if (totalProblems === 0) return 0;
+  const totalTime = todaysAttempts.reduce((sum, attempt) =>
+    sum + (attempt.time_spent || 0), 0
+  );
 
   // Convert from seconds to minutes and round to 1 decimal
-  return Math.round((totalTime / totalProblems / 60) * 10) / 10;
+  return Math.round((totalTime / todaysAttempts.length / 60) * 10) / 10;
 }
 
 /**
- * Check if there's any activity today
+ * Check if there's any activity today (includes current session)
  */
 export function hasActivityToday(appState) {
-  const todaysSessions = appState?.sessions?.allSessions?.filter(session =>
-    session.date && isToday(session.date)
-  ) || [];
+  const todaysAttempts = getTodaysAttempts(appState);
 
-  return todaysSessions.length > 0;
+  return todaysAttempts.length > 0;
 }
 
 /**
