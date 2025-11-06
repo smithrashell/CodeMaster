@@ -16,7 +16,7 @@ function SystemFocusTagsSection({ appState }) {
       </Group>
       <Group gap="xs">
         {(appState?.learningPlan?.focus?.systemFocusTags || []).map((tag, index) => (
-          <Badge key={index} color="cyan" size="sm">
+          <Badge key={index} variant="filled" color="cyan" size="sm">
             {tag}
           </Badge>
         ))}
@@ -45,7 +45,7 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
       <Group gap="xs">
         {userFocusAreas.length > 0 ? (
           userFocusAreas.slice(0, isOnboarding ? 1 : 3).map((tag, index) => (
-            <Badge key={index} color="violet" size="sm">
+            <Badge key={index} variant="filled" color="violet" size="sm">
               {tag}
             </Badge>
           ))
