@@ -12,6 +12,7 @@ import { OutcomeTrendsSection } from "./OutcomeTrendsSection.jsx";
 import { useStatusUtils } from "./useStatusUtils.js";
 import { settingsMessaging } from "../../components/settings/settingsMessaging.js";
 import { calculateTodaysProgress } from "./todaysProgressHelpers.js";
+import { clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage.js";
 
 // Custom hooks for Goals page state management
 const useCadenceSettings = () => {
@@ -116,7 +117,12 @@ const createSettingsHandlers = (settings, handlers, _context) => {
   const { setCadenceSettings, setFocusPriorities, setGuardrails } = setters;
 
   const handleCadenceChange = (field, value) => {
-    setCadenceSettings(prev => ({ ...prev, [field]: value }));
+    console.log(`🔧 handleCadenceChange - field: ${field}, value:`, value, typeof value);
+    setCadenceSettings(prev => {
+      const newSettings = { ...prev, [field]: value };
+      console.log("🔧 handleCadenceChange - new cadence settings:", newSettings);
+      return newSettings;
+    });
     debouncedSave();
   };
 
@@ -311,7 +317,17 @@ export function Goals() {
         numberofNewProblemsPerSession: guardrailsRef.current.maxNewProblems
       };
 
+      console.log("💾 Goals.jsx - Saving settings:", {
+        sessionLength: updatedSettings.sessionLength,
+        sessionsPerWeek: updatedSettings.sessionsPerWeek,
+        fullSettings: updatedSettings
+      });
+
       const response = await settingsMessaging.saveSettings(updatedSettings);
+
+      // Clear goals data cache so the page reloads with fresh settings
+      clearChromeMessageCache("getGoalsData");
+      console.log("🗑️ Cleared goals data cache after saving settings");
 
       if (!response || response.status !== "success") {
         logger.error("Failed to save settings");
