@@ -1,4 +1,4 @@
-import { Card, Title, Group, Stack, Text, Slider, Select, Badge, Alert } from "@mantine/core";
+import { Card, Title, Group, Stack, Text, Select, Badge, Alert } from "@mantine/core";
 import { IconShield, IconInfoCircle } from "@tabler/icons-react";
 import SessionLimits from "../../../shared/utils/sessionLimits.js";
 import { useEffect } from "react";
@@ -87,7 +87,7 @@ export function GuardrailsSection({
           <Text size="sm" fw={500} mb={4}>Adaptive Difficulty Progression</Text>
           <Text size="xs">
             The system automatically progresses from Easy → Medium → Hard based on your performance.
-            This ensures you're always challenged appropriately while building solid foundations.
+            This ensures you&apos;re always challenged appropriately while building solid foundations.
           </Text>
         </Alert>
       </Stack>
