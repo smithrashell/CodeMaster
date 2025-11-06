@@ -1731,12 +1731,16 @@ export async function getGoalsData(options = {}, providedData = null) {
     if (providedData) {
       // Use provided data directly
       const goalsData = await generateGoalsData(providedData);
-      // Fetch sessions data separately for onboarding detection
-      const allSessions = await getAllSessions();
+      // Fetch sessions and attempts data for Today's Progress and onboarding detection
+      const [allSessions, allAttempts] = await Promise.all([
+        getAllSessions(),
+        getAllAttempts()
+      ]);
       const sessionAnalytics = generateSessionAnalytics(allSessions, []);
       return {
         ...goalsData,
-        sessions: sessionAnalytics
+        sessions: sessionAnalytics,
+        attempts: allAttempts
       };
     } else {
       // Fallback: try existing method but catch errors gracefully
