@@ -14,7 +14,6 @@ import { buildRelationshipMap } from "../db/problem_relationships.js";
 
 import { TagService } from "../services/tagServices.js";
 import { getAllFromStore } from "../db/common.js";
-import { getTagMastery, upsertTagMastery } from "../db/tag_mastery.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 export async function initializePatternLaddersForOnboarding() {
   const [
@@ -162,13 +161,11 @@ export async function regenerateCompletedPatternLadder(completedTag) {
   const [
     standardProblems,
     userProblems = [],
-    tagMasteryRecords = [],
     tagRelationships = [],
     _problemRelationships = [],
   ] = await Promise.all([
     getAllFromStore("standard_problems"),
     getAllFromStore("problems"),
-    getTagMastery(),
     getAllFromStore("tag_relationships"),
     getAllFromStore("problem_relationships"),
   ]);
@@ -220,12 +217,6 @@ export async function regenerateCompletedPatternLadder(completedTag) {
     problems: ladder,
   });
 
-  const existing = tagMasteryRecords.find((t) => t.tag === completedTag) || { tag: completedTag };
-  await upsertTagMastery({
-    ...existing,
-    coreLadder: ladder,
-  });
-
   console.log(`✅ Successfully regenerated pattern ladder: ${completedTag}`);
 }
 
@@ -233,13 +224,11 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
   const [
     standardProblems,
     userProblems = [],
-    tagMasteryRecords = [],
     tagRelationships = [],
     _problemRelationships = [],
   ] = await Promise.all([
     getAllFromStore("standard_problems"),
     getAllFromStore("problems"),
-    getTagMastery(),
     getAllFromStore("tag_relationships"),
     getAllFromStore("problem_relationships"),
   ]);
@@ -286,12 +275,6 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
       tag,
       lastUpdated: new Date().toISOString(),
       problems: ladder,
-    });
-
-    const existing = tagMasteryRecords.find((t) => t.tag === tag) || { tag };
-    await upsertTagMastery({
-      ...existing,
-      coreLadder: ladder,
     });
   }
 

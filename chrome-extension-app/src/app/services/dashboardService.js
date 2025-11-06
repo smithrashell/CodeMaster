@@ -1165,10 +1165,10 @@ export async function generateGoalsData(providedData = {}) {
           flexibleSchedule: settings.flexibleSchedule !== false
         },
         focus: {
-          primaryTags: settings.focusAreas || ["array"], // Match session generation fallback
+          primaryTags: settings.focusAreas || [], // Match session generation default
           userFocusAreas: providedData.userFocusAreas || [], // User-selected focus areas
           systemFocusTags: providedData.systemFocusTags || [], // System-recommended focus tags
-          activeFocusTags: providedData.focusDecision?.activeFocusTags || (settings.focusAreas || ["array"]), // What sessions actually use
+          activeFocusTags: providedData.focusDecision?.activeFocusTags || (settings.focusAreas || []), // What sessions actually use
           algorithmReasoning: providedData.focusDecision?.algorithmReasoning || null, // Why algorithm made its decision
           onboarding: providedData.focusDecision?.onboarding || false, // Whether user is in onboarding
           performanceLevel: providedData.focusDecision?.performanceLevel || null, // Current performance level
