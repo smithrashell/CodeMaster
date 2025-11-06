@@ -23,8 +23,7 @@ const useCadenceSettings = () => {
 
 const useFocusPriorities = () => {
   return useState({
-    primaryTags: [], // Empty until loaded from user settings/system recommendations
-    difficultyDistribution: { easy: 20, medium: 60, hard: 20 } // System default distribution
+    primaryTags: [] // Empty until loaded from user settings/system recommendations
   });
 };
 
@@ -92,11 +91,10 @@ function updateLearningPlanData({
   }));
 
   // Update focus priorities with real system recommendations and user preferences
-  setFocusPriorities(prev => ({
+  setFocusPriorities(_prev => ({
     primaryTags: appState.learningPlan.focus?.userFocusAreas ||
                 appState.learningPlan.focus?.systemFocusTags ||
-                ['Array', 'Hash Table', 'String', 'Sorting', 'Math'], // System default recommendations
-    difficultyDistribution: appState.learningPlan.focus?.difficultyDistribution || prev.difficultyDistribution
+                ['Array', 'Hash Table', 'String', 'Sorting', 'Math'] // System default recommendations
   }));
 
   // Update guardrails with onboarding-aware limits
@@ -318,7 +316,6 @@ export function Goals() {
         sessionsPerWeek: cadenceSettings.sessionsPerWeek,
         sessionLength: cadenceSettings.sessionLength,
         focusAreas: focusPriorities.primaryTags,
-        difficultyDistribution: focusPriorities.difficultyDistribution,
         numberofNewProblemsPerSession: guardrails.maxNewProblems
       };
 
