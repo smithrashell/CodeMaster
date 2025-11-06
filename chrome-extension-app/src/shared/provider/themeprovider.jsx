@@ -64,11 +64,6 @@ const STORAGE_KEYS = {
   THEME_SETTINGS: "cm-theme-settings",
 };
 
-// Get initial theme - just return default, let Chrome storage be authoritative
-const getInitialTheme = () => {
-  return DEFAULT_THEME_SETTINGS.colorScheme;
-};
-
 // Helper function to process settings from Chrome storage response
 const processSettings = (response) => {
   return {
@@ -85,9 +80,21 @@ const processSettings = (response) => {
 // Helper function to save Chrome settings
 const saveChromeSettings = async (settings, currentChromeSettings) => {
   try {
+    // IMMEDIATELY save to localStorage for instant persistence (prevents race conditions)
+    // This ensures theme persists even if Chrome storage save hasn't completed yet
+    // Add timestamp to track when this was saved
+    const settingsWithTimestamp = {
+      ...settings,
+      _timestamp: Date.now()
+    };
+
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settingsWithTimestamp));
+    }
+
     // Use provided current settings or fetch if not available
     let baseSettings = currentChromeSettings || {};
-    
+
     if (!currentChromeSettings) {
       // Fallback to direct Chrome messaging if current settings not available
       baseSettings = await new Promise((resolve) => {
@@ -103,8 +110,9 @@ const saveChromeSettings = async (settings, currentChromeSettings) => {
       fontSize: settings.fontSize,
       layoutDensity: settings.layoutDensity,
       animationsEnabled: settings.animationsEnabled,
+      _timestamp: settingsWithTimestamp._timestamp, // Include timestamp for sync
     };
-    
+
     chrome.runtime.sendMessage({
       type: "setSettings",
       message: updatedSettings,
@@ -118,8 +126,10 @@ const saveChromeSettings = async (settings, currentChromeSettings) => {
     });
   } catch (error) {
     console.error("Failed to save Chrome settings:", error);
-    // Fallback to localStorage
-    localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settings));
+    // Fallback to localStorage (already saved above, but keep for edge cases)
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settings));
+    }
   }
 };
 
@@ -129,7 +139,29 @@ const createStorageChangeHandler = (applySettings) => {
     if (areaName === "local" && changes.settings) {
       const newSettings = changes.settings.newValue;
       if (newSettings) {
-        applySettings(processSettings(newSettings));
+        const processed = processSettings(newSettings);
+
+        // Check if localStorage has newer settings before applying Chrome storage changes
+        if (typeof localStorage !== "undefined") {
+          const localStorageData = localStorage.getItem(STORAGE_KEYS.THEME_SETTINGS);
+          if (localStorageData) {
+            try {
+              const localSettings = JSON.parse(localStorageData);
+              const chromeTimestamp = newSettings._timestamp || 0;
+              const localTimestamp = localSettings._timestamp || 0;
+
+              // If localStorage is newer, don't apply Chrome storage change
+              if (localTimestamp > chromeTimestamp) {
+                console.info("🔄 Ignoring Chrome storage change (localStorage is newer)");
+                return;
+              }
+            } catch (e) {
+              console.warn("Failed to parse localStorage settings:", e);
+            }
+          }
+        }
+
+        applySettings(processed);
       }
     }
   };
@@ -203,23 +235,66 @@ const createContextValue = (colorScheme, fontSize, layoutDensity, animationsEnab
 const createChromeSettingsHook = (applySettings) => ({
   type: "getSettings",
   deps: [],
-  options: { 
+  options: {
     showNotifications: false,
     onSuccess: (response) => {
       if (response) {
         const processed = processSettings(response);
+
+        // Check if localStorage has newer settings (prevents stale Chrome storage from overriding)
+        if (typeof localStorage !== "undefined") {
+          const localStorageData = localStorage.getItem(STORAGE_KEYS.THEME_SETTINGS);
+          if (localStorageData) {
+            try {
+              const localSettings = JSON.parse(localStorageData);
+              const chromeTimestamp = response._timestamp || 0;
+              const localTimestamp = localSettings._timestamp || 0;
+
+              // If localStorage is newer, use it instead of Chrome storage
+              if (localTimestamp > chromeTimestamp) {
+                console.info("🔄 Using localStorage theme settings (newer than Chrome storage)");
+                applySettings({
+                  ...DEFAULT_THEME_SETTINGS,
+                  ...localSettings
+                });
+                return;
+              }
+            } catch (e) {
+              console.warn("Failed to parse localStorage settings:", e);
+            }
+          }
+        }
+
+        // Use Chrome storage settings if localStorage doesn't have newer data
         applySettings(processed);
       }
     }
   }
 });
 
+// Helper function to get initial settings from localStorage
+const getInitialSettings = () => {
+  if (typeof localStorage !== "undefined") {
+    const stored = localStorage.getItem(STORAGE_KEYS.THEME_SETTINGS);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return { ...DEFAULT_THEME_SETTINGS, ...parsed };
+      } catch (e) {
+        console.warn("Failed to parse stored theme settings:", e);
+      }
+    }
+  }
+  return DEFAULT_THEME_SETTINGS;
+};
+
 // Helper function to manage theme state
 const useThemeState = () => {
-  const [colorScheme, setColorScheme] = useState(getInitialTheme());
-  const [fontSize, setFontSize] = useState(DEFAULT_THEME_SETTINGS.fontSize);
-  const [layoutDensity, setLayoutDensity] = useState(DEFAULT_THEME_SETTINGS.layoutDensity);
-  const [animationsEnabled, setAnimationsEnabled] = useState(DEFAULT_THEME_SETTINGS.animationsEnabled);
+  const initialSettings = getInitialSettings();
+  const [colorScheme, setColorScheme] = useState(initialSettings.colorScheme);
+  const [fontSize, setFontSize] = useState(initialSettings.fontSize);
+  const [layoutDensity, setLayoutDensity] = useState(initialSettings.layoutDensity);
+  const [animationsEnabled, setAnimationsEnabled] = useState(initialSettings.animationsEnabled);
   const [_isInitialized, setIsInitialized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 

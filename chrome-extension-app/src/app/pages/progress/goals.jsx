@@ -23,15 +23,12 @@ const useCadenceSettings = () => {
 
 const useFocusPriorities = () => {
   return useState({
-    primaryTags: [], // Empty until loaded from user settings/system recommendations
-    difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, // System default distribution
-    reviewRatio: 40 // System default review ratio
+    primaryTags: [] // Empty until loaded from user settings/system recommendations
   });
 };
 
 const useGuardrails = () => {
   return useState({
-    minReviewRatio: 40, // System default - matches Focus Priorities reviewRatio
     maxNewProblems: 8, // System default (will be adjusted for onboarding)
     difficultyCapEnabled: false, // System default - adaptive progression disabled
     hintLimitEnabled: false, // System default - no artificial hint limits
@@ -94,18 +91,15 @@ function updateLearningPlanData({
   }));
 
   // Update focus priorities with real system recommendations and user preferences
-  setFocusPriorities(prev => ({
+  setFocusPriorities(_prev => ({
     primaryTags: appState.learningPlan.focus?.userFocusAreas ||
                 appState.learningPlan.focus?.systemFocusTags ||
-                ['Array', 'Hash Table', 'String', 'Sorting', 'Math'], // System default recommendations
-    difficultyDistribution: appState.learningPlan.focus?.difficultyDistribution || prev.difficultyDistribution,
-    reviewRatio: appState.learningPlan.focus?.reviewRatio || 40
+                ['Array', 'Hash Table', 'String', 'Sorting', 'Math'] // System default recommendations
   }));
 
   // Update guardrails with onboarding-aware limits
   // Use isOnboarding directly: 4 new problems during onboarding, 8 after
   setGuardrails(_prev => ({
-    minReviewRatio: appState.learningPlan.guardrails?.minReviewRatio || 30,
     maxNewProblems: isOnboarding ? 4 : 8, // Onboarding-aware: 4 during onboarding, 8 after
     difficultyCapEnabled: isOnboarding, // Enable difficulty cap during onboarding
     hintLimitEnabled: appState.learningPlan.guardrails?.hintLimitEnabled || false,
@@ -256,8 +250,9 @@ function GoalsLayout({
 
       <Grid gutter="md" mt="md" align="stretch">
         <Grid.Col span={{ base: 12, lg: 6 }}>
-          <GuardrailsSection 
+          <GuardrailsSection
             guardrails={guardrails}
+            sessionLength={cadenceSettings.sessionLength}
             isOnboarding={isOnboarding}
             onGuardrailChange={handleGuardrailChange}
           />
@@ -321,8 +316,6 @@ export function Goals() {
         sessionsPerWeek: cadenceSettings.sessionsPerWeek,
         sessionLength: cadenceSettings.sessionLength,
         focusAreas: focusPriorities.primaryTags,
-        difficultyDistribution: focusPriorities.difficultyDistribution,
-        reviewRatio: focusPriorities.reviewRatio,
         numberofNewProblemsPerSession: guardrails.maxNewProblems
       };
 

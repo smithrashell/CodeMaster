@@ -26,13 +26,13 @@ export function ActiveSessionFocus({ appState }) {
         )}
       </Group>
       <Group gap="xs">
-        {(appState?.learningPlan?.focus?.activeFocusTags || 
-          appState?.learningPlan?.focus?.systemFocusTags || 
+        {(appState?.learningPlan?.focus?.activeFocusTags ||
+          appState?.learningPlan?.focus?.systemFocusTags ||
           ['Array', 'Hash Table', 'String', 'Sorting', 'Math']).map((tag, index) => (
-          <Badge 
-            key={index} 
-            variant={appState?.learningPlan?.focus?.activeFocusTags ? "filled" : "filled"} 
-            color={appState?.learningPlan?.focus?.activeFocusTags ? "teal" : "cyan"} 
+          <Badge
+            key={index}
+            variant="filled"
+            color={appState?.learningPlan?.focus?.activeFocusTags ? "teal" : "cyan"}
             size="sm"
           >
             {tag}

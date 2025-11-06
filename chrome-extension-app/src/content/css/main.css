@@ -1948,7 +1948,8 @@ body:has(.navbar) .cm-extension #cm-menuButton {
 }
 
 /* Tour text color overrides - always dark text since tour background is always white */
-.mantine-Card-root span,
+/* Exclude badges from this rule to allow colored badges with white text */
+.mantine-Card-root span:not(.mantine-Badge-root):not(.mantine-Badge-label),
 .mantine-Card-root .mantine-Text-root,
 .tour-text {
   color: #1a1a1a !important; /* Always dark text for white tour background */
