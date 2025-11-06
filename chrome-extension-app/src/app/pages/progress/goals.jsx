@@ -12,7 +12,6 @@ import { OutcomeTrendsSection } from "./OutcomeTrendsSection.jsx";
 import { useStatusUtils } from "./useStatusUtils.js";
 import { settingsMessaging } from "../../components/settings/settingsMessaging.js";
 import { calculateTodaysProgress } from "./todaysProgressHelpers.js";
-import { clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage.js";
 
 // Custom hooks for Goals page state management
 const useCadenceSettings = () => {
@@ -324,10 +323,6 @@ export function Goals() {
       });
 
       const response = await settingsMessaging.saveSettings(updatedSettings);
-
-      // Clear goals data cache so the page reloads with fresh settings
-      clearChromeMessageCache("getGoalsData");
-      console.log("🗑️ Cleared goals data cache after saving settings");
 
       if (!response || response.status !== "success") {
         logger.error("Failed to save settings");

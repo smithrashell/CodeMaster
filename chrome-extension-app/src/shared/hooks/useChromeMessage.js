@@ -128,25 +128,8 @@ const DASHBOARD_REQUEST_TYPES = [
 
 // Helper functions for message handling
 const handleCacheCheck = ({ request, bypassCache, setData, setLoading, setError, onSuccess }) => {
-  if (bypassCache) return false;
-
-  // Never cache dashboard requests - they should always be fresh
-  if (DASHBOARD_REQUEST_TYPES.includes(request?.type)) {
-    return false;
-  }
-
-  const cacheKey = getCacheKey(request);
-  const cachedData = getCachedResponse(cacheKey);
-
-  if (cachedData) {
-    console.info(`🚀 Cache hit for ${request?.type}`);
-    setData(cachedData);
-    setLoading(false);
-    setError(null);
-    if (onSuccess) onSuccess(cachedData);
-    return true;
-  }
-
+  // CACHING DISABLED: Always bypass cache to prevent stale data bugs
+  // IndexedDB is already fast (~1-5ms), caching provides minimal benefit
   return false;
 };
 
@@ -181,10 +164,8 @@ const handleSuccess = ({ response, request, startTime, currentRetryCount, cacheK
     performanceLogger.logSlowRequest(request, duration);
   }
 
-  // Only cache non-dashboard requests
-  if (!DASHBOARD_REQUEST_TYPES.includes(request?.type)) {
-    setCachedResponse(cacheKey, response);
-  }
+  // CACHING DISABLED: Don't store responses in cache
+  // setCachedResponse(cacheKey, response); // Disabled
 
   setData(response);
   setLoading(false);
