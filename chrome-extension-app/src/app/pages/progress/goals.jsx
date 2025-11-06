@@ -17,7 +17,7 @@ import { calculateTodaysProgress } from "./todaysProgressHelpers.js";
 const useCadenceSettings = () => {
   return useState({
     sessionsPerWeek: 5, // System default
-    sessionLength: 5 // System default - now represents max session length
+    sessionLength: "auto" // System default - auto mode for adaptive session length
   });
 };
 
