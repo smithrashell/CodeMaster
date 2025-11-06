@@ -21,25 +21,27 @@ const getCacheKey = (request) => {
   });
 };
 
-const getCachedResponse = (cacheKey) => {
-  const cached = messageCache.get(cacheKey);
+const _getCachedResponse = (_cacheKey) => {
+  // CACHING DISABLED: Unused helper function kept for potential future use
+  const cached = messageCache.get(_cacheKey);
   if (!cached) return null;
-  
+
   const now = Date.now();
   if (now - cached.timestamp > CACHE_TTL) {
-    messageCache.delete(cacheKey);
+    messageCache.delete(_cacheKey);
     return null;
   }
-  
+
   return cached.data;
 };
 
-const setCachedResponse = (cacheKey, data) => {
-  messageCache.set(cacheKey, {
-    data,
+const _setCachedResponse = (_cacheKey, _data) => {
+  // CACHING DISABLED: Unused helper function kept for potential future use
+  messageCache.set(_cacheKey, {
+    data: _data,
     timestamp: Date.now()
   });
-  
+
   // Prevent memory leaks - keep only last 50 cache entries
   if (messageCache.size > 50) {
     const firstKey = messageCache.keys().next().value;
@@ -112,8 +114,8 @@ const performanceLogger = {
   }
 };
 
-// Dashboard request types that should never be cached
-const DASHBOARD_REQUEST_TYPES = [
+// Dashboard request types that should never be cached (unused - caching disabled)
+const _DASHBOARD_REQUEST_TYPES = [
   'getStatsData',
   'getSessionHistoryData',
   'getTagMasteryData',
@@ -127,7 +129,7 @@ const DASHBOARD_REQUEST_TYPES = [
 ];
 
 // Helper functions for message handling
-const handleCacheCheck = ({ request, bypassCache, setData, setLoading, setError, onSuccess }) => {
+const handleCacheCheck = () => {
   // CACHING DISABLED: Always bypass cache to prevent stale data bugs
   // IndexedDB is already fast (~1-5ms), caching provides minimal benefit
   return false;
@@ -154,7 +156,7 @@ const handleRequestDeduplication = async ({ request, setData, setLoading, setErr
   return false;
 };
 
-const handleSuccess = ({ response, request, startTime, currentRetryCount, cacheKey, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess }) => {
+const handleSuccess = ({ response, request, startTime, currentRetryCount, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess }) => {
   if (!isMountedRef.current) return;
 
   const duration = performance.now() - startTime;
@@ -165,7 +167,7 @@ const handleSuccess = ({ response, request, startTime, currentRetryCount, cacheK
   }
 
   // CACHING DISABLED: Don't store responses in cache
-  // setCachedResponse(cacheKey, response); // Disabled
+  // setCachedResponse(cacheKey, response); // Disabled - cacheKey parameter removed
 
   setData(response);
   setLoading(false);
@@ -317,8 +319,8 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
     try {
       const response = await requestPromise;
       pendingRequests.delete(cacheKey);
-      
-      handleSuccess({ response, request, startTime, currentRetryCount, cacheKey, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess });
+
+      handleSuccess({ response, request, startTime, currentRetryCount, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess });
     } catch (error) {
       pendingRequests.delete(cacheKey);
       handleError({ error, request, startTime, maxRetries, showNotifications, isMountedRef, setLoading, setIsRetrying, setError, setRetryCount, onError, retry });
