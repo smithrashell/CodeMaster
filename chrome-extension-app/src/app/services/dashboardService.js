@@ -1149,7 +1149,7 @@ export async function generateGoalsData(providedData = {}) {
     
     const allAttempts = providedData.allAttempts || [];
     const allSessions = providedData.allSessions || [];
-    const learningState = providedData.learningState || null;
+    const _learningState = providedData.learningState || null;
     
     // Calculate outcome trends from provided data
     const outcomeTrends = allAttempts.length > 0 && allSessions.length > 0

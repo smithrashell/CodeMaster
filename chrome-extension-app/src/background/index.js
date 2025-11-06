@@ -8950,15 +8950,15 @@ const backgroundScriptHealth = {
 
 // Add response caching to prevent repeated expensive queries
 const responseCache = new Map();
-const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+const _CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes (unused - caching disabled)
 
-const getCachedResponse = (key) => {
+const getCachedResponse = (_key) => {
   // CACHING DISABLED: Always return null (no cache hit)
   // IndexedDB is already fast, caching causes stale data bugs
   return null;
 };
 
-const setCachedResponse = (key, data) => {
+const setCachedResponse = (_key, _data) => {
   // CACHING DISABLED: Don't store anything in cache
   // No-op function to maintain backward compatibility
   return;
