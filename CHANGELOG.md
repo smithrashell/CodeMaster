@@ -11,9 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Today's Progress Summary**: Replaced broken Daily Missions system with real-time daily statistics component (#175)
   - New TodaysProgressSection.jsx displays live stats for today's activity
   - Shows problems solved, accuracy percentage, review problems completed, hint efficiency, and average time per problem
-  - Calculates metrics from actual session data (no caching, no delays)
+  - Reads from attempts store directly to include current active session data
+  - Stats update immediately as user completes each problem (true real-time)
+  - No caching, no delays - reflects exact current state
   - Provides at-a-glance view of daily progress without gamification overhead
-  - All data updates in real-time as user completes sessions
 
 ### Fixed
 - Fixed Daily Missions system complete non-functionality (#175)
