@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Fixed theme reversion bug when navigating between pages (#174)
+  - Theme changes now persist immediately using localStorage for instant synchronization
+  - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
+  - Chrome storage and localStorage stay in sync via timestamp comparison
+  - Prevents race condition where async Chrome storage save could revert theme after navigation
+  - Works across both dashboard and content pages
+- Fixed badge text color visibility on Goals page (#174)
+  - Modified CSS selector to exclude badges from Card dark text override
+  - Changed `.mantine-Card-root span` to `.mantine-Card-root span:not(.mantine-Badge-root):not(.mantine-Badge-label)`
+  - Badge text now displays properly in white on colored backgrounds (cyan, violet, teal)
+  - Removed need for inline style workarounds
 - Fixed guardrails validation issues on Goals page (#174)
   - Max new problems dropdown now dynamically limits options based on session length
   - Prevents confusing state where max new problems can exceed total session length
