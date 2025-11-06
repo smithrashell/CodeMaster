@@ -1743,10 +1743,11 @@ export async function getGoalsData(options = {}, providedData = null) {
       try {
         const fullData = await getDashboardStatistics(options);
         const goalsData = fullData.goals || await generateGoalsData();
-        // Include sessions data for onboarding detection
+        // Include sessions and attempts data for Today's Progress and onboarding detection
         return {
           ...goalsData,
-          sessions: fullData.sessions || { allSessions: [] }
+          sessions: fullData.sessions || { allSessions: [] },
+          attempts: fullData.allAttempts || []
         };
       } catch (error) {
         // If getDashboardStatistics fails, use fallback
@@ -1754,7 +1755,8 @@ export async function getGoalsData(options = {}, providedData = null) {
         const fallbackData = await generateGoalsData();
         return {
           ...fallbackData,
-          sessions: { allSessions: [] }
+          sessions: { allSessions: [] },
+          attempts: []
         };
       }
     }
@@ -1773,7 +1775,8 @@ export async function getGoalsData(options = {}, providedData = null) {
           learningVelocity: { value: "Steady", status: "adaptive" }
         }
       },
-      sessions: { allSessions: [] }
+      sessions: { allSessions: [] },
+      attempts: []
     };
   }
 }
