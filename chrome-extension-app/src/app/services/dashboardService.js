@@ -1161,7 +1161,8 @@ export async function generateGoalsData(providedData = {}) {
       learningPlan: {
         cadence: {
           sessionsPerWeek: settings.sessionsPerWeek || 5,
-          sessionLength: settings.sessionLength || 4, // Match session generation default
+          // Normalize "auto" to 5 (default), otherwise use saved value or fallback to 4
+          sessionLength: settings.sessionLength === "auto" ? 5 : (settings.sessionLength || 4),
           flexibleSchedule: settings.flexibleSchedule !== false
         },
         focus: {
@@ -1190,7 +1191,7 @@ export async function generateGoalsData(providedData = {}) {
     logger.error("Error generating goals data:", error);
     return {
       learningPlan: {
-        cadence: { sessionsPerWeek: 5, sessionLength: 45, flexibleSchedule: true },
+        cadence: { sessionsPerWeek: 5, sessionLength: 5, flexibleSchedule: true },
         focus: { primaryTags: [], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
         guardrails: { minReviewRatio: 30, maxNewProblems: 5, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
         outcomeTrends: {
@@ -1759,7 +1760,7 @@ export async function getGoalsData(options = {}, providedData = null) {
     // Return fallback goals data instead of throwing
     return {
       learningPlan: {
-        cadence: { sessionsPerWeek: 5, sessionLength: 4, flexibleSchedule: true },
+        cadence: { sessionsPerWeek: 5, sessionLength: 5, flexibleSchedule: true },
         focus: { primaryTags: ["array"], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
         guardrails: { minReviewRatio: 30, maxNewProblems: 4, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
         outcomeTrends: {
