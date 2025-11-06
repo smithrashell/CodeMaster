@@ -1,6 +1,6 @@
 import logger from "../../../shared/utils/logger.js";
 import { Container, Grid, Title, Group, Button, Text } from "@mantine/core";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
@@ -111,18 +111,18 @@ function updateLearningPlanData({
 
 // Helper function to create settings change handlers
 const createSettingsHandlers = (settings, handlers, _context) => {
-  const { setters, saveSettings } = handlers;
+  const { setters, debouncedSave } = handlers;
 
   const { setCadenceSettings, setFocusPriorities, setGuardrails } = setters;
 
   const handleCadenceChange = (field, value) => {
     setCadenceSettings(prev => ({ ...prev, [field]: value }));
-    setTimeout(saveSettings, 1000);
+    debouncedSave();
   };
 
   const handleGuardrailChange = (field, value) => {
     setGuardrails(prev => ({ ...prev, [field]: value }));
-    setTimeout(saveSettings, 1000);
+    debouncedSave();
   };
 
   const handleFocusPrioritiesChange = (field, value) => {
@@ -136,8 +136,8 @@ const createSettingsHandlers = (settings, handlers, _context) => {
   };
 };
 
-// NOTE: createSaveSettings has been removed - now using useCallback in Goals component
-// to avoid stale closure bugs where old state values were being saved
+// NOTE: Settings are saved using a debounced approach with refs to avoid stale closure bugs
+// The refs ensure we always save the latest state values even if the save is delayed
 
 // Helper component for loading and error states
 function LoadingErrorStates({ loading, error, refresh }) {
@@ -284,8 +284,20 @@ export function Goals() {
   const numSessions = appState?.sessions?.allSessions?.length || 0;
   const isOnboarding = numSessions < 1;
 
-  // Create save settings function using useCallback to avoid stale closures
-  // This ensures we always read the latest state values when saving
+  // Use refs to always have the latest state values for saving
+  const cadenceSettingsRef = useRef(cadenceSettings);
+  const focusPrioritiesRef = useRef(focusPriorities);
+  const guardrailsRef = useRef(guardrails);
+  const saveTimeoutRef = useRef(null);
+
+  // Update refs whenever state changes
+  useEffect(() => {
+    cadenceSettingsRef.current = cadenceSettings;
+    focusPrioritiesRef.current = focusPriorities;
+    guardrailsRef.current = guardrails;
+  }, [cadenceSettings, focusPriorities, guardrails]);
+
+  // Save settings function that reads from refs to get latest values
   const saveSettings = useCallback(async () => {
     try {
       // Get current settings first to preserve other settings
@@ -293,10 +305,10 @@ export function Goals() {
 
       const updatedSettings = {
         ...currentSettings,
-        sessionsPerWeek: cadenceSettings.sessionsPerWeek,
-        sessionLength: cadenceSettings.sessionLength,
-        focusAreas: focusPriorities.primaryTags,
-        numberofNewProblemsPerSession: guardrails.maxNewProblems
+        sessionsPerWeek: cadenceSettingsRef.current.sessionsPerWeek,
+        sessionLength: cadenceSettingsRef.current.sessionLength,
+        focusAreas: focusPrioritiesRef.current.primaryTags,
+        numberofNewProblemsPerSession: guardrailsRef.current.maxNewProblems
       };
 
       const response = await settingsMessaging.saveSettings(updatedSettings);
@@ -307,14 +319,26 @@ export function Goals() {
     } catch (error) {
       logger.error("Failed to save settings:", error);
     }
-  }, [cadenceSettings, focusPriorities, guardrails]);
+  }, []); // No dependencies - reads from refs
+
+  // Debounced save function
+  const debouncedSave = useCallback(() => {
+    // Clear any existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    // Set new timeout
+    saveTimeoutRef.current = setTimeout(() => {
+      saveSettings();
+    }, 1000);
+  }, [saveSettings]);
 
   // Create handlers
   const handlers = createSettingsHandlers(
     { cadenceSettings, focusPriorities, guardrails },
     {
       setters: { setCadenceSettings, setFocusPriorities, setGuardrails },
-      saveSettings
+      debouncedSave
     },
     { appState, isOnboarding }
   );
