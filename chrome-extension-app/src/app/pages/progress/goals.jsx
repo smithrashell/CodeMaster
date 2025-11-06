@@ -29,10 +29,7 @@ const useFocusPriorities = () => {
 
 const useGuardrails = () => {
   return useState({
-    maxNewProblems: 8, // System default (will be adjusted for onboarding)
-    difficultyCapEnabled: false, // System default - adaptive progression disabled
-    hintLimitEnabled: false, // System default - no artificial hint limits
-    maxHintsPerProblem: 0 // System default - unlimited hints
+    maxNewProblems: 5 // System default (will be adjusted for onboarding to 4)
   });
 };
 
@@ -95,13 +92,12 @@ function updateLearningPlanData({
                 ['Array', 'Hash Table', 'String', 'Sorting', 'Math'] // System default recommendations
   }));
 
-  // Update guardrails with onboarding-aware limits
-  // Use isOnboarding directly: 4 new problems during onboarding, 8 after
+  // Update guardrails with user-saved value or onboarding-aware default
+  const savedMaxNewProblems = appState.learningPlan.guardrails?.maxNewProblems;
+  const defaultMaxNewProblems = isOnboarding ? 4 : 5;
+
   setGuardrails(_prev => ({
-    maxNewProblems: isOnboarding ? 4 : 8, // Onboarding-aware: 4 during onboarding, 8 after
-    difficultyCapEnabled: isOnboarding, // Enable difficulty cap during onboarding
-    hintLimitEnabled: appState.learningPlan.guardrails?.hintLimitEnabled || false,
-    maxHintsPerProblem: appState.learningPlan.guardrails?.maxHintsPerProblem || 0
+    maxNewProblems: savedMaxNewProblems || defaultMaxNewProblems
   }));
 
   // Calculate today's progress from real session data
