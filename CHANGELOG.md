@@ -7,7 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Today's Progress Summary**: Replaced broken Daily Missions system with real-time daily statistics component (#175)
+  - New TodaysProgressSection.jsx displays live stats for today's activity
+  - Shows problems solved, accuracy percentage, review problems completed, hint efficiency, and average time per problem
+  - Calculates metrics from actual session data (no caching, no delays)
+  - Provides at-a-glance view of daily progress without gamification overhead
+  - All data updates in real-time as user completes sessions
+
 ### Fixed
+- Fixed Daily Missions system complete non-functionality (#175)
+  - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
+  - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
+  - Replaced entire system with simpler Today's Progress Summary (see Added section)
+  - Removed DailyMissionsSection.jsx, useMissions.js, and missionHelpers.js
+- Fixed critical settings persistence bugs on Goals page (#175)
+  - Session length was not persisting when navigating away from Goals page
+  - Fixed stale closure bug using refs pattern (same issue as #162)
+  - Session length changes now save and load correctly across page navigation
+  - Changed default session length from hardcoded `5` to `"auto"` (system-controlled based on due reviews)
+  - Updated all fallback cases across initialize-settings.js, storageService.js, and dashboardService.js
+- Fixed guardrails not loading from saved settings (#175)
+  - Max new problems (maxNewProblems) was loading hardcoded defaults instead of saved values
+  - GuardrailsSection.jsx now properly loads persisted settings on mount
+  - Removed obsolete guardrail fields from code (minReviewRatio, reviewRatio)
+- Fixed Tag Mastery initialization not completing during onboarding (#175)
+  - Tag Mastery transaction was not awaiting completion before returning
+  - Added await transaction.complete in tag_mastery.js insertDefaultTagMasteryRecords()
+  - Added insertDefaultTagMasteryRecords() call to onboardingService.js
+  - Strategy pages now show tag mastery data immediately after onboarding completes
 - Fixed theme reversion bug when navigating between pages (#174)
   - Theme changes now persist immediately using localStorage for instant synchronization
   - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
@@ -47,6 +75,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Setting was saved but never actually used
   - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
   - Removed confusing display that suggested user control where none existed
+
+### Changed
+- **Disabled all caching to eliminate stale data bugs** (#175)
+  - Frontend cache in useChromeMessage.js is now disabled (cache disabled by default)
+  - Background script cache in background/index.js is now disabled
+  - Removed all cache clearing calls throughout codebase (no longer needed)
+  - System now fetches fresh data on every request (slight performance tradeoff for data consistency)
+  - Created issue #188 to track complete removal of cache code in future refactor
+  - Prevents settings persistence bugs, stale UI data, and confusing user experiences
 
 ### Added
 - Added independent time range filters to Progress page charts (#172)
