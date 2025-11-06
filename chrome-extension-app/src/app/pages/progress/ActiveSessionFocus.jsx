@@ -34,7 +34,6 @@ export function ActiveSessionFocus({ appState }) {
             variant="filled"
             color={appState?.learningPlan?.focus?.activeFocusTags ? "teal" : "cyan"}
             size="sm"
-            styles={{ root: { color: '#ffffff' } }}
           >
             {tag}
           </Badge>
