@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed theme reversion bug when navigating between pages (#174)
+  - Theme changes now persist immediately using localStorage for instant synchronization
+  - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
+  - Chrome storage and localStorage stay in sync via timestamp comparison
+  - Prevents race condition where async Chrome storage save could revert theme after navigation
+  - Works across both dashboard and content pages
+- Fixed badge text color visibility on Goals page (#174)
+  - Modified CSS selector to exclude badges from Card dark text override
+  - Changed `.mantine-Card-root span` to `.mantine-Card-root span:not(.mantine-Badge-root):not(.mantine-Badge-label)`
+  - Badge text now displays properly in white on colored backgrounds (cyan, violet, teal)
+  - Removed need for inline style workarounds
+- Fixed guardrails validation issues on Goals page (#174)
+  - Max new problems dropdown now dynamically limits options based on session length
+  - Prevents confusing state where max new problems can exceed total session length
+  - Auto-adjusts max new problems when session length changes to a lower value
+  - Shows helpful text indicating the session length constraint
+  - Example: With session length = 5, dropdown only shows options 2-5 (not 8 or 10)
+- Replaced confusing adaptive difficulty toggle with informational alert (#174)
+  - Removed non-functional "Enable adaptive difficulty progression" toggle
+  - Adaptive difficulty is always active via escape hatches (cannot be disabled)
+  - New informational Alert explains adaptive difficulty is automatic
+  - Clearer UX that doesn't suggest a choice where none exists
+
+### Removed
+- Removed artificial review ratio sliders that conflicted with Leitner system (#174)
+  - Removed "Min review ratio" slider from Guardrails section
+  - Removed "Review ratio" slider from Focus Priorities section
+  - Leitner spaced repetition system now naturally determines review problem count
+  - Review problems appear based on when they're due, not arbitrary percentage targets
+  - Session composition: ALL due review problems (up to session length) + remaining slots filled with new problems
+  - Example: If 3 problems are due for review, session includes all 3 (not capped by percentage)
+  - Prevents artificial caps that would skip due review problems
+  - Aligns with proper spaced repetition methodology
+- Removed non-functional difficulty distribution display (#174)
+  - Removed "Difficulty distribution" display from Focus Priorities section
+  - Was read-only, not editable by users
+  - Setting was saved but never actually used
+  - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
+  - Removed confusing display that suggested user control where none existed
+
 ### Added
 - Added independent time range filters to Progress page charts (#172)
   - Each chart has its own filter dropdown in the chart card header

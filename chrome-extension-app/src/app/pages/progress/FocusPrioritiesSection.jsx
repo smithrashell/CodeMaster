@@ -1,4 +1,4 @@
-import { Card, Title, Group, Stack, Text, Badge, Button, Grid, Slider } from "@mantine/core";
+import { Card, Title, Group, Stack, Text, Badge, Button } from "@mantine/core";
 import { IconTarget, IconEdit } from "@tabler/icons-react";
 import { ActiveSessionFocus } from "./ActiveSessionFocus.jsx";
 
@@ -16,7 +16,7 @@ function SystemFocusTagsSection({ appState }) {
       </Group>
       <Group gap="xs">
         {(appState?.learningPlan?.focus?.systemFocusTags || []).map((tag, index) => (
-          <Badge key={index} color="cyan" size="sm">
+          <Badge key={index} variant="filled" color="cyan" size="sm">
             {tag}
           </Badge>
         ))}
@@ -45,7 +45,7 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
       <Group gap="xs">
         {userFocusAreas.length > 0 ? (
           userFocusAreas.slice(0, isOnboarding ? 1 : 3).map((tag, index) => (
-            <Badge key={index} color="violet" size="sm">
+            <Badge key={index} variant="filled" color="violet" size="sm">
               {tag}
             </Badge>
           ))
@@ -74,65 +74,16 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
   );
 }
 
-// Helper component for Difficulty Distribution display
-function DifficultyDistributionSection({ focusPriorities }) {
-  return (
-    <div>
-      <Text size="sm" fw={500} mb="xs">Difficulty distribution</Text>
-      <Group gap="md">
-        <div style={{ textAlign: 'center' }}>
-          <Text size="md" fw={600} style={{ color: 'var(--mantine-color-green-6)' }}>
-            {focusPriorities.difficultyDistribution.easy}%
-          </Text>
-          <Text size="xs" c="dimmed">Easy</Text>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text size="md" fw={600} style={{ color: 'var(--mantine-color-yellow-6)' }}>
-            {focusPriorities.difficultyDistribution.medium}%
-          </Text>
-          <Text size="xs" c="dimmed">Medium</Text>
-        </div>
-        <div style={{ textAlign: 'center' }}>
-          <Text size="md" fw={600} style={{ color: 'var(--mantine-color-red-6)' }}>
-            {focusPriorities.difficultyDistribution.hard}%
-          </Text>
-          <Text size="xs" c="dimmed">Hard</Text>
-        </div>
-      </Group>
-    </div>
-  );
-}
+// Difficulty Distribution display removed - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
+// Review Ratio slider removed - Leitner system naturally determines review problems based on spaced repetition schedule
 
-// Helper component for Review Ratio slider
-function ReviewRatioSection({ focusPriorities, onFocusPrioritiesChange, onSaveSettings }) {
-  return (
-    <div>
-      <Text size="sm" fw={500} mb="xs">Review ratio: {focusPriorities.reviewRatio}%</Text>
-      <Slider
-        value={focusPriorities.reviewRatio}
-        onChange={(value) => {
-          onFocusPrioritiesChange('reviewRatio', value);
-          setTimeout(onSaveSettings, 1000);
-        }}
-        min={0}
-        max={80}
-        step={10}
-        color="violet"
-      />
-      <Text size="xs" c="dimmed" mt="xs">
-        Balance between new problems and review
-      </Text>
-    </div>
-  );
-}
-
-export function FocusPrioritiesSection({ 
-  appState, 
-  focusPriorities, 
-  isOnboarding, 
+export function FocusPrioritiesSection({
+  appState,
+  focusPriorities: _focusPriorities,
+  isOnboarding,
   navigate,
-  onFocusPrioritiesChange,
-  onSaveSettings
+  onFocusPrioritiesChange: _onFocusPrioritiesChange,
+  onSaveSettings: _onSaveSettings
 }) {
   return (
     <Card withBorder p="lg" h={SECTION_HEIGHT}>
@@ -145,19 +96,6 @@ export function FocusPrioritiesSection({
         <SystemFocusTagsSection appState={appState} />
         <UserFocusAreasSection appState={appState} isOnboarding={isOnboarding} navigate={navigate} />
         <ActiveSessionFocus appState={appState} />
-        
-        <Grid gutter="lg">
-          <Grid.Col span={6}>
-            <DifficultyDistributionSection focusPriorities={focusPriorities} />
-          </Grid.Col>
-          <Grid.Col span={6}>
-            <ReviewRatioSection 
-              focusPriorities={focusPriorities}
-              onFocusPrioritiesChange={onFocusPrioritiesChange}
-              onSaveSettings={onSaveSettings}
-            />
-          </Grid.Col>
-        </Grid>
       </Stack>
     </Card>
   );
