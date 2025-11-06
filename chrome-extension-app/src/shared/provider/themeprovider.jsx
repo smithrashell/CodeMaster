@@ -82,8 +82,14 @@ const saveChromeSettings = async (settings, currentChromeSettings) => {
   try {
     // IMMEDIATELY save to localStorage for instant persistence (prevents race conditions)
     // This ensures theme persists even if Chrome storage save hasn't completed yet
+    // Add timestamp to track when this was saved
+    const settingsWithTimestamp = {
+      ...settings,
+      _timestamp: Date.now()
+    };
+
     if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settings));
+      localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify(settingsWithTimestamp));
     }
 
     // Use provided current settings or fetch if not available
@@ -104,6 +110,7 @@ const saveChromeSettings = async (settings, currentChromeSettings) => {
       fontSize: settings.fontSize,
       layoutDensity: settings.layoutDensity,
       animationsEnabled: settings.animationsEnabled,
+      _timestamp: settingsWithTimestamp._timestamp, // Include timestamp for sync
     };
 
     chrome.runtime.sendMessage({
@@ -132,7 +139,29 @@ const createStorageChangeHandler = (applySettings) => {
     if (areaName === "local" && changes.settings) {
       const newSettings = changes.settings.newValue;
       if (newSettings) {
-        applySettings(processSettings(newSettings));
+        const processed = processSettings(newSettings);
+
+        // Check if localStorage has newer settings before applying Chrome storage changes
+        if (typeof localStorage !== "undefined") {
+          const localStorageData = localStorage.getItem(STORAGE_KEYS.THEME_SETTINGS);
+          if (localStorageData) {
+            try {
+              const localSettings = JSON.parse(localStorageData);
+              const chromeTimestamp = newSettings._timestamp || 0;
+              const localTimestamp = localSettings._timestamp || 0;
+
+              // If localStorage is newer, don't apply Chrome storage change
+              if (localTimestamp > chromeTimestamp) {
+                console.info("🔄 Ignoring Chrome storage change (localStorage is newer)");
+                return;
+              }
+            } catch (e) {
+              console.warn("Failed to parse localStorage settings:", e);
+            }
+          }
+        }
+
+        applySettings(processed);
       }
     }
   };
@@ -206,11 +235,37 @@ const createContextValue = (colorScheme, fontSize, layoutDensity, animationsEnab
 const createChromeSettingsHook = (applySettings) => ({
   type: "getSettings",
   deps: [],
-  options: { 
+  options: {
     showNotifications: false,
     onSuccess: (response) => {
       if (response) {
         const processed = processSettings(response);
+
+        // Check if localStorage has newer settings (prevents stale Chrome storage from overriding)
+        if (typeof localStorage !== "undefined") {
+          const localStorageData = localStorage.getItem(STORAGE_KEYS.THEME_SETTINGS);
+          if (localStorageData) {
+            try {
+              const localSettings = JSON.parse(localStorageData);
+              const chromeTimestamp = response._timestamp || 0;
+              const localTimestamp = localSettings._timestamp || 0;
+
+              // If localStorage is newer, use it instead of Chrome storage
+              if (localTimestamp > chromeTimestamp) {
+                console.info("🔄 Using localStorage theme settings (newer than Chrome storage)");
+                applySettings({
+                  ...DEFAULT_THEME_SETTINGS,
+                  ...localSettings
+                });
+                return;
+              }
+            } catch (e) {
+              console.warn("Failed to parse localStorage settings:", e);
+            }
+          }
+        }
+
+        // Use Chrome storage settings if localStorage doesn't have newer data
         applySettings(processed);
       }
     }
