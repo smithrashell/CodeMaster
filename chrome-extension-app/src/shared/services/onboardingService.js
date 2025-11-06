@@ -4,6 +4,7 @@ import { insertStandardProblems } from "../db/standard_problems.js"; // assuming
 import { insertStrategyData } from "../db/strategy_data.js";
 import { buildProblemRelationships } from "../services/relationshipService.js";
 import { StorageService } from "./storageService.js";
+import { insertDefaultTagMasteryRecords } from "../db/tag_mastery.js";
 
 import {
   getAllFromStore,
@@ -145,6 +146,9 @@ async function seedUserData() {
 
   // Initialize user settings with defaults
   await initializeUserSettings();
+
+  // Initialize tag mastery records (must be done before pattern ladders)
+  await insertDefaultTagMasteryRecords();
 
   // Initialize user mastery data
   await initializePatternLaddersForOnboarding();
