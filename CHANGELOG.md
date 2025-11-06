@@ -31,11 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Max new problems (maxNewProblems) was loading hardcoded defaults instead of saved values
   - GuardrailsSection.jsx now properly loads persisted settings on mount
   - Removed obsolete guardrail fields from code (minReviewRatio, reviewRatio)
-- Fixed Tag Mastery initialization not completing during onboarding (#175)
-  - Tag Mastery transaction was not awaiting completion before returning
-  - Added await transaction.complete in tag_mastery.js insertDefaultTagMasteryRecords()
-  - Added insertDefaultTagMasteryRecords() call to onboardingService.js
-  - Strategy pages now show tag mastery data immediately after onboarding completes
+- Fixed tag mastery records not updating after completing problems (#175)
+  - Tag mastery was stuck at 0 attempts due to IndexedDB transaction timeout error
+  - Root cause: Calling getLadderCoverage() inside tag_mastery transaction caused original transaction to auto-commit
+  - Solution: Pre-fetch all ladder coverage data BEFORE starting tag_mastery transaction
+  - Tag mastery now updates correctly when users complete sessions
+- Fixed tag mastery lazy initialization to enable unknown tag exploration bonus (#175)
+  - Removed insertDefaultTagMasteryRecords() pre-population that created records for ALL tags during onboarding
+  - Restored lazy initialization: tag mastery records now created organically on first attempt
+  - Enables proper differentiation in problem selection algorithm:
+    - Unknown tags (no record): 1.2x exploration bonus
+    - New tags (record with <3 attempts): 1.4x exploration bonus
+  - Previously all tags had records after onboarding, breaking unknown tag bonus logic
 - Fixed theme reversion bug when navigating between pages (#174)
   - Theme changes now persist immediately using localStorage for instant synchronization
   - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
