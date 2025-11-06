@@ -1161,8 +1161,7 @@ export async function generateGoalsData(providedData = {}) {
       learningPlan: {
         cadence: {
           sessionsPerWeek: settings.sessionsPerWeek || 5,
-          // Normalize "auto" to 5 (default), otherwise use saved value or fallback to 4
-          sessionLength: settings.sessionLength === "auto" ? 5 : (settings.sessionLength || 4),
+          sessionLength: settings.sessionLength ?? "auto", // Use nullish coalescing - only default if null/undefined
           flexibleSchedule: settings.flexibleSchedule !== false
         },
         focus: {

@@ -81,8 +81,8 @@ function updateLearningPlanData({
   const { setCadenceSettings, setFocusPriorities, setGuardrails, setTodaysProgress, setOutcomeTrends } = setters;
   // Update cadence settings with real user data, maintaining system defaults as fallbacks
   setCadenceSettings(_prev => ({
-    sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek || 5,
-    sessionLength: appState.learningPlan.cadence?.sessionLength || 5
+    sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek ?? 5,
+    sessionLength: appState.learningPlan.cadence?.sessionLength ?? "auto"
   }));
 
   // Update focus priorities with real system recommendations and user preferences
