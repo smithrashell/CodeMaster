@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed theme reversion bug when navigating between pages (#174)
+  - Theme changes now persist immediately using localStorage for instant synchronization
+  - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
+  - Chrome storage and localStorage stay in sync via timestamp comparison
+  - Prevents race condition where async Chrome storage save could revert theme after navigation
+  - Works across both dashboard and content pages
+- Fixed badge text color visibility on Goals page (#174)
+  - Modified CSS selector to exclude badges from Card dark text override
+  - Changed `.mantine-Card-root span` to `.mantine-Card-root span:not(.mantine-Badge-root):not(.mantine-Badge-label)`
+  - Badge text now displays properly in white on colored backgrounds (cyan, violet, teal)
+  - Removed need for inline style workarounds
+- Fixed guardrails validation issues on Goals page (#174)
+  - Max new problems dropdown now dynamically limits options based on session length
+  - Prevents confusing state where max new problems can exceed total session length
+  - Auto-adjusts max new problems when session length changes to a lower value
+  - Shows helpful text indicating the session length constraint
+  - Example: With session length = 5, dropdown only shows options 2-5 (not 8 or 10)
+- Replaced confusing adaptive difficulty toggle with informational alert (#174)
+  - Removed non-functional "Enable adaptive difficulty progression" toggle
+  - Adaptive difficulty is always active via escape hatches (cannot be disabled)
+  - New informational Alert explains adaptive difficulty is automatic
+  - Clearer UX that doesn't suggest a choice where none exists
+
+### Removed
+- Removed artificial review ratio sliders that conflicted with Leitner system (#174)
+  - Removed "Min review ratio" slider from Guardrails section
+  - Removed "Review ratio" slider from Focus Priorities section
+  - Leitner spaced repetition system now naturally determines review problem count
+  - Review problems appear based on when they're due, not arbitrary percentage targets
+  - Session composition: ALL due review problems (up to session length) + remaining slots filled with new problems
+  - Example: If 3 problems are due for review, session includes all 3 (not capped by percentage)
+  - Prevents artificial caps that would skip due review problems
+  - Aligns with proper spaced repetition methodology
+- Removed non-functional difficulty distribution display (#174)
+  - Removed "Difficulty distribution" display from Focus Priorities section
+  - Was read-only, not editable by users
+  - Setting was saved but never actually used
+  - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
+  - Removed confusing display that suggested user control where none existed
+
 ### Added
 - Added independent time range filters to Progress page charts (#172)
   - Each chart has its own filter dropdown in the chart card header
@@ -16,7 +57,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Works client-side on already-loaded data (instant filtering, no refresh needed)
   - Same pattern as Session History page for consistency
 
+### Added
+- **Pattern Ladder Coverage Mastery Gate**: Tags now require 70% pattern ladder completion for mastery
+  - Ensures exposure to diverse problem patterns, not just volume
+  - Pattern ladders follow natural difficulty distribution (prevents Easy-only mastery)
+  - Covers both pattern diversity AND difficulty breadth in a single gate
+  - New 4-gate system: Volume (attempts) + Variety (unique problems) + Accuracy (success rate) + Ladder Coverage (pattern exposure)
+  - Console logs now show ladder progress: `ladder: ✅ 9/12 (75%/70%)`
+
 ### Fixed
+- Fixed duplicate session creation on database initialization
+  - Race condition in sessionCreationLocks allowed two simultaneous requests to both create sessions
+  - Lock was being set AFTER async promise creation, leaving window for duplicates
+  - Now sets lock IMMEDIATELY before any async work to prevent race condition
+  - Fixes issue where two identical sessions would be created ~100ms apart after DB reset
+- Fixed Focus Areas showing 'array' tag instead of empty state when no focus area is selected (#173)
+  - Changed default `focusAreas` from `["array"]` to `[]` for new users across all initialization paths
+  - Updated storageService.js, onboardingService.js, and initialize-settings.js to use empty array
+  - Updated dashboardService.js fallbacks to use empty array instead of `["array"]`
+  - Removed silent hardcoded fallbacks that hid data integrity issues
+  - System now throws explicit errors when focus tag generation fails (instead of hiding problems)
+  - Empty focus areas now display "No focus areas selected" in UI
+  - System automatically recommends focus areas based on learning state when user has no manual selection
+- Fixed coreLadder remnants from deprecated architecture decision (Sept 2025)
+  - Removed coreLadder writes from problemladderService.js (was writing unused data to tag_mastery)
+  - Removed coreLadder schema from DataIntegritySchemas.js
+  - pattern_ladders store is the single source of truth for ladder data
+  - Eliminated data duplication and stale data issues
 - Fixed Progress page charts showing aggregated data instead of per-session data (#172)
   - Replaced "Promotion & Demotion Trends" with "New vs Review Problems per Session" stacked bar chart
   - Changed "Problem Activity Over Time" to "Problem Activity per Session" showing individual session bars
