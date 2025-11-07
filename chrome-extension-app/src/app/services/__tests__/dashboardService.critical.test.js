@@ -329,7 +329,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
       expect(result.learningPlan).toBeDefined();
       expect(result.learningPlan.cadence.sessionsPerWeek).toBe(5);
       expect(result.learningPlan.focus.primaryTags).toContain("array");
-      expect(Array.isArray(result.learningPlan.missions)).toBe(true);
+      // Missions removed in #175 - replaced with Today's Progress
       expect(result.learningPlan.outcomeTrends).toBeDefined();
     });
 

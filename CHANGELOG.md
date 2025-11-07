@@ -7,7 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Today's Progress Summary**: Replaced broken Daily Missions system with real-time daily statistics component (#175)
+  - New TodaysProgressSection.jsx displays live stats for today's activity
+  - Shows problems solved, accuracy percentage, review problems completed, hint efficiency, and average time per problem
+  - Reads from attempts store directly to include current active session data
+  - Stats update immediately as user completes each problem (true real-time)
+  - No caching, no delays - reflects exact current state
+  - Provides at-a-glance view of daily progress without gamification overhead
+
 ### Fixed
+- Fixed Daily Missions system complete non-functionality (#175)
+  - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
+  - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
+  - Replaced entire system with simpler Today's Progress Summary (see Added section)
+  - Removed DailyMissionsSection.jsx, useMissions.js, and missionHelpers.js
+- Fixed critical settings persistence bugs on Goals page (#175)
+  - Session length was not persisting when navigating away from Goals page
+  - Fixed stale closure bug using refs pattern (same issue as #162)
+  - Session length changes now save and load correctly across page navigation
+  - Changed default session length from hardcoded `5` to `"auto"` (system-controlled based on due reviews)
+  - Updated all fallback cases across initialize-settings.js, storageService.js, and dashboardService.js
+- Fixed guardrails not loading from saved settings (#175)
+  - Max new problems (maxNewProblems) was loading hardcoded defaults instead of saved values
+  - GuardrailsSection.jsx now properly loads persisted settings on mount
+  - Removed obsolete guardrail fields from code (minReviewRatio, reviewRatio)
+- Fixed tag mastery records not updating after completing problems (#175)
+  - Tag mastery was stuck at 0 attempts due to IndexedDB transaction timeout error
+  - Root cause: Calling getLadderCoverage() inside tag_mastery transaction caused original transaction to auto-commit
+  - Solution: Pre-fetch all ladder coverage data BEFORE starting tag_mastery transaction
+  - Tag mastery now updates correctly when users complete sessions
+- Fixed tag mastery lazy initialization to enable unknown tag exploration bonus (#175)
+  - Removed insertDefaultTagMasteryRecords() pre-population that created records for ALL tags during onboarding
+  - Restored lazy initialization: tag mastery records now created organically on first attempt
+  - Enables proper differentiation in problem selection algorithm:
+    - Unknown tags (no record): 1.2x exploration bonus
+    - New tags (record with <3 attempts): 1.4x exploration bonus
+  - Previously all tags had records after onboarding, breaking unknown tag bonus logic
+- Fixed Today's Progress timezone issue causing incorrect daily stats (#175)
+  - Date filtering was using UTC timezone instead of user's local timezone
+  - Attempts crossing midnight UTC were incorrectly split across different days
+  - Now uses local timezone for accurate "today" filtering
+  - Also fixed success field comparison to handle both boolean (true) and numeric (1) values
 - Fixed theme reversion bug when navigating between pages (#174)
   - Theme changes now persist immediately using localStorage for instant synchronization
   - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
@@ -47,6 +88,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Setting was saved but never actually used
   - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
   - Removed confusing display that suggested user control where none existed
+
+### Changed
+- **Disabled all caching to eliminate stale data bugs** (#175)
+  - Frontend cache in useChromeMessage.js is now disabled (cache disabled by default)
+  - Background script cache in background/index.js is now disabled
+  - Removed all cache clearing calls throughout codebase (no longer needed)
+  - System now fetches fresh data on every request (slight performance tradeoff for data consistency)
+  - Created issue #188 to track complete removal of cache code in future refactor
+  - Prevents settings persistence bugs, stale UI data, and confusing user experiences
 
 ### Added
 - Added independent time range filters to Progress page charts (#172)
