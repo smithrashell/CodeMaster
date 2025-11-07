@@ -213,6 +213,7 @@ export default function MasteryDashboard(props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [activeFocusFilter, setActiveFocusFilter] = useState(null); // chip filter
+  const [activeTab, setActiveTab] = useState("tier"); // Track active tab
   const pageSize = 10;
 
   useEffect(() => {
@@ -251,7 +252,11 @@ export default function MasteryDashboard(props) {
   return (
     <Tabs
       defaultValue="tier"
-      onChange={() => { setCurrentPage(0); }}
+      value={activeTab}
+      onChange={(value) => {
+        setCurrentPage(0);
+        setActiveTab(value);
+      }}
       styles={{
         tab: {
           '&[data-active]': {
@@ -266,8 +271,22 @@ export default function MasteryDashboard(props) {
       }}
     >
       <Tabs.List>
-        <Tabs.Tab value="tier">Current Tier Mastery</Tabs.Tab>
-        <Tabs.Tab value="overall">Overall Mastery (All Tags)</Tabs.Tab>
+        <Tabs.Tab
+          value="tier"
+          style={{
+            backgroundColor: activeTab === 'tier' ? 'white' : 'transparent',
+          }}
+        >
+          Current Tier Mastery
+        </Tabs.Tab>
+        <Tabs.Tab
+          value="overall"
+          style={{
+            backgroundColor: activeTab === 'overall' ? 'white' : 'transparent',
+          }}
+        >
+          Overall Mastery (All Tags)
+        </Tabs.Tab>
         {selectedTag && (
           <Button
             ml="auto"
