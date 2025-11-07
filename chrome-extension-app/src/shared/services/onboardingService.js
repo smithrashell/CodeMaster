@@ -146,7 +146,7 @@ async function seedUserData() {
   // Initialize user settings with defaults
   await initializeUserSettings();
 
-  // Initialize user mastery data
+  // Initialize pattern ladders - tag mastery records created organically on first attempt
   await initializePatternLaddersForOnboarding();
 }
 

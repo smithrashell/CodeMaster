@@ -1,23 +1,23 @@
 import logger from "../../../shared/utils/logger.js";
 import { Container, Grid, Title, Group, Button, Text } from "@mantine/core";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
 import { CadenceSettingsSection } from "./CadenceSettingsSection.jsx";
 import { FocusPrioritiesSection } from "./FocusPrioritiesSection.jsx";
 import { GuardrailsSection } from "./GuardrailsSection.jsx";
-import { DailyMissionsSection } from "./DailyMissionsSection.jsx";
+import { TodaysProgressSection } from "./TodaysProgressSection.jsx";
 import { OutcomeTrendsSection } from "./OutcomeTrendsSection.jsx";
-import { useMissions } from "./useMissions.js";
 import { useStatusUtils } from "./useStatusUtils.js";
 import { settingsMessaging } from "../../components/settings/settingsMessaging.js";
+import { calculateTodaysProgress } from "./todaysProgressHelpers.js";
 
 // Custom hooks for Goals page state management
 const useCadenceSettings = () => {
   return useState({
     sessionsPerWeek: 5, // System default
-    sessionLength: 5 // System default - now represents max session length
+    sessionLength: "auto" // System default - auto mode for adaptive session length
   });
 };
 
@@ -29,10 +29,7 @@ const useFocusPriorities = () => {
 
 const useGuardrails = () => {
   return useState({
-    maxNewProblems: 8, // System default (will be adjusted for onboarding)
-    difficultyCapEnabled: false, // System default - adaptive progression disabled
-    hintLimitEnabled: false, // System default - no artificial hint limits
-    maxHintsPerProblem: 0 // System default - unlimited hints
+    maxNewProblems: 5 // System default (will be adjusted for onboarding to 4)
   });
 };
 
@@ -78,16 +75,14 @@ function updateLearningPlanData({
   appState,
   isOnboarding,
   getters,
-  setters,
-  generators
+  setters
 }) {
   const { getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus } = getters;
-  const { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions, setOutcomeTrends } = setters;
-  const { generateMissionsWithRealProgress } = generators;
+  const { setCadenceSettings, setFocusPriorities, setGuardrails, setTodaysProgress, setOutcomeTrends } = setters;
   // Update cadence settings with real user data, maintaining system defaults as fallbacks
   setCadenceSettings(_prev => ({
-    sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek || 5,
-    sessionLength: appState.learningPlan.cadence?.sessionLength || 5
+    sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek ?? 5,
+    sessionLength: appState.learningPlan.cadence?.sessionLength ?? "auto"
   }));
 
   // Update focus priorities with real system recommendations and user preferences
@@ -97,19 +92,17 @@ function updateLearningPlanData({
                 ['Array', 'Hash Table', 'String', 'Sorting', 'Math'] // System default recommendations
   }));
 
-  // Update guardrails with onboarding-aware limits
-  // Use isOnboarding directly: 4 new problems during onboarding, 8 after
+  // Update guardrails with user-saved value or onboarding-aware default
+  const savedMaxNewProblems = appState.learningPlan.guardrails?.maxNewProblems;
+  const defaultMaxNewProblems = isOnboarding ? 4 : 5;
+
   setGuardrails(_prev => ({
-    maxNewProblems: isOnboarding ? 4 : 8, // Onboarding-aware: 4 during onboarding, 8 after
-    difficultyCapEnabled: isOnboarding, // Enable difficulty cap during onboarding
-    hintLimitEnabled: appState.learningPlan.guardrails?.hintLimitEnabled || false,
-    maxHintsPerProblem: appState.learningPlan.guardrails?.maxHintsPerProblem || 0
+    maxNewProblems: savedMaxNewProblems || defaultMaxNewProblems
   }));
 
-  // Always generate fresh missions based on current user progress
-  // Don't trust potentially stale mission data from appState
-  const freshMissions = generateMissionsWithRealProgress(appState, isOnboarding);
-  setDailyMissions(freshMissions);
+  // Calculate today's progress from real session data
+  const progress = calculateTodaysProgress(appState);
+  setTodaysProgress(progress);
 
   // Always update outcome trends with available data or meaningful fallbacks
   const trends = calculateOutcomeTrends(appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus);
@@ -117,42 +110,39 @@ function updateLearningPlanData({
 }
 
 // Helper function to create settings change handlers
-const createSettingsHandlers = (settings, handlers, context) => {
-  const { setters, saveSettings, generators } = handlers;
-  const { appState, isOnboarding } = context;
-  
-  const { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions } = setters;
-  const { generateDefaultMissions } = generators;
-  
+const createSettingsHandlers = (settings, handlers, _context) => {
+  const { setters, debouncedSave } = handlers;
+
+  const { setCadenceSettings, setFocusPriorities, setGuardrails } = setters;
+
   const handleCadenceChange = (field, value) => {
-    setCadenceSettings(prev => ({ ...prev, [field]: value }));
-    setTimeout(saveSettings, 1000);
+    console.log(`🔧 handleCadenceChange - field: ${field}, value:`, value, typeof value);
+    setCadenceSettings(prev => {
+      const newSettings = { ...prev, [field]: value };
+      console.log("🔧 handleCadenceChange - new cadence settings:", newSettings);
+      return newSettings;
+    });
+    debouncedSave();
   };
 
   const handleGuardrailChange = (field, value) => {
     setGuardrails(prev => ({ ...prev, [field]: value }));
-    setTimeout(saveSettings, 1000);
+    debouncedSave();
   };
 
   const handleFocusPrioritiesChange = (field, value) => {
     setFocusPriorities(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleGenerateNewMissions = () => {
-    const newMissions = generateDefaultMissions(appState, isOnboarding);
-    setDailyMissions(newMissions);
-  };
-  
   return {
     handleCadenceChange,
     handleGuardrailChange,
-    handleFocusPrioritiesChange,
-    handleGenerateNewMissions
+    handleFocusPrioritiesChange
   };
 };
 
-// NOTE: createSaveSettings has been removed - now using useCallback in Goals component
-// to avoid stale closure bugs where old state values were being saved
+// NOTE: Settings are saved using a debounced approach with refs to avoid stale closure bugs
+// The refs ensure we always save the latest state values even if the save is delayed
 
 // Helper component for loading and error states
 function LoadingErrorStates({ loading, error, refresh }) {
@@ -181,24 +171,22 @@ function LoadingErrorStates({ loading, error, refresh }) {
 }
 
 // Helper component for the main Goals layout
-function GoalsLayout({ 
-  appState, 
-  refresh, 
-  outcomeTrends, 
-  statusUtils, 
-  cadenceSettings, 
-  focusPriorities, 
-  guardrails, 
-  dailyMissions,
+function GoalsLayout({
+  appState,
+  refresh,
+  outcomeTrends,
+  statusUtils,
+  cadenceSettings,
+  focusPriorities,
+  guardrails,
+  todaysProgress,
   handlers,
   saveSettings,
-  missions,
   navigate,
-  isOnboarding 
+  isOnboarding
 }) {
   const { getStatusColor, getStatusText } = statusUtils;
-  const { getMissionIcon, getMissionColor } = missions;
-  const { handleCadenceChange, handleGuardrailChange, handleFocusPrioritiesChange, handleGenerateNewMissions } = handlers;
+  const { handleCadenceChange, handleGuardrailChange, handleFocusPrioritiesChange } = handlers;
   
   return (
     <Container size="xl" p="md">
@@ -259,11 +247,8 @@ function GoalsLayout({
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, lg: 6 }}>
-          <DailyMissionsSection 
-            dailyMissions={dailyMissions}
-            onGenerateNewMissions={handleGenerateNewMissions}
-            getMissionIcon={getMissionIcon}
-            getMissionColor={getMissionColor}
+          <TodaysProgressSection
+            todaysProgress={todaysProgress}
           />
         </Grid.Col>
       </Grid>
@@ -286,16 +271,16 @@ export function Goals() {
     learningVelocity: { value: "Loading...", status: "loading" }
   });
   
-  // Use custom hooks
-  const {
-    dailyMissions,
-    setDailyMissions,
-    generateMissionsWithRealProgress,
-    generateDefaultMissions,
-    getMissionIcon,
-    getMissionColor
-  } = useMissions();
-  
+  // Calculate today's progress
+  const [todaysProgress, setTodaysProgress] = useState({
+    problemsSolved: 0,
+    accuracy: 0,
+    reviewProblems: 0,
+    hintsPerProblem: 0,
+    avgTimeMinutes: 0,
+    hasActivity: false
+  });
+
   const statusUtils = useStatusUtils();
   const { getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus } = statusUtils;
 
@@ -304,8 +289,20 @@ export function Goals() {
   const numSessions = appState?.sessions?.allSessions?.length || 0;
   const isOnboarding = numSessions < 1;
 
-  // Create save settings function using useCallback to avoid stale closures
-  // This ensures we always read the latest state values when saving
+  // Use refs to always have the latest state values for saving
+  const cadenceSettingsRef = useRef(cadenceSettings);
+  const focusPrioritiesRef = useRef(focusPriorities);
+  const guardrailsRef = useRef(guardrails);
+  const saveTimeoutRef = useRef(null);
+
+  // Update refs whenever state changes
+  useEffect(() => {
+    cadenceSettingsRef.current = cadenceSettings;
+    focusPrioritiesRef.current = focusPriorities;
+    guardrailsRef.current = guardrails;
+  }, [cadenceSettings, focusPriorities, guardrails]);
+
+  // Save settings function that reads from refs to get latest values
   const saveSettings = useCallback(async () => {
     try {
       // Get current settings first to preserve other settings
@@ -313,11 +310,17 @@ export function Goals() {
 
       const updatedSettings = {
         ...currentSettings,
-        sessionsPerWeek: cadenceSettings.sessionsPerWeek,
-        sessionLength: cadenceSettings.sessionLength,
-        focusAreas: focusPriorities.primaryTags,
-        numberofNewProblemsPerSession: guardrails.maxNewProblems
+        sessionsPerWeek: cadenceSettingsRef.current.sessionsPerWeek,
+        sessionLength: cadenceSettingsRef.current.sessionLength,
+        focusAreas: focusPrioritiesRef.current.primaryTags,
+        numberofNewProblemsPerSession: guardrailsRef.current.maxNewProblems
       };
+
+      console.log("💾 Goals.jsx - Saving settings:", {
+        sessionLength: updatedSettings.sessionLength,
+        sessionsPerWeek: updatedSettings.sessionsPerWeek,
+        fullSettings: updatedSettings
+      });
 
       const response = await settingsMessaging.saveSettings(updatedSettings);
 
@@ -327,15 +330,26 @@ export function Goals() {
     } catch (error) {
       logger.error("Failed to save settings:", error);
     }
-  }, [cadenceSettings, focusPriorities, guardrails]);
+  }, []); // No dependencies - reads from refs
+
+  // Debounced save function
+  const debouncedSave = useCallback(() => {
+    // Clear any existing timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    // Set new timeout
+    saveTimeoutRef.current = setTimeout(() => {
+      saveSettings();
+    }, 1000);
+  }, [saveSettings]);
 
   // Create handlers
   const handlers = createSettingsHandlers(
     { cadenceSettings, focusPriorities, guardrails },
-    { 
-      setters: { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions },
-      saveSettings,
-      generators: { generateDefaultMissions }
+    {
+      setters: { setCadenceSettings, setFocusPriorities, setGuardrails },
+      debouncedSave
     },
     { appState, isOnboarding }
   );
@@ -346,8 +360,7 @@ export function Goals() {
         appState,
         isOnboarding,
         getters: { getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus },
-        setters: { setCadenceSettings, setFocusPriorities, setGuardrails, setDailyMissions, setOutcomeTrends },
-        generators: { generateMissionsWithRealProgress }
+        setters: { setCadenceSettings, setFocusPriorities, setGuardrails, setTodaysProgress, setOutcomeTrends }
       });
     }
   }, [appState, isOnboarding]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -357,7 +370,7 @@ export function Goals() {
   if (loadingErrorComponent) return loadingErrorComponent;
 
   return (
-    <GoalsLayout 
+    <GoalsLayout
       appState={appState}
       refresh={refresh}
       outcomeTrends={outcomeTrends}
@@ -365,10 +378,9 @@ export function Goals() {
       cadenceSettings={cadenceSettings}
       focusPriorities={focusPriorities}
       guardrails={guardrails}
-      dailyMissions={dailyMissions}
+      todaysProgress={todaysProgress}
       handlers={handlers}
       saveSettings={saveSettings}
-      missions={{ getMissionIcon, getMissionColor }}
       navigate={navigate}
       isOnboarding={isOnboarding}
     />

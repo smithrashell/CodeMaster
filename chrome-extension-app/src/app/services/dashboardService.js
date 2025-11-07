@@ -1124,69 +1124,6 @@ async function calculateOutcomeTrends(attempts, _sessions) {
   };
 }
 
-/**
- * Generate enhanced daily missions based on user data
- */
-function generateEnhancedDailyMissions(settings, learningState, recentAttempts) {
-  const missions = [];
-  const focusAreas = settings.focusAreas || [];
-  
-  // Mission 1: Focus area practice
-  if (focusAreas.length > 0) {
-    const primaryFocus = focusAreas[0];
-    const recentFocusAttempts = recentAttempts.filter(_attempt => {
-      // Would need to check if attempt's problem has this tag
-      // For now, use a simplified approach
-      return Math.random() > 0.5; // Simulate tag matching
-    });
-    
-    missions.push({
-      id: 1,
-      title: `Complete 2 ${primaryFocus} problems`,
-      progress: recentFocusAttempts.length >= 2 ? 2 : recentFocusAttempts.length,
-      target: 2,
-      type: "skill",
-      completed: recentFocusAttempts.length >= 2
-    });
-  }
-  
-  // Mission 2: Review practice based on box levels
-  const lowBoxProblems = Math.floor(Math.random() * 5) + 1; // Simulate count
-  missions.push({
-    id: 2,
-    title: "Review 3 problems from lower boxes",
-    progress: lowBoxProblems >= 3 ? 3 : lowBoxProblems,
-    target: 3,
-    type: "review",
-    completed: lowBoxProblems >= 3
-  });
-  
-  // Mission 3: Accuracy target based on recent performance (support both snake_case and PascalCase)
-  const recentAccuracy = recentAttempts.length > 0
-    ? Math.round((recentAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length / recentAttempts.length) * 100)
-    : 0;
-  
-  missions.push({
-    id: 3,
-    title: "Achieve 80% accuracy today",
-    progress: recentAccuracy,
-    target: 80,
-    type: "performance",
-    completed: recentAccuracy >= 80
-  });
-  
-  // Mission 4: Efficiency goal
-  missions.push({
-    id: 4,
-    title: "Complete session without excessive hints",
-    progress: Math.random() > 0.5 ? 1 : 0, // Simulate progress
-    target: 1,
-    type: "efficiency",
-    completed: Math.random() > 0.5
-  });
-  
-  return missions;
-}
 
 /**
  * Generate goals/learning plan data structure with enhanced metrics
@@ -1195,11 +1132,15 @@ export async function generateGoalsData(providedData = {}) {
   try {
     // Get consistent focus areas from background script (no direct service calls)
     const initialFocusAreas = getInitialFocusAreas(providedData.focusAreas);
-    
+
+    // Debug: Log what settings are being loaded
+    console.log("🔍 generateGoalsData - providedData.settings:", providedData.settings);
+    console.log("🔍 generateGoalsData - sessionLength from settings:", providedData.settings?.sessionLength);
+
     // Use provided data or fallbacks - no direct service calls
     const settings = providedData.settings || {
       sessionsPerWeek: 5,
-      sessionLength: 4,
+      sessionLength: "auto",
       focusAreas: initialFocusAreas,
       difficultyDistribution: { easy: 20, medium: 60, hard: 20 },
       reviewRatio: 40,
@@ -1208,10 +1149,10 @@ export async function generateGoalsData(providedData = {}) {
     
     const allAttempts = providedData.allAttempts || [];
     const allSessions = providedData.allSessions || [];
-    const learningState = providedData.learningState || null;
+    const _learningState = providedData.learningState || null;
     
     // Calculate outcome trends from provided data
-    const outcomeTrends = allAttempts.length > 0 && allSessions.length > 0 
+    const outcomeTrends = allAttempts.length > 0 && allSessions.length > 0
       ? await calculateOutcomeTrends(allAttempts, allSessions)
       : {
           weeklyAccuracy: { value: 0, status: "behind", target: 75 },
@@ -1219,22 +1160,12 @@ export async function generateGoalsData(providedData = {}) {
           hintEfficiency: { value: 0, status: "behind", display: "<0 per problem" },
           learningVelocity: { value: "Steady", status: "adaptive" }
         };
-    
-    // Get recent attempts for mission generation (last 24 hours)
-    const now = new Date();
-    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const recentAttempts = allAttempts.filter(attempt =>
-      new Date(attempt.attempt_date || attempt.AttemptDate) >= oneDayAgo
-    );
-    
-    // Generate enhanced missions
-    const enhancedMissions = generateEnhancedDailyMissions(settings, learningState, recentAttempts);
-    
+
     return {
       learningPlan: {
         cadence: {
           sessionsPerWeek: settings.sessionsPerWeek || 5,
-          sessionLength: settings.sessionLength || 4, // Match session generation default
+          sessionLength: settings.sessionLength ?? "auto", // Use nullish coalescing - only default if null/undefined
           flexibleSchedule: settings.flexibleSchedule !== false
         },
         focus: {
@@ -1256,7 +1187,6 @@ export async function generateGoalsData(providedData = {}) {
           hintLimitEnabled: false,
           maxHintsPerProblem: 3
         },
-        missions: enhancedMissions,
         outcomeTrends
       }
     };
@@ -1264,10 +1194,9 @@ export async function generateGoalsData(providedData = {}) {
     logger.error("Error generating goals data:", error);
     return {
       learningPlan: {
-        cadence: { sessionsPerWeek: 5, sessionLength: 45, flexibleSchedule: true },
+        cadence: { sessionsPerWeek: 5, sessionLength: "auto", flexibleSchedule: true },
         focus: { primaryTags: [], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
         guardrails: { minReviewRatio: 30, maxNewProblems: 5, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
-        missions: [],
         outcomeTrends: {
           weeklyAccuracy: { value: 0, status: "behind", target: 75 },
           problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },
@@ -1347,53 +1276,6 @@ function findBestPerformanceHour(sessions) {
   return bestHour;
 }
 
-/**
- * Generate daily missions based on user settings
- */
-function _generateDailyMissions(settings) {
-  const focusAreas = settings.focusAreas || [];
-  const missions = [];
-  
-  if (focusAreas.length > 0) {
-    missions.push({
-      id: 1,
-      title: `Complete 2 ${focusAreas[0]} problems`,
-      progress: 0,
-      target: 2,
-      type: "skill",
-      completed: false
-    });
-  }
-  
-  missions.push(
-    {
-      id: 2,
-      title: "Review 3 problems from lower boxes",
-      progress: 0,
-      target: 3,
-      type: "review",
-      completed: false
-    },
-    {
-      id: 3,
-      title: "Achieve 80% accuracy today",
-      progress: 0,
-      target: 80,
-      type: "performance",
-      completed: false
-    },
-    {
-      id: 4,
-      title: "Complete session without hints",
-      progress: 0,
-      target: 1,
-      type: "efficiency",
-      completed: false
-    }
-  );
-  
-  return missions;
-}
 
 /**
  * Generate learning efficiency chart data for different time periods
@@ -1849,22 +1731,27 @@ export async function getGoalsData(options = {}, providedData = null) {
     if (providedData) {
       // Use provided data directly
       const goalsData = await generateGoalsData(providedData);
-      // Fetch sessions data separately for onboarding detection
-      const allSessions = await getAllSessions();
+      // Fetch sessions and attempts data for Today's Progress and onboarding detection
+      const [allSessions, allAttempts] = await Promise.all([
+        getAllSessions(),
+        getAllAttempts()
+      ]);
       const sessionAnalytics = generateSessionAnalytics(allSessions, []);
       return {
         ...goalsData,
-        sessions: sessionAnalytics
+        sessions: sessionAnalytics,
+        attempts: allAttempts
       };
     } else {
       // Fallback: try existing method but catch errors gracefully
       try {
         const fullData = await getDashboardStatistics(options);
         const goalsData = fullData.goals || await generateGoalsData();
-        // Include sessions data for onboarding detection
+        // Include sessions and attempts data for Today's Progress and onboarding detection
         return {
           ...goalsData,
-          sessions: fullData.sessions || { allSessions: [] }
+          sessions: fullData.sessions || { allSessions: [] },
+          attempts: fullData.allAttempts || []
         };
       } catch (error) {
         // If getDashboardStatistics fails, use fallback
@@ -1872,7 +1759,8 @@ export async function getGoalsData(options = {}, providedData = null) {
         const fallbackData = await generateGoalsData();
         return {
           ...fallbackData,
-          sessions: { allSessions: [] }
+          sessions: { allSessions: [] },
+          attempts: []
         };
       }
     }
@@ -1881,10 +1769,9 @@ export async function getGoalsData(options = {}, providedData = null) {
     // Return fallback goals data instead of throwing
     return {
       learningPlan: {
-        cadence: { sessionsPerWeek: 5, sessionLength: 4, flexibleSchedule: true },
+        cadence: { sessionsPerWeek: 5, sessionLength: "auto", flexibleSchedule: true },
         focus: { primaryTags: ["array"], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
         guardrails: { minReviewRatio: 30, maxNewProblems: 4, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
-        missions: [],
         outcomeTrends: {
           weeklyAccuracy: { value: 0, status: "behind", target: 75 },
           problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },
@@ -1892,7 +1779,8 @@ export async function getGoalsData(options = {}, providedData = null) {
           learningVelocity: { value: "Steady", status: "adaptive" }
         }
       },
-      sessions: { allSessions: [] }
+      sessions: { allSessions: [] },
+      attempts: []
     };
   }
 }
