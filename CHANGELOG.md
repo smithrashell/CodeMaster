@@ -44,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Unknown tags (no record): 1.2x exploration bonus
     - New tags (record with <3 attempts): 1.4x exploration bonus
   - Previously all tags had records after onboarding, breaking unknown tag bonus logic
+- Fixed Today's Progress timezone issue causing incorrect daily stats (#175)
+  - Date filtering was using UTC timezone instead of user's local timezone
+  - Attempts crossing midnight UTC were incorrectly split across different days
+  - Now uses local timezone for accurate "today" filtering
+  - Also fixed success field comparison to handle both boolean (true) and numeric (1) values
 - Fixed theme reversion bug when navigating between pages (#174)
   - Theme changes now persist immediately using localStorage for instant synchronization
   - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
