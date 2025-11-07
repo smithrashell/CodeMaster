@@ -4,21 +4,30 @@
  */
 
 /**
- * Get today's date string in YYYY-MM-DD format for comparison
+ * Get today's date string in YYYY-MM-DD format for comparison (local timezone)
  */
 function getTodayDateString() {
   const today = new Date();
-  return today.toISOString().split('T')[0];
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
- * Check if a date string matches today
+ * Check if a date string matches today (using local timezone)
  */
 function isToday(dateString) {
   if (!dateString) return false;
   const date = new Date(dateString);
   const today = getTodayDateString();
-  const checkDate = date.toISOString().split('T')[0];
+
+  // Get local date from the Date object
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const checkDate = `${year}-${month}-${day}`;
+
   return checkDate === today;
 }
 
@@ -28,9 +37,23 @@ function isToday(dateString) {
 function getTodaysAttempts(appState) {
   // Attempts are stored with attempt_date field
   const allAttempts = appState?.attempts || [];
-  return allAttempts.filter(attempt =>
+  const todaysAttempts = allAttempts.filter(attempt =>
     attempt.attempt_date && isToday(attempt.attempt_date)
   );
+
+  // Debug logging
+  console.log('📊 Today\'s Progress Debug:', {
+    totalAttempts: allAttempts.length,
+    todaysAttempts: todaysAttempts.length,
+    todaysAttemptDetails: todaysAttempts.map(a => ({
+      date: a.attempt_date,
+      success: a.success,
+      successType: typeof a.success,
+      problemId: a.problem_id
+    }))
+  });
+
+  return todaysAttempts;
 }
 
 /**
@@ -39,8 +62,8 @@ function getTodaysAttempts(appState) {
 export function getTodaysProblemsSolved(appState) {
   const todaysAttempts = getTodaysAttempts(appState);
 
-  // Count successful attempts (success === true)
-  return todaysAttempts.filter(attempt => attempt.success === true).length;
+  // Count successful attempts (handle both boolean true and number 1)
+  return todaysAttempts.filter(attempt => !!attempt.success).length;
 }
 
 /**
@@ -51,7 +74,7 @@ export function getTodaysAccuracy(appState) {
 
   if (todaysAttempts.length === 0) return 0;
 
-  const successfulAttempts = todaysAttempts.filter(attempt => attempt.success === true).length;
+  const successfulAttempts = todaysAttempts.filter(attempt => !!attempt.success).length;
 
   return Math.round((successfulAttempts / todaysAttempts.length) * 100);
 }
@@ -63,9 +86,9 @@ export function getTodaysAccuracy(appState) {
 export function getTodaysReviewProblems(appState) {
   const todaysAttempts = getTodaysAttempts(appState);
 
-  // Count successful review attempts (box_level > 0)
+  // Count successful review attempts (box_level > 0, handle both boolean true and number 1)
   return todaysAttempts.filter(attempt =>
-    attempt.box_level > 0 && attempt.success === true
+    attempt.box_level > 0 && !!attempt.success
   ).length;
 }
 
