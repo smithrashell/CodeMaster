@@ -255,8 +255,12 @@ export default function MasteryDashboard(props) {
       styles={{
         tab: {
           '&[data-active]': {
-            backgroundColor: 'white',
-            borderColor: '#dee2e6',
+            backgroundColor: 'white !important',
+            borderColor: '#dee2e6 !important',
+          },
+          '&[data-active="true"]': {
+            backgroundColor: 'white !important',
+            borderColor: '#dee2e6 !important',
           },
         },
       }}
