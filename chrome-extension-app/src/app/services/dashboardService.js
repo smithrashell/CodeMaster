@@ -928,9 +928,10 @@ export async function generateMasteryData(learningState) {
   try {
     const settings = await StorageService.getSettings();
 
-    // Use system-selected focus tags from learningState (which comes from TagService)
-    // This prioritizes the intelligent tag selection over manual user settings
-    const focusTags = learningState.focusTags || settings.focusAreas || [];
+    // Get user's actual active focus tags from session_state
+    // This is the source of truth for what the user is currently focusing on
+    const sessionState = await StorageService.getSessionState();
+    const focusTags = sessionState?.current_focus_tags || settings.focusAreas || [];
 
     // Enhance mastery data with focus area information (support both snake_case and PascalCase)
     const enhancedMasteryData = (learningState.masteryData || []).map(mastery => {
