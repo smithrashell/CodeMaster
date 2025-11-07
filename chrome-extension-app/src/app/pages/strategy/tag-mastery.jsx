@@ -94,10 +94,10 @@ export function TagMastery() {
       {hasData ? (
         <>
           {/* Mastery Status KPI Grid */}
-          <Section title="Mastery Status" style={{ marginBottom: '1rem' }}>
+          <Section title="Mastery Status" style={{ marginBottom: '1.5rem' }}>
             <Kpis items={kpiData} />
           </Section>
-          
+
           {/* Use the comprehensive MasteryDashboard component */}
           <MasteryDashboard data={masteryData} />
         </>
