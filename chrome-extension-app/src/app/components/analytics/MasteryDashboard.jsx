@@ -268,13 +268,16 @@ export default function MasteryDashboard(props) {
       <Tabs.Panel value="tier" pt="md">
         <Grid>
           <Grid.Col span={6}>
-            <TimeGranularChartCard
-              title={getPieTitle("tier")}
-              chartType="pie"
-              useTimeGranularity={false}
-              data={generatePieData(selectedTag, tierTagsFiltered, "tier")}
-              dataKeys={[{ key: "value", color: "#82ca9d" }]}
-            />
+            <div style={{ height: '600px' }}>
+              <TimeGranularChartCard
+                title={getPieTitle("tier")}
+                chartType="pie"
+                useTimeGranularity={false}
+                data={generatePieData(selectedTag, tierTagsFiltered, "tier")}
+                dataKeys={[{ key: "value", color: "#82ca9d" }]}
+                chartHeight={450}
+              />
+            </div>
           </Grid.Col>
           <Grid.Col span={6}>
             <TagTable
@@ -300,13 +303,16 @@ export default function MasteryDashboard(props) {
       <Tabs.Panel value="overall" pt="md">
         <Grid>
           <Grid.Col span={6}>
-            <TimeGranularChartCard
-              title={getPieTitle("overall")}
-              chartType="pie"
-              useTimeGranularity={false}
-              data={generatePieData(selectedTag, allTagsFiltered, "overall")}
-              dataKeys={[{ key: "value", color: "#a9c1ff" }]}
-            />
+            <div style={{ height: '600px' }}>
+              <TimeGranularChartCard
+                title={getPieTitle("overall")}
+                chartType="pie"
+                useTimeGranularity={false}
+                data={generatePieData(selectedTag, allTagsFiltered, "overall")}
+                dataKeys={[{ key: "value", color: "#a9c1ff" }]}
+                chartHeight={450}
+              />
+            </div>
           </Grid.Col>
           <Grid.Col span={6}>
             <TagTable
