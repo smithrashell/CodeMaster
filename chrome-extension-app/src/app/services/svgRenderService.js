@@ -152,7 +152,7 @@ export class SVGRenderService {
     circle.setAttribute('cy', 30);
     circle.setAttribute('r', isHovered ? 32 : 30);
     
-    const fillColor = this.getNodeColor(nodeData.status, isDarkMode);
+    const fillColor = this.getNodeColor(nodeData, isDarkMode);
     circle.setAttribute('fill', fillColor);
     circle.setAttribute('stroke', isHovered ? '#1d4ed8' : '#e2e8f0');
     circle.setAttribute('stroke-width', isHovered ? '3' : '2');
@@ -174,10 +174,17 @@ export class SVGRenderService {
     return nodeGroup;
   }
 
-  static getNodeColor(status, isDarkMode) {
+  static getNodeColor(nodeData, isDarkMode) {
+    // Priority 1: Check if this is a focus tag - render in blue
+    if (nodeData.isFocus) {
+      return isDarkMode ? '#2563eb' : '#3b82f6'; // Blue for focus tags
+    }
+
+    // Priority 2: Use status-based colors
+    const status = nodeData.status || nodeData;
     const colors = {
       mastered: isDarkMode ? '#059669' : '#10b981',
-      learning: isDarkMode ? '#d97706' : '#f59e0b', 
+      learning: isDarkMode ? '#d97706' : '#f59e0b',
       locked: isDarkMode ? '#6b7280' : '#9ca3af',
       available: isDarkMode ? '#2563eb' : '#3b82f6'
     };
