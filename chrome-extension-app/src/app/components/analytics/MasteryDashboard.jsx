@@ -248,7 +248,18 @@ export default function MasteryDashboard(props) {
   const tierTagsFiltered = processTagData(tierTagsSource || [], data.unmasteredTags || [], search, activeFocusFilter);
 
   return (
-    <Tabs defaultValue="tier" onChange={() => { setCurrentPage(0); }}>
+    <Tabs
+      defaultValue="tier"
+      onChange={() => { setCurrentPage(0); }}
+      styles={{
+        tab: {
+          '&[data-active]': {
+            backgroundColor: 'white',
+            borderColor: '#dee2e6',
+          },
+        },
+      }}
+    >
       <Tabs.List>
         <Tabs.Tab value="tier">Current Tier Mastery</Tabs.Tab>
         <Tabs.Tab value="overall">Overall Mastery (All Tags)</Tabs.Tab>
