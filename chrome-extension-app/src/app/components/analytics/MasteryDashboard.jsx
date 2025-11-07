@@ -128,16 +128,17 @@ const TagTable = ({
   pageSize,
   search,
   setSearch,
-  setSelectedTag
+  setSelectedTag,
+  height
 }) => {
-  const rows = createTableRows(paginateData(source, currentPage, pageSize), 
-    { highlightUnmastered }, 
+  const rows = createTableRows(paginateData(source, currentPage, pageSize),
+    { highlightUnmastered },
     { setSelectedTag }
   );
   const totalPages = Math.max(1, Math.ceil(source.length / pageSize));
 
   return (
-    <Card withBorder p="md" style={{ background: "var(--cm-card-bg)" }} className="cm-enhanced-table">
+    <Card withBorder p="md" style={{ background: "var(--cm-card-bg)", height: height }} className="cm-enhanced-table">
       {withFocusBar && (data.focusTags?.length > 0) && (
         <Group gap={8} mb="xs" wrap="wrap">
           <Text size="sm" c="dimmed">Focus tags:</Text>
@@ -305,6 +306,7 @@ export default function MasteryDashboard(props) {
               search={search}
               setSearch={setSearch}
               setSelectedTag={setSelectedTag}
+              height="600px"
             />
           </Grid.Col>
         </Grid>
@@ -340,6 +342,7 @@ export default function MasteryDashboard(props) {
               search={search}
               setSearch={setSearch}
               setSelectedTag={setSelectedTag}
+              height="600px"
             />
           </Grid.Col>
         </Grid>
