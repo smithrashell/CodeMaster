@@ -159,9 +159,6 @@ describe('Message Handlers - Dashboard Operations', () => {
     jest.spyOn(dashboardService, 'getLearningPathData').mockResolvedValue({
       learningPath: {}
     });
-    jest.spyOn(dashboardService, 'getMistakeAnalysisData').mockResolvedValue({
-      mistakes: []
-    });
     jest.spyOn(dashboardService, 'getInterviewAnalyticsData').mockResolvedValue({
       interviewStats: {}
     });
