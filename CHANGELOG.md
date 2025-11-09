@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Learning Efficiency Analytics Score Explanations**: Enhanced Learning Efficiency Analytics with user-friendly score interpretation (#190)
+  - Added score range explanations: 0-30 (building fundamentals), 30-60 (developing skills), 60+ (strong performance)
+  - Improved formatting with bold numbers and separate lines for better readability
+  - Applied to Learning Efficiency, Knowledge Retention, and Learning Momentum metrics
 - **Today's Progress Summary**: Replaced broken Daily Missions system with real-time daily statistics component (#175)
   - New TodaysProgressSection.jsx displays live stats for today's activity
   - Shows problems solved, accuracy percentage, review problems completed, hint efficiency, and average time per problem
@@ -17,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
+- **Fixed dark mode text color visibility issues** (#190)
+  - Removed global CSS `!important` rules that were forcing dark text colors on all Card components
+  - Fixed text colors in Productivity Insights (KPIs, charts, recommendations) to be white/light gray in dark mode
+  - Fixed button text colors in Goals page and dashboard components to be white in dark mode
+  - Fixed Select dropdown styling globally for both light and dark modes (background, border radius, gap)
+  - Added global Button and Select theme overrides in ThemeProvider for consistent dark mode styling
+  - Fixed Tag Mastery page active tab styling (background #374151, white text) in dark mode
 - Fixed Daily Missions system complete non-functionality (#175)
   - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
   - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
@@ -73,6 +84,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clearer UX that doesn't suggest a choice where none exists
 
 ### Removed
+- **Removed non-functional Mistake Analysis page** (#190)
+  - Completely removed Mistake Analysis page that was displaying empty/placeholder data
+  - Removed from navigation (Strategy submenu), routes, and page component
+  - Cleaned up associated service functions (getMistakeAnalysisData, getMockMistakeAnalysisData)
+  - Removed Chrome message handlers and background script cache mappings
+  - Cleaned up usePageData hook configuration
+  - Streamlined Strategy section to focus on functional pages (Tag Mastery, Learning Path)
 - Removed artificial review ratio sliders that conflicted with Leitner system (#174)
   - Removed "Min review ratio" slider from Guardrails section
   - Removed "Review ratio" slider from Focus Priorities section
