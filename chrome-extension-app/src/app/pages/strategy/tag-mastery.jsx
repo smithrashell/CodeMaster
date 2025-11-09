@@ -5,9 +5,9 @@ import { usePageData } from "../../hooks/usePageData";
 import MasteryDashboard from "../../components/analytics/MasteryDashboard.jsx";
 
 // Shared Components from mockup.jsx
-function Section({ title, right, children }) {
+function Section({ title, right, children, style }) {
   return (
-    <Card withBorder radius="md" p="md" style={{ background: "var(--surface)", boxShadow: "var(--shadow)" }}>
+    <Card withBorder radius="md" p="md" style={{ background: "var(--surface)", boxShadow: "var(--shadow)", ...style }}>
       <Group justify="space-between" mb="xs">
         <Text fw={700} c="var(--text)">{title}</Text>
         {right}
@@ -94,10 +94,10 @@ export function TagMastery() {
       {hasData ? (
         <>
           {/* Mastery Status KPI Grid */}
-          <Section title="Mastery Status" style={{ marginBottom: '1rem' }}>
+          <Section title="Mastery Status" style={{ marginBottom: '2.5rem' }}>
             <Kpis items={kpiData} />
           </Section>
-          
+
           {/* Use the comprehensive MasteryDashboard component */}
           <MasteryDashboard data={masteryData} />
         </>

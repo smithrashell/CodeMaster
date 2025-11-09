@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
 import { shouldUseMockDashboard } from "../config/mockConfig.js";
-import { 
+import {
   getMockLearningProgressData,
   getMockGoalsData,
   getMockStatsData,
@@ -9,7 +9,6 @@ import {
   getMockProductivityInsightsData,
   getMockTagMasteryData,
   getMockLearningPathData,
-  getMockMistakeAnalysisData,
 } from "../services/mockDashboardService.js";
 
 // Page configuration mapping - moved outside to prevent re-creation on every render
@@ -41,10 +40,6 @@ const PAGE_CONFIG = {
   'learning-path': {
     mockFunction: getMockLearningPathData,
     messageType: 'getLearningPathData'
-  },
-  'mistake-analysis': {
-    mockFunction: getMockMistakeAnalysisData,
-    messageType: 'getMistakeAnalysisData'
   }
 };
 

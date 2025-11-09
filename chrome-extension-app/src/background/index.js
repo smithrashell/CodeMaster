@@ -8986,10 +8986,10 @@ const getDashboardCacheKey = (request) => {
     'getLearningProgressData': 'progress_data',
     'getProductivityInsightsData': 'productivity_data',
     'getLearningPathData': 'learning_path_data',
-    'getMistakeAnalysisData': 'mistakes_data',
     'getInterviewAnalyticsData': 'interview_data',
     'getHintAnalyticsData': 'hints_data',
-    'getFocusAreasData': 'focus_areas_data'
+    'getFocusAreasData': 'focus_areas_data',
+    'getLearningEfficiencyData': 'learning_efficiency_data'
   };
   return dashboardKeys[request.type] || null;
 };
