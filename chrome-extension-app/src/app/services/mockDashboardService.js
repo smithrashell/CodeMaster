@@ -499,22 +499,6 @@ export async function getMockLearningPathData(userType = USER_SCENARIOS.ACTIVE_U
   return fullData.mastery;
 }
 
-/**
- * Get mock data specifically for the Mistake Analysis page
- */
-export async function getMockMistakeAnalysisData(userType = USER_SCENARIOS.ACTIVE_USER) {
-  const fullData = await getMockDashboardStatistics(userType);
-  
-  return {
-    allAttempts: fullData.allAttempts,
-    allProblems: fullData.allProblems,
-    allSessions: fullData.allSessions,
-    statistics: fullData.statistics,
-    learningState: fullData.learningState,
-    mastery: fullData.mastery,
-  };
-}
-
 // Export user scenarios for easy access
 export { USER_SCENARIOS };
 
@@ -528,7 +512,6 @@ export default {
   getMockProductivityInsightsData,
   getMockTagMasteryData,
   getMockLearningPathData,
-  getMockMistakeAnalysisData,
   MockDashboardService,
   mockDashboardService,
   USER_SCENARIOS,

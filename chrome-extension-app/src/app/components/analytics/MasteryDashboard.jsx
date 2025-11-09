@@ -257,34 +257,12 @@ export default function MasteryDashboard(props) {
         setCurrentPage(0);
         setActiveTab(value);
       }}
-      styles={{
-        tab: {
-          '&[data-active]': {
-            backgroundColor: 'white !important',
-            borderColor: '#dee2e6 !important',
-          },
-          '&[data-active="true"]': {
-            backgroundColor: 'white !important',
-            borderColor: '#dee2e6 !important',
-          },
-        },
-      }}
     >
       <Tabs.List>
-        <Tabs.Tab
-          value="tier"
-          style={{
-            backgroundColor: activeTab === 'tier' ? 'white' : 'transparent',
-          }}
-        >
+        <Tabs.Tab value="tier">
           Current Tier Mastery
         </Tabs.Tab>
-        <Tabs.Tab
-          value="overall"
-          style={{
-            backgroundColor: activeTab === 'overall' ? 'white' : 'transparent',
-          }}
-        >
+        <Tabs.Tab value="overall">
           Overall Mastery (All Tags)
         </Tabs.Tab>
         {selectedTag && (
