@@ -37,9 +37,9 @@ import {
   getProductivityInsightsData,
   getTagMasteryData,
   getLearningPathData,
-  getMistakeAnalysisData,
   clearFocusAreaAnalyticsCache,
-  getInterviewAnalyticsData
+  getInterviewAnalyticsData,
+  getLearningEfficiencyData
 } from "../app/services/dashboardService.js";
 
 // Relationship service import
@@ -680,8 +680,8 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
           .finally(finishRequest);
         return true;
 
-      case "getMistakeAnalysisData":
-        getMistakeAnalysisData(request.options || {})
+      case "getLearningEfficiencyData":
+        getLearningEfficiencyData()
           .then((result) => sendResponse({ result }))
           .catch((error) => sendResponse({ error: error.message }))
           .finally(finishRequest);
