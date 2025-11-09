@@ -21,6 +21,11 @@ export function FocusAreasEmptyState({ onNavigateToSettings }) {
           variant="light"
           leftSection={<IconSettings size={14} />}
           onClick={onNavigateToSettings}
+          styles={{
+            root: {
+              color: 'white',
+            }
+          }}
         >
           Set Focus for Next Session
         </Button>
