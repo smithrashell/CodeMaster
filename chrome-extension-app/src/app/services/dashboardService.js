@@ -315,7 +315,7 @@ function calculateProgressMetrics(filteredAttempts, filteredSessions) {
   const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
   const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
   const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
-  
+
   return {
     timerBehavior,
     timerPercentage,
@@ -323,6 +323,73 @@ function calculateProgressMetrics(filteredAttempts, filteredSessions) {
     progressTrend: progressTrendData.trend,
     progressPercentage: progressTrendData.percentage
   };
+}
+
+/**
+ * Calculate strategy success rate - percentage of successful attempts for strategy-selected problems
+ * @param {Array} sessions - All sessions with problems array
+ * @param {Array} attempts - All attempts
+ * @returns {number} Percentage of successful attempts for strategy-selected problems (0-100)
+ */
+function calculateStrategySuccessRate(sessions, attempts) {
+  try {
+    if (!sessions || sessions.length === 0 || !attempts || attempts.length === 0) {
+      return 0;
+    }
+
+    // Create a map of problem_id to selection_reason from sessions
+    const problemSelectionMap = new Map();
+
+    sessions.forEach(session => {
+      if (session.problems && Array.isArray(session.problems)) {
+        session.problems.forEach(problem => {
+          // Check for selection_reason field (snake_case from database)
+          const selectionReason = problem.selection_reason || problem.selectionReason;
+          if (selectionReason && problem.problem_id) {
+            problemSelectionMap.set(problem.problem_id, selectionReason);
+          }
+        });
+      }
+    });
+
+    // If no problems have selection reasons, return 0
+    if (problemSelectionMap.size === 0) {
+      logger.info("No strategy-selected problems found", { context: 'strategy_success' });
+      return 0;
+    }
+
+    // Filter attempts that have a selection reason (were selected by a strategy)
+    const strategyAttempts = attempts.filter(attempt => {
+      const problemId = attempt.problem_id;
+      return problemSelectionMap.has(problemId);
+    });
+
+    if (strategyAttempts.length === 0) {
+      logger.info("No attempts for strategy-selected problems", { context: 'strategy_success' });
+      return 0;
+    }
+
+    // Count successful attempts (handle both snake_case and camelCase)
+    const successfulAttempts = strategyAttempts.filter(attempt => {
+      const success = attempt.success !== undefined ? attempt.success : attempt.Success;
+      return success === true || success === 1;
+    });
+
+    // Calculate percentage
+    const successRate = Math.round((successfulAttempts.length / strategyAttempts.length) * 100);
+
+    logger.info("Strategy success rate calculated", {
+      totalStrategyAttempts: strategyAttempts.length,
+      successfulAttempts: successfulAttempts.length,
+      successRate,
+      context: 'strategy_success'
+    });
+
+    return successRate;
+  } catch (error) {
+    logger.error("Error calculating strategy success rate:", error);
+    return 0;
+  }
 }
 
 /**
@@ -364,6 +431,7 @@ function constructDashboardData({
   statistics, averageTime, successRate,
   // Progress metrics
   timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
+  strategySuccessRate,
   nextReviewTime, nextReviewCount,
   // Analytics data
   sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
@@ -392,6 +460,7 @@ function constructDashboardData({
     learningStatus,
     progressTrend,
     progressPercentage,
+    strategySuccessRate,
     nextReviewTime,
     nextReviewCount,
     allAttempts: filteredAttempts || [],
@@ -421,6 +490,7 @@ function constructDashboardData({
         learningStatus,
         progressTrend,
         progressPercentage,
+        strategySuccessRate,
         nextReviewTime,
         nextReviewCount,
       }
@@ -489,6 +559,9 @@ export async function getDashboardStatistics(options = {}) {
     // Calculate progress metrics
     const { timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage } = calculateProgressMetrics(filteredAttempts, filteredSessions);
 
+    // Calculate strategy success rate
+    const strategySuccessRate = calculateStrategySuccessRate(filteredSessions, filteredAttempts);
+
     // Calculate next review data and get hint analytics
     const [nextReviewData, hintsUsed] = await Promise.all([
       calculateNextReviewData(),
@@ -503,6 +576,7 @@ export async function getDashboardStatistics(options = {}) {
       statistics, averageTime, successRate,
       // Progress metrics
       timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
+      strategySuccessRate,
       nextReviewTime, nextReviewCount,
       // Analytics data
       sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
