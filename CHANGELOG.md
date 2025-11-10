@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Real Strategy Success Rate Calculation**: Replaced mock data with real calculation for Progress page Strategy Success metric (#184)
+  - Implemented `calculateStrategySuccessRate()` function to measure effectiveness of adaptive problem selection
+  - Calculates percentage of successful attempts for problems selected by CodeMaster's 9 adaptive strategies
+  - Joins session problems (with selection_reason) with attempts data via problem_id
+  - Returns 0% when no strategy-selected attempts exist (handles edge cases gracefully)
+  - Validates whether intelligent selection works better than random selection
+  - Previously showed random mock data (65-90%), now shows actual user performance
+  - Helps track which strategies are most effective for learning
 - **Learning Efficiency Analytics Score Explanations**: Enhanced Learning Efficiency Analytics with user-friendly score interpretation (#190)
   - Added score range explanations: 0-30 (building fundamentals), 30-60 (developing skills), 60+ (strong performance)
   - Improved formatting with bold numbers and separate lines for better readability
