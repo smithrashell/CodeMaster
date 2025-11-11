@@ -38,6 +38,9 @@
   --cm-tooltip-border: #e5e7eb;
   --cm-tooltip-text: #111827;
 
+  /* Mantine dimmed color for light mode - visible gray text */
+  --mantine-color-dimmed: #6b7280;
+
   /* Chart color palette */
   --cm-chart-primary: #3b82f6;
   --cm-chart-success: #10b981;
