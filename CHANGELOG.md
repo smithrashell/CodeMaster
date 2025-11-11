@@ -52,6 +52,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed close button (X) since error cannot be dismissed without reloading
   - Removed unused `handleRetry()` function
   - Made "Reload Page" button more prominent as the only action
+- **Fixed Learning Efficiency and Knowledge Retention showing 0 despite completed sessions** (#196)
+  - Root cause: Code was using `session.session_id` but sessions store uses `id` as keyPath
+  - Fixed filter in `getLearningEfficiencyData()` to use `session.id` instead of `session.session_id`
+  - Attempts were filtered incorrectly: `a.session_id === undefined` returned 0 matches
+  - Both metrics now calculate correctly based on actual attempt data
+  - Changed lines 2604 and 2649 in dashboardService.js
 - Fixed Daily Missions system complete non-functionality (#175)
   - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
   - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
