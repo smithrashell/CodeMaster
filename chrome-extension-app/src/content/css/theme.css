@@ -399,14 +399,15 @@ body {
 }
 
 /* Enhanced text sizes and colors */
+/* Removed !important from color to allow component-level overrides */
 .mantine-Text-root {
   font-size: var(--cm-font-size-base, 14px) !important;
-  color: var(--cm-text) !important;
+  color: var(--cm-text);
 }
 
 
 .mantine-Title-root {
-  color: var(--cm-text) !important;
+  color: var(--cm-text);
 }
 
 .mantine-Title-root[data-order="1"] {
@@ -427,11 +428,12 @@ body {
 }
 
 /* Additional text elements within cards */
+/* Removed !important to allow component-level color overrides (c="white", c="gray.4", etc.) */
 .mantine-Card-root .mantine-Text-root,
 .mantine-Card-root .mantine-Title-root,
 .mantine-Paper-root .mantine-Text-root,
 .mantine-Paper-root .mantine-Title-root {
-  color: var(--cm-text) !important;
+  color: var(--cm-text);
 }
 
 
@@ -448,9 +450,10 @@ body {
 
 
 /* Ensure proper text colors in specific contexts */
+/* Removed !important to allow component-level color overrides in dark mode */
 body[data-theme="dark"] .mantine-Text-root,
 body[data-theme="dark"] .mantine-Title-root {
-  color: var(--cm-text) !important;
+  color: var(--cm-text);
 }
 
 
@@ -1025,5 +1028,18 @@ body[data-theme="dark"] .cm-badge--teal {
 /* Light variant (default styling above is already light) */
 .cm-badge--light {
   /* Uses default styling */
+}
+
+/* Tabs styling for dark mode */
+body[data-theme="dark"] .mantine-Tabs-tab[data-active] {
+  background-color: #374151 !important;
+  color: white !important;
+  border-color: #4b5563 !important;
+}
+
+body[data-theme="dark"] .mantine-Tabs-tab[data-active="true"] {
+  background-color: #374151 !important;
+  color: white !important;
+  border-color: #4b5563 !important;
 }
 

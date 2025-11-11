@@ -128,16 +128,17 @@ const TagTable = ({
   pageSize,
   search,
   setSearch,
-  setSelectedTag
+  setSelectedTag,
+  height
 }) => {
-  const rows = createTableRows(paginateData(source, currentPage, pageSize), 
-    { highlightUnmastered }, 
+  const rows = createTableRows(paginateData(source, currentPage, pageSize),
+    { highlightUnmastered },
     { setSelectedTag }
   );
   const totalPages = Math.max(1, Math.ceil(source.length / pageSize));
 
   return (
-    <Card withBorder p="md" style={{ background: "var(--cm-card-bg)" }} className="cm-enhanced-table">
+    <Card withBorder p="md" style={{ background: "var(--cm-card-bg)", height: height }} className="cm-enhanced-table">
       {withFocusBar && (data.focusTags?.length > 0) && (
         <Group gap={8} mb="xs" wrap="wrap">
           <Text size="sm" c="dimmed">Focus tags:</Text>
@@ -212,6 +213,7 @@ export default function MasteryDashboard(props) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const [activeFocusFilter, setActiveFocusFilter] = useState(null); // chip filter
+  const [activeTab, setActiveTab] = useState("tier"); // Track active tab
   const pageSize = 10;
 
   useEffect(() => {
@@ -248,10 +250,21 @@ export default function MasteryDashboard(props) {
   const tierTagsFiltered = processTagData(tierTagsSource || [], data.unmasteredTags || [], search, activeFocusFilter);
 
   return (
-    <Tabs defaultValue="tier" onChange={() => { setCurrentPage(0); }}>
+    <Tabs
+      defaultValue="tier"
+      value={activeTab}
+      onChange={(value) => {
+        setCurrentPage(0);
+        setActiveTab(value);
+      }}
+    >
       <Tabs.List>
-        <Tabs.Tab value="tier">Current Tier Mastery</Tabs.Tab>
-        <Tabs.Tab value="overall">Overall Mastery (All Tags)</Tabs.Tab>
+        <Tabs.Tab value="tier">
+          Current Tier Mastery
+        </Tabs.Tab>
+        <Tabs.Tab value="overall">
+          Overall Mastery (All Tags)
+        </Tabs.Tab>
         {selectedTag && (
           <Button
             ml="auto"
@@ -268,13 +281,16 @@ export default function MasteryDashboard(props) {
       <Tabs.Panel value="tier" pt="md">
         <Grid>
           <Grid.Col span={6}>
-            <TimeGranularChartCard
-              title={getPieTitle("tier")}
-              chartType="pie"
-              useTimeGranularity={false}
-              data={generatePieData(selectedTag, tierTagsFiltered, "tier")}
-              dataKeys={[{ key: "value", color: "#82ca9d" }]}
-            />
+            <div style={{ height: '600px' }}>
+              <TimeGranularChartCard
+                title={getPieTitle("tier")}
+                chartType="pie"
+                useTimeGranularity={false}
+                data={generatePieData(selectedTag, tierTagsFiltered, "tier")}
+                dataKeys={[{ key: "value", color: "#82ca9d" }]}
+                chartHeight={450}
+              />
+            </div>
           </Grid.Col>
           <Grid.Col span={6}>
             <TagTable
@@ -291,6 +307,7 @@ export default function MasteryDashboard(props) {
               search={search}
               setSearch={setSearch}
               setSelectedTag={setSelectedTag}
+              height="600px"
             />
           </Grid.Col>
         </Grid>
@@ -300,13 +317,16 @@ export default function MasteryDashboard(props) {
       <Tabs.Panel value="overall" pt="md">
         <Grid>
           <Grid.Col span={6}>
-            <TimeGranularChartCard
-              title={getPieTitle("overall")}
-              chartType="pie"
-              useTimeGranularity={false}
-              data={generatePieData(selectedTag, allTagsFiltered, "overall")}
-              dataKeys={[{ key: "value", color: "#a9c1ff" }]}
-            />
+            <div style={{ height: '600px' }}>
+              <TimeGranularChartCard
+                title={getPieTitle("overall")}
+                chartType="pie"
+                useTimeGranularity={false}
+                data={generatePieData(selectedTag, allTagsFiltered, "overall")}
+                dataKeys={[{ key: "value", color: "#a9c1ff" }]}
+                chartHeight={450}
+              />
+            </div>
           </Grid.Col>
           <Grid.Col span={6}>
             <TagTable
@@ -323,6 +343,7 @@ export default function MasteryDashboard(props) {
               search={search}
               setSearch={setSearch}
               setSelectedTag={setSelectedTag}
+              height="600px"
             />
           </Grid.Col>
         </Grid>

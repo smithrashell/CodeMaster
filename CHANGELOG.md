@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Real Strategy Success Rate Calculation**: Replaced mock data with real calculation for Progress page Strategy Success metric (#184)
+  - Implemented `calculateStrategySuccessRate()` function to measure effectiveness of adaptive problem selection
+  - Calculates percentage of successful attempts for problems selected by CodeMaster's 9 adaptive strategies
+  - Joins session problems (with selection_reason) with attempts data via problem_id
+  - Returns 0% when no strategy-selected attempts exist (handles edge cases gracefully)
+  - Validates whether intelligent selection works better than random selection
+  - Previously showed random mock data (65-90%), now shows actual user performance
+  - Helps track which strategies are most effective for learning
+- **Learning Efficiency Analytics Score Explanations**: Enhanced Learning Efficiency Analytics with user-friendly score interpretation (#190)
+  - Added score range explanations: 0-30 (building fundamentals), 30-60 (developing skills), 60+ (strong performance)
+  - Improved formatting with bold numbers and separate lines for better readability
+  - Applied to Learning Efficiency, Knowledge Retention, and Learning Momentum metrics
 - **Today's Progress Summary**: Replaced broken Daily Missions system with real-time daily statistics component (#175)
   - New TodaysProgressSection.jsx displays live stats for today's activity
   - Shows problems solved, accuracy percentage, review problems completed, hint efficiency, and average time per problem
@@ -20,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed onboarding modal text visibility in dark mode** (#194)
   - **Dashboard onboarding (WelcomeModal.jsx)**:
     - Modal now has proper dark mode styling with dark background (#1a1b1e) and light text (#ffffff)
-    - Added theme-aware styling using Mantine Styles API (following CLAUDE.md guidelines)
+    - Added theme-aware styling using useTheme() hook for reactive theme changes
     - Fixed hardcoded light blue Card background in "Key Insight" section
     - Dark mode Card uses darker blue background (#1e3a8a) with lighter blue text (#93c5fd)
   - **Content onboarding tour (ContentOnboardingTour.jsx)**:
@@ -29,8 +41,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Fixed content text color to light gray (#c9c9c9) in dark mode
     - Fixed progress bar background to dark gray (#373a40) in dark mode
     - Fixed arrow pointer color to match card background in both themes
+    - Fixed step counter badge with proper dark mode background and text colors
     - Removed hardcoded `!important` black text that broke dark mode
-  - Both onboarding systems now fully readable in light and dark modes
+    - Replaced inline theme detection with useTheme() hook for proper reactivity
+  - Both onboarding systems now fully readable and reactive in light and dark modes
+- **Fixed extension context error dialog UX** (#195)
+  - Removed useless "Try Again" button that didn't fix extension context invalidation errors
+  - Only "Reload Page" button now displayed (the only action that actually fixes the issue)
+  - Updated error message to clearly guide users: "Please reload the page to continue"
+  - Removed close button (X) since error cannot be dismissed without reloading
+  - Removed unused `handleRetry()` function
+  - Made "Reload Page" button more prominent as the only action
 - Fixed Daily Missions system complete non-functionality (#175)
   - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
   - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
@@ -87,6 +108,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clearer UX that doesn't suggest a choice where none exists
 
 ### Removed
+- **Removed non-functional Mistake Analysis page** (#190)
+  - Completely removed Mistake Analysis page that was displaying empty/placeholder data
+  - Removed from navigation (Strategy submenu), routes, and page component
+  - Cleaned up associated service functions (getMistakeAnalysisData, getMockMistakeAnalysisData)
+  - Removed Chrome message handlers and background script cache mappings
+  - Cleaned up usePageData hook configuration
+  - Streamlined Strategy section to focus on functional pages (Tag Mastery, Learning Path)
 - Removed artificial review ratio sliders that conflicted with Leitner system (#174)
   - Removed "Min review ratio" slider from Guardrails section
   - Removed "Review ratio" slider from Focus Priorities section

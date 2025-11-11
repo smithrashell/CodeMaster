@@ -1,5 +1,5 @@
-import React from "react";
-import { Card, Title, Text } from "@mantine/core";
+import React, { useState, useEffect } from "react";
+import { Card, Title, Text, Loader, Center } from "@mantine/core";
 import {
   LineChart,
   Line,
@@ -9,34 +9,91 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
 
 const LearningEfficiencyAnalytics = () => {
-  const chartData = [
-    { session: 'S1', efficiency: 75, retention: 65, momentum: 70 },
-    { session: 'S2', efficiency: 82, retention: 72, momentum: 78 },
-    { session: 'S3', efficiency: 78, retention: 68, momentum: 75 },
-    { session: 'S4', efficiency: 85, retention: 75, momentum: 82 },
-    { session: 'S5', efficiency: 88, retention: 78, momentum: 87 },
-    { session: 'S6', efficiency: 83, retention: 73, momentum: 85 },
-    { session: 'S7', efficiency: 91, retention: 81, momentum: 92 }
-  ];
+  const [chartData, setChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [hasData, setHasData] = useState(false);
+
+  useEffect(() => {
+    const fetchEfficiencyData = async () => {
+      try {
+        setLoading(true);
+        const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'getLearningEfficiencyData'
+        });
+
+        if (response && response.result) {
+          setChartData(response.result.chartData || []);
+          setHasData(response.result.hasData || false);
+          setError(response.result.hasData ? null : response.result.message);
+        }
+      } catch (err) {
+        console.error('Error fetching learning efficiency data:', err);
+        setError('Failed to load efficiency data');
+        setHasData(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEfficiencyData();
+  }, []);
+
+  if (loading) {
+    return (
+      <Card withBorder p="lg">
+        <Center h={300}>
+          <Loader size="lg" />
+        </Center>
+      </Card>
+    );
+  }
+
+  if (error || !hasData) {
+    return (
+      <Card withBorder p="lg">
+        <Title order={4} mb="md">Learning Efficiency Analytics</Title>
+        <Center h={200}>
+          <Text c="dimmed">{error || 'Complete some sessions to see your learning efficiency trends'}</Text>
+        </Center>
+      </Card>
+    );
+  }
 
   const metricsExplanation = [
     {
       title: "Learning Efficiency",
-      description: "Measures problem-solving accuracy and speed improvement trends",
+      description: "Scores 0-100 based on accuracy and speed",
+      ranges: [
+        { range: "0-30:", meaning: "building fundamentals" },
+        { range: "30-60:", meaning: "developing skills" },
+        { range: "60+:", meaning: "strong performance" }
+      ],
       color: "var(--cm-chart-primary)",
       backgroundColor: "rgba(59, 130, 246, 0.1)"
     },
     {
       title: "Knowledge Retention",
-      description: "Long-term retention based on spaced repetition success rates",
+      description: "Scores 0-100 on review problem success",
+      ranges: [
+        { range: "0-30:", meaning: "needs more practice" },
+        { range: "30-60:", meaning: "improving recall" },
+        { range: "60+:", meaning: "solid retention" }
+      ],
       color: "var(--cm-chart-success)",
       backgroundColor: "rgba(16, 185, 129, 0.1)"
     },
     {
       title: "Learning Momentum",
-      description: "Cumulative progress velocity across all focus areas",
+      description: "Scores 0-100 tracking consistency",
+      ranges: [
+        { range: "0-30:", meaning: "getting started" },
+        { range: "30-60:", meaning: "building habits" },
+        { range: "60+:", meaning: "strong momentum" }
+      ],
       color: "var(--cm-chart-warning)",
       backgroundColor: "rgba(245, 158, 11, 0.1)"
     }
@@ -72,14 +129,19 @@ const LearningEfficiencyAnalytics = () => {
       {/* Efficiency Metrics Explanation */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px' }}>
         {metricsExplanation.map((metric, index) => (
-          <div key={index} style={{ 
-            padding: '12px', 
-            backgroundColor: metric.backgroundColor, 
-            borderRadius: '8px', 
-            border: '1px solid var(--cm-border)' 
+          <div key={index} style={{
+            padding: '12px',
+            backgroundColor: metric.backgroundColor,
+            borderRadius: '8px',
+            border: '1px solid var(--cm-border)'
           }}>
-            <Text size="sm" fw={600} c={metric.color}>{metric.title}</Text>
-            <Text size="xs" c={index === 1 ? "#475569" : "var(--cm-text-secondary)"}>{metric.description}</Text>
+            <Text size="sm" fw={600} c={metric.color} mb={4}>{metric.title}</Text>
+            <Text size="xs" c="var(--cm-text-secondary)" mb={6}>{metric.description}</Text>
+            {metric.ranges.map((range, rangeIndex) => (
+              <Text key={rangeIndex} size="xs" c="var(--cm-text-secondary)" style={{ marginBottom: '2px' }}>
+                <span style={{ fontWeight: 600 }}>{range.range}</span> {range.meaning}
+              </Text>
+            ))}
           </div>
         ))}
       </div>

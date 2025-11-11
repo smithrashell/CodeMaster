@@ -26,6 +26,7 @@ import {
   IconRefresh,
 } from "@tabler/icons-react";
 import { BrainIcon } from "../../../shared/components/ui/Icons";
+import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 const ONBOARDING_STEPS = [
   {
@@ -167,6 +168,9 @@ function FeaturesStep() {
 }
 
 function DashboardStep() {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
   return (
     <Stack spacing="md">
       <Text ta="center" color="dimmed" size="sm">
@@ -182,7 +186,7 @@ function DashboardStep() {
             <Stack spacing={2} style={{ flex: 1 }}>
               <Text fw={500} size="sm">Focus Areas & Session Creation</Text>
               <Text size="xs" color="dimmed">
-                Your focus areas automatically determine which problems appear in your next session. 
+                Your focus areas automatically determine which problems appear in your next session.
                 Struggling with arrays? You&apos;ll get more array problems. Mastered trees? Less tree practice, more variety.
               </Text>
             </Stack>
@@ -197,7 +201,7 @@ function DashboardStep() {
             <Stack spacing={2} style={{ flex: 1 }}>
               <Text fw={500} size="sm">Performance Metrics</Text>
               <Text size="xs" color="dimmed">
-                Success rates and timing data help CodeMaster adjust difficulty. 
+                Success rates and timing data help CodeMaster adjust difficulty.
                 High success rate = harder problems. Slow solving time = more practice at that level.
               </Text>
             </Stack>
@@ -212,7 +216,7 @@ function DashboardStep() {
             <Stack spacing={2} style={{ flex: 1 }}>
               <Text fw={500} size="sm">Adaptive Learning</Text>
               <Text size="xs" color="dimmed">
-                Every problem you complete updates your dashboard, which immediately improves 
+                Every problem you complete updates your dashboard, which immediately improves
                 future session recommendations. It&apos;s a continuous learning loop.
               </Text>
             </Stack>
@@ -223,18 +227,15 @@ function DashboardStep() {
       <Card
         withBorder
         p="sm"
-        style={(theme) => {
-          const isDarkMode = document.body?.getAttribute('data-theme') === 'dark';
-          return {
-            backgroundColor: isDarkMode ? '#1e3a8a' : '#e7f5ff'
-          };
+        style={{
+          backgroundColor: isDark ? '#1e3a8a' : '#e7f5ff'
         }}
       >
         <Stack spacing={4}>
           <Text fw={500} size="sm" ta="center" color="blue">
             💡 Key Insight
           </Text>
-          <Text size="xs" ta="center" c={document.body?.getAttribute('data-theme') === 'dark' ? '#93c5fd' : 'blue'}>
+          <Text size="xs" ta="center" c={isDark ? '#93c5fd' : 'blue'}>
             Your dashboard isn&apos;t just for tracking - it&apos;s the brain that personalizes every session.
             The more you practice, the smarter your recommendations become!
           </Text>
@@ -376,6 +377,8 @@ function CompletionStep() {
 
 export function WelcomeModal({ opened, onClose, onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   const handleNext = () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
@@ -419,19 +422,16 @@ export function WelcomeModal({ opened, onClose, onComplete }) {
       centered
       withCloseButton={false}
       padding="xl"
-      styles={(theme) => {
-        const isDarkMode = document.body?.getAttribute('data-theme') === 'dark';
-        return {
-          modal: {
-            maxHeight: "90vh",
-            overflow: "auto",
-            backgroundColor: isDarkMode ? '#1a1b1e' : '#ffffff',
-            color: isDarkMode ? '#ffffff' : '#000000',
-          },
-          body: {
-            color: isDarkMode ? '#ffffff' : '#000000',
-          },
-        };
+      styles={{
+        modal: {
+          maxHeight: "90vh",
+          overflow: "auto",
+          backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
+          color: isDark ? '#ffffff' : '#000000',
+        },
+        body: {
+          color: isDark ? '#ffffff' : '#000000',
+        },
       }}
     >
       <Stack spacing="xl">

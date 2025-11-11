@@ -48,6 +48,64 @@ const customTheme = createTheme({
         },
       }),
     },
+    Select: {
+      styles: () => {
+        // Check if dark mode by reading data-theme attribute
+        const isDarkMode = typeof document !== 'undefined' && document.body?.getAttribute('data-theme') === 'dark';
+
+        // Base styles that apply to both light and dark mode
+        const baseStyles = {
+          dropdown: {
+            borderRadius: 0,
+            marginTop: -6,
+          },
+        };
+
+        // Dark mode specific styles
+        if (isDarkMode) {
+          return {
+            input: {
+              backgroundColor: '#1f2937',
+              borderColor: '#374151',
+            },
+            dropdown: {
+              ...baseStyles.dropdown,
+              backgroundColor: '#1f2937',
+              borderColor: '#374151',
+            },
+            option: {
+              backgroundColor: '#1f2937',
+              borderRadius: 0,
+              '&:hover': {
+                backgroundColor: '#374151',
+              },
+              '&[data-selected]': {
+                backgroundColor: '#374151',
+              },
+            }
+          };
+        }
+
+        // Light mode - just apply base styles
+        return baseStyles;
+      },
+    },
+    Button: {
+      styles: () => {
+        // Check if dark mode by reading data-theme attribute
+        const isDarkMode = typeof document !== 'undefined' && document.body?.getAttribute('data-theme') === 'dark';
+
+        if (!isDarkMode) {
+          return {};
+        }
+
+        return {
+          root: {
+            color: 'white !important',
+          },
+        };
+      },
+    },
   },
 });
 
