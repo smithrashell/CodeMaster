@@ -220,13 +220,22 @@ function DashboardStep() {
         </Card>
       </Stack>
 
-      <Card withBorder p="sm" style={{ backgroundColor: 'var(--mantine-color-blue-0, #e7f5ff)' }}>
+      <Card
+        withBorder
+        p="sm"
+        style={(theme) => {
+          const isDarkMode = document.body?.getAttribute('data-theme') === 'dark';
+          return {
+            backgroundColor: isDarkMode ? '#1e3a8a' : '#e7f5ff'
+          };
+        }}
+      >
         <Stack spacing={4}>
           <Text fw={500} size="sm" ta="center" color="blue">
             💡 Key Insight
           </Text>
-          <Text size="xs" ta="center" color="blue">
-            Your dashboard isn&apos;t just for tracking - it&apos;s the brain that personalizes every session. 
+          <Text size="xs" ta="center" c={document.body?.getAttribute('data-theme') === 'dark' ? '#93c5fd' : 'blue'}>
+            Your dashboard isn&apos;t just for tracking - it&apos;s the brain that personalizes every session.
             The more you practice, the smarter your recommendations become!
           </Text>
         </Stack>
@@ -410,11 +419,19 @@ export function WelcomeModal({ opened, onClose, onComplete }) {
       centered
       withCloseButton={false}
       padding="xl"
-      styles={{
-        modal: {
-          maxHeight: "90vh",
-          overflow: "auto",
-        },
+      styles={(theme) => {
+        const isDarkMode = document.body?.getAttribute('data-theme') === 'dark';
+        return {
+          modal: {
+            maxHeight: "90vh",
+            overflow: "auto",
+            backgroundColor: isDarkMode ? '#1a1b1e' : '#ffffff',
+            color: isDarkMode ? '#ffffff' : '#000000',
+          },
+          body: {
+            color: isDarkMode ? '#ffffff' : '#000000',
+          },
+        };
       }}
     >
       <Stack spacing="xl">
