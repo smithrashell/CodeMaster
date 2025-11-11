@@ -12,7 +12,7 @@ export function ProductivityCharts({ difficultyProgressionData, heatmapData, tim
             <Title order={4} c="white">Difficulty Progression</Title>
             <Badge variant="light" color="gray" size="sm">{timeRange}</Badge>
           </Group>
-          <Text size="xs" c="dimmed" mb="sm">
+          <Text size="xs" style={{ color: 'var(--cm-text-dimmed)' }} mb="sm">
             📊 Track your problem difficulty distribution across sessions
           </Text>
           {difficultyProgressionData.length > 0 ? (
@@ -32,13 +32,13 @@ export function ProductivityCharts({ difficultyProgressionData, heatmapData, tim
                   tooltipFormatter={(value, name) => [`${value} problems`, name]}
                 />
               </div>
-              <Text size="xs" c="dimmed" mt="xs">
+              <Text size="xs" style={{ color: 'var(--cm-text-dimmed)' }} mt="xs">
                 💡 Stacked bars show problem difficulty mix per session - aim to progressively tackle harder problems
               </Text>
             </>
           ) : (
             <Stack gap="xs" align="center" style={{ height: 300, justifyContent: 'center' }}>
-              <Text size="sm" c="dimmed">No completed sessions in this time range</Text>
+              <Text size="sm" style={{ color: 'var(--cm-text-dimmed)' }}>No completed sessions in this time range</Text>
               <Text size="xs" c="dark.3">Complete sessions to see difficulty progression</Text>
             </Stack>
           )}
@@ -51,13 +51,13 @@ export function ProductivityCharts({ difficultyProgressionData, heatmapData, tim
             <Title order={4} c="white">Weekly Pattern</Title>
             <Badge variant="light" color="gray" size="sm">{timeRange}</Badge>
           </Group>
-          <Text size="xs" c="dimmed" mb="sm">
+          <Text size="xs" style={{ color: 'var(--cm-text-dimmed)' }} mb="sm">
             Heatmap: Hour (0-23) by Day of week, Color intensity = attempt count
           </Text>
           <div style={{ height: 300, overflowY: 'auto' }}>
             <HeatmapChart data={heatmapData} />
           </div>
-          <Text size="xs" c="dimmed" mt="sm">
+          <Text size="xs" style={{ color: 'var(--cm-text-dimmed)' }} mt="sm">
             💡 Darker cells indicate more study activity - use this to identify your productive time slots
           </Text>
         </Card>
