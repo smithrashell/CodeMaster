@@ -29,13 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
-- **Fixed dark mode text color visibility issues** (#190)
-  - Removed global CSS `!important` rules that were forcing dark text colors on all Card components
-  - Fixed text colors in Productivity Insights (KPIs, charts, recommendations) to be white/light gray in dark mode
-  - Fixed button text colors in Goals page and dashboard components to be white in dark mode
-  - Fixed Select dropdown styling globally for both light and dark modes (background, border radius, gap)
-  - Added global Button and Select theme overrides in ThemeProvider for consistent dark mode styling
-  - Fixed Tag Mastery page active tab styling (background #374151, white text) in dark mode
+- **Fixed extension context error dialog UX** (#195)
+  - Removed useless "Try Again" button that didn't fix extension context invalidation errors
+  - Only "Reload Page" button now displayed (the only action that actually fixes the issue)
+  - Updated error message to clearly guide users: "Please reload the page to continue"
+  - Removed close button (X) since error cannot be dismissed without reloading
+  - Removed unused `handleRetry()` function
+  - Made "Reload Page" button more prominent as the only action
 - Fixed Daily Missions system complete non-functionality (#175)
   - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
   - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
