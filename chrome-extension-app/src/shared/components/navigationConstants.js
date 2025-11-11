@@ -18,6 +18,6 @@ export const subLinksData = {
   "/": ["Overview"],
   "/progress": ["Learning Progress", "Goals"],
   "/sessions": ["Session History", "Productivity Insights"],
-  "/strategy": ["Tag Mastery", "Learning Path", "Mistake Analysis"],
+  "/strategy": ["Tag Mastery", "Learning Path"],
   "/settings": ["General", "Appearance", "Accessibility"],
 };

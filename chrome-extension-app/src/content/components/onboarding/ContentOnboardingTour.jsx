@@ -25,15 +25,15 @@ import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
+import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 
 
 // Theme-aware SimpleButton for the tour
 const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onClick, children, style = {}, ...props }) => {
-  // Get current theme
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   const themeAwareVariants = getThemeAwareVariantStyles(isDark);
   
@@ -122,14 +122,21 @@ const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onCl
 
 // Tour Card Header Component
 const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => {
-  // Get current theme for proper button styling
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-      <Badge color="blue" variant="light" size="xs">
+      <Badge
+        color="blue"
+        variant="light"
+        size="xs"
+        style={{
+          backgroundColor: isDark ? '#1e3a8a' : '#e7f5ff',
+          color: isDark ? '#93c5fd' : '#1971c2'
+        }}
+      >
         {currentStep + 1} of {totalSteps}
       </Badge>
       <button 
@@ -158,12 +165,11 @@ const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => {
   );
 };
 
-// Tour Card Content Component  
+// Tour Card Content Component
 const TourCardContent = ({ currentStepData, getStepIcon }) => {
-  // Get current theme
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
   
   return (
     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' , flexDirection: 'column'}}>
@@ -898,10 +904,7 @@ const shouldShowStep = (currentStepData, menuOpenState) => {
 };
 
 // Helper function to get arrow styles based on direction
-const getArrowStyles = (direction) => {
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+const getArrowStyles = (direction, isDark) => {
   const arrowColor = isDark ? '#1a1b1e' : 'white';
 
   const baseStyles = {
@@ -1025,7 +1028,9 @@ const useInteractionHandlingEffect = (isWaitingForInteraction, currentStepData, 
 
 export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   const navigate = useNavigate();
-  
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
   // Simple state management (no database persistence)
   const [currentStep, setCurrentStep] = useState(0);
   const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
@@ -1092,7 +1097,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
               top: arrowPosition.top,
               left: arrowPosition.left,
               zIndex: 10001,
-              ...getArrowStyles(arrowPosition.direction),
+              ...getArrowStyles(arrowPosition.direction, isDark),
             }}
           />
         )}
@@ -1105,16 +1110,8 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           style={{
             maxHeight: "80vh",
             overflowY: "auto",
-            backgroundColor: (document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                            document.body.classList.contains('dark-theme') ||
-                            window.matchMedia?.('(prefers-color-scheme: dark)').matches)
-              ? '#1a1b1e'
-              : '#ffffff',
-            borderColor: (document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                         document.body.classList.contains('dark-theme') ||
-                         window.matchMedia?.('(prefers-color-scheme: dark)').matches)
-              ? '#373a40'
-              : '#dee2e6'
+            backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
+            borderColor: isDark ? '#373a40' : '#dee2e6'
           }}
         >
           {/* Header */}
@@ -1128,11 +1125,7 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           <div style={{
             width: '100%',
             height: '4px',
-            backgroundColor: (document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                            document.body.classList.contains('dark-theme') ||
-                            window.matchMedia?.('(prefers-color-scheme: dark)').matches)
-              ? '#373a40'
-              : '#e9ecef',
+            backgroundColor: isDark ? '#373a40' : '#e9ecef',
             borderRadius: '2px',
             marginBottom: '12px',
             overflow: 'hidden'

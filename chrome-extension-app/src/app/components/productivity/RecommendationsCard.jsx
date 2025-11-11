@@ -120,7 +120,7 @@ export function RecommendationsCard({ peakHour, studyStreak, avgAccuracy, totalS
                 <rec.icon size={14} style={{ color: rec.color }} />
                 <Text fw={600} size="sm">{rec.title}</Text>
               </Group>
-              <Text size="sm" c="dimmed">
+              <Text size="sm" c="white">
                 {rec.text}
               </Text>
               {index < 2 && <Divider my="xs" variant="dashed" />}

@@ -315,7 +315,7 @@ function calculateProgressMetrics(filteredAttempts, filteredSessions) {
   const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
   const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
   const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
-  
+
   return {
     timerBehavior,
     timerPercentage,
@@ -323,6 +323,73 @@ function calculateProgressMetrics(filteredAttempts, filteredSessions) {
     progressTrend: progressTrendData.trend,
     progressPercentage: progressTrendData.percentage
   };
+}
+
+/**
+ * Calculate strategy success rate - percentage of successful attempts for strategy-selected problems
+ * @param {Array} sessions - All sessions with problems array
+ * @param {Array} attempts - All attempts
+ * @returns {number} Percentage of successful attempts for strategy-selected problems (0-100)
+ */
+function calculateStrategySuccessRate(sessions, attempts) {
+  try {
+    if (!sessions || sessions.length === 0 || !attempts || attempts.length === 0) {
+      return 0;
+    }
+
+    // Create a map of problem_id to selection_reason from sessions
+    const problemSelectionMap = new Map();
+
+    sessions.forEach(session => {
+      if (session.problems && Array.isArray(session.problems)) {
+        session.problems.forEach(problem => {
+          // Check for selection_reason field (snake_case from database)
+          const selectionReason = problem.selection_reason || problem.selectionReason;
+          if (selectionReason && problem.problem_id) {
+            problemSelectionMap.set(problem.problem_id, selectionReason);
+          }
+        });
+      }
+    });
+
+    // If no problems have selection reasons, return 0
+    if (problemSelectionMap.size === 0) {
+      logger.info("No strategy-selected problems found", { context: 'strategy_success' });
+      return 0;
+    }
+
+    // Filter attempts that have a selection reason (were selected by a strategy)
+    const strategyAttempts = attempts.filter(attempt => {
+      const problemId = attempt.problem_id;
+      return problemSelectionMap.has(problemId);
+    });
+
+    if (strategyAttempts.length === 0) {
+      logger.info("No attempts for strategy-selected problems", { context: 'strategy_success' });
+      return 0;
+    }
+
+    // Count successful attempts (handle both snake_case and camelCase)
+    const successfulAttempts = strategyAttempts.filter(attempt => {
+      const success = attempt.success !== undefined ? attempt.success : attempt.Success;
+      return success === true || success === 1;
+    });
+
+    // Calculate percentage
+    const successRate = Math.round((successfulAttempts.length / strategyAttempts.length) * 100);
+
+    logger.info("Strategy success rate calculated", {
+      totalStrategyAttempts: strategyAttempts.length,
+      successfulAttempts: successfulAttempts.length,
+      successRate,
+      context: 'strategy_success'
+    });
+
+    return successRate;
+  } catch (error) {
+    logger.error("Error calculating strategy success rate:", error);
+    return 0;
+  }
 }
 
 /**
@@ -364,6 +431,7 @@ function constructDashboardData({
   statistics, averageTime, successRate,
   // Progress metrics
   timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
+  strategySuccessRate,
   nextReviewTime, nextReviewCount,
   // Analytics data
   sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
@@ -392,6 +460,7 @@ function constructDashboardData({
     learningStatus,
     progressTrend,
     progressPercentage,
+    strategySuccessRate,
     nextReviewTime,
     nextReviewCount,
     allAttempts: filteredAttempts || [],
@@ -421,6 +490,7 @@ function constructDashboardData({
         learningStatus,
         progressTrend,
         progressPercentage,
+        strategySuccessRate,
         nextReviewTime,
         nextReviewCount,
       }
@@ -489,6 +559,9 @@ export async function getDashboardStatistics(options = {}) {
     // Calculate progress metrics
     const { timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage } = calculateProgressMetrics(filteredAttempts, filteredSessions);
 
+    // Calculate strategy success rate
+    const strategySuccessRate = calculateStrategySuccessRate(filteredSessions, filteredAttempts);
+
     // Calculate next review data and get hint analytics
     const [nextReviewData, hintsUsed] = await Promise.all([
       calculateNextReviewData(),
@@ -503,6 +576,7 @@ export async function getDashboardStatistics(options = {}) {
       statistics, averageTime, successRate,
       // Progress metrics
       timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
+      strategySuccessRate,
       nextReviewTime, nextReviewCount,
       // Analytics data
       sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
@@ -725,8 +799,7 @@ export function invalidateAllDashboardCaches() {
       'getSessionHistoryData',
       'getProductivityInsightsData',
       'getTagMasteryData',
-      'getLearningPathData',
-      'getMistakeAnalysisData'
+      'getLearningPathData'
     ];
 
     dashboardMessageTypes.forEach(type => {
@@ -928,9 +1001,10 @@ export async function generateMasteryData(learningState) {
   try {
     const settings = await StorageService.getSettings();
 
-    // Use system-selected focus tags from learningState (which comes from TagService)
-    // This prioritizes the intelligent tag selection over manual user settings
-    const focusTags = learningState.focusTags || settings.focusAreas || [];
+    // Get user's actual active focus tags from session_state
+    // This is the source of truth for what the user is currently focusing on
+    const sessionState = await StorageService.getSessionState();
+    const focusTags = sessionState?.current_focus_tags || settings.focusAreas || [];
 
     // Enhance mastery data with focus area information (support both snake_case and PascalCase)
     const enhancedMasteryData = (learningState.masteryData || []).map(mastery => {
@@ -2058,28 +2132,6 @@ export async function getLearningPathData(options = {}) {
 }
 
 /**
- * Get data specifically for the Mistake Analysis page
- */
-export async function getMistakeAnalysisData(options = {}) {
-  try {
-    const fullData = await getDashboardStatistics(options);
-    
-    // Mistake analysis needs broader data for pattern analysis
-    return {
-      allAttempts: fullData.allAttempts,
-      allProblems: fullData.allProblems,
-      allSessions: fullData.allSessions,
-      statistics: fullData.statistics,
-      learningState: fullData.learningState,
-      mastery: fullData.mastery,
-    };
-  } catch (error) {
-    logger.error("Error getting mistake analysis data:", error);
-    throw error;
-  }
-}
-
-/**
  * Returns empty interview analytics data when no sessions exist
  */
 function getEmptyInterviewAnalytics() {
@@ -2511,14 +2563,116 @@ function calculateAverageSessionLength(sessions) {
  */
 function getRecentActivity(sessions, attempts) {
   const last7Days = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
-  
+
   const recentSessions = sessions.filter(s => new Date(s.date) >= last7Days);
   const recentAttempts = attempts.filter(a => new Date(a.date) >= last7Days);
-  
+
   return {
     sessionsLast7Days: recentSessions.length,
     attemptsLast7Days: recentAttempts.length,
     avgDailyActivity: Math.round(recentAttempts.length / 7 * 10) / 10
   };
+}
+
+/**
+ * Calculate learning efficiency metrics from session data
+ * Returns efficiency, retention, and momentum trends over recent sessions
+ */
+export async function getLearningEfficiencyData() {
+  try {
+    const [allSessions, allAttempts] = await Promise.all([
+      getAllSessions(),
+      getAllAttempts()
+    ]);
+
+    // Filter to completed sessions with attempts
+    const completedSessions = allSessions
+      .filter(s => s.status === 'completed' && s.date)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(-10); // Last 10 sessions
+
+    if (completedSessions.length === 0) {
+      return {
+        chartData: [],
+        hasData: false,
+        message: 'Complete some sessions to see your learning efficiency trends'
+      };
+    }
+
+    // Calculate metrics for each session
+    const chartData = completedSessions.map((session, index) => {
+      const sessionAttempts = allAttempts.filter(a => a.session_id === session.session_id);
+
+      // Learning Efficiency: Based on success rate and speed
+      const successfulAttempts = sessionAttempts.filter(a => a.success).length;
+      const totalAttempts = sessionAttempts.length;
+      const successRate = totalAttempts > 0 ? (successfulAttempts / totalAttempts) * 100 : 0;
+
+      // Calculate average time efficiency (lower time = higher efficiency)
+      const avgTime = sessionAttempts.length > 0
+        ? sessionAttempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / sessionAttempts.length
+        : 0;
+      const timeEfficiency = avgTime > 0 ? Math.max(0, 100 - (avgTime / 60)) : 0; // Normalize to 0-100
+
+      const efficiency = Math.round((successRate * 0.7) + (timeEfficiency * 0.3)); // Weight success more
+
+      // Knowledge Retention: Based on review problem performance
+      const reviewAttempts = sessionAttempts.filter(a => a.box_level > 0);
+      const successfulReviews = reviewAttempts.filter(a => a.success).length;
+      const retention = reviewAttempts.length > 0
+        ? Math.round((successfulReviews / reviewAttempts.length) * 100)
+        : successRate; // Fall back to success rate if no reviews
+
+      // Learning Momentum: Based on cumulative progress and consistency
+      const problemsSolved = successfulAttempts;
+      const expectedProblems = session.session_length || 5;
+      const completionRate = (problemsSolved / expectedProblems) * 100;
+
+      // Check if maintaining or improving from previous session
+      let momentumBonus = 0;
+      if (index > 0) {
+        const prevSession = completedSessions[index - 1];
+        const prevAttempts = allAttempts.filter(a => a.session_id === prevSession.session_id);
+        const prevSuccessRate = prevAttempts.length > 0
+          ? (prevAttempts.filter(a => a.success).length / prevAttempts.length) * 100
+          : 0;
+
+        if (successRate >= prevSuccessRate) {
+          momentumBonus = 10; // Bonus for maintaining/improving
+        }
+      }
+
+      const momentum = Math.min(100, Math.round((completionRate * 0.6) + (successRate * 0.4) + momentumBonus));
+
+      return {
+        session: `S${index + 1}`,
+        sessionId: session.session_id,
+        date: new Date(session.date).toLocaleDateString(),
+        efficiency: Math.min(100, Math.max(0, efficiency)),
+        retention: Math.min(100, Math.max(0, retention)),
+        momentum: Math.min(100, Math.max(0, momentum)),
+        problemsSolved: problemsSolved,
+        totalProblems: totalAttempts
+      };
+    });
+
+    return {
+      chartData,
+      hasData: true,
+      totalSessions: completedSessions.length,
+      averages: {
+        efficiency: Math.round(chartData.reduce((sum, d) => sum + d.efficiency, 0) / chartData.length),
+        retention: Math.round(chartData.reduce((sum, d) => sum + d.retention, 0) / chartData.length),
+        momentum: Math.round(chartData.reduce((sum, d) => sum + d.momentum, 0) / chartData.length)
+      }
+    };
+  } catch (error) {
+    logger.error('Error calculating learning efficiency data:', error);
+    return {
+      chartData: [],
+      hasData: false,
+      message: 'Error loading efficiency data'
+    };
+  }
 }
 
