@@ -30,11 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Fixed dashboard text visibility in light mode** (#194)
-  - Removed non-reactive Button styles override in theme provider that forced white text globally
-  - The `color: 'white !important'` override was checking theme once at creation, not reactively
-  - Added light mode definition for `--mantine-color-dimmed` CSS variable (#6b7280)
-  - Previously only had dark mode definition, causing dimmed text to be invisible in light mode
-  - Affected Goals page subtitle text (sessions per week, session length, guardrails, etc.)
+  - **Root Cause**: In PR #191 (commit 3622809), all `c="dimmed"` were changed to `c="gray.4"` to fix dark mode
+  - `gray.4` from Mantine's default palette (#ced4da) is designed for dark backgrounds only
+  - In light mode, this gray is too light and nearly invisible on white/light backgrounds
+  - **Fix 1**: Removed non-reactive Button styles override in theme provider that forced white text globally
+  - **Fix 2**: Added light mode definition for `--mantine-color-dimmed` CSS variable (#6b7280 - medium gray)
+  - **Fix 3**: Reverted all `c="gray.4"` back to `c="dimmed"` across 3 files:
+    - FocusPrioritiesSection.jsx (3 instances)
+    - ProductivityKPIs.jsx (2 instances)
+    - ProductivityCharts.jsx (5 instances)
+  - Affected Goals page subtitle text, Productivity Insights KPIs, and chart descriptions
   - Text colors now respect the active theme properly in both light and dark modes
 - **Fixed onboarding modal text visibility in dark mode** (#194)
   - **Dashboard onboarding (WelcomeModal.jsx)**:
