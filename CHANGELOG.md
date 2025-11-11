@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
+- **Fixed Learning Efficiency and Knowledge Retention showing 0 despite completed sessions** (#196)
+  - Root cause: Code was using `session.session_id` but sessions store uses `id` as keyPath
+  - Fixed filter in `getLearningEfficiencyData()` to use `session.id` instead of `session.session_id`
+  - Attempts were filtered incorrectly: `a.session_id === undefined` returned 0 matches
+  - Both metrics now calculate correctly based on actual attempt data
+  - Changed lines 2604 and 2649 in dashboardService.js
 - **Fixed dark mode text color visibility issues** (#190)
   - Removed global CSS `!important` rules that were forcing dark text colors on all Card components
   - Fixed text colors in Productivity Insights (KPIs, charts, recommendations) to be white/light gray in dark mode
