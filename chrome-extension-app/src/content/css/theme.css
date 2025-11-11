@@ -88,6 +88,11 @@ body {
   color: var(--cm-text);
 }
 
+/* Force dimmed text color in light mode for ALL Mantine Text components */
+[data-c="dimmed"] {
+  color: #6b7280 !important;
+}
+
 /* ========= Accessibility Classes ========= */
 
 /* Enhanced focus indicators */
