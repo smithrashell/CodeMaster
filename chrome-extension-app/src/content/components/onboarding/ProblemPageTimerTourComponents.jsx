@@ -12,11 +12,16 @@ import {
   IconCheck,
   IconClock,
 } from "@tabler/icons-react";
+import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 /**
  * Arrow component for pointing to target elements
  */
 export function TourArrow({ arrowPosition }) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+  const arrowColor = isDark ? '#1a1b1e' : 'white';
+
   if (!arrowPosition) return null;
 
   return (
@@ -31,25 +36,25 @@ export function TourArrow({ arrowPosition }) {
         ...(arrowPosition.direction === "up" && {
           borderLeft: "8px solid transparent",
           borderRight: "8px solid transparent",
-          borderBottom: "8px solid white",
+          borderBottom: `8px solid ${arrowColor}`,
           filter: "drop-shadow(0 -2px 4px rgba(0,0,0,0.1))",
         }),
         ...(arrowPosition.direction === "down" && {
           borderLeft: "8px solid transparent",
           borderRight: "8px solid transparent",
-          borderTop: "8px solid white",
+          borderTop: `8px solid ${arrowColor}`,
           filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
         }),
         ...(arrowPosition.direction === "left" && {
           borderTop: "8px solid transparent",
           borderBottom: "8px solid transparent",
-          borderRight: "8px solid white",
+          borderRight: `8px solid ${arrowColor}`,
           filter: "drop-shadow(-2px 0 4px rgba(0,0,0,0.1))",
         }),
         ...(arrowPosition.direction === "right" && {
           borderTop: "8px solid transparent",
           borderBottom: "8px solid transparent",
-          borderLeft: "8px solid white",
+          borderLeft: `8px solid ${arrowColor}`,
           filter: "drop-shadow(2px 0 4px rgba(0,0,0,0.1))",
         }),
       }}
@@ -61,9 +66,20 @@ export function TourArrow({ arrowPosition }) {
  * Header with badge and close button
  */
 export function TourHeader({ currentStep, totalSteps, onSkip }) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-      <Badge color="orange" variant="light" size="xs">
+      <Badge
+        color="orange"
+        variant="light"
+        size="xs"
+        style={{
+          backgroundColor: isDark ? '#4a2a1a' : '#fff4e6',
+          color: isDark ? '#ffa94d' : '#e8590c'
+        }}
+      >
         Problem Analysis: {currentStep + 1} of {totalSteps}
       </Badge>
       <button
@@ -76,9 +92,15 @@ export function TourHeader({ currentStep, totalSteps, onSkip }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#495057'
+          color: isDark ? '#c9c9c9' : '#495057'
         }}
         onClick={onSkip}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = isDark ? '#373a40' : '#f8f9fa';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = 'transparent';
+        }}
       >
         <IconX size={12} />
       </button>
@@ -90,13 +112,15 @@ export function TourHeader({ currentStep, totalSteps, onSkip }) {
  * Progress bar showing current step
  */
 export function TourProgressBar({ currentStep, totalSteps }) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
   return (
     <div style={{
       width: '100%',
       height: '3px',
-      backgroundColor: '#e9ecef',
+      backgroundColor: isDark ? '#373a40' : '#e9ecef',
       borderRadius: '2px',
       overflow: 'hidden',
       marginBottom: '12px'
@@ -116,6 +140,9 @@ export function TourProgressBar({ currentStep, totalSteps }) {
  * Tour content with icon, title, and description
  */
 export function TourContent({ title, content }) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
   return (
     <>
       <div style={{
@@ -128,7 +155,7 @@ export function TourContent({ title, content }) {
           width: '32px',
           height: '32px',
           borderRadius: '50%',
-          backgroundColor: '#fff4e6',
+          backgroundColor: isDark ? '#4a2a1a' : '#fff4e6',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -137,10 +164,10 @@ export function TourContent({ title, content }) {
           <IconClock size={18} style={{ color: '#fd7e14' }} />
         </div>
         <div>
-          <Text weight={600} size="sm" style={{ marginBottom: '6px', color: '#212529' }}>
+          <Text weight={600} size="sm" style={{ marginBottom: '6px', color: isDark ? '#ffffff' : '#212529' }}>
             {title}
           </Text>
-          <Text size="sm" style={{ color: '#495057', lineHeight: '1.4' }}>
+          <Text size="sm" style={{ color: isDark ? '#c9c9c9' : '#495057', lineHeight: '1.4' }}>
             {content}
           </Text>
         </div>

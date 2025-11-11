@@ -13,12 +13,12 @@ import { TimerTourNavigation } from "./TimerTourNavigation.jsx";
 import { TIMER_TOUR_STEPS } from "./ProblemPageTimerTourHelpers.js";
 import { useTourInitialization, useAutoMenuOpen, useTourHandlers } from "./useProblemPageTimerTour.js";
 import { useTimerTourPositioning, useMenuStateMonitor } from "./TimerTourPositioningHooks.js";
+import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 // Theme-aware SimpleButton for the tour
 const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onClick, children, style = {}, ...props }) => {
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   const themeAwareVariants = getThemeAwareVariantStyles(isDark);
   

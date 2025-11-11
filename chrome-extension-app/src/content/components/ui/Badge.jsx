@@ -55,13 +55,13 @@ const createBadgeStyles = (color, variant) => {
  * Badge component - replaces Mantine Badge
  * Supports different variants and colors with theming
  */
-const Badge = ({ 
-  children, 
+const Badge = ({
+  children,
   variant = 'filled',
   color = 'blue',
   size = 'sm',
   style = {},
-  ...props 
+  ...props
 }) => {
   const baseStyle = {
     display: 'inline-flex',
@@ -71,13 +71,13 @@ const Badge = ({
     textTransform: 'uppercase',
     letterSpacing: '0.025em',
     lineHeight: '1',
-    ...BADGE_SIZES[size],
-    ...style
+    ...BADGE_SIZES[size]
   };
-  
+
   const variantStyles = createBadgeStyles(color, variant);
-  const finalStyle = { ...baseStyle, ...variantStyles };
-  
+  // Apply custom styles LAST to allow overriding variant styles
+  const finalStyle = { ...baseStyle, ...variantStyles, ...style };
+
   return (
     <span {...props} style={finalStyle}>
       {children}
