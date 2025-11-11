@@ -163,11 +163,11 @@ export function TourContent({ title, content }) {
         }}>
           <IconClock size={18} style={{ color: '#fd7e14' }} />
         </div>
-        <div>
-          <Text weight={600} size="sm" style={{ marginBottom: '6px', color: isDark ? '#ffffff' : '#212529' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Text weight={600} size="sm" style={{ color: isDark ? '#ffffff' : '#212529', display: 'block' }}>
             {title}
           </Text>
-          <Text size="sm" style={{ color: isDark ? '#c9c9c9' : '#495057', lineHeight: '1.4' }}>
+          <Text size="sm" style={{ color: isDark ? '#c9c9c9' : '#495057', lineHeight: '1.4', display: 'block' }}>
             {content}
           </Text>
         </div>
