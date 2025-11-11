@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
+- **Fixed dashboard text visibility in light mode** (#194)
+  - Removed non-reactive Button styles override in theme provider that forced white text globally
+  - The `color: 'white !important'` override was checking theme once at creation, not reactively
+  - This caused subtitle text across all dashboard pages to appear light gray and nearly invisible in light mode
+  - Text colors now respect the active theme properly in both light and dark modes
 - **Fixed onboarding modal text visibility in dark mode** (#194)
   - **Dashboard onboarding (WelcomeModal.jsx)**:
     - Modal now has proper dark mode styling with dark background (#1a1b1e) and light text (#ffffff)
