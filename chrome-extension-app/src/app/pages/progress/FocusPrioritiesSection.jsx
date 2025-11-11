@@ -21,7 +21,7 @@ function SystemFocusTagsSection({ appState }) {
           </Badge>
         ))}
       </Group>
-      <Text size="xs" c="dimmed" mt="xs">
+      <Text size="xs" mt="xs" style={{ color: 'var(--cm-text-dimmed)' }}>
         Based on your performance and learning progress
       </Text>
     </div>
@@ -50,7 +50,7 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
             </Badge>
           ))
         ) : (
-          <Text size="sm" c="dimmed">No focus areas selected</Text>
+          <Text size="sm" style={{ color: 'var(--cm-text-dimmed)' }}>No focus areas selected</Text>
         )}
         <Button
           variant="subtle"
@@ -67,7 +67,7 @@ function UserFocusAreasSection({ appState, isOnboarding, navigate }) {
           {userFocusAreas.length > 0 ? 'Edit' : 'Set Focus Areas'}
         </Button>
       </Group>
-      <Text size="xs" c="dimmed" mt="xs">
+      <Text size="xs" mt="xs" style={{ color: 'var(--cm-text-dimmed)' }}>
         Your preferences get priority in problem selection
       </Text>
       {isOnboarding && (

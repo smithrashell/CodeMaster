@@ -6,10 +6,10 @@ import { calculateStudyStreak } from "../../utils/productivityUtils";
 function SlimKPI({ title, value, sub }) {
   return (
     <Card p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)', border: '1px solid var(--mantine-color-dark-5)' }}>
-      <Text size="xs" c="dimmed" mb={2}>{title}</Text>
+      <Text size="xs" mb={2} style={{ color: 'var(--cm-text-dimmed)' }}>{title}</Text>
       <Group align="baseline" gap={4}>
         <Text fw={700} size="lg" c="white">{value}</Text>
-        {sub && <Text size="xs" c="dimmed">{sub}</Text>}
+        {sub && <Text size="xs" style={{ color: 'var(--cm-text-dimmed)' }}>{sub}</Text>}
       </Group>
     </Card>
   );
