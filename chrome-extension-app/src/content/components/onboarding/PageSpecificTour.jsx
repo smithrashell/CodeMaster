@@ -17,13 +17,13 @@ import {
 } from "@tabler/icons-react";
 import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
+import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 // Theme-aware SimpleButton for the tour
 const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onClick, children, style = {}, ...props }) => {
-  // Get current theme
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   const themeAwareVariants = getThemeAwareVariantStyles(isDark);
   
@@ -112,8 +112,12 @@ const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onCl
 
 // Helper component for arrow pointer rendering
 function TourArrow({ arrowPosition }) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+  const arrowColor = isDark ? '#1a1b1e' : 'white';
+
   if (!arrowPosition) return null;
-  
+
   return (
     <div
       style={{
@@ -126,25 +130,25 @@ function TourArrow({ arrowPosition }) {
         ...(arrowPosition.direction === "up" && {
           borderLeft: "8px solid transparent",
           borderRight: "8px solid transparent",
-          borderBottom: "8px solid white",
+          borderBottom: `8px solid ${arrowColor}`,
           filter: "drop-shadow(0 -2px 4px rgba(0,0,0,0.1))",
         }),
         ...(arrowPosition.direction === "down" && {
           borderLeft: "8px solid transparent",
           borderRight: "8px solid transparent",
-          borderTop: "8px solid white",
+          borderTop: `8px solid ${arrowColor}`,
           filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
         }),
         ...(arrowPosition.direction === "left" && {
           borderTop: "8px solid transparent",
           borderBottom: "8px solid transparent",
-          borderRight: "8px solid white",
+          borderRight: `8px solid ${arrowColor}`,
           filter: "drop-shadow(-2px 0 4px rgba(0,0,0,0.1))",
         }),
         ...(arrowPosition.direction === "right" && {
           borderTop: "8px solid transparent",
           borderBottom: "8px solid transparent",
-          borderLeft: "8px solid white",
+          borderLeft: `8px solid ${arrowColor}`,
           filter: "drop-shadow(2px 0 4px rgba(0,0,0,0.1))",
         }),
       }}
@@ -154,14 +158,21 @@ function TourArrow({ arrowPosition }) {
 
 // Helper component for tour header
 function TourHeader({ currentStep, totalSteps, onSkip }) {
-  // Get current theme for proper button styling
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-      <Badge color="green" variant="light" size="xs">
+      <Badge
+        color="green"
+        variant="light"
+        size="xs"
+        style={{
+          backgroundColor: isDark ? '#1a4d2e' : '#e6fcf5',
+          color: isDark ? '#69db7c' : '#2b8a3e'
+        }}
+      >
         {currentStep + 1} of {totalSteps}
       </Badge>
       <button 
@@ -195,21 +206,16 @@ function TourHeader({ currentStep, totalSteps, onSkip }) {
 
 // Helper component for tour content
 function TourContent({ stepData, getStepIcon }) {
-  // Get current theme
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-  
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
   return (
     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', flexDirection: 'column' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
         <div style={{
-          backgroundColor: isDark 
-            ? 'var(--mantine-color-green-8, #2b8a3e)' 
-            : 'var(--mantine-color-green-1, #e6fcf5)',
-          color: isDark 
-            ? 'var(--mantine-color-green-3, #69db7c)' 
-            : 'var(--mantine-color-green-6, #37b24d)',
+          backgroundColor: isDark ? '#1a4d2e' : '#e6fcf5',
+          color: isDark ? '#69db7c' : '#37b24d',
           borderRadius: '4px',
           padding: '4px',
           display: 'flex',
@@ -221,26 +227,60 @@ function TourContent({ stepData, getStepIcon }) {
         }}>
           {getStepIcon()}
         </div>
-        <Text 
-          weight={600} 
-          size="sm" 
-          margin="0px 0px 0px 8px" 
+        <Text
+          weight={600}
+          size="sm"
+          margin="0px 0px 0px 8px"
           className="tour-text"
-          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+          style={{ lineHeight: 1.3, color: isDark ? '#ffffff' : '#1a1a1a' }}
         >
           {stepData.title}
         </Text>
       </div>
       <div style={{}}>
-        <Text 
-          size="xs" 
+        <Text
+          size="xs"
           className="tour-text"
-          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+          style={{ lineHeight: 1.3, color: isDark ? '#c9c9c9' : '#495057' }}
         >
           {stepData.content}
         </Text>
       </div>
     </div>
+  );
+}
+
+// Helper component for skip button with dark mode support
+function SkipButton({ onClick }) {
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
+  return (
+    <SimpleButton
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      style={{
+        flexShrink: 0,
+        minWidth: "50px",
+        textDecoration: 'underline',
+        transition: 'transform 0.2s ease',
+        color: isDark ? '#c9c9c9' : '#1a1a1a',
+        backgroundColor: 'transparent'
+      }}
+      onMouseEnter={(e) => {
+        e.target.style.transform = 'scale(1.20)';
+        e.target.style.backgroundColor = 'transparent';
+        e.target.style.color = isDark ? '#c9c9c9' : '#1a1a1a';
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.transform = 'scale(1)';
+        e.target.style.backgroundColor = 'transparent';
+        e.target.style.color = isDark ? '#c9c9c9' : '#1a1a1a';
+      }}
+    >
+      Skip
+    </SimpleButton>
   );
 }
 
@@ -297,31 +337,8 @@ function TourControls({ currentStep, totalSteps, onPrevious, onNext, onSkip }) {
         )}
       </SimpleButton>
 
-      <SimpleButton
-        variant="ghost"
-        size="sm"
-        onClick={onSkip}
-        style={{ 
-          flexShrink: 0, 
-          minWidth: "50px",
-          textDecoration: 'underline',
-          transition: 'transform 0.2s ease',
-          color: '#1a1a1a !important',
-          backgroundColor: 'transparent !important'
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = 'scale(1.20)';
-          e.target.style.backgroundColor = 'transparent';
-          e.target.style.color = '#1a1a1a';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = 'scale(1)';
-          e.target.style.backgroundColor = 'transparent';
-          e.target.style.color = '#1a1a1a';
-        }}
-      >
-        Skip
-      </SimpleButton>
+      <SkipButton onClick={onSkip} />
+
     </div>
   );
 }
@@ -775,16 +792,18 @@ function shouldShowStep(currentStepData, menuOpenState) {
  * Provides contextual onboarding for individual pages when users first visit them.
  * Supports different tour configurations for different routes.
  */
-export function PageSpecificTour({ 
-  tourId: _tourId, 
-  tourSteps, 
+export function PageSpecificTour({
+  tourId: _tourId,
+  tourSteps,
   tourConfig,
-  isVisible, 
-  onComplete, 
-  onClose 
+  isVisible,
+  onComplete,
+  onClose
 }) {
   const [currentStep, setCurrentStep] = useState(0);
-  
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
   // Use tourSteps if provided, otherwise extract steps from tourConfig
   const steps = tourSteps || (tourConfig?.steps || []);
   const currentStepData = steps[currentStep];
@@ -839,18 +858,29 @@ export function PageSpecificTour({
       >
         <TourArrow arrowPosition={arrowPosition} />
 
-        <Card shadow="lg" padding="sm" withBorder radius="md" style={{ maxHeight: "80vh", overflowY: "auto" }}>
-          <TourHeader 
-            currentStep={currentStep} 
-            totalSteps={steps.length} 
-            onSkip={handleSkip} 
+        <Card
+          shadow="lg"
+          padding="sm"
+          withBorder
+          radius="md"
+          style={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
+            borderColor: isDark ? '#373a40' : '#dee2e6'
+          }}
+        >
+          <TourHeader
+            currentStep={currentStep}
+            totalSteps={steps.length}
+            onSkip={handleSkip}
           />
 
           {/* Progress Bar */}
-          <div style={{ 
-            width: '100%', 
-            height: '4px', 
-            backgroundColor: '#e9ecef', 
+          <div style={{
+            width: '100%',
+            height: '4px',
+            backgroundColor: isDark ? '#373a40' : '#e9ecef',
             borderRadius: '2px',
             marginBottom: '12px',
             overflow: 'hidden'
