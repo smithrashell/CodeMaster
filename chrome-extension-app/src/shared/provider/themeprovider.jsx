@@ -90,22 +90,6 @@ const customTheme = createTheme({
         return baseStyles;
       },
     },
-    Button: {
-      styles: () => {
-        // Check if dark mode by reading data-theme attribute
-        const isDarkMode = typeof document !== 'undefined' && document.body?.getAttribute('data-theme') === 'dark';
-
-        if (!isDarkMode) {
-          return {};
-        }
-
-        return {
-          root: {
-            color: 'white !important',
-          },
-        };
-      },
-    },
   },
 });
 
