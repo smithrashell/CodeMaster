@@ -32,7 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fixed dashboard text visibility in light mode** (#194)
   - Removed non-reactive Button styles override in theme provider that forced white text globally
   - The `color: 'white !important'` override was checking theme once at creation, not reactively
-  - This caused subtitle text across all dashboard pages to appear light gray and nearly invisible in light mode
+  - Added light mode definition for `--mantine-color-dimmed` CSS variable (#6b7280)
+  - Previously only had dark mode definition, causing dimmed text to be invisible in light mode
+  - Affected Goals page subtitle text (sessions per week, session length, guardrails, etc.)
   - Text colors now respect the active theme properly in both light and dark modes
 - **Fixed onboarding modal text visibility in dark mode** (#194)
   - **Dashboard onboarding (WelcomeModal.jsx)**:
