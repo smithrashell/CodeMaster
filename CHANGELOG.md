@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Real Strategy Success Rate Calculation**: Replaced mock data with real calculation for Progress page Strategy Success metric (#184)
+  - Implemented `calculateStrategySuccessRate()` function to measure effectiveness of adaptive problem selection
+  - Calculates percentage of successful attempts for problems selected by CodeMaster's 9 adaptive strategies
+  - Joins session problems (with selection_reason) with attempts data via problem_id
+  - Returns 0% when no strategy-selected attempts exist (handles edge cases gracefully)
+  - Validates whether intelligent selection works better than random selection
+  - Previously showed random mock data (65-90%), now shows actual user performance
+  - Helps track which strategies are most effective for learning
+- **Learning Efficiency Analytics Score Explanations**: Enhanced Learning Efficiency Analytics with user-friendly score interpretation (#190)
+  - Added score range explanations: 0-30 (building fundamentals), 30-60 (developing skills), 60+ (strong performance)
+  - Improved formatting with bold numbers and separate lines for better readability
+  - Applied to Learning Efficiency, Knowledge Retention, and Learning Momentum metrics
 - **Today's Progress Summary**: Replaced broken Daily Missions system with real-time daily statistics component (#175)
   - New TodaysProgressSection.jsx displays live stats for today's activity
   - Shows problems solved, accuracy percentage, review problems completed, hint efficiency, and average time per problem
@@ -80,6 +92,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clearer UX that doesn't suggest a choice where none exists
 
 ### Removed
+- **Removed non-functional Mistake Analysis page** (#190)
+  - Completely removed Mistake Analysis page that was displaying empty/placeholder data
+  - Removed from navigation (Strategy submenu), routes, and page component
+  - Cleaned up associated service functions (getMistakeAnalysisData, getMockMistakeAnalysisData)
+  - Removed Chrome message handlers and background script cache mappings
+  - Cleaned up usePageData hook configuration
+  - Streamlined Strategy section to focus on functional pages (Tag Mastery, Learning Path)
 - Removed artificial review ratio sliders that conflicted with Leitner system (#174)
   - Removed "Min review ratio" slider from Guardrails section
   - Removed "Review ratio" slider from Focus Priorities section

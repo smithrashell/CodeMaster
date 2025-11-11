@@ -155,7 +155,7 @@ const renderChart = ({ chartType, currentData, dataKeys, yAxisFormatter, tooltip
   
   return (
     <PieChart>
-      <Pie data={currentData} dataKey="value" nameKey="name" outerRadius={100} label>
+      <Pie data={currentData} dataKey="value" nameKey="name" outerRadius={150} label>
         {currentData.map((entry, index) => (
           <Cell
             key={`cell-${index}`}
@@ -176,6 +176,7 @@ function TimeGranularChartCard({
   dataKeys = [],
   yAxisFormatter = (v) => v,
   tooltipFormatter = (v, n) => [v, n],
+  chartHeight = 300, // Allow custom height, default 300
 }) {
   const colors = useThemeColors();
   
@@ -236,7 +237,7 @@ function TimeGranularChartCard({
     // Debug: currentData processing for promotion trends
   }
   return (
-    <Card shadow="sm" p="lg">
+    <Card shadow="sm" p="lg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Text weight={500} size="lg" mb="sm">
         {title} {isTimeBased && `(${view})`}
       </Text>
@@ -257,7 +258,7 @@ function TimeGranularChartCard({
         />
       )}
 
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={chartHeight}>
         {renderChart({ chartType, currentData, dataKeys, yAxisFormatter, tooltipFormatter, colors, PIE_COLORS })}
       </ResponsiveContainer>
     </Card>

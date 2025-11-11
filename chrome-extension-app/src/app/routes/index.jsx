@@ -11,7 +11,6 @@ import { Metrics as SessionHistory } from "../pages/sessions/session-history.jsx
 import { ProductivityInsights } from "../pages/sessions/productivity-insights.jsx";
 import { TagMastery } from "../pages/strategy/tag-mastery.jsx";
 import { LearningPath } from "../pages/strategy/learning-path.jsx";
-import { MistakeAnalysis } from "../pages/strategy/mistake-analysis.jsx";
 import { General } from "../pages/settings/general.jsx";
 import { Appearance } from "../pages/settings/appearance.jsx";
 import { Accessibility } from "../pages/settings/accessibility.jsx";
@@ -57,7 +56,6 @@ const createStrategyRoutes = () => (
     <Route index element={<Navigate to="tag-mastery" replace />} />
     <Route path="tag-mastery" element={createProtectedRoute("Tag Mastery", TagMastery)} />
     <Route path="learning-path" element={createProtectedRoute("Learning Path", LearningPath)} />
-    <Route path="mistake-analysis" element={createProtectedRoute("Mistake Analysis", MistakeAnalysis)} />
   </Route>
 );
 
