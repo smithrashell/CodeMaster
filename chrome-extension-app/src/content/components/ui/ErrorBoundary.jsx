@@ -41,15 +41,6 @@ class ContentErrorBoundary extends React.Component {
     });
   }
 
-  handleRetry = () => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null,
-      errorId: null,
-    });
-  };
-
   handleReload = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -83,30 +74,16 @@ class ContentErrorBoundary extends React.Component {
     return (
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button
-          onClick={this.handleRetry}
+          onClick={this.handleReload}
           style={{
-            padding: '6px 12px',
-            fontSize: '12px',
+            padding: '8px 16px',
+            fontSize: '13px',
             border: '1px solid #0984e3',
             borderRadius: '4px',
             backgroundColor: '#74b9ff',
             color: 'white',
-            cursor: 'pointer'
-          }}
-        >
-          ↻ Try Again
-        </button>
-        
-        <button
-          onClick={this.handleReload}
-          style={{
-            padding: '6px 12px',
-            fontSize: '12px',
-            border: '1px solid #636e72',
-            borderRadius: '4px',
-            backgroundColor: '#ddd',
-            color: '#333',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            fontWeight: '500'
           }}
         >
           Reload Page
@@ -178,26 +155,6 @@ class ContentErrorBoundary extends React.Component {
                 overflow: 'auto'
               }}
             >
-              {/* Close button */}
-              <button
-                onClick={this.handleRetry}
-                style={{
-                  position: 'absolute',
-                  top: '12px',
-                  right: '12px',
-                  border: 'none',
-                  background: 'transparent',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  color: '#666',
-                  padding: '4px',
-                  borderRadius: '4px'
-                }}
-                title="Close"
-              >
-                ×
-              </button>
-
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
             <span style={{ color: '#ff6b6b', marginRight: '8px', fontSize: '16px' }}>⚠️</span>
             <strong style={{ color: '#d63031' }}>{section} Error</strong>
@@ -205,6 +162,8 @@ class ContentErrorBoundary extends React.Component {
           
           <div style={{ marginBottom: '12px', fontSize: '13px', color: '#666' }}>
             Something went wrong with this component. Your data is safe.
+            <br />
+            Please reload the page to continue.
           </div>
 
           {this.state.error && (
