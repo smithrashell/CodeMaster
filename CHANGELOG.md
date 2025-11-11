@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
+- **Fixed extension context error dialog UX** (#195)
+  - Removed useless "Try Again" button that didn't fix extension context invalidation errors
+  - Only "Reload Page" button now displayed (the only action that actually fixes the issue)
+  - Updated error message to clearly guide users: "Please reload the page to continue"
+  - Removed close button (X) since error cannot be dismissed without reloading
+  - Removed unused `handleRetry()` function
+  - Made "Reload Page" button more prominent as the only action
 - Fixed Daily Missions system complete non-functionality (#175)
   - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
   - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
