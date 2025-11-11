@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
+- **Fixed onboarding modal text visibility in dark mode** (#194)
+  - **Dashboard onboarding (WelcomeModal.jsx)**:
+    - Modal now has proper dark mode styling with dark background (#1a1b1e) and light text (#ffffff)
+    - Added theme-aware styling using Mantine Styles API (following CLAUDE.md guidelines)
+    - Fixed hardcoded light blue Card background in "Key Insight" section
+    - Dark mode Card uses darker blue background (#1e3a8a) with lighter blue text (#93c5fd)
+  - **Content onboarding tour (ContentOnboardingTour.jsx)**:
+    - Fixed Card background color to dark theme (#1a1b1e) in dark mode
+    - Fixed title text color from forced black (#1a1a1a) to white (#ffffff) in dark mode
+    - Fixed content text color to light gray (#c9c9c9) in dark mode
+    - Fixed progress bar background to dark gray (#373a40) in dark mode
+    - Fixed arrow pointer color to match card background in both themes
+    - Removed hardcoded `!important` black text that broke dark mode
+  - Both onboarding systems now fully readable in light and dark modes
 - Fixed Daily Missions system complete non-functionality (#175)
   - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
   - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology

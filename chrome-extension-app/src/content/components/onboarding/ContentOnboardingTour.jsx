@@ -186,22 +186,28 @@ const TourCardContent = ({ currentStepData, getStepIcon }) => {
       }}>
         {getStepIcon()}
       </div>
-        <Text 
-          weight={600} 
-          size="sm" 
-          margin="0px 0px 0px 8px" 
+        <Text
+          weight={600}
+          size="sm"
+          margin="0px 0px 0px 8px"
           className="tour-text"
-          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+          style={{
+            lineHeight: 1.3,
+            color: isDark ? '#ffffff' : '#1a1a1a'
+          }}
         >
           {currentStepData.title}
         </Text>
       </div>
       <div style={{ }}>
-    
-        <Text 
-          size="xs" 
+
+        <Text
+          size="xs"
           className="tour-text"
-          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+          style={{
+            lineHeight: 1.3,
+            color: isDark ? '#c9c9c9' : '#495057'
+          }}
         >
           {typeof currentStepData.content === 'function' ? currentStepData.content() : currentStepData.content}
         </Text>
@@ -893,6 +899,11 @@ const shouldShowStep = (currentStepData, menuOpenState) => {
 
 // Helper function to get arrow styles based on direction
 const getArrowStyles = (direction) => {
+  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                 document.body.classList.contains('dark-theme') ||
+                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  const arrowColor = isDark ? '#1a1b1e' : 'white';
+
   const baseStyles = {
     position: "absolute",
     width: 0,
@@ -906,7 +917,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderLeft: "8px solid transparent",
         borderRight: "8px solid transparent",
-        borderBottom: "8px solid white",
+        borderBottom: `8px solid ${arrowColor}`,
         filter: "drop-shadow(0 -2px 4px rgba(0,0,0,0.1))",
       };
     case "down":
@@ -914,7 +925,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderLeft: "8px solid transparent",
         borderRight: "8px solid transparent",
-        borderTop: "8px solid white",
+        borderTop: `8px solid ${arrowColor}`,
         filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
       };
     case "left":
@@ -922,7 +933,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderTop: "8px solid transparent",
         borderBottom: "8px solid transparent",
-        borderRight: "8px solid white",
+        borderRight: `8px solid ${arrowColor}`,
         filter: "drop-shadow(-2px 0 4px rgba(0,0,0,0.1))",
       };
     case "right":
@@ -930,7 +941,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderTop: "8px solid transparent",
         borderBottom: "8px solid transparent",
-        borderLeft: "8px solid white",
+        borderLeft: `8px solid ${arrowColor}`,
         filter: "drop-shadow(2px 0 4px rgba(0,0,0,0.1))",
       };
     default:
@@ -1086,7 +1097,26 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           />
         )}
 
-        <Card shadow="lg" padding="sm" withBorder radius="md" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+        <Card
+          shadow="lg"
+          padding="sm"
+          withBorder
+          radius="md"
+          style={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            backgroundColor: (document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                            document.body.classList.contains('dark-theme') ||
+                            window.matchMedia?.('(prefers-color-scheme: dark)').matches)
+              ? '#1a1b1e'
+              : '#ffffff',
+            borderColor: (document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                         document.body.classList.contains('dark-theme') ||
+                         window.matchMedia?.('(prefers-color-scheme: dark)').matches)
+              ? '#373a40'
+              : '#dee2e6'
+          }}
+        >
           {/* Header */}
           <TourCardHeader 
             currentStep={currentStep} 
@@ -1095,10 +1125,14 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           />
 
           {/* Progress Bar */}
-          <div style={{ 
-            width: '100%', 
-            height: '4px', 
-            backgroundColor: '#e9ecef', 
+          <div style={{
+            width: '100%',
+            height: '4px',
+            backgroundColor: (document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
+                            document.body.classList.contains('dark-theme') ||
+                            window.matchMedia?.('(prefers-color-scheme: dark)').matches)
+              ? '#373a40'
+              : '#e9ecef',
             borderRadius: '2px',
             marginBottom: '12px',
             overflow: 'hidden'
