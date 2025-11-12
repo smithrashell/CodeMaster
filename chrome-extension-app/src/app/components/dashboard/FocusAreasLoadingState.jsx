@@ -9,7 +9,7 @@ export function FocusAreasLoadingState() {
         <IconTarget size={16} />
         <Text size="sm" fw={500}>Focus Areas</Text>
       </Group>
-      <Text size="sm" c="dimmed">Loading...</Text>
+      <Text size="sm">Loading...</Text>
     </Card>
   );
 }

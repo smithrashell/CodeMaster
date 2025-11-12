@@ -19,7 +19,7 @@ export function ProgressKPICards({
           <Text size="xl" fw={700} style={{ color: 'var(--cm-text)', fontSize: '1.4rem' }}>
             {totalProblems} problems
           </Text>
-          <Text size="xs" c="dimmed">across 7 boxes</Text>
+          <Text size="xs">across 7 boxes</Text>
         </Card>
       )
     },
@@ -31,7 +31,7 @@ export function ProgressKPICards({
           <Text size="xl" fw={700} style={{ color: 'var(--cm-text)', fontSize: '1.4rem' }}>
             {strategySuccessRate ?? 0}%
           </Text>
-          <Text size="xs" c="dimmed">effectiveness rate</Text>
+          <Text size="xs">effectiveness rate</Text>
         </Card>
       )
     },
@@ -43,7 +43,7 @@ export function ProgressKPICards({
           <Badge variant="light" color="teal" size="lg" style={{ fontSize: '0.9rem', padding: '8px 12px', marginBottom: '8px' }}>
             {timerBehavior}
           </Badge>
-          <Text size="xs" c="dimmed">{timerPercentage}% within limits</Text>
+          <Text size="xs">{timerPercentage}% within limits</Text>
         </Card>
       )
     },
@@ -55,7 +55,7 @@ export function ProgressKPICards({
           <Text size="md" fw={600} style={{ color: 'var(--cm-text)' }}>
             {nextReviewTime}
           </Text>
-          <Text size="xs" c="dimmed">{nextReviewCount} problems ready</Text>
+          <Text size="xs">{nextReviewCount} problems ready</Text>
         </Card>
       )
     }

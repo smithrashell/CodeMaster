@@ -28,7 +28,7 @@ export function AccessibilitySection({
           </Tooltip>
         </div>
 
-        <Text size="sm" c="dimmed">
+        <Text size="sm">
           {section.description}
         </Text>
 

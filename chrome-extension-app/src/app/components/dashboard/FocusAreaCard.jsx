@@ -48,7 +48,7 @@ export function FocusAreaCard({
               {hintIcon}
             </Text>
           </Tooltip>
-          <Text size="xs" fw={500} c="dimmed">
+          <Text size="xs" fw={500}>
             {progress}%
           </Text>
         </Group>

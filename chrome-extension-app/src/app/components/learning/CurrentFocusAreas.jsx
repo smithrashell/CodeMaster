@@ -12,7 +12,7 @@ const CurrentFocusAreas = ({ pathData }) => {
           <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Text fw={500}>{tag.tag}</Text>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Text size="sm" c="dimmed">{tag.attempts} attempts</Text>
+              <Text size="sm">{tag.attempts} attempts</Text>
               <Text fw={500} c={tag.progress >= 80 ? "green" : tag.progress >= 60 ? "orange" : "red"}>
                 {tag.progress}%
               </Text>
@@ -20,7 +20,7 @@ const CurrentFocusAreas = ({ pathData }) => {
           </div>
         ))}
         {focusAreas.length === 0 && (
-          <Text c="dimmed" ta="center">No focus areas set. Complete more sessions to see recommendations!</Text>
+          <Text ta="center">No focus areas set. Complete more sessions to see recommendations!</Text>
         )}
       </Stack>
     </Card>

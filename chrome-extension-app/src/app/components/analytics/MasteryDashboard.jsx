@@ -141,7 +141,7 @@ const TagTable = ({
     <Card withBorder p="md" style={{ background: "var(--cm-card-bg)", height: height }} className="cm-enhanced-table">
       {withFocusBar && (data.focusTags?.length > 0) && (
         <Group gap={8} mb="xs" wrap="wrap">
-          <Text size="sm" c="dimmed">Focus tags:</Text>
+          <Text size="sm">Focus tags:</Text>
           {data.focusTags.map((t) => (
             <Badge
               key={t}
@@ -193,7 +193,7 @@ const TagTable = ({
       </Table>
 
       <Group justify="space-between" mt="sm">
-        <Text size="sm" c="dimmed">
+        <Text size="sm">
           Showing {Math.min(source.length, pageSize)} of {source.length} tags
         </Text>
         <Pagination
@@ -225,7 +225,7 @@ export default function MasteryDashboard(props) {
     return (
       <Card withBorder p="xl" ta="center">
         <Text size="lg" fw={600} mb="xs">No Mastery Data Yet</Text>
-        <Text c="dimmed">Complete a session to see tag mastery analytics.</Text>
+        <Text>Complete a session to see tag mastery analytics.</Text>
       </Card>
     );
   }

@@ -7,7 +7,7 @@ export function AccessibilityLoadingState() {
       <Title order={1} fw={700} mb="md" style={{ fontSize: '1.75rem', color: 'var(--cm-text)' }}>
         Accessibility Settings
       </Title>
-      <Text size="sm" c="dimmed">Loading accessibility settings...</Text>
+      <Text size="sm">Loading accessibility settings...</Text>
     </Container>
   );
 }

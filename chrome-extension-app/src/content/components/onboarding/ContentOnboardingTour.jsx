@@ -25,15 +25,15 @@ import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logger.js";
+import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 
 
 // Theme-aware SimpleButton for the tour
 const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onClick, children, style = {}, ...props }) => {
-  // Get current theme
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   const themeAwareVariants = getThemeAwareVariantStyles(isDark);
   
@@ -122,14 +122,21 @@ const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onCl
 
 // Tour Card Header Component
 const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => {
-  // Get current theme for proper button styling
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-      <Badge color="blue" variant="light" size="xs">
+      <Badge
+        color="blue"
+        variant="light"
+        size="xs"
+        style={{
+          backgroundColor: isDark ? '#1e3a8a' : '#e7f5ff',
+          color: isDark ? '#93c5fd' : '#1971c2'
+        }}
+      >
         {currentStep + 1} of {totalSteps}
       </Badge>
       <button 
@@ -158,12 +165,11 @@ const TourCardHeader = ({ currentStep, totalSteps, onSkip }) => {
   );
 };
 
-// Tour Card Content Component  
+// Tour Card Content Component
 const TourCardContent = ({ currentStepData, getStepIcon }) => {
-  // Get current theme
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  // Get current theme from context
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
   
   return (
     <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' , flexDirection: 'column'}}>
@@ -186,22 +192,28 @@ const TourCardContent = ({ currentStepData, getStepIcon }) => {
       }}>
         {getStepIcon()}
       </div>
-        <Text 
-          weight={600} 
-          size="sm" 
-          margin="0px 0px 0px 8px" 
+        <Text
+          weight={600}
+          size="sm"
+          margin="0px 0px 0px 8px"
           className="tour-text"
-          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+          style={{
+            lineHeight: 1.3,
+            color: isDark ? '#ffffff' : '#1a1a1a'
+          }}
         >
           {currentStepData.title}
         </Text>
       </div>
       <div style={{ }}>
-    
-        <Text 
-          size="xs" 
+
+        <Text
+          size="xs"
           className="tour-text"
-          style={{ lineHeight: 1.3, color: '#1a1a1a !important' }}
+          style={{
+            lineHeight: 1.3,
+            color: isDark ? '#c9c9c9' : '#495057'
+          }}
         >
           {typeof currentStepData.content === 'function' ? currentStepData.content() : currentStepData.content}
         </Text>
@@ -892,7 +904,9 @@ const shouldShowStep = (currentStepData, menuOpenState) => {
 };
 
 // Helper function to get arrow styles based on direction
-const getArrowStyles = (direction) => {
+const getArrowStyles = (direction, isDark) => {
+  const arrowColor = isDark ? '#1a1b1e' : 'white';
+
   const baseStyles = {
     position: "absolute",
     width: 0,
@@ -906,7 +920,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderLeft: "8px solid transparent",
         borderRight: "8px solid transparent",
-        borderBottom: "8px solid white",
+        borderBottom: `8px solid ${arrowColor}`,
         filter: "drop-shadow(0 -2px 4px rgba(0,0,0,0.1))",
       };
     case "down":
@@ -914,7 +928,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderLeft: "8px solid transparent",
         borderRight: "8px solid transparent",
-        borderTop: "8px solid white",
+        borderTop: `8px solid ${arrowColor}`,
         filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))",
       };
     case "left":
@@ -922,7 +936,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderTop: "8px solid transparent",
         borderBottom: "8px solid transparent",
-        borderRight: "8px solid white",
+        borderRight: `8px solid ${arrowColor}`,
         filter: "drop-shadow(-2px 0 4px rgba(0,0,0,0.1))",
       };
     case "right":
@@ -930,7 +944,7 @@ const getArrowStyles = (direction) => {
         ...baseStyles,
         borderTop: "8px solid transparent",
         borderBottom: "8px solid transparent",
-        borderLeft: "8px solid white",
+        borderLeft: `8px solid ${arrowColor}`,
         filter: "drop-shadow(2px 0 4px rgba(0,0,0,0.1))",
       };
     default:
@@ -1014,7 +1028,9 @@ const useInteractionHandlingEffect = (isWaitingForInteraction, currentStepData, 
 
 export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   const navigate = useNavigate();
-  
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
+
   // Simple state management (no database persistence)
   const [currentStep, setCurrentStep] = useState(0);
   const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
@@ -1081,12 +1097,23 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
               top: arrowPosition.top,
               left: arrowPosition.left,
               zIndex: 10001,
-              ...getArrowStyles(arrowPosition.direction),
+              ...getArrowStyles(arrowPosition.direction, isDark),
             }}
           />
         )}
 
-        <Card shadow="lg" padding="sm" withBorder radius="md" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+        <Card
+          shadow="lg"
+          padding="sm"
+          withBorder
+          radius="md"
+          style={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
+            borderColor: isDark ? '#373a40' : '#dee2e6'
+          }}
+        >
           {/* Header */}
           <TourCardHeader 
             currentStep={currentStep} 
@@ -1095,10 +1122,10 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
           />
 
           {/* Progress Bar */}
-          <div style={{ 
-            width: '100%', 
-            height: '4px', 
-            backgroundColor: '#e9ecef', 
+          <div style={{
+            width: '100%',
+            height: '4px',
+            backgroundColor: isDark ? '#373a40' : '#e9ecef',
             borderRadius: '2px',
             marginBottom: '12px',
             overflow: 'hidden'

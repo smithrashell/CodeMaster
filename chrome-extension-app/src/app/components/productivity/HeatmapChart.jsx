@@ -5,7 +5,7 @@ export function HeatmapChart({ data }) {
   if (!data || data.length === 0) {
     return (
       <Stack gap="xs" align="center" style={{ height: '100%', justifyContent: 'center' }}>
-        <Text size="sm" c="dimmed">No data to display</Text>
+        <Text size="sm">No data to display</Text>
         <Text size="xs" c="dark.3">Complete more sessions to see patterns</Text>
       </Stack>
     );
@@ -38,7 +38,7 @@ export function HeatmapChart({ data }) {
         {dayNames.map(day => (
           <Group key={day} gap={2} wrap="nowrap">
             {/* Day label */}
-            <Text size="11px" c="dimmed" style={{ width: '35px', textAlign: 'right', paddingRight: '5px' }}>
+            <Text size="11px" style={{ width: '35px', textAlign: 'right', paddingRight: '5px' }}>
               {day}
             </Text>
 
@@ -76,7 +76,7 @@ export function HeatmapChart({ data }) {
 
         {/* Legend */}
         <Group gap="xs" justify="center" mt="sm">
-          <Text size="10px" c="dimmed">Less</Text>
+          <Text size="10px">Less</Text>
           {[0, 0.25, 0.5, 0.75, 1].map((intensity, i) => (
             <Box
               key={i}
@@ -91,7 +91,7 @@ export function HeatmapChart({ data }) {
               }}
             />
           ))}
-          <Text size="10px" c="dimmed">More</Text>
+          <Text size="10px">More</Text>
         </Group>
       </Stack>
     </Box>

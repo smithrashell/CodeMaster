@@ -13,12 +13,12 @@ import { TimerTourNavigation } from "./TimerTourNavigation.jsx";
 import { TIMER_TOUR_STEPS } from "./ProblemPageTimerTourHelpers.js";
 import { useTourInitialization, useAutoMenuOpen, useTourHandlers } from "./useProblemPageTimerTour.js";
 import { useTimerTourPositioning, useMenuStateMonitor } from "./TimerTourPositioningHooks.js";
+import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 // Theme-aware SimpleButton for the tour
 const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onClick, children, style = {}, ...props }) => {
-  const isDark = document.documentElement.getAttribute('data-mantine-color-scheme') === 'dark' ||
-                 document.body.classList.contains('dark-theme') ||
-                 window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
 
   const themeAwareVariants = getThemeAwareVariantStyles(isDark);
   
@@ -80,6 +80,8 @@ const SimpleButton = ({ variant = "primary", size = "md", disabled = false, onCl
 
 export function ProblemPageTimerTour({ isVisible, onComplete, onClose }) {
   const [currentStep, setCurrentStep] = useState(0);
+  const { colorScheme } = useTheme();
+  const isDark = colorScheme === 'dark';
   const currentStepData = TIMER_TOUR_STEPS[currentStep];
 
   const { tourPosition, arrowPosition, hasInitiallyPositioned } = useTimerTourPositioning(isVisible, currentStepData, currentStep);
@@ -141,7 +143,18 @@ export function ProblemPageTimerTour({ isVisible, onComplete, onClose }) {
       >
         <TourArrow arrowPosition={arrowPosition} />
 
-        <Card shadow="lg" padding="sm" withBorder radius="md" style={{ maxHeight: "80vh", overflowY: "auto" }}>
+        <Card
+          shadow="lg"
+          padding="sm"
+          withBorder
+          radius="md"
+          style={{
+            maxHeight: "80vh",
+            overflowY: "auto",
+            backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
+            borderColor: isDark ? '#373a40' : '#dee2e6'
+          }}
+        >
           <TourHeader currentStep={currentStep} totalSteps={TIMER_TOUR_STEPS.length} onSkip={handleSkip} />
           <TourProgressBar currentStep={currentStep} totalSteps={TIMER_TOUR_STEPS.length} />
 
