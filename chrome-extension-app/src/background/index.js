@@ -30,16 +30,35 @@ import {
   completeOnboarding
 } from "../shared/services/onboardingService.js";
 
-// Testing utilities (exported to globalThis for console access)
-import { SessionTester, TestScenarios } from "../shared/utils/sessionTesting.js";
-import { ComprehensiveSessionTester as _ComprehensiveSessionTester, ComprehensiveTestScenarios } from "../shared/utils/comprehensiveSessionTesting.js";
-import { MinimalSessionTester } from "../shared/utils/minimalSessionTesting.js";
-import { SilentSessionTester } from "../shared/utils/silentSessionTesting.js";
-import { TagProblemIntegrationTester } from "../shared/utils/integrationTesting.js";
-import { DynamicPathOptimizationTester } from "../shared/utils/dynamicPathOptimizationTesting.js";
-import { RealSystemTester } from "../shared/utils/realSystemTesting.js";
-import { TestDataIsolation } from "../shared/utils/testDataIsolation.js";
-import { RelationshipSystemTester } from "../shared/utils/relationshipSystemTesting.js";
+// Testing utilities (excluded from production builds by webpack)
+// These imports will be removed by webpack's IgnorePlugin in production
+let SessionTester, TestScenarios, _ComprehensiveSessionTester, ComprehensiveTestScenarios;
+let MinimalSessionTester, SilentSessionTester, TagProblemIntegrationTester;
+let DynamicPathOptimizationTester, RealSystemTester, TestDataIsolation, RelationshipSystemTester;
+
+// Import test utilities only in development
+// Webpack IgnorePlugin will remove these files from production bundle
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    const sessionTestingModule = require("../shared/utils/sessionTesting.js");
+    SessionTester = sessionTestingModule.SessionTester;
+    TestScenarios = sessionTestingModule.TestScenarios;
+
+    const comprehensiveModule = require("../shared/utils/comprehensiveSessionTesting.js");
+    _ComprehensiveSessionTester = comprehensiveModule.ComprehensiveSessionTester;
+    ComprehensiveTestScenarios = comprehensiveModule.ComprehensiveTestScenarios;
+
+    MinimalSessionTester = require("../shared/utils/minimalSessionTesting.js").MinimalSessionTester;
+    SilentSessionTester = require("../shared/utils/silentSessionTesting.js").SilentSessionTester;
+    TagProblemIntegrationTester = require("../shared/utils/integrationTesting.js").TagProblemIntegrationTester;
+    DynamicPathOptimizationTester = require("../shared/utils/dynamicPathOptimizationTesting.js").DynamicPathOptimizationTester;
+    RealSystemTester = require("../shared/utils/realSystemTesting.js").RealSystemTester;
+    TestDataIsolation = require("../shared/utils/testDataIsolation.js").TestDataIsolation;
+    RelationshipSystemTester = require("../shared/utils/relationshipSystemTesting.js").RelationshipSystemTester;
+  } catch (e) {
+    console.log('Test utilities not available in production build');
+  }
+}
 
 // Hot reload
 import { connect } from "chrome-extension-hot-reload";
@@ -78,24 +97,28 @@ self.addEventListener('activate', (event) => {
 // Track background script startup time for health monitoring
 global.backgroundStartTime = Date.now();
 
-// VERY SIMPLE TEST FUNCTIONS - These should always work
-globalThis.testSimple = function() {
-  console.log('✅ Simple test function works!');
-  return { success: true, message: 'Simple test completed' };
-};
-
-globalThis.testAsync = function() {
-  console.log('✅ Async test function works!');
-  return { success: true, message: 'Async test completed' };
-};
-
 console.log('🚀 SERVICE WORKER: Background script loaded and ready for messages');
-console.log('🧪 Test functions available:', {
-  testSimple: typeof globalThis.testSimple,
-  testAsync: typeof globalThis.testAsync,
-  runTestsSilent: typeof globalThis.runTestsSilent,
-  quickHealthCheck: typeof globalThis.quickHealthCheck
-});
+
+// Test functions only available in development builds
+if (process.env.NODE_ENV !== 'production') {
+  // VERY SIMPLE TEST FUNCTIONS - Development only
+  globalThis.testSimple = function() {
+    console.log('✅ Simple test function works!');
+    return { success: true, message: 'Simple test completed' };
+  };
+
+  globalThis.testAsync = function() {
+    console.log('✅ Async test function works!');
+    return { success: true, message: 'Async test completed' };
+  };
+
+  console.log('🧪 Test functions available:', {
+    testSimple: typeof globalThis.testSimple,
+    testAsync: typeof globalThis.testAsync,
+    runTestsSilent: typeof globalThis.runTestsSilent,
+    quickHealthCheck: typeof globalThis.quickHealthCheck
+  });
+}
 
 // Force service worker to stay active by setting up a simple message listener early
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -108,43 +131,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 console.log('🏓 SERVICE WORKER: PING handler registered');
 
-// Expose testing framework globally for browser console access
-// Always expose classes for manual instantiation
-globalThis.SessionTester = SessionTester;
-globalThis.TestScenarios = TestScenarios;
+// Development-only: Expose testing framework globally for browser console access
+if (process.env.NODE_ENV !== 'production') {
+  // Expose classes for manual instantiation (development only)
+  globalThis.SessionTester = SessionTester;
+  globalThis.TestScenarios = TestScenarios;
 
-// Expose core services globally for testing access
-globalThis.ProblemService = ProblemService;
-globalThis.SessionService = SessionService;
-globalThis.AttemptsService = AttemptsService;
-globalThis.TagService = TagService;
-globalThis.HintInteractionService = HintInteractionService;
-globalThis.AlertingService = AlertingService;
-globalThis.NavigationService = NavigationService;
-globalThis.AccurateTimer = AccurateTimer;
-globalThis.ChromeAPIErrorHandler = ChromeAPIErrorHandler;
-globalThis.FocusCoordinationService = FocusCoordinationService;
+  // Expose core services globally for testing access
+  globalThis.ProblemService = ProblemService;
+  globalThis.SessionService = SessionService;
+  globalThis.AttemptsService = AttemptsService;
+  globalThis.TagService = TagService;
+  globalThis.HintInteractionService = HintInteractionService;
+  globalThis.AlertingService = AlertingService;
+  globalThis.NavigationService = NavigationService;
+  globalThis.AccurateTimer = AccurateTimer;
+  globalThis.ChromeAPIErrorHandler = ChromeAPIErrorHandler;
+  globalThis.FocusCoordinationService = FocusCoordinationService;
 
-// Always expose essential test functions first (outside async block)
-/**
- * Service Worker Safe Mode - Ultra-quiet testing for service workers
- */
-globalThis.runTestsSilent = async function() {
-  try {
-    if (typeof globalThis.runComprehensiveTests === 'function') {
-      return await globalThis.runComprehensiveTests({ silent: true });
-    } else {
-      console.log('⚠️ runComprehensiveTests not available yet, running basic check');
-      return await globalThis.quickHealthCheck();
+  /**
+   * Service Worker Safe Mode - Ultra-quiet testing for service workers
+   */
+  globalThis.runTestsSilent = async function() {
+    try {
+      if (typeof globalThis.runComprehensiveTests === 'function') {
+        return await globalThis.runComprehensiveTests({ silent: true });
+      } else {
+        console.log('⚠️ runComprehensiveTests not available yet, running basic check');
+        return await globalThis.quickHealthCheck();
+      }
+    } catch (error) {
+      console.error('runTestsSilent failed:', error);
+      return { success: false, error: error.message };
     }
-  } catch (error) {
-    console.error('runTestsSilent failed:', error);
-    return { success: false, error: error.message };
-  }
-};
+  };
 
-// Simple test to verify functions are available
-globalThis.quickHealthCheck = function() {
+  // Simple test to verify functions are available
+  globalThis.quickHealthCheck = function() {
   console.log('🏥 CodeMaster Quick Health Check');
   console.log('================================');
 
@@ -189,13 +212,13 @@ globalThis.quickHealthCheck = function() {
   return results;
 };
 
-// Check if session testing should be enabled and conditionally expose functions
-(() => {
-  let sessionTestingEnabled = false;
-  // Always enable session testing - no imports needed
-  sessionTestingEnabled = true;
+  // Check if session testing should be enabled and conditionally expose functions
+  (() => {
+    let sessionTestingEnabled = false;
+    // Always enable session testing - no imports needed
+    sessionTestingEnabled = true;
 
-  if (sessionTestingEnabled) {
+    if (sessionTestingEnabled) {
     console.log('🧪 Background session testing functions enabled');
 
     // Quick console commands for testing
@@ -8853,10 +8876,11 @@ console.log('  - exitTestMode(cleanup)      // Exit test environment (cleanup=tr
     console.log('  runCoreTests()           // Basic functionality testing');
     console.log('\n💡 Run showTestCommands() for complete list!');
 
-  } else {
-    console.log('🧪 Session testing disabled - functions not available');
-  }
-})();
+    } else {
+      console.log('🧪 Session testing disabled - functions not available');
+    }
+  })();
+} // End of development-only test functions
 
 // Global error handlers to prevent service worker crashes
 self.addEventListener('error', (event) => {
@@ -9866,6 +9890,8 @@ const logSessionCleanupAnalytics = function(stalledSessions, actions) {
 }
 
 // 🔒 PHASE 3: EXPERIENCE QUALITY Test Functions
+// Development-only: Quality test functions excluded from production builds
+if (process.env.NODE_ENV !== 'production') {
 
 // Helper: Test database connection reliability
 function testDatabaseConnection(results, verbose) {
@@ -10896,7 +10922,11 @@ const scheduleAutoGeneration = function() {
 // Start auto-generation scheduling
 scheduleAutoGeneration();
 
+} // End of development-only quality test functions
+
 // ===== ADVANCED PRODUCTION TESTING CAPABILITIES =====
+// Development-only: Performance testing excluded from production builds
+if (process.env.NODE_ENV !== 'production') {
 
 /**
  * Advanced Performance Benchmarking System
@@ -11625,7 +11655,11 @@ globalThis.testProductionReadiness.evaluateDeploymentReadiness = function() {
   return results;
 };
 
+} // End of development-only advanced production testing capabilities
+
 // ===== COMPREHENSIVE TEST SUITE RUNNERS =====
+// Development-only: These test runners are excluded from production builds
+if (process.env.NODE_ENV !== 'production') {
 
 /**
  * Master Test Runner - Runs all 55+ tests in the CodeMaster Browser Testing Framework
@@ -12151,3 +12185,5 @@ console.log('   runCriticalTestsSilent()    // Critical tests, minimal output');
 console.log('   runProductionTestsSilent()  // Production tests, minimal output');
 console.log('');
 console.log('   listAvailableTests()        // Show all available tests');
+
+} // End of development-only comprehensive test suite runners
