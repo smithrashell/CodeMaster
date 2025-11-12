@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Fixed Timer Behavior metric inconsistency** (#183)
+  - Aligned `calculateTimerBehavior` badge logic with `calculateTimerPercentage` calculation
+  - **Before**: Badge used last 50 attempts, only successful attempts, 60-minute cutoff for all difficulties
+  - **After**: Badge now uses last 100 attempts, all attempts, difficulty-based time limits (Easy: 20min, Medium: 45min, Hard: 90min)
+  - **Critical Fix**: Both functions now properly look up problem difficulty from `problemDifficultyMap` instead of attempting to read non-existent `difficulty` field from attempts
+  - Added edge case handling for zero/negative time values
+  - Badge label ("Excellent timing", "On time", etc.) now accurately reflects the percentage shown
+  - Eliminated confusing scenarios where badge showed "Excellent timing" but percentage showed "45% within limits"
+  - Both metrics now use identical calculation logic for consistency
+  - Added JSDoc documentation for better code maintainability
+
 ### Removed
 - **Removed all cache-related dead code** (#188)
   - Completely removed caching infrastructure that was disabled in commit f8c4a46
