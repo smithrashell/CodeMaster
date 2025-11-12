@@ -230,7 +230,6 @@ export const StorageService = {
         });
         
         request.onsuccess = () => {
-          this.clearSettingsCache();
           resolve({ status: "success" });
         };
         request.onerror = () => reject(request.error);
@@ -239,13 +238,6 @@ export const StorageService = {
       console.error("StorageService setSettings failed:", error);
       return { status: "error", message: error.message };
     }
-  },
-
-  // Clear settings cache (to be implemented by background script)
-  clearSettingsCache() {
-    // This will be called by the background script to clear its response cache
-    // The actual cache clearing happens in the background script's cache management
-    console.log("🔄 StorageService: Settings cache clear requested");
   },
 
   // Session State using IndexedDB session_state store

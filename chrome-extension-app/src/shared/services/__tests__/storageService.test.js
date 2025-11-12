@@ -199,7 +199,6 @@ const createTestableStorageService = () => {
           });
           
           request.onsuccess = () => {
-            this.clearSettingsCache();
             resolve({ status: "success" });
           };
           request.onerror = () => reject(request.error);
@@ -208,10 +207,6 @@ const createTestableStorageService = () => {
         console.error("StorageService setSettings failed:", error);
         return { status: "error", message: error.message };
       }
-    },
-
-    clearSettingsCache() {
-      console.log("🔄 StorageService: Settings cache clear requested");
     }
   };
 };

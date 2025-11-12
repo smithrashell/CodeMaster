@@ -175,14 +175,8 @@ const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted
     });
     
     setShowInterviewBanner(false);
-    
+
     try {
-      // Clear session cache first to ensure we create a new session with the correct type
-      logger.info('🎯 Clearing session cache before creating interview session');
-      await ChromeAPIErrorHandler.sendMessageWithRetry({
-        type: "clearSessionCache"
-      });
-      
       // Directly create interview session with explicit session_type - bypass race condition
       logger.info('🎯 Creating interview session with session_type:', defaultInterviewMode);
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({

@@ -111,10 +111,6 @@ describe("useChromeMessage Hook", function() {
   });
 
   test("should show loading state initially", async () => {
-    // Clear any existing cache before starting
-    const { clearChromeMessageCache } = require('./useChromeMessage');
-    clearChromeMessageCache();
-    
     // Set up the mock to return a delayed promise
     mockChromeAPIErrorHandler.sendMessageWithRetry.mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ success: true }), 100))
@@ -174,10 +170,6 @@ describe("useChromeMessage Hook", function() {
   });
 
   test("should handle retry functionality", async () => {
-    // Clear any existing cache before starting
-    const { clearChromeMessageCache } = require('./useChromeMessage');
-    clearChromeMessageCache();
-    
     // Set up the mock to return a delayed promise
     mockChromeAPIErrorHandler.sendMessageWithRetry.mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({ theme: "light" }), 50))

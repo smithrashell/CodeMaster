@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useChromeMessage, clearChromeMessageCache } from "../../shared/hooks/useChromeMessage";
+import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
 import logger from "../../shared/utils/logger.js";
 
 // Comprehensive Accessibility Settings Hook using Chrome messaging
@@ -39,16 +39,6 @@ export function useAccessibilitySettings() {
             resolve(response);
           }
         );
-      });
-
-      // Clear settings cache to ensure fresh data
-      clearChromeMessageCache("getSettings");
-      
-      // Also clear the specific cache through the background script  
-      chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_cacheResponse) => {
-        if (chrome.runtime.lastError) {
-          logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
-        }
       });
 
       if (saveResponse?.status === "success") {

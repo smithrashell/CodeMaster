@@ -1,4 +1,4 @@
-import { useChromeMessage, clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ChromeAPIErrorHandler } from "../../../shared/services/ChromeAPIErrorHandler";
 import logger from "../../../shared/utils/logger.js";
 
@@ -11,22 +11,13 @@ export const useSettingsMessaging = () => {
     { showNotifications: false }
   );
 
-  // Save settings and clear cache
+  // Save settings
   const saveSettings = async (newSettings) => {
     try {
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
-        type: "setSettings", 
+        type: "setSettings",
         message: newSettings
       });
-
-      // Clear both hook cache and backend cache
-      clearChromeMessageCache("getSettings");
-      
-      try {
-        await ChromeAPIErrorHandler.sendMessageWithRetry({ type: "clearSettingsCache" });
-      } catch (cacheError) {
-        logger.warn("Clear cache failed:", cacheError.message);
-      }
 
       // Refetch to get fresh settings
       refetch();
@@ -61,20 +52,13 @@ export const settingsMessaging = {
     }) || {};
   },
 
-  // Save settings and clear cache
+  // Save settings
   async saveSettings(settings) {
     const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
-      type: "setSettings", 
+      type: "setSettings",
       message: settings
     });
 
-    // Clear settings cache
-    try {
-      await ChromeAPIErrorHandler.sendMessageWithRetry({ type: "clearSettingsCache" });
-    } catch (cacheError) {
-      logger.warn("Clear cache failed:", cacheError.message);
-    }
-    
     return response;
   }
 };

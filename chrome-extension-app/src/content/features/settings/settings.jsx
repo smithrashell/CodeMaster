@@ -7,7 +7,7 @@ import Switch from '../../components/ui/Switch.jsx';
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
 import AdaptiveSessionToggle from "./AdaptiveSessionToggle.js";
 import Header from "../../components/navigation/header.jsx";
-import { useChromeMessage, clearChromeMessageCache } from "../../../shared/hooks/useChromeMessage";
+import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
@@ -608,14 +608,9 @@ const saveSettings = (settings) => {
     { type: "setSettings", message: settings },
     (response) => {
       console.log("✅ Settings save response:", response);
-      chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (cacheResponse) => {
-        console.log("🗑️ Settings cache cleared:", cacheResponse);
-      });
-      // Clear the useChromeMessage cache to prevent stale data
-      clearChromeMessageCache("getSettings");
-      
+
       if (response?.status === "success") {
-        console.log("✅ Settings successfully saved and cache cleared");
+        console.log("✅ Settings successfully saved");
       } else {
         console.error("❌ Settings save failed:", response);
       }
@@ -647,25 +642,12 @@ const handleInterviewSettingsUpdate = (workingSettings, newSettings, handleSave)
   // Auto-save interview settings changes
   handleSave(newSettings);
   
-  // Clear session cache if interview settings changed to force new session creation
+  // Log if interview settings changed
   if (interviewSettingsChanged) {
-    component("Settings", "🎯 Interview settings changed, clearing caches");
-    
-    // Clear both settings and session cache
-    chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (settingsResponse) => {
-      component("Settings", "🔄 Settings cache cleared", settingsResponse);
-      
-      chrome.runtime.sendMessage({ type: "clearSessionCache" }, (sessionResponse) => {
-        if (sessionResponse?.status === "success") {
-          component("Settings", "✅ Session cache cleared successfully", { clearedCount: sessionResponse.clearedCount });
-          component("Settings", "✅ Settings updated without page reload - components will react to changes");
-        } else {
-          component("Settings", "⚠️ Failed to clear session cache", sessionResponse);
-        }
-      });
-    });
+    component("Settings", "🎯 Interview settings changed");
+    component("Settings", "✅ Settings updated without page reload - components will react to changes");
   } else {
-    component("Settings", "ℹ️ No interview settings changes detected - no cache clearing needed");
+    component("Settings", "ℹ️ No interview settings changes detected");
   }
 };
 
