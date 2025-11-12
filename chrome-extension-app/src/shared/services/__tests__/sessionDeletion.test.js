@@ -9,8 +9,6 @@ import { SessionService } from "../sessionService";
 import {
   getSessionById,
   deleteSessionFromDB,
-  updateSessionInDB,
-  saveNewSessionToDB,
 } from "../../db/sessions";
 import { ProblemService } from "../problemService";
 import { StorageService } from "../storageService";
@@ -123,8 +121,6 @@ describe("Session Deletion (Issue #193)", () => {
   describe("refreshSession - Lock Mechanism", () => {
     it("should prevent concurrent refresh operations", async () => {
       const sessionType = "standard";
-      let firstCallStarted = false;
-      let firstCallFinished = false;
 
       // Mock resumeSession to return existing session
       SessionService.resumeSession = jest.fn().mockResolvedValue({
@@ -135,10 +131,8 @@ describe("Session Deletion (Issue #193)", () => {
 
       // Mock deleteSessionFromDB with delay
       deleteSessionFromDB.mockImplementation(() => {
-        firstCallStarted = true;
         return new Promise((resolve) => {
           setTimeout(() => {
-            firstCallFinished = true;
             resolve();
           }, 100);
         });
