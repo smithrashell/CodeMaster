@@ -65,41 +65,11 @@ export function handleCountProblemsByBoxLevel(request, dependencies, sendRespons
 /**
  * Handler: addProblem
  * Adds or updates a problem with retry logic
- *
- * CRITICAL BEHAVIOR: Clears 6 dashboard cache keys after adding problem
- * This cache invalidation MUST happen regardless of success field value
  */
 export function handleAddProblem(request, dependencies, sendResponse, finishRequest) {
-  const { responseCache } = dependencies;
-
   ProblemService.addOrUpdateProblemWithRetry(
     request.contentScriptData,
     (response) => {
-      // Enhanced logging for cache invalidation debugging
-      console.log('📊 ProblemService response received:', {
-        hasResponse: !!response,
-        hasSuccess: response && 'success' in response,
-        successValue: response?.success,
-        responseKeys: response ? Object.keys(response) : [],
-        responseMessage: response?.message,
-        responseError: response?.error
-      });
-
-      // CRITICAL: Always clear dashboard cache when attempts are added (regardless of success field)
-      console.log('🔄 Clearing dashboard cache after attempt creation...');
-      const dashboardCacheKeys = ['stats_data', 'progress_data', 'sessions_data', 'mastery_data', 'productivity_data', 'learning_path_data'];
-      let clearedCount = 0;
-      for (const key of dashboardCacheKeys) {
-        if (responseCache.has(key)) {
-          responseCache.delete(key);
-          clearedCount++;
-          console.log(`🗑️ Cleared cache key: ${key}`);
-        } else {
-          console.log(`💨 Cache key not found (already cleared): ${key}`);
-        }
-      }
-      console.log(`🔄 Cache clearing complete: ${clearedCount} entries cleared`);
-
       sendResponse(response);
     }
   )

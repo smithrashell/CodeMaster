@@ -12,7 +12,6 @@ import { getInteractionsBySession } from "../../shared/db/hint_interactions.js";
 import { getLatestSession } from "../../shared/db/sessions.js";
 import logger from "../../shared/utils/logger.js";
 import { calculateProgressPercentage, calculateSuccessRate, roundToPrecision } from "../../shared/utils/Utils.js";
-import { clearChromeMessageCache } from "../../shared/hooks/useChromeMessage.js";
 import { getTagRelationships } from "../../shared/db/tag_relationships.js";
 import {
   createProblemMappings,
@@ -792,21 +791,7 @@ export function invalidateAllDashboardCaches() {
   // Clear Chrome message cache for all dashboard data types
   if (typeof window !== 'undefined') {
     // Clear all dashboard-related cache entries
-    const dashboardMessageTypes = [
-      'getStatsData',
-      'getLearningProgressData',
-      'getGoalsData',
-      'getSessionHistoryData',
-      'getProductivityInsightsData',
-      'getTagMasteryData',
-      'getLearningPathData'
-    ];
-
-    dashboardMessageTypes.forEach(type => {
-      clearChromeMessageCache(type);
-    });
-
-    console.log('🔄 Dashboard caches invalidated for all data types');
+    console.log('🔄 Dashboard caches invalidation removed');
   }
 }
 

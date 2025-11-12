@@ -347,16 +347,9 @@ function useDisplaySettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       };
 
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
-        type: "setSettings", 
+        type: "setSettings",
         message: updatedSettings
       });
-
-      // Clear settings cache
-      try {
-        await ChromeAPIErrorHandler.sendMessageWithRetry({ type: "clearSettingsCache" });
-      } catch (cacheError) {
-        logger.warn("Clear cache failed:", cacheError.message);
-      }
 
       if (response?.status === "success") {
         setSaveStatus({ type: "success", message: "Display settings saved successfully!" });

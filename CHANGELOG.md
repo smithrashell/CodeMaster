@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Removed all cache-related dead code** (#188)
+  - Completely removed caching infrastructure that was disabled in commit f8c4a46
+  - Removed cache code from `useChromeMessage.js` (frontend hook):
+    - Deleted `messageCache` Map, `pendingRequests` Map, and `CACHE_TTL` constant
+    - Removed `getCacheKey()`, `_getCachedResponse()`, `_setCachedResponse()` helper functions
+    - Removed `clearChromeMessageCache()` export function
+    - Simplified `sendMessage()` to remove cache checks, deduplication, and cacheKey management
+    - Removed `bypassCache` parameter from hook interface
+  - Removed cache code from `background/index.js` (backend):
+    - Deleted `responseCache` Map and `_CACHE_EXPIRY` constant
+    - Removed `getCachedResponse()`, `setCachedResponse()`, and `generateCacheKey()` functions
+    - Removed cache key generation helpers (getProblemCacheKey, getDashboardCacheKey, getSettingsCacheKey)
+    - Renamed `handleRequestOriginal` to `handleRequest` (removed cache wrapper layer)
+  - Removed cache code from `messageRouter.js`:
+    - Removed cache parameters from function signature and dependencies
+    - Deleted `clearSettingsCache` and `clearSessionCache` message handlers
+    - Simplified `getStrategyForTag` handler to remove caching logic
+  - Deleted `useChromeCache.js` file entirely (unused custom hook)
+  - Removed `clearChromeMessageCache()` and `clearSettingsCache` calls from 8 files:
+    - settingsMessaging.js, useAccessibilitySettings.js, dashboardService.js
+    - settings.jsx (content), themeprovider.jsx
+    - AdaptiveSettingsCard.jsx, DisplaySettingsCard.jsx, TimerSettingsCard.jsx
+  - Updated `useChromeMessage.test.jsx` to remove obsolete cache clearing from tests
+  - **Impact**: Removed ~300 lines of dead code with no functionality change
+  - **Rationale**:
+    - Caching was disabled to fix stale data bugs (settings wouldn't persist)
+    - IndexedDB is already fast (1-5ms queries), caching provided minimal benefit
+    - Direct database access is simpler and more reliable
+    - Eliminates maintenance burden of unused code
+
 ### Added
 - **Real Strategy Success Rate Calculation**: Replaced mock data with real calculation for Progress page Strategy Success metric (#184)
   - Implemented `calculateStrategySuccessRate()` function to measure effectiveness of adaptive problem selection

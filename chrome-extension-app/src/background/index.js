@@ -8948,115 +8948,6 @@ const backgroundScriptHealth = {
   }
 };
 
-// Add response caching to prevent repeated expensive queries
-const responseCache = new Map();
-const _CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes (unused - caching disabled)
-
-const getCachedResponse = (_key) => {
-  // CACHING DISABLED: Always return null (no cache hit)
-  // IndexedDB is already fast, caching causes stale data bugs
-  return null;
-};
-
-const setCachedResponse = (_key, _data) => {
-  // CACHING DISABLED: Don't store anything in cache
-  // No-op function to maintain backward compatibility
-  return;
-};
-
-// Universal cache key generation for different request types
-// Helper: Generate cache key for problem-related operations
-const getProblemCacheKey = (request) => {
-  if (request.type === 'getProblemByDescription') {
-    return `problem_slug_${request.slug}`;
-  }
-  if (request.type === 'saveHintInteraction') {
-    const problemId = request.interactionData?.problemId || request.data?.problemId;
-    return problemId ? `problem_ctx_${problemId}` : null;
-  }
-  return null;
-};
-
-// Helper: Generate cache key for dashboard operations
-const getDashboardCacheKey = (request) => {
-  const dashboardKeys = {
-    'getStatsData': 'stats_data',
-    'getSessionHistoryData': 'sessions_data',
-    'getTagMasteryData': 'mastery_data',
-    'getLearningProgressData': 'progress_data',
-    'getProductivityInsightsData': 'productivity_data',
-    'getLearningPathData': 'learning_path_data',
-    'getInterviewAnalyticsData': 'interview_data',
-    'getHintAnalyticsData': 'hints_data',
-    'getFocusAreasData': 'focus_areas_data',
-    'getLearningEfficiencyData': 'learning_efficiency_data'
-  };
-  return dashboardKeys[request.type] || null;
-};
-
-// Helper: Generate cache key for settings and strategy operations
-const getSettingsCacheKey = (request) => {
-  if (request.type === 'getSettings') {
-    return `settings_${request.key || 'all'}`;
-  }
-  if (request.type === 'getStorage') {
-    return `storage_${request.key}`;
-  }
-  if (request.type === 'getStrategyForTag') {
-    return `strategy_${request.tag}`;
-  }
-  return null;
-};
-
-// Helper: Check if operation is non-cacheable
-const isNonCacheable = (requestType) => {
-  const nonCacheableOps = ['setSettings', 'setStorage', 'removeStorage', 'addProblem', 'backupIndexedDB', 'createSession', 'graduateFocusAreas'];
-  return nonCacheableOps.includes(requestType);
-};
-
-const generateCacheKey = (request) => {
-  if (isNonCacheable(request.type)) {
-    return null;
-  }
-
-  return getProblemCacheKey(request) ||
-         getDashboardCacheKey(request) ||
-         getSettingsCacheKey(request);
-};
-
-// Universal cache wrapper for all background script requests
-const handleRequest = (request, sender, sendResponse) => {
-  const cacheKey = generateCacheKey(request);
-
-  // Check cache for cacheable requests
-  if (cacheKey) {
-    const cached = getCachedResponse(cacheKey);
-    if (cached) {
-      console.log(`🔥 Cache HIT: ${request.type} - ${cacheKey}`);
-      sendResponse(cached);
-      return Promise.resolve();
-    }
-    console.log(`💾 Cache MISS: ${request.type} - ${cacheKey}`);
-  }
-
-  // For non-cacheable requests or cache misses, execute original handler
-  // Wrap sendResponse to capture responses for caching
-  let _capturedResponse = null;
-  const wrappedSendResponse = (response) => {
-    _capturedResponse = response;
-
-    // Cache successful responses for cacheable requests
-    if (cacheKey && response && !response.error) {
-      setCachedResponse(cacheKey, response);
-      console.log(`✅ Cached: ${request.type} - ${cacheKey}`);
-    }
-
-    sendResponse(response);
-  };
-
-  // Execute original handler with wrapped sendResponse
-  return handleRequestOriginal(request, sender, wrappedSendResponse);
-};
 
 const processNextRequest = () => {
   if (requestQueue.length === 0) {
@@ -9140,7 +9031,7 @@ const getStrategyMapData = async () => {
   }
 };
 
-const handleRequestOriginal = async (request, sender, sendResponse) => {
+const handleRequest = async (request, sender, sendResponse) => {
   // Record request for health monitoring
   backgroundScriptHealth.recordRequest();
   const requestStartTime = Date.now();
@@ -9172,13 +9063,10 @@ const handleRequestOriginal = async (request, sender, sendResponse) => {
 
     // Delegate to message router with all necessary dependencies
     return await routeMessage(request, sendResponse, finishRequest, {
-      responseCache,
       backgroundScriptHealth,
       withTimeout,
       cleanupStalledSessions,
       getStrategyMapData,
-      getCachedResponse,
-      setCachedResponse,
       checkOnboardingStatus,
       completeOnboarding
     });

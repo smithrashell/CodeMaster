@@ -280,13 +280,6 @@ function useTimerSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       chrome.runtime.sendMessage(
         { type: "setSettings", message: updatedSettings },
         (response) => {
-          chrome.runtime.sendMessage({ type: "clearSettingsCache" }, (_cacheResponse) => {
-            // Check for errors to prevent "Unchecked runtime.lastError"
-            if (chrome.runtime.lastError) {
-              logger.warn("Clear cache failed:", chrome.runtime.lastError.message);
-            }
-          });
-
           if (response?.status === "success") {
             setSaveStatus({ type: "success", message: "Timer settings saved successfully!" });
             setHasChanges(false);
