@@ -448,13 +448,6 @@ function useSettingsSave(setSaveStatus, setHasChanges, setIsSaving) {
       chrome.runtime.sendMessage(
         { type: "setSettings", message: settings },
         (response) => {
-
-          chrome.runtime.sendMessage(
-            { type: "clearSettingsCache" },
-            (_cacheResponse) => {
-            }
-          );
-
           if (response?.status === "success") {
             setSaveStatus({ type: "success", message: "Settings saved successfully!" });
             setHasChanges(false);

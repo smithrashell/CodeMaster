@@ -581,21 +581,6 @@ export const SessionService = {
       // ✅ CRITICAL FIX: Update session state to increment numSessionsCompleted
       await this.updateSessionStateOnCompletion(session);
 
-      // ✅ Clear session cache since session status changed
-      try {
-        if (typeof chrome !== 'undefined' && chrome.runtime) {
-          // Handle both sync errors and async promise rejections
-          const result = chrome.runtime.sendMessage({ type: "clearSessionCache" });
-          if (result && typeof result.catch === 'function') {
-            result.catch((error) => {
-              logger.warn("Failed to clear session cache (async):", error);
-            });
-          }
-        }
-      } catch (error) {
-        logger.warn("Failed to clear session cache (sync):", error);
-      }
-
       // Clear cached data for functions that still use caching (focus areas, learning paths)
       try {
         if (typeof chrome !== 'undefined' && chrome.runtime) {

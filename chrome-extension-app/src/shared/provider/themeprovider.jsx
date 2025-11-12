@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { MantineProvider, createTheme } from "@mantine/core";
-import { useChromeMessage, clearChromeMessageCache } from "../hooks/useChromeMessage";
+import { useChromeMessage } from "../hooks/useChromeMessage";
 import { getExecutionContext } from "../db/accessControl.js";
 
 const ThemeContext = createContext();
@@ -161,9 +161,6 @@ const saveChromeSettings = async (settings, currentChromeSettings) => {
     }, (_response) => {
       if (chrome.runtime.lastError) {
         console.warn("Theme settings save failed:", chrome.runtime.lastError.message);
-      } else {
-        // Clear cache after successful save
-        clearChromeMessageCache("getSettings");
       }
     });
   } catch (error) {

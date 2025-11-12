@@ -2,68 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { showErrorNotification } from "../utils/errorNotifications";
 import ChromeAPIErrorHandler from "../services/ChromeAPIErrorHandler";
 
-// Smart cache with TTL for dashboard performance optimization
-const messageCache = new Map();
-const pendingRequests = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes for real-time balance
-
-// Cache utilities
-const getCacheKey = (request) => {
-  return JSON.stringify({
-    type: request?.type,
-    options: request?.options,
-    // Include other relevant properties for cache key
-    ...Object.fromEntries(
-      Object.entries(request || {}).filter(([key]) => 
-        !['timestamp', 'id'].includes(key)
-      )
-    )
-  });
-};
-
-const _getCachedResponse = (_cacheKey) => {
-  // CACHING DISABLED: Unused helper function kept for potential future use
-  const cached = messageCache.get(_cacheKey);
-  if (!cached) return null;
-
-  const now = Date.now();
-  if (now - cached.timestamp > CACHE_TTL) {
-    messageCache.delete(_cacheKey);
-    return null;
-  }
-
-  return cached.data;
-};
-
-const _setCachedResponse = (_cacheKey, _data) => {
-  // CACHING DISABLED: Unused helper function kept for potential future use
-  messageCache.set(_cacheKey, {
-    data: _data,
-    timestamp: Date.now()
-  });
-
-  // Prevent memory leaks - keep only last 50 cache entries
-  if (messageCache.size > 50) {
-    const firstKey = messageCache.keys().next().value;
-    messageCache.delete(firstKey);
-  }
-};
-
-// Clear cache utility for manual refresh
-export const clearChromeMessageCache = (requestType) => {
-  if (requestType) {
-    // Clear specific request type caches
-    for (const [key, _value] of messageCache.entries()) {
-      if (key.includes(`"type":"${requestType}"`)) {
-        messageCache.delete(key);
-      }
-    }
-  } else {
-    // Clear all cache
-    messageCache.clear();
-  }
-};
-
 // Performance monitoring for dashboard telemetry
 const performanceLogger = {
   logTiming: (request, duration, success, retryCount = 0) => {
@@ -114,48 +52,7 @@ const performanceLogger = {
   }
 };
 
-// Dashboard request types that should never be cached (unused - caching disabled)
-const _DASHBOARD_REQUEST_TYPES = [
-  'getStatsData',
-  'getSessionHistoryData',
-  'getTagMasteryData',
-  'getLearningProgressData',
-  'getProductivityInsightsData',
-  'getLearningPathData',
-  'getMistakeAnalysisData',
-  'getInterviewAnalyticsData',
-  'getHintAnalyticsData',
-  'getFocusAreasData'
-];
-
 // Helper functions for message handling
-const handleCacheCheck = () => {
-  // CACHING DISABLED: Always bypass cache to prevent stale data bugs
-  // IndexedDB is already fast (~1-5ms), caching provides minimal benefit
-  return false;
-};
-
-const handleRequestDeduplication = async ({ request, setData, setLoading, setError, onSuccess, isMountedRef }) => {
-  const cacheKey = getCacheKey(request);
-  
-  if (pendingRequests.has(cacheKey)) {
-    console.info(`⏳ Deduplicating request for ${request?.type}`);
-    try {
-      const result = await pendingRequests.get(cacheKey);
-      if (!isMountedRef.current) return true;
-      setData(result);
-      setLoading(false);
-      setError(null);
-      if (onSuccess) onSuccess(result);
-      return true;
-    } catch (error) {
-      return true; // Will be handled by the original request
-    }
-  }
-  
-  return false;
-};
-
 const handleSuccess = ({ response, request, startTime, currentRetryCount, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess }) => {
   if (!isMountedRef.current) return;
 
@@ -165,9 +62,6 @@ const handleSuccess = ({ response, request, startTime, currentRetryCount, isMoun
   if (duration > 5000) {
     performanceLogger.logSlowRequest(request, duration);
   }
-
-  // CACHING DISABLED: Don't store responses in cache
-  // setCachedResponse(cacheKey, response); // Disabled - cacheKey parameter removed
 
   setData(response);
   setLoading(false);
@@ -283,56 +177,37 @@ export const useChromeMessage = (request, deps = [], options = {}) => {
     };
   }, []);
 
-  // Enhanced message sending with retry logic, caching, and deduplication
-  const sendMessage = async (currentRetryCount = 0, bypassCache = false) => {
+  // Enhanced message sending with retry logic
+  const sendMessage = async (currentRetryCount = 0) => {
     if (!isMountedRef.current) return;
-
-    // Check cache first
-    if (handleCacheCheck({ request, bypassCache, setData, setLoading, setError, onSuccess })) {
-      return;
-    }
-    
-    // Handle request deduplication
-    if (await handleRequestDeduplication({ request, setData, setLoading, setError, onSuccess, isMountedRef })) {
-      return;
-    }
 
     setLoading(true);
     setError(null);
     setIsRetrying(currentRetryCount > 0);
 
     const startTime = performance.now();
-    const cacheKey = getCacheKey(request);
-    
-    const requestPromise = ChromeAPIErrorHandler.sendMessageWithRetry(
-      request,
-      {
-        maxRetries: maxRetries - currentRetryCount,
-        retryDelay,
-        timeout,
-        showNotifications: false,
-      }
-    );
-    
-    pendingRequests.set(cacheKey, requestPromise);
 
     try {
-      const response = await requestPromise;
-      pendingRequests.delete(cacheKey);
+      const response = await ChromeAPIErrorHandler.sendMessageWithRetry(
+        request,
+        {
+          maxRetries: maxRetries - currentRetryCount,
+          retryDelay,
+          timeout,
+          showNotifications: false,
+        }
+      );
 
       handleSuccess({ response, request, startTime, currentRetryCount, isMountedRef, setData, setLoading, setIsRetrying, setRetryCount, onSuccess });
     } catch (error) {
-      pendingRequests.delete(cacheKey);
       handleError({ error, request, startTime, maxRetries, showNotifications, isMountedRef, setLoading, setIsRetrying, setError, setRetryCount, onError, retry });
     }
   };
 
-  // Manual retry function with cache bypass
+  // Manual retry function
   const retry = () => {
     setRetryCount(0);
-    // Clear cache for this specific request type on manual retry
-    clearChromeMessageCache(request?.type);
-    sendMessage(0, true); // Bypass cache on manual retry
+    sendMessage(0);
   };
   
   // Refetch function for external use (e.g., refresh button)
