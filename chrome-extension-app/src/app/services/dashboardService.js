@@ -1093,17 +1093,53 @@ export async function generateMasteryData(learningState) {
 /**
  * Calculate outcome trends metrics for Goals page
  */
-async function calculateOutcomeTrends(attempts, _sessions) {
+async function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, providedHints = null) {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  
+
+  // Calculate user's actual weekly target from their cadence settings
+  const sessionsPerWeek = userSettings.sessionsPerWeek || 2;
+  const sessionLength = userSettings.sessionLength;
+  const maxProblemsPerSession = sessionLength === 'auto' ? 12 : (typeof sessionLength === 'number' ? sessionLength : 5);
+  const userWeeklyTarget = sessionsPerWeek * maxProblemsPerSession;
+
+  console.log("🎯 calculateOutcomeTrends called:", {
+    totalAttempts: attempts.length,
+    now: now.toISOString(),
+    oneWeekAgo: oneWeekAgo.toISOString(),
+    sampleAttempt: attempts[0]
+  });
+
   // Weekly Accuracy Target (support both snake_case and PascalCase)
-  const weeklyAttempts = attempts.filter(attempt =>
-    new Date(attempt.attempt_date || attempt.AttemptDate) >= oneWeekAgo
-  );
+  // Filter attempts from last 7 days, with validation for date field
+  const weeklyAttempts = attempts.filter(attempt => {
+    const attemptDateValue = attempt.attempt_date || attempt.AttemptDate;
+    if (!attemptDateValue) {
+      console.warn("⚠️ Attempt missing date:", attempt.id);
+      return false;
+    }
+
+    const attemptDate = new Date(attemptDateValue);
+    // Check if date is valid
+    if (isNaN(attemptDate.getTime())) {
+      console.warn("⚠️ Attempt has invalid date:", attempt.id, attemptDateValue);
+      return false;
+    }
+
+    const isWithinWeek = attemptDate >= oneWeekAgo;
+    return isWithinWeek;
+  });
+
+  const successfulAttempts = weeklyAttempts.filter(a => (a.success !== undefined ? a.success : a.Success));
   const weeklyAccuracy = weeklyAttempts.length > 0
-    ? Math.round((weeklyAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length / weeklyAttempts.length) * 100)
+    ? Math.round((successfulAttempts.length / weeklyAttempts.length) * 100)
     : 0;
+
+  console.log("📊 Weekly Accuracy Calculation:", {
+    weeklyAttemptsCount: weeklyAttempts.length,
+    successfulAttemptsCount: successfulAttempts.length,
+    weeklyAccuracy: `${weeklyAccuracy}%`
+  });
 
   // Problems Per Week
   const weeklyProblems = new Set(weeklyAttempts.map(a => a.problem_id || a.ProblemID)).size;
@@ -1153,7 +1189,9 @@ async function calculateOutcomeTrends(attempts, _sessions) {
   
   // Calculate status indicators
   const weeklyAccuracyStatus = weeklyAccuracy >= 75 ? "excellent" : weeklyAccuracy >= 65 ? "on_track" : "behind";
-  const problemsPerWeekStatus = weeklyProblems >= 25 ? "excellent" : weeklyProblems >= 20 ? "on_track" : "behind";
+  // Calculate status based on percentage of user's actual target achieved
+  const targetPercentage = userWeeklyTarget > 0 ? (weeklyProblems / userWeeklyTarget) * 100 : 0;
+  const problemsPerWeekStatus = targetPercentage >= 100 ? "excellent" : targetPercentage >= 80 ? "on_track" : "behind";
   const hintEfficiencyStatus = parseFloat(hintEfficiency) <= 2.0 ? "excellent" : parseFloat(hintEfficiency) <= 3.0 ? "on_track" : "behind";
   const learningVelocityStatus = learningVelocity === "Accelerating" ? "excellent" : 
                                  learningVelocity === "Progressive" ? "on_track" : 
@@ -1168,7 +1206,7 @@ async function calculateOutcomeTrends(attempts, _sessions) {
     problemsPerWeek: {
       value: weeklyProblems,
       status: problemsPerWeekStatus,
-      target: "25-30",
+      target: userWeeklyTarget,
       display: weeklyProblems.toString()
     },
     hintEfficiency: {
@@ -1209,10 +1247,11 @@ export async function generateGoalsData(providedData = {}) {
     const allAttempts = providedData.allAttempts || [];
     const allSessions = providedData.allSessions || [];
     const _learningState = providedData.learningState || null;
+    const hintsUsed = providedData.hintsUsed || { total: 0, contextual: 0, general: 0, primer: 0 };
     
     // Calculate outcome trends from provided data
     const outcomeTrends = allAttempts.length > 0 && allSessions.length > 0
-      ? await calculateOutcomeTrends(allAttempts, allSessions)
+      ? await calculateOutcomeTrends(allAttempts, allSessions, settings, hintsUsed)
       : {
           weeklyAccuracy: { value: 0, status: "behind", target: 75 },
           problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },

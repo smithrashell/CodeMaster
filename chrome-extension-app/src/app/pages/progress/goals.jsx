@@ -35,9 +35,12 @@ const useGuardrails = () => {
 
 // Helper function to calculate outcome trends from app state
 const calculateOutcomeTrends = (appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus, cadenceSettings) => {
+  // Check if we have any session/attempt data to distinguish "no data" from "0% performance"
+  const hasData = (appState.sessions?.allSessions?.length || 0) > 0 || (appState.attempts?.length || 0) > 0;
+
   // Use backend-calculated weekly accuracy (from last 7 days) instead of overall accuracy
   const weeklyAccuracyData = appState.learningPlan?.outcomeTrends?.weeklyAccuracy;
-  const weeklyAccuracyValue = weeklyAccuracyData?.value || 0;
+  const weeklyAccuracyValue = weeklyAccuracyData?.value ?? 0;
 
   // Calculate weekly target from user settings
   const sessionsPerWeek = cadenceSettings.sessionsPerWeek || 5;
@@ -48,35 +51,42 @@ const calculateOutcomeTrends = (appState, getAccuracyStatus, getProblemsStatus, 
   const weeklyTarget = sessionsPerWeek * maxProblemsPerSession;
 
   // Get actual problems completed this week from backend
-  const weeklyProblemsCompleted = appState.learningPlan?.outcomeTrends?.problemsPerWeek?.value || 0;
+  const weeklyProblemsCompleted = appState.learningPlan?.outcomeTrends?.problemsPerWeek?.value ?? 0;
   const remainingProblems = Math.max(0, weeklyTarget - weeklyProblemsCompleted);
 
   // Use backend hint efficiency data
   const hintEfficiencyData = appState.learningPlan?.outcomeTrends?.hintEfficiency;
-  const hintEfficiency = hintEfficiencyData?.value || 0;
+  const hintEfficiency = hintEfficiencyData?.value ?? 0;
 
   // Use backend learning velocity data
   const learningVelocityData = appState.learningPlan?.outcomeTrends?.learningVelocity;
   const learningVelocity = learningVelocityData?.value || "Getting Started";
 
+  // For display: If we have sessions/attempts, show actual metrics (even if 0)
+  // Only show "no data" if we truly have no activity ever
   return {
     weeklyAccuracy: {
       value: weeklyAccuracyValue,
-      status: weeklyAccuracyValue > 0 ? getAccuracyStatus(weeklyAccuracyValue / 100) : "no_data",
+      // Use backend-calculated status (already considers target thresholds)
+      status: hasData ? (weeklyAccuracyData?.status || getAccuracyStatus(weeklyAccuracyValue / 100)) : "no_data",
       target: 75
     },
     problemsPerWeek: {
       value: weeklyProblemsCompleted,
-      status: weeklyProblemsCompleted > 0 ? getProblemsStatus(weeklyProblemsCompleted) : "no_data",
+      // Use backend-calculated status (already considers user's actual target)
+      status: hasData ? (appState.learningPlan?.outcomeTrends?.problemsPerWeek?.status || getProblemsStatus(weeklyProblemsCompleted)) : "no_data",
       target: weeklyTarget,
-      display: weeklyProblemsCompleted > 0
+      // Always show remaining count if we have any data, even if it's "10 of 10 remaining"
+      display: hasData
         ? `${remainingProblems} of ${weeklyTarget} remaining`
-        : "No problems yet"
+        : "No sessions yet"
     },
     hintEfficiency: {
       value: hintEfficiency,
-      status: hintEfficiency > 0 ? getHintEfficiencyStatus(hintEfficiency) : "no_data",
-      display: hintEfficiencyData?.display || "No data yet"
+      status: hasData && hintEfficiency > 0 ? getHintEfficiencyStatus(hintEfficiency) : "no_data",
+      display: hasData && hintEfficiency > 0
+        ? (hintEfficiencyData?.display || `${hintEfficiency.toFixed(1)} per problem`)
+        : "No data yet"
     },
     learningVelocity: {
       value: learningVelocity,
