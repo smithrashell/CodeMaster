@@ -111,7 +111,7 @@ export default class StorageCleanupManager {
         let shouldDelete = false;
         let reason = '';
 
-        // Delete old expired sessions (30+ days)
+        // Delete any remaining expired sessions immediately (edge case cleanup only)
         if (status === 'expired' && ageInDays > this.RETENTION_POLICY.expired) {
           shouldDelete = true;
           reason = `Expired session older than ${this.RETENTION_POLICY.expired} days`;
@@ -123,6 +123,11 @@ export default class StorageCleanupManager {
 
         if (shouldDelete) {
           try {
+            // Log warning if we find expired sessions (should not happen with Issue #193 fix)
+            if (status === 'expired') {
+              logger.warn(`🔍 Found orphaned expired session ${session.id.substring(0, 8)} - this should not happen with Issue #193 fix`);
+            }
+            
             await store.delete(session.id);
             deletedSessions.push({
               id: session.id.substring(0, 8),

@@ -208,13 +208,33 @@ export const updateSessionInDB = async (session) => {
  * @returns {Promise<void>}
  */
 export const deleteSessionFromDB = async (sessionId) => {
+  // Validate sessionId
+  if (!sessionId) {
+    throw new Error('deleteSessionFromDB requires a valid sessionId');
+  }
+
   const db = await openDB();
+  
+  // Safety check: Get session first to verify and log what we're deleting
+  const session = await getSessionById(sessionId);
+  if (session) {
+    // Log warning if attempting to delete completed or in_progress sessions
+    if (session.status === 'completed') {
+      console.warn(`⚠️ Deleting completed session ${sessionId} - verify this is intentional`);
+    } else if (session.status === 'in_progress') {
+      console.info(`🔄 Deleting in_progress session ${sessionId} (likely for regeneration)`);
+    }
+  }
+  
   return new Promise((resolve, reject) => {
     const transaction = db.transaction("sessions", "readwrite");
     const store = transaction.objectStore("sessions");
 
     const request = store.delete(sessionId);
-    request.onsuccess = () => resolve();
+    request.onsuccess = () => {
+      console.info(`✅ Successfully deleted session ${sessionId}`);
+      resolve();
+    };
     request.onerror = (event) => reject(event.target.error);
   });
 };
