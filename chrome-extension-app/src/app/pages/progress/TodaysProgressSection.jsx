@@ -25,7 +25,7 @@ export function TodaysProgressSection({ todaysProgress }) {
         <Stack gap="xl" mt="lg">
           {/* Performance Metrics */}
           <div>
-            <Title order={5} mb="md" c="dimmed">Performance</Title>
+            <Title order={5} mb="md">Performance</Title>
             <Stack gap="lg">
               {/* Problems Solved */}
               <Group justify="space-between" wrap="nowrap">
@@ -34,7 +34,7 @@ export function TodaysProgressSection({ todaysProgress }) {
                   <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-blue-6)' }}>
                     {problemsSolved}
                   </Text>
-                  <Text size="xs" c="dimmed">problems</Text>
+                  <Text size="xs">problems</Text>
                 </Group>
               </Group>
 
@@ -66,7 +66,7 @@ export function TodaysProgressSection({ todaysProgress }) {
                   <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-violet-6)' }}>
                     {reviewProblems}
                   </Text>
-                  <Text size="xs" c="dimmed">completed</Text>
+                  <Text size="xs">completed</Text>
                 </Group>
               </Group>
             </Stack>
@@ -74,7 +74,7 @@ export function TodaysProgressSection({ todaysProgress }) {
 
           {/* Learning Metrics */}
           <div>
-            <Title order={5} mb="md" c="dimmed">Learning Efficiency</Title>
+            <Title order={5} mb="md">Learning Efficiency</Title>
             <Stack gap="lg">
               {/* Hint Efficiency */}
               <Group justify="space-between" wrap="nowrap">
@@ -87,7 +87,7 @@ export function TodaysProgressSection({ todaysProgress }) {
                   }}>
                     {hintsPerProblem.toFixed(1)}
                   </Text>
-                  <Text size="xs" c="dimmed">per problem</Text>
+                  <Text size="xs">per problem</Text>
                 </Group>
               </Group>
 
@@ -98,7 +98,7 @@ export function TodaysProgressSection({ todaysProgress }) {
                   <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                     {avgTimeMinutes}
                   </Text>
-                  <Text size="xs" c="dimmed">min/problem</Text>
+                  <Text size="xs">min/problem</Text>
                 </Group>
               </Group>
             </Stack>
@@ -107,10 +107,10 @@ export function TodaysProgressSection({ todaysProgress }) {
       ) : (
         <Stack align="center" justify="center" h={SECTION_HEIGHT - 120} gap="md">
           <Text size="3rem" style={{ opacity: 0.3 }}>📊</Text>
-          <Text size="lg" fw={500} c="dimmed" ta="center">
+          <Text size="lg" fw={500} ta="center">
             No activity today yet
           </Text>
-          <Text size="sm" c="dimmed" ta="center" style={{ maxWidth: '80%' }}>
+          <Text size="sm" ta="center" style={{ maxWidth: '80%' }}>
             Start a practice session to see your progress here!
           </Text>
         </Stack>

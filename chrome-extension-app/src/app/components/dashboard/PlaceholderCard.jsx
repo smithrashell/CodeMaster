@@ -11,7 +11,7 @@ export function PlaceholderCard({ text }) {
       justifyContent: "center",
       minHeight: "80px"
     }}>
-      <Text size="xs" c="dimmed" style={{ textAlign: "center" }}>
+      <Text size="xs" style={{ textAlign: "center" }}>
         {text}
       </Text>
     </Card>

@@ -12,7 +12,7 @@ const EmptyLearningPathState = () => {
       textAlign: 'center'
     }}>
       <Text size="lg" fw={600} mb="md" c="var(--cm-text)">No Learning Progress Yet</Text>
-      <Text size="sm" c="dimmed" mb="lg">
+      <Text size="sm" mb="lg">
         Complete some coding sessions to see your learning path visualization.
       </Text>
       <Button 

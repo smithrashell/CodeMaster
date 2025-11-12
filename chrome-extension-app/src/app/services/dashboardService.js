@@ -2601,7 +2601,7 @@ export async function getLearningEfficiencyData() {
 
     // Calculate metrics for each session
     const chartData = completedSessions.map((session, index) => {
-      const sessionAttempts = allAttempts.filter(a => a.session_id === session.session_id);
+      const sessionAttempts = allAttempts.filter(a => a.session_id === session.id);
 
       // Learning Efficiency: Based on success rate and speed
       const successfulAttempts = sessionAttempts.filter(a => a.success).length;
@@ -2646,7 +2646,7 @@ export async function getLearningEfficiencyData() {
 
       return {
         session: `S${index + 1}`,
-        sessionId: session.session_id,
+        sessionId: session.id,
         date: new Date(session.date).toLocaleDateString(),
         efficiency: Math.min(100, Math.max(0, efficiency)),
         retention: Math.min(100, Math.max(0, retention)),

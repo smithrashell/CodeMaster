@@ -75,7 +75,7 @@ export const renderMainSelector = (selectableOptions, selectedFocusAreas, handle
       
       {!showCustomMode && (
         <Stack gap="xs">
-          <Text size="sm" c="dimmed">
+          <Text size="sm">
             System-recommended focus areas (read-only):
           </Text>
           <Group gap="xs">
@@ -148,7 +148,7 @@ export const TierTagsVisualization = ({
       <Stack gap="sm">
         <Group justify="space-between">
           <Text size="sm" fw={500}>Select Focus Tier</Text>
-          <Text size="xs" c="dimmed">Click tags to select (max 3 per tier)</Text>
+          <Text size="xs">Click tags to select (max 3 per tier)</Text>
         </Group>
 
         <Tabs value={currentActiveTab} onChange={handleTabChange}>

@@ -85,7 +85,7 @@ function InterviewModeSelector({ currentMode, currentModeData, settings, updateS
       />
       
       {currentModeData && (
-        <Text size="xs" c="dimmed" mt="xs">
+        <Text size="xs" mt="xs">
           <IconClock size={12} style={{ marginRight: '4px' }} />
           {currentModeData.description}
         </Text>
@@ -133,7 +133,7 @@ function InterviewFrequencyControls({ settings, updateSettings }) {
           color="var(--cm-active-blue)"
         />
 
-        <Text size="xs" c="dimmed" mt="xs">
+        <Text size="xs" mt="xs">
           {settings?.interviewFrequency === "manual" && "🎯 Interview sessions available on demand"}
           {settings?.interviewFrequency === "weekly" && "⏰ System will suggest interview sessions every 7-10 days"}
           {settings?.interviewFrequency === "level-up" && "📈 Interview sessions suggested after tag mastery improvements"}
@@ -179,7 +179,7 @@ function InterviewFrequencyControls({ settings, updateSettings }) {
             color="var(--cm-active-blue)"
           />
 
-          <Text size="xs" c="dimmed" mt="xs" ta="center">
+          <Text size="xs" mt="xs" ta="center">
             🎯 Full Interview mode unlocks at {Math.round((settings?.interviewReadinessThreshold || 0.7) * 100)}% mastery
           </Text>
         </div>
@@ -320,7 +320,7 @@ function ActionButtons({ hasChanges, loading, isSaving, onReset, onSave }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <IconInfoCircle size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
-          <Text size="xs" c="dimmed">
+          <Text size="xs">
             Changes also sync to content overlay
           </Text>
         </div>
@@ -347,7 +347,7 @@ function LoadingState() {
           <IconSettings size={20} />
           <Title order={4}>Session Settings</Title>
         </div>
-        <Text size="sm" c="dimmed">Loading settings...</Text>
+        <Text size="sm">Loading settings...</Text>
       </Stack>
     </Card>
   );
@@ -533,7 +533,7 @@ export function AdaptiveSettingsCard() {
           <Title order={4}>Session Settings</Title>
         </div>
 
-        <Text size="sm" c="dimmed">
+        <Text size="sm">
           Configure your learning session parameters. These settings sync with the quick settings in the content overlay.
         </Text>
 

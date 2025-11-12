@@ -29,6 +29,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
+- **Fixed dashboard text visibility in light mode** (#194)
+  - **Root Cause**: In PR #191 (commit 3622809), all `c="dimmed"` were changed to `c="gray.4"` to fix dark mode
+  - `gray.4` from Mantine's default palette (#ced4da) is designed for dark backgrounds only
+  - In light mode, this gray is too light and nearly invisible on white/light backgrounds
+  - **Fix 1**: Removed non-reactive Button styles override in theme provider that forced white text globally
+  - **Fix 2**: Added light mode definition for `--mantine-color-dimmed` CSS variable (#6b7280 - medium gray)
+  - **Fix 3**: Reverted all `c="gray.4"` back to `c="dimmed"` across 3 files:
+    - FocusPrioritiesSection.jsx (3 instances)
+    - ProductivityKPIs.jsx (2 instances)
+    - ProductivityCharts.jsx (5 instances)
+  - Affected Goals page subtitle text, Productivity Insights KPIs, and chart descriptions
+  - Text colors now respect the active theme properly in both light and dark modes
+- **Fixed onboarding modal text visibility in dark mode** (#194)
+  - **Dashboard onboarding (WelcomeModal.jsx)**:
+    - Modal now has proper dark mode styling with dark background (#1a1b1e) and light text (#ffffff)
+    - Added theme-aware styling using useTheme() hook for reactive theme changes
+    - Fixed hardcoded light blue Card background in "Key Insight" section
+    - Dark mode Card uses darker blue background (#1e3a8a) with lighter blue text (#93c5fd)
+  - **Content onboarding tour (ContentOnboardingTour.jsx)**:
+    - Fixed Card background color to dark theme (#1a1b1e) in dark mode
+    - Fixed title text color from forced black (#1a1a1a) to white (#ffffff) in dark mode
+    - Fixed content text color to light gray (#c9c9c9) in dark mode
+    - Fixed progress bar background to dark gray (#373a40) in dark mode
+    - Fixed arrow pointer color to match card background in both themes
+    - Fixed step counter badge with proper dark mode background and text colors
+    - Removed hardcoded `!important` black text that broke dark mode
+    - Replaced inline theme detection with useTheme() hook for proper reactivity
+  - Both onboarding systems now fully readable and reactive in light and dark modes
+- **Fixed dashboard text visibility across all pages in both light and dark modes** (#194)
+  - **Removed ALL `c="dimmed"` props (93 files)**:
+    - Removed broken `c="dimmed"` that used non-existent `--mantine-color-dimmed` CSS variable
+    - Let Mantine's default theme system handle text colors automatically for proper theme adaptation
+    - Affected all dashboard pages: Overview, Progress (Goals, Learning Progress), Session History, Productivity Insights, Settings, and all their subcomponents
+  - **Removed hardcoded `c="white"` from charts and KPI cards**:
+    - Session History page: Removed from chart titles (Session Length Over Time, Session Accuracy Trends)
+    - Productivity Insights page: Removed from InsightsCard (3 instances), ProductivityCharts (2 instances), RecommendationsCard (8 instances), ProductivityKPIs card values
+    - Text now adapts to theme automatically - visible in both light and dark modes
+  - **Centered KPI card text for visual consistency**:
+    - Added `textAlign: 'center'` to Card styles and `justify="center"` to Group components
+    - Session History and Productivity Insights KPI cards now match Learning Progress page styling
+  - **Fixed problem analysis tour modal dark mode styling**:
+    - ProblemPageTimerTour.jsx now uses theme-aware Card background (#1a1b1e in dark, #ffffff in light)
+    - Added theme-aware border colors matching other tour modals
+  - All text across dashboard now properly visible and adapts to theme changes
 - **Fixed extension context error dialog UX** (#195)
   - Removed useless "Try Again" button that didn't fix extension context invalidation errors
   - Only "Reload Page" button now displayed (the only action that actually fixes the issue)
@@ -36,6 +80,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed close button (X) since error cannot be dismissed without reloading
   - Removed unused `handleRetry()` function
   - Made "Reload Page" button more prominent as the only action
+- **Fixed Learning Efficiency and Knowledge Retention showing 0 despite completed sessions** (#196)
+  - Root cause: Code was using `session.session_id` but sessions store uses `id` as keyPath
+  - Fixed filter in `getLearningEfficiencyData()` to use `session.id` instead of `session.session_id`
+  - Attempts were filtered incorrectly: `a.session_id === undefined` returned 0 matches
+  - Both metrics now calculate correctly based on actual attempt data
+  - Changed lines 2604 and 2649 in dashboardService.js
 - Fixed Daily Missions system complete non-functionality (#175)
   - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
   - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology

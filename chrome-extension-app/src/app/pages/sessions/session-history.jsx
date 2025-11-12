@@ -10,11 +10,11 @@ import { RecentSessionsTable } from "./RecentSessionsTable";
 // Reusable Slim KPI Card Component
 function SlimKPI({ title, value, sub }) {
   return (
-    <Card p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)', border: '1px solid var(--mantine-color-dark-5)' }}>
-      <Text size="xs" c="dimmed" mb={2}>{title}</Text>
-      <Group align="baseline" gap={4}>
-        <Text fw={700} size="lg" c="white">{value}</Text>
-        {sub && <Text size="xs" c="dimmed">{sub}</Text>}
+    <Card p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)', border: '1px solid var(--mantine-color-dark-5)', textAlign: 'center' }}>
+      <Text size="xs" mb={2}>{title}</Text>
+      <Group align="baseline" gap={4} justify="center">
+        <Text fw={700} size="lg">{value}</Text>
+        {sub && <Text size="xs">{sub}</Text>}
       </Group>
     </Card>
   );
@@ -73,7 +73,7 @@ export function Metrics() {
           <Grid.Col span={{ base: 12, lg: 6 }}>
             <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)' }}>
               <Group justify="space-between" align="center" mb="sm">
-                <Title order={4} c="white">Session Length Over Time</Title>
+                <Title order={4}>Session Length Over Time</Title>
                 <Select
                   size="xs"
                   variant="filled"
@@ -100,7 +100,7 @@ export function Metrics() {
           <Grid.Col span={{ base: 12, lg: 6 }}>
             <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)' }}>
               <Group justify="space-between" align="center" mb="sm">
-                <Title order={4} c="white">Session Accuracy Trends</Title>
+                <Title order={4}>Session Accuracy Trends</Title>
                 <Select
                   size="xs"
                   variant="filled"

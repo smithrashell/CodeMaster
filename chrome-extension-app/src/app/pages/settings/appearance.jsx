@@ -24,7 +24,7 @@ export function Appearance() {
               <Text fw={500} size="lg" mb="xs">
                 Theme
               </Text>
-              <Text size="sm" c="dimmed">
+              <Text size="sm">
                 Choose between light and dark themes. Changes will sync across the
                 content page and dashboard.
               </Text>
@@ -40,7 +40,7 @@ export function Appearance() {
               <Text fw={500} size="lg" mb="xs">
                 Font Size
               </Text>
-              <Text size="sm" c="dimmed">
+              <Text size="sm">
                 Adjust the text size for better readability.
               </Text>
             </div>
@@ -55,7 +55,7 @@ export function Appearance() {
               <Text fw={500} size="lg" mb="xs">
                 Layout Density
               </Text>
-              <Text size="sm" c="dimmed">
+              <Text size="sm">
                 Choose between compact or comfortable spacing for interface
                 elements.
               </Text>
@@ -71,7 +71,7 @@ export function Appearance() {
               <Text fw={500} size="lg" mb="xs">
                 Animations
               </Text>
-              <Text size="sm" c="dimmed">
+              <Text size="sm">
                 Enable or disable animations and transitions for better
                 performance.
               </Text>

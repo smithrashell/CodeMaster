@@ -31,15 +31,15 @@ export function TierPanel({
       <Card withBorder p="xs" style={{ backgroundColor }}>
         <Stack gap={4}>
           <Text size="xs" fw={500}>{tierDescription.subtitle}</Text>
-          <Text size="xs" c="dimmed">📊 {tierDescription.difficulty}</Text>
-          <Text size="xs" c="dimmed">🎯 {tierDescription.pool}</Text>
+          <Text size="xs">📊 {tierDescription.difficulty}</Text>
+          <Text size="xs">🎯 {tierDescription.pool}</Text>
         </Stack>
       </Card>
       <Group gap="xs">
         {tagsForTier.length > 0 ? (
           tagsForTier.map(tag => renderTagBadge(tag, tierKey))
         ) : (
-          <Text size="sm" c="dimmed">No tags in this tier</Text>
+          <Text size="sm">No tags in this tier</Text>
         )}
       </Group>
     </Stack>
