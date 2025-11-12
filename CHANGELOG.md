@@ -60,6 +60,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides at-a-glance view of daily progress without gamification overhead
 
 ### Fixed
+- **Fixed Goals page calculations to properly reflect user progress** (#201)
+  - **Weekly Accuracy Target**: Now uses backend-calculated weekly accuracy (last 7 days) instead of overall lifetime accuracy
+    - **Before**: Displayed overall success rate which didn't reflect recent performance
+    - **After**: Shows actual weekly accuracy from backend data (appState.learningPlan.outcomeTrends.weeklyAccuracy)
+    - Fixes "0%" display with "NO DATA YET" badge despite completed sessions
+  - **Problems Per Week**: Now calculates target based on user settings and shows remaining count
+    - **Before**: Showed static session count (e.g., "7" with "BEHIND" badge)
+    - **After**: Calculates weekly target from `sessionsPerWeek × sessionLength` (e.g., 2 × 5 = 10)
+    - Displays remaining problems: `{remaining} of {target} remaining` (e.g., "3 of 10 remaining")
+    - Handles 'auto' session length mode (uses max 12 problems)
+  - **Hint Efficiency & Learning Velocity**: Now uses backend-calculated values
+    - Uses appState.learningPlan.outcomeTrends data instead of calculating from overall statistics
+  - All metrics now properly reflect weekly progress toward configured learning plan targets
 - **Fixed dashboard text visibility in light mode** (#194)
   - **Root Cause**: In PR #191 (commit 3622809), all `c="dimmed"` were changed to `c="gray.4"` to fix dark mode
   - `gray.4` from Mantine's default palette (#ced4da) is designed for dark backgrounds only
