@@ -57,6 +57,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Removed hardcoded `!important` black text that broke dark mode
     - Replaced inline theme detection with useTheme() hook for proper reactivity
   - Both onboarding systems now fully readable and reactive in light and dark modes
+- **Fixed dashboard text visibility across all pages in both light and dark modes** (#194)
+  - **Removed ALL `c="dimmed"` props (93 files)**:
+    - Removed broken `c="dimmed"` that used non-existent `--mantine-color-dimmed` CSS variable
+    - Let Mantine's default theme system handle text colors automatically for proper theme adaptation
+    - Affected all dashboard pages: Overview, Progress (Goals, Learning Progress), Session History, Productivity Insights, Settings, and all their subcomponents
+  - **Removed hardcoded `c="white"` from charts and KPI cards**:
+    - Session History page: Removed from chart titles (Session Length Over Time, Session Accuracy Trends)
+    - Productivity Insights page: Removed from InsightsCard (3 instances), ProductivityCharts (2 instances), RecommendationsCard (8 instances), ProductivityKPIs card values
+    - Text now adapts to theme automatically - visible in both light and dark modes
+  - **Centered KPI card text for visual consistency**:
+    - Added `textAlign: 'center'` to Card styles and `justify="center"` to Group components
+    - Session History and Productivity Insights KPI cards now match Learning Progress page styling
+  - **Fixed problem analysis tour modal dark mode styling**:
+    - ProblemPageTimerTour.jsx now uses theme-aware Card background (#1a1b1e in dark, #ffffff in light)
+    - Added theme-aware border colors matching other tour modals
+  - All text across dashboard now properly visible and adapts to theme changes
 - **Fixed extension context error dialog UX** (#195)
   - Removed useless "Try Again" button that didn't fix extension context invalidation errors
   - Only "Reload Page" button now displayed (the only action that actually fixes the issue)

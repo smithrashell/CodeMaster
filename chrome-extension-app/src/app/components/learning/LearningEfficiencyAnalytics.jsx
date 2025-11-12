@@ -57,7 +57,7 @@ const LearningEfficiencyAnalytics = () => {
       <Card withBorder p="lg">
         <Title order={4} mb="md">Learning Efficiency Analytics</Title>
         <Center h={200}>
-          <Text c="dimmed">{error || 'Complete some sessions to see your learning efficiency trends'}</Text>
+          <Text>{error || 'Complete some sessions to see your learning efficiency trends'}</Text>
         </Center>
       </Card>
     );
@@ -102,7 +102,7 @@ const LearningEfficiencyAnalytics = () => {
   return (
     <Card withBorder p="lg">
       <Title order={4} mb="md">Learning Efficiency Analytics</Title>
-      <Text size="sm" c="dimmed" mb="lg">Track how each session impacts your overall learning progress</Text>
+      <Text size="sm" mb="lg">Track how each session impacts your overall learning progress</Text>
       
       {/* Session Impact Chart */}
       <div style={{ width: '100%', height: '200px', marginBottom: '20px' }}>

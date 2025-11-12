@@ -38,9 +38,6 @@
   --cm-tooltip-border: #e5e7eb;
   --cm-tooltip-text: #111827;
 
-  /* Mantine dimmed color for light mode - visible gray text */
-  --mantine-color-dimmed: #6b7280 !important;
-
   /* Chart color palette */
   --cm-chart-primary: #3b82f6;
   --cm-chart-success: #10b981;
@@ -86,11 +83,6 @@
 body {
   background-color: var(--cm-bg);
   color: var(--cm-text);
-}
-
-/* Force dimmed text color in light mode for ALL Mantine Text components */
-[data-c="dimmed"] {
-  color: #6b7280 !important;
 }
 
 /* ========= Accessibility Classes ========= */

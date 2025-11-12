@@ -18,7 +18,7 @@ import { IconTrophy as IconTrophyIcon, IconRefresh, IconTarget, IconInfoCircle }
 export const SelectedTagBadges = ({ selectedFocusAreas, getTagMasteryProgress }) => {
   if (!Array.isArray(selectedFocusAreas) || selectedFocusAreas.length === 0) {
     return (
-      <Text size="sm" c="dimmed">
+      <Text size="sm">
         No focus areas selected
       </Text>
     );
@@ -74,7 +74,7 @@ export const HeaderSection = ({ currentTier }) => (
       </Tooltip>
     </Group>
 
-    <Text size="sm" c="dimmed">
+    <Text size="sm">
       Current Learning Tier: <Text component="span" fw={500}>{currentTier}</Text>
     </Text>
   </>
@@ -86,7 +86,7 @@ export const SystemOverviewSection = ({ showExplanation, onToggle }) => (
     <Group justify="space-between" wrap="nowrap">
       <div>
         <Text size="sm" fw={500}>How Focus Areas Work</Text>
-        <Text size="xs" c="dimmed">
+        <Text size="xs">
           Our algorithm adapts your practice based on performance and learning patterns
         </Text>
       </div>
@@ -132,7 +132,7 @@ export const CurrentFocusAreasSection = ({ currentSessionTags, getTagMasteryProg
         <IconInfoCircle size={14} style={{ cursor: "help" }} />
       </Tooltip>
     </Group>
-    <Text size="xs" c="dimmed">
+    <Text size="xs">
       Based on your performance and mastery progress. <Text component="span" fw={500}>Updates automatically</Text> when you complete sessions.
     </Text>
     <SelectedTagBadges selectedFocusAreas={currentSessionTags} getTagMasteryProgress={getTagMasteryProgress} />
@@ -165,10 +165,10 @@ export const SystemRecommendationsSection = ({ focusAvailability }) => (
             </Badge>
           ))
         ) : (
-          <Text size="xs" c="dimmed">No system recommendations available</Text>
+          <Text size="xs">No system recommendations available</Text>
         )}
       </Group>
-      <Text size="xs" c="dimmed" mt="xs">
+      <Text size="xs" mt="xs">
         Chosen by analyzing your <Text component="span" fw={500}>performance patterns</Text>,{' '}
         <Text component="span" fw={500}>tag relationships</Text>, and{' '}
         <Text component="span" fw={500}>learning velocity</Text>
@@ -244,7 +244,7 @@ export const ActiveSessionTagsPreview = ({ selectedFocusAreas, systemSelectedTag
           </Badge>
         ))}
       </Group>
-      <Text size="xs" c="dimmed">
+      <Text size="xs">
         {isUserSelection
           ? "Your selections get 20% higher weight in problem selection, but the algorithm ensures you still practice related patterns for complete mastery."
           : "Pure algorithm selection based on your learning efficiency and pattern recognition progress. Select tags above to add your preferences."
@@ -272,7 +272,7 @@ export const MasteredTagsDisplay = ({ masteredTags }) => {
           </Badge>
         ))}
         {masteredTags.length > 5 && (
-          <Text size="sm" c="dimmed">+{masteredTags.length - 5} more</Text>
+          <Text size="sm">+{masteredTags.length - 5} more</Text>
         )}
       </Group>
     </Stack>
@@ -322,7 +322,7 @@ export const CustomModeControls = ({
           {showCustomMode ? "Use System Selection" : "Customize Focus Areas"}
         </Button>
         {showCustomMode && (
-          <Text size="xs" c="dimmed">
+          <Text size="xs">
             Override system selection with your own choices
           </Text>
         )}

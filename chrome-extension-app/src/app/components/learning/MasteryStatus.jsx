@@ -11,19 +11,19 @@ const MasteryStatus = ({ pathData }) => {
       <Title order={4} mb="md">Mastery Status</Title>
       <Stack gap="md">
         <div>
-          <Text size="sm" c="dimmed" mb="xs">Mastered Topics</Text>
+          <Text size="sm" mb="xs">Mastered Topics</Text>
           <Text fw={500} size="lg" c="green">
             {masteredCount} / {pathData.length}
           </Text>
         </div>
         <div>
-          <Text size="sm" c="dimmed" mb="xs">In Progress</Text>
+          <Text size="sm" mb="xs">In Progress</Text>
           <Text fw={500} size="lg" c="orange">
             {inProgressCount}
           </Text>
         </div>
         <div>
-          <Text size="sm" c="dimmed" mb="xs">Not Started</Text>
+          <Text size="sm" mb="xs">Not Started</Text>
           <Text fw={500} size="lg" c="red">
             {notStartedCount}
           </Text>

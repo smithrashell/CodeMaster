@@ -55,7 +55,7 @@ export const RecentSessionsTable = ({ recentSessions }) => {
             {recentSessions.length === 0 && (
               <tr className="cm-table-row">
                 <td colSpan={5} className="cm-table-td cm-table-empty">
-                  <Text c="dimmed">No recent sessions found. Start practicing to see your session history!</Text>
+                  <Text>No recent sessions found. Start practicing to see your session history!</Text>
                 </td>
               </tr>
             )}

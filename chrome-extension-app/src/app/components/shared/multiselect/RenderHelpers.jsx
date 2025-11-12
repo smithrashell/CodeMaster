@@ -122,7 +122,7 @@ export function renderDropdownOption({ item, value, maxValues, hoveredItem, setH
         <Box style={{ flex: 1 }}>
           <Text size="sm">{item.label}</Text>
           {item.reason && (
-            <Text size="xs" c="dimmed">
+            <Text size="xs">
               {item.reason === 'current-tier' && 'Current tier'}
               {item.reason === 'preview-locked' && 'Preview (locked)'}
               {item.reason === 'preview-unlocked' && 'Preview (unlocked)'}

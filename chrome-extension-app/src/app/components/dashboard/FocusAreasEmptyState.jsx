@@ -9,10 +9,10 @@ export function FocusAreasEmptyState({ onNavigateToSettings }) {
         <IconTarget size={16} />
         <Text size="sm" fw={500}>Current Focus Areas</Text>
       </Group>
-      <Text size="sm" c="dimmed" mb="xs">
+      <Text size="sm" mb="xs">
         No active session focus
       </Text>
-      <Text size="xs" c="dimmed" mb="md">
+      <Text size="xs" mb="md">
         Start a practice session to see current focus areas, or configure focus areas for your next session
       </Text>
       {onNavigateToSettings && (

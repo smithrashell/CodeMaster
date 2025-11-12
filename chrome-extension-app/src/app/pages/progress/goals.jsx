@@ -195,7 +195,7 @@ function GoalsLayout({
           <Title order={2}>
             Learning Plan & Missions
           </Title>
-          <Text size="sm" c="dimmed" mt="xs">
+          <Text size="sm" mt="xs">
             Configure your learning preferences to guide the adaptive engine
           </Text>
         </div>

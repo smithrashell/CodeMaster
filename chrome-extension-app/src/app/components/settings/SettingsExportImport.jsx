@@ -31,7 +31,7 @@ export function SettingsExportImport() {
             <Title order={4}>Settings Management</Title>
           </div>
 
-          <Text size="sm" c="dimmed">
+          <Text size="sm">
             Export your settings for backup or import previously saved settings.
           </Text>
 
@@ -57,7 +57,7 @@ export function SettingsExportImport() {
           {/* Export Section */}
           <Stack gap="xs">
             <Text size="sm" fw={500}>Export Settings</Text>
-            <Text size="xs" c="dimmed">
+            <Text size="xs">
               Download all your current settings as a JSON file for backup purposes.
             </Text>
             <Button
@@ -74,7 +74,7 @@ export function SettingsExportImport() {
           {/* Import Section */}
           <Stack gap="xs">
             <Text size="sm" fw={500}>Import Settings</Text>
-            <Text size="xs" c="dimmed">
+            <Text size="xs">
               Upload a previously exported settings file to restore your preferences.
             </Text>
             <FileInput
@@ -91,7 +91,7 @@ export function SettingsExportImport() {
           {/* Global Reset Section */}
           <Stack gap="xs">
             <Text size="sm" fw={500}>Reset All Settings</Text>
-            <Text size="xs" c="dimmed">
+            <Text size="xs">
               Reset all settings to their default values. This action cannot be undone.
             </Text>
             <GlobalSettingsResetButton onReset={handleGlobalReset} />

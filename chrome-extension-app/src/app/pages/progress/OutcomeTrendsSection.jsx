@@ -19,7 +19,7 @@ export function OutcomeTrendsSection({
           <Grid>
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
-                <Text size="xs" c="dimmed" mb={4}>Weekly Accuracy Target</Text>
+                <Text size="xs" mb={4}>Weekly Accuracy Target</Text>
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.weeklyAccuracy.value}%
                 </Text>
@@ -31,7 +31,7 @@ export function OutcomeTrendsSection({
             
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
-                <Text size="xs" c="dimmed" mb={4}>Problems Per Week</Text>
+                <Text size="xs" mb={4}>Problems Per Week</Text>
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.problemsPerWeek.display || outcomeTrends.problemsPerWeek.value}
                 </Text>
@@ -43,7 +43,7 @@ export function OutcomeTrendsSection({
             
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
-                <Text size="xs" c="dimmed" mb={4}>Hint Efficiency</Text>
+                <Text size="xs" mb={4}>Hint Efficiency</Text>
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.hintEfficiency.display}
                 </Text>
@@ -55,7 +55,7 @@ export function OutcomeTrendsSection({
             
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
-                <Text size="xs" c="dimmed" mb={4}>Learning Velocity</Text>
+                <Text size="xs" mb={4}>Learning Velocity</Text>
                 <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.learningVelocity.value}
                 </Text>

@@ -59,7 +59,7 @@ function BreakIntervalSettings({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm" fw={500}>Break Reminders</Text>
-          <Text size="xs" c="dimmed">Remind you to take breaks during long sessions</Text>
+          <Text size="xs">Remind you to take breaks during long sessions</Text>
         </div>
         <Switch
           checked={breakEnabled}
@@ -84,7 +84,7 @@ function BreakIntervalSettings({ settings, updateSettings }) {
               { value: 60, label: '60m' }
             ]}
           />
-          <Text size="xs" c="dimmed" mt="xs">
+          <Text size="xs" mt="xs">
             Recommended: 25 minutes (Pomodoro technique)
           </Text>
         </div>
@@ -139,7 +139,7 @@ function NotificationPreferences({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Sound Alerts</Text>
-          <Text size="xs" c="dimmed">Play sound for timer events</Text>
+          <Text size="xs">Play sound for timer events</Text>
         </div>
         <Switch
           checked={soundEnabled}
@@ -150,7 +150,7 @@ function NotificationPreferences({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Browser Notifications</Text>
-          <Text size="xs" c="dimmed">Show system notifications</Text>
+          <Text size="xs">Show system notifications</Text>
         </div>
         <Switch
           checked={browserNotifications}
@@ -161,7 +161,7 @@ function NotificationPreferences({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Visual Alerts</Text>
-          <Text size="xs" c="dimmed">Flash or highlight timer when events occur</Text>
+          <Text size="xs">Flash or highlight timer when events occur</Text>
         </div>
         <Switch
           checked={visualAlerts}
@@ -183,7 +183,7 @@ function TimerSettingsHeader() {
           <IconInfoCircle size={16} style={{ cursor: "help", color: 'var(--mantine-color-dimmed)' }} />
         </Tooltip>
       </div>
-      <Text size="sm" c="dimmed">
+      <Text size="sm">
         Customize how the timer appears and behaves during your problem-solving sessions.
       </Text>
     </>
@@ -204,7 +204,7 @@ function TimerSettingsActions({ hasChanges, loading, isSaving, onReset, onSave }
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <IconInfoCircle size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
-          <Text size="xs" c="dimmed">
+          <Text size="xs">
             Timer settings apply to all problem-solving sessions
           </Text>
         </div>
@@ -231,7 +231,7 @@ function TimerSettingsLoadingState() {
           <IconClock size={20} />
           <Title order={4}>Timer Settings</Title>
         </div>
-        <Text size="sm" c="dimmed">Loading timer settings...</Text>
+        <Text size="sm">Loading timer settings...</Text>
       </Stack>
     </Card>
   );

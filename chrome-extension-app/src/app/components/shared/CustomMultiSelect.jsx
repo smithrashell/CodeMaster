@@ -133,14 +133,14 @@ function CustomMultiSelect({
 
       {/* Description */}
       {description && (
-        <Text size="xs" c="dimmed" mt={4}>
+        <Text size="xs" mt={4}>
           {description}
         </Text>
       )}
 
       {/* Max values indicator */}
       {maxValues && (
-        <Text size="xs" c="dimmed" mt={2}>
+        <Text size="xs" mt={2}>
           {value.length}/{maxValues} selected
         </Text>
       )}

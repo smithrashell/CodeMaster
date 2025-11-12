@@ -36,7 +36,7 @@ export function AccessibilityActionButtons({
           If you need additional accessibility accommodations or encounter any barriers 
           while using this application, please don&apos;t hesitate to reach out for support.
         </Text>
-        <Text size="xs" c="dimmed">
+        <Text size="xs">
           These settings are saved securely and will persist across browser sessions.
           You may need to refresh the page for some changes to take full effect.
         </Text>

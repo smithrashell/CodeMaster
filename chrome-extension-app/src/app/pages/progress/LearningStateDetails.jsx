@@ -36,13 +36,13 @@ export function LearningStateDetails({
           <Title order={4} mb="md">Learning State Details</Title>
           <SimpleGrid cols={4} spacing="md">
             <div>
-              <Text size="xs" c="dimmed" mb={4}>Current Tier</Text>
+              <Text size="xs" mb={4}>Current Tier</Text>
               <Badge variant="light" color="blue" size="sm">
                 {currentTier || "Unknown"}
               </Badge>
             </div>
             <div>
-              <Text size="xs" c="dimmed" mb={4}>Learning Status</Text>
+              <Text size="xs" mb={4}>Learning Status</Text>
               <Badge 
                 variant="light" 
                 color={getLearningStatusColor(learningStatus)} 
@@ -52,13 +52,13 @@ export function LearningStateDetails({
               </Badge>
             </div>
             <div>
-              <Text size="xs" c="dimmed" mb={4}>Timer Pattern</Text>
+              <Text size="xs" mb={4}>Timer Pattern</Text>
               <Text size="sm" fw={600} style={{ color: 'var(--cm-text)' }}>
                 {timerBehavior ?? "Analyzing patterns..."}
               </Text>
             </div>
             <div>
-              <Text size="xs" c="dimmed" mb={4}>Progress Trend</Text>
+              <Text size="xs" mb={4}>Progress Trend</Text>
               <Group gap="xs" align="center">
                 <Badge 
                   variant="light" 
