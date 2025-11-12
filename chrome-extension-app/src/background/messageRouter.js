@@ -58,13 +58,10 @@ import { onboardingHandlers } from "./handlers/onboardingHandlers.js";
  * @param {Function} sendResponse - Callback to send response
  * @param {Function} finishRequest - Cleanup callback to mark request as complete
  * @param {Object} dependencies - Dependencies from background script
- * @param {Map} dependencies.responseCache - Response cache Map
  * @param {Object} dependencies.backgroundScriptHealth - Health monitoring object
  * @param {Function} dependencies.withTimeout - Timeout wrapper function
  * @param {Function} dependencies.cleanupStalledSessions - Session cleanup function
  * @param {Function} dependencies.getStrategyMapData - Strategy map data function
- * @param {Function} dependencies.getCachedResponse - Cache getter function
- * @param {Function} dependencies.setCachedResponse - Cache setter function
  * @param {Function} dependencies.checkOnboardingStatus - Onboarding status checker
  * @param {Function} dependencies.completeOnboarding - Onboarding completion function
  * @returns {boolean} - True if response will be sent asynchronously
@@ -73,13 +70,10 @@ import { onboardingHandlers } from "./handlers/onboardingHandlers.js";
 export function routeMessage(request, sendResponse, finishRequest, dependencies = {}) {
   // Destructure dependencies for easier access
   const {
-    responseCache,
     backgroundScriptHealth,
     withTimeout: _withTimeout, // Used by extracted handlers
     cleanupStalledSessions: _cleanupStalledSessions, // Used by extracted handlers
     getStrategyMapData,
-    getCachedResponse,
-    setCachedResponse,
     checkOnboardingStatus: _checkOnboardingStatus, // Used by onboarding handlers
     completeOnboarding: _completeOnboarding // Used by onboarding handlers
   } = dependencies;
@@ -171,45 +165,6 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
       case "getSettings":
         StorageService.getSettings().then(sendResponse).finally(finishRequest);
         return true;
-      case "clearSettingsCache": {
-        // Clear settings cache from background script cache
-        const settingsCacheKeys = ['settings_all', 'settings_'];
-        let clearedCount = 0;
-
-        for (const [key] of responseCache.entries()) {
-          if (settingsCacheKeys.some(prefix => key.startsWith(prefix))) {
-            responseCache.delete(key);
-            console.log(`🗑️ Cleared settings cache key: ${key}`);
-            clearedCount++;
-          }
-        }
-
-        console.log(`🔄 Cleared ${clearedCount} settings cache entries`);
-
-        // Also call StorageService method for any internal cleanup
-        StorageService.clearSettingsCache();
-        sendResponse({ status: "success", clearedCount });
-        finishRequest();
-        return true;
-      }
-      case "clearSessionCache": {
-        // Clear session-related cache from background script cache
-        const sessionCacheKeys = ['createSession', 'getActiveSession', 'session_'];
-        let sessionClearedCount = 0;
-        
-        for (const [key] of responseCache.entries()) {
-          if (sessionCacheKeys.some(prefix => key.startsWith(prefix))) {
-            responseCache.delete(key);
-            console.log(`🗑️ Cleared session cache key: ${key}`);
-            sessionClearedCount++;
-          }
-        }
-        
-        console.log(`🔄 Cleared ${sessionClearedCount} session cache entries`);
-        sendResponse({ status: "success", clearedCount: sessionClearedCount });
-        finishRequest();
-        return true;
-      }
 
       case "getSessionState":
         StorageService.getSessionState("session_state")
@@ -402,18 +357,6 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
 
       /** ──────────────── Strategy Data Operations ──────────────── **/
       case "getStrategyForTag": {
-        const cacheKey = `strategy_${request.tag}`;
-        const cachedStrategy = getCachedResponse(cacheKey);
-
-        if (cachedStrategy) {
-          console.log(
-            `🔍 BACKGROUND DEBUG: Using cached strategy for "${request.tag}"`
-          );
-          sendResponse(cachedStrategy);
-          finishRequest();
-          return true;
-        }
-
         console.log(
           `🔍 BACKGROUND DEBUG: Getting strategy for tag "${request.tag}"`
         );
@@ -429,7 +372,6 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
             );
 
             const response = { status: "success", data: strategy };
-            setCachedResponse(cacheKey, response);
             sendResponse(response);
             console.log(
               `🔍 BACKGROUND DEBUG: Response sent for getStrategyForTag "${request.tag}"`
