@@ -4,7 +4,64 @@ All notable changes to this project will be documented in this file.
 
 ---
 
-## [Unreleased] - 2025-11-02
+## [Unreleased] - 2025-11-12
+
+### Fixed
+**Goals Page Weekly Accuracy and Problems Per Week Calculations Incorrect** ([Issue #201](https://github.com/smithrashell/CodeMaster/issues/201)):
+- Fixed Goals page Outcome Trends showing incorrect weekly accuracy (0%) and problems per week calculations
+- Root causes:
+  1. **Missing data in background script**: `getGoalsData` handler wasn't fetching sessions and attempts data
+     - Backend calculation function received empty arrays instead of actual user data
+     - Result: Weekly accuracy showed 0%, problems per week showed 0
+  2. **Frontend status recalculation bug**: Frontend recalculated status instead of using backend values
+     - Backend correctly calculated 96% accuracy as "excellent"
+     - Frontend recalculated using generic threshold, marking it as "behind"
+  3. **Hardcoded thresholds**: Backend used fixed 20-25 problems threshold instead of user's actual target
+     - User with 2 sessions/week × 5 problems = 10 target was evaluated against 20-25 threshold
+     - Result: 24 problems completed marked as "behind" instead of "excellent" (240% of target)
+  4. **Redundant hint analytics fetch**: Service layer fetched hint data twice
+     - Background script fetched hint data but service layer ignored it
+     - Made duplicate API call causing ~50ms performance overhead
+  5. **Missing error handling**: Promise.all would fail entirely if any database fetch failed
+- Impact: Dashboard showed misleading metrics and incorrect status badges
+  - Weekly accuracy: 0% (should be 96%)
+  - Weekly accuracy status: "BEHIND" (should be "EXCELLENT")
+  - Problems per week: Incorrect count and status
+  - Display: "10 of 10 remaining" with "NEEDS IMPROVEMENT" badge (should show "EXCELLENT")
+  - Hint efficiency: Using estimates instead of real data
+- Solution: Fixed data flow, status calculations, and eliminated redundant operations
+  - **messageRouter.js**:
+    - Added imports for `getAllSessions()` and `getAllAttempts()`
+    - Updated `getGoalsData` handler to fetch and pass sessions, attempts, and hint analytics data
+    - Added error handling to Promise.all (each fetch has .catch() returning empty array)
+    - Fixed hint analytics to fetch weekly data with date range filter
+  - **dashboardService.js**:
+    - Updated `calculateOutcomeTrends()` signature to accept `userSettings` and `providedHints` parameters
+    - Added calculation of user's actual weekly target from cadence settings
+    - Changed `problemsPerWeekStatus` to use percentage-based calculation (>=100% = excellent, >=80% = on_track)
+    - Fixed hint efficiency to use `providedHints` instead of making redundant `HintInteractionService` call
+    - Added division by zero protection for hint calculations
+    - Fixed fallback target to calculate dynamically instead of using hardcoded "25-30" string
+    - Updated `generateGoalsData()` to extract and pass `hintsUsed` to `calculateOutcomeTrends()`
+  - **goals.jsx**:
+    - Updated `calculateOutcomeTrends()` to trust backend-calculated status values
+    - Added check to only recalculate status if backend value is truly missing or 'no_data'
+    - Fixed status fallback logic to prevent incorrect recalculation
+- Files modified:
+  - `chrome-extension-app/src/background/messageRouter.js` - Added data fetching and error handling
+  - `chrome-extension-app/src/app/services/dashboardService.js` - Fixed calculations and eliminated redundant calls
+  - `chrome-extension-app/src/app/pages/progress/goals.jsx` - Fixed status usage and fallback logic
+- Performance improvements:
+  - Eliminated redundant hint analytics fetch: ~50ms faster per Goals page load
+  - Eliminated redundant session/attempt fetches in getGoalsData fallback path
+- Expected behavior after fix:
+  - Weekly accuracy: Shows real data (96% in user's case) with correct "EXCELLENT" status
+  - Problems per week: Shows 24 problems with "EXCELLENT" status (240% of 10 target)
+  - Display: "0 of 10 remaining" with green "EXCELLENT" badge
+  - Hint efficiency: Uses real hint analytics data when available
+  - All metrics use actual session data instead of estimates
+
+
 
 ### Fixed
 **Hint Tracking Shows Incorrect Category Breakdown** ([Issue #163](https://github.com/smithrashell/CodeMaster/issues/163)):

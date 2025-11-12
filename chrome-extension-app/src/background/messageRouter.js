@@ -25,6 +25,8 @@ import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } fro
 import { buildRelationshipMap } from "../shared/db/problem_relationships.js";
 import { getProblem, fetchAllProblems } from "../shared/db/problems.js";
 import { getAllStandardProblems } from "../shared/db/standard_problems.js";
+import { getAllAttempts } from "../shared/db/attempts.js";
+import { getAllSessions } from "../shared/db/sessions.js";
 
 // Dashboard service imports
 import {
@@ -474,25 +476,47 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
             // 🎯 Get coordinated focus decision (unified data source)
             const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
             const settings = await StorageService.getSettings();
-            
+
+            // Fetch sessions, attempts, and hint analytics data needed for outcome trends calculation
+            const [allSessions, allAttempts, hintsUsed] = await Promise.all([
+              getAllSessions(),
+              getAllAttempts(),
+              (async () => {
+                try {
+                  const analytics = await HintInteractionService.getSystemAnalytics({});
+                  return {
+                    total: analytics.overview?.totalInteractions || 0,
+                    contextual: 0,
+                    general: 0,
+                    primer: 0
+                  };
+                } catch (error) {
+                  return { total: 0, contextual: 0, general: 0, primer: 0 };
+                }
+              })()
+            ]);
+
             // Use coordinated focus decision for consistency
             const focusAreas = focusDecision.activeFocusTags;
             const userFocusAreas = focusDecision.userPreferences;
             const systemFocusTags = focusDecision.systemRecommendation;
-            
+
             console.log("🎯 Goals data using coordination service:", {
-              focusAreas,
-              userFocusAreas, 
-              systemFocusTags,
-              reasoning: focusDecision.algorithmReasoning
-            });
-            
-            const result = await getGoalsData(request.options || {}, { 
-              settings, 
               focusAreas,
               userFocusAreas,
               systemFocusTags,
-              focusDecision // Pass full decision for additional context
+              reasoning: focusDecision.algorithmReasoning
+            });
+
+            const result = await getGoalsData(request.options || {}, {
+              settings,
+              focusAreas,
+              userFocusAreas,
+              systemFocusTags,
+              focusDecision, // Pass full decision for additional context
+              allSessions, // Pass sessions for outcome trends calculation
+              allAttempts, // Pass attempts for outcome trends calculation
+              hintsUsed // Pass hint analytics for outcome trends calculation
             });
             sendResponse({ result });
           } catch (error) {

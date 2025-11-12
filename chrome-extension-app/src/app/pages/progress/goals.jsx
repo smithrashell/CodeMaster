@@ -34,36 +34,63 @@ const useGuardrails = () => {
 };
 
 // Helper function to calculate outcome trends from app state
-const calculateOutcomeTrends = (appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus) => {
-  const accuracyValue = appState.statistics?.successRate?.overall ? 
-    Math.round(appState.statistics.successRate.overall * 100) : 0;
-  
-  const sessionsCount = appState.sessions?.allSessions?.length || 0;
-  const hintEfficiency = appState.statistics?.averageHints || 0;
-  const currentTier = appState.mastery?.currentTier || "Getting Started";
-  
+const calculateOutcomeTrends = (appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus, cadenceSettings) => {
+  // Check if we have any session/attempt data to distinguish "no data" from "0% performance"
+  const hasData = (appState.sessions?.allSessions?.length || 0) > 0 || (appState.attempts?.length || 0) > 0;
+
+  // Use backend-calculated weekly accuracy (from last 7 days) instead of overall accuracy
+  const weeklyAccuracyData = appState.learningPlan?.outcomeTrends?.weeklyAccuracy;
+  const weeklyAccuracyValue = weeklyAccuracyData?.value ?? 0;
+
+  // Calculate weekly target from user settings
+  const sessionsPerWeek = cadenceSettings.sessionsPerWeek || 5;
+  const sessionLength = cadenceSettings.sessionLength;
+
+  // Handle sessionLength ('auto' mode uses max 12, numeric values use the number)
+  const maxProblemsPerSession = sessionLength === 'auto' ? 12 : (typeof sessionLength === 'number' ? sessionLength : 5);
+  const weeklyTarget = sessionsPerWeek * maxProblemsPerSession;
+
+  // Get actual problems completed this week from backend
+  const weeklyProblemsCompleted = appState.learningPlan?.outcomeTrends?.problemsPerWeek?.value ?? 0;
+  const remainingProblems = Math.max(0, weeklyTarget - weeklyProblemsCompleted);
+
+  // Use backend hint efficiency data
+  const hintEfficiencyData = appState.learningPlan?.outcomeTrends?.hintEfficiency;
+  const hintEfficiency = hintEfficiencyData?.value ?? 0;
+
+  // Use backend learning velocity data
+  const learningVelocityData = appState.learningPlan?.outcomeTrends?.learningVelocity;
+  const learningVelocity = learningVelocityData?.value || "Getting Started";
+
+  // For display: If we have sessions/attempts, show actual metrics (even if 0)
+  // Only show "no data" if we truly have no activity ever
   return {
     weeklyAccuracy: {
-      value: accuracyValue,
-      status: accuracyValue > 0 ? getAccuracyStatus(accuracyValue / 100) : "no_data",
+      value: weeklyAccuracyValue,
+      // Use backend-calculated status (already considers target thresholds)
+      status: hasData ? (weeklyAccuracyData?.status || getAccuracyStatus(weeklyAccuracyValue / 100)) : "no_data",
       target: 75
     },
     problemsPerWeek: {
-      value: sessionsCount,
-      status: sessionsCount > 0 ? getProblemsStatus(sessionsCount) : "no_data",
-      target: "25-30",
-      display: sessionsCount > 0 ? `${sessionsCount}` : "No sessions yet"
+      value: weeklyProblemsCompleted,
+      // Use backend-calculated status (already considers user's actual target)
+      status: hasData ? (appState.learningPlan?.outcomeTrends?.problemsPerWeek?.status || getProblemsStatus(weeklyProblemsCompleted)) : "no_data",
+      target: weeklyTarget,
+      // Always show remaining count if we have any data, even if it's "10 of 10 remaining"
+      display: hasData
+        ? `${remainingProblems} of ${weeklyTarget} remaining`
+        : "No sessions yet"
     },
     hintEfficiency: {
       value: hintEfficiency,
-      status: hintEfficiency > 0 ? getHintEfficiencyStatus(hintEfficiency) : "no_data",
-      display: hintEfficiency > 0 ? 
-        `${hintEfficiency.toFixed(1)} per problem` : 
-        "No data yet"
+      status: hasData && hintEfficiency > 0 ? getHintEfficiencyStatus(hintEfficiency) : "no_data",
+      display: hasData && hintEfficiency > 0
+        ? (hintEfficiencyData?.display || `${hintEfficiency.toFixed(1)} per problem`)
+        : "No data yet"
     },
     learningVelocity: {
-      value: currentTier,
-      status: "adaptive"
+      value: learningVelocity,
+      status: learningVelocityData?.status || "adaptive"
     }
   };
 };
@@ -105,7 +132,12 @@ function updateLearningPlanData({
   setTodaysProgress(progress);
 
   // Always update outcome trends with available data or meaningful fallbacks
-  const trends = calculateOutcomeTrends(appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus);
+  // Note: We pass the cadence settings from setters context to ensure calculations use current settings
+  const currentCadenceSettings = {
+    sessionsPerWeek: appState.learningPlan.cadence?.sessionsPerWeek ?? 5,
+    sessionLength: appState.learningPlan.cadence?.sessionLength ?? "auto"
+  };
+  const trends = calculateOutcomeTrends(appState, getAccuracyStatus, getProblemsStatus, getHintEfficiencyStatus, currentCadenceSettings);
   setOutcomeTrends(trends);
 }
 
@@ -116,10 +148,8 @@ const createSettingsHandlers = (settings, handlers, _context) => {
   const { setCadenceSettings, setFocusPriorities, setGuardrails } = setters;
 
   const handleCadenceChange = (field, value) => {
-    console.log(`🔧 handleCadenceChange - field: ${field}, value:`, value, typeof value);
     setCadenceSettings(prev => {
       const newSettings = { ...prev, [field]: value };
-      console.log("🔧 handleCadenceChange - new cadence settings:", newSettings);
       return newSettings;
     });
     debouncedSave();
@@ -315,12 +345,6 @@ export function Goals() {
         focusAreas: focusPrioritiesRef.current.primaryTags,
         numberofNewProblemsPerSession: guardrailsRef.current.maxNewProblems
       };
-
-      console.log("💾 Goals.jsx - Saving settings:", {
-        sessionLength: updatedSettings.sessionLength,
-        sessionsPerWeek: updatedSettings.sessionsPerWeek,
-        fullSettings: updatedSettings
-      });
 
       const response = await settingsMessaging.saveSettings(updatedSettings);
 
