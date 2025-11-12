@@ -203,6 +203,23 @@ export const updateSessionInDB = async (session) => {
 };
 
 /**
+ * Deletes a session from IndexedDB by ID.
+ * @param {string} sessionId - ID of the session to delete
+ * @returns {Promise<void>}
+ */
+export const deleteSessionFromDB = async (sessionId) => {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction("sessions", "readwrite");
+    const store = transaction.objectStore("sessions");
+
+    const request = store.delete(sessionId);
+    request.onsuccess = () => resolve();
+    request.onerror = (event) => reject(event.target.error);
+  });
+};
+
+/**
  * Atomically gets latest session or creates new one if none exists.
  * Prevents race conditions by doing both operations in single transaction.
  * @param {string} sessionType - Type of session to get or create

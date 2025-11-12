@@ -1,7 +1,9 @@
 /**
  * Storage Cleanup Manager - Periodic Session Cleanup
  *
- * Deletes old expired sessions while preserving completed sessions forever.
+ * NOTE: As of Issue #193, expired sessions are now deleted immediately upon regeneration.
+ * This manager is kept for potential future edge case handling (orphaned data, crashes).
+ * Preserves completed sessions forever.
  * Runs every 24 hours while extension is active.
  */
 
@@ -16,9 +18,11 @@ export default class StorageCleanupManager {
 
   /**
    * Retention policies for different session types (in days)
+   * NOTE: Expired sessions are now deleted immediately (Issue #193), so this cleanup
+   * only handles edge cases like orphaned data from crashes.
    */
   static RETENTION_POLICY = {
-    expired: 30,   // Delete expired sessions after 30 days
+    expired: 0,    // Delete any remaining expired sessions immediately (edge cases only)
     completed: null // NEVER delete completed sessions
   };
 

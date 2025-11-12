@@ -21,7 +21,7 @@ import StorageCleanupManager from "../shared/utils/storageCleanup.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../shared/db/index.js";
 import { getAllFromStore } from "../shared/db/common.js";
-import { updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
+import { updateSessionInDB, deleteSessionFromDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
 
 // Onboarding (only functions passed as dependencies to messageRouter)
 import {
@@ -9756,11 +9756,9 @@ const cleanupStalledSessions = async function() {
       try {
         switch (action) {
           case 'expire':
-            session.status = 'expired';
-            session.lastActivityTime = new Date().toISOString();
-            await updateSessionInDB(session);
-            console.log(`⏰ Expired session ${sessionId}`);
-            actions.push(`expired:${sessionId}`);
+            await deleteSessionFromDB(sessionId);
+            console.log(`Deleted expired session ${sessionId} immediately`);
+            actions.push(`deleted:${sessionId}`);
             break;
             
           case 'auto_complete':
