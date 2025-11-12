@@ -1366,6 +1366,7 @@ export const SessionService = {
   /**
    * Refresh/regenerate current session with new problems
    */
+  // eslint-disable-next-line require-await
   async refreshSession(sessionType = 'standard', forceNew = false) {
     logger.info(`🔄 Refreshing ${sessionType} session (forceNew: ${forceNew})`);
     
