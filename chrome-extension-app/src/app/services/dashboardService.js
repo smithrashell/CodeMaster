@@ -309,9 +309,9 @@ async function generateAnalyticsData(filteredSessions, filteredAttempts, learnin
 /**
  * Calculate derived metrics from attempts and sessions
  */
-function calculateProgressMetrics(filteredAttempts, filteredSessions) {
-  const timerBehavior = calculateTimerBehavior(filteredAttempts) || "No data";
-  const timerPercentage = calculateTimerPercentage(filteredAttempts) || 0;
+function calculateProgressMetrics(filteredAttempts, filteredSessions, problemDifficultyMap) {
+  const timerBehavior = calculateTimerBehavior(filteredAttempts, problemDifficultyMap) || "No data";
+  const timerPercentage = calculateTimerPercentage(filteredAttempts, problemDifficultyMap) || 0;
   const learningStatus = calculateLearningStatus(filteredAttempts, filteredSessions) || "No Data";
   const progressTrendData = calculateProgressTrend(filteredAttempts) || { trend: "No Data", percentage: 0 };
 
@@ -556,7 +556,7 @@ export async function getDashboardStatistics(options = {}) {
     const { sessionAnalytics, masteryData, goalsData, learningEfficiencyData } = await generateAnalyticsData(filteredSessions, filteredAttempts, learningState);
 
     // Calculate progress metrics
-    const { timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage } = calculateProgressMetrics(filteredAttempts, filteredSessions);
+    const { timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage } = calculateProgressMetrics(filteredAttempts, filteredSessions, problemDifficultyMap);
 
     // Calculate strategy success rate
     const strategySuccessRate = calculateStrategySuccessRate(filteredSessions, filteredAttempts);
@@ -1490,20 +1490,35 @@ async function calculatePeriodEfficiency(sessions, allAttempts) {
 
 /**
  * Calculate timer behavior based on actual session timing performance
+ * Now aligned with calculateTimerPercentage to use:
+ * - Last 100 attempts (not 50)
+ * - All attempts (not just successful ones)
+ * - Difficulty-based time limits (Easy: 20min, Medium: 45min, Hard: 90min)
+ * @param {Array} attempts - Array of attempt objects
+ * @param {Object} problemDifficultyMap - Map of problem_id to difficulty string
+ * @returns {string} Badge label for timer behavior
  */
-function calculateTimerBehavior(attempts) {
+function calculateTimerBehavior(attempts, problemDifficultyMap) {
   if (!attempts || attempts.length === 0) return "No data";
-  
-  const recentAttempts = attempts.slice(-50); // Last 50 attempts for current behavior
+
+  const recentAttempts = attempts.slice(-100); // Last 100 attempts (aligned with percentage)
   const timelyAttempts = recentAttempts.filter(attempt => {
-    // Consider an attempt timely if it was successful and not overly long (support both snake_case and PascalCase)
-    const success = attempt.success !== undefined ? attempt.success : attempt.Success;
     const timeSpent = attempt.time_spent || attempt.TimeSpent;
-    return success && timeSpent && timeSpent < 3600; // Under 1 hour (time_spent is in seconds)
+    // Handle edge cases: zero/negative time or missing time
+    if (timeSpent === undefined || timeSpent === null || timeSpent <= 0) return false;
+
+    // Look up difficulty from the map (support both snake_case and PascalCase)
+    const problemId = attempt.problem_id || attempt.ProblemID;
+    const difficulty = problemDifficultyMap[problemId] || "Medium"; // Default to Medium if not found
+
+    // Use difficulty-based time limits (time_spent is in seconds)
+    const timeLimit = difficulty === "Easy" ? 1200 :    // 20 minutes
+                     difficulty === "Hard" ? 5400 : 2700; // 90 minutes (Hard), 45 minutes (Medium)
+    return timeSpent <= timeLimit;
   });
-  
+
   const timelyPercentage = (timelyAttempts.length / recentAttempts.length) * 100;
-  
+
   if (timelyPercentage >= 85) return "Excellent timing";
   if (timelyPercentage >= 70) return "On time";
   if (timelyPercentage >= 50) return "Improving pace";
@@ -1597,22 +1612,29 @@ function calculateProgressTrend(attempts) {
 
 /**
  * Calculate percentage of attempts completed within reasonable time limits
+ * @param {Array} attempts - Array of attempt objects
+ * @param {Object} problemDifficultyMap - Map of problem_id to difficulty string
+ * @returns {number} Percentage of attempts within time limits
  */
-function calculateTimerPercentage(attempts) {
+function calculateTimerPercentage(attempts, problemDifficultyMap) {
   if (!attempts || attempts.length === 0) return 0;
-  
+
   const recentAttempts = attempts.slice(-100); // Last 100 attempts
   const withinLimits = recentAttempts.filter(attempt => {
     const timeSpent = attempt.time_spent || attempt.TimeSpent;
-    if (!timeSpent) return false;
-    // Define reasonable time limits: Easy <20min, Medium <45min, Hard <90min
-    // time_spent is in seconds, so multiply minutes by 60
-    const difficulty = attempt.difficulty || attempt.Difficulty;
-    const timeLimit = difficulty === "Easy" ? 1200 :
-                     difficulty === "Hard" ? 5400 : 2700;
+    // Handle edge cases: zero/negative time or missing time
+    if (timeSpent === undefined || timeSpent === null || timeSpent <= 0) return false;
+
+    // Look up difficulty from the map (support both snake_case and PascalCase)
+    const problemId = attempt.problem_id || attempt.ProblemID;
+    const difficulty = problemDifficultyMap[problemId] || "Medium"; // Default to Medium if not found
+
+    // Use difficulty-based time limits (time_spent is in seconds)
+    const timeLimit = difficulty === "Easy" ? 1200 :    // 20 minutes
+                     difficulty === "Hard" ? 5400 : 2700; // 90 minutes (Hard), 45 minutes (Medium)
     return timeSpent <= timeLimit;
   });
-  
+
   return Math.round((withinLimits.length / recentAttempts.length) * 100);
 }
 
