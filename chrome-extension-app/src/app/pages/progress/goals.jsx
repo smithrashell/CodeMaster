@@ -148,10 +148,8 @@ const createSettingsHandlers = (settings, handlers, _context) => {
   const { setCadenceSettings, setFocusPriorities, setGuardrails } = setters;
 
   const handleCadenceChange = (field, value) => {
-    console.log(`🔧 handleCadenceChange - field: ${field}, value:`, value, typeof value);
     setCadenceSettings(prev => {
       const newSettings = { ...prev, [field]: value };
-      console.log("🔧 handleCadenceChange - new cadence settings:", newSettings);
       return newSettings;
     });
     debouncedSave();
@@ -347,12 +345,6 @@ export function Goals() {
         focusAreas: focusPrioritiesRef.current.primaryTags,
         numberofNewProblemsPerSession: guardrailsRef.current.maxNewProblems
       };
-
-      console.log("💾 Goals.jsx - Saving settings:", {
-        sessionLength: updatedSettings.sessionLength,
-        sessionsPerWeek: updatedSettings.sessionsPerWeek,
-        fullSettings: updatedSettings
-      });
 
       const response = await settingsMessaging.saveSettings(updatedSettings);
 

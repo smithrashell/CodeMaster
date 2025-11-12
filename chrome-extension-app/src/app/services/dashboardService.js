@@ -1093,7 +1093,7 @@ export async function generateMasteryData(learningState) {
 /**
  * Calculate outcome trends metrics for Goals page
  */
-async function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, providedHints = null) {
+function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, providedHints = null) {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -1102,13 +1102,6 @@ async function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, pr
   const sessionLength = userSettings.sessionLength;
   const maxProblemsPerSession = sessionLength === 'auto' ? 12 : (typeof sessionLength === 'number' ? sessionLength : 5);
   const userWeeklyTarget = sessionsPerWeek * maxProblemsPerSession;
-
-  console.log("🎯 calculateOutcomeTrends called:", {
-    totalAttempts: attempts.length,
-    now: now.toISOString(),
-    oneWeekAgo: oneWeekAgo.toISOString(),
-    sampleAttempt: attempts[0]
-  });
 
   // Weekly Accuracy Target (support both snake_case and PascalCase)
   // Filter attempts from last 7 days, with validation for date field
@@ -1144,33 +1137,17 @@ async function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, pr
   // Problems Per Week
   const weeklyProblems = new Set(weeklyAttempts.map(a => a.problem_id || a.ProblemID)).size;
   
-  // Hint Efficiency - use real analytics data via background script
+  // Hint Efficiency - use provided hint analytics data from background script
   let hintEfficiency = "2.5";
-  try {
-    // Get real hint analytics data with date filtering
-    const hintAnalyticsData = await HintInteractionService.getSystemAnalytics({
-      startDate: oneWeekAgo.toISOString(),
-      endDate: now.toISOString()
-    });
-    
-    if (hintAnalyticsData?.analytics?.overview?.totalInteractions && weeklyAttempts.length > 0) {
-      // Use real hint interaction data
-      const weeklyHints = hintAnalyticsData.analytics.overview.totalInteractions;
-      const hintsPerProblem = weeklyHints / weeklyAttempts.length;
-      hintEfficiency = hintsPerProblem.toFixed(1);
-    } else if (hintAnalyticsData?.hintsUsed?.total && weeklyAttempts.length > 0) {
-      // Fallback to hintsUsed total if analytics structure is different
-      const hintsPerProblem = hintAnalyticsData.hintsUsed.total / weeklyAttempts.length;
-      hintEfficiency = hintsPerProblem.toFixed(1);
-    } else {
-      // If no real hint data available, estimate based on success patterns
-      const successRate = weeklyAccuracy / 100;
-      const estimatedHints = successRate > 0.8 ? 1.5 : successRate > 0.6 ? 2.0 : 3.0;
-      hintEfficiency = estimatedHints.toFixed(1);
-    }
-  } catch (error) {
-    logger.warn("Could not get hint analytics for goals page, using fallback estimation:", error);
-    // If hint data not available, estimate based on success patterns
+  if (providedHints && providedHints.total > 0 && weeklyAttempts.length > 0) {
+    // Use real hint data passed from background script
+    // Use weeklyAttempts.length (not weeklyProblems) to capture review attempts
+    const hintsPerAttempt = weeklyAttempts.length > 0
+      ? providedHints.total / weeklyAttempts.length
+      : 0;
+    hintEfficiency = hintsPerAttempt > 0 ? hintsPerAttempt.toFixed(1) : "0.0";
+  } else {
+    // Fallback to estimate based on success patterns
     const successRate = weeklyAccuracy / 100;
     const estimatedHints = successRate > 0.8 ? 1.5 : successRate > 0.6 ? 2.0 : 3.0;
     hintEfficiency = estimatedHints.toFixed(1);
@@ -1225,14 +1202,11 @@ async function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, pr
 /**
  * Generate goals/learning plan data structure with enhanced metrics
  */
+// eslint-disable-next-line require-await
 export async function generateGoalsData(providedData = {}) {
   try {
     // Get consistent focus areas from background script (no direct service calls)
     const initialFocusAreas = getInitialFocusAreas(providedData.focusAreas);
-
-    // Debug: Log what settings are being loaded
-    console.log("🔍 generateGoalsData - providedData.settings:", providedData.settings);
-    console.log("🔍 generateGoalsData - sessionLength from settings:", providedData.settings?.sessionLength);
 
     // Use provided data or fallbacks - no direct service calls
     const settings = providedData.settings || {
@@ -1251,13 +1225,23 @@ export async function generateGoalsData(providedData = {}) {
     
     // Calculate outcome trends from provided data
     const outcomeTrends = allAttempts.length > 0 && allSessions.length > 0
-      ? await calculateOutcomeTrends(allAttempts, allSessions, settings, hintsUsed)
-      : {
-          weeklyAccuracy: { value: 0, status: "behind", target: 75 },
-          problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },
-          hintEfficiency: { value: 0, status: "behind", display: "<0 per problem" },
-          learningVelocity: { value: "Steady", status: "adaptive" }
-        };
+      ? calculateOutcomeTrends(allAttempts, allSessions, settings, hintsUsed)
+      : (() => {
+          // Calculate fallback target using same logic as calculateOutcomeTrends
+          const fallbackSessionsPerWeek = settings.sessionsPerWeek || 2;
+          const fallbackSessionLength = settings.sessionLength;
+          const fallbackMaxProblems = fallbackSessionLength === 'auto'
+            ? 12
+            : (typeof fallbackSessionLength === 'number' ? fallbackSessionLength : 5);
+          const fallbackTarget = fallbackSessionsPerWeek * fallbackMaxProblems;
+
+          return {
+            weeklyAccuracy: { value: 0, status: "behind", target: 75 },
+            problemsPerWeek: { value: 0, status: "behind", target: fallbackTarget, display: "0" },
+            hintEfficiency: { value: 0, status: "behind", display: "0 hints/problem" },
+            learningVelocity: { value: "Steady", status: "adaptive" }
+          };
+        })();
 
     return {
       learningPlan: {
