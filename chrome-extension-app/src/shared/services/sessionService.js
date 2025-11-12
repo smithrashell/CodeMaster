@@ -5,6 +5,7 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
+  deleteSessionFromDB,
   getSessionPerformance,
   getOrCreateSessionAtomic,
   evaluateDifficultyProgression,
@@ -1364,13 +1365,11 @@ export const SessionService = {
   async refreshSession(sessionType = 'standard', forceNew = false) {
     logger.info(`🔄 Refreshing ${sessionType} session (forceNew: ${forceNew})`);
     
-    // Mark current session as expired if it exists
+    // Delete current session immediately if it exists (no longer need to mark as expired)
     const currentSession = await this.resumeSession(sessionType);
     if (currentSession && forceNew) {
-      currentSession.status = 'expired';
-      // Don't update last_activity_time - it should reflect when user last worked on it
-      await updateSessionInDB(currentSession);
-      logger.info(`Marked session ${currentSession.id} as expired`);
+      await deleteSessionFromDB(currentSession.id);
+      logger.info(`Deleted expired session ${currentSession.id} immediately`);
     }
     
     // Create fresh session
