@@ -21,7 +21,7 @@ import StorageCleanupManager from "../shared/utils/storageCleanup.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../shared/db/index.js";
 import { getAllFromStore } from "../shared/db/common.js";
-import { updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
+import { updateSessionInDB, deleteSessionFromDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
 
 // Onboarding (only functions passed as dependencies to messageRouter)
 import {
@@ -9750,33 +9750,32 @@ const cleanupStalledSessions = async function() {
     const actions = [];
     
     for (const { session, classification, action } of stalledSessions) {
-      const sessionId = session.id.substring(0, 8);
-      console.log(`🔧 Processing ${sessionId}: ${classification} -> ${action}`);
+      const sessionId = session.id;  // Use full ID for database operations
+      const shortId = sessionId.substring(0, 8);  // For logging only
+      console.log(`🔧 Processing ${shortId}: ${classification} -> ${action}`);
       
       try {
         switch (action) {
           case 'expire':
-            session.status = 'expired';
-            session.lastActivityTime = new Date().toISOString();
-            await updateSessionInDB(session);
-            console.log(`⏰ Expired session ${sessionId}`);
-            actions.push(`expired:${sessionId}`);
+            await deleteSessionFromDB(sessionId);  // Use full ID
+            console.log(`Deleted expired session ${shortId} immediately`);
+            actions.push(`deleted:${shortId}`);
             break;
             
           case 'auto_complete':
             // Use checkAndCompleteSession to properly handle completion and session state increment
-            await SessionService.checkAndCompleteSession(sessionId);
-            console.log(`✅ Auto-completed session ${sessionId}`);
-            actions.push(`completed:${sessionId}`);
+            await SessionService.checkAndCompleteSession(sessionId);  // Use full ID
+            console.log(`✅ Auto-completed session ${shortId}`);
+            actions.push(`completed:${shortId}`);
             break;
             
           case 'create_new_tracking':
             // Mark old tracking session as completed using proper completion method
-            await SessionService.checkAndCompleteSession(sessionId);
+            await SessionService.checkAndCompleteSession(sessionId);  // Use full ID
 
             // No need to create new tracking here - SAE will do it on next attempt
-            console.log(`🔄 Marked tracking session ${sessionId} for replacement`);
-            actions.push(`tracking_replaced:${sessionId}`);
+            console.log(`🔄 Marked tracking session ${shortId} for replacement`);
+            actions.push(`tracking_replaced:${shortId}`);
             break;
             
           case 'refresh_guided_session':
