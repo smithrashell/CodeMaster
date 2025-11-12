@@ -55,7 +55,7 @@ const SelectedTagStrategy = ({ selectedTag, pathData, onTagDeselect }) => {
   return (
     <>
       <div>
-        <Text size="sm" c="dimmed" mb="xs">Learning Efficiency</Text>
+        <Text size="sm" mb="xs">Learning Efficiency</Text>
         <Text fw={500} size="lg" c={progress >= 80 ? "green" : progress >= 40 ? "orange" : "red"}>
           {progress >= 80 ? 'Highly Efficient' : progress >= 40 ? 'Developing' : 'Building Foundation'}
         </Text>
@@ -72,7 +72,7 @@ const SelectedTagStrategy = ({ selectedTag, pathData, onTagDeselect }) => {
       </Card>
 
       <div>
-        <Text size="sm" c="dimmed" mb="xs">Smart Problem Recommendations</Text>
+        <Text size="sm" mb="xs">Smart Problem Recommendations</Text>
         <Stack gap="xs">
           {tagRecs.map((rec, index) => (
             <Card key={index} p="xs" withBorder radius="sm" style={{ 
@@ -146,7 +146,7 @@ const OverviewStrategy = ({ pathData }) => {
       </Card>
       
       <div style={{ marginTop: 'auto' }}>
-        <Text size="sm" c="dimmed" mb="xs">Strategy Insights</Text>
+        <Text size="sm" mb="xs">Strategy Insights</Text>
         <Text size="sm">
           • Click focus tags for detailed strategy
           <br />

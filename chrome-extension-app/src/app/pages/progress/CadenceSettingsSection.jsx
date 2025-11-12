@@ -35,7 +35,7 @@ export function CadenceSettingsSection({
               color="blue"
             />
           </div>
-          <Text size="xs" c="dimmed">
+          <Text size="xs">
             Current: {cadenceSettings.sessionsPerWeek} sessions/week
           </Text>
         </div>
@@ -69,7 +69,7 @@ export function CadenceSettingsSection({
               🔰 During onboarding, maximum session length is capped at 6 problems for optimal learning
             </Text>
           ) : (
-            <Text size="xs" c="dimmed" mt="xs">
+            <Text size="xs" mt="xs">
               {cadenceSettings.sessionLength === 'auto'
                 ? "📊 Algorithm adjusts session length based on performance (3-12 problems)"
                 : `🔒 Sessions will never exceed ${cadenceSettings.sessionLength} problems`

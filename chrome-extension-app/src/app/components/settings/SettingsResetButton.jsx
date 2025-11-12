@@ -136,7 +136,7 @@ export function GlobalSettingsResetButton({ onReset, disabled = false }) {
           <li>Theme and appearance settings</li>
         </ul>
 
-        <Text size="sm" c="dimmed" mb="lg">
+        <Text size="sm" mb="lg">
           Consider exporting your settings first as a backup. This action cannot be undone.
         </Text>
 

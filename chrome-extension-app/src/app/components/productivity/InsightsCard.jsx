@@ -43,12 +43,12 @@ export function InsightsCard({ insights, timeRange }) {
                   <IconTarget size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
                   <Text fw={600} size="sm">{insight.title}</Text>
                 </Group>
-                <Text size="sm" c="white">
+                <Text size="sm">
                   {insight.body.includes('%') ? (
                     <>
                       {insight.body.split(' ').map((word, i) => {
                         if (word.includes('%') || word.includes(':')) {
-                          return <Text key={i} span fw={600} c="white">{word} </Text>;
+                          return <Text key={i} span fw={600}>{word} </Text>;
                         }
                         return word + ' ';
                       })}
@@ -61,7 +61,7 @@ export function InsightsCard({ insights, timeRange }) {
               </div>
             ))
           ) : (
-            <Text size="sm" c="white">Complete more sessions to see insights!</Text>
+            <Text size="sm">Complete more sessions to see insights!</Text>
           )}
         </Stack>
       </div>

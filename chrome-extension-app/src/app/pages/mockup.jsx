@@ -99,7 +99,7 @@ function GoalsHeader({ onCreateGoal }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
       <div>
         <Title order={2}>Learning Goals</Title>
-        <Text c="dimmed" size="sm" mt="xs">Set and track your personal learning objectives</Text>
+        <Text size="sm" mt="xs">Set and track your personal learning objectives</Text>
       </div>
       <Button onClick={onCreateGoal} leftSection="➕">
         New Goal
@@ -115,7 +115,7 @@ function GoalCard({ goal, progress, onMarkComplete, getGoalIcon, getGoalTypeLabe
         <Text size="xl">{getGoalIcon(goal.type)}</Text>
         <div style={{ flex: 1 }}>
           <Text fw={600} size="md">{goal.description}</Text>
-          <Text size="sm" c="dimmed">{getGoalTypeLabel(goal.type)} • {goal.timeframe}</Text>
+          <Text size="sm">{getGoalTypeLabel(goal.type)} • {goal.timeframe}</Text>
         </div>
       </div>
       
@@ -164,7 +164,7 @@ function CompletedGoalCard({ goal, getGoalTypeLabel }) {
         <Text size="xl">✅</Text>
         <div>
           <Text fw={600} size="md" td="line-through">{goal.description}</Text>
-          <Text size="sm" c="dimmed">{getGoalTypeLabel(goal.type)} • Completed</Text>
+          <Text size="sm">{getGoalTypeLabel(goal.type)} • Completed</Text>
           {goal.completedAt && (
             <Text size="xs" c="green" mt="xs">
               Completed on {new Date(goal.completedAt).toLocaleDateString()}
@@ -181,7 +181,7 @@ function EmptyGoalsState({ onCreateGoal }) {
     <Card withBorder p="xl" radius="md" style={{ textAlign: 'center' }}>
       <Text size="xl" mb="md">🎯</Text>
       <Text fw={600} size="lg" mb="xs">No goals set yet</Text>
-      <Text c="dimmed" mb="lg">Set your first learning goal to start tracking your progress</Text>
+      <Text mb="lg">Set your first learning goal to start tracking your progress</Text>
       <Button onClick={onCreateGoal}>Create Your First Goal</Button>
     </Card>
   );

@@ -33,14 +33,14 @@ const DropdownContent = React.forwardRef(({
         }}
       >
         {Object.keys(groupedData).length === 0 ? (
-          <Text size="sm" c="dimmed" ta="center" py="md">
+          <Text size="sm" ta="center" py="md">
             No options available
           </Text>
         ) : (
           Object.entries(groupedData).map(([groupName, items]) => (
             <Box key={groupName} mb="xs">
               {Object.keys(groupedData).length > 1 && (
-                <Text size="xs" fw={600} c="dimmed" mb={4} px="xs">
+                <Text size="xs" fw={600} mb={4} px="xs">
                   {groupName}
                 </Text>
               )}

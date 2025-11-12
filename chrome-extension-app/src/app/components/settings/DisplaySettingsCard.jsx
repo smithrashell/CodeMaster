@@ -35,7 +35,7 @@ const DisplaySettingsLoading = () => (
         <IconChartBar size={20} />
         <Title order={4}>Display Settings</Title>
       </div>
-      <Text size="sm" c="dimmed">Loading display settings...</Text>
+      <Text size="sm">Loading display settings...</Text>
     </Stack>
   </Card>
 );
@@ -100,7 +100,7 @@ function LayoutPreferences({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Sidebar Auto-Collapse</Text>
-          <Text size="xs" c="dimmed">Automatically collapse sidebar on smaller screens</Text>
+          <Text size="xs">Automatically collapse sidebar on smaller screens</Text>
         </div>
         <Switch
           checked={settings?.autoCollapseSidebar !== false}
@@ -183,7 +183,7 @@ function ChartDisplayOptions({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Chart Animations</Text>
-          <Text size="xs" c="dimmed">Enable smooth transitions and hover effects</Text>
+          <Text size="xs">Enable smooth transitions and hover effects</Text>
         </div>
         <Switch
           checked={settings?.chartAnimations !== false}
@@ -197,7 +197,7 @@ function ChartDisplayOptions({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Show Grid Lines</Text>
-          <Text size="xs" c="dimmed">Display background grid on charts</Text>
+          <Text size="xs">Display background grid on charts</Text>
         </div>
         <Switch
           checked={settings?.showGridLines !== false}
@@ -211,7 +211,7 @@ function ChartDisplayOptions({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Chart Legends</Text>
-          <Text size="xs" c="dimmed">Show legends on charts with multiple data series</Text>
+          <Text size="xs">Show legends on charts with multiple data series</Text>
         </div>
         <Switch
           checked={settings?.showChartLegends !== false}
@@ -277,7 +277,7 @@ function DataGranularitySettings({ settings, updateSettings }) {
             { value: 200, label: '200' }
           ]}
         />
-        <Text size="xs" c="dimmed" mt="md" mb="xs">
+        <Text size="xs" mt="md" mb="xs">
           Higher values show more detail but may impact performance
         </Text>
       </div>
@@ -285,7 +285,7 @@ function DataGranularitySettings({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Auto-Refresh Data</Text>
-          <Text size="xs" c="dimmed">Automatically update dashboard data every few minutes</Text>
+          <Text size="xs">Automatically update dashboard data every few minutes</Text>
         </div>
         <Switch
           checked={settings?.autoRefreshData !== false}
@@ -299,7 +299,7 @@ function DataGranularitySettings({ settings, updateSettings }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Text size="sm">Show Empty Data Points</Text>
-          <Text size="xs" c="dimmed">Include days with no activity in charts</Text>
+          <Text size="xs">Include days with no activity in charts</Text>
         </div>
         <Switch
           checked={settings?.showEmptyDataPoints || false}
@@ -439,7 +439,7 @@ export function DisplaySettingsCard() {
           </Tooltip>
         </div>
 
-        <Text size="sm" c="dimmed">
+        <Text size="sm">
           Personalize how your dashboard looks and how data is displayed across all charts and analytics.
         </Text>
 
@@ -474,7 +474,7 @@ export function DisplaySettingsCard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <IconInfoCircle size={16} style={{ color: 'var(--mantine-color-dimmed)' }} />
-              <Text size="xs" c="dimmed">
+              <Text size="xs">
                 Changes apply to all dashboard charts and layouts
               </Text>
             </div>

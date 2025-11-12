@@ -122,7 +122,7 @@ export function FocusAreasDisplay({ onNavigateToSettings }) {
 
       <Group gap="xs" mt="md" align="center">
         <IconInfoCircle size={12} />
-        <Text size="xs" c="dimmed">
+        <Text size="xs">
           These tags are currently prioritized in your active session (20% higher selection rate)
         </Text>
       </Group>

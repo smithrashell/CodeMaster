@@ -77,7 +77,7 @@ export function GuardrailsSection({
             </Text>
           )}
           {!isOnboarding && (
-            <Text size="xs" c="dimmed" mt="xs">
+            <Text size="xs" mt="xs">
               Limited to session length ({sessionLength === "auto" ? "5" : sessionLength} problems)
             </Text>
           )}

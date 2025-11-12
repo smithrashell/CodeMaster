@@ -39,14 +39,14 @@ export function ActiveSessionFocus({ appState }) {
           </Badge>
         ))}
       </Group>
-      <Text size="xs" c="dimmed" mt="xs">
+      <Text size="xs" mt="xs">
         {appState?.learningPlan?.focus?.activeFocusTags 
           ? "What your next session will actually focus on"
           : "System recommendations based on your performance and learning progress"
         }
       </Text>
       {appState?.learningPlan?.focus?.algorithmReasoning && (
-        <Text size="xs" c="dimmed" fs="italic" mt="xs">
+        <Text size="xs" fs="italic" mt="xs">
           📊 {appState.learningPlan.focus.algorithmReasoning}
         </Text>
       )}

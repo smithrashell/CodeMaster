@@ -16,7 +16,7 @@ export function RecommendationsCard({ peakHour, studyStreak, avgAccuracy, totalS
         icon: IconClock,
         color: 'var(--mantine-color-green-5)',
         title: 'Peak scheduling',
-        text: <>Schedule hard topics during your <Text span fw={600} c="white">{peakHour}–{endHourStr}</Text> window</>
+        text: <>Schedule hard topics during your <Text span fw={600}>{peakHour}–{endHourStr}</Text> window</>
       });
     } else {
       recs.push({
@@ -33,14 +33,14 @@ export function RecommendationsCard({ peakHour, studyStreak, avgAccuracy, totalS
         icon: IconFlame,
         color: 'var(--mantine-color-orange-5)',
         title: 'Consistency',
-        text: <>Great! Keep your <Text span fw={600} c="white">{studyStreak}-day streak</Text> going strong</>
+        text: <>Great! Keep your <Text span fw={600}>{studyStreak}-day streak</Text> going strong</>
       });
     } else {
       recs.push({
         icon: IconBulb,
         color: 'var(--mantine-color-blue-5)',
         title: 'Consistency',
-        text: <>Build momentum with <Text span fw={600} c="white">daily sessions</Text> to start a streak</>
+        text: <>Build momentum with <Text span fw={600}>daily sessions</Text> to start a streak</>
       });
     }
 
@@ -50,28 +50,28 @@ export function RecommendationsCard({ peakHour, studyStreak, avgAccuracy, totalS
         icon: IconTrendingUp,
         color: 'var(--mantine-color-blue-5)',
         title: 'Progress tracking',
-        text: <>Complete sessions to start tracking your <Text span fw={600} c="white">accuracy trends</Text></>
+        text: <>Complete sessions to start tracking your <Text span fw={600}>accuracy trends</Text></>
       });
     } else if (avgAccuracy >= 80) {
       recs.push({
         icon: IconTrendingUp,
         color: 'var(--mantine-color-green-5)',
         title: 'Progress tracking',
-        text: <>Excellent <Text span fw={600} c="white">{avgAccuracy}% accuracy</Text>! Consider tackling harder problems</>
+        text: <>Excellent <Text span fw={600}>{avgAccuracy}% accuracy</Text>! Consider tackling harder problems</>
       });
     } else if (avgAccuracy < 60) {
       recs.push({
         icon: IconTrendingUp,
         color: 'var(--mantine-color-yellow-5)',
         title: 'Progress tracking',
-        text: <>Review fundamentals to boost your <Text span fw={600} c="white">{avgAccuracy}% accuracy</Text></>
+        text: <>Review fundamentals to boost your <Text span fw={600}>{avgAccuracy}% accuracy</Text></>
       });
     } else {
       recs.push({
         icon: IconTrendingUp,
         color: 'var(--mantine-color-blue-5)',
         title: 'Progress tracking',
-        text: <>Solid <Text span fw={600} c="white">{avgAccuracy}% accuracy</Text> — track weekly trends</>
+        text: <>Solid <Text span fw={600}>{avgAccuracy}% accuracy</Text> — track weekly trends</>
       });
     }
 
@@ -120,7 +120,7 @@ export function RecommendationsCard({ peakHour, studyStreak, avgAccuracy, totalS
                 <rec.icon size={14} style={{ color: rec.color }} />
                 <Text fw={600} size="sm">{rec.title}</Text>
               </Group>
-              <Text size="sm" c="white">
+              <Text size="sm">
                 {rec.text}
               </Text>
               {index < 2 && <Divider my="xs" variant="dashed" />}
