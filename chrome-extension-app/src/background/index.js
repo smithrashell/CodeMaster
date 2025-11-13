@@ -30,35 +30,8 @@ import {
   completeOnboarding
 } from "../shared/services/onboardingService.js";
 
-// Testing utilities (excluded from production builds by webpack)
-// These imports will be removed by webpack's IgnorePlugin in production
-let SessionTester, TestScenarios, _ComprehensiveSessionTester, ComprehensiveTestScenarios;
-let MinimalSessionTester, SilentSessionTester, TagProblemIntegrationTester;
-let DynamicPathOptimizationTester, RealSystemTester, TestDataIsolation, RelationshipSystemTester;
-
-// Import test utilities only in development
-// Webpack IgnorePlugin will remove these files from production bundle
-if (process.env.NODE_ENV !== 'production') {
-  try {
-    const sessionTestingModule = require("../shared/utils/sessionTesting.js");
-    SessionTester = sessionTestingModule.SessionTester;
-    TestScenarios = sessionTestingModule.TestScenarios;
-
-    const comprehensiveModule = require("../shared/utils/comprehensiveSessionTesting.js");
-    _ComprehensiveSessionTester = comprehensiveModule.ComprehensiveSessionTester;
-    ComprehensiveTestScenarios = comprehensiveModule.ComprehensiveTestScenarios;
-
-    MinimalSessionTester = require("../shared/utils/minimalSessionTesting.js").MinimalSessionTester;
-    SilentSessionTester = require("../shared/utils/silentSessionTesting.js").SilentSessionTester;
-    TagProblemIntegrationTester = require("../shared/utils/integrationTesting.js").TagProblemIntegrationTester;
-    DynamicPathOptimizationTester = require("../shared/utils/dynamicPathOptimizationTesting.js").DynamicPathOptimizationTester;
-    RealSystemTester = require("../shared/utils/realSystemTesting.js").RealSystemTester;
-    TestDataIsolation = require("../shared/utils/testDataIsolation.js").TestDataIsolation;
-    RelationshipSystemTester = require("../shared/utils/relationshipSystemTesting.js").RelationshipSystemTester;
-  } catch (e) {
-    console.log('Test utilities not available in production build');
-  }
-}
+// Test utilities removed - test framework files deleted
+// testCoreBusinessLogic and Chrome extension integration tests are still available
 
 // Hot reload
 import { connect } from "chrome-extension-hot-reload";
@@ -133,10 +106,6 @@ console.log('🏓 SERVICE WORKER: PING handler registered');
 
 // Development-only: Expose testing framework globally for browser console access
 if (process.env.NODE_ENV !== 'production') {
-  // Expose classes for manual instantiation (development only)
-  globalThis.SessionTester = SessionTester;
-  globalThis.TestScenarios = TestScenarios;
-
   // Expose core services globally for testing access
   globalThis.ProblemService = ProblemService;
   globalThis.SessionService = SessionService;
@@ -221,57 +190,9 @@ if (process.env.NODE_ENV !== 'production') {
     if (sessionTestingEnabled) {
     console.log('🧪 Background session testing functions enabled');
 
-    // Quick console commands for testing
-    globalThis.testQuick = () => TestScenarios.quickTest().runSimulation();
-    globalThis.testOnboarding = () => TestScenarios.onboarding().runSimulation();
-    globalThis.testProgression = () => TestScenarios.difficultyProgression().runSimulation();
-    globalThis.testStruggling = () => TestScenarios.strugglingUser().runSimulation();
-
-    // Comprehensive testing framework
-    globalThis.testComprehensive = () => ComprehensiveTestScenarios.fullValidation().runComprehensiveTests();
-    globalThis.testQuickComprehensive = () => ComprehensiveTestScenarios.quickComprehensive().runComprehensiveTests();
-    globalThis.testAdaptation = () => ComprehensiveTestScenarios.adaptationFocus().runComprehensiveTests();
-
-    // Minimal testing (safe, no console spam)
-    globalThis.testMinimal = () => new MinimalSessionTester().testSessionLengthAdaptation();
-
-    // Silent testing (clean summary only)
-    globalThis.testSilent = (options) => new SilentSessionTester().testSessionConsistency(options);
-
-    // Integration testing (tag + problem relationship systems)
-    globalThis.testTagIntegration = (options) => TagProblemIntegrationTester.testTagLadderPathfindingIntegration({ quiet: false, ...options });
-    globalThis.testTagLadderPathfinding = (options) => TagProblemIntegrationTester.testTagLadderPathfindingIntegration({ quiet: false, ...options });
-    globalThis.testSessionBlending = (options) => TagProblemIntegrationTester.testAdaptiveSessionIntegration({ quiet: false, ...options });
-    globalThis.testLearningJourney = (options) => TagProblemIntegrationTester.testLearningJourneyOptimization({ quiet: false, ...options });
-    globalThis.testAllIntegration = (options) => TagProblemIntegrationTester.runAllIntegrationTests({ quiet: false, ...options });
-
-    // Dynamic path optimization testing
-    globalThis.testPathOptimization = (options) => DynamicPathOptimizationTester.testOptimalProblemSelection({ quiet: false, ...options });
-    globalThis.testProblemSelection = (options) => DynamicPathOptimizationTester.testOptimalProblemSelection({ quiet: false, ...options });
-    globalThis.testPatternLearning = (options) => DynamicPathOptimizationTester.testSuccessPatternLearning({ quiet: false, ...options });
-    globalThis.testPlateauRecovery = (options) => DynamicPathOptimizationTester.testPlateauDetectionRecovery({ quiet: false, ...options });
-    globalThis.testMultiSessionPaths = (options) => DynamicPathOptimizationTester.testMultiSessionOptimization({ quiet: false, ...options });
-    globalThis.testAllOptimization = (options) => DynamicPathOptimizationTester.runAllOptimizationTests({ quiet: false, ...options });
-
-    // Real system testing (uses real functions with isolated test data)
-    globalThis.testRealLearningFlow = (options) => RealSystemTester.testRealLearningFlow({ quiet: false, ...options });
-    globalThis.testRealFocusCoordination = (options) => RealSystemTester.testRealFocusCoordination({ quiet: false, ...options });
-    globalThis.testRealSessionCreation = (options) => RealSystemTester.testRealSessionCreation({ quiet: false, ...options });
-    globalThis.testRealRelationshipLearning = (options) => RealSystemTester.testRealRelationshipLearning({ quiet: false, ...options });
-    globalThis.testAllRealSystem = (options) => RealSystemTester.runAllRealSystemTests({ quiet: false, ...options });
-
-    // Test data isolation utilities
-    globalThis.enterTestMode = (sessionId) => TestDataIsolation.enterTestMode(sessionId);
-    globalThis.exitTestMode = (cleanup = true) => TestDataIsolation.exitTestMode(cleanup);
-    globalThis.seedTestData = (scenario = 'default') => TestDataIsolation.seedTestData(scenario);
-
-    // Relationship system testing (focused on problem relationship data flow)
-    globalThis.testRelationshipFlow = (options) => RelationshipSystemTester.testRelationshipDataFlow({ quiet: false, ...options });
-    globalThis.testRelationshipComposition = (options) => RelationshipSystemTester.testRelationshipSessionComposition({ quiet: false, ...options });
-    globalThis.testRelationshipUpdates = (options) => RelationshipSystemTester.testRelationshipUpdates({ quiet: false, ...options });
-    globalThis.testFocusRelationships = (options) => RelationshipSystemTester.testFocusRelationshipIntegration({ quiet: false, ...options });
-    globalThis.testRelationshipConsistency = (options) => RelationshipSystemTester.testRelationshipLearningConsistency({ quiet: false, ...options });
-    globalThis.testAllRelationships = (options) => RelationshipSystemTester.runAllRelationshipTests({ quiet: false, ...options });
+    // Broken wrapper functions removed - test framework classes were deleted
+    // Use testCoreBusinessLogic() for comprehensive business logic testing
+    // Individual Chrome extension integration tests are still available below
 
     console.log('🧪 Testing framework loaded! Available commands:');
     console.log('');
@@ -11719,18 +11640,11 @@ globalThis.runComprehensiveTests = async function(options = {}) {
     'testLearningJourney',
     'testCoreSessionValidation',
     'testProblemSelection',
-    'testQuick',
     'testRealFocusCoordination',
     'testRealSessionCreation',
-    'testOnboarding',
-    'testProgression',
-    'testStruggling',
-    'testComprehensive',
-    'testQuickComprehensive',
 
     // Phase 3: Experience Quality
     'testDataPersistenceReliability',
-    'testCrossPageCommunication',
     'testUIResponsiveness',
     'testAccessibilityCompliance',
 
@@ -11815,13 +11729,13 @@ globalThis.runPhase1Tests = async function(options = {}) {
 
 globalThis.runPhase2Tests = async function(options = {}) {
   const { verbose = false } = options;
-  const tests = ['testOnboardingDetection', 'testAccurateTimer', 'testInterviewLikeSessions', 'testDifficultyProgression', 'testEscapeHatches', 'testFullInterviewSessions', 'testPathOptimization', 'testPatternLearning', 'testPlateauRecovery', 'testMultiSessionPaths', 'testRealLearningFlow', 'testRelationshipFlow', 'testRelationshipComposition', 'testRelationshipUpdates', 'testFocusRelationships', 'testRelationshipConsistency', 'testTagIntegration', 'testTagLadderPathfinding', 'testSessionBlending', 'testLearningJourney', 'testCoreSessionValidation', 'testProblemSelection', 'testQuick', 'testRealFocusCoordination', 'testRealSessionCreation', 'testOnboarding', 'testProgression', 'testStruggling', 'testComprehensive', 'testQuickComprehensive'];
+  const tests = ['testOnboardingDetection', 'testAccurateTimer', 'testInterviewLikeSessions', 'testDifficultyProgression', 'testEscapeHatches', 'testFullInterviewSessions', 'testPathOptimization', 'testPatternLearning', 'testPlateauRecovery', 'testMultiSessionPaths', 'testRealLearningFlow', 'testRelationshipFlow', 'testRelationshipComposition', 'testRelationshipUpdates', 'testFocusRelationships', 'testRelationshipConsistency', 'testTagIntegration', 'testTagLadderPathfinding', 'testSessionBlending', 'testLearningJourney', 'testCoreSessionValidation', 'testProblemSelection', 'testRealFocusCoordination', 'testRealSessionCreation'];
   return await globalThis.runTestSuite(tests, 'Phase 2 - Algorithm & Learning', verbose);
 };
 
 globalThis.runPhase3Tests = async function(options = {}) {
   const { verbose = false } = options;
-  const tests = ['testDataPersistenceReliability', 'testCrossPageCommunication', 'testUIResponsiveness', 'testAccessibilityCompliance'];
+  const tests = ['testDataPersistenceReliability', 'testUIResponsiveness', 'testAccessibilityCompliance'];
   return await globalThis.runTestSuite(tests, 'Phase 3 - Experience Quality', verbose);
 };
 
