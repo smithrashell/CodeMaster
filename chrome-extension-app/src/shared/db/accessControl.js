@@ -107,6 +107,8 @@ export function logDatabaseAccess(_context, _stack) {
  * Detect if we're running in a test environment
  */
 export function isTestEnvironment() {
+  const stack = Error().stack || '';
+
   // Check multiple test indicators
   const testIndicators = [
     // Jest environment
@@ -115,12 +117,16 @@ export function isTestEnvironment() {
     typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test',
 
     // Test function names in stack (actual test execution)
-    typeof Error !== 'undefined' && Error().stack && (
-      Error().stack.includes('jest') ||
-      Error().stack.includes('simulateRealisticAttempts') ||
-      Error().stack.includes('testRealLearningFlow') ||
-      Error().stack.includes('runComprehensiveTests') ||
-      Error().stack.includes('withTestDatabase')
+    // ANY function starting with 'test' is considered a test
+    typeof Error !== 'undefined' && stack && (
+      stack.includes('jest') ||
+      /test[A-Z]\w+/.test(stack) || // testOnboarding, testSessionGeneration, etc.
+      stack.includes('runComprehensiveTests') ||
+      stack.includes('runCriticalTests') ||
+      stack.includes('runProductionTests') ||
+      stack.includes('runPhase') || // runPhase1Tests, runPhase2Tests, etc.
+      stack.includes('withTestDatabase') ||
+      stack.includes('simulateRealisticAttempts')
     ),
 
     // Active test database context (more specific than just function existence)
@@ -139,18 +145,27 @@ export function checkProductionDatabaseAccess(dbName, context) {
   // If we're in test mode but trying to access production database
   // Note: Skip this check if global test database redirection is active
   if (context.isTest && dbName === 'CodeMaster' && !globalThis._testDatabaseActive) {
+    const stack = Error().stack || '';
     const error = new Error(
-      `🚨 SAFETY VIOLATION: Test code attempted to access production database '${dbName}'. ` +
-      `Use createTestDbHelper() instead of the production dbHelper.`
+      `🚨 CRITICAL SAFETY VIOLATION: Test function attempted to access PRODUCTION database!\n\n` +
+      `❌ Database: '${dbName}' (PRODUCTION)\n` +
+      `❌ Test database protection: NOT ACTIVE\n\n` +
+      `✅ REQUIRED: Use one of these safe testing methods:\n` +
+      `   1. await withTestDatabase(() => yourTest())\n` +
+      `   2. await testCoreBusinessLogic({ verbose: true })\n\n` +
+      `⚠️  DANGER: Running tests without protection corrupts your production data!`
     );
 
-    console.error('🚨 PRODUCTION DATABASE PROTECTION:', {
+    console.error('\n🚨 PRODUCTION DATABASE PROTECTION TRIGGERED:\n');
+    console.error({
       dbName,
       isTest: context.isTest,
       contextType: context.contextType,
       violation: 'test-accessing-production-db',
-      stack: Error().stack
+      testDatabaseActive: globalThis._testDatabaseActive,
+      recommendation: 'Use withTestDatabase() wrapper or testCoreBusinessLogic()'
     });
+    console.error('\n📚 Call Stack:\n', stack);
 
     throw error;
   }
