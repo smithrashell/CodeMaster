@@ -119,6 +119,40 @@ if (process.env.NODE_ENV !== 'production') {
   globalThis.FocusCoordinationService = FocusCoordinationService;
 
   /**
+   * CRITICAL SAFETY: Test wrapper that ensures test database is active
+   * All tests MUST use this wrapper to prevent production database corruption
+   */
+  globalThis.withTestDatabase = async function(testFn, testName = 'Unknown Test') {
+    console.warn(`🧪 [${testName}] Starting test with database protection...`);
+
+    // Check if test database is already active
+    if (!globalThis._testDatabaseActive) {
+      console.warn(`⚠️ [${testName}] Test database NOT active - activating now...`);
+
+      // testCoreBusinessLogic will be loaded by core-business-tests.js
+      if (typeof globalThis.enableTesting !== 'function') {
+        throw new Error(
+          `🚨 SAFETY ERROR: enableTesting() not available. ` +
+          `This test cannot run safely. Use testCoreBusinessLogic() instead.`
+        );
+      }
+
+      await globalThis.enableTesting();
+      console.log(`✅ [${testName}] Test database activated: CodeMaster_test`);
+    } else {
+      console.log(`✅ [${testName}] Test database already active`);
+    }
+
+    // Run the actual test
+    try {
+      return await testFn();
+    } catch (error) {
+      console.error(`❌ [${testName}] Test failed:`, error);
+      throw error;
+    }
+  };
+
+  /**
    * Service Worker Safe Mode - Ultra-quiet testing for service workers
    */
   globalThis.runTestsSilent = async function() {
@@ -194,6 +228,20 @@ if (process.env.NODE_ENV !== 'production') {
     // Use testCoreBusinessLogic() for comprehensive business logic testing
     // Individual Chrome extension integration tests are still available below
 
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════════════════');
+    console.log('🚨 DATABASE SAFETY WARNING 🚨');
+    console.log('═══════════════════════════════════════════════════════════════════');
+    console.log('');
+    console.log('⚠️  SAFE TEST FUNCTIONS (Use CodeMaster_test database):');
+    console.log('   ✅ await testCoreBusinessLogic({ verbose: true })');
+    console.log('   ✅ await withTestDatabase(() => yourTest())');
+    console.log('');
+    console.log('❌ UNSAFE: All other test functions access PRODUCTION database!');
+    console.log('   Running tests without wrapper will CORRUPT your production data.');
+    console.log('');
+    console.log('═══════════════════════════════════════════════════════════════════');
+    console.log('');
     console.log('🧪 Testing framework loaded! Available commands:');
     console.log('');
     console.log('🚀 COMPREHENSIVE TEST RUNNER (NEW - Clean by Default):');
