@@ -290,8 +290,18 @@ export function initializeCoreBusinessTests() {
     return { success: true };
   }
 
+  // Helper: Run async function with timeout protection
+  async function withTimeout(asyncFn, timeoutMs, testName) {
+    return Promise.race([
+      asyncFn(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Test timeout after ${timeoutMs}ms`)), timeoutMs)
+      )
+    ]);
+  }
+
   // Helper: Execute a single test with cleanup and error handling
-  async function executeSingleTest(test, verbose) {
+  async function executeSingleTest(test, verbose, timeout = 30000) {
     // Clean up variable data before each test (preserve seeded data)
     if (globalThis._testDatabaseHelper) {
       try {
@@ -304,7 +314,13 @@ export function initializeCoreBusinessTests() {
 
     try {
       if (verbose) console.log(`Running ${test.name}...`);
-      const result = await test.fn(verbose);
+
+      // Run test with timeout protection
+      const result = await withTimeout(
+        () => test.fn(verbose),
+        timeout,
+        test.name
+      );
 
       const testResult = {
         name: test.name,
@@ -323,9 +339,10 @@ export function initializeCoreBusinessTests() {
 
       return testResult;
     } catch (error) {
-      if (verbose) {
-        console.error(`💥 ${test.name} errored:`, error.message);
-        console.error(`   Stack:`, error.stack);
+      const isTimeout = error.message && error.message.includes('timeout');
+      if (verbose || isTimeout) {
+        console.error(`💥 ${test.name} ${isTimeout ? 'TIMED OUT' : 'errored'}:`, error.message);
+        if (verbose && error.stack) console.error(`   Stack:`, error.stack);
       }
 
       return {
@@ -360,7 +377,7 @@ export function initializeCoreBusinessTests() {
   }
 
   globalThis.testCoreBusinessLogic = async function(options = {}) {
-    const { verbose = false, quick = false, cleanup = true } = options;
+    const { verbose = false, quick = false, cleanup = true, timeout = 30000 } = options;
 
     // Suppress DEBUG logs when verbose=false to reduce console noise
     const originalLogLevel = logger.getLogLevel();
@@ -417,7 +434,7 @@ export function initializeCoreBusinessTests() {
     for (const test of tests) {
       if (quick && results.tests.length >= 5) break;
 
-      const testResult = await executeSingleTest(test, verbose);
+      const testResult = await executeSingleTest(test, verbose, timeout);
       results.tests.push(testResult);
 
       if (testResult.status === 'PASS') {
@@ -782,9 +799,7 @@ export function initializeCoreBusinessTests() {
         };
       }
 
-      // Small delay to ensure DB write completes
-      await new Promise(resolve => setTimeout(resolve, 100));
-
+      // addAttemptToDB completes the transaction before returning, so data is committed
       // Try to read it back - check if attempt exists in database
       // Already imported statically
       const db = await dbHelper.openDB();
@@ -896,7 +911,7 @@ export function initializeCoreBusinessTests() {
       // Already imported statically
       try {
         await addAttemptToDB(testAttempt);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+        // addAttemptToDB completes transaction before returning
         const retrieved = await getMostRecentAttempt(testProblem.problem_id);
         results.attemptsServiceWorks = retrieved && retrieved.problem_id === testProblem.problem_id;
       } catch (error) {
@@ -1298,7 +1313,6 @@ export function initializeCoreBusinessTests() {
 
   // Helper: Get array mastery status
   async function getArrayMastery() {
-    await new Promise(resolve => setTimeout(resolve, 100));
     const masteryData = await getTagMastery();
     return masteryData.find(m => m.tag === 'array');
   }
@@ -1510,9 +1524,7 @@ export function initializeCoreBusinessTests() {
         attempt_date: new Date()
       });
 
-      // Small delay for async updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-
+      // addAttemptToDB completes transaction synchronously before returning
       // Verify relationship map still works after update
       const updatedMap = await buildRelationshipMap();
       const mapStillValid = updatedMap && updatedMap.size > 0;

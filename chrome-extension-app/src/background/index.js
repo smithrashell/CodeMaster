@@ -239,6 +239,7 @@ if (process.env.NODE_ENV !== 'production') {
     console.log('   await testCoreBusinessLogic({ verbose: true })  // Detailed output');
     console.log('   await testCoreBusinessLogic({ quick: true })    // Run first 5 tests');
     console.log('   await testCoreBusinessLogic({ cleanup: false }) // Skip cleanup');
+    console.log('   await testCoreBusinessLogic({ timeout: 60000 }) // 60s timeout per test (default: 30s)');
     console.log('');
     console.log('🛠️  Helper Functions:');
     console.log('   await quickHealthCheck()  // Check service availability');
