@@ -26,7 +26,7 @@ import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSett
 import { buildRelationshipMap } from '../shared/db/problem_relationships.js';
 import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/attempts.js';
 import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/tag_mastery.js';
-import { initializePatternLaddersForOnboarding } from '../shared/services/problemladderService.js';
+import { initializePatternLaddersForOnboarding, updatePatternLaddersOnAttempt } from '../shared/services/problemladderService.js';
 
 /**
  * Helper function to create test problems in the `problems` store
@@ -272,10 +272,22 @@ export function initializeCoreBusinessTests() {
         }
       }
 
+      // Initialize pattern ladders if not already present (required for mastery gate tests)
+      if (storeChecks.pattern_ladders.length === 0) {
+        if (verbose) {
+          console.log('🔧 Initializing pattern ladders for test environment...');
+        }
+        await initializePatternLaddersForOnboarding();
+        if (verbose) {
+          const ladders = await getAllFromStore('pattern_ladders');
+          console.log(`✅ Pattern ladders initialized: ${ladders.length} ladders`);
+        }
+      } else if (verbose) {
+        console.log(`✅ Pattern ladders already initialized: ${storeChecks.pattern_ladders.length} ladders`);
+      }
+
       if (verbose) {
-        console.log('⏭️  Skipping pattern ladder initialization - session creation will use onboarding fallback');
         console.log(`   tag_mastery: ${storeChecks.tag_mastery.length} records (empty = onboarding mode)`);
-        console.log(`   pattern_ladders: ${storeChecks.pattern_ladders.length} records`);
       }
     } catch (error) {
       console.error('❌ Database verification/initialization failed:', error);
@@ -1308,6 +1320,10 @@ export function initializeCoreBusinessTests() {
     };
     await addAttemptToDB(attemptRecord);
     await updateTagMasteryForAttempt(testProblem, attemptRecord);
+
+    // Use PRODUCTION code to update pattern ladders (same as in attemptsService.js)
+    await updatePatternLaddersOnAttempt(testProblem.leetcode_id || testProblem.id);
+
     return testProblem;
   }
 
@@ -1365,6 +1381,31 @@ export function initializeCoreBusinessTests() {
       const masteryThreshold = arrayTagRel?.mastery_threshold || 0.75;
       const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
       const arrayProblemIds = [1, 26, 27, 35, 53, 66, 80, 118, 119, 121, 152, 153, 169, 189, 217, 238, 268, 283, 287, 414];
+
+      // Create test-specific ladder with all test problems
+      const testLadder = {
+        tag: 'array',
+        lastUpdated: new Date().toISOString(),
+        problems: arrayProblemIds.map(id => ({
+          id,
+          leetcode_id: id,
+          attempted: false,
+          difficulty: 'Easy' // Doesn't matter for the test
+        }))
+      };
+
+      // Store the test ladder
+      const ladderTx = db.transaction(['pattern_ladders'], 'readwrite');
+      const ladderStore = ladderTx.objectStore('pattern_ladders');
+      await new Promise((resolve, reject) => {
+        const req = ladderStore.put(testLadder);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+
+      if (_verbose) {
+        console.log(`✅ Created test ladder for "array" with ${arrayProblemIds.length} problems`);
+      }
 
       // Clear previous test attempts
       const attemptsTx = db.transaction(['attempts'], 'readwrite');
