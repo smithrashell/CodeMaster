@@ -185,7 +185,7 @@ export function createStandardProblemsStore(db) {
   if (!db.objectStoreNames.contains("standard_problems")) {
     let standardProblemsStore = db.createObjectStore("standard_problems", {
       keyPath: "id",
-      autoIncrement: true,
+      // Note: autoIncrement removed - all problems have explicit IDs from JSON
     });
 
     ensureIndex(standardProblemsStore, "by_slug", "slug");

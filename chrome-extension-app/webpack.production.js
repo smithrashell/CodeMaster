@@ -1,12 +1,24 @@
 const configFactory = require("./webpack.config");
 const CopyPlugin = require("copy-webpack-plugin");
 const TerserPlugin = require("terser-webpack-plugin");
+const webpack = require("webpack");
 
 module.exports = (env, argv) => {
   const baseConfig = configFactory(env, { mode: "production" });
 
   // Force production mode
   process.env.NODE_ENV = "production";
+
+  // Exclude test files from production bundle
+  baseConfig.plugins.push(
+    new webpack.IgnorePlugin({
+      resourceRegExp: /Testing\.js$/,  // Ignore files ending with "Testing.js"
+    }),
+    new webpack.IgnorePlugin({
+      resourceRegExp: /Test\.js$/,  // Ignore files ending with "Test.js"
+      contextRegExp: /utils/,  // Only in utils directory
+    })
+  );
 
   // Add static assets copying
   baseConfig.plugins.push(

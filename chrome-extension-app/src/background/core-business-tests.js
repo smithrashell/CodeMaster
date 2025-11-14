@@ -26,7 +26,7 @@ import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSett
 import { buildRelationshipMap } from '../shared/db/problem_relationships.js';
 import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/attempts.js';
 import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/tag_mastery.js';
-import { initializePatternLaddersForOnboarding } from '../shared/services/problemladderService.js';
+import { initializePatternLaddersForOnboarding, updatePatternLaddersOnAttempt } from '../shared/services/problemladderService.js';
 
 /**
  * Helper function to create test problems in the `problems` store
@@ -45,20 +45,20 @@ function validateLeetcodeId(problem, leetcodeId) {
   }
 }
 
-async function createTestProblem(leetcodeId) {
+async function createTestProblem(leetcodeId, verbose = false) {
   try {
-    console.log(`🔧 createTestProblem: START - LeetCode ID ${leetcodeId}`);
+    if (verbose) console.log(`🔧 createTestProblem: START - LeetCode ID ${leetcodeId}`);
 
     // Use test database helper if active
     const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
       ? globalThis._testDatabaseHelper
       : dbHelper;
 
-    console.log(`🔧 Using database helper:`, globalThis._testDatabaseActive ? 'TEST' : 'PRODUCTION');
+    if (verbose) console.log(`🔧 Using database helper:`, globalThis._testDatabaseActive ? 'TEST' : 'PRODUCTION');
 
     const db = await helper.openDB();
 
-    console.log(`🔧 Database opened:`, db.name);
+    if (verbose) console.log(`🔧 Database opened:`, db.name);
 
     // Get REAL problem data from standard_problems (production pattern)
     const standardProblem = await fetchProblemById(leetcodeId);
@@ -67,7 +67,7 @@ async function createTestProblem(leetcodeId) {
       throw new Error(`Standard problem ${leetcodeId} not found in database`);
     }
 
-    console.log(`✅ Found standard problem:`, standardProblem.title);
+    if (verbose) console.log(`✅ Found standard problem:`, standardProblem.title);
 
   // Check if problem already exists to avoid duplicates
   const transaction = db.transaction(['problems'], 'readwrite');
@@ -81,7 +81,7 @@ async function createTestProblem(leetcodeId) {
   });
 
   if (existingProblem) {
-    console.log(`♻️ Problem ${leetcodeId} already exists, reusing:`, existingProblem.title);
+    if (verbose) console.log(`♻️ Problem ${leetcodeId} already exists, reusing:`, existingProblem.title);
     // Merge with standard problem data for return, ensuring all required fields
     const reusedProblem = {
       ...existingProblem,
@@ -104,7 +104,7 @@ async function createTestProblem(leetcodeId) {
     return reusedProblem;
   }
 
-  console.log(`🆕 Creating new problem entry for:`, standardProblem.title);
+  if (verbose) console.log(`🆕 Creating new problem entry for:`, standardProblem.title);
 
   // Create problem following EXACT production structure (problems.js:363-381)
   const problem = {
@@ -150,7 +150,7 @@ async function createTestProblem(leetcodeId) {
     perceived_difficulty: problem.perceived_difficulty || null
   };
 
-  console.log(`✅ Created test problem:`, {
+  if (verbose) console.log(`✅ Created test problem:`, {
     title: standardProblem.title,
     leetcode_id: resultProblem.leetcode_id,
     id: resultProblem.id,
@@ -219,7 +219,7 @@ export function initializeCoreBusinessTests() {
 
   // Core business logic test (the main comprehensive test)
   // Helper to setup and verify test database
-  async function setupTestEnvironment() {
+  async function setupTestEnvironment(verbose = false) {
     if (typeof globalThis.enableTesting !== 'function') {
       console.error('🚨 CRITICAL ERROR: enableTesting() function is not defined!');
       console.error('🚨 Tests CANNOT run without test database isolation.');
@@ -232,7 +232,7 @@ export function initializeCoreBusinessTests() {
       };
     }
 
-    const setupResult = await globalThis.enableTesting();
+    const setupResult = await globalThis.enableTesting({ verbose });
     if (!setupResult.success || !globalThis._testDatabaseActive) {
       console.error('❌ Failed to enable test environment');
       return {
@@ -245,7 +245,7 @@ export function initializeCoreBusinessTests() {
     // Verify database has standard problems
     try {
       const problemCount = await getAvailableProblemIds(1);
-      console.log(`✅ Database verification passed: ${problemCount.length} problems available`);
+      if (verbose) console.log(`✅ Database verification passed: ${problemCount.length} problems available`);
     } catch (error) {
       console.error('❌ Database not properly seeded:', error.message);
       return {
@@ -265,17 +265,33 @@ export function initializeCoreBusinessTests() {
         pattern_ladders: await getAllFromStore('pattern_ladders')
       };
 
-      console.log('📊 Database store status:');
-      for (const [store, data] of Object.entries(storeChecks)) {
-        console.log(`  ${store}: ${data.length} records`);
+      if (verbose) {
+        console.log('📊 Database store status:');
+        for (const [store, data] of Object.entries(storeChecks)) {
+          console.log(`  ${store}: ${data.length} records`);
+        }
       }
 
-      console.log('⏭️  Skipping pattern ladder initialization - session creation will use onboarding fallback');
-      console.log(`   tag_mastery: ${storeChecks.tag_mastery.length} records (empty = onboarding mode)`);
-      console.log(`   pattern_ladders: ${storeChecks.pattern_ladders.length} records`);
+      // Initialize pattern ladders if not already present (required for mastery gate tests)
+      if (storeChecks.pattern_ladders.length === 0) {
+        if (verbose) {
+          console.log('🔧 Initializing pattern ladders for test environment...');
+        }
+        await initializePatternLaddersForOnboarding();
+        if (verbose) {
+          const ladders = await getAllFromStore('pattern_ladders');
+          console.log(`✅ Pattern ladders initialized: ${ladders.length} ladders`);
+        }
+      } else if (verbose) {
+        console.log(`✅ Pattern ladders already initialized: ${storeChecks.pattern_ladders.length} ladders`);
+      }
+
+      if (verbose) {
+        console.log(`   tag_mastery: ${storeChecks.tag_mastery.length} records (empty = onboarding mode)`);
+      }
     } catch (error) {
       console.error('❌ Database verification/initialization failed:', error);
-      console.error('Stack:', error.stack);
+      if (verbose) console.error('Stack:', error.stack);
       return {
         success: false,
         error: `Failed to initialize test database: ${error.message}`,
@@ -286,8 +302,18 @@ export function initializeCoreBusinessTests() {
     return { success: true };
   }
 
+  // Helper: Run async function with timeout protection
+  async function withTimeout(asyncFn, timeoutMs, _testName) {
+    return Promise.race([
+      asyncFn(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Test timeout after ${timeoutMs}ms`)), timeoutMs)
+      )
+    ]);
+  }
+
   // Helper: Execute a single test with cleanup and error handling
-  async function executeSingleTest(test, verbose) {
+  async function executeSingleTest(test, verbose, timeout = 30000) {
     // Clean up variable data before each test (preserve seeded data)
     if (globalThis._testDatabaseHelper) {
       try {
@@ -300,7 +326,13 @@ export function initializeCoreBusinessTests() {
 
     try {
       if (verbose) console.log(`Running ${test.name}...`);
-      const result = await test.fn(verbose);
+
+      // Run test with timeout protection
+      const result = await withTimeout(
+        () => test.fn(verbose),
+        timeout,
+        test.name
+      );
 
       const testResult = {
         name: test.name,
@@ -319,9 +351,10 @@ export function initializeCoreBusinessTests() {
 
       return testResult;
     } catch (error) {
-      if (verbose) {
-        console.error(`💥 ${test.name} errored:`, error.message);
-        console.error(`   Stack:`, error.stack);
+      const isTimeout = error.message && error.message.includes('timeout');
+      if (verbose || isTimeout) {
+        console.error(`💥 ${test.name} ${isTimeout ? 'TIMED OUT' : 'errored'}:`, error.message);
+        if (verbose && error.stack) console.error(`   Stack:`, error.stack);
       }
 
       return {
@@ -356,7 +389,7 @@ export function initializeCoreBusinessTests() {
   }
 
   globalThis.testCoreBusinessLogic = async function(options = {}) {
-    const { verbose = false, quick = false, cleanup = true } = options;
+    const { verbose = false, quick = false, cleanup = true, timeout = 30000 } = options;
 
     // Suppress DEBUG logs when verbose=false to reduce console noise
     const originalLogLevel = logger.getLogLevel();
@@ -365,7 +398,7 @@ export function initializeCoreBusinessTests() {
     }
 
     // Auto-setup test environment
-    const setupResult = await setupTestEnvironment();
+    const setupResult = await setupTestEnvironment(verbose);
     if (!setupResult.success) {
       return {
         passed: 0,
@@ -413,7 +446,7 @@ export function initializeCoreBusinessTests() {
     for (const test of tests) {
       if (quick && results.tests.length >= 5) break;
 
-      const testResult = await executeSingleTest(test, verbose);
+      const testResult = await executeSingleTest(test, verbose, timeout);
       results.tests.push(testResult);
 
       if (testResult.status === 'PASS') {
@@ -563,12 +596,14 @@ export function initializeCoreBusinessTests() {
   async function testAttemptTracking(_verbose) {
     const start = Date.now();
     try {
-      console.log('🧪 testAttemptTracking: Starting...');
+      if (_verbose) {
+        console.log('🧪 testAttemptTracking: Starting...');
+        console.log('🧪 testAttemptTracking: About to call createTestProblem(1)');
+      }
       // Create test problem in problems store (production pattern)
       // LeetCode ID 1 = "Two Sum" (real problem from standard_problems)
-      console.log('🧪 testAttemptTracking: About to call createTestProblem(1)');
-      const testProblem = await createTestProblem(1);
-      console.log('🧪 testAttemptTracking: testProblem created:', testProblem);
+      const testProblem = await createTestProblem(1, _verbose);
+      if (_verbose) console.log('🧪 testAttemptTracking: testProblem created:', testProblem);
 
       // Create attempt with real problem
       const attempt = {
@@ -764,9 +799,9 @@ export function initializeCoreBusinessTests() {
 
       let addResult;
       try {
-        console.log('🔍 Adding attempt to DB:', { problem_id: testAttempt.problem_id });
+        if (_verbose) console.log('🔍 Adding attempt to DB:', { problem_id: testAttempt.problem_id });
         addResult = await addAttemptToDB(testAttempt);
-        console.log('🔍 addAttempt result:', addResult);
+        if (_verbose) console.log('🔍 addAttempt result:', addResult);
       } catch (error) {
         console.error('❌ Failed to add attempt to DB:', error);
         return {
@@ -776,9 +811,7 @@ export function initializeCoreBusinessTests() {
         };
       }
 
-      // Small delay to ensure DB write completes
-      await new Promise(resolve => setTimeout(resolve, 100));
-
+      // addAttemptToDB completes the transaction before returning, so data is committed
       // Try to read it back - check if attempt exists in database
       // Already imported statically
       const db = await dbHelper.openDB();
@@ -793,7 +826,7 @@ export function initializeCoreBusinessTests() {
 
       const matchingAttempts = allAttempts.filter(a => a.problem_id === testProblem.problem_id);
 
-      console.log('🔍 Attempt retrieval:', {
+      if (_verbose) console.log('🔍 Attempt retrieval:', {
         totalInDB: allAttempts.length,
         matchingThisProblem: matchingAttempts.length,
         lookingFor: testProblem.problem_id
@@ -890,7 +923,7 @@ export function initializeCoreBusinessTests() {
       // Already imported statically
       try {
         await addAttemptToDB(testAttempt);
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+        // addAttemptToDB completes transaction before returning
         const retrieved = await getMostRecentAttempt(testProblem.problem_id);
         results.attemptsServiceWorks = retrieved && retrieved.problem_id === testProblem.problem_id;
       } catch (error) {
@@ -1138,35 +1171,9 @@ export function initializeCoreBusinessTests() {
       request.onerror = () => reject(request.error);
     });
 
-    console.log(`✅ TEST: Session ${sessionObj.id} saved to IndexedDB with status: ${sessionToSave.status}`);
+    // Verbose logging removed - use verbose mode in testCoreBusinessLogic to see details
   }
 
-  // Helper: Debug attempt recording in production workflow test
-  async function debugAttemptRecording(firstTestProblem) {
-    const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
-      ? globalThis._testDatabaseHelper
-      : dbHelper;
-    const db = await helper.openDB();
-    const allAttempts = await new Promise((resolve, reject) => {
-      const tx = db.transaction(['attempts'], 'readonly');
-      const store = tx.objectStore('attempts');
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-
-    const matchingAttempts = allAttempts.filter(a => a.problem_id === firstTestProblem.problem_id);
-    console.warn('\n\n');
-    console.warn('═══════════════════════════════════════════════════════════');
-    console.warn('🚨 PRODUCTION WORKFLOW - ATTEMPT RECORDING DEBUG 🚨');
-    console.warn('═══════════════════════════════════════════════════════════');
-    console.warn('Total attempts in database:', allAttempts.length);
-    console.warn('Querying for problem_id:', firstTestProblem.problem_id);
-    console.warn('Matching attempts found:', matchingAttempts.length);
-    console.warn('First matching attempt (ALL FIELDS):', matchingAttempts[0] ? matchingAttempts[0] : '❌ NONE FOUND');
-    console.warn('═══════════════════════════════════════════════════════════');
-    console.warn('\n\n');
-  }
 
   async function testProductionWorkflow(_verbose) {
     const start = Date.now();
@@ -1225,18 +1232,13 @@ export function initializeCoreBusinessTests() {
       try {
         await SessionService.checkAndCompleteSession(sessionId);
       } catch (error) {
-        console.warn('Session completion warning:', error.message);
+        if (_verbose) console.warn('Session completion warning:', error.message);
       }
 
-      // Debug attempt recording
-      await debugAttemptRecording(firstTestProblem);
-
       // Verify attempts recorded
-      console.warn('🔍 About to call getMostRecentAttempt with problem_id:', firstTestProblem.problem_id);
       const recordedAttempt = await AttemptsService.getMostRecentAttempt(firstTestProblem.problem_id);
-      console.warn('🔍 getMostRecentAttempt returned:', recordedAttempt);
 
-      if (!recordedAttempt) {
+      if (!recordedAttempt && _verbose) {
         console.warn('⚠️ TEST: getMostRecentAttempt returned null for problem_id:', firstTestProblem.problem_id);
         console.warn('⚠️ TEST: firstTestProblem:', {
           problem_id: firstTestProblem.problem_id,
@@ -1318,12 +1320,15 @@ export function initializeCoreBusinessTests() {
     };
     await addAttemptToDB(attemptRecord);
     await updateTagMasteryForAttempt(testProblem, attemptRecord);
+
+    // Use PRODUCTION code to update pattern ladders (same as in attemptsService.js)
+    await updatePatternLaddersOnAttempt(testProblem.leetcode_id || testProblem.id);
+
     return testProblem;
   }
 
   // Helper: Get array mastery status
   async function getArrayMastery() {
-    await new Promise(resolve => setTimeout(resolve, 100));
     const masteryData = await getTagMastery();
     return masteryData.find(m => m.tag === 'array');
   }
@@ -1376,6 +1381,31 @@ export function initializeCoreBusinessTests() {
       const masteryThreshold = arrayTagRel?.mastery_threshold || 0.75;
       const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
       const arrayProblemIds = [1, 26, 27, 35, 53, 66, 80, 118, 119, 121, 152, 153, 169, 189, 217, 238, 268, 283, 287, 414];
+
+      // Create test-specific ladder with all test problems
+      const testLadder = {
+        tag: 'array',
+        lastUpdated: new Date().toISOString(),
+        problems: arrayProblemIds.map(id => ({
+          id,
+          leetcode_id: id,
+          attempted: false,
+          difficulty: 'Easy' // Doesn't matter for the test
+        }))
+      };
+
+      // Store the test ladder
+      const ladderTx = db.transaction(['pattern_ladders'], 'readwrite');
+      const ladderStore = ladderTx.objectStore('pattern_ladders');
+      await new Promise((resolve, reject) => {
+        const req = ladderStore.put(testLadder);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+
+      if (_verbose) {
+        console.log(`✅ Created test ladder for "array" with ${arrayProblemIds.length} problems`);
+      }
 
       // Clear previous test attempts
       const attemptsTx = db.transaction(['attempts'], 'readwrite');
@@ -1535,9 +1565,7 @@ export function initializeCoreBusinessTests() {
         attempt_date: new Date()
       });
 
-      // Small delay for async updates
-      await new Promise(resolve => setTimeout(resolve, 100));
-
+      // addAttemptToDB completes transaction synchronously before returning
       // Verify relationship map still works after update
       const updatedMap = await buildRelationshipMap();
       const mapStillValid = updatedMap && updatedMap.size > 0;
@@ -2113,13 +2141,13 @@ export function initializeCoreBusinessTests() {
    * Creates isolated test database and seeds it with production-like data
    */
   globalThis.enableTesting = async function(options = {}) {
-    console.log('🔥 enableTesting() CALLED - Setting up test environment...');
-    const { force = false } = options;
+    const { force = false, verbose = false } = options;
+    if (verbose) console.log('🔥 enableTesting() CALLED - Setting up test environment...');
 
     try {
       // Check if already enabled and seeded (idempotent)
       if (globalThis._testDatabaseActive && globalThis._testDatabaseSeeded && !force) {
-        console.log('ℹ️ Test environment already active and seeded');
+        if (verbose) console.log('ℹ️ Test environment already active and seeded');
         return {
           success: true,
           active: true,
@@ -2128,7 +2156,7 @@ export function initializeCoreBusinessTests() {
         };
       }
 
-      console.log('🧪 Enabling test environment...');
+      if (verbose) console.log('🧪 Enabling test environment...');
 
       // createDbHelper is now statically imported at the top
 
@@ -2138,9 +2166,9 @@ export function initializeCoreBusinessTests() {
         testDb = createDbHelper({
           dbName: "CodeMaster_test",
           isTestMode: true,
-          enableLogging: true
+          enableLogging: verbose
         });
-        console.log(`✅ Test database created: ${testDb.dbName}`);
+        if (verbose) console.log(`✅ Test database created: ${testDb.dbName}`);
       }
 
       // Seeding functions are now statically imported at the top
@@ -2156,10 +2184,10 @@ export function initializeCoreBusinessTests() {
 
       let seedResults = {};
       if (count > 1000 && !force) {
-        console.log(`♻️ Test database already seeded: ${count} problems - SKIPPING`);
+        if (verbose) console.log(`♻️ Test database already seeded: ${count} problems - SKIPPING`);
         seedResults = { standardProblems: true, strategyData: true, tagRelationships: true, problemRelationships: true, sessionState: true };
       } else {
-        console.log(`🌱 Seeding test database...`);
+        if (verbose) console.log(`🌱 Seeding test database...`);
 
         // Set flags for seeding
         globalThis._testDatabaseActive = true;
@@ -2187,7 +2215,7 @@ export function initializeCoreBusinessTests() {
         });
 
         seedResults = { standardProblems: true, strategyData: true, tagRelationships: true, problemRelationships: true, sessionState: true };
-        console.log('✅ Test database seeded successfully');
+        if (verbose) console.log('✅ Test database seeded successfully');
       }
 
       // Set global flags
@@ -2195,7 +2223,7 @@ export function initializeCoreBusinessTests() {
       globalThis._testDatabaseHelper = testDb;
       globalThis._testDatabaseSeeded = true;
 
-      console.log('✅ Test environment ready!');
+      if (verbose) console.log('✅ Test environment ready!');
       return {
         success: true,
         active: true,

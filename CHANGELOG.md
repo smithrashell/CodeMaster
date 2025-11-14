@@ -7,6 +7,79 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Chrome Web Store Preparation** (#205)
+  - Created comprehensive chrome-store folder with all submission materials:
+    - 8 high-quality screenshots (1280x800 PNG) showing all key features
+    - Promotional tile (1400x560 PNG) with branding and feature highlights
+    - Complete documentation: PRIVACY_POLICY.md, TERMS_OF_SERVICE.md, STORE_LISTING.md
+    - Submission guide with step-by-step instructions and captions
+  - Added PRIVACY_POLICY.md to repository root for GitHub URL accessibility
+  - Created extension package (tar.gz format, 2.1 MB)
+  - Configured Content Security Policy (CSP) in manifest.json
+  - Verified all 512px icons present and referenced correctly
+  - Prepared comprehensive marketing copy and permission justifications
+
+### Fixed
+- **Fixed Mastery Gates Test with Pattern Ladder Initialization** (#205)
+  - Resolved failing "Mastery Gates (Volume + Uniqueness)" test by initializing pattern ladders during test setup
+  - Implemented consistent tag normalization across all ladder operations (lowercase)
+  - Created test-specific ladder with all test problems for predictable test results
+  - Refactored tests to use production code (updatePatternLaddersOnAttempt) instead of custom test helpers
+  - Ensures tests validate actual production behavior rather than synthetic test logic
+  - Updated problemladderService.js with normalizeTag function for consistent storage/lookup
+- **Removed Test Code from Production Build** (#205)
+  - Wrapped test helper functions in conditional blocks (process.env.ENABLE_TESTING)
+  - Enabled webpack tree-shaking to exclude 91,000+ lines of test code from production
+  - Reduced production background.js bundle size from 2.82 MiB → 1.23 MiB (1.59 MiB saved, 56% reduction)
+  - Verified zero test/spec/mock files in dist/ folder
+  - Minimized console.log statements in production (only 3 occurrences)
+- **Fixed Linting Errors in Background Script** (#205)
+  - Removed unused imports from index.js (adaptiveLimitsService, InterviewService, StorageCleanupManager, getAllFromStore, updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic)
+  - Fixed unused parameter in core-business-tests.js (testName → _testName)
+  - Reduced linting issues from 8 errors + 16 warnings → 0 errors + 16 warnings
+  - All remaining warnings are acceptable (function complexity/length)
+- **Fixed XSS Security Vulnerability in Error Notifications** (#205)
+  - Fixed potential XSS vulnerability in errorNotifications.js line 127
+  - Changed from innerHTML to textContent for title text to prevent script injection
+  - Icon SVG still uses innerHTML (safe, internal string only)
+  - Prevents malicious code execution if title parameter ever contains user input
+
+### Added
+- **Open Source Licensing with Dual Licensing Option** (#206)
+  - Established CodeMaster as open source software under GNU AGPL v3
+  - Created comprehensive LICENSE file with full AGPL v3 text (Copyright 2025 Rashell Smith)
+  - Added Contributor License Agreement (CLA) to CONTRIBUTING.md:
+    - Grants project owner perpetual, irrevocable license to contributions
+    - Enables dual licensing (AGPL v3 for community + commercial licenses for businesses)
+    - Allows enforcement of copyright protection
+    - Provides future licensing flexibility
+  - Created COPYRIGHT_HEADERS.md with templates for JavaScript, CSS, Markdown, and shell scripts
+  - Added comprehensive license section to README.md:
+    - Clear explanation of AGPL v3 rights and obligations
+    - Commercial licensing availability for businesses needing proprietary modifications
+    - Link to CLA in CONTRIBUTING.md
+  - Updated TERMS_OF_SERVICE.md with open source licensing information:
+    - Replaced "future open source plans" with actual AGPL v3 license details
+    - Added commercial licensing contact information
+    - Referenced CLA for contributors
+  - Created PRIVACY_POLICY.md for Chrome Web Store compliance:
+    - 100% local storage policy (no data transmission)
+    - Detailed explanation of IndexedDB usage and data retention
+    - User rights (access, deletion, modification)
+    - Chrome permissions justification
+  - Created STORE_LISTING.md with Chrome Web Store marketing copy:
+    - Short description (132 chars), detailed description (~3850 chars)
+    - 7 feature highlights, screenshot captions, permission justifications
+    - Category recommendations and target keywords
+  - Updated manifest.json with homepage_url pointing to GitHub repository
+  - **Impact**:
+    - Enables public contributions while maintaining full ownership
+    - AGPL v3 network clause prevents proprietary SaaS forks without commercial license
+    - CLA allows offering commercial licenses to businesses
+    - Cloud backup feature can remain proprietary (separate work from extension)
+    - Builds community trust through transparency
+
 ### Fixed
 - **Fixed Timer Behavior metric inconsistency** (#183)
   - Aligned `calculateTimerBehavior` badge logic with `calculateTimerPercentage` calculation
