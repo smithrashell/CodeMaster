@@ -14,6 +14,10 @@ import { buildRelationshipMap } from "../db/problem_relationships.js";
 
 import { TagService } from "../services/tagServices.js";
 import { getAllFromStore } from "../db/common.js";
+
+// Normalize tag names to lowercase for consistent storage and lookup
+const normalizeTag = (tag) => tag.trim().toLowerCase();
+
 // Remove early binding - use TagService.getCurrentLearningState() directly
 export async function initializePatternLaddersForOnboarding() {
   const [
@@ -42,13 +46,13 @@ export async function initializePatternLaddersForOnboarding() {
   const { allTagsInCurrentTier, focusTags } =
     await TagService.getCurrentLearningState();
 
-  const focusTagSet = new Set(focusTags);
-  const allTagsInTierSet = new Set(allTagsInCurrentTier);
+  const focusTagSet = new Set(focusTags.map(normalizeTag));
+  const allTagsInTierSet = new Set(allTagsInCurrentTier.map(normalizeTag));
   const userProblemMap = new Map(userProblems.map((p) => [p.leetcode_id, p]));
   const relationshipMap = await buildRelationshipMap(problemRelationships);
 
   for (const entry of tagRelationships) {
-    const tag = entry.id;
+    const tag = normalizeTag(entry.id);
     const classification = entry.classification;
     const allowedClassifications = getAllowedClassifications(classification);
     console.log("tag", tag);
@@ -154,7 +158,8 @@ export async function updatePatternLaddersOnAttempt(problemId) {
  * @param {string} completedTag - The tag whose ladder was completed
  */
 export async function regenerateCompletedPatternLadder(completedTag) {
-  console.log(`🔄 Regenerating completed pattern ladder: ${completedTag}`);
+  const normalizedCompletedTag = normalizeTag(completedTag);
+  console.log(`🔄 Regenerating completed pattern ladder: ${normalizedCompletedTag}`);
 
   // For now, regenerate just this specific ladder
   // TODO: Could be enhanced to regenerate related tags via tag_relationships
@@ -175,13 +180,13 @@ export async function regenerateCompletedPatternLadder(completedTag) {
 
   // Get learning state for dynamic ladder sizing
   const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();
-  const focusTagSet = new Set(focusTags);
-  const allTagsInTierSet = new Set(allTagsInCurrentTier);
+  const focusTagSet = new Set(focusTags.map(normalizeTag));
+  const allTagsInTierSet = new Set(allTagsInCurrentTier.map(normalizeTag));
 
   // Find the specific tag relationship
-  const tagEntry = tagRelationships.find(entry => entry.id === completedTag);
+  const tagEntry = tagRelationships.find(entry => normalizeTag(entry.id) === normalizedCompletedTag);
   if (!tagEntry) {
-    throw new Error(`Tag relationship not found for: ${completedTag}`);
+    throw new Error(`Tag relationship not found for: ${normalizedCompletedTag}`);
   }
 
   const classification = tagEntry.classification || "Advanced Techniques";
@@ -196,9 +201,9 @@ export async function regenerateCompletedPatternLadder(completedTag) {
   });
 
   // Dynamic ladder size based on tag focus and tier
-  const ladderSize = focusTagSet.has(completedTag)
+  const ladderSize = focusTagSet.has(normalizedCompletedTag)
     ? 12
-    : allTagsInTierSet.has(completedTag)
+    : allTagsInTierSet.has(normalizedCompletedTag)
     ? 9
     : 5;
 
@@ -212,12 +217,12 @@ export async function regenerateCompletedPatternLadder(completedTag) {
   });
 
   await upsertPatternLadder({
-    tag: completedTag,
+    tag: normalizedCompletedTag,
     last_updated: new Date().toISOString(),
     problems: ladder,
   });
 
-  console.log(`✅ Successfully regenerated pattern ladder: ${completedTag}`);
+  console.log(`✅ Successfully regenerated pattern ladder: ${normalizedCompletedTag}`);
 }
 
 export async function generatePatternLaddersAndUpdateTagMastery() {
@@ -238,13 +243,13 @@ export async function generatePatternLaddersAndUpdateTagMastery() {
 
   // Get learning state for dynamic ladder sizing
   const { focusTags, allTagsInCurrentTier } = await TagService.getCurrentLearningState();
-  const focusTagSet = new Set(focusTags);
-  const allTagsInTierSet = new Set(allTagsInCurrentTier);
+  const focusTagSet = new Set(focusTags.map(normalizeTag));
+  const allTagsInTierSet = new Set(allTagsInCurrentTier.map(normalizeTag));
 
   await clearPatternLadders();
 
   for (const entry of tagRelationships) {
-    const tag = entry.id;
+    const tag = normalizeTag(entry.id);
     const classification = entry.classification || "Advanced Techniques";
     const allowedClassifications = getAllowedClassifications(classification);
 

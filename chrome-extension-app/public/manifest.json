@@ -3,11 +3,13 @@
   "version": "1.0.0",
   "description": "Master algorithms with personalized spaced repetition, pattern ladders, and adaptive sessions. Track progress on LeetCode with intelligent learning analytics.",
   "manifest_version": 3,
+  "homepage_url": "https://github.com/smithrashell/CodeMaster",
   "icons": {
     "16": "icon16.png",
     "32": "icon32.png",
     "48": "icon48.png",
-    "128": "icon128.png"
+    "128": "icon128.png",
+    "512": "icon512.png"
   },
   "host_permissions": [
     "https://leetcode.com/*"
@@ -63,5 +65,8 @@
         "https://leetcode.com/*"
       ]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 }

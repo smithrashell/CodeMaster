@@ -173,9 +173,54 @@ CodeMaster/
 - 📖 **[Complete Documentation Hub](docs/README.md)** - Comprehensive technical documentation and guides
 - 🚀 **[Quick Start Installation](docs/getting-started/installation.md)** - Get running in 15 minutes
 - 🏗️ **[Architecture Overview](docs/architecture/overview.md)** - Understand the system design
-- 🤝 **[Contributing Guide](docs/development/contributing.md)** - Developer workflow and standards
+- 🤝 **[Contributing Guide](CONTRIBUTING.md)** - Developer workflow, CLA, and standards
 - 🛠️ **[API References](docs/api/)** - Services and database API documentation
 - 🎯 **[Learning Features](docs/features/)** - Leitner system, adaptive sessions, pattern ladders
 - 🐛 **[Troubleshooting](docs/troubleshooting/)** - Common issues and solutions
 
+---
+
+## 📜 License
+
+CodeMaster is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
+
+### What This Means
+
+✅ **You can:**
+- Use CodeMaster for personal or commercial purposes
+- Modify the source code
+- Distribute modified versions
+- Contribute to the project
+
+⚠️ **You must:**
+- Share source code of modified versions under AGPL v3
+- Preserve copyright and license notices
+- State changes made to the code
+- Make source code available to network users (if you host a modified version)
+
+❌ **You cannot:**
+- Relicense under different terms (without permission)
+- Hold the author liable for damages
+- Use CodeMaster trademarks without permission
+
+### Commercial Licensing
+
+For businesses that cannot comply with AGPL v3 requirements (e.g., proprietary modifications, no source disclosure), **alternative commercial licenses** are available.
+
+**Contact**: RashellSSmith@gmail.com for commercial licensing inquiries.
+
+### Contributing
+
+By contributing code to CodeMaster, you agree to our [Contributor License Agreement](CONTRIBUTING.md#contributor-license-agreement-cla), which allows us to:
+- Offer dual licensing (AGPL v3 + commercial)
+- Enforce copyright protection
+- Maintain project flexibility
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full details.
+
+---
+
+**Copyright (C) 2025 Rashell Smith**
+
+See [LICENSE](LICENSE) for the complete license text.
 
