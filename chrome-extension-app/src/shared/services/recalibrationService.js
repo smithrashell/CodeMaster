@@ -278,3 +278,84 @@ export async function getDecayStatistics() {
     };
   }
 }
+
+/**
+ * Phase 2: Get welcome back strategy based on usage gap
+ * Determines what type of recalibration flow to show the user
+ *
+ * @param {number} daysSinceLastUse - Days since user last used the app
+ * @returns {object} Strategy object with type, message, and options
+ */
+export function getWelcomeBackStrategy(daysSinceLastUse) {
+  // < 30 days: Business as usual, no special handling
+  if (daysSinceLastUse < 30) {
+    return { type: 'normal' };
+  }
+
+  // 30-90 days: Gentle recalibration with adaptive first session
+  if (daysSinceLastUse < 90) {
+    return {
+      type: 'gentle_recal',
+      message: "You've been away for a while. Your first session will help us recalibrate your learning path.",
+      approach: 'adaptive_first_session',
+      daysSinceLastUse
+    };
+  }
+
+  // 90-365 days: Moderate recalibration with user choice
+  if (daysSinceLastUse < 365) {
+    return {
+      type: 'moderate_recal',
+      message: "Welcome back! Let's find your current skill level.",
+      daysSinceLastUse,
+      options: [
+        {
+          value: 'diagnostic',
+          label: 'Quick Assessment (5 problems)',
+          description: 'Sample key topics to quickly recalibrate',
+          time: '~15 min',
+          recommended: true
+        },
+        {
+          value: 'adaptive_first_session',
+          label: 'Adaptive Session',
+          description: 'Learn while we recalibrate your level',
+          time: '~30 min',
+          recommended: false
+        }
+      ]
+    };
+  }
+
+  // > 365 days: Major recalibration with strong diagnostic recommendation
+  return {
+    type: 'major_recal',
+    message: "It's been a while! Let's see what you remember.",
+    daysSinceLastUse,
+    recommendation: 'diagnostic',
+    options: [
+      {
+        value: 'diagnostic',
+        label: '5-Minute Diagnostic (Recommended)',
+        description: 'Sample problems from your previous topics to quickly recalibrate',
+        time: '~15 min',
+        recommended: true
+      },
+      {
+        value: 'reset',
+        label: 'Start Fresh',
+        description: 'Reset progress and rebuild from scratch (keeps history for analytics)',
+        time: 'immediate',
+        recommended: false,
+        warning: 'This will reset all box levels to 1'
+      },
+      {
+        value: 'adaptive_first_session',
+        label: 'Jump Back In',
+        description: 'Start sessions immediately and adapt as we go',
+        time: '~30 min',
+        recommended: false
+      }
+    ]
+  };
+}
