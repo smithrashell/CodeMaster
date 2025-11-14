@@ -33,6 +33,16 @@ function getDaysSince(dateString) {
   }
 }
 
+// Configuration constants with scientific justification
+const DECAY_CONFIG = {
+  MIN_GAP_DAYS: 30,           // No decay for gaps under 30 days
+  BOX_DECAY_INTERVAL: 60,     // 1 box per 60 days (2 months) - conservative
+  FORGETTING_HALF_LIFE: 90,   // 90-day half-life based on Ebbinghaus forgetting curve
+  RECALIBRATION_THRESHOLD: 90, // Flag problems unused for 90+ days for diagnostic
+  MIN_BOX_LEVEL: 1,           // Minimum box level (never goes below 1)
+  MIN_STABILITY: 0.5          // Minimum stability (never goes below 0.5)
+};
+
 /**
  * Apply passive background decay to problems based on time elapsed
  *
@@ -46,13 +56,26 @@ function getDaysSince(dateString) {
  * @returns {Promise<{applied: boolean, problemsAffected: number, message: string}>}
  */
 export async function applyPassiveDecay(daysSinceLastUse) {
-  // No decay needed for gaps under 30 days
-  if (daysSinceLastUse < 30) {
-    console.log(`✅ No decay needed (${daysSinceLastUse} days < 30 day threshold)`);
+  // No decay needed for gaps under threshold
+  if (daysSinceLastUse < DECAY_CONFIG.MIN_GAP_DAYS) {
+    console.log(`✅ No decay needed (${daysSinceLastUse} days < ${DECAY_CONFIG.MIN_GAP_DAYS} day threshold)`);
     return {
       applied: false,
       problemsAffected: 0,
       message: `No decay needed for ${daysSinceLastUse} day gap`
+    };
+  }
+
+  // CRITICAL: Check if decay already applied today to prevent race conditions
+  const lastDecayDate = await StorageService.get('last_decay_date');
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+
+  if (lastDecayDate === today) {
+    console.log(`✅ Decay already applied today (${today}), skipping to prevent duplicate application`);
+    return {
+      applied: false,
+      problemsAffected: 0,
+      message: `Decay already applied today`
     };
   }
 
@@ -76,7 +99,7 @@ export async function applyPassiveDecay(daysSinceLastUse) {
             : daysSinceLastUse; // Use app gap if no attempts
 
           // Skip if problem was attempted recently
-          if (daysSinceLastAttempt < 30) {
+          if (daysSinceLastAttempt < DECAY_CONFIG.MIN_GAP_DAYS) {
             return;
           }
 
@@ -87,9 +110,9 @@ export async function applyPassiveDecay(daysSinceLastUse) {
           };
 
           // Box Level Decay: 1 box per 60 days (conservative)
-          const boxDecayAmount = Math.floor(daysSinceLastAttempt / 60);
-          if (boxDecayAmount > 0 && problem.box_level) {
-            const newBoxLevel = Math.max(1, problem.box_level - boxDecayAmount);
+          const boxDecayAmount = Math.floor(daysSinceLastAttempt / DECAY_CONFIG.BOX_DECAY_INTERVAL);
+          if (boxDecayAmount > 0 && problem.box_level !== undefined && problem.box_level !== null) {
+            const newBoxLevel = Math.max(DECAY_CONFIG.MIN_BOX_LEVEL, problem.box_level - boxDecayAmount);
             if (newBoxLevel !== problem.box_level) {
               problem.box_level = newBoxLevel;
               problem.original_box_level = original.boxLevel; // Store for rollback
@@ -98,10 +121,10 @@ export async function applyPassiveDecay(daysSinceLastUse) {
           }
 
           // Stability Decay: Exponential forgetting curve (90-day half-life)
-          // Formula: stability * e^(-days / 90)
+          // Formula: stability * e^(-days / FORGETTING_HALF_LIFE)
           if (problem.stability !== undefined && problem.stability !== null) {
-            const forgettingFactor = Math.exp(-daysSinceLastAttempt / 90);
-            const newStability = Math.max(0.5, problem.stability * forgettingFactor);
+            const forgettingFactor = Math.exp(-daysSinceLastAttempt / DECAY_CONFIG.FORGETTING_HALF_LIFE);
+            const newStability = Math.max(DECAY_CONFIG.MIN_STABILITY, problem.stability * forgettingFactor);
             if (Math.abs(newStability - problem.stability) > 0.01) {
               problem.stability = parseFloat(newStability.toFixed(2));
               modified = true;
@@ -109,7 +132,7 @@ export async function applyPassiveDecay(daysSinceLastUse) {
           }
 
           // Mark problems needing recalibration (90+ days unused)
-          if (daysSinceLastAttempt >= 90) {
+          if (daysSinceLastAttempt >= DECAY_CONFIG.RECALIBRATION_THRESHOLD) {
             problem.needs_recalibration = true;
             problem.decay_applied_date = new Date().toISOString();
             modified = true;
@@ -122,7 +145,10 @@ export async function applyPassiveDecay(daysSinceLastUse) {
           }
         });
 
-        transaction.oncomplete = () => {
+        transaction.oncomplete = async () => {
+          // Update last decay date to prevent duplicate application
+          await StorageService.set('last_decay_date', today);
+
           const message = `Applied decay to ${problemsAffected} problems (${daysSinceLastUse} day gap)`;
           console.log(`✅ ${message}`);
           resolve({
@@ -161,6 +187,23 @@ export async function applyPassiveDecay(daysSinceLastUse) {
  */
 export async function checkAndApplyDecay() {
   try {
+    // Performance optimization: Check if we already checked today (24-hour cooldown)
+    const lastCheckDate = await StorageService.get('last_decay_check_date');
+    const today = new Date().toISOString().split('T')[0];
+
+    if (lastCheckDate === today) {
+      console.log(`✅ Decay check already performed today (${today}), skipping for performance`);
+      return {
+        decayApplied: false,
+        daysSinceLastUse: 0,
+        problemsAffected: 0,
+        message: 'Already checked today'
+      };
+    }
+
+    // Update check date immediately to prevent race conditions on rapid service worker restarts
+    await StorageService.set('last_decay_check_date', today);
+
     // Get days since last activity
     const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();
 
