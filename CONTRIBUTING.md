@@ -2,8 +2,12 @@
 
 Welcome to the CodeMaster Chrome extension project! This guide will help you get started with contributing to our algorithm mastery learning platform.
 
+**Important**: By submitting code, you agree to our [Contributor License Agreement](#contributor-license-agreement-cla).
+
 ## 📋 Table of Contents
 
+- [Code of Conduct](#code-of-conduct)
+- [Contributor License Agreement (CLA)](#contributor-license-agreement-cla)
 - [Development Setup](#-development-setup)
 - [Project Architecture](#-project-architecture)
 - [Development Workflow](#-development-workflow)
@@ -12,6 +16,103 @@ Welcome to the CodeMaster Chrome extension project! This guide will help you get
 - [Chrome Extension Development](#-chrome-extension-development)
 - [Pull Request Process](#-pull-request-process)
 - [Issue Guidelines](#-issue-guidelines)
+- [Recognition](#recognition)
+
+---
+
+## Code of Conduct
+
+### Our Pledge
+
+We pledge to make participation in CodeMaster a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, level of experience, nationality, personal appearance, race, religion, or sexual identity and orientation.
+
+### Expected Behavior
+
+- ✅ Be respectful and inclusive
+- ✅ Provide constructive feedback
+- ✅ Accept criticism gracefully
+- ✅ Focus on what's best for the project and community
+
+### Unacceptable Behavior
+
+- ❌ Harassment, trolling, or personal attacks
+- ❌ Publishing others' private information
+- ❌ Any conduct that would be inappropriate in a professional setting
+
+**Enforcement**: Violations may result in removal from the project. Contact RashellSSmith@gmail.com to report issues.
+
+---
+
+## Contributor License Agreement (CLA)
+
+**By submitting code to CodeMaster, you agree to the following terms:**
+
+### Grant of Copyright License
+
+You hereby grant to Rashell Smith (the "Project Owner") and to recipients of software distributed by the Project a **perpetual, worldwide, non-exclusive, royalty-free, irrevocable copyright license** to:
+
+1. **Use** your contributions in CodeMaster
+2. **Reproduce, modify, and create derivative works** from your contributions
+3. **Publicly display and perform** your contributions
+4. **Distribute** your contributions under any license, including:
+   - The current GNU AGPL v3 license
+   - Future alternative commercial licenses
+   - Any other open source or proprietary license
+
+### Grant of Patent License
+
+You grant the Project Owner a **perpetual, worldwide, non-exclusive, royalty-free, irrevocable patent license** to:
+- Make, use, sell, and import your contributions
+- License your contributions under different terms
+
+### Representations and Warranties
+
+You represent and warrant that:
+
+1. **Original Work**: Your contribution is your original creation OR you have rights to submit it
+2. **Legal Right**: You have legal authority to grant the above licenses
+3. **Third-Party Code**: If your contribution includes third-party code:
+   - You have identified all such code
+   - The third-party code is compatible with AGPL v3
+   - You have included proper attribution
+
+### What This Means
+
+✅ **You can:**
+- Publicly claim you contributed to CodeMaster
+- Use your contributions in your own projects
+- Fork CodeMaster under AGPL v3 terms
+
+✅ **Project Owner can:**
+- Include your contribution in CodeMaster
+- Sell commercial licenses of CodeMaster (including your contribution)
+- Change CodeMaster's license in the future
+- Enforce copyright on your contribution
+
+❌ **You cannot:**
+- Revoke this license
+- Prevent commercial licensing of your contribution
+- Claim exclusive rights to your contribution once submitted
+
+### Why This CLA Exists
+
+This CLA allows CodeMaster to:
+1. **Dual license**: Offer AGPL v3 for community + paid licenses for businesses
+2. **Enforce copyright**: Take legal action against license violations
+3. **Future flexibility**: Migrate to a different license if needed
+4. **Protect contributors**: Clear legal standing for all contributions
+
+**If you're uncomfortable with these terms**, you can contribute by:
+- Reporting bugs
+- Suggesting features
+- Improving documentation (docs-only PRs may not require CLA)
+- Supporting the community
+
+### Acceptance
+
+**By submitting a Pull Request, you indicate your acceptance of this CLA.**
+
+For corporate contributors or questions, contact: RashellSSmith@gmail.com
 
 ---
 
@@ -552,6 +653,32 @@ Include:
 - **GitHub Issues**: For bugs, feature requests, and technical questions
 - **Code Review**: Ask for feedback on complex implementations
 - **Architecture Discussions**: Propose significant changes in issues first
+
+---
+
+## Recognition
+
+### Contributors List
+
+All code contributors will be added to `CONTRIBUTORS.md` with:
+- Your name (GitHub username if you prefer)
+- Link to your GitHub profile
+- Brief description of contributions
+
+### Hall of Fame
+
+Significant contributors may be recognized in:
+- README.md acknowledgments
+- Chrome Web Store listing (if substantial contribution)
+- Project website (future)
+
+### Ways to Contribute Beyond Code
+
+- Report high-quality bugs
+- Suggest valuable features
+- Help other users in issues/discussions
+- Write tutorials or blog posts
+- Share CodeMaster with your network
 
 ---
 
