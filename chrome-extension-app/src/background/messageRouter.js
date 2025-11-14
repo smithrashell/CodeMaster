@@ -179,12 +179,43 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
       case "getWelcomeBackStrategy":
         (async () => {
           try {
+            // Check if user dismissed the modal today
+            const dismissed = await StorageService.get('welcome_back_dismissed');
+            const today = new Date().toISOString().split('T')[0];
+
+            if (dismissed && dismissed.timestamp && dismissed.timestamp.startsWith(today)) {
+              console.log(`✅ Welcome back modal dismissed today (${today}), skipping`);
+              sendResponse({ type: 'normal' }); // Don't show if dismissed today
+              finishRequest();
+              return;
+            }
+
             const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();
             const strategy = getWelcomeBackStrategy(daysSinceLastUse);
             sendResponse(strategy);
           } catch (error) {
             console.error("❌ Error getting welcome back strategy:", error);
             sendResponse({ type: 'normal' }); // Default to normal if error
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "dismissWelcomeBack":
+        (async () => {
+          try {
+            // Store dismissal with timestamp
+            await StorageService.set('welcome_back_dismissed', {
+              timestamp: request.timestamp,
+              daysSinceLastUse: request.daysSinceLastUse
+            });
+
+            console.log(`✅ Welcome back modal dismissed (${request.daysSinceLastUse} days gap)`);
+            sendResponse({ status: 'success' });
+          } catch (error) {
+            console.error("❌ Error dismissing welcome back modal:", error);
+            sendResponse({ status: 'error', message: error.message });
           } finally {
             finishRequest();
           }
