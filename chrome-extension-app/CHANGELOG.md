@@ -6,6 +6,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] - 2025-11-12
 
+### Changed
+**Immediate Deletion of Expired Sessions** ([Issue #193](https://github.com/smithrashell/CodeMaster/issues/193)):
+- Expired sessions are now deleted immediately upon regeneration instead of being retained for 30 days
+- Benefits:
+  - Cleaner database with no accumulation of dead sessions
+  - Simpler system with less code to maintain
+  - Immediate cleanup matching user intent
+  - All valuable data (completed sessions) still preserved forever
+  - Race condition protection during session regeneration
+- Implementation:
+  - `sessions.js`: Added new `deleteSessionFromDB()` function with validation and safety checks
+    - Validates sessionId parameter
+    - Logs warnings when deleting completed sessions
+    - Logs info when deleting in_progress sessions
+  - `sessionService.js`: `refreshSession()` now deletes old session immediately
+    - Added `sessionRefreshLocks` Map to prevent race conditions during concurrent regenerations
+    - Improved logging with session type and status information
+  - `sessionService.js`: Fixed `detectStalledSessions()` to work without expired status
+    - Now skips only completed sessions (expired sessions no longer exist)
+    - Properly detects stalled in_progress sessions
+  - `background/index.js`: Manual "expire" action now deletes instead of marking as expired
+  - `storageCleanup.js`: Updated retention policy from 30 days to 0 (edge cases only)
+    - Added monitoring/warnings for orphaned expired sessions
+    - Cleanup manager kept for handling orphaned data from crashes
+- Impact: No user-facing changes; internal cleanup improvement with better safety guarantees
+
 ### Fixed
 **Goals Page Weekly Accuracy and Problems Per Week Calculations Incorrect** ([Issue #201](https://github.com/smithrashell/CodeMaster/issues/201)):
 - Fixed Goals page Outcome Trends showing incorrect weekly accuracy (0%) and problems per week calculations
