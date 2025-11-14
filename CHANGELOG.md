@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Open Source Licensing with Dual Licensing Option** (#206)
+  - Established CodeMaster as open source software under GNU AGPL v3
+  - Created comprehensive LICENSE file with full AGPL v3 text (Copyright 2025 Rashell Smith)
+  - Added Contributor License Agreement (CLA) to CONTRIBUTING.md:
+    - Grants project owner perpetual, irrevocable license to contributions
+    - Enables dual licensing (AGPL v3 for community + commercial licenses for businesses)
+    - Allows enforcement of copyright protection
+    - Provides future licensing flexibility
+  - Created COPYRIGHT_HEADERS.md with templates for JavaScript, CSS, Markdown, and shell scripts
+  - Added comprehensive license section to README.md:
+    - Clear explanation of AGPL v3 rights and obligations
+    - Commercial licensing availability for businesses needing proprietary modifications
+    - Link to CLA in CONTRIBUTING.md
+  - Updated TERMS_OF_SERVICE.md with open source licensing information:
+    - Replaced "future open source plans" with actual AGPL v3 license details
+    - Added commercial licensing contact information
+    - Referenced CLA for contributors
+  - Created PRIVACY_POLICY.md for Chrome Web Store compliance:
+    - 100% local storage policy (no data transmission)
+    - Detailed explanation of IndexedDB usage and data retention
+    - User rights (access, deletion, modification)
+    - Chrome permissions justification
+  - Created STORE_LISTING.md with Chrome Web Store marketing copy:
+    - Short description (132 chars), detailed description (~3850 chars)
+    - 7 feature highlights, screenshot captions, permission justifications
+    - Category recommendations and target keywords
+  - Updated manifest.json with homepage_url pointing to GitHub repository
+  - **Impact**:
+    - Enables public contributions while maintaining full ownership
+    - AGPL v3 network clause prevents proprietary SaaS forks without commercial license
+    - CLA allows offering commercial licenses to businesses
+    - Cloud backup feature can remain proprietary (separate work from extension)
+    - Builds community trust through transparency
+
 ### Fixed
 - **Fixed Timer Behavior metric inconsistency** (#183)
   - Aligned `calculateTimerBehavior` badge logic with `calculateTimerPercentage` calculation
