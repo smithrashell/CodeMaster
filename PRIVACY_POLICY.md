@@ -1,6 +1,6 @@
 # Privacy Policy for CodeMaster
 
-**Last Updated:** November 13, 2025
+**Last Updated:** November 14, 2025
 
 ## Introduction
 
