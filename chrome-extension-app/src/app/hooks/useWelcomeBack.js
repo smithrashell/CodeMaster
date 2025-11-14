@@ -13,12 +13,17 @@ export const useWelcomeBack = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const checkWelcomeBack = async () => {
       try {
         // Get welcome back strategy from background script
         const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
           type: 'getWelcomeBackStrategy'
         });
+
+        // Only update state if component is still mounted
+        if (!isMounted) return;
 
         if (response && response.type && response.type !== 'normal') {
           setStrategy(response);
@@ -28,11 +33,18 @@ export const useWelcomeBack = () => {
         setLoading(false);
       } catch (error) {
         console.error("Error checking welcome back status:", error);
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkWelcomeBack();
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleConfirm = async (selectedApproach) => {
@@ -54,8 +66,19 @@ export const useWelcomeBack = () => {
     }
   };
 
-  const handleClose = () => {
-    setShowWelcomeBack(false);
+  const handleClose = async () => {
+    try {
+      // Store dismissal with timestamp to prevent modal from re-showing
+      await ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'dismissWelcomeBack',
+        timestamp: new Date().toISOString(),
+        daysSinceLastUse: strategy?.daysSinceLastUse || 0
+      });
+      setShowWelcomeBack(false);
+    } catch (error) {
+      console.error("Error dismissing welcome back modal:", error);
+      setShowWelcomeBack(false); // Still close on error
+    }
   };
 
   return {

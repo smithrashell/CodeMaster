@@ -19,6 +19,12 @@ function App() {
   const { showOnboarding, handleCompleteOnboarding, handleCloseOnboarding } = useAppOnboarding();
   const { showWelcomeBack, strategy, handleConfirm, handleClose } = useWelcomeBack();
 
+  // Priority logic: Onboarding takes precedence over Welcome Back modal
+  // This prevents both modals from showing simultaneously for users who:
+  // 1. Haven't completed onboarding AND
+  // 2. Are returning after a long gap
+  const shouldShowWelcomeBack = showWelcomeBack && !showOnboarding;
+
   return (
     <ErrorBoundary
       section="Dashboard Application"
@@ -50,7 +56,7 @@ function App() {
 
         {/* Welcome Back Modal - Phase 2: Recalibration */}
         <WelcomeBackModal
-          opened={showWelcomeBack}
+          opened={shouldShowWelcomeBack}
           onClose={handleClose}
           strategy={strategy}
           onConfirm={handleConfirm}
