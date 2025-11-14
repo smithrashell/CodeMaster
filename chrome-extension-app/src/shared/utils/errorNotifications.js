@@ -124,7 +124,10 @@ class NotificationManager {
       align-items: center;
       gap: 8px;
     `;
-    titleEl.innerHTML = `${this.getTypeIcon(type)} ${title}`;
+    // Security: Use textContent for title to prevent XSS, innerHTML only for icon SVG
+    titleEl.innerHTML = this.getTypeIcon(type);
+    const titleText = document.createTextNode(` ${title}`);
+    titleEl.appendChild(titleText);
 
     const closeBtn = document.createElement("button");
     closeBtn.style.cssText = `

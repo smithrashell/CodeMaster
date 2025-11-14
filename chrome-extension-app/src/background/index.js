@@ -11,17 +11,12 @@ import { HintInteractionService } from "../shared/services/hintInteractionServic
 import { AlertingService } from "../shared/services/AlertingService.js";
 import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
-import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
 import AccurateTimer from "../shared/utils/AccurateTimer.js";
-import { InterviewService } from "../shared/services/interviewService.js";
 import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
-import StorageCleanupManager from "../shared/utils/storageCleanup.js";
 
 // Database utilities (used in background script functions)
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../shared/db/index.js";
-import { getAllFromStore } from "../shared/db/common.js";
-import { updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic } from "../shared/db/sessions.js";
 
 // Onboarding (only functions passed as dependencies to messageRouter)
 import {
