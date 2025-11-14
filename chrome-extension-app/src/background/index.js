@@ -13,6 +13,7 @@ import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
 import AccurateTimer from "../shared/utils/AccurateTimer.js";
 import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
+import { checkAndApplyDecay } from "../shared/services/recalibrationService.js";
 
 // Database utilities (used in background script functions)
 // eslint-disable-next-line no-restricted-imports
@@ -52,11 +53,29 @@ self.addEventListener('activate', (event) => {
   console.log('🔧 SERVICE WORKER: Claiming all clients');
   // Claim all clients immediately
   event.waitUntil(
-    self.clients.claim().then(() => {
+    self.clients.claim().then(async () => {
       console.log('✅ SERVICE WORKER: All clients claimed, service worker active');
 
       // Automatic session cleanup removed per Issue #193
       // Sessions are only deleted manually via Settings UI
+
+      // Phase 1: Apply passive decay for returning users (#206)
+      // Runs silently in background, no user interaction required
+      try {
+        console.log('🔄 Checking if passive decay needed...');
+        const decayResult = await checkAndApplyDecay();
+
+        if (decayResult.decayApplied) {
+          console.log(
+            `✅ Passive decay applied: ${decayResult.problemsAffected} problems affected (${decayResult.daysSinceLastUse} days since last use)`
+          );
+        } else {
+          console.log(`✅ No decay needed (${decayResult.daysSinceLastUse} days since last use)`);
+        }
+      } catch (error) {
+        console.error('❌ Passive decay check failed:', error);
+        // Don't block activation on decay failure
+      }
     })
   );
 });

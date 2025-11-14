@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Intelligent Recalibration System - Phase 1: Passive Background Decay** (#206)
+  - Implemented time-based decay for users returning after long breaks
+  - Added last activity date tracking to StorageService:
+    - `getLastActivityDate()` - Retrieve last app usage timestamp
+    - `updateLastActivityDate()` - Update timestamp on app usage
+    - `getDaysSinceLastActivity()` - Calculate days since last use
+  - Created RecalibrationService with passive decay algorithm:
+    - Box level decay: 1 box per 60 days (conservative 2-month intervals)
+    - Stability decay: Exponential forgetting curve with 90-day half-life
+    - Minimum values: Box level ≥ 1, stability ≥ 0.5
+    - Recalibration flag: Set for problems unused for 90+ days
+  - Enhanced FSRS to consider time elapsed:
+    - Updated `updateStabilityFSRS()` with optional `lastAttemptDate` parameter
+    - Applies forgetting curve (e^(-days/90)) for gaps > 30 days
+    - Combines performance-based updates with time-based decay
+  - Integrated passive decay on app startup:
+    - Runs automatically in background script activation
+    - Non-blocking, silent execution (no user interaction)
+    - Logs affected problems and days since last use
+  - Added database fields for recalibration tracking:
+    - `needs_recalibration` - Boolean flag for problems needing assessment
+    - `decay_applied_date` - ISO timestamp of last decay application
+    - `original_box_level` - Stores pre-decay box level for rollback
+  - Prevents "fail-fest" experience for returning users (6+ month gaps)
+  - Foundation for future phases: Welcome Back Modal, Diagnostic Session
 - **Chrome Web Store Preparation** (#205)
   - Created comprehensive chrome-store folder with all submission materials:
     - 8 high-quality screenshots (1280x800 PNG) showing all key features

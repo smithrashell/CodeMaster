@@ -385,4 +385,62 @@ export const StorageService = {
     }
   },
 
+  // Last Activity Date tracking for recalibration system
+  async getLastActivityDate() {
+    if (isInContentScript) {
+      console.warn("StorageService.getLastActivityDate() called in content script context");
+      return null;
+    }
+
+    try {
+      const lastActivity = await this.get("last_activity_date");
+      return lastActivity;
+    } catch (error) {
+      console.error("StorageService getLastActivityDate failed:", error);
+      return null;
+    }
+  },
+
+  async updateLastActivityDate() {
+    if (isInContentScript) {
+      console.warn("StorageService.updateLastActivityDate() called in content script context");
+      return { status: "error", message: "Not available in content scripts" };
+    }
+
+    try {
+      const now = new Date().toISOString();
+      return await this.set("last_activity_date", now);
+    } catch (error) {
+      console.error("StorageService updateLastActivityDate failed:", error);
+      return { status: "error", message: error.message };
+    }
+  },
+
+  // Calculate days since last activity
+  async getDaysSinceLastActivity() {
+    if (isInContentScript) {
+      return 0;
+    }
+
+    try {
+      const lastActivity = await this.getLastActivityDate();
+
+      if (!lastActivity) {
+        // No previous activity recorded - treat as first use
+        await this.updateLastActivityDate();
+        return 0;
+      }
+
+      const lastDate = new Date(lastActivity);
+      const now = new Date();
+      const diffMs = now - lastDate;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      return diffDays;
+    } catch (error) {
+      console.error("StorageService getDaysSinceLastActivity failed:", error);
+      return 0;
+    }
+  },
+
 };
