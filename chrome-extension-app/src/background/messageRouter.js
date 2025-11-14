@@ -17,6 +17,7 @@ import { InterviewService } from "../shared/services/interviewService.js";
 import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
+import { getWelcomeBackStrategy } from "../shared/services/recalibrationService.js";
 
 // Database imports
 import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
@@ -172,6 +173,43 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
         StorageService.getSessionState("session_state")
           .then(sendResponse)
           .finally(finishRequest);
+        return true;
+
+      /** ──────────────── Welcome Back / Recalibration (Phase 2) ──────────────── **/
+      case "getWelcomeBackStrategy":
+        (async () => {
+          try {
+            const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();
+            const strategy = getWelcomeBackStrategy(daysSinceLastUse);
+            sendResponse(strategy);
+          } catch (error) {
+            console.error("❌ Error getting welcome back strategy:", error);
+            sendResponse({ type: 'normal' }); // Default to normal if error
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "recordRecalibrationChoice":
+        (async () => {
+          try {
+            // Store the user's recalibration choice and timestamp
+            await StorageService.set('last_recalibration_choice', {
+              approach: request.approach,
+              daysSinceLastUse: request.daysSinceLastUse,
+              timestamp: new Date().toISOString()
+            });
+
+            console.log(`✅ Recorded recalibration choice: ${request.approach} (${request.daysSinceLastUse} days gap)`);
+            sendResponse({ status: 'success' });
+          } catch (error) {
+            console.error("❌ Error recording recalibration choice:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
         return true;
 
       /** ──────────────── Problems Management ──────────────── **/

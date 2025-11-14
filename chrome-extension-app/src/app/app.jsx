@@ -11,9 +11,13 @@ import "./styles/accessibility.css";
 import { AppRoutes } from "./routes/index.jsx";
 import { AppLayout } from "./components/layout/AppLayout.jsx";
 import { WelcomeModal } from "./components/onboarding/WelcomeModal.jsx";
+import { WelcomeBackModal } from "./components/onboarding/WelcomeBackModal.jsx";
 import { useAppOnboarding } from "./hooks/useAppOnboarding.js";
+import { useWelcomeBack } from "./hooks/useWelcomeBack.js";
+
 function App() {
   const { showOnboarding, handleCompleteOnboarding, handleCloseOnboarding } = useAppOnboarding();
+  const { showWelcomeBack, strategy, handleConfirm, handleClose } = useWelcomeBack();
 
   return (
     <ErrorBoundary
@@ -42,6 +46,14 @@ function App() {
           opened={showOnboarding}
           onClose={handleCloseOnboarding}
           onComplete={handleCompleteOnboarding}
+        />
+
+        {/* Welcome Back Modal - Phase 2: Recalibration */}
+        <WelcomeBackModal
+          opened={showWelcomeBack}
+          onClose={handleClose}
+          strategy={strategy}
+          onConfirm={handleConfirm}
         />
       </ThemeProviderWrapper>
     </ErrorBoundary>
