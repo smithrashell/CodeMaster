@@ -33,6 +33,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `original_box_level` - Stores pre-decay box level for rollback
   - Prevents "fail-fest" experience for returning users (6+ month gaps)
   - Foundation for future phases: Welcome Back Modal, Diagnostic Session
+- **Intelligent Recalibration System - Phase 2: Welcome Back Modal** (#206)
+  - Implemented gap-based recalibration strategy detection:
+    - Gentle recalibration (30-90 days): Adaptive first session approach
+    - Moderate recalibration (90-365 days): User choice between diagnostic or adaptive
+    - Major recalibration (365+ days): Strong diagnostic recommendation with reset option
+  - Created WelcomeBackModal component with strategy-specific messaging:
+    - Shows days since last use and personalized recommendations
+    - Presents recalibration options based on usage gap severity
+    - Integrates with existing onboarding modal (priority logic prevents conflicts)
+  - Created useWelcomeBack hook for modal state management:
+    - Fetches strategy from background script on app startup
+    - Handles user choice confirmation and dismissal
+    - Tracks modal dismissal with timestamp to prevent re-showing
+  - Added welcome back message handlers to background script:
+    - `getWelcomeBackStrategy`: Returns appropriate strategy based on days since last use
+    - `dismissWelcomeBack`: Stores dismissal timestamp to prevent duplicate showing
+  - Modal only shows once per return (dismissal persists across sessions)
+- **Intelligent Recalibration System - Phase 3: Diagnostic Session** (#206)
+  - Implemented 5-problem diagnostic session for comprehensive skill assessment:
+    - Samples from previously mastered problems (box level 3+)
+    - Prioritizes problems marked with needs_recalibration flag
+    - Ensures variety across difficulty levels and topic tags
+    - Tests what users actually remember after long breaks
+  - Created diagnostic session processing with topic-based recalibration:
+    - Analyzes performance by tag/topic (70% accuracy threshold)
+    - Identifies retained vs forgotten topics
+    - Applies conservative recalibration (reduces box level by 1 for failed problems)
+    - Uses atomic transactions to prevent partial updates
+    - Stores results for analytics and user feedback
+  - Added diagnostic session handlers to background script:
+    - `createDiagnosticSession`: Creates session with sampled problems
+    - `processDiagnosticResults`: Analyzes performance and applies recalibration
+  - Enhanced useWelcomeBack hook with diagnostic session support:
+    - Shows user confirmation with problem count
+    - Guides user to LeetCode to complete diagnostic
+    - Displays success/error feedback with clear next steps
+- **Intelligent Recalibration System - Phase 4: Adaptive First Session** (#206)
+  - Implemented performance-based decay adjustment system:
+    - Flags next session as "adaptive recalibration session"
+    - Session runs normally but tracks accuracy metrics
+    - Post-session analysis determines if passive decay was appropriate
+  - Created adaptive session processing with smart decay adjustment:
+    - Strong performance (≥70% accuracy): Keeps passive decay (user retained knowledge)
+    - Middle performance (40-70% accuracy): Reduces decay by 50% (partial adjustment)
+    - Poor performance (<40% accuracy): Reduces decay by 75% (significant adjustment)
+    - Uses `reduceDecayMagnitude()` helper to partially restore box levels
+  - Added adaptive session handlers to background script:
+    - `createAdaptiveRecalibrationSession`: Sets up flag for next session
+    - `processAdaptiveSessionCompletion`: Analyzes performance and adjusts decay
+  - Enhanced useWelcomeBack hook with adaptive session support:
+    - Shows user confirmation for adaptive mode enablement
+    - Guides user to start practice session
+    - Displays clear next steps
+  - Stores adaptive results for Phase 5 analytics tracking
 - **Chrome Web Store Preparation** (#205)
   - Created comprehensive chrome-store folder with all submission materials:
     - 8 high-quality screenshots (1280x800 PNG) showing all key features
@@ -46,6 +100,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Prepared comprehensive marketing copy and permission justifications
 
 ### Fixed
+- **Fixed 4 critical issues in recalibration service** (#206)
+  - **Race condition (multiple tabs)**: Atomically check and set decay date before processing
+    - Multiple tabs could simultaneously apply decay
+    - Now uses `atomicCheckAndSetDecayDate()` helper for check-then-set atomicity
+    - Prevents duplicate decay application across browser tabs
+  - **Memory leak (unbounded transaction)**: Batch processing for large datasets
+    - Single transaction processing 1000+ problems caused memory issues
+    - Now processes problems in batches of 100 per transaction
+    - Prevents memory exhaustion with large problem collections
+  - **Data loss (no rollback)**: Atomic transactions for diagnostic session
+    - Individual problem updates in loop didn't rollback on failure
+    - Now uses single atomic transaction (all updates succeed or all fail)
+    - Ensures data consistency during diagnostic recalibration
+  - **Box level validation**: Added `getBoxLevel()` helper throughout codebase
+    - No validation for missing/invalid `box_level` field
+    - New helper provides validation and defaults to 1 for invalid values
+    - Used across decay, diagnostic, and adaptive session functions
+    - Prevents crashes from corrupted or missing box level data
 - **Fixed Mastery Gates Test with Pattern Ladder Initialization** (#205)
   - Resolved failing "Mastery Gates (Volume + Uniqueness)" test by initializing pattern ladders during test setup
   - Implemented consistent tag normalization across all ladder operations (lowercase)
