@@ -1,7 +1,7 @@
 {
   "name": "CodeMaster - Algorithm Learning Assistant",
   "version": "1.0.0",
-  "description": "Master algorithms with personalized spaced repetition, pattern ladders, and adaptive sessions. Track progress on LeetCode with intelligent learning analytics.",
+  "description": "Master algorithms with personalized spaced repetition and pattern ladders. Track your LeetCode progress with smart analytics.",
   "manifest_version": 3,
   "homepage_url": "https://github.com/smithrashell/CodeMaster",
   "icons": {
