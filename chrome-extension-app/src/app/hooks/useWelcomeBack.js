@@ -77,9 +77,28 @@ export const useWelcomeBack = () => {
         }
       }
 
-      setShowWelcomeBack(false);
+      // Phase 4: Handle adaptive recalibration session
+      if (selectedApproach === 'adaptive_first_session') {
+        const result = await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'createAdaptiveRecalibrationSession',
+          daysSinceLastUse: strategy?.daysSinceLastUse || 0
+        });
 
-      // TODO Phase 4: Navigate to adaptive session based on choice
+        if (result.status === 'success') {
+          console.log(`✅ Adaptive recalibration enabled for next session`);
+
+          // Show user confirmation
+          alert(`✅ Adaptive mode enabled!\n\n` +
+                `Your next practice session will help us recalibrate your level in real-time.\n\n` +
+                `Go to LeetCode and start a practice session to begin.`);
+        } else {
+          // Handle error case
+          console.error('Failed to enable adaptive recalibration:', result);
+          alert('❌ Failed to enable adaptive mode. Please try again or check console for details.');
+        }
+      }
+
+      setShowWelcomeBack(false);
     } catch (error) {
       console.error("Error recording recalibration choice:", error);
       setShowWelcomeBack(false);
