@@ -642,3 +642,192 @@ export async function processDiagnosticResults(diagnosticResults) {
     };
   }
 }
+
+/**
+ * Phase 4: Create adaptive recalibration session flag
+ *
+ * Instead of a separate diagnostic, the adaptive approach flags the next session
+ * to track performance carefully and decide whether to keep or revert passive decay.
+ *
+ * Strategy:
+ * - Flag next session as "adaptive recalibration session"
+ * - Session runs normally but tracks performance metrics
+ * - After session: If performance is good (70%+ accuracy), keep decay
+ * - If performance is poor (<40% accuracy), revert decay partially
+ * - Middle ground (40-70%): Keep decay but reduce magnitude
+ *
+ * @param {object} options - Adaptive session options
+ * @param {number} options.daysSinceLastUse - Days since last app use
+ * @returns {Promise<{status: string, message: string}>}
+ */
+export async function createAdaptiveRecalibrationSession(options = {}) {
+  const { daysSinceLastUse = 0 } = options;
+
+  console.log(`🔄 Setting up adaptive recalibration for next session (${daysSinceLastUse} days gap)...`);
+
+  try {
+    // Store flag for next session to be adaptive
+    await StorageService.set('pending_adaptive_recalibration', {
+      daysSinceLastUse,
+      createdAt: new Date().toISOString(),
+      decayApplied: true, // Passive decay was already applied in Phase 1
+      decayMagnitude: daysSinceLastUse >= 365 ? 'major' : daysSinceLastUse >= 90 ? 'moderate' : 'gentle'
+    });
+
+    console.log(`✅ Next session will be adaptive recalibration session`);
+
+    return {
+      status: 'success',
+      message: `Adaptive recalibration enabled for next session`
+    };
+  } catch (error) {
+    console.error("❌ createAdaptiveRecalibrationSession failed:", error);
+    return {
+      status: 'error',
+      message: `Error: ${error.message}`
+    };
+  }
+}
+
+/**
+ * Phase 4: Process adaptive session completion
+ *
+ * After user completes their first session back, analyze performance
+ * and decide whether to keep, adjust, or revert the passive decay.
+ *
+ * @param {object} sessionData - Completed session data
+ * @param {string} sessionData.sessionId - Session ID
+ * @param {number} sessionData.accuracy - Overall accuracy (0-1)
+ * @param {number} sessionData.totalProblems - Total problems attempted
+ * @returns {Promise<{status: string, action: string, summary: object}>}
+ */
+export async function processAdaptiveSessionCompletion(sessionData) {
+  const { sessionId, accuracy, totalProblems } = sessionData;
+
+  console.log(`📊 Processing adaptive session completion (${Math.round(accuracy * 100)}% accuracy on ${totalProblems} problems)...`);
+
+  try {
+    // Get the adaptive session flag
+    const adaptiveFlag = await StorageService.get('pending_adaptive_recalibration');
+
+    if (!adaptiveFlag) {
+      console.warn("⚠️ No adaptive recalibration flag found");
+      return {
+        status: 'success',
+        action: 'none',
+        summary: { message: 'No adaptive recalibration needed' }
+      };
+    }
+
+    const { daysSinceLastUse, decayMagnitude } = adaptiveFlag;
+
+    let action = 'keep_decay';
+    let message = '';
+
+    // Decision logic based on performance
+    if (accuracy >= 0.7) {
+      // Strong performance - decay was appropriate, keep it
+      action = 'keep_decay';
+      message = `Great performance! Your knowledge held up well after ${daysSinceLastUse} days away.`;
+    } else if (accuracy >= 0.4) {
+      // Middle performance - reduce decay slightly
+      action = 'reduce_decay';
+      message = `Good effort! We'll make small adjustments to better match your current level.`;
+      await reduceDecayMagnitude(0.5); // Reduce decay by 50%
+    } else {
+      // Poor performance - decay may have been too aggressive
+      action = 'revert_decay_partially';
+      message = `We'll adjust the difficulty to better match where you are right now.`;
+      await reduceDecayMagnitude(0.75); // Reduce decay by 75%
+    }
+
+    // Clear the adaptive flag
+    await StorageService.set('pending_adaptive_recalibration', null);
+
+    // Store results for analytics
+    await StorageService.set('last_adaptive_result', {
+      sessionId,
+      accuracy,
+      totalProblems,
+      action,
+      daysSinceLastUse,
+      decayMagnitude,
+      completedAt: new Date().toISOString()
+    });
+
+    console.log(`✅ Adaptive session processed: ${action}`);
+
+    return {
+      status: 'success',
+      action,
+      summary: {
+        accuracy: Math.round(accuracy * 100),
+        totalProblems,
+        daysSinceLastUse,
+        message
+      }
+    };
+  } catch (error) {
+    console.error("❌ processAdaptiveSessionCompletion failed:", error);
+    return {
+      status: 'error',
+      action: 'none',
+      summary: { message: `Error: ${error.message}` }
+    };
+  }
+}
+
+/**
+ * Helper: Reduce decay magnitude by a percentage
+ * @param {number} reductionFactor - How much to reduce (0.5 = 50% reduction)
+ */
+async function reduceDecayMagnitude(reductionFactor) {
+  try {
+    const db = await openDatabase();
+    const transaction = db.transaction(["problems"], "readwrite");
+    const problemStore = transaction.objectStore("problems");
+    const allProblemsRequest = problemStore.getAll();
+
+    return new Promise((resolve, reject) => {
+      allProblemsRequest.onsuccess = () => {
+        const problems = allProblemsRequest.result;
+        let adjustedCount = 0;
+
+        problems.forEach(problem => {
+          // Only adjust problems that had decay applied
+          if (problem.decay_applied_date && problem.original_box_level) {
+            const decayAmount = problem.original_box_level - problem.box_level;
+
+            if (decayAmount > 0) {
+              // Reduce the decay by the reduction factor
+              const reducedDecay = Math.floor(decayAmount * (1 - reductionFactor));
+              problem.box_level = problem.original_box_level - reducedDecay;
+              problem.decay_adjusted = true;
+              problem.decay_adjustment_date = new Date().toISOString();
+              problemStore.put(problem);
+              adjustedCount++;
+            }
+          }
+        });
+
+        transaction.oncomplete = () => {
+          console.log(`✅ Adjusted decay for ${adjustedCount} problems`);
+          resolve(adjustedCount);
+        };
+
+        transaction.onerror = () => {
+          console.error("❌ Decay reduction transaction failed:", transaction.error);
+          reject(transaction.error);
+        };
+      };
+
+      allProblemsRequest.onerror = () => {
+        console.error("❌ Failed to fetch problems for decay reduction:", allProblemsRequest.error);
+        reject(allProblemsRequest.error);
+      };
+    });
+  } catch (error) {
+    console.error("❌ reduceDecayMagnitude failed:", error);
+    throw error;
+  }
+}

@@ -17,7 +17,7 @@ import { InterviewService } from "../shared/services/interviewService.js";
 import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
-import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults } from "../shared/services/recalibrationService.js";
+import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../shared/services/recalibrationService.js";
 
 // Database imports
 import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
@@ -290,6 +290,45 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
             });
           } catch (error) {
             console.error("❌ Error processing diagnostic results:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      /** ──────────────── Adaptive Recalibration Session (Phase 4) ──────────────── **/
+      case "createAdaptiveRecalibrationSession":
+        (async () => {
+          try {
+            const result = await createAdaptiveRecalibrationSession({
+              daysSinceLastUse: request.daysSinceLastUse || 0
+            });
+
+            console.log(`✅ Adaptive recalibration session enabled: ${result.message}`);
+            sendResponse(result);
+          } catch (error) {
+            console.error("❌ Error creating adaptive recalibration session:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "processAdaptiveSessionCompletion":
+        (async () => {
+          try {
+            const result = await processAdaptiveSessionCompletion({
+              sessionId: request.sessionId,
+              accuracy: request.accuracy,
+              totalProblems: request.totalProblems
+            });
+
+            console.log(`✅ Adaptive session processed: ${result.action}`);
+            sendResponse(result);
+          } catch (error) {
+            console.error("❌ Error processing adaptive session completion:", error);
             sendResponse({ status: 'error', message: error.message });
           } finally {
             finishRequest();
