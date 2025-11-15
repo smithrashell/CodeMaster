@@ -100,7 +100,6 @@ async function atomicCheckAndSetDecayDate(today) {
 export async function applyPassiveDecay(daysSinceLastUse) {
   // No decay needed for gaps under threshold
   if (daysSinceLastUse < DECAY_CONFIG.MIN_GAP_DAYS) {
-    console.log(`✅ No decay needed (${daysSinceLastUse} days < ${DECAY_CONFIG.MIN_GAP_DAYS} day threshold)`);
     return {
       applied: false,
       problemsAffected: 0,
@@ -113,15 +112,12 @@ export async function applyPassiveDecay(daysSinceLastUse) {
   const shouldProceed = await atomicCheckAndSetDecayDate(today);
 
   if (!shouldProceed) {
-    console.log(`✅ Decay already applied today (${today}), skipping to prevent duplicate application`);
     return {
       applied: false,
       problemsAffected: 0,
       message: `Decay already applied today`
     };
   }
-
-  console.log(`🔄 Applying passive decay for ${daysSinceLastUse} day gap...`);
 
   try {
     const db = await openDatabase();
@@ -222,7 +218,6 @@ export async function applyPassiveDecay(daysSinceLastUse) {
     }
 
     const message = `Applied decay to ${totalProblemsAffected} problems (${daysSinceLastUse} day gap)`;
-    console.log(`✅ ${message}`);
     return {
       applied: true,
       problemsAffected: totalProblemsAffected,
@@ -251,7 +246,6 @@ export async function checkAndApplyDecay() {
     const today = new Date().toISOString().split('T')[0];
 
     if (lastCheckDate === today) {
-      console.log(`✅ Decay check already performed today (${today}), skipping for performance`);
       return {
         decayApplied: false,
         daysSinceLastUse: 0,
@@ -265,8 +259,6 @@ export async function checkAndApplyDecay() {
 
     // Get days since last activity
     const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();
-
-    console.log(`📊 Days since last use: ${daysSinceLastUse}`);
 
     // Apply decay if needed
     const result = await applyPassiveDecay(daysSinceLastUse);
@@ -439,8 +431,6 @@ export function getWelcomeBackStrategy(daysSinceLastUse) {
 export async function createDiagnosticSession(options = {}) {
   const { problemCount = 5, daysSinceLastUse = 0 } = options;
 
-  console.log(`🎯 Creating diagnostic session (${problemCount} problems, ${daysSinceLastUse} days gap)...`);
-
   try {
     const db = await openDatabase();
     const transaction = db.transaction(["problems"], "readonly");
@@ -517,8 +507,6 @@ export async function createDiagnosticSession(options = {}) {
           needsRecalibration: needsRecal.length,
           createdAt: new Date().toISOString()
         };
-
-        console.log(`✅ Diagnostic session created: ${selectedProblems.length} problems selected`);
 
         resolve({
           problems: selectedProblems,
@@ -598,8 +586,6 @@ export async function processDiagnosticResults(diagnosticResults) {
       }
     };
   }
-
-  console.log(`📊 Processing diagnostic results (${attempts.length} attempts)...`);
 
   try {
     const db = await openDatabase();
@@ -694,8 +680,6 @@ export async function processDiagnosticResults(diagnosticResults) {
         : "Significant decay detected. Don't worry - we've adjusted your learning path."
     };
 
-    console.log(`✅ Diagnostic processing complete: ${problemsRecalibrated} problems recalibrated`);
-
     // Store diagnostic results for analytics
     await StorageService.set('last_diagnostic_result', {
       sessionId,
@@ -742,8 +726,6 @@ export async function processDiagnosticResults(diagnosticResults) {
 export async function createAdaptiveRecalibrationSession(options = {}) {
   const { daysSinceLastUse = 0 } = options;
 
-  console.log(`🔄 Setting up adaptive recalibration for next session (${daysSinceLastUse} days gap)...`);
-
   try {
     // Store flag for next session to be adaptive
     await StorageService.set('pending_adaptive_recalibration', {
@@ -752,8 +734,6 @@ export async function createAdaptiveRecalibrationSession(options = {}) {
       decayApplied: true, // Passive decay was already applied in Phase 1
       decayMagnitude: daysSinceLastUse >= 365 ? 'major' : daysSinceLastUse >= 90 ? 'moderate' : 'gentle'
     });
-
-    console.log(`✅ Next session will be adaptive recalibration session`);
 
     return {
       status: 'success',
@@ -782,8 +762,6 @@ export async function createAdaptiveRecalibrationSession(options = {}) {
  */
 export async function processAdaptiveSessionCompletion(sessionData) {
   const { sessionId, accuracy, totalProblems } = sessionData;
-
-  console.log(`📊 Processing adaptive session completion (${Math.round(accuracy * 100)}% accuracy on ${totalProblems} problems)...`);
 
   try {
     // Get the adaptive session flag
@@ -833,8 +811,6 @@ export async function processAdaptiveSessionCompletion(sessionData) {
       decayMagnitude,
       completedAt: new Date().toISOString()
     });
-
-    console.log(`✅ Adaptive session processed: ${action}`);
 
     return {
       status: 'success',
@@ -892,7 +868,6 @@ async function reduceDecayMagnitude(reductionFactor) {
         });
 
         transaction.oncomplete = () => {
-          console.log(`✅ Adjusted decay for ${adjustedCount} problems`);
           resolve(adjustedCount);
         };
 
