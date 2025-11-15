@@ -33,6 +33,26 @@ function getDaysSince(dateString) {
   }
 }
 
+/**
+ * Normalize and validate box level field
+ * CRITICAL FIX: Ensures box_level exists and is valid
+ * @param {object} problem - Problem object
+ * @returns {number} Normalized box level (defaults to 1 if missing/invalid)
+ */
+function getBoxLevel(problem) {
+  if (!problem) return 1;
+
+  const boxLevel = problem.box_level;
+
+  // Validate box_level exists and is a valid number
+  if (boxLevel === undefined || boxLevel === null || typeof boxLevel !== 'number' || isNaN(boxLevel)) {
+    return 1; // Default to box level 1
+  }
+
+  // Ensure box level is within valid range
+  return Math.max(1, Math.floor(boxLevel));
+}
+
 // Configuration constants with scientific justification
 const DECAY_CONFIG = {
   MIN_GAP_DAYS: 30,           // No decay for gaps under 30 days
@@ -42,6 +62,28 @@ const DECAY_CONFIG = {
   MIN_BOX_LEVEL: 1,           // Minimum box level (never goes below 1)
   MIN_STABILITY: 0.5          // Minimum stability (never goes below 0.5)
 };
+
+/**
+ * Atomically check and set decay date to prevent race conditions
+ * @param {string} today - Today's date in YYYY-MM-DD format
+ * @returns {Promise<boolean>} True if decay should proceed, false if already applied
+ */
+async function atomicCheckAndSetDecayDate(today) {
+  try {
+    const lastDecayDate = await StorageService.get('last_decay_date');
+
+    if (lastDecayDate === today) {
+      return false; // Already applied today
+    }
+
+    // Atomically set the date
+    await StorageService.set('last_decay_date', today);
+    return true; // Proceed with decay
+  } catch (error) {
+    console.error("❌ Error in atomicCheckAndSetDecayDate:", error);
+    throw error;
+  }
+}
 
 /**
  * Apply passive background decay to problems based on time elapsed
@@ -66,11 +108,11 @@ export async function applyPassiveDecay(daysSinceLastUse) {
     };
   }
 
-  // CRITICAL: Check if decay already applied today to prevent race conditions
-  const lastDecayDate = await StorageService.get('last_decay_date');
+  // CRITICAL FIX: Atomically check and set decay date to prevent race conditions
   const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const shouldProceed = await atomicCheckAndSetDecayDate(today);
 
-  if (lastDecayDate === today) {
+  if (!shouldProceed) {
     console.log(`✅ Decay already applied today (${today}), skipping to prevent duplicate application`);
     return {
       applied: false,
@@ -83,92 +125,109 @@ export async function applyPassiveDecay(daysSinceLastUse) {
 
   try {
     const db = await openDatabase();
-    const transaction = db.transaction(["problems"], "readwrite");
-    const problemStore = transaction.objectStore("problems");
+
+    // CRITICAL FIX: Batch processing to prevent memory leak with large datasets
+    const BATCH_SIZE = 100; // Process 100 problems per transaction
+    let totalProblemsAffected = 0;
+
+    // Get all problems first (read-only)
+    const readTransaction = db.transaction(["problems"], "readonly");
+    const problemStore = readTransaction.objectStore("problems");
     const allProblemsRequest = problemStore.getAll();
 
-    return new Promise((resolve, reject) => {
-      allProblemsRequest.onsuccess = () => {
-        const problems = allProblemsRequest.result;
-        let problemsAffected = 0;
+    const allProblems = await new Promise((resolve, reject) => {
+      allProblemsRequest.onsuccess = () => resolve(allProblemsRequest.result);
+      allProblemsRequest.onerror = () => reject(allProblemsRequest.error);
+    });
 
-        problems.forEach(problem => {
-          // Calculate days since last attempt for this specific problem
-          const daysSinceLastAttempt = problem.last_attempt_date
-            ? getDaysSince(problem.last_attempt_date)
-            : daysSinceLastUse; // Use app gap if no attempts
+    // Process problems to identify which need decay
+    const problemsToUpdate = [];
 
-          // Skip if problem was attempted recently
-          if (daysSinceLastAttempt < DECAY_CONFIG.MIN_GAP_DAYS) {
-            return;
-          }
+    for (const problem of allProblems) {
+      // Calculate days since last attempt for this specific problem
+      const daysSinceLastAttempt = problem.last_attempt_date
+        ? getDaysSince(problem.last_attempt_date)
+        : daysSinceLastUse; // Use app gap if no attempts
 
-          let modified = false;
-          const original = {
-            boxLevel: problem.box_level,
-            stability: problem.stability
-          };
+      // Skip if problem was attempted recently
+      if (daysSinceLastAttempt < DECAY_CONFIG.MIN_GAP_DAYS) {
+        continue;
+      }
 
-          // Box Level Decay: 1 box per 60 days (conservative)
-          const boxDecayAmount = Math.floor(daysSinceLastAttempt / DECAY_CONFIG.BOX_DECAY_INTERVAL);
-          if (boxDecayAmount > 0 && problem.box_level !== undefined && problem.box_level !== null) {
-            const newBoxLevel = Math.max(DECAY_CONFIG.MIN_BOX_LEVEL, problem.box_level - boxDecayAmount);
-            if (newBoxLevel !== problem.box_level) {
-              problem.box_level = newBoxLevel;
-              problem.original_box_level = original.boxLevel; // Store for rollback
-              modified = true;
-            }
-          }
+      let modified = false;
 
-          // Stability Decay: Exponential forgetting curve (90-day half-life)
-          // Formula: stability * e^(-days / FORGETTING_HALF_LIFE)
-          if (problem.stability !== undefined && problem.stability !== null) {
-            const forgettingFactor = Math.exp(-daysSinceLastAttempt / DECAY_CONFIG.FORGETTING_HALF_LIFE);
-            const newStability = Math.max(DECAY_CONFIG.MIN_STABILITY, problem.stability * forgettingFactor);
-            if (Math.abs(newStability - problem.stability) > 0.01) {
-              problem.stability = parseFloat(newStability.toFixed(2));
-              modified = true;
-            }
-          }
+      // CRITICAL FIX: Use validated box level
+      const currentBoxLevel = getBoxLevel(problem);
+      const original = {
+        boxLevel: currentBoxLevel,
+        stability: problem.stability
+      };
 
-          // Mark problems needing recalibration (90+ days unused)
-          if (daysSinceLastAttempt >= DECAY_CONFIG.RECALIBRATION_THRESHOLD) {
-            problem.needs_recalibration = true;
-            problem.decay_applied_date = new Date().toISOString();
-            modified = true;
-          }
+      // Box Level Decay: 1 box per 60 days (conservative)
+      const boxDecayAmount = Math.floor(daysSinceLastAttempt / DECAY_CONFIG.BOX_DECAY_INTERVAL);
+      if (boxDecayAmount > 0) {
+        const newBoxLevel = Math.max(DECAY_CONFIG.MIN_BOX_LEVEL, currentBoxLevel - boxDecayAmount);
+        if (newBoxLevel !== currentBoxLevel) {
+          problem.box_level = newBoxLevel;
+          problem.original_box_level = original.boxLevel; // Store for rollback
+          modified = true;
+        }
+      }
 
-          // Update problem in database if modified
-          if (modified) {
-            problemStore.put(problem);
-            problemsAffected++;
-          }
+      // Stability Decay: Exponential forgetting curve (90-day half-life)
+      // Formula: stability * e^(-days / FORGETTING_HALF_LIFE)
+      if (problem.stability !== undefined && problem.stability !== null) {
+        const forgettingFactor = Math.exp(-daysSinceLastAttempt / DECAY_CONFIG.FORGETTING_HALF_LIFE);
+        const newStability = Math.max(DECAY_CONFIG.MIN_STABILITY, problem.stability * forgettingFactor);
+        if (Math.abs(newStability - problem.stability) > 0.01) {
+          problem.stability = parseFloat(newStability.toFixed(2));
+          modified = true;
+        }
+      }
+
+      // Mark problems needing recalibration (90+ days unused)
+      if (daysSinceLastAttempt >= DECAY_CONFIG.RECALIBRATION_THRESHOLD) {
+        problem.needs_recalibration = true;
+        problem.decay_applied_date = new Date().toISOString();
+        modified = true;
+      }
+
+      if (modified) {
+        problemsToUpdate.push(problem);
+      }
+    }
+
+    // Apply updates in batches
+    for (let i = 0; i < problemsToUpdate.length; i += BATCH_SIZE) {
+      const batch = problemsToUpdate.slice(i, i + BATCH_SIZE);
+
+      await new Promise((resolve, reject) => {
+        const writeTransaction = db.transaction(["problems"], "readwrite");
+        const writeProblemStore = writeTransaction.objectStore("problems");
+
+        batch.forEach(problem => {
+          writeProblemStore.put(problem);
         });
 
-        transaction.oncomplete = async () => {
-          // Update last decay date to prevent duplicate application
-          await StorageService.set('last_decay_date', today);
-
-          const message = `Applied decay to ${problemsAffected} problems (${daysSinceLastUse} day gap)`;
-          console.log(`✅ ${message}`);
-          resolve({
-            applied: true,
-            problemsAffected,
-            message
-          });
+        writeTransaction.oncomplete = () => {
+          totalProblemsAffected += batch.length;
+          resolve();
         };
 
-        transaction.onerror = () => {
-          console.error("❌ Passive decay transaction failed:", transaction.error);
-          reject(transaction.error);
+        writeTransaction.onerror = () => {
+          console.error("❌ Batch decay transaction failed:", writeTransaction.error);
+          reject(writeTransaction.error);
         };
-      };
+      });
+    }
 
-      allProblemsRequest.onerror = () => {
-        console.error("❌ Failed to fetch problems for decay:", allProblemsRequest.error);
-        reject(allProblemsRequest.error);
-      };
-    });
+    const message = `Applied decay to ${totalProblemsAffected} problems (${daysSinceLastUse} day gap)`;
+    console.log(`✅ ${message}`);
+    return {
+      applied: true,
+      problemsAffected: totalProblemsAffected,
+      message
+    };
   } catch (error) {
     console.error("❌ applyPassiveDecay failed:", error);
     return {
@@ -393,10 +452,8 @@ export async function createDiagnosticSession(options = {}) {
         const allProblems = allProblemsRequest.result;
 
         // Filter for mastered problems (box level 3+)
-        const masteredProblems = allProblems.filter(p => {
-          const boxLevel = p.box_level !== undefined && p.box_level !== null ? p.box_level : 1;
-          return boxLevel >= 3;
-        });
+        // CRITICAL FIX: Use validated box level
+        const masteredProblems = allProblems.filter(p => getBoxLevel(p) >= 3);
 
         if (masteredProblems.length === 0) {
           console.warn("⚠️ No mastered problems found for diagnostic session");
@@ -409,10 +466,9 @@ export async function createDiagnosticSession(options = {}) {
         const others = masteredProblems.filter(p => !p.needs_recalibration);
 
         // Sort by box level (descending) to test the "most mastered" problems
+        // CRITICAL FIX: Use validated box level
         const sortByBoxLevel = (a, b) => {
-          const boxA = a.box_level || 1;
-          const boxB = b.box_level || 1;
-          return boxB - boxA;
+          return getBoxLevel(b) - getBoxLevel(a);
         };
 
         needsRecal.sort(sortByBoxLevel);
@@ -569,38 +625,61 @@ export async function processDiagnosticResults(diagnosticResults) {
       }
     });
 
-    // Apply recalibration: reduce box levels for forgotten topics
-    const transaction = db.transaction(["problems"], "readwrite");
-    const problemStore = transaction.objectStore("problems");
-    let problemsRecalibrated = 0;
+    // CRITICAL FIX: Apply recalibration with proper rollback mechanism
+    // First, get all problems that need updating
+    const readTransaction = db.transaction(["problems"], "readonly");
+    const readProblemStore = readTransaction.objectStore("problems");
 
-    // Reduce box levels for failed problems
+    const problemsToRecalibrate = [];
+
     for (const result of problemResults) {
       if (!result.success) {
-        const problemRequest = problemStore.get(result.problemId);
+        const problemRequest = readProblemStore.get(result.problemId);
 
-        await new Promise((resolve, reject) => {
-          problemRequest.onsuccess = () => {
-            const problem = problemRequest.result;
-            if (problem && problem.box_level > 1) {
-              // Reduce by 1 box level (conservative approach)
-              problem.box_level = Math.max(1, problem.box_level - 1);
-              problem.diagnostic_recalibrated = true;
-              problem.diagnostic_date = new Date().toISOString();
-              problemStore.put(problem);
-              problemsRecalibrated++;
-            }
-            resolve();
-          };
+        const problem = await new Promise((resolve, reject) => {
+          problemRequest.onsuccess = () => resolve(problemRequest.result);
           problemRequest.onerror = () => reject(problemRequest.error);
         });
+
+        // CRITICAL FIX: Use validated box level
+        if (problem && getBoxLevel(problem) > 1) {
+          // Prepare updated problem
+          const currentBoxLevel = getBoxLevel(problem);
+          const updatedProblem = {
+            ...problem,
+            box_level: Math.max(1, currentBoxLevel - 1),
+            diagnostic_recalibrated: true,
+            diagnostic_date: new Date().toISOString()
+          };
+          problemsToRecalibrate.push(updatedProblem);
+        }
       }
     }
 
-    await new Promise((resolve, reject) => {
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
+    // Apply all updates in a single transaction (atomic - all or nothing)
+    let problemsRecalibrated = 0;
+
+    if (problemsToRecalibrate.length > 0) {
+      await new Promise((resolve, reject) => {
+        const writeTransaction = db.transaction(["problems"], "readwrite");
+        const writeProblemStore = writeTransaction.objectStore("problems");
+
+        // Queue all updates in the same transaction
+        problemsToRecalibrate.forEach(problem => {
+          writeProblemStore.put(problem);
+        });
+
+        writeTransaction.oncomplete = () => {
+          problemsRecalibrated = problemsToRecalibrate.length;
+          resolve();
+        };
+
+        writeTransaction.onerror = () => {
+          console.error("❌ Diagnostic recalibration transaction failed - rolling back all changes");
+          reject(writeTransaction.error);
+        };
+      });
+    }
 
     const summary = {
       totalProblems: totalAttempts,
@@ -795,8 +874,10 @@ async function reduceDecayMagnitude(reductionFactor) {
 
         problems.forEach(problem => {
           // Only adjust problems that had decay applied
+          // CRITICAL FIX: Use validated box level
           if (problem.decay_applied_date && problem.original_box_level) {
-            const decayAmount = problem.original_box_level - problem.box_level;
+            const currentBoxLevel = getBoxLevel(problem);
+            const decayAmount = problem.original_box_level - currentBoxLevel;
 
             if (decayAmount > 0) {
               // Reduce the decay by the reduction factor
