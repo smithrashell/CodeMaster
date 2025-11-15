@@ -4,6 +4,7 @@ import {
   IconSettings,
   IconTrendingUp,
   IconTarget,
+  IconHelp,
 } from "@tabler/icons-react";
 
 export const mainLinksMockdata = [
@@ -12,6 +13,7 @@ export const mainLinksMockdata = [
   { icon: IconClock, label: "Sessions", path: "/sessions" },
   { icon: IconTarget, label: "Strategy", path: "/strategy" },
   { icon: IconSettings, label: "Settings", path: "/settings" },
+  { icon: IconHelp, label: "Help", path: "/help" },
 ];
 
 export const subLinksData = {
@@ -20,4 +22,5 @@ export const subLinksData = {
   "/sessions": ["Session History", "Productivity Insights"],
   "/strategy": ["Tag Mastery", "Learning Path"],
   "/settings": ["General", "Appearance", "Accessibility"],
+  "/help": ["Help & Support"],
 };

@@ -1,0 +1,18 @@
+.contactSection {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.contactSection :global(.mantine-Title-root),
+.contactSection :global(.mantine-Text-root) {
+  color: white;
+}
+
+.contactSection :global(.mantine-Button-root) {
+  background-color: white;
+  color: #667eea;
+}
+
+.contactSection :global(.mantine-Button-root:hover) {
+  background-color: rgba(255, 255, 255, 0.9);
+}
