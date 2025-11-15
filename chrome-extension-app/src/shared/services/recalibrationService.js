@@ -12,7 +12,7 @@
  */
 
 import { StorageService } from "./storageService.js";
-import { dbHelper } from "../db/index.js";
+import { openDatabase } from "../db/connectionUtils.js";
 
 /**
  * Calculate days since a given date
@@ -82,7 +82,7 @@ export async function applyPassiveDecay(daysSinceLastUse) {
   console.log(`🔄 Applying passive decay for ${daysSinceLastUse} day gap...`);
 
   try {
-    const db = await dbHelper.openDB();
+    const db = await openDatabase();
     const transaction = db.transaction(["problems"], "readwrite");
     const problemStore = transaction.objectStore("problems");
     const allProblemsRequest = problemStore.getAll();
@@ -241,7 +241,7 @@ export async function checkAndApplyDecay() {
  */
 export async function getDecayStatistics() {
   try {
-    const db = await dbHelper.openDB();
+    const db = await openDatabase();
     const transaction = db.transaction(["problems"], "readonly");
     const problemStore = transaction.objectStore("problems");
     const allProblemsRequest = problemStore.getAll();
@@ -358,4 +358,287 @@ export function getWelcomeBackStrategy(daysSinceLastUse) {
       }
     ]
   };
+}
+
+/**
+ * Phase 3: Create diagnostic session to sample problems and assess retention
+ *
+ * Samples 5-7 problems from previously mastered topics (box level 3+) to assess
+ * what the user actually remembers after a long break.
+ *
+ * Strategy:
+ * - Prioritize problems marked with `needs_recalibration` flag
+ * - Include variety across difficulty levels (Easy, Medium, Hard)
+ * - Sample from different topics/tags for comprehensive assessment
+ * - Prefer higher box levels to test what was "mastered"
+ *
+ * @param {object} options - Diagnostic session options
+ * @param {number} options.problemCount - Number of problems to sample (default: 5)
+ * @param {number} options.daysSinceLastUse - Days since last app use
+ * @returns {Promise<{sessionId: string, problems: Array, metadata: object}>}
+ */
+export async function createDiagnosticSession(options = {}) {
+  const { problemCount = 5, daysSinceLastUse = 0 } = options;
+
+  console.log(`🎯 Creating diagnostic session (${problemCount} problems, ${daysSinceLastUse} days gap)...`);
+
+  try {
+    const db = await openDatabase();
+    const transaction = db.transaction(["problems"], "readonly");
+    const problemStore = transaction.objectStore("problems");
+    const allProblemsRequest = problemStore.getAll();
+
+    return new Promise((resolve, reject) => {
+      allProblemsRequest.onsuccess = () => {
+        const allProblems = allProblemsRequest.result;
+
+        // Filter for mastered problems (box level 3+)
+        const masteredProblems = allProblems.filter(p => {
+          const boxLevel = p.box_level !== undefined && p.box_level !== null ? p.box_level : 1;
+          return boxLevel >= 3;
+        });
+
+        if (masteredProblems.length === 0) {
+          console.warn("⚠️ No mastered problems found for diagnostic session");
+          reject(new Error("No mastered problems available for diagnostic assessment"));
+          return;
+        }
+
+        // Prioritize problems needing recalibration
+        const needsRecal = masteredProblems.filter(p => p.needs_recalibration);
+        const others = masteredProblems.filter(p => !p.needs_recalibration);
+
+        // Sort by box level (descending) to test the "most mastered" problems
+        const sortByBoxLevel = (a, b) => {
+          const boxA = a.box_level || 1;
+          const boxB = b.box_level || 1;
+          return boxB - boxA;
+        };
+
+        needsRecal.sort(sortByBoxLevel);
+        others.sort(sortByBoxLevel);
+
+        // Sample problems with variety
+        const selectedProblems = [];
+        const seenTags = new Set();
+        const seenDifficulties = new Set();
+
+        // Strategy: Pick from needs_recalibration first, then others
+        const candidatePool = [...needsRecal, ...others];
+
+        for (const problem of candidatePool) {
+          if (selectedProblems.length >= problemCount) break;
+
+          // Try to maximize variety in tags and difficulty
+          const problemTags = problem.topicTags || [];
+          const difficulty = problem.difficulty || 'Medium';
+
+          // Add problem if it adds variety OR if we still need more problems
+          const addsTagVariety = problemTags.some(tag => !seenTags.has(tag));
+          const addsDifficultyVariety = !seenDifficulties.has(difficulty);
+
+          if (selectedProblems.length < 3 || addsTagVariety || addsDifficultyVariety) {
+            selectedProblems.push(problem);
+            problemTags.forEach(tag => seenTags.add(tag));
+            seenDifficulties.add(difficulty);
+          }
+        }
+
+        // Fallback: if we still don't have enough, just take the top box level problems
+        while (selectedProblems.length < problemCount && candidatePool.length > selectedProblems.length) {
+          const nextProblem = candidatePool[selectedProblems.length];
+          if (!selectedProblems.includes(nextProblem)) {
+            selectedProblems.push(nextProblem);
+          }
+        }
+
+        // Create metadata for diagnostic session
+        const metadata = {
+          type: 'diagnostic',
+          daysSinceLastUse,
+          problemCount: selectedProblems.length,
+          sampledFromMastered: masteredProblems.length,
+          needsRecalibration: needsRecal.length,
+          createdAt: new Date().toISOString()
+        };
+
+        console.log(`✅ Diagnostic session created: ${selectedProblems.length} problems selected`);
+
+        resolve({
+          problems: selectedProblems,
+          metadata
+        });
+      };
+
+      allProblemsRequest.onerror = () => {
+        console.error("❌ Failed to fetch problems for diagnostic:", allProblemsRequest.error);
+        reject(allProblemsRequest.error);
+      };
+    });
+  } catch (error) {
+    console.error("❌ createDiagnosticSession failed:", error);
+    throw error;
+  }
+}
+
+/**
+ * Helper: Analyze diagnostic performance by topic/tag
+ * @param {Array} attempts - Problem attempts with tags
+ * @returns {{topicPerformance: Map, problemResults: Array}}
+ */
+function analyzeDiagnosticPerformance(attempts) {
+  const topicPerformance = new Map();
+  const problemResults = [];
+
+  attempts.forEach(attempt => {
+    const { problemId, success, tags = [] } = attempt;
+
+    problemResults.push({ problemId, success });
+
+    // Track performance per tag
+    tags.forEach(tag => {
+      if (!topicPerformance.has(tag)) {
+        topicPerformance.set(tag, { correct: 0, total: 0 });
+      }
+      const perf = topicPerformance.get(tag);
+      perf.total++;
+      if (success) perf.correct++;
+    });
+  });
+
+  return { topicPerformance, problemResults };
+}
+
+/**
+ * Phase 3: Process diagnostic session results and apply recalibration
+ *
+ * Analyzes user performance on diagnostic problems and applies topic-based
+ * recalibration (not global reset).
+ *
+ * Strategy:
+ * - Calculate accuracy per topic/tag
+ * - Reduce box levels for topics with poor performance
+ * - Keep box levels for topics with good performance
+ * - Generate retention summary for user feedback
+ *
+ * @param {object} diagnosticResults - Results from diagnostic session
+ * @param {string} diagnosticResults.sessionId - Session ID
+ * @param {Array} diagnosticResults.attempts - Problem attempts with success/failure
+ * @returns {Promise<{recalibrated: boolean, summary: object}>}
+ */
+export async function processDiagnosticResults(diagnosticResults) {
+  const { sessionId, attempts } = diagnosticResults;
+
+  if (!attempts || attempts.length === 0) {
+    console.warn("⚠️ No attempts to process for diagnostic session");
+    return {
+      recalibrated: false,
+      summary: {
+        totalProblems: 0,
+        accuracy: 0,
+        topicsRetained: [],
+        topicsForgotten: [],
+        message: "No attempts recorded"
+      }
+    };
+  }
+
+  console.log(`📊 Processing diagnostic results (${attempts.length} attempts)...`);
+
+  try {
+    const db = await openDatabase();
+
+    // Analyze performance by topic/tag
+    const { topicPerformance, problemResults } = analyzeDiagnosticPerformance(attempts);
+
+    // Calculate overall accuracy
+    const totalAttempts = attempts.length;
+    const successfulAttempts = attempts.filter(a => a.success).length;
+    const overallAccuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
+
+    // Identify retained vs forgotten topics (70% threshold)
+    const topicsRetained = [];
+    const topicsForgotten = [];
+
+    topicPerformance.forEach((perf, tag) => {
+      const accuracy = perf.correct / perf.total;
+      if (accuracy >= 0.7) {
+        topicsRetained.push({ tag, accuracy: Math.round(accuracy * 100) });
+      } else {
+        topicsForgotten.push({ tag, accuracy: Math.round(accuracy * 100) });
+      }
+    });
+
+    // Apply recalibration: reduce box levels for forgotten topics
+    const transaction = db.transaction(["problems"], "readwrite");
+    const problemStore = transaction.objectStore("problems");
+    let problemsRecalibrated = 0;
+
+    // Reduce box levels for failed problems
+    for (const result of problemResults) {
+      if (!result.success) {
+        const problemRequest = problemStore.get(result.problemId);
+
+        await new Promise((resolve, reject) => {
+          problemRequest.onsuccess = () => {
+            const problem = problemRequest.result;
+            if (problem && problem.box_level > 1) {
+              // Reduce by 1 box level (conservative approach)
+              problem.box_level = Math.max(1, problem.box_level - 1);
+              problem.diagnostic_recalibrated = true;
+              problem.diagnostic_date = new Date().toISOString();
+              problemStore.put(problem);
+              problemsRecalibrated++;
+            }
+            resolve();
+          };
+          problemRequest.onerror = () => reject(problemRequest.error);
+        });
+      }
+    }
+
+    await new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+
+    const summary = {
+      totalProblems: totalAttempts,
+      accuracy: Math.round(overallAccuracy * 100),
+      topicsRetained,
+      topicsForgotten,
+      problemsRecalibrated,
+      message: overallAccuracy >= 0.7
+        ? "Great retention! Your knowledge held up well."
+        : overallAccuracy >= 0.4
+        ? "Some topics need refreshing, but you're on the right track."
+        : "Significant decay detected. Don't worry - we've adjusted your learning path."
+    };
+
+    console.log(`✅ Diagnostic processing complete: ${problemsRecalibrated} problems recalibrated`);
+
+    // Store diagnostic results for analytics
+    await StorageService.set('last_diagnostic_result', {
+      sessionId,
+      summary,
+      completedAt: new Date().toISOString()
+    });
+
+    return {
+      recalibrated: true,
+      summary
+    };
+  } catch (error) {
+    console.error("❌ processDiagnosticResults failed:", error);
+    return {
+      recalibrated: false,
+      summary: {
+        totalProblems: attempts.length,
+        accuracy: 0,
+        topicsRetained: [],
+        topicsForgotten: [],
+        message: `Error: ${error.message}`
+      }
+    };
+  }
 }

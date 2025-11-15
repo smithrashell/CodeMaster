@@ -17,7 +17,7 @@ import { InterviewService } from "../shared/services/interviewService.js";
 import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
-import { getWelcomeBackStrategy } from "../shared/services/recalibrationService.js";
+import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults } from "../shared/services/recalibrationService.js";
 
 // Database imports
 import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
@@ -236,6 +236,60 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
             sendResponse({ status: 'success' });
           } catch (error) {
             console.error("❌ Error recording recalibration choice:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      /** ──────────────── Diagnostic Session (Phase 3) ──────────────── **/
+      case "createDiagnosticSession":
+        (async () => {
+          try {
+            const result = await createDiagnosticSession({
+              problemCount: request.problemCount || 5,
+              daysSinceLastUse: request.daysSinceLastUse || 0
+            });
+
+            // Store the diagnostic session problems for later use
+            await StorageService.set('pending_diagnostic_session', {
+              problems: result.problems,
+              metadata: result.metadata,
+              createdAt: new Date().toISOString()
+            });
+
+            console.log(`✅ Diagnostic session created with ${result.problems.length} problems`);
+            sendResponse({
+              status: 'success',
+              problemCount: result.problems.length,
+              metadata: result.metadata
+            });
+          } catch (error) {
+            console.error("❌ Error creating diagnostic session:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "processDiagnosticResults":
+        (async () => {
+          try {
+            const result = await processDiagnosticResults({
+              sessionId: request.sessionId,
+              attempts: request.attempts
+            });
+
+            console.log(`✅ Diagnostic results processed: ${result.summary.accuracy}% accuracy`);
+            sendResponse({
+              status: 'success',
+              recalibrated: result.recalibrated,
+              summary: result.summary
+            });
+          } catch (error) {
+            console.error("❌ Error processing diagnostic results:", error);
             sendResponse({ status: 'error', message: error.message });
           } finally {
             finishRequest();
