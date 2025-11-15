@@ -56,10 +56,26 @@ export const useWelcomeBack = () => {
         daysSinceLastUse: strategy?.daysSinceLastUse || 0
       });
 
+      // Phase 3: Handle diagnostic session creation
+      if (selectedApproach === 'diagnostic') {
+        const result = await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'createDiagnosticSession',
+          problemCount: 5,
+          daysSinceLastUse: strategy?.daysSinceLastUse || 0
+        });
+
+        if (result.status === 'success') {
+          console.log(`✅ Diagnostic session created with ${result.problemCount} problems`);
+
+          // Show user instructions to go to LeetCode
+          // TODO Phase 3.5: Show a notification/modal with instructions
+          // For now, just log and close the modal
+        }
+      }
+
       setShowWelcomeBack(false);
 
-      // TODO Phase 3/4: Navigate to diagnostic or adaptive session based on choice
-      // For now, just close the modal
+      // TODO Phase 4: Navigate to adaptive session based on choice
     } catch (error) {
       console.error("Error recording recalibration choice:", error);
       setShowWelcomeBack(false);
