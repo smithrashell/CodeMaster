@@ -67,9 +67,13 @@ export const useWelcomeBack = () => {
         if (result.status === 'success') {
           console.log(`✅ Diagnostic session created with ${result.problemCount} problems`);
 
-          // Show user instructions to go to LeetCode
-          // TODO Phase 3.5: Show a notification/modal with instructions
-          // For now, just log and close the modal
+          // Show user confirmation
+          alert(`✅ Diagnostic session created with ${result.problemCount} problems!\n\n` +
+                `Next: Go to LeetCode and open the CodeMaster extension to start your assessment.`);
+        } else {
+          // Handle error case
+          console.error('Failed to create diagnostic session:', result);
+          alert('❌ Failed to create diagnostic session. Please try again or check console for details.');
         }
       }
 
