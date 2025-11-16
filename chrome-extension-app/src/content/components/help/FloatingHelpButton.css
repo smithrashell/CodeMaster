@@ -12,21 +12,21 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #2196F3;
+  background: var(--cm-btn-bg, #0b7199);
   border: none;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 2px 8px rgba(11, 113, 153, 0.3);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--cm-btn-text, #fabd22);
   transition: all 0.2s ease;
   padding: 0;
 }
 
 .cm-help-button:hover {
-  background: #1976D2;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+  background: var(--cm-accent, #3b82f6);
+  box-shadow: 0 4px 12px rgba(11, 113, 153, 0.4);
   transform: translateY(-1px);
 }
 
@@ -39,12 +39,13 @@
   position: absolute;
   bottom: 44px;
   left: 0;
-  background: #ffffff;
+  background: var(--cm-dropdown-bg, #ffffff);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px var(--cm-card-shadow, rgba(0, 0, 0, 0.15));
   min-width: 200px;
   overflow: hidden;
   animation: slideUp 0.2s ease;
+  border: 1px solid var(--cm-border, #e5e7eb);
 }
 
 @keyframes slideUp {
@@ -61,11 +62,11 @@
 /* Help Menu Header */
 .cm-help-menu-header {
   padding: 12px 16px;
-  background: #f5f5f5;
+  background: var(--cm-bg-secondary, #f8f9fa);
   font-size: 13px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #e0e0e0;
+  color: var(--cm-text, #334155);
+  border-bottom: 1px solid var(--cm-border, #e5e7eb);
 }
 
 /* Help Menu Items */
@@ -78,43 +79,46 @@
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #333;
+  color: var(--cm-dropdown-color, #334155);
   cursor: pointer;
   transition: background 0.15s ease;
   text-align: left;
 }
 
 .cm-help-menu-item:hover {
-  background: #f5f5f5;
+  background: var(--cm-link-hover-bg, #f3f4f6);
 }
 
 .cm-help-menu-item svg {
   flex-shrink: 0;
-  color: #2196F3;
+  color: var(--cm-btn-bg, #0b7199);
 }
 
 .cm-help-menu-item span {
   flex: 1;
 }
 
-/* Dark mode support (if LeetCode uses dark mode) */
-@media (prefers-color-scheme: dark) {
-  .cm-help-menu {
-    background: #1e1e1e;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
+/* Dark mode support */
+body[data-theme="dark"] .cm-help-menu {
+  background: var(--cm-dropdown-bg, #374151);
+  box-shadow: 0 4px 20px var(--cm-card-shadow, rgba(0, 0, 0, 0.3));
+  border-color: var(--cm-border, #4b5563);
+}
 
-  .cm-help-menu-header {
-    background: #2a2a2a;
-    color: #e0e0e0;
-    border-bottom-color: #3a3a3a;
-  }
+body[data-theme="dark"] .cm-help-menu-header {
+  background: var(--cm-bg-secondary, #1f2a38);
+  color: var(--cm-text, #f8fafc);
+  border-bottom-color: var(--cm-border, #4b5563);
+}
 
-  .cm-help-menu-item {
-    color: #e0e0e0;
-  }
+body[data-theme="dark"] .cm-help-menu-item {
+  color: var(--cm-dropdown-color, #f8fafc);
+}
 
-  .cm-help-menu-item:hover {
-    background: #2a2a2a;
-  }
+body[data-theme="dark"] .cm-help-menu-item:hover {
+  background: var(--cm-link-hover-bg, #4b5563);
+}
+
+body[data-theme="dark"] .cm-help-menu-item svg {
+  color: var(--cm-btn-text, #fabd22);
 }
