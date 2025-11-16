@@ -1,7 +1,9 @@
 /**
  * Storage Cleanup Manager - Periodic Session Cleanup
  *
- * Deletes old expired sessions while preserving completed sessions forever.
+ * NOTE: As of Issue #193, expired sessions are now deleted immediately upon regeneration.
+ * This manager is kept for potential future edge case handling (orphaned data, crashes).
+ * Preserves completed sessions forever.
  * Runs every 24 hours while extension is active.
  */
 
@@ -16,9 +18,11 @@ export default class StorageCleanupManager {
 
   /**
    * Retention policies for different session types (in days)
+   * NOTE: Expired sessions are now deleted immediately (Issue #193), so this cleanup
+   * only handles edge cases like orphaned data from crashes.
    */
   static RETENTION_POLICY = {
-    expired: 30,   // Delete expired sessions after 30 days
+    expired: 0,    // Delete any remaining expired sessions immediately (edge cases only)
     completed: null // NEVER delete completed sessions
   };
 
@@ -107,7 +111,7 @@ export default class StorageCleanupManager {
         let shouldDelete = false;
         let reason = '';
 
-        // Delete old expired sessions (30+ days)
+        // Delete any remaining expired sessions immediately (edge case cleanup only)
         if (status === 'expired' && ageInDays > this.RETENTION_POLICY.expired) {
           shouldDelete = true;
           reason = `Expired session older than ${this.RETENTION_POLICY.expired} days`;
@@ -119,6 +123,11 @@ export default class StorageCleanupManager {
 
         if (shouldDelete) {
           try {
+            // Log warning if we find expired sessions (should not happen with Issue #193 fix)
+            if (status === 'expired') {
+              logger.warn(`🔍 Found orphaned expired session ${session.id.substring(0, 8)} - this should not happen with Issue #193 fix`);
+            }
+            
             await store.delete(session.id);
             deletedSessions.push({
               id: session.id.substring(0, 8),

@@ -5,6 +5,7 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
+  deleteSessionFromDB,
   getSessionPerformance,
   getOrCreateSessionAtomic,
   evaluateDifficultyProgression,
@@ -24,6 +25,8 @@ import { openDatabase } from "../db/connectionUtils.js";
 
 // Session Creation Lock - Prevents race conditions
 const sessionCreationLocks = new Map();
+// Session Refresh Lock - Prevents race conditions during regeneration
+const sessionRefreshLocks = new Map();
 /**
  * Circuit Breaker for Enhanced Habit Learning Features
  * Provides automatic fallback to current system if enhanced features fail
@@ -1124,14 +1127,16 @@ export const SessionService = {
     const stalledSessions = [];
 
     for (const session of allSessions) {
-      // Only process expired sessions for cleanup (they were already marked expired by user regeneration)
-      // NEVER touch in_progress or completed sessions
-      if (session.status !== 'expired') {
+      // Skip completed sessions (they're finished and should never be touched)
+      // Process in_progress sessions to detect genuine stalls
+      // Note: expired sessions are deleted immediately (Issue #193), so they won't appear here
+      if (session.status === 'completed') {
         continue;
       }
 
       const classification = this.classifySessionState(session);
 
+      // Only flag sessions that are genuinely stalled (not active or unclear)
       if (!['active', 'unclear'].includes(classification)) {
         stalledSessions.push({
           session,
@@ -1361,23 +1366,39 @@ export const SessionService = {
   /**
    * Refresh/regenerate current session with new problems
    */
+  // eslint-disable-next-line require-await
   async refreshSession(sessionType = 'standard', forceNew = false) {
     logger.info(`🔄 Refreshing ${sessionType} session (forceNew: ${forceNew})`);
     
-    // Mark current session as expired if it exists
-    const currentSession = await this.resumeSession(sessionType);
-    if (currentSession && forceNew) {
-      currentSession.status = 'expired';
-      // Don't update last_activity_time - it should reflect when user last worked on it
-      await updateSessionInDB(currentSession);
-      logger.info(`Marked session ${currentSession.id} as expired`);
+    // Acquire lock to prevent race conditions during regeneration
+    const lockKey = `refresh_${sessionType}`;
+    if (sessionRefreshLocks.has(lockKey)) {
+      logger.info(`⏳ Waiting for existing refresh operation to complete for ${sessionType}`);
+      return sessionRefreshLocks.get(lockKey);
     }
-    
-    // Create fresh session
-    const newSession = await this.createNewSession(sessionType);
-    logger.info(`✅ Created fresh ${sessionType} session: ${newSession.id}`);
-    
-    return newSession;
+
+    const refreshPromise = (async () => {
+      try {
+        // Delete current session immediately if it exists (no longer need to mark as expired)
+        const currentSession = await this.resumeSession(sessionType);
+        if (currentSession && forceNew) {
+          await deleteSessionFromDB(currentSession.id);
+          logger.info(`Deleted session ${currentSession.id} (type: ${sessionType}, status: ${currentSession.status}) for regeneration`);
+        }
+        
+        // Create fresh session
+        const newSession = await this.createNewSession(sessionType);
+        logger.info(`✅ Created fresh ${sessionType} session: ${newSession.id}`);
+        
+        return newSession;
+      } finally {
+        // Always release lock
+        sessionRefreshLocks.delete(lockKey);
+      }
+    })();
+
+    sessionRefreshLocks.set(lockKey, refreshPromise);
+    return refreshPromise;
   },
 
   /**
