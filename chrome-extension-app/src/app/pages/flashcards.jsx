@@ -28,8 +28,13 @@ export function Flashcards() {
   };
 
   const runCode = async () => {
-    setOutput("Running...");
+    setOutput("Code execution coming soon! This feature requires a backend service and will be available in a future update.");
 
+    // TODO: Implement code execution backend
+    // This feature is currently disabled for Chrome Web Store submission
+    // Will be enabled in future version with proper backend integration
+
+    /* Original localhost code - disabled for production
     try {
       const response = await fetch("http://localhost:3000/execute-code", {
         method: "POST",
@@ -51,6 +56,7 @@ export function Flashcards() {
     } catch (error) {
       setOutput(`Error: ${error.message}`);
     }
+    */
   };
 
   const _handleResult = (result) => {

@@ -10,13 +10,15 @@ export function HelpPage() {
   const handleReportIssue = () => {
     const repoUrl = "https://github.com/smithrashell/CodeMaster";
     const issueUrl = `${repoUrl}/issues/new?template=bug_report.md`;
-    window.open(issueUrl, "_blank");
+    const newWindow = window.open(issueUrl, "_blank", "noopener,noreferrer");
+    if (newWindow) newWindow.opener = null;
   };
 
   const handleFeatureRequest = () => {
     const repoUrl = "https://github.com/smithrashell/CodeMaster";
     const issueUrl = `${repoUrl}/issues/new?template=feature_request.md`;
-    window.open(issueUrl, "_blank");
+    const newWindow = window.open(issueUrl, "_blank", "noopener,noreferrer");
+    if (newWindow) newWindow.opener = null;
   };
 
   return (
