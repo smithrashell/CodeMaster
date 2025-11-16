@@ -601,83 +601,6 @@ const SaveSettingsButton = ({ workingSettings, handleSave }) => (
   </Button>
 );
 
-// Help & Support Section Component
-const HelpSupportSection = () => {
-  const handleReportIssue = () => {
-    const repoUrl = "https://github.com/smithrashell/CodeMaster";
-    const issueUrl = `${repoUrl}/issues/new?template=bug_report.md`;
-    window.open(issueUrl, "_blank");
-  };
-
-  const handleOpenDashboard = () => {
-    const dashboardUrl = chrome.runtime.getURL("app.html#/help");
-    window.open(dashboardUrl, "_blank");
-  };
-
-  return (
-    <div style={{
-      marginTop: '24px',
-      padding: '16px',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      borderRadius: '8px',
-      color: '#ffffff'
-    }}>
-      <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
-        Need Help?
-      </div>
-      <div style={{ fontSize: '12px', marginBottom: '12px', opacity: 0.9 }}>
-        Encountered a bug or have a question? We&apos;re here to help!
-      </div>
-      <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
-        <Button
-          onClick={handleReportIssue}
-          size="sm"
-          style={{
-            width: '100%',
-            padding: '8px 16px',
-            backgroundColor: '#ffffff',
-            color: '#667eea',
-            fontSize: '13px',
-            fontWeight: '600',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = '#ffffff';
-          }}
-        >
-          🐛 Report a Bug
-        </Button>
-        <Button
-          onClick={handleOpenDashboard}
-          size="sm"
-          style={{
-            width: '100%',
-            padding: '8px 16px',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            color: '#ffffff',
-            fontSize: '13px',
-            fontWeight: '500',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            cursor: 'pointer'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-          }}
-        >
-          ❓ View FAQ & Help
-        </Button>
-      </div>
-    </div>
-  );
-};
-
 // Helper to save settings
 const saveSettings = (settings) => {
   console.log("🔄 Saving settings:", settings);
@@ -906,8 +829,6 @@ const Settings = () => {
           workingSettings={workingSettings}
           handleSave={handleSave}
         />
-
-        <HelpSupportSection />
       </div>
     </div>
   ) : null;
