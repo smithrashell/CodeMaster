@@ -9,24 +9,25 @@
 
 /* Help Button */
 .cm-help-button {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #2196F3;
   border: none;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
   transition: all 0.2s ease;
+  padding: 0;
 }
 
 .cm-help-button:hover {
   background: #1976D2;
-  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.4);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+  transform: translateY(-1px);
 }
 
 .cm-help-button:active {
@@ -36,7 +37,7 @@
 /* Help Menu Popup */
 .cm-help-menu {
   position: absolute;
-  bottom: 60px;
+  bottom: 44px;
   left: 0;
   background: #ffffff;
   border-radius: 8px;
