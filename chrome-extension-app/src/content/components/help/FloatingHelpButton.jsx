@@ -83,7 +83,7 @@ export const FloatingHelpButton = () => {
         type="button"
         aria-label="Help & Support"
       >
-        <IconHelp size={20} />
+        <IconHelp size={18} />
       </button>
     </div>
   );
