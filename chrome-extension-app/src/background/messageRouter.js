@@ -17,6 +17,7 @@ import { InterviewService } from "../shared/services/interviewService.js";
 import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
+import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../shared/services/recalibrationService.js";
 
 // Database imports
 import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
@@ -172,6 +173,167 @@ export function routeMessage(request, sendResponse, finishRequest, dependencies 
         StorageService.getSessionState("session_state")
           .then(sendResponse)
           .finally(finishRequest);
+        return true;
+
+      /** ──────────────── Welcome Back / Recalibration (Phase 2) ──────────────── **/
+      case "getWelcomeBackStrategy":
+        (async () => {
+          try {
+            // Check if user dismissed the modal today
+            const dismissed = await StorageService.get('welcome_back_dismissed');
+            const today = new Date().toISOString().split('T')[0];
+
+            if (dismissed && dismissed.timestamp && dismissed.timestamp.startsWith(today)) {
+              console.log(`✅ Welcome back modal dismissed today (${today}), skipping`);
+              sendResponse({ type: 'normal' }); // Don't show if dismissed today
+              finishRequest();
+              return;
+            }
+
+            const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();
+            const strategy = getWelcomeBackStrategy(daysSinceLastUse);
+            sendResponse(strategy);
+          } catch (error) {
+            console.error("❌ Error getting welcome back strategy:", error);
+            sendResponse({ type: 'normal' }); // Default to normal if error
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "dismissWelcomeBack":
+        (async () => {
+          try {
+            // Store dismissal with timestamp
+            await StorageService.set('welcome_back_dismissed', {
+              timestamp: request.timestamp,
+              daysSinceLastUse: request.daysSinceLastUse
+            });
+
+            console.log(`✅ Welcome back modal dismissed (${request.daysSinceLastUse} days gap)`);
+            sendResponse({ status: 'success' });
+          } catch (error) {
+            console.error("❌ Error dismissing welcome back modal:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "recordRecalibrationChoice":
+        (async () => {
+          try {
+            // Store the user's recalibration choice and timestamp
+            await StorageService.set('last_recalibration_choice', {
+              approach: request.approach,
+              daysSinceLastUse: request.daysSinceLastUse,
+              timestamp: new Date().toISOString()
+            });
+
+            console.log(`✅ Recorded recalibration choice: ${request.approach} (${request.daysSinceLastUse} days gap)`);
+            sendResponse({ status: 'success' });
+          } catch (error) {
+            console.error("❌ Error recording recalibration choice:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      /** ──────────────── Diagnostic Session (Phase 3) ──────────────── **/
+      case "createDiagnosticSession":
+        (async () => {
+          try {
+            const result = await createDiagnosticSession({
+              problemCount: request.problemCount || 5,
+              daysSinceLastUse: request.daysSinceLastUse || 0
+            });
+
+            // Store the diagnostic session problems for later use
+            await StorageService.set('pending_diagnostic_session', {
+              problems: result.problems,
+              metadata: result.metadata,
+              createdAt: new Date().toISOString()
+            });
+
+            console.log(`✅ Diagnostic session created with ${result.problems.length} problems`);
+            sendResponse({
+              status: 'success',
+              problemCount: result.problems.length,
+              metadata: result.metadata
+            });
+          } catch (error) {
+            console.error("❌ Error creating diagnostic session:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "processDiagnosticResults":
+        (async () => {
+          try {
+            const result = await processDiagnosticResults({
+              sessionId: request.sessionId,
+              attempts: request.attempts
+            });
+
+            console.log(`✅ Diagnostic results processed: ${result.summary.accuracy}% accuracy`);
+            sendResponse({
+              status: 'success',
+              recalibrated: result.recalibrated,
+              summary: result.summary
+            });
+          } catch (error) {
+            console.error("❌ Error processing diagnostic results:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      /** ──────────────── Adaptive Recalibration Session (Phase 4) ──────────────── **/
+      case "createAdaptiveRecalibrationSession":
+        (async () => {
+          try {
+            const result = await createAdaptiveRecalibrationSession({
+              daysSinceLastUse: request.daysSinceLastUse || 0
+            });
+
+            console.log(`✅ Adaptive recalibration session enabled: ${result.message}`);
+            sendResponse(result);
+          } catch (error) {
+            console.error("❌ Error creating adaptive recalibration session:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
+        return true;
+
+      case "processAdaptiveSessionCompletion":
+        (async () => {
+          try {
+            const result = await processAdaptiveSessionCompletion({
+              sessionId: request.sessionId,
+              accuracy: request.accuracy,
+              totalProblems: request.totalProblems
+            });
+
+            console.log(`✅ Adaptive session processed: ${result.action}`);
+            sendResponse(result);
+          } catch (error) {
+            console.error("❌ Error processing adaptive session completion:", error);
+            sendResponse({ status: 'error', message: error.message });
+          } finally {
+            finishRequest();
+          }
+        })();
         return true;
 
       /** ──────────────── Problems Management ──────────────── **/

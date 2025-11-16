@@ -11,9 +11,19 @@ import "./styles/accessibility.css";
 import { AppRoutes } from "./routes/index.jsx";
 import { AppLayout } from "./components/layout/AppLayout.jsx";
 import { WelcomeModal } from "./components/onboarding/WelcomeModal.jsx";
+import { WelcomeBackModal } from "./components/onboarding/WelcomeBackModal.jsx";
 import { useAppOnboarding } from "./hooks/useAppOnboarding.js";
+import { useWelcomeBack } from "./hooks/useWelcomeBack.js";
+
 function App() {
   const { showOnboarding, handleCompleteOnboarding, handleCloseOnboarding } = useAppOnboarding();
+  const { showWelcomeBack, strategy, handleConfirm, handleClose } = useWelcomeBack();
+
+  // Priority logic: Onboarding takes precedence over Welcome Back modal
+  // This prevents both modals from showing simultaneously for users who:
+  // 1. Haven't completed onboarding AND
+  // 2. Are returning after a long gap
+  const shouldShowWelcomeBack = showWelcomeBack && !showOnboarding;
 
   return (
     <ErrorBoundary
@@ -42,6 +52,14 @@ function App() {
           opened={showOnboarding}
           onClose={handleCloseOnboarding}
           onComplete={handleCompleteOnboarding}
+        />
+
+        {/* Welcome Back Modal - Phase 2: Recalibration */}
+        <WelcomeBackModal
+          opened={shouldShowWelcomeBack}
+          onClose={handleClose}
+          strategy={strategy}
+          onConfirm={handleConfirm}
         />
       </ThemeProviderWrapper>
     </ErrorBoundary>

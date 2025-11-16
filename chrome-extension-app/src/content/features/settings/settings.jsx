@@ -569,9 +569,9 @@ const RemindersSection = ({ settings, setSettings }) => {
 
 // Save Button Component
 const SaveSettingsButton = ({ workingSettings, handleSave }) => (
-  <Button 
+  <Button
     id="save-settings-button"
-    onClick={() => handleSave(workingSettings)} 
+    onClick={() => handleSave(workingSettings)}
     size="lg"
     style={{
       width: '100%',
@@ -825,9 +825,9 @@ const Settings = () => {
         />
 
 
-        <SaveSettingsButton 
-          workingSettings={workingSettings} 
-          handleSave={handleSave} 
+        <SaveSettingsButton
+          workingSettings={workingSettings}
+          handleSave={handleSave}
         />
       </div>
     </div>

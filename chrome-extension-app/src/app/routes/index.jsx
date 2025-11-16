@@ -14,6 +14,7 @@ import { LearningPath } from "../pages/strategy/learning-path.jsx";
 import { General } from "../pages/settings/general.jsx";
 import { Appearance } from "../pages/settings/appearance.jsx";
 import { Accessibility } from "../pages/settings/accessibility.jsx";
+import { HelpPage } from "../pages/help/index.jsx";
 import { DashboardPage } from "../pages/mockup";
 import ErrorBoundary from "../../shared/components/ErrorBoundary";
 import { DashboardErrorFallback } from "../../shared/components/ErrorFallback";
@@ -68,6 +69,12 @@ const createSettingsRoutes = () => (
   </Route>
 );
 
+const createHelpRoutes = () => (
+  <Route path="/help" element={<DashboardPage />}>
+    <Route index element={createProtectedRoute("Help & Support", HelpPage)} />
+  </Route>
+);
+
 export const AppRoutes = () => (
   <Routes>
     <Route path="/app.html" element={<Navigate to="/" replace />} />
@@ -76,5 +83,6 @@ export const AppRoutes = () => (
     {createSessionRoutes()}
     {createStrategyRoutes()}
     {createSettingsRoutes()}
+    {createHelpRoutes()}
   </Routes>
 );

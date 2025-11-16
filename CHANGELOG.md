@@ -8,6 +8,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Intelligent Recalibration System - Phase 1: Passive Background Decay** (#206)
+  - Implemented time-based decay for users returning after long breaks
+  - Added last activity date tracking to StorageService:
+    - `getLastActivityDate()` - Retrieve last app usage timestamp
+    - `updateLastActivityDate()` - Update timestamp on app usage
+    - `getDaysSinceLastActivity()` - Calculate days since last use
+  - Created RecalibrationService with passive decay algorithm:
+    - Box level decay: 1 box per 60 days (conservative 2-month intervals)
+    - Stability decay: Exponential forgetting curve with 90-day half-life
+    - Minimum values: Box level ≥ 1, stability ≥ 0.5
+    - Recalibration flag: Set for problems unused for 90+ days
+  - Enhanced FSRS to consider time elapsed:
+    - Updated `updateStabilityFSRS()` with optional `lastAttemptDate` parameter
+    - Applies forgetting curve (e^(-days/90)) for gaps > 30 days
+    - Combines performance-based updates with time-based decay
+  - Integrated passive decay on app startup:
+    - Runs automatically in background script activation
+    - Non-blocking, silent execution (no user interaction)
+    - Logs affected problems and days since last use
+  - Added database fields for recalibration tracking:
+    - `needs_recalibration` - Boolean flag for problems needing assessment
+    - `decay_applied_date` - ISO timestamp of last decay application
+    - `original_box_level` - Stores pre-decay box level for rollback
+  - Prevents "fail-fest" experience for returning users (6+ month gaps)
+  - Foundation for future phases: Welcome Back Modal, Diagnostic Session
+- **Intelligent Recalibration System - Phase 2: Welcome Back Modal** (#206)
+  - Implemented gap-based recalibration strategy detection:
+    - Gentle recalibration (30-90 days): Adaptive first session approach
+    - Moderate recalibration (90-365 days): User choice between diagnostic or adaptive
+    - Major recalibration (365+ days): Strong diagnostic recommendation with reset option
+  - Created WelcomeBackModal component with strategy-specific messaging:
+    - Shows days since last use and personalized recommendations
+    - Presents recalibration options based on usage gap severity
+    - Integrates with existing onboarding modal (priority logic prevents conflicts)
+  - Created useWelcomeBack hook for modal state management:
+    - Fetches strategy from background script on app startup
+    - Handles user choice confirmation and dismissal
+    - Tracks modal dismissal with timestamp to prevent re-showing
+  - Added welcome back message handlers to background script:
+    - `getWelcomeBackStrategy`: Returns appropriate strategy based on days since last use
+    - `dismissWelcomeBack`: Stores dismissal timestamp to prevent duplicate showing
+  - Modal only shows once per return (dismissal persists across sessions)
+- **Intelligent Recalibration System - Phase 3: Diagnostic Session** (#206)
+  - Implemented 5-problem diagnostic session for comprehensive skill assessment:
+    - Samples from previously mastered problems (box level 3+)
+    - Prioritizes problems marked with needs_recalibration flag
+    - Ensures variety across difficulty levels and topic tags
+    - Tests what users actually remember after long breaks
+  - Created diagnostic session processing with topic-based recalibration:
+    - Analyzes performance by tag/topic (70% accuracy threshold)
+    - Identifies retained vs forgotten topics
+    - Applies conservative recalibration (reduces box level by 1 for failed problems)
+    - Uses atomic transactions to prevent partial updates
+    - Stores results for analytics and user feedback
+  - Added diagnostic session handlers to background script:
+    - `createDiagnosticSession`: Creates session with sampled problems
+    - `processDiagnosticResults`: Analyzes performance and applies recalibration
+  - Enhanced useWelcomeBack hook with diagnostic session support:
+    - Shows user confirmation with problem count
+    - Guides user to LeetCode to complete diagnostic
+    - Displays success/error feedback with clear next steps
+- **Intelligent Recalibration System - Phase 4: Adaptive First Session** (#206)
+  - Implemented performance-based decay adjustment system:
+    - Flags next session as "adaptive recalibration session"
+    - Session runs normally but tracks accuracy metrics
+    - Post-session analysis determines if passive decay was appropriate
+  - Created adaptive session processing with smart decay adjustment:
+    - Strong performance (≥70% accuracy): Keeps passive decay (user retained knowledge)
+    - Middle performance (40-70% accuracy): Reduces decay by 50% (partial adjustment)
+    - Poor performance (<40% accuracy): Reduces decay by 75% (significant adjustment)
+    - Uses `reduceDecayMagnitude()` helper to partially restore box levels
+  - Added adaptive session handlers to background script:
+    - `createAdaptiveRecalibrationSession`: Sets up flag for next session
+    - `processAdaptiveSessionCompletion`: Analyzes performance and adjusts decay
+  - Enhanced useWelcomeBack hook with adaptive session support:
+    - Shows user confirmation for adaptive mode enablement
+    - Guides user to start practice session
+    - Displays clear next steps
+  - Stores adaptive results for Phase 5 analytics tracking
 - **Chrome Web Store Preparation** (#205)
   - Created comprehensive chrome-store folder with all submission materials:
     - 8 high-quality screenshots (1280x800 PNG) showing all key features

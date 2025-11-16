@@ -1063,13 +1063,46 @@ export async function addStabilityToProblems() {
   });
 }
 
-// Reuse updateStabilityFSRS:
-export function updateStabilityFSRS(currentStability, wasCorrect) {
+// FSRS stability update with time-based decay consideration
+/**
+ * Updates stability considering both performance and time elapsed
+ *
+ * @param {number} currentStability - Current stability value
+ * @param {boolean} wasCorrect - Whether the attempt was successful
+ * @param {string|null} lastAttemptDate - ISO date string of last attempt (optional)
+ * @returns {number} New stability value
+ */
+export function updateStabilityFSRS(currentStability, wasCorrect, lastAttemptDate = null) {
+  let newStability;
+
+  // Performance-based update
   if (wasCorrect) {
-    return parseFloat((currentStability * 1.2 + 0.5).toFixed(2));
+    newStability = currentStability * 1.2 + 0.5;
   } else {
-    return parseFloat((currentStability * 0.7).toFixed(2));
+    newStability = currentStability * 0.7;
   }
+
+  // Apply time-based decay if last attempt date provided
+  if (lastAttemptDate) {
+    try {
+      const lastDate = new Date(lastAttemptDate);
+      const now = new Date();
+      const daysSinceLastAttempt = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+
+      // Only apply decay if more than 30 days have passed
+      if (daysSinceLastAttempt > 30) {
+        // Exponential forgetting curve with 90-day half-life
+        // stability * e^(-days / 90)
+        const forgettingFactor = Math.exp(-daysSinceLastAttempt / 90);
+        newStability = newStability * forgettingFactor;
+      }
+    } catch (error) {
+      console.warn("Error applying time-based decay to stability:", error);
+      // Continue with performance-based stability only
+    }
+  }
+
+  return parseFloat(newStability.toFixed(2));
 }
 
 /**

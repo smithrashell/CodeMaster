@@ -18,6 +18,7 @@ import {
 } from "../shared/components/ErrorFallback";
 import { PageSpecificTour } from "./components/onboarding/PageSpecificTour";
 import { usePageTour } from "./components/onboarding/usePageTour";
+import { FloatingHelpButton } from "./components/help/FloatingHelpButton.jsx";
 
 const handleEmergencyReset = () => {
   logger.warn("🚑 Emergency reset triggered by user");
@@ -188,7 +189,8 @@ const Router = () => {
     >
       <AppProviders>
         <PageTourProvider />
-        
+        <FloatingHelpButton />
+
         <Routes>
           <Route
             path="/"
