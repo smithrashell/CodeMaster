@@ -98,6 +98,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configured Content Security Policy (CSP) in manifest.json
   - Verified all 512px icons present and referenced correctly
   - Prepared comprehensive marketing copy and permission justifications
+  - **Help & Support System**:
+    - Added comprehensive Help & Support page in dashboard with FAQ, troubleshooting, and documentation sections
+    - Implemented floating help button on LeetCode pages (lower left corner) for easy bug reporting and help access
+    - Added navigation link to Help page in dashboard sidebar
+  - **Security & Accessibility Improvements**:
+    - Fixed security vulnerability: All window.open() calls now use noopener,noreferrer to prevent reverse tabnabbing
+    - Enhanced accessibility: Added ARIA attributes (aria-expanded, aria-haspopup, role="menu", role="menuitem")
+    - Implemented full keyboard navigation: Escape to close, Arrow keys for navigation, Home/End for first/last item
+    - Fixed memory leak in click-outside event handler
+    - Auto-focus management for improved screen reader support
+  - **Code Quality**:
+    - Disabled localhost reference in flashcards page for production readiness
+    - Extension now fully compliant with Chrome Web Store requirements
 
 ### Fixed
 - **Fixed 4 critical issues in recalibration service** (#206)
