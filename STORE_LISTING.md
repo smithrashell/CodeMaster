@@ -115,14 +115,6 @@ CodeMaster applies learning science to software engineering education.
 • Competitive programmers tracking practice systematically
 • Anyone tired of forgetting algorithms they've "learned" before
 
-### 🔮 COMING SOON (v1.1+)
-
-• Flashcard mode for reinforced learning
-• AI-powered flashcard generation from your notes
-• Export/import learning data
-• Custom problem set creation
-• Collaborative study sessions
-
 ---
 
 **Ready to stop forgetting and start mastering?**
@@ -230,15 +222,11 @@ Install CodeMaster and transform your algorithm practice from random grinding in
 
 **storage**: Required to save learning progress, problem attempts, and user preferences locally via IndexedDB
 
-**tabs**: Needed to detect when users navigate to LeetCode problem pages and activate the content script
+**tabs**: Needed to open the dashboard when the extension is first installed and for basic tab management
 
 **activeTab**: Allows reading problem metadata from the active LeetCode page when users log an attempt
 
-**scripting**: Required to inject the CodeMaster overlay (timer, tracking buttons) onto LeetCode pages
-
-**notifications**: Optional feature to remind users of due problem reviews (can be disabled in settings)
-
-**alarms**: Schedules review notifications based on spaced repetition algorithm
+**notifications**: Used to notify users about system status (e.g., database initialization complete)
 
 **host_permissions (leetcode.com)**: Enables content script injection and problem metadata extraction from LeetCode
 
