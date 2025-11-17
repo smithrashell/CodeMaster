@@ -123,6 +123,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed from innerHTML to textContent for title text to prevent script injection
   - Icon SVG still uses innerHTML (safe, internal string only)
   - Prevents malicious code execution if title parameter ever contains user input
+- **Fixed Help Navigation Blank Page Bug**
+  - Removed Help sub-navigation entry that was causing blank page when clicking "Help & Support" in dashboard sidebar
+  - Help section now navigates directly to `/help` index route without sub-navigation
+  - Fixed navigation from `/help/help-support` (non-existent) to `/help` (correct route)
+  - Resolved issue where clicking Help tab showed blank page instead of Help & Support content
 
 ### Added
 - **Open Source Licensing with Dual Licensing Option** (#206)
