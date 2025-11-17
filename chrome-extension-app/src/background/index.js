@@ -668,9 +668,10 @@ chrome.runtime.onInstalled.addListener((details) => {
   console.log("🚀 Extension installed/updated - initializing system");
   initializeConsistencySystem();
 
-  // Dashboard opening disabled - manual open only
+  // Open dashboard on first install
   if (details.reason === 'install') {
-    console.log("🎉 First-time install - onboarding will run automatically");
+    console.log("🎉 First-time install - opening dashboard");
+    chrome.tabs.create({ url: chrome.runtime.getURL("app.html") });
   } else if (details.reason === 'update') {
     console.log("⬆️ Extension updated");
   }

@@ -165,6 +165,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Builds community trust through transparency
 
 ### Fixed
+- **Fixed Dashboard Auto-Open on Extension Install**
+  - Re-enabled automatic dashboard opening when extension is first installed
+  - Added `chrome.tabs.create()` call in `onInstalled` handler to open `app.html` on install
+  - Dashboard now automatically opens for new users to guide them through onboarding
+  - Updates do not trigger dashboard opening (only first-time install)
+  - Location: `chrome-extension-app/src/background/index.js:667-678`
 - **Fixed Timer Behavior metric inconsistency** (#183)
   - Aligned `calculateTimerBehavior` badge logic with `calculateTimerPercentage` calculation
   - **Before**: Badge used last 50 attempts, only successful attempts, 60-minute cutoff for all difficulties
