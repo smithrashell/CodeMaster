@@ -170,7 +170,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Extension uses content scripts (declared in manifest) instead of programmatic script injection
   - Verified `chrome.scripting` API is not used anywhere in codebase
   - Resolves Chrome Web Store rejection for requesting but not using permissions
-  - Location: `chrome-extension-app/public/manifest.json:17-23`
+  - Location: `chrome-extension-app/public/manifest.json:17-22`
+- **Removed Unused Alarms Permission for Chrome Web Store Compliance**
+  - Removed `alarms` permission from manifest.json (reminder feature not yet implemented)
+  - Reminder settings UI is preserved but actual notification scheduling deferred to future release
+  - Created issue #210 to track reminder system implementation
+  - Chrome Web Store policy: Don't request permissions for unimplemented features
+  - Will add permission back when reminder system is implemented
+  - Location: `chrome-extension-app/public/manifest.json:17-22`
 - **Fixed Dashboard Auto-Open on Extension Install**
   - Re-enabled automatic dashboard opening when extension is first installed
   - Added `chrome.tabs.create()` call in `onInstalled` handler to open `app.html` on install

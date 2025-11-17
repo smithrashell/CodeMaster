@@ -18,8 +18,7 @@
     "tabs",
     "activeTab",
     "storage",
-    "notifications",
-    "alarms"
+    "notifications"
   ],
   "action": {
     "default_icon": {
