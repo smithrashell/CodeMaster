@@ -165,6 +165,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Builds community trust through transparency
 
 ### Fixed
+- **Fixed Chrome Web Store Permissions Violation** (Violation ID: Purple Potassium)
+  - Removed unused `scripting` permission from manifest.json
+  - Extension uses content scripts (declared in manifest) instead of programmatic script injection
+  - Verified `chrome.scripting` API is not used anywhere in codebase
+  - Resolves Chrome Web Store rejection for requesting but not using permissions
+  - Location: `chrome-extension-app/public/manifest.json:17-23`
 - **Fixed Dashboard Auto-Open on Extension Install**
   - Re-enabled automatic dashboard opening when extension is first installed
   - Added `chrome.tabs.create()` call in `onInstalled` handler to open `app.html` on install
