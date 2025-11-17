@@ -22,5 +22,4 @@ export const subLinksData = {
   "/sessions": ["Session History", "Productivity Insights"],
   "/strategy": ["Tag Mastery", "Learning Path"],
   "/settings": ["General", "Appearance", "Accessibility"],
-  "/help": ["Help & Support"],
 };
