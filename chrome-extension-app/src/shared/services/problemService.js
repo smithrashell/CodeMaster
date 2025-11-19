@@ -188,6 +188,12 @@ async function addNewProblemsToSession(params) {
 }
 
 async function selectNewProblems(candidateProblems, newProblemsNeeded, isOnboarding) {
+  // Defensive check: handle undefined or null candidateProblems
+  if (!candidateProblems || !Array.isArray(candidateProblems)) {
+    logger.warn(`⚠️ candidateProblems is ${candidateProblems === null ? 'null' : typeof candidateProblems}, returning empty array`);
+    return [];
+  }
+
   if (!isOnboarding && candidateProblems.length >= newProblemsNeeded) {
     logger.info(`🧮 Applying optimal path scoring to ${candidateProblems.length} candidates`);
     try {

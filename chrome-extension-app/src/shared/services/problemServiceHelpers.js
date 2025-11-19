@@ -94,20 +94,42 @@ export function normalizeReviewProblem(p) {
 
 /**
  * Filter valid review problems
+ * Checks for required fields: id, title, difficulty, tags
  */
 export function filterValidReviewProblems(problems) {
   return (problems || []).filter(p => {
-    const isValid = p && (p.id || p.leetcode_id);
-    if (!isValid && p) {
-      logger.warn(`🔍 DEBUG: Filtering out invalid review problem:`, {
-        hasP: !!p,
-        hasId: !!p.id,
-        hasLeetcodeId: !!p.leetcode_id,
-        hasProblemId: !!p.problem_id,
-        keys: Object.keys(p)
-      });
+    // Must have an id
+    if (!p || (!p.id && !p.leetcode_id)) {
+      if (p) {
+        logger.warn(`🔍 DEBUG: Filtering out problem with no id:`, {
+          hasP: !!p,
+          hasId: !!p.id,
+          hasLeetcodeId: !!p.leetcode_id,
+          keys: Object.keys(p)
+        });
+      }
+      return false;
     }
-    return isValid;
+
+    // Must have title (required for normalization)
+    if (!p.title && !p.Title && !p.Description) {
+      logger.warn(`🔍 DEBUG: Filtering out problem ${p.id || p.leetcode_id} with no title (likely missing standard_problem data)`);
+      return false;
+    }
+
+    // Must have difficulty
+    if (!p.difficulty && !p.Difficulty) {
+      logger.warn(`🔍 DEBUG: Filtering out problem ${p.id || p.leetcode_id} with no difficulty`);
+      return false;
+    }
+
+    // Must have tags
+    if (!p.tags && !p.Tags) {
+      logger.warn(`🔍 DEBUG: Filtering out problem ${p.id || p.leetcode_id} with no tags`);
+      return false;
+    }
+
+    return true;
   });
 }
 

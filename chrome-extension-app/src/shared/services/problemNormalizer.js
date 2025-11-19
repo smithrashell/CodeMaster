@@ -154,6 +154,15 @@ export function normalizeProblem(problem, source = 'unknown') {
       ...(problem.last_attempt_date && { last_attempt_date: problem.last_attempt_date }),
       ...(problem.cooldown_status !== undefined && { cooldown_status: problem.cooldown_status }),
       ...(problem.leetcode_address && { leetcode_address: problem.leetcode_address }),
+      ...(problem.leetcode_address && { LeetCodeAddress: problem.leetcode_address }),
+      ...(problem.LeetCodeAddress && { LeetCodeAddress: problem.LeetCodeAddress }),
+      // Convert attempt_stats to attempts array for frontend, or preserve existing attempts
+      ...(problem.attempts && { attempts: problem.attempts }),
+      ...(!problem.attempts && problem.attempt_stats && {
+        attempts: problem.attempt_stats.total_attempts > 0
+          ? [{ count: problem.attempt_stats.total_attempts }]
+          : []
+      }),
 
       // ============ INTERVIEW MODE (preserve if present) ============
       ...(problem.interviewMode && { interviewMode: problem.interviewMode }),
