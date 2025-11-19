@@ -13,6 +13,13 @@
 
 import { StorageService } from "./storageService.js";
 import { openDatabase } from "../db/connectionUtils.js";
+import {
+  processDecayForProblem,
+  applyBatchUpdates,
+  classifyTopics,
+  createDiagnosticSummary,
+  prepareProblemsForRecalibration
+} from "./recalibrationHelpers.js";
 
 /**
  * Calculate days since a given date
@@ -140,82 +147,21 @@ export async function applyPassiveDecay(daysSinceLastUse) {
     const problemsToUpdate = [];
 
     for (const problem of allProblems) {
-      // Calculate days since last attempt for this specific problem
-      const daysSinceLastAttempt = problem.last_attempt_date
-        ? getDaysSince(problem.last_attempt_date)
-        : daysSinceLastUse; // Use app gap if no attempts
+      const updatedProblem = processDecayForProblem(
+        problem,
+        daysSinceLastUse,
+        getDaysSince,
+        getBoxLevel,
+        DECAY_CONFIG
+      );
 
-      // Skip if problem was attempted recently
-      if (daysSinceLastAttempt < DECAY_CONFIG.MIN_GAP_DAYS) {
-        continue;
-      }
-
-      let modified = false;
-
-      // CRITICAL FIX: Use validated box level
-      const currentBoxLevel = getBoxLevel(problem);
-      const original = {
-        boxLevel: currentBoxLevel,
-        stability: problem.stability
-      };
-
-      // Box Level Decay: 1 box per 60 days (conservative)
-      const boxDecayAmount = Math.floor(daysSinceLastAttempt / DECAY_CONFIG.BOX_DECAY_INTERVAL);
-      if (boxDecayAmount > 0) {
-        const newBoxLevel = Math.max(DECAY_CONFIG.MIN_BOX_LEVEL, currentBoxLevel - boxDecayAmount);
-        if (newBoxLevel !== currentBoxLevel) {
-          problem.box_level = newBoxLevel;
-          problem.original_box_level = original.boxLevel; // Store for rollback
-          modified = true;
-        }
-      }
-
-      // Stability Decay: Exponential forgetting curve (90-day half-life)
-      // Formula: stability * e^(-days / FORGETTING_HALF_LIFE)
-      if (problem.stability !== undefined && problem.stability !== null) {
-        const forgettingFactor = Math.exp(-daysSinceLastAttempt / DECAY_CONFIG.FORGETTING_HALF_LIFE);
-        const newStability = Math.max(DECAY_CONFIG.MIN_STABILITY, problem.stability * forgettingFactor);
-        if (Math.abs(newStability - problem.stability) > 0.01) {
-          problem.stability = parseFloat(newStability.toFixed(2));
-          modified = true;
-        }
-      }
-
-      // Mark problems needing recalibration (90+ days unused)
-      if (daysSinceLastAttempt >= DECAY_CONFIG.RECALIBRATION_THRESHOLD) {
-        problem.needs_recalibration = true;
-        problem.decay_applied_date = new Date().toISOString();
-        modified = true;
-      }
-
-      if (modified) {
-        problemsToUpdate.push(problem);
+      if (updatedProblem) {
+        problemsToUpdate.push(updatedProblem);
       }
     }
 
     // Apply updates in batches
-    for (let i = 0; i < problemsToUpdate.length; i += BATCH_SIZE) {
-      const batch = problemsToUpdate.slice(i, i + BATCH_SIZE);
-
-      await new Promise((resolve, reject) => {
-        const writeTransaction = db.transaction(["problems"], "readwrite");
-        const writeProblemStore = writeTransaction.objectStore("problems");
-
-        batch.forEach(problem => {
-          writeProblemStore.put(problem);
-        });
-
-        writeTransaction.oncomplete = () => {
-          totalProblemsAffected += batch.length;
-          resolve();
-        };
-
-        writeTransaction.onerror = () => {
-          console.error("❌ Batch decay transaction failed:", writeTransaction.error);
-          reject(writeTransaction.error);
-        };
-      });
-    }
+    totalProblemsAffected = await applyBatchUpdates(db, problemsToUpdate, BATCH_SIZE);
 
     const message = `Applied decay to ${totalProblemsAffected} problems (${daysSinceLastUse} day gap)`;
     return {
@@ -599,48 +545,10 @@ export async function processDiagnosticResults(diagnosticResults) {
     const overallAccuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
 
     // Identify retained vs forgotten topics (70% threshold)
-    const topicsRetained = [];
-    const topicsForgotten = [];
+    const { topicsRetained, topicsForgotten } = classifyTopics(topicPerformance, 0.7);
 
-    topicPerformance.forEach((perf, tag) => {
-      const accuracy = perf.correct / perf.total;
-      if (accuracy >= 0.7) {
-        topicsRetained.push({ tag, accuracy: Math.round(accuracy * 100) });
-      } else {
-        topicsForgotten.push({ tag, accuracy: Math.round(accuracy * 100) });
-      }
-    });
-
-    // CRITICAL FIX: Apply recalibration with proper rollback mechanism
-    // First, get all problems that need updating
-    const readTransaction = db.transaction(["problems"], "readonly");
-    const readProblemStore = readTransaction.objectStore("problems");
-
-    const problemsToRecalibrate = [];
-
-    for (const result of problemResults) {
-      if (!result.success) {
-        const problemRequest = readProblemStore.get(result.problemId);
-
-        const problem = await new Promise((resolve, reject) => {
-          problemRequest.onsuccess = () => resolve(problemRequest.result);
-          problemRequest.onerror = () => reject(problemRequest.error);
-        });
-
-        // CRITICAL FIX: Use validated box level
-        if (problem && getBoxLevel(problem) > 1) {
-          // Prepare updated problem
-          const currentBoxLevel = getBoxLevel(problem);
-          const updatedProblem = {
-            ...problem,
-            box_level: Math.max(1, currentBoxLevel - 1),
-            diagnostic_recalibrated: true,
-            diagnostic_date: new Date().toISOString()
-          };
-          problemsToRecalibrate.push(updatedProblem);
-        }
-      }
-    }
+    // Prepare problems for recalibration
+    const problemsToRecalibrate = await prepareProblemsForRecalibration(db, problemResults, getBoxLevel);
 
     // Apply all updates in a single transaction (atomic - all or nothing)
     let problemsRecalibrated = 0;
@@ -667,18 +575,13 @@ export async function processDiagnosticResults(diagnosticResults) {
       });
     }
 
-    const summary = {
-      totalProblems: totalAttempts,
-      accuracy: Math.round(overallAccuracy * 100),
+    const summary = createDiagnosticSummary(
+      overallAccuracy,
+      totalAttempts,
       topicsRetained,
       topicsForgotten,
-      problemsRecalibrated,
-      message: overallAccuracy >= 0.7
-        ? "Great retention! Your knowledge held up well."
-        : overallAccuracy >= 0.4
-        ? "Some topics need refreshing, but you're on the right track."
-        : "Significant decay detected. Don't worry - we've adjusted your learning path."
-    };
+      problemsRecalibrated
+    );
 
     // Store diagnostic results for analytics
     await StorageService.set('last_diagnostic_result', {
