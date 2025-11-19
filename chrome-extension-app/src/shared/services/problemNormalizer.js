@@ -17,6 +17,15 @@
  */
 
 import logger from "../utils/logger.js";
+import {
+  buildSessionMetadata,
+  buildAttemptTracking,
+  buildSpacedRepetitionData,
+  buildLeetCodeAddressFields,
+  buildAttemptsArray,
+  buildInterviewModeFields,
+  buildOptimalPathData
+} from "./problemNormalizerHelpers.js";
 
 /**
  * Converts a string to title case (capitalizes first letter of each word)
@@ -130,47 +139,14 @@ export function normalizeProblem(problem, source = 'unknown') {
       difficulty: problem.difficulty || problem.Difficulty,
       tags: problem.tags || problem.Tags || [],
 
-      // ============ SESSION METADATA (preserve if present) ============
-      // NOTE: selectionReason is added AFTER normalization by ProblemReasoningService
-      ...(problem.selectionReason && { selectionReason: problem.selectionReason }),
-      ...(problem.sessionIndex !== undefined && { sessionIndex: problem.sessionIndex }),
-
-      // ============ ATTEMPT TRACKING - CURRENT SESSION (preserve if present) ============
-      ...(problem.attempted !== undefined && { attempted: problem.attempted }),
-      ...(problem.attempt_date && { attempt_date: problem.attempt_date }),
-
-      // ============ SPACED REPETITION DATA - HISTORICAL ============
-      // Only present if problem_id !== null (previously attempted)
-      ...(problem.box_level !== undefined && { box_level: problem.box_level }),
-      ...(problem.review_schedule && { review_schedule: problem.review_schedule }),
-      ...(problem.perceived_difficulty !== undefined && {
-        perceived_difficulty: problem.perceived_difficulty
-      }),
-      ...(problem.consecutive_failures !== undefined && {
-        consecutive_failures: problem.consecutive_failures
-      }),
-      ...(problem.stability !== undefined && { stability: problem.stability }),
-      ...(problem.attempt_stats && { attempt_stats: problem.attempt_stats }),
-      ...(problem.last_attempt_date && { last_attempt_date: problem.last_attempt_date }),
-      ...(problem.cooldown_status !== undefined && { cooldown_status: problem.cooldown_status }),
-      ...(problem.leetcode_address && { leetcode_address: problem.leetcode_address }),
-      ...(problem.leetcode_address && { LeetCodeAddress: problem.leetcode_address }),
-      ...(problem.LeetCodeAddress && { LeetCodeAddress: problem.LeetCodeAddress }),
-      // Convert attempt_stats to attempts array for frontend, or preserve existing attempts
-      ...(problem.attempts && { attempts: problem.attempts }),
-      ...(!problem.attempts && problem.attempt_stats && {
-        attempts: problem.attempt_stats.total_attempts > 0
-          ? [{ count: problem.attempt_stats.total_attempts }]
-          : []
-      }),
-
-      // ============ INTERVIEW MODE (preserve if present) ============
-      ...(problem.interviewMode && { interviewMode: problem.interviewMode }),
-      ...(problem.interviewConstraints && { interviewConstraints: problem.interviewConstraints }),
-
-      // ============ OPTIMAL PATH DATA (preserve if present) ============
-      ...(problem.pathScore !== undefined && { pathScore: problem.pathScore }),
-      ...(problem.optimalPathData && { optimalPathData: problem.optimalPathData }),
+      // ============ OPTIONAL FIELDS (preserve if present) ============
+      ...buildSessionMetadata(problem),
+      ...buildAttemptTracking(problem),
+      ...buildSpacedRepetitionData(problem),
+      ...buildLeetCodeAddressFields(problem),
+      ...buildAttemptsArray(problem),
+      ...buildInterviewModeFields(problem),
+      ...buildOptimalPathData(problem),
 
       // ============ METADATA ============
       _normalized: true,
