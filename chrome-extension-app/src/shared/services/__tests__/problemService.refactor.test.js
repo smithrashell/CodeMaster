@@ -59,10 +59,8 @@ describe('problemService - Characterization Tests for Refactoring', () => {
       fetchProblemById.mockResolvedValue(mockStandardProblem);
       fetchAllProblems.mockResolvedValue([]);
 
-      const _sessionProblems = [];
-      const _sessionLength = 5;
-      const _isOnboarding = false;
-      const _allProblems = [];
+      const sessionLength = 5;
+      const isOnboarding = false;
 
       // Call the function through ProblemService (we'll need to export/test the helper)
       // For now, test through fetchAndAssembleSessionProblems
