@@ -45,6 +45,7 @@ function validateLeetcodeId(problem, leetcodeId) {
   }
 }
 
+// eslint-disable-next-line complexity -- Test helper function requires complex setup logic
 async function createTestProblem(leetcodeId, verbose = false) {
   try {
     if (verbose) console.log(`🔧 createTestProblem: START - LeetCode ID ${leetcodeId}`);
@@ -1360,6 +1361,7 @@ export function initializeCoreBusinessTests() {
     };
   }
 
+  // eslint-disable-next-line max-lines-per-function -- Integration test for mastery gates feature
   async function testMasteryGates(_verbose) {
     const start = Date.now();
     try {

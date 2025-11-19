@@ -105,6 +105,7 @@ describe('NewProblemStrategy', () => {
   });
 });
 
+// eslint-disable-next-line max-lines-per-function -- Test coverage for review problem reasoning strategy
 describe('ReviewProblemStrategy', () => {
   let strategy;
 
@@ -380,6 +381,7 @@ describe('SpacedRepetitionStrategy', () => {
   });
 });
 
+// eslint-disable-next-line max-lines-per-function -- Test coverage for performance recovery reasoning strategy
 describe('PerformanceRecoveryStrategy', () => {
   let strategy;
 
@@ -544,6 +546,7 @@ describe('PerformanceRecoveryStrategy', () => {
   });
 });
 
+// eslint-disable-next-line max-lines-per-function -- Test coverage for reasoning strategy manager
 describe('ReasoningStrategyManager', () => {
   let manager;
 

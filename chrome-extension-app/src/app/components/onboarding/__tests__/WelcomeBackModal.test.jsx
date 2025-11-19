@@ -38,6 +38,7 @@ const TestWrapper = ({ children }) => (
   </MantineProvider>
 );
 
+// eslint-disable-next-line max-lines-per-function -- Test suite organization prioritizes readability over line limits
 describe('WelcomeBackModal - Characterization Tests', () => {
 
   // ==========================================

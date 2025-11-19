@@ -21,6 +21,7 @@ jest.mock('../../db/standard_problems');
 jest.mock('../../db/problems');
 jest.mock('../../utils/logger');
 
+// eslint-disable-next-line max-lines-per-function -- Characterization test suite for refactoring validation
 describe('problemService - Characterization Tests for Refactoring', () => {
 
   beforeEach(() => {
@@ -31,6 +32,7 @@ describe('problemService - Characterization Tests for Refactoring', () => {
   // TEST GROUP 1: addReviewProblemsToSession
   // ==========================================
 
+  // eslint-disable-next-line max-lines-per-function -- Comprehensive test coverage for problem enrichment
   describe('addReviewProblemsToSession - Problem Enrichment', () => {
 
     it('should enrich review problems with metadata from standard_problems', async () => {
