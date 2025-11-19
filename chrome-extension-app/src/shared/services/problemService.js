@@ -29,6 +29,12 @@ import logger from "../utils/logger.js";
 import { selectOptimalProblems } from "../db/problem_relationships.js";
 import { applySafetyGuardRails } from "../utils/sessionBalancing.js";
 import { normalizeProblems } from "./problemNormalizer.js";
+import {
+  enrichReviewProblem,
+  normalizeReviewProblem,
+  filterValidReviewProblems,
+  logReviewProblemsAnalysis
+} from "./problemServiceHelpers.js";
 
 // Remove early binding - use TagService.getCurrentLearningState() directly
 
@@ -48,163 +54,20 @@ async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnbo
   const allReviewProblems = await ScheduleService.getDailyReviewSchedule(null);
   logger.info(`🔍 DEBUG: Found ${allReviewProblems?.length || 0} total problems due for review from Leitner system`);
 
-  // 🔧 CRITICAL FIX: Enrich review problems with core metadata from standard_problems
-  // Review problems from the 'problems' database only have Leitner tracking data (box_level, review_schedule, etc.)
-  // but are missing core fields like difficulty, tags, slug from the source JSON
+  // Enrich review problems with core metadata from standard_problems
   logger.info(`🔄 Enriching ${allReviewProblems?.length || 0} review problems with data from standard_problems...`);
   const enrichedReviewProblems = await Promise.all(
-    (allReviewProblems || []).map(async (reviewProblem) => {
-      const leetcodeId = reviewProblem.leetcode_id || reviewProblem.id;
-
-      if (!leetcodeId) {
-        logger.warn(`⚠️ Review problem missing leetcode_id:`, reviewProblem);
-        return reviewProblem;
-      }
-
-      // Fetch core metadata from standard_problems
-      const standardProblem = await fetchProblemById(Number(leetcodeId));
-
-      if (!standardProblem) {
-        logger.error(`❌ Could not find problem ${leetcodeId} in standard_problems. Review problem may be from old data.`);
-        return reviewProblem; // Return as-is, will fail validation and provide clear error
-      }
-
-      // Merge: review problem data (Leitner tracking) + standard problem data (core metadata)
-      const enriched = {
-        ...reviewProblem,
-        // Core metadata from standard_problems (only if missing in review problem)
-        difficulty: reviewProblem.difficulty || standardProblem.difficulty,
-        tags: reviewProblem.tags || standardProblem.tags,
-        slug: reviewProblem.slug || standardProblem.slug,
-        title: reviewProblem.title || standardProblem.title,
-        // Ensure both id fields exist
-        id: Number(leetcodeId),
-        leetcode_id: Number(leetcodeId)
-      };
-
-      logger.info(`✅ Enriched problem ${leetcodeId}:`, {
-        title: enriched.title,
-        difficulty: enriched.difficulty,
-        tagsCount: enriched.tags?.length,
-        hasSlug: !!enriched.slug
-      });
-
-      return enriched;
-    })
+    (allReviewProblems || []).map(reviewProblem => enrichReviewProblem(reviewProblem, fetchProblemById))
   );
 
-  logger.info(`🔍 DEBUG: reviewProblems before filtering:`, {
-    isArray: Array.isArray(enrichedReviewProblems),
-    length: enrichedReviewProblems?.length,
-    first5: enrichedReviewProblems?.slice(0, 5).map(p => ({
-      id: p?.id,
-      leetcode_id: p?.leetcode_id,
-      problem_id: p?.problem_id,
-      title: p?.title,
-      difficulty: p?.difficulty,
-      review_schedule: p?.review_schedule,
-      allKeys: Object.keys(p || {})
-    }))
-  });
-
-  // Normalize problems: ensure they have 'id' field for frontend compatibility
-  const validReviewProblems = (enrichedReviewProblems || [])
-    .filter(p => {
-      const isValid = p && (p.id || p.leetcode_id);
-      if (!isValid && p) {
-        logger.warn(`🔍 DEBUG: Filtering out invalid review problem:`, {
-          hasP: !!p,
-          hasId: !!p.id,
-          hasLeetcodeId: !!p.leetcode_id,
-          hasProblemId: !!p.problem_id,
-          keys: Object.keys(p)
-        });
-      }
-      return isValid;
-    })
-    .map(p => {
-      // Normalize: Ensure 'id' field exists (frontend expects this)
-      const normalized = {
-        ...p,
-        id: p.id || p.leetcode_id  // Ensure id field exists
-      };
-
-      // 🔧 FIX: Normalize field names for frontend compatibility
-      // Frontend expects PascalCase 'LeetCodeAddress', DB stores snake_case 'leetcode_address'
-      if (p.leetcode_address && !normalized.LeetCodeAddress) {
-        normalized.LeetCodeAddress = p.leetcode_address;
-      }
-
-      // 🔧 FIX: Ensure slug exists for URL generation fallback
-      // Try multiple possible slug field names from database
-      if (!normalized.slug) {
-        normalized.slug = p.slug || p.title_slug || p.titleSlug || p.TitleSlug;
-      }
-
-      // 🔧 FIX: If still no slug, generate one from title as last resort
-      if (!normalized.slug && (p.title || p.Title || p.ProblemDescription)) {
-        const title = p.title || p.Title || p.ProblemDescription;
-        normalized.slug = title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '');
-        logger.warn(`⚠️ Generated slug from title for problem: ${title} → ${normalized.slug}`);
-      }
-
-      // 🔍 DEBUG: Log what fields we have for URL generation
-      logger.info(`🔗 Review problem URL fields for "${p.title || p.Title}":`, {
-        has_leetcode_address: !!p.leetcode_address,
-        has_LeetCodeAddress: !!normalized.LeetCodeAddress,
-        has_slug: !!normalized.slug,
-        LeetCodeAddress: normalized.LeetCodeAddress,
-        slug: normalized.slug
-      });
-
-      // 🔧 FIX: Include attempt data so frontend can distinguish review vs new problems
-      // Frontend checks problem.attempts to determine if NEW badge should show
-      // Review problems have attempt_stats in DB but need attempts array for frontend
-      if (p.attempt_stats) {
-        // Always set attempts from attempt_stats, even if attempts array already exists (might be empty/stale)
-        normalized.attempts = p.attempt_stats.total_attempts > 0 ?
-          [{ count: p.attempt_stats.total_attempts }] : [];
-      } else if (!normalized.attempts) {
-        // If no attempt_stats and no attempts array, ensure empty array for new problems
-        normalized.attempts = [];
-      }
-
-      return normalized;
-    });
-
-  logger.info(`🔍 DEBUG: After filtering and normalizing - valid review problems: ${validReviewProblems.length}`);
-
-  // 🔍 NORMALIZATION DEBUG: Log what fields were added
-  if (validReviewProblems.length > 0) {
-    logger.info(`🔍 NORMALIZATION CHECK - First review problem after normalization:`, {
-      id: validReviewProblems[0].id,
-      leetcode_id: validReviewProblems[0].leetcode_id,
-      problem_id: validReviewProblems[0].problem_id,
-      hasAttempts: !!validReviewProblems[0].attempts,
-      attemptsLength: validReviewProblems[0].attempts?.length,
-      attemptsContent: validReviewProblems[0].attempts,
-      hasAttemptStats: !!validReviewProblems[0].attempt_stats,
-      attemptStatsTotal: validReviewProblems[0].attempt_stats?.total_attempts
-    });
-  }
+  // Filter and normalize review problems
+  const validReviewProblems = filterValidReviewProblems(enrichedReviewProblems).map(normalizeReviewProblem);
 
   // Priority logic: Take up to sessionLength worth of review problems if available
-  // This allows reviews to dominate the session when many are due (proper spaced repetition)
   const reviewProblemsToAdd = validReviewProblems.slice(0, Math.min(sessionLength, validReviewProblems.length));
 
-  logger.info(`🔍 DEBUG: Before push - sessionProblems.length: ${sessionProblems.length}`);
-  logger.info(`🔍 DEBUG: About to push ${reviewProblemsToAdd.length} problems:`,
-    reviewProblemsToAdd.slice(0, 3).map(p => ({
-      id: p?.id,
-      leetcode_id: p?.leetcode_id,
-      title: p?.title,
-      hasAttempts: !!p.attempts,
-      attemptsLength: p.attempts?.length
-    }))
-  );
+  // Log analysis before and after adding problems
+  logReviewProblemsAnalysis(enrichedReviewProblems, validReviewProblems, sessionProblems, reviewProblemsToAdd);
 
   sessionProblems.push(...reviewProblemsToAdd);
 
