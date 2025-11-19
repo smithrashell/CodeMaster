@@ -13,6 +13,7 @@ import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { scoreProblemsWithRelationships } from "./problem_relationships.js";
 import { regenerateCompletedPatternLadder } from "../services/problemladderService.js";
+import { calculateCompositeScore, logCompositeScores } from "./problemsHelpers.js";
 
 // Import session functions are handled directly through SessionService
 
@@ -1281,31 +1282,9 @@ async function selectProblemsForTag(tag, count, config) {
     5 // Look at last 5 attempts
   );
 
-  // Calculate composite scores that balance all factors
+  // Calculate composite scores
   problemsWithRelationships.forEach(problem => {
-    // Normalize relationship score (0-1 range, assume max is 1.0)
-    const normalizedRelationship = Math.min((problem.relationshipScore || 0), 1.0);
-
-    // Calculate cap proximity score (0-1 range)
-    let capProximityScore = 0.5; // Default neutral score
-    if (currentDifficultyCap) {
-      const capScore = getDifficultyScore(currentDifficultyCap);
-      const maxDistance = 2; // Max distance is Easy to Hard (3 - 1 = 2)
-      const distance = Math.abs(problem.difficultyScore - capScore);
-      capProximityScore = 1 - (distance / maxDistance); // Closer to cap = higher score
-    }
-
-    // Allowance weight is already normalized (0-1 range, sums to 1.0)
-    const normalizedAllowance = problem.allowanceWeight || 0;
-
-    // Composite score: weighted combination of all factors
-    // Relationship: 40% - learning path connections
-    // Cap proximity: 40% - respect difficulty cap preference
-    // Allowance: 20% - natural tag distribution
-    problem.compositeScore =
-      (normalizedRelationship * 0.4) +
-      (capProximityScore * 0.4) +
-      (normalizedAllowance * 0.2);
+    problem.compositeScore = calculateCompositeScore(problem, currentDifficultyCap, getDifficultyScore);
   });
 
   // Sort by composite score (higher is better)
@@ -1319,37 +1298,7 @@ async function selectProblemsForTag(tag, count, config) {
   });
 
   // Log composite score distribution for debugging
-  if (problemsWithRelationships.length > 0) {
-    const scoresByDifficulty = {
-      Easy: problemsWithRelationships.filter(p => p.difficulty === 'Easy').slice(0, 3),
-      Medium: problemsWithRelationships.filter(p => p.difficulty === 'Medium').slice(0, 3),
-      Hard: problemsWithRelationships.filter(p => p.difficulty === 'Hard').slice(0, 3)
-    };
-
-    logger.info(`🎯 Composite score distribution for "${tag}" (top 3 per difficulty):`, {
-      Easy: scoresByDifficulty.Easy.map(p => ({
-        id: p.id,
-        title: p.title?.substring(0, 30),
-        composite: p.compositeScore?.toFixed(3),
-        relationship: p.relationshipScore?.toFixed(3),
-        allowance: p.allowanceWeight?.toFixed(3)
-      })),
-      Medium: scoresByDifficulty.Medium.map(p => ({
-        id: p.id,
-        title: p.title?.substring(0, 30),
-        composite: p.compositeScore?.toFixed(3),
-        relationship: p.relationshipScore?.toFixed(3),
-        allowance: p.allowanceWeight?.toFixed(3)
-      })),
-      Hard: scoresByDifficulty.Hard.map(p => ({
-        id: p.id,
-        title: p.title?.substring(0, 30),
-        composite: p.compositeScore?.toFixed(3),
-        relationship: p.relationshipScore?.toFixed(3),
-        allowance: p.allowanceWeight?.toFixed(3)
-      }))
-    });
-  }
+  logCompositeScores(problemsWithRelationships, tag);
 
   logger.info(
     `🎯 Found ${eligibleProblems.length} eligible problems for ${tag}`
