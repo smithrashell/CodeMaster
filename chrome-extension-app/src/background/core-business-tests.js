@@ -303,7 +303,7 @@ export function initializeCoreBusinessTests() {
   }
 
   // Helper: Run async function with timeout protection
-  async function withTimeout(asyncFn, timeoutMs, _testName) {
+  function withTimeout(asyncFn, timeoutMs, _testName) {
     return Promise.race([
       asyncFn(),
       new Promise((_, reject) =>
