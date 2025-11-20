@@ -1096,7 +1096,7 @@ function ProbGen() {
     }
     
     window.location.href =
-      problem.LeetCodeAddress ||
+      problem.leetcode_address ||
       `https://leetcode.com/problems/${problem.slug}/description/`;
   };
 

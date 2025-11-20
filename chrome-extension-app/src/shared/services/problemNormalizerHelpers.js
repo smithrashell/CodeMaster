@@ -45,13 +45,11 @@ export function buildSpacedRepetitionData(problem) {
 }
 
 /**
- * Build LeetCode address fields (both snake_case and PascalCase)
+ * Build LeetCode address field
  */
 export function buildLeetCodeAddressFields(problem) {
   return {
     ...(problem.leetcode_address && { leetcode_address: problem.leetcode_address }),
-    ...(problem.leetcode_address && { LeetCodeAddress: problem.leetcode_address }),
-    ...(problem.LeetCodeAddress && { LeetCodeAddress: problem.LeetCodeAddress }),
   };
 }
 

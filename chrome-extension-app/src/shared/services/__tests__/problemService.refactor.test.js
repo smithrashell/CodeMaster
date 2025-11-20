@@ -357,12 +357,11 @@ describe('problemService - Characterization Tests for Refactoring', () => {
 
   describe('Problem Field Normalization', () => {
 
-    it('should normalize leetcode_address to LeetCodeAddress', async () => {
+    it('should preserve leetcode_address field', async () => {
       const mockReviewProblems = [
         {
           leetcode_id: 1,
           leetcode_address: 'https://leetcode.com/problems/two-sum' // snake_case
-          // Should be normalized to LeetCodeAddress for frontend
         }
       ];
 
@@ -383,8 +382,8 @@ describe('problemService - Characterization Tests for Refactoring', () => {
 
       const problem = result[0];
 
-      // Should have PascalCase field for frontend compatibility
-      expect(problem.LeetCodeAddress).toBe('https://leetcode.com/problems/two-sum');
+      // Should preserve snake_case field from database
+      expect(problem.leetcode_address).toBe('https://leetcode.com/problems/two-sum');
     });
 
     it('should generate slug from title if missing', async () => {

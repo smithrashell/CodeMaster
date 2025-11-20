@@ -142,11 +142,6 @@ async function addNewProblemsToSession(params) {
       id: p.id || p.leetcode_id  // Ensure id field exists
     };
 
-    // Normalize field names for frontend compatibility
-    if (p.leetcode_address && !normalized.LeetCodeAddress) {
-      normalized.LeetCodeAddress = p.leetcode_address;
-    }
-
     // Ensure slug exists for URL generation fallback
     if (!normalized.slug) {
       normalized.slug = p.slug || p.title_slug || p.titleSlug || p.TitleSlug;
@@ -165,9 +160,8 @@ async function addNewProblemsToSession(params) {
     // 🔍 DEBUG: Log what fields we have for URL generation
     logger.info(`🔗 New problem URL fields for "${p.title || p.Title}":`, {
       has_leetcode_address: !!p.leetcode_address,
-      has_LeetCodeAddress: !!normalized.LeetCodeAddress,
       has_slug: !!normalized.slug,
-      LeetCodeAddress: normalized.LeetCodeAddress,
+      leetcode_address: normalized.leetcode_address,
       slug: normalized.slug
     });
 

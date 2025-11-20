@@ -53,11 +53,6 @@ export function normalizeReviewProblem(p) {
     id: p.id || p.leetcode_id
   };
 
-  // Normalize field names for frontend compatibility
-  if (p.leetcode_address && !normalized.LeetCodeAddress) {
-    normalized.LeetCodeAddress = p.leetcode_address;
-  }
-
   // Ensure slug exists
   if (!normalized.slug) {
     normalized.slug = p.slug || p.title_slug || p.titleSlug || p.TitleSlug;
@@ -75,9 +70,8 @@ export function normalizeReviewProblem(p) {
 
   logger.info(`🔗 Review problem URL fields for "${p.title || p.Title}":`, {
     has_leetcode_address: !!p.leetcode_address,
-    has_LeetCodeAddress: !!normalized.LeetCodeAddress,
     has_slug: !!normalized.slug,
-    LeetCodeAddress: normalized.LeetCodeAddress,
+    leetcode_address: normalized.leetcode_address,
     slug: normalized.slug
   });
 
