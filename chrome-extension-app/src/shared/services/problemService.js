@@ -156,13 +156,13 @@ async function addNewProblemsToSession(params) {
       logger.warn(`⚠️ Generated slug from title for new problem: ${p.title} → ${normalized.slug}`);
     }
 
-    // 🔍 DEBUG: Log what fields we have for URL generation
-    logger.info(`🔗 New problem URL fields for "${p.title}":`, {
-      has_leetcode_address: !!p.leetcode_address,
-      has_slug: !!normalized.slug,
-      leetcode_address: normalized.leetcode_address,
-      slug: normalized.slug
-    });
+    // Only log URL field details in debug mode
+    if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_PROBLEM_SERVICE) {
+      logger.debug(`New problem URL fields for "${p.title}":`, {
+        has_leetcode_address: !!p.leetcode_address,
+        has_slug: !!normalized.slug
+      });
+    }
 
     // New problems should have empty attempts array
     // Check attempt_stats first (in case problem was attempted before but marked as "new")

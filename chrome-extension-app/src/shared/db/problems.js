@@ -1168,8 +1168,7 @@ export async function updateProblemWithTags() {
         (p) => p.id === problem.leetcode_id
       );
       if (standardProblem) {
-        delete problem.tags;
-        problem.Tags = standardProblem.tags;
+        problem.tags = standardProblem.tags;
         problemStore.put(problem);
       }
     }

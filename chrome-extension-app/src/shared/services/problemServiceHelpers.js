@@ -67,12 +67,13 @@ export function normalizeReviewProblem(p) {
     logger.warn(`⚠️ Generated slug from title for problem: ${p.title} → ${normalized.slug}`);
   }
 
-  logger.info(`🔗 Review problem URL fields for "${p.title}":`, {
-    has_leetcode_address: !!p.leetcode_address,
-    has_slug: !!normalized.slug,
-    leetcode_address: normalized.leetcode_address,
-    slug: normalized.slug
-  });
+  // Only log URL field details in debug mode
+  if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_PROBLEM_SERVICE) {
+    logger.debug(`Review problem URL fields for "${p.title}":`, {
+      has_leetcode_address: !!p.leetcode_address,
+      has_slug: !!normalized.slug
+    });
+  }
 
   // Include attempt data for frontend
   if (p.attempt_stats) {
@@ -94,31 +95,26 @@ export function filterValidReviewProblems(problems) {
     // Must have an id
     if (!p || (!p.id && !p.leetcode_id)) {
       if (p) {
-        logger.warn(`🔍 DEBUG: Filtering out problem with no id:`, {
-          hasP: !!p,
-          hasId: !!p.id,
-          hasLeetcodeId: !!p.leetcode_id,
-          keys: Object.keys(p)
-        });
+        logger.warn(`Filtering out problem with no id`);
       }
       return false;
     }
 
     // Must have title (required for normalization)
-    if (!p.title && !p.Title && !p.Description) {
-      logger.warn(`🔍 DEBUG: Filtering out problem ${p.id || p.leetcode_id} with no title (likely missing standard_problem data)`);
+    if (!p.title) {
+      logger.warn(`Filtering out problem ${p.id || p.leetcode_id} with no title (likely missing standard_problem data)`);
       return false;
     }
 
     // Must have difficulty
-    if (!p.difficulty && !p.Difficulty) {
-      logger.warn(`🔍 DEBUG: Filtering out problem ${p.id || p.leetcode_id} with no difficulty`);
+    if (!p.difficulty) {
+      logger.warn(`Filtering out problem ${p.id || p.leetcode_id} with no difficulty`);
       return false;
     }
 
     // Must have tags
-    if (!p.tags && !p.Tags) {
-      logger.warn(`🔍 DEBUG: Filtering out problem ${p.id || p.leetcode_id} with no tags`);
+    if (!p.tags) {
+      logger.warn(`Filtering out problem ${p.id || p.leetcode_id} with no tags`);
       return false;
     }
 
@@ -127,46 +123,16 @@ export function filterValidReviewProblems(problems) {
 }
 
 /**
- * Log review problems analysis
+ * Log review problems analysis (only in debug mode)
  */
 export function logReviewProblemsAnalysis(enrichedReviewProblems, validReviewProblems, sessionProblems, reviewProblemsToAdd) {
-  logger.info(`🔍 DEBUG: reviewProblems before filtering:`, {
-    isArray: Array.isArray(enrichedReviewProblems),
-    length: enrichedReviewProblems?.length,
-    first5: enrichedReviewProblems?.slice(0, 5).map(p => ({
-      id: p?.id,
-      leetcode_id: p?.leetcode_id,
-      problem_id: p?.problem_id,
-      title: p?.title,
-      difficulty: p?.difficulty,
-      review_schedule: p?.review_schedule,
-      allKeys: Object.keys(p || {})
-    }))
-  });
-
-  logger.info(`🔍 DEBUG: After filtering and normalizing - valid review problems: ${validReviewProblems.length}`);
-
-  if (validReviewProblems.length > 0) {
-    logger.info(`🔍 NORMALIZATION CHECK - First review problem after normalization:`, {
-      id: validReviewProblems[0].id,
-      leetcode_id: validReviewProblems[0].leetcode_id,
-      problem_id: validReviewProblems[0].problem_id,
-      hasAttempts: !!validReviewProblems[0].attempts,
-      attemptsLength: validReviewProblems[0].attempts?.length,
-      attemptsContent: validReviewProblems[0].attempts,
-      hasAttemptStats: !!validReviewProblems[0].attempt_stats,
-      attemptStatsTotal: validReviewProblems[0].attempt_stats?.total_attempts
+  // Only log in development/debug mode
+  if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_PROBLEM_SERVICE) {
+    logger.debug(`Review problems analysis:`, {
+      enrichedCount: enrichedReviewProblems?.length,
+      validCount: validReviewProblems.length,
+      sessionCount: sessionProblems.length,
+      toAddCount: reviewProblemsToAdd.length
     });
   }
-
-  logger.info(`🔍 DEBUG: Before push - sessionProblems.length: ${sessionProblems.length}`);
-  logger.info(`🔍 DEBUG: About to push ${reviewProblemsToAdd.length} problems:`,
-    reviewProblemsToAdd.slice(0, 3).map(p => ({
-      id: p?.id,
-      leetcode_id: p?.leetcode_id,
-      title: p?.title,
-      hasAttempts: !!p.attempts,
-      attemptsLength: p.attempts?.length
-    }))
-  );
 }
