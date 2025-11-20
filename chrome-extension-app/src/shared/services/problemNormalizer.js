@@ -63,12 +63,12 @@ function validateRawProblem(problem) {
   }
 
   // Must have title
-  if (!problem.title && !problem.Title && !problem.Description) {
+  if (!problem.title) {
     throw new Error(`Problem ${leetcodeId} missing title`);
   }
 
   // Must have difficulty - if missing, try to fetch from standard_problems
-  if (!problem.difficulty && !problem.Difficulty) {
+  if (!problem.difficulty) {
     logger.warn(`Problem ${leetcodeId} missing difficulty field. Attempting to fetch from standard_problems...`);
     logger.error(`Problem object with missing difficulty:`, problem);
     logger.error(`Available keys:`, Object.keys(problem));
@@ -76,7 +76,7 @@ function validateRawProblem(problem) {
   }
 
   // Must have tags
-  if (!problem.tags && !problem.Tags) {
+  if (!problem.tags) {
     throw new Error(`Problem ${leetcodeId} missing tags`);
   }
 }
@@ -134,10 +134,10 @@ export function normalizeProblem(problem, source = 'unknown') {
       problem_id: problem.problem_id || null,
 
       // ============ CORE PROBLEM FIELDS ============
-      title: toTitleCase(problem.title || problem.Title || problem.Description),
+      title: toTitleCase(problem.title),
       slug: problem.slug,
-      difficulty: problem.difficulty || problem.Difficulty,
-      tags: problem.tags || problem.Tags || [],
+      difficulty: problem.difficulty,
+      tags: problem.tags || [],
 
       // ============ OPTIONAL FIELDS (preserve if present) ============
       ...buildSessionMetadata(problem),

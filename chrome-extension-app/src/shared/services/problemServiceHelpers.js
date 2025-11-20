@@ -59,16 +59,15 @@ export function normalizeReviewProblem(p) {
   }
 
   // Generate slug from title as last resort
-  if (!normalized.slug && (p.title || p.Title || p.ProblemDescription)) {
-    const title = p.title || p.Title || p.ProblemDescription;
-    normalized.slug = title
+  if (!normalized.slug && p.title) {
+    normalized.slug = p.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
-    logger.warn(`⚠️ Generated slug from title for problem: ${title} → ${normalized.slug}`);
+    logger.warn(`⚠️ Generated slug from title for problem: ${p.title} → ${normalized.slug}`);
   }
 
-  logger.info(`🔗 Review problem URL fields for "${p.title || p.Title}":`, {
+  logger.info(`🔗 Review problem URL fields for "${p.title}":`, {
     has_leetcode_address: !!p.leetcode_address,
     has_slug: !!normalized.slug,
     leetcode_address: normalized.leetcode_address,
