@@ -27,7 +27,7 @@ export function Flashcards() {
     setOutput(results.join("\n"));
   };
 
-  const runCode = async () => {
+  const runCode = () => {
     setOutput("Code execution coming soon! This feature requires a backend service and will be available in a future update.");
 
     // TODO: Implement code execution backend

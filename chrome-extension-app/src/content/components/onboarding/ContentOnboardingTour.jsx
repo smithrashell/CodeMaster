@@ -1030,13 +1030,9 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   const navigate = useNavigate();
   const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
-
-  // Simple state management (no database persistence)
   const [currentStep, setCurrentStep] = useState(0);
   const [isWaitingForInteraction, setIsWaitingForInteraction] = useState(false);
   const currentStepData = TOUR_STEPS[currentStep];
-  
-  // Handle tour completion and close
   const handleTourComplete = useTourCompleteHandler(onComplete);
   const handleTourClose = useTourCloseHandler(onClose);
 
@@ -1054,19 +1050,10 @@ export function ContentOnboardingTour({ isVisible, onComplete, onClose }) {
   // Use extracted effect for interaction handling
   useInteractionHandlingEffect(isWaitingForInteraction, currentStepData, setIsWaitingForInteraction, handleNext, onComplete);
 
-  // Debug logging for step 4 issue
-  logger.info(`🔍 RENDER CHECK: step=${currentStep}, isVisible=${isVisible}, menuOpenState=${menuOpenState}, requiresMenuOpen=${currentStepData?.requiresMenuOpen}, shouldShow=${shouldShowStep(currentStepData, menuOpenState)}`);
-
-  if (!isVisible || !shouldShowStep(currentStepData, menuOpenState)) {
-    logger.info(`❌ BLOCKING RENDER: isVisible=${isVisible}, shouldShow=${shouldShowStep(currentStepData, menuOpenState)}, step=${currentStep}, stepId=${currentStepData?.id}`);
-    return null;
-  }
-
-  // Don't show tour until positioning is complete to prevent flash
-  if (!hasInitiallyPositioned || !tourPosition) {
-    logger.info(`❌ BLOCKING RENDER (positioning): hasPositioned=${hasInitiallyPositioned}, hasPosition=${!!tourPosition}, step=${currentStep}`);
-    return null;
-  }
+  // Early returns with logging
+  logger.info(`🔍 step=${currentStep}, visible=${isVisible}, menu=${menuOpenState}`);
+  if (!isVisible || !shouldShowStep(currentStepData, menuOpenState)) return null;
+  if (!hasInitiallyPositioned || !tourPosition) return null;
 
   return (
     <>

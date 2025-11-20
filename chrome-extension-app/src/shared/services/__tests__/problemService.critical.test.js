@@ -306,9 +306,9 @@ describe("ProblemService - Critical User Retention Paths", () => {
       };
 
       const mockProblems = [
-        { id: 1, title: "Two Sum", Tags: ["array", "hash-table"], difficulty: "Easy", slug: "two-sum" },
-        { id: 2, title: "Valid Parentheses", Tags: ["stack", "string"], difficulty: "Easy", slug: "valid-parentheses" },
-        { id: 3, title: "Best Time to Buy Stock", Tags: ["array", "dynamic-programming"], difficulty: "Easy", slug: "best-time-to-buy-stock" }
+        { id: 1, title: "Two Sum", tags: ["array", "hash-table"], difficulty: "Easy", slug: "two-sum" },
+        { id: 2, title: "Valid Parentheses", tags: ["stack", "string"], difficulty: "Easy", slug: "valid-parentheses" },
+        { id: 3, title: "Best Time to Buy Stock", tags: ["array", "dynamic-programming"], difficulty: "Easy", slug: "best-time-to-buy-stock" }
       ];
 
       InterviewService.createInterviewSession.mockResolvedValue(mockInterviewConfig);

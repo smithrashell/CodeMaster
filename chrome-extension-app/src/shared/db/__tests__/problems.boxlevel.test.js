@@ -136,6 +136,7 @@ describe('countProblemsByBoxLevel', () => {
   });
 });
 
+// eslint-disable-next-line max-lines-per-function -- Comprehensive regression test for box level field normalization (Issue #159)
 describe('countProblemsByBoxLevelWithRetry', () => {
   it('should read box_level field (not box or BoxLevel) - Regression test for #159', async () => {
     const mockProblems = [

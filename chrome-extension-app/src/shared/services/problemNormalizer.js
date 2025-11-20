@@ -17,6 +17,15 @@
  */
 
 import logger from "../utils/logger.js";
+import {
+  buildSessionMetadata,
+  buildAttemptTracking,
+  buildSpacedRepetitionData,
+  buildLeetCodeAddressFields,
+  buildAttemptsArray,
+  buildInterviewModeFields,
+  buildOptimalPathData
+} from "./problemNormalizerHelpers.js";
 
 /**
  * Converts a string to title case (capitalizes first letter of each word)
@@ -54,12 +63,12 @@ function validateRawProblem(problem) {
   }
 
   // Must have title
-  if (!problem.title && !problem.Title && !problem.Description) {
+  if (!problem.title) {
     throw new Error(`Problem ${leetcodeId} missing title`);
   }
 
   // Must have difficulty - if missing, try to fetch from standard_problems
-  if (!problem.difficulty && !problem.Difficulty) {
+  if (!problem.difficulty) {
     logger.warn(`Problem ${leetcodeId} missing difficulty field. Attempting to fetch from standard_problems...`);
     logger.error(`Problem object with missing difficulty:`, problem);
     logger.error(`Available keys:`, Object.keys(problem));
@@ -67,7 +76,7 @@ function validateRawProblem(problem) {
   }
 
   // Must have tags
-  if (!problem.tags && !problem.Tags) {
+  if (!problem.tags) {
     throw new Error(`Problem ${leetcodeId} missing tags`);
   }
 }
@@ -125,43 +134,19 @@ export function normalizeProblem(problem, source = 'unknown') {
       problem_id: problem.problem_id || null,
 
       // ============ CORE PROBLEM FIELDS ============
-      title: toTitleCase(problem.title || problem.Title || problem.Description),
+      title: toTitleCase(problem.title),
       slug: problem.slug,
-      difficulty: problem.difficulty || problem.Difficulty,
-      tags: problem.tags || problem.Tags || [],
+      difficulty: problem.difficulty,
+      tags: problem.tags || [],
 
-      // ============ SESSION METADATA (preserve if present) ============
-      // NOTE: selectionReason is added AFTER normalization by ProblemReasoningService
-      ...(problem.selectionReason && { selectionReason: problem.selectionReason }),
-      ...(problem.sessionIndex !== undefined && { sessionIndex: problem.sessionIndex }),
-
-      // ============ ATTEMPT TRACKING - CURRENT SESSION (preserve if present) ============
-      ...(problem.attempted !== undefined && { attempted: problem.attempted }),
-      ...(problem.attempt_date && { attempt_date: problem.attempt_date }),
-
-      // ============ SPACED REPETITION DATA - HISTORICAL ============
-      // Only present if problem_id !== null (previously attempted)
-      ...(problem.box_level !== undefined && { box_level: problem.box_level }),
-      ...(problem.review_schedule && { review_schedule: problem.review_schedule }),
-      ...(problem.perceived_difficulty !== undefined && {
-        perceived_difficulty: problem.perceived_difficulty
-      }),
-      ...(problem.consecutive_failures !== undefined && {
-        consecutive_failures: problem.consecutive_failures
-      }),
-      ...(problem.stability !== undefined && { stability: problem.stability }),
-      ...(problem.attempt_stats && { attempt_stats: problem.attempt_stats }),
-      ...(problem.last_attempt_date && { last_attempt_date: problem.last_attempt_date }),
-      ...(problem.cooldown_status !== undefined && { cooldown_status: problem.cooldown_status }),
-      ...(problem.leetcode_address && { leetcode_address: problem.leetcode_address }),
-
-      // ============ INTERVIEW MODE (preserve if present) ============
-      ...(problem.interviewMode && { interviewMode: problem.interviewMode }),
-      ...(problem.interviewConstraints && { interviewConstraints: problem.interviewConstraints }),
-
-      // ============ OPTIMAL PATH DATA (preserve if present) ============
-      ...(problem.pathScore !== undefined && { pathScore: problem.pathScore }),
-      ...(problem.optimalPathData && { optimalPathData: problem.optimalPathData }),
+      // ============ OPTIONAL FIELDS (preserve if present) ============
+      ...buildSessionMetadata(problem),
+      ...buildAttemptTracking(problem),
+      ...buildSpacedRepetitionData(problem),
+      ...buildLeetCodeAddressFields(problem),
+      ...buildAttemptsArray(problem),
+      ...buildInterviewModeFields(problem),
+      ...buildOptimalPathData(problem),
 
       // ============ METADATA ============
       _normalized: true,

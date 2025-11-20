@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { IconHelp, IconBug, IconQuestionMark, IconBook } from "@tabler/icons-react";
+import { IconHelp } from "@tabler/icons-react";
 import "./FloatingHelpButton.css";
+import { HELP_MENU_ITEMS, executeHelpAction } from "./helpButtonActions";
 
 export const FloatingHelpButton = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -8,12 +9,6 @@ export const FloatingHelpButton = () => {
   const buttonRef = useRef(null);
   const menuItemsRef = useRef([]);
   const focusedIndexRef = useRef(0);
-
-  const menuItems = [
-    { icon: IconBug, label: "Report a Bug", action: "reportBug" },
-    { icon: IconQuestionMark, label: "View FAQ & Help", action: "viewFAQ" },
-    { icon: IconBook, label: "Documentation", action: "viewDocs" },
-  ];
 
   // Close menu when clicking outside - fixed memory leak
   useEffect(() => {
@@ -42,12 +37,12 @@ export const FloatingHelpButton = () => {
           break;
         case "ArrowDown":
           event.preventDefault();
-          focusedIndexRef.current = (focusedIndexRef.current + 1) % menuItems.length;
+          focusedIndexRef.current = (focusedIndexRef.current + 1) % HELP_MENU_ITEMS.length;
           menuItemsRef.current[focusedIndexRef.current]?.focus();
           break;
         case "ArrowUp":
           event.preventDefault();
-          focusedIndexRef.current = (focusedIndexRef.current - 1 + menuItems.length) % menuItems.length;
+          focusedIndexRef.current = (focusedIndexRef.current - 1 + HELP_MENU_ITEMS.length) % HELP_MENU_ITEMS.length;
           menuItemsRef.current[focusedIndexRef.current]?.focus();
           break;
         case "Home":
@@ -57,8 +52,8 @@ export const FloatingHelpButton = () => {
           break;
         case "End":
           event.preventDefault();
-          focusedIndexRef.current = menuItems.length - 1;
-          menuItemsRef.current[menuItems.length - 1]?.focus();
+          focusedIndexRef.current = HELP_MENU_ITEMS.length - 1;
+          menuItemsRef.current[HELP_MENU_ITEMS.length - 1]?.focus();
           break;
         default:
           break;
@@ -69,7 +64,7 @@ export const FloatingHelpButton = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, menuItems.length]);
+  }, [isOpen]);
 
   // Focus management when menu opens
   useEffect(() => {
@@ -79,51 +74,20 @@ export const FloatingHelpButton = () => {
     }
   }, [isOpen]);
 
-  const handleReportBug = () => {
-    const repoUrl = "https://github.com/smithrashell/CodeMaster";
-    const issueUrl = `${repoUrl}/issues/new?template=bug_report.md`;
-    const newWindow = window.open(issueUrl, "_blank", "noopener,noreferrer");
-    if (newWindow) newWindow.opener = null;
-    setIsOpen(false);
-  };
-
-  const handleViewFAQ = () => {
-    const dashboardUrl = chrome.runtime.getURL("app.html#/help");
-    const newWindow = window.open(dashboardUrl, "_blank", "noopener,noreferrer");
-    if (newWindow) newWindow.opener = null;
-    setIsOpen(false);
-  };
-
-  const handleViewDocs = () => {
-    const docsUrl = "https://github.com/smithrashell/CodeMaster/blob/main/README.md";
-    const newWindow = window.open(docsUrl, "_blank", "noopener,noreferrer");
-    if (newWindow) newWindow.opener = null;
-    setIsOpen(false);
-  };
-
-  const handleMenuItemClick = (action) => {
-    const actions = {
-      reportBug: handleReportBug,
-      viewFAQ: handleViewFAQ,
-      viewDocs: handleViewDocs,
-    };
-    actions[action]();
-  };
-
   return (
     <div className="cm-floating-help" ref={menuRef}>
       {/* Help Menu Popup */}
       {isOpen && (
         <div className="cm-help-menu" role="menu" aria-label="Help & Support">
           <div className="cm-help-menu-header">Help & Support</div>
-          {menuItems.map((item, index) => {
+          {HELP_MENU_ITEMS.map((item, index) => {
             const Icon = item.icon;
             return (
               <button
                 key={item.action}
                 ref={(el) => (menuItemsRef.current[index] = el)}
                 className="cm-help-menu-item"
-                onClick={() => handleMenuItemClick(item.action)}
+                onClick={() => executeHelpAction(item.action, () => setIsOpen(false))}
                 type="button"
                 role="menuitem"
                 tabIndex={isOpen ? 0 : -1}

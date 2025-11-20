@@ -38,6 +38,7 @@ jest.mock("../IndexedDBRetryService.js", () => ({
   })),
 }));
 
+// eslint-disable-next-line max-lines-per-function -- Integration test for session deletion feature
 describe("Session Deletion (Issue #193)", () => {
   beforeEach(() => {
     jest.clearAllMocks();

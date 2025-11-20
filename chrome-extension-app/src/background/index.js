@@ -322,7 +322,7 @@ const processNextRequest = () => {
 
 // Strategy Map data aggregation function
 // Stub: cleanupStalledSessions - automatic cleanup removed per Issue #193
-const cleanupStalledSessions = async () => {
+const cleanupStalledSessions = () => {
   console.log('✅ Session cleanup: Manual only (automatic cleanup disabled per Issue #193)');
   return { cleaned: 0, actions: [] };
 };
