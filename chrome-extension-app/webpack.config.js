@@ -1,7 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
-// const MonacoWebpackPlugin = require("monaco-editor-webpack-plugin"); // Removed - not used in production routes
 const webpack = require("webpack");
 require("dotenv").config();
 
@@ -106,7 +105,6 @@ module.exports = (env, argv) => {
           },
         ],
       }),
-      // MonacoWebpackPlugin removed - flashcards feature not used in production
     ],
     module: {
       rules: [

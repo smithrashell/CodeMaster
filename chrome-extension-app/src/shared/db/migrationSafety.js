@@ -10,8 +10,6 @@ import { dbHelper } from "./index.js";
 
 // Critical stores that must be backed up before any migration
 const CRITICAL_STORES = ["attempts", "sessions", "tag_mastery", "problems"];
-// const MODERATE_STORES = ['session_analytics', 'pattern_ladders', 'settings']; // Available for future use
-// const RECOVERABLE_STORES = ['standard_problems', 'backup_storage']; // Available for future use
 
 // Migration coordination across tabs
 let migrationChannel = null;

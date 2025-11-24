@@ -384,17 +384,6 @@ export const saveSessionToStorage = (session, updateDatabase = false) => {
   });
 };
 
-// ❌ REMOVED: Legacy session reconstruction function
-// This function was causing false "completed" sessions to appear in the UI
-// by reconstructing sessions from raw attempt data. Modern sessions are now
-// properly created through SessionService.createNewSession() with correct
-// status tracking and completion flow.
-//
-// export const recreateSessions = async () => { ... }
-//
-// If you need to migrate old data, run this function once manually,
-// then remove it to prevent ongoing interference with modern session tracking.
-
 /**
  * Initialize session state with default values
  */
