@@ -31,13 +31,8 @@ export class AlertingService {
       return;
     }
 
-    // Update thresholds from config
     this.thresholds = { ...this.thresholds, ...config.thresholds };
-
-    // Setup alert channels
     this.setupDefaultChannels();
-
-    // Start monitoring loops
     this.startMonitoring();
 
     this.isActive = true;
@@ -361,7 +356,6 @@ export class AlertingService {
       return; // Skip duplicate alerts within suppression period
     }
 
-    // Add metadata to alert
     const fullAlert = {
       id: `alert_${now}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date().toISOString(),
@@ -887,11 +881,9 @@ export class AlertingService {
    */
   static dismissAlert(alertType) {
     logger.info(`✖️ Dismissing ${alertType} alert`);
-    
-    // Remove from queue if present
+
     this.alertQueue = this.alertQueue.filter(alert => alert.type !== alertType);
-    
-    // Log dismissal for analytics
+
     try {
       const dismissalEvent = {
         type: "alert_dismissed",

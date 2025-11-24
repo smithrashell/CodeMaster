@@ -27,7 +27,6 @@ class SessionAttributionEngine {
    * Checks in_progress status
    */
   static async getActiveGuidedSession() {
-    // Get in_progress sessions
     let session = await getLatestSessionByType('standard', 'in_progress') ||
                   await getLatestSessionByType('interview-like', 'in_progress') ||
                   await getLatestSessionByType('full-interview', 'in_progress');
@@ -214,11 +213,9 @@ class SessionAttributionEngine {
       if (!session.attempts?.length || session.status === 'completed') {
         return;
       }
-      
-      // Get focus decision from FocusCoordinationService
+
       const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
-      
-      // Complete the session with focus data
+
       const completionData = {
         status: 'completed',
         completedAt: new Date().toISOString(),
@@ -230,8 +227,7 @@ class SessionAttributionEngine {
           focusCoordination: focusDecision
         }
       };
-      
-      // Update session in database
+
       const updatedSession = { ...session, ...completionData };
       await updateSessionInDB(updatedSession);
       await saveSessionToStorage(updatedSession, true);
@@ -358,20 +354,16 @@ class SessionAttributionEngine {
   static async processAttemptWithSession(session, attemptData, problem, source = 'session_problem') {
     const db = await openDB();
 
-    // Update problem Leitner box logic
     problem = await calculateLeitnerBox(problem, attemptData);
 
-    // Add or update the problem in session
     session = await ProblemService.addOrUpdateProblemInSession(
       session,
       problem,
       attemptData.id
     );
 
-    // Mark attempted problems in session (both successful and failed attempts)
     session = this.markProblemAttemptedInSession(session, problem, attemptData);
 
-    // Open a transaction for database operations
     const transaction = db.transaction(
       ["problems", "attempts", "sessions"],
       "readwrite"
@@ -380,10 +372,8 @@ class SessionAttributionEngine {
     const attemptStore = transaction.objectStore("attempts");
     const sessionStore = transaction.objectStore("sessions");
 
-    // Save attempt record with source tracking
-    const attemptSource = source; // Use source parameter (session_problem by default)
+    const attemptSource = source;
 
-    // Add UID prefix for forensic database tracking during tests
     const baseAttemptData = {
       ...attemptData,
       problem_id: problem.problem_id || problem.id, // Include problem UUID
@@ -400,8 +390,7 @@ class SessionAttributionEngine {
     const record = createAttemptRecord(baseAttemptData);
     await putData(attemptStore, record);
 
-    // Update problem record - ensure correct key field for database
-    // The problems store uses keyPath: "problem_id", but problem objects sometimes have "id"
+    // Ensure correct key field: problems store uses keyPath "problem_id"
     if (problem.id && !problem.problem_id) {
       problem.problem_id = problem.id;
     }
@@ -419,10 +408,8 @@ class SessionAttributionEngine {
       source: source
     });
 
-    // Update session record
     await putData(sessionStore, session);
 
-    // Update tag mastery incrementally for this specific attempt
     try {
       // Find the session problem that has the complete tag data
       const sessionProblem = session.problems?.find(p =>
@@ -442,7 +429,6 @@ class SessionAttributionEngine {
       console.error("❌ Error updating tag mastery for attempt:", error);
     }
 
-    // Update problem relationships incrementally for this specific attempt
     try {
       await updateProblemRelationships(session);
       console.log("✅ Problem relationships updated for attempt");
