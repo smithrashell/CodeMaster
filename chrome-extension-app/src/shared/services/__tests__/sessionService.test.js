@@ -362,22 +362,6 @@ const runGetOrCreateSessionTests = () => {
     it("should exist as a method on SessionService", () => {
       expect(typeof SessionService.getOrCreateSession).toBe('function');
     });
-
-    it.skip("should resume existing compatible session", async () => {
-      // FIXME: This test needs investigation - getOrCreateSession may have changed behavior
-      const existingSession = {
-        id: "existing-session",
-        sessionType: 'standard',
-        status: 'in_progress',
-        problems: [{ leetCodeID: "1" }]
-      };
-      getLatestSessionByType.mockResolvedValue(existingSession);
-
-      const result = await SessionService.getOrCreateSession('standard');
-
-      expect(result).toBe(existingSession);
-      expect(ProblemService.createSession).not.toHaveBeenCalled();
-    });
   });
 };
 
