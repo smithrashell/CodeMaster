@@ -55,16 +55,27 @@ Screenshots/
 *_PLAN*.md
 *_SUMMARY*.md
 *_AUDIT*.md
+*_PLANNING*.md
+*_REPORT*.md
+*-PLAN.md
+*-CLEANUP*.md
+*-COMMANDS.md
 COMPREHENSIVE_*.md
 DASHBOARD_*.md
 ENHANCED_*.md
 FOCUS_*.md
 LEARNING_*.md
 PRODUCTION_*.md
+BUILD-*.md
+CONSOLE-*.md
+FAILURE-*.md
+TEST-COMMANDS*.md
+database-standardization*.md
 
 # Git templates and development docs
 Git/
 docs/implementation/
+docs/refactoring/
 webpack-stats.json
 webpack.dev-minimal.js
 
@@ -72,3 +83,5 @@ webpack.dev-minimal.js
 !README.md
 !CHANGELOG.md
 !CONTRIBUTING.md
+!chrome-extension-app/CLAUDE.md
+!chrome-extension-app/docs/implementation/NAMING_CONVENTIONS.md
