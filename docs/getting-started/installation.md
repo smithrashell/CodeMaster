@@ -14,8 +14,8 @@ Get CodeMaster running locally in under 15 minutes.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/codemaster.git
-cd codemaster
+git clone https://github.com/smithrashell/CodeMaster.git
+cd CodeMaster
 
 # Navigate to the Chrome extension directory
 cd chrome-extension-app
@@ -103,7 +103,7 @@ npm install
 ### Getting Help
 
 - [Common Issues Guide](../troubleshooting/common-issues.md)
-- [GitHub Issues](https://github.com/your-repo/issues) for bug reports
+- [GitHub Issues](https://github.com/smithrashell/CodeMaster/issues) for bug reports
 - [Contributing Guide](../development/contributing.md) for development questions
 
 ## Next Steps

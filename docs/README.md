@@ -100,10 +100,10 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 - **Algorithms**: FSRS spaced repetition, Leitner system, adaptive difficulty
 
 ### Key Statistics
-- **13 IndexedDB Stores** - Problems, sessions, analytics, mastery tracking
+- **17 IndexedDB Stores** - Problems, sessions, analytics, mastery tracking
 - **17 Service Modules** - Business logic abstraction layer
 - **4 Entry Points** - Popup, content script, background worker, standalone app
-- **25 Database Versions** - Iterative schema evolution with migrations
+- **36 Database Versions** - Iterative schema evolution with migrations
 - **110+ Tests** - Comprehensive test coverage across services and components
 
 ## 🎯 Learning Algorithms
@@ -192,8 +192,8 @@ When updating documentation:
 ## 🤝 Getting Help
 
 ### Community Resources
-- **Issues** - [GitHub Issues](https://github.com/your-repo/codemaster/issues) for bugs and feature requests
-- **Discussions** - [GitHub Discussions](https://github.com/your-repo/codemaster/discussions) for questions and ideas
+- **Issues** - [GitHub Issues](https://github.com/smithrashell/CodeMaster/issues) for bugs and feature requests
+- **Discussions** - [GitHub Discussions](https://github.com/smithrashell/CodeMaster/discussions) for questions and ideas
 - **Contributing** - See [Contributing Guide](development/contributing.md) for development workflow
 
 ### Maintainer Contact
@@ -201,19 +201,9 @@ When updating documentation:
 - **Architecture Discussions** - Use GitHub discussions or technical RFC process
 - **Security Issues** - Follow responsible disclosure process in contributing guide
 
-## 📦 Archived Documentation
-
-Historical documentation has been moved to [docs/archive/](archive/) for reference:
-- Implementation summaries and planning documents
-- Temporary analysis and audit files
-- Feature development tracking
-- Bug investigation summaries
-
-These documents are preserved for historical context but are no longer actively maintained.
-
 ---
 
-*This documentation hub is continuously updated to reflect the latest system state. Last updated: 2025-10-25*
+*This documentation hub is continuously updated to reflect the latest system state. Last updated: 2025-11-25*
 
 **Getting Started?** → [Environment Setup](getting-started/environment-setup.md)
 **Need Help?** → [Troubleshooting](troubleshooting/common-issues.md)

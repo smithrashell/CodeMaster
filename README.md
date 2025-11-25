@@ -16,41 +16,35 @@
 
 ---
 
-## 🔮 Planned Features (v1.1+)
-
-- 🃏 **Flashcard Mode** for reinforced learning based on recent sessions and failed problems 
-- 🤖 **ChatGPT-powered flashcard generation** using user notes and problem tags
-
----
 ## 📸 Screenshots
 
 ### Dashboard Analytics & Progress
-![Dashboard Analytics](./Screenshots/1-dashboard-analytics.png)
+![Dashboard Analytics](./github-assets/1-dashboard-analytics.png)
 *Track your progress with comprehensive analytics: tag mastery, problem distribution, and session trends*
 
-![Learning Path Visualization](./Screenshots/8-learning-path-visualization.png)
+![Learning Path Visualization](./github-assets/8-learning-path-visualization.png)
 *Visualize your learning journey through pattern ladders and algorithm progression*
 
 ### Learning Goals & Focus Areas
-![Learning Goals](./Screenshots/2-learning-goals-focus-areas.png)
+![Learning Goals](./github-assets/2-learning-goals-focus-areas.png)
 *Set personalized learning goals and track tag-specific mastery levels*
 
 ### LeetCode Integration
-![LeetCode Integration](./Screenshots/3-leetcode-integration.png)
+![LeetCode Integration](./github-assets/3-leetcode-integration.png)
 *Seamlessly integrated with LeetCode - track problems, hints, and timer directly on the platform*
 
-![Timer & Hints](./Screenshots/5-timer-hints.png)
+![Timer & Hints](./github-assets/5-timer-hints.png)
 *Built-in timer with smart hints system to guide you when stuck*
 
 ### Problem Management
-![Problem Generator](./Screenshots/4-problem-generator.png)
+![Problem Generator](./github-assets/4-problem-generator.png)
 *Adaptive session generation based on your performance and learning patterns*
 
-![Problem Submission](./Screenshots/6-problem-submission.png)
+![Problem Submission](./github-assets/6-problem-submission.png)
 *Track attempts, perceived difficulty, and notes for every problem you solve*
 
 ### Settings & Customization
-![Settings](./Screenshots/7-settings.png)
+![Settings](./github-assets/7-settings.png)
 *Customize your learning experience with adaptive session controls and preferences*
 
 ---
@@ -67,8 +61,8 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/codemaster.git
-   cd codemaster
+   git clone https://github.com/smithrashell/CodeMaster.git
+   cd CodeMaster
    ```
 
 2. **Install dependencies**

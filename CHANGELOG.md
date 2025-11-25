@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Documentation Updates** (#213)
+  - Removed "Planned Features" section from main README (flashcard mode, ChatGPT features)
+  - Created `github-assets/` folder for GitHub-visible screenshots
+  - Updated all placeholder GitHub URLs to `smithrashell/CodeMaster`
+  - Removed outdated `docs/archive/` folder (15 old planning documents)
+  - Removed `docs/DOCUMENTATION_UPDATE_PLAN.md` (completed)
+  - Fixed broken link to non-existent `component-architecture.md`
+  - Updated IndexedDB store count from 13 to 17 across documentation
+  - Updated database version from 25 to 36 across documentation
+  - Updated all documentation "Last Updated" dates to 2025-11-25
+
+### Refactored
+- **Comment Cleanup per Clean Code Chapter 4** (#213)
+  - Removed 230+ lines of commented-out dead code across 10 files
+  - Removed stale TODO comments for already-implemented features (settings import/export, display settings)
+  - Removed redundant test placeholders covered by browser tests
+  - Removed dead `resetSessionCreationMutex` mock (function never implemented)
+  - Removed redundant comments that restate obvious code behavior
+  - Applied "Don't comment bad code—rewrite it" principle throughout codebase
+
 ### Added
 - **Intelligent Recalibration System - Phase 1: Passive Background Decay** (#206)
   - Implemented time-based decay for users returning after long breaks

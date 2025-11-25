@@ -58,4 +58,4 @@ const { data, loading, error, refresh } = usePageData('page-type');
 - [Chrome Messaging Guide](../guides/chrome-messaging.md)
 - [Component Development](../guides/component-development.md)
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-11-25

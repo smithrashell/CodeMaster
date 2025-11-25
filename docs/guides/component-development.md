@@ -50,4 +50,4 @@ Create tests in `__tests__/[ComponentName].test.jsx`
 - [Project Structure](../architecture/project-structure.md)
 - [Coding Standards](../development/coding-standards.md)
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-11-25

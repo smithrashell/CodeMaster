@@ -481,12 +481,11 @@ docs/
 ## 📖 Related Documentation
 
 - [Architecture Overview](overview.md) - System design
-- [Component Architecture](component-architecture.md) - Component organization
 - [Services API](../api/services-api.md) - Service layer documentation
 - [Database API](../api/database-api.md) - Database schema
 - [Contributing Guide](../../CONTRIBUTING.md) - Development workflow
 
 ---
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-11-25
 **Maintained By:** CodeMaster Team
