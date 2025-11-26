@@ -22,7 +22,7 @@ Welcome to the CodeMaster documentation! This comprehensive guide will help you 
 |----------|---------|------------|
 | [Architecture Overview](architecture/overview.md) | High-level system design | Components, data flow, technology stack |
 | [Chrome Extension Architecture](architecture/chrome-extension.md) | Extension-specific architecture | Entry points, messaging, content scripts |
-| [Database Schema](architecture/database-schema.md) | Complete IndexedDB structure | 13 stores, relationships, migrations |
+| [Database Schema](architecture/database-schema.md) | Complete IndexedDB structure | 17 stores, relationships, migrations |
 | [Services API Reference](api/services-api.md) | Business logic organization | 17 services, patterns, integration |
 | [Session Management](architecture/session-management.md) | Session lifecycle & analytics | Creation, tracking, completion |
 | [Chrome API Usage](architecture/chrome-api-usage.md) | Chrome extension integration | Messaging patterns, permissions, security |

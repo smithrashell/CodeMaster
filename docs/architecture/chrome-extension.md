@@ -21,7 +21,7 @@ CodeMaster is a Chrome extension that transforms how developers learn data struc
 - **FSRS Learning Algorithm** - Complete spaced repetition system
 - **Adaptive Session Generation** - Intelligent problem selection with transparent reasoning
 - **Tag Mastery System** - Pattern learning progression with decay tracking
-- **IndexedDB Data Layer** - 13-store persistent storage with comprehensive analytics
+- **IndexedDB Data Layer** - 17-store persistent storage with comprehensive analytics
 - **Chrome Extension Integration** - Standardized useChromeMessage hook pattern across 7 components
 - **Strategy Map System** - Contextual hints, educational primers, and algorithm guidance
 - **Dashboard Analytics** - Progress visualization with detailed performance metrics
@@ -54,8 +54,8 @@ CodeMaster is built on several key principles:
 ### Key Technologies
 
 - **Frontend**: React 18, Mantine UI, Recharts, CSS Modules
-- **Storage**: IndexedDB (13 stores), Chrome Storage API
-- **Testing**: Jest, React Testing Library (110 tests passing)
+- **Storage**: IndexedDB (17 stores), Chrome Storage API
+- **Testing**: Jest, React Testing Library (110+ tests)
 - **Build**: Webpack multi-entry, Babel, ESLint Airbnb
 - **Extension**: Manifest v3, Content Scripts, Service Worker
 
@@ -124,4 +124,4 @@ CodeMaster is built on several key principles:
 
 ---
 
-_For detailed technical documentation, see the main [Frontend README](README.md) which serves as the comprehensive system documentation hub._
+_For detailed technical documentation, see the [Documentation Hub](../README.md) which links to all system documentation._
