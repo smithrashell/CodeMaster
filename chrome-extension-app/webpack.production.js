@@ -20,6 +20,23 @@ module.exports = (env, argv) => {
     })
   );
 
+  // Add bundle analyzer for performance monitoring (--analyze flag)
+  const shouldAnalyze = process.argv.includes("--analyze");
+  if (shouldAnalyze) {
+    try {
+      const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
+      baseConfig.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: "server",
+          openAnalyzer: true,
+          reportFilename: "bundle-report.html",
+        })
+      );
+    } catch (error) {
+      console.warn("webpack-bundle-analyzer not installed. Run 'npm install --save-dev webpack-bundle-analyzer' to enable.");
+    }
+  }
+
   // Add static assets copying
   baseConfig.plugins.push(
     new CopyPlugin({
