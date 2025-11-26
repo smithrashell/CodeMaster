@@ -3,9 +3,6 @@
  * Creates sandboxed environment for testing real system functions without affecting user data
  */
 
-// Note: Using openDB directly to avoid import restrictions
-// import { dbHelper } from '../db/index.js';
-
 export class TestDataIsolation {
   static TEST_DB_NAME = 'CodeMaster_test';
   static ORIGINAL_DB_NAME = 'CodeMaster';

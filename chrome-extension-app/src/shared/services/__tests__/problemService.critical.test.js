@@ -32,7 +32,6 @@ import { ProblemService } from "../problemService";
 import * as problemsDb from "../../db/problems";
 import * as standardProblems from "../../db/standard_problems";
 import { buildAdaptiveSessionSettings } from "../../db/sessions";
-// import { getTagMastery } from "../../db/tag_mastery"; // Unused in current tests
 import { AttemptsService } from "../attemptsService";
 import { ScheduleService } from "../scheduleService";
 import { StorageService } from "../storageService";

@@ -65,8 +65,8 @@ git config --global alias.st status
 
 1. **Clone and Setup**
    ```bash
-   git clone https://github.com/your-username/codemaster.git
-   cd codemaster
+   git clone https://github.com/smithrashell/CodeMaster.git
+   cd CodeMaster
    cd chrome-extension-app
    npm install
    ```

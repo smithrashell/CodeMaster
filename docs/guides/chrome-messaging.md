@@ -54,4 +54,4 @@ See `public/background.js` for all available message types.
 - [Chrome Extension Architecture](../architecture/chrome-extension.md)
 - [Hook APIs](../api/hooks-api.md)
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-11-25

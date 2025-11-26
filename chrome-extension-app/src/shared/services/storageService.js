@@ -148,22 +148,6 @@ export const StorageService = {
           stickyHover: false
         }
       },
-      // TODO: Re-enable for future release when display settings are fully implemented
-      // display: {
-      //   sidebarWidth: "normal",
-      //   cardSpacing: "comfortable",
-      //   autoCollapseSidebar: true,
-      //   chartStyle: "modern",
-      //   chartColorScheme: "blue",
-      //   customChartColor: "#3b82f6",
-      //   chartAnimations: true,
-      //   showGridLines: true,
-      //   showChartLegends: true,
-      //   defaultTimeRange: "30d",
-      //   maxDataPoints: 50,
-      //   autoRefreshData: true,
-      //   showEmptyDataPoints: false
-      // },
     };
   },
 

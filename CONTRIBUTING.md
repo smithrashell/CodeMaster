@@ -129,8 +129,8 @@ For corporate contributors or questions, contact: RashellSSmith@gmail.com
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/your-username/codemaster.git
-   cd codemaster
+   git clone https://github.com/smithrashell/CodeMaster.git
+   cd CodeMaster
    ```
 
 2. **Install dependencies**

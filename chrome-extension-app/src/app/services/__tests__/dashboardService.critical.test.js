@@ -28,10 +28,8 @@ import { fetchAllProblems } from "../../../shared/db/problems";
 import { getAllAttempts } from "../../../shared/db/attempts";
 import { getAllSessions } from "../../../shared/db/sessions";
 import { getAllStandardProblems } from "../../../shared/db/standard_problems";
-// import { getRecentSessionAnalytics } from "../../../shared/db/sessionAnalytics"; // Unused in current tests
 import { TagService } from "../../../shared/services/tagServices";
 import { ProblemService } from "../../../shared/services/problemService";
-// import { StorageService } from "../../../shared/services/storageService"; // Unused in current tests
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
 // Helper functions for test setup

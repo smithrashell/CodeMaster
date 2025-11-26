@@ -256,7 +256,6 @@ jest.mock("../sessionService.js", () => ({
     refreshSession: jest.fn(),
     checkAndCompleteSession: jest.fn(),
     detectStalledSessions: jest.fn(),
-    resetSessionCreationMutex: jest.fn(),
     getTypicalCadence: jest.fn(),
     checkConsistencyAlerts: jest.fn(),
   },
@@ -733,9 +732,6 @@ function runMemoryLeakPreventionTests() {
 describe("Session Service Race Condition Testing", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    // Reset session creation state
-    SessionService.resetSessionCreationMutex.mockReturnValue({ reset: true });
   });
 
   // Execute all test suites using helper functions

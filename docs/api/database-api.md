@@ -5,8 +5,8 @@ The database layer provides IndexedDB abstraction with a centralized helper syst
 ## Database Overview
 
 - **Database Name**: "review"
-- **Current Version**: 25
-- **Store Count**: 13 specialized object stores
+- **Current Version**: 36
+- **Store Count**: 17 specialized object stores
 - **Upgrade Strategy**: Automatic versioned migrations with data preservation
 
 ## Core Database Helper (`index.js`)

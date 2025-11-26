@@ -363,20 +363,6 @@ describe("SessionService - Critical User Retention Paths", () => {
       // Check that the method was called at least once - the exact status may depend on session completeness logic
       expect(updateSessionInDB).toHaveBeenCalled();
     });
-
-    it.skip("should recover from mutex deadlock", () => {
-      // FIXME: resetSessionCreationMutex function not implemented
-      // Simulate mutex stuck for too long
-      SessionService._sessionCreationInProgress = true;
-      SessionService._sessionCreationStartTime = Date.now() - 20000; // 20 seconds ago
-
-      const mutexInfo = SessionService.resetSessionCreationMutex();
-
-      // CRITICAL: Deadlock recovery prevents permanent hanging
-      expect(mutexInfo.wasInProgress).toBe(true);
-      expect(mutexInfo.mutexAge).toBeGreaterThan(15000);
-      expect(SessionService._sessionCreationInProgress).toBe(false);
-    });
   });
 
   describe("🎲 CRITICAL: Consistency and habit analysis", () => {

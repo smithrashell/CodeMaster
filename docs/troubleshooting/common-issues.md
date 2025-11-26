@@ -696,7 +696,7 @@ npm run build 2>&1 | head -20
 
 ### Community Resources
 
-- **GitHub Issues**: [Repository Issues](https://github.com/your-username/codemaster/issues)
+- **GitHub Issues**: [Repository Issues](https://github.com/smithrashell/CodeMaster/issues)
 - **Chrome Extension Docs**: [Developer Guide](https://developer.chrome.com/docs/extensions/)
 - **IndexedDB MDN**: [Web API Documentation](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
 - **React Testing Library**: [Testing Documentation](https://testing-library.com/docs/react-testing-library/intro/)

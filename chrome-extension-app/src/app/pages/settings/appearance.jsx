@@ -6,8 +6,6 @@ import {
   LayoutDensitySelector,
   AnimationToggle,
 } from "../../../shared/components/AppearanceControls.jsx";
-// TODO: Re-enable for future release
-// import { DisplaySettingsCard } from "../../components/settings/DisplaySettingsCard.jsx";
 
 export function Appearance() {
   return (
@@ -79,9 +77,6 @@ export function Appearance() {
             <AnimationToggle />
           </Stack>
         </Card>
-
-        {/* TODO: Re-enable Display Settings for future release */}
-        {/* <DisplaySettingsCard /> */}
       </Stack>
     </Container>
   );

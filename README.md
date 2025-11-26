@@ -16,35 +16,36 @@
 
 ---
 
-## 🔮 Planned Features (v1.1+)
-
-- 🃏 **Flashcard Mode** for reinforced learning based on recent sessions and failed problems 
-- 🤖 **ChatGPT-powered flashcard generation** using user notes and problem tags
-
----
 ## 📸 Screenshots
 
-### Dashboard Views
-![Dashboard Progress Page](./ScreenShots/Dashboard-ProgressPage.png)
-![Dashboard Progress Page](./ScreenShots/Dashboard-ProgressPage-2.png)
-![Dashboard Stats Page](./ScreenShots/Dashboard-StatisiticsPage.png)
+### Dashboard Analytics & Progress
+![Dashboard Analytics](./github-assets/1-dashboard-analytics.png)
+*Track your progress with comprehensive analytics: tag mastery, problem distribution, and session trends*
 
+![Learning Path Visualization](./github-assets/8-learning-path-visualization.png)
+*Visualize your learning journey through pattern ladders and algorithm progression*
 
-### Extension Mode
-![Main Page](./screenshots/MainPage.png)
-![Problem Generator Page](./screenshots/ProblemGenerator.png)
-![Problem Statistics Page](./screenshots/ProlemStatistics%20.png)
-![Problem Settings Page](./screenshots/ProblemSettings.png)
+### Learning Goals & Focus Areas
+![Learning Goals](./github-assets/2-learning-goals-focus-areas.png)
+*Set personalized learning goals and track tag-specific mastery levels*
 
----
-## Refactoring Strategy
+### LeetCode Integration
+![LeetCode Integration](./github-assets/3-leetcode-integration.png)
+*Seamlessly integrated with LeetCode - track problems, hints, and timer directly on the platform*
 
-Refactored session logic into smaller composable functions:
-- `buildAdaptiveSessionSettings()`
-- `fetchAndAssembleSessionProblems()`
-...
+![Timer & Hints](./github-assets/5-timer-hints.png)
+*Built-in timer with smart hints system to guide you when stuck*
 
-This improves testability and isolates session generation logic from state logic.
+### Problem Management
+![Problem Generator](./github-assets/4-problem-generator.png)
+*Adaptive session generation based on your performance and learning patterns*
+
+![Problem Submission](./github-assets/6-problem-submission.png)
+*Track attempts, perceived difficulty, and notes for every problem you solve*
+
+### Settings & Customization
+![Settings](./github-assets/7-settings.png)
+*Customize your learning experience with adaptive session controls and preferences*
 
 ---
 
@@ -60,8 +61,8 @@ This improves testability and isolates session generation logic from state logic
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/codemaster.git
-   cd codemaster
+   git clone https://github.com/smithrashell/CodeMaster.git
+   cd CodeMaster
    ```
 
 2. **Install dependencies**

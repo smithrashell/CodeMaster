@@ -275,20 +275,10 @@ export class IndexedDBRetryService {
     return new Promise(async (resolve, reject) => {
       let completed = false;
 
-      // TEMPORARY: Remove timeout for testing
-      // Setup timeout
-      // const timer = setTimeout(() => {
-      //   if (!completed) {
-      //     completed = true;
-      //     reject(new Error(`IndexedDB operation timeout after ${timeout}ms`));
-      //   }
-      // }, timeout);
-
       // Setup cancellation
       const onAbort = () => {
         if (!completed) {
           completed = true;
-          // clearTimeout(timer); // Commented out since timer is disabled
           reject(new Error("IndexedDB operation cancelled"));
         }
       };
@@ -300,14 +290,12 @@ export class IndexedDBRetryService {
 
         if (!completed) {
           completed = true;
-          // clearTimeout(timer); // Commented out since timer is disabled
           abortController?.signal.removeEventListener("abort", onAbort);
           resolve(result);
         }
       } catch (error) {
         if (!completed) {
           completed = true;
-          // clearTimeout(timer); // Commented out since timer is disabled
           abortController?.signal.removeEventListener("abort", onAbort);
           reject(error);
         }

@@ -100,9 +100,6 @@ export function getValidProblems({
       // Attach matchedFocusTag count for later sorting
       p._matchedFocusTags = matchedFocusTags.length;
 
-      // if (passed < 5) {
-      //   console.info(`   • Problem #${p.Title} - ID ${p.id}:`, tags);
-      // }
       passed++;
       return true;
     })

@@ -175,7 +175,6 @@ export class FocusCoordinationService {
    * @returns {Object} Algorithm decision
    */
   static async calculateAlgorithmDecision(systemRec, sessionState, escapeHatches) {
-    // Get total problems attempted for volume-based gating
     let totalProblemsAttempted = 0;
     try {
       const allProblems = await getAllFromStore('problems');
@@ -187,10 +186,10 @@ export class FocusCoordinationService {
     const performance = this.getPerformanceMetrics(sessionState, totalProblemsAttempted);
     const isOnboarding = this.isOnboarding(sessionState);
 
-    // Get intelligent focus tags (relationship-scored, sorted by learning priority)
+    // Intelligent focus tags: relationship-scored, sorted by learning priority
     // These 5 tags are the expansion pool - algorithm expands within this intelligent selection
     const intelligentFocusTags = (systemRec.focusTags && systemRec.focusTags.length > 0) ? systemRec.focusTags : ['array'];
-    const expansionPool = intelligentFocusTags; // Expand within intelligent selection, not entire tier
+    const expansionPool = intelligentFocusTags;
 
     console.log('🔍 FocusCoordinationService.calculateAlgorithmDecision:', {
       intelligentFocusTags,

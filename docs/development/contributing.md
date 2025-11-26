@@ -605,8 +605,8 @@ We use semantic versioning (semver):
 
 - **Architecture Questions** - [Architecture Documentation](../architecture/overview.md)
 - **API Questions** - [Services API](../api/services-api.md) and [Database API](../api/database-api.md)
-- **Bug Reports** - [GitHub Issues](https://github.com/your-repo/issues)
-- **Feature Discussions** - [GitHub Discussions](https://github.com/your-repo/discussions)
+- **Bug Reports** - [GitHub Issues](https://github.com/smithrashell/CodeMaster/issues)
+- **Feature Discussions** - [GitHub Discussions](https://github.com/smithrashell/CodeMaster/discussions)
 
 ### Mentorship
 
