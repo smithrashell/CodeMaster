@@ -4,6 +4,8 @@ coverage/
 # Build artifacts
 build.log
 *.log
+webpack-stats.json
+lint-output.txt
 
 # IDE configurations
 .idea/
