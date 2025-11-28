@@ -122,7 +122,7 @@ codemaster/
 # Development
 npm run dev              # Webpack watch mode for development
 npm run build            # Production build
-npm run dev-server       # Start dev server (if needed)
+npm run build:dev        # Development build (no watch)
 
 # Code Quality
 npm run lint             # ESLint analysis
@@ -178,7 +178,7 @@ Application → Storage → IndexedDB → review
 ├── standard_problems    # LeetCode problem database
 ├── tag_mastery         # Algorithm pattern progress
 ├── tag_relationships   # Pattern connections
-└── ... (13 stores total)
+└── ... (17 stores total)
 ```
 
 ### Useful Database Operations
@@ -188,7 +188,7 @@ Application → Storage → IndexedDB → review
 // Access database directly for debugging
 
 // Get database instance
-const db = await indexedDB.open('review', 25);
+const db = await indexedDB.open('review', 36);
 
 // List all object stores
 console.log(Array.from(db.objectStoreNames));

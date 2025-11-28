@@ -359,11 +359,28 @@ export const SessionService = {
 
 ### Naming Conventions
 
+#### Variable & Export Names
 - **Components**: PascalCase (`ProblemGenerator`, `TimerComponent`)
 - **Hooks**: camelCase with `use` prefix (`useChromeMessage`, `useStrategy`)
 - **Services**: PascalCase with `Service` suffix (`SessionService`, `ProblemService`)
-- **Files**: camelCase for utilities, PascalCase for components
 - **Constants**: SCREAMING_SNAKE_CASE (`DEFAULT_TIME_LIMIT`)
+
+#### File Names
+
+| File Type | Convention | Example |
+|-----------|------------|---------|
+| **Components** (.jsx) | PascalCase | `ProblemGenerator.jsx`, `TimerComponent.jsx` |
+| **Services** (.js) | camelCase | `sessionService.js`, `problemService.js` |
+| **Hooks** (.js) | camelCase with `use` prefix | `useChromeMessage.js`, `useStrategy.js` |
+| **Helpers** (.js) | camelCase with `Helpers` suffix | `leitnerHelpers.js`, `focusAreasHelpers.js` |
+| **Utils** (.js) | camelCase | `logger.js`, `errorHandler.js` |
+| **DB Modules** (.js) | snake_case | `pattern_ladder.js`, `hint_interactions.js` |
+
+**Rationale:**
+- `.jsx` files use PascalCase to match React component naming conventions
+- `.js` files use camelCase for consistency with JavaScript module conventions
+- DB modules use snake_case to match their corresponding IndexedDB store names
+- The export name (e.g., `SessionService`) can differ from the file name (`sessionService.js`)
 
 ---
 

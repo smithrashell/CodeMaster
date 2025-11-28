@@ -201,7 +201,7 @@ npm list package-name
 2. **Check database version conflicts**
    ```javascript
    // If schema changed, increment version in db/index.js
-   const DB_VERSION = 26; // Increment from 25
+   const DB_VERSION = 37; // Increment from 36
    ```
 
 3. **Storage quota exceeded**

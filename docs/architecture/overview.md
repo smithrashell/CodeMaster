@@ -56,7 +56,7 @@ CodeMaster follows a **layered Chrome extension architecture** with clear separa
 ┌─────────────────────────────────────────────────────────┐
 │                   PERSISTENCE                           │
 │  ┌─────────────────────────────────────────────────────┐ │
-│  │              IndexedDB (13 Stores)                 │ │
+│  │              IndexedDB (17 Stores)                 │ │
 │  │   problems • sessions • attempts • tag_mastery     │ │
 │  │   strategy_data • analytics • relationships        │ │
 │  └─────────────────────────────────────────────────────┘ │
@@ -72,7 +72,7 @@ CodeMaster follows a **layered Chrome extension architecture** with clear separa
 - **Database Layer**: Handle data persistence and queries
 
 ### 2. Single Source of Truth
-- **IndexedDB**: Primary data storage with 13 specialized stores
+- **IndexedDB**: Primary data storage with 17 specialized stores
 - **Service Layer**: Exclusive interface to data layer
 - **Hook Pattern**: Standardized state management across components
 
@@ -98,8 +98,8 @@ Our key architectural decisions are documented in detail:
 - Service worker for background processing
 - Content script integration with LeetCode
 
-### [ADR-002: IndexedDB Storage Strategy](decisions/002-indexeddb-storage-strategy.md)  
-**Decision**: IndexedDB with 13-store schema
+### [ADR-002: IndexedDB Storage Strategy](decisions/002-indexeddb-storage-strategy.md)
+**Decision**: IndexedDB with 17-store schema
 - Local-first data storage
 - Complex relationship support
 - Service layer abstraction
@@ -182,21 +182,20 @@ flowchart TD
 
 ### Core Technical Documentation
 
-**[chrome-extension-app/README.md](../chrome-extension-app/README.md)** - 792-line architectural bible
-- Complete system architecture with real interaction flows
-- Hook patterns and component integration guidelines
-- Testing strategies and performance considerations
-- Migration guides and development best practices
+**[chrome-extension-app/README.md](../chrome-extension-app/README.md)** - Quick start guide
+- Development commands and build scripts
+- Directory structure overview
+- Links to main project documentation
 
 ### Specialized Documentation
 
 **Database Layer** - [chrome-extension-app/src/shared/db/README.md](../chrome-extension-app/src/shared/db/README.md)
-- 13-store IndexedDB schema (208 lines)
+- 17-store IndexedDB schema
 - Transaction patterns and performance optimization
 - Migration strategies and error handling
 
-**Service Layer** - [chrome-extension-app/src/shared/services/README.md](../chrome-extension-app/src/shared/services/README.md)  
-- 17 services with comprehensive API documentation (192 lines)
+**Service Layer** - [chrome-extension-app/src/shared/services/README.md](../chrome-extension-app/src/shared/services/README.md)
+- 17 services with comprehensive API documentation
 - Business logic patterns and integration points
 - Testing strategies and error handling
 

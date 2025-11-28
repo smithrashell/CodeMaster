@@ -313,7 +313,7 @@ const insights = await DashboardService.generateInsights({
 
 ## 🗄️ Database Layer APIs
 
-The database layer provides IndexedDB abstraction with 13 specialized stores. Components never access this layer directly - always through services.
+The database layer provides IndexedDB abstraction with 17 specialized stores. Components never access this layer directly - always through services.
 
 > **Reference**: Complete database documentation in [chrome-extension-app/src/shared/db/README.md](../chrome-extension-app/src/shared/db/README.md)
 

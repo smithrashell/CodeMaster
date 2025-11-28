@@ -67,14 +67,6 @@ export function normalizeReviewProblem(p) {
     logger.warn(`⚠️ Generated slug from title for problem: ${p.title} → ${normalized.slug}`);
   }
 
-  // Only log URL field details in debug mode
-  if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_PROBLEM_SERVICE) {
-    logger.debug(`Review problem URL fields for "${p.title}":`, {
-      has_leetcode_address: !!p.leetcode_address,
-      has_slug: !!normalized.slug
-    });
-  }
-
   // Include attempt data for frontend
   if (p.attempt_stats) {
     normalized.attempts = p.attempt_stats.total_attempts > 0 ?
@@ -123,16 +115,13 @@ export function filterValidReviewProblems(problems) {
 }
 
 /**
- * Log review problems analysis (only in debug mode)
+ * Log review problems analysis
  */
 export function logReviewProblemsAnalysis(enrichedReviewProblems, validReviewProblems, sessionProblems, reviewProblemsToAdd) {
-  // Only log in development/debug mode
-  if (process.env.NODE_ENV !== 'production' && process.env.DEBUG_PROBLEM_SERVICE) {
-    logger.debug(`Review problems analysis:`, {
-      enrichedCount: enrichedReviewProblems?.length,
-      validCount: validReviewProblems.length,
-      sessionCount: sessionProblems.length,
-      toAddCount: reviewProblemsToAdd.length
-    });
-  }
+  logger.debug(`Review problems analysis:`, {
+    enrichedCount: enrichedReviewProblems?.length,
+    validCount: validReviewProblems.length,
+    sessionCount: sessionProblems.length,
+    toAddCount: reviewProblemsToAdd.length
+  });
 }
