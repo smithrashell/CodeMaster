@@ -209,23 +209,10 @@ export async function getLearningPathData(options = {}, getDashboardStatistics) 
   try {
     const fullData = await getDashboardStatistics(options);
 
-    console.log('DEBUG standardProblemsMap:', {
-      hasMap: !!fullData.standardProblemsMap,
-      mapType: typeof fullData.standardProblemsMap,
-      keys: fullData.standardProblemsMap ? Object.keys(fullData.standardProblemsMap).slice(0, 10) : [],
-      firstValue: fullData.standardProblemsMap ? fullData.standardProblemsMap[Object.keys(fullData.standardProblemsMap)[0]] : null
-    });
-
-    // Convert standardProblemsMap object to array
-    const standardProblemsArray = fullData.standardProblemsMap
-      ? Object.values(fullData.standardProblemsMap)
-      : [];
-
-    console.log('getLearningPathData - fullData:', {
-      attemptsCount: fullData.allAttempts?.length || 0,
-      problemsCount: fullData.allProblems?.length || 0,
-      standardProblemsCount: standardProblemsArray.length
-    });
+    // Convert standardProblemsMap (which is a Map) to array
+    const standardProblemsArray = fullData.standardProblemsMap instanceof Map
+      ? Array.from(fullData.standardProblemsMap.values())
+      : (fullData.standardProblemsMap ? Object.values(fullData.standardProblemsMap) : []);
 
     // Build dynamic tag relationships from actual attempts
     // Use standard_problems which have Tags, not user problems
@@ -233,12 +220,6 @@ export async function getLearningPathData(options = {}, getDashboardStatistics) 
       fullData.allAttempts || [],
       standardProblemsArray
     );
-
-    console.log('Dynamic tag relationships built:', {
-      relationshipCount: Object.keys(tagRelationships).length,
-      sampleKeys: Object.keys(tagRelationships).slice(0, 5),
-      sample: Object.keys(tagRelationships).length > 0 ? tagRelationships[Object.keys(tagRelationships)[0]] : null
-    });
 
     return {
       ...(fullData.mastery || {

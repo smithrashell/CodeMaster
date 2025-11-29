@@ -7,14 +7,8 @@ export class SVGRenderService {
       dynamicTagRelationships = {},
       setHoveredConnection = null
     } = options;
-    console.log('🎨 SVGRenderService.renderConnections called:', {
-      relationshipCount: Object.keys(dynamicTagRelationships).length,
-      visibleTagCount: visibleTags?.length || 0,
-      sampleRelationship: Object.keys(dynamicTagRelationships)[0]
-    });
-
-    // If visibleTags is provided, create a Set for fast lookup
-    const visibleTagSet = visibleTags ? new Set(visibleTags.map(node => node.tag)) : null;
+    // If visibleTags is provided, create a Set for fast lookup (use lowercase for consistency)
+    const visibleTagSet = visibleTags ? new Set(visibleTags.map(node => node.tag.toLowerCase())) : null;
 
     // Use dynamic tag relationships (co-occurrence from attempts)
     // Format: { "tag1:tag2": { tag1, tag2, strength, problems, successRate, successCount } }
@@ -131,7 +125,9 @@ export class SVGRenderService {
   }
 
   static createNode(nodeData, nodePositions, hoveredNode, onNodeClick, isDarkMode, setHoveredNode) {
-    const position = nodePositions[nodeData.tag] || nodeData.position || { x: 0, y: 0 };
+    // Use lowercase for position lookup since forceDirectedLayout uses lowercase keys
+    const tagKey = nodeData.tag.toLowerCase();
+    const position = nodePositions[tagKey] || nodeData.position || { x: 0, y: 0 };
     const isHovered = hoveredNode === nodeData.tag;
     
     const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');

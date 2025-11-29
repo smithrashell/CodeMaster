@@ -98,7 +98,7 @@ export async function getDashboardStatistics(options = {}) {
     const { focusAreaFilter = null, dateRange = null } = options;
     
     const { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData } = await fetchDashboardData();
-    const { problemDifficultyMap, problemTagsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
+    const { problemDifficultyMap, problemTagsMap, standardProblemsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
 
     // Apply filtering based on focus areas and date range
     const { filteredProblems, filteredAttempts, filteredSessions } = applyFiltering({
@@ -152,7 +152,7 @@ export async function getDashboardStatistics(options = {}) {
       // Analytics data
       sessions, mastery: masteryData, goals: goalsData, learningEfficiencyData, hintsUsed, timeAccuracy,
       // Original data
-      allProblems, allAttempts, allSessions: enrichedSessions, learningState, boxLevelData
+      allProblems, allAttempts, allSessions: enrichedSessions, learningState, boxLevelData, standardProblemsMap
     });
   } catch (error) {
     logger.error("Error calculating dashboard statistics:", error);

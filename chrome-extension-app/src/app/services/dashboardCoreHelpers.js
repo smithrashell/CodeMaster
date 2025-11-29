@@ -305,7 +305,8 @@ export function constructDashboardData({
   hintsUsed,
   timeAccuracy,
   learningEfficiencyData,
-  strategySuccessRate
+  strategySuccessRate,
+  standardProblemsMap
 }) {
   return {
     statistics,
@@ -329,7 +330,8 @@ export function constructDashboardData({
     hintsUsed,
     timeAccuracy,
     learningEfficiencyData,
-    strategySuccessRate
+    strategySuccessRate,
+    standardProblemsMap
   };
 }
 
