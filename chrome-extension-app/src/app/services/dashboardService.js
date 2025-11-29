@@ -57,7 +57,8 @@ import {
   calculateStrategySuccessRate,
   getHintAnalytics,
   constructDashboardData,
-  calculateNextReviewData
+  calculateNextReviewData,
+  enrichSessionsWithHintCounts
 } from "./dashboardCoreHelpers.js";
 
 /**
@@ -110,8 +111,8 @@ export async function getDashboardStatistics(options = {}) {
     });
 
     // Calculate core statistics and derived metrics
-    const { statistics, timeStats, successStats } = calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap);
-    const { averageTime, successRate } = calculateDerivedMetrics(timeStats, successStats);
+    const { statistics, averageTime, successRate } = calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap);
+    const { timeAccuracy } = calculateDerivedMetrics(averageTime, successRate);
 
     // Generate analytics and derived data
     const { sessionAnalytics, masteryData, goalsData, learningEfficiencyData } = await generateAnalyticsData(filteredSessions, filteredAttempts, learningState);
@@ -122,13 +123,23 @@ export async function getDashboardStatistics(options = {}) {
     // Calculate strategy success rate
     const strategySuccessRate = calculateStrategySuccessRate(filteredSessions, filteredAttempts);
 
-    // Calculate next review data and get hint analytics
-    const [nextReviewData, hintsUsed] = await Promise.all([
+    // Calculate next review data, get hint analytics, and enrich sessions with hint counts
+    const [nextReviewData, hintsUsed, enrichedSessions] = await Promise.all([
       calculateNextReviewData(),
-      getHintAnalytics()
+      getHintAnalytics(),
+      enrichSessionsWithHintCounts(filteredSessions)
     ]);
     const nextReviewTime = nextReviewData?.nextReviewTime || "Schedule unavailable";
     const nextReviewCount = nextReviewData?.nextReviewCount || 0;
+
+    // Construct sessions object for page data helpers
+    // sessionAnalytics from generateSessionAnalytics returns { allSessions, sessionAnalytics, productivityMetrics }
+    const sessions = {
+      allSessions: sessionAnalytics?.allSessions || enrichedSessions,
+      sessionAnalytics: sessionAnalytics?.sessionAnalytics || [],
+      productivityMetrics: sessionAnalytics?.productivityMetrics || {},
+      recentSessions: sessionAnalytics?.recentSessions || []
+    };
 
     // Construct and return final dashboard data
     return constructDashboardData({
@@ -139,15 +150,9 @@ export async function getDashboardStatistics(options = {}) {
       strategySuccessRate,
       nextReviewTime, nextReviewCount,
       // Analytics data
-      sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
-      // Filtered data
-      filteredProblems, filteredAttempts, filteredSessions,
-      // Original data and state
-      allProblems, allAttempts, allSessions, learningState, boxLevelData,
-      // Problem mappings
-      standardProblemsMap,
-      // Filter options
-      focusAreaFilter, dateRange
+      sessions, mastery: masteryData, goals: goalsData, learningEfficiencyData, hintsUsed, timeAccuracy,
+      // Original data
+      allProblems, allAttempts, allSessions: enrichedSessions, learningState, boxLevelData
     });
   } catch (error) {
     logger.error("Error calculating dashboard statistics:", error);

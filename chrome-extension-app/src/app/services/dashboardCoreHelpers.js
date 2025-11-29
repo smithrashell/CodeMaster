@@ -67,8 +67,8 @@ export async function fetchDashboardData() {
     getAllAttempts(),
     getAllSessions(),
     getAllStandardProblems(),
-    TagService.getLearningState(),
-    ProblemService.getBoxLevelDistribution()
+    TagService.getCurrentLearningState(),
+    ProblemService.countProblemsByBoxLevel()
   ]);
 
   return { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData };
@@ -133,10 +133,25 @@ export function applyFiltering({ allProblems, allAttempts, allSessions, problemT
 }
 
 export function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap) {
-  const totalSolved = new Set(filteredAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).map(a => a.problem_id || a.ProblemID)).size;
-  const mastered = Math.floor(totalSolved * 0.3);
-  const inProgress = Math.floor(totalSolved * 0.5);
-  const newProblems = totalSolved - mastered - inProgress;
+  // Calculate statistics based on BoxLevel
+  // BoxLevel 1-2: New, BoxLevel 3-5: In Progress, BoxLevel 6-7: Mastered
+  let mastered = 0;
+  let inProgress = 0;
+  let newProblems = 0;
+
+  filteredProblems.forEach(problem => {
+    const boxLevel = problem.BoxLevel || problem.box_level || 1;
+    if (boxLevel >= 6) {
+      mastered++;
+    } else if (boxLevel >= 3) {
+      inProgress++;
+    } else {
+      newProblems++;
+    }
+  });
+
+  // totalSolved = mastered + inProgress (problems that have been worked on successfully)
+  const totalSolved = mastered + inProgress;
 
   const statistics = {
     totalSolved,
