@@ -389,9 +389,7 @@ describe("SessionService - Critical User Retention Paths", () => {
 
     it("should handle insufficient data for cadence analysis", async () => {
       // Mock: New user with only 1 session
-      // After refactor, HabitLearningHelpers is used directly
-      const { HabitLearningHelpers } = require("../sessionHabitLearning");
-      HabitLearningHelpers._getSessionsFromPeriod = jest.fn().mockResolvedValue([
+      SessionService._getSessionsFromPeriod = jest.fn().mockResolvedValue([
         { date: new Date().toISOString(), status: "completed" }
       ]);
 
