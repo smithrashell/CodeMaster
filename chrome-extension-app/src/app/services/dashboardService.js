@@ -98,7 +98,7 @@ export async function getDashboardStatistics(options = {}) {
     const { focusAreaFilter = null, dateRange = null } = options;
     
     const { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData } = await fetchDashboardData();
-    const { problemDifficultyMap, problemTagsMap, standardProblemsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
+    const { problemDifficultyMap, problemTagsMap } = createDashboardProblemMappings(allProblems, allStandardProblems);
 
     // Apply filtering based on focus areas and date range
     const { filteredProblems, filteredAttempts, filteredSessions } = applyFiltering({
