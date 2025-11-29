@@ -10,6 +10,14 @@ export function ProgressKPICards({
   nextReviewTime,
   nextReviewCount
 }) {
+  // Extract success rate - handle both object format {guided, tracking} and legacy number format
+  const getSuccessRateValue = () => {
+    if (typeof strategySuccessRate === 'number') return strategySuccessRate;
+    if (strategySuccessRate?.guided?.successRate !== undefined) return strategySuccessRate.guided.successRate;
+    return 0;
+  };
+  const successRateValue = getSuccessRateValue();
+
   const kpiData = [
     {
       id: 'box-distribution',
@@ -29,7 +37,7 @@ export function ProgressKPICards({
         <Card withBorder p="lg" style={{ textAlign: 'center' }}>
           <Text size="lg" fw={600} mb="xs">Strategy Success</Text>
           <Text size="xl" fw={700} style={{ color: 'var(--cm-text)', fontSize: '1.4rem' }}>
-            {strategySuccessRate ?? 0}%
+            {successRateValue}%
           </Text>
           <Text size="xs">effectiveness rate</Text>
         </Card>
