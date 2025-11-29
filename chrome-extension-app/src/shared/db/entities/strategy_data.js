@@ -1,5 +1,5 @@
-import { dbHelper } from "./index.js";
-import STRATEGY_DATA from "../constants/strategy_data.json";
+import { dbHelper } from "../index.js";
+import STRATEGY_DATA from "../../constants/strategy_data.json";
 
 const openDB = dbHelper.openDB;
 
