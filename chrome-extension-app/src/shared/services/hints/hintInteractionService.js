@@ -6,8 +6,8 @@ import {
   getInteractionStats,
   getHintEffectiveness,
   deleteOldInteractions,
-} from "../db/hint_interactions.js";
-import { SessionService } from "./sessionService.js";
+} from "../../db/hint_interactions.js";
+import { SessionService } from "../session/sessionService.js";
 
 /**
  * Service for managing hint interactions and analytics

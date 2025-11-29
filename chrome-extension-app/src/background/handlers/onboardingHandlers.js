@@ -5,7 +5,7 @@
  * Handles all onboarding-related message types
  */
 
-import { StorageService } from "../../shared/services/storageService.js";
+import { StorageService } from "../../shared/services/storage/storageService.js";
 import {
   onboardUserIfNeeded,
   checkContentOnboardingStatus,

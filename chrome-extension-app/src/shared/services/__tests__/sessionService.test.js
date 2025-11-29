@@ -9,7 +9,7 @@ jest.mock("../../utils/logger.js", () => ({
   },
 }));
 
-import { SessionService } from "../sessionService";
+import { SessionService } from "../session/sessionService";
 import {
   getSessionById,
   getLatestSession,
@@ -20,8 +20,8 @@ import {
 } from "../../db/sessions";
 import { updateProblemRelationships } from "../../db/problem_relationships";
 import { calculateTagMastery } from "../../db/tag_mastery";
-import { ProblemService } from "../problemService";
-import { StorageService } from "../storageService";
+import { ProblemService } from "../problem/problemService";
+import { StorageService } from "../storage/storageService";
 
 // Mock the database modules
 jest.mock("../../db/sessions");
@@ -29,8 +29,8 @@ jest.mock("../../db/tag_mastery");
 jest.mock("../../db/problem_relationships");
 jest.mock("../../db/standard_problems");
 jest.mock("../../db/sessionAnalytics");
-jest.mock("../problemService");
-jest.mock("../storageService");
+jest.mock("../problem/problemService");
+jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 // Mock new dependencies introduced during database integration  
@@ -42,7 +42,7 @@ jest.mock("../../utils/PerformanceMonitor.js", () => ({
   },
 }));
 
-jest.mock("../IndexedDBRetryService.js", () => ({
+jest.mock("../storage/IndexedDBRetryService.js", () => ({
   IndexedDBRetryService: jest.fn().mockImplementation(() => ({
     executeWithRetry: jest.fn((fn) => fn()),
     quickTimeout: 1000,

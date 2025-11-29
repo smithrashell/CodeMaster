@@ -6,7 +6,7 @@
  */
 
 import DataIntegritySchemas from "./DataIntegritySchemas.js";
-import ErrorReportService from "../../services/ErrorReportService.js";
+import ErrorReportService from "../../services/monitoring/ErrorReportService.js";
 import logger from "../logger.js";
 
 export class SchemaValidator {

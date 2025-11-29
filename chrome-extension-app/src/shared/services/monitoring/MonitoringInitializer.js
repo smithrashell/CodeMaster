@@ -1,9 +1,9 @@
-import logger from "../utils/logger.js";
+import logger from "../../utils/logger.js";
 import { CrashReporter } from "./CrashReporter.js";
 import { AlertingService } from "./AlertingService.js";
-import { UserActionTracker } from "./UserActionTracker.js";
+import { UserActionTracker } from "../UserActionTracker.js";
 import { ErrorReportService } from "./ErrorReportService.js";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
+import performanceMonitor from "../../utils/PerformanceMonitor.js";
 
 /**
  * Production Monitoring Initializer

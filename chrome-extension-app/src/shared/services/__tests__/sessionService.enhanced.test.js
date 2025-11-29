@@ -250,7 +250,7 @@ const _runCircuitBreakerTests = (mockDB) => {
 /** ──────────────── RACE CONDITION TESTING ──────────────── **/
 
 // Mock all dependencies for race condition testing
-jest.mock("../sessionService.js", () => ({
+jest.mock("../session/sessionService.js", () => ({
   SessionService: {
     getOrCreateSession: jest.fn(),
     refreshSession: jest.fn(),
@@ -284,7 +284,7 @@ jest.mock("../../db/index.js", () => ({
   },
 }));
 
-import { SessionService } from "../sessionService.js";
+import { SessionService } from "../session/sessionService.js";
 import { 
   getSessionById, 
   _getLatestSession, 

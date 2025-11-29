@@ -3,7 +3,7 @@
  * Extracted to reduce complexity in getFocusAreaAnalytics
  */
 
-import { StorageService } from "../../shared/services/storageService.js";
+import { StorageService } from "../../shared/services/storage/storageService.js";
 import { calculateSuccessRate } from "../../shared/utils/Utils.js";
 
 /**

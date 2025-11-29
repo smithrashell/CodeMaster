@@ -2,13 +2,13 @@
 import { routeMessage } from "./messageRouter.js";
 
 // Core Services (used by background script directly, not just message handlers)
-import { StorageService } from "../shared/services/storageService.js";
-import { ProblemService } from "../shared/services/problemService.js";
-import { SessionService } from "../shared/services/sessionService.js";
+import { StorageService } from "../shared/services/storage/storageService.js";
+import { ProblemService } from "../shared/services/problem/problemService.js";
+import { SessionService } from "../shared/services/session/sessionService.js";
 import { AttemptsService } from "../shared/services/attemptsService.js";
 import { TagService } from "../shared/services/tagServices.js";
-import { HintInteractionService } from "../shared/services/hintInteractionService.js";
-import { AlertingService } from "../shared/services/AlertingService.js";
+import { HintInteractionService } from "../shared/services/hints/hintInteractionService.js";
+import { AlertingService } from "../shared/services/monitoring/AlertingService.js";
 import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
 import AccurateTimer from "../shared/utils/AccurateTimer.js";

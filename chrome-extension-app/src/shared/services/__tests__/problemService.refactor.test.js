@@ -9,13 +9,14 @@
  * Goal: Ensure refactoring preserves ALL current functionality
  */
 
-import { ProblemService } from '../problemService';
+import { ProblemService } from '../problem/problemService';
 import { ScheduleService } from '../scheduleService';
 import { fetchProblemById } from '../../db/standard_problems';
 import { fetchAllProblems } from '../../db/problems';
 import logger from '../../utils/logger';
 
 // Mock dependencies
+jest.mock('../problem/problemService');
 jest.mock('../scheduleService');
 jest.mock('../../db/standard_problems');
 jest.mock('../../db/problems');

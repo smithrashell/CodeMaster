@@ -1,7 +1,7 @@
-import logger from "../utils/logger.js";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
+import logger from "../../utils/logger.js";
+import performanceMonitor from "../../utils/PerformanceMonitor.js";
 import { ErrorReportService } from "./ErrorReportService.js";
-import { UserActionTracker } from "./UserActionTracker.js";
+import { UserActionTracker } from "../UserActionTracker.js";
 
 /**
  * Automated Alerting Service for production monitoring

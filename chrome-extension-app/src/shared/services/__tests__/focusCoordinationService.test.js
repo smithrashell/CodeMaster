@@ -5,7 +5,7 @@
 
 import { FocusCoordinationService } from '../focusCoordinationService';
 import { TagService } from '../tagServices';
-import { StorageService } from '../storageService';
+import { StorageService } from '../storage/storageService';
 import {
   setupSessionStateMocks,
   setupEscapeHatchMocks,
@@ -17,7 +17,7 @@ import {
 
 // Mock all dependencies
 jest.mock('../tagServices');
-jest.mock('../storageService');
+jest.mock('../storage/storageService');
 jest.mock('../../utils/escapeHatchUtils', () => ({
   detectApplicableEscapeHatches: jest.fn()
 }));

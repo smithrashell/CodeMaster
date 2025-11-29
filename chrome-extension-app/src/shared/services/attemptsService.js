@@ -1,18 +1,18 @@
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 import {  getMostRecentAttempt } from "../db/attempts.js";
-import { SessionService } from "../services/sessionService.js";
+import { SessionService } from "./session/sessionService.js";
 import { getLatestSessionByType } from "../db/sessions.js";
 import { calculateLeitnerBox } from "../utils/leitnerSystem.js";
 import { createAttemptRecord } from "../utils/Utils.js";
 import { saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from "../db/sessions.js";
-import { ProblemService } from "./problemService.js";
+import { ProblemService } from "./problem/problemService.js";
 import FocusCoordinationService from "./focusCoordinationService.js";
 import { debug, success, system } from "../utils/logger.js";
 import { v4 as uuidv4 } from "uuid";
 import { updateTagMasteryForAttempt } from "../db/tag_mastery.js";
 import { updateProblemRelationships } from "../db/problem_relationships.js";
-import { updatePatternLaddersOnAttempt } from "./problemladderService.js";
+import { updatePatternLaddersOnAttempt } from "./problem/problemladderService.js";
 
 const openDB = dbHelper.openDB;
 // Removed circular dependency: const _checkAndCompleteSession = SessionService.checkAndCompleteSession;

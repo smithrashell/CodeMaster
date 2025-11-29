@@ -9,10 +9,10 @@
  */
 
 // Service imports
-import { StorageService } from "../shared/services/storageService.js";
-import { SessionService } from "../shared/services/sessionService.js";
+import { StorageService } from "../shared/services/storage/storageService.js";
+import { SessionService } from "../shared/services/session/sessionService.js";
 import { TagService } from "../shared/services/tagServices.js";
-import { HintInteractionService } from "../shared/services/hintInteractionService.js";
+import { HintInteractionService } from "../shared/services/hints/hintInteractionService.js";
 import { InterviewService } from "../shared/services/interviewService.js";
 import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
 import { NavigationService } from "../shared/services/navigationService.js";

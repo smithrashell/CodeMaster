@@ -5,12 +5,12 @@
  */
 
 import FocusCoordinationService from '../focusCoordinationService.js';
-import { StorageService } from '../storageService.js';
+import { StorageService } from '../storage/storageService.js';
 import { getGoalsData } from '../../../app/services/dashboardService.js';
 
 // Mock dependencies
 jest.mock('../focusCoordinationService.js');
-jest.mock('../storageService.js');
+jest.mock('../storage/storageService.js');
 jest.mock('../../../app/services/dashboardService.js');
 
 // Helper functions for background script tests

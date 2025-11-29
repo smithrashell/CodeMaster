@@ -9,19 +9,19 @@ import {
   getSessionPerformance,
   getOrCreateSessionAtomic,
   evaluateDifficultyProgression,
-} from "../db/sessions.js";
-import { updateProblemRelationships } from "../db/problem_relationships.js";
-import { ProblemService } from "../services/problemService.js";
-import { getTagMastery } from "../db/tag_mastery.js";
-import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../db/sessionAnalytics.js";
-import { StorageService } from "./storageService.js";
-import { FocusCoordinationService } from "./focusCoordinationService.js";
+} from "../../db/sessions.js";
+import { updateProblemRelationships } from "../../db/problem_relationships.js";
+import { ProblemService } from "../problem/problemService.js";
+import { getTagMastery } from "../../db/tag_mastery.js";
+import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../../db/sessionAnalytics.js";
+import { StorageService } from "../storage/storageService.js";
+import { FocusCoordinationService } from "../focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
-import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
-import logger from "../utils/logger.js";
-import { roundToPrecision } from "../utils/Utils.js";
-import { openDatabase } from "../db/connectionUtils.js";
+import performanceMonitor from "../../utils/PerformanceMonitor.js";
+import { IndexedDBRetryService } from "../storage/IndexedDBRetryService.js";
+import logger from "../../utils/logger.js";
+import { roundToPrecision } from "../../utils/Utils.js";
+import { openDatabase } from "../../db/connectionUtils.js";
 
 // Session Creation Lock - Prevents race conditions
 const sessionCreationLocks = new Map();

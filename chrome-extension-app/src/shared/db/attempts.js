@@ -1,10 +1,10 @@
 import { dbHelper } from "./index.js";
 
 import { getProblem, saveUpdatedProblem } from "./problems.js";
-import { ProblemService } from "../services/problemService.js";
+import { ProblemService } from "../services/problem/problemService.js";
 import { calculateLeitnerBox, evaluateAttempts } from "../utils/leitnerSystem.js";
 import { createAttemptRecord } from "../utils/Utils.js";
-import { SessionService } from "../services/sessionService.js";
+import { SessionService } from "../services/session/sessionService.js";
 
 const checkAndCompleteSession = (...args) => {
   return SessionService.checkAndCompleteSession(...args);

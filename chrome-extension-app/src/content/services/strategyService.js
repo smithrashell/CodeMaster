@@ -1,4 +1,4 @@
-import strategyCacheService from "../../shared/services/StrategyCacheService.js";
+import strategyCacheService from "../../shared/services/hints/StrategyCacheService.js";
 import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
 import chromeMessaging from "./chromeMessagingService.js";
 import { success, debug, data, system } from "../../shared/utils/logger.js";

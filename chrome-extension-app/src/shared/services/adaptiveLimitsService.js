@@ -10,7 +10,7 @@ import logger from "../utils/logger.js";
 import { dbHelper } from "../db/index.js";
 import { fetchProblemById } from "../db/standard_problems.js";
 import AccurateTimer from "../utils/AccurateTimer.js";
-import { StorageService } from "./storageService.js";
+import { StorageService } from "./storage/storageService.js";
 
 // Default base limits (interview standards) in minutes
 const BASE_LIMITS = {

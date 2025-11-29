@@ -1,13 +1,13 @@
 // Mock dependencies
-jest.mock("../sessionService");
-jest.mock("../problemService");
-jest.mock("../storageService");
+jest.mock("../session/sessionService");
+jest.mock("../problem/problemService");
+jest.mock("../storage/storageService");
 jest.mock("../../db/sessions");
 jest.mock("../../db/problems");
 
-import { SessionService } from "../sessionService";
-import { ProblemService } from "../problemService";
-import { StorageService } from "../storageService";
+import { SessionService } from "../session/sessionService";
+import { ProblemService } from "../problem/problemService";
+import { StorageService } from "../storage/storageService";
 import {
   createMemoryPressureSimulator,
   validateRollbackConsistency,

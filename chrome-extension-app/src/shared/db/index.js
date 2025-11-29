@@ -1,5 +1,5 @@
 import migrationSafety from "./migrationSafety.js";
-import indexedDBRetry from "../services/IndexedDBRetryService.js";
+import indexedDBRetry from "../services/storage/IndexedDBRetryService.js";
 // Import database debugger to install global interceptor
 import "../utils/DatabaseDebugger.js";
 // Import extracted modules for modular database operations

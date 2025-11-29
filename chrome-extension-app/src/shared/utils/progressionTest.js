@@ -3,7 +3,7 @@
  * Quick test to verify progression works correctly
  */
 
-import { getSessionService, getSessionsDB, isUsingMockServices, resetMockServices } from '../services/sessionServiceFactory.js';
+import { getSessionService, getSessionsDB, isUsingMockServices, resetMockServices } from '../services/session/sessionServiceFactory.js';
 
 /**
  * Test progression with high accuracy to ensure it progresses

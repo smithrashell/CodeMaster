@@ -5,8 +5,8 @@
  * when they're preventing normal operation.
  */
 
-import indexedDBRetry from "./IndexedDBRetryService.js";
-import chromeMessaging from "../../content/services/chromeMessagingService.js";
+import indexedDBRetry from "../storage/IndexedDBRetryService.js";
+import chromeMessaging from "../../../content/services/chromeMessagingService.js";
 
 export class RetryDiagnostics {
   constructor() {

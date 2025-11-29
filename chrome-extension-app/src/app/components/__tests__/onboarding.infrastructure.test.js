@@ -1,11 +1,11 @@
 // Mock dependencies - focus on testing infrastructure calls, not UI rendering
-jest.mock("../../../shared/services/sessionService");
-jest.mock("../../../shared/services/problemService");
-jest.mock("../../../shared/services/storageService");
+jest.mock("../../../shared/services/session/sessionService");
+jest.mock("../../../shared/services/problem/problemService");
+jest.mock("../../../shared/services/storage/storageService");
 
-import { SessionService } from "../../../shared/services/sessionService";
-import { ProblemService } from "../../../shared/services/problemService";
-import { StorageService } from "../../../shared/services/storageService";
+import { SessionService } from "../../../shared/services/session/sessionService";
+import { ProblemService } from "../../../shared/services/problem/problemService";
+import { StorageService } from "../../../shared/services/storage/storageService";
 
 describe("Onboarding Flow - Session Infrastructure Validation", () => {
   beforeEach(() => {

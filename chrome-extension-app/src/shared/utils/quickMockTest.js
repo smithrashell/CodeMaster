@@ -4,7 +4,7 @@
  */
 
 // Import the factory and config
-import { getSessionService, isUsingMockServices } from '../services/sessionServiceFactory.js';
+import { getSessionService, isUsingMockServices } from '../services/session/sessionServiceFactory.js';
 import { shouldUseMockSession } from '../../app/config/mockConfig.js';
 
 /**

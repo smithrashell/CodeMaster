@@ -6,7 +6,7 @@
  */
 
 // eslint-disable-next-line no-restricted-imports
-import { dbHelper } from "../db/index.js";
+import { dbHelper } from "../../db/index.js";
 
 /**
  * Detect if we're running in a content script context

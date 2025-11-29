@@ -29,7 +29,7 @@ import {
   IconCircuitSwitchClosed,
   IconCircuitSwitchOpen,
 } from "@tabler/icons-react";
-import indexedDBRetry from "../../services/IndexedDBRetryService.js";
+import indexedDBRetry from "../../services/storage/IndexedDBRetryService.js";
 import styles from "./RetryIndicator.module.css";
 
 /**

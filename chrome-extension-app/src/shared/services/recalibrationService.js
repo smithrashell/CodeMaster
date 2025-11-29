@@ -11,7 +11,7 @@
  * - Marks problems needing recalibration for future phases
  */
 
-import { StorageService } from "./storageService.js";
+import { StorageService } from "./storage/storageService.js";
 import { openDatabase } from "../db/connectionUtils.js";
 import {
   processDecayForProblem,

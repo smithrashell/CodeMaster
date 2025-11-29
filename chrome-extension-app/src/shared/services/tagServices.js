@@ -5,7 +5,7 @@ import {
   getNextFiveTagsFromNextTier,
 } from "../db/tag_relationships.js";
 import { getSessionPerformance } from "../db/sessions.js";
-import { StorageService } from "./storageService.js";
+import { StorageService } from "./storage/storageService.js";
 import SessionLimits from "../utils/sessionLimits.js";
 import logger from "../utils/logger.js";
 import { calculateSuccessRate } from "../utils/Utils.js";

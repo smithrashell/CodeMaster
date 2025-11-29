@@ -3,7 +3,7 @@
  * Extracts complex logic to reduce main component size
  */
 import { useMemo, useCallback } from 'react';
-import { HintInteractionService } from '../../shared/services/hintInteractionService';
+import { HintInteractionService } from '../../shared/services/hints/hintInteractionService';
 import { createHintClickData } from '../components/strategy/floatingHintHelpers.js';
 
 export const useFloatingHintLogic = ({

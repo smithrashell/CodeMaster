@@ -192,10 +192,10 @@ import {
   IconServer,
   IconRefresh,
 } from "@tabler/icons-react";
-import { ErrorReportService } from "../services/ErrorReportService.js";
+import { ErrorReportService } from "../services/monitoring/ErrorReportService.js";
 import { UserActionTracker } from "../services/UserActionTracker.js";
 import performanceMonitor from "../utils/PerformanceMonitor.js";
-import { AlertingService } from "../services/AlertingService.js";
+import { AlertingService } from "../services/monitoring/AlertingService.js";
 import logger from "../utils/logger.js";
 import { OverviewTab } from './monitoring/OverviewTab.jsx';
 import { PerformanceTab } from './monitoring/PerformanceTab.jsx';

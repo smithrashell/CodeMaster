@@ -10,7 +10,7 @@
  */
 
 import { evaluateDifficultyProgression } from '../db/sessions.js';
-import { StorageService } from '../services/storageService.js';
+import { StorageService } from '../services/storage/storageService.js';
 import { getRecentSessionAnalytics, saveSessionAnalytics } from '../db/sessionAnalytics.js';
 
 /**

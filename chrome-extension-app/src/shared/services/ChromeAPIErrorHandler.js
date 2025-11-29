@@ -5,7 +5,7 @@
  * for all Chrome extension API calls throughout the application.
  */
 
-import ErrorReportService from "./ErrorReportService";
+import ErrorReportService from "./monitoring/ErrorReportService";
 import {
   showErrorNotification,
   handleChromeAPIError,

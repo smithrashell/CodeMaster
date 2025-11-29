@@ -12,7 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { scoreProblemsWithRelationships } from "./problem_relationships.js";
-import { regenerateCompletedPatternLadder } from "../services/problemladderService.js";
+import { regenerateCompletedPatternLadder } from "../services/problem/problemladderService.js";
 import { calculateCompositeScore, logCompositeScores } from "./problemsHelpers.js";
 
 // Import session functions are handled directly through SessionService
@@ -20,8 +20,8 @@ import { calculateCompositeScore, logCompositeScores } from "./problemsHelpers.j
 const openDB = () => dbHelper.openDB();
 
 // Import retry service for enhanced database operations
-import indexedDBRetry from "../services/IndexedDBRetryService.js";
-import { SessionService } from "../services/sessionService.js";
+import indexedDBRetry from "../services/storage/IndexedDBRetryService.js";
+import { SessionService } from "../services/session/sessionService.js";
 import logger from "../utils/logger.js";
 
 /**

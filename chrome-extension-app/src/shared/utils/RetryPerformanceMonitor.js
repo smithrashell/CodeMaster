@@ -5,7 +5,7 @@
  * optimization recommendations and performance metrics.
  */
 
-import indexedDBRetry from "../services/IndexedDBRetryService.js";
+import indexedDBRetry from "../services/storage/IndexedDBRetryService.js";
 
 export class RetryPerformanceMonitor {
   constructor() {

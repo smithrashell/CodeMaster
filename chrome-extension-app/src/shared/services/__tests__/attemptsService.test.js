@@ -8,9 +8,9 @@ import { AttemptsService } from '../attemptsService';
 // Mock all dependencies
 jest.mock('../../db/index.js');
 jest.mock('../../db/attempts.js');
-jest.mock('../sessionService.js');
+jest.mock('../session/sessionService.js');
 jest.mock('../../db/sessions.js');
-jest.mock('../problemService.js');
+jest.mock('../problem/problemService.js');
 jest.mock('../focusCoordinationService.js', () => ({
   default: {
     updateFocusAreas: jest.fn()

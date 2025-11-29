@@ -2,8 +2,8 @@
  * Quick Test - Verify session completion and onboarding progression
  */
 
-import { SessionService } from '../services/sessionService.js';
-import { StorageService } from '../services/storageService.js';
+import { SessionService } from '../services/session/sessionService.js';
+import { StorageService } from '../services/storage/storageService.js';
 import { AttemptsService } from '../services/attemptsService.js';
 import { FocusCoordinationService } from '../services/focusCoordinationService.js';
 

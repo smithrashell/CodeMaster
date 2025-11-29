@@ -1,6 +1,6 @@
 import { dbHelper } from "./index.js";
 import { TagService } from "../services/tagServices.js";
-import { StorageService } from "../services/storageService.js";
+import { StorageService } from "../services/storage/storageService.js";
 import { getMostRecentAttempt, getAttemptsBySessionId } from "./attempts.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 import SessionLimits from "../utils/sessionLimits.js";

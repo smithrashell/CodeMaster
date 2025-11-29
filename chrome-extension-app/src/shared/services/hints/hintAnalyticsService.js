@@ -3,7 +3,7 @@ import {
   getInteractionsByDateRange,
   getInteractionsByDifficultyAndType,
   getInteractionsByHintType,
-} from "../db/hint_interactions.js";
+} from "../../db/hint_interactions.js";
 
 /**
  * Advanced analytics service for hint usage insights

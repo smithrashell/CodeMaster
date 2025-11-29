@@ -16,7 +16,7 @@ import {
   Code,
 } from "@mantine/core";
 import { IconAlertTriangle, IconRefresh, IconBug } from "@tabler/icons-react";
-import ErrorReportService from "../services/ErrorReportService";
+import ErrorReportService from "../services/monitoring/ErrorReportService";
 import { showSuccessNotification } from "../utils/errorNotifications";
 
 class ErrorBoundary extends React.Component {

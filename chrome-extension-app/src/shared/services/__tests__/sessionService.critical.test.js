@@ -1,4 +1,4 @@
-import { SessionService } from "../sessionService";
+import { SessionService } from "../session/sessionService";
 import {
   getSessionById,
   // getLatestSession, // Unused in current tests
@@ -7,8 +7,8 @@ import {
   saveNewSessionToDB,
   updateSessionInDB,
 } from "../../db/sessions";
-import { ProblemService } from "../problemService";
-import { StorageService } from "../storageService";
+import { ProblemService } from "../problem/problemService";
+import { StorageService } from "../storage/storageService";
 import {
   setupSessionCreationMocks,
   assertValidSession
@@ -20,8 +20,8 @@ jest.mock("../../db/tag_mastery");
 jest.mock("../../db/problem_relationships");
 jest.mock("../../db/standard_problems");
 jest.mock("../../db/sessionAnalytics");
-jest.mock("../problemService");
-jest.mock("../storageService");
+jest.mock("../problem/problemService");
+jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 // Mock new dependencies introduced during database integration  
@@ -33,7 +33,7 @@ jest.mock("../../utils/PerformanceMonitor.js", () => ({
   },
 }));
 
-jest.mock("../IndexedDBRetryService.js", () => ({
+jest.mock("../storage/IndexedDBRetryService.js", () => ({
   IndexedDBRetryService: jest.fn().mockImplementation(() => ({
     executeWithRetry: jest.fn((fn) => fn()),
     quickTimeout: 1000,

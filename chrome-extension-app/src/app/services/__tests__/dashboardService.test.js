@@ -18,8 +18,8 @@ jest.mock("../../../shared/db/standard_problems");
 jest.mock("../../../shared/db/sessionAnalytics");
 jest.mock("../../../shared/db/tag_relationships");
 jest.mock("../../../shared/services/tagServices");
-jest.mock("../../../shared/services/problemService");
-jest.mock("../../../shared/services/storageService");
+jest.mock("../../../shared/services/problem/problemService");
+jest.mock("../../../shared/services/storage/storageService");
 
 import { fetchAllProblems } from "../../../shared/db/problems";
 import { getAllAttempts } from "../../../shared/db/attempts";
@@ -27,8 +27,8 @@ import { getAllSessions } from "../../../shared/db/sessions";
 import { getAllStandardProblems } from "../../../shared/db/standard_problems";
 import { getTagRelationships } from "../../../shared/db/tag_relationships";
 import { TagService } from "../../../shared/services/tagServices";
-import { ProblemService } from "../../../shared/services/problemService";
-import { StorageService } from "../../../shared/services/storageService";
+import { ProblemService } from "../../../shared/services/problem/problemService";
+import { StorageService } from "../../../shared/services/storage/storageService";
 
 // Helper function to create mock data
 function createMockData() {

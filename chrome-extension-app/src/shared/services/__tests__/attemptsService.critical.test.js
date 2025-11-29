@@ -6,9 +6,9 @@
 // Mock all database dependencies to prevent production database access
 jest.mock('../../db/index.js');
 jest.mock('../../db/attempts.js');
-jest.mock('../sessionService.js');
+jest.mock('../session/sessionService.js');
 jest.mock('../../db/sessions.js');
-jest.mock('../problemService.js');
+jest.mock('../problem/problemService.js');
 jest.mock('../focusCoordinationService.js', () => ({
   default: {
     updateFocusAreas: jest.fn()
@@ -303,7 +303,7 @@ describe('AttemptsService - Critical Risk Areas', () => {
       getMostRecentAttempt: jest.fn().mockResolvedValue(null)
     }));
     
-    jest.doMock('../sessionService.js', () => ({
+    jest.doMock('../session/sessionService.js', () => ({
       SessionService: {
         checkAndCompleteSession: jest.fn().mockResolvedValue({ status: 'completed' })
       }
@@ -316,8 +316,8 @@ describe('AttemptsService - Critical Risk Areas', () => {
       saveNewSessionToDB: jest.fn().mockResolvedValue({ status: 'success' })
     }));
     
-    jest.doMock('../problemService.js', () => ({
-      ProblemService: { 
+    jest.doMock('../problem/problemService.js', () => ({
+      ProblemService: {
         createSession: jest.fn().mockResolvedValue({ id: 'mock-session' })
       }
     }));

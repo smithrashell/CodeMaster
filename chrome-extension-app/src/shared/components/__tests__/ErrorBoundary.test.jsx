@@ -17,7 +17,7 @@ jest.mock("../../utils/errorNotifications", () => ({
 }));
 
 // Mock the ErrorReportService
-jest.mock("../../services/ErrorReportService", () => ({
+jest.mock("../../services/monitoring/ErrorReportService", () => ({
   storeErrorReport: jest.fn().mockResolvedValue("mock-report-id"),
   addUserFeedback: jest.fn().mockResolvedValue(),
 }));

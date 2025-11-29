@@ -8,8 +8,8 @@
  * All handler logic preserved exactly to maintain behavioral compatibility
  */
 
-import { StorageService } from "../../shared/services/storageService.js";
-import { SessionService } from "../../shared/services/sessionService.js";
+import { StorageService } from "../../shared/services/storage/storageService.js";
+import { SessionService } from "../../shared/services/session/sessionService.js";
 import { getSessionMetrics } from "../../app/services/dashboardService.js";
 
 /**

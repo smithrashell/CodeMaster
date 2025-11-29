@@ -8,7 +8,7 @@
  * existing ResilientStorage for comprehensive database reliability.
  */
 
-import ErrorReportService from "./ErrorReportService.js";
+import ErrorReportService from "../monitoring/ErrorReportService.js";
 
 export class IndexedDBRetryService {
   constructor() {

@@ -1,9 +1,9 @@
-import { initializePatternLaddersForOnboarding } from "./problemladderService.js";
+import { initializePatternLaddersForOnboarding } from "./problem/problemladderService.js";
 import { buildTagRelationships } from "../db/tag_relationships.js";
 import { insertStandardProblems } from "../db/standard_problems.js"; // assuming this is where seeding is
 import { insertStrategyData } from "../db/strategy_data.js";
 import { buildProblemRelationships } from "../services/relationshipService.js";
-import { StorageService } from "./storageService.js";
+import { StorageService } from "./storage/storageService.js";
 
 import {
   getAllFromStore,

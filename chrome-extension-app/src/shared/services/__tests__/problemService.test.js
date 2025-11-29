@@ -24,7 +24,7 @@ jest.mock("../scheduleService", () => ({
     getDailyReviewSchedule: jest.fn(),
   },
 }));
-jest.mock("../storageService", () => ({
+jest.mock("../storage/storageService", () => ({
   StorageService: {
     getSettings: jest.fn(),
     getSessionState: jest.fn(),
@@ -37,14 +37,14 @@ jest.mock("../../../content/services/problemReasoningService", () => ({
 }));
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
-import { ProblemService } from "../problemService";
+import { ProblemService } from "../problem/problemService";
 import * as problemsDb from "../../db/problems";
 import * as standardProblems from "../../db/standard_problems";
 import { buildAdaptiveSessionSettings } from "../../db/sessions";
 import { getTagMastery } from "../../db/tag_mastery";
 import { AttemptsService } from "../attemptsService";
 import { ScheduleService } from "../scheduleService";
-import { StorageService } from "../storageService";
+import { StorageService } from "../storage/storageService";
 import { ProblemReasoningService } from "../../../content/services/problemReasoningService";
 
 // Test fixture factories

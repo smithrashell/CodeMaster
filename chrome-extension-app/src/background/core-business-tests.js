@@ -4,11 +4,11 @@
  * Only loaded in development mode
  */
 
-import { SessionService } from '../shared/services/sessionService.js';
+import { SessionService } from '../shared/services/session/sessionService.js';
 import { AttemptsService } from '../shared/services/attemptsService.js';
 import { TagService } from '../shared/services/tagServices.js';
-import { ProblemService } from '../shared/services/problemService.js';
-import { StorageService } from '../shared/services/storageService.js';
+import { ProblemService } from '../shared/services/problem/problemService.js';
+import { StorageService } from '../shared/services/storage/storageService.js';
 import { v4 as uuidv4 } from 'uuid';
 import logger from '../shared/utils/logger.js';
 
@@ -26,7 +26,7 @@ import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSett
 import { buildRelationshipMap } from '../shared/db/problem_relationships.js';
 import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/attempts.js';
 import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/tag_mastery.js';
-import { initializePatternLaddersForOnboarding, updatePatternLaddersOnAttempt } from '../shared/services/problemladderService.js';
+import { initializePatternLaddersForOnboarding, updatePatternLaddersOnAttempt } from '../shared/services/problem/problemladderService.js';
 
 /**
  * Helper function to create test problems in the `problems` store

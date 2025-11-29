@@ -11,11 +11,11 @@ const logger = {
   warn: (...args) => console.warn('[SessionFactory]', ...args),
   error: (...args) => console.error('[SessionFactory]', ...args)
 };
-import { shouldUseMockSession } from '../../app/config/mockConfig.js';
-import { mockSessionService } from './mockSessionService.js';
+import { shouldUseMockSession } from '../../../app/config/mockConfig.js';
+import { mockSessionService } from '../mockSessionService.js';
 import { SessionService } from './sessionService.js';
-import * as sessionsModule from '../db/sessions.js';
-import { StorageService } from './storageService.js';
+import * as sessionsModule from '../../db/sessions.js';
+import { StorageService } from '../storage/storageService.js';
 
 /**
  * Get session service configuration

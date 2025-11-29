@@ -1,4 +1,4 @@
-import { ErrorReportService } from "../services/ErrorReportService.js";
+import { ErrorReportService } from "../services/monitoring/ErrorReportService.js";
 
 /**
  * Production-ready logging system with structured logging and level management
