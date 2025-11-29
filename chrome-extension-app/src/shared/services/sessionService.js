@@ -407,11 +407,11 @@ export const SessionService = {
   },
 
   // Session Interview delegations - delegate to sessionInterviewHelpers
-  async shouldCreateInterviewSession(frequency, _mode) {
+  shouldCreateInterviewSession(frequency, _mode) {
     return shouldCreateInterviewSession(frequency, _mode);
   },
 
-  async summarizeInterviewPerformance(session) {
+  summarizeInterviewPerformance(session) {
     return summarizeInterviewPerformance(session, (s) => this.summarizeSessionPerformance(s));
   },
 
@@ -419,7 +419,7 @@ export const SessionService = {
     return storeInterviewAnalytics(interviewSummary);
   },
 
-  async getTagPerformanceBaselines() {
+  getTagPerformanceBaselines() {
     return getTagPerformanceBaselines();
   },
 
@@ -678,7 +678,7 @@ export const SessionService = {
     return classifySessionState(session);
   },
 
-  async detectStalledSessions() {
+  detectStalledSessions() {
     return detectStalledSessions();
   },
 
@@ -686,20 +686,20 @@ export const SessionService = {
     return getRecommendedAction(classification);
   },
 
-  async getAllSessionsFromDB() {
+  getAllSessionsFromDB() {
     return getAllSessionsFromDB();
   },
 
   // Session Tracking delegations - delegate to sessionTrackingHelpers
-  async generateSessionFromTrackingActivity(recentAttempts) {
+  generateSessionFromTrackingActivity(recentAttempts) {
     return generateSessionFromTrackingActivity(recentAttempts);
   },
 
-  async checkAndGenerateFromTracking() {
+  checkAndGenerateFromTracking() {
     return checkAndGenerateFromTracking(() => this.resumeSession('standard'));
   },
 
-  async getRecentTrackingAttempts(withinHours = 48) {
+  getRecentTrackingAttempts(withinHours = 48) {
     return getRecentTrackingAttempts(withinHours);
   },
 
@@ -772,7 +772,7 @@ export const SessionService = {
     return logSessionAnalytics(sessionSummary);
   },
 
-  async updateSessionStateWithPerformance(session, sessionSummary) {
+  updateSessionStateWithPerformance(session, sessionSummary) {
     return updateSessionStateWithPerformance(session, sessionSummary);
   },
 
@@ -781,27 +781,27 @@ export const SessionService = {
    */
 
   // Habit Learning delegations - these methods delegate to HabitLearningHelpers
-  async getCurrentStreak() {
+  getCurrentStreak() {
     return HabitLearningHelpers.getCurrentStreak();
   },
 
-  async getTypicalCadence() {
+  getTypicalCadence() {
     return HabitLearningHelpers.getTypicalCadence();
   },
 
-  async getWeeklyProgress() {
+  getWeeklyProgress() {
     return HabitLearningHelpers.getWeeklyProgress();
   },
 
-  async getStreakRiskTiming() {
+  getStreakRiskTiming() {
     return HabitLearningHelpers.getStreakRiskTiming();
   },
 
-  async getReEngagementTiming() {
+  getReEngagementTiming() {
     return HabitLearningHelpers.getReEngagementTiming();
   },
 
-  async checkConsistencyAlerts(reminderSettings) {
+  checkConsistencyAlerts(reminderSettings) {
     return HabitLearningHelpers.checkConsistencyAlerts(reminderSettings);
   },
 };
