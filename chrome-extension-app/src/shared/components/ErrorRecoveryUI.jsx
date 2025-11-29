@@ -6,36 +6,6 @@
  */
 
 import { useState } from "react";
-import {
-  Modal,
-  Button,
-  Title,
-  Text,
-  Stack,
-  Group,
-  Alert,
-  Accordion,
-  List,
-  Divider,
-  Progress,
-  Card,
-  Badge,
-  Textarea,
-} from "@mantine/core";
-import {
-  IconBug,
-  IconRefresh,
-  IconAlertTriangle,
-  IconCheck,
-  IconSend,
-  IconClipboard,
-} from "@tabler/icons-react";
-import {
-  useRecoveryOperations,
-  useDiagnostics,
-  generateReportData,
-  handleErrorReport,
-} from "./ErrorRecoveryHelpers.js";
 
 // Recovery Step Card Component
 const RecoveryStepCard = ({ step, isRecovering, onAction }) => {
@@ -136,7 +106,7 @@ const ErrorInfoSection = ({ error, errorId }) => (
   </Alert>
 );
 
-// Recovery Progress Component
+// Recovery Progress Component  
 const RecoveryProgress = ({ isRecovering }) => {
   if (!isRecovering) return null;
 
@@ -151,6 +121,253 @@ const RecoveryProgress = ({ isRecovering }) => {
       <Progress value={100} animated color="blue" />
     </Card>
   );
+};
+
+import {
+  Modal,
+  Button,
+  Title,
+  Text,
+  Stack,
+  Group,
+  Alert,
+  Accordion,
+  List,
+  Divider,
+  Progress,
+  Card,
+  Badge,
+  Textarea,
+} from "@mantine/core";
+import {
+  IconBug,
+  IconRefresh,
+  IconAlertTriangle,
+  IconCheck,
+  IconClock,
+  IconSend,
+  IconClipboard,
+} from "@tabler/icons-react";
+
+// Recovery action handlers
+const recoveryActions = {
+  clearTemp: (setDiagnosticResults) => {
+    // Clear temporary localStorage items
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("codemaster_temp_") || key.startsWith("temp_")) {
+        localStorage.removeItem(key);
+      }
+    });
+    setDiagnosticResults((prev) => ({ ...prev, clearTemp: "success" }));
+  },
+  
+  resetTimer: (setDiagnosticResults) => {
+    // Clear timer-related storage
+    localStorage.removeItem("timer_state");
+    sessionStorage.removeItem("current_timer");
+    setDiagnosticResults((prev) => ({ ...prev, resetTimer: "success" }));
+  },
+  
+  refreshDashboard: (setDiagnosticResults) => {
+    // Trigger dashboard data refresh
+    try {
+      if (typeof chrome !== "undefined" && chrome.runtime) {
+        chrome.runtime.sendMessage({ type: "clearCache" }, (_response) => {
+          // Check for errors to prevent "Unchecked runtime.lastError"
+          if (chrome.runtime.lastError) {
+            console.warn("Clear cache failed:", chrome.runtime.lastError.message);
+          }
+        });
+      }
+      setDiagnosticResults((prev) => ({
+        ...prev,
+        refreshDashboard: "success",
+      }));
+    } catch (chromeError) {
+      setDiagnosticResults((prev) => ({
+        ...prev,
+        refreshDashboard: "failed",
+      }));
+    }
+  }
+};
+
+// Function to generate recovery steps based on section
+const generateRecoverySteps = (section, onRetry, runDiagnosticRecovery) => {
+  const baseSteps = [
+    {
+      title: "Quick Retry",
+      description: "Try reloading the component that failed",
+      action: onRetry,
+      icon: IconRefresh,
+      color: "blue",
+    },
+    {
+      title: "Clear Local Data",
+      description: "Clear temporary data that might be causing issues",
+      action: () => runDiagnosticRecovery("clearTemp"),
+      icon: IconRefresh,
+      color: "orange",
+    },
+    {
+      title: "Full Page Reload",
+      description: "Reload the entire application to reset state",
+      action: () => window.location.reload(),
+      icon: IconRefresh,
+      color: "red",
+    },
+  ];
+
+  // Add section-specific recovery steps
+  if (section === "Timer") {
+    baseSteps.splice(1, 0, {
+      title: "Reset Timer State",
+      description: "Clear timer data and restart with fresh state",
+      action: () => runDiagnosticRecovery("resetTimer"),
+      icon: IconClock,
+      color: "yellow",
+    });
+  } else if (section === "Dashboard") {
+    baseSteps.splice(1, 0, {
+      title: "Refresh Dashboard Data",
+      description: "Clear dashboard cache and reload data",
+      action: () => runDiagnosticRecovery("refreshDashboard"),
+      icon: IconRefresh,
+      color: "green",
+    });
+  }
+
+  return baseSteps;
+};
+
+// Custom hook for recovery operations
+const useRecoveryOperations = (section, onRetry) => {
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [diagnosticResults, setDiagnosticResults] = useState({});
+
+  const runDiagnosticRecovery = (type) => {
+    setIsRecovering(true);
+
+    try {
+      const action = recoveryActions[type];
+      if (action) {
+        action(setDiagnosticResults);
+      }
+
+      // Wait a moment then retry
+      setTimeout(() => {
+        setIsRecovering(false);
+        if (onRetry) onRetry();
+      }, 1000);
+    } catch (recoveryError) {
+      console.error("Recovery action failed:", recoveryError);
+      setDiagnosticResults((prev) => ({ ...prev, [type]: "failed" }));
+      setIsRecovering(false);
+    }
+  };
+
+  const getRecoverySteps = () => {
+    return generateRecoverySteps(section, onRetry, runDiagnosticRecovery);
+  };
+
+  return {
+    isRecovering,
+    diagnosticResults,
+    runDiagnosticRecovery,
+    getRecoverySteps
+  };
+};
+
+// Custom hook for system diagnostics
+const useDiagnostics = () => {
+  const [diagnosticsRun, setDiagnosticsRun] = useState(false);
+  const [diagnosticResults, setDiagnosticResults] = useState({});
+
+  const runDiagnostics = () => {
+    setDiagnosticsRun(true);
+    const results = {};
+
+    // Check localStorage availability
+    try {
+      localStorage.setItem("test", "test");
+      localStorage.removeItem("test");
+      results.localStorage = "working";
+    } catch {
+      results.localStorage = "failed";
+    }
+
+    // Check Chrome extension API
+    try {
+      if (typeof chrome !== "undefined" && chrome.runtime) {
+        results.chromeAPI = "available";
+      } else {
+        results.chromeAPI = "unavailable";
+      }
+    } catch {
+      results.chromeAPI = "failed";
+    }
+
+    // Check memory usage
+    try {
+      if (performance && performance.memory) {
+        const memoryInfo = performance.memory;
+        const usedPercent =
+          (memoryInfo.usedJSHeapSize / memoryInfo.totalJSHeapSize) * 100;
+        results.memory = usedPercent > 90 ? "high" : "normal";
+      } else {
+        results.memory = "unknown";
+      }
+    } catch {
+      results.memory = "failed";
+    }
+
+    setDiagnosticResults(results);
+  };
+
+  return {
+    diagnosticsRun,
+    diagnosticResults,
+    runDiagnostics
+  };
+};
+
+// Function to handle error report generation and storage
+const handleErrorReport = (reportData, onReportProblem, onClose) => {
+  if (onReportProblem) {
+    onReportProblem(reportData);
+  }
+
+  // Also store locally
+  try {
+    const reports = JSON.parse(
+      localStorage.getItem("codemaster_error_reports") || "[]"
+    );
+    reports.push(reportData);
+    localStorage.setItem(
+      "codemaster_error_reports",
+      JSON.stringify(reports.slice(-5))
+    );
+  } catch (storageError) {
+    // eslint-disable-next-line no-console
+    console.warn("Failed to store error report:", storageError);
+  }
+
+  onClose();
+};
+
+// Function to generate report data
+const generateReportData = ({ errorId, error, errorInfo, section, reportText, diagnosticResults }) => {
+  return {
+    errorId,
+    error: error?.message,
+    stack: error?.stack,
+    componentStack: errorInfo?.componentStack,
+    section,
+    userDescription: reportText,
+    diagnostics: diagnosticResults,
+    url: window.location.href,
+    timestamp: new Date().toISOString(),
+  };
 };
 
 // Recovery Options Section Component
@@ -190,7 +407,7 @@ const DiagnosticsAccordionItem = ({ runDiagnostics, diagnosticsRun, diagnosticRe
           {diagnosticsRun ? "Diagnostics Complete" : "Run Diagnostics"}
         </Button>
 
-        <DiagnosticResults
+        <DiagnosticResults 
           diagnosticResults={diagnosticResults}
           diagnosticsRun={diagnosticsRun}
         />
@@ -253,18 +470,20 @@ const ErrorRecoveryUI = ({
   onReportProblem,
 }) => {
   const [reportText, setReportText] = useState("");
-
+  
   // Use custom hooks
-  const {
-    isRecovering,
-    getRecoverySteps
+  const { 
+    isRecovering, 
+    getRecoverySteps 
   } = useRecoveryOperations(section, onRetry);
-
-  const {
-    diagnosticsRun,
-    diagnosticResults,
-    runDiagnostics
+  
+  const { 
+    diagnosticsRun, 
+    diagnosticResults, 
+    runDiagnostics 
   } = useDiagnostics();
+
+  // Functions now provided by custom hooks
 
   const copyErrorInfo = () => {
     const errorText = `CodeMaster Error Report
@@ -279,6 +498,8 @@ ${reportText ? `User Description:\n${reportText}\n\n` : ""}Stack Trace:
 ${error?.stack || "No stack trace available"}`;
 
     navigator.clipboard.writeText(errorText).then(() => {
+      // Could show a notification here
+      // eslint-disable-next-line no-console
       console.info("Error info copied to clipboard");
     });
   };
@@ -316,13 +537,13 @@ ${error?.stack || "No stack trace available"}`;
 
         {/* Diagnostics Section */}
         <Accordion>
-          <DiagnosticsAccordionItem
+          <DiagnosticsAccordionItem 
             runDiagnostics={runDiagnostics}
             diagnosticsRun={diagnosticsRun}
             diagnosticResults={diagnosticResults}
           />
 
-          <ReportAccordionItem
+          <ReportAccordionItem 
             reportText={reportText}
             setReportText={setReportText}
             handleReport={handleReport}

@@ -17,12 +17,9 @@ jest.mock("../../../shared/db/sessions");
 jest.mock("../../../shared/db/standard_problems");
 jest.mock("../../../shared/db/sessionAnalytics");
 jest.mock("../../../shared/db/tag_relationships");
-jest.mock("../../../shared/db/hint_interactions");
 jest.mock("../../../shared/services/tagServices");
 jest.mock("../../../shared/services/problemService");
 jest.mock("../../../shared/services/storageService");
-jest.mock("../../../shared/services/hintInteractionService");
-
 
 import { fetchAllProblems } from "../../../shared/db/problems";
 import { getAllAttempts } from "../../../shared/db/attempts";
@@ -32,8 +29,6 @@ import { getTagRelationships } from "../../../shared/db/tag_relationships";
 import { TagService } from "../../../shared/services/tagServices";
 import { ProblemService } from "../../../shared/services/problemService";
 import { StorageService } from "../../../shared/services/storageService";
-import { getInteractionsBySession } from "../../../shared/db/hint_interactions";
-import { HintInteractionService } from "../../../shared/services/hintInteractionService";
 
 // Helper function to create mock data
 function createMockData() {
@@ -90,8 +85,6 @@ function setupDashboardMocks(mockData) {
   getAllStandardProblems.mockResolvedValue(mockData.mockStandardProblems);
   TagService.getCurrentLearningState.mockResolvedValue(mockData.mockLearningState);
   ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-  getInteractionsBySession.mockResolvedValue([]);
-  HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
 }
 
 describe("getDashboardStatistics", () => {
@@ -124,23 +117,21 @@ describe("getDashboardStatistics", () => {
       const options = { focusAreaFilter: ["Array"] };
       const result = await getDashboardStatistics(options);
 
-      // Filtering is applied internally - verify result still has expected structure
-      expect(result).toBeDefined();
-      expect(result.statistics).toBeDefined();
+      expect(result.filters.appliedFilters.hasFocusAreaFilter).toBe(true);
+      expect(result.filters.focusAreaFilter).toEqual(["Array"]);
     });
 
   it("should handle date range filtering", async () => {
-      const options = {
-        dateRange: {
-          startDate: "2025-01-01",
-          endDate: "2025-01-02"
-        }
+      const options = { 
+        dateRange: { 
+          startDate: "2025-01-01", 
+          endDate: "2025-01-02" 
+        } 
       };
       const result = await getDashboardStatistics(options);
 
-      // Filtering is applied internally - verify result still has expected structure
-      expect(result).toBeDefined();
-      expect(result.statistics).toBeDefined();
+      expect(result.filters.appliedFilters.hasDateFilter).toBe(true);
+      expect(result.filters.dateRange).toEqual(options.dateRange);
     });
 
   it("should handle errors gracefully", async () => {

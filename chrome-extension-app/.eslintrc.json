@@ -59,11 +59,6 @@
 
     // === WARNINGS (Won't break build) ===
     "complexity": ["warn", 20],
-    "max-lines": ["warn", {
-      "max": 400,
-      "skipBlankLines": true,
-      "skipComments": true
-    }],
     "max-lines-per-function": ["warn", {
       "max": 100,
       "skipBlankLines": true,
@@ -96,12 +91,11 @@
   },
   "overrides": [
     {
-      "files": ["**/*.test.js", "**/*.spec.js", "**/test/**/*.js", "**/*tests*.js"],
+      "files": ["**/*.test.js", "**/*.spec.js", "**/test/**/*.js"],
       "env": {
         "jest": true
       },
       "rules": {
-        "max-lines": "off",
         "max-lines-per-function": "off",
         "complexity": "off",
         "no-console": "off",
@@ -112,14 +106,12 @@
       "files": ["**/db/**/*.js"],
       "rules": {
         "complexity": ["warn", 25],
-        "max-lines": ["warn", { "max": 800, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["warn", 150]
       }
     },
     {
       "files": ["**/services/**/*.js"],
       "rules": {
-        "max-lines": ["warn", { "max": 600, "skipBlankLines": true, "skipComments": true }],
         "max-lines-per-function": ["warn", 130],
         "complexity": ["warn", 30],
         "max-params": ["warn", 6]

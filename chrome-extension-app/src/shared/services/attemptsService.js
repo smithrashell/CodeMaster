@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
-import { getMostRecentAttempt } from "../db/attempts.js";
+import {  getMostRecentAttempt } from "../db/attempts.js";
 import { SessionService } from "../services/sessionService.js";
 import { getLatestSessionByType } from "../db/sessions.js";
 import { calculateLeitnerBox } from "../utils/leitnerSystem.js";
@@ -15,264 +15,7 @@ import { updateProblemRelationships } from "../db/problem_relationships.js";
 import { updatePatternLaddersOnAttempt } from "./problemladderService.js";
 
 const openDB = dbHelper.openDB;
-
-
-// ============================================================================
-// PUBLIC API - AttemptsService
-// ============================================================================
-
-/**
- * AttemptsService - Main public API for recording and querying problem attempts
- *
- * This service handles:
- * - Recording attempts with session attribution (guided vs tracking sessions)
- * - Retrieving attempt statistics for problems
- * - Querying most recent attempts
- */
-export const AttemptsService = {
-  addAttempt,
-  getMostRecentAttempt,
-  getProblemAttemptStats,
-};
-
-
-// ============================================================================
-// MAIN FUNCTIONS
-// ============================================================================
-
-/**
- * Enhanced addAttempt with Session Attribution Engine
- * Routes attempts to appropriate sessions based on context
- *
- * @param {Object} attemptData - The attempt data object.
- * @param {Object} problem - The problem object.
- * @returns {Promise<Object>} - A success message or an error.
- */
-async function addAttempt(attemptData, problem) {
-  console.log("📌 SAE addAttempt called");
-  try {
-    if (!problem) {
-      console.error("AddAttempt: Problem not found");
-      return { error: "Problem not found." };
-    }
-
-    // Validate attempt data
-    if (!attemptData || typeof attemptData !== 'object' || Array.isArray(attemptData)) {
-      console.error("AddAttempt: Invalid attempt data", attemptData);
-      return { error: "Invalid attempt data provided." };
-    }
-
-    // Validate required structure - attempt should have some meaningful data
-    const hasValidProperties = Object.keys(attemptData).length > 0 &&
-      (Object.prototype.hasOwnProperty.call(attemptData, 'success') ||
-       Object.prototype.hasOwnProperty.call(attemptData, 'timeSpent') ||
-       Object.prototype.hasOwnProperty.call(attemptData, 'difficulty') ||
-       Object.prototype.hasOwnProperty.call(attemptData, 'timestamp'));
-
-    if (!hasValidProperties) {
-      console.error("AddAttempt: Attempt data missing required properties", attemptData);
-      return { error: "Attempt data missing required properties." };
-    }
-    // Debug: Log current problem structure
-    console.log("🔍 Current problem object:", {
-      id: problem.id,
-      leetcode_id: problem.leetcode_id,
-      title: problem.title,
-      problem_id: problem.problem_id,
-      allKeys: Object.keys(problem)
-    });
-
-    // 1. Check for active guided session first
-    console.log("🔍 ATTEMPT CREATION FLOW - Starting session attribution");
-    console.log("🔍 Problem data for matching:", {
-      problem_id: problem.problem_id, // UUID
-      leetcode_id: problem.leetcode_id, // LeetCode number
-      title: problem.title
-    });
-
-    const guidedSession = await SessionAttributionEngine.getActiveGuidedSession();
-    if (!guidedSession) {
-      console.log("❌ No active guided session found - will create tracking session");
-    } else if (!guidedSession.problems || !Array.isArray(guidedSession.problems)) {
-      console.log(`⚠️ Guided session ${guidedSession.id} has invalid problems array:`, {
-        hasProblems: !!guidedSession.problems,
-        isArray: Array.isArray(guidedSession.problems),
-        type: typeof guidedSession.problems
-      });
-      console.log("🔄 Session invalid - falling back to tracking session");
-    } else if (guidedSession.problems.length === 0) {
-      console.log(`⚠️ Guided session ${guidedSession.id} has empty problems array`);
-      console.log("🔄 Session has no problems - falling back to tracking session");
-    } else {
-      console.log(`🔍 Found guided session: ${guidedSession.session_type} (${guidedSession.status})`);
-
-      // Debug: Log session problems structure
-      console.log("🔍 Session problems array:", {
-        problemsCount: guidedSession.problems.length,
-        problems: guidedSession.problems.map(p => ({
-          id: p.id,
-          leetcode_id: p.leetcode_id,
-          problem_id: p.problem_id,
-          title: p.title,
-          allKeys: Object.keys(p || {})
-        }))
-      });
-
-      // 2. Check if this problem matches any problems in the guided session
-      console.log(`🔍 Checking if problem matches session ${guidedSession.id}...`);
-      if (SessionAttributionEngine.isMatchingProblem(guidedSession, problem)) {
-        console.log(`✅ MATCH FOUND! Problem leetcode_id=${problem.leetcode_id} matches guided session ${guidedSession.id}`);
-        const result = await SessionAttributionEngine.attachToGuidedSession(guidedSession, attemptData, problem);
-        console.log(`✅ Successfully attached attempt to guided session:`, {
-          attemptId: result.sessionId ? 'created' : 'failed',
-          sessionId: guidedSession.id,
-          problemLeetCodeId: problem.leetcode_id,
-          userDifficulty: attemptData.difficulty
-        });
-
-        await postAttemptUpdates(problem);
-        return result;
-      }
-
-      console.log(`❌ Problem ${problem.id || problem.leetcode_id} does not match any problems in guided session ${guidedSession.id}`);
-      console.log("🔍 Detailed matching check failed - problem not found in session");
-    }
-
-    // 3. Fall back to tracking session (independent problem solving)
-    console.log("🔄 Routing to tracking session for independent problem solving");
-    let trackingSession = await SessionAttributionEngine.getRecentTrackingSession();
-    if (!trackingSession) {
-      trackingSession = await SessionAttributionEngine.createTrackingSession();
-    }
-
-    const result = await SessionAttributionEngine.attachToTrackingSession(trackingSession, attemptData, problem);
-
-    await postAttemptUpdates(problem);
-
-    // Cache invalidation no longer needed - real-time dashboard data bypasses cache
-
-    return result;
-
-  } catch (error) {
-    console.error("Error in addAttempt function:", error);
-    throw error;
-  }
-}
-
-/**
- * Get attempt statistics for a specific problem
- * @param {string|number} problemId - The problem ID to get stats for
- * @returns {Promise<{successful: number, total: number}>}
- */
-async function getProblemAttemptStats(problemId) {
-  try {
-    const db = await openDB();
-    const transaction = db.transaction("attempts", "readonly");
-    const store = transaction.objectStore("attempts");
-
-    return new Promise((resolve, reject) => {
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const allAttempts = request.result || [];
-        const problemAttempts = allAttempts.filter(attempt =>
-          // Check both problem_id (UUID) and leetcode_id for compatibility
-          attempt.problem_id?.toString() === problemId?.toString() ||
-          attempt.leetcode_id?.toString() === problemId?.toString()
-        );
-
-        const successfulAttempts = problemAttempts.filter(attempt => attempt.success === true);
-        const successful = successfulAttempts.length;
-        const total = problemAttempts.length;
-
-        // Find the most recent successful attempt
-        let lastSolved = null;
-        if (successfulAttempts.length > 0) {
-          const mostRecentSuccess = successfulAttempts
-            .sort((a, b) => new Date(b.attempt_date || b.date) - new Date(a.attempt_date || a.date))[0];
-          lastSolved = mostRecentSuccess.attempt_date || mostRecentSuccess.date;
-        }
-
-        // Find the most recent attempt (successful or not)
-        let lastAttempted = null;
-        if (problemAttempts.length > 0) {
-          const mostRecentAttempt = problemAttempts
-            .sort((a, b) => new Date(b.attempt_date || b.date) - new Date(a.attempt_date || a.date))[0];
-          lastAttempted = mostRecentAttempt.attempt_date || mostRecentAttempt.date;
-        }
-
-        resolve({ successful, total, lastSolved, lastAttempted });
-      };
-
-      request.onerror = () => reject(request.error);
-    });
-  } catch (error) {
-    console.error("Error getting problem attempt stats:", error);
-    throw error;
-  }
-}
-
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Helper to update pattern ladders and notify UI after attempt
- */
-async function postAttemptUpdates(problem) {
-  // Update pattern ladders for this attempted problem
-  try {
-    await updatePatternLaddersOnAttempt(problem.leetcode_id || problem.id);
-  } catch (error) {
-    console.error("❌ Error updating pattern ladders after attempt:", error);
-    // Don't fail the attempt if pattern ladder update fails
-  }
-
-  // Notify UI to refresh focus area eligibility
-  try {
-    window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
-  } catch (err) {
-    // Silent fail - window might not be available in background context
-  }
-}
-
-/**
- * Utility function to store data in IndexedDB.
- * @param {IDBObjectStore} store - The object store.
- * @param {Object} data - Data to store.
- * @returns {Promise<void>}
- */
-function putData(store, data) {
-  return new Promise((resolve, reject) => {
-    // Debug logging to identify keyPath evaluation issues
-    console.log(`🔍 putData called for store: ${store.name}`);
-    console.log(`🔍 Data being inserted:`, {
-      id: data.id,
-      idType: typeof data.id,
-      hasId: 'id' in data,
-      allKeys: Object.keys(data),
-      storeKeyPath: store.keyPath
-    });
-
-    const request = store.put(data);
-    request.onsuccess = resolve;
-    request.onerror = () => {
-      console.error(`❌ IndexedDB put error for store ${store.name}:`, {
-        error: request.error,
-        data: data,
-        keyPath: store.keyPath,
-        dataId: data.id
-      });
-      reject(request.error);
-    };
-  });
-}
-
-
-// ============================================================================
-// SESSION ATTRIBUTION ENGINE (Internal Implementation)
-// ============================================================================
+// Removed circular dependency: const _checkAndCompleteSession = SessionService.checkAndCompleteSession;
 
 /**
  * Session Attribution Engine - Routes attempts to appropriate sessions
@@ -722,3 +465,231 @@ class SessionAttributionEngine {
     return { message: "Attempt added and problem updated successfully", sessionId: session.id };
   }
 }
+
+/**
+ * Enhanced addAttempt with Session Attribution Engine
+ * Routes attempts to appropriate sessions based on context
+ *
+ * @param {Object} attemptData - The attempt data object.
+ * @param {Object} problem - The problem object.
+ * @returns {Promise<Object>} - A success message or an error.
+ */
+// Helper to update pattern ladders and notify UI after attempt
+async function postAttemptUpdates(problem) {
+  // Update pattern ladders for this attempted problem
+  try {
+    await updatePatternLaddersOnAttempt(problem.leetcode_id || problem.id);
+  } catch (error) {
+    console.error("❌ Error updating pattern ladders after attempt:", error);
+    // Don't fail the attempt if pattern ladder update fails
+  }
+
+  // Notify UI to refresh focus area eligibility
+  try {
+    window.dispatchEvent(new CustomEvent("cm:attempt-recorded"));
+  } catch (err) {
+    // Silent fail - window might not be available in background context
+  }
+}
+
+async function addAttempt(attemptData, problem) {
+  console.log("📌 SAE addAttempt called");
+  try {
+    if (!problem) {
+      console.error("AddAttempt: Problem not found");
+      return { error: "Problem not found." };
+    }
+
+    // Validate attempt data
+    if (!attemptData || typeof attemptData !== 'object' || Array.isArray(attemptData)) {
+      console.error("AddAttempt: Invalid attempt data", attemptData);
+      return { error: "Invalid attempt data provided." };
+    }
+
+    // Validate required structure - attempt should have some meaningful data
+    const hasValidProperties = Object.keys(attemptData).length > 0 &&
+      (Object.prototype.hasOwnProperty.call(attemptData, 'success') ||
+       Object.prototype.hasOwnProperty.call(attemptData, 'timeSpent') ||
+       Object.prototype.hasOwnProperty.call(attemptData, 'difficulty') ||
+       Object.prototype.hasOwnProperty.call(attemptData, 'timestamp'));
+
+    if (!hasValidProperties) {
+      console.error("AddAttempt: Attempt data missing required properties", attemptData);
+      return { error: "Attempt data missing required properties." };
+    }
+    // Debug: Log current problem structure
+    console.log("🔍 Current problem object:", {
+      id: problem.id,
+      leetcode_id: problem.leetcode_id,
+      title: problem.title,
+      problem_id: problem.problem_id,
+      allKeys: Object.keys(problem)
+    });
+
+    // 1. Check for active guided session first
+    console.log("🔍 ATTEMPT CREATION FLOW - Starting session attribution");
+    console.log("🔍 Problem data for matching:", {
+      problem_id: problem.problem_id, // UUID
+      leetcode_id: problem.leetcode_id, // LeetCode number
+      title: problem.title
+    });
+
+    const guidedSession = await SessionAttributionEngine.getActiveGuidedSession();
+    if (!guidedSession) {
+      console.log("❌ No active guided session found - will create tracking session");
+    } else if (!guidedSession.problems || !Array.isArray(guidedSession.problems)) {
+      console.log(`⚠️ Guided session ${guidedSession.id} has invalid problems array:`, {
+        hasProblems: !!guidedSession.problems,
+        isArray: Array.isArray(guidedSession.problems),
+        type: typeof guidedSession.problems
+      });
+      console.log("🔄 Session invalid - falling back to tracking session");
+    } else if (guidedSession.problems.length === 0) {
+      console.log(`⚠️ Guided session ${guidedSession.id} has empty problems array`);
+      console.log("🔄 Session has no problems - falling back to tracking session");
+    } else {
+      console.log(`🔍 Found guided session: ${guidedSession.session_type} (${guidedSession.status})`);
+      
+      // Debug: Log session problems structure
+      console.log("🔍 Session problems array:", {
+        problemsCount: guidedSession.problems.length,
+        problems: guidedSession.problems.map(p => ({
+          id: p.id,
+          leetcode_id: p.leetcode_id,
+          problem_id: p.problem_id,
+          title: p.title,
+          allKeys: Object.keys(p || {})
+        }))
+      });
+      
+      // 2. Check if this problem matches any problems in the guided session
+      console.log(`🔍 Checking if problem matches session ${guidedSession.id}...`);
+      if (SessionAttributionEngine.isMatchingProblem(guidedSession, problem)) {
+        console.log(`✅ MATCH FOUND! Problem leetcode_id=${problem.leetcode_id} matches guided session ${guidedSession.id}`);
+        const result = await SessionAttributionEngine.attachToGuidedSession(guidedSession, attemptData, problem);
+        console.log(`✅ Successfully attached attempt to guided session:`, {
+          attemptId: result.sessionId ? 'created' : 'failed',
+          sessionId: guidedSession.id,
+          problemLeetCodeId: problem.leetcode_id,
+          userDifficulty: attemptData.difficulty
+        });
+
+        await postAttemptUpdates(problem);
+        return result;
+      }
+      
+      console.log(`❌ Problem ${problem.id || problem.leetcode_id} does not match any problems in guided session ${guidedSession.id}`);
+      console.log("🔍 Detailed matching check failed - problem not found in session");
+    }
+
+    // 3. Fall back to tracking session (independent problem solving)
+    console.log("🔄 Routing to tracking session for independent problem solving");
+    let trackingSession = await SessionAttributionEngine.getRecentTrackingSession();
+    if (!trackingSession) {
+      trackingSession = await SessionAttributionEngine.createTrackingSession();
+    }
+
+    const result = await SessionAttributionEngine.attachToTrackingSession(trackingSession, attemptData, problem);
+
+    await postAttemptUpdates(problem);
+
+    // Cache invalidation no longer needed - real-time dashboard data bypasses cache
+
+    return result;
+
+  } catch (error) {
+    console.error("Error in addAttempt function:", error);
+    throw error;
+  }
+}
+
+/**
+ * Utility function to store data in IndexedDB.
+ * @param {IDBObjectStore} store - The object store.
+ * @param {Object} data - Data to store.
+ * @returns {Promise<void>}
+ */
+function putData(store, data) {
+  return new Promise((resolve, reject) => {
+    // Debug logging to identify keyPath evaluation issues
+    console.log(`🔍 putData called for store: ${store.name}`);
+    console.log(`🔍 Data being inserted:`, {
+      id: data.id,
+      idType: typeof data.id,
+      hasId: 'id' in data,
+      allKeys: Object.keys(data),
+      storeKeyPath: store.keyPath
+    });
+
+    const request = store.put(data);
+    request.onsuccess = resolve;
+    request.onerror = () => {
+      console.error(`❌ IndexedDB put error for store ${store.name}:`, {
+        error: request.error,
+        data: data,
+        keyPath: store.keyPath,
+        dataId: data.id
+      });
+      reject(request.error);
+    };
+  });
+}
+
+/**
+ * Get attempt statistics for a specific problem
+ * @param {string|number} problemId - The problem ID to get stats for
+ * @returns {Promise<{successful: number, total: number}>}
+ */
+async function getProblemAttemptStats(problemId) {
+  try {
+    const db = await openDB();
+    const transaction = db.transaction("attempts", "readonly");
+    const store = transaction.objectStore("attempts");
+    
+    return new Promise((resolve, reject) => {
+      const request = store.getAll();
+      
+      request.onsuccess = () => {
+        const allAttempts = request.result || [];
+        const problemAttempts = allAttempts.filter(attempt =>
+          // Check both problem_id (UUID) and leetcode_id for compatibility
+          attempt.problem_id?.toString() === problemId?.toString() ||
+          attempt.leetcode_id?.toString() === problemId?.toString()
+        );
+        
+        const successfulAttempts = problemAttempts.filter(attempt => attempt.success === true);
+        const successful = successfulAttempts.length;
+        const total = problemAttempts.length;
+
+        // Find the most recent successful attempt
+        let lastSolved = null;
+        if (successfulAttempts.length > 0) {
+          const mostRecentSuccess = successfulAttempts
+            .sort((a, b) => new Date(b.attempt_date || b.date) - new Date(a.attempt_date || a.date))[0];
+          lastSolved = mostRecentSuccess.attempt_date || mostRecentSuccess.date;
+        }
+
+        // Find the most recent attempt (successful or not)
+        let lastAttempted = null;
+        if (problemAttempts.length > 0) {
+          const mostRecentAttempt = problemAttempts
+            .sort((a, b) => new Date(b.attempt_date || b.date) - new Date(a.attempt_date || a.date))[0];
+          lastAttempted = mostRecentAttempt.attempt_date || mostRecentAttempt.date;
+        }
+
+        resolve({ successful, total, lastSolved, lastAttempted });
+      };
+      
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error("Error getting problem attempt stats:", error);
+    throw error;
+  }
+}
+
+export const AttemptsService = {
+  addAttempt,
+  getMostRecentAttempt,
+  getProblemAttemptStats,
+};

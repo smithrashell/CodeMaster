@@ -10,7 +10,6 @@ jest.mock("../../../shared/services/problemService");
 jest.mock("../../../shared/services/storageService");
 jest.mock("../../../shared/services/hintInteractionService");
 
-
 import * as dashboardService from "../dashboardService";
 import { 
   getDashboardStatistics, 
@@ -32,7 +31,6 @@ import { getAllStandardProblems } from "../../../shared/db/standard_problems";
 import { TagService } from "../../../shared/services/tagServices";
 import { ProblemService } from "../../../shared/services/problemService";
 import { HintInteractionService } from "../../../shared/services/hintInteractionService";
-import { getInteractionsBySession } from "../../../shared/db/hint_interactions";
 
 // Helper functions for test setup
 function setupEmptyStateMocks() {
@@ -42,13 +40,12 @@ function setupEmptyStateMocks() {
   getAllStandardProblems.mockResolvedValue([]);
   TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
   ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-  HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-  getInteractionsBySession.mockResolvedValue([]);
+  HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 }
 
 function setupUserProgressMocks() {
   fetchAllProblems.mockResolvedValue([
-    { id: 1, problem_id: 1, leetcode_id: 1, box_level: 4, attempt_stats: { total_attempts: 3, successful_attempts: 2 } },
+    { id: 1, problem_id: 1, leetcode_id: 1, box_level: 2, attempt_stats: { total_attempts: 3, successful_attempts: 2 } },
     { id: 2, problem_id: 2, leetcode_id: 2, box_level: 7, attempt_stats: { total_attempts: 5, successful_attempts: 4 } }
   ]);
 
@@ -82,8 +79,14 @@ function setupUserProgressMocks() {
     1: 5, 2: 3, 3: 2, 4: 1, 5: 1, 6: 1, 7: 2
   });
 
-  HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-  getInteractionsBySession.mockResolvedValue([]);
+  HintInteractionService.getSystemAnalytics.mockResolvedValue({
+    overview: { totalInteractions: 8 },
+    trends: { hintTypePopularity: [
+      { hintType: "contextual", count: 3 },
+      { hintType: "general", count: 3 },
+      { hintType: "primer", count: 2 }
+    ]}
+  });
 }
 
 function setupDatabaseFailureMocks() {
@@ -206,8 +209,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
 
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       const result = await getDashboardStatistics();
 
@@ -242,8 +244,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
 
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       const result = await getDashboardStatistics();
 
@@ -262,8 +263,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
       getAllStandardProblems.mockResolvedValue([]);
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       const result = await getDashboardStatistics();
 
@@ -298,8 +298,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
       
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({ 1: 5, 2: 3, 7: 2 });
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       const result = await getLearningProgressData();
 
@@ -356,8 +355,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
       
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({ 3: 1, 7: 1 });
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       const result = await getSessionHistoryData();
 
@@ -381,8 +379,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
       getAllStandardProblems.mockResolvedValue([]);
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       const start = Date.now();
       const result = await getDashboardStatistics();
@@ -402,8 +399,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
       getAllStandardProblems.mockResolvedValue([{ id: 1, difficulty: "Easy" }]);
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       // Simulate concurrent requests from different dashboard pages
       const promises = [
@@ -456,8 +452,7 @@ describe("DashboardService - Critical User Retention Paths", () => {
       getAllStandardProblems.mockResolvedValue([{ id: 1, difficulty: "Easy" }]);
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
       ProblemService.countProblemsByBoxLevel.mockResolvedValue({ 2: 1 });
-      HintInteractionService.getSystemAnalytics.mockResolvedValue({ total: 0, contextual: 0, general: 0, primer: 0 });
-      getInteractionsBySession.mockResolvedValue([]);
+      HintInteractionService.getSystemAnalytics.mockResolvedValue({ overview: { totalInteractions: 0 } });
 
       // Call multiple times to test consistency
       const result1 = await getDashboardStatistics();
