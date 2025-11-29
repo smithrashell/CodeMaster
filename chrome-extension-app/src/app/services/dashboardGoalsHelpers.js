@@ -30,7 +30,6 @@ export async function generateGoalsData(providedData = {}) {
 
     const allAttempts = providedData.allAttempts || [];
     const allSessions = providedData.allSessions || [];
-    const _learningState = providedData.learningState || null;
     const hintsUsed = providedData.hintsUsed || { total: 0, contextual: 0, general: 0, primer: 0 };
 
     // Calculate outcome trends from provided data

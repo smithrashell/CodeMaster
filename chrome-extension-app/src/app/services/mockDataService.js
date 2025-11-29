@@ -36,7 +36,6 @@ const generateMockSessions = (userType = "active") => {
         : 0.3;
 
     const successfulCount = Math.floor(problemsInSession * successRate);
-    const _failedCount = problemsInSession - successfulCount;
 
     // Create attempts for this session for DataAdapter
     const sessionAttempts = [];
