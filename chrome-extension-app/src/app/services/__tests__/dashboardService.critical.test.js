@@ -10,7 +10,7 @@ jest.mock("../../../shared/services/problem/problemService");
 jest.mock("../../../shared/services/storage/storageService");
 jest.mock("../../../shared/services/hints/hintInteractionService");
 
-import * as dashboardService from "../dashboardService";
+import * as dashboardService from "../dashboard/dashboardService";
 import {
   getDashboardStatistics,
   getStatsData,

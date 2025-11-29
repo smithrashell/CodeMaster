@@ -1,5 +1,5 @@
-import { 
-  getDashboardStatistics, 
+import {
+  getDashboardStatistics,
   getSessionHistoryData,
   getProductivityInsightsData,
   getTagMasteryData,
@@ -8,7 +8,7 @@ import {
   generateSessionAnalytics,
   generateMasteryData,
   generateGoalsData
-} from "../dashboardService";
+} from "../dashboard/dashboardService";
 
 // Mock database modules
 jest.mock("../../../shared/db/problems");
