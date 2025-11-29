@@ -385,31 +385,31 @@ export { generateGoalsData };
  * Each function returns only the data needed for a specific page
  */
 
-export async function getLearningProgressData(options = {}) {
+export function getLearningProgressData(options = {}) {
   return getLearningProgressDataHelper(options, getDashboardStatistics);
 }
 
-export async function getGoalsData(options = {}, providedData = null) {
+export function getGoalsData(options = {}, providedData = null) {
   return getGoalsDataHelper(options, providedData, getDashboardStatistics);
 }
 
-export async function getStatsData(options = {}) {
+export function getStatsData(options = {}) {
   return getStatsDataHelper(options, getDashboardStatistics);
 }
 
-export async function getSessionHistoryData(options = {}) {
+export function getSessionHistoryData(options = {}) {
   return getSessionHistoryDataHelper(options, getDashboardStatistics);
 }
 
-export async function getProductivityInsightsData(options = {}) {
+export function getProductivityInsightsData(options = {}) {
   return getProductivityInsightsDataHelper(options, getDashboardStatistics);
 }
 
-export async function getTagMasteryData(options = {}) {
+export function getTagMasteryData(options = {}) {
   return getTagMasteryDataHelper(options, getDashboardStatistics);
 }
 
-export async function getLearningPathData(options = {}) {
+export function getLearningPathData(options = {}) {
   return getLearningPathDataHelper(options, getDashboardStatistics);
 }
 
