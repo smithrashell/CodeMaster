@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { MantineProvider, createTheme } from "@mantine/core";
 import { useChromeMessage } from "../hooks/useChromeMessage";
-import { getExecutionContext } from "../db/accessControl.js";
+import { getExecutionContext } from "../db/core/accessControl.js";
 
 const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);

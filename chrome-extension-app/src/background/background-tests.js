@@ -5,12 +5,12 @@
  */
 
 // Import all test utilities and scenarios
-import { TestScenarios } from '../shared/utils/quickTest.js';
+import { TestScenarios } from '../shared/utils/testing/quickTest.js';
 import { ComprehensiveTestScenarios } from '../shared/utils/comprehensiveSessionTesting.js';
 import { MinimalSessionTester } from '../shared/utils/minimalSessionTesting.js';
 import { SilentSessionTester } from '../shared/utils/silentSessionTesting.js';
 import { TagProblemIntegrationTester } from '../shared/utils/integrationTesting.js';
-import { DynamicPathOptimizationTester } from '../shared/utils/testDataIsolation.js';
+import { DynamicPathOptimizationTester } from '../shared/utils/testing/testDataIsolation.js';
 import { RealSystemTester } from '../shared/utils/realSystemTesting.js';
 import { RelationshipSystemTester } from '../shared/utils/relationshipSystemTesting.js';
 

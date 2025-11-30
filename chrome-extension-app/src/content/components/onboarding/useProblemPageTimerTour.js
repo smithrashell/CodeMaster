@@ -2,7 +2,7 @@
  * Custom hooks for ProblemPageTimerTour component
  */
 import { useState, useEffect, useCallback } from "react";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { checkTimerTourCompleted, markTimerTourCompleted, TIMER_TOUR_STEPS } from "./ProblemPageTimerTourHelpers.js";
 
 /**

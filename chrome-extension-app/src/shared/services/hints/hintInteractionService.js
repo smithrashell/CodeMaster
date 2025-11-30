@@ -6,7 +6,7 @@ import {
   getInteractionStats,
   getHintEffectiveness,
   deleteOldInteractions,
-} from "../../db/hint_interactions.js";
+} from "../../db/entities/hint_interactions.js";
 import { SessionService } from "../session/sessionService.js";
 
 /**

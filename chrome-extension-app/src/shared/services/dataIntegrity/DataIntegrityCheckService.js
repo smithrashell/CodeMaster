@@ -11,7 +11,7 @@ import DataIntegritySchemas from "../../utils/dataIntegrity/DataIntegritySchemas
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
 import ErrorReportService from "../ErrorReportService.js";
-import logger from "../../utils/logger.js";
+import logger from "../../utils/logging/logger.js";
 import {
   executeSchemaValidation,
   executeReferentialCheck,

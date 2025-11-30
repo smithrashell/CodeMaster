@@ -24,7 +24,7 @@ global.chrome = {
 };
 
 // Mock logger
-jest.mock('../../utils/logger.js', () => ({
+jest.mock('../../utils/logging/logger.js', () => ({
   default: {
     info: jest.fn(),
     warn: jest.fn(),

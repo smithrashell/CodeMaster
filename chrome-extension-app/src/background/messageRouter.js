@@ -20,14 +20,14 @@ import FocusCoordinationService from "../shared/services/focusCoordinationServic
 import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../shared/services/recalibrationService.js";
 
 // Database imports
-import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
-import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/strategy_data.js";
-import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../shared/db/common.js";
-import { buildRelationshipMap } from "../shared/db/problem_relationships.js";
-import { getProblem, fetchAllProblems } from "../shared/db/problems.js";
-import { getAllStandardProblems } from "../shared/db/standard_problems.js";
-import { getAllAttempts } from "../shared/db/attempts.js";
-import { getAllSessions } from "../shared/db/sessions.js";
+import { backupIndexedDB, getBackupFile } from "../shared/db/migrations/backupDB.js";
+import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/entities/strategy_data.js";
+import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../shared/db/core/common.js";
+import { buildRelationshipMap } from "../shared/db/entities/problem_relationships.js";
+import { getProblem, fetchAllProblems } from "../shared/db/entities/problems.js";
+import { getAllStandardProblems } from "../shared/db/entities/standard_problems.js";
+import { getAllAttempts } from "../shared/db/entities/attempts.js";
+import { getAllSessions } from "../shared/db/entities/sessions.js";
 
 // Dashboard service imports
 import {
@@ -43,7 +43,7 @@ import {
   clearFocusAreaAnalyticsCache,
   getInterviewAnalyticsData,
   getLearningEfficiencyData
-} from "../app/services/dashboardService.js";
+} from "../app/services/dashboard/dashboardService.js";
 
 // Relationship service import
 import { buildProblemRelationships } from "../shared/services/relationshipService.js";

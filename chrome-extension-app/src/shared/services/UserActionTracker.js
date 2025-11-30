@@ -1,5 +1,5 @@
-import logger from "../utils/logger.js";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
+import logger from "../utils/logging/logger.js";
+import performanceMonitor from "../utils/performance/PerformanceMonitor.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../db/index.js";
 

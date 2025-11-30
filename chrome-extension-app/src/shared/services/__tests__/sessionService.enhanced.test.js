@@ -261,7 +261,7 @@ jest.mock("../session/sessionService.js", () => ({
   },
 }));
 
-jest.mock("../../db/sessions.js", () => ({
+jest.mock("../../db/entities/sessions.js", () => ({
   getSessionById: jest.fn(),
   getLatestSession: jest.fn(),
   saveSessionToStorage: jest.fn(),
@@ -291,7 +291,7 @@ import {
   _saveSessionToStorage, 
   _saveNewSessionToDB, 
   updateSessionInDB 
-} from "../../db/sessions.js";
+} from "../../db/entities/sessions.js";
 
 // Race condition test helpers
 const createConcurrentRequests = (count, fn, ...args) => 

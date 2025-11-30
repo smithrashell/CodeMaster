@@ -1,15 +1,15 @@
 // Mock dependencies
-jest.mock("../dashboardService");
-jest.mock("../../../shared/db/problems");
-jest.mock("../../../shared/db/attempts");
-jest.mock("../../../shared/db/sessions");
+jest.mock("../dashboard/dashboardService");
+jest.mock("../../../shared/db/entities/problems");
+jest.mock("../../../shared/db/entities/attempts");
+jest.mock("../../../shared/db/entities/sessions");
 
 import {
   getDashboardStatistics,
   getStatsData,
   getLearningProgressData,
   // getSessionHistoryData // Unused in current tests
-} from "../dashboardService";
+} from "../dashboard/dashboardService";
 import {
   createMockDataWithRaceCondition,
   validateDataConsistency,

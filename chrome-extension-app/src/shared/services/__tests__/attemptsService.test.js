@@ -7,9 +7,9 @@ import { AttemptsService } from '../attemptsService';
 
 // Mock all dependencies
 jest.mock('../../db/index.js');
-jest.mock('../../db/attempts.js');
+jest.mock('../../db/entities/attempts.js');
 jest.mock('../session/sessionService.js');
-jest.mock('../../db/sessions.js');
+jest.mock('../../db/entities/sessions.js');
 jest.mock('../problem/problemService.js');
 jest.mock('../focusCoordinationService.js', () => ({
   default: {

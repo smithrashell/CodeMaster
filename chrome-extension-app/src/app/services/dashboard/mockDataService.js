@@ -5,7 +5,7 @@
  * of real user data for development and testing purposes.
  */
 
-import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
+import AccurateTimer from "../../../shared/utils/timing/AccurateTimer.js";
 import { USER_SCENARIOS } from "../../config/mockConfig.js";
 
 /**

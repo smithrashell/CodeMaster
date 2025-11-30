@@ -3,7 +3,7 @@
  * Extracted from WhyThisProblem to reduce complexity
  */
 import { useChromeMessage } from '../../../shared/hooks/useChromeMessage';
-import logger from '../../../shared/utils/logger.js';
+import logger from '../../../shared/utils/logging/logger.js';
 
 /**
  * Hook for fetching and managing similar problems

@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { sendProblemMessage, getProblemSlugFromUrl, setupUrlChangeListeners } from "./mainHelpers.js";
 
 // Helper custom hook to create fetchProblemData callback

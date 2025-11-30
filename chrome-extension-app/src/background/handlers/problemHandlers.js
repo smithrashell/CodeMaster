@@ -14,7 +14,7 @@
 
 import { ProblemService } from "../../shared/services/problem/problemService.js";
 import { AttemptsService } from "../../shared/services/attemptsService.js";
-import { getProblemWithOfficialDifficulty } from "../../shared/db/problems.js";
+import { getProblemWithOfficialDifficulty } from "../../shared/db/entities/problems.js";
 
 /**
  * Handler: getProblemByDescription

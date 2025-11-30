@@ -2,7 +2,7 @@ import { dbHelper } from "../index.js";
 
 import { getProblem, saveUpdatedProblem } from "./problems.js";
 import { ProblemService } from "../../services/problem/problemService.js";
-import { calculateLeitnerBox, evaluateAttempts } from "../../utils/leitnerSystem.js";
+import { calculateLeitnerBox, evaluateAttempts } from "../../utils/leitner/leitnerSystem.js";
 import { createAttemptRecord } from "../../utils/Utils.js";
 import { SessionService } from "../../services/session/sessionService.js";
 

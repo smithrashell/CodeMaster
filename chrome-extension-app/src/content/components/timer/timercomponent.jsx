@@ -1,4 +1,4 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import React, {
   useState,
   useEffect,
@@ -17,7 +17,7 @@ import {
 import TimeDisplay from "../../../shared/components/timedisplay";
 import { FloatingHintButton } from "../strategy";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import AccurateTimer from "../../../shared/utils/AccurateTimer";
+import AccurateTimer from "../../../shared/utils/timing/AccurateTimer";
 import "../../../shared/components/css/timerBanner.css";
 
 // Countdown overlay component

@@ -10,7 +10,7 @@
 
 import { StorageService } from "../../shared/services/storage/storageService.js";
 import { SessionService } from "../../shared/services/session/sessionService.js";
-import { getSessionMetrics } from "../../app/services/dashboardService.js";
+import { getSessionMetrics } from "../../app/services/dashboard/dashboardService.js";
 
 /**
  * Handler: getSession

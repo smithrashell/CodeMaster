@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { showErrorNotification } from "../utils/errorNotifications";
+import { showErrorNotification } from "../utils/logging/errorNotifications.js";
 import ChromeAPIErrorHandler from "../services/ChromeAPIErrorHandler";
 
 // Performance monitoring for dashboard telemetry

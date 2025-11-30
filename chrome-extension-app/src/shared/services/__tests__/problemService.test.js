@@ -1,5 +1,5 @@
 // Mock logger first to prevent initialization errors
-jest.mock("../../utils/logger.js", () => {
+jest.mock("../../utils/logging/logger.js", () => {
   const mockLogger = {
     info: jest.fn(),
     warn: jest.fn(),
@@ -14,10 +14,10 @@ jest.mock("../../utils/logger.js", () => {
 });
 
 // Mock all dependencies before importing
-jest.mock("../../db/problems");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
+jest.mock("../../db/entities/problems");
+jest.mock("../../db/entities/standard_problems");
+jest.mock("../../db/entities/sessions");
+jest.mock("../../db/entities/tag_mastery");
 jest.mock("../attemptsService");
 jest.mock("../scheduleService", () => ({
   ScheduleService: {
@@ -38,10 +38,10 @@ jest.mock("../../../content/services/problemReasoningService", () => ({
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 import { ProblemService } from "../problem/problemService";
-import * as problemsDb from "../../db/problems";
-import * as standardProblems from "../../db/standard_problems";
-import { buildAdaptiveSessionSettings } from "../../db/sessions";
-import { getTagMastery } from "../../db/tag_mastery";
+import * as problemsDb from "../../db/entities/problems";
+import * as standardProblems from "../../db/entities/standard_problems";
+import { buildAdaptiveSessionSettings } from "../../db/entities/sessions";
+import { getTagMastery } from "../../db/entities/tag_mastery";
 import { AttemptsService } from "../attemptsService";
 import { ScheduleService } from "../scheduleService";
 import { StorageService } from "../storage/storageService";

@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, Title, Text, Button, Stack } from "@mantine/core";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 
 const LearningStrategyPanel = ({ selectedTag, pathData, onTagDeselect }) => {
   return (

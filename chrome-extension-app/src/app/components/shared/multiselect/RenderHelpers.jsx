@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Text, Badge, ActionIcon, Group } from '@mantine/core';
 import { IconX, IconCheck } from '@tabler/icons-react';
-import { debug } from '../../../../shared/utils/logger.js';
+import { debug } from '../../../../shared/utils/logging/logger.js';
 
 export function renderSelectedBadge(val, disabled, clearable, handleRemoveItem, getLabelForValue) {
   return (

@@ -1,4 +1,4 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import React, { useState, useMemo } from "react";
 import { Card, Text, Title, Stack, SegmentedControl, Switch, ColorPicker, Alert, Button, Group, Tooltip, Slider, Select } from "@mantine/core";
 import { IconChartBar, IconInfoCircle } from "@tabler/icons-react";

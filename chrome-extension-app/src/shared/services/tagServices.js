@@ -3,11 +3,11 @@ import { dbHelper } from "../db/index.js";
 import {
   getHighlyRelatedTags,
   getNextFiveTagsFromNextTier,
-} from "../db/tag_relationships.js";
-import { getSessionPerformance } from "../db/sessions.js";
+} from "../db/entities/tag_relationships.js";
+import { getSessionPerformance } from "../db/entities/sessions.js";
 import { StorageService } from "./storage/storageService.js";
 import SessionLimits from "../utils/sessionLimits.js";
-import logger from "../utils/logger.js";
+import logger from "../utils/logging/logger.js";
 import { calculateSuccessRate } from "../utils/Utils.js";
 
 const openDB = () => dbHelper.openDB();

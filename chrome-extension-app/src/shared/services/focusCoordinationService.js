@@ -11,7 +11,7 @@
 import { TagService } from './tagServices.js';
 import { StorageService } from './storage/storageService.js';
 import { detectApplicableEscapeHatches} from '../utils/escapeHatchUtils.js';
-import { getAllFromStore } from '../db/common.js';
+import { getAllFromStore } from '../db/core/common.js';
 
 /**
  * Configuration constants for focus coordination

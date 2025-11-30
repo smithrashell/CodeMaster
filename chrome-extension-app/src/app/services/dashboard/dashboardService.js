@@ -1,18 +1,18 @@
-import { fetchAllProblems } from "../../../shared/db/problems.js";
-import { getAllAttempts } from "../../../shared/db/attempts.js";
-import { getAllSessions } from "../../../shared/db/sessions.js";
+import { fetchAllProblems } from "../../../shared/db/entities/problems.js";
+import { getAllAttempts } from "../../../shared/db/entities/attempts.js";
+import { getAllSessions } from "../../../shared/db/entities/sessions.js";
 import { TagService } from "../../../shared/services/tagServices.js";
 import { ProblemService } from "../../../shared/services/problem/problemService.js";
-import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
-import { getAllStandardProblems } from "../../../shared/db/standard_problems.js";
+import AccurateTimer from "../../../shared/utils/timing/AccurateTimer.js";
+import { getAllStandardProblems } from "../../../shared/db/entities/standard_problems.js";
 import { StorageService } from "../../../shared/services/storage/storageService.js";
-import { getRecentSessionAnalytics } from "../../../shared/db/sessionAnalytics.js";
+import { getRecentSessionAnalytics } from "../../../shared/db/entities/sessionAnalytics.js";
 import { HintInteractionService } from "../../../shared/services/hints/hintInteractionService.js";
-import { getInteractionsBySession } from "../../../shared/db/hint_interactions.js";
-import { getLatestSession } from "../../../shared/db/sessions.js";
-import logger from "../../../shared/utils/logger.js";
+import { getInteractionsBySession } from "../../../shared/db/entities/hint_interactions.js";
+import { getLatestSession } from "../../../shared/db/entities/sessions.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { calculateProgressPercentage, calculateSuccessRate, roundToPrecision } from "../../../shared/utils/Utils.js";
-import { getTagRelationships } from "../../../shared/db/tag_relationships.js";
+import { getTagRelationships } from "../../../shared/db/entities/tag_relationships.js";
 import {
   createProblemMappings,
   getTargetFocusAreas,

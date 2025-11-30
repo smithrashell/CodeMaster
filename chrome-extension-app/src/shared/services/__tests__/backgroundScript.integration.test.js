@@ -6,12 +6,12 @@
 
 import FocusCoordinationService from '../focusCoordinationService.js';
 import { StorageService } from '../storage/storageService.js';
-import { getGoalsData } from '../../../app/services/dashboardService.js';
+import { getGoalsData } from '../../../app/services/dashboard/dashboardService.js';
 
 // Mock dependencies
 jest.mock('../focusCoordinationService.js');
 jest.mock('../storage/storageService.js');
-jest.mock('../../../app/services/dashboardService.js');
+jest.mock('../../../app/services/dashboard/dashboardService.js');
 
 // Helper functions for background script tests
 const createDefaultSettings = () => ({

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
-import AccurateTimer from "../../../shared/utils/AccurateTimer.js";
+import AccurateTimer from "../../../shared/utils/timing/AccurateTimer.js";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
 import { IconHash, IconTarget, IconClock, IconBolt, IconMessageCircle } from "@tabler/icons-react";
 import SimpleSelect from "../../../shared/components/ui/SimpleSelect";

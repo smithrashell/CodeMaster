@@ -12,7 +12,7 @@ import { MantineProvider } from "@mantine/core";
 import ErrorBoundary from "../ErrorBoundary";
 
 // Mock the error notification system
-jest.mock("../../utils/errorNotifications", () => ({
+jest.mock("../../utils/logging/errorNotifications", () => ({
   showSuccessNotification: jest.fn(),
 }));
 

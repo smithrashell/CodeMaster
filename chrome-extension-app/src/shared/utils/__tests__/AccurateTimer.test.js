@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import AccurateTimer from "../AccurateTimer";
+import AccurateTimer from "../timing/AccurateTimer";
 
 // Shared test setup
 beforeEach(() => {

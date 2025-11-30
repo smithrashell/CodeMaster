@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { checkContentOnboardingStatus } from "../../shared/services/onboardingService.js";
 import { shouldUseMockDashboard } from "../config/mockConfig.js";
 import { filterSessionsByTimeRange } from "../pages/sessions/sessionTimeUtils.js";
-import AccurateTimer from "../../shared/utils/AccurateTimer.js";
+import AccurateTimer from "../../shared/utils/timing/AccurateTimer.js";
 
 /**
  * Recalculate KPI metrics from filtered sessions

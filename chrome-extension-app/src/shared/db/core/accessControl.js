@@ -1,4 +1,4 @@
-import logger from "../../utils/logger.js";
+import logger from "../../utils/logging/logger.js";
 
 /**
  * Enhanced context detection for debugging and test safety

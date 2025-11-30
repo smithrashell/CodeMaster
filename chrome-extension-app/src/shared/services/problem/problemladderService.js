@@ -1,7 +1,7 @@
 import {
   clearPatternLadders,
   upsertPatternLadder,
-} from "../../db/pattern_ladder.js";
+} from "../../db/entities/pattern_ladder.js";
 
 import {
   getAllowedClassifications,
@@ -10,10 +10,10 @@ import {
   getPatternLadders,
 } from "../../utils/dbUtils/patternLadderUtils.js";
 
-import { buildRelationshipMap } from "../../db/problem_relationships.js";
+import { buildRelationshipMap } from "../../db/entities/problem_relationships.js";
 
 import { TagService } from "../tagServices.js";
-import { getAllFromStore } from "../../db/common.js";
+import { getAllFromStore } from "../../db/core/common.js";
 
 // Normalize tag names to lowercase for consistent storage and lookup
 const normalizeTag = (tag) => tag.trim().toLowerCase();

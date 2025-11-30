@@ -1,4 +1,4 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { useState, useCallback, useEffect, useRef } from "react";
 import "../../css/probrec.css";
 import Header from "../../components/navigation/header";

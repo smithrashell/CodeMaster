@@ -1,4 +1,4 @@
-import logger from "../../utils/logger.js";
+import logger from "../../utils/logging/logger.js";
 import { handleDatabaseUpgrade } from "../migrations/migrationOrchestrator.js";
 
 /**

@@ -1,5 +1,5 @@
 // Mock logger first before any other imports
-jest.mock("../../utils/logger.js", () => ({
+jest.mock("../../utils/logging/logger.js", () => ({
   __esModule: true,
   default: {
     info: jest.fn(),
@@ -17,24 +17,24 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
-} from "../../db/sessions";
-import { updateProblemRelationships } from "../../db/problem_relationships";
-import { calculateTagMastery } from "../../db/tag_mastery";
+} from "../../db/entities/sessions";
+import { updateProblemRelationships } from "../../db/entities/problem_relationships";
+import { calculateTagMastery } from "../../db/entities/tag_mastery";
 import { ProblemService } from "../problem/problemService";
 import { StorageService } from "../storage/storageService";
 
 // Mock the database modules
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
-jest.mock("../../db/problem_relationships");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessionAnalytics");
+jest.mock("../../db/entities/sessions");
+jest.mock("../../db/entities/tag_mastery");
+jest.mock("../../db/entities/problem_relationships");
+jest.mock("../../db/entities/standard_problems");
+jest.mock("../../db/entities/sessionAnalytics");
 jest.mock("../problem/problemService");
 jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 // Mock new dependencies introduced during database integration  
-jest.mock("../../utils/PerformanceMonitor.js", () => ({
+jest.mock("../../utils/performance/PerformanceMonitor.js", () => ({
   __esModule: true,
   default: {
     startQuery: jest.fn(() => ({ id: "test-query" })),

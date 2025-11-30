@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useMultiSelectState, useMultiSelectLogic } from '../../hooks/useMultiSelectLogic.js';
-import { debug } from '../../../shared/utils/logger.js';
+import { debug } from '../../../shared/utils/logging/logger.js';
 import { Box, Text } from '@mantine/core';
 import MainInputContainer from './multiselect/MainInputContainer.jsx';
 import DropdownContent from './multiselect/DropdownContent.jsx';

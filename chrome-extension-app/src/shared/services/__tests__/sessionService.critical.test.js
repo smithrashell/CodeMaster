@@ -6,7 +6,7 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
-} from "../../db/sessions";
+} from "../../db/entities/sessions";
 import { ProblemService } from "../problem/problemService";
 import { StorageService } from "../storage/storageService";
 import {
@@ -15,17 +15,17 @@ import {
 } from './sessionServiceTestHelpers';
 
 // Mock the database modules
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
-jest.mock("../../db/problem_relationships");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessionAnalytics");
+jest.mock("../../db/entities/sessions");
+jest.mock("../../db/entities/tag_mastery");
+jest.mock("../../db/entities/problem_relationships");
+jest.mock("../../db/entities/standard_problems");
+jest.mock("../../db/entities/sessionAnalytics");
 jest.mock("../problem/problemService");
 jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 // Mock new dependencies introduced during database integration  
-jest.mock("../../utils/PerformanceMonitor.js", () => ({
+jest.mock("../../utils/performance/PerformanceMonitor.js", () => ({
   __esModule: true,
   default: {
     startQuery: jest.fn(() => ({ id: "test-query" })),
@@ -228,8 +228,8 @@ describe("SessionService - Critical User Retention Paths", () => {
   describe("📊 CRITICAL: User sees their streak", () => {
     it("should calculate current streak correctly", async () => {
       // Mock the openDatabase function to return our test database
-      const { openDatabase: _openDatabase } = await import('../../db/connectionUtils.js');
-      jest.doMock('../../db/connectionUtils.js', () => ({
+      const { openDatabase: _openDatabase } = await import('../../db/core/connectionUtils.js');
+      jest.doMock('../../db/core/connectionUtils.js', () => ({
         openDatabase: jest.fn().mockResolvedValue({
           transaction: jest.fn().mockReturnValue({
             objectStore: jest.fn().mockReturnValue({

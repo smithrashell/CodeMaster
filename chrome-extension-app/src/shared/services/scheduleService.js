@@ -1,4 +1,4 @@
-import { fetchAllProblems } from "../db/problems.js";
+import { fetchAllProblems } from "../db/entities/problems.js";
 
 export const ScheduleService = {
   isDueForReview,

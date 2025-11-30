@@ -9,7 +9,7 @@ import {
   getMockProductivityInsightsData,
   getMockTagMasteryData,
   getMockLearningPathData,
-} from "../services/mockDashboardService.js";
+} from "../services/dashboard/mockDashboardService.js";
 
 // Page configuration mapping - moved outside to prevent re-creation on every render
 const PAGE_CONFIG = {

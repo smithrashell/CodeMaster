@@ -1,6 +1,6 @@
-import { getAllFromStore, saveAllToStore } from "../../shared/db/common.js";
-import { addLimit, getMostRecentLimit } from "../../shared/db/limit.js";
-import logger from "../../shared/utils/logger.js";
+import { getAllFromStore, saveAllToStore } from "../../shared/db/core/common.js";
+import { addLimit, getMostRecentLimit } from "../../shared/db/core/limit.js";
+import logger from "../../shared/utils/logging/logger.js";
 
 export const RatingService = {
   updateProblemsWithRatings,

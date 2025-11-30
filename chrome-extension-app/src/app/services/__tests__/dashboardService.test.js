@@ -11,21 +11,21 @@ import {
 } from "../dashboard/dashboardService";
 
 // Mock database modules
-jest.mock("../../../shared/db/problems");
-jest.mock("../../../shared/db/attempts");
-jest.mock("../../../shared/db/sessions");
-jest.mock("../../../shared/db/standard_problems");
-jest.mock("../../../shared/db/sessionAnalytics");
-jest.mock("../../../shared/db/tag_relationships");
+jest.mock("../../../shared/db/entities/problems");
+jest.mock("../../../shared/db/entities/attempts");
+jest.mock("../../../shared/db/entities/sessions");
+jest.mock("../../../shared/db/entities/standard_problems");
+jest.mock("../../../shared/db/entities/sessionAnalytics");
+jest.mock("../../../shared/db/entities/tag_relationships");
 jest.mock("../../../shared/services/tagServices");
 jest.mock("../../../shared/services/problem/problemService");
 jest.mock("../../../shared/services/storage/storageService");
 
-import { fetchAllProblems } from "../../../shared/db/problems";
-import { getAllAttempts } from "../../../shared/db/attempts";
-import { getAllSessions } from "../../../shared/db/sessions";
-import { getAllStandardProblems } from "../../../shared/db/standard_problems";
-import { getTagRelationships } from "../../../shared/db/tag_relationships";
+import { fetchAllProblems } from "../../../shared/db/entities/problems";
+import { getAllAttempts } from "../../../shared/db/entities/attempts";
+import { getAllSessions } from "../../../shared/db/entities/sessions";
+import { getAllStandardProblems } from "../../../shared/db/entities/standard_problems";
+import { getTagRelationships } from "../../../shared/db/entities/tag_relationships";
 import { TagService } from "../../../shared/services/tagServices";
 import { ProblemService } from "../../../shared/services/problem/problemService";
 import { StorageService } from "../../../shared/services/storage/storageService";

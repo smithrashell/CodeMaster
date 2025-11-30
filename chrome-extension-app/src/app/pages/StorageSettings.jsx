@@ -28,7 +28,7 @@ import { SettingsTab } from "../components/settings/SettingsTab.jsx";
 import { StorageNotifications } from "../components/settings/StorageNotifications.jsx";
 import { StorageLoadingState } from "../components/settings/StorageLoadingState.jsx";
 import { useStorageData } from "../hooks/useStorageData.js";
-import StorageCleanupManager from "../../shared/utils/storageCleanup.js";
+import StorageCleanupManager from "../../shared/utils/storage/storageCleanup.js";
 import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
 
 // Storage Header Component

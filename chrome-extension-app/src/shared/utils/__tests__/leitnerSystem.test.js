@@ -6,13 +6,13 @@
 import "fake-indexeddb/auto";
 
 // Mock all database dependencies
-jest.mock("../../../shared/db/problems.js", () => ({
+jest.mock("../../db/entities/problems.js", () => ({
   updateStabilityFSRS: jest.fn(),
   fetchAllProblems: jest.fn(),
   saveUpdatedProblem: jest.fn(),
 }));
 
-jest.mock("../../../shared/db/index.js", () => ({
+jest.mock("../../db/index.js", () => ({
   dbHelper: {
     openDB: jest.fn(),
   },
@@ -22,10 +22,10 @@ import {
   calculateLeitnerBox as _calculateLeitnerBox,
   reassessBoxLevel,
   evaluateAttempts,
-} from "../leitnerSystem.js";
+} from "../leitner/leitnerSystem.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
-import { updateStabilityFSRS } from "../../db/problems.js";
+import { updateStabilityFSRS } from "../../db/entities/problems.js";
 
 // Mock setup helpers
 const createMockIndex = () => ({

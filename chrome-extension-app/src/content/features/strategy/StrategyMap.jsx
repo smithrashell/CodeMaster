@@ -1,4 +1,4 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import React, { useState, useEffect } from "react";
 import Header from "../../components/navigation/header";
 import { useNav } from "../../../shared/provider/navprovider";

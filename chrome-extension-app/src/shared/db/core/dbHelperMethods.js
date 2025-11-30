@@ -10,7 +10,7 @@ import {
   validateDatabaseAccess,
   logDatabaseAccess,
   checkProductionDatabaseAccess
-} from "./accessControl.js";
+} from "./core/accessControl.js";
 import {
   createDatabaseConnection,
   logCachedConnection

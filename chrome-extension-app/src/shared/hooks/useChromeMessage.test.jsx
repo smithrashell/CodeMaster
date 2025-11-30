@@ -10,7 +10,7 @@ jest.mock("../services/ChromeAPIErrorHandler", () => ({
 }));
 
 // Mock the error notifications
-jest.mock("../utils/errorNotifications", () => ({
+jest.mock("../utils/logging/errorNotifications", () => ({
   showErrorNotification: jest.fn(),
 }));
 
@@ -62,7 +62,7 @@ const setupChromeAPITest = () => {
   mockChromeAPIErrorHandler.showErrorReportDialog.mockClear();
 
   // Reset error notifications mock
-  const errorNotifications = require("../utils/errorNotifications");
+  const errorNotifications = require("../utils/logging/errorNotifications");
   errorNotifications.showErrorNotification.mockReset();
 
   return mockChromeAPIErrorHandler;

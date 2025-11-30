@@ -9,7 +9,7 @@ import ErrorReportService from "./monitoring/ErrorReportService";
 import {
   showErrorNotification,
   handleChromeAPIError,
-} from "../utils/errorNotifications";
+} from "../utils/logging/errorNotifications";
 
 export class ChromeAPIErrorHandler {
   static DEFAULT_RETRY_COUNT = 2; // Reduced from 3 to match content script pattern

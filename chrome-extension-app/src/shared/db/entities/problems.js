@@ -22,7 +22,7 @@ const openDB = () => dbHelper.openDB();
 // Import retry service for enhanced database operations
 import indexedDBRetry from "../../services/storage/IndexedDBRetryService.js";
 import { SessionService } from "../../services/session/sessionService.js";
-import logger from "../../utils/logger.js";
+import logger from "../../utils/logging/logger.js";
 
 /**
  * Updates problems with rating increases based on attempts.

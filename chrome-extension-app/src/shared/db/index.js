@@ -1,7 +1,7 @@
-import migrationSafety from "./migrationSafety.js";
+import migrationSafety from "./migrations/migrationSafety.js";
 import indexedDBRetry from "../services/storage/IndexedDBRetryService.js";
 // Import database debugger to install global interceptor
-import "../utils/DatabaseDebugger.js";
+import "../utils/testing/DatabaseDebugger.js";
 // Import extracted modules for modular database operations
 import {
   getExecutionContext,
@@ -9,12 +9,12 @@ import {
   validateDatabaseAccess,
   logDatabaseAccess,
   checkProductionDatabaseAccess
-} from "./accessControl.js";
+} from "./core/accessControl.js";
 import {
   createDatabaseConnection,
   logNewConnectionWarning,
   logCachedConnection
-} from "./connectionUtils.js";
+} from "./core/connectionUtils.js";
 
 // Global IndexedDB error handler for debugging
 if (typeof window !== 'undefined') {

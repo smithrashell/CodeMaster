@@ -6,7 +6,7 @@ import FocusCoordinationService from "../../services/focusCoordinationService.js
 import SessionLimits from "../../utils/sessionLimits.js";
 import { InterviewService } from "../../services/interviewService.js";
 import { getRecentSessionAnalytics } from "./sessionAnalytics.js";
-import logger from "../../utils/logger.js";
+import logger from "../../utils/logging/logger.js";
 
 const openDB = () => dbHelper.openDB();
 

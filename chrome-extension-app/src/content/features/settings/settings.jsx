@@ -12,7 +12,7 @@ import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadine
 import { useNav } from "../../../shared/provider/navprovider";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 import SessionLimits from "../../../shared/utils/sessionLimits.js";
-import { component, debug, system } from "../../../shared/utils/logger.js";
+import { component, debug, system } from "../../../shared/utils/logging/logger.js";
 
 // Interview Mode Controls Component (copied from AdaptiveSettingsCard)
 function InterviewModeControls({ settings, updateSettings, interviewReadiness }) {

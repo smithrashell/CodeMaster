@@ -2,7 +2,7 @@ import {
   updateStabilityFSRS,
   fetchAllProblems as getAllProblems,
   saveUpdatedProblem,
-} from "../../db/problems.js";
+} from "../../db/entities/problems.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
 import {

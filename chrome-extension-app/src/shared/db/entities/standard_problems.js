@@ -1,5 +1,5 @@
 import { dbHelper } from "../index.js";
-import logger from "../../utils/logger.js";
+import logger from "../../utils/logging/logger.js";
 import STANDARD_PROBLEMS_DATA from "../../constants/LeetCode_Tags_Combined.json";
 
 // Standard problems data

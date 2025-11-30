@@ -11,7 +11,7 @@ import { HintInteractionService } from "../shared/services/hints/hintInteraction
 import { AlertingService } from "../shared/services/monitoring/AlertingService.js";
 import { NavigationService } from "../shared/services/navigationService.js";
 import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
-import AccurateTimer from "../shared/utils/AccurateTimer.js";
+import AccurateTimer from "../shared/utils/timing/AccurateTimer.js";
 import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
 import { checkAndApplyDecay } from "../shared/services/recalibrationService.js";
 

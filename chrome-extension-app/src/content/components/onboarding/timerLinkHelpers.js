@@ -1,7 +1,7 @@
 /**
  * Helper functions for finding timer link in menu
  */
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 
 /**
  * Finds the timer link in the menu sidebar using multiple selectors

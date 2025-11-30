@@ -15,7 +15,7 @@ import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
 import { usePageTour } from "../../components/onboarding/usePageTour";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import styles from "./ProblemCard.module.css";
 
 /**

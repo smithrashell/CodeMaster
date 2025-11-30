@@ -1,6 +1,6 @@
 import { dbHelper } from "../index.js";
 import { getAllStandardProblems } from "./standard_problems.js";
-import logger from "../../utils/logger.js";
+import logger from "../../utils/logging/logger.js";
 
 const openDB = dbHelper.openDB;
 

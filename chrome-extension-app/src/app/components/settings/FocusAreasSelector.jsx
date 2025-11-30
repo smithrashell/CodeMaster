@@ -1,5 +1,5 @@
 import React from "react";
-import { debug as _debug } from "../../../shared/utils/logger.js";
+import { debug as _debug } from "../../../shared/utils/logging/logger.js";
 import {
   Card,
   Alert,

@@ -24,7 +24,7 @@ import {
 import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 

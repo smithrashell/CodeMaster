@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
-import logger from "../../shared/utils/logger.js";
+import logger from "../../shared/utils/logging/logger.js";
 
 // Comprehensive Accessibility Settings Hook using Chrome messaging
 export function useAccessibilitySettings() {

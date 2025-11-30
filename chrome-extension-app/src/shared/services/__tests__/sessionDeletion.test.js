@@ -9,21 +9,21 @@ import { SessionService } from "../session/sessionService";
 import {
   getSessionById,
   deleteSessionFromDB,
-} from "../../db/sessions";
+} from "../../db/entities/sessions";
 import { ProblemService } from "../problem/problemService";
 import { StorageService } from "../storage/storageService";
 
 // Mock dependencies
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
-jest.mock("../../db/problem_relationships");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessionAnalytics");
+jest.mock("../../db/entities/sessions");
+jest.mock("../../db/entities/tag_mastery");
+jest.mock("../../db/entities/problem_relationships");
+jest.mock("../../db/entities/standard_problems");
+jest.mock("../../db/entities/sessionAnalytics");
 jest.mock("../problem/problemService");
 jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-session-uuid" }));
 
-jest.mock("../../utils/PerformanceMonitor.js", () => ({
+jest.mock("../../utils/performance/PerformanceMonitor.js", () => ({
   __esModule: true,
   default: {
     startQuery: jest.fn(() => ({ id: "test-query" })),

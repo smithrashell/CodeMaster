@@ -2,7 +2,7 @@
  * Custom hooks for Main component event handlers
  */
 import { useCallback } from "react";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
 
 /**

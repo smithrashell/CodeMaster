@@ -4,7 +4,7 @@
  * Extracted to reduce function complexity
  */
 
-import logger from '../../utils/logger.js';
+import logger from '../../utils/logging/logger.js';
 
 /**
  * Calculate composite score for a problem
