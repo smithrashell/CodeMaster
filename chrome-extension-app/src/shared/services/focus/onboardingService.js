@@ -1,17 +1,17 @@
-import { initializePatternLaddersForOnboarding } from "./problem/problemladderService.js";
-import { buildTagRelationships } from "../db/entities/tag_relationships.js";
-import { insertStandardProblems } from "../db/entities/standard_problems.js"; // assuming this is where seeding is
-import { insertStrategyData } from "../db/entities/strategy_data.js";
-import { buildProblemRelationships } from "../services/relationshipService.js";
-import { StorageService } from "./storage/storageService.js";
+import { initializePatternLaddersForOnboarding } from "../problem/problemladderService.js";
+import { buildTagRelationships } from "../../db/entities/tag_relationships.js";
+import { insertStandardProblems } from "../../db/entities/standard_problems.js"; // assuming this is where seeding is
+import { insertStrategyData } from "../../db/entities/strategy_data.js";
+import { buildProblemRelationships } from "../focus/relationshipService.js";
+import { StorageService } from "../storage/storageService.js";
 
 import {
   getAllFromStore,
   addRecord,
   updateRecord,
   getRecord,
-} from "../db/core/common.js";
-import logger from "../utils/logging/logger.js";
+} from "../../db/core/common.js";
+import logger from "../../utils/logging/logger.js";
 
 // Direct snake_case field access - no backward compatibility needed
 

@@ -29,7 +29,7 @@ import { StorageNotifications } from "../components/settings/StorageNotification
 import { StorageLoadingState } from "../components/settings/StorageLoadingState.jsx";
 import { useStorageData } from "../hooks/useStorageData.js";
 import StorageCleanupManager from "../../shared/utils/storage/storageCleanup.js";
-import ChromeAPIErrorHandler from "../../shared/services/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../shared/services/chrome/ChromeAPIErrorHandler.js";
 
 // Storage Header Component
 const StorageHeader = () => (

@@ -11,19 +11,19 @@
  */
 
 import { StorageService } from '../../shared/services/storage/storageService.js';
-import FocusCoordinationService from '../../shared/services/focusCoordinationService.js';
+import FocusCoordinationService from '../../shared/services/focus/focusCoordinationService.js';
 import * as dashboardService from '../../app/services/dashboard/dashboardService.js';
 import { ProblemService } from '../../shared/services/problem/problemService.js';
 import { SessionService } from '../../shared/services/session/sessionService.js';
-import { TagService } from '../../shared/services/tagServices.js';
+import { TagService } from '../../shared/services/attempts/tagServices.js';
 
 // Mock all services
 jest.mock('../../shared/services/storage/storageService.js');
-jest.mock('../../shared/services/focusCoordinationService.js');
+jest.mock('../../shared/services/focus/focusCoordinationService.js');
 jest.mock('../../app/services/dashboard/dashboardService.js');
 jest.mock('../../shared/services/problem/problemService.js');
 jest.mock('../../shared/services/session/sessionService.js');
-jest.mock('../../shared/services/tagServices.js');
+jest.mock('../../shared/services/attempts/tagServices.js');
 
 // Mock Chrome APIs
 global.chrome = {

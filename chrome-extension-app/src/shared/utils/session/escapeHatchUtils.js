@@ -1,4 +1,4 @@
-import { calculateSuccessRate, calculateFailedAttempts } from './Utils.js';
+import { calculateSuccessRate, calculateFailedAttempts } from '../leitner/Utils.js';
 
 /**
  * 🔓 Escape Hatch Utilities

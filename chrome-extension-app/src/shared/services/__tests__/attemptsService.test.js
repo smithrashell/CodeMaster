@@ -3,7 +3,7 @@
  * This service routes problem attempts to sessions and manages user progress
  */
 
-import { AttemptsService } from '../attemptsService';
+import { AttemptsService } from '../attempts/attemptsService';
 
 // Mock all dependencies
 jest.mock('../../db/index.js');
@@ -11,12 +11,12 @@ jest.mock('../../db/entities/attempts.js');
 jest.mock('../session/sessionService.js');
 jest.mock('../../db/entities/sessions.js');
 jest.mock('../problem/problemService.js');
-jest.mock('../focusCoordinationService.js', () => ({
+jest.mock('../focus/focusCoordinationService.js', () => ({
   default: {
     updateFocusAreas: jest.fn()
   }
 }));
-jest.mock('../../utils/Utils.js');
+jest.mock('../../utils/leitner/Utils.js');
 
 // Test helper functions to reduce main describe function size
 const runAddAttemptCoreTests = () => {

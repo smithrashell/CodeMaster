@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { checkContentOnboardingStatus } from "../../shared/services/onboardingService.js";
+import { checkContentOnboardingStatus } from "../../shared/services/focus/onboardingService.js";
 import { shouldUseMockDashboard } from "../config/mockConfig.js";
 import { filterSessionsByTimeRange } from "../pages/sessions/sessionTimeUtils.js";
 import AccurateTimer from "../../shared/utils/timing/AccurateTimer.js";
@@ -82,7 +82,7 @@ function recalculateKPIsFromSessions(filteredSessions, appState) {
  */
 function processSessionData(allSessions, timeRange, setAccuracyData, setEfficiencyData) {
   if (allSessions && Array.isArray(allSessions)) {
-    const { getIndividualSessionAccuracyData, getIndividualSessionEfficiencyData } = require("../../shared/utils/DataAdapter.js");
+    const { getIndividualSessionAccuracyData, getIndividualSessionEfficiencyData } = require("../../shared/utils/ui/DataAdapter.js");
 
     // Filter sessions by time range first
     const filteredSessions = filterSessionsByTimeRange(allSessions, timeRange);

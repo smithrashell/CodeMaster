@@ -23,7 +23,7 @@ import {
 } from "@tabler/icons-react";
 import { ElementHighlighter } from "./ElementHighlighter";
 import { smartPositioning } from "./SmartPositioning";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logging/logger.js";
 import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 

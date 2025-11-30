@@ -1,4 +1,4 @@
-import { getMostRecentLimit } from "../db/limit.js";
+import { getMostRecentLimit } from "../../db/limit.js";
 
 const limits = {
   Easy: 15,

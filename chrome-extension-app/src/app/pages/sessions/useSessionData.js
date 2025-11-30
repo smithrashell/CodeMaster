@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { filterSessionsByTimeRange, calculateKPIs } from "./sessionTimeUtils";
-import { getIndividualSessionAccuracyData } from "../../../shared/utils/DataAdapter";
+import { getIndividualSessionAccuracyData } from "../../../shared/utils/ui/DataAdapter";
 
 export const useSessionData = (appState, timeRange) => {
   const [sessionLengthData, setSessionLengthData] = useState([]);

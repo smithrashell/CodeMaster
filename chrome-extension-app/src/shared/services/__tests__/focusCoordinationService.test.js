@@ -3,8 +3,8 @@
  * Tests the critical onboarding->post-onboarding transition that affects session quality
  */
 
-import { FocusCoordinationService } from '../focusCoordinationService';
-import { TagService } from '../tagServices';
+import { FocusCoordinationService } from '../focus/focusCoordinationService';
+import { TagService } from '../attempts/tagServices';
 import { StorageService } from '../storage/storageService';
 import {
   setupSessionStateMocks,
@@ -16,9 +16,9 @@ import {
 } from './focusCoordinationServiceTestHelpers';
 
 // Mock all dependencies
-jest.mock('../tagServices');
+jest.mock('../attempts/tagServices');
 jest.mock('../storage/storageService');
-jest.mock('../../utils/escapeHatchUtils', () => ({
+jest.mock('../../utils/session/escapeHatchUtils', () => ({
   detectApplicableEscapeHatches: jest.fn()
 }));
 

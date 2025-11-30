@@ -8,11 +8,11 @@ import {
   getValidProblems,
   buildLadder,
   getPatternLadders,
-} from "../../utils/dbUtils/patternLadderUtils.js";
+} from "../../utils/leitner/patternLadderUtils.js";
 
 import { buildRelationshipMap } from "../../db/entities/problem_relationships.js";
 
-import { TagService } from "../tagServices.js";
+import { TagService } from "../attempts/tagServices.js";
 import { getAllFromStore } from "../../db/core/common.js";
 
 // Normalize tag names to lowercase for consistent storage and lookup

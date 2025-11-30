@@ -15,12 +15,12 @@ import { ProblemService } from "../problem/problemService.js";
 import { getTagMastery } from "../../db/entities/tag_mastery.js";
 import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../../db/entities/sessionAnalytics.js";
 import { StorageService } from "../storage/storageService.js";
-import { FocusCoordinationService } from "../focusCoordinationService.js";
+import { FocusCoordinationService } from "../focus/focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "../storage/IndexedDBRetryService.js";
 import logger from "../../utils/logging/logger.js";
-import { roundToPrecision } from "../../utils/Utils.js";
+import { roundToPrecision } from "../../utils/leitner/Utils.js";
 import { openDatabase } from "../../db/core/connectionUtils.js";
 
 // Session Creation Lock - Prevents race conditions

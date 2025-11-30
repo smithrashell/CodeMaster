@@ -11,7 +11,7 @@ import {
   formatDaysAway,
   getRecalibrationTitle,
   getRecalibrationBadgeColor,
-} from "../../../shared/utils/recalibrationHelpers";
+} from "../../../shared/utils/session/recalibrationHelpers";
 
 export function RecalModalHeader({ strategy }) {
   const { type, daysSinceLastUse } = strategy;

@@ -9,15 +9,15 @@ jest.mock('../../db/entities/attempts.js');
 jest.mock('../session/sessionService.js');
 jest.mock('../../db/entities/sessions.js');
 jest.mock('../problem/problemService.js');
-jest.mock('../focusCoordinationService.js', () => ({
+jest.mock('../focus/focusCoordinationService.js', () => ({
   default: {
     updateFocusAreas: jest.fn()
   }
 }));
-jest.mock('../../utils/Utils.js');
+jest.mock('../../utils/leitner/Utils.js');
 
 // Import the actual AttemptsService for testing
-import { AttemptsService } from '../attemptsService.js';
+import { AttemptsService } from '../attempts/attemptsService.js';
 
 /**
  * Test suite for critical input validation scenarios
@@ -322,13 +322,13 @@ describe('AttemptsService - Critical Risk Areas', () => {
       }
     }));
     
-    jest.doMock('../focusCoordinationService.js', () => ({
+    jest.doMock('../focus/focusCoordinationService.js', () => ({
       default: { 
         updateFocusAreas: jest.fn().mockResolvedValue({ status: 'success' })
       }
     }));
     
-    jest.doMock('../../utils/Utils.js', () => ({
+    jest.doMock('../../utils/leitner/Utils.js', () => ({
       createAttemptRecord: jest.fn().mockReturnValue({ id: 'mock-attempt' })
     }));
 

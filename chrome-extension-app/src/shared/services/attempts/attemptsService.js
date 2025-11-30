@@ -1,18 +1,18 @@
 // eslint-disable-next-line no-restricted-imports
-import { dbHelper } from "../db/index.js";
-import {  getMostRecentAttempt } from "../db/entities/attempts.js";
-import { SessionService } from "./session/sessionService.js";
-import { getLatestSessionByType } from "../db/entities/sessions.js";
-import { calculateLeitnerBox } from "../utils/leitner/leitnerSystem.js";
-import { createAttemptRecord } from "../utils/Utils.js";
-import { saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from "../db/entities/sessions.js";
-import { ProblemService } from "./problem/problemService.js";
-import FocusCoordinationService from "./focusCoordinationService.js";
-import { debug, success, system } from "../utils/logging/logger.js";
+import { dbHelper } from "../../db/index.js";
+import {  getMostRecentAttempt } from "../../db/entities/attempts.js";
+import { SessionService } from "../session/sessionService.js";
+import { getLatestSessionByType } from "../../db/entities/sessions.js";
+import { calculateLeitnerBox } from "../../utils/leitner/leitnerSystem.js";
+import { createAttemptRecord } from "../../utils/leitner/Utils.js";
+import { saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from "../../db/entities/sessions.js";
+import { ProblemService } from "../problem/problemService.js";
+import FocusCoordinationService from "../focus/focusCoordinationService.js";
+import { debug, success, system } from "../../utils/logging/logger.js";
 import { v4 as uuidv4 } from "uuid";
-import { updateTagMasteryForAttempt } from "../db/entities/tag_mastery.js";
-import { updateProblemRelationships } from "../db/entities/problem_relationships.js";
-import { updatePatternLaddersOnAttempt } from "./problem/problemladderService.js";
+import { updateTagMasteryForAttempt } from "../../db/entities/tag_mastery.js";
+import { updateProblemRelationships } from "../../db/entities/problem_relationships.js";
+import { updatePatternLaddersOnAttempt } from "../problem/problemladderService.js";
 
 const openDB = dbHelper.openDB;
 // Removed circular dependency: const _checkAndCompleteSession = SessionService.checkAndCompleteSession;

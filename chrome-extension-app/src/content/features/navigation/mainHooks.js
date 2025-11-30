@@ -3,7 +3,7 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
 import logger from "../../../shared/utils/logging/logger.js";
 import { sendProblemMessage, getProblemSlugFromUrl, setupUrlChangeListeners } from "./mainHelpers.js";
 

@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-restricted-imports
-import { dbHelper } from "../db/index.js";
+import { dbHelper } from "../../db/index.js";
 import { v4 as uuidv4 } from "uuid";
 
 const openDB = dbHelper.openDB;

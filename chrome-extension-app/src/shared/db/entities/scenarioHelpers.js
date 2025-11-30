@@ -175,7 +175,7 @@ async function buildProblemRelationships(testDb, results) {
       console.log('🔁 TEST DB: Building problem relationships using production algorithm...');
     }
 
-    const { buildProblemRelationships: buildRelationships } = require('../../services/relationshipService.js');
+    const { buildProblemRelationships: buildRelationships } = require('../../services/focus/relationshipService.js');
     await buildRelationships();
 
     results.problemRelationships = true;

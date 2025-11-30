@@ -5,7 +5,7 @@
  * Used across Settings, Goals, and other components that need dynamic session constraints
  */
 
-import FocusCoordinationService, { FOCUS_CONFIG } from '../services/focusCoordinationService.js';
+import FocusCoordinationService, { FOCUS_CONFIG } from '../../services/focus/focusCoordinationService.js';
 
 /**
  * Session limit constants based on onboarding status

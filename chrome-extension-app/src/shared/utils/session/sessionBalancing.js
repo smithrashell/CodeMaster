@@ -7,7 +7,7 @@
  * 3. Ensuring minimum exposure to new difficulty levels
  */
 
-import logger from "./logging/logger.js";
+import logger from "../logging/logger.js";
 
 /**
  * Calculate accuracy at a specific difficulty level

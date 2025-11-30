@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getNewVsReviewProblemsPerSession, getIndividualSessionActivityData } from "../../../shared/utils/DataAdapter";
+import { getNewVsReviewProblemsPerSession, getIndividualSessionActivityData } from "../../../shared/utils/ui/DataAdapter";
 
 export function useProgressData(appState) {
   const [boxLevelData, setBoxLevelData] = useState(appState?.boxLevelData || {});

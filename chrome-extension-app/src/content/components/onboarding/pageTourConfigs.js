@@ -4,7 +4,7 @@
  */
 
 // Import Chrome messaging for database operations
-import ChromeAPIErrorHandler from '../../../shared/services/ChromeAPIErrorHandler.js';
+import ChromeAPIErrorHandler from '../../../shared/services/chrome/ChromeAPIErrorHandler.js';
 
 export const PAGE_TOURS = {
   // Problem Generator Page Tour

@@ -13,7 +13,7 @@ export function setupSessionStateMocks(StorageService, sessionState) {
  * Sets up escape hatch mocks with no applicable hatches
  */
 export function setupEscapeHatchMocks() {
-  const { detectApplicableEscapeHatches } = require('../../utils/escapeHatchUtils');
+  const { detectApplicableEscapeHatches } = require('../../utils/session/escapeHatchUtils');
   detectApplicableEscapeHatches.mockResolvedValue({
     sessionBased: { applicable: false },
     attemptBased: [],

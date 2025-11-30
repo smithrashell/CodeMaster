@@ -2,7 +2,7 @@ import { getTagMastery } from "./tag_mastery.js";
 import { calculateTagSimilarity } from "./tag_mastery.js";
 import { fetchAllProblems } from "./problems.js";
 import { dbHelper } from "../index.js";
-import { calculateSuccessRate } from "../../utils/Utils.js";
+import { calculateSuccessRate } from "../../utils/leitner/Utils.js";
 import { getSessionPerformance } from "./sessions.js";
 
 const openDB = dbHelper.openDB;

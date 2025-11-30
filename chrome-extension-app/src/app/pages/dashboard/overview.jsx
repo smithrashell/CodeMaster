@@ -2,15 +2,15 @@ import { useState } from "react";
 import { Container, Grid, Title, Button, Group, Select } from "@mantine/core";
 import { useNavigate } from "react-router-dom";
 import { IconRefresh } from "@tabler/icons-react";
-import { EmptyStateCard } from "../components/onboarding/EmptyStateCard";
-import { FocusAreasDisplay } from "../components/dashboard/FocusAreasDisplay.jsx";
-import { usePageData } from "../hooks/usePageData";
-import { useStatsState } from "../hooks/useStatsState";
-import { StatsMetrics } from "../components/overview/StatsMetrics";
-import { StatsCharts } from "../components/overview/StatsCharts";
-import { StatsLoadingState } from "../components/overview/StatsLoadingState";
-import { StatsErrorState } from "../components/overview/StatsErrorState";
-import { TIME_RANGE_OPTIONS } from "./sessions/sessionTimeUtils";
+import { EmptyStateCard } from "../../components/onboarding/EmptyStateCard";
+import { FocusAreasDisplay } from "../../components/dashboard/FocusAreasDisplay.jsx";
+import { usePageData } from "../../hooks/usePageData";
+import { useStatsState } from "../../hooks/useStatsState";
+import { StatsMetrics } from "../../components/overview/StatsMetrics";
+import { StatsCharts } from "../../components/overview/StatsCharts";
+import { StatsLoadingState } from "../../components/overview/StatsLoadingState";
+import { StatsErrorState } from "../../components/overview/StatsErrorState";
+import { TIME_RANGE_OPTIONS } from "../sessions/sessionTimeUtils";
 
 
 export function Stats() {

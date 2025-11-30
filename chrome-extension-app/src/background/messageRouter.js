@@ -11,13 +11,13 @@
 // Service imports
 import { StorageService } from "../shared/services/storage/storageService.js";
 import { SessionService } from "../shared/services/session/sessionService.js";
-import { TagService } from "../shared/services/tagServices.js";
+import { TagService } from "../shared/services/attempts/tagServices.js";
 import { HintInteractionService } from "../shared/services/hints/hintInteractionService.js";
-import { InterviewService } from "../shared/services/interviewService.js";
-import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
-import { NavigationService } from "../shared/services/navigationService.js";
-import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
-import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../shared/services/recalibrationService.js";
+import { InterviewService } from "../shared/services/session/interviewService.js";
+import { adaptiveLimitsService } from "../shared/services/attempts/adaptiveLimitsService.js";
+import { NavigationService } from "../shared/services/chrome/navigationService.js";
+import FocusCoordinationService from "../shared/services/focus/focusCoordinationService.js";
+import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../shared/services/schedule/recalibrationService.js";
 
 // Database imports
 import { backupIndexedDB, getBackupFile } from "../shared/db/migrations/backupDB.js";
@@ -46,7 +46,7 @@ import {
 } from "../app/services/dashboard/dashboardService.js";
 
 // Relationship service import
-import { buildProblemRelationships } from "../shared/services/relationshipService.js";
+import { buildProblemRelationships } from "../shared/services/focus/relationshipService.js";
 
 // Handler imports (extracted for reduced complexity)
 import { sessionHandlers } from "./handlers/sessionHandlers.js";

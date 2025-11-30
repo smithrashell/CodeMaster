@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Card, Text, Title, Stack, SegmentedControl, Switch, ColorPicker, Alert, Button, Group, Tooltip, Slider, Select } from "@mantine/core";
 import { IconChartBar, IconInfoCircle } from "@tabler/icons-react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import { ChromeAPIErrorHandler } from "../../../shared/services/ChromeAPIErrorHandler";
+import { ChromeAPIErrorHandler } from "../../../shared/services/chrome/ChromeAPIErrorHandler";
 import { SettingsResetButton } from "./SettingsResetButton.jsx";
 
 // Extracted helper hooks for DisplaySettingsCard

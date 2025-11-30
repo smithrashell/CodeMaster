@@ -1,7 +1,7 @@
 import logger from "../../utils/logging/logger.js";
 import { CrashReporter } from "./CrashReporter.js";
 import { AlertingService } from "./AlertingService.js";
-import { UserActionTracker } from "../UserActionTracker.js";
+import { UserActionTracker } from "../chrome/UserActionTracker.js";
 import { ErrorReportService } from "./ErrorReportService.js";
 import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 

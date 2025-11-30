@@ -14,7 +14,7 @@ import {
   checkPageTourStatus,
   markPageTourCompleted,
   resetPageTour
-} from "../../shared/services/onboardingService.js";
+} from "../../shared/services/focus/onboardingService.js";
 
 /**
  * Handle user onboarding if needed

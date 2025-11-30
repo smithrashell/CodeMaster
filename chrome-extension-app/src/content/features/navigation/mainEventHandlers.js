@@ -2,7 +2,7 @@
  * Event handlers for Main component
  */
 import logger from "../../../shared/utils/logging/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
 
 /**
  * Creates content onboarding complete handler

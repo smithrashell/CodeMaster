@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "../../utils/cn";
+import { cn } from "../../utils/ui/cn";
 
 export function Avatar({ className, children, ...props }) {
   return (

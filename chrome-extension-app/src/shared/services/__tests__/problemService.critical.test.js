@@ -3,8 +3,8 @@ jest.mock("../../db/entities/problems");
 jest.mock("../../db/entities/standard_problems");
 jest.mock("../../db/entities/sessions");
 jest.mock("../../db/entities/tag_mastery");
-jest.mock("../attemptsService");
-jest.mock("../scheduleService", () => ({
+jest.mock("../attempts/attemptsService");
+jest.mock("../schedule/scheduleService", () => ({
   ScheduleService: {
     getDailyReviewSchedule: jest.fn(),
   },
@@ -20,7 +20,7 @@ jest.mock("../../../content/services/problemReasoningService", () => ({
     generateSessionReasons: jest.fn(),
   },
 }));
-jest.mock("../interviewService", () => ({
+jest.mock("../session/interviewService", () => ({
   InterviewService: {
     createInterviewSession: jest.fn(),
     getInterviewConfig: jest.fn(),
@@ -32,10 +32,10 @@ import { ProblemService } from "../problem/problemService";
 import * as problemsDb from "../../db/entities/problems";
 import * as standardProblems from "../../db/entities/standard_problems";
 import { buildAdaptiveSessionSettings } from "../../db/entities/sessions";
-import { AttemptsService } from "../attemptsService";
-import { ScheduleService } from "../scheduleService";
+import { AttemptsService } from "../attempts/attemptsService";
+import { ScheduleService } from "../schedule/scheduleService";
 import { StorageService } from "../storage/storageService";
-import { InterviewService } from "../interviewService";
+import { InterviewService } from "../session/interviewService";
 
 // eslint-disable-next-line max-lines-per-function
 describe("ProblemService - Critical User Retention Paths", () => {

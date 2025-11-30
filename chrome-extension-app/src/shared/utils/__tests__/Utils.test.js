@@ -14,7 +14,7 @@ import {
   isDifficultyAllowed,
   deduplicateById,
   _clearOrRenameStoreField,
-} from "../Utils.js";
+} from "../leitner/Utils.js";
 
 // Test data helpers
 const createSampleAttemptData = (overrides = {}) => ({

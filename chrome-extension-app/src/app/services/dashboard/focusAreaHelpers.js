@@ -4,7 +4,7 @@
  */
 
 import { StorageService } from "../../../shared/services/storage/storageService.js";
-import { calculateSuccessRate } from "../../../shared/utils/Utils.js";
+import { calculateSuccessRate } from "../../../shared/utils/leitner/Utils.js";
 
 /**
  * Create problem mappings from standard problems data

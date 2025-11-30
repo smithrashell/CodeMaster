@@ -4,8 +4,8 @@
 
 import { SessionService } from '../../services/session/sessionService.js';
 import { StorageService } from '../../services/storage/storageService.js';
-import { AttemptsService } from '../../services/attemptsService.js';
-import { FocusCoordinationService } from '../../services/focusCoordinationService.js';
+import { AttemptsService } from '../../services/attempts/attemptsService.js';
+import { FocusCoordinationService } from '../../services/focus/focusCoordinationService.js';
 
 export class QuickTestRunner {
   async testSessionCompletionFlow() {

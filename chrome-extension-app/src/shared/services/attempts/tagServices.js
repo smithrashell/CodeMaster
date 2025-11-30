@@ -1,14 +1,14 @@
 // eslint-disable-next-line no-restricted-imports
-import { dbHelper } from "../db/index.js";
+import { dbHelper } from "../../db/index.js";
 import {
   getHighlyRelatedTags,
   getNextFiveTagsFromNextTier,
-} from "../db/entities/tag_relationships.js";
-import { getSessionPerformance } from "../db/entities/sessions.js";
-import { StorageService } from "./storage/storageService.js";
-import SessionLimits from "../utils/sessionLimits.js";
-import logger from "../utils/logging/logger.js";
-import { calculateSuccessRate } from "../utils/Utils.js";
+} from "../../db/entities/tag_relationships.js";
+import { getSessionPerformance } from "../../db/entities/sessions.js";
+import { StorageService } from "../storage/storageService.js";
+import SessionLimits from "../../utils/session/sessionLimits.js";
+import logger from "../../utils/logging/logger.js";
+import { calculateSuccessRate } from "../../utils/leitner/Utils.js";
 
 const openDB = () => dbHelper.openDB();
 

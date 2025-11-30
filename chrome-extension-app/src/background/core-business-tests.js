@@ -5,8 +5,8 @@
  */
 
 import { SessionService } from '../shared/services/session/sessionService.js';
-import { AttemptsService } from '../shared/services/attemptsService.js';
-import { TagService } from '../shared/services/tagServices.js';
+import { AttemptsService } from '../shared/services/attempts/attemptsService.js';
+import { TagService } from '../shared/services/attempts/tagServices.js';
 import { ProblemService } from '../shared/services/problem/problemService.js';
 import { StorageService } from '../shared/services/storage/storageService.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +17,7 @@ import { createDbHelper } from '../shared/db/core/dbHelperFactory.js';
 import { fetchProblemById, insertStandardProblems } from '../shared/db/entities/standard_problems.js';
 import { insertStrategyData } from '../shared/db/entities/strategy_data.js';
 import { buildTagRelationships } from '../shared/db/entities/tag_relationships.js';
-import { buildProblemRelationships } from '../shared/services/relationshipService.js';
+import { buildProblemRelationships } from '../shared/services/focus/relationshipService.js';
 
 // Create dbHelper instance for test file usage
 const dbHelper = createDbHelper();

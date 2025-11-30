@@ -13,7 +13,7 @@
  */
 
 import { ProblemService } from "../../shared/services/problem/problemService.js";
-import { AttemptsService } from "../../shared/services/attemptsService.js";
+import { AttemptsService } from "../../shared/services/attempts/attemptsService.js";
 import { getProblemWithOfficialDifficulty } from "../../shared/db/entities/problems.js";
 
 /**

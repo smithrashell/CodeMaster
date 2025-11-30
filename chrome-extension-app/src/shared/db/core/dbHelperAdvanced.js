@@ -342,7 +342,7 @@ export async function resetToCleanState(helper) {
       if (helper.enableLogging) {
         console.log('🔁 TEST DB: Rebuilding problem relationships...');
       }
-      const { buildProblemRelationships } = require('../../services/relationshipService.js');
+      const { buildProblemRelationships } = require('../../services/focus/relationshipService.js');
       await buildProblemRelationships();
       if (helper.enableLogging) {
         console.log('✅ TEST DB: Problem relationships rebuilt successfully');

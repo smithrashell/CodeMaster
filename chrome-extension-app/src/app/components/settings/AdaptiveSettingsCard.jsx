@@ -12,7 +12,7 @@ import AdaptiveSessionToggle from "../../../content/features/settings/AdaptiveSe
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { SettingsResetButton } from "./SettingsResetButton.jsx";
-import SessionLimits from "../../../shared/utils/sessionLimits.js";
+import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
 
 // Session Controls Component (when adaptive is off)
 function SessionControls({ settings, updateSettings, maxNewProblems }) {

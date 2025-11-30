@@ -8,7 +8,7 @@
 import { generateMockData } from "./mockDataService.js";
 import { USER_SCENARIOS } from "../../config/mockConfig.js";
 import logger from "../../../shared/utils/logging/logger.js";
-import { roundToPrecision } from "../../../shared/utils/Utils.js";
+import { roundToPrecision } from "../../../shared/utils/leitner/Utils.js";
 
 /**
  * Generates enhanced session data with analytics

@@ -11,7 +11,7 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
-import SessionLimits from "../../../shared/utils/sessionLimits.js";
+import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
 import { component, debug, system } from "../../../shared/utils/logging/logger.js";
 
 // Interview Mode Controls Component (copied from AdaptiveSettingsCard)

@@ -3,7 +3,7 @@
  */
 import { useEffect } from "react";
 import logger from "../../../shared/utils/logging/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
 import { getProblemSlugFromUrl } from "./mainHelpers.js";
 
 /**

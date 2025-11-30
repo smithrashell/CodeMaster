@@ -1,6 +1,6 @@
 import { Card, Title, Group, Stack, Text, Slider, Select, Badge } from "@mantine/core";
 import { IconClock } from "@tabler/icons-react";
-import SessionLimits from "../../../shared/utils/sessionLimits.js";
+import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
 
 const SECTION_HEIGHT = 700;
 

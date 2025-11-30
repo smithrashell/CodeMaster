@@ -18,8 +18,8 @@ jest.mock("../../db/entities/problems");
 jest.mock("../../db/entities/standard_problems");
 jest.mock("../../db/entities/sessions");
 jest.mock("../../db/entities/tag_mastery");
-jest.mock("../attemptsService");
-jest.mock("../scheduleService", () => ({
+jest.mock("../attempts/attemptsService");
+jest.mock("../schedule/scheduleService", () => ({
   ScheduleService: {
     getDailyReviewSchedule: jest.fn(),
   },
@@ -42,8 +42,8 @@ import * as problemsDb from "../../db/entities/problems";
 import * as standardProblems from "../../db/entities/standard_problems";
 import { buildAdaptiveSessionSettings } from "../../db/entities/sessions";
 import { getTagMastery } from "../../db/entities/tag_mastery";
-import { AttemptsService } from "../attemptsService";
-import { ScheduleService } from "../scheduleService";
+import { AttemptsService } from "../attempts/attemptsService";
+import { ScheduleService } from "../schedule/scheduleService";
 import { StorageService } from "../storage/storageService";
 import { ProblemReasoningService } from "../../../content/services/problemReasoningService";
 

@@ -7,7 +7,7 @@ import ProblemInfoIcon from "../../components/problem/ProblemInfoIcon";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { useSimilarProblems } from "../../components/problem/useSimilarProblems";
 import { useNav } from "../../../shared/provider/navprovider";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler";
 import { usePageTour } from "../../components/onboarding/usePageTour";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 

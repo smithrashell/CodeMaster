@@ -5,12 +5,12 @@
  * while maintaining minimum interview standards and providing user customization options.
  */
 
-import logger from "../utils/logging/logger.js";
+import logger from "../../utils/logging/logger.js";
 // eslint-disable-next-line no-restricted-imports
-import { dbHelper } from "../db/index.js";
-import { fetchProblemById } from "../db/entities/standard_problems.js";
-import AccurateTimer from "../utils/timing/AccurateTimer.js";
-import { StorageService } from "./storage/storageService.js";
+import { dbHelper } from "../../db/index.js";
+import { fetchProblemById } from "../../db/entities/standard_problems.js";
+import AccurateTimer from "../../utils/timing/AccurateTimer.js";
+import { StorageService } from "../storage/storageService.js";
 
 // Default base limits (interview standards) in minutes
 const BASE_LIMITS = {

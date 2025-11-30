@@ -1,10 +1,10 @@
 import { dbHelper } from "../index.js";
-import { TagService } from "../../services/tagServices.js";
+import { TagService } from "../../services/attempts/tagServices.js";
 import { StorageService } from "../../services/storage/storageService.js";
 import { getMostRecentAttempt, getAttemptsBySessionId } from "./attempts.js";
-import FocusCoordinationService from "../../services/focusCoordinationService.js";
-import SessionLimits from "../../utils/sessionLimits.js";
-import { InterviewService } from "../../services/interviewService.js";
+import FocusCoordinationService from "../../services/focus/focusCoordinationService.js";
+import SessionLimits from "../../utils/session/sessionLimits.js";
+import { InterviewService } from "../../services/session/interviewService.js";
 import { getRecentSessionAnalytics } from "./sessionAnalytics.js";
 import logger from "../../utils/logging/logger.js";
 

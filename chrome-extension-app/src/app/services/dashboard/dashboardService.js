@@ -1,7 +1,7 @@
 import { fetchAllProblems } from "../../../shared/db/entities/problems.js";
 import { getAllAttempts } from "../../../shared/db/entities/attempts.js";
 import { getAllSessions } from "../../../shared/db/entities/sessions.js";
-import { TagService } from "../../../shared/services/tagServices.js";
+import { TagService } from "../../../shared/services/attempts/tagServices.js";
 import { ProblemService } from "../../../shared/services/problem/problemService.js";
 import AccurateTimer from "../../../shared/utils/timing/AccurateTimer.js";
 import { getAllStandardProblems } from "../../../shared/db/entities/standard_problems.js";
@@ -11,7 +11,7 @@ import { HintInteractionService } from "../../../shared/services/hints/hintInter
 import { getInteractionsBySession } from "../../../shared/db/entities/hint_interactions.js";
 import { getLatestSession } from "../../../shared/db/entities/sessions.js";
 import logger from "../../../shared/utils/logging/logger.js";
-import { calculateProgressPercentage, calculateSuccessRate, roundToPrecision } from "../../../shared/utils/Utils.js";
+import { calculateProgressPercentage, calculateSuccessRate, roundToPrecision } from "../../../shared/utils/leitner/Utils.js";
 import { getTagRelationships } from "../../../shared/db/entities/tag_relationships.js";
 import {
   createProblemMappings,

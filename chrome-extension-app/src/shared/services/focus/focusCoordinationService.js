@@ -8,10 +8,10 @@
  * - Maintains algorithmic strength while offering user transparency
  */
 
-import { TagService } from './tagServices.js';
-import { StorageService } from './storage/storageService.js';
-import { detectApplicableEscapeHatches} from '../utils/escapeHatchUtils.js';
-import { getAllFromStore } from '../db/core/common.js';
+import { TagService } from '../attempts/tagServices.js';
+import { StorageService } from '../storage/storageService.js';
+import { detectApplicableEscapeHatches} from '../../utils/session/escapeHatchUtils.js';
+import { getAllFromStore } from '../../db/core/common.js';
 
 /**
  * Configuration constants for focus coordination

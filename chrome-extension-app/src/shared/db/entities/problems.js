@@ -1,16 +1,16 @@
 import { dbHelper } from "../index.js";
 
-import { AttemptsService } from "../../services/attemptsService.js";
+import { AttemptsService } from "../../services/attempts/attemptsService.js";
 
 import { getAllStandardProblems } from "./standard_problems.js";
 import { fetchProblemById } from "./standard_problems.js";
-import { TagService } from "../../services/tagServices.js";
-import FocusCoordinationService from "../../services/focusCoordinationService.js";
+import { TagService } from "../../services/attempts/tagServices.js";
+import FocusCoordinationService from "../../services/focus/focusCoordinationService.js";
 // Remove early binding - use TagService.getCurrentLearningState() directly
 import { v4 as uuidv4 } from "uuid";
 
-import { getDifficultyAllowanceForTag } from "../../utils/Utils.js";
-import { getPatternLadders } from "../../utils/dbUtils/patternLadderUtils.js";
+import { getDifficultyAllowanceForTag } from "../../utils/leitner/Utils.js";
+import { getPatternLadders } from "../../utils/leitner/patternLadderUtils.js";
 import { scoreProblemsWithRelationships } from "./problem_relationships.js";
 import { regenerateCompletedPatternLadder } from "../../services/problem/problemladderService.js";
 import { calculateCompositeScore, logCompositeScores } from "./problemsHelpers.js";

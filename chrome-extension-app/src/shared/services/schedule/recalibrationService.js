@@ -11,8 +11,8 @@
  * - Marks problems needing recalibration for future phases
  */
 
-import { StorageService } from "./storage/storageService.js";
-import { openDatabase } from "../db/core/connectionUtils.js";
+import { StorageService } from "../storage/storageService.js";
+import { openDatabase } from "../../db/core/connectionUtils.js";
 import {
   processDecayForProblem,
   applyBatchUpdates,

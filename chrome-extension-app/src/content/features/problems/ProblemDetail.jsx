@@ -14,7 +14,7 @@ import Separator from "../../components/ui/Separator.jsx";
 import WhyThisProblem from "../../components/problem/WhyThisProblem";
 import TagStrategyGrid from "../../components/problem/TagStrategyGrid";
 import { usePageTour } from "../../components/onboarding/usePageTour";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler";
 import logger from "../../../shared/utils/logging/logger.js";
 import styles from "./ProblemCard.module.css";
 

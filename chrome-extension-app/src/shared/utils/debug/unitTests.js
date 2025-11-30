@@ -7,7 +7,7 @@
 
 import { calculateOptimalPathScore } from '../../db/problem_relationships.js';
 import { calculateTagSimilarity } from '../../db/tag_mastery.js';
-import { FocusCoordinationService } from '../../services/focusCoordinationService.js';
+import { FocusCoordinationService } from '../../services/focus/focusCoordinationService.js';
 
 // ============================================================================
 // ALGORITHM UNIT TESTS - Should run in Jest/Vitest

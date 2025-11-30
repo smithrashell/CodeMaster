@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import ChromeAPIErrorHandler from "../services/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../services/chrome/ChromeAPIErrorHandler";
 
 /**
  * Specialized hook for handling Chrome extension message retry logic

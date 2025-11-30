@@ -13,18 +13,18 @@
 
 import { ProblemService } from '../../shared/services/problem/problemService.js';
 import { SessionService } from '../../shared/services/session/sessionService.js';
-import { AttemptsService } from '../../shared/services/attemptsService.js';
-import * as tagServices from '../../shared/services/tagServices.js';
+import { AttemptsService } from '../../shared/services/attempts/attemptsService.js';
+import * as tagServices from '../../shared/services/attempts/tagServices.js';
 import * as hintInteractionService from '../../shared/services/hints/hintInteractionService.js';
-import FocusCoordinationService from '../../shared/services/focusCoordinationService.js';
+import FocusCoordinationService from '../../shared/services/focus/focusCoordinationService.js';
 
 // Mock the services
 jest.mock('../../shared/services/problem/problemService.js');
 jest.mock('../../shared/services/session/sessionService.js');
-jest.mock('../../shared/services/attemptsService.js');
-jest.mock('../../shared/services/tagServices.js');
+jest.mock('../../shared/services/attempts/attemptsService.js');
+jest.mock('../../shared/services/attempts/tagServices.js');
 jest.mock('../../shared/services/hints/hintInteractionService.js');
-jest.mock('../../shared/services/focusCoordinationService.js');
+jest.mock('../../shared/services/focus/focusCoordinationService.js');
 
 /**
  * Global Exports Expected by background/index.js

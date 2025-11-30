@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { showErrorNotification } from "../utils/logging/errorNotifications.js";
-import ChromeAPIErrorHandler from "../services/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../services/chrome/ChromeAPIErrorHandler";
 
 // Performance monitoring for dashboard telemetry
 const performanceLogger = {

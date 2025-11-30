@@ -5,11 +5,11 @@
  * for all Chrome extension API calls throughout the application.
  */
 
-import ErrorReportService from "./monitoring/ErrorReportService";
+import ErrorReportService from "../monitoring/ErrorReportService";
 import {
   showErrorNotification,
   handleChromeAPIError,
-} from "../utils/logging/errorNotifications";
+} from "../../utils/logging/errorNotifications";
 
 export class ChromeAPIErrorHandler {
   static DEFAULT_RETRY_COUNT = 2; // Reduced from 3 to match content script pattern

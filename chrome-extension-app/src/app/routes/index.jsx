@@ -4,7 +4,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 // Import page components directly
-import { Stats } from "../pages/overview.jsx";
+import { Stats } from "../pages/dashboard/overview.jsx";
 import { Progress } from "../pages/progress/learning-progress.jsx";
 import { Goals } from "../pages/progress/goals.jsx";
 import { Metrics as SessionHistory } from "../pages/sessions/session-history.jsx";

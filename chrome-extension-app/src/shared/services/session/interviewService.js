@@ -1,7 +1,7 @@
-import { StorageService } from "./storage/storageService.js";
-import { getTagMastery } from "../db/entities/tag_mastery.js";
-import { getSessionPerformance } from "../db/entities/sessions.js";
-import { getInterviewAnalyticsData } from "../../app/services/dashboard/dashboardService.js";
+import { StorageService } from "../storage/storageService.js";
+import { getTagMastery } from "../../db/entities/tag_mastery.js";
+import { getSessionPerformance } from "../../db/entities/sessions.js";
+import { getInterviewAnalyticsData } from "../../../app/services/dashboard/dashboardService.js";
 
 /**
  * Interview Service - Handles all interview simulation logic
