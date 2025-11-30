@@ -19,17 +19,17 @@ import {
   IconUpload,
   IconSettings,
 } from "@tabler/icons-react";
-import StorageStatusIndicator from "../../shared/components/StorageStatusIndicator.jsx";
+import StorageStatusIndicator from "../../../shared/components/StorageStatusIndicator.jsx";
 import { formatBytes, formatDuration } from "./storageSettingsHelpers.js";
-import { OverviewTab } from "../components/settings/OverviewTab.jsx";
-import { CleanupTab } from "../components/settings/CleanupTab.jsx";
-import { MigrationTab } from "../components/settings/MigrationTab.jsx";
-import { SettingsTab } from "../components/settings/SettingsTab.jsx";
-import { StorageNotifications } from "../components/settings/StorageNotifications.jsx";
-import { StorageLoadingState } from "../components/settings/StorageLoadingState.jsx";
-import { useStorageData } from "../hooks/useStorageData.js";
-import StorageCleanupManager from "../../shared/utils/storage/storageCleanup.js";
-import ChromeAPIErrorHandler from "../../shared/services/chrome/ChromeAPIErrorHandler.js";
+import { OverviewTab } from "../../components/settings/OverviewTab.jsx";
+import { CleanupTab } from "../../components/settings/CleanupTab.jsx";
+import { MigrationTab } from "../../components/settings/MigrationTab.jsx";
+import { SettingsTab } from "../../components/settings/SettingsTab.jsx";
+import { StorageNotifications } from "../../components/settings/StorageNotifications.jsx";
+import { StorageLoadingState } from "../../components/settings/StorageLoadingState.jsx";
+import { useStorageData } from "../../hooks/useStorageData.js";
+import StorageCleanupManager from "../../../shared/utils/storage/storageCleanup.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
 
 // Storage Header Component
 const StorageHeader = () => (

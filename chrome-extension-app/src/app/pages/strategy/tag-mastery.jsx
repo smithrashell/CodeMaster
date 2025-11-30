@@ -4,7 +4,7 @@ import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
 import MasteryDashboard from "../../components/analytics/MasteryDashboard.jsx";
 
-// Shared Components from mockup.jsx
+// Shared Components from DashboardLayout.jsx
 function Section({ title, right, children, style }) {
   return (
     <Card withBorder radius="md" p="md" style={{ background: "var(--surface)", boxShadow: "var(--shadow)", ...style }}>
