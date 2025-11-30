@@ -9,7 +9,7 @@ import "../content/css/theme.css";
 import "../app/app.css";
 import "./styles/accessibility.css";
 import { AppRoutes } from "./routes/index.jsx";
-import { AppLayout } from "./components/layout/AppLayout.jsx";
+import { AppLayout } from "./pages/layout/AppLayout.jsx";
 import { WelcomeModal } from "./components/onboarding/WelcomeModal.jsx";
 import { WelcomeBackModal } from "./components/onboarding/WelcomeBackModal.jsx";
 import { useAppOnboarding } from "./hooks/useAppOnboarding.js";
