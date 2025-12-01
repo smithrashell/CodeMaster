@@ -3,7 +3,7 @@
  * Regression tests for Issue #159: Incorrect box level statistics
  */
 
-import { countProblemsByBoxLevel, countProblemsByBoxLevelWithRetry } from '../entities/problems.js';
+import { countProblemsByBoxLevel, countProblemsByBoxLevelWithRetry } from '../stores/problems.js';
 import { dbHelper } from '../index.js';
 
 // Mock the database helper
