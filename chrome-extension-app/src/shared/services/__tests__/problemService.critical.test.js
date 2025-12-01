@@ -1,8 +1,8 @@
 // Mock all dependencies before importing
-jest.mock("../../db/entities/problems");
-jest.mock("../../db/entities/standard_problems");
-jest.mock("../../db/entities/sessions");
-jest.mock("../../db/entities/tag_mastery");
+jest.mock("../../db/stores/problems");
+jest.mock("../../db/stores/standard_problems");
+jest.mock("../../db/stores/sessions");
+jest.mock("../../db/stores/tag_mastery");
 jest.mock("../attempts/attemptsService");
 jest.mock("../schedule/scheduleService", () => ({
   ScheduleService: {
@@ -29,9 +29,9 @@ jest.mock("../session/interviewService", () => ({
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 import { ProblemService } from "../problem/problemService";
-import * as problemsDb from "../../db/entities/problems";
-import * as standardProblems from "../../db/entities/standard_problems";
-import { buildAdaptiveSessionSettings } from "../../db/entities/sessions";
+import * as problemsDb from "../../db/stores/problems";
+import * as standardProblems from "../../db/stores/standard_problems";
+import { buildAdaptiveSessionSettings } from "../../db/stores/sessions";
 import { AttemptsService } from "../attempts/attemptsService";
 import { ScheduleService } from "../schedule/scheduleService";
 import { StorageService } from "../storage/storageService";

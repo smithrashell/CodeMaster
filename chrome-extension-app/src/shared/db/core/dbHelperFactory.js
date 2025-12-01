@@ -4,10 +4,9 @@
  * Ensures complete isolation between different database contexts
  */
 
-import "../../utils/testing/DatabaseDebugger.js";
 import * as dbMethods from "./dbHelperMethods.js";
 import * as dbAdvanced from "./dbHelperAdvanced.js";
-import * as scenarioHelpers from "../entities/scenarioHelpers.js";
+import * as scenarioHelpers from "../stores/scenarioHelpers.js";
 
 /**
  * Create a database helper with specified configuration

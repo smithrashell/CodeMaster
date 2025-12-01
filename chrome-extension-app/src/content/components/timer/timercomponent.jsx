@@ -14,7 +14,7 @@ import {
   HiXMark,
   HiArrowPath
 } from "react-icons/hi2";
-import TimeDisplay from "../../../shared/components/timedisplay";
+import TimeDisplay from "../../../shared/components/timer/timedisplay";
 import { FloatingHintButton } from "../strategy";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import AccurateTimer from "../../../shared/utils/timing/AccurateTimer";

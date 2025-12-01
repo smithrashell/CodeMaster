@@ -3,8 +3,8 @@ import { dbHelper } from "../../db/index.js";
 import {
   getHighlyRelatedTags,
   getNextFiveTagsFromNextTier,
-} from "../../db/entities/tag_relationships.js";
-import { getSessionPerformance } from "../../db/entities/sessions.js";
+} from "../../db/stores/tag_relationships.js";
+import { getSessionPerformance } from "../../db/stores/sessions.js";
 import { StorageService } from "../storage/storageService.js";
 import SessionLimits from "../../utils/session/sessionLimits.js";
 import logger from "../../utils/logging/logger.js";

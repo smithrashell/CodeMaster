@@ -2,8 +2,8 @@
 jest.mock("../session/sessionService");
 jest.mock("../problem/problemService");
 jest.mock("../storage/storageService");
-jest.mock("../../db/entities/sessions");
-jest.mock("../../db/entities/problems");
+jest.mock("../../db/stores/sessions");
+jest.mock("../../db/stores/problems");
 
 import { SessionService } from "../session/sessionService";
 import { ProblemService } from "../problem/problemService";

@@ -21,13 +21,13 @@ import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResul
 
 // Database imports
 import { backupIndexedDB, getBackupFile } from "../shared/db/migrations/backupDB.js";
-import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/entities/strategy_data.js";
+import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/stores/strategy_data.js";
 import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../shared/db/core/common.js";
-import { buildRelationshipMap } from "../shared/db/entities/problem_relationships.js";
-import { getProblem, fetchAllProblems } from "../shared/db/entities/problems.js";
-import { getAllStandardProblems } from "../shared/db/entities/standard_problems.js";
-import { getAllAttempts } from "../shared/db/entities/attempts.js";
-import { getAllSessions } from "../shared/db/entities/sessions.js";
+import { buildRelationshipMap } from "../shared/db/stores/problem_relationships.js";
+import { getProblem, fetchAllProblems } from "../shared/db/stores/problems.js";
+import { getAllStandardProblems } from "../shared/db/stores/standard_problems.js";
+import { getAllAttempts } from "../shared/db/stores/attempts.js";
+import { getAllSessions } from "../shared/db/stores/sessions.js";
 
 // Dashboard service imports
 import {

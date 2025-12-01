@@ -13,7 +13,7 @@ import {
 import {
   IconRefresh,
 } from "@tabler/icons-react";
-import StorageStatusIndicator from "../../../shared/components/StorageStatusIndicator.jsx";
+import StorageStatusIndicator from "../../../shared/components/storage/StorageStatusIndicator.jsx";
 import { StorageHealthSummary } from "./StorageHealthSummary.jsx";
 import { QuickActionsCard } from "./QuickActionsCard.jsx";
 

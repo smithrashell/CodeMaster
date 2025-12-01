@@ -9,11 +9,11 @@ import {
   getSessionPerformance,
   getOrCreateSessionAtomic,
   evaluateDifficultyProgression,
-} from "../../db/entities/sessions.js";
-import { updateProblemRelationships } from "../../db/entities/problem_relationships.js";
+} from "../../db/stores/sessions.js";
+import { updateProblemRelationships } from "../../db/stores/problem_relationships.js";
 import { ProblemService } from "../problem/problemService.js";
-import { getTagMastery } from "../../db/entities/tag_mastery.js";
-import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../../db/entities/sessionAnalytics.js";
+import { getTagMastery } from "../../db/stores/tag_mastery.js";
+import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../../db/stores/sessionAnalytics.js";
 import { StorageService } from "../storage/storageService.js";
 import { FocusCoordinationService } from "../focus/focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";

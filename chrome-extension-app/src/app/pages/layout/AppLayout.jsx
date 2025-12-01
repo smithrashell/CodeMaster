@@ -2,9 +2,9 @@
  * Main App Layout Component
  */
 import React from "react";
-import { DoubleNavbar } from "../../../shared/components/DoubleNavbar";
-import ErrorBoundary from "../../../shared/components/ErrorBoundary";
-import { DashboardErrorFallback } from "../../../shared/components/ErrorFallback";
+import { DoubleNavbar } from "../../../shared/components/navigation/DoubleNavbar";
+import ErrorBoundary from "../../../shared/components/error/ErrorBoundary";
+import { DashboardErrorFallback } from "../../../shared/components/error/ErrorFallback";
 
 export const AppLayout = ({ children }) => (
   <div

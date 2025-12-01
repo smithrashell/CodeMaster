@@ -11,15 +11,15 @@
 
 import { ProblemService } from '../problem/problemService';
 import { ScheduleService } from '../schedule/scheduleService';
-import { fetchProblemById } from '../../db/entities/standard_problems';
-import { fetchAllProblems } from '../../db/entities/problems';
+import { fetchProblemById } from '../../db/stores/standard_problems';
+import { fetchAllProblems } from '../../db/stores/problems';
 import logger from '../../utils/logging/logger';
 
 // Mock dependencies
 jest.mock('../problem/problemService');
 jest.mock('../schedule/scheduleService');
-jest.mock('../../db/entities/standard_problems');
-jest.mock('../../db/entities/problems');
+jest.mock('../../db/stores/standard_problems');
+jest.mock('../../db/stores/problems');
 jest.mock('../../utils/logging/logger');
 
 // eslint-disable-next-line max-lines-per-function -- Characterization test suite for refactoring validation

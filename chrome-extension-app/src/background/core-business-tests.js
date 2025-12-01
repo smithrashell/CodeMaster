@@ -14,18 +14,18 @@ import logger from '../shared/utils/logging/logger.js';
 
 // Database imports - ALL static, NO dynamic imports
 import { createDbHelper } from '../shared/db/core/dbHelperFactory.js';
-import { fetchProblemById, insertStandardProblems } from '../shared/db/entities/standard_problems.js';
-import { insertStrategyData } from '../shared/db/entities/strategy_data.js';
-import { buildTagRelationships } from '../shared/db/entities/tag_relationships.js';
+import { fetchProblemById, insertStandardProblems } from '../shared/db/stores/standard_problems.js';
+import { insertStrategyData } from '../shared/db/stores/strategy_data.js';
+import { buildTagRelationships } from '../shared/db/stores/tag_relationships.js';
 import { buildProblemRelationships } from '../shared/services/focus/relationshipService.js';
 
 // Create dbHelper instance for test file usage
 const dbHelper = createDbHelper();
 import { getAllFromStore } from '../shared/db/core/common.js';
-import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/entities/sessions.js';
-import { buildRelationshipMap } from '../shared/db/entities/problem_relationships.js';
-import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/entities/attempts.js';
-import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/entities/tag_mastery.js';
+import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/stores/sessions.js';
+import { buildRelationshipMap } from '../shared/db/stores/problem_relationships.js';
+import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/stores/attempts.js';
+import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/stores/tag_mastery.js';
 import { initializePatternLaddersForOnboarding, updatePatternLaddersOnAttempt } from '../shared/services/problem/problemladderService.js';
 
 /**

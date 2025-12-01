@@ -17,18 +17,18 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
-} from "../../db/entities/sessions";
-import { updateProblemRelationships } from "../../db/entities/problem_relationships";
-import { calculateTagMastery } from "../../db/entities/tag_mastery";
+} from "../../db/stores/sessions";
+import { updateProblemRelationships } from "../../db/stores/problem_relationships";
+import { calculateTagMastery } from "../../db/stores/tag_mastery";
 import { ProblemService } from "../problem/problemService";
 import { StorageService } from "../storage/storageService";
 
 // Mock the database modules
-jest.mock("../../db/entities/sessions");
-jest.mock("../../db/entities/tag_mastery");
-jest.mock("../../db/entities/problem_relationships");
-jest.mock("../../db/entities/standard_problems");
-jest.mock("../../db/entities/sessionAnalytics");
+jest.mock("../../db/stores/sessions");
+jest.mock("../../db/stores/tag_mastery");
+jest.mock("../../db/stores/problem_relationships");
+jest.mock("../../db/stores/standard_problems");
+jest.mock("../../db/stores/sessionAnalytics");
 jest.mock("../problem/problemService");
 jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));

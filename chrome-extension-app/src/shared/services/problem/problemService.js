@@ -7,26 +7,26 @@ import {
   checkDatabaseForProblemWithRetry,
   countProblemsByBoxLevelWithRetry,
   fetchAllProblemsWithRetry,
-} from "../../db/entities/problems.js";
-import { getProblemFromStandardProblems, fetchProblemById } from "../../db/entities/standard_problems.js";
+} from "../../db/stores/problems.js";
+import { getProblemFromStandardProblems, fetchProblemById } from "../../db/stores/standard_problems.js";
 import { AttemptsService } from "../attempts/attemptsService.js";
 import { v4 as uuidv4 } from "uuid";
 import {
   fetchAllProblems,
   fetchAdditionalProblems,
   updateProblemsWithRatings as updateProblemsWithRatingsInDB,
-} from "../../db/entities/problems.js";
+} from "../../db/stores/problems.js";
 import { ScheduleService } from "../schedule/scheduleService.js";
 import { StorageService } from "../storage/storageService.js";
 import SessionLimits from "../../utils/session/sessionLimits.js";
-import { buildAdaptiveSessionSettings } from "../../db/entities/sessions.js";
+import { buildAdaptiveSessionSettings } from "../../db/stores/sessions.js";
 import { calculateDecayScore } from "../../utils/leitner/Utils.js";
 import { ProblemReasoningService } from "../../../content/services/problemReasoningService.js";
-import { getTagMastery } from "../../db/entities/tag_mastery.js";
+import { getTagMastery } from "../../db/stores/tag_mastery.js";
 import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 import { InterviewService } from "../session/interviewService.js";
 import logger from "../../utils/logging/logger.js";
-import { selectOptimalProblems } from "../../db/entities/problem_relationships.js";
+import { selectOptimalProblems } from "../../db/stores/problem_relationships.js";
 import { applySafetyGuardRails } from "../../utils/session/sessionBalancing.js";
 import { normalizeProblems } from "./problemNormalizer.js";
 import {

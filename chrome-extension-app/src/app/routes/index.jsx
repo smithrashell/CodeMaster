@@ -16,8 +16,8 @@ import { Appearance } from "../pages/settings/appearance.jsx";
 import { Accessibility } from "../pages/settings/accessibility.jsx";
 import { HelpPage } from "../pages/help/index.jsx";
 import { DashboardPage } from "../pages/layout/DashboardLayout";
-import ErrorBoundary from "../../shared/components/ErrorBoundary";
-import { DashboardErrorFallback } from "../../shared/components/ErrorFallback";
+import ErrorBoundary from "../../shared/components/error/ErrorBoundary";
+import { DashboardErrorFallback } from "../../shared/components/error/ErrorFallback";
 
 // Helper function to create protected routes with ErrorBoundary
 const createProtectedRoute = (section, Component) => (

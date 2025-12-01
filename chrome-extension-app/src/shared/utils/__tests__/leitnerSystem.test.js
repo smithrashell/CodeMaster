@@ -6,7 +6,7 @@
 import "fake-indexeddb/auto";
 
 // Mock all database dependencies
-jest.mock("../../db/entities/problems.js", () => ({
+jest.mock("../../db/stores/problems.js", () => ({
   updateStabilityFSRS: jest.fn(),
   fetchAllProblems: jest.fn(),
   saveUpdatedProblem: jest.fn(),
@@ -25,7 +25,7 @@ import {
 } from "../leitner/leitnerSystem.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
-import { updateStabilityFSRS } from "../../db/entities/problems.js";
+import { updateStabilityFSRS } from "../../db/stores/problems.js";
 
 // Mock setup helpers
 const createMockIndex = () => ({

@@ -1,8 +1,8 @@
 // Mock dependencies
 jest.mock("../dashboard/dashboardService");
-jest.mock("../../../shared/db/entities/problems");
-jest.mock("../../../shared/db/entities/attempts");
-jest.mock("../../../shared/db/entities/sessions");
+jest.mock("../../../shared/db/stores/problems");
+jest.mock("../../../shared/db/stores/attempts");
+jest.mock("../../../shared/db/stores/sessions");
 
 import {
   getDashboardStatistics,

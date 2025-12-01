@@ -8,7 +8,7 @@
 import logger from "../../utils/logging/logger.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
-import { fetchProblemById } from "../../db/entities/standard_problems.js";
+import { fetchProblemById } from "../../db/stores/standard_problems.js";
 import AccurateTimer from "../../utils/timing/AccurateTimer.js";
 import { StorageService } from "../storage/storageService.js";
 

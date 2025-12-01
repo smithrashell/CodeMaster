@@ -1,17 +1,17 @@
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
-import {  getMostRecentAttempt } from "../../db/entities/attempts.js";
+import {  getMostRecentAttempt } from "../../db/stores/attempts.js";
 import { SessionService } from "../session/sessionService.js";
-import { getLatestSessionByType } from "../../db/entities/sessions.js";
+import { getLatestSessionByType } from "../../db/stores/sessions.js";
 import { calculateLeitnerBox } from "../../utils/leitner/leitnerSystem.js";
 import { createAttemptRecord } from "../../utils/leitner/Utils.js";
-import { saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from "../../db/entities/sessions.js";
+import { saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from "../../db/stores/sessions.js";
 import { ProblemService } from "../problem/problemService.js";
 import FocusCoordinationService from "../focus/focusCoordinationService.js";
 import { debug, success, system } from "../../utils/logging/logger.js";
 import { v4 as uuidv4 } from "uuid";
-import { updateTagMasteryForAttempt } from "../../db/entities/tag_mastery.js";
-import { updateProblemRelationships } from "../../db/entities/problem_relationships.js";
+import { updateTagMasteryForAttempt } from "../../db/stores/tag_mastery.js";
+import { updateProblemRelationships } from "../../db/stores/problem_relationships.js";
 import { updatePatternLaddersOnAttempt } from "../problem/problemladderService.js";
 
 const openDB = dbHelper.openDB;

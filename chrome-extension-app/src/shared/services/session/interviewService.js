@@ -1,6 +1,6 @@
 import { StorageService } from "../storage/storageService.js";
-import { getTagMastery } from "../../db/entities/tag_mastery.js";
-import { getSessionPerformance } from "../../db/entities/sessions.js";
+import { getTagMastery } from "../../db/stores/tag_mastery.js";
+import { getSessionPerformance } from "../../db/stores/sessions.js";
 import { getInterviewAnalyticsData } from "../../../app/services/dashboard/dashboardService.js";
 
 /**

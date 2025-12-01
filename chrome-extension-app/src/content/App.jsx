@@ -15,7 +15,7 @@ import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import {
   TimerErrorFallback,
   GenericErrorFallback,
-} from "../shared/components/ErrorFallback";
+} from "../shared/components/error/ErrorFallback";
 import { PageSpecificTour } from "./components/onboarding/PageSpecificTour";
 import { usePageTour } from "./components/onboarding/usePageTour";
 import { FloatingHelpButton } from "./components/help/FloatingHelpButton.jsx";
