@@ -2,7 +2,7 @@
 
 Complete directory structure and organization of the CodeMaster codebase.
 
-**Last Updated:** 2025-10-25
+**Last Updated:** 2025-12-01
 
 ---
 
@@ -31,14 +31,13 @@ chrome-extension-app/
 ├── public/                      # Static assets and manifest
 ├── dist/                        # Build output (gitignored)
 ├── test/                        # Test setup and utilities
-├── browser-tests/               # Browser-based testing framework
 ├── node_modules/                # Dependencies (gitignored)
 ├── package.json                 # Dependencies and scripts
 ├── webpack.config.js            # Development build config
 ├── webpack.production.js        # Production build config
 ├── jest.config.js               # Jest test configuration
-├── .eslintrc.js                 # ESLint configuration
-├── README.md                    # Technical architecture (792 lines)
+├── .eslintrc.json               # ESLint configuration
+├── README.md                    # Technical architecture
 ├── CHANGELOG.md                 # Version history
 ├── CLAUDE.md                    # Development commands
 └── TESTING.md                   # Testing framework guide
@@ -211,57 +210,113 @@ src/content/
 
 Code shared across all entry points (app, content, popup, background).
 
+**NOTE:** As of Issue #222, the shared folder has been reorganized into domain-driven subfolders.
+
 ```
 src/shared/
 ├── components/                  # Reusable React components
-│   ├── monitoring/              # Data integrity monitoring (NEW)
-│   │   └── DataIntegrityDashboard.jsx
-│   ├── ui/                      # Generic UI components
-│   │   ├── Button.jsx
-│   │   └── Modal.jsx
+│   ├── error/                   # Error handling components
+│   │   └── ErrorBoundary.jsx
+│   ├── monitoring/              # Data integrity monitoring
+│   │   ├── DataIntegrityDashboard.jsx
+│   │   ├── ErrorsTab.jsx
+│   │   ├── OverviewTab.jsx
+│   │   └── PerformanceTab.jsx
+│   ├── timer/                   # Timer components
+│   ├── onboarding/              # Onboarding components
+│   ├── storage/                 # Storage status components
+│   ├── ui/                      # Generic UI primitives
 │   ├── RetryIndicator/          # Retry UI component
 │   └── css/                     # Component styles
-├── services/                    # Business logic layer (17+ services)
-│   ├── problemService.js        # Problem selection & sessions
-│   ├── sessionService.js        # Session lifecycle management
-│   ├── tagService.js            # Tag mastery tracking
-│   ├── attemptsService.js       # Attempt tracking & analytics
-│   ├── scheduleService.js       # FSRS spaced repetition
-│   ├── strategyService.js       # Hints & strategy content
-│   ├── dashboardService.js      # Dashboard data aggregation
-│   ├── onboardingService.js     # Onboarding state management (NEW)
-│   ├── databaseProxy.js         # Database proxy for content scripts
-│   ├── dataIntegrity/           # Data integrity utilities
-│   └── __tests__/               # Service tests (comprehensive)
-├── db/                          # IndexedDB layer (13 stores)
-│   ├── index.js                 # Database helper & initialization
-│   ├── problems.js              # Problems store operations
-│   ├── sessions.js              # Sessions store operations
-│   ├── attempts.js              # Attempts store operations
-│   ├── tag_mastery.js           # Tag mastery store
-│   ├── pattern_ladders.js       # Pattern ladder tracking
-│   ├── settings.js              # User settings
-│   ├── focus_tags.js            # Focus tag management
-│   ├── strategy_data.js         # Strategy content data
-│   ├── README.md                # Database layer documentation
-│   └── __tests__/               # Database tests
+├── services/                    # Business logic layer (domain-organized)
+│   ├── problem/                 # Problem management
+│   │   ├── problemService.js
+│   │   ├── problemNormalizer.js
+│   │   └── problemRelationshipService.js
+│   ├── schedule/                # Scheduling & spaced repetition
+│   │   ├── scheduleService.js
+│   │   └── recalibrationService.js
+│   ├── session/                 # Session management
+│   │   ├── sessionService.js
+│   │   └── interviewService.js
+│   ├── hints/                   # Hint system
+│   │   ├── hintInteractionService.js
+│   │   └── StrategyCacheService.js
+│   ├── attempts/                # Attempt tracking
+│   │   ├── attemptsService.js
+│   │   ├── tagServices.js
+│   │   └── adaptiveLimitsService.js
+│   ├── monitoring/              # System monitoring
+│   │   ├── AlertingService.js
+│   │   ├── ErrorReportService.js
+│   │   └── RetryDiagnostics.js
+│   ├── storage/                 # Storage management
+│   │   ├── storageService.js
+│   │   ├── IndexedDBRetryService.js
+│   │   └── StorageMigrationService.js
+│   ├── chrome/                  # Chrome API wrappers
+│   │   ├── ChromeAPIErrorHandler.js
+│   │   └── navigationService.js
+│   ├── focus/                   # Focus area coordination
+│   │   ├── focusCoordinationService.js
+│   │   └── onboardingService.js
+│   ├── dataIntegrity/           # Data integrity checks
+│   │   └── integrityCheckHelpers.js
+│   └── __tests__/               # Service tests
+├── db/                          # IndexedDB layer (domain-organized)
+│   ├── index.js                 # Main dbHelper export with proxy
+│   ├── core/                    # Database infrastructure
+│   │   ├── dbHelperFactory.js   # Database helper factory
+│   │   ├── dbHelperMethods.js   # CRUD operations
+│   │   ├── dbHelperAdvanced.js  # Advanced operations
+│   │   ├── connectionUtils.js   # Connection management
+│   │   ├── storeCreation.js     # Schema definitions
+│   │   └── common.js            # Common DB operations
+│   ├── stores/                  # Store-specific operations
+│   │   ├── problems.js
+│   │   ├── sessions.js
+│   │   ├── attempts.js
+│   │   ├── tag_mastery.js
+│   │   ├── standard_problems.js
+│   │   ├── strategy_data.js
+│   │   └── ... (13 stores total)
+│   ├── migrations/              # Migration utilities
+│   │   ├── backupDB.js
+│   │   ├── restoreDB.js
+│   │   └── migrationOrchestrator.js
+│   ├── README.md
+│   └── __tests__/
 ├── hooks/                       # Custom React hooks
-│   ├── useChromeMessage.jsx     # Chrome API messaging hook
-│   ├── useStrategy.js           # Strategy & hints hook
-│   └── useThemeColors.js        # Theme color integration
-├── utils/                       # Helper functions
-│   ├── leitnerSystem.js         # Leitner box logic
-│   ├── AccurateTimer.js         # High-precision timer
-│   ├── tagMasteryCalculations.js # Mastery score calculations
-│   ├── dataIntegrity/           # Data integrity utilities
-│   └── dbUtils/                 # Database utilities
+│   ├── useChromeMessage.jsx
+│   ├── useStrategy.js
+│   └── useThemeColors.js
+├── utils/                       # Helper functions (domain-organized)
+│   ├── logging/                 # Logging utilities
+│   │   ├── logger.js
+│   │   └── errorNotifications.js
+│   ├── leitner/                 # Leitner algorithm utilities
+│   │   ├── leitnerSystem.js
+│   │   └── adaptiveThresholds.js
+│   ├── storage/                 # Storage utilities
+│   │   ├── storageCleanup.js
+│   │   └── storageHealth.js
+│   ├── performance/             # Performance monitoring
+│   │   └── RetryPerformanceMonitor.js
+│   ├── timing/                  # Timer utilities
+│   │   ├── AccurateTimer.js
+│   │   └── timeMigration.js
+│   ├── session/                 # Session utilities
+│   │   └── sessionBalancing.js
+│   ├── dataIntegrity/           # Data validation
+│   │   └── DataIntegritySchemas.js
+│   └── ui/                      # UI utilities
+│       └── cn.js
 ├── constants/                   # Constants & configuration
-│   ├── LeetCode_Tags_Combined.json # Tag mappings
-│   └── strategy_data.js         # Strategy content
+│   ├── LeetCode_Tags_Combined.json
+│   └── strategy_data.json
 ├── provider/                    # React context providers
 ├── theme/                       # Theme configuration
-├── assets/                      # Static assets
-└── Icons/                       # Icon assets
+└── assets/                      # Static assets
 ```
 
 **Purpose:**
@@ -305,30 +360,34 @@ src/popup/
 - `monitoring/` - System health monitoring
 - `RetryIndicator/` - Error retry UI
 
-### Services Organization
+### Services Organization (Domain-Driven)
 
-**Core Services** (17+ services in `/shared/services/`):
-1. **ProblemService** - Problem selection, adaptive algorithms
-2. **SessionService** - Session lifecycle, completion, analytics
-3. **TagService** - Tag mastery, learning state
-4. **AttemptsService** - Attempt tracking, statistics
-5. **ScheduleService** - FSRS scheduling, review planning
-6. **StrategyService** - Hints, primers, educational content
-7. **DashboardService** - Dashboard data aggregation
-8. **OnboardingService** - User onboarding state
-9. **DatabaseProxy** - Content script database access
-10. **ChromeAPIErrorHandler** - Chrome API error handling
-11. **IndexedDBRetryService** - Database retry logic
-12. **FocusCoordinationService** - Focus area coordination
-13. **HintInteractionService** - Hint usage tracking
-14. **AlertingService** - Desktop notifications
-15. **StorageService** - Settings management
-16. **AdaptiveLimitsService** - Dynamic time limits
-17. **DataIntegrityService** - Database health checks
+**Services are now organized by domain** (in `/shared/services/`):
 
-### Database Organization
+| Domain | Services | Purpose |
+|--------|----------|---------|
+| `problem/` | ProblemService, ProblemNormalizer | Problem selection & normalization |
+| `schedule/` | ScheduleService, RecalibrationService | FSRS scheduling & recalibration |
+| `session/` | SessionService, InterviewService | Session lifecycle management |
+| `hints/` | HintInteractionService, StrategyCacheService | Hint system & caching |
+| `attempts/` | AttemptsService, TagServices, AdaptiveLimitsService | Attempt tracking & limits |
+| `monitoring/` | AlertingService, ErrorReportService, RetryDiagnostics | System monitoring |
+| `storage/` | StorageService, IndexedDBRetryService, StorageMigrationService | Storage management |
+| `chrome/` | ChromeAPIErrorHandler, NavigationService | Chrome API wrappers |
+| `focus/` | FocusCoordinationService, OnboardingService | Focus area & onboarding |
+| `dataIntegrity/` | IntegrityCheckHelpers, ReferentialIntegrityService | Data validation |
 
-**13 IndexedDB Stores** (in `/shared/db/`):
+### Database Organization (Domain-Driven)
+
+**Database layer is now organized by function** (in `/shared/db/`):
+
+| Directory | Contents | Purpose |
+|-----------|----------|---------|
+| `core/` | dbHelperFactory, dbHelperMethods, dbHelperAdvanced, connectionUtils, storeCreation, common | Database infrastructure & CRUD |
+| `stores/` | problems, sessions, attempts, tag_mastery, standard_problems, strategy_data, etc. | Store-specific operations (13 stores) |
+| `migrations/` | backupDB, restoreDB, migrationOrchestrator | Backup, restore & schema migrations |
+
+**13 IndexedDB Stores:**
 1. `problems` - Problem metadata & scheduling
 2. `sessions` - Session data & history
 3. `attempts` - Problem attempt records
@@ -339,7 +398,7 @@ src/popup/
 8. `review` - Review schedule (FSRS)
 9. `problem_relationships` - Similar problems
 10. `hint_interactions` - Hint usage analytics
-11. `strategy_primers` - Educational content
+11. `strategy_data` - Strategy content data
 12. `session_problems` - Session-problem relationships
 13. `standard_problems` - LeetCode problem database
 
@@ -354,16 +413,12 @@ chrome-extension-app/
 │   ├── background/__tests__/    # Background script tests
 │   ├── content/__tests__/       # Content script tests
 │   └── shared/**/__tests__/     # Shared code tests
-├── test/                        # Test setup & utilities
-│   └── setup.js                 # Jest configuration
-└── browser-tests/               # Browser-based integration tests
-    ├── README.md
-    └── SIMPLE-README.md
+└── test/                        # Test setup & utilities
+    └── setup.js                 # Jest configuration
 ```
 
 **Test Types:**
 - **Unit Tests:** Co-located with source files (`__tests__/` directories)
-- **Integration Tests:** Browser-based tests in `browser-tests/`
 - **Service Tests:** Comprehensive service layer testing
 - **Hook Tests:** React hook testing with Testing Library
 
@@ -463,11 +518,18 @@ docs/
 
 ## 🆕 Recent Changes
 
+**New in 2025-12 (Issue #222 - Folder Reorganization):**
+- **Services reorganized** into domain subfolders: `problem/`, `schedule/`, `session/`, `hints/`, `attempts/`, `monitoring/`, `storage/`, `chrome/`, `focus/`, `dataIntegrity/`
+- **Database layer reorganized** into `core/`, `stores/`, `migrations/`
+- **Utils reorganized** into `logging/`, `leitner/`, `storage/`, `performance/`, `timing/`, `session/`, `dataIntegrity/`, `ui/`
+- **Components reorganized** into `error/`, `monitoring/`, `timer/`, `onboarding/`, `storage/`
+- **Dead code cleanup**: 79+ orphaned files removed (~20,000 lines)
+- **ESLint config updated** for new folder structure
+
 **New in 2025-10:**
 - Background handlers extracted into modules (`src/background/handlers/`)
 - Onboarding system components (`src/content/components/onboarding/`)
 - Data integrity monitoring (`src/shared/components/monitoring/`)
-- Database proxy service (`src/shared/services/databaseProxy.js`)
 - Enhanced hint system with analytics
 - Learning path visualization component
 
@@ -487,5 +549,5 @@ docs/
 
 ---
 
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-12-01
 **Maintained By:** CodeMaster Team
