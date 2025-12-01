@@ -7,7 +7,7 @@
  * Runs every 24 hours while extension is active.
  */
 
-import { openDatabase } from '../../db/connectionUtils.js';
+import { openDatabase } from '../../db/core/connectionUtils.js';
 import logger from '../logging/logger.js';
 
 export default class StorageCleanupManager {

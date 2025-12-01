@@ -5,7 +5,7 @@
 
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
-import { buildRelationshipMap } from "../../db/problem_relationships.js";
+import { buildRelationshipMap } from "../../db/stores/problem_relationships.js";
 
 /**
  * Service for managing problem relationship data

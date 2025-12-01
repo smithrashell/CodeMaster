@@ -26,8 +26,8 @@ import {
   Button,
 } from "@mantine/core";
 
-import ResilientStorage from "../services/ResilientStorage.js";
-import StorageCleanupManager from "../utils/storageCleanup.js";
+import ResilientStorage from "../../services/storage/ResilientStorage.js";
+import StorageCleanupManager from "../../utils/storage/storageCleanup.js";
 
 /**
  * Storage Status Helper Functions

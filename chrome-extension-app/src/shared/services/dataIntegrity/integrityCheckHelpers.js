@@ -4,7 +4,7 @@
  */
 
 import ReferentialIntegrityService from "./ReferentialIntegrityService.js";
-import StorageHealthMonitor from "../../utils/storageHealth.js";
+import StorageHealthMonitor from "../../utils/storage/storageHealth.js";
 import logger from "../../utils/logging/logger.js";
 
 /**
