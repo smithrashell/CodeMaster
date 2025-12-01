@@ -30,7 +30,7 @@ const mockLogger = {
   _storeCriticalLog: jest.fn(),
 };
 
-jest.mock("../src/shared/utils/logger.js", () => ({
+jest.mock("../src/shared/utils/logging/logger.js", () => ({
   __esModule: true,
   default: mockLogger,
   // Also export named exports if any modules use them
@@ -44,7 +44,7 @@ jest.mock("../src/shared/utils/logger.js", () => ({
 }));
 
 // Mock PerformanceMonitor to prevent initialization errors
-jest.mock("../src/shared/utils/PerformanceMonitor.js", () => ({
+jest.mock("../src/shared/utils/performance/PerformanceMonitor.js", () => ({
   default: {
     recordTiming: jest.fn(),
     recordEvent: jest.fn(),

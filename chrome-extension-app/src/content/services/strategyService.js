@@ -1,8 +1,8 @@
-import strategyCacheService from "../../shared/services/StrategyCacheService.js";
-import performanceMonitor from "../../shared/utils/PerformanceMonitor.js";
+import strategyCacheService from "../../shared/services/hints/StrategyCacheService.js";
+import performanceMonitor from "../../shared/utils/performance/PerformanceMonitor.js";
 import chromeMessaging from "./chromeMessagingService.js";
-import { success, debug, data, system } from "../../shared/utils/logger.js";
-import logger from "../../shared/utils/logger.js";
+import { success, debug, data, system } from "../../shared/utils/logging/logger.js";
+import logger from "../../shared/utils/logging/logger.js";
 
 // Fallback strategy data when database is unavailable
 const FALLBACK_STRATEGIES = {

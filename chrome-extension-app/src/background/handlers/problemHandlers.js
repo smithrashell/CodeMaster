@@ -12,9 +12,9 @@
  * - problemSubmitted: Broadcasts to all tabs for navigation state refresh
  */
 
-import { ProblemService } from "../../shared/services/problemService.js";
-import { AttemptsService } from "../../shared/services/attemptsService.js";
-import { getProblemWithOfficialDifficulty } from "../../shared/db/problems.js";
+import { ProblemService } from "../../shared/services/problem/problemService.js";
+import { AttemptsService } from "../../shared/services/attempts/attemptsService.js";
+import { getProblemWithOfficialDifficulty } from "../../shared/db/stores/problems.js";
 
 /**
  * Handler: getProblemByDescription

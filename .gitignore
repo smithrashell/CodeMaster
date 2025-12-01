@@ -27,6 +27,7 @@ temp_*.txt
 *_config.json
 strategy_*.json
 strategy_*.js
+!chrome-extension-app/src/shared/db/stores/strategy_data.js
 generate_*.js
 tstaus
 lint-*.txt

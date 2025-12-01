@@ -1,5 +1,5 @@
-import { 
-  getDashboardStatistics, 
+import {
+  getDashboardStatistics,
   getSessionHistoryData,
   getProductivityInsightsData,
   getTagMasteryData,
@@ -8,27 +8,27 @@ import {
   generateSessionAnalytics,
   generateMasteryData,
   generateGoalsData
-} from "../dashboardService";
+} from "../dashboard/dashboardService";
 
 // Mock database modules
-jest.mock("../../../shared/db/problems");
-jest.mock("../../../shared/db/attempts");
-jest.mock("../../../shared/db/sessions");
-jest.mock("../../../shared/db/standard_problems");
-jest.mock("../../../shared/db/sessionAnalytics");
-jest.mock("../../../shared/db/tag_relationships");
-jest.mock("../../../shared/services/tagServices");
-jest.mock("../../../shared/services/problemService");
-jest.mock("../../../shared/services/storageService");
+jest.mock("../../../shared/db/stores/problems");
+jest.mock("../../../shared/db/stores/attempts");
+jest.mock("../../../shared/db/stores/sessions");
+jest.mock("../../../shared/db/stores/standard_problems");
+jest.mock("../../../shared/db/stores/sessionAnalytics");
+jest.mock("../../../shared/db/stores/tag_relationships");
+jest.mock("../../../shared/services/attempts/tagServices");
+jest.mock("../../../shared/services/problem/problemService");
+jest.mock("../../../shared/services/storage/storageService");
 
-import { fetchAllProblems } from "../../../shared/db/problems";
-import { getAllAttempts } from "../../../shared/db/attempts";
-import { getAllSessions } from "../../../shared/db/sessions";
-import { getAllStandardProblems } from "../../../shared/db/standard_problems";
-import { getTagRelationships } from "../../../shared/db/tag_relationships";
-import { TagService } from "../../../shared/services/tagServices";
-import { ProblemService } from "../../../shared/services/problemService";
-import { StorageService } from "../../../shared/services/storageService";
+import { fetchAllProblems } from "../../../shared/db/stores/problems";
+import { getAllAttempts } from "../../../shared/db/stores/attempts";
+import { getAllSessions } from "../../../shared/db/stores/sessions";
+import { getAllStandardProblems } from "../../../shared/db/stores/standard_problems";
+import { getTagRelationships } from "../../../shared/db/stores/tag_relationships";
+import { TagService } from "../../../shared/services/attempts/tagServices";
+import { ProblemService } from "../../../shared/services/problem/problemService";
+import { StorageService } from "../../../shared/services/storage/storageService";
 
 // Helper function to create mock data
 function createMockData() {

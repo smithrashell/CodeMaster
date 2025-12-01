@@ -3,7 +3,7 @@
  * Regression tests for Issue #159: Incorrect box level statistics
  */
 
-import { countProblemsByBoxLevel, countProblemsByBoxLevelWithRetry } from '../problems.js';
+import { countProblemsByBoxLevel, countProblemsByBoxLevelWithRetry } from '../stores/problems.js';
 import { dbHelper } from '../index.js';
 
 // Mock the database helper
@@ -14,7 +14,7 @@ jest.mock('../index.js', () => ({
 }));
 
 // Mock IndexedDB retry service
-jest.mock('../../services/IndexedDBRetryService.js', () => {
+jest.mock('../../services/storage/IndexedDBRetryService.js', () => {
   const mockInstance = {
     executeWithRetry: jest.fn((fn) => fn()),
     defaultTimeout: 5000,

@@ -4,7 +4,7 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 // Import page components directly
-import { Stats } from "../pages/overview.jsx";
+import { Stats } from "../pages/dashboard/overview.jsx";
 import { Progress } from "../pages/progress/learning-progress.jsx";
 import { Goals } from "../pages/progress/goals.jsx";
 import { Metrics as SessionHistory } from "../pages/sessions/session-history.jsx";
@@ -15,9 +15,9 @@ import { General } from "../pages/settings/general.jsx";
 import { Appearance } from "../pages/settings/appearance.jsx";
 import { Accessibility } from "../pages/settings/accessibility.jsx";
 import { HelpPage } from "../pages/help/index.jsx";
-import { DashboardPage } from "../pages/mockup";
-import ErrorBoundary from "../../shared/components/ErrorBoundary";
-import { DashboardErrorFallback } from "../../shared/components/ErrorFallback";
+import { DashboardPage } from "../pages/layout/DashboardLayout";
+import ErrorBoundary from "../../shared/components/error/ErrorBoundary";
+import { DashboardErrorFallback } from "../../shared/components/error/ErrorFallback";
 
 // Helper function to create protected routes with ErrorBoundary
 const createProtectedRoute = (section, Component) => (

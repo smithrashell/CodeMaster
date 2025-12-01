@@ -1,4 +1,4 @@
-import { SessionService } from "../sessionService";
+import { SessionService } from "../session/sessionService";
 import {
   getSessionById,
   // getLatestSession, // Unused in current tests
@@ -6,26 +6,26 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
-} from "../../db/sessions";
-import { ProblemService } from "../problemService";
-import { StorageService } from "../storageService";
+} from "../../db/stores/sessions";
+import { ProblemService } from "../problem/problemService";
+import { StorageService } from "../storage/storageService";
 import {
   setupSessionCreationMocks,
   assertValidSession
 } from './sessionServiceTestHelpers';
 
 // Mock the database modules
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
-jest.mock("../../db/problem_relationships");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessionAnalytics");
-jest.mock("../problemService");
-jest.mock("../storageService");
+jest.mock("../../db/stores/sessions");
+jest.mock("../../db/stores/tag_mastery");
+jest.mock("../../db/stores/problem_relationships");
+jest.mock("../../db/stores/standard_problems");
+jest.mock("../../db/stores/sessionAnalytics");
+jest.mock("../problem/problemService");
+jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
 // Mock new dependencies introduced during database integration  
-jest.mock("../../utils/PerformanceMonitor.js", () => ({
+jest.mock("../../utils/performance/PerformanceMonitor.js", () => ({
   __esModule: true,
   default: {
     startQuery: jest.fn(() => ({ id: "test-query" })),
@@ -33,7 +33,7 @@ jest.mock("../../utils/PerformanceMonitor.js", () => ({
   },
 }));
 
-jest.mock("../IndexedDBRetryService.js", () => ({
+jest.mock("../storage/IndexedDBRetryService.js", () => ({
   IndexedDBRetryService: jest.fn().mockImplementation(() => ({
     executeWithRetry: jest.fn((fn) => fn()),
     quickTimeout: 1000,
@@ -228,8 +228,8 @@ describe("SessionService - Critical User Retention Paths", () => {
   describe("📊 CRITICAL: User sees their streak", () => {
     it("should calculate current streak correctly", async () => {
       // Mock the openDatabase function to return our test database
-      const { openDatabase: _openDatabase } = await import('../../db/connectionUtils.js');
-      jest.doMock('../../db/connectionUtils.js', () => ({
+      const { openDatabase: _openDatabase } = await import('../../db/core/connectionUtils.js');
+      jest.doMock('../../db/core/connectionUtils.js', () => ({
         openDatabase: jest.fn().mockResolvedValue({
           transaction: jest.fn().mockReturnValue({
             objectStore: jest.fn().mockReturnValue({

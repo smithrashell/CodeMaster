@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { mainLinksMockdata } from "../components/navigationConstants";
+import { mainLinksMockdata } from "../components/navigation/navigationConstants";
 
 export function useNavigation() {
   const location = useLocation();

@@ -5,19 +5,19 @@
 
 // Mock all database dependencies to prevent production database access
 jest.mock('../../db/index.js');
-jest.mock('../../db/attempts.js');
-jest.mock('../sessionService.js');
-jest.mock('../../db/sessions.js');
-jest.mock('../problemService.js');
-jest.mock('../focusCoordinationService.js', () => ({
+jest.mock('../../db/stores/attempts.js');
+jest.mock('../session/sessionService.js');
+jest.mock('../../db/stores/sessions.js');
+jest.mock('../problem/problemService.js');
+jest.mock('../focus/focusCoordinationService.js', () => ({
   default: {
     updateFocusAreas: jest.fn()
   }
 }));
-jest.mock('../../utils/Utils.js');
+jest.mock('../../utils/leitner/Utils.js');
 
 // Import the actual AttemptsService for testing
-import { AttemptsService } from '../attemptsService.js';
+import { AttemptsService } from '../attempts/attemptsService.js';
 
 /**
  * Test suite for critical input validation scenarios
@@ -299,36 +299,36 @@ describe('AttemptsService - Critical Risk Areas', () => {
       }
     }));
     
-    jest.doMock('../../db/attempts.js', () => ({
+    jest.doMock('../../db/stores/attempts.js', () => ({
       getMostRecentAttempt: jest.fn().mockResolvedValue(null)
     }));
     
-    jest.doMock('../sessionService.js', () => ({
+    jest.doMock('../session/sessionService.js', () => ({
       SessionService: {
         checkAndCompleteSession: jest.fn().mockResolvedValue({ status: 'completed' })
       }
     }));
     
-    jest.doMock('../../db/sessions.js', () => ({
+    jest.doMock('../../db/stores/sessions.js', () => ({
       getLatestSessionByType: jest.fn().mockResolvedValue(null),
       saveSessionToStorage: jest.fn().mockResolvedValue({ status: 'success' }),
       updateSessionInDB: jest.fn().mockResolvedValue({ status: 'success' }),
       saveNewSessionToDB: jest.fn().mockResolvedValue({ status: 'success' })
     }));
     
-    jest.doMock('../problemService.js', () => ({
-      ProblemService: { 
+    jest.doMock('../problem/problemService.js', () => ({
+      ProblemService: {
         createSession: jest.fn().mockResolvedValue({ id: 'mock-session' })
       }
     }));
     
-    jest.doMock('../focusCoordinationService.js', () => ({
+    jest.doMock('../focus/focusCoordinationService.js', () => ({
       default: { 
         updateFocusAreas: jest.fn().mockResolvedValue({ status: 'success' })
       }
     }));
     
-    jest.doMock('../../utils/Utils.js', () => ({
+    jest.doMock('../../utils/leitner/Utils.js', () => ({
       createAttemptRecord: jest.fn().mockReturnValue({ id: 'mock-attempt' })
     }));
 

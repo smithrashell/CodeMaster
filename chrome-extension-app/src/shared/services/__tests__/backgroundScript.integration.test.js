@@ -4,14 +4,14 @@
  * Focuses on getGoalsData handler with Focus Coordination Service
  */
 
-import FocusCoordinationService from '../focusCoordinationService.js';
-import { StorageService } from '../storageService.js';
-import { getGoalsData } from '../../../app/services/dashboardService.js';
+import FocusCoordinationService from '../focus/focusCoordinationService.js';
+import { StorageService } from '../storage/storageService.js';
+import { getGoalsData } from '../../../app/services/dashboard/dashboardService.js';
 
 // Mock dependencies
-jest.mock('../focusCoordinationService.js');
-jest.mock('../storageService.js');
-jest.mock('../../../app/services/dashboardService.js');
+jest.mock('../focus/focusCoordinationService.js');
+jest.mock('../storage/storageService.js');
+jest.mock('../../../app/services/dashboard/dashboardService.js');
 
 // Helper functions for background script tests
 const createDefaultSettings = () => ({

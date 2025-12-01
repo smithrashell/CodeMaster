@@ -1,6 +1,6 @@
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import { ChromeAPIErrorHandler } from "../../../shared/services/ChromeAPIErrorHandler";
-import logger from "../../../shared/utils/logger.js";
+import { ChromeAPIErrorHandler } from "../../../shared/services/chrome/ChromeAPIErrorHandler";
+import logger from "../../../shared/utils/logging/logger.js";
 
 // React hook for settings operations using Chrome messaging
 export const useSettingsMessaging = () => {

@@ -1,4 +1,4 @@
-import logger from "../shared/utils/logger.js";
+import logger from "../shared/utils/logging/logger.js";
 import "./css/main.css";
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
@@ -15,7 +15,7 @@ import ErrorBoundary from "./components/ui/ErrorBoundary.jsx";
 import {
   TimerErrorFallback,
   GenericErrorFallback,
-} from "../shared/components/ErrorFallback";
+} from "../shared/components/error/ErrorFallback";
 import { PageSpecificTour } from "./components/onboarding/PageSpecificTour";
 import { usePageTour } from "./components/onboarding/usePageTour";
 import { FloatingHelpButton } from "./components/help/FloatingHelpButton.jsx";

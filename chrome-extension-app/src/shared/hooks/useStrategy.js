@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import StrategyService from "../../content/services/strategyService";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
+import performanceMonitor from "../utils/performance/PerformanceMonitor.js";
 
 // Helper function to check if strategy data is loaded
 const checkStrategyDataLoaded = async (setIsDataLoaded) => {

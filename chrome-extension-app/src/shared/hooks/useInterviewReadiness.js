@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { debug, component, fallback } from "../utils/logger.js";
+import { debug, component, fallback } from "../utils/logging/logger.js";
 
 /**
  * Hook for checking interview mode readiness and capabilities

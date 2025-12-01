@@ -1,8 +1,8 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, Text, Group, Button, Grid } from "@mantine/core";
 import { IconTarget, IconInfoCircle } from "@tabler/icons-react";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
 import { createPlaceholderCards } from './focusAreasHelpers.js';
 import { GraduationAlert } from './GraduationAlert.jsx';
 import { FocusAreasLoadingState } from './FocusAreasLoadingState.jsx';

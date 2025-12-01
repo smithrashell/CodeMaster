@@ -2,18 +2,18 @@
 import { routeMessage } from "./messageRouter.js";
 
 // Core Services (used by background script directly, not just message handlers)
-import { StorageService } from "../shared/services/storageService.js";
-import { ProblemService } from "../shared/services/problemService.js";
-import { SessionService } from "../shared/services/sessionService.js";
-import { AttemptsService } from "../shared/services/attemptsService.js";
-import { TagService } from "../shared/services/tagServices.js";
-import { HintInteractionService } from "../shared/services/hintInteractionService.js";
-import { AlertingService } from "../shared/services/AlertingService.js";
-import { NavigationService } from "../shared/services/navigationService.js";
-import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
-import AccurateTimer from "../shared/utils/AccurateTimer.js";
-import ChromeAPIErrorHandler from "../shared/services/ChromeAPIErrorHandler.js";
-import { checkAndApplyDecay } from "../shared/services/recalibrationService.js";
+import { StorageService } from "../shared/services/storage/storageService.js";
+import { ProblemService } from "../shared/services/problem/problemService.js";
+import { SessionService } from "../shared/services/session/sessionService.js";
+import { AttemptsService } from "../shared/services/attempts/attemptsService.js";
+import { TagService } from "../shared/services/attempts/tagServices.js";
+import { HintInteractionService } from "../shared/services/hints/hintInteractionService.js";
+import { AlertingService } from "../shared/services/monitoring/AlertingService.js";
+import { NavigationService } from "../shared/services/chrome/navigationService.js";
+import FocusCoordinationService from "../shared/services/focus/focusCoordinationService.js";
+import AccurateTimer from "../shared/utils/timing/AccurateTimer.js";
+import ChromeAPIErrorHandler from "../shared/services/chrome/ChromeAPIErrorHandler.js";
+import { checkAndApplyDecay } from "../shared/services/schedule/recalibrationService.js";
 
 // Database utilities (used in background script functions)
 // eslint-disable-next-line no-restricted-imports
@@ -24,7 +24,7 @@ import {
   onboardUserIfNeeded,
   checkOnboardingStatus,
   completeOnboarding
-} from "../shared/services/onboardingService.js";
+} from "../shared/services/focus/onboardingService.js";
 
 // Test utilities removed - test framework files deleted
 // testCoreBusinessLogic and Chrome extension integration tests are still available

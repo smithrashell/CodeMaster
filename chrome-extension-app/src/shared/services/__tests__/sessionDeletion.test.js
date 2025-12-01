@@ -5,25 +5,25 @@
  * and edge case handling for session deletion.
  */
 
-import { SessionService } from "../sessionService";
+import { SessionService } from "../session/sessionService";
 import {
   getSessionById,
   deleteSessionFromDB,
-} from "../../db/sessions";
-import { ProblemService } from "../problemService";
-import { StorageService } from "../storageService";
+} from "../../db/stores/sessions";
+import { ProblemService } from "../problem/problemService";
+import { StorageService } from "../storage/storageService";
 
 // Mock dependencies
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
-jest.mock("../../db/problem_relationships");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessionAnalytics");
-jest.mock("../problemService");
-jest.mock("../storageService");
+jest.mock("../../db/stores/sessions");
+jest.mock("../../db/stores/tag_mastery");
+jest.mock("../../db/stores/problem_relationships");
+jest.mock("../../db/stores/standard_problems");
+jest.mock("../../db/stores/sessionAnalytics");
+jest.mock("../problem/problemService");
+jest.mock("../storage/storageService");
 jest.mock("uuid", () => ({ v4: () => "test-session-uuid" }));
 
-jest.mock("../../utils/PerformanceMonitor.js", () => ({
+jest.mock("../../utils/performance/PerformanceMonitor.js", () => ({
   __esModule: true,
   default: {
     startQuery: jest.fn(() => ({ id: "test-query" })),
@@ -31,7 +31,7 @@ jest.mock("../../utils/PerformanceMonitor.js", () => ({
   },
 }));
 
-jest.mock("../IndexedDBRetryService.js", () => ({
+jest.mock("../storage/IndexedDBRetryService.js", () => ({
   IndexedDBRetryService: jest.fn().mockImplementation(() => ({
     executeWithRetry: jest.fn((fn) => fn()),
     quickTimeout: 1000,

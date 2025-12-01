@@ -2,9 +2,9 @@
  * Custom hook for loading and managing storage data
  */
 import { useState, useEffect, useCallback } from "react";
-import StorageHealthMonitor from "../../shared/utils/storageHealth.js";
-import StorageCleanupManager from "../../shared/utils/storageCleanup.js";
-import StorageMigrationService from "../../shared/services/StorageMigrationService.js";
+import StorageHealthMonitor from "../../shared/utils/storage/storageHealth.js";
+import StorageCleanupManager from "../../shared/utils/storage/storageCleanup.js";
+import StorageMigrationService from "../../shared/services/storage/StorageMigrationService.js";
 
 export const useStorageData = (addNotification) => {
   const [storageHealth, setStorageHealth] = useState(null);

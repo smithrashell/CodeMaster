@@ -1,4 +1,4 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, Stack } from '../ui/Layout.jsx';
 import Text from '../ui/Text.jsx';

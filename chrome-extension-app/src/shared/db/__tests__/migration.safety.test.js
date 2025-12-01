@@ -16,7 +16,7 @@ jest.mock("../index.js", () => ({
   },
 }));
 
-jest.mock("../backupDB.js", () => ({
+jest.mock("../migrations/backupDB.js", () => ({
   createBackup: jest.fn(),
   restoreFromBackup: jest.fn(),
 }));
@@ -33,7 +33,7 @@ import {
   validateDatabaseIntegrity,
   performSafeMigration,
   initializeMigrationSafety,
-} from "../migrationSafety.js";
+} from "../migrations/migrationSafety.js";
 
 import { dbHelper } from "../index.js";
 

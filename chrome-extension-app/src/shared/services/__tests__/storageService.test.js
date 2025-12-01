@@ -11,11 +11,11 @@ jest.mock('../../db/index.js', () => ({
 }));
 
 // Mock connectionUtils
-jest.mock('../../db/connectionUtils.js', () => ({
+jest.mock('../../db/core/connectionUtils.js', () => ({
   openDatabase: jest.fn()
 }));
 
-import { openDatabase } from '../../db/connectionUtils.js';
+import { openDatabase } from '../../db/core/connectionUtils.js';
 
 // Global test state
 let mockDB;

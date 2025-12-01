@@ -3,7 +3,7 @@
  */
 import { useState, useEffect } from "react";
 import { smartPositioning } from "./SmartPositioning";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { findTimerLink, calculateTimerButtonPosition } from "./timerLinkHelpers.js";
 
 // Custom hook for positioning

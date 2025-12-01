@@ -10,7 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
 
 // Import pages to test
-import { Stats } from '../../pages/overview';
+import { Stats } from '../../pages/dashboard/overview';
 import { Metrics } from '../../pages/sessions/session-history';
 import { TagMastery } from '../../pages/strategy/tag-mastery';
 
@@ -28,7 +28,7 @@ jest.mock('../../hooks/usePageData', () => ({
 }));
 
 // Mock the onboarding service
-jest.mock('../../../shared/services/onboardingService', () => ({
+jest.mock('../../../shared/services/focus/onboardingService', () => ({
   checkContentOnboardingStatus: jest.fn().mockResolvedValue({
     isCompleted: true,    // Mock as completed so dashboard shows data
     currentStep: 10,

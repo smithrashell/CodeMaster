@@ -24,7 +24,7 @@ global.chrome = {
 };
 
 // Mock logger
-jest.mock('../../utils/logger.js', () => ({
+jest.mock('../../utils/logging/logger.js', () => ({
   default: {
     info: jest.fn(),
     warn: jest.fn(),
@@ -48,8 +48,8 @@ describe.skip('Session Logic Integration', () => {
     // Import services after mocks are set up
     SessionService = (await import('../sessionService.js')).SessionService;
     ProblemService = (await import('../problemService.js')).ProblemService;
-    AttemptsService = (await import('../attemptsService.js')).AttemptsService;
-    TagService = (await import('../tagServices.js')).TagService;
+    AttemptsService = (await import('../attempts/attemptsService.js')).AttemptsService;
+    TagService = (await import('../attempts/tagServices.js')).TagService;
 
     jest.clearAllMocks();
   });

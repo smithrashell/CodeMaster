@@ -4,29 +4,29 @@
  * Only loaded in development mode
  */
 
-import { SessionService } from '../shared/services/sessionService.js';
-import { AttemptsService } from '../shared/services/attemptsService.js';
-import { TagService } from '../shared/services/tagServices.js';
-import { ProblemService } from '../shared/services/problemService.js';
-import { StorageService } from '../shared/services/storageService.js';
+import { SessionService } from '../shared/services/session/sessionService.js';
+import { AttemptsService } from '../shared/services/attempts/attemptsService.js';
+import { TagService } from '../shared/services/attempts/tagServices.js';
+import { ProblemService } from '../shared/services/problem/problemService.js';
+import { StorageService } from '../shared/services/storage/storageService.js';
 import { v4 as uuidv4 } from 'uuid';
-import logger from '../shared/utils/logger.js';
+import logger from '../shared/utils/logging/logger.js';
 
 // Database imports - ALL static, NO dynamic imports
-import { createDbHelper } from '../shared/db/dbHelperFactory.js';
-import { fetchProblemById, insertStandardProblems } from '../shared/db/standard_problems.js';
-import { insertStrategyData } from '../shared/db/strategy_data.js';
-import { buildTagRelationships } from '../shared/db/tag_relationships.js';
-import { buildProblemRelationships } from '../shared/services/relationshipService.js';
+import { createDbHelper } from '../shared/db/core/dbHelperFactory.js';
+import { fetchProblemById, insertStandardProblems } from '../shared/db/stores/standard_problems.js';
+import { insertStrategyData } from '../shared/db/stores/strategy_data.js';
+import { buildTagRelationships } from '../shared/db/stores/tag_relationships.js';
+import { buildProblemRelationships } from '../shared/services/focus/relationshipService.js';
 
 // Create dbHelper instance for test file usage
 const dbHelper = createDbHelper();
-import { getAllFromStore } from '../shared/db/common.js';
-import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/sessions.js';
-import { buildRelationshipMap } from '../shared/db/problem_relationships.js';
-import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/attempts.js';
-import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/tag_mastery.js';
-import { initializePatternLaddersForOnboarding, updatePatternLaddersOnAttempt } from '../shared/services/problemladderService.js';
+import { getAllFromStore } from '../shared/db/core/common.js';
+import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/stores/sessions.js';
+import { buildRelationshipMap } from '../shared/db/stores/problem_relationships.js';
+import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/stores/attempts.js';
+import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/stores/tag_mastery.js';
+import { initializePatternLaddersForOnboarding, updatePatternLaddersOnAttempt } from '../shared/services/problem/problemladderService.js';
 
 /**
  * Helper function to create test problems in the `problems` store

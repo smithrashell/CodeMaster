@@ -1,4 +1,4 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import React, { useState } from "react";
 import { BrainIcon } from "../../../shared/components/ui/Icons";
 import { ReasonTypeIcon } from "./ProblemInfoIcon";

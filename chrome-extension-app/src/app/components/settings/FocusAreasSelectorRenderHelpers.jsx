@@ -1,7 +1,7 @@
 import React from "react";
 import { Alert, Text, Stack, Group, Tabs, Card, Badge } from "@mantine/core";
 import CustomMultiSelect from "../shared/CustomMultiSelect";
-import logger, { debug } from "../../../shared/utils/logger.js";
+import logger, { debug } from "../../../shared/utils/logging/logger.js";
 import { getCurrentTierTab, getTierDescription } from "./tierHelpers.js";
 import { TierTagBadge } from "./TierTagBadge.jsx";
 import { TierPanel } from "./TierPanel.jsx";

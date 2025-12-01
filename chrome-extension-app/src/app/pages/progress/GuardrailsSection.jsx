@@ -1,6 +1,6 @@
 import { Card, Title, Group, Stack, Text, Select, Badge, Alert } from "@mantine/core";
 import { IconShield, IconInfoCircle } from "@tabler/icons-react";
-import SessionLimits from "../../../shared/utils/sessionLimits.js";
+import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
 import { useEffect } from "react";
 
 const SECTION_HEIGHT = 700;

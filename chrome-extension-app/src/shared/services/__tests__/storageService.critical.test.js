@@ -3,7 +3,7 @@
  * Focus: Core functionality that could cause data loss
  */
 
-import { StorageService } from '../storageService';
+import { StorageService } from '../storage/storageService';
 
 // Mock the database helper
 jest.mock('../../db/index.js', () => ({

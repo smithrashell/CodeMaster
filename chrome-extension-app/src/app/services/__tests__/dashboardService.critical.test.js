@@ -1,19 +1,19 @@
 // Mock all dependencies before importing
-jest.mock("../../../shared/db/problems");
-jest.mock("../../../shared/db/attempts");
-jest.mock("../../../shared/db/sessions");
-jest.mock("../../../shared/db/standard_problems");
-jest.mock("../../../shared/db/sessionAnalytics");
-jest.mock("../../../shared/db/hint_interactions");
-jest.mock("../../../shared/services/tagServices");
-jest.mock("../../../shared/services/problemService");
-jest.mock("../../../shared/services/storageService");
-jest.mock("../../../shared/services/hintInteractionService");
+jest.mock("../../../shared/db/stores/problems");
+jest.mock("../../../shared/db/stores/attempts");
+jest.mock("../../../shared/db/stores/sessions");
+jest.mock("../../../shared/db/stores/standard_problems");
+jest.mock("../../../shared/db/stores/sessionAnalytics");
+jest.mock("../../../shared/db/stores/hint_interactions");
+jest.mock("../../../shared/services/attempts/tagServices");
+jest.mock("../../../shared/services/problem/problemService");
+jest.mock("../../../shared/services/storage/storageService");
+jest.mock("../../../shared/services/hints/hintInteractionService");
 
-import * as dashboardService from "../dashboardService";
-import { 
-  getDashboardStatistics, 
-  getStatsData, 
+import * as dashboardService from "../dashboard/dashboardService";
+import {
+  getDashboardStatistics,
+  getStatsData,
   getLearningProgressData,
   getGoalsData,
   getSessionHistoryData,
@@ -22,15 +22,15 @@ import {
   getLearningPathData,
   // getMistakeAnalysisData, // Unused in current tests
   getInterviewAnalyticsData,
-  getSessionMetrics 
-} from "../dashboardService";
-import { fetchAllProblems } from "../../../shared/db/problems";
-import { getAllAttempts } from "../../../shared/db/attempts";
-import { getAllSessions } from "../../../shared/db/sessions";
-import { getAllStandardProblems } from "../../../shared/db/standard_problems";
-import { TagService } from "../../../shared/services/tagServices";
-import { ProblemService } from "../../../shared/services/problemService";
-import { HintInteractionService } from "../../../shared/services/hintInteractionService";
+  getSessionMetrics
+} from "../dashboard/dashboardService";
+import { fetchAllProblems } from "../../../shared/db/stores/problems";
+import { getAllAttempts } from "../../../shared/db/stores/attempts";
+import { getAllSessions } from "../../../shared/db/stores/sessions";
+import { getAllStandardProblems } from "../../../shared/db/stores/standard_problems";
+import { TagService } from "../../../shared/services/attempts/tagServices";
+import { ProblemService } from "../../../shared/services/problem/problemService";
+import { HintInteractionService } from "../../../shared/services/hints/hintInteractionService";
 
 // Helper functions for test setup
 function setupEmptyStateMocks() {

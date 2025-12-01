@@ -9,25 +9,25 @@
  */
 
 // Service imports
-import { StorageService } from "../shared/services/storageService.js";
-import { SessionService } from "../shared/services/sessionService.js";
-import { TagService } from "../shared/services/tagServices.js";
-import { HintInteractionService } from "../shared/services/hintInteractionService.js";
-import { InterviewService } from "../shared/services/interviewService.js";
-import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
-import { NavigationService } from "../shared/services/navigationService.js";
-import FocusCoordinationService from "../shared/services/focusCoordinationService.js";
-import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../shared/services/recalibrationService.js";
+import { StorageService } from "../shared/services/storage/storageService.js";
+import { SessionService } from "../shared/services/session/sessionService.js";
+import { TagService } from "../shared/services/attempts/tagServices.js";
+import { HintInteractionService } from "../shared/services/hints/hintInteractionService.js";
+import { InterviewService } from "../shared/services/session/interviewService.js";
+import { adaptiveLimitsService } from "../shared/services/attempts/adaptiveLimitsService.js";
+import { NavigationService } from "../shared/services/chrome/navigationService.js";
+import FocusCoordinationService from "../shared/services/focus/focusCoordinationService.js";
+import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../shared/services/schedule/recalibrationService.js";
 
 // Database imports
-import { backupIndexedDB, getBackupFile } from "../shared/db/backupDB.js";
-import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/strategy_data.js";
-import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../shared/db/common.js";
-import { buildRelationshipMap } from "../shared/db/problem_relationships.js";
-import { getProblem, fetchAllProblems } from "../shared/db/problems.js";
-import { getAllStandardProblems } from "../shared/db/standard_problems.js";
-import { getAllAttempts } from "../shared/db/attempts.js";
-import { getAllSessions } from "../shared/db/sessions.js";
+import { backupIndexedDB, getBackupFile } from "../shared/db/migrations/backupDB.js";
+import { getStrategyForTag, isStrategyDataLoaded } from "../shared/db/stores/strategy_data.js";
+import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../shared/db/core/common.js";
+import { buildRelationshipMap } from "../shared/db/stores/problem_relationships.js";
+import { getProblem, fetchAllProblems } from "../shared/db/stores/problems.js";
+import { getAllStandardProblems } from "../shared/db/stores/standard_problems.js";
+import { getAllAttempts } from "../shared/db/stores/attempts.js";
+import { getAllSessions } from "../shared/db/stores/sessions.js";
 
 // Dashboard service imports
 import {
@@ -43,10 +43,10 @@ import {
   clearFocusAreaAnalyticsCache,
   getInterviewAnalyticsData,
   getLearningEfficiencyData
-} from "../app/services/dashboardService.js";
+} from "../app/services/dashboard/dashboardService.js";
 
 // Relationship service import
-import { buildProblemRelationships } from "../shared/services/relationshipService.js";
+import { buildProblemRelationships } from "../shared/services/focus/relationshipService.js";
 
 // Handler imports (extracted for reduced complexity)
 import { sessionHandlers } from "./handlers/sessionHandlers.js";

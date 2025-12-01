@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { SVGRenderService } from '../../services/svgRenderService.js';
+import { SVGRenderService } from '../../services/dashboard/svgRenderService.js';
 
 /**
  * Custom hook for handling SVG rendering effects

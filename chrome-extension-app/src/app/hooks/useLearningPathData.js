@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { debug, warn as _warn } from "../../shared/utils/logger.js";
+import { debug, warn as _warn } from "../../shared/utils/logging/logger.js";
 import { tagRelationships } from "../components/learning/TagRelationships.js";
 
 // Data extraction helper functions

@@ -1,5 +1,5 @@
 // Mock logger first to prevent initialization errors
-jest.mock("../../utils/logger.js", () => {
+jest.mock("../../utils/logging/logger.js", () => {
   const mockLogger = {
     info: jest.fn(),
     warn: jest.fn(),
@@ -14,17 +14,17 @@ jest.mock("../../utils/logger.js", () => {
 });
 
 // Mock all dependencies before importing
-jest.mock("../../db/problems");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
-jest.mock("../attemptsService");
-jest.mock("../scheduleService", () => ({
+jest.mock("../../db/stores/problems");
+jest.mock("../../db/stores/standard_problems");
+jest.mock("../../db/stores/sessions");
+jest.mock("../../db/stores/tag_mastery");
+jest.mock("../attempts/attemptsService");
+jest.mock("../schedule/scheduleService", () => ({
   ScheduleService: {
     getDailyReviewSchedule: jest.fn(),
   },
 }));
-jest.mock("../storageService", () => ({
+jest.mock("../storage/storageService", () => ({
   StorageService: {
     getSettings: jest.fn(),
     getSessionState: jest.fn(),
@@ -37,14 +37,14 @@ jest.mock("../../../content/services/problemReasoningService", () => ({
 }));
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
-import { ProblemService } from "../problemService";
-import * as problemsDb from "../../db/problems";
-import * as standardProblems from "../../db/standard_problems";
-import { buildAdaptiveSessionSettings } from "../../db/sessions";
-import { getTagMastery } from "../../db/tag_mastery";
-import { AttemptsService } from "../attemptsService";
-import { ScheduleService } from "../scheduleService";
-import { StorageService } from "../storageService";
+import { ProblemService } from "../problem/problemService";
+import * as problemsDb from "../../db/stores/problems";
+import * as standardProblems from "../../db/stores/standard_problems";
+import { buildAdaptiveSessionSettings } from "../../db/stores/sessions";
+import { getTagMastery } from "../../db/stores/tag_mastery";
+import { AttemptsService } from "../attempts/attemptsService";
+import { ScheduleService } from "../schedule/scheduleService";
+import { StorageService } from "../storage/storageService";
 import { ProblemReasoningService } from "../../../content/services/problemReasoningService";
 
 // Test fixture factories

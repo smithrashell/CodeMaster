@@ -4,13 +4,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { useChromeMessage } from "./useChromeMessage";
 
 // Mock the ChromeAPIErrorHandler
-jest.mock("../services/ChromeAPIErrorHandler", () => ({
+jest.mock("../services/chrome/ChromeAPIErrorHandler", () => ({
   sendMessageWithRetry: jest.fn(),
   showErrorReportDialog: jest.fn(),
 }));
 
 // Mock the error notifications
-jest.mock("../utils/errorNotifications", () => ({
+jest.mock("../utils/logging/errorNotifications", () => ({
   showErrorNotification: jest.fn(),
 }));
 
@@ -56,13 +56,13 @@ const setupChromeAPITest = () => {
   };
 
   // Reset the ChromeAPIErrorHandler mock completely
-  const mockChromeAPIErrorHandler = require("../services/ChromeAPIErrorHandler");
+  const mockChromeAPIErrorHandler = require("../services/chrome/ChromeAPIErrorHandler");
   mockChromeAPIErrorHandler.sendMessageWithRetry.mockRestore?.();
   mockChromeAPIErrorHandler.sendMessageWithRetry = jest.fn();
   mockChromeAPIErrorHandler.showErrorReportDialog.mockClear();
 
   // Reset error notifications mock
-  const errorNotifications = require("../utils/errorNotifications");
+  const errorNotifications = require("../utils/logging/errorNotifications");
   errorNotifications.showErrorNotification.mockReset();
 
   return mockChromeAPIErrorHandler;

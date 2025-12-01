@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Card, Stack } from '../ui/Layout.jsx';
 import { baseButtonStyles, sizeStyles, getThemeAwareVariantStyles } from "../../../shared/components/ui/buttonStyles";
 import { ElementHighlighter } from "./ElementHighlighter";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import {
   TourArrow,
   TourHeader,

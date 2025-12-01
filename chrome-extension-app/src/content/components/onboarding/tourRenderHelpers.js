@@ -4,7 +4,7 @@
  * Extracted to reduce component complexity
  */
 
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 
 /**
  * Log tour render check for debugging

@@ -1,15 +1,15 @@
 // Mock all dependencies before importing
-jest.mock("../../db/problems");
-jest.mock("../../db/standard_problems");
-jest.mock("../../db/sessions");
-jest.mock("../../db/tag_mastery");
-jest.mock("../attemptsService");
-jest.mock("../scheduleService", () => ({
+jest.mock("../../db/stores/problems");
+jest.mock("../../db/stores/standard_problems");
+jest.mock("../../db/stores/sessions");
+jest.mock("../../db/stores/tag_mastery");
+jest.mock("../attempts/attemptsService");
+jest.mock("../schedule/scheduleService", () => ({
   ScheduleService: {
     getDailyReviewSchedule: jest.fn(),
   },
 }));
-jest.mock("../storageService", () => ({
+jest.mock("../storage/storageService", () => ({
   StorageService: {
     getSettings: jest.fn(),
     getSessionState: jest.fn(),
@@ -20,7 +20,7 @@ jest.mock("../../../content/services/problemReasoningService", () => ({
     generateSessionReasons: jest.fn(),
   },
 }));
-jest.mock("../interviewService", () => ({
+jest.mock("../session/interviewService", () => ({
   InterviewService: {
     createInterviewSession: jest.fn(),
     getInterviewConfig: jest.fn(),
@@ -28,14 +28,14 @@ jest.mock("../interviewService", () => ({
 }));
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
 
-import { ProblemService } from "../problemService";
-import * as problemsDb from "../../db/problems";
-import * as standardProblems from "../../db/standard_problems";
-import { buildAdaptiveSessionSettings } from "../../db/sessions";
-import { AttemptsService } from "../attemptsService";
-import { ScheduleService } from "../scheduleService";
-import { StorageService } from "../storageService";
-import { InterviewService } from "../interviewService";
+import { ProblemService } from "../problem/problemService";
+import * as problemsDb from "../../db/stores/problems";
+import * as standardProblems from "../../db/stores/standard_problems";
+import { buildAdaptiveSessionSettings } from "../../db/stores/sessions";
+import { AttemptsService } from "../attempts/attemptsService";
+import { ScheduleService } from "../schedule/scheduleService";
+import { StorageService } from "../storage/storageService";
+import { InterviewService } from "../session/interviewService";
 
 // eslint-disable-next-line max-lines-per-function
 describe("ProblemService - Critical User Retention Paths", () => {

@@ -1,11 +1,11 @@
 import React from "react";
 import { Container, Title, Card, Text, Stack } from "@mantine/core";
-import ThemeToggle from "../../../shared/components/ThemeToggle.jsx";
+import ThemeToggle from "../../../shared/components/theme/ThemeToggle.jsx";
 import {
   FontSizeSelector,
   LayoutDensitySelector,
   AnimationToggle,
-} from "../../../shared/components/AppearanceControls.jsx";
+} from "../../../shared/components/theme/AppearanceControls.jsx";
 
 export function Appearance() {
   return (

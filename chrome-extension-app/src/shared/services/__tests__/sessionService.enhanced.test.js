@@ -250,7 +250,7 @@ const _runCircuitBreakerTests = (mockDB) => {
 /** ──────────────── RACE CONDITION TESTING ──────────────── **/
 
 // Mock all dependencies for race condition testing
-jest.mock("../sessionService.js", () => ({
+jest.mock("../session/sessionService.js", () => ({
   SessionService: {
     getOrCreateSession: jest.fn(),
     refreshSession: jest.fn(),
@@ -261,7 +261,7 @@ jest.mock("../sessionService.js", () => ({
   },
 }));
 
-jest.mock("../../db/sessions.js", () => ({
+jest.mock("../../db/stores/sessions.js", () => ({
   getSessionById: jest.fn(),
   getLatestSession: jest.fn(),
   saveSessionToStorage: jest.fn(),
@@ -284,14 +284,14 @@ jest.mock("../../db/index.js", () => ({
   },
 }));
 
-import { SessionService } from "../sessionService.js";
+import { SessionService } from "../session/sessionService.js";
 import { 
   getSessionById, 
   _getLatestSession, 
   _saveSessionToStorage, 
   _saveNewSessionToDB, 
   updateSessionInDB 
-} from "../../db/sessions.js";
+} from "../../db/stores/sessions.js";
 
 // Race condition test helpers
 const createConcurrentRequests = (count, fn, ...args) => 

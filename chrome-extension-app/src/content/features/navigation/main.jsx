@@ -8,7 +8,7 @@ import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import { ContentOnboardingTour } from "../../components/onboarding";
 import { ProblemPageTimerTour } from "../../components/onboarding/ProblemPageTimerTour";
 // PageSpecificTour moved to App.jsx Router level to detect all route changes
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 import {
   useUrlChangeHandler,

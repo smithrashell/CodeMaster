@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 
 import { PreviousRouteProvider } from "./PreviousRouteProvider";
 import { NavProvider } from "./navprovider";
-import { getExecutionContext } from "../db/accessControl.js";
+import { getExecutionContext } from "../db/core/accessControl.js";
 
 // Conditionally import Mantine CSS only when not in content script context
 const _executionContext = getExecutionContext();

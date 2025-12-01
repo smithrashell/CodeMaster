@@ -9,15 +9,15 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { MantineProvider } from "@mantine/core";
-import ErrorBoundary from "../ErrorBoundary";
+import ErrorBoundary from "../error/ErrorBoundary";
 
 // Mock the error notification system
-jest.mock("../../utils/errorNotifications", () => ({
+jest.mock("../../utils/logging/errorNotifications", () => ({
   showSuccessNotification: jest.fn(),
 }));
 
 // Mock the ErrorReportService
-jest.mock("../../services/ErrorReportService", () => ({
+jest.mock("../../services/monitoring/ErrorReportService", () => ({
   storeErrorReport: jest.fn().mockResolvedValue("mock-report-id"),
   addUserFeedback: jest.fn().mockResolvedValue(),
 }));
