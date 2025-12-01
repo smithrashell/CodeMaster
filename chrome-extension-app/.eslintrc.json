@@ -143,7 +143,16 @@
               "message": "UI components must use useChromeMessage/ChromeAPIErrorHandler instead of direct database or service access"
             },
             {
-              "group": ["**/shared/services/*", "!**/shared/services/ChromeAPIErrorHandler*"],
+              "group": [
+                "**/shared/services/problem/**",
+                "**/shared/services/schedule/**",
+                "**/shared/services/session/**",
+                "**/shared/services/hints/**",
+                "**/shared/services/attempts/**",
+                "**/shared/services/monitoring/**",
+                "**/shared/services/storage/**",
+                "**/shared/services/tags/**"
+              ],
               "message": "UI components must use Chrome messaging instead of direct service imports. Use ChromeAPIErrorHandler or useChromeMessage."
             }
           ]
