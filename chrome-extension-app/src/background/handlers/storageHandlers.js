@@ -3,9 +3,9 @@
  * Extracted from messageRouter.js
  */
 
-import { StorageService } from "../../shared/services/storageService.js";
-import { backupIndexedDB, getBackupFile } from "../../shared/db/backupDB.js";
-import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../../shared/services/recalibrationService.js";
+import { StorageService } from "../../shared/services/storage/storageService.js";
+import { backupIndexedDB, getBackupFile } from "../../shared/db/migrations/backupDB.js";
+import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../../shared/services/schedule/recalibrationService.js";
 
 export const storageHandlers = {
   backupIndexedDB: (_request, _dependencies, sendResponse, _finishRequest) => {

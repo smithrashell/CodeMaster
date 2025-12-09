@@ -1,9 +1,9 @@
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { useState, useRef } from "react";
 import "../../css/probrec.css";
 import Header from "../../components/navigation/header";
 import { useNav } from "../../../shared/provider/navprovider";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler";
 import { usePageTour } from "../../components/onboarding/usePageTour";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
 import { ProblemGeneratorContent } from "./ProblemGeneratorComponents.jsx";

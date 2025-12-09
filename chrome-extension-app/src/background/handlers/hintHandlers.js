@@ -3,8 +3,8 @@
  * Extracted from messageRouter.js
  */
 
-import { HintInteractionService } from "../../shared/services/hintInteractionService.js";
-import { getProblem } from "../../shared/db/problems.js";
+import { HintInteractionService } from "../../shared/services/hints/hintInteractionService.js";
+import { getProblem } from "../../shared/db/stores/problems.js";
 
 export const hintHandlers = {
   saveHintInteraction: (request, _dependencies, sendResponse, finishRequest) => {

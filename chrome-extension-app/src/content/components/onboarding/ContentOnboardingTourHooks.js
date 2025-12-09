@@ -4,8 +4,8 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import logger from "../../../shared/utils/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler.js";
+import logger from "../../../shared/utils/logging/logger.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
 import { smartPositioning } from "./SmartPositioning";
 import { TOUR_STEPS } from "./ContentOnboardingTourData.js";
 import { createUserInteractionHandler } from "./ContentOnboardingTourHelpers.js";

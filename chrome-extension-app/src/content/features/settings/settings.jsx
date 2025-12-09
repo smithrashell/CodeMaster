@@ -5,7 +5,7 @@ import Header from "../../components/navigation/header.jsx";
 import { useInterviewReadiness } from "../../../shared/hooks/useInterviewReadiness";
 import { useNav } from "../../../shared/provider/navprovider";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
-import { system } from "../../../shared/utils/logger.js";
+import { system } from "../../../shared/utils/logging/logger.js";
 import {
   InterviewModeControls,
   useSettingsState,

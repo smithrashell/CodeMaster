@@ -8,7 +8,7 @@ import Tooltip from '../../components/ui/Tooltip.jsx';
 import SegmentedControl from '../../components/ui/SegmentedControl.jsx';
 import Switch from '../../components/ui/Switch.jsx';
 import { IconTrophy, IconInfoCircle, IconClock } from "@tabler/icons-react";
-import { component, debug } from "../../../shared/utils/logger.js";
+import { component, debug } from "../../../shared/utils/logging/logger.js";
 
 // Interview Mode Controls Component
 export function InterviewModeControls({ settings, updateSettings, interviewReadiness }) {

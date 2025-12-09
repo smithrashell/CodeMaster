@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Text, Alert, Stack, SegmentedControl, Tooltip, Slider } from "@mantine/core";
 import { IconInfoCircle, IconTrophy, IconClock, IconCalendar } from "@tabler/icons-react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import SessionLimits from "../../../shared/utils/sessionLimits.js";
-import logger from "../../../shared/utils/logger.js";
+import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
+import logger from "../../../shared/utils/logging/logger.js";
 
 // Helper function to get interview mode data
 export function getInterviewModeData() {

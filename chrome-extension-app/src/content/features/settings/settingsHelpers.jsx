@@ -4,8 +4,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import SessionLimits from "../../../shared/utils/sessionLimits.js";
-import { component } from "../../../shared/utils/logger.js";
+import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
+import { component } from "../../../shared/utils/logging/logger.js";
 
 // Re-export components from settingsComponents
 export {

@@ -1,7 +1,7 @@
 import logger from "../../utils/logging/logger.js";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
+import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 import { ErrorReportService } from "./ErrorReportService.js";
-import { UserActionTracker } from "./UserActionTracker.js";
+import { UserActionTracker } from "../chrome/UserActionTracker.js";
 import {
   triggerStreakAlert as triggerStreakAlertHelper,
   triggerCadenceAlert as triggerCadenceAlertHelper,

@@ -5,9 +5,9 @@
  * Handles all Chrome message routing for the extension
  */
 
-import { NavigationService } from "../shared/services/navigationService.js";
-import { adaptiveLimitsService } from "../shared/services/adaptiveLimitsService.js";
-import { InterviewService } from "../shared/services/interviewService.js";
+import { NavigationService } from "../shared/services/chrome/navigationService.js";
+import { adaptiveLimitsService } from "../shared/services/attempts/adaptiveLimitsService.js";
+import { InterviewService } from "../shared/services/session/interviewService.js";
 
 import { sessionHandlers } from "./handlers/sessionHandlers.js";
 import { problemHandlers } from "./handlers/problemHandlers.js";

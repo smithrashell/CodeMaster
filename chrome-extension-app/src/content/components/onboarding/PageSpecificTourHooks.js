@@ -3,7 +3,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { smartPositioning } from "./SmartPositioning";
 
 // Helper to trigger hover state on elements

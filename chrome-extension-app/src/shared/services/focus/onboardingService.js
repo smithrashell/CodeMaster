@@ -1,9 +1,9 @@
-import { initializePatternLaddersForOnboarding } from "./problemladderService.js";
+import { initializePatternLaddersForOnboarding } from "../problem/problemladderService.js";
 import { buildTagRelationships } from "../../db/stores/tag_relationships.js";
 import { insertStandardProblems } from "../../db/stores/standard_problems.js";
 import { insertStrategyData } from "../../db/stores/strategy_data.js";
-import { buildProblemRelationships } from "../services/relationshipService.js";
-import { StorageService } from "./storageService.js";
+import { buildProblemRelationships } from "./relationshipService.js";
+import { StorageService } from "../storage/storageService.js";
 import {
   getAllFromStore,
   addRecord,

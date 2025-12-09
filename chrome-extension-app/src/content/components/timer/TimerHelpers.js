@@ -2,8 +2,8 @@
  * Timer Helper Functions
  */
 
-import AccurateTimer from "../../../shared/utils/AccurateTimer";
-import logger from "../../../shared/utils/logger.js";
+import AccurateTimer from "../../../shared/utils/timing/AccurateTimer";
+import logger from "../../../shared/utils/logging/logger.js";
 
 // Helper function to create stop timer functionality
 export const createStopTimerFunction = (timerRef, setIsTimerRunning, intervalIdRef) => () => {

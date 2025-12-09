@@ -14,7 +14,7 @@ import {
   IconBulb,
   IconHeart,
 } from "@tabler/icons-react";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 
 /**
  * Helper function to handle user interactions

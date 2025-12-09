@@ -3,12 +3,12 @@
  * Extracted from messageRouter.js
  */
 
-import { getStrategyForTag, isStrategyDataLoaded } from "../../shared/db/strategy_data.js";
-import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../../shared/db/common.js";
-import { buildRelationshipMap } from "../../shared/db/problem_relationships.js";
-import { fetchAllProblems } from "../../shared/db/problems.js";
-import { getAllStandardProblems } from "../../shared/db/standard_problems.js";
-import { buildProblemRelationships } from "../../shared/services/relationshipService.js";
+import { getStrategyForTag, isStrategyDataLoaded } from "../../shared/db/stores/strategy_data.js";
+import { getAllFromStore, getRecord, addRecord, updateRecord, deleteRecord } from "../../shared/db/core/common.js";
+import { buildRelationshipMap } from "../../shared/db/stores/problem_relationships.js";
+import { fetchAllProblems } from "../../shared/db/stores/problems.js";
+import { getAllStandardProblems } from "../../shared/db/stores/standard_problems.js";
+import { buildProblemRelationships } from "../../shared/services/focus/relationshipService.js";
 
 export const strategyHandlers = {
   getStrategyForTag: (request, _dependencies, sendResponse, finishRequest) => {

@@ -3,9 +3,9 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import AccurateTimer from "../../../shared/utils/AccurateTimer";
+import AccurateTimer from "../../../shared/utils/timing/AccurateTimer";
 
 // Custom hook for timer state management
 export const useTimerState = () => {

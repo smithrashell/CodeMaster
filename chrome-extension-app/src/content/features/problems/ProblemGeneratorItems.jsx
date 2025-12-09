@@ -5,7 +5,7 @@
 
 import { useState, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import ProblemInfoIcon from "../../components/problem/ProblemInfoIcon";
 import { useSimilarProblems } from "../../components/problem/useSimilarProblems";
 import { getInterviewProblemStyle } from "./ProblemGeneratorHelpers.js";

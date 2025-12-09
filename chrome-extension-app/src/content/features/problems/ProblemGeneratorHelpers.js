@@ -3,8 +3,8 @@
  * Extracted from ProblemGenerator.jsx
  */
 
-import logger from "../../../shared/utils/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/ChromeAPIErrorHandler";
+import logger from "../../../shared/utils/logging/logger.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler";
 
 /**
  * Get fresh settings before creating session

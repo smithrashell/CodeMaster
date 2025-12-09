@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, Stack } from '../ui/Layout.jsx';
 import { ElementHighlighter } from "./ElementHighlighter";
-import logger from "../../../shared/utils/logger.js";
+import logger from "../../../shared/utils/logging/logger.js";
 import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 import { TOUR_STEPS } from "./ContentOnboardingTourData.js";
 import { getStepIcon, shouldShowStep, getArrowStyles } from "./ContentOnboardingTourHelpers.js";

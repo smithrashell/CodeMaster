@@ -16,14 +16,14 @@ import {
   getFocusAreaAnalytics,
   clearFocusAreaAnalyticsCache,
   getInterviewAnalyticsData
-} from "../../app/services/dashboardService.js";
-import { StorageService } from "../../shared/services/storageService.js";
-import { SessionService } from "../../shared/services/sessionService.js";
-import { TagService } from "../../shared/services/tagServices.js";
-import { HintInteractionService } from "../../shared/services/hintInteractionService.js";
-import FocusCoordinationService from "../../shared/services/focusCoordinationService.js";
-import { getAllSessions } from "../../shared/db/sessions.js";
-import { getAllAttempts } from "../../shared/db/attempts.js";
+} from "../../app/services/dashboard/dashboardService.js";
+import { StorageService } from "../../shared/services/storage/storageService.js";
+import { SessionService } from "../../shared/services/session/sessionService.js";
+import { TagService } from "../../shared/services/attempts/tagServices.js";
+import { HintInteractionService } from "../../shared/services/hints/hintInteractionService.js";
+import FocusCoordinationService from "../../shared/services/focus/focusCoordinationService.js";
+import { getAllSessions } from "../../shared/db/stores/sessions.js";
+import { getAllAttempts } from "../../shared/db/stores/attempts.js";
 
 export const dashboardHandlers = {
   getDashboardStatistics: (request, _dependencies, sendResponse, finishRequest) => {

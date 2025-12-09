@@ -10,7 +10,7 @@ import {
   HiXMark,
   HiArrowPath
 } from "react-icons/hi2";
-import TimeDisplay from "../../../shared/components/timedisplay";
+import TimeDisplay from "../../../shared/components/timer/timedisplay";
 import { FloatingHintButton } from "../strategy";
 
 // Countdown overlay component
