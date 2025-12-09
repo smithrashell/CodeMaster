@@ -67,11 +67,14 @@ export async function fetchDashboardData() {
     getAllAttempts(),
     getAllSessions(),
     getAllStandardProblems(),
-    TagService.getLearningState(),
-    ProblemService.getBoxLevelDistribution()
+    TagService.getCurrentLearningState(),
+    ProblemService.countProblemsByBoxLevel()
   ]);
 
-  return { allProblems, allAttempts, allSessions, allStandardProblems, learningState, boxLevelData };
+  // Enrich sessions with actual hint counts from hint_interactions table
+  const enrichedSessions = await enrichSessionsWithHintCounts(allSessions);
+
+  return { allProblems, allAttempts, allSessions: enrichedSessions, allStandardProblems, learningState, boxLevelData };
 }
 
 export function createDashboardProblemMappings(allProblems, allStandardProblems) {
@@ -133,76 +136,97 @@ export function applyFiltering({ allProblems, allAttempts, allSessions, problemT
 }
 
 export function calculateCoreStatistics(filteredProblems, filteredAttempts, problemDifficultyMap) {
-  const totalSolved = new Set(filteredAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).map(a => a.problem_id || a.ProblemID)).size;
-  const mastered = Math.floor(totalSolved * 0.3);
-  const inProgress = Math.floor(totalSolved * 0.5);
-  const newProblems = totalSolved - mastered - inProgress;
-
   const statistics = {
-    totalSolved,
-    mastered,
-    inProgress,
-    new: newProblems
+    totalSolved: 0,
+    mastered: 0,
+    inProgress: 0,
+    new: 0,
   };
 
-  const timeByDifficulty = { Easy: [], Medium: [], Hard: [] };
-  const successByDifficulty = { Easy: { total: 0, success: 0 }, Medium: { total: 0, success: 0 }, Hard: { total: 0, success: 0 } };
+  const timeStats = {
+    overall: { totalTime: 0, count: 0 },
+    Easy: { totalTime: 0, count: 0 },
+    Medium: { totalTime: 0, count: 0 },
+    Hard: { totalTime: 0, count: 0 },
+  };
 
-  filteredAttempts.forEach(attempt => {
+  const successStats = {
+    overall: { successful: 0, total: 0 },
+    Easy: { successful: 0, total: 0 },
+    Medium: { successful: 0, total: 0 },
+    Hard: { successful: 0, total: 0 },
+  };
+
+  // Calculate problem statistics by box level (support both snake_case and PascalCase)
+  filteredProblems.forEach((problem) => {
+    const boxLevel = problem.box_level || problem.BoxLevel || 1;
+    switch (boxLevel) {
+      case 1:
+        statistics.new++;
+        break;
+      case 7:
+        statistics.mastered++;
+        break;
+      default:
+        if (boxLevel >= 2 && boxLevel <= 6) {
+          statistics.inProgress++;
+        }
+        break;
+    }
+  });
+  statistics.totalSolved = statistics.mastered + statistics.inProgress;
+
+  // Calculate time and success statistics by difficulty (support both snake_case and PascalCase)
+  filteredAttempts.forEach((attempt) => {
     const problemId = attempt.problem_id || attempt.ProblemID;
-    const difficulty = problemDifficultyMap[problemId] || "Medium";
-    const timeSpent = attempt.time_spent || attempt.TimeSpent || 0;
-    const isSuccess = attempt.success !== undefined ? attempt.success : attempt.Success;
+    const officialDifficulty = problemDifficultyMap[problemId];
+    const timeSpent = Number(attempt.time_spent || attempt.TimeSpent) || 0;
+    const success = attempt.success !== undefined ? attempt.success : attempt.Success;
 
-    if (timeSpent > 0 && timeSpent < 10000) {
-      timeByDifficulty[difficulty].push(timeSpent);
+    // Update overall statistics
+    timeStats.overall.totalTime += timeSpent;
+    timeStats.overall.count++;
+    successStats.overall.total++;
+    if (success) {
+      successStats.overall.successful++;
     }
 
-    successByDifficulty[difficulty].total++;
-    if (isSuccess) {
-      successByDifficulty[difficulty].success++;
+    // Update difficulty-specific statistics
+    if (officialDifficulty && timeStats[officialDifficulty]) {
+      timeStats[officialDifficulty].totalTime += timeSpent;
+      timeStats[officialDifficulty].count++;
+      successStats[officialDifficulty].total++;
+      if (success) {
+        successStats[officialDifficulty].successful++;
+      }
     }
   });
 
-  const averageTime = {};
-  Object.keys(timeByDifficulty).forEach(difficulty => {
-    const times = timeByDifficulty[difficulty];
-    if (times.length > 0) {
-      averageTime[difficulty] = Math.round(times.reduce((sum, t) => sum + t, 0) / times.length);
-    } else {
-      averageTime[difficulty] = 0;
-    }
-  });
-
-  const overallTimes = Object.values(timeByDifficulty).flat();
-  averageTime.overall = overallTimes.length > 0 ?
-    Math.round(overallTimes.reduce((sum, t) => sum + t, 0) / overallTimes.length) : 0;
-
-  const successRate = {};
-  Object.keys(successByDifficulty).forEach(difficulty => {
-    const data = successByDifficulty[difficulty];
-    successRate[difficulty] = data.total > 0 ?
-      Math.round((data.success / data.total) * 100) : 0;
-  });
-
-  const totalAttempts = Object.values(successByDifficulty).reduce((sum, d) => sum + d.total, 0);
-  const totalSuccess = Object.values(successByDifficulty).reduce((sum, d) => sum + d.success, 0);
-  successRate.overall = totalAttempts > 0 ?
-    Math.round((totalSuccess / totalAttempts) * 100) : 0;
-
-  return { statistics, averageTime, successRate };
+  return { statistics, timeStats, successStats };
 }
 
 export function calculateDerivedMetrics(timeStats, successStats) {
-  const { averageTime, successRate } = { averageTime: timeStats, successRate: successStats };
+  const calculateAverage = (totalTimeInSeconds, count) =>
+    count > 0 ? Math.round((totalTimeInSeconds / count) / 60 * 10) / 10 : 0;
 
-  const timeAccuracy = {
-    averageTime: averageTime.overall,
-    successRate: successRate.overall,
-    efficiency: successRate.overall / Math.max(1, averageTime.overall / 60)
+  const calculateSuccessRateValue = (successful, total) =>
+    total > 0 ? parseInt((successful / total) * 100) : 0;
+
+  const averageTime = {
+    overall: calculateAverage(timeStats.overall.totalTime, timeStats.overall.count),
+    Easy: calculateAverage(timeStats.Easy.totalTime, timeStats.Easy.count),
+    Medium: calculateAverage(timeStats.Medium.totalTime, timeStats.Medium.count),
+    Hard: calculateAverage(timeStats.Hard.totalTime, timeStats.Hard.count),
   };
 
-  return { timeAccuracy };
+  const successRate = {
+    overall: calculateSuccessRateValue(successStats.overall.successful, successStats.overall.total),
+    Easy: calculateSuccessRateValue(successStats.Easy.successful, successStats.Easy.total),
+    Medium: calculateSuccessRateValue(successStats.Medium.successful, successStats.Medium.total),
+    Hard: calculateSuccessRateValue(successStats.Hard.successful, successStats.Hard.total),
+  };
+
+  return { averageTime, successRate };
 }
 
 export async function generateAnalyticsData(filteredSessions, filteredAttempts, learningState) {
@@ -269,53 +293,103 @@ export async function getHintAnalytics() {
 }
 
 export function constructDashboardData({
-  statistics,
-  averageTime,
-  successRate,
-  allSessions,
-  allAttempts,
-  allProblems,
-  sessions,
-  mastery,
-  goals,
-  timerBehavior,
-  timerPercentage,
-  learningStatus,
-  progressTrend,
-  progressPercentage,
-  nextReviewTime,
-  nextReviewCount,
-  learningState,
-  boxLevelData,
-  hintsUsed,
-  timeAccuracy,
-  learningEfficiencyData,
-  strategySuccessRate
+  // Core metrics
+  statistics, averageTime, successRate,
+  // Progress metrics
+  timerBehavior, timerPercentage, learningStatus, progressTrend, progressPercentage,
+  strategySuccessRate,
+  nextReviewTime, nextReviewCount,
+  // Analytics data
+  sessionAnalytics, masteryData, goalsData, learningEfficiencyData, hintsUsed,
+  // Filtered data
+  filteredProblems, filteredAttempts, filteredSessions,
+  // Original data and state
+  allProblems, allAttempts, allSessions, learningState, boxLevelData,
+  // Problem mappings
+  standardProblemsMap,
+  // Filter options
+  focusAreaFilter, dateRange
 }) {
-  return {
+  const dashboardData = {
+    // Flattened statistics properties for Overview/Stats component
     statistics,
     averageTime,
     successRate,
-    allSessions,
-    allAttempts,
-    allProblems,
-    sessions,
-    mastery,
-    goals,
+    allSessions: filteredSessions,
+    hintsUsed,
+    learningEfficiencyData,
+
+    // Flattened progress properties for Progress component
+    boxLevelData: boxLevelData || {},
     timerBehavior,
     timerPercentage,
     learningStatus,
     progressTrend,
     progressPercentage,
+    strategySuccessRate,
     nextReviewTime,
     nextReviewCount,
-    learningState,
-    boxLevelData,
-    hintsUsed,
-    timeAccuracy,
-    learningEfficiencyData,
-    strategySuccessRate
+    allAttempts: filteredAttempts || [],
+    allProblems: filteredProblems || [],
+    learningState: learningState || {},
+
+    // Problem mappings for tag relationships
+    standardProblemsMap: standardProblemsMap || {},
+
+    // Keep nested structure for components that might still need it
+    nested: {
+      statistics: {
+        statistics,
+        averageTime,
+        successRate,
+        allSessions: filteredSessions,
+        learningEfficiencyData
+      },
+      progress: {
+        learningState: learningState || {},
+        boxLevelData: boxLevelData || {},
+        allAttempts: filteredAttempts || [],
+        allProblems: filteredProblems || [],
+        allSessions: filteredSessions || [],
+        timerBehavior,
+        timerPercentage,
+        learningStatus,
+        progressTrend,
+        progressPercentage,
+        strategySuccessRate,
+        nextReviewTime,
+        nextReviewCount,
+      }
+    },
+
+    // Keep existing sections for other components
+    sessions: sessionAnalytics,
+    mastery: masteryData,
+    goals: goalsData,
+    filters: {
+      focusAreaFilter,
+      dateRange,
+      appliedFilters: {
+        hasFocusAreaFilter: focusAreaFilter && focusAreaFilter.length > 0,
+        hasDateFilter: Boolean(dateRange && (dateRange.startDate || dateRange.endDate)),
+      },
+      originalCounts: {
+        problems: allProblems.length,
+        attempts: allAttempts.length,
+        sessions: allSessions.length,
+      },
+      filteredCounts: {
+        problems: filteredProblems.length,
+        attempts: filteredAttempts.length,
+        sessions: filteredSessions.length,
+      },
+    },
   };
+
+  // Debug logging to verify data structure
+  logger.info("Dashboard Service - Data Structure Verification", { context: 'data_verification' });
+
+  return dashboardData;
 }
 
 export function validateSession(session) {

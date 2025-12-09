@@ -17,6 +17,7 @@ jest.mock("../../../shared/db/stores/sessions");
 jest.mock("../../../shared/db/stores/standard_problems");
 jest.mock("../../../shared/db/stores/sessionAnalytics");
 jest.mock("../../../shared/db/stores/tag_relationships");
+jest.mock("../../../shared/db/stores/hint_interactions");
 jest.mock("../../../shared/services/attempts/tagServices");
 jest.mock("../../../shared/services/problem/problemService");
 jest.mock("../../../shared/services/storage/storageService");
@@ -26,6 +27,7 @@ import { getAllAttempts } from "../../../shared/db/stores/attempts";
 import { getAllSessions } from "../../../shared/db/stores/sessions";
 import { getAllStandardProblems } from "../../../shared/db/stores/standard_problems";
 import { getTagRelationships } from "../../../shared/db/stores/tag_relationships";
+import { getInteractionsBySession } from "../../../shared/db/stores/hint_interactions";
 import { TagService } from "../../../shared/services/attempts/tagServices";
 import { ProblemService } from "../../../shared/services/problem/problemService";
 import { StorageService } from "../../../shared/services/storage/storageService";
@@ -85,6 +87,8 @@ function setupDashboardMocks(mockData) {
   getAllStandardProblems.mockResolvedValue(mockData.mockStandardProblems);
   TagService.getCurrentLearningState.mockResolvedValue(mockData.mockLearningState);
   ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
+  // Mock hint interactions to return empty array (sessions will have hintsUsed: 0)
+  getInteractionsBySession.mockResolvedValue([]);
 }
 
 describe("getDashboardStatistics", () => {
