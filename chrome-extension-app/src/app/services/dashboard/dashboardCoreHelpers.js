@@ -248,32 +248,15 @@ export function calculateProgressMetrics(filteredAttempts, filteredSessions, _pr
 
 export function calculateStrategySuccessRate(sessions, attempts) {
   const guidedSessions = sessions.filter(s => s.session_type === 'standard' || s.session_type === 'interview-like' || s.session_type === 'full-interview');
-  const trackingSessions = sessions.filter(s => s.session_type === 'tracking');
 
   const guidedSessionIds = new Set(guidedSessions.map(s => s.id));
-  const trackingSessionIds = new Set(trackingSessions.map(s => s.id));
 
   const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.session_id || a.SessionID));
-  const trackingAttempts = attempts.filter(a => trackingSessionIds.has(a.session_id || a.SessionID));
 
   const guidedSuccess = guidedAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length;
-  const trackingSuccess = trackingAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length;
 
-  const guidedRate = guidedAttempts.length > 0 ? Math.round((guidedSuccess / guidedAttempts.length) * 100) : 0;
-  const trackingRate = trackingAttempts.length > 0 ? Math.round((trackingSuccess / trackingAttempts.length) * 100) : 0;
-
-  return {
-    guided: {
-      sessions: guidedSessions.length,
-      attempts: guidedAttempts.length,
-      successRate: guidedRate
-    },
-    tracking: {
-      sessions: trackingSessions.length,
-      attempts: trackingAttempts.length,
-      successRate: trackingRate
-    }
-  };
+  // Return a simple number for the KPI card - overall guided session success rate
+  return guidedAttempts.length > 0 ? Math.round((guidedSuccess / guidedAttempts.length) * 100) : 0;
 }
 
 export async function getHintAnalytics() {
