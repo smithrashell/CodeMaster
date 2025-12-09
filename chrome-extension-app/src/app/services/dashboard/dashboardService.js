@@ -386,31 +386,31 @@ export { generateGoalsData };
  */
 
 export async function getLearningProgressData(options = {}) {
-  return getLearningProgressDataHelper(options, getDashboardStatistics);
+  return await getLearningProgressDataHelper(options, getDashboardStatistics);
 }
 
 export async function getGoalsData(options = {}, providedData = null) {
-  return getGoalsDataHelper(options, providedData, getDashboardStatistics);
+  return await getGoalsDataHelper(options, providedData, getDashboardStatistics);
 }
 
 export async function getStatsData(options = {}) {
-  return getStatsDataHelper(options, getDashboardStatistics);
+  return await getStatsDataHelper(options, getDashboardStatistics);
 }
 
 export async function getSessionHistoryData(options = {}) {
-  return getSessionHistoryDataHelper(options, getDashboardStatistics);
+  return await getSessionHistoryDataHelper(options, getDashboardStatistics);
 }
 
 export async function getProductivityInsightsData(options = {}) {
-  return getProductivityInsightsDataHelper(options, getDashboardStatistics);
+  return await getProductivityInsightsDataHelper(options, getDashboardStatistics);
 }
 
 export async function getTagMasteryData(options = {}) {
-  return getTagMasteryDataHelper(options, getDashboardStatistics);
+  return await getTagMasteryDataHelper(options, getDashboardStatistics);
 }
 
 export async function getLearningPathData(options = {}) {
-  return getLearningPathDataHelper(options, getDashboardStatistics);
+  return await getLearningPathDataHelper(options, getDashboardStatistics);
 }
 
 // getInterviewAnalyticsData moved to dashboardInterviewAnalyticsHelpers.js

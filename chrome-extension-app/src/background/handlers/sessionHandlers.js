@@ -12,6 +12,16 @@ import { StorageService } from "../../shared/services/storage/storageService.js"
 import { SessionService } from "../../shared/services/session/sessionService.js";
 import { getSessionMetrics } from "../../app/services/dashboard/dashboardService.js";
 
+// Direct imports from helper files (avoiding delegation functions)
+import { HabitLearningHelpers } from "../../shared/services/session/sessionHabitLearning.js";
+import {
+  classifySessionState,
+  detectStalledSessions,
+  getAllSessionsFromDB
+} from "../../shared/services/session/sessionClassificationHelpers.js";
+import { checkAndGenerateFromTracking } from "../../shared/services/session/sessionTrackingHelpers.js";
+import { shouldCreateInterviewSession } from "../../shared/services/session/sessionInterviewHelpers.js";
+
 /**
  * Handler: getSession
  * Retrieves the current session
@@ -76,7 +86,7 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
       // Check if session is stale
       let isSessionStale = false;
       if (session) {
-        const classification = SessionService.classifySessionState(session);
+        const classification = classifySessionState(session);
         const classificationStale = !['active', 'unclear'].includes(classification);
 
         // Check if focus areas changed after session creation (read from settings)
@@ -245,7 +255,7 @@ export function handleGetSessionAnalytics(request, dependencies, sendResponse, f
   console.log("📊 Getting session analytics");
   (async () => {
     try {
-      const stalledSessions = await SessionService.detectStalledSessions();
+      const stalledSessions = await detectStalledSessions();
       const cleanupAnalytics = await new Promise(resolve => {
         chrome.storage.local.get(["sessionCleanupAnalytics"], (result) => {
           resolve(result.sessionCleanupAnalytics || []);
@@ -279,12 +289,12 @@ export function handleClassifyAllSessions(request, dependencies, sendResponse, f
   console.log("🔍 Classifying all sessions");
   (async () => {
     try {
-      const sessions = await SessionService.getAllSessionsFromDB();
+      const sessions = await getAllSessionsFromDB();
       const classifications = sessions.map(session => ({
         id: session.id.substring(0, 8),
         origin: session.origin,
         status: session.status,
-        classification: SessionService.classifySessionState(session),
+        classification: classifySessionState(session),
         lastActivity: session.lastActivityTime || session.date
       }));
 
@@ -304,7 +314,7 @@ export function handleClassifyAllSessions(request, dependencies, sendResponse, f
  */
 export function handleGenerateSessionFromTracking(request, dependencies, sendResponse, finishRequest) {
   console.log("🎯 Manual session generation from tracking triggered");
-  SessionService.checkAndGenerateFromTracking()
+  checkAndGenerateFromTracking(() => SessionService.resumeSession('standard'))
     .then((session) => {
       console.log(session ? "✅ Session generated" : "📝 No session generated");
       sendResponse({ session });
@@ -344,7 +354,7 @@ export function handleCheckInterviewFrequency(request, dependencies, sendRespons
   console.log("🕐 Checking interview frequency requirements");
   StorageService.getSettings()
     .then(async (settings) => {
-      const shouldCreate = await SessionService.shouldCreateInterviewSession(
+      const shouldCreate = await shouldCreateInterviewSession(
         settings?.interviewFrequency,
         settings?.interviewMode
       );
@@ -409,9 +419,9 @@ export function handleGetSessionPatterns(request, dependencies, sendResponse, fi
   (async () => {
     try {
       const [currentStreak, cadence, weeklyProgress] = await Promise.all([
-        SessionService.getCurrentStreak(),
-        SessionService.getTypicalCadence(),
-        SessionService.getWeeklyProgress()
+        HabitLearningHelpers.getCurrentStreak(),
+        HabitLearningHelpers.getTypicalCadence(),
+        HabitLearningHelpers.getWeeklyProgress()
       ]);
 
       const patterns = {
@@ -446,7 +456,7 @@ export function handleCheckConsistencyAlerts(request, dependencies, sendResponse
       console.log("🔍 Using reminder settings:", reminderSettings);
 
       // Run comprehensive consistency check
-      const consistencyCheck = await SessionService.checkConsistencyAlerts(reminderSettings);
+      const consistencyCheck = await HabitLearningHelpers.checkConsistencyAlerts(reminderSettings);
 
       console.log(`✅ Consistency check complete: ${consistencyCheck.alerts?.length || 0} alerts`);
       sendResponse({ result: consistencyCheck });
@@ -473,7 +483,7 @@ export function handleGetStreakRiskTiming(request, dependencies, sendResponse, f
   console.log("🔥 Getting streak risk timing analysis");
   (async () => {
     try {
-      const streakTiming = await SessionService.getStreakRiskTiming();
+      const streakTiming = await HabitLearningHelpers.getStreakRiskTiming();
 
       console.log("✅ Streak risk timing retrieved:", streakTiming);
       sendResponse({ result: streakTiming });
@@ -493,7 +503,7 @@ export function handleGetReEngagementTiming(request, dependencies, sendResponse,
   console.log("👋 Getting re-engagement timing analysis");
   (async () => {
     try {
-      const reEngagementTiming = await SessionService.getReEngagementTiming();
+      const reEngagementTiming = await HabitLearningHelpers.getReEngagementTiming();
 
       console.log("✅ Re-engagement timing retrieved:", reEngagementTiming);
       sendResponse({ result: reEngagementTiming });

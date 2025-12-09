@@ -18,8 +18,8 @@ import {
   getInterviewAnalyticsData
 } from "../../app/services/dashboard/dashboardService.js";
 import { StorageService } from "../../shared/services/storage/storageService.js";
-import { SessionService } from "../../shared/services/session/sessionService.js";
 import { TagService } from "../../shared/services/attempts/tagServices.js";
+import { HabitLearningHelpers } from "../../shared/services/session/sessionHabitLearning.js";
 import { HintInteractionService } from "../../shared/services/hints/hintInteractionService.js";
 import FocusCoordinationService from "../../shared/services/focus/focusCoordinationService.js";
 import { getAllSessions } from "../../shared/db/stores/sessions.js";
@@ -133,7 +133,7 @@ export const dashboardHandlers = {
   getLearningStatus: (_request, _dependencies, sendResponse, finishRequest) => {
     (async () => {
       try {
-        const cadenceData = await SessionService.getTypicalCadence();
+        const cadenceData = await HabitLearningHelpers.getTypicalCadence();
 
         sendResponse({
           totalSessions: cadenceData.totalSessions || 0,

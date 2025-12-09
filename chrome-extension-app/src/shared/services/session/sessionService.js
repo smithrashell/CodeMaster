@@ -17,7 +17,6 @@ import { IndexedDBRetryService } from "../storage/IndexedDBRetryService.js";
 import logger from "../../utils/logging/logger.js";
 
 // Import extracted helpers
-import { HabitLearningHelpers } from "./sessionHabitLearning.js";
 import {
   createEmptySessionSummary,
   createAdHocSessionSummary,
@@ -33,23 +32,9 @@ import {
   logSessionAnalytics,
   updateSessionStateWithPerformance
 } from "./sessionAnalyticsHelpers.js";
-import {
-  classifySessionState,
-  detectStalledSessions,
-  getRecommendedAction,
-  getAllSessionsFromDB
-} from "./sessionClassificationHelpers.js";
-import {
-  generateSessionFromTrackingActivity,
-  getRecentTrackingAttempts,
-  checkAndGenerateFromTracking
-} from "./sessionTrackingHelpers.js";
-import {
-  shouldCreateInterviewSession,
-  summarizeInterviewPerformance,
-  storeInterviewAnalytics,
-  getTagPerformanceBaselines
-} from "./sessionInterviewHelpers.js";
+// Note: Classification, Tracking, Interview, and HabitLearning helpers should be imported
+// directly by callers - see sessionClassificationHelpers.js, sessionTrackingHelpers.js,
+// sessionInterviewHelpers.js, and sessionHabitLearning.js
 
 // Session Creation Lock - Prevents race conditions
 const sessionCreationLocks = new Map();
@@ -406,23 +391,6 @@ export const SessionService = {
     return unattemptedProblems;
   },
 
-  // Session Interview delegations - delegate to sessionInterviewHelpers
-  async shouldCreateInterviewSession(frequency, _mode) {
-    return shouldCreateInterviewSession(frequency, _mode);
-  },
-
-  async summarizeInterviewPerformance(session) {
-    return summarizeInterviewPerformance(session, (s) => this.summarizeSessionPerformance(s));
-  },
-
-  storeInterviewAnalytics(interviewSummary) {
-    return storeInterviewAnalytics(interviewSummary);
-  },
-
-  async getTagPerformanceBaselines() {
-    return getTagPerformanceBaselines();
-  },
-
   /**
    * Attempts to resume an existing in-progress session using efficient database queries.
    * Now includes session type compatibility validation to prevent hanging behavior.
@@ -672,36 +640,7 @@ export const SessionService = {
   },
 
   // Removed getDraftSession and startSession - sessions auto-start immediately now
-
-  // Session Classification delegations - delegate to sessionClassificationHelpers
-  classifySessionState(session) {
-    return classifySessionState(session);
-  },
-
-  async detectStalledSessions() {
-    return detectStalledSessions();
-  },
-
-  getRecommendedAction(classification) {
-    return getRecommendedAction(classification);
-  },
-
-  async getAllSessionsFromDB() {
-    return getAllSessionsFromDB();
-  },
-
-  // Session Tracking delegations - delegate to sessionTrackingHelpers
-  async generateSessionFromTrackingActivity(recentAttempts) {
-    return generateSessionFromTrackingActivity(recentAttempts);
-  },
-
-  async checkAndGenerateFromTracking() {
-    return checkAndGenerateFromTracking(() => this.resumeSession('standard'));
-  },
-
-  async getRecentTrackingAttempts(withinHours = 48) {
-    return getRecentTrackingAttempts(withinHours);
-  },
+  // Session Classification, Tracking, and Habit delegations removed - import directly from helper files
 
   /**
    * Refresh/regenerate current session with new problems
@@ -773,35 +712,7 @@ export const SessionService = {
   },
 
   async updateSessionStateWithPerformance(session, sessionSummary) {
-    return updateSessionStateWithPerformance(session, sessionSummary);
+    return await updateSessionStateWithPerformance(session, sessionSummary);
   },
 
-  /**
-   * Session Consistency & Habit-Based Analysis Methods
-   */
-
-  // Habit Learning delegations - these methods delegate to HabitLearningHelpers
-  async getCurrentStreak() {
-    return HabitLearningHelpers.getCurrentStreak();
-  },
-
-  async getTypicalCadence() {
-    return HabitLearningHelpers.getTypicalCadence();
-  },
-
-  async getWeeklyProgress() {
-    return HabitLearningHelpers.getWeeklyProgress();
-  },
-
-  async getStreakRiskTiming() {
-    return HabitLearningHelpers.getStreakRiskTiming();
-  },
-
-  async getReEngagementTiming() {
-    return HabitLearningHelpers.getReEngagementTiming();
-  },
-
-  async checkConsistencyAlerts(reminderSettings) {
-    return HabitLearningHelpers.checkConsistencyAlerts(reminderSettings);
-  },
 };
