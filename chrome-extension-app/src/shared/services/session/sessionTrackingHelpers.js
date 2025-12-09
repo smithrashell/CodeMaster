@@ -5,7 +5,7 @@
 
 import { saveNewSessionToDB } from "../../db/stores/sessions.js";
 import { ProblemService } from "../problem/problemService.js";
-import { openDatabase } from "../db/connectionUtils.js";
+import { openDatabase } from "../../db/core/connectionUtils.js";
 import { v4 as uuidv4 } from "uuid";
 import logger from "../../utils/logging/logger.js";
 

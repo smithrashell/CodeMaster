@@ -4,7 +4,7 @@
  */
 
 import { getLatestSession } from "../../db/stores/sessions.js";
-import { openDatabase } from "../db/connectionUtils.js";
+import { openDatabase } from "../../db/core/connectionUtils.js";
 import { roundToPrecision } from "../../utils/leitner/Utils.js";
 import logger from "../../utils/logging/logger.js";
 

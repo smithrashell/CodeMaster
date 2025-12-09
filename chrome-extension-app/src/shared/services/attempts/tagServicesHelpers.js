@@ -2,9 +2,9 @@
  * Tag Services Helpers - Scoring Functions and Focus Pool Management
  */
 
-import { StorageService } from "./storageService.js";
+import { StorageService } from "../storage/storageService.js";
 import logger from "../../utils/logging/logger.js";
-import { calculateSuccessRate } from "../utils/Utils.js";
+import { calculateSuccessRate } from "../../utils/leitner/Utils.js";
 
 /**
  * Calculates learning velocity based on recent performance trends

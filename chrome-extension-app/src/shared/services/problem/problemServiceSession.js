@@ -6,12 +6,12 @@
 import { fetchAdditionalProblems, fetchAllProblems } from "../../db/stores/problems.js";
 import { fetchProblemById } from "../../db/stores/standard_problems.js";
 import { ScheduleService } from "../schedule/scheduleService.js";
-import { StorageService } from "./storageService.js";
-import { calculateDecayScore } from "../utils/Utils.js";
+import { StorageService } from "../storage/storageService.js";
+import { calculateDecayScore } from "../../utils/leitner/Utils.js";
 import { getTagMastery } from "../../db/stores/tag_mastery.js";
 import logger from "../../utils/logging/logger.js";
-import { selectOptimalProblems } from "../db/problem_relationships.js";
-import { applySafetyGuardRails } from "../utils/sessionBalancing.js";
+import { selectOptimalProblems } from "../../db/stores/problem_relationships.js";
+import { applySafetyGuardRails } from "../../utils/session/sessionBalancing.js";
 import {
   enrichReviewProblem,
   normalizeReviewProblem,

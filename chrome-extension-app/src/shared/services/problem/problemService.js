@@ -8,12 +8,12 @@ import { AttemptsService } from "../attempts/attemptsService.js";
 import { v4 as uuidv4 } from "uuid";
 import { fetchAllProblems, updateProblemsWithRatings as updateProblemsWithRatingsInDB } from "../../db/stores/problems.js";
 import { buildAdaptiveSessionSettings } from "../../db/stores/sessions.js";
-import { ProblemReasoningService } from "../../content/services/problemReasoningService.js";
+import { ProblemReasoningService } from "../../../content/services/problemReasoningService.js";
 import { getTagMastery } from "../../db/stores/tag_mastery.js";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
+import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 import logger from "../../utils/logging/logger.js";
 import { normalizeProblems } from "./problemNormalizer.js";
-import SessionLimits from "../utils/sessionLimits.js";
+import SessionLimits from "../../utils/session/sessionLimits.js";
 import {
   addReviewProblemsToSession,
   addNewProblemsToSession,

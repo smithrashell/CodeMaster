@@ -4,7 +4,7 @@
  */
 
 import { buildAdaptiveSessionSettings } from "../../db/stores/sessions.js";
-import { InterviewService } from "./interviewService.js";
+import { InterviewService } from "../session/interviewService.js";
 import logger from "../../utils/logging/logger.js";
 import { normalizeProblems } from "./problemNormalizer.js";
 

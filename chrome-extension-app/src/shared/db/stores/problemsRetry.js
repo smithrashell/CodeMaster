@@ -3,11 +3,11 @@
  * Extracted from problems.js - retry-enabled database operations
  */
 
-import { dbHelper } from "./index.js";
+import { dbHelper } from "../index.js";
 import { v4 as uuidv4 } from "uuid";
 import { fetchProblemById } from "./standard_problems.js";
 import indexedDBRetry from "../services/IndexedDBRetryService.js";
-import { SessionService } from "../services/sessionService.js";
+import { SessionService } from "../../services/session/sessionService.js";
 import { getProblemWithOfficialDifficulty } from "./problems.js";
 import logger from "../../utils/logging/logger.js";
 

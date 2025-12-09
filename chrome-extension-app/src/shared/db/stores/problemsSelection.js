@@ -3,9 +3,9 @@
  * Extracted from problems.js
  */
 
-import { dbHelper } from "./index.js";
+import { dbHelper } from "../index.js";
 import { getAllStandardProblems } from "./standard_problems.js";
-import { TagService } from "../services/tagServices.js";
+import { TagService } from "../../services/attempts/tagServices.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";
 import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";

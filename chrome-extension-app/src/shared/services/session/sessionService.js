@@ -8,12 +8,12 @@ import {
   deleteSessionFromDB,
   getOrCreateSessionAtomic,
 } from "../../db/stores/sessions.js";
-import { ProblemService } from "../services/problemService.js";
+import { ProblemService } from "../problem/problemService.js";
 import { StorageService } from "../storage/storageService.js";
-import { FocusCoordinationService } from "./focusCoordinationService.js";
+import { FocusCoordinationService } from "../focus/focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";
-import performanceMonitor from "../utils/PerformanceMonitor.js";
-import { IndexedDBRetryService } from "./IndexedDBRetryService.js";
+import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
+import { IndexedDBRetryService } from "../storage/IndexedDBRetryService.js";
 import logger from "../../utils/logging/logger.js";
 
 // Import extracted helpers

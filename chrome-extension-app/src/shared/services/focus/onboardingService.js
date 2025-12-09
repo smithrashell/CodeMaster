@@ -1,7 +1,7 @@
 import { initializePatternLaddersForOnboarding } from "./problemladderService.js";
-import { buildTagRelationships } from "../db/tag_relationships.js";
-import { insertStandardProblems } from "../db/standard_problems.js";
-import { insertStrategyData } from "../db/strategy_data.js";
+import { buildTagRelationships } from "../../db/stores/tag_relationships.js";
+import { insertStandardProblems } from "../../db/stores/standard_problems.js";
+import { insertStrategyData } from "../../db/stores/strategy_data.js";
 import { buildProblemRelationships } from "../services/relationshipService.js";
 import { StorageService } from "./storageService.js";
 import {
@@ -9,7 +9,7 @@ import {
   addRecord,
   updateRecord,
   getRecord,
-} from "../db/common.js";
+} from "../../db/core/common.js";
 import logger from "../../utils/logging/logger.js";
 import {
   createDefaultAppOnboarding,

@@ -3,7 +3,7 @@
  * Extracted from sessions.js - adaptive session configuration logic
  */
 
-import { TagService } from "../services/tagServices.js";
+import { TagService } from "../../services/attempts/tagServices.js";
 import { StorageService } from "../services/storageService.js";
 import { getMostRecentAttempt } from "./attempts.js";
 import FocusCoordinationService from "../services/focusCoordinationService.js";

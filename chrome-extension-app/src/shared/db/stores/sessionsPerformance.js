@@ -3,7 +3,7 @@
  * Extracted from sessions.js - performance metrics and analysis
  */
 
-import { dbHelper } from "./index.js";
+import { dbHelper } from "../index.js";
 import { getAttemptsBySessionId } from "./attempts.js";
 import { StorageService } from "../services/storageService.js";
 import { applyEscapeHatchLogic, checkForDemotion } from "./sessionsEscapeHatch.js";

@@ -1,9 +1,9 @@
 // eslint-disable-next-line no-restricted-imports
-import { dbHelper } from "../db/index.js";
-import { getNextFiveTagsFromNextTier } from "../db/tag_relationships.js";
-import { getSessionPerformance } from "../db/sessions.js";
-import { StorageService } from "./storageService.js";
-import SessionLimits from "../utils/sessionLimits.js";
+import { dbHelper } from "../../db/index.js";
+import { getNextFiveTagsFromNextTier } from "../../db/stores/tag_relationships.js";
+import { getSessionPerformance } from "../../db/stores/sessions.js";
+import { StorageService } from "../storage/storageService.js";
+import SessionLimits from "../../utils/session/sessionLimits.js";
 import logger from "../../utils/logging/logger.js";
 import {
   calculateRelationshipScore,

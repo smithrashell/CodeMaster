@@ -3,7 +3,7 @@
  * Extracted from sessions.js - session state initialization and migration
  */
 
-import { dbHelper } from "./index.js";
+import { dbHelper } from "../index.js";
 import { StorageService } from "../services/storageService.js";
 import logger from "../../utils/logging/logger.js";
 

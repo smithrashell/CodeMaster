@@ -4,7 +4,7 @@
  */
 
 import { getSessionPerformance } from "../../db/stores/sessions.js";
-import { updateProblemRelationships } from "../db/problem_relationships.js";
+import { updateProblemRelationships } from "../../db/stores/problem_relationships.js";
 import { getTagMastery } from "../../db/stores/tag_mastery.js";
 import { storeSessionAnalytics, debugGetAllSessionAnalytics } from "../../db/stores/sessionAnalytics.js";
 import logger from "../../utils/logging/logger.js";

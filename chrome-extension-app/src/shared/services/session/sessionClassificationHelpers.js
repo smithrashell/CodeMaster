@@ -3,7 +3,7 @@
  * Extracted from sessionService.js - session state classification and stalled detection
  */
 
-import { openDatabase } from "../db/connectionUtils.js";
+import { openDatabase } from "../../db/core/connectionUtils.js";
 import { roundToPrecision } from "../../utils/leitner/Utils.js";
 import logger from "../../utils/logging/logger.js";
 

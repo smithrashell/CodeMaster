@@ -3,7 +3,7 @@
  * Extracted from problems.js - stability and rating update operations
  */
 
-import { dbHelper } from "./index.js";
+import { dbHelper } from "../index.js";
 import { getAllStandardProblems, fetchProblemById } from "./standard_problems.js";
 import logger from "../../utils/logging/logger.js";
 
