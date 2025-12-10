@@ -1,4 +1,4 @@
-import { Container, Grid, Title, Group, Text, Button } from "@mantine/core";
+import { Container, Grid, Title, Group, Text, Button, Card } from "@mantine/core";
 import { IconRefresh } from "@tabler/icons-react";
 import TimeGranularChartCard from "../../components/charts/TimeGranularChartCard";
 import { usePageData } from "../../hooks/usePageData";
@@ -67,16 +67,20 @@ export function Progress() {
       {/* Box Distribution Chart */}
       <Grid gutter="md" mt="md">
         <Grid.Col span={12}>
-          <TimeGranularChartCard
-            title="Box Distribution"
-            chartType="bar"
-            useTimeGranularity={false}
-            height={280}
-            data={progressData.boxLevelData}
-            dataKeys={[{ key: "count", color: "#8884d8" }]}
-            yAxisFormatter={(v) => v}
-            tooltipFormatter={(value, name) => [`${value}`, name]}
-          />
+          <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)' }}>
+            <Title order={4} mb="sm">Box Distribution</Title>
+            <div style={{ height: 280 }}>
+              <TimeGranularChartCard
+                title=""
+                chartType="bar"
+                useTimeGranularity={false}
+                data={progressData.boxLevelData}
+                dataKeys={[{ key: "count", color: "#8884d8" }]}
+                yAxisFormatter={(v) => v}
+                tooltipFormatter={(value, name) => [`${value}`, name]}
+              />
+            </div>
+          </Card>
         </Grid.Col>
       </Grid>
 

@@ -110,8 +110,8 @@ const _runPatternAnalysisTests = (mockDB, mockSessions, setupMockCursor) => {
       ];
       setupMockCursor(mockSessions, mockDB);
 
-      const { SessionService } = await import('../sessionService.js');
-      const result = await SessionService.getTypicalCadence();
+      const { HabitLearningHelpers } = await import('../session/sessionHabitLearning.js');
+      const result = await HabitLearningHelpers.getTypicalCadence();
 
       expect(result.pattern).toBe('insufficient_data');
       expect(result.reliability).toBe('low');
@@ -125,8 +125,8 @@ const _runPatternAnalysisTests = (mockDB, mockSessions, setupMockCursor) => {
       );
       setupMockCursor(mockSessions, mockDB);
 
-      const { SessionService } = await import('../sessionService.js');
-      const result = await SessionService.getTypicalCadence();
+      const { HabitLearningHelpers } = await import('../session/sessionHabitLearning.js');
+      const result = await HabitLearningHelpers.getTypicalCadence();
 
       expect(result.pattern).toBe('daily');
       expect(result.reliability).toBe('high');
@@ -149,8 +149,8 @@ const _runLearningPhaseTests = (mockDB, mockSessions, setupMockCursor) => {
       });
       setupMockCursor(mockSessions, mockDB);
 
-      const { SessionService } = await import('../sessionService.js');
-      const result = await SessionService.getTypicalCadence();
+      const { HabitLearningHelpers } = await import('../session/sessionHabitLearning.js');
+      const result = await HabitLearningHelpers.getTypicalCadence();
 
       expect(result.learningPhase).toBe(true);
       expect(result.dataSpanDays).toBeLessThan(14);
@@ -165,8 +165,8 @@ const _runLearningPhaseTests = (mockDB, mockSessions, setupMockCursor) => {
       });
       setupMockCursor(mockSessions, mockDB);
 
-      const { SessionService } = await import('../sessionService.js');
-      const result = await SessionService.getTypicalCadence();
+      const { HabitLearningHelpers } = await import('../session/sessionHabitLearning.js');
+      const result = await HabitLearningHelpers.getTypicalCadence();
 
       expect(result.learningPhase).toBe(false);
       expect(result.dataSpanDays).toBeGreaterThan(14);
@@ -183,8 +183,8 @@ const _runReliabilityTests = (mockDB, mockSessions, setupMockCursor) => {
       );
       setupMockCursor(mockSessions, mockDB);
 
-      const { SessionService } = await import('../sessionService.js');
-      const result = await SessionService.getTypicalCadence();
+      const { HabitLearningHelpers } = await import('../session/sessionHabitLearning.js');
+      const result = await HabitLearningHelpers.getTypicalCadence();
 
       expect(result.reliability).toBe('high');
       expect(result.pattern).toBe('daily');
@@ -201,8 +201,8 @@ const _runReliabilityTests = (mockDB, mockSessions, setupMockCursor) => {
       ];
       setupMockCursor(mockSessions, mockDB);
 
-      const { SessionService } = await import('../sessionService.js');
-      const result = await SessionService.getTypicalCadence();
+      const { HabitLearningHelpers } = await import('../session/sessionHabitLearning.js');
+      const result = await HabitLearningHelpers.getTypicalCadence();
 
       expect(result.reliability).toBe('low');
       expect(result.confidenceScore).toBeLessThan(0.5);
@@ -218,8 +218,8 @@ const _runCircuitBreakerTests = (mockDB) => {
         throw new Error('Database connection failed');
       });
 
-      const { SessionService } = await import('../sessionService.js');
-      const result = await SessionService.getTypicalCadence();
+      const { HabitLearningHelpers } = await import('../session/sessionHabitLearning.js');
+      const result = await HabitLearningHelpers.getTypicalCadence();
 
       expect(result.fallbackMode).toBe(true);
       expect(result.reliability).toBe('low');
@@ -255,7 +255,15 @@ jest.mock("../session/sessionService.js", () => ({
     getOrCreateSession: jest.fn(),
     refreshSession: jest.fn(),
     checkAndCompleteSession: jest.fn(),
-    detectStalledSessions: jest.fn(),
+  },
+}));
+
+jest.mock("../session/sessionClassificationHelpers.js", () => ({
+  detectStalledSessions: jest.fn(),
+}));
+
+jest.mock("../session/sessionHabitLearning.js", () => ({
+  HabitLearningHelpers: {
     getTypicalCadence: jest.fn(),
     checkConsistencyAlerts: jest.fn(),
   },
@@ -285,12 +293,14 @@ jest.mock("../../db/index.js", () => ({
 }));
 
 import { SessionService } from "../session/sessionService.js";
-import { 
-  getSessionById, 
-  _getLatestSession, 
-  _saveSessionToStorage, 
-  _saveNewSessionToDB, 
-  updateSessionInDB 
+import { detectStalledSessions } from "../session/sessionClassificationHelpers.js";
+// HabitLearningHelpers is imported via dynamic imports in individual tests
+import {
+  getSessionById,
+  _getLatestSession,
+  _saveSessionToStorage,
+  _saveNewSessionToDB,
+  updateSessionInDB
 } from "../../db/stores/sessions.js";
 
 // Race condition test helpers
@@ -646,7 +656,7 @@ function runSessionStateConsistencyTests() {
         { id: "stalled-3", status: "orphaned" }
       ];
       
-      SessionService.detectStalledSessions.mockImplementation(async () => {
+      detectStalledSessions.mockImplementation(async () => {
         await simulateNetworkDelay(Math.random() * 100);
         detectionCount++;
         
@@ -665,13 +675,13 @@ function runSessionStateConsistencyTests() {
       // Multiple cleanup processes running concurrently
       const cleanupTasks = createConcurrentRequests(
         3,
-        SessionService.detectStalledSessions
+        detectStalledSessions
       );
       
       const results = await Promise.allSettled(cleanupTasks);
       
       expect(results.every(r => r.status === 'fulfilled')).toBe(true);
-      expect(SessionService.detectStalledSessions).toHaveBeenCalledTimes(3);
+      expect(detectStalledSessions).toHaveBeenCalledTimes(3);
       
       // Only first cleanup should find stalled sessions
       const sessionsFound = results.map(r => r.value.length);

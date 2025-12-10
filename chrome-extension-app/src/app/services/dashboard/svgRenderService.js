@@ -13,8 +13,8 @@ export class SVGRenderService {
       sampleRelationship: Object.keys(dynamicTagRelationships)[0]
     });
 
-    // If visibleTags is provided, create a Set for fast lookup
-    const visibleTagSet = visibleTags ? new Set(visibleTags.map(node => node.tag)) : null;
+    // If visibleTags is provided, create a Set for fast lookup (lowercase for case-insensitive matching)
+    const visibleTagSet = visibleTags ? new Set(visibleTags.map(node => node.tag.toLowerCase())) : null;
 
     // Use dynamic tag relationships (co-occurrence from attempts)
     // Format: { "tag1:tag2": { tag1, tag2, strength, problems, successRate, successCount } }
