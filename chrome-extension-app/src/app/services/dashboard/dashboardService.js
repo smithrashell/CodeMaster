@@ -330,14 +330,6 @@ export async function getFocusAreaAnalytics(options = {}) {
   }
 }
 
-// calculateFocusAreaPerformance moved to focusAreaHelpers.js
-
-
-// generateFocusAreaInsights moved to focusAreaInsights.js
-
-
-
-
 
 // Utility function to clear analytics cache (useful for testing or data updates)
 export function clearFocusAreaAnalyticsCache() {
@@ -369,15 +361,8 @@ export function invalidateDashboardOnSessionComplete() {
   }
 }
 
-// generateSessionAnalytics moved to dashboardSessionAnalyticsHelpers.js
 export { generateSessionAnalytics };
-
-// buildDynamicTagRelationships moved to dashboardMasteryHelpers.js
-// generateMasteryData moved to dashboardMasteryHelpers.js
-// calculateOutcomeTrends moved to dashboardMasteryHelpers.js
 export { generateMasteryData };
-// generateGoalsData moved to dashboardGoalsHelpers.js
-// Re-export for backwards compatibility
 export { generateGoalsData };
 
 /**
@@ -413,15 +398,7 @@ export async function getLearningPathData(options = {}) {
   return await getLearningPathDataHelper(options, getDashboardStatistics);
 }
 
-// getInterviewAnalyticsData moved to dashboardInterviewAnalyticsHelpers.js
-// Re-export for backwards compatibility
 export { getInterviewAnalyticsData };
-
-// getSessionMetrics moved to dashboardSessionMetricsHelpers.js
-// Re-export for backwards compatibility
 export { getSessionMetrics };
-
-// getLearningEfficiencyData moved to dashboardGoalsHelpers.js
-// Re-export for backwards compatibility
 export { getLearningEfficiencyData };
 

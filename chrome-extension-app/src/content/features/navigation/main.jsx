@@ -121,9 +121,6 @@ const Menubutton = ({ isAppOpen, setIsAppOpen, currPath }) => {
   );
 };
 
-// Function to extract the problem slug from the URL
-// getProblemSlugFromUrl moved to mainHelpers.js
-
 // Helper function to handle Chrome runtime messaging for problem data
 const sendProblemMessage = (title, problemSlug, setProblemData, setProblemFound, setLoading) => {
   const messageTimeout = setTimeout(() => {
@@ -171,10 +168,6 @@ const sendProblemMessage = (title, problemSlug, setProblemData, setProblemFound,
     }
   );
 };
-
-// performContentOnboardingCheck moved to mainHelpers.js
-
-// setupUrlChangeListeners moved to useMainHooks.js (useUrlChangeHandler)
 
 // Helper component for problem link rendering
 const ProblemLink = ({ currentProblem, problemData, problemFound, loading, problemTitle }) => {
@@ -430,8 +423,6 @@ const Main = () => {
           onClose={handleCloseTimerTour}
         />
       )}
-
-      {/* Page-Specific Tours moved to App.jsx Router level */}
     </div>
   );
 };

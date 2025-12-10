@@ -202,7 +202,7 @@ const { data, loading, error, refresh } = usePageData('page-type');
 - **Cache module references** in background script on startup
 - **Avoid repeated IndexedDB queries** - cache frequently accessed data
 - **Minimize Chrome messaging round trips** - batch operations when possible
-- **Remove verbose console.log statements** in production code
+- **Avoid excessive console.log** in performance-critical paths during development
 - Keep hint interactions and UI operations under 5ms target
 
 ### Database Operations
