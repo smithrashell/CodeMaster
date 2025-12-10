@@ -6,11 +6,11 @@
 import { dbHelper } from "../index.js";
 import { getAllStandardProblems } from "./standard_problems.js";
 import { TagService } from "../../services/attempts/tagServices.js";
-import FocusCoordinationService from "../services/focusCoordinationService.js";
-import { getDifficultyAllowanceForTag } from "../utils/Utils.js";
+import FocusCoordinationService from "../../services/focus/focusCoordinationService.js";
+import { getDifficultyAllowanceForTag } from "../../utils/leitner/Utils.js";
 import { getPatternLadders } from "../utils/dbUtils/patternLadderUtils.js";
 import { scoreProblemsWithRelationships } from "./problem_relationships.js";
-import { regenerateCompletedPatternLadder } from "../services/problemladderService.js";
+import { regenerateCompletedPatternLadder } from "../../services/problem/problemladderService.js";
 import { calculateCompositeScore, logCompositeScores } from "./problemsHelpers.js";
 import { fetchAllProblems } from "./problems.js";
 import logger from "../../utils/logging/logger.js";

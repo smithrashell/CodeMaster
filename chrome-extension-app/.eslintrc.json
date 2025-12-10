@@ -84,15 +84,7 @@
 
     // === REACT SPECIFIC ===
     "react/react-in-jsx-scope": "off",
-    "react/prop-types": "off",
-
-    // === CHROME EXTENSION SPECIFIC ===
-    "no-restricted-imports": ["warn", {
-      "patterns": [{
-        "group": ["**/db/index.js"],
-        "message": "Import specific db modules instead of index"
-      }]
-    }]
+    "react/prop-types": "off"
   },
   "overrides": [
     {
