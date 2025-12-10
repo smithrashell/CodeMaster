@@ -17,10 +17,11 @@ export const useSessionData = (appState, timeRange) => {
     const allSessions = appState.allSessions || [];
     const filteredSessions = filterSessionsByTimeRange(allSessions, timeRange);
 
-    // Filter to only completed sessions with attempts
+    // Filter to only completed sessions with problems (attempts are stored as problems on sessions)
     const completedSessions = filteredSessions.filter(session => {
-      const hasAttempts = session.attempts && session.attempts.length > 0;
-      return (session.status === "completed" || session.completed === true) && hasAttempts;
+      const hasProblems = (session.problems && session.problems.length > 0) ||
+                          (session.attempts && session.attempts.length > 0);
+      return (session.status === "completed" || session.completed === true) && hasProblems;
     });
 
     // Process session length data - limit to last 20 for readability
@@ -48,12 +49,13 @@ export const useSessionData = (appState, timeRange) => {
     : [];
 
   // Only count sessions that are actually completed (same logic as Recent Sessions table)
-  const completedSessions = filteredSessionsForKPI.filter(session => {
-    const hasAttempts = session.attempts && session.attempts.length > 0;
-    return (session.status === "completed" || session.completed === true) && hasAttempts;
+  const completedSessionsForKPI = filteredSessionsForKPI.filter(session => {
+    const hasProblems = (session.problems && session.problems.length > 0) ||
+                        (session.attempts && session.attempts.length > 0);
+    return (session.status === "completed" || session.completed === true) && hasProblems;
   });
 
-  const kpis = calculateKPIs(completedSessions);
+  const kpis = calculateKPIs(completedSessionsForKPI);
 
   return {
     recentSessions,

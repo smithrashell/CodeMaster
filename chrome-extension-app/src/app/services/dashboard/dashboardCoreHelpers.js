@@ -78,16 +78,17 @@ export async function fetchDashboardData() {
 }
 
 export function createDashboardProblemMappings(allProblems, allStandardProblems) {
-  const standardProblemsMap = new Map();
+  // Use a plain object for standardProblemsMap so Object.values() works
+  const standardProblemsMap = {};
   allStandardProblems.forEach((sp) => {
-    standardProblemsMap.set(sp.id, sp);
+    standardProblemsMap[sp.id] = sp;
   });
 
   const problemTagsMap = new Map();
   const problemDifficultyMap = {};
 
   allProblems.forEach((problem) => {
-    const standardProblem = standardProblemsMap.get(problem.leetcode_id);
+    const standardProblem = standardProblemsMap[problem.leetcode_id];
     if (standardProblem) {
       problemTagsMap.set(problem.problem_id, standardProblem.tags || []);
       problemDifficultyMap[problem.problem_id] = standardProblem.difficulty;

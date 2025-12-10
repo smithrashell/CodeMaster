@@ -10,30 +10,52 @@ import { roundToPrecision } from "../../../shared/utils/leitner/Utils.js";
  */
 export function generateSessionAnalytics(sessions, attempts) {
   const enhancedSessions = sessions.map((session, index) => {
+    // Support both session.id and session.sessionId
+    const sessionId = session.id || session.sessionId || `session_${index + 1}`;
+
     const sessionAttempts = attempts.filter(attempt => {
       const attemptSessionId = attempt.session_id || attempt.SessionID;
       const attemptDate = attempt.attempt_date || attempt.AttemptDate;
-      return attemptSessionId === session.sessionId ||
+      return attemptSessionId === sessionId ||
         (session.date && Math.abs(new Date(session.date) - new Date(attemptDate)) < 60 * 60 * 1000);
     });
 
+    // Calculate duration from session attempts if available
     const duration = session.duration ||
       (sessionAttempts.length > 0 ? sessionAttempts.reduce((sum, a) => sum + (Number(a.time_spent || a.TimeSpent) || 0), 0) / 60 : 30);
 
-    const accuracy = session.accuracy || 0;
-    const completed = session.completed !== undefined ? session.completed : true;
+    // Calculate accuracy from session attempts
+    const successfulAttempts = sessionAttempts.filter(a => a.success !== undefined ? a.success : a.Success).length;
+    const accuracy = session.accuracy || (sessionAttempts.length > 0 ? successfulAttempts / sessionAttempts.length : 0);
+
+    // Support both session.completed and session.status === "completed"
+    const completed = session.completed !== undefined
+      ? session.completed
+      : (session.status === "completed");
 
     return {
       ...session,
-      sessionId: session.sessionId || `session_${index + 1}`,
+      sessionId,
       duration: Math.round(duration),
       accuracy: roundToPrecision(accuracy),
       completed,
-      problems: session.problems || sessionAttempts.map(attempt => ({
-        id: attempt.problem_id || attempt.ProblemID,
-        difficulty: "Medium",
-        solved: attempt.success !== undefined ? attempt.success : attempt.Success
-      }))
+      status: session.status || (completed ? "completed" : "in_progress"),
+      // Preserve problems array, or use session.attempts if problems is empty
+      problems: (session.problems && session.problems.length > 0)
+        ? session.problems
+        : (session.attempts && session.attempts.length > 0)
+          ? session.attempts.map(attempt => ({
+              id: attempt.problem_id || attempt.leetcode_id,
+              difficulty: "Medium",
+              solved: attempt.success !== undefined ? attempt.success : attempt.Success
+            }))
+          : sessionAttempts.map(attempt => ({
+              id: attempt.problem_id || attempt.ProblemID,
+              difficulty: "Medium",
+              solved: attempt.success !== undefined ? attempt.success : attempt.Success
+            })),
+      // Also preserve the attempts array for filtering
+      attempts: session.attempts || sessionAttempts
     };
   });
 
