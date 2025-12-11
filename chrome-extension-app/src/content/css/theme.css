@@ -80,35 +80,45 @@
   --cm-table-text-primary: #0f172a; /* primary text */
 }
 
-body {
+/* Body styles scoped to extension containers only */
+.cm-extension {
   background-color: var(--cm-bg);
   color: var(--cm-text);
 }
 
-/* ========= Accessibility Classes ========= */
+/* ========= Accessibility Classes - scoped to extension ========= */
 
 /* Enhanced focus indicators */
-.a11y-enhanced-focus *:focus {
+.cm-extension.a11y-enhanced-focus *:focus,
+.cm-extension .a11y-enhanced-focus *:focus {
   outline: 3px solid #007bff !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 1px rgba(0, 123, 255, 0.25) !important;
 }
 
 /* Larger click targets */
-.a11y-large-targets button,
-.a11y-large-targets [role="button"],
-.a11y-large-targets a,
-.a11y-large-targets input,
-.a11y-large-targets select {
+.cm-extension.a11y-large-targets button,
+.cm-extension.a11y-large-targets [role="button"],
+.cm-extension.a11y-large-targets a,
+.cm-extension.a11y-large-targets input,
+.cm-extension.a11y-large-targets select,
+.cm-extension .a11y-large-targets button,
+.cm-extension .a11y-large-targets [role="button"],
+.cm-extension .a11y-large-targets a,
+.cm-extension .a11y-large-targets input,
+.cm-extension .a11y-large-targets select {
   min-height: 44px !important;
   min-width: 44px !important;
   padding: 12px 16px !important;
 }
 
 /* Reduced motion */
-.a11y-reduced-motion *,
-.a11y-reduced-motion *::before,
-.a11y-reduced-motion *::after {
+.cm-extension.a11y-reduced-motion *,
+.cm-extension.a11y-reduced-motion *::before,
+.cm-extension.a11y-reduced-motion *::after,
+.cm-extension .a11y-reduced-motion *,
+.cm-extension .a11y-reduced-motion *::before,
+.cm-extension .a11y-reduced-motion *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
@@ -116,12 +126,13 @@ body {
 }
 
 /* Extended hover states */
-.a11y-extended-hover *:hover {
+.cm-extension.a11y-extended-hover *:hover,
+.cm-extension .a11y-extended-hover *:hover {
   transition-delay: 2s !important;
 }
 
-/* Skip to content link */
-.skip-to-content {
+/* Skip to content link - scoped to extension */
+.cm-extension .skip-to-content {
   position: absolute;
   top: -40px;
   left: 6px;
@@ -133,7 +144,7 @@ body {
   z-index: 10000;
 }
 
-.skip-to-content:focus {
+.cm-extension .skip-to-content:focus {
   top: 6px;
 }
 
@@ -219,18 +230,19 @@ body[data-theme="dark"] {
 }
 
 /* ========== Apply Variables to Your CSS ========== */
-.injected {
+/* All selectors scoped to .cm-extension to prevent bleeding into host page */
+.cm-extension .injected {
   color: var(--cm-text);
 }
 
-.btn {
+.cm-extension .btn {
   background-color: var(--cm-btn-bg);
   color: var(--cm-btn-text);
   border: none;
   border-radius: 25%;
 }
 
-button {
+.cm-extension button {
   margin-right: 5px;
   color: var(--cm-btn-text);
 }
@@ -241,65 +253,65 @@ button {
   background-color: #0c433d;
 } */
 
-/* Side Drawer */
-.cm-sidenav {
+/* Side Drawer - scoped to extension */
+.cm-extension .cm-sidenav {
   background-color: var(--cm-bg);
   color: var(--cm-text);
 }
 
-.cm-sidenav a,
-.link {
+.cm-extension .cm-sidenav a,
+.cm-extension .link {
   color: var(--cm-link);
 }
 
-.cm-sidenav a:hover,
-.link:hover {
+.cm-extension .cm-sidenav a:hover,
+.cm-extension .link:hover {
   color: var(--cm-link-hover);
 }
 
-.link-disabled {
+.cm-extension .link-disabled {
   color: gray;
   pointer-events: none;
 }
 
-.link-disabled:hover {
+.cm-extension .link-disabled:hover {
   color: darkgray;
   cursor: not-allowed;
 }
 
-/* Misc reused styles from your main.css (unchanged) */
-.cm-left {
+/* Misc reused styles - scoped to extension */
+.cm-extension .cm-left {
   left: -10px;
-  transition: eft 0.5s;
+  transition: left 0.5s;
 }
-.cm-leftoffset {
+.cm-extension .cm-leftoffset {
   left: 240px;
 }
-.cm-right {
+.cm-extension .cm-right {
   right: 10px;
 }
-.codeMaster-Container {
+.cm-extension .codeMaster-Container {
   transition: margin-left 0.5s;
   padding: 0px;
   margin-left: 250px;
 }
 @media screen and (max-height: 600px) {
-  .cm-sidenav {
+  .cm-extension .cm-sidenav {
     padding-top: 10px;
   }
-  .cm-sidenav a {
+  .cm-extension .cm-sidenav a {
     font-size: 16px;
     padding: 8px 12px;
   }
 }
-.cm-hidden {
+.cm-extension .cm-hidden {
   display: none;
 }
-input[type="submit"] {
+.cm-extension input[type="submit"] {
   color: white;
   font-weight: 600;
 }
-.disabled {
+.cm-extension .disabled {
   color: var(--cm-link);
   pointer-events: none;
   cursor: not-allowed;
@@ -378,15 +390,15 @@ input[type="submit"] {
   --cm-transition-slow: none;
 }
 
-/* Apply enhanced variables to elements */
-body {
+/* Apply enhanced variables to extension elements only */
+.cm-extension {
   font-size: var(--cm-font-size-base, 14px);
   line-height: var(--cm-line-height-base, 1.5);
   /* Removed 'all' transition to prevent theme bleeding */
 }
 
-/* Enhanced spacing for cards and containers */
-.mantine-Card-root {
+/* Enhanced spacing for cards and containers - scoped to extension */
+.cm-extension .mantine-Card-root {
   padding: var(--cm-card-padding, 20px) !important;
   background-color: var(--cm-card-bg) !important;
   color: var(--cm-text) !important;
@@ -394,45 +406,45 @@ body {
   /* Removed transition to prevent theme bleeding */
 }
 
-.mantine-Container-root {
+.cm-extension .mantine-Container-root {
   padding: var(--cm-section-padding, 24px) !important;
 }
 
-/* Enhanced text sizes and colors */
+/* Enhanced text sizes and colors - scoped to extension */
 /* Removed !important from color to allow component-level overrides */
-.mantine-Text-root {
+.cm-extension .mantine-Text-root {
   font-size: var(--cm-font-size-base, 14px) !important;
   color: var(--cm-text);
 }
 
 
-.mantine-Title-root {
+.cm-extension .mantine-Title-root {
   color: var(--cm-text);
 }
 
-.mantine-Title-root[data-order="1"] {
+.cm-extension .mantine-Title-root[data-order="1"] {
   font-size: var(--cm-font-size-xl, 18px) !important;
 }
 
-.mantine-Title-root[data-order="2"] {
+.cm-extension .mantine-Title-root[data-order="2"] {
   font-size: var(--cm-font-size-lg, 16px) !important;
 }
 
-/* Card specific overrides to ensure proper theming */
-.mantine-Card-root,
-[data-mantine-card],
-.mantine-Paper-root {
+/* Card specific overrides to ensure proper theming - scoped to extension */
+.cm-extension .mantine-Card-root,
+.cm-extension [data-mantine-card],
+.cm-extension .mantine-Paper-root {
   background-color: var(--cm-card-bg) !important;
   color: var(--cm-text) !important;
   border-color: var(--cm-border) !important;
 }
 
-/* Additional text elements within cards */
+/* Additional text elements within cards - scoped to extension */
 /* Removed !important to allow component-level color overrides (c="white", c="gray.4", etc.) */
-.mantine-Card-root .mantine-Text-root,
-.mantine-Card-root .mantine-Title-root,
-.mantine-Paper-root .mantine-Text-root,
-.mantine-Paper-root .mantine-Title-root {
+.cm-extension .mantine-Card-root .mantine-Text-root,
+.cm-extension .mantine-Card-root .mantine-Title-root,
+.cm-extension .mantine-Paper-root .mantine-Text-root,
+.cm-extension .mantine-Paper-root .mantine-Title-root {
   color: var(--cm-text);
 }
 
@@ -449,17 +461,17 @@ body {
 
 
 
-/* Ensure proper text colors in specific contexts */
+/* Ensure proper text colors in specific contexts - scoped to extension */
 /* Removed !important to allow component-level color overrides in dark mode */
-body[data-theme="dark"] .mantine-Text-root,
-body[data-theme="dark"] .mantine-Title-root {
+body[data-theme="dark"] .cm-extension .mantine-Text-root,
+body[data-theme="dark"] .cm-extension .mantine-Title-root {
   color: var(--cm-text);
 }
 
 
 
-/* ScrollArea within tables */
-.mantine-ScrollArea-root {
+/* ScrollArea within tables - scoped to extension */
+.cm-extension .mantine-ScrollArea-root {
   background-color: var(--cm-card-bg) !important;
 }
 
@@ -807,25 +819,28 @@ body[data-theme="dark"] {
 /* Extension-specific scrollbar theming for components that need it */
 
 
-/* ========= Mantine Icon Color Override for Dark Mode ========= */
+/* ========= Mantine Icon Color Override for Dark Mode - scoped to extension ========= */
 
-[data-theme="dark"] {
+.cm-extension[data-theme="dark"],
+[data-theme="dark"] .cm-extension {
   --mantine-color-dimmed: #ffffff !important;
-  
+
   /* Fix slider marks and labels */
   --mantine-color-text: #ffffff !important;
   --mantine-color-body: #ffffff !important;
-  
+
   /* Force all text to be white in dark mode */
   color: #ffffff !important;
 }
 
 
-/* Additional dark mode text fixes - removed overly broad selector */
+/* Additional dark mode text fixes - scoped to extension */
 
 /* Keep secondary/dimmed text appropriately gray */
-[data-theme="dark"] .mantine-Text-root[data-variant="dimmed"],
-[data-theme="dark"] [style*="dimmed"] {
+.cm-extension[data-theme="dark"] .mantine-Text-root[data-variant="dimmed"],
+.cm-extension[data-theme="dark"] [style*="dimmed"],
+[data-theme="dark"] .cm-extension .mantine-Text-root[data-variant="dimmed"],
+[data-theme="dark"] .cm-extension [style*="dimmed"] {
   color: #d1d5db !important;
 }
 
