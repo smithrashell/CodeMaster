@@ -170,6 +170,11 @@
     {
       "files": ["**/*test*.js", "**/*testing*.js", "**/*.test.js", "**/__tests__/**/*.js"],
       "rules": {
+        "max-lines": "off",
+        "max-lines-per-function": "off",
+        "complexity": "off",
+        "no-console": "off",
+        "no-restricted-syntax": "off",
         "no-restricted-imports": ["error", {
           "paths": [
             {

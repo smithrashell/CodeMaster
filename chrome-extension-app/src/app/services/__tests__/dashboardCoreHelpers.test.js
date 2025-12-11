@@ -367,7 +367,7 @@ describe("dashboardCoreHelpers", () => {
         Hard: { successful: 0, total: 0 }
       };
 
-      const { averageTime, successRate } = calculateDerivedMetrics(timeStats, successStats);
+      const { averageTime } = calculateDerivedMetrics(timeStats, successStats);
 
       expect(averageTime.overall).toBe(15);
       expect(averageTime.Easy).toBe(5);

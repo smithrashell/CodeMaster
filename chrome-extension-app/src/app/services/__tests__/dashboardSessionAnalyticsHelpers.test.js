@@ -353,9 +353,6 @@ describe("dashboardSessionAnalyticsHelpers", () => {
     it("weights by session count up to 5", () => {
       // Hour 10 has more sessions but lower accuracy
       // Hour 14 has fewer sessions but higher accuracy
-      const tenAM = new Date(2025, 0, 15, 10, 0, 0);
-      const twoPM = new Date(2025, 0, 15, 14, 0, 0);
-
       const sessions = [
         { date: new Date(2025, 0, 15, 10, 0, 0).toISOString(), accuracy: 0.6 },
         { date: new Date(2025, 0, 16, 10, 0, 0).toISOString(), accuracy: 0.6 },
