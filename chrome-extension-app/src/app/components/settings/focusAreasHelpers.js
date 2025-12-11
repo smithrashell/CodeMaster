@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChromeAPIErrorHandler } from "../../../shared/services/chrome/ChromeAPIErrorHandler";
+import { ChromeAPIErrorHandler } from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 import logger, { debug } from "../../../shared/utils/logging/logger.js";
 
 // Custom hooks for FocusAreasSelector state management

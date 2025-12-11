@@ -5,7 +5,7 @@
  * appropriate recalibration modal based on gap duration.
  */
 import { useState, useEffect } from "react";
-import ChromeAPIErrorHandler from "../../shared/services/chrome/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../shared/services/chrome/chromeAPIErrorHandler.js";
 
 export const useWelcomeBack = () => {
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);

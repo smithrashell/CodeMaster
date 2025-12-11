@@ -4,7 +4,7 @@
  */
 
 import logger from "../../../shared/utils/logging/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 
 /**
  * Get fresh settings before creating session

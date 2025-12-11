@@ -1,5 +1,5 @@
 import migrationSafety from "./migrations/migrationSafety.js";
-import indexedDBRetry from "../services/storage/IndexedDBRetryService.js";
+import indexedDBRetry from "../services/storage/indexedDBRetryService.js";
 // Import extracted modules for modular database operations
 import {
   getExecutionContext,

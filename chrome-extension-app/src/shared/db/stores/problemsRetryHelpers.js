@@ -8,7 +8,7 @@ import { dbHelper } from "../index.js";
 import { v4 as uuidv4 } from "uuid";
 import { fetchProblemById } from "./standard_problems.js";
 import { SessionService } from "../../services/session/sessionService.js";
-import indexedDBRetry from "../../services/storage/IndexedDBRetryService.js";
+import indexedDBRetry from "../../services/storage/indexedDBRetryService.js";
 import logger from "../../utils/logging/logger.js";
 import { getProblemWithOfficialDifficulty } from "./problems.js";
 

@@ -6,7 +6,7 @@
 import { useState, useCallback, useEffect } from "react";
 import logger from "../../../shared/utils/logging/logger.js";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
-import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 import {
   getFreshSettings,
   processSessionResponse,

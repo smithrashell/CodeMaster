@@ -8,11 +8,11 @@ import { SessionService } from "../shared/services/session/sessionService.js";
 import { AttemptsService } from "../shared/services/attempts/attemptsService.js";
 import { TagService } from "../shared/services/attempts/tagServices.js";
 import { HintInteractionService } from "../shared/services/hints/hintInteractionService.js";
-import { AlertingService } from "../shared/services/monitoring/AlertingService.js";
+import { AlertingService } from "../shared/services/monitoring/alertingService.js";
 import { NavigationService } from "../shared/services/chrome/navigationService.js";
 import FocusCoordinationService from "../shared/services/focus/focusCoordinationService.js";
 import AccurateTimer from "../shared/utils/timing/AccurateTimer.js";
-import ChromeAPIErrorHandler from "../shared/services/chrome/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../shared/services/chrome/chromeAPIErrorHandler.js";
 import { checkAndApplyDecay } from "../shared/services/schedule/recalibrationService.js";
 
 // Onboarding (only functions passed as dependencies to messageRouter)

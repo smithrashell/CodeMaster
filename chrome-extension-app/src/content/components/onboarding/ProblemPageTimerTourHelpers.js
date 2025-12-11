@@ -2,7 +2,7 @@
  * Helper functions and constants for ProblemPageTimerTour
  */
 import logger from "../../../shared/utils/logging/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 
 // Timer tour steps configuration
 export const TIMER_TOUR_STEPS = [

@@ -13,7 +13,7 @@ import { StorageService } from "../storage/storageService.js";
 import { FocusCoordinationService } from "../focus/focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
-import { IndexedDBRetryService } from "../storage/IndexedDBRetryService.js";
+import { IndexedDBRetryService } from "../storage/indexedDBRetryService.js";
 import logger from "../../utils/logging/logger.js";
 
 // Import extracted helpers

@@ -2,7 +2,7 @@
  * Helper functions for main navigation component
  */
 import logger from "../../../shared/utils/logging/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 
 // Function to extract the problem slug from the URL
 export function getProblemSlugFromUrl(url) {

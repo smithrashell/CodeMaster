@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useChromeMessage } from "../../shared/hooks/useChromeMessage";
-import { ChromeAPIErrorHandler } from "../../shared/services/chrome/ChromeAPIErrorHandler";
+import { ChromeAPIErrorHandler } from "../../shared/services/chrome/chromeAPIErrorHandler.js";
 import logger from "../../shared/utils/logging/logger.js";
 
 /**

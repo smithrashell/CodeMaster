@@ -13,7 +13,7 @@ import {
   IconInfoCircle,
 } from "@tabler/icons-react";
 import { useStrategy } from "../../../shared/hooks/useStrategy";
-import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 
 // Helper component for rendering panel content
 const PanelContent = ({ loading, error, hints, isExpanded }) => (
