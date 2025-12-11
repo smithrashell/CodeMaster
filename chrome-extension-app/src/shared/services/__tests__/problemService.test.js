@@ -211,6 +211,33 @@ const runGetProblemByDescriptionTests = () => {
   });
 };
 
+const runGetAllProblemsTests = () => {
+  describe("getAllProblems", () => {
+    beforeEach(() => {
+      problemsDb.fetchAllProblems.mockClear();
+    });
+
+    it("should return all problems from the database", async () => {
+      const mockProblems = createMockProblemsArray();
+      setupMockFetchAllProblems(mockProblems);
+
+      const result = await ProblemService.getAllProblems();
+
+      expect(problemsDb.fetchAllProblems).toHaveBeenCalled();
+      expect(result).toEqual(mockProblems);
+    });
+
+    it("should return empty array when no problems exist", async () => {
+      setupMockFetchAllProblems([]);
+
+      const result = await ProblemService.getAllProblems();
+
+      expect(problemsDb.fetchAllProblems).toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+  });
+};
+
 const runAddOrUpdateProblemTests = () => {
   describe("addOrUpdateProblem", () => {
     beforeEach(() => {
@@ -685,6 +712,7 @@ describe("ProblemService", () => {
   });
 
   runGetProblemByDescriptionTests();
+  runGetAllProblemsTests();
   runAddOrUpdateProblemTests();
   runCreateSessionTests();
   runBuildUserPerformanceContextTests();
