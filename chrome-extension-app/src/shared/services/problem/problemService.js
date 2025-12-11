@@ -97,6 +97,10 @@ export const ProblemService = {
     return countProblemsByBoxLevel();
   },
 
+  getAllProblems() {
+    return fetchAllProblems();
+  },
+
   async addOrUpdateProblem(contentScriptData) {
     logger.info("addOrUpdateProblem called", { contentScriptData });
 
