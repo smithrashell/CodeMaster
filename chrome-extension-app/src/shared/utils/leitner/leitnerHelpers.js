@@ -11,7 +11,7 @@ const TIME_LIMITS_BY_DIFFICULTY = { 1: 15, 2: 25, 3: 40 };
 /**
  * Calculate time performance score based on attempt data
  */
-export function computeTimePerformanceScore(attemptData, useTimeLimits = true) {
+export function calculateTimePerformanceScore(attemptData, useTimeLimits = true) {
   if (!useTimeLimits || !attemptData) {
     return { timePerformanceScore: 1.0, exceededTimeLimit: false };
   }
