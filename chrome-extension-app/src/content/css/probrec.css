@@ -1,5 +1,5 @@
-/* Original problink styling */
-.problink a {
+/* Original problink styling - scoped to extension */
+.cm-extension .problink a {
   font-weight: 200;
   font-size: medium;
 }
@@ -170,8 +170,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   --cm-info-icon-bg: #60a5fa !important; /* Lighter blue for dark mode */
 }
 
-/* Problem Sidebar Styling */
-.problem-sidebar {
+/* Problem Sidebar Styling - scoped to extension */
+.cm-extension .problem-sidebar {
   width: clamp(240px, 22vw, 320px) !important;
   background-color: var(--cm-bg) !important;
   color: var(--cm-text) !important;
@@ -197,7 +197,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 
 
 
-.problem-sidebar-section {
+/* Problem sidebar section - scoped to extension */
+.cm-extension .problem-sidebar-section {
   margin-bottom: 4px !important;
   padding: 0 2px !important;
 
@@ -208,8 +209,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Specific override for tag strategy sections to allow expansion */
-.problem-sidebar-section:has(.tag-strategy-simple-grid),
-.problem-sidebar-section.tag-strategy-container {
+.cm-extension .problem-sidebar-section:has(.tag-strategy-simple-grid),
+.cm-extension .problem-sidebar-section.tag-strategy-container {
   overflow: visible !important;
   position: relative !important;
   z-index: 10 !important;
@@ -226,7 +227,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Enhanced scrolling behavior for tag strategy expansion */
-.problem-sidebar-section.tag-strategy-container .tag-strategy-hint {
+.cm-extension .problem-sidebar-section.tag-strategy-container .cm-extension .tag-strategy-hint {
   /* Ensure strategy hints don't break out of scrollable area */
   max-width: 100% !important;
   box-sizing: border-box !important;
@@ -240,7 +241,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Ensure problem card has adequate spacing from tag strategies */
-.problem-sidebar-card {
+.cm-extension .problem-sidebar-card {
   margin-bottom: 16px !important;
   /* Ensure the problem card content is never obscured */
   position: relative !important;
@@ -277,7 +278,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Specific override for strategy map expansion */
-.cm-extension .cm-sidenav .tag-strategy-simple-grid {
+.cm-extension .cm-sidenav .cm-extension .tag-strategy-simple-grid {
   /* Ensure the grid container can expand to full height */
   max-height: none !important;
   height: auto !important;
@@ -285,7 +286,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Prevent expanded strategy content from causing horizontal overflow */
-.problem-sidebar-section.tag-strategy-container .tag-strategy-hint-content {
+.cm-extension .problem-sidebar-section.tag-strategy-container .cm-extension .tag-strategy-hint-content {
   max-width: calc(100% - 4px) !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
@@ -293,14 +294,14 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Animation and styling for expanded strategy hints */
-.tag-strategy-hint.expanded {
+.cm-extension .tag-strategy-hint.expanded {
   /* Remove scaling to prevent gap issues */
   transform: none !important;
   transition: transform 0.2s ease-out !important;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
-.tag-strategy-hint.expanded .tag-strategy-hint-content {
+.cm-extension .tag-strategy-hint.expanded .cm-extension .tag-strategy-hint-content {
   animation: slideInExpand 0.3s ease-out !important;
 }
 
@@ -315,7 +316,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   }
 }
 
-.problem-sidebar-section-header {
+/* Problem sidebar section headers and elements - scoped to extension */
+.cm-extension .problem-sidebar-section-header {
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
@@ -325,16 +327,16 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   margin-bottom: 12px !important;
 }
 
-.problem-sidebar-section-icon {
+.cm-extension .problem-sidebar-section-icon {
   height: 16px !important;
   width: 16px !important;
 }
 
-.problem-sidebar-section-title {
+.cm-extension .problem-sidebar-section-title {
   font-weight: 500 !important;
 }
 
-.problem-sidebar-tags {
+.cm-extension .problem-sidebar-tags {
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 8px !important;
@@ -343,7 +345,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   overflow-wrap: break-word !important;
 }
 
-.problem-sidebar-tag {
+.cm-extension .problem-sidebar-tag {
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
   font-size: 10px !important;
@@ -360,18 +362,18 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   text-overflow: ellipsis !important;
 }
 
-.problem-sidebar-tag:hover {
+.cm-extension .problem-sidebar-tag:hover {
   opacity: 1 !important;
 }
 
-.problem-sidebar-no-tags {
+.cm-extension .problem-sidebar-no-tags {
   color: var(--cm-text) !important;
   opacity: 0.7 !important;
   font-size: 14px !important;
 }
 
 
-.problem-sidebar-actions {
+.cm-extension .problem-sidebar-actions {
   margin-top: 8px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -385,7 +387,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   width: 100% !important;
 }
 
-.problem-sidebar-primary-btn {
+.cm-extension .problem-sidebar-primary-btn {
   width: auto !important;
   min-width: 140px !important;
   max-width: 90% !important;
@@ -402,7 +404,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   align-self: center !important;
 }
 
-.problem-sidebar-primary-btn:hover {
+.cm-extension .problem-sidebar-primary-btn:hover {
   background-color: var(--cm-active-blue) !important;
 }
 
@@ -423,13 +425,13 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   display: none !important;
 }
 
-.problem-sidebar-btn-icon {
+.cm-extension .problem-sidebar-btn-icon {
   height: 16px !important;
   width: 16px !important;
   margin-right: 8px !important;
 }
 
-.problem-sidebar-skip-btn {
+.cm-extension .problem-sidebar-skip-btn {
   color: #9ca3af !important;
   background: none !important;
   border: none !important;
@@ -446,8 +448,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 
-/* Screen reader only class */
-.sr-only {
+/* Screen reader only class - scoped to extension */
+.cm-extension .sr-only {
   position: absolute !important;
   width: 1px !important;
   height: 1px !important;
@@ -459,8 +461,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   border: 0 !important;
 }
 
-/* Force all child elements to respect width constraints */
-.problem-sidebar * {
+/* Force all child elements to respect width constraints - scoped to extension */
+.cm-extension .problem-sidebar * {
   max-width: 100% !important;
   box-sizing: border-box !important;
 }
@@ -469,9 +471,9 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
    MANTINE COMPONENT OVERRIDES - Consolidated
    ============================================================================ */
 
-/* General Mantine component widths and sizing */
-.problem-sidebar .mantine-Badge-root,
-.problem-sidebar .mantine-Button-root {
+/* General Mantine component widths and sizing - scoped to extension */
+.cm-extension .problem-sidebar .mantine-Badge-root,
+.cm-extension .problem-sidebar .mantine-Button-root {
   max-width: 100% !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
@@ -502,7 +504,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   font-weight: normal !important;
 }
 
-.problem-sidebar-skip-btn:hover {
+.cm-extension .problem-sidebar-skip-btn:hover {
   color: #d1d5db !important;
   background: none !important;
   text-decoration: none !important;
@@ -539,7 +541,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
    ============================================================================ */
 
 /* SOLUTION 1: CSS GRID APPROACH (PRIMARY - MOST ROBUST) */
-.tag-strategy-simple-grid {
+.cm-extension .tag-strategy-simple-grid {
   /* Force CSS Grid layout - single column for wider buttons */
   display: grid !important;
   grid-template-columns: 1fr !important;
@@ -578,8 +580,8 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   align-content: stretch !important;
 }
 
-/* COMPREHENSIVE BUTTON STYLES FOR ALL LAYOUT APPROACHES */
-.tag-strategy-button {
+/* COMPREHENSIVE BUTTON STYLES FOR ALL LAYOUT APPROACHES - scoped to extension */
+.cm-extension .tag-strategy-button {
   /* Grid layout properties - works with Solution 1 (CSS Grid) */
   grid-column: span 1 !important;
 
@@ -614,7 +616,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 /* LeetCode Badge Theme Styles */
 
 /* Light theme badge styling (default) */
-.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
+.cm-extension .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
     .tag-strategy-no-hover
   ) {
   /* Removed yellow background - keep only transform effect */
@@ -623,13 +625,13 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Prevent hover effect on expanded buttons */
-.tag-strategy-button-expanded:hover {
+.cm-extension .tag-strategy-button-expanded:hover {
   transform: none !important;
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
 }
 
-.tag-strategy-button-expanded {
+.cm-extension .tag-strategy-button-expanded {
   /* TAB SHAPE: Match strategy content styling */
   border-radius: 8px 8px 0 0 !important;
   background-color: var(--cm-dropdown-bg) !important;
@@ -645,12 +647,12 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Dark theme badge styling */
-body[data-theme="dark"] .tag-strategy-button {
+body[data-theme="dark"] .cm-extension .tag-strategy-button {
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
 }
 
-body[data-theme="dark"]
+body[data-theme="dark"] .cm-extension
   .tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
     .tag-strategy-no-hover
   ) {
@@ -660,13 +662,13 @@ body[data-theme="dark"]
 }
 
 /* Prevent hover effect on expanded buttons in dark theme */
-body[data-theme="dark"] .tag-strategy-button-expanded:hover {
+body[data-theme="dark"] .cm-extension .tag-strategy-button-expanded:hover {
   transform: none !important;
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
 }
 
-body[data-theme="dark"] .tag-strategy-button-expanded {
+body[data-theme="dark"] .cm-extension .tag-strategy-button-expanded {
   /* DARK THEME TAB SHAPE: Match strategy content styling */
   border-radius: 8px 8px 0 0 !important;
   background-color: var(--cm-dropdown-bg) !important;
@@ -682,18 +684,18 @@ body[data-theme="dark"] .tag-strategy-button-expanded {
 }
 
 /* Light theme specific overrides */
-body[data-theme="light"] .tag-strategy-button {
+body[data-theme="light"] .cm-extension .tag-strategy-button {
   background-color: var(--cm-dropdown-bg) !important;
   color: var(--cm-text) !important;
 }
 
-.tag-strategy-indicator {
+.cm-extension .tag-strategy-indicator {
   font-size: 10px !important;
   margin-left: 4px !important;
   opacity: 0.8 !important;
 }
 
-.tag-strategy-hint {
+.cm-extension .tag-strategy-hint {
   grid-column: 1 / -1 !important;
   width: 100% !important;
   margin-top: 0px !important;
@@ -702,7 +704,7 @@ body[data-theme="light"] .tag-strategy-button {
 }
 
 /* Dark mode strategy content */
-body[data-theme="dark"] .tag-strategy-hint-content {
+body[data-theme="dark"] .cm-extension .tag-strategy-hint-content {
   background-color: var(--cm-dropdown-bg, #374151) !important;
   border: 1px solid var(--cm-link, #cbd5e1) !important;
   border-radius: 0 0 8px 8px !important;
@@ -716,13 +718,13 @@ body[data-theme="dark"] .tag-strategy-hint-content {
   margin-top: -1px !important;
 }
 
-body[data-theme="dark"] .tag-strategy-hint-title {
+body[data-theme="dark"] .cm-extension .tag-strategy-hint-title {
   font-weight: 600 !important;
   color: var(--cm-text, #f3f4f6) !important;
   font-size: 14px !important;
 }
 
-body[data-theme="dark"] .tag-strategy-hint-body {
+body[data-theme="dark"] .cm-extension .tag-strategy-hint-body {
   color: var(--cm-text, #f3f4f6) !important;
   margin-bottom: 6px !important;
   font-size: 13px !important;
@@ -731,7 +733,7 @@ body[data-theme="dark"] .tag-strategy-hint-body {
 }
 
 /* Light mode strategy content */
-body[data-theme="light"] .tag-strategy-hint-content {
+body[data-theme="light"] .cm-extension .tag-strategy-hint-content {
   background-color: var(--cm-dropdown-bg, #ffffff) !important;
   border: 1px solid var(--cm-link, #444f5a) !important;
   border-radius: 0 0 8px 8px !important;
@@ -745,13 +747,13 @@ body[data-theme="light"] .tag-strategy-hint-content {
   color: var(--cm-text, #374151) !important;
 }
 
-body[data-theme="light"] .tag-strategy-hint-title {
+body[data-theme="light"] .cm-extension .tag-strategy-hint-title {
   font-weight: 600 !important;
   color: var(--cm-text, #374151) !important;
   font-size: 14px !important;
 }
 
-body[data-theme="light"] .tag-strategy-hint-body {
+body[data-theme="light"] .cm-extension .tag-strategy-hint-body {
   color: var(--cm-text, #374151) !important;
   margin-bottom: 6px !important;
   font-size: 13px !important;
@@ -760,7 +762,7 @@ body[data-theme="light"] .tag-strategy-hint-body {
 }
 
 /* Default fallback styles */
-.tag-strategy-hint-content {
+.cm-extension .tag-strategy-hint-content {
   background-color: #ffffff !important;
   border: none !important;
   border-radius: 0 0 8px 8px !important;
@@ -774,19 +776,19 @@ body[data-theme="light"] .tag-strategy-hint-body {
   margin-top: -1px !important;
 }
 
-.tag-strategy-hint-header {
+.cm-extension .tag-strategy-hint-header {
   display: flex !important;
   align-items: center !important;
   margin-bottom: 8px !important;
 }
 
-.tag-strategy-hint-title {
+.cm-extension .tag-strategy-hint-title {
   font-weight: 600 !important;
   color: #374151 !important;
   font-size: 14px !important;
 }
 
-.tag-strategy-hint-body {
+.cm-extension .tag-strategy-hint-body {
   color: #374151 !important;
   margin-bottom: 6px !important;
   font-size: 13px !important;
@@ -794,19 +796,19 @@ body[data-theme="light"] .tag-strategy-hint-body {
   font-weight: 400 !important;
 }
 
-.tag-strategy-hint-patterns {
+.cm-extension .tag-strategy-hint-patterns {
   margin-top: 6px !important;
 }
 
 /* Dark mode patterns */
-body[data-theme="dark"] .tag-strategy-hint-patterns-title {
+body[data-theme="dark"] .cm-extension .tag-strategy-hint-patterns-title {
   font-weight: 500 !important;
   color: rgba(255, 255, 255, 0.9) !important;
   font-size: 10px !important;
   margin-bottom: 3px !important;
 }
 
-body[data-theme="dark"] .tag-strategy-hint-pattern {
+body[data-theme="dark"] .cm-extension .tag-strategy-hint-pattern {
   background-color: #4b5563 !important;
   color: #f3f4f6 !important;
   padding: 1px 4px !important;
@@ -816,14 +818,14 @@ body[data-theme="dark"] .tag-strategy-hint-pattern {
 }
 
 /* Light mode patterns */
-body[data-theme="light"] .tag-strategy-hint-patterns-title {
+body[data-theme="light"] .cm-extension .tag-strategy-hint-patterns-title {
   font-weight: 500 !important;
   color: rgba(0, 0, 0, 0.7) !important;
   font-size: 10px !important;
   margin-bottom: 3px !important;
 }
 
-body[data-theme="light"] .tag-strategy-hint-pattern {
+body[data-theme="light"] .cm-extension .tag-strategy-hint-pattern {
   background-color: #f9fafb !important;
   color: #374151 !important;
   padding: 1px 4px !important;
@@ -833,20 +835,20 @@ body[data-theme="light"] .tag-strategy-hint-pattern {
 }
 
 /* Common pattern styles */
-.tag-strategy-hint-patterns-title {
+.cm-extension .tag-strategy-hint-patterns-title {
   font-weight: 500 !important;
   color: rgba(0, 0, 0, 0.7) !important;
   font-size: 10px !important;
   margin-bottom: 3px !important;
 }
 
-.tag-strategy-hint-patterns-list {
+.cm-extension .tag-strategy-hint-patterns-list {
   display: flex !important;
   flex-wrap: wrap !important;
   gap: 3px !important;
 }
 
-.tag-strategy-hint-pattern {
+.cm-extension .tag-strategy-hint-pattern {
   background-color: #f9fafb !important;
   color: #374151 !important;
   padding: 1px 4px !important;
@@ -855,14 +857,14 @@ body[data-theme="light"] .tag-strategy-hint-pattern {
   border: 1px solid #e5e7eb !important;
 }
 
-.tag-strategy-hint-empty {
+.cm-extension .tag-strategy-hint-empty {
   color: rgba(255, 255, 255, 0.6) !important;
   font-style: italic !important;
   text-align: center !important;
   padding: 8px !important;
 }
 
-.tag-strategy-loading {
+.cm-extension .tag-strategy-loading {
   grid-column: 1 / -1 !important;
   text-align: center !important;
   color: rgba(255, 255, 255, 0.7) !important;
@@ -916,7 +918,7 @@ body[data-theme="light"] .tag-strategy-hint-pattern {
 }
 
 /* SOLUTION 4: SUPER AGGRESSIVE OVERRIDE FOR STUBBORN CASES */
-body .problem-sidebar .problem-sidebar-section .tag-strategy-simple-grid {
+body .problem-sidebar .problem-sidebar-section .cm-extension .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: repeat(2, 1fr) !important;
   grid-gap: 0px !important;
@@ -965,7 +967,7 @@ html
   body
   .problem-sidebar
   .problem-sidebar-section.tag-strategy-container
-  .tag-strategy-simple-grid {
+  .cm-extension .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   grid-gap: 4px !important;
@@ -1016,7 +1018,7 @@ html
     body
     .problem-sidebar
     .problem-sidebar-section.tag-strategy-container
-    .tag-strategy-simple-grid {
+    .cm-extension .tag-strategy-simple-grid {
     grid-template-columns: 1fr !important;
   }
 
@@ -1032,8 +1034,8 @@ html
    COMPREHENSIVE TAG STRATEGY FIXES - DEFINITIVE SOLUTION
    ============================================================================ */
 
-/* CRITICAL SCROLLING FIXES - Allow content scrolling */
-.problem-sidebar {
+/* CRITICAL SCROLLING FIXES - Allow content scrolling - scoped to extension */
+.cm-extension .problem-sidebar {
   /* Allow scrolling behavior */
   overflow-y: visible !important;
   overflow-x: hidden !important;
@@ -1044,7 +1046,7 @@ html
   max-height: 100vh !important;
 }
 
-.cd-sidenav__content {
+.cm-extension .cd-sidenav__content {
   /* Critical: Allow proper scrolling when content expands */
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -1170,7 +1172,7 @@ button[class*="tag-strategy"][type="button"] {
 
 /* DEBUG MODE - Uncomment to visualize layout issues */
 /*
-.tag-strategy-simple-grid {
+.cm-extension .tag-strategy-simple-grid {
   border: 2px solid red !important;
   background-color: rgba(255, 0, 0, 0.1) !important;
 }
@@ -1228,7 +1230,7 @@ html
     div.cd-sidenav
     div.cd-sidenav__content
     .problem-sidebar-section.tag-strategy-container
-    .tag-strategy-simple-grid {
+    .cm-extension .tag-strategy-simple-grid {
     grid-template-columns: 1fr 1fr !important; /* Keep 2 columns even on narrow screens */
   }
 
@@ -1252,7 +1254,7 @@ html
   div.cd-sidenav
   div.cd-sidenav__content
   .problem-sidebar-section.tag-strategy-container
-  .tag-strategy-simple-grid {
+  .cm-extension .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 0px !important; /* Critical: No gap between grid items */
@@ -1555,7 +1557,7 @@ body[data-theme="dark"] .tag-strategy-button-expanded:hover {
 }
 
 /* Strategy hint container - spans full grid width with seamless connection */
-.tag-strategy-hint {
+.cm-extension .tag-strategy-hint {
   grid-column: 1 / -1 !important;
   width: 100% !important;
   margin-top: 0px !important; /* No gap between tab and content */
@@ -1566,7 +1568,7 @@ body[data-theme="dark"] .tag-strategy-button-expanded:hover {
 }
 
 /* Strategy content that connects seamlessly to the tab */
-.tag-strategy-hint-content {
+.cm-extension .tag-strategy-hint-content {
   background-color: var(--cm-dropdown-bg) !important; /* Use theme colors */
   border: none !important; /* Remove all borders */
   border-radius: 0 10px 10px 10px !important; /* Match 10px radius, round all corners except top-left */
@@ -1578,7 +1580,7 @@ body[data-theme="dark"] .tag-strategy-button-expanded:hover {
   color: var(--cm-text) !important; /* Use theme text color */
 }
 
-body[data-theme="dark"] .tag-strategy-hint-content {
+body[data-theme="dark"] .cm-extension .tag-strategy-hint-content {
   background-color: var(
     --cm-dropdown-bg
   ) !important; /* Use theme variable for consistency */
@@ -1619,7 +1621,7 @@ body[data-theme="dark"] .tag-strategy-hint-content {
 }
 
 /* Fix for strategy expansion - ensure smooth auto-scroll */
-.tag-strategy-hint {
+.cm-extension .tag-strategy-hint {
   /* Smooth expansion animation */
   animation: expandStrategyContent 0.3s ease-out !important;
 
@@ -1662,7 +1664,7 @@ body[data-theme="dark"] .tag-strategy-hint-content {
   max-width: 320px !important;
 }
 
-.problem-sidebar-section.tag-strategy-container {
+.cm-extension .problem-sidebar-section.tag-strategy-container {
   overflow: visible !important;
   position: relative !important;
   z-index: 10 !important;
@@ -1798,7 +1800,7 @@ body[data-theme="light"] html body .cm-extension .cd-sidenav.problem-sidebar-vie
 }
 
 /* Strategy expansion animation with seamless tab connection */
-.tag-strategy-hint {
+.cm-extension .tag-strategy-hint {
   animation: expandStrategy 0.3s ease-out !important;
   margin-top: 0px !important;
   margin-bottom: 12px !important;
@@ -1880,7 +1882,7 @@ button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
 
 /* NUCLEAR OVERRIDE: SEAMLESS TAB-TO-CONTENT CONNECTION */
 .tag-strategy-hint,
-.tag-strategy-hint-content {
+.cm-extension .tag-strategy-hint-content {
   margin-top: 0px !important; /* No gap between tab and content */
   border: none !important; /* Remove all borders */
   box-shadow: none !important; /* Remove shadows */
@@ -1889,7 +1891,7 @@ button.tag-strategy-button:hover:not(.tag-strategy-button-expanded):not(
 }
 
 /* Ensure strategy content has proper notebook-style connection */
-.tag-strategy-hint-content {
+.cm-extension .tag-strategy-hint-content {
   border-radius: 0 10px 10px 10px !important; /* Match 10px radius, round all corners except top-left */
   margin-bottom: 16px !important; /* Space after content but not before */
 }
@@ -1901,7 +1903,7 @@ html body .problem-sidebar .tag-strategy-hint-content,
 html body .cm-extension .tag-strategy-hint-content,
 html body div.cd-sidenav div.cd-sidenav__content .tag-strategy-hint-content,
 body[data-theme="light"] .tag-strategy-hint-content,
-body[data-theme="dark"] .tag-strategy-hint-content {
+body[data-theme="dark"] .cm-extension .tag-strategy-hint-content {
   background-color: var(--cm-dropdown-bg) !important;
   border: none !important;
   border-radius: 0 10px 10px 10px !important; /* Match 10px radius */
@@ -2326,7 +2328,7 @@ html
   div.cd-sidenav__content
   .problem-sidebar
   .problem-sidebar-section.tag-strategy-container
-  .tag-strategy-simple-grid {
+  .cm-extension .tag-strategy-simple-grid {
   gap: 0px !important;
   grid-gap: 0px !important;
   column-gap: 0px !important;
@@ -2358,7 +2360,7 @@ html body div.cd-sidenav div.cd-sidenav__content .tag-strategy-simple-grid,
 /* ULTIMATE NUCLEAR: Override the specific .cm-extension rule that's causing the gap */
 html body .cm-extension .tag-strategy-simple-grid,
 body .cm-extension .tag-strategy-simple-grid,
-.cm-extension .tag-strategy-simple-grid {
+.cm-extension .cm-extension .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 0px !important; /* Override the 6px gap */
@@ -2394,7 +2396,7 @@ button.tag-strategy-button-expanded,
 }
 
 /* MEGA NUCLEAR: Force zero margin and gap on strategy hint */
-.tag-strategy-hint {
+.cm-extension .tag-strategy-hint {
   margin: 0px !important;
   margin-top: 0px !important;
   margin-bottom: 16px !important;
