@@ -6,7 +6,7 @@ import {
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
 import {
-  computeTimePerformanceScore,
+  calculateTimePerformanceScore,
   applyBoxLevelAdjustments,
   applyStabilityAdjustment,
   calculateNextReviewDate,
@@ -155,7 +155,7 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
   console.info("problem", problem);
 
   // Step 1: Calculate time performance score
-  const { timePerformanceScore, exceededTimeLimit } = computeTimePerformanceScore(attemptData, useTimeLimits);
+  const { timePerformanceScore, exceededTimeLimit } = calculateTimePerformanceScore(attemptData, useTimeLimits);
 
   // Step 2: Apply box level adjustments based on success/failure
   problem = applyBoxLevelAdjustments(problem, attemptData, timePerformanceScore);
