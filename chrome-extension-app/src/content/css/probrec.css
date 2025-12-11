@@ -227,7 +227,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Enhanced scrolling behavior for tag strategy expansion */
-.cm-extension .problem-sidebar-section.tag-strategy-container .cm-extension .tag-strategy-hint {
+.cm-extension .problem-sidebar-section.tag-strategy-container .tag-strategy-hint {
   /* Ensure strategy hints don't break out of scrollable area */
   max-width: 100% !important;
   box-sizing: border-box !important;
@@ -278,7 +278,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Specific override for strategy map expansion */
-.cm-extension .cm-sidenav .cm-extension .tag-strategy-simple-grid {
+.cm-extension .cm-sidenav .tag-strategy-simple-grid {
   /* Ensure the grid container can expand to full height */
   max-height: none !important;
   height: auto !important;
@@ -286,7 +286,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
 }
 
 /* Prevent expanded strategy content from causing horizontal overflow */
-.cm-extension .problem-sidebar-section.tag-strategy-container .cm-extension .tag-strategy-hint-content {
+.cm-extension .problem-sidebar-section.tag-strategy-container .tag-strategy-hint-content {
   max-width: calc(100% - 4px) !important;
   word-wrap: break-word !important;
   overflow-wrap: break-word !important;
@@ -301,7 +301,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
-.cm-extension .tag-strategy-hint.expanded .cm-extension .tag-strategy-hint-content {
+.cm-extension .tag-strategy-hint.expanded .tag-strategy-hint-content {
   animation: slideInExpand 0.3s ease-out !important;
 }
 
@@ -2360,7 +2360,7 @@ html body div.cd-sidenav div.cd-sidenav__content .tag-strategy-simple-grid,
 /* ULTIMATE NUCLEAR: Override the specific .cm-extension rule that's causing the gap */
 html body .cm-extension .tag-strategy-simple-grid,
 body .cm-extension .tag-strategy-simple-grid,
-.cm-extension .cm-extension .tag-strategy-simple-grid {
+.cm-extension .tag-strategy-simple-grid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
   gap: 0px !important; /* Override the 6px gap */
