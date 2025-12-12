@@ -67,7 +67,7 @@ export function Progress() {
       {/* Box Distribution Chart */}
       <Grid gutter="md" mt="md">
         <Grid.Col span={12}>
-          <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)' }}>
+          <Card p="md" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)' }}>
             <Title order={4} mb="sm">Box Distribution</Title>
             <div style={{ height: 280 }}>
               <TimeGranularChartCard

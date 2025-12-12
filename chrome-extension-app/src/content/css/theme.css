@@ -80,7 +80,10 @@
   --cm-table-text-primary: #0f172a; /* primary text */
 }
 
-/* Body styles scoped to extension containers only */
+/* ========= Content Script Styles (scoped to .cm-extension) ========= */
+/* These styles apply to the overlay on LeetCode pages */
+/* For dashboard app styles, see src/app/css/dashboard.css */
+
 .cm-extension {
   background-color: var(--cm-bg);
   color: var(--cm-text);
