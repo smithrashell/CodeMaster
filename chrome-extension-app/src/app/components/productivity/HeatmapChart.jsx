@@ -19,7 +19,7 @@ export function HeatmapChart({ data }) {
 
   // Get cell color based on count
   const getCellColor = (count) => {
-    if (count === 0) return 'var(--mantine-color-dark-7)';
+    if (count === 0) return 'var(--cm-bg-secondary)';
     const intensity = count / maxCount;
     // Use green color with varying opacity
     return `rgba(130, 202, 157, ${0.2 + intensity * 0.8})`;
@@ -56,7 +56,7 @@ export function HeatmapChart({ data }) {
                       height: '18px',
                       backgroundColor: getCellColor(count),
                       borderRadius: '3px',
-                      border: '1px solid var(--mantine-color-dark-5)',
+                      border: '1px solid var(--cm-border)',
                       cursor: count > 0 ? 'pointer' : 'default',
                       transition: 'transform 0.1s',
                     }}
@@ -84,10 +84,10 @@ export function HeatmapChart({ data }) {
                 width: '14px',
                 height: '14px',
                 backgroundColor: intensity === 0
-                  ? 'var(--mantine-color-dark-7)'
+                  ? 'var(--cm-bg-secondary)'
                   : `rgba(130, 202, 157, ${0.2 + intensity * 0.8})`,
                 borderRadius: '2px',
-                border: '1px solid var(--mantine-color-dark-5)'
+                border: '1px solid var(--cm-border)'
               }}
             />
           ))}

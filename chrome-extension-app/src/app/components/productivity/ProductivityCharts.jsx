@@ -7,7 +7,7 @@ export function ProductivityCharts({ difficultyProgressionData, heatmapData, tim
   return (
     <Grid gutter="lg">
       <Grid.Col span={{ base: 12, lg: 6 }}>
-        <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)' }}>
+        <Card p="md" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)' }}>
           <Group justify="space-between" align="center" mb="sm">
             <Title order={4}>Difficulty Progression</Title>
             <Badge variant="light" color="gray" size="sm">{timeRange}</Badge>
@@ -46,7 +46,7 @@ export function ProductivityCharts({ difficultyProgressionData, heatmapData, tim
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, lg: 6 }}>
-        <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)' }}>
+        <Card p="md" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)' }}>
           <Group justify="space-between" align="center" mb="sm">
             <Title order={4}>Weekly Pattern</Title>
             <Badge variant="light" color="gray" size="sm">{timeRange}</Badge>

@@ -8,7 +8,7 @@ import { Card, Title, Text, ScrollArea, Group, Badge } from "@mantine/core";
 
 export const RecentSessionsTable = ({ recentSessions }) => {
   return (
-    <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)' }}>
+    <Card p="md" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)' }}>
       <Group justify="space-between" align="center" mb="sm">
         <Title order={4} c="white">Recent Sessions</Title>
         <Badge variant="light" color="gray" size="sm">Last 10 sessions</Badge>

@@ -5,7 +5,7 @@ import { calculateStudyStreak } from "../../utils/productivityUtils";
 // Reusable Slim KPI Card Component
 function SlimKPI({ title, value, sub }) {
   return (
-    <Card p="sm" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-7)', border: '1px solid var(--mantine-color-dark-5)', textAlign: 'center' }}>
+    <Card p="sm" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)', textAlign: 'center' }}>
       <Text size="xs" mb={2}>{title}</Text>
       <Group align="baseline" gap={4} justify="center">
         <Text fw={700} size="lg">{value}</Text>

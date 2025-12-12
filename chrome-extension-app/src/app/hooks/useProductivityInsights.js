@@ -50,7 +50,14 @@ export function useProductivityInsights(appState, productivityData, totalSession
 
       // Common reflection themes
       if (reflectionData.commonThemes && reflectionData.commonThemes.length > 0) {
-        const topTheme = reflectionData.commonThemes[0];
+        const topThemeData = reflectionData.commonThemes[0];
+        // Extract theme string - handle both object {theme: "..."} and string formats
+        let topTheme = topThemeData;
+        if (typeof topThemeData === 'object' && topThemeData !== null) {
+          topTheme = topThemeData.theme || JSON.stringify(topThemeData);
+        }
+        // Ensure it's a string
+        topTheme = String(topTheme || 'unknown');
         generatedInsights.push({
           title: "Learning pattern",
           body: `Most common challenge: "${topTheme}" - focus area identified!`

@@ -6,6 +6,7 @@ import ErrorBoundary from "../shared/components/error/ErrorBoundary";
 import { DashboardErrorFallback } from "../shared/components/error/ErrorFallback";
 import "@mantine/core/styles.css";
 import "../content/css/theme.css";
+import "./css/dashboard.css";
 import "../app/app.css";
 import "./styles/accessibility.css";
 import { AppRoutes } from "./routes/index.jsx";

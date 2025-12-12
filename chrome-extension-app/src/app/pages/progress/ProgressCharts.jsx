@@ -21,7 +21,7 @@ export function ProgressCharts({ reviewProblemsData, activityData }) {
   return (
     <Grid gutter="md" mt="md" align="stretch">
       <Grid.Col span={{ base: 12, lg: 6 }}>
-        <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Card p="md" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)', height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Group justify="space-between" align="center" mb="sm">
             <Title order={4}>New vs Review Problems per Session</Title>
             <Select
@@ -54,7 +54,7 @@ export function ProgressCharts({ reviewProblemsData, activityData }) {
       </Grid.Col>
 
       <Grid.Col span={{ base: 12, lg: 6 }}>
-        <Card p="md" radius="md" style={{ backgroundColor: 'var(--mantine-color-dark-8)', border: '1px solid var(--mantine-color-dark-5)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Card p="md" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)', height: '100%', display: 'flex', flexDirection: 'column' }}>
           <Group justify="space-between" align="center" mb="sm">
             <Title order={4}>Problem Activity per Session</Title>
             <Select

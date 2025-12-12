@@ -9,8 +9,8 @@ export function InsightsCard({ insights, timeRange }) {
       p="md"
       style={{
         borderLeft: `${rem(4)} solid var(--mantine-color-blue-5)`,
-        backgroundColor: 'var(--mantine-color-dark-8)',
-        border: '1px solid var(--mantine-color-dark-5)',
+        backgroundColor: 'var(--cm-card-bg)',
+        border: '1px solid var(--cm-border)',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
