@@ -34,7 +34,7 @@ jest.mock("../../utils/performance/PerformanceMonitor.js", () => ({
   },
 }));
 
-jest.mock("../storage/IndexedDBRetryService.js", () => ({
+jest.mock("../storage/indexedDBRetryService.js", () => ({
   IndexedDBRetryService: jest.fn().mockImplementation(() => ({
     executeWithRetry: jest.fn((fn) => fn()),
     quickTimeout: 1000,

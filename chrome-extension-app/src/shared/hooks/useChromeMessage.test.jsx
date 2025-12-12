@@ -4,7 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { useChromeMessage } from "./useChromeMessage";
 
 // Mock the ChromeAPIErrorHandler
-jest.mock("../services/chrome/ChromeAPIErrorHandler", () => ({
+jest.mock("../services/chrome/chromeAPIErrorHandler", () => ({
   sendMessageWithRetry: jest.fn(),
   showErrorReportDialog: jest.fn(),
 }));
@@ -56,7 +56,7 @@ const setupChromeAPITest = () => {
   };
 
   // Reset the ChromeAPIErrorHandler mock completely
-  const mockChromeAPIErrorHandler = require("../services/chrome/ChromeAPIErrorHandler");
+  const mockChromeAPIErrorHandler = require("../services/chrome/chromeAPIErrorHandler");
   mockChromeAPIErrorHandler.sendMessageWithRetry.mockRestore?.();
   mockChromeAPIErrorHandler.sendMessageWithRetry = jest.fn();
   mockChromeAPIErrorHandler.showErrorReportDialog.mockClear();

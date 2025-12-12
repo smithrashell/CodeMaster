@@ -14,7 +14,7 @@ jest.mock('../index.js', () => ({
 }));
 
 // Mock IndexedDB retry service
-jest.mock('../../services/storage/IndexedDBRetryService.js', () => {
+jest.mock('../../services/storage/indexedDBRetryService.js', () => {
   const mockInstance = {
     executeWithRetry: jest.fn((fn) => fn()),
     defaultTimeout: 5000,

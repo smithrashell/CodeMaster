@@ -9,7 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 import { METRICS_EXPLANATION } from "./learningAnalyticsConstants";
 
 const LearningEfficiencyAnalytics = () => {

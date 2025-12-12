@@ -1,6 +1,6 @@
 import logger from "../../utils/logging/logger.js";
 import { ErrorReportService } from "./ErrorReportService.js";
-import { UserActionTracker } from "../chrome/UserActionTracker.js";
+import { UserActionTracker } from "../chrome/userActionTracker.js";
 import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 
 /**

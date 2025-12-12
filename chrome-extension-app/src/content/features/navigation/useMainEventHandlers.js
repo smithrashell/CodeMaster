@@ -3,7 +3,7 @@
  */
 import { useCallback } from "react";
 import logger from "../../../shared/utils/logging/logger.js";
-import ChromeAPIErrorHandler from "../../../shared/services/chrome/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 
 /**
  * Hook for content onboarding complete handler

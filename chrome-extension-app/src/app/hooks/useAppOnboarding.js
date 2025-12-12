@@ -2,7 +2,7 @@
  * App Onboarding Hook
  */
 import { useState, useEffect } from "react";
-import ChromeAPIErrorHandler from "../../shared/services/chrome/ChromeAPIErrorHandler.js";
+import ChromeAPIErrorHandler from "../../shared/services/chrome/chromeAPIErrorHandler.js";
 
 export const useAppOnboarding = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
