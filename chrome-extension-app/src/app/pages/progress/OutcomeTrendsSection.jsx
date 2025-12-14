@@ -20,7 +20,7 @@ export function OutcomeTrendsSection({
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
                 <Text size="xs" mb={4}>Weekly Accuracy Target</Text>
-                <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
+                <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.weeklyAccuracy.value}%
                 </Text>
                 <Badge color={getStatusColor(outcomeTrends.weeklyAccuracy.status)} size="xs" mt="xs">
@@ -32,7 +32,7 @@ export function OutcomeTrendsSection({
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
                 <Text size="xs" mb={4}>Problems Per Week</Text>
-                <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
+                <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.problemsPerWeek.display || outcomeTrends.problemsPerWeek.value}
                 </Text>
                 <Badge color={getStatusColor(outcomeTrends.problemsPerWeek.status)} size="xs" mt="xs">
@@ -44,7 +44,7 @@ export function OutcomeTrendsSection({
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
                 <Text size="xs" mb={4}>Hint Efficiency</Text>
-                <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
+                <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.hintEfficiency.display}
                 </Text>
                 <Badge color={getStatusColor(outcomeTrends.hintEfficiency.status)} size="xs" mt="xs">
@@ -56,7 +56,7 @@ export function OutcomeTrendsSection({
             <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
               <div style={{ textAlign: 'center' }}>
                 <Text size="xs" mb={4}>Learning Velocity</Text>
-                <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
+                <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                   {outcomeTrends.learningVelocity.value}
                 </Text>
                 <Badge color={getStatusColor(outcomeTrends.learningVelocity.status)} size="xs" mt="xs">

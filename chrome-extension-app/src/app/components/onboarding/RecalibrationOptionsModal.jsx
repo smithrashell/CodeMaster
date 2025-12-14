@@ -6,7 +6,7 @@
  * - Major: 3 options (diagnostic, adaptive session, reset)
  */
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Modal,
   Button,
@@ -22,14 +22,11 @@ import {
 } from "@tabler/icons-react";
 import { RecalModalHeader } from "./RecalModalHeader";
 import { RecalibrationOptionCard } from "./RecalibrationOptionCard";
-import { useTheme } from "../../../shared/provider/themeprovider";
 
 export function RecalibrationOptionsModal({ opened, onClose, strategy, onConfirm }) {
   const [selectedApproach, setSelectedApproach] = useState(
     strategy?.recommendation || strategy?.approach || null
   );
-  const { colorScheme } = useTheme();
-  const isDark = colorScheme === 'dark';
 
   const handleConfirm = () => {
     onConfirm(selectedApproach);
@@ -45,13 +42,13 @@ export function RecalibrationOptionsModal({ opened, onClose, strategy, onConfirm
       padding="xl"
       styles={{
         modal: {
-          backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
-          color: isDark ? '#ffffff' : '#000000',
+          backgroundColor: 'var(--cm-modal-bg)',
+          color: 'var(--cm-modal-text)',
           maxHeight: "90vh",
           overflow: "auto"
         },
         body: {
-          color: isDark ? '#ffffff' : '#000000',
+          color: 'var(--cm-modal-text)',
         },
       }}
     >
@@ -59,7 +56,7 @@ export function RecalibrationOptionsModal({ opened, onClose, strategy, onConfirm
         <Stack spacing="md" align="center">
           <RecalModalHeader strategy={strategy} />
 
-          <Text size="md" ta="center" maw={450} c={isDark ? '#c1c2c5' : 'dimmed'}>
+          <Text size="md" ta="center" maw={450} c="var(--cm-modal-dimmed)">
             {strategy.message}
           </Text>
         </Stack>
@@ -84,7 +81,6 @@ export function RecalibrationOptionsModal({ opened, onClose, strategy, onConfirm
                   option={option}
                   isSelected={selectedApproach === option.value}
                   onClick={() => setSelectedApproach(option.value)}
-                  isDark={isDark}
                 />
               ))}
             </Stack>

@@ -6,8 +6,34 @@ import { getExecutionContext } from "../db/core/accessControl.js";
 const ThemeContext = createContext();
 export const useTheme = () => useContext(ThemeContext);
 
+// Font size presets for Small/Medium/Large settings
+const FONT_SIZE_PRESETS = {
+  small: {
+    xs: '10px',
+    sm: '11px',
+    md: '12px',
+    lg: '14px',
+    xl: '16px',
+  },
+  medium: {
+    xs: '12px',
+    sm: '14px',
+    md: '16px',
+    lg: '18px',
+    xl: '20px',
+  },
+  large: {
+    xs: '14px',
+    sm: '16px',
+    md: '18px',
+    lg: '20px',
+    xl: '24px',
+  },
+};
+
 // Create custom Mantine theme that uses CSS variables
-const customTheme = createTheme({
+const createCustomTheme = (fontSize = 'medium') => createTheme({
+  fontSizes: FONT_SIZE_PRESETS[fontSize] || FONT_SIZE_PRESETS.medium,
   colors: {
     // Define custom colors that will use CSS variables
     brand: [
@@ -76,12 +102,6 @@ const customTheme = createTheme({
             option: {
               backgroundColor: '#1f2937',
               borderRadius: 0,
-              '&:hover': {
-                backgroundColor: '#374151',
-              },
-              '&[data-selected]': {
-                backgroundColor: '#374151',
-              },
             }
           };
         }
@@ -435,8 +455,11 @@ function ThemeProviderWrapper({ children }) {
 
   // Detect if we're in content script context to avoid Mantine provider
   const executionContext = useMemo(() => getExecutionContext(), []);
-  const isContentScript = executionContext.contextType.includes('content-script-or-web-page') && 
+  const isContentScript = executionContext.contextType.includes('content-script-or-web-page') &&
                           !executionContext.contextType.includes('background-script');
+
+  // Create dynamic theme based on fontSize setting
+  const dynamicTheme = useMemo(() => createCustomTheme(fontSize), [fontSize]);
 
   return (
     <ThemeContext.Provider value={contextValue}>
@@ -446,8 +469,8 @@ function ThemeProviderWrapper({ children }) {
           {isLoading ? null : children}
         </>
       ) : (
-        // Extension pages and background: Use MantineProvider normally  
-        <MantineProvider theme={customTheme} defaultColorScheme="auto" forceColorScheme={colorScheme}>
+        // Extension pages and background: Use MantineProvider normally
+        <MantineProvider theme={dynamicTheme} defaultColorScheme="auto" forceColorScheme={colorScheme}>
           {isLoading ? null : children}
         </MantineProvider>
       )}

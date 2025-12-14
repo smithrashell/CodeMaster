@@ -13,7 +13,6 @@ import {
   IconChevronLeft,
   IconCheck,
 } from "@tabler/icons-react";
-import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 import {
   WelcomeStep,
   FeaturesStep,
@@ -32,8 +31,6 @@ const ONBOARDING_STEPS = [
 
 export function WelcomeModal({ opened, onClose, onComplete }) {
   const [currentStep, setCurrentStep] = useState(0);
-  const { colorScheme } = useTheme();
-  const isDark = colorScheme === 'dark';
 
   const handleNext = () => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
@@ -81,11 +78,11 @@ export function WelcomeModal({ opened, onClose, onComplete }) {
         modal: {
           maxHeight: "90vh",
           overflow: "auto",
-          backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
-          color: isDark ? '#ffffff' : '#000000',
+          backgroundColor: 'var(--cm-modal-bg)',
+          color: 'var(--cm-modal-text)',
         },
         body: {
-          color: isDark ? '#ffffff' : '#000000',
+          color: 'var(--cm-modal-text)',
         },
       }}
     >

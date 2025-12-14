@@ -95,9 +95,7 @@ export function LearningPathVisualization({ pathData, tagRelationships, onNodeCl
         width="100%"
         height="100%"
         style={{
-          background: isDarkMode
-            ? 'linear-gradient(135deg, #1f2937 0%, #374151 100%)'
-            : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+          background: 'var(--cm-bg-secondary)',
           borderRadius: '8px',
           cursor: isPanning ? 'grabbing' : draggedNode ? 'grabbing' : 'grab'
         }}
@@ -110,7 +108,6 @@ export function LearningPathVisualization({ pathData, tagRelationships, onNodeCl
         hoveredConnection={hoveredConnection}
         pathData={pathData}
         tagRelationships={tagRelationships}
-        isDarkMode={isDarkMode}
       />
     </div>
   );

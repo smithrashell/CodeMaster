@@ -136,7 +136,7 @@
 }
 
 .subLink {
-  font-size: var(--mantine-font-size-sm);
+  font-size: var(--mantine-font-size-md);
   padding: 0px 10px;
   margin-left: 15px;
   display: block;

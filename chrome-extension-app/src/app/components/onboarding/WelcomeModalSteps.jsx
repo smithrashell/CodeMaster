@@ -20,7 +20,6 @@ import {
   IconRefresh,
 } from "@tabler/icons-react";
 import { BrainIcon } from "../../../shared/components/ui/Icons";
-import { useTheme } from "../../../shared/provider/themeprovider.jsx";
 
 export function WelcomeStep() {
   return (
@@ -122,9 +121,6 @@ export function FeaturesStep() {
 }
 
 export function DashboardStep() {
-  const { colorScheme } = useTheme();
-  const isDark = colorScheme === 'dark';
-
   return (
     <Stack spacing="md">
       <Text ta="center" color="dimmed" size="sm">
@@ -176,10 +172,10 @@ export function DashboardStep() {
         </Card>
       </Stack>
 
-      <Card withBorder p="sm" style={{ backgroundColor: isDark ? '#1e3a8a' : '#e7f5ff' }}>
+      <Card withBorder p="sm" style={{ backgroundColor: 'var(--cm-accent-bg)' }}>
         <Stack spacing={4}>
           <Text fw={500} size="sm" ta="center" color="blue">💡 Key Insight</Text>
-          <Text size="xs" ta="center" c={isDark ? '#93c5fd' : 'blue'}>
+          <Text size="xs" ta="center" c="var(--cm-accent-text)">
             Your dashboard isn&apos;t just for tracking - it&apos;s the brain that personalizes every session.
           </Text>
         </Stack>

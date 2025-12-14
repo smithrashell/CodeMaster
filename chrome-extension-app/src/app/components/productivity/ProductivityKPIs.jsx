@@ -8,7 +8,7 @@ function SlimKPI({ title, value, sub }) {
     <Card p="sm" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)', textAlign: 'center' }}>
       <Text size="xs" mb={2}>{title}</Text>
       <Group align="baseline" gap={4} justify="center">
-        <Text fw={700} size="lg">{value}</Text>
+        <Text size="lg" fw={700}>{value}</Text>
         {sub && <Text size="xs">{sub}</Text>}
       </Group>
     </Card>

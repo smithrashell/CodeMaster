@@ -34,27 +34,27 @@ export default function MetricCard({ title, value, details, loading = false }) {
   return (
     <Grid.Col span={3}>
       <Card shadow="sm" p="lg" withBorder>
-        <UnstyledButton onClick={toggle} sx={{ width: "100%" }}>
-          <Group position="apart">
+        <UnstyledButton onClick={toggle} style={{ width: "100%" }}>
+          <Group justify="space-between">
             <div>
-              <Text weight={500} size="lg">
+              <Text fw={500} size="sm" c="var(--cm-text-dimmed)">
                 {title}
               </Text>
-              <Text size="xl" weight={700}>
+              <Text size="lg" fw={700}>
                 {value}
               </Text>
             </div>
-            {opened ? <IconChevronUp /> : <IconChevronDown />}
+            {opened ? <IconChevronUp size={16} /> : <IconChevronDown size={16} />}
           </Group>
         </UnstyledButton>
 
         <Collapse in={opened} mt="md">
           {details?.map((item, index) => (
-            <Group key={index} position="apart">
-              <Text size="sm">
+            <Group key={index} justify="space-between">
+              <Text size="xs" c="var(--cm-text-dimmed)">
                 {item.label}
               </Text>
-              <Text size="sm" weight={500}>
+              <Text size="xs" fw={500}>
                 {item.value}
               </Text>
             </Group>

@@ -78,6 +78,30 @@
   --cm-table-row-hover: rgba(0,0,0,0.03); /* subtle row hover */
   --cm-table-text-muted: #6b7280; /* muted text */
   --cm-table-text-primary: #0f172a; /* primary text */
+
+  /* Modal/Overlay colors - light mode */
+  --cm-modal-bg: #ffffff;
+  --cm-modal-text: #000000;
+  --cm-modal-dimmed: #868e96;
+
+  /* Difficulty/Status indicator colors (same in light/dark for consistency) */
+  --cm-status-easy: #82ca9d;
+  --cm-status-medium: #ffc658;
+  --cm-status-hard: #ff8042;
+
+  /* Chart data colors (intentionally bright for visibility) */
+  --cm-chart-purple: #8884d8;
+  --cm-chart-green: #82ca9d;
+  --cm-chart-yellow: #ffc658;
+  --cm-chart-orange: #ff8042;
+  --cm-chart-red: #ff6b6b;
+  --cm-chart-bar-success: #4CAF50;
+  --cm-chart-bar-warning: #FFC107;
+  --cm-chart-bar-error: #F44336;
+
+  /* Accent background for info cards */
+  --cm-accent-bg: #e7f5ff;
+  --cm-accent-text: #1971c2;
 }
 
 /* ========= Content Script Styles (scoped to .cm-extension) ========= */
@@ -230,6 +254,30 @@ body[data-theme="dark"] {
   --cm-table-row-hover: rgba(255,255,255,0.04); /* subtle row hover */
   --cm-table-text-muted: #9fb0c3; /* muted text */
   --cm-table-text-primary: #e8edf5; /* primary text */
+
+  /* Modal/Overlay colors - dark mode */
+  --cm-modal-bg: #1a1b1e;
+  --cm-modal-text: #ffffff;
+  --cm-modal-dimmed: #c1c2c5;
+
+  /* Difficulty/Status indicator colors (same in light/dark for consistency) */
+  --cm-status-easy: #82ca9d;
+  --cm-status-medium: #ffc658;
+  --cm-status-hard: #ff8042;
+
+  /* Chart data colors (intentionally bright for visibility) */
+  --cm-chart-purple: #8884d8;
+  --cm-chart-green: #82ca9d;
+  --cm-chart-yellow: #ffc658;
+  --cm-chart-orange: #ff8042;
+  --cm-chart-red: #ff6b6b;
+  --cm-chart-bar-success: #4CAF50;
+  --cm-chart-bar-warning: #FFC107;
+  --cm-chart-bar-error: #F44336;
+
+  /* Accent background for info cards - dark mode */
+  --cm-accent-bg: #1e3a8a;
+  --cm-accent-text: #93c5fd;
 }
 
 /* ========== Apply Variables to Your CSS ========== */

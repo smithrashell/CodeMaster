@@ -144,7 +144,7 @@ export const TierTagsVisualization = ({
   });
 
   return (
-    <Card withBorder p="md">
+    <Card withBorder p="md" style={{ backgroundColor: 'var(--cm-card-bg)' }}>
       <Stack gap="sm">
         <Group justify="space-between">
           <Text size="sm" fw={500}>Select Focus Tier</Text>
@@ -176,7 +176,7 @@ export const TierTagsVisualization = ({
               selectedFocusAreas={selectedFocusAreas}
               selectedTier={selectedTier}
               renderTagBadge={renderTagBadge}
-              backgroundColor="var(--mantine-color-blue-0)"
+              backgroundColor="var(--cm-bg-secondary)"
             />
           </Tabs.Panel>
 
@@ -189,7 +189,7 @@ export const TierTagsVisualization = ({
               selectedFocusAreas={selectedFocusAreas}
               selectedTier={selectedTier}
               renderTagBadge={renderTagBadge}
-              backgroundColor="var(--mantine-color-indigo-0)"
+              backgroundColor="var(--cm-bg-secondary)"
             />
           </Tabs.Panel>
 
@@ -202,7 +202,7 @@ export const TierTagsVisualization = ({
               selectedFocusAreas={selectedFocusAreas}
               selectedTier={selectedTier}
               renderTagBadge={renderTagBadge}
-              backgroundColor="var(--mantine-color-violet-0)"
+              backgroundColor="var(--cm-bg-secondary)"
             />
           </Tabs.Panel>
         </Tabs>

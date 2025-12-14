@@ -73,20 +73,21 @@ const LearningEfficiencyAnalytics = () => {
       <div style={{ width: '100%', height: '200px', marginBottom: '20px' }}>
         <ResponsiveContainer>
           <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey="session" stroke="#64748b" fontSize={12} />
-            <YAxis stroke="#64748b" fontSize={12} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#f8fafc', 
-                border: '1px solid #cbd5e1',
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--cm-chart-grid)" />
+            <XAxis dataKey="session" stroke="var(--cm-text-secondary)" fontSize={12} />
+            <YAxis stroke="var(--cm-text-secondary)" fontSize={12} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'var(--cm-tooltip-bg)',
+                border: '1px solid var(--cm-tooltip-border)',
                 borderRadius: '6px',
-                fontSize: '12px'
+                fontSize: '12px',
+                color: 'var(--cm-tooltip-text)'
               }}
             />
-            <Line type="monotone" dataKey="efficiency" stroke="#3b82f6" strokeWidth={2} name="Learning Efficiency" />
-            <Line type="monotone" dataKey="retention" stroke="#10b981" strokeWidth={2} name="Knowledge Retention" />
-            <Line type="monotone" dataKey="momentum" stroke="#f59e0b" strokeWidth={2} name="Learning Momentum" />
+            <Line type="monotone" dataKey="efficiency" stroke="var(--cm-chart-primary)" strokeWidth={2} name="Learning Efficiency" />
+            <Line type="monotone" dataKey="retention" stroke="var(--cm-chart-success)" strokeWidth={2} name="Knowledge Retention" />
+            <Line type="monotone" dataKey="momentum" stroke="var(--cm-chart-warning)" strokeWidth={2} name="Learning Momentum" />
           </LineChart>
         </ResponsiveContainer>
       </div>

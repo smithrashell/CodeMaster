@@ -61,10 +61,10 @@ const SelectedTagStrategy = ({ selectedTag, pathData, onTagDeselect }) => {
         </Text>
       </div>
       
-      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--mantine-color-blue-0)" }}>
+      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--cm-accent-bg)" }}>
         <Text size="sm" fw={600} mb="xs">Problem Selection Impact</Text>
         <Text size="xs">
-          {tagData?.isFocus 
+          {tagData?.isFocus
             ? `Active focus: System prioritizes ${selectedTag} problems to accelerate mastery`
             : `Supportive role: ${selectedTag} appears in mixed problem sets to maintain proficiency`
           }
@@ -75,28 +75,26 @@ const SelectedTagStrategy = ({ selectedTag, pathData, onTagDeselect }) => {
         <Text size="sm" mb="xs">Smart Problem Recommendations</Text>
         <Stack gap="xs">
           {tagRecs.map((rec, index) => (
-            <Card key={index} p="xs" withBorder radius="sm" style={{ 
-              backgroundColor: rec.difficulty === 'Easy' ? '#f0f9ff' : rec.difficulty === 'Medium' ? '#fffbeb' : rec.difficulty === 'Hard' ? '#fef2f2' : '#f8fafc',
-              borderColor: rec.difficulty === 'Easy' ? '#bfdbfe' : rec.difficulty === 'Medium' ? '#fed7aa' : rec.difficulty === 'Hard' ? '#fecaca' : '#e2e8f0',
+            <Card key={index} p="xs" withBorder radius="sm" style={{
+              backgroundColor: 'var(--cm-card-bg)',
               cursor: 'pointer'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                <Text size="xs" fw={600} c="#1e293b">{rec.name}</Text>
-                <Text size="xs" c={rec.difficulty === 'Easy' ? '#1e40af' : rec.difficulty === 'Medium' ? '#92400e' : rec.difficulty === 'Hard' ? '#dc2626' : '#64748b'} fw={500}>
+                <Text size="xs" fw={600}>{rec.name}</Text>
+                <Text size="xs" c={rec.difficulty === 'Easy' ? 'var(--cm-status-easy)' : rec.difficulty === 'Medium' ? 'var(--cm-status-medium)' : rec.difficulty === 'Hard' ? 'var(--cm-status-hard)' : 'var(--cm-text-secondary)'} fw={500}>
                   {rec.difficulty}
                 </Text>
               </div>
-              <Text size="xs" c="#64748b">{rec.reason}</Text>
+              <Text size="xs" c="var(--cm-text-secondary)">{rec.reason}</Text>
             </Card>
           ))}
         </Stack>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-        <Button 
-          variant="filled" 
-          size="sm" 
-          style={{ backgroundColor: '#3b82f6', border: 'none' }}
+        <Button
+          variant="filled"
+          size="sm"
           onClick={() => {
             logger.info(`Starting focused practice session for ${selectedTag}`);
             alert(`🎯 Launching ${selectedTag} practice session!\n\nSystem will prioritize problems that strengthen this skill and prepare you for the next level.`);
@@ -124,21 +122,21 @@ const OverviewStrategy = ({ pathData }) => {
 
   return (
     <>
-      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--mantine-color-indigo-0)" }}>
+      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--cm-card-bg)" }}>
         <Text size="sm" fw={600} mb="xs">🎯 Active Learning Strategy</Text>
         <Text size="xs">
           Focus on {focusCount} core areas to maximize learning efficiency
         </Text>
       </Card>
 
-      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--mantine-color-green-0)" }}>
+      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--cm-card-bg)" }}>
         <Text size="sm" fw={600} mb="xs">📈 Progress Optimization</Text>
         <Text size="xs">
           System adapts problem difficulty based on your {overallMastery}% overall mastery
         </Text>
       </Card>
 
-      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--mantine-color-orange-0)" }}>
+      <Card p="sm" withBorder radius="md" style={{ backgroundColor: "var(--cm-card-bg)" }}>
         <Text size="sm" fw={600} mb="xs">🔄 Adaptive Learning</Text>
         <Text size="xs">
           Recent sessions influence future problem selection for personalized difficulty scaling

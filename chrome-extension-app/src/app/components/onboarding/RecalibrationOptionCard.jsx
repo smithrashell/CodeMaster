@@ -53,7 +53,7 @@ function getIconColor(optionValue) {
   }
 }
 
-export function RecalibrationOptionCard({ option, isSelected, onClick, isDark }) {
+export function RecalibrationOptionCard({ option, isSelected, onClick }) {
   return (
     <Card
       key={option.value}
@@ -61,13 +61,9 @@ export function RecalibrationOptionCard({ option, isSelected, onClick, isDark })
       p="md"
       style={{
         cursor: 'pointer',
-        borderColor: isSelected
-          ? (isDark ? '#4c8bf5' : '#3b82f6')
-          : undefined,
+        borderColor: isSelected ? 'var(--cm-accent)' : undefined,
         borderWidth: isSelected ? 2 : 1,
-        backgroundColor: isSelected
-          ? (isDark ? '#1e3a8a' : '#dbeafe')
-          : undefined
+        backgroundColor: isSelected ? 'var(--cm-accent-bg)' : undefined
       }}
       onClick={onClick}
     >
@@ -90,7 +86,7 @@ export function RecalibrationOptionCard({ option, isSelected, onClick, isDark })
             </Badge>
           </Group>
 
-          <Text size="xs" c={isDark ? '#a6a7ab' : 'dimmed'}>
+          <Text size="xs" c="var(--cm-modal-dimmed)">
             {option.description}
           </Text>
 
