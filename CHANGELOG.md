@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0] - Post Chrome Web Store Release
 
-All changes after the Chrome Web Store release on October 13th, 2025.
+All changes after the Chrome Web Store release on November 19th, 2025.
 
 ### Added
 - **Intelligent Recalibration System - Phase 1: Passive Background Decay** (#206)
@@ -120,7 +120,7 @@ All changes after the Chrome Web Store release on October 13th, 2025.
 
 ---
 
-## [1.0.0] - 2025-10-13
+## [1.0.0] - 2025-11-19
 
 ### Released
 - **Chrome Web Store Release** - Initial public release
