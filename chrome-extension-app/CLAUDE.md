@@ -286,6 +286,69 @@ The codebase uses ESLint rules to enforce this architecture:
 
 ## Theming Guidelines
 
+### CSS Variable System (CSS-First Theming)
+
+All colors in the dashboard should use CSS variables from `src/content/css/theme.css`. This ensures proper dark mode support and maintainability.
+
+#### ✅ DO: Use CSS Variables
+```jsx
+// Modal backgrounds
+backgroundColor: 'var(--cm-modal-bg)'
+color: 'var(--cm-modal-text)'
+
+// Tooltips
+backgroundColor: 'var(--cm-tooltip-bg)'
+border: '1px solid var(--cm-tooltip-border)'
+color: 'var(--cm-tooltip-text)'
+
+// Accent/info cards
+backgroundColor: 'var(--cm-accent-bg)'
+color: 'var(--cm-accent-text)'
+
+// Status indicators (difficulty levels)
+color: 'var(--cm-status-easy)'   // Green
+color: 'var(--cm-status-medium)' // Yellow/Orange
+color: 'var(--cm-status-hard)'   // Red
+
+// Charts
+stroke: 'var(--cm-chart-primary)'
+stroke: 'var(--cm-chart-success)'
+stroke: 'var(--cm-chart-warning)'
+
+// General theming
+backgroundColor: 'var(--cm-card-bg)'
+backgroundColor: 'var(--cm-bg-secondary)'
+color: 'var(--cm-text-dimmed)'
+color: 'var(--cm-text-secondary)'
+```
+
+#### ❌ DON'T: Use Hardcoded Hex Colors
+```jsx
+// These will break in dark mode!
+backgroundColor: '#ffffff'     // Use var(--cm-modal-bg)
+backgroundColor: '#1a1b1e'     // Use var(--cm-modal-bg)
+backgroundColor: '#f8fafc'     // Use var(--cm-bg-secondary)
+color: '#1a202c'               // Use var(--cm-tooltip-text)
+color: isDark ? '#fff' : '#000' // Use var(--cm-modal-text)
+```
+
+#### ❌ DON'T: Use Mantine Color Variables Directly
+```jsx
+// These don't adapt to dark mode properly
+backgroundColor: 'var(--mantine-color-blue-0)'  // Use var(--cm-accent-bg)
+backgroundColor: 'var(--mantine-color-green-0)' // Use var(--cm-card-bg)
+```
+
+#### Adding New Theme Variables
+1. Add variable to `:root` section in `theme.css` (light mode value)
+2. Add corresponding override in `body[data-theme="dark"]` section
+3. Use the variable in components via `var(--cm-new-variable)`
+
+#### CSS File Organization
+- `src/content/css/theme.css` - CSS variables (scoped to `.cm-extension` for content scripts)
+- `src/app/css/dashboard.css` - Dashboard-specific styles (unscoped)
+- Dashboard app loads both files; content scripts only load theme.css
+
 ### Dark Mode Badge Text Color Fix
 
 When badges appear with poor contrast in dark mode, use Mantine's official approaches instead of direct CSS overrides:

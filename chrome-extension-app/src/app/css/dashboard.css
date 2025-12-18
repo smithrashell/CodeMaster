@@ -1,0 +1,84 @@
+/* ===========================================
+   Dashboard Styles (for app.html only)
+
+   These styles are unscoped and apply to the dashboard app.
+   For content script styles (LeetCode overlay), see theme.css
+   =========================================== */
+
+/* ========= Body Styles for Dashboard ========= */
+body {
+  background-color: var(--cm-bg);
+  color: var(--cm-text);
+}
+
+/* ========= Mantine Component Overrides ========= */
+/* Unscoped styles for dashboard - do NOT add .cm-extension prefix */
+
+.mantine-Card-root,
+[data-mantine-card],
+.mantine-Paper-root {
+  background-color: var(--cm-card-bg);
+  color: var(--cm-text);
+  border-color: var(--cm-border);
+}
+
+.mantine-Text-root {
+  color: var(--cm-text);
+}
+
+.mantine-Title-root {
+  color: var(--cm-text);
+}
+
+/* ========= Semantic Card Classes ========= */
+
+/* Base card styling */
+.cm-card {
+  background-color: var(--cm-card-bg);
+  border: 1px solid var(--cm-border);
+  border-radius: 8px;
+}
+
+/* Insights card - blue accent */
+.cm-card-insights {
+  background-color: var(--cm-card-bg);
+  border: 1px solid var(--cm-border);
+  border-left: 4px solid var(--cm-chart-primary);
+}
+
+/* Recommendations card - green accent */
+.cm-card-recommendations {
+  background-color: var(--cm-card-bg);
+  border: 1px solid var(--cm-border);
+  border-left: 4px solid var(--cm-success);
+}
+
+/* Chart container card */
+.cm-card-chart {
+  background-color: var(--cm-card-bg);
+  border: 1px solid var(--cm-border);
+}
+
+/* KPI stat card */
+.cm-card-kpi {
+  background-color: var(--cm-card-bg);
+  border: 1px solid var(--cm-border);
+  text-align: center;
+}
+
+/* Table container card */
+.cm-card-table {
+  background-color: var(--cm-card-bg);
+  border: 1px solid var(--cm-border);
+}
+
+/* ========= Heatmap Styling ========= */
+
+.cm-heatmap-cell {
+  border: 1px solid var(--cm-border);
+  border-radius: 3px;
+}
+
+.cm-heatmap-cell-empty {
+  background-color: var(--cm-bg-secondary);
+}

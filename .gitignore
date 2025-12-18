@@ -44,6 +44,7 @@ Backend/
 # archive/ - Allow docs/archive for documentation history
 # Use specific patterns instead if needed
 planning-docs/
+screenshots/
 Screenshots/
 chrome-store/
 

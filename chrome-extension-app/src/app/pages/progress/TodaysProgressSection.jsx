@@ -31,7 +31,7 @@ export function TodaysProgressSection({ todaysProgress }) {
               <Group justify="space-between" wrap="nowrap">
                 <Text size="sm" fw={500}>Problems Solved</Text>
                 <Group gap="xs" align="baseline">
-                  <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-blue-6)' }}>
+                  <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-blue-6)' }}>
                     {problemsSolved}
                   </Text>
                   <Text size="xs">problems</Text>
@@ -42,7 +42,7 @@ export function TodaysProgressSection({ todaysProgress }) {
               <Group justify="space-between" wrap="nowrap">
                 <Text size="sm" fw={500}>Accuracy Rate</Text>
                 <Group gap="xs" align="baseline">
-                  <Text size="xl" fw={700} style={{
+                  <Text size="lg" fw={700} style={{
                     color: accuracy >= 75 ? 'var(--mantine-color-green-6)' :
                            accuracy >= 50 ? 'var(--mantine-color-yellow-6)' :
                            'var(--mantine-color-orange-6)'
@@ -63,7 +63,7 @@ export function TodaysProgressSection({ todaysProgress }) {
               <Group justify="space-between" wrap="nowrap">
                 <Text size="sm" fw={500}>Review Problems</Text>
                 <Group gap="xs" align="baseline">
-                  <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-violet-6)' }}>
+                  <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-violet-6)' }}>
                     {reviewProblems}
                   </Text>
                   <Text size="xs">completed</Text>
@@ -80,7 +80,7 @@ export function TodaysProgressSection({ todaysProgress }) {
               <Group justify="space-between" wrap="nowrap">
                 <Text size="sm" fw={500}>Hint Usage</Text>
                 <Group gap="xs" align="baseline">
-                  <Text size="xl" fw={700} style={{
+                  <Text size="lg" fw={700} style={{
                     color: hintsPerProblem <= 1 ? 'var(--mantine-color-green-6)' :
                            hintsPerProblem <= 2 ? 'var(--mantine-color-yellow-6)' :
                            'var(--mantine-color-orange-6)'
@@ -95,7 +95,7 @@ export function TodaysProgressSection({ todaysProgress }) {
               <Group justify="space-between" wrap="nowrap">
                 <Text size="sm" fw={500}>Avg Time</Text>
                 <Group gap="xs" align="baseline">
-                  <Text size="xl" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
+                  <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-cyan-6)' }}>
                     {avgTimeMinutes}
                   </Text>
                   <Text size="xs">min/problem</Text>

@@ -8,529 +8,145 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- **Documentation Updates** (#213)
-  - Removed "Planned Features" section from main README (flashcard mode, ChatGPT features)
-  - Created `github-assets/` folder for GitHub-visible screenshots
-  - Updated all placeholder GitHub URLs to `smithrashell/CodeMaster`
-  - Removed outdated `docs/archive/` folder (15 old planning documents)
-  - Removed `docs/DOCUMENTATION_UPDATE_PLAN.md` (completed)
-  - Fixed broken link to non-existent `component-architecture.md`
-  - Updated IndexedDB store count from 13 to 17 across documentation
-  - Updated database version from 25 to 36 across documentation
-  - Updated all documentation "Last Updated" dates to 2025-11-25
+- **Codebase Cleanup**
+  - Deleted unused popup files (popup.html, popup.js, popup.jsx) - extension uses dashboard directly
+  - Deleted duplicate `sessionsPerformance.js` (sessionPerformanceHelpers.js is the used file)
+  - Deleted `dashboardService.js.backup` leftover file
+  - Fixed gitignore to exclude screenshots folder (case-sensitivity issue)
+  - Updated components to use CSS variables for dark mode support
+  - Updated CLAUDE.md with theming guidelines
 
-### Refactored
-- **Comment Cleanup per Clean Code Chapter 4** (#213)
-  - Removed 230+ lines of commented-out dead code across 10 files
-  - Removed stale TODO comments for already-implemented features (settings import/export, display settings)
-  - Removed redundant test placeholders covered by browser tests
-  - Removed dead `resetSessionCreationMutex` mock (function never implemented)
-  - Removed redundant comments that restate obvious code behavior
-  - Applied "Don't comment bad code—rewrite it" principle throughout codebase
+---
+
+## [1.1.0] - Post Chrome Web Store Release
+
+All changes after the Chrome Web Store release on November 19th, 2025.
 
 ### Added
 - **Intelligent Recalibration System - Phase 1: Passive Background Decay** (#206)
   - Implemented time-based decay for users returning after long breaks
-  - Added last activity date tracking to StorageService:
-    - `getLastActivityDate()` - Retrieve last app usage timestamp
-    - `updateLastActivityDate()` - Update timestamp on app usage
-    - `getDaysSinceLastActivity()` - Calculate days since last use
-  - Created RecalibrationService with passive decay algorithm:
-    - Box level decay: 1 box per 60 days (conservative 2-month intervals)
-    - Stability decay: Exponential forgetting curve with 90-day half-life
-    - Minimum values: Box level ≥ 1, stability ≥ 0.5
-    - Recalibration flag: Set for problems unused for 90+ days
-  - Enhanced FSRS to consider time elapsed:
-    - Updated `updateStabilityFSRS()` with optional `lastAttemptDate` parameter
-    - Applies forgetting curve (e^(-days/90)) for gaps > 30 days
-    - Combines performance-based updates with time-based decay
-  - Integrated passive decay on app startup:
-    - Runs automatically in background script activation
-    - Non-blocking, silent execution (no user interaction)
-    - Logs affected problems and days since last use
-  - Added database fields for recalibration tracking:
-    - `needs_recalibration` - Boolean flag for problems needing assessment
-    - `decay_applied_date` - ISO timestamp of last decay application
-    - `original_box_level` - Stores pre-decay box level for rollback
+  - Added last activity date tracking to StorageService
+  - Created RecalibrationService with passive decay algorithm (1 box per 60 days)
+  - Enhanced FSRS to consider time elapsed with forgetting curve
+  - Integrated passive decay on app startup (non-blocking, silent)
+  - Added database fields for recalibration tracking
   - Prevents "fail-fest" experience for returning users (6+ month gaps)
-  - Foundation for future phases: Welcome Back Modal, Diagnostic Session
+
 - **Intelligent Recalibration System - Phase 2: Welcome Back Modal** (#206)
-  - Implemented gap-based recalibration strategy detection:
-    - Gentle recalibration (30-90 days): Adaptive first session approach
-    - Moderate recalibration (90-365 days): User choice between diagnostic or adaptive
-    - Major recalibration (365+ days): Strong diagnostic recommendation with reset option
-  - Created WelcomeBackModal component with strategy-specific messaging:
-    - Shows days since last use and personalized recommendations
-    - Presents recalibration options based on usage gap severity
-    - Integrates with existing onboarding modal (priority logic prevents conflicts)
-  - Created useWelcomeBack hook for modal state management:
-    - Fetches strategy from background script on app startup
-    - Handles user choice confirmation and dismissal
-    - Tracks modal dismissal with timestamp to prevent re-showing
-  - Added welcome back message handlers to background script:
-    - `getWelcomeBackStrategy`: Returns appropriate strategy based on days since last use
-    - `dismissWelcomeBack`: Stores dismissal timestamp to prevent duplicate showing
-  - Modal only shows once per return (dismissal persists across sessions)
+  - Gap-based recalibration strategy detection (gentle/moderate/major)
+  - Created WelcomeBackModal component with strategy-specific messaging
+  - Created useWelcomeBack hook for modal state management
+  - Modal only shows once per return (dismissal persists)
+
 - **Intelligent Recalibration System - Phase 3: Diagnostic Session** (#206)
-  - Implemented 5-problem diagnostic session for comprehensive skill assessment:
-    - Samples from previously mastered problems (box level 3+)
-    - Prioritizes problems marked with needs_recalibration flag
-    - Ensures variety across difficulty levels and topic tags
-    - Tests what users actually remember after long breaks
-  - Created diagnostic session processing with topic-based recalibration:
-    - Analyzes performance by tag/topic (70% accuracy threshold)
-    - Identifies retained vs forgotten topics
-    - Applies conservative recalibration (reduces box level by 1 for failed problems)
-    - Uses atomic transactions to prevent partial updates
-    - Stores results for analytics and user feedback
-  - Added diagnostic session handlers to background script:
-    - `createDiagnosticSession`: Creates session with sampled problems
-    - `processDiagnosticResults`: Analyzes performance and applies recalibration
-  - Enhanced useWelcomeBack hook with diagnostic session support:
-    - Shows user confirmation with problem count
-    - Guides user to LeetCode to complete diagnostic
-    - Displays success/error feedback with clear next steps
+  - 5-problem diagnostic session for comprehensive skill assessment
+  - Topic-based recalibration with 70% accuracy threshold
+  - Conservative recalibration (reduces box level by 1 for failed problems)
+
 - **Intelligent Recalibration System - Phase 4: Adaptive First Session** (#206)
-  - Implemented performance-based decay adjustment system:
-    - Flags next session as "adaptive recalibration session"
-    - Session runs normally but tracks accuracy metrics
-    - Post-session analysis determines if passive decay was appropriate
-  - Created adaptive session processing with smart decay adjustment:
-    - Strong performance (≥70% accuracy): Keeps passive decay (user retained knowledge)
-    - Middle performance (40-70% accuracy): Reduces decay by 50% (partial adjustment)
-    - Poor performance (<40% accuracy): Reduces decay by 75% (significant adjustment)
-    - Uses `reduceDecayMagnitude()` helper to partially restore box levels
-  - Added adaptive session handlers to background script:
-    - `createAdaptiveRecalibrationSession`: Sets up flag for next session
-    - `processAdaptiveSessionCompletion`: Analyzes performance and adjusts decay
-  - Enhanced useWelcomeBack hook with adaptive session support:
-    - Shows user confirmation for adaptive mode enablement
-    - Guides user to start practice session
-    - Displays clear next steps
-  - Stores adaptive results for Phase 5 analytics tracking
-- **Chrome Web Store Preparation** (#205)
-  - Created comprehensive chrome-store folder with all submission materials:
-    - 8 high-quality screenshots (1280x800 PNG) showing all key features
-    - Promotional tile (1400x560 PNG) with branding and feature highlights
-    - Complete documentation: PRIVACY_POLICY.md, TERMS_OF_SERVICE.md, STORE_LISTING.md
-    - Submission guide with step-by-step instructions and captions
-  - Added PRIVACY_POLICY.md to repository root for GitHub URL accessibility
-  - Created extension package (tar.gz format, 2.1 MB)
-  - Configured Content Security Policy (CSP) in manifest.json
-  - Verified all 512px icons present and referenced correctly
-  - Prepared comprehensive marketing copy and permission justifications
+  - Performance-based decay adjustment system
+  - Smart decay adjustment based on accuracy (70%+, 40-70%, <40%)
+
+- **Open Source Licensing with Dual Licensing Option** (#206)
+  - Established CodeMaster as open source under GNU AGPL v3
+  - Created comprehensive LICENSE file
+  - Added Contributor License Agreement (CLA) to CONTRIBUTING.md
+
+- **Real Strategy Success Rate Calculation** (#184)
+  - Replaced mock data with real calculation for Progress page Strategy Success metric
+
+- **Learning Efficiency Analytics Score Explanations** (#190)
+  - Added score range explanations (0-30, 30-60, 60+)
+
+- **Today's Progress Summary** (#175)
+  - Real-time daily statistics component replacing broken Daily Missions
+  - Shows problems solved, accuracy, review problems, hint efficiency, avg time
+
+- **Independent Time Range Filters** (#172)
+  - Each Progress page chart has its own filter dropdown
+  - Filter options: Last 7 days, Last 30 days, Quarter to date, Year to date, All time
+
+- **Pattern Ladder Coverage Mastery Gate**
+  - Tags now require 70% pattern ladder completion for mastery
+  - New 4-gate system: Volume + Variety + Accuracy + Ladder Coverage
 
 ### Fixed
 - **Reduced ESLint Warnings from 22 to 0** (#211)
-  - Refactored production code to eliminate all complexity and line length warnings:
-    - `FloatingHelpButton.jsx`: Extracted action handlers (155→118 lines)
-    - `RecalibrationService.js`: Extracted helper functions (2x 135→130 lines)
-    - `problemService.js`: Extracted helpers from `addReviewProblemsToSession` (195→130 lines)
-    - `problems.js`: Extracted helpers from `selectProblemsForTag` (177→150 lines)
-    - `problemNormalizer.js`: Reduced complexity (32→30) by extracting field builders to `problemNormalizerHelpers.js`
-  - Added justified ESLint disable comments to test files (test organization prioritizes readability):
-    - `WelcomeBackModal.test.jsx`, `problemService.refactor.test.js`, `sessionDeletion.test.js`
-    - `problems.boxlevel.test.js`, `problemReasoningStrategies.test.js`, `core-business-tests.js`
-  - All 533 tests passing, confirming no functionality regressions
-  - Improved code maintainability and reduced technical debt
-- **Fixed Mastery Gates Test with Pattern Ladder Initialization** (#205)
-  - Resolved failing "Mastery Gates (Volume + Uniqueness)" test by initializing pattern ladders during test setup
-  - Implemented consistent tag normalization across all ladder operations (lowercase)
-  - Created test-specific ladder with all test problems for predictable test results
-  - Refactored tests to use production code (updatePatternLaddersOnAttempt) instead of custom test helpers
-  - Ensures tests validate actual production behavior rather than synthetic test logic
-  - Updated problemladderService.js with normalizeTag function for consistent storage/lookup
-- **Removed Test Code from Production Build** (#205)
-  - Wrapped test helper functions in conditional blocks (process.env.ENABLE_TESTING)
-  - Enabled webpack tree-shaking to exclude 91,000+ lines of test code from production
-  - Reduced production background.js bundle size from 2.82 MiB → 1.23 MiB (1.59 MiB saved, 56% reduction)
-  - Verified zero test/spec/mock files in dist/ folder
-  - Minimized console.log statements in production (only 3 occurrences)
-- **Fixed Linting Errors in Background Script** (#205)
-  - Removed unused imports from index.js (adaptiveLimitsService, InterviewService, StorageCleanupManager, getAllFromStore, updateSessionInDB, evaluateDifficultyProgression, applyEscapeHatchLogic)
-  - Fixed unused parameter in core-business-tests.js (testName → _testName)
-  - Reduced linting issues from 8 errors + 16 warnings → 0 errors + 16 warnings
-  - All remaining warnings are acceptable (function complexity/length)
-- **Fixed XSS Security Vulnerability in Error Notifications** (#205)
-  - Fixed potential XSS vulnerability in errorNotifications.js line 127
-  - Changed from innerHTML to textContent for title text to prevent script injection
-  - Icon SVG still uses innerHTML (safe, internal string only)
-  - Prevents malicious code execution if title parameter ever contains user input
-- **Fixed Help Navigation Blank Page Bug**
-  - Removed Help sub-navigation entry that was causing blank page when clicking "Help & Support" in dashboard sidebar
-  - Help section now navigates directly to `/help` index route without sub-navigation
-  - Fixed navigation from `/help/help-support` (non-existent) to `/help` (correct route)
-  - Resolved issue where clicking Help tab showed blank page instead of Help & Support content
-
-### Added
-- **Open Source Licensing with Dual Licensing Option** (#206)
-  - Established CodeMaster as open source software under GNU AGPL v3
-  - Created comprehensive LICENSE file with full AGPL v3 text (Copyright 2025 Rashell Smith)
-  - Added Contributor License Agreement (CLA) to CONTRIBUTING.md:
-    - Grants project owner perpetual, irrevocable license to contributions
-    - Enables dual licensing (AGPL v3 for community + commercial licenses for businesses)
-    - Allows enforcement of copyright protection
-    - Provides future licensing flexibility
-  - Created COPYRIGHT_HEADERS.md with templates for JavaScript, CSS, Markdown, and shell scripts
-  - Added comprehensive license section to README.md:
-    - Clear explanation of AGPL v3 rights and obligations
-    - Commercial licensing availability for businesses needing proprietary modifications
-    - Link to CLA in CONTRIBUTING.md
-  - Updated TERMS_OF_SERVICE.md with open source licensing information:
-    - Replaced "future open source plans" with actual AGPL v3 license details
-    - Added commercial licensing contact information
-    - Referenced CLA for contributors
-  - Created PRIVACY_POLICY.md for Chrome Web Store compliance:
-    - 100% local storage policy (no data transmission)
-    - Detailed explanation of IndexedDB usage and data retention
-    - User rights (access, deletion, modification)
-    - Chrome permissions justification
-  - Created STORE_LISTING.md with Chrome Web Store marketing copy:
-    - Short description (132 chars), detailed description (~3850 chars)
-    - 7 feature highlights, screenshot captions, permission justifications
-    - Category recommendations and target keywords
-  - Updated manifest.json with homepage_url pointing to GitHub repository
-  - **Impact**:
-    - Enables public contributions while maintaining full ownership
-    - AGPL v3 network clause prevents proprietary SaaS forks without commercial license
-    - CLA allows offering commercial licenses to businesses
-    - Cloud backup feature can remain proprietary (separate work from extension)
-    - Builds community trust through transparency
-
-### Fixed
-- **Fixed Chrome Web Store Permissions Violation** (Violation ID: Purple Potassium)
-  - Removed unused `scripting` permission from manifest.json
-  - Extension uses content scripts (declared in manifest) instead of programmatic script injection
-  - Verified `chrome.scripting` API is not used anywhere in codebase
-  - Resolves Chrome Web Store rejection for requesting but not using permissions
-  - Location: `chrome-extension-app/public/manifest.json:17-22`
-- **Removed Unused Alarms Permission for Chrome Web Store Compliance**
-  - Removed `alarms` permission from manifest.json (reminder feature not yet implemented)
-  - Reminder settings UI is preserved but actual notification scheduling deferred to future release
-  - Created issue #210 to track reminder system implementation
-  - Chrome Web Store policy: Don't request permissions for unimplemented features
-  - Will add permission back when reminder system is implemented
-  - Location: `chrome-extension-app/public/manifest.json:17-22`
-- **Fixed Dashboard Auto-Open on Extension Install**
-  - Re-enabled automatic dashboard opening when extension is first installed
-  - Added `chrome.tabs.create()` call in `onInstalled` handler to open `app.html` on install
-  - Dashboard now automatically opens for new users to guide them through onboarding
-  - Updates do not trigger dashboard opening (only first-time install)
-  - Location: `chrome-extension-app/src/background/index.js:667-678`
-- **Fixed Timer Behavior metric inconsistency** (#183)
-  - Aligned `calculateTimerBehavior` badge logic with `calculateTimerPercentage` calculation
-  - **Before**: Badge used last 50 attempts, only successful attempts, 60-minute cutoff for all difficulties
-  - **After**: Badge now uses last 100 attempts, all attempts, difficulty-based time limits (Easy: 20min, Medium: 45min, Hard: 90min)
-  - **Critical Fix**: Both functions now properly look up problem difficulty from `problemDifficultyMap` instead of attempting to read non-existent `difficulty` field from attempts
-  - Added edge case handling for zero/negative time values
-  - Badge label ("Excellent timing", "On time", etc.) now accurately reflects the percentage shown
-  - Eliminated confusing scenarios where badge showed "Excellent timing" but percentage showed "45% within limits"
-  - Both metrics now use identical calculation logic for consistency
-  - Added JSDoc documentation for better code maintainability
-
-### Removed
-- **Removed all cache-related dead code** (#188)
-  - Completely removed caching infrastructure that was disabled in commit f8c4a46
-  - Removed cache code from `useChromeMessage.js` (frontend hook):
-    - Deleted `messageCache` Map, `pendingRequests` Map, and `CACHE_TTL` constant
-    - Removed `getCacheKey()`, `_getCachedResponse()`, `_setCachedResponse()` helper functions
-    - Removed `clearChromeMessageCache()` export function
-    - Simplified `sendMessage()` to remove cache checks, deduplication, and cacheKey management
-    - Removed `bypassCache` parameter from hook interface
-  - Removed cache code from `background/index.js` (backend):
-    - Deleted `responseCache` Map and `_CACHE_EXPIRY` constant
-    - Removed `getCachedResponse()`, `setCachedResponse()`, and `generateCacheKey()` functions
-    - Removed cache key generation helpers (getProblemCacheKey, getDashboardCacheKey, getSettingsCacheKey)
-    - Renamed `handleRequestOriginal` to `handleRequest` (removed cache wrapper layer)
-  - Removed cache code from `messageRouter.js`:
-    - Removed cache parameters from function signature and dependencies
-    - Deleted `clearSettingsCache` and `clearSessionCache` message handlers
-    - Simplified `getStrategyForTag` handler to remove caching logic
-  - Deleted `useChromeCache.js` file entirely (unused custom hook)
-  - Removed `clearChromeMessageCache()` and `clearSettingsCache` calls from 8 files:
-    - settingsMessaging.js, useAccessibilitySettings.js, dashboardService.js
-    - settings.jsx (content), themeprovider.jsx
-    - AdaptiveSettingsCard.jsx, DisplaySettingsCard.jsx, TimerSettingsCard.jsx
-  - Updated `useChromeMessage.test.jsx` to remove obsolete cache clearing from tests
-  - **Impact**: Removed ~300 lines of dead code with no functionality change
-  - **Rationale**:
-    - Caching was disabled to fix stale data bugs (settings wouldn't persist)
-    - IndexedDB is already fast (1-5ms queries), caching provided minimal benefit
-    - Direct database access is simpler and more reliable
-    - Eliminates maintenance burden of unused code
-
-### Added
-- **Real Strategy Success Rate Calculation**: Replaced mock data with real calculation for Progress page Strategy Success metric (#184)
-  - Implemented `calculateStrategySuccessRate()` function to measure effectiveness of adaptive problem selection
-  - Calculates percentage of successful attempts for problems selected by CodeMaster's 9 adaptive strategies
-  - Joins session problems (with selection_reason) with attempts data via problem_id
-  - Returns 0% when no strategy-selected attempts exist (handles edge cases gracefully)
-  - Validates whether intelligent selection works better than random selection
-  - Previously showed random mock data (65-90%), now shows actual user performance
-  - Helps track which strategies are most effective for learning
-- **Learning Efficiency Analytics Score Explanations**: Enhanced Learning Efficiency Analytics with user-friendly score interpretation (#190)
-  - Added score range explanations: 0-30 (building fundamentals), 30-60 (developing skills), 60+ (strong performance)
-  - Improved formatting with bold numbers and separate lines for better readability
-  - Applied to Learning Efficiency, Knowledge Retention, and Learning Momentum metrics
-- **Today's Progress Summary**: Replaced broken Daily Missions system with real-time daily statistics component (#175)
-  - New TodaysProgressSection.jsx displays live stats for today's activity
-  - Shows problems solved, accuracy percentage, review problems completed, hint efficiency, and average time per problem
-  - Reads from attempts store directly to include current active session data
-  - Stats update immediately as user completes each problem (true real-time)
-  - No caching, no delays - reflects exact current state
-  - Provides at-a-glance view of daily progress without gamification overhead
-
-### Fixed
-- **Fixed Goals page calculations to properly reflect user progress** (#201)
-  - **Weekly Accuracy Target**: Now uses backend-calculated weekly accuracy (last 7 days) instead of overall lifetime accuracy
-    - **Before**: Displayed overall success rate which didn't reflect recent performance
-    - **After**: Shows actual weekly accuracy from backend data (appState.learningPlan.outcomeTrends.weeklyAccuracy)
-    - Fixes "0%" display with "NO DATA YET" badge despite completed sessions
-  - **Problems Per Week**: Now calculates target based on user settings and shows remaining count
-    - **Before**: Showed static session count (e.g., "7" with "BEHIND" badge)
-    - **After**: Calculates weekly target from `sessionsPerWeek × sessionLength` (e.g., 2 × 5 = 10)
-    - Displays remaining problems: `{remaining} of {target} remaining` (e.g., "3 of 10 remaining")
-    - Handles 'auto' session length mode (uses max 12 problems)
-  - **Hint Efficiency & Learning Velocity**: Now uses backend-calculated values
-    - Uses appState.learningPlan.outcomeTrends data instead of calculating from overall statistics
-  - All metrics now properly reflect weekly progress toward configured learning plan targets
-- **Fixed dashboard text visibility in light mode** (#194)
-  - **Root Cause**: In PR #191 (commit 3622809), all `c="dimmed"` were changed to `c="gray.4"` to fix dark mode
-  - `gray.4` from Mantine's default palette (#ced4da) is designed for dark backgrounds only
-  - In light mode, this gray is too light and nearly invisible on white/light backgrounds
-  - **Fix 1**: Removed non-reactive Button styles override in theme provider that forced white text globally
-  - **Fix 2**: Added light mode definition for `--mantine-color-dimmed` CSS variable (#6b7280 - medium gray)
-  - **Fix 3**: Reverted all `c="gray.4"` back to `c="dimmed"` across 3 files:
-    - FocusPrioritiesSection.jsx (3 instances)
-    - ProductivityKPIs.jsx (2 instances)
-    - ProductivityCharts.jsx (5 instances)
-  - Affected Goals page subtitle text, Productivity Insights KPIs, and chart descriptions
-  - Text colors now respect the active theme properly in both light and dark modes
+- **Fixed Goals page calculations** (#201) - Weekly accuracy, problems per week targets
+- **Fixed dashboard text visibility in light/dark modes** (#194)
 - **Fixed onboarding modal text visibility in dark mode** (#194)
-  - **Dashboard onboarding (WelcomeModal.jsx)**:
-    - Modal now has proper dark mode styling with dark background (#1a1b1e) and light text (#ffffff)
-    - Added theme-aware styling using useTheme() hook for reactive theme changes
-    - Fixed hardcoded light blue Card background in "Key Insight" section
-    - Dark mode Card uses darker blue background (#1e3a8a) with lighter blue text (#93c5fd)
-  - **Content onboarding tour (ContentOnboardingTour.jsx)**:
-    - Fixed Card background color to dark theme (#1a1b1e) in dark mode
-    - Fixed title text color from forced black (#1a1a1a) to white (#ffffff) in dark mode
-    - Fixed content text color to light gray (#c9c9c9) in dark mode
-    - Fixed progress bar background to dark gray (#373a40) in dark mode
-    - Fixed arrow pointer color to match card background in both themes
-    - Fixed step counter badge with proper dark mode background and text colors
-    - Removed hardcoded `!important` black text that broke dark mode
-    - Replaced inline theme detection with useTheme() hook for proper reactivity
-  - Both onboarding systems now fully readable and reactive in light and dark modes
-- **Fixed dashboard text visibility across all pages in both light and dark modes** (#194)
-  - **Removed ALL `c="dimmed"` props (93 files)**:
-    - Removed broken `c="dimmed"` that used non-existent `--mantine-color-dimmed` CSS variable
-    - Let Mantine's default theme system handle text colors automatically for proper theme adaptation
-    - Affected all dashboard pages: Overview, Progress (Goals, Learning Progress), Session History, Productivity Insights, Settings, and all their subcomponents
-  - **Removed hardcoded `c="white"` from charts and KPI cards**:
-    - Session History page: Removed from chart titles (Session Length Over Time, Session Accuracy Trends)
-    - Productivity Insights page: Removed from InsightsCard (3 instances), ProductivityCharts (2 instances), RecommendationsCard (8 instances), ProductivityKPIs card values
-    - Text now adapts to theme automatically - visible in both light and dark modes
-  - **Centered KPI card text for visual consistency**:
-    - Added `textAlign: 'center'` to Card styles and `justify="center"` to Group components
-    - Session History and Productivity Insights KPI cards now match Learning Progress page styling
-  - **Fixed problem analysis tour modal dark mode styling**:
-    - ProblemPageTimerTour.jsx now uses theme-aware Card background (#1a1b1e in dark, #ffffff in light)
-    - Added theme-aware border colors matching other tour modals
-  - All text across dashboard now properly visible and adapts to theme changes
 - **Fixed extension context error dialog UX** (#195)
-  - Removed useless "Try Again" button that didn't fix extension context invalidation errors
-  - Only "Reload Page" button now displayed (the only action that actually fixes the issue)
-  - Updated error message to clearly guide users: "Please reload the page to continue"
-  - Removed close button (X) since error cannot be dismissed without reloading
-  - Removed unused `handleRetry()` function
-  - Made "Reload Page" button more prominent as the only action
-- **Fixed Learning Efficiency and Knowledge Retention showing 0 despite completed sessions** (#196)
-  - Root cause: Code was using `session.session_id` but sessions store uses `id` as keyPath
-  - Fixed filter in `getLearningEfficiencyData()` to use `session.id` instead of `session.session_id`
-  - Attempts were filtered incorrectly: `a.session_id === undefined` returned 0 matches
-  - Both metrics now calculate correctly based on actual attempt data
-  - Changed lines 2604 and 2649 in dashboardService.js
-- Fixed Daily Missions system complete non-functionality (#175)
-  - Daily Missions were completely broken: tracking incorrect data, showing random percentages, not updating
-  - Mission types (perfectionist, speed demon, etc.) had arbitrary requirements that didn't align with learning methodology
-  - Replaced entire system with simpler Today's Progress Summary (see Added section)
-  - Removed DailyMissionsSection.jsx, useMissions.js, and missionHelpers.js
-- Fixed critical settings persistence bugs on Goals page (#175)
-  - Session length was not persisting when navigating away from Goals page
-  - Fixed stale closure bug using refs pattern (same issue as #162)
-  - Session length changes now save and load correctly across page navigation
-  - Changed default session length from hardcoded `5` to `"auto"` (system-controlled based on due reviews)
-  - Updated all fallback cases across initialize-settings.js, storageService.js, and dashboardService.js
-- Fixed guardrails not loading from saved settings (#175)
-  - Max new problems (maxNewProblems) was loading hardcoded defaults instead of saved values
-  - GuardrailsSection.jsx now properly loads persisted settings on mount
-  - Removed obsolete guardrail fields from code (minReviewRatio, reviewRatio)
-- Fixed tag mastery records not updating after completing problems (#175)
-  - Tag mastery was stuck at 0 attempts due to IndexedDB transaction timeout error
-  - Root cause: Calling getLadderCoverage() inside tag_mastery transaction caused original transaction to auto-commit
-  - Solution: Pre-fetch all ladder coverage data BEFORE starting tag_mastery transaction
-  - Tag mastery now updates correctly when users complete sessions
-- Fixed tag mastery lazy initialization to enable unknown tag exploration bonus (#175)
-  - Removed insertDefaultTagMasteryRecords() pre-population that created records for ALL tags during onboarding
-  - Restored lazy initialization: tag mastery records now created organically on first attempt
-  - Enables proper differentiation in problem selection algorithm:
-    - Unknown tags (no record): 1.2x exploration bonus
-    - New tags (record with <3 attempts): 1.4x exploration bonus
-  - Previously all tags had records after onboarding, breaking unknown tag bonus logic
-- Fixed Today's Progress timezone issue causing incorrect daily stats (#175)
-  - Date filtering was using UTC timezone instead of user's local timezone
-  - Attempts crossing midnight UTC were incorrectly split across different days
-  - Now uses local timezone for accurate "today" filtering
-  - Also fixed success field comparison to handle both boolean (true) and numeric (1) values
-- Fixed theme reversion bug when navigating between pages (#174)
-  - Theme changes now persist immediately using localStorage for instant synchronization
-  - Added timestamp-based conflict resolution to prevent stale Chrome storage from overriding recent changes
-  - Chrome storage and localStorage stay in sync via timestamp comparison
-  - Prevents race condition where async Chrome storage save could revert theme after navigation
-  - Works across both dashboard and content pages
-- Fixed badge text color visibility on Goals page (#174)
-  - Modified CSS selector to exclude badges from Card dark text override
-  - Changed `.mantine-Card-root span` to `.mantine-Card-root span:not(.mantine-Badge-root):not(.mantine-Badge-label)`
-  - Badge text now displays properly in white on colored backgrounds (cyan, violet, teal)
-  - Removed need for inline style workarounds
-- Fixed guardrails validation issues on Goals page (#174)
-  - Max new problems dropdown now dynamically limits options based on session length
-  - Prevents confusing state where max new problems can exceed total session length
-  - Auto-adjusts max new problems when session length changes to a lower value
-  - Shows helpful text indicating the session length constraint
-  - Example: With session length = 5, dropdown only shows options 2-5 (not 8 or 10)
-- Replaced confusing adaptive difficulty toggle with informational alert (#174)
-  - Removed non-functional "Enable adaptive difficulty progression" toggle
-  - Adaptive difficulty is always active via escape hatches (cannot be disabled)
-  - New informational Alert explains adaptive difficulty is automatic
-  - Clearer UX that doesn't suggest a choice where none exists
+- **Fixed Learning Efficiency and Knowledge Retention showing 0** (#196)
+- **Fixed critical settings persistence bugs on Goals page** (#175)
+- **Fixed tag mastery records not updating** (#175)
+- **Fixed theme reversion bug when navigating** (#174)
+- **Fixed badge text color visibility on Goals page** (#174)
+- **Fixed Progress page charts showing aggregated data** (#172)
+- **Fixed Learning Efficiency chart showing "No Data"** (#163)
+- **Fixed duplicate session creation race condition**
+- **Fixed Focus Areas showing 'array' tag** (#173)
+- **Fixed Chrome Web Store Permissions Violation** (Purple Potassium)
+- **Fixed Dashboard Auto-Open on Extension Install**
+- **Fixed Timer Behavior metric inconsistency** (#183)
+- **Fixed XSS Security Vulnerability in Error Notifications** (#205)
+- **Fixed Help Navigation Blank Page Bug**
+- **Fixed Mastery Gates Test with Pattern Ladder Initialization** (#205)
+
+### Changed
+- **Documentation Updates** (#213)
+  - Removed "Planned Features" section from main README
+  - Created `github-assets/` folder for GitHub-visible screenshots
+  - Updated all placeholder GitHub URLs to `smithrashell/CodeMaster`
+  - Removed outdated `docs/archive/` folder
+  - Updated IndexedDB store count from 13 to 17
+  - Updated database version from 25 to 36
+
+- **Charts now show individual session data** instead of weekly/monthly aggregations
+- **Learning Efficiency metric** changed from "problems per hint" to "hints per problem"
+- **Disabled all caching** to eliminate stale data bugs (#175)
 
 ### Removed
 - **Removed non-functional Mistake Analysis page** (#190)
-  - Completely removed Mistake Analysis page that was displaying empty/placeholder data
-  - Removed from navigation (Strategy submenu), routes, and page component
-  - Cleaned up associated service functions (getMistakeAnalysisData, getMockMistakeAnalysisData)
-  - Removed Chrome message handlers and background script cache mappings
-  - Cleaned up usePageData hook configuration
-  - Streamlined Strategy section to focus on functional pages (Tag Mastery, Learning Path)
-- Removed artificial review ratio sliders that conflicted with Leitner system (#174)
-  - Removed "Min review ratio" slider from Guardrails section
-  - Removed "Review ratio" slider from Focus Priorities section
-  - Leitner spaced repetition system now naturally determines review problem count
-  - Review problems appear based on when they're due, not arbitrary percentage targets
-  - Session composition: ALL due review problems (up to session length) + remaining slots filled with new problems
-  - Example: If 3 problems are due for review, session includes all 3 (not capped by percentage)
-  - Prevents artificial caps that would skip due review problems
-  - Aligns with proper spaced repetition methodology
-- Removed non-functional difficulty distribution display (#174)
-  - Removed "Difficulty distribution" display from Focus Priorities section
-  - Was read-only, not editable by users
-  - Setting was saved but never actually used
-  - Adaptive difficulty escape hatch system automatically handles Easy → Medium → Hard progression
-  - Removed confusing display that suggested user control where none existed
+- **Removed artificial review ratio sliders** (#174)
+- **Removed non-functional difficulty distribution display** (#174)
+- **Removed all cache-related dead code** (#188) - ~300 lines removed
+- **Removed Time Accuracy placeholder metric**
+- **Removed Test Code from Production Build** (#205) - 56% bundle size reduction
 
-### Changed
-- **Disabled all caching to eliminate stale data bugs** (#175)
-  - Frontend cache in useChromeMessage.js is now disabled (cache disabled by default)
-  - Background script cache in background/index.js is now disabled
-  - Removed all cache clearing calls throughout codebase (no longer needed)
-  - System now fetches fresh data on every request (slight performance tradeoff for data consistency)
-  - Created issue #188 to track complete removal of cache code in future refactor
-  - Prevents settings persistence bugs, stale UI data, and confusing user experiences
+### Refactored
+- **Comment Cleanup per Clean Code Chapter 4** (#213)
+  - Removed 230+ lines of commented-out dead code
+  - Applied "Don't comment bad code—rewrite it" principle
 
-### Added
-- Added independent time range filters to Progress page charts (#172)
-  - Each chart has its own filter dropdown in the chart card header
-  - "New vs Review Problems per Session" chart has its own time range filter
-  - "Problem Activity per Session" chart has its own time range filter
-  - Filter options: Last 7 days, Last 30 days, Quarter to date, Year to date, All time
-  - Works client-side on already-loaded data (instant filtering, no refresh needed)
-  - Same pattern as Session History page for consistency
+---
 
-### Added
-- **Pattern Ladder Coverage Mastery Gate**: Tags now require 70% pattern ladder completion for mastery
-  - Ensures exposure to diverse problem patterns, not just volume
-  - Pattern ladders follow natural difficulty distribution (prevents Easy-only mastery)
-  - Covers both pattern diversity AND difficulty breadth in a single gate
-  - New 4-gate system: Volume (attempts) + Variety (unique problems) + Accuracy (success rate) + Ladder Coverage (pattern exposure)
-  - Console logs now show ladder progress: `ladder: ✅ 9/12 (75%/70%)`
+## [1.0.0] - 2025-11-19
 
-### Fixed
-- Fixed duplicate session creation on database initialization
-  - Race condition in sessionCreationLocks allowed two simultaneous requests to both create sessions
-  - Lock was being set AFTER async promise creation, leaving window for duplicates
-  - Now sets lock IMMEDIATELY before any async work to prevent race condition
-  - Fixes issue where two identical sessions would be created ~100ms apart after DB reset
-- Fixed Focus Areas showing 'array' tag instead of empty state when no focus area is selected (#173)
-  - Changed default `focusAreas` from `["array"]` to `[]` for new users across all initialization paths
-  - Updated storageService.js, onboardingService.js, and initialize-settings.js to use empty array
-  - Updated dashboardService.js fallbacks to use empty array instead of `["array"]`
-  - Removed silent hardcoded fallbacks that hid data integrity issues
-  - System now throws explicit errors when focus tag generation fails (instead of hiding problems)
-  - Empty focus areas now display "No focus areas selected" in UI
-  - System automatically recommends focus areas based on learning state when user has no manual selection
-- Fixed coreLadder remnants from deprecated architecture decision (Sept 2025)
-  - Removed coreLadder writes from problemladderService.js (was writing unused data to tag_mastery)
-  - Removed coreLadder schema from DataIntegritySchemas.js
-  - pattern_ladders store is the single source of truth for ladder data
-  - Eliminated data duplication and stale data issues
-- Fixed Progress page charts showing aggregated data instead of per-session data (#172)
-  - Replaced "Promotion & Demotion Trends" with "New vs Review Problems per Session" stacked bar chart
-  - Changed "Problem Activity Over Time" to "Problem Activity per Session" showing individual session bars
-  - Both charts now display individual sessions as data points (matching Overview page pattern)
-  - Each session shows as its own bar instead of being aggregated by week/month/year
-  - Added `getNewVsReviewProblemsPerSession()` function to show breakdown of new vs review problems per session
-  - Added `getIndividualSessionActivityData()` function for per-session activity metrics
-- Fixed Learning Efficiency chart showing "No Data" despite having completed sessions (#163)
-- Fixed property name mismatches: Changed all `session.Date` (PascalCase) to `session.date` (lowercase) across 12 locations
-  - dashboardService.js: 9 instances (lines 148, 729, 756, 1264, 1288, 1294, 1397, 1416, 1435)
-  - DataAdapter.js: 3 instances (lines 135, 212, 287)
-  - focusAreaHelpers.js: 1 instance (line 58)
-- Fixed streak calculation not sorting sessions correctly due to undefined date property
-- Fixed focus area date range filtering failing due to property mismatch
-- Fixed inverted efficiency formula inconsistency between Overview and Session History pages
-- Fixed Accuracy Trend chart showing only 2 aggregated data points instead of individual sessions
+### Released
+- **Chrome Web Store Release** - Initial public release
+- CodeMaster - Algorithm Learning Assistant officially published
 
-### Changed
-- **Breaking Change**: Charts now show individual session data instead of weekly/monthly/yearly aggregations
-  - Each completed session appears as its own data point on charts
-  - Time range filter now controls which sessions are displayed (not how they're grouped)
-  - Session Accuracy: Shows accuracy % for each individual session
-  - Learning Efficiency: Shows hints per problem for each individual session
-- Changed Learning Efficiency metric from "problems per hint" to "hints per problem" for better UX
-  - Lower values now indicate better efficiency (0.0 = perfect, no hints needed)
-  - Metric is more intuitive: "2.5 hints per problem" vs confusing "0.4 problems per hint"
-  - Tooltip now displays "Lower is better" to guide users
-- Removed "Primer" from Hints Used breakdown (primers are educational content, not tracked as interactive hints)
+### Features at Release
+- Personalized spaced repetition using Leitner system
+- Pattern ladder difficulty progression
+- Adaptive session creation with intelligent problem selection
+- Tag mastery tracking with 4-gate mastery system
+- LeetCode integration with timer and hint system
+- Dashboard with analytics and progress tracking
+- Dark/light theme support
+- Focus area selection and learning plans
+- Session history and productivity insights
 
-### Removed
-- Removed Time Accuracy placeholder metric from Average Time Per Problem card
-  - Was showing random values (75-95%) with no real calculation
-  - Proper implementation requires tracking recommended time limits at attempt creation
-  - Created Issue #180 to document full implementation requirements
+### Chrome Web Store Preparation (#205)
+- Created comprehensive chrome-store folder with all submission materials
+- 8 high-quality screenshots (1280x800 PNG)
+- Promotional tile (1400x560 PNG)
+- Complete documentation: PRIVACY_POLICY.md, TERMS_OF_SERVICE.md, STORE_LISTING.md
+- Configured Content Security Policy (CSP) in manifest.json
+- All 512px icons present and referenced correctly
 
-### Added
-- Added `enrichSessionsWithHintCounts()` function to populate real hint usage data from `hint_interactions` table
-  - Sessions now have `hintsUsed` property with actual count from database
-  - Replaced estimation formula with real interaction data
-  - Parallel processing with `Promise.all()` for performance
-- Added time range filter to Overview page that now applies to both charts AND KPI cards (#171)
-  - Options: "Last 7 days", "Last 30 days", "Quarter to date", "Year to date", "All time"
-  - Filter applies to Accuracy and Learning Efficiency charts
-  - Filter also recalculates KPI metric cards (Total Problems Solved, Average Time, Success Rate, Hints Used)
-  - New `recalculateKPIsFromSessions()` function in useStatsState.js
-  - KPIs dynamically update based on filtered session data
-- Added individual session efficiency calculation in DataAdapter
-  - New function: `getIndividualSessionEfficiencyData()`
-  - Calculates efficiency per session: `hintsUsed / successfulProblems`
-  - Sessions with zero hints show as 0.0 efficiency (perfect score)
-
-### Technical
-- Updated test `dashboardService.test.js` to expect `hintsUsed` property on enriched sessions
-- All tests passing (33 test suites, all passed)
-- No ESLint errors (7 minor warnings about function length)
+---
 
 ## Previous Changes
 
-See git commit history for changes prior to this changelog.
+See git commit history for changes prior to V1.0.0 release.

@@ -9,8 +9,8 @@ export function InsightsCard({ insights, timeRange }) {
       p="md"
       style={{
         borderLeft: `${rem(4)} solid var(--mantine-color-blue-5)`,
-        backgroundColor: 'var(--mantine-color-dark-8)',
-        border: '1px solid var(--mantine-color-dark-5)',
+        backgroundColor: 'var(--cm-card-bg)',
+        border: '1px solid var(--cm-border)',
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -40,7 +40,7 @@ export function InsightsCard({ insights, timeRange }) {
             insights.map((insight, index) => (
               <div key={index} style={{ textAlign: 'center' }}>
                 <Group justify="center" gap="xs" mb="xs">
-                  <IconTarget size={14} style={{ color: 'var(--mantine-color-dimmed)' }} />
+                  <IconTarget size={14} style={{ color: 'var(--cm-text-dimmed)' }} />
                   <Text fw={600} size="sm">{insight.title}</Text>
                 </Group>
                 <Text size="sm">

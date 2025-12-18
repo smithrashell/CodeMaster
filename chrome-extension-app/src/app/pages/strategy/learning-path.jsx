@@ -85,7 +85,7 @@ export function LearningPath() {
 
         {/* Learning Strategy Intelligence Panel */}
         <Grid.Col span={4}>
-          <Card withBorder p="lg" h="100%" style={{ backgroundColor: '#f8fafc', minHeight: '500px' }}>
+          <Card withBorder p="lg" h="100%" style={{ backgroundColor: 'var(--cm-bg-secondary)', minHeight: '500px' }}>
             <LearningStrategyPanel 
               selectedTag={selectedTag}
               pathData={pathData}

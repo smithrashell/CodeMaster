@@ -22,9 +22,9 @@ function Kpis({ items }) {
     <Grid gutter="sm">
       {items.map((k) => (
         <Grid.Col key={k.label} span={{ base: 6, sm: 3 }}>
-          <Card withBorder p="sm" style={{ background: "var(--surface)" }}>
-            <Text c="var(--muted)" size="xs">{k.label}</Text>
-            <Text fw={800} fz="xl" c="var(--text)">{k.value}</Text>
+          <Card withBorder p="sm" style={{ background: "var(--cm-card-bg)", border: '1px solid var(--cm-border)', textAlign: 'center' }}>
+            <Text c="var(--cm-text-dimmed)" size="xs">{k.label}</Text>
+            <Text fw={700} size="lg" c="var(--cm-text)">{k.value}</Text>
           </Card>
         </Grid.Col>
       ))}

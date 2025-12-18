@@ -5,16 +5,12 @@
  * No user choices - just Continue button
  */
 
-import React from "react";
+
 import { Modal, Button, Stack, Text, Card, Group, ThemeIcon } from "@mantine/core";
 import { IconTarget } from "@tabler/icons-react";
 import { RecalModalHeader } from "./RecalModalHeader";
-import { useTheme } from "../../../shared/provider/themeprovider";
 
 export function GentleRecalModal({ opened, onClose, strategy, onConfirm }) {
-  const { colorScheme } = useTheme();
-  const isDark = colorScheme === 'dark';
-
   const handleConfirm = () => {
     onConfirm(strategy.recommendation || strategy.approach);
   };
@@ -29,18 +25,18 @@ export function GentleRecalModal({ opened, onClose, strategy, onConfirm }) {
       padding="xl"
       styles={{
         modal: {
-          backgroundColor: isDark ? '#1a1b1e' : '#ffffff',
-          color: isDark ? '#ffffff' : '#000000',
+          backgroundColor: 'var(--cm-modal-bg)',
+          color: 'var(--cm-modal-text)',
         },
         body: {
-          color: isDark ? '#ffffff' : '#000000',
+          color: 'var(--cm-modal-text)',
         },
       }}
     >
       <Stack spacing="xl" align="center">
         <RecalModalHeader strategy={strategy} />
 
-        <Text size="md" ta="center" maw={400} c={isDark ? '#c1c2c5' : 'dimmed'}>
+        <Text size="md" ta="center" maw={400} c="var(--cm-modal-dimmed)">
           {strategy.message}
         </Text>
 
@@ -48,7 +44,7 @@ export function GentleRecalModal({ opened, onClose, strategy, onConfirm }) {
           withBorder
           p="md"
           style={{
-            backgroundColor: isDark ? '#1e3a8a' : '#e7f5ff',
+            backgroundColor: 'var(--cm-accent-bg)',
             width: '100%'
           }}
         >
@@ -58,7 +54,7 @@ export function GentleRecalModal({ opened, onClose, strategy, onConfirm }) {
             </ThemeIcon>
             <Stack spacing={2} style={{ flex: 1 }}>
               <Text fw={500} size="sm">What to expect</Text>
-              <Text size="xs" c={isDark ? '#93c5fd' : 'blue'}>
+              <Text size="xs" c="var(--cm-accent-text)">
                 We&apos;ve already applied some gentle adjustments to your learning path.
                 Your next session will adapt in real-time to help us recalibrate your current level.
               </Text>

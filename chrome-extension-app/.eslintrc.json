@@ -77,10 +77,18 @@
     "no-new-func": "warn",
     
     // === CHROME EXTENSION COMPATIBILITY ===
-    "no-restricted-syntax": ["error", {
-      "selector": "ImportExpression",
-      "message": "Dynamic imports are not allowed in Chrome extensions. Use static imports instead."
-    }],
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "ImportExpression",
+        "message": "Dynamic imports are not allowed in Chrome extensions. Use static imports instead."
+      }
+    ],
+
+    // === THEMING CONSISTENCY ===
+    // GUIDELINE: Use CSS variables (var(--cm-*)) from theme.css instead of hardcoded hex colors
+    // This ensures proper dark mode support. See CLAUDE.md "Theming Guidelines" for details.
+    // Common variables: --cm-modal-bg, --cm-tooltip-bg, --cm-accent-bg, --cm-status-easy/medium/hard
 
     // === REACT SPECIFIC ===
     "react/react-in-jsx-scope": "off",

@@ -1,6 +1,34 @@
-import { Grid, Card, Text, Badge, Box } from "@mantine/core";
+import { Grid, Card, Text, Badge, Box, Group } from "@mantine/core";
 
-const KPI_HEIGHT = 132;
+const KPI_HEIGHT = 110;
+
+// Consistent KPI card matching session-history.jsx SlimKPI pattern
+function KPICard({ title, value, sub }) {
+  return (
+    <Card p="sm" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)', textAlign: 'center', height: '100%' }}>
+      <Text size="xs" mb={2}>{title}</Text>
+      <Group align="baseline" gap={4} justify="center">
+        <Text size="lg" fw={700}>{value}</Text>
+      </Group>
+      {sub && <Text size="xs" c="var(--cm-text-dimmed)">{sub}</Text>}
+    </Card>
+  );
+}
+
+// Badge-based KPI card for status values
+function BadgeKPICard({ title, badge, badgeColor, sub }) {
+  return (
+    <Card p="sm" radius="md" style={{ backgroundColor: 'var(--cm-card-bg)', border: '1px solid var(--cm-border)', textAlign: 'center', height: '100%' }}>
+      <Text size="xs" mb={4}>{title}</Text>
+      <Group justify="center">
+        <Badge variant="light" color={badgeColor} size="md">
+          {badge}
+        </Badge>
+      </Group>
+      {sub && <Text size="xs" c="var(--cm-text-dimmed)" mt={4}>{sub}</Text>}
+    </Card>
+  );
+}
 
 export function ProgressKPICards({
   totalProblems,
@@ -10,66 +38,45 @@ export function ProgressKPICards({
   nextReviewTime,
   nextReviewCount
 }) {
-  const kpiData = [
-    {
-      id: 'box-distribution',
-      card: (
-        <Card withBorder p="lg" style={{ textAlign: 'center' }}>
-          <Text size="lg" fw={600} mb="xs">Box Distribution</Text>
-          <Text size="xl" fw={700} style={{ color: 'var(--cm-text)', fontSize: '1.4rem' }}>
-            {totalProblems} problems
-          </Text>
-          <Text size="xs">across 7 boxes</Text>
-        </Card>
-      )
-    },
-    {
-      id: 'strategy-success',
-      card: (
-        <Card withBorder p="lg" style={{ textAlign: 'center' }}>
-          <Text size="lg" fw={600} mb="xs">Strategy Success</Text>
-          <Text size="xl" fw={700} style={{ color: 'var(--cm-text)', fontSize: '1.4rem' }}>
-            {strategySuccessRate ?? 0}%
-          </Text>
-          <Text size="xs">effectiveness rate</Text>
-        </Card>
-      )
-    },
-    {
-      id: 'timer-behavior',
-      card: (
-        <Card withBorder p="lg" style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <Text size="lg" fw={600} mb="xs">Timer Behavior</Text>
-          <Badge variant="light" color="teal" size="lg" style={{ fontSize: '0.9rem', padding: '8px 12px', marginBottom: '8px' }}>
-            {timerBehavior}
-          </Badge>
-          <Text size="xs">{timerPercentage}% within limits</Text>
-        </Card>
-      )
-    },
-    {
-      id: 'next-review',
-      card: (
-        <Card withBorder p="lg" style={{ textAlign: 'center' }}>
-          <Text size="lg" fw={600} mb="xs">Next Review</Text>
-          <Text size="md" fw={600} style={{ color: 'var(--cm-text)' }}>
-            {nextReviewTime}
-          </Text>
-          <Text size="xs">{nextReviewCount} problems ready</Text>
-        </Card>
-      )
-    }
-  ];
-
   return (
     <Grid gutter="md" align="stretch">
-      {kpiData.map(({ id, card }) => (
-        <Grid.Col key={id} span={{ base: 12, sm: 6, lg: 3 }}>
-          <Box h={KPI_HEIGHT} style={{ display: "flex", flexDirection: "column" }}>
-            {card}
-          </Box>
-        </Grid.Col>
-      ))}
+      <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+        <Box h={KPI_HEIGHT}>
+          <KPICard
+            title="Box Distribution"
+            value={`${totalProblems} problems`}
+            sub="across 7 boxes"
+          />
+        </Box>
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+        <Box h={KPI_HEIGHT}>
+          <KPICard
+            title="Strategy Success"
+            value={`${strategySuccessRate ?? 0}%`}
+            sub="effectiveness rate"
+          />
+        </Box>
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+        <Box h={KPI_HEIGHT}>
+          <BadgeKPICard
+            title="Timer Behavior"
+            badge={timerBehavior}
+            badgeColor="teal"
+            sub={`${timerPercentage}% within limits`}
+          />
+        </Box>
+      </Grid.Col>
+      <Grid.Col span={{ base: 12, sm: 6, lg: 3 }}>
+        <Box h={KPI_HEIGHT}>
+          <KPICard
+            title="Next Review"
+            value={nextReviewTime}
+            sub={`${nextReviewCount} problems ready`}
+          />
+        </Box>
+      </Grid.Col>
     </Grid>
   );
 }
