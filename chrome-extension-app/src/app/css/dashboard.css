@@ -30,20 +30,6 @@ body {
   color: var(--cm-text);
 }
 
-/* Dark mode overrides for dashboard */
-body[data-theme="dark"] .mantine-Text-root,
-body[data-theme="dark"] .mantine-Title-root {
-  color: var(--cm-text);
-}
-
-body[data-theme="dark"] .mantine-Card-root,
-body[data-theme="dark"] [data-mantine-card],
-body[data-theme="dark"] .mantine-Paper-root {
-  background-color: var(--cm-card-bg);
-  color: var(--cm-text);
-  border-color: var(--cm-border);
-}
-
 /* ========= Semantic Card Classes ========= */
 
 /* Base card styling */
