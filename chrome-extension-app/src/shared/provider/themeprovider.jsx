@@ -227,15 +227,23 @@ const createStorageChangeHandler = (applySettings) => {
         return;
       }
 
-      // Check if localStorage has newer settings before applying Chrome storage changes
-      const localCheck = checkLocalStorageSettings(newSettings);
-      if (localCheck.isNewer) {
-        console.info("🔄 Ignoring Chrome storage change (localStorage is newer)");
-        return;
-      }
-
+      // Always apply Chrome storage changes for cross-context sync
+      // Chrome storage is authoritative - localStorage is origin-specific and can't be
+      // used for cross-context comparisons (dashboard vs content script have different localStorage)
       const processed = processSettings(newSettings);
       applySettings(processed);
+
+      // Update localStorage to match Chrome storage (keeps local cache in sync)
+      if (typeof localStorage !== "undefined") {
+        try {
+          localStorage.setItem(STORAGE_KEYS.THEME_SETTINGS, JSON.stringify({
+            ...processed,
+            _timestamp: newSettings._timestamp || Date.now()
+          }));
+        } catch (e) {
+          console.warn("Failed to sync localStorage with Chrome storage:", e);
+        }
+      }
     }
   };
 };
