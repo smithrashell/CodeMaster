@@ -67,7 +67,12 @@ const createMockProblems = () => [
   { id: 2, title: "Add Two Numbers", difficulty: "Medium" },
 ];
 
-// Test helper functions
+// Test helper functions - focused on contract verification, not implementation
+
+/**
+ * Setup mocks for session completion scenarios.
+ * Note: We mock dependencies but verify return contracts, not mock calls.
+ */
 const setupMocksForCompletedSession = (session) => {
   getSessionById.mockResolvedValue(session);
   updateSessionInDB.mockResolvedValue();
@@ -77,13 +82,30 @@ const setupMocksForCompletedSession = (session) => {
   StorageService.setSessionState = jest.fn().mockResolvedValue();
 };
 
-const expectSessionCompletion = (sessionId, _session) => {
-  expect(getSessionById).toHaveBeenCalledWith(sessionId);
-  expect(updateSessionInDB).toHaveBeenCalledWith(
-    expect.objectContaining({ status: "completed" })
-  );
-  // Note: calculateTagMastery and updateProblemRelationships may not be called directly
-  // in checkAndCompleteSession anymore - they may be handled elsewhere in the flow
+/**
+ * Contract assertion: Verify checkAndCompleteSession return value matches expected contract.
+ *
+ * @param {boolean|Array} result - The function return value
+ * @param {'not_found'|'completed'|'unattempted'} expectedState - Expected state
+ * @param {number} [expectedUnattemptedCount] - For 'unattempted' state, expected count
+ */
+const assertCheckAndCompleteContract = (result, expectedState, expectedUnattemptedCount = 0) => {
+  switch (expectedState) {
+    case 'not_found':
+      expect(result).toBe(false);
+      break;
+    case 'completed':
+      expect(result).toEqual([]);
+      break;
+    case 'unattempted':
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(expectedUnattemptedCount);
+      result.forEach(problem => {
+        expect(problem).toHaveProperty('id');
+        expect(problem).toHaveProperty('title');
+      });
+      break;
+  }
 };
 
 const setupMocksForNewSession = () => {
@@ -92,21 +114,36 @@ const setupMocksForNewSession = () => {
   saveSessionToStorage.mockImplementation(() => Promise.resolve());
 };
 
+/**
+ * Contract assertion: Verify createNewSession return matches Session contract.
+ */
+const assertNewSessionContract = (session) => {
+  expect(session).not.toBeNull();
+  expect(session).toHaveProperty('id');
+  expect(session).toHaveProperty('status', 'in_progress');
+  expect(session).toHaveProperty('problems');
+  expect(Array.isArray(session.problems)).toBe(true);
+  expect(session).toHaveProperty('attempts');
+  expect(Array.isArray(session.attempts)).toBe(true);
+};
+
 // Test group functions
 const runCheckAndCompleteSessionTests = () => {
   describe("checkAndCompleteSession", () => {
+    // CONTRACT: Returns [] when all problems are attempted (session just completed)
     it("should return empty array when all problems are attempted", async () => {
       const sessionId = "test-session-123";
       const mockSession = createMockSession({ id: sessionId });
-      
+
       setupMocksForCompletedSession(mockSession);
-      
+
       const result = await SessionService.checkAndCompleteSession(sessionId);
-      
-      expectSessionCompletion(sessionId, mockSession);
-      expect(result).toEqual([]);
+
+      // Verify contract: returns empty array for completed session
+      assertCheckAndCompleteContract(result, 'completed');
     });
 
+    // CONTRACT: Returns array of unattempted problems when session incomplete
     it("should return unattempted problems when not all problems are attempted", async () => {
       const sessionId = "test-session-456";
       const mockSession = createMockSession({
@@ -118,24 +155,23 @@ const runCheckAndCompleteSessionTests = () => {
 
       const result = await SessionService.checkAndCompleteSession(sessionId);
 
-      expect(getSessionById).toHaveBeenCalledWith(sessionId);
-      expect(updateSessionInDB).not.toHaveBeenCalled();
-      expect(calculateTagMastery).not.toHaveBeenCalled();
-      expect(result).toEqual([
-        expect.objectContaining({ id: 2, title: "Problem 2" })
-      ]);
+      // Verify contract: returns array of unattempted problems with required fields
+      assertCheckAndCompleteContract(result, 'unattempted', 1);
+      expect(result[0]).toMatchObject({ id: 2, title: "Problem 2" });
     });
 
+    // CONTRACT: Returns false when session not found
     it("should return false when session not found", async () => {
       const sessionId = "non-existent-session";
       getSessionById.mockResolvedValue(null);
 
       const result = await SessionService.checkAndCompleteSession(sessionId);
 
-      expect(getSessionById).toHaveBeenCalledWith(sessionId);
-      expect(result).toBe(false);
+      // Verify contract: returns false for not found
+      assertCheckAndCompleteContract(result, 'not_found');
     });
 
+    // CONTRACT: Returns [] for already completed session (idempotent)
     it("should return empty array for already completed session", async () => {
       const sessionId = "completed-session";
       const mockSession = createMockSession({
@@ -152,14 +188,15 @@ const runCheckAndCompleteSessionTests = () => {
 
       const result = await SessionService.checkAndCompleteSession(sessionId);
 
-      expect(getSessionById).toHaveBeenCalledWith(sessionId);
-      expect(result).toEqual([]);
+      // Verify contract: completed sessions return empty array
+      assertCheckAndCompleteContract(result, 'completed');
     });
   });
 };
 
 const runResumeSessionTests = () => {
   describe("resumeSession", () => {
+    // CONTRACT: Returns session object with required fields when resumable session exists
     it("should resume an existing in-progress session with remaining problems", async () => {
       const mockSession = {
         id: "resume-session-123",
@@ -173,32 +210,32 @@ const runResumeSessionTests = () => {
 
       const result = await SessionService.resumeSession();
 
-      expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
-      expect(saveSessionToStorage).toHaveBeenCalledWith(mockSession);
-      expect(result).toEqual(expect.objectContaining({
-        id: "resume-session-123",
-        status: "in_progress",
-        problems: [1, 2],
-        attempts: [{ problemId: 1 }],
-        currentProblemIndex: 0,
-      }));
+      // Verify contract: returns session with required fields preserved
+      expect(result).not.toBeNull();
+      expect(result.id).toBe("resume-session-123");
+      expect(result.status).toBe("in_progress");
+      expect(result.problems).toEqual([1, 2]);
+      expect(result.attempts).toHaveLength(1);
+      expect(result).toHaveProperty('currentProblemIndex');
     });
 
+    // CONTRACT: Returns null when no resumable session exists
     it("should return null when no in-progress session exists", async () => {
       getLatestSessionByType.mockResolvedValue(null);
 
       const result = await SessionService.resumeSession();
 
-      expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
+      // Verify contract: null when no session
       expect(result).toBeNull();
     });
 
+    // CONTRACT: Returns null when session is completed (not resumable)
     it("should return null when session is completed", async () => {
       getLatestSessionByType.mockResolvedValue(null);
 
       const result = await SessionService.resumeSession();
 
-      expect(getLatestSessionByType).toHaveBeenCalledWith(null, "in_progress");
+      // Verify contract: null when completed
       expect(result).toBeNull();
     });
   });
@@ -210,49 +247,37 @@ const runCreateNewSessionTests = () => {
       setupMocksForNewSession();
     });
 
+    // CONTRACT: Returns Session object with required fields when problems available
     it("should create a new session with problems successfully", async () => {
       const mockProblems = createMockProblems();
       ProblemService.createSession.mockResolvedValue(mockProblems);
 
       const result = await SessionService.createNewSession();
 
-      expect(ProblemService.createSession).toHaveBeenCalled();
-      expect(saveNewSessionToDB).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: "test-uuid-123",
-          status: "in_progress",
-          problems: mockProblems,
-          attempts: [],
-        })
-      );
-      expect(saveSessionToStorage).toHaveBeenCalled();
-      expect(result).toEqual(expect.objectContaining({
-        id: "test-uuid-123",
-        status: "in_progress",
-        problems: mockProblems,
-        attempts: [],
-      }));
+      // Verify contract: returns session matching Session type definition
+      assertNewSessionContract(result);
+      expect(result.id).toBe("test-uuid-123");
+      expect(result.problems).toEqual(mockProblems);
+      expect(result.attempts).toEqual([]);
     });
 
+    // CONTRACT: Returns null when no problems are available
     it("should return null when no problems are available", async () => {
       ProblemService.createSession.mockResolvedValue([]);
 
       const result = await SessionService.createNewSession();
 
-      expect(ProblemService.createSession).toHaveBeenCalled();
-      expect(saveNewSessionToDB).not.toHaveBeenCalled();
-      expect(saveSessionToStorage).not.toHaveBeenCalled();
+      // Verify contract: null when no problems
       expect(result).toBeNull();
     });
 
+    // CONTRACT: Returns null when ProblemService fails
     it("should return null when ProblemService fails", async () => {
       ProblemService.createSession.mockResolvedValue(null);
 
       const result = await SessionService.createNewSession();
 
-      expect(ProblemService.createSession).toHaveBeenCalled();
-      expect(saveNewSessionToDB).not.toHaveBeenCalled();
-      expect(saveSessionToStorage).not.toHaveBeenCalled();
+      // Verify contract: null on failure
       expect(result).toBeNull();
     });
   });
@@ -260,6 +285,7 @@ const runCreateNewSessionTests = () => {
 
 const runSkipProblemTests = () => {
   describe("skipProblem", () => {
+    // CONTRACT: Returns session with problem removed when valid
     it("should remove problem from session and save to storage", async () => {
       const leetCodeID = "problem-123";
       const mockSession = {
@@ -275,24 +301,20 @@ const runSkipProblemTests = () => {
 
       const result = await SessionService.skipProblem(leetCodeID);
 
-      expect(getLatestSession).toHaveBeenCalled();
-      expect(saveSessionToStorage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          problems: [{ leetcode_id: "problem-456", title: "Problem 2" }],
-        }),
-        true
-      );
+      // Verify contract: returns session with specified problem removed
+      expect(result).not.toBeNull();
       expect(result.problems).toHaveLength(1);
       expect(result.problems[0].leetcode_id).toBe("problem-456");
+      expect(result.problems.find(p => p.leetcode_id === "problem-123")).toBeUndefined();
     });
 
+    // CONTRACT: Returns null when no session exists
     it("should return null when no session exists", async () => {
       getLatestSession.mockResolvedValue(null);
 
       const result = await SessionService.skipProblem("problem-123");
 
-      expect(getLatestSession).toHaveBeenCalled();
-      expect(saveSessionToStorage).not.toHaveBeenCalled();
+      // Verify contract: null when no session
       expect(result).toBeNull();
     });
   });

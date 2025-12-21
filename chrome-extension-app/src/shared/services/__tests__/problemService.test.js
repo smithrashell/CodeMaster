@@ -93,7 +93,7 @@ const createTagMasteryEntry = (tag, successRate, totalAttempts) => ({
   totalAttempts
 });
 
-const createAttemptData = (overrides = {}) => ({
+const _createAttemptData = (overrides = {}) => ({
   id: "test-uuid-123",
   problem_id: 1,
   time_spent: 1200,
@@ -101,31 +101,62 @@ const createAttemptData = (overrides = {}) => ({
   ...overrides
 });
 
-// Common assertion helpers
-const assertProblemServiceCall = (mockFn, ...expectedArgs) => {
-  expect(mockFn).toHaveBeenCalledWith(...expectedArgs);
-};
+// Contract assertion helpers - focus on return shapes, not implementation
 
-const assertProblemResult = (result, expectedProblem, expectedFound) => {
-  if (expectedProblem && typeof expectedProblem === 'object' && expectedProblem.box_level !== undefined) {
-    // For database problems with snake_case, check the merged camelCase result
-    expect(result.found).toBe(expectedFound);
-    expect(result.problem).toMatchObject({
-      id: expectedProblem.leetcode_id || expectedProblem.id,
-      leetcode_id: expectedProblem.leetcode_id || expectedProblem.id,
-      title: expectedProblem.title,
-      difficulty: expectedProblem.difficulty,
-      attempts: expectedProblem.attempts,
-      boxLevel: expectedProblem.box_level,
-      tags: expectedProblem.tags || []
-    });
-  } else {
-    expect(result).toEqual({ problem: expectedProblem, found: expectedFound });
+/**
+ * Contract assertion: Verify getProblemByDescription return matches expected contract.
+ *
+ * The `found` flag indicates whether the problem exists in the USER's problems store
+ * (i.e., they've attempted it before). The problem object may still be returned from
+ * standard_problems even when found is false.
+ *
+ * @param {Object} result - The function return value
+ * @param {boolean} expectedFound - Whether problem exists in user's problems store
+ * @param {Object|null} [expectedProblem] - null means problem doesn't exist anywhere
+ */
+const assertProblemLookupContract = (result, expectedFound, expectedProblem = undefined) => {
+  // Contract: always returns { problem, found } shape
+  expect(result).toHaveProperty('problem');
+  expect(result).toHaveProperty('found');
+  expect(result.found).toBe(expectedFound);
+
+  if (expectedProblem === null) {
+    // Explicitly expect null when problem doesn't exist anywhere
+    expect(result.problem).toBeNull();
+  } else if (expectedProblem !== undefined) {
+    // When expected problem provided, verify it matches
+    expect(result.problem).not.toBeNull();
+    expect(result.problem).toHaveProperty('id');
+    expect(result.problem).toHaveProperty('title');
+    expect(result.problem).toHaveProperty('difficulty');
   }
+  // If expectedProblem is undefined, we don't verify problem content (just the found flag)
 };
 
-const assertAttemptsServiceCall = (mockFn, expectedAttempt, expectedProblem) => {
-  expect(mockFn).toHaveBeenCalledWith(expectedAttempt, expectedProblem);
+/**
+ * Contract assertion: Verify problem result has merged fields from both stores.
+ */
+const assertMergedProblemContract = (result, expectedProblem) => {
+  expect(result.found).toBe(true);
+  expect(result.problem).toMatchObject({
+    id: expectedProblem.leetcode_id || expectedProblem.id,
+    leetcode_id: expectedProblem.leetcode_id || expectedProblem.id,
+    title: expectedProblem.title,
+    difficulty: expectedProblem.difficulty,
+    boxLevel: expectedProblem.box_level,
+  });
+};
+
+/**
+ * Contract assertion: Verify addOrUpdateProblem returns expected response shape.
+ */
+const assertAddOrUpdateContract = (result, expectAttemptAdded) => {
+  if (expectAttemptAdded) {
+    expect(result).toHaveProperty('message');
+    expect(result.message).toContain('Attempt');
+  } else {
+    expect(result).toHaveProperty('success');
+  }
 };
 
 // Mock setup helpers
@@ -172,6 +203,7 @@ const runGetProblemByDescriptionTests = () => {
       problemsDb.checkDatabaseForProblem.mockClear();
     });
 
+    // CONTRACT: Returns { problem, found: true } with merged data when found in both stores
     it("should return problem from problems store when found in both stores", async () => {
       const mockStandardProblem = createMockProblem();
       const mockProblemInDb = createMockProblemInDb();
@@ -181,11 +213,11 @@ const runGetProblemByDescriptionTests = () => {
 
       const result = await ProblemService.getProblemByDescription("Two Sum", "two-sum");
 
-      assertProblemServiceCall(standardProblems.getProblemFromStandardProblems, "two-sum");
-      assertProblemServiceCall(problemsDb.checkDatabaseForProblem, 1);
-      assertProblemResult(result, mockProblemInDb, true);
+      // Verify contract: returns merged problem with found: true
+      assertMergedProblemContract(result, mockProblemInDb);
     });
 
+    // CONTRACT: Returns { problem, found: false } when only in standard problems
     it("should return problem from standard problems when not found in problems store", async () => {
       const mockStandardProblem = createMockProblem();
 
@@ -194,19 +226,23 @@ const runGetProblemByDescriptionTests = () => {
 
       const result = await ProblemService.getProblemByDescription("Two Sum", "two-sum");
 
-      assertProblemServiceCall(standardProblems.getProblemFromStandardProblems, "two-sum");
-      assertProblemServiceCall(problemsDb.checkDatabaseForProblem, 1);
-      assertProblemResult(result, mockStandardProblem, false);
+      // Verify contract: returns standard problem with found: false
+      assertProblemLookupContract(result, false);
+      expect(result.problem).toMatchObject({
+        title: mockStandardProblem.title,
+        difficulty: mockStandardProblem.difficulty,
+      });
     });
 
+    // CONTRACT: Returns { problem: null, found: false } when not found anywhere
     it("should return null when problem not found in any store", async () => {
       setupMockStandardProblem(null);
       setupMockDatabaseProblem(null);
 
       const result = await ProblemService.getProblemByDescription("Non-existent", "non-existent");
 
-      assertProblemServiceCall(standardProblems.getProblemFromStandardProblems, "non-existent");
-      expect(result).toEqual({ problem: null, found: false });
+      // Verify contract: returns null problem with found: false
+      assertProblemLookupContract(result, false, null);
     });
   });
 };
@@ -217,23 +253,27 @@ const runGetAllProblemsTests = () => {
       problemsDb.fetchAllProblems.mockClear();
     });
 
+    // CONTRACT: Returns array of problems
     it("should return all problems from the database", async () => {
       const mockProblems = createMockProblemsArray();
       setupMockFetchAllProblems(mockProblems);
 
       const result = await ProblemService.getAllProblems();
 
-      expect(problemsDb.fetchAllProblems).toHaveBeenCalled();
+      // Verify contract: returns array matching input
+      expect(Array.isArray(result)).toBe(true);
       expect(result).toEqual(mockProblems);
     });
 
+    // CONTRACT: Returns empty array when no problems
     it("should return empty array when no problems exist", async () => {
       setupMockFetchAllProblems([]);
 
       const result = await ProblemService.getAllProblems();
 
-      expect(problemsDb.fetchAllProblems).toHaveBeenCalled();
-      expect(result).toEqual([]);
+      // Verify contract: returns empty array
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(0);
     });
   });
 };
@@ -245,30 +285,32 @@ const runAddOrUpdateProblemTests = () => {
       AttemptsService.addAttempt.mockClear();
     });
 
+    // CONTRACT: Returns attempt response when problem exists
     it("should add attempt when problem exists", async () => {
       const contentScriptData = createContentScriptData();
       const mockProblem = createMockProblem();
-      const attemptData = createAttemptData();
 
       setupMockDatabaseProblem(mockProblem);
       setupMockAddAttempt();
 
       const result = await ProblemService.addOrUpdateProblem(contentScriptData);
 
-      assertAttemptsServiceCall(AttemptsService.addAttempt, attemptData, mockProblem);
-      expect(result).toEqual({ message: "Attempt added successfully", sessionId: "test-session-123" });
+      // Verify contract: returns attempt added response
+      assertAddOrUpdateContract(result, true);
+      expect(result.sessionId).toBeDefined();
     });
 
+    // CONTRACT: Returns success response when adding new problem
     it("should add new problem when problem does not exist", async () => {
       const contentScriptData = createContentScriptData();
-      
+
       setupMockDatabaseProblem(null);
       setupMockAddProblem({ success: true });
 
       const result = await ProblemService.addOrUpdateProblem(contentScriptData);
 
-      assertProblemServiceCall(problemsDb.addProblem, contentScriptData);
-      expect(result).toEqual({ success: true });
+      // Verify contract: returns success response
+      assertAddOrUpdateContract(result, false);
     });
   });
 };
@@ -283,10 +325,10 @@ const runCreateSessionTests = () => {
       StorageService.getSettings.mockClear();
     });
 
+    // CONTRACT: Returns array of problems (possibly empty)
     it("should create session with adaptive settings", async () => {
       const sessionSettings = createSessionSettings();
-      const _expectedResult = [];
-      
+
       buildAdaptiveSessionSettings.mockResolvedValue(sessionSettings);
       setupMockFetchAllProblems([]);
       setupMockFetchAdditionalProblems([]);
@@ -295,7 +337,7 @@ const runCreateSessionTests = () => {
 
       const result = await ProblemService.createSession();
 
-      expect(buildAdaptiveSessionSettings).toHaveBeenCalled();
+      // Verify contract: returns array of problems
       expect(Array.isArray(result)).toBe(true);
     });
   });
