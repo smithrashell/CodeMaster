@@ -1,3 +1,17 @@
+/**
+ * Session Service - Core session lifecycle management.
+ *
+ * @module sessionService
+ *
+ * DATA CONTRACT DOCUMENTATION
+ * ==========================
+ * This module manages learning session creation, tracking, and completion.
+ * Sessions contain problems, attempts, and analytics data.
+ *
+ * IMPORTANT: Field types and structures documented here are critical for
+ * maintaining compatibility with consumers (content scripts, dashboard, etc).
+ */
+
 import {
   getSessionById,
   getLatestSession,
@@ -15,6 +29,86 @@ import { v4 as uuidv4 } from "uuid";
 import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 import { IndexedDBRetryService } from "../storage/indexedDBRetryService.js";
 import logger from "../../utils/logging/logger.js";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * @typedef {'standard'|'interview-like'|'full-interview'} SessionType
+ * - 'standard': Regular guided session with full hints available
+ * - 'interview-like': Limited hints, mild time pressure
+ * - 'full-interview': No hints, strict timing, realistic conditions
+ */
+
+/**
+ * @typedef {Object} SessionProblem
+ * @property {number} id - Internal database ID.
+ * @property {string} problem_id - UUID for the problem in database.
+ * @property {number} leetcode_id - CRITICAL: LeetCode ID number (must be valid number).
+ * @property {string} title - Problem title.
+ * @property {string} slug - URL slug for the problem.
+ * @property {string} difficulty - 'Easy', 'Medium', or 'Hard'.
+ * @property {Array<string>} Tags - Array of topic tags.
+ */
+
+/**
+ * @typedef {Object} SessionAttempt
+ * @property {string} attempt_id - UUID for the attempt.
+ * @property {number} leetcode_id - CRITICAL: Must match problem's leetcode_id.
+ * @property {boolean} success - Whether the attempt was successful.
+ * @property {number} time_spent - Time spent in seconds.
+ * @property {string} attempt_date - ISO timestamp of attempt.
+ */
+
+/**
+ * @typedef {Object} InterviewConfig
+ * @property {boolean} hintsEnabled - Whether hints are available.
+ * @property {number} timePressure - Time pressure level (0-100).
+ * @property {boolean} strictTiming - Whether timing is enforced strictly.
+ */
+
+/**
+ * @typedef {Object} Session
+ * @property {string} id - UUID for the session.
+ * @property {string} date - ISO timestamp of session creation.
+ * @property {'in_progress'|'completed'} status - Current session status.
+ * @property {'generator'|'tracking'} origin - How session was created.
+ * @property {string} last_activity_time - ISO timestamp of last activity.
+ * @property {Array<SessionProblem>} problems - Problems in the session.
+ * @property {Array<SessionAttempt>} attempts - Recorded attempts.
+ * @property {number} current_problem_index - Index of current problem.
+ * @property {SessionType} session_type - Type of session.
+ * @property {number} [accuracy] - Calculated on completion: successfulAttempts / totalAttempts.
+ * @property {number} [duration] - Calculated on completion: total time in minutes.
+ * @property {InterviewConfig} [interviewConfig] - Interview sessions only.
+ * @property {Object} [interviewMetrics] - Interview sessions only.
+ */
+
+/**
+ * @typedef {Object} SessionPerformanceSummary
+ * @property {string} sessionId - The session ID.
+ * @property {number} totalProblems - Number of problems in session.
+ * @property {number} attemptedProblems - Number of problems attempted.
+ * @property {number} successfulAttempts - Count of successful attempts.
+ * @property {number} accuracy - Success rate (0-1).
+ * @property {Object} difficultyBreakdown - Performance by difficulty.
+ * @property {Object} tagPerformance - Performance by tag.
+ * @property {Array<Object>} masteryDeltas - Changes in tag mastery.
+ * @property {Object} insights - Generated insights about the session.
+ */
+
+/**
+ * @typedef {Object} CheckAndCompleteResult
+ * Return type varies based on session state:
+ * - `false`: Invalid sessionId or session not found
+ * - `[]`: Session completed (either already complete or just completed)
+ * - `Array<SessionProblem>`: Unattempted problems remaining
+ */
+
+// ============================================================================
+// IMPLEMENTATION
+// ============================================================================
 
 // Import extracted helpers
 import {
@@ -120,8 +214,27 @@ export const SessionService = {
   /**
    * Centralizes session performance analysis and tracking.
    * Orchestrates tag mastery, problem relationships, and session metrics.
-   * @param {Object} session - The completed session object
-   * @returns {Object} Comprehensive session performance summary
+   *
+   * Used by: checkAndCompleteSession() after marking session complete.
+   *
+   * NOTE: This is the actual analytics function (not "getSessionStats" which
+   * does not exist). Use this for comprehensive session performance data.
+   *
+   * BEHAVIOR:
+   * - Handles edge cases: empty attempts, ad-hoc sessions without problems
+   * - Calculates mastery deltas for all attempted tags
+   * - Updates tag relationships based on co-occurrence
+   * - Generates insights about session performance
+   * - Stores summary for historical tracking
+   *
+   * @param {Session} session - The completed session object with attempts.
+   * @returns {Promise<SessionPerformanceSummary>} Comprehensive performance summary.
+   *
+   * @example
+   * const summary = await SessionService.summarizeSessionPerformance(session);
+   * // summary.accuracy === 0.75 (number 0-1)
+   * // summary.masteryDeltas === [{tag: 'Array', delta: 0.1}, ...]
+   * // summary.insights === {strengths: [...], improvements: [...]}
    */
   async summarizeSessionPerformance(session) {
     const queryContext = performanceMonitor.startQuery(
@@ -268,6 +381,36 @@ export const SessionService = {
 
   /**
    * Checks if all session problems are attempted and marks the session as complete.
+   *
+   * Used by: attemptsService.js after recording an attempt, background handlers.
+   *
+   * SIDE EFFECTS:
+   * - Updates session.status to "completed" if all problems attempted
+   * - Calculates and sets session.accuracy and session.duration
+   * - Calls updateSessionStateOnCompletion() for session count tracking
+   * - Triggers cache invalidation via Chrome message
+   * - Calls summarizeSessionPerformance() for analytics
+   *
+   * CRITICAL:
+   * - All problems MUST have valid leetcode_id (throws if missing)
+   * - Uses strict number comparison for leetcode_id matching
+   *
+   * @param {string} sessionId - The UUID of the session to check.
+   * @returns {Promise<boolean|Array<SessionProblem>>} Returns:
+   *   - `false`: Invalid sessionId or session not found
+   *   - `[]`: Session completed (already complete or just completed now)
+   *   - `Array<SessionProblem>`: List of unattempted problems remaining
+   * @throws {Error} If any problem is missing a valid leetcode_id.
+   *
+   * @example
+   * const result = await SessionService.checkAndCompleteSession(sessionId);
+   * if (result === false) {
+   *   // Session not found
+   * } else if (result.length === 0) {
+   *   // Session complete!
+   * } else {
+   *   // result contains unattempted problems
+   * }
    */
   async checkAndCompleteSession(sessionId) {
     // Validate sessionId before database call
@@ -449,8 +592,34 @@ export const SessionService = {
 
   /**
    * Creates a new session with fresh problems.
-   * @param {string} sessionType - Session type ('standard', 'interview-like', 'full-interview')
-   * @returns {Promise<Object|null>} - Session object or null on failure
+   *
+   * Used by: getOrCreateSession(), refreshSession(), background handlers.
+   *
+   * BEHAVIOR:
+   * - Enforces one active session per type policy
+   * - Marks existing in_progress sessions of same type as completed
+   * - Uses ProblemService.createSession() for standard sessions
+   * - Uses ProblemService.createInterviewSession() for interview sessions
+   *
+   * SIDE EFFECTS:
+   * - Marks existing in_progress sessions as completed
+   * - Saves new session to database and storage
+   * - Uses retry service with deduplication for reliability
+   *
+   * RACE CONDITION PREVENTION:
+   * - Uses sessionCreationLocks Map to prevent concurrent creation
+   * - If creation is already in progress, waits for existing promise
+   *
+   * @param {SessionType} [sessionType='standard'] - Type of session to create.
+   * @returns {Promise<Session|null>} The created session object, or null if no problems available.
+   *
+   * @example
+   * // Create standard session
+   * const session = await SessionService.createNewSession();
+   *
+   * // Create interview session
+   * const interviewSession = await SessionService.createNewSession('interview-like');
+   * // interviewSession.interviewConfig will be present
    */
   async createNewSession(sessionType = 'standard') {
     const queryContext = performanceMonitor.startQuery("createNewSession", {

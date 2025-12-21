@@ -1,3 +1,20 @@
+/**
+ * Problem Service - Core problem management and session creation.
+ *
+ * @module problemService
+ *
+ * DATA CONTRACT DOCUMENTATION
+ * ==========================
+ * This module manages problem fetching, session creation, and problem updates.
+ * Problems are normalized to a standard structure before being returned.
+ *
+ * IMPORTANT: All problems returned from createSession() are normalized with
+ * required fields validated. See NormalizedProblem typedef for the contract.
+ *
+ * NOTE: There is no `getNextProblem()` function. Session navigation is handled
+ * by indexing into `session.problems[current_problem_index]` directly.
+ */
+
 import {
   countProblemsByBoxLevel,
   addProblem,
@@ -14,6 +31,52 @@ import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
 import logger from "../../utils/logging/logger.js";
 import { normalizeProblems } from "./problemNormalizer.js";
 import SessionLimits from "../../utils/session/sessionLimits.js";
+
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * @typedef {Object} NormalizedProblem
+ * @property {number} id - CRITICAL: LeetCode ID (must be valid number).
+ * @property {number} leetcode_id - CRITICAL: LeetCode ID for lookups (same as id).
+ * @property {string|null} problem_id - UUID from database (null if never attempted).
+ * @property {string} title - Problem title in title case.
+ * @property {string} slug - URL slug for the problem.
+ * @property {string} difficulty - 'Easy', 'Medium', or 'Hard'.
+ * @property {Array<string>} tags - Topic tags (lowercase).
+ * @property {number} [box_level] - Leitner box level (1-5) if previously attempted.
+ * @property {Object} [review_schedule] - Review timing data if in review rotation.
+ * @property {Object} [cooldown_status] - Cooldown information.
+ * @property {number} [perceived_difficulty] - User-perceived difficulty (1-10).
+ * @property {number} [consecutiveFailures] - Count of consecutive failed attempts.
+ * @property {Object} [attempt_stats] - Historical attempt statistics.
+ * @property {Object} [selectionReason] - Why this problem was selected for session.
+ * @property {boolean} _normalized - Always true for normalized problems.
+ * @property {string} _normalizedAt - ISO timestamp of normalization.
+ * @property {string} _source - Source context (e.g., 'session_creation').
+ * @property {number} [_sourceIndex] - Position in session if applicable.
+ * @property {boolean} [_hasUUID] - Whether problem_id exists.
+ */
+
+/**
+ * @typedef {Object} SessionWithMetadata
+ * @property {Array<NormalizedProblem>} problems - The session problems.
+ * @property {Object} metadata - Session creation metadata.
+ * @property {boolean} metadata.generatedWithConfig - Whether custom config was used.
+ * @property {Object} metadata.sourceConfig - The adaptive config used.
+ * @property {string} metadata.createdAt - ISO timestamp of creation.
+ */
+
+/**
+ * @typedef {Object} ProblemLookupResult
+ * @property {Object|null} problem - The found problem or null.
+ * @property {boolean} found - Whether problem exists in user's problems store.
+ */
+
+// ============================================================================
+// IMPLEMENTATION
+// ============================================================================
 import {
   addReviewProblemsToSession,
   addNewProblemsToSession,
@@ -130,6 +193,36 @@ export const ProblemService = {
     return await addProblem(contentScriptData);
   },
 
+  /**
+   * Creates a new session with fresh problems based on adaptive settings.
+   *
+   * Used by: SessionService.createNewSession() for standard sessions.
+   *
+   * BEHAVIOR:
+   * 1. Builds adaptive settings based on user preferences and learning state
+   * 2. Fetches review problems (problems due for spaced repetition)
+   * 3. Fetches new problems (based on focus areas and difficulty cap)
+   * 4. Applies fallback if not enough problems found
+   * 5. Deduplicates and normalizes all problems
+   * 6. Adds selection reasoning for transparency
+   *
+   * SESSION COMPOSITION (default):
+   * - ~40% review problems (from Leitner system)
+   * - ~60% new problems (based on focus areas)
+   *
+   * CRITICAL:
+   * - All returned problems have validated id/leetcode_id fields
+   * - All problems are normalized with _normalized: true
+   * - Returns empty array if no problems can be assembled
+   *
+   * @returns {Promise<Array<NormalizedProblem>>} Array of normalized problems for the session.
+   *
+   * @example
+   * const problems = await ProblemService.createSession();
+   * // problems[0].leetcode_id === 1 (number, not string)
+   * // problems[0]._normalized === true
+   * // problems[0].selectionReason === { type: 'review', ... }
+   */
   async createSession() {
     const settings = await buildAdaptiveSessionSettings();
     const problems = await this.fetchAndAssembleSessionProblems(
