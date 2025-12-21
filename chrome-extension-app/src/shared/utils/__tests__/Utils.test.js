@@ -97,68 +97,6 @@ const testCreateAttemptRecord = () => {
   });
 };
 
-// Test case helpers for calculateDecayScore
-const _testCalculateDecayScore = () => {
-  it("should calculate decay score based on time and success rate", () => {
-    // Arrange
-    const attempt = {
-      AttemptDate: "2024-01-01T10:00:00Z",
-      Success: true,
-      TimeSpent: 1800,
-      boxLevel: 2,
-    };
-    const currentTime = new Date("2024-01-08T10:00:00Z").getTime();
-
-    // Act
-    const result = calculateDecayScore(attempt, currentTime);
-
-    // Assert
-    expect(result).toBeCloseTo(0.85, 2);
-  });
-
-  it("should return higher decay for older attempts", () => {
-    // Arrange
-    const oldAttempt = {
-      AttemptDate: "2024-01-01T10:00:00Z",
-      Success: true,
-      TimeSpent: 1200,
-      boxLevel: 1,
-    };
-    const newAttempt = {
-      AttemptDate: "2024-01-07T10:00:00Z",
-      Success: true,
-      TimeSpent: 1200,
-      boxLevel: 1,
-    };
-    const currentTime = new Date("2024-01-08T10:00:00Z").getTime();
-
-    // Act
-    const oldDecay = calculateDecayScore(oldAttempt, currentTime);
-    const newDecay = calculateDecayScore(newAttempt, currentTime);
-
-    // Assert
-    expect(oldDecay).toBeLessThan(newDecay);
-  });
-
-  it("should handle edge case values", () => {
-    // Arrange
-    const attempt = {
-      AttemptDate: "2024-01-01T10:00:00Z",
-      Success: false,
-      TimeSpent: 0,
-      boxLevel: 0,
-    };
-    const currentTime = new Date("2024-01-01T10:00:01Z").getTime();
-
-    // Act
-    const result = calculateDecayScore(attempt, currentTime);
-
-    // Assert
-    expect(result).toBeGreaterThanOrEqual(0);
-    expect(result).toBeLessThanOrEqual(1);
-  });
-};
-
 describe("Utils Functions - Core Functions", function() {
   describe("createAttemptRecord", () => {
     testCreateAttemptRecord();
