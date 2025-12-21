@@ -63,4 +63,30 @@ describe('useAnimatedClose', () => {
       jest.advanceTimersByTime(SIDEBAR_CLOSE_DURATION_MS);
     });
   });
+
+  it('should handle rapid open/close/open transitions', () => {
+    const { result, rerender } = renderHook(
+      ({ isOpen }) => useAnimatedClose(isOpen),
+      { initialProps: { isOpen: true } }
+    );
+
+    // Close
+    act(() => {
+      rerender({ isOpen: false });
+    });
+    expect(result.current.isClosing).toBe(true);
+
+    // Reopen before animation completes - should cancel close timer
+    act(() => {
+      rerender({ isOpen: true });
+    });
+    expect(result.current.shouldRender).toBe(true);
+    expect(result.current.isClosing).toBe(false);
+
+    // Old timer should be cancelled - advancing time should NOT hide component
+    act(() => {
+      jest.advanceTimersByTime(SIDEBAR_CLOSE_DURATION_MS);
+    });
+    expect(result.current.shouldRender).toBe(true);
+  });
 });
