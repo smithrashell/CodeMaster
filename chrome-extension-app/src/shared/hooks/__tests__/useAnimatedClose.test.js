@@ -89,4 +89,28 @@ describe('useAnimatedClose', () => {
     });
     expect(result.current.shouldRender).toBe(true);
   });
+
+  it('should respect custom animation duration', () => {
+    const customDuration = 500;
+    const { result, rerender } = renderHook(
+      ({ isOpen }) => useAnimatedClose(isOpen, customDuration),
+      { initialProps: { isOpen: true } }
+    );
+
+    act(() => {
+      rerender({ isOpen: false });
+    });
+
+    // Should still be rendering before custom duration completes
+    act(() => {
+      jest.advanceTimersByTime(customDuration - 1);
+    });
+    expect(result.current.shouldRender).toBe(true);
+
+    // Should finish after custom duration
+    act(() => {
+      jest.advanceTimersByTime(1);
+    });
+    expect(result.current.shouldRender).toBe(false);
+  });
 });
