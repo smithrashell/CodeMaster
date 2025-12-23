@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Enhanced "I'm Stuck" Button** (#234)
+  - Now extends timer by 5 minutes when clicked
+  - Automatically opens hints panel to help user get unstuck
+  - Records user intent for session analytics
+
+### Fixed
+- **Timer Settings Not Applying** (#234)
+  - Fixed timer limits (Auto/Off/Fixed) not updating after changing settings
+  - Added cache clearing for adaptiveLimitsService when settings are saved
+  - Timer now listens for Chrome storage changes to refresh limits in real-time
+
+- **Sidebar Form State Lost on Close** (#234)
+  - Fixed form data being reset when closing and reopening sidebar
+  - Changed ProblemTime, ProblemStats, Settings, and ProblemGenerator to use CSS display instead of unmounting
+  - State now persists across sidebar open/close cycles
+
+- **useStrategy Infinite Loop** (#234)
+  - Fixed hook causing constant re-renders and console spam
+  - Stabilized loadStrategyData callback with proper dependency management
+
+- **Timer "Still Working" Prompt UI** (#234)
+  - Redesigned from full-width banner to centered modal popup
+  - Reduced countdown overlay text size from 8rem to 1.5rem
+  - Fixed button click handlers not responding
+
 ### Changed
 - **Codebase Cleanup**
   - Deleted unused popup files (popup.html, popup.js, popup.jsx) - extension uses dashboard directly
@@ -15,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed gitignore to exclude screenshots folder (case-sensitivity issue)
   - Updated components to use CSS variables for dark mode support
   - Updated CLAUDE.md with theming guidelines
+
+### Tests
+- Added regression test for timer settings cache clearing
+- Added regression tests for cross-context theme sync
 
 ---
 
