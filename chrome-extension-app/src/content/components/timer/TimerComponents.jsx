@@ -28,14 +28,30 @@ export const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWork
     handler();
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      handleClose();
+    }
+  };
+
   return (
-    <div className="still-working-overlay" onClick={onButtonClick(handleClose)}>
+    <div
+      className="still-working-overlay"
+      onClick={onButtonClick(handleClose)}
+      onKeyDown={handleKeyDown}
+      role="presentation"
+    >
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         className="still-working-modal"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="still-working-title"
       >
         <div className="still-working-header">
-          <h2 className={getTimerClass()}>Time Check</h2>
+          <h2 id="still-working-title" className={getTimerClass()}>Time Check</h2>
           <HiXMark
             onClick={onButtonClick(handleClose)}
             className="close-icon"
