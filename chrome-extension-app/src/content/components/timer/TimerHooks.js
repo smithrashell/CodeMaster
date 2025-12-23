@@ -212,14 +212,17 @@ export const useTimerSetup = (options) => {
   const timerRef = useRef(null);
   const intervalIdRef = useRef(null);
 
-  useChromeMessage(
+  // Use a version counter to force refetch when settings change
+  const [settingsVersion, setSettingsVersion] = useState(0);
+
+  const { refetch } = useChromeMessage(
     state?.LeetCodeID
       ? {
           type: "getLimits",
           id: state.LeetCodeID,
         }
       : null,
-    [state?.LeetCodeID],
+    [state?.LeetCodeID, settingsVersion], // Add settingsVersion to deps to allow forced refetch
     {
       onSuccess: (response) => {
         initializeTimerWithLimits(response, {
@@ -246,6 +249,25 @@ export const useTimerSetup = (options) => {
     }
   );
 
+  // Listen for Chrome storage changes to refresh limits when settings are updated
+  // This fixes the issue where timer limits didn't update after changing settings
+  useEffect(() => {
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName === 'local' && changes.settings) {
+        logger.info('Timer: Settings changed, refreshing limits');
+        // Increment version to trigger useChromeMessage refetch
+        setSettingsVersion(v => v + 1);
+      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(handleStorageChange);
+      return () => {
+        chrome.storage.onChanged.removeListener(handleStorageChange);
+      };
+    }
+  }, []);
+
   useEffect(() => {
     if (!state?.LeetCodeID && !timerRef.current) {
       initializeTimerWithDefaults({
@@ -260,7 +282,7 @@ export const useTimerSetup = (options) => {
     }
   }, [state, sessionType, interviewConfig, calculateInterviewTimeLimit, setDisplayTime, setIsUnlimitedMode]);
 
-  return { timerRef, intervalIdRef };
+  return { timerRef, intervalIdRef, refetchLimits: refetch };
 };
 
 // Custom hook for timer UI utilities and callbacks
