@@ -24,6 +24,13 @@ jest.mock('../../app/services/dashboard/dashboardService.js');
 jest.mock('../../shared/services/problem/problemService.js');
 jest.mock('../../shared/services/session/sessionService.js');
 jest.mock('../../shared/services/attempts/tagServices.js');
+jest.mock('../../shared/services/attempts/adaptiveLimitsService.js');
+
+// Import the adaptiveLimitsService mock for cache clearing tests
+import { adaptiveLimitsService } from '../../shared/services/attempts/adaptiveLimitsService.js';
+
+// Import the actual handler to test its behavior
+import { storageHandlers } from '../handlers/storageHandlers.js';
 
 // Mock Chrome APIs
 global.chrome = {
@@ -128,6 +135,40 @@ describe('Message Handlers - Storage Operations', () => {
 
       expect(StorageService.setSettings).toHaveBeenCalledWith(settings);
       expect(result).toHaveProperty('success');
+    });
+
+    /**
+     * REGRESSION TEST: Timer settings cache clearing
+     *
+     * This test ensures that when settings are saved, the adaptiveLimitsService
+     * cache is cleared so timer limit changes (Auto/Off/Fixed) take effect immediately.
+     *
+     * Without this, users had to restart the browser for timer limit changes to apply.
+     * See fix: fix/timer-settings-not-responding branch
+     */
+    it('should clear adaptiveLimitsService cache when settings are saved', async () => {
+      // ARRANGE: Set up the mocks
+      // - StorageService.setSettings will resolve successfully
+      // - adaptiveLimitsService.clearCache is a mock function we can spy on
+      StorageService.setSettings.mockResolvedValue({ status: 'success' });
+      adaptiveLimitsService.clearCache = jest.fn();
+
+      // Create mock functions for the handler callback pattern
+      const sendResponse = jest.fn();
+      const finishRequest = jest.fn();
+      const request = { message: { limit: 'Fixed', sessionLength: 5 } };
+
+      // ACT: Call the actual handler
+      // The handler uses a callback pattern, so we need to wait for it
+      storageHandlers.setSettings(request, {}, sendResponse, finishRequest);
+
+      // Wait for the async operations to complete
+      // (StorageService.setSettings returns a Promise)
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // ASSERT: Verify the cache was cleared
+      expect(adaptiveLimitsService.clearCache).toHaveBeenCalled();
+      expect(sendResponse).toHaveBeenCalledWith({ status: 'success' });
     });
   });
 });
