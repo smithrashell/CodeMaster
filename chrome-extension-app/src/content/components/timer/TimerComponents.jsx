@@ -135,7 +135,7 @@ export const TimerContent = ({ displayTime, toggleTimer, sessionType, interviewC
 export const TimerControls = ({
   handleReset, sessionType, hasFirstPlan, isTimerRunning, recordFirstPlan,
   processedTags, state, handleHintOpen, handleHintClose, handleHintClick,
-  interviewConfig, uiMode, handleStop, handleStart, handleComplete
+  interviewConfig, uiMode, handleStop, handleStart, handleComplete, forceHintsOpen
 }) => (
   <div className="timer-banner-controls">
     <HiArrowPath
@@ -177,6 +177,7 @@ export const TimerControls = ({
           interviewConfig={interviewConfig}
           sessionType={sessionType}
           uiMode={uiMode}
+          forceOpen={forceHintsOpen}
         />
       </div>
     )}

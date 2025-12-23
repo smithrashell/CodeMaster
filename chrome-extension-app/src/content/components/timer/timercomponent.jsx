@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../../../shared/components/css/timerBanner.css";
 
@@ -28,9 +28,13 @@ import {
   getWarningMessageClass
 } from "./TimerHelpers.js";
 
+// Extra time to add when user clicks "I'm Stuck" (in seconds)
+const STUCK_TIME_EXTENSION = 5 * 60; // 5 minutes
+
 function TimerBanner(_props) {
   const [_problemTitle, _setProblemTitle] = useState("");
   const [_currentURL, _setCurrentURL] = useState(window.location.href);
+  const [forceHintsOpen, setForceHintsOpen] = useState(false);
 
   const timerState = useTimerState();
   const {
@@ -63,9 +67,25 @@ function TimerBanner(_props) {
 
   const { handleHintOpen, handleHintClose, toggleTimer } = useTimerUIHelpers(timerRef, handleStart, handleStop);
 
-  const { handleStillWorking, handleStuck, handleMoveOn, handleClose } = createTimerEventHandlers({
+  const { handleStillWorking, handleStuck: baseHandleStuck, handleMoveOn, handleClose } = createTimerEventHandlers({
     setShowStillWorkingPrompt, setUserIntent, handleComplete, handleStop, navigate
   });
+
+  // Enhanced handleStuck: extends timer and opens hints
+  const handleStuck = useCallback(() => {
+    // 1. Extend the timer by adding extra time to the recommended limit
+    if (timerRef.current && timerRef.current.recommendedLimit) {
+      timerRef.current.recommendedLimit += STUCK_TIME_EXTENSION;
+    }
+
+    // 2. Open hints panel
+    setForceHintsOpen(true);
+    // Reset after a short delay so it can be triggered again if needed
+    setTimeout(() => setForceHintsOpen(false), 100);
+
+    // 3. Call base handler (hides prompt, sets userIntent to "stuck")
+    baseHandleStuck();
+  }, [baseHandleStuck, timerRef]);
 
   const currentWarningMessage = getWarningMessage(timeWarningLevel, sessionType, interviewConfig);
   const currentTimerClass = getTimerClass(timeWarningLevel, uiMode);
@@ -122,6 +142,7 @@ function TimerBanner(_props) {
         handleStop={handleStop}
         handleStart={handleStart}
         handleComplete={handleComplete}
+        forceHintsOpen={forceHintsOpen}
       />
     </div>
     </>
