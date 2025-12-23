@@ -75,22 +75,20 @@ function TimerBanner(_props) {
     return <CountdownOverlay countdownValue={countdownValue} />;
   }
 
-  if (showStillWorkingPrompt) {
-    return (
-      <StillWorkingPrompt
-        getTimerClass={() => currentTimerClass}
-        handleClose={handleClose}
-        handleStillWorking={handleStillWorking}
-        handleStuck={handleStuck}
-        handleMoveOn={handleMoveOn}
-      />
-    );
-  }
-
   if (!open) return null;
 
   return (
-    <div className="timer-banner">
+    <>
+      {showStillWorkingPrompt && (
+        <StillWorkingPrompt
+          getTimerClass={() => currentTimerClass}
+          handleClose={handleStillWorking}
+          handleStillWorking={handleStillWorking}
+          handleStuck={handleStuck}
+          handleMoveOn={handleMoveOn}
+        />
+      )}
+      <div className="timer-banner">
       <TimerHeader
         sessionType={sessionType}
         isUnlimitedMode={isUnlimitedMode}
@@ -126,6 +124,7 @@ function TimerBanner(_props) {
         handleComplete={handleComplete}
       />
     </div>
+    </>
   );
 }
 

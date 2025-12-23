@@ -20,76 +20,59 @@ export const CountdownOverlay = ({ countdownValue }) => (
   </div>
 );
 
-// Still working prompt component
-export const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWorking, handleStuck, handleMoveOn }) => (
-  <div className="timer-banner still-working-prompt">
-    <div className="timer-banner-header">
-      <h1 className={getTimerClass()}>Time Check</h1>
-      <HiXMark
-        onClick={handleClose}
-        className="close-icon"
-        title="Close timer and return to menu"
-        aria-label="Close timer and return to menu"
-      />
-    </div>
+// Still working prompt component - Modal style popup
+export const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWorking, handleStuck, handleMoveOn }) => {
+  const onButtonClick = (handler) => (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handler();
+  };
 
-    <div className="timer-banner-content">
-      <div style={{ textAlign: "center", padding: "10px" }}>
-        <p>You&apos;ve exceeded the recommended interview time.</p>
-        <p>How are you feeling about this problem?</p>
+  return (
+    <div className="still-working-overlay" onClick={onButtonClick(handleClose)}>
+      <div
+        className="still-working-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="still-working-header">
+          <h2 className={getTimerClass()}>Time Check</h2>
+          <HiXMark
+            onClick={onButtonClick(handleClose)}
+            className="close-icon"
+            title="Close"
+            aria-label="Close"
+          />
+        </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",
-            justifyContent: "center",
-            marginTop: "15px",
-          }}
-        >
+        <div className="still-working-content">
+          <p>You&apos;ve exceeded the recommended time.</p>
+          <p>How are you feeling about this problem?</p>
+        </div>
+
+        <div className="still-working-buttons">
           <button
-            onClick={handleStillWorking}
-            style={{
-              padding: "8px 12px",
-              backgroundColor: "var(--cm-success, #4CAF50)",
-              color: "var(--cm-btn-text, white)",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            onClick={onButtonClick(handleStillWorking)}
+            className="still-working-btn btn-progress"
           >
             Still Making Progress
           </button>
           <button
-            onClick={handleStuck}
-            style={{
-              padding: "8px 12px",
-              backgroundColor: "var(--cm-warning, #FF9800)",
-              color: "var(--cm-btn-text, white)",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            onClick={onButtonClick(handleStuck)}
+            className="still-working-btn btn-stuck"
           >
             I&apos;m Stuck
           </button>
           <button
-            onClick={handleMoveOn}
-            style={{
-              padding: "8px 12px",
-              backgroundColor: "var(--cm-error, #f44336)",
-              color: "var(--cm-btn-text, white)",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
+            onClick={onButtonClick(handleMoveOn)}
+            className="still-working-btn btn-move-on"
           >
             Move On
           </button>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Timer header component
 export const TimerHeader = ({ sessionType, isUnlimitedMode, getTimerClass, handleClose }) => (
