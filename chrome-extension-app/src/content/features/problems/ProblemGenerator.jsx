@@ -79,8 +79,14 @@ function ProbGen() {
       `https://leetcode.com/problems/${problem.slug}/description/`;
   };
 
-  return shouldRender ? (
-    <div id="cm-mySidenav" className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}>
+  // NOTE: We use CSS display:none instead of returning null to prevent unmounting.
+  // This preserves session/problem state when the sidebar is closed and reopened.
+  return (
+    <div
+      id="cm-mySidenav"
+      className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}
+      style={{ display: shouldRender ? 'flex' : 'none' }}
+    >
       <Header title="Generator" onClose={handleClose} />
       <div className="cm-sidenav__content">
         <ProblemGeneratorContent
@@ -100,7 +106,7 @@ function ProbGen() {
         />
       </div>
     </div>
-  ) : null;
+  );
 }
 
 export default ProbGen;

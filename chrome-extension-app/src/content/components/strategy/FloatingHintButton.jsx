@@ -1,5 +1,6 @@
 import React, {
   useMemo,
+  useEffect,
 } from "react";
 import SmartPopover from './SmartPopover.jsx';
 import { useFloatingHintState } from '../../hooks/useFloatingHintState.js';
@@ -24,17 +25,26 @@ function FloatingHintButton({
   interviewConfig = null,
   sessionType = null,
   uiMode = 'full-support',
+  forceOpen = false,
 }) {
   // Use the original hooks
-  const { 
-    opened, 
-    setOpened, 
-    expandedHints, 
-    setExpandedHints, 
+  const {
+    opened,
+    setOpened,
+    expandedHints,
+    setExpandedHints,
     buttonRef,
     hintsUsed,
     setHintsUsed
   } = useFloatingHintState();
+
+  // Handle external force open trigger
+  useEffect(() => {
+    if (forceOpen && !opened) {
+      setOpened(true);
+      if (onOpen) onOpen();
+    }
+  }, [forceOpen, opened, setOpened, onOpen]);
   
   const colors = useHintThemeColors();
   

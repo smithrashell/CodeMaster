@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import StrategyService from "../../content/services/strategyService";
 import performanceMonitor from "../utils/performance/PerformanceMonitor.js";
 
@@ -32,57 +32,34 @@ export const useStrategy = (problemTags = []) => {
   const [error, setError] = useState(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  console.log("🎯 useStrategy: Hook called with problemTags:", problemTags);
+  // Use ref to track previous tags and prevent unnecessary fetches
+  const prevTagsRef = useRef([]);
+  const hasFetchedRef = useRef(false);
 
   // Check if strategy data is loaded in IndexedDB
   useEffect(() => {
     checkStrategyDataLoaded(setIsDataLoaded);
   }, []);
 
-  // Load hints and primers when problem tags change
-  useEffect(() => {
-    if (problemTags.length > 0 && isDataLoaded) {
-      loadStrategyData();
-    } else {
-      setHints([]);
-      setPrimers([]);
-    }
-  }, [problemTags, isDataLoaded, loadStrategyData]);
-
-  const loadStrategyData = useCallback(async () => {
+  // Load strategy data function - defined before useEffect that uses it
+  // Note: No dependencies to prevent recreating function and causing infinite loops
+  const loadStrategyData = useCallback(async (tags) => {
     const queryContext = performanceMonitor.startQuery("useStrategy_loadData", {
-      tagCount: problemTags.length,
+      tagCount: tags.length,
     });
 
     try {
-      console.log("🎯 useStrategy: loadStrategyData starting", {
-        problemTags,
-        tagCount: problemTags.length
-      });
-      
       setLoading(true);
       setError(null);
 
-      // Normalize tags to lowercase to match strategy data (CRITICAL FIX)
-      const normalizedTags = problemTags.map((tag) => tag.toLowerCase().trim());
-      console.log("🎯 useStrategy: Normalized tags:", { 
-        original: problemTags, 
-        normalized: normalizedTags 
-      });
+      // Normalize tags to lowercase to match strategy data
+      const normalizedTags = tags.map((tag) => tag.toLowerCase().trim());
 
-      // Load both hints and primers in parallel (already optimized in StrategyService)
-      console.log("🎯 useStrategy: Calling StrategyService.getTagPrimers with normalized tags:", normalizedTags);
-      
+      // Load both hints and primers in parallel
       const [contextualHints, tagPrimers] = await Promise.all([
         StrategyService.getContextualHints(normalizedTags),
         StrategyService.getTagPrimers(normalizedTags),
       ]);
-
-      console.log("🎯 useStrategy: Got results", {
-        contextualHints,
-        tagPrimers,
-        primersCount: tagPrimers.length
-      });
 
       setHints(contextualHints);
       setPrimers(tagPrimers);
@@ -99,12 +76,28 @@ export const useStrategy = (problemTags = []) => {
     } finally {
       setLoading(false);
     }
-  }, [problemTags]);
+  }, []); // Empty deps - function is stable
+
+  // Load hints and primers when problem tags change
+  // FIX: Compare tags by value, not by reference, to prevent infinite loops
+  useEffect(() => {
+    const tagsChanged = JSON.stringify(problemTags) !== JSON.stringify(prevTagsRef.current);
+
+    if (problemTags.length > 0 && isDataLoaded && tagsChanged) {
+      prevTagsRef.current = problemTags;
+      hasFetchedRef.current = true;
+      loadStrategyData(problemTags);
+    } else if (problemTags.length === 0) {
+      setHints([]);
+      setPrimers([]);
+      prevTagsRef.current = [];
+    }
+  }, [problemTags, isDataLoaded, loadStrategyData]);
 
   // Manual refresh function
   const refreshStrategy = useCallback(() => {
     if (problemTags.length > 0 && isDataLoaded) {
-      loadStrategyData();
+      loadStrategyData(problemTags);
     }
   }, [problemTags, isDataLoaded, loadStrategyData]);
 

@@ -40,8 +40,14 @@ const Settings = () => {
 
   useAutoConstrainNewProblems(workingSettings, maxNewProblems, setSettings);
 
-  return shouldRender ? (
-    <div id="cm-mySidenav" className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}>
+  // NOTE: We use CSS display:none instead of returning null to prevent unmounting.
+  // This preserves settings state when the sidebar is closed and reopened.
+  return (
+    <div
+      id="cm-mySidenav"
+      className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}
+      style={{ display: shouldRender ? 'flex' : 'none' }}
+    >
       <Header title="Settings" onClose={handleClose} />
 
       <div className="cm-sidenav__content ">
@@ -93,7 +99,7 @@ const Settings = () => {
         />
       </div>
     </div>
-  ) : null;
+  );
 };
 
 export default Settings;

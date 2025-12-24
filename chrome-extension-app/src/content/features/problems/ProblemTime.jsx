@@ -56,9 +56,16 @@ const ProbTime = () => {
   };
 
   // Render the form if coming from the Timer route
+  // NOTE: We use CSS display:none instead of returning null to prevent unmounting.
+  // This preserves form state when the sidebar is closed and reopened.
+  // See: fix/form-state-persistence branch
 
-  return shouldRender ? (
-    <div id="cm-mySidenav" className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}>
+  return (
+    <div
+      id="cm-mySidenav"
+      className={`cm-sidenav problink${isClosing ? ' cm-closing' : ''}`}
+      style={{ display: shouldRender ? 'flex' : 'none' }}
+    >
       <Header
         title={
           previousRoute == "/Timer" ? "Problem Submission" : "Problem Details"
@@ -73,7 +80,7 @@ const ProbTime = () => {
         )}
       </div>
     </div>
-  ) : null;
+  );
 };
 
 export default ProbTime;

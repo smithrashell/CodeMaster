@@ -36,9 +36,114 @@
   color: var(--cm-timer-text);
 }
 
-.still-working-prompt {
-  background-color: var(--cm-timer-bg);
+/* Still Working Modal - Popup Style */
+.still-working-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+  z-index: var(--cm-z-overlay, 9500);
+}
+
+.still-working-modal {
+  background-color: var(--cm-timer-bg, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 360px;
+  width: 90%;
+  padding: 20px;
+  animation: modal-slide-in 0.2s ease-out;
+}
+
+@keyframes modal-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.still-working-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.still-working-header h2 {
+  margin: 0;
+  font-size: 1.2em;
   color: var(--cm-timer-text);
+}
+
+.still-working-header .close-icon {
+  cursor: pointer;
+  color: var(--cm-timer-text);
+  opacity: 0.6;
+  font-size: 1.2em;
+}
+
+.still-working-header .close-icon:hover {
+  opacity: 1;
+}
+
+.still-working-content {
+  text-align: center;
+  color: var(--cm-timer-text);
+  margin-bottom: 16px;
+}
+
+.still-working-content p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.still-working-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.still-working-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.still-working-btn:hover {
+  opacity: 0.9;
+}
+
+.still-working-btn:active {
+  transform: scale(0.98);
+}
+
+.still-working-btn.btn-progress {
+  background-color: var(--cm-success, #4CAF50);
+  color: white;
+}
+
+.still-working-btn.btn-stuck {
+  background-color: var(--cm-warning, #FF9800);
+  color: white;
+}
+
+.still-working-btn.btn-move-on {
+  background-color: var(--cm-error, #f44336);
+  color: white;
 }
 
 /* Timer warning states */
@@ -93,13 +198,22 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.75);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 8rem;
   z-index: var(--cm-z-overlay, 9500);
+}
+
+.countdown-overlay h1 {
+  font-size: 1.5rem;
+  text-align: center;
+  padding: 24px 32px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  max-width: 400px;
+  margin: 0;
 }
 
 /* UI Mode Specific Styles */
