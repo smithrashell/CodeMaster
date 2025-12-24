@@ -2,7 +2,7 @@
  * Timer UI Components
  */
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   HiPlay,
   HiPause,
@@ -20,8 +20,22 @@ export const CountdownOverlay = ({ countdownValue }) => (
   </div>
 );
 
-// Still working prompt component - Modal style popup
+// Still working prompt component - Modal style popup with focus trap
 export const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWorking, handleStuck, handleMoveOn }) => {
+  const modalRef = useRef(null);
+  const firstButtonRef = useRef(null);
+
+  // Focus first button on mount and trap focus within modal
+  useEffect(() => {
+    firstButtonRef.current?.focus();
+
+    // Store previously focused element to restore on close
+    const previouslyFocused = document.activeElement;
+    return () => {
+      previouslyFocused?.focus?.();
+    };
+  }, []);
+
   const onButtonClick = (handler) => (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -31,6 +45,22 @@ export const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWork
   const handleKeyDown = (e) => {
     if (e.key === 'Escape') {
       handleClose();
+      return;
+    }
+
+    // Focus trap: cycle through focusable elements
+    if (e.key === 'Tab' && modalRef.current) {
+      const focusable = modalRef.current.querySelectorAll('button');
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
   };
 
@@ -43,12 +73,14 @@ export const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWork
     >
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
+        ref={modalRef}
         className="still-working-modal"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="still-working-title"
+        aria-describedby="still-working-description"
       >
         <div className="still-working-header">
           <h2 id="still-working-title" className={getTimerClass()}>Time Check</h2>
@@ -60,13 +92,14 @@ export const StillWorkingPrompt = ({ getTimerClass, handleClose, handleStillWork
           />
         </div>
 
-        <div className="still-working-content">
+        <div id="still-working-description" className="still-working-content">
           <p>You&apos;ve exceeded the recommended time.</p>
           <p>How are you feeling about this problem?</p>
         </div>
 
         <div className="still-working-buttons">
           <button
+            ref={firstButtonRef}
             onClick={onButtonClick(handleStillWorking)}
             className="still-working-btn btn-progress"
           >
