@@ -2,7 +2,7 @@
  * Timer Operations Hook
  */
 
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 import logger from "../../../shared/utils/logging/logger.js";
 import { createStopTimerFunction, buildProblemData, getTimeWarningThresholds } from "./TimerHelpers.js";
 
@@ -14,6 +14,14 @@ export const useTimerOperations = (timerRef, intervalIdRef, timerState, { sessio
     setCountdownVisible, setCountdownValue, setUserIntent, setOpen,
     isUnlimitedMode, timeWarningLevel, interviewSignals
   } = timerState;
+
+  // Use a ref to track current timeWarningLevel to avoid stale closure in interval callback.
+  // Without this, the interval would capture the initial timeWarningLevel value and never see updates,
+  // causing the "Still Working" prompt to immediately reappear after dismissal.
+  const timeWarningLevelRef = useRef(timeWarningLevel);
+  useEffect(() => {
+    timeWarningLevelRef.current = timeWarningLevel;
+  }, [timeWarningLevel]);
 
   const startCountdown = useCallback(() => {
     setCountdownVisible(true);
@@ -70,15 +78,18 @@ export const useTimerOperations = (timerRef, intervalIdRef, timerState, { sessio
           const isInterviewMode = timerRef.current.isInterviewMode;
           const { warnThreshold1, warnThreshold2, warnThreshold3 } = getTimeWarningThresholds(isInterviewMode);
 
-          if (timeProgress >= warnThreshold3 && timeWarningLevel < 3) {
+          // Read from ref to get current value, avoiding stale closure
+          const currentWarningLevel = timeWarningLevelRef.current;
+
+          if (timeProgress >= warnThreshold3 && currentWarningLevel < 3) {
             setTimeWarningLevel(3);
-          } else if (timeProgress >= warnThreshold2 && timeWarningLevel < 2) {
+          } else if (timeProgress >= warnThreshold2 && currentWarningLevel < 2) {
             setTimeWarningLevel(2);
             setExceededRecommendedTime(true);
             if (!isInterviewMode) {
               setShowStillWorkingPrompt(true);
             }
-          } else if (timeProgress >= warnThreshold1 && timeWarningLevel < 1) {
+          } else if (timeProgress >= warnThreshold1 && currentWarningLevel < 1) {
             setTimeWarningLevel(1);
           }
 
@@ -88,7 +99,7 @@ export const useTimerOperations = (timerRef, intervalIdRef, timerState, { sessio
         }
       }, 1000);
     }
-  }, [isUnlimitedMode, timeWarningLevel, setIsTimerRunning, setDisplayTime, setTimeWarningLevel, setExceededRecommendedTime, setShowStillWorkingPrompt, handleComplete, startCountdown, timerRef, intervalIdRef]);
+  }, [isUnlimitedMode, setIsTimerRunning, setDisplayTime, setTimeWarningLevel, setExceededRecommendedTime, setShowStillWorkingPrompt, handleComplete, startCountdown, timerRef, intervalIdRef]);
 
   const handleReset = useCallback(() => {
     if (!timerRef.current) return;

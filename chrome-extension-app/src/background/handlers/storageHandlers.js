@@ -6,6 +6,7 @@
 import { StorageService } from "../../shared/services/storage/storageService.js";
 import { backupIndexedDB, getBackupFile } from "../../shared/db/migrations/backupDB.js";
 import { getWelcomeBackStrategy, createDiagnosticSession, processDiagnosticResults, createAdaptiveRecalibrationSession, processAdaptiveSessionCompletion } from "../../shared/services/schedule/recalibrationService.js";
+import { adaptiveLimitsService } from "../../shared/services/attempts/adaptiveLimitsService.js";
 
 export const storageHandlers = {
   backupIndexedDB: (_request, _dependencies, sendResponse, _finishRequest) => {
@@ -60,6 +61,11 @@ export const storageHandlers = {
   setSettings: (request, _dependencies, sendResponse, finishRequest) => {
     StorageService.setSettings(request.message)
       .then((result) => {
+        // Clear adaptiveLimitsService cache so new settings take effect immediately
+        // This fixes the bug where timer limit changes weren't being applied
+        adaptiveLimitsService.clearCache();
+        console.log("Settings saved - cleared adaptiveLimitsService cache for immediate effect");
+
         if (chrome.storage && chrome.storage.local) {
           chrome.storage.local.set({
             settings: request.message

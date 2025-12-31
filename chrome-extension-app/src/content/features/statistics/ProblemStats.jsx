@@ -143,8 +143,14 @@ const ProbStat = () => {
   );
   const hasData = Object.keys(boxLevelData).length > 0;
 
-  return shouldRender ? (
-    <div id="cm-mySidenav" className={`cm-sidenav${isClosing ? ' cm-closing' : ''}`}>
+  // NOTE: We use CSS display:none instead of returning null to prevent unmounting.
+  // This preserves component state when the sidebar is closed and reopened.
+  return (
+    <div
+      id="cm-mySidenav"
+      className={`cm-sidenav${isClosing ? ' cm-closing' : ''}`}
+      style={{ display: shouldRender ? 'flex' : 'none' }}
+    >
       <Header title="Statistics" onClose={handleClose} />
       <div className="cm-sidenav__content cd-stats-container">
         {loading ? (
@@ -182,7 +188,7 @@ const ProbStat = () => {
         )}
       </div>
     </div>
-  ) : null;
+  );
 };
 
 export default ProbStat;

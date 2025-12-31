@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Enhanced "I'm Stuck" Button** (#234)
+  - Now extends timer by 5 minutes when clicked
+  - Automatically opens hints panel to help user get unstuck
+  - Records user intent for session analytics
+
+### Fixed
+- **Timer Settings Not Applying** (#234)
+  - Fixed timer limits (Auto/Off/Fixed) not updating after changing settings
+  - Added cache clearing for adaptiveLimitsService when settings are saved
+  - Timer now listens for Chrome storage changes to refresh limits in real-time
+
+- **Sidebar Form State Lost on Close** (#234)
+  - Fixed form data being reset when closing and reopening sidebar
+  - Changed ProblemTime, ProblemStats, Settings, and ProblemGenerator to use CSS display instead of unmounting
+  - State now persists across sidebar open/close cycles
+
+- **useStrategy Infinite Loop** (#234)
+  - Fixed hook causing constant re-renders and console spam
+  - Stabilized loadStrategyData callback with proper dependency management
+
+- **Timer "Still Working" Prompt UI** (#234)
+  - Redesigned from full-width banner to centered modal popup
+  - Reduced countdown overlay text size from 8rem to 1.5rem
+  - Fixed button click handlers not responding
+
 ### Changed
 - **Codebase Cleanup**
   - Deleted unused popup files (popup.html, popup.js, popup.jsx) - extension uses dashboard directly
@@ -15,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed gitignore to exclude screenshots folder (case-sensitivity issue)
   - Updated components to use CSS variables for dark mode support
   - Updated CLAUDE.md with theming guidelines
+
+### Tests
+- Added regression test for timer settings cache clearing
+- Added regression tests for cross-context theme sync
 
 ---
 
@@ -72,6 +102,9 @@ All changes after the Chrome Web Store release on November 19th, 2025.
 
 ### Fixed
 - **Reduced ESLint Warnings from 22 to 0** (#211)
+- **Fixed CSS Scoping for Content Scripts** (#153) - Prevented extension styles from bleeding into host pages
+- **Fixed Dashboard Card Styling and [object Object] Bug** (#234) - Added dashboard.css, fixed card rendering
+- **Fixed Missing getAllProblems Method** (#216) - Added method to ProblemService
 - **Fixed Goals page calculations** (#201) - Weekly accuracy, problems per week targets
 - **Fixed dashboard text visibility in light/dark modes** (#194)
 - **Fixed onboarding modal text visibility in dark mode** (#194)
@@ -114,9 +147,39 @@ All changes after the Chrome Web Store release on November 19th, 2025.
 - **Removed Test Code from Production Build** (#205) - 56% bundle size reduction
 
 ### Refactored
-- **Comment Cleanup per Clean Code Chapter 4** (#213)
+- **Applied Newspaper Rule and Fixed max-lines ESLint Warnings** (#214)
+  - Extracted helper modules following Clean Code Chapter 5 principles
+  - All files now comply with max-lines limits
+
+- **Complete Folder Reorganization and Dead Code Cleanup** (#222)
+  - Restructured project folders for better organization
+  - Removed unused code and files
+
+- **Service Files Renamed to camelCase Convention** (#220)
+  - Standardized service file naming across codebase
+
+- **Renamed computeTimePerformanceScore to calculateTimePerformanceScore** (#215)
+  - Consistent function naming convention
+
+- **Shifted Service Tests to Contract-Testing Pattern** (#238)
+  - Improved test architecture for better maintainability
+
+- **Added JSDoc Data Contracts for Key Service Functions** (#239)
+  - Better documentation and type hints
+
+- **Comment Cleanup per Clean Code Chapter 4** (#218)
   - Removed 230+ lines of commented-out dead code
   - Applied "Don't comment bad code—rewrite it" principle
+
+- **Cleaned Up Unnecessary Files in chrome-extension-app Root** (#219)
+  - Removed leftover and redundant files
+
+- **Removed Redundant Tests and Dead Code** (#237)
+  - Cleaned up test files and unused code
+
+### Tests Added
+- **Unit Tests for Extracted Helper Modules** (#226)
+  - Comprehensive test coverage for new helper files
 
 ---
 
