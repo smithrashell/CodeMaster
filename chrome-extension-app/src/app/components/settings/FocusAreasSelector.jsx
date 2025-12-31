@@ -132,7 +132,7 @@ export function FocusAreasSelector() {
         {/* Your Next Session Will Focus - REACTIVE to selectedFocusAreas */}
         <ActiveSessionTagsPreview
           selectedFocusAreas={selectedFocusAreas}
-          systemSelectedTags={focusAvailability.systemSelectedTags}
+          systemSelectedTags={focusAvailability.activeSessionTags}
         />
 
         {/* Save/Reset Controls */}
