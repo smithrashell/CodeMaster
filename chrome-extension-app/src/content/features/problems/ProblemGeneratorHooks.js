@@ -265,6 +265,7 @@ export const useSessionLoader = (options) => {
   return {
     sessionLoading,
     sessionResponse,
+    triggerSessionLoad,
     _manualSessionTypeOverride,
     _setManualSessionTypeOverride
   };
@@ -273,7 +274,7 @@ export const useSessionLoader = (options) => {
 /**
  * Custom hook for session cache listener and problem submission updates
  */
-export const useSessionCacheListener = (setters, sessionCreationAttempted, setCacheClearedRecently) => {
+export const useSessionCacheListener = (setters, sessionCreationAttempted, setCacheClearedRecently, triggerSessionRefresh) => {
   const { setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner } = setters;
   useEffect(() => {
     const handleSessionCacheCleared = () => {
@@ -288,23 +289,10 @@ export const useSessionCacheListener = (setters, sessionCreationAttempted, setCa
     };
 
     const handleProblemSubmitted = () => {
-      // Extract the current problem slug from the URL
-      const pathParts = window.location.pathname.split('/');
-      const problemsIndex = pathParts.indexOf('problems');
-      const currentSlug = problemsIndex !== -1 ? pathParts[problemsIndex + 1] : null;
-
-      if (currentSlug) {
-        logger.info("ProblemGenerator: Received problemSubmitted, marking problem as attempted", { currentSlug });
-        // Update problems state to mark the current problem as attempted
-        setProblems(prevProblems =>
-          prevProblems.map(problem =>
-            problem.slug === currentSlug
-              ? { ...problem, attempted: true, attempt_date: new Date().toISOString() }
-              : problem
-          )
-        );
-      } else {
-        logger.warn("ProblemGenerator: Received problemSubmitted but could not determine current problem slug");
+      logger.info("ProblemGenerator: Received problemSubmitted, refreshing session from database");
+      // Refetch session from database to get updated attempted status
+      if (triggerSessionRefresh) {
+        triggerSessionRefresh();
       }
     };
 
@@ -327,5 +315,5 @@ export const useSessionCacheListener = (setters, sessionCreationAttempted, setCa
         chrome.runtime.onMessage.removeListener(messageListener);
       }
     };
-  }, [setters, sessionCreationAttempted, setCacheClearedRecently, setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner]);
+  }, [setters, sessionCreationAttempted, setCacheClearedRecently, triggerSessionRefresh, setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner]);
 };

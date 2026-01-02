@@ -40,7 +40,7 @@ function ProbGen() {
     handleRegenerateSession
   } = useSessionManagement(settings, settingsLoaded, sessionCreationAttempted, lastSettingsHash, setProblems);
 
-  const { sessionLoading } = useSessionLoader({
+  const { sessionLoading, triggerSessionLoad } = useSessionLoader({
     settings,
     settingsLoaded,
     sessionCreationAttempted,
@@ -55,7 +55,8 @@ function ProbGen() {
   useSessionCacheListener(
     { setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner },
     sessionCreationAttempted,
-    setCacheClearedRecently
+    setCacheClearedRecently,
+    triggerSessionLoad
   );
 
   const handleClose = () => {

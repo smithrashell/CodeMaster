@@ -137,24 +137,14 @@ describe('ProblemGeneratorHooks', () => {
     });
 
     describe('problemSubmitted message', () => {
-      it('should mark the current problem as attempted when problemSubmitted is received', () => {
-        // Mock window.location.pathname using history.pushState
-        window.history.pushState({}, '', '/problems/two-sum/description');
-
+      it('should trigger session refresh when problemSubmitted is received', () => {
         const setters = createMockSetters();
         const sessionCreationAttempted = createMockSessionCreationAttempted();
         const setCacheClearedRecently = jest.fn();
-
-        // Mock setProblems to capture the callback
-        let problemsUpdater;
-        setters.setProblems.mockImplementation((updater) => {
-          if (typeof updater === 'function') {
-            problemsUpdater = updater;
-          }
-        });
+        const triggerSessionRefresh = jest.fn();
 
         renderHook(() =>
-          useSessionCacheListener(setters, sessionCreationAttempted, setCacheClearedRecently)
+          useSessionCacheListener(setters, sessionCreationAttempted, setCacheClearedRecently, triggerSessionRefresh)
         );
 
         // Simulate receiving problemSubmitted message
@@ -163,65 +153,21 @@ describe('ProblemGeneratorHooks', () => {
           mockMessageListener({ type: 'problemSubmitted' }, {}, sendResponse);
         });
 
-        // Verify setProblems was called with an updater function
-        expect(setters.setProblems).toHaveBeenCalled();
+        // Verify triggerSessionRefresh was called to fetch fresh data
+        expect(triggerSessionRefresh).toHaveBeenCalled();
         expect(sendResponse).toHaveBeenCalledWith({ status: 'success' });
-
-        // Test the updater function marks the correct problem
-        const mockProblems = [
-          { slug: 'two-sum', title: 'Two Sum', attempted: false },
-          { slug: 'add-two-numbers', title: 'Add Two Numbers', attempted: false },
-        ];
-        const updatedProblems = problemsUpdater(mockProblems);
-
-        expect(updatedProblems[0].attempted).toBe(true);
-        expect(updatedProblems[0].attempt_date).toBeDefined();
-        expect(updatedProblems[1].attempted).toBe(false);
       });
 
-      it('should handle problem URLs with trailing slash', () => {
-        window.history.pushState({}, '', '/problems/valid-parentheses/');
-
+      it('should handle missing triggerSessionRefresh gracefully', () => {
         const setters = createMockSetters();
         const sessionCreationAttempted = createMockSessionCreationAttempted();
         const setCacheClearedRecently = jest.fn();
 
-        let problemsUpdater;
-        setters.setProblems.mockImplementation((updater) => {
-          if (typeof updater === 'function') {
-            problemsUpdater = updater;
-          }
-        });
-
+        // No triggerSessionRefresh passed
         renderHook(() =>
-          useSessionCacheListener(setters, sessionCreationAttempted, setCacheClearedRecently)
+          useSessionCacheListener(setters, sessionCreationAttempted, setCacheClearedRecently, null)
         );
 
-        const sendResponse = jest.fn();
-        act(() => {
-          mockMessageListener({ type: 'problemSubmitted' }, {}, sendResponse);
-        });
-
-        const mockProblems = [
-          { slug: 'valid-parentheses', title: 'Valid Parentheses', attempted: false },
-        ];
-        const updatedProblems = problemsUpdater(mockProblems);
-
-        expect(updatedProblems[0].attempted).toBe(true);
-      });
-
-      it('should not update problems when URL does not contain a problem slug', () => {
-        window.history.pushState({}, '', '/explore/learn/');
-
-        const setters = createMockSetters();
-        const sessionCreationAttempted = createMockSessionCreationAttempted();
-        const setCacheClearedRecently = jest.fn();
-
-        renderHook(() =>
-          useSessionCacheListener(setters, sessionCreationAttempted, setCacheClearedRecently)
-        );
-
-        // Simulate receiving problemSubmitted message on non-problem page
         const sendResponse = jest.fn();
 
         // Should not throw
@@ -231,86 +177,7 @@ describe('ProblemGeneratorHooks', () => {
           });
         }).not.toThrow();
 
-        // setProblems should NOT be called when no slug found
-        expect(setters.setProblems).not.toHaveBeenCalled();
         expect(sendResponse).toHaveBeenCalledWith({ status: 'success' });
-      });
-
-      it('should not modify problems that do not match the current slug', () => {
-        window.history.pushState({}, '', '/problems/two-sum/description');
-
-        const setters = createMockSetters();
-        const sessionCreationAttempted = createMockSessionCreationAttempted();
-        const setCacheClearedRecently = jest.fn();
-
-        let problemsUpdater;
-        setters.setProblems.mockImplementation((updater) => {
-          if (typeof updater === 'function') {
-            problemsUpdater = updater;
-          }
-        });
-
-        renderHook(() =>
-          useSessionCacheListener(setters, sessionCreationAttempted, setCacheClearedRecently)
-        );
-
-        const sendResponse = jest.fn();
-        act(() => {
-          mockMessageListener({ type: 'problemSubmitted' }, {}, sendResponse);
-        });
-
-        // Test with problems that don't include the current slug
-        const mockProblems = [
-          { slug: 'add-two-numbers', title: 'Add Two Numbers', attempted: false },
-          { slug: 'longest-substring', title: 'Longest Substring', attempted: false },
-        ];
-        const updatedProblems = problemsUpdater(mockProblems);
-
-        // None should be marked as attempted since 'two-sum' isn't in the list
-        expect(updatedProblems[0].attempted).toBe(false);
-        expect(updatedProblems[1].attempted).toBe(false);
-      });
-
-      it('should preserve existing problem properties when marking as attempted', () => {
-        window.history.pushState({}, '', '/problems/two-sum/description');
-
-        const setters = createMockSetters();
-        const sessionCreationAttempted = createMockSessionCreationAttempted();
-        const setCacheClearedRecently = jest.fn();
-
-        let problemsUpdater;
-        setters.setProblems.mockImplementation((updater) => {
-          if (typeof updater === 'function') {
-            problemsUpdater = updater;
-          }
-        });
-
-        renderHook(() =>
-          useSessionCacheListener(setters, sessionCreationAttempted, setCacheClearedRecently)
-        );
-
-        const sendResponse = jest.fn();
-        act(() => {
-          mockMessageListener({ type: 'problemSubmitted' }, {}, sendResponse);
-        });
-
-        const mockProblems = [
-          {
-            slug: 'two-sum',
-            title: 'Two Sum',
-            difficulty: 'Easy',
-            tags: ['Array', 'Hash Table'],
-            attempted: false,
-          },
-        ];
-        const updatedProblems = problemsUpdater(mockProblems);
-
-        // Verify existing properties are preserved
-        expect(updatedProblems[0].slug).toBe('two-sum');
-        expect(updatedProblems[0].title).toBe('Two Sum');
-        expect(updatedProblems[0].difficulty).toBe('Easy');
-        expect(updatedProblems[0].tags).toEqual(['Array', 'Hash Table']);
-        expect(updatedProblems[0].attempted).toBe(true);
       });
     });
 
