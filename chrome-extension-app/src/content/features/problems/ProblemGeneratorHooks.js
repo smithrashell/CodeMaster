@@ -271,7 +271,7 @@ export const useSessionLoader = (options) => {
 };
 
 /**
- * Custom hook for session cache listener
+ * Custom hook for session cache listener and problem submission updates
  */
 export const useSessionCacheListener = (setters, sessionCreationAttempted, setCacheClearedRecently) => {
   const { setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner } = setters;
@@ -287,9 +287,33 @@ export const useSessionCacheListener = (setters, sessionCreationAttempted, setCa
       setTimeout(() => setCacheClearedRecently(false), 2000);
     };
 
+    const handleProblemSubmitted = () => {
+      // Extract the current problem slug from the URL
+      const pathParts = window.location.pathname.split('/');
+      const problemsIndex = pathParts.indexOf('problems');
+      const currentSlug = problemsIndex !== -1 ? pathParts[problemsIndex + 1] : null;
+
+      if (currentSlug) {
+        logger.info("ProblemGenerator: Received problemSubmitted, marking problem as attempted", { currentSlug });
+        // Update problems state to mark the current problem as attempted
+        setProblems(prevProblems =>
+          prevProblems.map(problem =>
+            problem.slug === currentSlug
+              ? { ...problem, attempted: true, attempt_date: new Date().toISOString() }
+              : problem
+          )
+        );
+      } else {
+        logger.warn("ProblemGenerator: Received problemSubmitted but could not determine current problem slug");
+      }
+    };
+
     const messageListener = (message, _sender, sendResponse) => {
       if (message.type === "sessionCacheCleared") {
         handleSessionCacheCleared();
+        sendResponse({ status: "success" });
+      } else if (message.type === "problemSubmitted") {
+        handleProblemSubmitted();
         sendResponse({ status: "success" });
       }
     };
