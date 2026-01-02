@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `problemSubmitted` message listener that triggers session refresh from database
   - Exposed `triggerSessionLoad` from `useSessionLoader` to enable on-demand refresh
 
+- **Attempts Not Associated With Current Session**
+  - Fixed attempts being recorded to old sessions instead of the current active session
+  - Root cause: `getLatestSessionByType` returned arbitrary session when multiple exist with same type/status
+  - Now properly sorts all matching sessions by date to return the most recent one
+
 - **Settings Display Issues**
   - Fixed Time Limits segmented control not highlighting selected value (case sensitivity mismatch)
   - Fixed Focus Areas showing all 5 pool tags instead of performance-limited selection
