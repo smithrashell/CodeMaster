@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Records user intent for session analytics
 
 ### Fixed
+- **Problem List Not Updating After Submission**
+  - Fixed problems not being removed from generator list after submitting a solution
+  - Root cause: Sidebar unmounting fix (Dec 23) prevented natural data refresh on remount
+  - Added `problemSubmitted` message listener to `useSessionCacheListener` hook
+  - Problems are now marked as attempted in real-time when submission is detected
+
+- **Settings Display Issues**
+  - Fixed Time Limits segmented control not highlighting selected value (case sensitivity mismatch)
+  - Fixed Focus Areas showing all 5 pool tags instead of performance-limited selection
+
 - **Timer Settings Not Applying** (#234)
   - Fixed timer limits (Auto/Off/Fixed) not updating after changing settings
   - Added cache clearing for adaptiveLimitsService when settings are saved
@@ -45,6 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 - Added regression test for timer settings cache clearing
 - Added regression tests for cross-context theme sync
+- Added comprehensive tests for `ProblemGeneratorHooks` message listeners
+  - Tests for `sessionCacheCleared` message handling
+  - Tests for `problemSubmitted` message handling (11 test cases)
+  - Tests for Chrome API availability edge cases
 
 ---
 
