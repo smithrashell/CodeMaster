@@ -17,8 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Problem List Not Updating After Submission**
   - Fixed problems not being removed from generator list after submitting a solution
   - Root cause: Sidebar unmounting fix (Dec 23) prevented natural data refresh on remount
-  - Added `problemSubmitted` message listener to `useSessionCacheListener` hook
-  - Problems are now marked as attempted in real-time when submission is detected
+  - Added `problemSubmitted` message listener that triggers session refresh from database
+  - Exposed `triggerSessionLoad` from `useSessionLoader` to enable on-demand refresh
 
 - **Settings Display Issues**
   - Fixed Time Limits segmented control not highlighting selected value (case sensitivity mismatch)
@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added regression tests for cross-context theme sync
 - Added comprehensive tests for `ProblemGeneratorHooks` message listeners
   - Tests for `sessionCacheCleared` message handling
-  - Tests for `problemSubmitted` message handling (11 test cases)
+  - Tests for `problemSubmitted` session refresh triggering
   - Tests for Chrome API availability edge cases
 
 ---
