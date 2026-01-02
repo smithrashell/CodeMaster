@@ -164,19 +164,27 @@ export const getLatestSessionByType = async (session_type = null, status = null)
       return;
     }
 
-    const request = index.openCursor(keyRange, "prev");
+    // Collect all matching sessions, then sort by date to get the latest
+    // The index only contains [session_type, status], not date, so cursor order is arbitrary
+    const matchingSessions = [];
+    const request = index.openCursor(keyRange);
 
     request.onsuccess = (event) => {
       const cursor = event.target.result;
       if (cursor) {
-        const session = cursor.value;
-
-        logger.info(`Found matching ${normalizedSessionType} session: ${session.id?.substring(0,8)}... status=${session.status}`);
-        resolve(session);
-        return;
+        matchingSessions.push(cursor.value);
+        cursor.continue();
       } else {
-        logger.info(`No matching ${normalizedSessionType} session found with status=${status || 'any'}`);
-        resolve(null);
+        // All sessions collected, now sort by date descending to get latest
+        if (matchingSessions.length > 0) {
+          matchingSessions.sort((a, b) => new Date(b.date) - new Date(a.date));
+          const latestSession = matchingSessions[0];
+          logger.info(`Found ${matchingSessions.length} matching ${normalizedSessionType} sessions, returning latest: ${latestSession.id?.substring(0,8)}... (date: ${latestSession.date})`);
+          resolve(latestSession);
+        } else {
+          logger.info(`No matching ${normalizedSessionType} session found with status=${status || 'any'}`);
+          resolve(null);
+        }
       }
     };
 
