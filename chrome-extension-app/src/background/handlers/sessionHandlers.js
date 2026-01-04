@@ -35,6 +35,18 @@ export function handleGetSession(request, dependencies, sendResponse, finishRequ
 }
 
 /**
+ * Handler: getActiveSession
+ * Retrieves the most recent in-progress session (used as fallback when storage is empty)
+ */
+export function handleGetActiveSession(request, dependencies, sendResponse, finishRequest) {
+  SessionService.resumeSession(null)
+    .then((session) => sendResponse({ session }))
+    .catch(() => sendResponse({ session: null }))
+    .finally(finishRequest);
+  return true;
+}
+
+/**
  * Handler: getOrCreateSession
  * Gets or creates a session with interview banner logic and timeout monitoring
  *
@@ -47,17 +59,34 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
   const { withTimeout } = dependencies;
   const startTime = Date.now();
 
+  // Normalize session type parameter (accept both camelCase and snake_case)
+  const requestedSessionType = request.sessionType || request.session_type;
+
   // Check if we should show interview banner instead of auto-creating session
-  if (!request.sessionType) {
+  // Only show banner if NO session type was explicitly requested
+  if (!requestedSessionType) {
     try {
       const settings = await StorageService.getSettings();
       if (settings?.interviewMode &&
           settings.interviewMode !== 'disabled' &&
           settings.interviewFrequency === 'manual') {
-        // Return null to trigger banner display
-        sendResponse({ session: null });
-        finishRequest();
-        return true;
+        // Only show banner if session is completed or has no attempts
+        // Don't interrupt users actively working on a session with attempts
+        const existingSession = await SessionService.resumeSession('standard');
+        const sessionCompleted = !existingSession || existingSession.status === 'completed';
+        const sessionHasNoAttempts = existingSession &&
+          existingSession.status === 'in_progress' &&
+          (!existingSession.attempts || existingSession.attempts.length === 0);
+
+        if (sessionCompleted || sessionHasNoAttempts) {
+          // Return null to trigger banner display
+          console.log('📋 Showing interview banner - session completed or no attempts yet');
+          sendResponse({ session: null });
+          finishRequest();
+          return true;
+        }
+        // User has active session with attempts - don't show banner, continue to session
+        console.log('📋 Skipping interview banner - user has active session with attempts');
       }
     } catch (error) {
       console.error('Error checking settings for banner logic:', error);
@@ -66,7 +95,7 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
   }
 
   // Use explicit sessionType or default to standard (DO NOT auto-trigger interview sessions)
-  const sessionType = request.sessionType || 'standard';
+  const sessionType = requestedSessionType || 'standard';
 
   // Add timeout monitoring
   const timeoutId = setTimeout(() => {
@@ -150,16 +179,34 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
  */
 export function handleRefreshSession(request, dependencies, sendResponse, finishRequest) {
   const { withTimeout } = dependencies;
-  console.log("🔄 Refreshing session:", request.sessionType || 'standard');
+
+  // Normalize session type parameter (accept both camelCase and snake_case)
+  const requestedSessionType = request.sessionType || request.session_type;
+  const sessionType = requestedSessionType || 'standard';
+
+  console.log("🔄 Refreshing session:", sessionType);
   const refreshStartTime = Date.now();
 
   withTimeout(
-    SessionService.refreshSession(request.sessionType || 'standard', true), // forceNew = true
+    SessionService.refreshSession(sessionType, true), // forceNew = true
     20000, // 20 second timeout for refresh
-    `SessionService.refreshSession(${request.sessionType || 'standard'})`
+    `SessionService.refreshSession(${sessionType})`
   )
     .then(async (session) => {
       const refreshDuration = Date.now() - refreshStartTime;
+
+      // Guard: session is null when no existing session of that type was found to regenerate
+      if (!session) {
+        console.warn(`⚠️ No ${sessionType} session found to regenerate - skipping creation`);
+        sendResponse({
+          session: null,
+          isSessionStale: false,
+          backgroundScriptData: `No ${sessionType} session to regenerate`,
+          error: `No existing ${sessionType} session found to regenerate`
+        });
+        return;
+      }
+
       console.log("✅ Session refreshed in", refreshDuration + "ms");
 
       // Clear focus area change flag since we just regenerated the session
@@ -518,6 +565,7 @@ export function handleGetReEngagementTiming(request, dependencies, sendResponse,
 // Export handler registry for session-related messages
 export const sessionHandlers = {
   'getSession': handleGetSession,
+  'getActiveSession': handleGetActiveSession,
   'getOrCreateSession': handleGetOrCreateSession,
   'refreshSession': handleRefreshSession,
   'getCurrentSession': handleGetCurrentSession,

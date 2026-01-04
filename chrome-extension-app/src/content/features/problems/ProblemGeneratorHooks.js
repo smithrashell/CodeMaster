@@ -99,6 +99,13 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
     logger.info('handleRegularChoice called - creating standard session');
     setShowInterviewBanner(false);
 
+    // Clear interview mode from storage since user chose standard session
+    chrome.storage.local.set({
+      currentInterviewMode: { sessionType: 'standard', interviewConfig: null }
+    }, () => {
+      logger.info('Cleared interview mode from storage (user chose standard session)');
+    });
+
     try {
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "getOrCreateSession",
@@ -123,9 +130,38 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
     setShowRegenerationBanner(false);
 
     try {
+      // Get fresh settings to determine correct session type
+      const freshSettings = await getFreshSettings(settings);
+
+      // Determine session type:
+      // 1. If currently in an interview session, keep that type (user explicitly chose it)
+      // 2. Otherwise, check settings for auto-interview mode
+      // 3. Fall back to standard
+      const currentSessionType = sessionData?.session_type;
+      const isCurrentlyInterview = currentSessionType && currentSessionType !== 'standard';
+
+      let sessionType = 'standard';
+      if (isCurrentlyInterview) {
+        // Keep the current interview session type
+        sessionType = currentSessionType;
+      } else if (freshSettings?.interviewMode &&
+          freshSettings.interviewMode !== 'disabled' &&
+          freshSettings.interviewFrequency !== 'manual') {
+        // Use settings if auto-interview is enabled
+        sessionType = freshSettings.interviewMode;
+      }
+
+      logger.info('handleRegenerateSession: Determining session type:', {
+        currentSessionType,
+        isCurrentlyInterview,
+        settingsInterviewMode: freshSettings?.interviewMode,
+        settingsFrequency: freshSettings?.interviewFrequency,
+        resolvedSessionType: sessionType
+      });
+
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "refreshSession",
-        session_type: sessionData?.session_type || 'standard'
+        session_type: sessionType
       });
 
       if (response.session) {
@@ -133,6 +169,15 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
         setProblems(sessionProblems || []);
         setSessionData(restOfSession);
         sessionCreationAttempted.current = true;
+
+        // Update storage with regenerated session's interview mode
+        const interviewInfo = {
+          sessionType: restOfSession.session_type || 'standard',
+          interviewConfig: restOfSession.interviewConfig || null
+        };
+        chrome.storage.local.set({ currentInterviewMode: interviewInfo }, () => {
+          logger.info('Updated interview mode in storage after session regeneration:', interviewInfo);
+        });
       }
     } catch (error) {
       logger.error("Failed to regenerate session:", error);

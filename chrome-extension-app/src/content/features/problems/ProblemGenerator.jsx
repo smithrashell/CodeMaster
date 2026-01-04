@@ -75,6 +75,8 @@ function ProbGen() {
       });
     }
 
+    // Storage is already updated when session is created/loaded (in processSessionResponse)
+    // Just navigate to the problem page
     window.location.href =
       problem.leetcode_address ||
       `https://leetcode.com/problems/${problem.slug}/description/`;

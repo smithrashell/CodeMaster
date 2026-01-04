@@ -91,28 +91,22 @@ export const InterviewModeBanner = ({ session_type, interviewConfig: _interviewC
       border: `2px solid ${modeDisplay.color}`,
       borderRadius: '8px',
       padding: '12px 16px',
-      margin: '0 0 16px 0',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px'
+      margin: '0 0 16px 0'
     }}>
-      <span style={{ fontSize: '20px' }}>{modeDisplay.icon}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{
-          fontWeight: 'bold',
-          color: modeDisplay.color,
-          fontSize: '14px',
-          marginBottom: '2px'
-        }}>
-          {modeDisplay.title}
-        </div>
-        <div style={{
-          fontSize: '12px',
-          color: 'var(--cm-text-secondary, #888)',
-          lineHeight: '1.3'
-        }}>
-          {modeDisplay.description}
-        </div>
+      <div style={{
+        fontWeight: 'bold',
+        color: modeDisplay.color,
+        fontSize: '14px',
+        marginBottom: '2px'
+      }}>
+        {modeDisplay.title}
+      </div>
+      <div style={{
+        fontSize: '12px',
+        color: 'var(--cm-text-secondary, #888)',
+        lineHeight: '1.3'
+      }}>
+        {modeDisplay.description}
       </div>
     </div>
   );

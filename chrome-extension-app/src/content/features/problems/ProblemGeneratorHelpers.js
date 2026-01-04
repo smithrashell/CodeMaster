@@ -42,6 +42,18 @@ export const processSessionResponse = (response, handlers, sessionCreationAttemp
     setProblems(sessionProblems || []);
     setSessionData(restOfSession);
 
+    // Update storage with session's interview mode info
+    // This ensures Timer and ProblemDetail pages have correct mode
+    const interviewInfo = {
+      sessionType: restOfSession.session_type || 'standard',
+      interviewConfig: restOfSession.interviewConfig || null
+    };
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.set({ currentInterviewMode: interviewInfo }, () => {
+        logger.info(`${operationName} - Updated currentInterviewMode in storage:`, interviewInfo);
+      });
+    }
+
     logger.info(`${operationName} - Setting regeneration banner state:`, response.isSessionStale || false);
     setShowRegenerationBanner(response.isSessionStale || false);
 
@@ -88,6 +100,18 @@ export const processSessionLoaderResponse = (response, handlers, sessionCreation
   if (response.session) {
     setSessionData(response.session);
 
+    // Update storage with session's interview mode info
+    // This ensures Timer and ProblemDetail pages have correct mode
+    const interviewInfo = {
+      sessionType: response.session.session_type || 'standard',
+      interviewConfig: response.session.interviewConfig || null
+    };
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      chrome.storage.local.set({ currentInterviewMode: interviewInfo }, () => {
+        logger.info(`SessionLoader${pathName ? ` (${pathName})` : ''} - Updated currentInterviewMode in storage:`, interviewInfo);
+      });
+    }
+
     logger.info('Setting regeneration banner state:', response.isSessionStale || false);
     setShowRegenerationBanner(response.isSessionStale || false);
 
@@ -120,21 +144,18 @@ export const getModeDisplay = (mode) => {
   switch (mode) {
     case 'interview-like':
       return {
-        icon: '🟡',
         title: 'Interview-Like Mode',
         description: 'Limited hints • Mild time pressure • Practice interview conditions',
         color: '#f59e0b'
       };
     case 'full-interview':
       return {
-        icon: '🔴',
         title: 'Full Interview Mode',
         description: 'No hints • Strict timing • Realistic interview simulation',
         color: '#ef4444'
       };
     default:
       return {
-        icon: '🎯',
         title: 'Interview Mode',
         description: 'Interview practice session',
         color: '#3b82f6'

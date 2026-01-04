@@ -37,6 +37,58 @@ const getProblemProperty = (routeState, ...keys) => {
  * Extract problem data from route state
  */
 const useProblemData = (routeState) => {
+  // State for interview mode loaded from storage (fallback when route state is missing)
+  const [storedInterviewMode, setStoredInterviewMode] = useState(null);
+
+  const routeInterviewConfig = getProblemProperty(routeState, 'interviewConstraints');
+  const routeSessionType = getProblemProperty(routeState, 'sessionType');
+
+  // Load interview mode from storage if not in route state
+  // This handles navigation via window.location.href which doesn't preserve React Router state
+  useEffect(() => {
+    // Initial load from storage
+    if (!routeSessionType && !routeInterviewConfig) {
+      chrome.storage.local.get(['currentInterviewMode'], (result) => {
+        if (result.currentInterviewMode && result.currentInterviewMode.sessionType) {
+          logger.info('ProblemDetail: Loaded interview mode from storage:', result.currentInterviewMode);
+          setStoredInterviewMode(result.currentInterviewMode);
+        } else {
+          // Fallback: fetch active session from background script if storage is empty
+          logger.info('ProblemDetail: Storage empty, fetching active session from background');
+          if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+            chrome.runtime.sendMessage({ type: 'getActiveSession' }, (response) => {
+              if (response?.session) {
+                const sessionInfo = {
+                  sessionType: response.session.session_type || 'standard',
+                  interviewConfig: response.session.interviewConfig || null
+                };
+                logger.info('ProblemDetail: Loaded interview mode from active session:', sessionInfo);
+                setStoredInterviewMode(sessionInfo);
+                // Also update storage for future consistency
+                chrome.storage.local.set({ currentInterviewMode: sessionInfo });
+              }
+            });
+          }
+        }
+      });
+    }
+
+    // Listen for storage changes to sync across tabs
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName === 'local' && changes.currentInterviewMode) {
+        logger.info('ProblemDetail: Interview mode changed in storage:', changes.currentInterviewMode.newValue);
+        setStoredInterviewMode(changes.currentInterviewMode.newValue);
+      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(handleStorageChange);
+      return () => {
+        chrome.storage.onChanged.removeListener(handleStorageChange);
+      };
+    }
+  }, [routeSessionType, routeInterviewConfig]);
+
   const problemData = useMemo(() => {
     const data = routeState?.problemData;
     if (!data) return {};
@@ -49,8 +101,9 @@ const useProblemData = (routeState) => {
     };
   }, [routeState]);
 
-  const interviewConfig = getProblemProperty(routeState, 'interviewConstraints');
-  const sessionType = getProblemProperty(routeState, 'sessionType');
+  // Prefer route state, fall back to storage
+  const interviewConfig = routeInterviewConfig || storedInterviewMode?.interviewConfig || null;
+  const sessionType = routeSessionType || storedInterviewMode?.sessionType || null;
   const isInterviewMode = sessionType && sessionType !== 'standard';
 
   return { problemData, interviewConfig, sessionType, isInterviewMode };
@@ -252,15 +305,7 @@ const InterviewModeBanner = ({ isInterviewMode, sessionType, interviewConfig }) 
     border: `1px solid ${sessionType === 'full-interview' ? '#fecaca' : '#fed7aa'}`,
     borderRadius: '8px',
     padding: '12px 16px',
-    margin: '12px 0',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  };
-
-  const iconStyle = {
-    fontSize: '16px',
-    color: sessionType === 'full-interview' ? '#dc2626' : '#ea580c'
+    margin: '12px 0'
   };
 
   const textStyle = {
@@ -277,9 +322,6 @@ const InterviewModeBanner = ({ isInterviewMode, sessionType, interviewConfig }) 
 
   return (
     <div style={bannerStyle}>
-      <span style={iconStyle}>
-        {sessionType === 'full-interview' ? '🎯' : '💪'}
-      </span>
       <div>
         <div style={textStyle}>
           {modeDisplayName} Mode Active
@@ -427,6 +469,8 @@ const ProbDetail = ({ isLoading }) => {
             selectionReason={routeState.problemData.selectionReason}
             problemTags={problemTags}
             currentProblemId={problemId || routeState?.problemData?.LeetCodeID}
+            interviewConfig={interviewConfig}
+            sessionType={sessionType}
           />
         )}
         <ActionButtons 

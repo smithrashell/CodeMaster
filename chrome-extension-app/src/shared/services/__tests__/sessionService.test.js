@@ -17,6 +17,7 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
+  deleteSessionFromDB,
 } from "../../db/stores/sessions";
 import { updateProblemRelationships } from "../../db/stores/problem_relationships";
 import { calculateTagMastery } from "../../db/stores/tag_mastery";
@@ -387,6 +388,95 @@ const runGetOrCreateSessionTests = () => {
   });
 };
 
+const runRefreshSessionTests = () => {
+  describe("refreshSession", () => {
+    beforeEach(() => {
+      setupMocksForNewSession();
+      deleteSessionFromDB.mockResolvedValue();
+    });
+
+    // CONTRACT: Returns null when forceNew=true but no existing session of that type exists
+    // This prevents accidentally creating a session of the wrong type (bug fix for interview session regeneration)
+    it("should return null when forceNew=true but no session of that type exists", async () => {
+      // No existing session found
+      getLatestSessionByType.mockResolvedValue(null);
+
+      const result = await SessionService.refreshSession('interview-like', true);
+
+      // Verify contract: returns null when no session exists to regenerate
+      expect(result).toBeNull();
+      // Should NOT attempt to create a new session
+      expect(ProblemService.createSession).not.toHaveBeenCalled();
+      expect(ProblemService.createInterviewSession).not.toHaveBeenCalled();
+    });
+
+    // CONTRACT: Returns new session when forceNew=true and existing session exists
+    it("should create new session when forceNew=true and existing session exists", async () => {
+      const existingSession = {
+        id: "existing-interview-session",
+        status: "in_progress",
+        session_type: "interview-like",
+        problems: [{ id: 1 }],
+        attempts: []
+      };
+      const mockProblems = createMockProblems();
+
+      getLatestSessionByType.mockResolvedValue(existingSession);
+      ProblemService.createInterviewSession = jest.fn().mockResolvedValue({
+        problems: mockProblems,
+        session_type: 'interview-like',
+        interviewConfig: { timeLimit: 45 }
+      });
+
+      const result = await SessionService.refreshSession('interview-like', true);
+
+      // Verify contract: old session deleted, new session created
+      expect(deleteSessionFromDB).toHaveBeenCalledWith("existing-interview-session");
+      expect(result).not.toBeNull();
+      expect(result.session_type).toBe('interview-like');
+    });
+
+    // CONTRACT: Preserves session type during regeneration (critical bug fix)
+    it("should preserve session type when regenerating an interview session", async () => {
+      const existingInterviewSession = {
+        id: "interview-session-123",
+        status: "in_progress",
+        session_type: "full-interview",
+        problems: [{ id: 1 }],
+        attempts: []
+      };
+      const mockProblems = createMockProblems();
+
+      getLatestSessionByType.mockResolvedValue(existingInterviewSession);
+      ProblemService.createInterviewSession = jest.fn().mockResolvedValue({
+        problems: mockProblems,
+        session_type: 'full-interview',
+        interviewConfig: { timeLimit: 60 }
+      });
+
+      const result = await SessionService.refreshSession('full-interview', true);
+
+      // Verify contract: session type is preserved
+      expect(result.session_type).toBe('full-interview');
+      expect(ProblemService.createInterviewSession).toHaveBeenCalledWith('full-interview');
+    });
+
+    // CONTRACT: Does not affect sessions of other types
+    it("should not affect sessions of other types when regenerating", async () => {
+      // Mock: No interview session exists
+      getLatestSessionByType.mockResolvedValue(null);
+
+      // Try to regenerate interview session when none exists
+      const result = await SessionService.refreshSession('interview-like', true);
+
+      // Verify: Returns null without creating anything
+      expect(result).toBeNull();
+      // Verify: updateSessionInDB was not called (no standard session should be affected)
+      expect(updateSessionInDB).not.toHaveBeenCalled();
+    });
+  });
+};
+
 describe("SessionService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -398,4 +488,5 @@ describe("SessionService", () => {
   runSkipProblemTests();
   runCalculateMasteryDeltasTests();
   runGetOrCreateSessionTests();
+  runRefreshSessionTests();
 });

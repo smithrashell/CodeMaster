@@ -515,6 +515,19 @@ export const SessionService = {
         logger.warn("Failed to clear cached analytics (sync):", error);
       }
 
+      // Clear interview mode from storage since session is complete
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          chrome.storage.local.set({
+            currentInterviewMode: { sessionType: 'standard', interviewConfig: null }
+          }, () => {
+            logger.info('Cleared interview mode from storage (session completed)');
+          });
+        }
+      } catch (error) {
+        logger.warn("Failed to clear interview mode from storage:", error);
+      }
+
       // ✅ Run centralized session performance analysis
       console.log(`🔍 DEBUG: About to call summarizeSessionPerformance for session ${session.id}`);
       try {
@@ -829,15 +842,24 @@ export const SessionService = {
       try {
         // Delete current session immediately if it exists (no longer need to mark as expired)
         const currentSession = await this.resumeSession(sessionType);
+
+        // Guard: If forceNew=true (regeneration), we MUST have an existing session to replace
+        // This prevents accidentally creating a new session of the wrong type
+        // (e.g., creating a standard session when we meant to regenerate an interview session)
+        if (forceNew && !currentSession) {
+          logger.warn(`⚠️ Cannot regenerate ${sessionType} session - no existing session of this type found`);
+          return null;
+        }
+
         if (currentSession && forceNew) {
           await deleteSessionFromDB(currentSession.id);
           logger.info(`Deleted session ${currentSession.id} (type: ${sessionType}, status: ${currentSession.status}) for regeneration`);
         }
-        
+
         // Create fresh session
         const newSession = await this.createNewSession(sessionType);
         logger.info(`✅ Created fresh ${sessionType} session: ${newSession.id}`);
-        
+
         return newSession;
       } finally {
         // Always release lock

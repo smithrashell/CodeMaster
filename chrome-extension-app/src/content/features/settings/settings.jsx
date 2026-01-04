@@ -76,7 +76,13 @@ const Settings = () => {
             ]}
             variant="gradient"
             size="sm"
+            disabled={workingSettings.interviewMode && workingSettings.interviewMode !== 'disabled'}
           />
+          {workingSettings.interviewMode && workingSettings.interviewMode !== 'disabled' && (
+            <div style={{ fontSize: '11px', color: 'var(--cm-text-dimmed)', marginTop: '4px', fontStyle: 'italic' }}>
+              Timer controlled by interview mode settings
+            </div>
+          )}
         </div>
 
         <InterviewModeControls

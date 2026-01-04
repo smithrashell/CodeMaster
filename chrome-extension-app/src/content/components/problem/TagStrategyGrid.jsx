@@ -51,66 +51,77 @@ const StrategyHintContent = ({ strategy }) => {
 };
 
 // Tag button component
-const TagButton = ({ 
-  tag, 
-  isExpanded, 
-  primersAvailable, 
-  primersEncouraged, 
-  sessionType, 
-  onTagClick 
-}) => (
-  <button
-    className={`tag-strategy-button ${
-      isExpanded
-        ? "tag-strategy-button-expanded tag-strategy-no-hover"
-        : ""
-    } ${!primersAvailable ? "tag-strategy-disabled" : ""}`}
-    onClick={() => onTagClick(tag)}
-    type="button"
-    aria-expanded={isExpanded}
-    aria-label={primersAvailable 
-      ? `Toggle strategy for ${tag} tag` 
-      : `${tag} tag - strategies disabled in interview mode`}
-    disabled={!primersAvailable}
-    title={!primersAvailable 
-      ? `Strategies are not available in ${sessionType} mode` 
-      : `Click to view ${tag} strategy`}
-    style={{
-      ...(isExpanded
-        ? {
-            backgroundColor: "var(--cm-dropdown-bg)",
-            color: "var(--cm-text)",
-            borderRadius: "10px 10px 0px 0px",
-            margin: "0px",
-            border: "none",
-          }
-        : {}),
-      ...((!primersAvailable)
-        ? {
-            opacity: 0.6,
-            cursor: "not-allowed",
-            backgroundColor: "var(--cm-disabled-bg, #f5f5f5)",
-            color: "var(--cm-disabled-text, #999)"
-          }
-        : {})
-    }}
-  >
-    {tag.charAt(0).toUpperCase() + tag.slice(1)}
-    {!primersAvailable && !primersEncouraged && (
-      <span style={{ marginLeft: "4px", fontSize: "10px" }}>🚫</span>
-    )}
-  </button>
-);
+const TagButton = ({
+  tag,
+  isExpanded,
+  primersAvailable,
+  primersEncouraged,
+  sessionType,
+  onTagClick,
+  canExpandMore
+}) => {
+  // Disable if primers not available, OR if limit reached and not already expanded
+  const isDisabled = !primersAvailable || (!canExpandMore && !isExpanded);
+  const isLimitReached = primersAvailable && !canExpandMore && !isExpanded;
+
+  return (
+    <button
+      className={`tag-strategy-button ${
+        isExpanded
+          ? "tag-strategy-button-expanded tag-strategy-no-hover"
+          : ""
+      } ${isDisabled ? "tag-strategy-disabled" : ""}`}
+      onClick={() => onTagClick(tag)}
+      type="button"
+      aria-expanded={isExpanded}
+      aria-label={!primersAvailable
+        ? `${tag} tag - strategies disabled in interview mode`
+        : isLimitReached
+          ? `${tag} tag - strategy limit reached`
+          : `Toggle strategy for ${tag} tag`}
+      disabled={isDisabled}
+      title={!primersAvailable
+        ? `Strategies are not available in ${sessionType} mode`
+        : isLimitReached
+          ? "Strategy limit reached"
+          : `Click to view ${tag} strategy`}
+      style={{
+        ...(isExpanded
+          ? {
+              backgroundColor: "var(--cm-dropdown-bg)",
+              color: "var(--cm-text)",
+              borderRadius: "10px 10px 0px 0px",
+              margin: "0px",
+              border: "none",
+            }
+          : {}),
+        ...(isDisabled
+          ? {
+              opacity: 0.6,
+              cursor: "not-allowed",
+              backgroundColor: "var(--cm-disabled-bg, #f5f5f5)",
+              color: "var(--cm-disabled-text, #999)"
+            }
+          : {})
+      }}
+    >
+      {tag.charAt(0).toUpperCase() + tag.slice(1)}
+      {!primersAvailable && !primersEncouraged && (
+        <span style={{ marginLeft: "4px", fontSize: "10px" }}>🚫</span>
+      )}
+    </button>
+  );
+};
 
 // Section header component
-const TagSectionHeader = ({ strategiesCount, isInterviewMode, primersAvailable }) => (
+const TagSectionHeader = ({ strategiesCount, isInterviewMode, primersAvailable, strategiesRemaining, maxStrategies }) => (
   <div className="problem-sidebar-section-header">
     <span className="problem-sidebar-section-title">
       Tags{" "}
       {strategiesCount > 0 &&
         `(${strategiesCount} strategies)`}
       {isInterviewMode && !primersAvailable && (
-        <span 
+        <span
           className="interview-constraint-indicator"
           style={{
             fontSize: "10px",
@@ -120,6 +131,19 @@ const TagSectionHeader = ({ strategiesCount, isInterviewMode, primersAvailable }
           }}
         >
           • Strategies disabled in interview mode
+        </span>
+      )}
+      {isInterviewMode && primersAvailable && maxStrategies !== null && (
+        <span
+          className="interview-constraint-indicator"
+          style={{
+            fontSize: "10px",
+            color: strategiesRemaining === 0 ? "var(--cm-error, #f44336)" : "var(--cm-warning, #f59e0b)",
+            marginLeft: "5px",
+            fontWeight: "normal"
+          }}
+        >
+          • {strategiesRemaining === 0 ? "Strategy limit reached" : `${strategiesRemaining} strateg${strategiesRemaining === 1 ? 'y' : 'ies'} remaining`}
         </span>
       )}
     </span>
@@ -325,32 +349,56 @@ const handleTagToggle = (expandedTag, normalizedTag, setExpandedTag, scrollingHa
   }
 };
 
+// Default strategy limits by session type (fallback for sessions created before primers.max was added)
+const DEFAULT_STRATEGY_LIMITS = {
+  'standard': null,        // unlimited
+  'interview-like': 2,     // same as hints limit
+  'full-interview': 0      // none allowed
+};
+
 // Helper function to calculate interview mode configuration
-const getInterviewModeConfig = (sessionType, interviewConfig) => {
+const getInterviewModeConfig = (sessionType, interviewConfig, strategiesUsed = 0) => {
   const isInterviewMode = sessionType && sessionType !== 'standard';
   const primersAvailable = !isInterviewMode || (interviewConfig?.primers?.available !== false);
   const primersEncouraged = !isInterviewMode || (interviewConfig?.primers?.encouraged !== false);
-  
-  return { isInterviewMode, primersAvailable, primersEncouraged };
+
+  // Get max strategies: use config value if available, otherwise fall back to defaults
+  const configMax = interviewConfig?.primers?.max;
+  const maxStrategies = configMax !== undefined ? configMax : (DEFAULT_STRATEGY_LIMITS[sessionType] ?? null);
+
+  const strategiesRemaining = maxStrategies === null ? null : Math.max(0, maxStrategies - strategiesUsed);
+  const canExpandMore = maxStrategies === null || strategiesUsed < maxStrategies;
+
+  return { isInterviewMode, primersAvailable, primersEncouraged, maxStrategies, strategiesRemaining, canExpandMore };
 };
 
 // Helper function to create tag click handler
-const createTagClickHandler = (expandedTag, setExpandedTag, interviewState, problemId, scrollManagement) => {
+const createTagClickHandler = (expandedTag, setExpandedTag, interviewState, problemId, scrollManagement, onStrategyUsed) => {
   return async (tag) => {
     const normalizedTag = tag.toLowerCase().trim();
     const isExpanding = expandedTag !== normalizedTag;
-    
+
     // Check interview mode constraints
     if (isExpanding && !interviewState.primersAvailable) {
       logger.info(`🚫 Tag Strategy: Primers not available in ${interviewState.sessionType} mode`);
       return; // Block expansion in interview modes that don't allow primers
     }
-    
+
+    // Check strategy usage limit (only for NEW expansions, not re-expanding same tag)
+    if (isExpanding && !interviewState.canExpandMore) {
+      logger.info(`🚫 Tag Strategy: Strategy limit reached (${interviewState.maxStrategies} max)`);
+      return; // Block expansion when limit reached
+    }
+
     logger.info(`🏷️ Tag Strategy: ${isExpanding ? 'Expanded' : 'Collapsed'} "${tag}" strategy`);
 
-    // Track interaction when expanding strategy
+    // Track interaction and increment usage counter when expanding a NEW strategy
     if (isExpanding) {
       await trackHintInteraction(tag, problemId);
+      // Increment usage counter for interview mode tracking
+      if (onStrategyUsed) {
+        onStrategyUsed();
+      }
     }
 
     // Create scrolling handler with access to scroll management functions
@@ -383,14 +431,15 @@ const renderNoTagsMessage = (className) => {
  * 
  * Interview mode aware: respects interview constraints for primer/strategy access.
  */
-function TagStrategyGrid({ 
-  problemTags, 
-  problemId, 
+function TagStrategyGrid({
+  problemTags,
+  problemId,
   className = "",
   interviewConfig = null,
-  sessionType = null 
+  sessionType = null
 }) {
   const [expandedTag, setExpandedTag] = useState(null);
+  const [strategiesUsed, setStrategiesUsed] = useState(0);
 
   logger.info("🏷️ TagStrategyGrid: Render started", {
     problemTags,
@@ -401,18 +450,22 @@ function TagStrategyGrid({
     interviewConfig
   });
 
-  // Interview mode logic
-  const { isInterviewMode, primersAvailable, primersEncouraged } = getInterviewModeConfig(sessionType, interviewConfig);
+  // Interview mode logic (now includes strategy usage tracking)
+  const { isInterviewMode, primersAvailable, primersEncouraged, maxStrategies, strategiesRemaining, canExpandMore } = getInterviewModeConfig(sessionType, interviewConfig, strategiesUsed);
 
   logger.info("🏷️ TagStrategyGrid: Interview mode settings", {
     isInterviewMode,
     primersAvailable,
-    primersEncouraged
+    primersEncouraged,
+    maxStrategies,
+    strategiesUsed,
+    strategiesRemaining,
+    canExpandMore
   });
 
-  // Use custom hooks
+  // Use custom hooks (must be called unconditionally before any early returns)
   const { strategies, loading } = useStrategyLoader(problemTags);
-  
+
   logger.info("🏷️ TagStrategyGrid: After useStrategyLoader", {
     strategiesCount: Object.keys(strategies).length,
     strategiesKeys: Object.keys(strategies),
@@ -425,13 +478,26 @@ function TagStrategyGrid({
     handleFallbackScrolling
   } = useScrollManagement();
 
+  // Hide strategy panel completely in interview mode when primers are not available
+  // This simulates a real interview where the user doesn't have access to strategy hints
+  if (isInterviewMode && !primersAvailable) {
+    logger.info("🏷️ TagStrategyGrid: Hidden in interview mode (primers not available)");
+    return null;
+  }
+
+  // Callback to increment strategy usage counter
+  const onStrategyUsed = () => {
+    setStrategiesUsed(prev => prev + 1);
+  };
+
   // Create tag click handler using extracted helper
   const handleTagClick = createTagClickHandler(
     expandedTag,
     setExpandedTag,
-    { primersAvailable, sessionType },
+    { primersAvailable, sessionType, canExpandMore, maxStrategies },
     problemId,
-    { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling }
+    { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling },
+    onStrategyUsed
   );
 
   const getTagRowIndex = (tagIndex) => {
@@ -459,10 +525,12 @@ function TagStrategyGrid({
 
   return (
     <div id="tour-tag-strategy-section" className={`problem-sidebar-section tag-strategy-container ${className}`}>
-      <TagSectionHeader 
+      <TagSectionHeader
         strategiesCount={Object.keys(strategies).length}
         isInterviewMode={isInterviewMode}
         primersAvailable={primersAvailable}
+        strategiesRemaining={strategiesRemaining}
+        maxStrategies={maxStrategies}
       />
 
       <div className="tag-strategy-simple-grid">
@@ -482,6 +550,7 @@ function TagStrategyGrid({
                 primersEncouraged={primersEncouraged}
                 sessionType={sessionType}
                 onTagClick={handleTagClick}
+                canExpandMore={canExpandMore}
               />
 
               {/* Show expanded strategy content after the row containing the expanded tag */}

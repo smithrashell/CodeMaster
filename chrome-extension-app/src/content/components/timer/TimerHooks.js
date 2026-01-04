@@ -56,17 +56,68 @@ export const useInterviewSignals = () => {
 
 // Custom hook for timer limit calculation and configuration
 export const useTimerConfiguration = (state) => {
+  // State for interview mode loaded from storage (fallback when route state is missing)
+  const [storedInterviewMode, setStoredInterviewMode] = useState(null);
+
+  // Load interview mode from storage if not in route state
+  // This handles navigation via window.location.href which doesn't preserve React Router state
+  useEffect(() => {
+    // Initial load from storage
+    if (!state?.sessionType && !state?.interviewConfig) {
+      chrome.storage.local.get(['currentInterviewMode'], (result) => {
+        if (result.currentInterviewMode && result.currentInterviewMode.sessionType) {
+          logger.info('Loaded interview mode from storage:', result.currentInterviewMode);
+          setStoredInterviewMode(result.currentInterviewMode);
+        } else {
+          // Fallback: fetch active session from background script if storage is empty
+          logger.info('Storage empty, fetching active session from background');
+          if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+            chrome.runtime.sendMessage({ type: 'getActiveSession' }, (response) => {
+              if (response?.session) {
+                const sessionInfo = {
+                  sessionType: response.session.session_type || 'standard',
+                  interviewConfig: response.session.interviewConfig || null
+                };
+                logger.info('Loaded interview mode from active session:', sessionInfo);
+                setStoredInterviewMode(sessionInfo);
+                // Also update storage for future consistency
+                chrome.storage.local.set({ currentInterviewMode: sessionInfo });
+              }
+            });
+          }
+        }
+      });
+    }
+
+    // Listen for storage changes to sync across tabs
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName === 'local' && changes.currentInterviewMode) {
+        logger.info('Interview mode changed in storage:', changes.currentInterviewMode.newValue);
+        setStoredInterviewMode(changes.currentInterviewMode.newValue);
+      }
+    };
+
+    if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener(handleStorageChange);
+      return () => {
+        chrome.storage.onChanged.removeListener(handleStorageChange);
+      };
+    }
+  }, [state?.sessionType, state?.interviewConfig]);
+
   const processedTags = useMemo(() => {
     return state?.Tags ? state.Tags.map((tag) => tag.toLowerCase().trim()) : [];
   }, [state?.Tags]);
 
   const memoizedInterviewConfig = useMemo(() => {
-    return state?.interviewConfig || null;
-  }, [state?.interviewConfig]);
+    // Prefer route state, fall back to storage
+    return state?.interviewConfig || storedInterviewMode?.interviewConfig || null;
+  }, [state?.interviewConfig, storedInterviewMode?.interviewConfig]);
 
   const memoizedSessionType = useMemo(() => {
-    return state?.sessionType || null;
-  }, [state?.sessionType]);
+    // Prefer route state, fall back to storage
+    return state?.sessionType || storedInterviewMode?.sessionType || null;
+  }, [state?.sessionType, storedInterviewMode?.sessionType]);
 
   const uiMode = useMemo(() => {
     if (!memoizedInterviewConfig || memoizedSessionType === 'standard') {

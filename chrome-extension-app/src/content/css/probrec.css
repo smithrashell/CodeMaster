@@ -599,6 +599,7 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   font-size: 14px !important;
   font-weight: 500 !important;
   cursor: pointer !important;
+  outline: none !important; /* Remove focus outline */
 
   text-align: center !important;
   min-height: 40px !important;
@@ -611,6 +612,22 @@ body[data-theme="dark"] .cm-extension .cd-problem-info-icon {
   word-wrap: break-word !important;
   overflow: visible !important;
   text-overflow: unset !important;
+}
+
+/* Remove focus outline on tag strategy buttons - aggressive override for LeetCode */
+.cm-extension .tag-strategy-button:focus,
+.cm-extension .tag-strategy-button:focus-visible,
+.cm-extension button.tag-strategy-button:focus,
+.cm-extension button.tag-strategy-button:focus-visible,
+.tag-strategy-button:focus,
+.tag-strategy-button:focus-visible,
+button.tag-strategy-button:focus,
+button.tag-strategy-button:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-style: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
 }
 
 /* LeetCode Badge Theme Styles */
@@ -706,7 +723,7 @@ body[data-theme="light"] .cm-extension .tag-strategy-button {
 /* Dark mode strategy content */
 body[data-theme="dark"] .cm-extension .tag-strategy-hint-content {
   background-color: var(--cm-dropdown-bg, #374151) !important;
-  border: 1px solid var(--cm-link, #cbd5e1) !important;
+  border: none !important;
   border-radius: 0 0 8px 8px !important;
   padding: 12px !important;
   font-size: 13px !important;
@@ -735,7 +752,7 @@ body[data-theme="dark"] .cm-extension .tag-strategy-hint-body {
 /* Light mode strategy content */
 body[data-theme="light"] .cm-extension .tag-strategy-hint-content {
   background-color: var(--cm-dropdown-bg, #ffffff) !important;
-  border: 1px solid var(--cm-link, #444f5a) !important;
+  border: none !important;
   border-radius: 0 0 8px 8px !important;
   padding: 12px !important;
   font-size: 13px !important;

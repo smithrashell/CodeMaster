@@ -1739,6 +1739,13 @@ body[data-theme="dark"] .cm-extension .tag-strategy-button:hover {
   transform: translateY(-1px) scale(1.02) !important;
 }
 
+body[data-theme="dark"] .cm-extension .tag-strategy-button:focus,
+body[data-theme="dark"] .cm-extension .tag-strategy-button:focus-visible {
+  outline: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
 /* Light theme specific enhancements */
 body[data-theme="light"] .cm-extension .tag-strategy-button {
   background-color: rgba(0, 0, 0, 0.08) !important;
@@ -1750,6 +1757,13 @@ body[data-theme="light"] .cm-extension .tag-strategy-button:hover {
   background-color: rgba(0, 0, 0, 0.12) !important;
   border-color: rgba(0, 0, 0, 0.25) !important;
   transform: translateY(-1px) scale(1.02) !important;
+}
+
+body[data-theme="light"] .cm-extension .tag-strategy-button:focus,
+body[data-theme="light"] .cm-extension .tag-strategy-button:focus-visible {
+  outline: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 /* ===== RESPONSIVE DESIGN IMPROVEMENTS ===== */

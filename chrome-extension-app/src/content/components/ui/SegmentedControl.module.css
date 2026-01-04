@@ -13,6 +13,12 @@
   border: 1px solid var(--cm-border, #e9ecef) !important;
 }
 
+.containerDisabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+
 .button {
   border: none !important;
   background: transparent !important;

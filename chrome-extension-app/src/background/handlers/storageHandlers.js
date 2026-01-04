@@ -74,6 +74,20 @@ export const storageHandlers = {
               console.warn("Failed to sync settings to Chrome storage:", chrome.runtime.lastError.message);
             }
           });
+
+          // Update currentInterviewMode when interview settings change
+          // This ensures Timer and ProblemDetail pages reflect the correct mode
+          const newSettings = request.message;
+          if (newSettings?.interviewMode) {
+            const isInterviewEnabled = newSettings.interviewMode !== 'disabled';
+            const interviewInfo = {
+              sessionType: isInterviewEnabled ? newSettings.interviewMode : 'standard',
+              interviewConfig: null // Will be populated when session is created
+            };
+            chrome.storage.local.set({ currentInterviewMode: interviewInfo }, () => {
+              console.log("Updated currentInterviewMode from settings change:", interviewInfo);
+            });
+          }
         }
         sendResponse(result);
       })

@@ -103,10 +103,21 @@ const renderSimilarProblems = ({ similarProblems, loadingSimilar, hovered }) => 
 );
 
 /**
+ * Check if similar problems should be shown based on interview mode
+ */
+const shouldShowSimilarProblems = (sessionType) => {
+  // Hide similar problems in all interview modes to prevent "cheating"
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+  return !isInterviewMode;
+};
+
+/**
  * Helper function to render expandable content
  */
-const renderExpandableContent = ({ problem, hovered, similarProblems, loadingSimilar }) => {
+const renderExpandableContent = ({ problem, hovered, similarProblems, loadingSimilar, sessionType }) => {
   if (!problem.selectionReason) return null;
+
+  const showSimilar = shouldShowSimilarProblems(sessionType) && (similarProblems.length > 0 || loadingSimilar);
 
   return (
     <div style={{
@@ -124,14 +135,14 @@ const renderExpandableContent = ({ problem, hovered, similarProblems, loadingSim
         wordWrap: "break-word",
         overflowWrap: "anywhere",
         padding: "4px 0",
-        borderBottom: (similarProblems.length > 0 || loadingSimilar) ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
-        marginBottom: (similarProblems.length > 0 || loadingSimilar) ? "6px" : "0",
+        borderBottom: showSimilar ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+        marginBottom: showSimilar ? "6px" : "0",
         textAlign: "left",
       }}>
         <strong>Selected because:</strong> {problem.selectionReason.fullText}
       </div>
 
-      {(similarProblems.length > 0 || loadingSimilar) &&
+      {showSimilar &&
         renderSimilarProblems({ similarProblems, loadingSimilar, hovered })
       }
     </div>
@@ -141,7 +152,7 @@ const renderExpandableContent = ({ problem, hovered, similarProblems, loadingSim
 /**
  * Problem Item Component with expandable reason text
  */
-export const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) => {
+export const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick, sessionType }) => {
   const [hovered, setHovered] = useState(false);
 
   const { similarProblems, loadingSimilar } = useSimilarProblems(problem?.id, hovered);
@@ -187,7 +198,7 @@ export const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick }) =>
         {renderProblemBadges({ problem, isNewProblem, handleMouseEnter, handleMouseLeave })}
       </div>
 
-      {renderExpandableContent({ problem, hovered, similarProblems, loadingSimilar })}
+      {renderExpandableContent({ problem, hovered, similarProblems, loadingSimilar, sessionType })}
     </div>
   );
 };
@@ -202,6 +213,7 @@ export const ProblemItemWithInterviewContext = ({ problem, isNewProblem, intervi
         problem={problem}
         isNewProblem={isNewProblem}
         onLinkClick={onLinkClick}
+        sessionType={interviewMode}
       />
       {interviewMode && interviewMode !== 'standard' && (
         <div style={{

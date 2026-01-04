@@ -31,7 +31,7 @@ async function runPhase1Tests() {
 
 // Phase 2 - Algorithm & Learning
 async function runPhase2Tests() {
-  return await runTestSuite(['testOnboardingDetection', 'testAccurateTimer', 'testInterviewLikeSessions', 'testDifficultyProgression', 'testEscapeHatches', 'testFullInterviewSessions', 'testPathOptimization', 'testPatternLearning', 'testPlateauRecovery', 'testMultiSessionPaths', 'testRealLearningFlow', 'testRelationshipFlow', 'testRelationshipComposition', 'testRelationshipUpdates', 'testFocusRelationships', 'testRelationshipConsistency', 'testTagIntegration', 'testTagLadderPathfinding', 'testSessionBlending', 'testLearningJourney', 'testCoreSessionValidation', 'testProblemSelection', 'testQuick', 'testRealFocusCoordination', 'testRealSessionCreation', 'testOnboarding', 'testProgression', 'testStruggling', 'testComprehensive', 'testQuickComprehensive'], 'Phase 2 - Algorithm & Learning');
+  return await runTestSuite(['testOnboardingDetection', 'testAccurateTimer', 'testInterviewLikeSessions', 'testDifficultyProgression', 'testEscapeHatches', 'testFullInterviewSessions', 'testPathOptimization', 'testPatternLearning', 'testPlateauRecovery', 'testMultiSessionPaths', 'testRealLearningFlow', 'testRelationshipFlow', 'testRelationshipComposition', 'testRelationshipUpdates', 'testFocusRelationships', 'testRelationshipConsistency', 'testTagIntegration', 'testTagLadderPathfinding', 'testSessionBlending', 'testLearningJourney', 'testCoreSessionValidation', 'testProblemSelection', 'testQuick', 'testRealFocusCoordination', 'testRealSessionCreation', 'testOnboarding', 'testProgression', 'testStruggling', 'testComprehensive', 'testQuickComprehensive', 'testSessionDateSorting'], 'Phase 2 - Algorithm & Learning');
 }
 
 // Phase 3 - Experience Quality
@@ -102,7 +102,8 @@ async function runPhaseTests(phaseNumber) {
     "testProgression",
     "testStruggling",
     "testComprehensive",
-    "testQuickComprehensive"
+    "testQuickComprehensive",
+    "testSessionDateSorting"
   ],
   "Phase 3 - Experience Quality": [
     "testDataPersistenceReliability",

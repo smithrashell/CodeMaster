@@ -4,16 +4,17 @@ import styles from './SegmentedControl.module.css';
 /**
  * Custom SegmentedControl component to replace Mantine SegmentedControl
  */
-const SegmentedControl = ({ 
-  value, 
-  onChange, 
-  data = [], 
-  options = [], // Support both 'data' and 'options' props 
-  size = "sm", 
+const SegmentedControl = ({
+  value,
+  onChange,
+  data = [],
+  options = [], // Support both 'data' and 'options' props
+  size = "sm",
   color, // Remove default, let theme handle it
   variant = "default", // "default" or "gradient"
   style = {},
-  ...props 
+  disabled = false, // Disable entire control
+  ...props
 }) => {
   // Use options if provided, otherwise use data
   const items = options.length > 0 ? options : data;
@@ -40,6 +41,9 @@ const SegmentedControl = ({
   if (variant === 'gradient') {
     containerClasses.push(styles.gradient);
   }
+  if (disabled) {
+    containerClasses.push(styles.containerDisabled);
+  }
 
   return (
     <div className={containerClasses.join(' ')} style={style} {...props}>
@@ -51,11 +55,11 @@ const SegmentedControl = ({
             key={item.value || index}
             className={getButtonClasses(item, isActive)}
             onClick={() => {
-              if (!item.disabled && onChange) {
+              if (!disabled && !item.disabled && onChange) {
                 onChange(item.value);
               }
             }}
-            disabled={item.disabled}
+            disabled={disabled || item.disabled}
             title={item.description}
           >
             {item.label}

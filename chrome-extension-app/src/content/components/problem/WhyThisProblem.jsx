@@ -88,9 +88,18 @@ const renderHeader = (reasonIcon, isExpanded, handleToggle) => {
 };
 
 /**
+ * Check if similar problems should be shown based on interview mode
+ */
+const shouldShowSimilarProblems = (sessionType) => {
+  // Hide similar problems in all interview modes to prevent "cheating"
+  const isInterviewMode = sessionType && sessionType !== 'standard';
+  return !isInterviewMode;
+};
+
+/**
  * Renders the expanded content section
  */
-const renderExpandedContent = (selectionReason, currentProblemId, similarProblems, loadingSimilar) => {
+const renderExpandedContent = (selectionReason, currentProblemId, similarProblems, loadingSimilar, sessionType) => {
   return (
     <div
       className="problem-sidebar-primer-content"
@@ -149,11 +158,13 @@ const renderExpandedContent = (selectionReason, currentProblemId, similarProblem
         </div>
       </div>
 
-      <SimilarProblemsSection 
-        currentProblemId={currentProblemId}
-        similarProblems={similarProblems}
-        loadingSimilar={loadingSimilar}
-      />
+      {shouldShowSimilarProblems(sessionType) && (
+        <SimilarProblemsSection
+          currentProblemId={currentProblemId}
+          similarProblems={similarProblems}
+          loadingSimilar={loadingSimilar}
+        />
+      )}
     </div>
   );
 };
@@ -168,6 +179,8 @@ function WhyThisProblem({
   problemTags: _problemTags = [],
   className = "",
   currentProblemId = null,
+  interviewConfig: _interviewConfig = null,
+  sessionType = null,
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { similarProblems, loadingSimilar } = useSimilarProblems(currentProblemId, isExpanded);
@@ -187,7 +200,7 @@ function WhyThisProblem({
   return (
     <div className={`problem-sidebar-section ${className}`}>
       {renderHeader(reasonIcon, isExpanded, handleToggle)}
-      {isExpanded && renderExpandedContent(selectionReason, currentProblemId, similarProblems, loadingSimilar)}
+      {isExpanded && renderExpandedContent(selectionReason, currentProblemId, similarProblems, loadingSimilar, sessionType)}
     </div>
   );
 }

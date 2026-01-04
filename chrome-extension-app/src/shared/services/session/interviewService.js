@@ -20,26 +20,26 @@ export class InterviewService {
     'interview-like': {
       sessionLength: { min: 3, max: 5 },
       hints: { max: 2, timeRestriction: false },
-      timing: { 
-        pressure: true, 
+      timing: {
+        pressure: true,
         hardCutoff: false,
         multiplier: 1.5, // 1.5x normal time
         thresholds: { Easy: 22 * 60000, Medium: 37 * 60000, Hard: 60 * 60000 } // in ms
       },
-      primers: { available: true, encouraged: false },
+      primers: { available: true, encouraged: false, max: 2 },
       uiMode: 'pressure-indicators',
       problemMix: { mastered: 0.6, nearMastery: 0.3, challenging: 0.1 }
     },
     'full-interview': {
       sessionLength: { min: 3, max: 4 },
       hints: { max: 0, timeRestriction: true },
-      timing: { 
-        pressure: true, 
+      timing: {
+        pressure: true,
         hardCutoff: true,
         multiplier: 1.0, // Standard interview timing
         thresholds: { Easy: 15 * 60000, Medium: 25 * 60000, Hard: 40 * 60000 } // in ms
       },
-      primers: { available: false, encouraged: false },
+      primers: { available: false, encouraged: false, max: 0 },
       uiMode: 'minimal-clean',
       problemMix: { mastered: 0.6, nearMastery: 0.3, wildcard: 0.1 }
     }

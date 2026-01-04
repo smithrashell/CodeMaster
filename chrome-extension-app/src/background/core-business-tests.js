@@ -22,7 +22,7 @@ import { buildProblemRelationships } from '../shared/services/focus/relationship
 // Create dbHelper instance for test file usage
 const dbHelper = createDbHelper();
 import { getAllFromStore } from '../shared/db/core/common.js';
-import { getSessionById, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/stores/sessions.js';
+import { getSessionById, getLatestSessionByType, evaluateDifficultyProgression, buildAdaptiveSessionSettings } from '../shared/db/stores/sessions.js';
 import { buildRelationshipMap } from '../shared/db/stores/problem_relationships.js';
 import { addAttempt as addAttemptToDB, getMostRecentAttempt } from '../shared/db/stores/attempts.js';
 import { getTagMastery, upsertTagMastery, updateTagMasteryForAttempt } from '../shared/db/stores/tag_mastery.js';
@@ -1849,6 +1849,94 @@ export function initializeCoreBusinessTests() {
     }
   }
 
+  /**
+   * Test: getLatestSessionByType returns the most recent session by date
+   *
+   * This test verifies the fix for a critical bug where getLatestSessionByType
+   * was returning an arbitrary session instead of the newest one.
+   *
+   * Bug impact: Attempts were being associated with old sessions instead of
+   * the current active session.
+   */
+  async function testSessionDateSorting(_verbose) {
+    const start = Date.now();
+    try {
+      // Use test database helper if active
+      const helper = globalThis._testDatabaseActive && globalThis._testDatabaseHelper
+        ? globalThis._testDatabaseHelper
+        : dbHelper;
+      const db = await helper.openDB();
+
+      // Create old session directly in IndexedDB (1 hour ago)
+      const oldSession = {
+        id: uuidv4(),
+        session_type: 'standard',
+        status: 'in_progress',
+        date: new Date(Date.now() - 3600000).toISOString(),
+        problems: []
+      };
+
+      // Create new session (now)
+      const newSession = {
+        id: uuidv4(),
+        session_type: 'standard',
+        status: 'in_progress',
+        date: new Date().toISOString(),
+        problems: []
+      };
+
+      // Insert both sessions (old first to ensure sorting is actually needed)
+      const tx = db.transaction(['sessions'], 'readwrite');
+      const store = tx.objectStore('sessions');
+      await new Promise((resolve, reject) => {
+        const req = store.add(oldSession);
+        req.onsuccess = resolve;
+        req.onerror = () => reject(req.error);
+      });
+      await new Promise((resolve, reject) => {
+        const req = store.add(newSession);
+        req.onsuccess = resolve;
+        req.onerror = () => reject(req.error);
+      });
+      await new Promise(resolve => { tx.oncomplete = resolve; });
+
+      // Test: getLatestSessionByType should return the NEWER session
+      const latest = await getLatestSessionByType('standard', 'in_progress');
+
+      if (!latest) {
+        return {
+          success: false,
+          error: 'getLatestSessionByType returned null',
+          duration: Date.now() - start
+        };
+      }
+
+      if (latest.id !== newSession.id) {
+        return {
+          success: false,
+          error: `Wrong session! Got ${latest.id.substring(0,8)} (${latest.date}) but expected ${newSession.id.substring(0,8)} (${newSession.date})`,
+          duration: Date.now() - start
+        };
+      }
+
+      if (_verbose) {
+        console.log(`✅ Correctly returned newest session: ${latest.id.substring(0,8)} (${latest.date})`);
+      }
+
+      return {
+        success: true,
+        details: 'getLatestSessionByType correctly returns most recent session by date',
+        duration: Date.now() - start
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        duration: Date.now() - start
+      };
+    }
+  }
+
   async function testSessionCompletionFlow(_verbose) {
     const start = Date.now();
     try {
@@ -2297,6 +2385,7 @@ export function initializeCoreBusinessTests() {
   globalThis.testSessionCompletionFlow = wrapTest(testSessionCompletionFlow, 'testSessionCompletionFlow');
   globalThis.testFocusTagProgression = wrapTest(testFocusTagProgression, 'testFocusTagProgression');
   globalThis.testOnboardingInitialization = wrapTest(testOnboardingInitialization, 'testOnboardingInitialization');
+  globalThis.testSessionDateSorting = wrapTest(testSessionDateSorting, 'testSessionDateSorting');
 
-  console.log('✅ Core business logic tests initialized - 19 individual test functions available');
+  console.log('✅ Core business logic tests initialized - 20 individual test functions available');
 }
