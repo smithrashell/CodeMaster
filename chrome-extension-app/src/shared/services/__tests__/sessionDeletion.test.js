@@ -254,9 +254,11 @@ describe("Session Deletion (Issue #193)", () => {
 
       deleteSessionFromDB.mockResolvedValue(undefined);
 
+      // When forceNew=true but no existing session, refreshSession returns null
+      // (can't regenerate a session that doesn't exist)
       const result = await SessionService.refreshSession(sessionType, true);
 
-      expect(result.id).toBe("new-session");
+      expect(result).toBeNull();
       expect(deleteSessionFromDB).not.toHaveBeenCalled(); // No session to delete
     });
   });
