@@ -55,9 +55,11 @@ const FloatingHintButtonCore = ({
               right: -4,
               minWidth: 16,
               height: 16,
-              padding: 0,
+              padding: "0 4px",
               fontSize: "9px",
               lineHeight: "16px",
+              justifyContent: "center",
+              textAlign: "center",
             }}
           >
             {getBadgeText(interviewRestrictions, totalHints)}

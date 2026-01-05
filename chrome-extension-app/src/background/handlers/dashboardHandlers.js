@@ -137,7 +137,7 @@ export const dashboardHandlers = {
 
         sendResponse({
           totalSessions: cadenceData.totalSessions || 0,
-          learningPhase: cadenceData.learningPhase || true,
+          learningPhase: cadenceData.learningPhase ?? true,
           confidenceScore: cadenceData.confidenceScore || 0,
           dataSpanDays: cadenceData.dataSpanDays || 0
         });

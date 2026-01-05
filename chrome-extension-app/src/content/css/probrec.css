@@ -730,7 +730,7 @@ body[data-theme="dark"] .cm-extension .tag-strategy-hint-content {
   line-height: 1.4 !important;
   position: relative !important;
   z-index: 1 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: none !important;
   color: var(--cm-text, #f3f4f6) !important;
   margin-top: -1px !important;
 }
@@ -760,7 +760,7 @@ body[data-theme="light"] .cm-extension .tag-strategy-hint-content {
   line-height: 1.4 !important;
   position: relative !important;
   z-index: 1 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: none !important;
   color: var(--cm-text, #374151) !important;
 }
 

@@ -58,7 +58,7 @@ export function InterviewModeControls({ settings, updateSettings, interviewReadi
       />
 
       {currentModeData && currentMode !== "disabled" && (
-        <div style={{ fontSize: '11px', color: '#ffffff', marginTop: '6px', display: 'flex', alignItems: 'center', minHeight: '16px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--cm-text-secondary)', marginTop: '6px', display: 'flex', alignItems: 'center', minHeight: '16px' }}>
           <IconClock size={12} style={{ marginRight: '6px', flexShrink: 0, color: 'var(--cm-text-secondary)' }} />
           <span style={{ color: 'var(--cm-text-secondary)' }}>
             {currentMode === "interview-like" ? "Limited hints, mild pressure" : currentMode === "full-interview" ? "No hints, strict timing" : currentModeData.description}
@@ -67,7 +67,7 @@ export function InterviewModeControls({ settings, updateSettings, interviewReadi
       )}
 
       {currentMode !== "disabled" && (
-        <div style={{ fontSize: '11px', color: '#ffffff', marginTop: '6px', padding: '6px 8px', background: '#2c2e33', border: '1px solid #373a40', borderRadius: '4px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--cm-text)', marginTop: '6px', padding: '6px 8px', background: 'var(--cm-bg-secondary)', border: '1px solid var(--cm-border)', borderRadius: '4px' }}>
           🎯 Applies to next session
         </div>
       )}
@@ -170,7 +170,8 @@ const ReadinessThresholdControl = ({ settings, updateSettings }) => (
 
 // Learning Progress Display Component
 export const LearningProgressDisplay = ({ learningStatus }) => {
-  const progressPercentage = learningStatus.learningPhase ? Math.max(0, ((5 - learningStatus.sessionsNeeded) / 5) * 100) : 100;
+  const daysNeeded = Math.max(0, 14 - (learningStatus.dataSpanDays || 0));
+  const progressPercentage = learningStatus.learningPhase ? Math.max(0, (learningStatus.dataSpanDays || 0) / 14 * 100) : 100;
 
   return (
     <div style={{ marginBottom: '10px', padding: '8px 12px', backgroundColor: 'var(--cm-bg-secondary)', borderRadius: '6px', border: '1px solid var(--cm-border)', fontSize: '12px' }}>
@@ -181,7 +182,7 @@ export const LearningProgressDisplay = ({ learningStatus }) => {
         </span>
       </div>
       <div style={{ color: 'var(--cm-text-secondary)' }}>
-        {learningStatus.learningPhase ? `Complete ${learningStatus.sessionsNeeded} more sessions for personalized reminders` : 'Personalized reminders are now available'}
+        {learningStatus.learningPhase ? `Practice for ${daysNeeded} more days for personalized reminders` : 'Personalized reminders are now available'}
         <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--cm-bg-tertiary)', borderRadius: '2px', marginTop: '4px', overflow: 'hidden' }}>
           <div style={{ width: `${progressPercentage}%`, height: '100%', backgroundColor: 'var(--cm-primary, #228be6)', transition: 'width 0.3s ease' }} />
         </div>
@@ -221,7 +222,7 @@ export const ReminderTypeCheckboxes = ({ settings, handleReminderTypeChange }) =
 
 // Custom Reminders Component
 export const RemindersSection = ({ settings, setSettings }) => {
-  const [learningStatus, setLearningStatus] = useState({ totalSessions: 0, learningPhase: true, sessionsNeeded: 5, loading: true });
+  const [learningStatus, setLearningStatus] = useState({ totalSessions: 0, learningPhase: true, dataSpanDays: 0, loading: true });
 
   useEffect(() => {
     fetchLearningStatus();
@@ -232,17 +233,17 @@ export const RemindersSection = ({ settings, setSettings }) => {
       if (typeof chrome !== "undefined" && chrome.runtime) {
         chrome.runtime.sendMessage({ type: "getLearningStatus" }, (response) => {
           if (response && !chrome.runtime.lastError) {
-            setLearningStatus({ totalSessions: response.totalSessions || 0, learningPhase: response.learningPhase || true, sessionsNeeded: Math.max(0, 5 - (response.totalSessions || 0)), loading: false });
+            setLearningStatus({ totalSessions: response.totalSessions || 0, learningPhase: response.learningPhase ?? true, dataSpanDays: response.dataSpanDays || 0, loading: false });
           } else {
-            setLearningStatus({ totalSessions: 0, learningPhase: true, sessionsNeeded: 5, loading: false });
+            setLearningStatus({ totalSessions: 0, learningPhase: true, dataSpanDays: 0, loading: false });
           }
         });
       } else {
-        setLearningStatus({ totalSessions: 0, learningPhase: true, sessionsNeeded: 5, loading: false });
+        setLearningStatus({ totalSessions: 0, learningPhase: true, dataSpanDays: 0, loading: false });
       }
     } catch (error) {
       console.warn("Error fetching learning status:", error);
-      setLearningStatus({ totalSessions: 0, learningPhase: true, sessionsNeeded: 5, loading: false });
+      setLearningStatus({ totalSessions: 0, learningPhase: true, dataSpanDays: 0, loading: false });
     }
   };
 
