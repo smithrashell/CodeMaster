@@ -140,13 +140,11 @@ const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfi
   };
 
   const handleSkip = () => {
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({
-        type: "skipProblem",
-        consentScriptData: routeState?.problemData,
-      });
-    }
-    navigate("/Probgen");
+    navigate("/SkipReason", {
+      state: {
+        problemData: problemData,
+      },
+    });
   };
 
   return { handleNewAttempt, handleSkip };

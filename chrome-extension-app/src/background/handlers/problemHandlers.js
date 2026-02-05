@@ -15,6 +15,13 @@
 import { ProblemService } from "../../shared/services/problem/problemService.js";
 import { AttemptsService } from "../../shared/services/attempts/attemptsService.js";
 import { getProblemWithOfficialDifficulty } from "../../shared/db/stores/problems.js";
+import {
+  weakenRelationshipsForSkip,
+  hasRelationshipsToAttempted,
+  findPrerequisiteProblem
+} from "../../shared/db/stores/problem_relationships.js";
+import { SessionService } from "../../shared/services/session/sessionService.js";
+import { getLatestSession } from "../../shared/db/stores/sessions.js";
 
 /**
  * Handler: getProblemByDescription
@@ -113,13 +120,81 @@ export function handleProblemSubmitted(request, dependencies, sendResponse, fini
 
 /**
  * Handler: skipProblem
- * Acknowledges problem skip request
+ * Handles problem skip with reason-based behavior
+ *
+ * Skip reasons and their actions:
+ * - "too_difficult": Weaken graph relationships (if problem has connections)
+ * - "dont_understand": Find prerequisite problem as replacement
+ * - "not_relevant": Just remove from session
+ * - "other": Just remove from session
+ *
+ * Free skip: Problems with zero relationships to attempted problems get no graph penalty
  */
 export function handleSkipProblem(request, dependencies, sendResponse, finishRequest) {
-  console.log("⏭️ Skipping problem:", request.consentScriptData?.leetcode_id || "unknown");
-  // Acknowledge the skip request - no additional processing needed
-  sendResponse({ message: "Problem skipped successfully" });
-  finishRequest();
+  const leetcodeId = request.leetcodeId || request.problemData?.leetcode_id || request.consentScriptData?.leetcode_id;
+  const skipReason = request.skipReason || 'other';
+
+  console.log(`⏭️ Skipping problem ${leetcodeId} - Reason: ${skipReason}`);
+
+  (async () => {
+    try {
+      const result = {
+        message: "Problem skipped successfully",
+        skipReason,
+        prerequisite: null,
+        graphUpdated: false,
+        freeSkip: false
+      };
+
+      // Check if this is a "free skip" (no relationships to attempted problems)
+      const hasRelationships = await hasRelationshipsToAttempted(leetcodeId);
+      result.freeSkip = !hasRelationships;
+
+      // Handle based on skip reason
+      if (skipReason === 'too_difficult' && hasRelationships) {
+        // Weaken graph relationships for "too difficult" skips
+        const weakenResult = await weakenRelationshipsForSkip(leetcodeId);
+        result.graphUpdated = weakenResult.updated > 0;
+        console.log(`📉 Graph updated: ${weakenResult.updated} relationships weakened`);
+      } else if (skipReason === 'dont_understand') {
+        // Find prerequisite problem for "don't understand" skips
+        // Get current session to exclude problems already in it
+        const session = await getLatestSession();
+        const excludeIds = session?.problems?.map(p => p.leetcode_id) || [];
+
+        const prerequisite = await findPrerequisiteProblem(leetcodeId, excludeIds);
+        if (prerequisite) {
+          result.prerequisite = prerequisite;
+          result.replaced = true;
+          console.log(`🎓 Found prerequisite: ${prerequisite.title}`);
+          // Remove skipped problem and add prerequisite as replacement
+          await SessionService.skipProblem(leetcodeId, prerequisite);
+          console.log(`✅ Replaced problem ${leetcodeId} with prerequisite ${prerequisite.leetcode_id || prerequisite.id}`);
+        } else {
+          // No prerequisite found, just remove
+          await SessionService.skipProblem(leetcodeId);
+          console.log(`✅ Removed problem ${leetcodeId} from session (no prerequisite found)`);
+        }
+      } else {
+        // "not_relevant", "other", or "too_difficult" - just remove from session
+        if (leetcodeId) {
+          await SessionService.skipProblem(leetcodeId);
+          console.log(`✅ Removed problem ${leetcodeId} from session`);
+        }
+      }
+
+      sendResponse(result);
+    } catch (error) {
+      console.error("❌ Error in skipProblem handler:", error);
+      sendResponse({
+        message: "Problem skipped with errors",
+        error: error.message
+      });
+    } finally {
+      finishRequest();
+    }
+  })();
+
   return true;
 }
 

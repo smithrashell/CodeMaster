@@ -867,3 +867,189 @@ export function calculateAndTrimProblemRelationships({
 
   return { problemGraph, removedRelationships };
 }
+
+/**
+ * Weaken relationships for a skipped problem (used when user skips as "too difficult")
+ * Applies a penalty similar to failure (-0.4) to relationships with recent successful problems
+ * @param {number} problemId - The LeetCode ID of the skipped problem
+ * @returns {Promise<{updated: number}>} Number of relationships updated
+ */
+export async function weakenRelationshipsForSkip(problemId) {
+  if (!problemId) {
+    console.warn("⚠️ weakenRelationshipsForSkip called without problemId");
+    return { updated: 0 };
+  }
+
+  console.log(`⏭️ Weakening relationships for skipped problem: ${problemId}`);
+
+  try {
+    // Get recent successful attempts
+    const recentSuccesses = await getUserRecentAttempts(5);
+
+    if (recentSuccesses.length === 0) {
+      console.log("📝 No recent successful attempts - nothing to weaken");
+      return { updated: 0 };
+    }
+
+    let updatedCount = 0;
+    const SKIP_PENALTY = -0.4; // Same as failure penalty
+
+    for (const recent of recentSuccesses) {
+      const recentId = recent.leetcode_id;
+      if (!recentId || recentId === problemId) continue;
+
+      // Get current strength
+      const currentStrength = await getRelationshipStrength(problemId, recentId);
+      const newStrength = Math.max(0.5, (currentStrength || 2.0) + SKIP_PENALTY);
+
+      // Update relationship strength
+      await updateRelationshipStrength(problemId, recentId, newStrength);
+      updatedCount++;
+
+      console.log(`  📉 Weakened ${problemId} <-> ${recentId}: ${currentStrength?.toFixed(2) || 'new'} -> ${newStrength.toFixed(2)}`);
+    }
+
+    console.log(`✅ Weakened ${updatedCount} relationships for skipped problem ${problemId}`);
+    return { updated: updatedCount };
+  } catch (error) {
+    console.error("❌ Error weakening relationships for skip:", error);
+    return { updated: 0 };
+  }
+}
+
+/**
+ * Check if a problem has any relationships to problems the user has attempted
+ * Used to determine if a skip should be "free" (no graph penalty)
+ * @param {number} problemId - The LeetCode ID to check
+ * @returns {Promise<boolean>} True if the problem has relationships to attempted problems
+ */
+export async function hasRelationshipsToAttempted(problemId) {
+  if (!problemId) return false;
+
+  try {
+    // Build the relationship map
+    const relationshipMap = await buildRelationshipMap();
+    const problemRelationships = relationshipMap.get(Number(problemId));
+
+    if (!problemRelationships || Object.keys(problemRelationships).length === 0) {
+      console.log(`📍 Problem ${problemId} has no relationships - free skip`);
+      return false;
+    }
+
+    // Get all attempted problem IDs from problems store
+    // Problems only exist in this store if they've been attempted
+    const db = await openDB();
+    const attemptedIds = await new Promise((resolve, reject) => {
+      const transaction = db.transaction("problems", "readonly");
+      const store = transaction.objectStore("problems");
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const problems = request.result || [];
+        const ids = new Set(problems.map(p => Number(p.leetcode_id)));
+        resolve(ids);
+      };
+      request.onerror = () => reject(request.error);
+    });
+
+    // Check if any relationships connect to attempted problems
+    const relatedIds = Object.keys(problemRelationships).map(Number);
+    const hasConnection = relatedIds.some(id => attemptedIds.has(id));
+
+    console.log(`📍 Problem ${problemId} has ${relatedIds.length} relationships, ${hasConnection ? 'connected' : 'not connected'} to attempted problems`);
+    return hasConnection;
+  } catch (error) {
+    console.error("❌ Error checking relationships:", error);
+    return true; // Default to having relationships (safer)
+  }
+}
+
+/**
+ * Find a prerequisite (easier related) problem for "don't understand" skips
+ * @param {number} problemId - The LeetCode ID of the problem being skipped
+ * @param {Array<number>} excludeIds - Problem IDs to exclude (already in session)
+ * @returns {Promise<Object|null>} A prerequisite problem or null if none found
+ */
+export async function findPrerequisiteProblem(problemId, excludeIds = []) {
+  if (!problemId) return null;
+
+  console.log(`🔍 Finding prerequisite for problem ${problemId}`);
+
+  try {
+    // Get the skipped problem details
+    const allProblems = await fetchAllProblems();
+    const skippedProblem = allProblems.find(p =>
+      Number(p.leetcode_id) === Number(problemId) || Number(p.id) === Number(problemId)
+    );
+
+    if (!skippedProblem) {
+      console.warn(`⚠️ Could not find problem ${problemId} in database`);
+      return null;
+    }
+
+    const skippedTags = skippedProblem.Tags || skippedProblem.tags || [];
+    const skippedDifficulty = skippedProblem.difficulty || 'Medium';
+
+    // Determine target difficulty (one level easier)
+    const difficultyOrder = { 'Easy': 0, 'Medium': 1, 'Hard': 2 };
+    const targetDifficultyNum = Math.max(0, (difficultyOrder[skippedDifficulty] || 1) - 1);
+    const targetDifficulty = Object.keys(difficultyOrder).find(k => difficultyOrder[k] === targetDifficultyNum) || 'Easy';
+
+    console.log(`  Looking for ${targetDifficulty} problems with tags: ${skippedTags.slice(0, 3).join(', ')}`);
+
+    // Build relationship map
+    const relationshipMap = await buildRelationshipMap();
+    const problemRelationships = relationshipMap.get(Number(problemId)) || {};
+
+    // Filter and score candidate problems
+    const excludeSet = new Set(excludeIds.map(Number));
+    excludeSet.add(Number(problemId));
+
+    const candidates = allProblems
+      .filter(p => {
+        const pId = Number(p.leetcode_id || p.id);
+        if (excludeSet.has(pId)) return false;
+
+        // Must be same or easier difficulty
+        const pDiff = difficultyOrder[p.difficulty] ?? 1;
+        if (pDiff > targetDifficultyNum) return false;
+
+        // Must share at least one tag
+        const pTags = p.Tags || p.tags || [];
+        const sharedTags = pTags.filter(t => skippedTags.includes(t));
+        if (sharedTags.length === 0) return false;
+
+        return true;
+      })
+      .map(p => {
+        const pId = Number(p.leetcode_id || p.id);
+        const pTags = p.Tags || p.tags || [];
+        const sharedTags = pTags.filter(t => skippedTags.includes(t));
+        const relationshipStrength = problemRelationships[pId] || 2.0;
+
+        // Score based on: shared tags, relationship strength, prefer easier
+        const tagScore = sharedTags.length / Math.max(skippedTags.length, 1);
+        const strengthScore = relationshipStrength / 5.0; // Normalize to 0-1
+        const difficultyBonus = difficultyOrder[p.difficulty] === targetDifficultyNum ? 0.2 : 0;
+
+        return {
+          problem: p,
+          score: tagScore * 0.4 + strengthScore * 0.4 + difficultyBonus + 0.2
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    if (candidates.length === 0) {
+      console.log(`  No prerequisite candidates found for problem ${problemId}`);
+      return null;
+    }
+
+    const best = candidates[0];
+    console.log(`✅ Found prerequisite: ${best.problem.title} (${best.problem.difficulty}) with score ${best.score.toFixed(2)}`);
+
+    return best.problem;
+  } catch (error) {
+    console.error("❌ Error finding prerequisite:", error);
+    return null;
+  }
+}

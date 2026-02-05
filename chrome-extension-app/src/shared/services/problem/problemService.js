@@ -299,11 +299,12 @@ export const ProblemService = {
     const deduplicated = deduplicateById(sessionProblems);
     const finalSession = deduplicated.slice(0, sessionLength);
 
-    await checkSafetyGuardRails(finalSession, currentDifficultyCap);
+    const { rebalancedSession } = await checkSafetyGuardRails(finalSession, currentDifficultyCap);
+    const sessionToNormalize = rebalancedSession || finalSession;
 
     logger.info("Normalizing session problems to standard structure...");
     const normalizedProblems = normalizeProblems(
-      finalSession.map((p, index) => ({ ...p, _sourceIndex: index, _hasUUID: !!p.problem_id })),
+      sessionToNormalize.map((p, index) => ({ ...p, _sourceIndex: index, _hasUUID: !!p.problem_id })),
       'session_creation'
     );
     logger.info(`Normalized ${normalizedProblems.length} problems`);
