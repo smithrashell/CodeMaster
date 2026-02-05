@@ -357,10 +357,9 @@ body[data-theme="light"] .cm-extension #cm-menuButton:hover {
   );
   height: 100vh;
   max-height: 100vh;
-  /* Prevent affecting page layout */
-  contain: layout size style;
-  /* Ensure sidebar doesn't compete with dropdown z-index */
-  z-index: 9000 !important;
+  /* Prevent affecting page layout - use paint/style containment only
+     Note: 'layout' containment can break native <select> dropdowns */
+  contain: paint style;
   padding: var(--cm-content-padding);
   background-color: var(--cm-bg);
   border: 2px solid var(--cm-bg);

@@ -1701,7 +1701,8 @@ html body .cm-extension .cd-sidenav.problem-sidebar-view .cd-sidenav__content {
   scroll-behavior: smooth !important;
   /* Ensure content can't escape container */
   position: relative !important;
-  contain: layout !important;
+  /* Use paint/style containment only - layout containment breaks native <select> dropdowns */
+  contain: paint style !important;
 }
 
 /* Override height constraints when strategy map content is expanded */
@@ -1736,8 +1737,8 @@ html body .cm-extension .cm-sidenav.problem-sidebar-view,
 html body .cm-extension .cd-sidenav.problem-sidebar-view,
 html body .problem-sidebar {
   overflow-y: visible !important;
-  /* Ensure parent allows child to handle overflow */
-  contain: layout !important;
+  /* Use paint/style containment only - layout containment breaks native <select> dropdowns */
+  contain: paint style !important;
 }
 
 /* COPY EXISTING APP SCROLLBAR STYLING FOR PROBLEM SIDEBAR */
@@ -2433,6 +2434,132 @@ button.tag-strategy-button-expanded,
   max-height: calc(100vh - 90px) !important;
   padding-bottom: 5px !important; /* Minimal padding */
   box-sizing: border-box !important;
+}
+
+/* ============================================================================
+   SKIP REASON PAGE STYLES
+   ============================================================================ */
+
+.cm-extension .skip-reason-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.cm-extension .skip-reason-prompt {
+  font-size: 14px;
+  color: var(--cm-text);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cm-extension .skip-reason-prompt strong {
+  color: var(--cm-text);
+}
+
+.cm-extension .skip-reason-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cm-extension .skip-reason-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--cm-border);
+  border-radius: 8px;
+  background-color: var(--cm-card-bg);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.cm-extension .skip-reason-option:hover {
+  border-color: var(--cm-primary);
+  background-color: var(--cm-bg-secondary);
+}
+
+.cm-extension .skip-reason-option.selected {
+  border-color: var(--cm-primary);
+  background-color: var(--cm-accent-bg);
+}
+
+.cm-extension .skip-reason-emoji {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.cm-extension .skip-reason-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cm-extension .skip-reason-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cm-text);
+}
+
+.cm-extension .skip-reason-description {
+  font-size: 12px;
+  color: var(--cm-text-dimmed);
+}
+
+.cm-extension .skip-reason-other-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--cm-border);
+  border-radius: 6px;
+  background-color: var(--cm-card-bg);
+  color: var(--cm-text);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.cm-extension .skip-reason-other-input:focus {
+  outline: none;
+  border-color: var(--cm-primary);
+}
+
+.cm-extension .skip-reason-other-input::placeholder {
+  color: var(--cm-text-dimmed);
+}
+
+.cm-extension .skip-reason-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cm-extension .skip-reason-cancel-btn {
+  flex: 1;
+}
+
+.cm-extension .skip-reason-submit-btn {
+  flex: 2;
+}
+
+.cm-extension .skip-reason-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cm-extension .skip-reason-hint {
+  font-size: 12px;
+  color: var(--cm-text-dimmed);
+  background-color: var(--cm-accent-bg);
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 0;
+  line-height: 1.4;
 }
 
 
