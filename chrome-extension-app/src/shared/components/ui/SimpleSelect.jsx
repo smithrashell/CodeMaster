@@ -229,6 +229,7 @@ const SimpleSelect = React.forwardRef(({ value, onChange, children, error, ...pr
               <div
                 key={option.value}
                 role="option"
+                tabIndex={isDisabled ? -1 : 0}
                 aria-selected={isSelected}
                 aria-disabled={isDisabled}
                 onClick={(e) => {
@@ -236,6 +237,14 @@ const SimpleSelect = React.forwardRef(({ value, onChange, children, error, ...pr
                   e.stopPropagation();
                   if (!isDisabled) {
                     handleSelect(option.value);
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!isDisabled) {
+                      handleSelect(option.value);
+                    }
                   }
                 }}
                 onMouseEnter={() => !isDisabled && setFocusedIndex(index)}
