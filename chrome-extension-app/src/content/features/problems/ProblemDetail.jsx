@@ -112,7 +112,7 @@ const useProblemData = (routeState) => {
 /**
  * Navigation and action handlers
  */
-const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfig, sessionType, routeState, showPageTour }) => {
+const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfig, sessionType, _routeState, showPageTour }) => {
   const _handleClose = () => {
     setIsAppOpen(false);
   };
@@ -140,13 +140,11 @@ const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfi
   };
 
   const handleSkip = () => {
-    if (chrome?.runtime?.sendMessage) {
-      chrome.runtime.sendMessage({
-        type: "skipProblem",
-        consentScriptData: routeState?.problemData,
-      });
-    }
-    navigate("/Probgen");
+    navigate("/SkipReason", {
+      state: {
+        problemData: problemData,
+      },
+    });
   };
 
   return { handleNewAttempt, handleSkip };
@@ -377,7 +375,7 @@ const ProbDetail = ({ isLoading }) => {
   const { showTour: showPageTour } = usePageTour();
   
   const { handleNewAttempt, handleSkip } = useProblemActions({
-    navigate, setIsAppOpen, problemData: finalProblemData, interviewConfig, sessionType, routeState, showPageTour
+    navigate, setIsAppOpen, problemData: finalProblemData, interviewConfig, sessionType, _routeState: routeState, showPageTour
   });
 
   // Memoize problem tags to prevent array recreation

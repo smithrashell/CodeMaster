@@ -70,13 +70,22 @@ export function calculateAccuracyAtDifficulty(difficulty, difficultyTimeStats, r
  * - At Medium cap: At least 2 Medium problems (or 25% if session > 8)
  * - At Hard cap: At least 2 Hard problems (or 20% if session > 10)
  * - First 2 sessions at new difficulty: At least 2 problems at cap difficulty
+ * - Stagnation escape with poor performance: Limit Hard to 1 problem
  *
  * @param {Array} problems - Selected problems for the session
  * @param {string} currentDifficultyCap - Current difficulty cap ('Easy', 'Medium', 'Hard')
  * @param {number} sessionsAtCurrentDifficulty - Number of sessions at current difficulty
- * @returns {Object} { needsRebalance: boolean, target: {difficulty: count}, message: string }
+ * @param {Object|null} recentPerformance - Recent performance data { accuracy, sessionsAnalyzed }
+ * @param {string|null} currentPromotionType - How user reached current difficulty ('standard_volume_gate' | 'stagnation_escape_hatch' | null)
+ * @returns {Object} { needsRebalance: boolean, target: {difficulty: count}, message: string, guardRailType?: string }
  */
-export function applySafetyGuardRails(problems, currentDifficultyCap, sessionsAtCurrentDifficulty) {
+export function applySafetyGuardRails(
+  problems,
+  currentDifficultyCap,
+  sessionsAtCurrentDifficulty,
+  recentPerformance = null,
+  currentPromotionType = null
+) {
   const sessionLength = problems.length;
 
   // Count current difficulty distribution
@@ -130,6 +139,27 @@ export function applySafetyGuardRails(problems, currentDifficultyCap, sessionsAt
         needsRebalance: true,
         target: { [currentDifficultyCap]: minCapDifficulty },
         message
+      };
+    }
+  }
+
+  // Guard Rail 4: Poor Performance Protection
+  // When at Hard cap via stagnation escape with poor accuracy, limit Hard to 1
+  if (currentDifficultyCap === 'Hard' && recentPerformance !== null) {
+    const isStagnationPromotion = currentPromotionType === 'stagnation_escape_hatch';
+    const isPoorPerformance = recentPerformance.accuracy < 0.5;  // 50% threshold
+    const maxHard = 1;  // ALWAYS max 1 Hard for stagnation + poor performance
+
+    if (isStagnationPromotion && isPoorPerformance && counts.Hard > maxHard) {
+      const message = `Stagnation escape with ${(recentPerformance.accuracy * 100).toFixed(0)}% accuracy - limiting Hard to ${maxHard} (was ${counts.Hard})`;
+      logger.warn(`⚖️ Guard rail 4 triggered: ${message}`);
+      return {
+        needsRebalance: true,
+        target: { Hard: maxHard },
+        excessHard: counts.Hard - maxHard,
+        replacementDifficulty: 'Medium',
+        message,
+        guardRailType: 'poor_performance_protection'
       };
     }
   }

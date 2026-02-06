@@ -23,6 +23,7 @@ import {
   getOrCreateSessionAtomic,
 } from "../../db/stores/sessions.js";
 import { ProblemService } from "../problem/problemService.js";
+import { normalizeProblem } from "../problem/problemNormalizer.js";
 import { StorageService } from "../storage/storageService.js";
 import { FocusCoordinationService } from "../focus/focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";
@@ -872,15 +873,36 @@ export const SessionService = {
   },
 
   /**
-   * Skips a problem from the session.
+   * Skips a problem from the session, optionally replacing it with another.
+   * @param {number} leetCodeID - The LeetCode ID of the problem to skip
+   * @param {Object|null} replacementProblem - Optional problem to add as replacement
+   * @returns {Promise<Object|null>} The updated session or null
    */
-  async skipProblem(leetCodeID) {
+  async skipProblem(leetCodeID, replacementProblem = null) {
     const session = await getLatestSession();
     if (!session) return null;
 
+    // Remove the skipped problem
     session.problems = session.problems.filter(
       (p) => p.leetcode_id !== leetCodeID
     );
+
+    // Add replacement problem if provided
+    if (replacementProblem) {
+      const problemWithReason = {
+        ...replacementProblem,
+        selectionReason: {
+          type: 'prerequisite',
+          details: { skippedProblemId: leetCodeID },
+          shortText: 'Prerequisite',
+          fullText: 'Easier problem to help understand skipped concept'
+        }
+      };
+      const normalizedReplacement = normalizeProblem(problemWithReason, 'prerequisite');
+      session.problems.push(normalizedReplacement);
+      logger.info(`➕ Added prerequisite to session: ${normalizedReplacement.title}`);
+    }
+
     await saveSessionToStorage(session, true);
     return session;
   },

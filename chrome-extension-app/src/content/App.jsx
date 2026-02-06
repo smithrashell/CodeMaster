@@ -6,6 +6,7 @@ import ProbStat from "./features/statistics/ProblemStats";
 import Main, { Menubutton } from "./features/navigation/main";
 import ProbGen from "./features/problems/ProblemGenerator";
 import ProbTime from "./features/problems/ProblemTime";
+import SkipReason from "./features/problems/SkipReason";
 import Settings from "./features/settings/settings";
 import TimerBanner from "./components/timer/timercomponent";
 // Removed Mantine CSS import - not needed in content script
@@ -248,6 +249,19 @@ const Router = () => {
                   fallback={GenericErrorFallback}
                 >
                   <Settings />
+                </ErrorBoundary>
+              </div>
+            }
+          />
+          <Route
+            path="/SkipReason"
+            element={
+              <div className="main-content">
+                <ErrorBoundary
+                  section="Skip Reason"
+                  fallback={GenericErrorFallback}
+                >
+                  <SkipReason />
                 </ErrorBoundary>
               </div>
             }

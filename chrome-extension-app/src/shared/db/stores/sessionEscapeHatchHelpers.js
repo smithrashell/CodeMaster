@@ -72,6 +72,7 @@ function initializeEscapeHatches(sessionState) {
       last_difficulty_promotion: null,
       sessions_without_promotion: 0,
       activated_escape_hatches: [],
+      current_promotion_type: null,  // 'standard_volume_gate' | 'stagnation_escape_hatch' | null
     };
   }
 
@@ -127,7 +128,8 @@ function promoteDifficulty(context, newDifficulty) {
   sessionState.current_difficulty_cap = newDifficulty;
   escapeHatches.last_difficulty_promotion = now.toISOString();
   escapeHatches.sessions_at_current_difficulty = 0;
-  escapeHatches.activated_escape_hatches = [];
+  escapeHatches.current_promotion_type = promotionReason;  // Store promotion type for session composition safety
+  escapeHatches.activated_escape_hatches = [];  // Clear activation history
 
   if (promotionReason === "stagnation_escape_hatch") {
     logger.info(`Difficulty cap upgraded via STAGNATION ESCAPE: ${oldDifficulty} → ${newDifficulty} (${problemsAtDifficulty} problems)`);

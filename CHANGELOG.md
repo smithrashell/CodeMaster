@@ -8,12 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Enhanced Skip Functionality with Prerequisite Finding**
+  - New skip reason selection UI when skipping a problem (Too difficult, Don't understand, Not relevant, Other)
+  - "Don't understand" skips now find and replace with easier prerequisite problems
+  - "Too difficult" skips weaken problem graph relationships for future recommendations
+  - "Free skip" detection: problems with no relationships to attempted problems have no graph penalty
+  - Smart prerequisite search prioritizes problems by difficulty (Easy > Medium > Hard) and connection strength
+
+- **Guard Rail 4: Poor Performance Protection**
+  - New session composition safety for users promoted via stagnation escape hatch
+  - When at Hard cap with <50% recent accuracy: limits Hard problems to 1 per session
+  - Replaces excess Hard problems with Medium to prevent overwhelming struggling users
+  - Tracks promotion type (standard_volume_gate vs stagnation_escape_hatch) for intelligent session balancing
+
 - **Enhanced "I'm Stuck" Button** (#234)
   - Now extends timer by 5 minutes when clicked
   - Automatically opens hints panel to help user get unstuck
   - Records user intent for session analytics
 
 ### Fixed
+- **Native Dropdown Broken in Chrome Extension Content Scripts**
+  - Fixed dropdown menus (select elements) flashing and immediately closing when clicked on Problem Submission page
+  - Root cause: Chrome browser update changed how native `<select>` elements work in extension content scripts
+  - Created `SimpleSelect.jsx` custom dropdown component that renders within React DOM instead of using browser-native UI
+  - Custom dropdown includes full keyboard navigation (Arrow keys, Enter, Space, Escape), click-outside-to-close, and maintains visual consistency
+  - Changed CSS containment from `contain: layout size style` to `contain: paint style` on `.cm-sidenav` in main.css
+  - Changed CSS containment from `contain: layout` to `contain: paint style` in probrec.css (2 instances)
+  - CSS containment with `layout` was preventing dropdowns from rendering outside their container bounds
+  - Maintains compatibility with react-hook-form and all existing functionality
+
 - **Problem List Not Updating After Submission**
   - Fixed problems not being removed from generator list after submitting a solution
   - Root cause: Sidebar unmounting fix (Dec 23) prevented natural data refresh on remount
@@ -58,6 +81,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated CLAUDE.md with theming guidelines
 
 ### Tests
+- Added Guard Rail 4 unit tests for poor performance protection trigger conditions
+- Added escape hatch promotion type tracking tests (standard_volume_gate vs stagnation_escape_hatch)
+- Added backward compatibility tests for Guard Rails 1-3
 - Added regression test for timer settings cache clearing
 - Added regression tests for cross-context theme sync
 - Added comprehensive tests for `ProblemGeneratorHooks` message listeners

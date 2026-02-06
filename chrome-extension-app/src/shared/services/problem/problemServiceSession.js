@@ -12,6 +12,9 @@ import { getTagMastery } from "../../db/stores/tag_mastery.js";
 import logger from "../../utils/logging/logger.js";
 import { selectOptimalProblems } from "../../db/stores/problem_relationships.js";
 import { applySafetyGuardRails } from "../../utils/session/sessionBalancing.js";
+import { getRecentSessionAnalytics } from "../../db/stores/sessionAnalytics.js";
+import { getPatternLadders } from "../../utils/leitner/patternLadderUtils.js";
+import { getTagRelationships } from "../../db/stores/tag_relationships.js";
 import {
   enrichReviewProblem,
   normalizeReviewProblem,
@@ -173,15 +176,158 @@ export function addFallbackProblems(sessionProblems, sessionLength, allProblems)
 export async function checkSafetyGuardRails(finalSession, currentDifficultyCap) {
   const sessionState = await StorageService.getSessionState();
   const sessionsAtCurrentDifficulty = sessionState?.escape_hatches?.sessions_at_current_difficulty || 0;
+  const currentPromotionType = sessionState?.escape_hatches?.current_promotion_type || null;
+
+  // Get recent performance for guard rail check
+  const recentPerformance = await getRecentPerformanceForGuardRails();
 
   const guardRailResult = applySafetyGuardRails(
     finalSession,
     currentDifficultyCap,
-    sessionsAtCurrentDifficulty
+    sessionsAtCurrentDifficulty,
+    recentPerformance,
+    currentPromotionType
   );
 
   if (guardRailResult.needsRebalance) {
     logger.warn(`Session difficulty imbalance detected: ${guardRailResult.message}`);
+
+    if (guardRailResult.guardRailType === 'poor_performance_protection') {
+      const rebalancedSession = await rebalanceSessionForPoorPerformance([...finalSession], guardRailResult);
+      return { rebalancedSession, guardRailResult };
+    }
+  }
+
+  return { rebalancedSession: null, guardRailResult };
+}
+
+async function getRecentPerformanceForGuardRails() {
+  try {
+    const recentAnalytics = await getRecentSessionAnalytics(3);
+    if (!recentAnalytics || recentAnalytics.length === 0) return null;
+
+    const totalAccuracy = recentAnalytics.reduce((sum, s) => sum + (s.accuracy || 0), 0);
+    return {
+      accuracy: totalAccuracy / recentAnalytics.length,
+      sessionsAnalyzed: recentAnalytics.length
+    };
+  } catch (error) {
+    logger.warn("Failed to get recent performance:", error);
+    return null;
+  }
+}
+
+async function rebalanceSessionForPoorPerformance(session, guardRailResult) {
+  const { excessHard, replacementDifficulty } = guardRailResult;
+
+  // Identify Hard problems to remove (from end of list)
+  const hardProblems = session.filter(p => p.difficulty === 'Hard');
+  const problemsToRemove = hardProblems.slice(-excessHard);
+  const removedIds = new Set(problemsToRemove.map(p => p.id || p.leetcode_id));
+
+  // Get tags from removed problems for finding related replacements
+  const removedTags = new Set();
+  problemsToRemove.forEach(p => {
+    (p.tags || []).forEach(tag => removedTags.add(tag.toLowerCase()));
+  });
+
+  // Find replacement problems from related ladders
+  const replacements = await findReplacementProblems(
+    Array.from(removedTags),
+    excessHard,
+    replacementDifficulty,
+    removedIds,
+    session
+  );
+
+  // Remove excess Hard problems
+  for (let i = session.length - 1; i >= 0; i--) {
+    const problemId = session[i].id || session[i].leetcode_id;
+    if (removedIds.has(problemId)) {
+      session.splice(i, 1);
+    }
+  }
+
+  // Add replacements
+  session.push(...replacements);
+
+  logger.info(`Rebalanced: removed ${excessHard} Hard, added ${replacements.length} ${replacementDifficulty}`);
+  return session;
+}
+
+async function findReplacementProblems(primaryTags, count, targetDifficulty, excludeIds, currentSession) {
+  try {
+    const ladders = await getPatternLadders();
+    const tagRelationships = await getTagRelationships();
+    const currentSessionIds = new Set(currentSession.map(p => p.id || p.leetcode_id));
+    const allExcludeIds = new Set([...excludeIds, ...currentSessionIds]);
+
+    const candidates = [];
+
+    // Step 1: Try primary tags first
+    for (const tag of primaryTags) {
+      const ladder = ladders[tag];
+      if (ladder?.problems) {
+        const matching = ladder.problems.filter(p =>
+          p.difficulty === targetDifficulty && !p.attempted && !allExcludeIds.has(p.id)
+        );
+        candidates.push(...matching.map(p => ({ ...p, sourceTag: tag, relationScore: 1.0 })));
+      }
+    }
+
+    // Step 2: Try related tags (sorted by relationship strength)
+    for (const tag of primaryTags) {
+      const related = tagRelationships[tag];
+      if (!related) continue;
+
+      // Sort related tags by strength (descending)
+      const sortedRelated = Object.entries(related)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5);  // Top 5 related tags
+
+      for (const [relatedTag, strength] of sortedRelated) {
+        if (candidates.length >= count * 2) break;
+
+        const ladder = ladders[relatedTag];
+        if (ladder?.problems) {
+          const matching = ladder.problems.filter(p =>
+            p.difficulty === targetDifficulty && !p.attempted && !allExcludeIds.has(p.id)
+          );
+          candidates.push(...matching.map(p => ({ ...p, sourceTag: relatedTag, relationScore: strength })));
+        }
+      }
+    }
+
+    // Step 3: Fall back to Easy if not enough Medium
+    if (candidates.length < count && targetDifficulty === 'Medium') {
+      for (const tag of primaryTags) {
+        const ladder = ladders[tag];
+        if (ladder?.problems) {
+          const easyProblems = ladder.problems.filter(p =>
+            p.difficulty === 'Easy' && !p.attempted && !allExcludeIds.has(p.id)
+          );
+          candidates.push(...easyProblems.map(p => ({ ...p, sourceTag: tag, relationScore: 0.5 })));
+        }
+      }
+    }
+
+    // Deduplicate and select top by relation score
+    candidates.sort((a, b) => b.relationScore - a.relationScore);
+    const seen = new Set();
+    const selected = [];
+    for (const candidate of candidates) {
+      if (selected.length >= count) break;
+      if (!seen.has(candidate.id)) {
+        seen.add(candidate.id);
+        selected.push(candidate);
+      }
+    }
+
+    logger.info(`Found ${selected.length} replacement problems from related ladders`);
+    return selected;
+  } catch (error) {
+    logger.error("Error finding replacement problems:", error);
+    return [];
   }
 }
 
