@@ -918,6 +918,50 @@ export async function weakenRelationshipsForSkip(problemId) {
 }
 
 /**
+ * Get relationships for a specific problem using indexes (optimized)
+ * Instead of loading all 29,840 relationships, only loads relationships for this problem
+ * @param {number} problemId - The LeetCode ID to get relationships for
+ * @returns {Promise<Object>} Map of related problem IDs to strength values
+ */
+async function getRelationshipsForProblem(problemId) {
+  const db = await openDB();
+  const relationships = {};
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("problem_relationships", "readonly");
+    const store = tx.objectStore("problem_relationships");
+
+    // Query using problem_id1 index
+    const index1 = store.index("problem_id1");
+    const request1 = index1.getAll(Number(problemId));
+
+    request1.onsuccess = () => {
+      const results = request1.result || [];
+      results.forEach(r => {
+        relationships[Number(r.problem_id2)] = r.strength;
+      });
+
+      // Also query problem_id2 index (bidirectional relationships)
+      const index2 = store.index("problem_id2");
+      const request2 = index2.getAll(Number(problemId));
+
+      request2.onsuccess = () => {
+        const results2 = request2.result || [];
+        results2.forEach(r => {
+          // Don't overwrite if already exists from problem_id1
+          if (!(Number(r.problem_id1) in relationships)) {
+            relationships[Number(r.problem_id1)] = r.strength;
+          }
+        });
+        resolve(relationships);
+      };
+      request2.onerror = () => reject(request2.error);
+    };
+    request1.onerror = () => reject(request1.error);
+  });
+}
+
+/**
  * Check if a problem has any relationships to problems the user has attempted
  * Used to determine if a skip should be "free" (no graph penalty)
  * @param {number} problemId - The LeetCode ID to check
@@ -927,33 +971,30 @@ export async function hasRelationshipsToAttempted(problemId) {
   if (!problemId) return false;
 
   try {
-    // Build the relationship map
-    const relationshipMap = await buildRelationshipMap();
-    const problemRelationships = relationshipMap.get(Number(problemId));
+    // Get only relationships for this specific problem (optimized - uses indexes)
+    const problemRelationships = await getRelationshipsForProblem(problemId);
+    const relatedIds = Object.keys(problemRelationships).map(Number);
 
-    if (!problemRelationships || Object.keys(problemRelationships).length === 0) {
+    if (relatedIds.length === 0) {
       console.log(`📍 Problem ${problemId} has no relationships - free skip`);
       return false;
     }
 
     // Get all attempted problem IDs from problems store
-    // Problems only exist in this store if they've been attempted
     const db = await openDB();
     const attemptedIds = await new Promise((resolve, reject) => {
       const transaction = db.transaction("problems", "readonly");
       const store = transaction.objectStore("problems");
-      const request = store.getAll();
+      const request = store.getAllKeys();  // Optimized: only get keys, not full records
 
       request.onsuccess = () => {
-        const problems = request.result || [];
-        const ids = new Set(problems.map(p => Number(p.leetcode_id)));
+        const ids = new Set((request.result || []).map(Number));
         resolve(ids);
       };
       request.onerror = () => reject(request.error);
     });
 
     // Check if any relationships connect to attempted problems
-    const relatedIds = Object.keys(problemRelationships).map(Number);
     const hasConnection = relatedIds.some(id => attemptedIds.has(id));
 
     console.log(`📍 Problem ${problemId} has ${relatedIds.length} relationships, ${hasConnection ? 'connected' : 'not connected'} to attempted problems`);
@@ -997,9 +1038,8 @@ export async function findPrerequisiteProblem(problemId, excludeIds = []) {
 
     console.log(`  Looking for ${targetDifficulty} problems with tags: ${skippedTags.slice(0, 3).join(', ')}`);
 
-    // Build relationship map
-    const relationshipMap = await buildRelationshipMap();
-    const problemRelationships = relationshipMap.get(Number(problemId)) || {};
+    // Get relationships for this specific problem (optimized - uses indexes instead of loading all 29k records)
+    const problemRelationships = await getRelationshipsForProblem(problemId);
 
     // Filter and score candidate problems
     const excludeSet = new Set(excludeIds.map(Number));
