@@ -58,9 +58,11 @@ function SkipReason() {
   const [selectedReason, setSelectedReason] = useState(null);
   const [otherText, setOtherText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   const problemData = routeState?.problemData;
   const problemTitle = problemData?.title || 'this problem';
+  const MAX_OTHER_TEXT_LENGTH = 500;
 
   const handleClose = () => {
     setIsAppOpen(false);
@@ -74,29 +76,40 @@ function SkipReason() {
     if (!selectedReason || isSubmitting) return;
 
     setIsSubmitting(true);
+    setError(null);
 
     try {
+      // Sanitize otherText input
+      const sanitizedOtherText = selectedReason === 'other'
+        ? otherText?.trim().slice(0, MAX_OTHER_TEXT_LENGTH) || null
+        : null;
+
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "skipProblem",
         leetcodeId: problemData?.leetcode_id,
         problemData: problemData,
         skipReason: selectedReason,
-        otherText: selectedReason === 'other' ? otherText : null,
+        otherText: sanitizedOtherText,
       });
 
       logger.info("Skip problem response:", response);
+
+      // Check for error in response
+      if (response?.error) {
+        setError(response.error);
+        setIsSubmitting(false);
+        return;
+      }
 
       // Navigate back to generator - the prerequisite (if found) is now in the session
       if (response?.prerequisite && response?.replaced) {
         logger.info("Prerequisite added to session:", response.prerequisite.title);
       }
-      // Always go back to generator to show updated problem list
+      // Go back to generator to show updated problem list
       navigate("/Probgen");
-    } catch (error) {
-      logger.error("Error skipping problem:", error);
-      // Still navigate away on error
-      navigate("/Probgen");
-    } finally {
+    } catch (err) {
+      logger.error("Error skipping problem:", err);
+      setError("Failed to skip problem. Please try again.");
       setIsSubmitting(false);
     }
   };
@@ -132,8 +145,13 @@ function SkipReason() {
               placeholder="Tell us more (optional)"
               value={otherText}
               onChange={(e) => setOtherText(e.target.value)}
+              maxLength={MAX_OTHER_TEXT_LENGTH}
               rows={2}
             />
+          )}
+
+          {error && (
+            <p className="skip-reason-error">{error}</p>
           )}
 
           <div className="skip-reason-actions">

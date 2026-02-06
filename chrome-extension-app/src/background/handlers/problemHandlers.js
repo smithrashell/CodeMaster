@@ -132,7 +132,16 @@ export function handleProblemSubmitted(request, dependencies, sendResponse, fini
  */
 export function handleSkipProblem(request, dependencies, sendResponse, finishRequest) {
   const leetcodeId = request.leetcodeId || request.problemData?.leetcode_id || request.consentScriptData?.leetcode_id;
-  const skipReason = request.skipReason || 'other';
+  const VALID_SKIP_REASONS = ['too_difficult', 'dont_understand', 'not_relevant', 'other'];
+  const skipReason = VALID_SKIP_REASONS.includes(request.skipReason) ? request.skipReason : 'other';
+
+  // Input validation
+  if (!leetcodeId) {
+    console.error("❌ skipProblem called without valid leetcodeId");
+    sendResponse({ error: "Invalid problem ID", message: "Problem skip failed" });
+    finishRequest();
+    return true;
+  }
 
   console.log(`⏭️ Skipping problem ${leetcodeId} - Reason: ${skipReason}`);
 
@@ -151,11 +160,16 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
       result.freeSkip = !hasRelationships;
 
       // Handle based on skip reason
-      if (skipReason === 'too_difficult' && hasRelationships) {
-        // Weaken graph relationships for "too difficult" skips
-        const weakenResult = await weakenRelationshipsForSkip(leetcodeId);
-        result.graphUpdated = weakenResult.updated > 0;
-        console.log(`📉 Graph updated: ${weakenResult.updated} relationships weakened`);
+      if (skipReason === 'too_difficult') {
+        // Weaken graph relationships for "too difficult" skips (if has relationships)
+        if (hasRelationships) {
+          const weakenResult = await weakenRelationshipsForSkip(leetcodeId);
+          result.graphUpdated = weakenResult.updated > 0;
+          console.log(`📉 Graph updated: ${weakenResult.updated} relationships weakened`);
+        }
+        // Always remove from session
+        await SessionService.skipProblem(leetcodeId);
+        console.log(`✅ Removed problem ${leetcodeId} from session`);
       } else if (skipReason === 'dont_understand') {
         // Find prerequisite problem for "don't understand" skips
         // Get current session to exclude problems already in it
@@ -176,11 +190,9 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
           console.log(`✅ Removed problem ${leetcodeId} from session (no prerequisite found)`);
         }
       } else {
-        // "not_relevant", "other", or "too_difficult" - just remove from session
-        if (leetcodeId) {
-          await SessionService.skipProblem(leetcodeId);
-          console.log(`✅ Removed problem ${leetcodeId} from session`);
-        }
+        // "not_relevant" or "other" - just remove from session
+        await SessionService.skipProblem(leetcodeId);
+        console.log(`✅ Removed problem ${leetcodeId} from session`);
       }
 
       sendResponse(result);

@@ -2562,4 +2562,14 @@ button.tag-strategy-button-expanded,
   line-height: 1.4;
 }
 
+.cm-extension .skip-reason-error {
+  font-size: 13px;
+  color: var(--cm-status-hard);
+  background-color: rgba(239, 68, 68, 0.1);
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin: 0;
+  line-height: 1.4;
+}
+
 
