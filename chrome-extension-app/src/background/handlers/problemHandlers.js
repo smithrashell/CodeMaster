@@ -159,6 +159,10 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
       const hasRelationships = await hasRelationshipsToAttempted(leetcodeId);
       result.freeSkip = !hasRelationships;
 
+      // Get session once for all paths (needed for last-problem guard and excludeIds)
+      const session = await getLatestSession();
+      const isLastProblem = session?.problems?.length <= 1;
+
       // Handle based on skip reason
       if (skipReason === 'too_difficult') {
         // Weaken graph relationships for "too difficult" skips (if has relationships)
@@ -167,13 +171,16 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
           result.graphUpdated = weakenResult.updated > 0;
           console.log(`📉 Graph updated: ${weakenResult.updated} relationships weakened`);
         }
-        // Always remove from session
-        await SessionService.skipProblem(leetcodeId);
-        console.log(`✅ Removed problem ${leetcodeId} from session`);
+        if (isLastProblem) {
+          result.kept = true;
+          result.lastProblem = true;
+          console.log(`⚠️ Last problem in session - keeping ${leetcodeId}`);
+        } else {
+          await SessionService.skipProblem(leetcodeId);
+          console.log(`✅ Removed problem ${leetcodeId} from session`);
+        }
       } else if (skipReason === 'dont_understand') {
         // Find prerequisite problem for "don't understand" skips
-        // Get current session to exclude problems already in it
-        const session = await getLatestSession();
         const excludeIds = session?.problems?.map(p => p.leetcode_id) || [];
 
         const prerequisite = await findPrerequisiteProblem(leetcodeId, excludeIds);
@@ -184,15 +191,27 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
           // Remove skipped problem and add prerequisite as replacement
           await SessionService.skipProblem(leetcodeId, prerequisite);
           console.log(`✅ Replaced problem ${leetcodeId} with prerequisite ${prerequisite.leetcode_id || prerequisite.id}`);
+        } else if (isLastProblem) {
+          result.prerequisite = null;
+          result.replaced = false;
+          result.kept = true;
+          result.lastProblem = true;
+          console.log(`⚠️ No prerequisite found for ${leetcodeId} - keeping in session (last problem)`);
         } else {
-          // No prerequisite found, just remove
+          // Not last problem, no prerequisite - safe to remove
           await SessionService.skipProblem(leetcodeId);
           console.log(`✅ Removed problem ${leetcodeId} from session (no prerequisite found)`);
         }
       } else {
-        // "not_relevant" or "other" - just remove from session
-        await SessionService.skipProblem(leetcodeId);
-        console.log(`✅ Removed problem ${leetcodeId} from session`);
+        // "not_relevant" or "other"
+        if (isLastProblem) {
+          result.kept = true;
+          result.lastProblem = true;
+          console.log(`⚠️ Last problem in session - keeping ${leetcodeId}`);
+        } else {
+          await SessionService.skipProblem(leetcodeId);
+          console.log(`✅ Removed problem ${leetcodeId} from session`);
+        }
       }
 
       sendResponse(result);

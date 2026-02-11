@@ -10,7 +10,11 @@ import { StorageService } from "../storage/storageService.js";
 import { calculateDecayScore } from "../../utils/leitner/Utils.js";
 import { getTagMastery } from "../../db/stores/tag_mastery.js";
 import logger from "../../utils/logging/logger.js";
-import { selectOptimalProblems } from "../../db/stores/problem_relationships.js";
+import {
+  selectOptimalProblems,
+  getRecentAttempts,
+  getFailureTriggeredReviews
+} from "../../db/stores/problem_relationships.js";
 import { applySafetyGuardRails } from "../../utils/session/sessionBalancing.js";
 import { getRecentSessionAnalytics } from "../../db/stores/sessionAnalytics.js";
 import { getPatternLadders } from "../../utils/leitner/patternLadderUtils.js";
@@ -22,6 +26,94 @@ import {
   logReviewProblemsAnalysis
 } from "./problemServiceHelpers.js";
 
+// ============================================================================
+// ADAPTIVE LEARNING: TRIGGERED REVIEW SYSTEM (Priority 1)
+// ============================================================================
+
+/**
+ * Add triggered reviews to session - mastered problems that reinforce struggling concepts
+ * This is PRIORITY 1 in session composition - runs before regular reviews
+ *
+ * @param {Array} sessionProblems - Array to add problems to (modified in place)
+ * @param {number} sessionLength - Maximum session length
+ * @param {boolean} isOnboarding - Whether this is an onboarding session
+ * @returns {Promise<number>} Number of triggered reviews added
+ */
+export async function addTriggeredReviewsToSession(sessionProblems, sessionLength, isOnboarding) {
+  if (isOnboarding) {
+    logger.info("Skipping triggered reviews during onboarding");
+    return 0;
+  }
+
+  try {
+    // Get recent attempts from last 2 sessions
+    const recentAttempts = await getRecentAttempts({ sessions: 2 });
+
+    if (recentAttempts.length === 0) {
+      logger.info("No recent attempts found - skipping triggered reviews");
+      return 0;
+    }
+
+    // Find mastered problems that relate to struggling problems
+    const triggeredReviews = await getFailureTriggeredReviews(recentAttempts);
+
+    if (triggeredReviews.length === 0) {
+      logger.info("No triggered reviews needed - user doing well or no related mastered problems");
+      return 0;
+    }
+
+    // Add up to 2 triggered reviews (max per session)
+    const maxTriggeredReviews = Math.min(2, sessionLength, triggeredReviews.length);
+    const reviewsToAdd = triggeredReviews.slice(0, maxTriggeredReviews);
+
+    for (const review of reviewsToAdd) {
+      const enrichedProblem = await enrichReviewProblem(review.problem, fetchProblemById);
+      const normalizedProblem = {
+        ...enrichedProblem,
+        id: enrichedProblem.id || enrichedProblem.leetcode_id,
+        leetcode_id: enrichedProblem.leetcode_id,
+        selectionReason: {
+          type: 'triggered_review',
+          reason: review.triggerReason,
+          triggeredBy: review.triggeredBy,
+          aggregateStrength: review.aggregateStrength,
+          connectedProblems: review.connectedProblems
+        }
+      };
+
+      // Ensure slug exists
+      if (!normalizedProblem.slug) {
+        normalizedProblem.slug = enrichedProblem.slug || enrichedProblem.title_slug || enrichedProblem.titleSlug;
+        if (!normalizedProblem.slug && enrichedProblem.title) {
+          normalizedProblem.slug = enrichedProblem.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '');
+        }
+      }
+
+      sessionProblems.push(normalizedProblem);
+    }
+
+    logger.info(`🌉 Added ${reviewsToAdd.length} triggered reviews (bridge problems) to session`);
+    return reviewsToAdd.length;
+  } catch (error) {
+    logger.error("Error adding triggered reviews:", error);
+    return 0;
+  }
+}
+
+/**
+ * Add learning review problems to session (box levels 1-5 only)
+ * This is PRIORITY 2 in session composition - runs after triggered reviews
+ * Mastered problems (box 6-8) are now handled contextually by triggered reviews
+ *
+ * @param {Array} sessionProblems - Array to add problems to (modified in place)
+ * @param {number} sessionLength - Maximum session length
+ * @param {boolean} isOnboarding - Whether this is an onboarding session
+ * @param {Array} allProblems - All user problems for fallback analysis
+ * @returns {Promise<number>} Number of learning reviews added
+ */
 export async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnboarding, allProblems) {
   if (isOnboarding) {
     logger.info("Skipping review problems during onboarding - focusing on new problem distribution");
@@ -35,22 +127,44 @@ export async function addReviewProblemsToSession(sessionProblems, sessionLength,
     (allReviewProblems || []).map(reviewProblem => enrichReviewProblem(reviewProblem, fetchProblemById))
   );
 
-  const validReviewProblems = filterValidReviewProblems(enrichedReviewProblems).map(normalizeReviewProblem);
-  const reviewProblemsToAdd = validReviewProblems.slice(0, Math.min(sessionLength, validReviewProblems.length));
+  // Filter to only include LEARNING reviews (box level 1-5)
+  // Mastered reviews (box 6-8) are now handled by triggered reviews or passive fill
+  const MAX_LEARNING_BOX_LEVEL = 5;
+  const learningReviewProblems = filterValidReviewProblems(enrichedReviewProblems)
+    .filter(p => {
+      const boxLevel = p.box_level || p.boxLevel || 1;
+      return boxLevel <= MAX_LEARNING_BOX_LEVEL;
+    })
+    .map(normalizeReviewProblem);
 
-  logReviewProblemsAnalysis(enrichedReviewProblems, validReviewProblems, sessionProblems, reviewProblemsToAdd);
-  sessionProblems.push(...reviewProblemsToAdd);
+  const masteredReviewCount = enrichedReviewProblems.filter(p => {
+    const boxLevel = p.box_level || p.boxLevel || 1;
+    return boxLevel > MAX_LEARNING_BOX_LEVEL;
+  }).length;
 
-  logger.info(`Added ${reviewProblemsToAdd.length} review problems to session (${validReviewProblems.length} total due from Leitner system)`);
+  // Calculate review slots: ~30% of remaining session space for reviews
+  const remainingSlots = sessionLength - sessionProblems.length;
+  const reviewSlots = Math.ceil(remainingSlots * 0.3);
+  const reviewProblemsToAdd = learningReviewProblems.slice(0, Math.min(reviewSlots, learningReviewProblems.length));
 
-  if (reviewProblemsToAdd.length === sessionLength) {
-    logger.info(`Session filled entirely with review problems (${reviewProblemsToAdd.length}/${sessionLength})`);
-  } else if (reviewProblemsToAdd.length > 0) {
-    logger.info(`Session has ${reviewProblemsToAdd.length} review problems, ${sessionLength - reviewProblemsToAdd.length} slots available for new problems`);
+  // Exclude IDs already in session (from triggered reviews)
+  const sessionIds = new Set(sessionProblems.map(p => p.id || p.leetcode_id));
+  const uniqueReviewProblems = reviewProblemsToAdd.filter(p => !sessionIds.has(p.id || p.leetcode_id));
+
+  logReviewProblemsAnalysis(enrichedReviewProblems, learningReviewProblems, sessionProblems, uniqueReviewProblems);
+  sessionProblems.push(...uniqueReviewProblems);
+
+  logger.info(`Added ${uniqueReviewProblems.length} learning reviews (box 1-5) to session`);
+  if (masteredReviewCount > 0) {
+    logger.info(`📌 ${masteredReviewCount} mastered reviews (box 6-8) deferred to triggered/passive fill`);
   }
 
-  analyzeReviewProblems(validReviewProblems, sessionLength, allProblems);
-  return reviewProblemsToAdd.length;
+  if (uniqueReviewProblems.length > 0) {
+    logger.info(`Session has ${sessionProblems.length} problems, ${sessionLength - sessionProblems.length} slots for new problems`);
+  }
+
+  analyzeReviewProblems(learningReviewProblems, sessionLength, allProblems);
+  return uniqueReviewProblems.length;
 }
 
 export function analyzeReviewProblems(reviewProblems, sessionLength, allProblems) {
@@ -157,7 +271,69 @@ export async function selectNewProblems(candidateProblems, newProblemsNeeded, is
   }
 }
 
-export function addFallbackProblems(sessionProblems, sessionLength, allProblems) {
+/**
+ * Add passive mastered reviews (box 6-8) if session still not full
+ * This is PRIORITY 4 - only fills remaining slots after triggered reviews, learning reviews, and new problems
+ *
+ * @param {Array} sessionProblems - Array to add problems to (modified in place)
+ * @param {number} sessionLength - Maximum session length
+ * @param {boolean} isOnboarding - Whether this is an onboarding session
+ * @returns {Promise<number>} Number of passive mastered reviews added
+ */
+export async function addPassiveMasteredReviews(sessionProblems, sessionLength, isOnboarding) {
+  if (isOnboarding || sessionProblems.length >= sessionLength) {
+    return 0;
+  }
+
+  try {
+    const allReviewProblems = await ScheduleService.getDailyReviewSchedule(null);
+    if (!allReviewProblems || allReviewProblems.length === 0) {
+      return 0;
+    }
+
+    const enrichedReviewProblems = await Promise.all(
+      allReviewProblems.map(reviewProblem => enrichReviewProblem(reviewProblem, fetchProblemById))
+    );
+
+    // Filter to only mastered problems (box 6-8)
+    const MIN_MASTERED_BOX_LEVEL = 6;
+    const masteredReviews = filterValidReviewProblems(enrichedReviewProblems)
+      .filter(p => {
+        const boxLevel = p.box_level || p.boxLevel || 1;
+        return boxLevel >= MIN_MASTERED_BOX_LEVEL;
+      })
+      .map(normalizeReviewProblem);
+
+    // Exclude IDs already in session
+    const sessionIds = new Set(sessionProblems.map(p => p.id || p.leetcode_id));
+    const availableMastered = masteredReviews.filter(p => !sessionIds.has(p.id || p.leetcode_id));
+
+    // Only add what's needed to fill the session
+    const slotsRemaining = sessionLength - sessionProblems.length;
+    const passiveReviewsToAdd = availableMastered.slice(0, slotsRemaining);
+
+    // Mark as passive mastered review
+    passiveReviewsToAdd.forEach(p => {
+      p.selectionReason = {
+        type: 'passive_mastered_review',
+        reason: 'Session filler - mastered problem due for scheduled review'
+      };
+    });
+
+    sessionProblems.push(...passiveReviewsToAdd);
+
+    if (passiveReviewsToAdd.length > 0) {
+      logger.info(`📚 Added ${passiveReviewsToAdd.length} passive mastered reviews (box 6-8) to fill session`);
+    }
+
+    return passiveReviewsToAdd.length;
+  } catch (error) {
+    logger.error("Error adding passive mastered reviews:", error);
+    return 0;
+  }
+}
+
+export async function addFallbackProblems(sessionProblems, sessionLength, allProblems) {
   if (sessionProblems.length >= sessionLength) return;
 
   const fallbackNeeded = sessionLength - sessionProblems.length;
@@ -169,8 +345,13 @@ export function addFallbackProblems(sessionProblems, sessionLength, allProblems)
     .sort(problemSortingCriteria)
     .slice(0, fallbackNeeded);
 
-  sessionProblems.push(...fallbackProblems);
-  logger.info(`Added ${fallbackProblems.length} fallback problems`);
+  const enrichedFallback = await Promise.all(
+    fallbackProblems.map(p => enrichReviewProblem(p, fetchProblemById))
+  );
+  const validFallback = enrichedFallback.filter(p => p.difficulty && p.tags);
+
+  sessionProblems.push(...validFallback);
+  logger.info(`Added ${validFallback.length} fallback problems`);
 }
 
 export async function checkSafetyGuardRails(finalSession, currentDifficultyCap) {
@@ -331,10 +512,14 @@ async function findReplacementProblems(primaryTags, count, targetDifficulty, exc
   }
 }
 
-export function logFinalSessionComposition(sessionWithReasons, sessionLength, reviewProblemsCount) {
+export function logFinalSessionComposition(sessionWithReasons, sessionLength, reviewProblemsCount, triggeredReviewsCount = 0) {
   logger.info(`Final session composition:`);
   logger.info(`   Total problems: ${sessionWithReasons.length}/${sessionLength}`);
   logger.info(`   Review problems: ${reviewProblemsCount}`);
+  if (triggeredReviewsCount > 0) {
+    logger.info(`      - Triggered reviews (bridge problems): ${triggeredReviewsCount}`);
+    logger.info(`      - Learning/passive reviews: ${reviewProblemsCount - triggeredReviewsCount}`);
+  }
   logger.info(`   New problems: ${sessionWithReasons.length - reviewProblemsCount}`);
   logger.info(`   Problems with reasoning: ${sessionWithReasons.filter((p) => p.selectionReason).length}`);
 }

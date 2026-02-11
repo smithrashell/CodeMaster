@@ -710,6 +710,72 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
 }
 
 /**
+ * Get problems with high unsuccessful attempt counts (chronic struggle pattern)
+ * Used by the triggered review system to identify problems needing reinforcement
+ *
+ * @param {Object} options - Query options
+ * @param {number} options.minUnsuccessfulAttempts - Minimum unsuccessful attempts to qualify (default: 3)
+ * @param {number} options.maxBoxLevel - Maximum box level to include (default: 4, learning phase)
+ * @returns {Promise<Array>} Array of problems with chronic struggle pattern
+ */
+export async function getProblemsWithHighFailures({
+  minUnsuccessfulAttempts = 3,
+  maxBoxLevel = 4
+} = {}) {
+  const db = await openDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("problems", "readonly");
+    const store = tx.objectStore("problems");
+
+    // Try to use the by_box_level index for efficiency
+    let index;
+    try {
+      index = store.index("by_box_level");
+    } catch (error) {
+      // Fallback to full scan if index not available
+      const allRequest = store.getAll();
+      allRequest.onsuccess = () => {
+        const problems = (allRequest.result || []).filter(p => {
+          const boxLevel = p.box_level || 1;
+          const unsuccessfulAttempts = p.attempt_stats?.unsuccessful_attempts || 0;
+          return boxLevel <= maxBoxLevel && unsuccessfulAttempts >= minUnsuccessfulAttempts;
+        });
+        resolve(problems);
+      };
+      allRequest.onerror = () => reject(allRequest.error);
+      return;
+    }
+
+    // Query each box level 1 through maxBoxLevel
+    const strugglingProblems = [];
+    const levels = Array.from({ length: maxBoxLevel }, (_, i) => i + 1);
+    let completed = 0;
+
+    for (const level of levels) {
+      const request = index.getAll(level);
+      request.onsuccess = () => {
+        const problems = (request.result || []).filter(p => {
+          const unsuccessfulAttempts = p.attempt_stats?.unsuccessful_attempts || 0;
+          return unsuccessfulAttempts >= minUnsuccessfulAttempts;
+        });
+        strugglingProblems.push(...problems);
+        completed++;
+        if (completed === levels.length) {
+          console.log(`📊 Found ${strugglingProblems.length} problems with ${minUnsuccessfulAttempts}+ failures at box level 1-${maxBoxLevel}`);
+          resolve(strugglingProblems);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    }
+
+    if (levels.length === 0) {
+      resolve([]);
+    }
+  });
+}
+
+/**
  * Fixes problems with corrupted difficulty fields by restoring from standard problems
  * @returns {Promise<number>} Number of problems fixed
  */

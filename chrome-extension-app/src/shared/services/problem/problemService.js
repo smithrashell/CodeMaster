@@ -78,8 +78,10 @@ import SessionLimits from "../../utils/session/sessionLimits.js";
 // IMPLEMENTATION
 // ============================================================================
 import {
+  addTriggeredReviewsToSession,
   addReviewProblemsToSession,
   addNewProblemsToSession,
+  addPassiveMasteredReviews,
   addFallbackProblems,
   checkSafetyGuardRails,
   logFinalSessionComposition,
@@ -268,6 +270,14 @@ export const ProblemService = {
     );
   },
 
+  /**
+   * Assembles session problems using adaptive learning priorities:
+   * PRIORITY 1: Triggered reviews (mastered problems related to struggling problems)
+   * PRIORITY 2: Learning reviews (box 1-5, still learning)
+   * PRIORITY 3: New problems (based on focus areas)
+   * PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
+   * FALLBACK: Any available problems
+   */
   async fetchAndAssembleSessionProblems(
     sessionLength,
     _numberOfNewProblems,
@@ -276,7 +286,7 @@ export const ProblemService = {
     userFocusAreas = [],
     isOnboarding = false
   ) {
-    logger.info("Starting intelligent session assembly...");
+    logger.info("Starting intelligent session assembly with adaptive learning...");
     logger.info("Session length:", sessionLength);
     logger.info("Is onboarding session?", isOnboarding);
 
@@ -285,16 +295,29 @@ export const ProblemService = {
 
     const sessionProblems = [];
 
-    const reviewProblemsCount = await addReviewProblemsToSession(
+    // PRIORITY 1: Triggered reviews (mastered problems related to struggling problems)
+    const triggeredReviewsCount = await addTriggeredReviewsToSession(
+      sessionProblems, sessionLength, isOnboarding
+    );
+
+    // PRIORITY 2: Learning reviews (box 1-5)
+    const learningReviewsCount = await addReviewProblemsToSession(
       sessionProblems, sessionLength, isOnboarding, allProblems
     );
 
+    // PRIORITY 3: New problems (primary learning)
     await addNewProblemsToSession({
       sessionLength, sessionProblems, excludeIds, userFocusAreas,
       currentAllowedTags, currentDifficultyCap, isOnboarding
     });
 
-    addFallbackProblems(sessionProblems, sessionLength, allProblems);
+    // PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
+    const passiveMasteredCount = await addPassiveMasteredReviews(
+      sessionProblems, sessionLength, isOnboarding
+    );
+
+    // FALLBACK: Any available problems
+    await addFallbackProblems(sessionProblems, sessionLength, allProblems);
 
     const deduplicated = deduplicateById(sessionProblems);
     const finalSession = deduplicated.slice(0, sessionLength);
@@ -309,18 +332,22 @@ export const ProblemService = {
     );
     logger.info(`Normalized ${normalizedProblems.length} problems`);
 
+    const totalReviewCount = triggeredReviewsCount + learningReviewsCount + passiveMasteredCount;
     const sessionWithReasons = await this.addProblemReasoningToSession(
       normalizedProblems,
       {
         sessionLength,
-        reviewCount: reviewProblemsCount,
-        newCount: normalizedProblems.length - reviewProblemsCount,
+        reviewCount: totalReviewCount,
+        triggeredReviewCount: triggeredReviewsCount,
+        learningReviewCount: learningReviewsCount,
+        passiveMasteredCount: passiveMasteredCount,
+        newCount: normalizedProblems.length - totalReviewCount,
         allowedTags: currentAllowedTags,
         difficultyCap: currentDifficultyCap,
       }
     );
 
-    logFinalSessionComposition(sessionWithReasons, sessionLength, reviewProblemsCount);
+    logFinalSessionComposition(sessionWithReasons, sessionLength, totalReviewCount, triggeredReviewsCount);
     return sessionWithReasons;
   },
 

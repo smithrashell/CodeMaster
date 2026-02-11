@@ -1,6 +1,7 @@
 import { getTagMastery } from "./tag_mastery.js";
 import { calculateTagSimilarity } from "./tag_mastery.js";
-import { fetchAllProblems } from "./problems.js";
+import { fetchAllProblems, getProblemsWithHighFailures } from "./problems.js";
+import { fetchProblemById } from "./standard_problems.js";
 import { dbHelper } from "../index.js";
 import { calculateSuccessRate } from "../../utils/leitner/Utils.js";
 import { getSessionPerformance } from "./sessions.js";
@@ -923,7 +924,7 @@ export async function weakenRelationshipsForSkip(problemId) {
  * @param {number} problemId - The LeetCode ID to get relationships for
  * @returns {Promise<Object>} Map of related problem IDs to strength values
  */
-async function getRelationshipsForProblem(problemId) {
+export async function getRelationshipsForProblem(problemId) {
   const db = await openDB();
   const relationships = {};
 
@@ -932,7 +933,7 @@ async function getRelationshipsForProblem(problemId) {
     const store = tx.objectStore("problem_relationships");
 
     // Query using problem_id1 index
-    const index1 = store.index("problem_id1");
+    const index1 = store.index("by_problem_id1");
     const request1 = index1.getAll(Number(problemId));
 
     request1.onsuccess = () => {
@@ -942,7 +943,7 @@ async function getRelationshipsForProblem(problemId) {
       });
 
       // Also query problem_id2 index (bidirectional relationships)
-      const index2 = store.index("problem_id2");
+      const index2 = store.index("by_problem_id2");
       const request2 = index2.getAll(Number(problemId));
 
       request2.onsuccess = () => {
@@ -1005,79 +1006,376 @@ export async function hasRelationshipsToAttempted(problemId) {
   }
 }
 
+// ============================================================================
+// ADAPTIVE LEARNING: TRIGGERED REVIEW SYSTEM
+// ============================================================================
+
 /**
- * Find a prerequisite (easier related) problem for "don't understand" skips
- * @param {number} problemId - The LeetCode ID of the problem being skipped
- * @param {Array<number>} excludeIds - Problem IDs to exclude (already in session)
- * @returns {Promise<Object|null>} A prerequisite problem or null if none found
+ * Get recent attempts from the last N sessions
+ * @param {Object} options - Configuration options
+ * @param {number} options.sessions - Number of recent sessions to check (default: 2)
+ * @returns {Promise<Array>} Array of recent attempt records
  */
+export async function getRecentAttempts({ sessions = 2 } = {}) {
+  const db = await openDB();
+
+  return new Promise((resolve, reject) => {
+    // First, get recent session IDs
+    const sessionTx = db.transaction("sessions", "readonly");
+    const sessionStore = sessionTx.objectStore("sessions");
+
+    let sessionIndex;
+    try {
+      sessionIndex = sessionStore.index("by_date");
+    } catch (error) {
+      console.warn("⚠️ by_date index not available, falling back to getAll");
+      const allRequest = sessionStore.getAll();
+      allRequest.onsuccess = () => {
+        const allSessions = allRequest.result || [];
+        const sortedSessions = allSessions
+          .filter(s => s.status === "completed")
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, sessions);
+        processSessionAttempts(sortedSessions.map(s => s.id));
+      };
+      allRequest.onerror = () => reject(allRequest.error);
+      return;
+    }
+
+    // Get recent completed sessions using cursor (newest first)
+    const recentSessionIds = [];
+    const cursorRequest = sessionIndex.openCursor(null, "prev");
+
+    cursorRequest.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor && recentSessionIds.length < sessions) {
+        const session = cursor.value;
+        if (session.status === "completed") {
+          recentSessionIds.push(session.id);
+        }
+        cursor.continue();
+      } else {
+        processSessionAttempts(recentSessionIds);
+      }
+    };
+
+    cursorRequest.onerror = () => reject(cursorRequest.error);
+
+    async function processSessionAttempts(sessionIds) {
+      if (sessionIds.length === 0) {
+        resolve([]);
+        return;
+      }
+
+      try {
+        const attemptsTx = db.transaction("attempts", "readonly");
+        const attemptsStore = attemptsTx.objectStore("attempts");
+
+        let attemptsIndex;
+        try {
+          attemptsIndex = attemptsStore.index("by_session_id");
+        } catch {
+          // Fallback: get all attempts and filter
+          const allRequest = attemptsStore.getAll();
+          allRequest.onsuccess = () => {
+            const allAttempts = allRequest.result || [];
+            const sessionSet = new Set(sessionIds);
+            const filtered = allAttempts.filter(a => sessionSet.has(a.session_id));
+            resolve(filtered);
+          };
+          allRequest.onerror = () => reject(allRequest.error);
+          return;
+        }
+
+        const attempts = [];
+        for (const sessionId of sessionIds) {
+          const sessionAttempts = await new Promise((res, rej) => {
+            const request = attemptsIndex.getAll(sessionId);
+            request.onsuccess = () => res(request.result || []);
+            request.onerror = () => rej(request.error);
+          });
+          attempts.push(...sessionAttempts);
+        }
+
+        resolve(attempts);
+      } catch (error) {
+        reject(error);
+      }
+    }
+  });
+}
+
+/**
+ * Get problems that need reinforcement - recent failures + chronic struggles
+ * @param {Array} recentAttempts - Attempts from recent sessions
+ * @returns {Promise<Array>} Problems needing reinforcement with reason
+ */
+export async function getProblemsNeedingReinforcement(recentAttempts) {
+  const candidates = [];
+
+  // 1. Recently failed problems (from attempts)
+  const recentFailures = recentAttempts.filter(a => !a.success);
+  for (const failure of recentFailures) {
+    const leetcodeId = failure.leetcode_id || failure.problem_id;
+    if (leetcodeId && !candidates.some(c => c.leetcode_id === leetcodeId)) {
+      candidates.push({
+        leetcode_id: leetcodeId,
+        reason: 'recent_failure'
+      });
+    }
+  }
+
+  // 2. Problems with high unsuccessful attempts (chronic struggle)
+  const strugglingProblems = await getProblemsWithHighFailures({
+    minUnsuccessfulAttempts: 3,
+    maxBoxLevel: 4
+  });
+
+  for (const problem of strugglingProblems) {
+    const leetcodeId = problem.leetcode_id;
+    if (leetcodeId && !candidates.some(c => c.leetcode_id === leetcodeId)) {
+      candidates.push({
+        leetcode_id: leetcodeId,
+        reason: 'chronic_struggle',
+        unsuccessfulAttempts: problem.attempt_stats?.unsuccessful_attempts || 0
+      });
+    }
+  }
+
+  console.log(`📊 Found ${candidates.length} problems needing reinforcement:`, {
+    recentFailures: recentFailures.length,
+    chronicStruggles: strugglingProblems.length
+  });
+
+  return candidates;
+}
+
+/**
+ * Get mastered problems (box level 6-8) from the problems store
+ * @param {Object} options - Options
+ * @param {number} options.minBoxLevel - Minimum box level (default: 6)
+ * @returns {Promise<Array>} Array of mastered problems
+ */
+export async function getMasteredProblems({ minBoxLevel = 6 } = {}) {
+  const db = await openDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("problems", "readonly");
+    const store = tx.objectStore("problems");
+
+    // Use the by_box_level index for efficient querying
+    let index;
+    try {
+      index = store.index("by_box_level");
+    } catch (error) {
+      // Fallback to full scan
+      const allRequest = store.getAll();
+      allRequest.onsuccess = () => {
+        const problems = (allRequest.result || []).filter(p => p.box_level >= minBoxLevel);
+        resolve(problems);
+      };
+      allRequest.onerror = () => reject(allRequest.error);
+      return;
+    }
+
+    // Query for each box level 6, 7, 8
+    const masteredProblems = [];
+    const levels = [6, 7, 8].filter(l => l >= minBoxLevel);
+    let completed = 0;
+
+    for (const level of levels) {
+      const request = index.getAll(level);
+      request.onsuccess = () => {
+        masteredProblems.push(...(request.result || []));
+        completed++;
+        if (completed === levels.length) {
+          resolve(masteredProblems);
+        }
+      };
+      request.onerror = () => reject(request.error);
+    }
+
+    if (levels.length === 0) {
+      resolve([]);
+    }
+  });
+}
+
+/**
+ * Find mastered problems with high aggregate relationship to struggling problems
+ * Returns "bridge" problems that can reinforce multiple weak concepts at once
+ *
+ * @param {Array} recentAttempts - Attempts from recent sessions
+ * @returns {Promise<Array>} Top 2 triggered review problems with metadata
+ */
+export async function getFailureTriggeredReviews(recentAttempts) {
+  // Get all problems needing reinforcement
+  const problemsNeedingHelp = await getProblemsNeedingReinforcement(recentAttempts);
+
+  if (problemsNeedingHelp.length === 0) {
+    console.log("✅ No problems needing reinforcement - skipping triggered reviews");
+    return [];
+  }
+
+  const strugglingIds = problemsNeedingHelp.map(p => Number(p.leetcode_id));
+  console.log(`🔍 Finding bridge problems for ${strugglingIds.length} struggling problems`);
+
+  // Get all mastered problems (box 6-8)
+  const masteredProblems = await getMasteredProblems({ minBoxLevel: 6 });
+
+  if (masteredProblems.length === 0) {
+    console.log("📝 No mastered problems available for triggered reviews");
+    return [];
+  }
+
+  // Optional: Get tag mastery for decay boost
+  let tagMasteryMap = {};
+  try {
+    const tagMasteryData = await getTagMastery();
+    tagMasteryMap = (tagMasteryData || []).reduce((acc, tm) => {
+      acc[tm.tag?.toLowerCase()] = tm;
+      return acc;
+    }, {});
+  } catch (error) {
+    console.warn("⚠️ Could not load tag mastery for decay boost:", error.message);
+  }
+
+  // Score each mastered problem by aggregate relationship to all struggling problems
+  const scoredCandidates = [];
+  const RELATIONSHIP_THRESHOLD = 2.0;
+
+  for (const mastered of masteredProblems) {
+    const masteredId = Number(mastered.leetcode_id);
+
+    // Get relationships for this specific problem (optimized - uses indexes)
+    const relationships = await getRelationshipsForProblem(masteredId);
+
+    // Calculate aggregate score across all struggling problems
+    let aggregateStrength = 0;
+    let connectedProblems = 0;
+    const triggeredBy = [];
+
+    for (const strugglingId of strugglingIds) {
+      const strength = relationships[strugglingId] || 0;
+      if (strength >= RELATIONSHIP_THRESHOLD) {
+        aggregateStrength += strength;
+        connectedProblems++;
+        triggeredBy.push(strugglingId);
+      }
+    }
+
+    // Skip if no meaningful connections
+    if (connectedProblems === 0) continue;
+
+    // Prioritize problems that connect to MULTIPLE struggling problems
+    const coverageBonus = connectedProblems / strugglingIds.length; // 0 to 1
+    let finalScore = aggregateStrength * (1 + coverageBonus);
+
+    // Apply tag mastery decay boost: if problem's tags are stale, boost priority
+    const problemTags = mastered.tags || mastered.Tags || [];
+    for (const tag of problemTags) {
+      const tagLower = tag?.toLowerCase();
+      const tagData = tagMasteryMap[tagLower];
+      if (tagData && tagData.decay_score !== undefined && tagData.decay_score < 0.7) {
+        // Tag is getting stale - boost this problem
+        finalScore *= 1.1;
+        console.log(`📉 Decay boost applied for stale tag: ${tag} (decay: ${tagData.decay_score?.toFixed(2)})`);
+      }
+    }
+
+    scoredCandidates.push({
+      problem: mastered,
+      triggerReason: 'prerequisite_reinforcement',
+      connectedProblems,
+      aggregateStrength,
+      finalScore,
+      triggeredBy
+    });
+  }
+
+  // Sort by finalScore (prefers problems connected to multiple struggling problems)
+  scoredCandidates.sort((a, b) => b.finalScore - a.finalScore);
+
+  // Return top 2 "bridge" problems
+  const selected = scoredCandidates.slice(0, 2);
+
+  if (selected.length > 0) {
+    console.log(`🌉 Selected ${selected.length} bridge problems for triggered reviews:`,
+      selected.map(s => ({
+        id: s.problem.leetcode_id,
+        title: s.problem.title,
+        score: s.finalScore.toFixed(2),
+        connections: s.connectedProblems
+      }))
+    );
+  } else {
+    console.log("📝 No related mastered problems found for triggered reviews");
+  }
+
+  return selected;
+}
+
 export async function findPrerequisiteProblem(problemId, excludeIds = []) {
   if (!problemId) return null;
 
   console.log(`🔍 Finding prerequisite for problem ${problemId}`);
 
   try {
-    // Get the skipped problem details
-    const allProblems = await fetchAllProblems();
-    const skippedProblem = allProblems.find(p =>
-      Number(p.leetcode_id) === Number(problemId) || Number(p.id) === Number(problemId)
-    );
+    // Look up skipped problem from standard_problems catalog (not user's local problems store)
+    const skippedProblem = await fetchProblemById(Number(problemId));
 
     if (!skippedProblem) {
-      console.warn(`⚠️ Could not find problem ${problemId} in database`);
+      console.warn(`⚠️ Could not find problem ${problemId} in standard_problems`);
       return null;
     }
 
     const skippedTags = skippedProblem.Tags || skippedProblem.tags || [];
     const skippedDifficulty = skippedProblem.difficulty || 'Medium';
 
-    // Determine target difficulty (one level easier)
     const difficultyOrder = { 'Easy': 0, 'Medium': 1, 'Hard': 2 };
-    const targetDifficultyNum = Math.max(0, (difficultyOrder[skippedDifficulty] || 1) - 1);
-    const targetDifficulty = Object.keys(difficultyOrder).find(k => difficultyOrder[k] === targetDifficultyNum) || 'Easy';
+    const skippedDiffNum = difficultyOrder[skippedDifficulty] ?? 1;
 
-    console.log(`  Looking for ${targetDifficulty} problems with tags: ${skippedTags.slice(0, 3).join(', ')}`);
+    console.log(`  Skipped problem: "${skippedProblem.title}" (${skippedDifficulty}), tags: ${skippedTags.slice(0, 3).join(', ')}`);
 
-    // Get relationships for this specific problem (optimized - uses indexes instead of loading all 29k records)
-    const problemRelationships = await getRelationshipsForProblem(problemId);
+    // Get related problem IDs + strengths from the relationship graph
+    const problemRelationships = await getRelationshipsForProblem(Number(problemId));
+    const relatedIds = Object.keys(problemRelationships).map(Number);
 
-    // Filter and score candidate problems
+    console.log(`  Found ${relatedIds.length} related problems in graph`);
+
     const excludeSet = new Set(excludeIds.map(Number));
     excludeSet.add(Number(problemId));
 
-    const candidates = allProblems
-      .filter(p => {
-        const pId = Number(p.leetcode_id || p.id);
-        if (excludeSet.has(pId)) return false;
+    // Look up each related problem from standard_problems and score them
+    const candidates = [];
 
-        // Must be same or easier difficulty
-        const pDiff = difficultyOrder[p.difficulty] ?? 1;
-        if (pDiff > targetDifficultyNum) return false;
+    for (const relId of relatedIds) {
+      if (excludeSet.has(relId)) continue;
 
-        // Must share at least one tag
-        const pTags = p.Tags || p.tags || [];
-        const sharedTags = pTags.filter(t => skippedTags.includes(t));
-        if (sharedTags.length === 0) return false;
+      const candidate = await fetchProblemById(relId);
+      if (!candidate) continue;
 
-        return true;
-      })
-      .map(p => {
-        const pId = Number(p.leetcode_id || p.id);
-        const pTags = p.Tags || p.tags || [];
-        const sharedTags = pTags.filter(t => skippedTags.includes(t));
-        const relationshipStrength = problemRelationships[pId] || 2.0;
+      const candDiffNum = difficultyOrder[candidate.difficulty] ?? 1;
 
-        // Score based on: shared tags, relationship strength, prefer easier
-        const tagScore = sharedTags.length / Math.max(skippedTags.length, 1);
-        const strengthScore = relationshipStrength / 5.0; // Normalize to 0-1
-        const difficultyBonus = difficultyOrder[p.difficulty] === targetDifficultyNum ? 0.2 : 0;
+      // Must be same or easier difficulty than the skipped problem
+      if (candDiffNum > skippedDiffNum) continue;
 
-        return {
-          problem: p,
-          score: tagScore * 0.4 + strengthScore * 0.4 + difficultyBonus + 0.2
-        };
-      })
-      .sort((a, b) => b.score - a.score);
+      const candTags = candidate.Tags || candidate.tags || [];
+      const sharedTags = candTags.filter(t => skippedTags.includes(t));
+      const relationshipStrength = problemRelationships[relId] || 0;
+
+      // Score: relationship strength (primary), tag overlap, difficulty bonus
+      const strengthScore = relationshipStrength / 5.0; // Normalize to 0-1
+      const tagScore = sharedTags.length / Math.max(skippedTags.length, 1);
+      const difficultyBonus = candDiffNum < skippedDiffNum ? 0.2 : 0;
+
+      candidates.push({
+        problem: candidate,
+        score: strengthScore * 0.5 + tagScore * 0.3 + difficultyBonus + 0.2
+      });
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
 
     if (candidates.length === 0) {
       console.log(`  No prerequisite candidates found for problem ${problemId}`);
