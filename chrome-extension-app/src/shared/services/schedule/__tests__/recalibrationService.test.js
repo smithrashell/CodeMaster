@@ -55,40 +55,34 @@ import {
 } from '../recalibrationHelpers.js';
 
 // Helper to build a fake IndexedDB-like object for tests
-// Supports both readonly getAll and readwrite transactions with put + oncomplete
+// Uses setter-based auto-fire: callbacks execute on next microtask when assigned
 function buildFakeDb(problems = []) {
   const allProblemsRequest = {
-    onsuccess: null,
+    _onsuccess: null,
+    set onsuccess(fn) {
+      this._onsuccess = fn;
+      Promise.resolve().then(() => fn());
+    },
+    get onsuccess() { return this._onsuccess; },
     onerror: null,
     result: problems,
     error: null,
   };
 
-  const getAll = jest.fn().mockImplementation(() => {
-    // Resolve on next tick
-    setTimeout(() => {
-      if (allProblemsRequest.onsuccess) {
-        allProblemsRequest.onsuccess();
-      }
-    }, 0);
-    return allProblemsRequest;
-  });
-
+  const getAll = jest.fn().mockReturnValue(allProblemsRequest);
   const put = jest.fn();
 
-  // A transaction object that fires oncomplete after a short delay
   function makeTransaction() {
     const tx = {
       objectStore: jest.fn().mockReturnValue({ getAll, put }),
-      oncomplete: null,
+      _oncomplete: null,
+      set oncomplete(fn) {
+        this._oncomplete = fn;
+        Promise.resolve().then(() => fn());
+      },
+      get oncomplete() { return this._oncomplete; },
       onerror: null,
     };
-    // Fire oncomplete asynchronously after onsuccess runs
-    setTimeout(() => {
-      if (tx.oncomplete) {
-        tx.oncomplete();
-      }
-    }, 20);
     return tx;
   }
 
