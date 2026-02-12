@@ -301,7 +301,7 @@ describe('Triggered Reviews - Algorithm Tests', () => {
     });
 
     it('should handle mastered problems with no relationships', () => {
-      const masteredProblems = [
+      const _masteredProblems = [
         { leetcode_id: 100, box_level: 6 },
       ];
       const strugglingIds = [1, 2];
