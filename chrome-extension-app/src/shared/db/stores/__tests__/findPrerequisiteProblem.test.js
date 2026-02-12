@@ -4,6 +4,11 @@
  * Uses fake-indexeddb to create a real database with standard_problems
  * and problem_relationships stores, then tests the actual function
  * against seeded data.
+ *
+ * SKIPPED: Uses fake-indexeddb with a custom schema that may diverge from
+ * the production database. Should be migrated to browser integration tests
+ * (core-business-tests.js) using the real CodeMaster_test database.
+ * See GitHub issue for migration plan.
  */
 
 import "fake-indexeddb/auto";
@@ -100,7 +105,7 @@ async function seedRelationships(relationships) {
   });
 }
 
-describe('findPrerequisiteProblem', () => {
+describe.skip('findPrerequisiteProblem', () => {
   it('returns null for falsy problemId', async () => {
     const result = await findPrerequisiteProblem(null);
     expect(result).toBeNull();

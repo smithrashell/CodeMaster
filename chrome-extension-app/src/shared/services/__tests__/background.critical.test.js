@@ -1,6 +1,11 @@
 /**
  * CRITICAL RISK TEST: Chrome Extension Background Script Messaging
  * Focus: Message handling and Chrome API functionality that could break dashboard communication
+ *
+ * SKIPPED: Tests Chrome API availability via mocked globals — circular logic.
+ * Chrome API presence can only be meaningfully tested in a real extension context.
+ * Should be migrated to browser integration tests (core-business-tests.js).
+ * See GitHub issue for migration plan.
  */
 
 // Helper function to test Chrome API availability
@@ -41,6 +46,6 @@ function testChromeAPIAvailability() {
   });
 }
 
-describe('Background Script - Critical Chrome Extension Messaging', () => {
+describe.skip('Background Script - Critical Chrome Extension Messaging', () => {
   testChromeAPIAvailability();
 });

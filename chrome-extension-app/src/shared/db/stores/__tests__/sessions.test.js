@@ -6,6 +6,10 @@
  *
  * This prevents the bug where attempts were associated with old sessions
  * instead of the current active session.
+ *
+ * SKIPPED: Duplicates browser integration test #20 (testSessionDateSorting)
+ * which tests the exact same scenario with real IndexedDB. The browser
+ * version is more authoritative. See GitHub issue for migration plan.
  */
 
 import "fake-indexeddb/auto";
@@ -26,7 +30,7 @@ jest.mock('../../../utils/logging/logger.js', () => ({
   },
 }));
 
-describe('getLatestSessionByType - Date Sorting', () => {
+describe.skip('getLatestSessionByType - Date Sorting', () => {
   // Test the sorting logic in isolation since full DB integration is complex
   describe('date sorting algorithm', () => {
     it('should sort sessions by date descending and return the newest', () => {
