@@ -23,17 +23,22 @@ chrome-extension-app/
 │   ├── background/       # Background script entry points
 │   └── shared/           # Shared code (hooks, services, components, db)
 ├── public/               # Static assets and manifest
-├── browser-tests/        # Browser-based testing framework
 ├── scripts/              # Development utility scripts
-└── test/                 # Jest test utilities
+└── test/                 # Jest test setup and utilities
 ```
+
+## Testing
+
+Tests are split into two layers:
+
+- **Unit tests** (Jest): Located in `__tests__/` folders alongside source code throughout `src/`. Run with `npm test`. Uses `test/setup.js` for Chrome API mocks, fake-indexeddb, and global test utilities.
+- **Browser integration tests**: Located in `src/background/core-business-tests.js`. These run inside the actual Chrome extension background script during development builds (`background.development.js` imports and initializes them). They exercise real IndexedDB and service interactions in the browser environment.
 
 ## Documentation
 
 For comprehensive documentation, see the main project docs:
 - **[Project Documentation](../docs/)** - Architecture, API, features, and guides
 - **[CLAUDE.md](CLAUDE.md)** - Development commands and architecture overview
-- **[Browser Tests](browser-tests/)** - Browser-based testing framework
 
 ## Key Resources
 
