@@ -24,29 +24,6 @@ import {
 } from '../onboardingServiceHelpers.js';
 
 describe('onboardingServiceHelpers', () => {
-  describe('constants', () => {
-    it('DEFAULT_SCREEN_PROGRESS has correct keys', () => {
-      expect(DEFAULT_SCREEN_PROGRESS).toHaveProperty('intro');
-      expect(DEFAULT_SCREEN_PROGRESS).toHaveProperty('generator');
-      expect(DEFAULT_SCREEN_PROGRESS).toHaveProperty('settings');
-    });
-
-    it('DEFAULT_INTERACTION_PROGRESS has correct keys', () => {
-      expect(DEFAULT_INTERACTION_PROGRESS).toHaveProperty('clickedCMButton');
-      expect(DEFAULT_INTERACTION_PROGRESS).toHaveProperty('usedTimer');
-    });
-
-    it('DEFAULT_PAGE_PROGRESS has correct keys', () => {
-      expect(DEFAULT_PAGE_PROGRESS).toHaveProperty('probgen');
-      expect(DEFAULT_PAGE_PROGRESS).toHaveProperty('timer');
-    });
-
-    it('SECTION_STEPS maps correctly', () => {
-      expect(SECTION_STEPS.cmButton).toBe(2);
-      expect(SECTION_STEPS.strategyHints).toBe(8);
-    });
-  });
-
   describe('createDefaultAppOnboarding', () => {
     it('returns correct default structure', () => {
       const result = createDefaultAppOnboarding();

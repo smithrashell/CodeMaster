@@ -246,47 +246,66 @@ describe('PerformanceMonitor (real)', () => {
   // Summary / report methods
   // -------------------------------------------------------------------
   describe('summaries and reports', () => {
-    it('getPerformanceSummary returns an object', () => {
+    it('getPerformanceSummary includes uptime, health, and system metrics', () => {
+      const ctx = performanceMonitor.startQuery('read_op');
+      performanceMonitor.endQuery(ctx, true, 5);
+
       const summary = performanceMonitor.getPerformanceSummary();
-      expect(summary).toBeDefined();
-      expect(typeof summary).toBe('object');
+      expect(typeof summary.uptime).toBe('number');
+      expect(summary.uptime).toBeGreaterThanOrEqual(0);
+      expect(summary.health).toBe('good');
+      expect(summary.systemMetrics).toHaveProperty('averageQueryTime');
+      expect(summary.systemMetrics).toHaveProperty('errorRate');
+      expect(summary.recentQueries).toHaveLength(1);
+      expect(summary.recentQueries[0].operation).toBe('read_op');
     });
 
-    it('getSystemHealth returns an object', () => {
-      const health = performanceMonitor.getSystemHealth();
-      expect(health).toBeDefined();
+    it('getSystemHealth returns good for fresh metrics', () => {
+      expect(performanceMonitor.getSystemHealth()).toBe('good');
     });
 
-    it('getQueryStatsByOperation returns stats', () => {
-      const ctx = performanceMonitor.startQuery('test_op');
-      performanceMonitor.endQuery(ctx, true, 1);
+    it('getQueryStatsByOperation aggregates per-operation stats', () => {
+      const ctx1 = performanceMonitor.startQuery('op_a');
+      performanceMonitor.endQuery(ctx1, true, 2);
+      const ctx2 = performanceMonitor.startQuery('op_a');
+      performanceMonitor.endQuery(ctx2, false, 1);
 
       const stats = performanceMonitor.getQueryStatsByOperation();
-      expect(stats).toBeDefined();
+      expect(stats.op_a).toBeDefined();
+      expect(stats.op_a.count).toBe(2);
+      expect(stats.op_a.errors).toBe(1);
+      expect(stats.op_a.successRate).toBe(50);
     });
 
-    it('getCriticalOperationSummary returns summary', () => {
+    it('getCriticalOperationSummary returns zero totals when empty', () => {
       const summary = performanceMonitor.getCriticalOperationSummary();
-      expect(summary).toBeDefined();
+      expect(summary.totalOperations).toBe(0);
+      expect(summary.successRate).toBe(100);
+      expect(summary.failures).toEqual([]);
     });
 
-    it('getRenderPerformanceSummary returns summary', () => {
+    it('getRenderPerformanceSummary returns zero totals when empty', () => {
       const summary = performanceMonitor.getRenderPerformanceSummary();
-      expect(summary).toBeDefined();
+      expect(summary.totalRenders).toBe(0);
+      expect(summary.averageTime).toBe(0);
+      expect(summary.byComponent).toEqual({});
     });
 
-    it('exportMetrics includes all sections', () => {
+    it('exportMetrics includes summaries, thresholds, uptime, and health', () => {
       const exported = performanceMonitor.exportMetrics();
-      expect(exported.summaries).toBeDefined();
-      expect(exported.thresholds).toBeDefined();
-      expect(typeof exported.uptime).toBe('number');
-      expect(exported.exportTime).toBeDefined();
-      expect(exported.health).toBeDefined();
+      expect(exported.summaries.criticalOperations.totalOperations).toBe(0);
+      expect(exported.summaries.renderPerformance.totalRenders).toBe(0);
+      expect(exported.thresholds).toHaveProperty('slowQueryTime');
+      expect(exported.uptime).toBeGreaterThanOrEqual(0);
+      expect(typeof exported.exportTime).toBe('string');
+      expect(exported.health).toBe('good');
     });
 
-    it('generateReport returns a string', () => {
+    it('generateReport contains performance headings and metrics', () => {
       const report = performanceMonitor.generateReport();
-      expect(typeof report).toBe('string');
+      expect(report).toContain('PERFORMANCE REPORT');
+      expect(report).toContain('SYSTEM METRICS');
+      expect(report).toContain('Health:');
     });
   });
 

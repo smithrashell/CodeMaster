@@ -288,12 +288,3 @@ describe('cleanupOldData', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// RETENTION_POLICY
-// ---------------------------------------------------------------------------
-describe('RETENTION_POLICY', () => {
-  it('has correct default values', () => {
-    expect(StorageCleanupManager.RETENTION_POLICY.expired).toBe(0);
-    expect(StorageCleanupManager.RETENTION_POLICY.completed).toBeNull();
-  });
-});

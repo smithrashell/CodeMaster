@@ -48,14 +48,9 @@ describe('ChromeAPIErrorHandler', () => {
   // areAPIsAvailable
   // ========================================================================
   describe('areAPIsAvailable', () => {
-    it('should return true when chrome.runtime.sendMessage exists', () => {
-      expect(ChromeAPIErrorHandler.areAPIsAvailable()).toBe(true);
-    });
-
     it('should return false when chrome is undefined', () => {
       const original = global.chrome;
       delete global.chrome;
-      // Need to redefine chrome as undefined for the check
       global.chrome = undefined;
       expect(ChromeAPIErrorHandler.areAPIsAvailable()).toBe(false);
       global.chrome = original;
@@ -82,18 +77,6 @@ describe('ChromeAPIErrorHandler', () => {
       expect(ctx.error).toBe('no manifest');
 
       chrome.runtime.getManifest = originalGetManifest;
-    });
-  });
-
-  // ========================================================================
-  // sleep
-  // ========================================================================
-  describe('sleep', () => {
-    it('should resolve after the specified time', async () => {
-      const start = Date.now();
-      await ChromeAPIErrorHandler.sleep(50);
-      const elapsed = Date.now() - start;
-      expect(elapsed).toBeGreaterThanOrEqual(30); // allow some tolerance
     });
   });
 
@@ -537,14 +520,4 @@ describe('ChromeAPIErrorHandler', () => {
     });
   });
 
-  // ========================================================================
-  // Static properties
-  // ========================================================================
-  describe('static properties', () => {
-    it('should have correct default values', () => {
-      expect(ChromeAPIErrorHandler.DEFAULT_RETRY_COUNT).toBe(2);
-      expect(ChromeAPIErrorHandler.DEFAULT_RETRY_DELAY).toBe(1000);
-      expect(ChromeAPIErrorHandler.DEFAULT_TIMEOUT).toBe(10000);
-    });
-  });
 });

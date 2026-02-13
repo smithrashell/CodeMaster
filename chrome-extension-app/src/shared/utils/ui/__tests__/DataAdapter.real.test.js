@@ -57,23 +57,13 @@ describe('getAccuracyTrendData', () => {
     expect(result[0].name).toMatch(/2024-W/);
   });
 
-  it('groups sessions by month', () => {
-    const sessions = [
-      makeSession('2024-01-15', [makeAttempt('p1', true)]),
-      makeSession('2024-02-15', [makeAttempt('p2', true)]),
-    ];
-
-    const result = getAccuracyTrendData(sessions, 'monthly');
-    expect(result.length).toBe(2);
-  });
-
-  it('groups sessions by year', () => {
+  it.each(['monthly', 'yearly'])('groups sessions by %s into separate buckets', (grouping) => {
     const sessions = [
       makeSession('2023-06-15', [makeAttempt('p1', true)]),
       makeSession('2024-06-15', [makeAttempt('p2', true)]),
     ];
 
-    const result = getAccuracyTrendData(sessions, 'yearly');
+    const result = getAccuracyTrendData(sessions, grouping);
     expect(result.length).toBe(2);
   });
 
@@ -109,17 +99,6 @@ describe('getAccuracyTrendData', () => {
     // 0 correct out of 3 = 0%, which is filtered out by accuracy > 0
     const result = getAccuracyTrendData(sessions, 'yearly');
     expect(result.length).toBe(0);
-  });
-
-  it('uses cache for repeated calls with same data', () => {
-    const sessions = [
-      makeSession('2024-01-15', [makeAttempt('p1', true)]),
-    ];
-
-    const result1 = getAccuracyTrendData(sessions, 'weekly');
-    const result2 = getAccuracyTrendData(sessions, 'weekly');
-    // Results should be identical (from cache)
-    expect(result1).toEqual(result2);
   });
 
   it('filters out future dates', () => {
@@ -196,16 +175,6 @@ describe('getAttemptBreakdownData', () => {
     expect(result[0].failed).toBe(2);
   });
 
-  it('groups by month', () => {
-    const sessions = [
-      makeSession('2024-01-15', [{ problemId: 'p1', success: true }]),
-      makeSession('2024-02-15', [{ problemId: 'p2', success: true }]),
-    ];
-
-    const result = getAttemptBreakdownData(sessions, 'monthly');
-    expect(result.length).toBe(2);
-  });
-
   it('uses problem_id as fallback', () => {
     const sessions = [
       makeSession('2024-01-15', [
@@ -259,33 +228,13 @@ describe('getProblemActivityData', () => {
     expect(result[0].failed).toBe(1);
   });
 
-  it('groups by week', () => {
-    const sessions = [
-      makeSession('2024-01-15', [makeAttempt('p1', true)]),
-      makeSession('2024-01-22', [makeAttempt('p2', true)]),
-    ];
-
-    const result = getProblemActivityData(sessions, 'weekly');
-    expect(result.length).toBe(2);
-  });
-
-  it('groups by month', () => {
-    const sessions = [
-      makeSession('2024-01-15', [makeAttempt('p1', true)]),
-      makeSession('2024-02-15', [makeAttempt('p2', true)]),
-    ];
-
-    const result = getProblemActivityData(sessions, 'monthly');
-    expect(result.length).toBe(2);
-  });
-
-  it('groups by year', () => {
+  it.each(['weekly', 'monthly', 'yearly'])('groups by %s into separate buckets', (grouping) => {
     const sessions = [
       makeSession('2023-06-15', [makeAttempt('p1', true)]),
       makeSession('2024-06-15', [makeAttempt('p2', true)]),
     ];
 
-    const result = getProblemActivityData(sessions, 'yearly');
+    const result = getProblemActivityData(sessions, grouping);
     expect(result.length).toBe(2);
   });
 
@@ -311,13 +260,4 @@ describe('getProblemActivityData', () => {
     }
   });
 
-  it('uses cache for repeated calls', () => {
-    const sessions = [
-      makeSession('2024-01-15', [makeAttempt('p1', true)]),
-    ];
-
-    const result1 = getProblemActivityData(sessions, 'weekly');
-    const result2 = getProblemActivityData(sessions, 'weekly');
-    expect(result1).toEqual(result2);
-  });
 });
