@@ -146,6 +146,7 @@ function makeSession(overrides = {}) {
 // ---------------------------------------------------------------------------
 describe('sessions.js (real fake-indexeddb)', () => {
   let testDb;
+  const savedChrome = global.chrome;
 
   beforeEach(async () => {
     testDb = await createTestDb();
@@ -153,6 +154,8 @@ describe('sessions.js (real fake-indexeddb)', () => {
   });
 
   afterEach(() => {
+    // Restore global.chrome in case a test mutated it and threw before restoring
+    global.chrome = savedChrome;
     closeTestDb(testDb);
   });
 

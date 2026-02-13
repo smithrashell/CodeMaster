@@ -514,9 +514,8 @@ describe('addProblem', () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     const all = await readAll(testDb.db, 'problems');
-    // When leetcode_id is null, the index lookup may behave differently
-    // The function should still add the problem
-    expect(all.length).toBeGreaterThanOrEqual(0);
+    // The function should still add the problem even with null leetcode_id
+    expect(all).toHaveLength(1);
   });
 });
 
