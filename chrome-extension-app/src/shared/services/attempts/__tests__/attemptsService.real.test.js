@@ -101,10 +101,10 @@ jest.mock('uuid', () => ({
 // Imports
 // ---------------------------------------------------------------------------
 import { dbHelper } from '../../../db/index.js';
-import { getLatestSessionByType, saveSessionToStorage, updateSessionInDB, saveNewSessionToDB } from '../../../db/stores/sessions.js';
+import { getLatestSessionByType, updateSessionInDB, saveNewSessionToDB } from '../../../db/stores/sessions.js';
 import { SessionService } from '../../session/sessionService.js';
 import { ProblemService } from '../../problem/problemService.js';
-import { calculateLeitnerBox } from '../../../utils/leitner/leitnerSystem.js';
+import { calculateLeitnerBox as _calculateLeitnerBox } from '../../../utils/leitner/leitnerSystem.js';
 import { createAttemptRecord } from '../../../utils/leitner/Utils.js';
 import { updateTagMasteryForAttempt } from '../../../db/stores/tag_mastery.js';
 import { updateProblemRelationships } from '../../../db/stores/problem_relationships.js';
@@ -114,7 +114,6 @@ import {
   createTestDb,
   closeTestDb,
   seedStore,
-  readAll,
 } from '../../../../../test/testDbHelper.js';
 
 // ---------------------------------------------------------------------------
@@ -295,7 +294,7 @@ describe('AttemptsService.addAttempt - guided session routing', () => {
       return Promise.resolve(null);
     });
 
-    const result = await AttemptsService.addAttempt(buildAttemptData(), buildProblem());
+    const _result = await AttemptsService.addAttempt(buildAttemptData(), buildProblem());
 
     expect(saveNewSessionToDB).toHaveBeenCalled();
   });
@@ -308,7 +307,7 @@ describe('AttemptsService.addAttempt - guided session routing', () => {
       return Promise.resolve(null);
     });
 
-    const result = await AttemptsService.addAttempt(buildAttemptData(), buildProblem());
+    const _result = await AttemptsService.addAttempt(buildAttemptData(), buildProblem());
 
     expect(saveNewSessionToDB).toHaveBeenCalled();
   });
@@ -547,7 +546,7 @@ describe('SessionAttributionEngine.shouldRotateTrackingSession - via getRecentTr
     // No guided session available
     getLatestSessionByType.mockResolvedValue(null);
 
-    const result = await AttemptsService.addAttempt(buildAttemptData(), buildProblem());
+    await AttemptsService.addAttempt(buildAttemptData(), buildProblem());
 
     // Should create a new tracking session because the existing one is full
     expect(saveNewSessionToDB).toHaveBeenCalled();

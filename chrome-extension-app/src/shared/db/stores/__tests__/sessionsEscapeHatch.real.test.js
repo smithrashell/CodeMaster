@@ -392,7 +392,7 @@ describe('checkForDemotion', () => {
   it('defaults current cap to Easy when missing', async () => {
     const state = {};
 
-    const result = await checkForDemotion(state);
+    const _result = await checkForDemotion(state);
 
     // current_difficulty_cap defaults to "Easy", so no demotion is possible
     expect(getRecentSessionAnalytics).not.toHaveBeenCalled();

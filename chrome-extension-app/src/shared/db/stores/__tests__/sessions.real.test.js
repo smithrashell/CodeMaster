@@ -122,7 +122,7 @@ import { applyEscapeHatchLogic, checkForDemotion, analyzePerformanceTrend } from
 import { getRecentSessionAnalytics } from '../sessionAnalytics.js';
 import FocusCoordinationService from '../../../services/focus/focusCoordinationService.js';
 import { TagService } from '../../../services/attempts/tagServices.js';
-import { applyOnboardingSettings, applyPostOnboardingLogic } from '../sessionAdaptiveHelpers.js';
+import { applyOnboardingSettings as _applyOnboardingSettings, applyPostOnboardingLogic as _applyPostOnboardingLogic } from '../sessionAdaptiveHelpers.js';
 import { processAttempts, calculateTagStrengths, calculateTimingFeedback, filterSessions } from '../sessionPerformanceHelpers.js';
 
 // ---------------------------------------------------------------------------
@@ -1030,8 +1030,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
 
     it('handles DB update failure after successful chrome.storage.local.set', async () => {
       // Make openDB fail for the updateSessionInDB call inside the callback
-      const originalMock = dbHelper.openDB.getMockImplementation();
-      let callCount = 0;
+      const _originalMock = dbHelper.openDB.getMockImplementation();
 
       // Let the first openDB work (for saveSessionToStorage) but make subsequent fail
       // Actually, the DB update happens inside the callback, so we can break it by
@@ -1516,9 +1515,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
       // Make openDB fail on the SECOND call (the one inside initializeSessionState migration)
       // The first call is in loadSessionContext -> initializeSessionState itself
       // Actually, initializeSessionState opens the DB for migration. Let's make the DB reject.
-      let callCount = 0;
       dbHelper.openDB.mockImplementation(() => {
-        callCount++;
         // The first call is the migration DB query inside initializeSessionState
         // Subsequent calls should work. Let's just make the first one return normal
         // and test continues. The migration path is tested when completed sessions

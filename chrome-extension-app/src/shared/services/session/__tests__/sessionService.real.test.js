@@ -107,7 +107,6 @@ import {
   getLatestSession,
   getLatestSessionByType,
   saveSessionToStorage,
-  saveNewSessionToDB,
   updateSessionInDB,
   deleteSessionFromDB,
   getOrCreateSessionAtomic,

@@ -8,10 +8,7 @@ jest.mock('../../../utils/logging/logger.js', () => ({
 }));
 
 import {
-  DEFAULT_SCREEN_PROGRESS,
-  DEFAULT_INTERACTION_PROGRESS,
   DEFAULT_PAGE_PROGRESS,
-  SECTION_STEPS,
   createDefaultAppOnboarding,
   createDefaultContentOnboarding,
   createDefaultPageProgress,

@@ -42,11 +42,9 @@ import {
 import { clearPatternLadders, upsertPatternLadder } from '../../../db/stores/pattern_ladder.js';
 import {
   getAllowedClassifications,
-  getValidProblems,
   buildLadder,
   getPatternLadders,
 } from '../../../utils/leitner/patternLadderUtils.js';
-import { buildRelationshipMap } from '../../../db/stores/problem_relationships.js';
 import { TagService } from '../../attempts/tagServices.js';
 import { getAllFromStore } from '../../../db/core/common.js';
 

@@ -17,7 +17,6 @@ jest.mock('../../../utils/leitner/Utils.js', () => ({
 
 import { HabitLearningCircuitBreaker, HabitLearningHelpers } from '../sessionHabitLearning.js';
 import { getLatestSession } from '../../../db/stores/sessions.js';
-import { openDatabase } from '../../../db/core/connectionUtils.js';
 
 describe('HabitLearningCircuitBreaker', () => {
   beforeEach(() => {

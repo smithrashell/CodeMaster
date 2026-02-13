@@ -79,7 +79,6 @@ import {
   createTestDb,
   closeTestDb,
   seedStore,
-  readAll,
 } from '../../../../../test/testDbHelper.js';
 
 // ---------------------------------------------------------------------------
@@ -477,7 +476,7 @@ describe('TagService.getAvailableTagsForFocus', () => {
 
   it('should return fallback data when main logic throws', async () => {
     // Make getCurrentLearningState fail by breaking the DB mock for the first call only
-    const origOpenDB = dbHelper.openDB.getMockImplementation();
+    const _origOpenDB = dbHelper.openDB.getMockImplementation();
     let callCount = 0;
     dbHelper.openDB.mockImplementation(() => {
       callCount++;

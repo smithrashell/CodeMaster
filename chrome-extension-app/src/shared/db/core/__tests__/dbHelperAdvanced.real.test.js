@@ -45,7 +45,7 @@ function makeHelper(overrides = {}) {
   };
 }
 
-function makeMockDb(stores = {}) {
+function _makeMockDb(stores = {}) {
   return {
     transaction: jest.fn((storeName, _mode) => {
       const data = stores[storeName] || [];
@@ -329,7 +329,7 @@ describe('smartTestIsolation', () => {
     const helper = makeHelper();
     clear.mockResolvedValue();
 
-    const result = await smartTestIsolation(helper, { useSnapshots: false, fullReset: true });
+    const _result = await smartTestIsolation(helper, { useSnapshots: false, fullReset: true });
     // 4 session + 3 config + 3 static + 2 expensive = 12
     expect(clear).toHaveBeenCalledTimes(12);
   });

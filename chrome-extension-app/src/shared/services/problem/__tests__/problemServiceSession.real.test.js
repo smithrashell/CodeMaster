@@ -85,7 +85,6 @@ import { getRecentAttempts, getFailureTriggeredReviews, selectOptimalProblems } 
 import { ScheduleService } from '../../schedule/scheduleService.js';
 import { StorageService } from '../../storage/storageService.js';
 import { fetchAdditionalProblems, fetchAllProblems } from '../../../db/stores/problems.js';
-import { fetchProblemById } from '../../../db/stores/standard_problems.js';
 import { getTagMastery } from '../../../db/stores/tag_mastery.js';
 import { applySafetyGuardRails } from '../../../utils/session/sessionBalancing.js';
 import { getRecentSessionAnalytics } from '../../../db/stores/sessionAnalytics.js';

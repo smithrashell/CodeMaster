@@ -35,7 +35,7 @@ describe('escapeHatchUtils', () => {
     });
 
     it('detects attempt-based escape hatch for struggling tags', () => {
-      const masteryData = [
+      const _masteryData = [
         { tag: 'dp', totalAttempts: 25, successfulAttempts: 17 }, // 68% success, 8 failed
       ];
       // Actually we need 15+ failed attempts. 25-17=8, not enough

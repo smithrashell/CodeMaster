@@ -147,7 +147,6 @@ import { insertStrategyData } from '../../../db/stores/strategy_data.js';
 import { buildTagRelationships } from '../../../db/stores/tag_relationships.js';
 import { buildProblemRelationships } from '../relationshipService.js';
 import { initializePatternLaddersForOnboarding } from '../../problem/problemladderService.js';
-import { createDefaultContentOnboarding, createDefaultPageProgress } from '../onboardingServiceHelpers.js';
 
 // ---------------------------------------------------------------------------
 // 3. Tests

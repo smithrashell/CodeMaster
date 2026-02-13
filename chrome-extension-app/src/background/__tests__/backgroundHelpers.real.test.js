@@ -44,6 +44,7 @@ import {
   setupDevTestFunctions,
 } from '../backgroundHelpers.js';
 
+// eslint-disable-next-line no-restricted-imports -- mock-based test needs direct dbHelper reference
 import { dbHelper } from '../../shared/db/index.js';
 import { TagService } from '../../shared/services/attempts/tagServices.js';
 import { StorageService } from '../../shared/services/storage/storageService.js';
@@ -52,7 +53,7 @@ import { onboardUserIfNeeded } from '../../shared/services/focus/onboardingServi
 // ---------------------------------------------------------------------------
 // 3. Helpers
 // ---------------------------------------------------------------------------
-const flush = () => new Promise((r) => setTimeout(r, 0));
+const _flush = () => new Promise((r) => setTimeout(r, 0));
 
 // ---------------------------------------------------------------------------
 // 4. Tests
@@ -131,10 +132,9 @@ describe('backgroundHelpers', () => {
         { tag: 'DFS', totalAttempts: 5, successfulAttempts: 2 },
       ];
 
-      const mockStore = (data) => ({
+      const _mockStore = (data) => ({
         getAll: jest.fn().mockReturnValue({
           result: data,
-          onsuccess: null,
           onerror: null,
           set onsuccess(fn) { this._onsuccess = fn; },
           get onsuccess() { return this._onsuccess; },
@@ -163,16 +163,14 @@ describe('backgroundHelpers', () => {
 
       // Simulate IDB request pattern via mock implementation
       tagRelStore.getAll.mockReturnValue({
-        result: mockTagRelationships,
         set onsuccess(fn) { setTimeout(() => { fn(); }, 0); },
-        set onerror(fn) { /* no-op */ },
+        set onerror(_fn) { /* no-op */ },
         get result() { return mockTagRelationships; },
       });
 
       tagMasteryStore.getAll.mockReturnValue({
-        result: mockTagMastery,
         set onsuccess(fn) { setTimeout(() => { fn(); }, 0); },
-        set onerror(fn) { /* no-op */ },
+        set onerror(_fn) { /* no-op */ },
         get result() { return mockTagMastery; },
       });
 

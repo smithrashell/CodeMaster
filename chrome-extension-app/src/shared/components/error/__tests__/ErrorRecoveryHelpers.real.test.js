@@ -3,8 +3,6 @@
  * Recovery actions, step generation, and report utilities.
  */
 
-import React from 'react';
-
 import {
   recoveryActions,
   generateRecoverySteps,
@@ -66,7 +64,7 @@ describe('ErrorRecoveryHelpers', () => {
       });
 
       it('handles missing chrome.runtime gracefully', () => {
-        const savedRuntime = chrome.runtime;
+        const _savedRuntime = chrome.runtime;
         // Temporarily make chrome undefined
         const savedChrome = global.chrome;
         global.chrome = undefined;

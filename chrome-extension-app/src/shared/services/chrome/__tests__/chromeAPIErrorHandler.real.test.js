@@ -30,7 +30,7 @@ import { showErrorNotification, handleChromeAPIError } from '../../../utils/logg
 // ---------------------------------------------------------------------------
 
 /** Set chrome.runtime.lastError for the current tick, then clear it */
-function setLastError(message) {
+function _setLastError(message) {
   chrome.runtime.lastError = { message };
 }
 function clearLastError() {

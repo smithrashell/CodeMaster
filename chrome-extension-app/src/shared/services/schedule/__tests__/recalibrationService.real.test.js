@@ -45,7 +45,6 @@ import {
   applyPassiveDecay,
   checkAndApplyDecay,
   getDecayStatistics,
-  createDiagnosticSession,
   processDiagnosticResults,
   createAdaptiveRecalibrationSession,
   processAdaptiveSessionCompletion,
@@ -53,7 +52,6 @@ import {
 import { StorageService } from '../../storage/storageService.js';
 import { openDatabase } from '../../../db/core/connectionUtils.js';
 import {
-  processDecayForProblem,
   applyBatchUpdates,
   classifyTopics,
   createDiagnosticSummary,

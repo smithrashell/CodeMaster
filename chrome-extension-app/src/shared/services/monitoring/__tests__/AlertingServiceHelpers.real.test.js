@@ -16,7 +16,6 @@ import {
   routeToSession,
   routeToProgress,
   routeToDashboard,
-  fallbackRoute,
   sendStreakAlert,
   sendCadenceNudge,
   sendWeeklyGoalReminder,

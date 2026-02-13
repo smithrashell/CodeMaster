@@ -25,7 +25,7 @@ jest.mock('../../../utils/logging/logger.js', () => ({
 // ---------------------------------------------------------------------------
 // Import the class directly since the module creates a singleton
 // We need to get a fresh instance for each test
-import StrategyCacheServiceDefault, { default as strategyCacheService } from '../StrategyCacheService.js';
+import { default as strategyCacheService } from '../StrategyCacheService.js';
 
 // ---------------------------------------------------------------------------
 // 3. Tests

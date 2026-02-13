@@ -43,7 +43,7 @@ jest.mock('../../index.js', () => ({
 
 // ---- imports ----
 
-import { createTestDb, closeTestDb, seedStore, readAll } from '../../../../../test/testDbHelper.js';
+import { createTestDb, closeTestDb, readAll } from '../../../../../test/testDbHelper.js';
 import { dbHelper } from '../../index.js';
 
 import {

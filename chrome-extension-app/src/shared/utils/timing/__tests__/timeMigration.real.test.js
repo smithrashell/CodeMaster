@@ -37,7 +37,7 @@ import {
 // ---------------------------------------------------------------------------
 function makeMockDb(storeData = {}) {
   return {
-    transaction: jest.fn((storeNames, mode) => {
+    transaction: jest.fn((storeNames, _mode) => {
       const names = Array.isArray(storeNames) ? storeNames : [storeNames];
       const stores = {};
       for (const name of names) {
@@ -51,7 +51,7 @@ function makeMockDb(storeData = {}) {
             });
             return req;
           }),
-          put: jest.fn((record) => {
+          put: jest.fn((_record) => {
             const req = {};
             Promise.resolve().then(() => {
               if (req.onsuccess) req.onsuccess();
@@ -243,7 +243,7 @@ describe('migrateAttemptsTimeData', () => {
       { id: 2, TimeSpent: 20 },
       { id: 3, TimeSpent: 25 },
     ];
-    const putFn = jest.fn((record) => {
+    const putFn = jest.fn((_record) => {
       const req = {};
       Promise.resolve().then(() => {
         if (req.onsuccess) req.onsuccess();
@@ -354,7 +354,7 @@ describe('backupTimeData', () => {
       { id: 1, TimeSpent: 600, ProblemID: 'p1', AttemptDate: '2024-01-01' },
     ];
 
-    const putFn = jest.fn((data) => {
+    const putFn = jest.fn((_data) => {
       const req = {};
       Promise.resolve().then(() => {
         if (req.onsuccess) req.onsuccess();
@@ -401,7 +401,7 @@ describe('backupTimeData', () => {
 // ---------------------------------------------------------------------------
 describe('performSafeTimeMigration', () => {
   function setupMockDb(attempts = []) {
-    const putFn = jest.fn((data) => {
+    const putFn = jest.fn((_data) => {
       const req = {};
       Promise.resolve().then(() => {
         if (req.onsuccess) req.onsuccess();

@@ -77,13 +77,12 @@ import { getDifficultyAllowanceForTag } from '../../../utils/leitner/Utils.js';
 import { getPatternLadders } from '../../../utils/leitner/patternLadderUtils.js';
 import { scoreProblemsWithRelationships } from '../problem_relationships.js';
 import { regenerateCompletedPatternLadder } from '../../../services/problem/problemladderService.js';
-import { calculateCompositeScore, logCompositeScores } from '../problemsHelpers.js';
+import { calculateCompositeScore } from '../problemsHelpers.js';
 
 import {
   createTestDb,
   closeTestDb,
   seedStore,
-  readAll,
 } from '../../../../../test/testDbHelper.js';
 
 import {

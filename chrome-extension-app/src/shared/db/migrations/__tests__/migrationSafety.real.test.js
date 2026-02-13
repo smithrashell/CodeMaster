@@ -55,7 +55,7 @@ function makeFakeDb(stores = {}) {
   }
 
   return {
-    transaction: jest.fn((storeNames, mode) => {
+    transaction: jest.fn((storeNames, _mode) => {
       const nameArr = Array.isArray(storeNames) ? storeNames : [storeNames];
       return {
         objectStore: jest.fn((storeName) => storeMap[storeName] || storeMap[nameArr[0]]),
