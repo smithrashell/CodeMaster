@@ -437,6 +437,15 @@ export async function calculateTagMastery() {
       tagRelationships[normalizeTag(rel.id)] = rel;
     });
 
+    // Fetch all ladder coverage BEFORE starting the readwrite transaction.
+    // getLadderCoverage opens its own readonly transaction on pattern_ladders;
+    // awaiting it inside an active readwrite transaction causes auto-commit.
+    const ladderCoverageMap = new Map();
+    for (const [tag] of tagStats.entries()) {
+      const normalizedTag = normalizeTag(tag);
+      ladderCoverageMap.set(normalizedTag, await getLadderCoverage(db, normalizedTag));
+    }
+
     // Step 6: Write to tag_mastery
     const updateTransaction = db.transaction(["tag_mastery"], "readwrite");
     const tagMasteryStore = updateTransaction.objectStore("tag_mastery");
@@ -466,8 +475,7 @@ export async function calculateTagMastery() {
       const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
       const minLadderCoverage = 0.70;
 
-      // Get ladder coverage
-      const ladderCoverage = await getLadderCoverage(db, normalizedTag);
+      const ladderCoverage = ladderCoverageMap.get(normalizedTag);
 
       // Mastery gates: volume + uniqueness + accuracy + ladder coverage
       const volumeOK = stats.total_attempts >= minAttemptsRequired;

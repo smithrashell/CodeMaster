@@ -248,8 +248,10 @@ global.self = {
   },
 };
 
-// Polyfill structuredClone for Node.js environment (not available in older versions)
-if (!global.structuredClone) {
+// Jest's JSDOM sandbox does not expose Node's native structuredClone.
+// fake-indexeddb requires it for IDB value serialization.
+// JSON roundtrip is sufficient for our test data (plain objects, no Dates/Maps/Sets).
+if (typeof structuredClone === 'undefined') {
   global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
 }
 
@@ -272,14 +274,10 @@ global.console = {
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
-  // Keep error handling functional for error boundary tests
+  // Emit errors to stderr so they appear in CI output but don't clutter Jest's
+  // default console. This preserves visibility for real bugs while reducing noise.
   error: (...args) => {
-    // Allow error boundary tests to work by not completely mocking console.error
-    if (process.env.NODE_ENV === 'test') {
-      // Only suppress during normal test execution, not error boundary tests
-      return;
-    }
-    originalError.call(console, ...args);
+    process.stderr.write(args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ') + '\n');
   },
 };
 
@@ -328,11 +326,6 @@ Object.defineProperty(global, "crypto", {
 // Clean up after each test
 afterEach(() => {
   jest.clearAllMocks();
-
-  // Reset IndexedDB state
-  if (global.indexedDB && global.indexedDB._databases) {
-    global.indexedDB._databases.clear();
-  }
 });
 
 // Global test utilities

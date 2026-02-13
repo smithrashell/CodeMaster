@@ -6,13 +6,10 @@
  * and all internal helper functions for maximum code coverage.
  *
  * Note on calculateTagMastery():
- *   The function has a known issue where getLadderCoverage() opens a second
- *   transaction inside a loop that already holds an active readwrite transaction
- *   on tag_mastery. In fake-indexeddb this causes the write transaction to
- *   auto-commit, so writeMasteryToDatabase() may silently fail. The function
- *   catches the error gracefully. Despite this, calling it still exercises
- *   fetchProblemsData, extractAllTags, calculateTagStats, tag_relationships
- *   reads, and the error handling path, providing significant code coverage.
+ *   A transaction ordering bug was fixed where getLadderCoverage() opened a
+ *   second transaction inside a loop that already held an active readwrite
+ *   transaction on tag_mastery. Ladder coverage is now pre-fetched before
+ *   the write transaction, matching the pattern in updateTagMasteryRecords().
  */
 
 // Mock logger before all other imports
