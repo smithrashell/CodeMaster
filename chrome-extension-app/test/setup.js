@@ -1,6 +1,13 @@
 import "@testing-library/jest-dom";
 import "fake-indexeddb/auto";
 
+// Allow real dbHelper.openDB() to work with fake-indexeddb in Jest:
+// - IS_BACKGROUND_SCRIPT_CONTEXT bypasses the content-script access block in accessControl.js
+// - _testDatabaseActive bypasses the "test accessing production DB" safety check
+// These flags ONLY affect this Node.js process; they cannot reach Chrome's real IndexedDB.
+globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
+globalThis._testDatabaseActive = true;
+
 // Global logger mock - fixes logger issues across all tests
 // Must be declared before any imports to ensure proper hoisting
 const mockLogger = {
