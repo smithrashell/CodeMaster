@@ -352,31 +352,6 @@ describe("ProblemService - Critical User Retention Paths", () => {
       expect(result.problems.length).toBeGreaterThan(0);
     });
 
-    it.skip("should handle interview session timeout", async () => {
-      // Mock interview service that takes too long
-      InterviewService.createInterviewSession.mockImplementation(
-        () => new Promise((resolve) => {
-          setTimeout(() => resolve({
-            sessionLength: 3,
-            selectionCriteria: {},
-            config: {},
-            interviewMetrics: {}
-          }), 15000); // 15 seconds - longer than timeout
-        })
-      );
-
-      problemsDb.fetchAllProblems.mockResolvedValue([
-        { id: 1, title: "Timeout Problem" }
-      ]);
-
-      const start = Date.now();
-      await expect(ProblemService.createInterviewSession("interview-like"))
-        .rejects.toThrow(/timed out/);
-      const elapsed = Date.now() - start;
-
-      // CRITICAL: Should timeout quickly, not hang user interface
-      expect(elapsed).toBeLessThan(13000); // Within timeout range
-    });
   });
 
   describe("⚡ CRITICAL: Performance under load", () => {
