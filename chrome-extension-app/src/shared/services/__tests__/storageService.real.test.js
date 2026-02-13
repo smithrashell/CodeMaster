@@ -1,6 +1,5 @@
 /**
- * @jest-environment jsdom
- * @jest-environment-options {"url": "chrome-extension://test-extension-id/popup.html"}
+ * @jest-environment node
  */
 
 /**
@@ -11,11 +10,10 @@
  * transactions rather than hand-rolled mocks.
  *
  * The module-level isContentScriptContext() guard checks
- * window.location.protocol at import time.  In jsdom the default
- * protocol is 'http:' which would make the guard return true and
- * short-circuit every method.  The @jest-environment-options docblock
- * above sets the jsdom URL to a chrome-extension:// URL so the guard
- * evaluates to false and all code paths are reachable.
+ * window.location.protocol at import time.  In the node environment,
+ * window is undefined so the guard returns false, allowing all
+ * code paths to execute without the JSDOM opaque-origin localStorage
+ * issue that chrome-extension:// URLs cause in CI.
  */
 
 // ---------------------------------------------------------------------------

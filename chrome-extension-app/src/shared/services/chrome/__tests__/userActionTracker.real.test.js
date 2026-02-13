@@ -1,15 +1,17 @@
 /**
  * @jest-environment jsdom
- * @jest-environment-options {"url": "chrome-extension://test-extension-id/popup.html"}
+ * @jest-environment-options {"url": "http://localhost"}
  */
 
 /**
  * UserActionTracker comprehensive tests.
  *
  * UserActionTracker uses IndexedDB via dbHelper, PerformanceMonitor, and logger.
- * All external dependencies are mocked. The @jest-environment-options docblock
- * sets the jsdom URL to a chrome-extension:// URL so isContentScriptContext()
- * returns false and database operations execute normally.
+ * All external dependencies are mocked. We use http://localhost (not
+ * chrome-extension://) to avoid the JSDOM opaque-origin localStorage
+ * SecurityError in CI. To prevent isContentScriptContext() from returning
+ * true (which would skip DB operations), chrome.runtime.sendMessage is
+ * temporarily removed during tests.
  */
 
 // ---------------------------------------------------------------------------
@@ -77,8 +79,14 @@ import logger from '../../../utils/logging/logger.js';
 // 3. Tests
 // ---------------------------------------------------------------------------
 describe('UserActionTracker', () => {
+  // Remove sendMessage so isContentScriptContext() returns false with http://localhost
+  const savedSendMessage = global.chrome?.runtime?.sendMessage;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    if (global.chrome?.runtime) {
+      delete global.chrome.runtime.sendMessage;
+    }
     // Reset static state
     UserActionTracker.actionQueue = [];
     UserActionTracker.isProcessing = false;
@@ -104,6 +112,13 @@ describe('UserActionTracker', () => {
         return request;
       }),
     });
+  });
+
+  afterEach(() => {
+    // Restore sendMessage for other test suites
+    if (global.chrome?.runtime && savedSendMessage) {
+      global.chrome.runtime.sendMessage = savedSendMessage;
+    }
   });
 
   // =========================================================================
