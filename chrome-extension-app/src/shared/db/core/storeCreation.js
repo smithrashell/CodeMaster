@@ -36,13 +36,13 @@ export function createAttemptsStore(db) {
     ensureIndex(attemptsStore, "by_leetcode_id", "leetcode_id");
     ensureIndex(attemptsStore, "by_time_spent", "time_spent");
     ensureIndex(attemptsStore, "by_success", "success");
-    
+
     console.log("✅ Attempts store created with snake_case schema for database consistency");
-    
+
     // Handle data migration if we have temporary migration data
     if (globalThis._migrationAttempts && globalThis._migrationAttempts.length > 0) {
       console.log(`🔄 Restoring ${globalThis._migrationAttempts.length} attempt records after schema migration`);
-      
+
       // Restore the attempt data to the new store
       globalThis._migrationAttempts.forEach(attempt => {
         try {
@@ -53,13 +53,13 @@ export function createAttemptsStore(db) {
             attempt.id = uuidv4();
             console.log(`🔄 Converted attempt ID from ${originalId} to UUID: ${attempt.id}`);
           }
-          
+
           attemptsStore.add(attempt);
         } catch (error) {
           console.error(`❌ Failed to migrate attempt record:`, attempt, error);
         }
       });
-      
+
       // Clear the temporary migration data
       delete globalThis._migrationAttempts;
       console.log("✅ Attempt records migration completed");
@@ -158,12 +158,12 @@ export function createSessionsStore(db, transaction) {
   if (!sessionsStore.indexNames.contains("by_date")) {
     sessionsStore.createIndex("by_date", "date", { unique: false });
   }
-  
+
   // Add index for interview sessions
   if (!sessionsStore.indexNames.contains("by_session_type")) {
     sessionsStore.createIndex("by_session_type", "session_type", { unique: false });
   }
-  
+
   // Add composite index for efficient sessionType + status queries
   if (!sessionsStore.indexNames.contains("by_session_type_status")) {
     sessionsStore.createIndex("by_session_type_status", ["session_type", "status"], { unique: false });
@@ -280,7 +280,7 @@ export function createSessionAnalyticsStore(db) {
     db.deleteObjectStore("session_analytics");
     console.info("🔄 Deleted old session_analytics store for snake_case migration");
   }
-  
+
   let sessionAnalyticsStore = db.createObjectStore("session_analytics", {
     keyPath: "session_id",
   });
@@ -393,3 +393,150 @@ export function createErrorReportsStore(db) {
     console.info("✅ Error reports store created for error tracking!");
   }
 }
+
+/**
+ * Declarative schema for all 17 CodeMaster stores.
+ * Single source of truth used by both production DB upgrades and test helpers.
+ * Each entry: { name, options: { keyPath, autoIncrement? }, indexes: [[name, keyPath, opts?]] }
+ */
+export const STORES = [
+  {
+    name: 'attempts',
+    options: { keyPath: 'id' },
+    indexes: [
+      ['by_attempt_date', 'attempt_date'],
+      ['by_problem_and_date', ['problem_id', 'attempt_date']],
+      ['by_problem_id', 'problem_id'],
+      ['by_session_id', 'session_id'],
+      ['by_leetcode_id', 'leetcode_id'],
+      ['by_time_spent', 'time_spent'],
+      ['by_success', 'success'],
+    ],
+  },
+  {
+    name: 'problems',
+    options: { keyPath: 'problem_id' },
+    indexes: [
+      ['by_tags', 'tags', { multiEntry: true }],
+      ['by_title', 'title'],
+      ['by_box_level', 'box_level'],
+      ['by_review_schedule', 'review_schedule'],
+      ['by_session_id', 'session_id'],
+      ['by_leetcode_id', 'leetcode_id'],
+      ['by_cooldown_status', 'cooldown_status'],
+    ],
+  },
+  {
+    name: 'sessions',
+    options: { keyPath: 'id', autoIncrement: false },
+    indexes: [
+      ['by_date', 'date'],
+      ['by_session_type', 'session_type'],
+      ['by_session_type_status', ['session_type', 'status']],
+      ['by_last_activity_time', 'last_activity_time'],
+    ],
+  },
+  {
+    name: 'settings',
+    options: { keyPath: 'id' },
+    indexes: [],
+  },
+  {
+    name: 'tag_mastery',
+    options: { keyPath: 'tag' },
+    indexes: [['by_tag', 'tag']],
+  },
+  {
+    name: 'standard_problems',
+    options: { keyPath: 'id' },
+    indexes: [['by_slug', 'slug']],
+  },
+  {
+    name: 'strategy_data',
+    options: { keyPath: 'tag' },
+    indexes: [
+      ['by_tag', 'tag'],
+      ['by_patterns', 'patterns', { multiEntry: true }],
+      ['by_related', 'related', { multiEntry: true }],
+    ],
+  },
+  {
+    name: 'tag_relationships',
+    options: { keyPath: 'id' },
+    indexes: [['by_classification', 'classification']],
+  },
+  {
+    name: 'problem_relationships',
+    options: { keyPath: 'id', autoIncrement: true },
+    indexes: [
+      ['by_problem_id1', 'problem_id1'],
+      ['by_problem_id2', 'problem_id2'],
+    ],
+  },
+  {
+    name: 'pattern_ladders',
+    options: { keyPath: 'tag' },
+    indexes: [['by_tag', 'tag']],
+  },
+  {
+    name: 'session_analytics',
+    options: { keyPath: 'session_id' },
+    indexes: [
+      ['by_date', 'completed_at'],
+      ['by_accuracy', 'accuracy'],
+      ['by_difficulty', 'predominant_difficulty'],
+    ],
+  },
+  {
+    name: 'hint_interactions',
+    options: { keyPath: 'id', autoIncrement: true },
+    indexes: [
+      ['by_problem_id', 'problem_id'],
+      ['by_session_id', 'session_id'],
+      ['by_timestamp', 'timestamp'],
+      ['by_hint_type', 'hint_type'],
+      ['by_user_action', 'user_action'],
+      ['by_difficulty', 'problem_difficulty'],
+      ['by_box_level', 'box_level'],
+      ['by_problem_and_action', ['problem_id', 'user_action']],
+      ['by_hint_type_and_difficulty', ['hint_type', 'problem_difficulty']],
+    ],
+  },
+  {
+    name: 'user_actions',
+    options: { keyPath: 'id', autoIncrement: true },
+    indexes: [
+      ['by_timestamp', 'timestamp'],
+      ['by_category', 'category'],
+      ['by_action', 'action'],
+      ['by_session', 'session_id'],
+      ['by_user_agent', 'user_agent'],
+      ['by_url', 'url'],
+    ],
+  },
+  {
+    name: 'error_reports',
+    options: { keyPath: 'id', autoIncrement: true },
+    indexes: [
+      ['by_timestamp', 'timestamp'],
+      ['by_section', 'section'],
+      ['by_error_type', 'error_type'],
+      ['by_user_agent', 'user_agent'],
+    ],
+  },
+  {
+    name: 'limits',
+    options: { keyPath: 'id', autoIncrement: true },
+    indexes: [['by_create_at', 'create_at']],
+  },
+  {
+    name: 'session_state',
+    options: { keyPath: 'id' },
+    indexes: [],
+  },
+  {
+    name: 'backup_storage',
+    options: { keyPath: 'backupId' },
+    indexes: [['by_backupId', 'backupId']],
+  },
+];

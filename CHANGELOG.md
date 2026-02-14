@@ -81,6 +81,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated CLAUDE.md with theming guidelines
 
 ### Tests
+- **Systematic Test Coverage Expansion: 13% to 55%** (#252)
+  - Added 72 new `.real.test.js` files with 3,200+ tests across all layers
+  - Created shared `testDbHelper.js` using real fake-indexeddb with full 17-store schema
+  - Added `globalThis` flags in `test/setup.js` to enable real DB code paths in Jest
+  - DB stores: problems, sessions, attempts, tag_mastery, standard_problems, hint_interactions, session_analytics, tag_relationships, strategy_data, problem_relationships, and more
+  - Services: session, problem, monitoring, focus, hints, chrome, schedule, attempts, storage
+  - Utilities: schema validation, data adapters, escape hatches, pattern ladders, time migration, storage cleanup
+  - Background handlers: session, problem, dashboard, storage, strategy
+  - Content services: strategy service and helpers
+  - App services: focus area analytics, SVG rendering, force-directed layout
+  - Removed 5 redundant skipped test suites and 10 dead skipped tests superseded by real coverage
+  - Removed 16 trivial tests (constant checks, cache tests) and strengthened 7 weak assertions
+  - Final: 135 suites, 3,719 tests, 0 skipped, 55% line coverage
 - Added Guard Rail 4 unit tests for poor performance protection trigger conditions
 - Added escape hatch promotion type tracking tests (standard_volume_gate vs stagnation_escape_hatch)
 - Added backward compatibility tests for Guard Rails 1-3

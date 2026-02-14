@@ -71,15 +71,15 @@ module.exports = {
     '!src/**/constants.js'
   ],
   
-  // Coverage thresholds - disabled to unblock CI
-  // coverageThreshold: {
-  //   global: {
-  //     branches: 70,
-  //     functions: 70,
-  //     lines: 70,
-  //     statements: 70
-  //   }
-  // },
+  // Coverage thresholds - protects the 55% coverage gains from regression
+  coverageThreshold: {
+    global: {
+      branches: 40,
+      functions: 40,
+      lines: 50,
+      statements: 50
+    }
+  },
   
   // Coverage reporters
   coverageReporters: [

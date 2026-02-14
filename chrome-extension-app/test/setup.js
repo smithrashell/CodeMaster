@@ -1,6 +1,13 @@
 import "@testing-library/jest-dom";
 import "fake-indexeddb/auto";
 
+// Allow real dbHelper.openDB() to work with fake-indexeddb in Jest:
+// - IS_BACKGROUND_SCRIPT_CONTEXT bypasses the content-script access block in accessControl.js
+// - _testDatabaseActive bypasses the "test accessing production DB" safety check
+// These flags ONLY affect this Node.js process; they cannot reach Chrome's real IndexedDB.
+globalThis.IS_BACKGROUND_SCRIPT_CONTEXT = true;
+globalThis._testDatabaseActive = true;
+
 // Global logger mock - fixes logger issues across all tests
 // Must be declared before any imports to ensure proper hoisting
 const mockLogger = {
@@ -241,8 +248,10 @@ global.self = {
   },
 };
 
-// Polyfill structuredClone for Node.js environment (not available in older versions)
-if (!global.structuredClone) {
+// Jest's JSDOM sandbox does not expose Node's native structuredClone.
+// fake-indexeddb requires it for IDB value serialization.
+// JSON roundtrip is sufficient for our test data (plain objects, no Dates/Maps/Sets).
+if (typeof structuredClone === 'undefined') {
   global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
 }
 
@@ -265,14 +274,10 @@ global.console = {
   debug: jest.fn(),
   info: jest.fn(),
   warn: jest.fn(),
-  // Keep error handling functional for error boundary tests
+  // Emit errors to stderr so they appear in CI output but don't clutter Jest's
+  // default console. This preserves visibility for real bugs while reducing noise.
   error: (...args) => {
-    // Allow error boundary tests to work by not completely mocking console.error
-    if (process.env.NODE_ENV === 'test') {
-      // Only suppress during normal test execution, not error boundary tests
-      return;
-    }
-    originalError.call(console, ...args);
+    process.stderr.write(args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ') + '\n');
   },
 };
 
@@ -294,8 +299,8 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }));
 
-// Mock matchMedia
-Object.defineProperty(window, "matchMedia", {
+// Mock matchMedia (only in jsdom environments where window exists)
+if (typeof window !== "undefined") Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: jest.fn().mockImplementation((query) => ({
     matches: false,
@@ -321,11 +326,6 @@ Object.defineProperty(global, "crypto", {
 // Clean up after each test
 afterEach(() => {
   jest.clearAllMocks();
-
-  // Reset IndexedDB state
-  if (global.indexedDB && global.indexedDB._databases) {
-    global.indexedDB._databases.clear();
-  }
 });
 
 // Global test utilities

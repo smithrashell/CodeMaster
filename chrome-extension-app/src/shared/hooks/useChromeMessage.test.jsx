@@ -75,28 +75,6 @@ const expectInitialState = () => {
   expect(screen.getByTestId("data")).toHaveTextContent("No data");
 };
 
-const expectLoadingThenComplete = async () => {
-  expect(screen.getByTestId("loading")).toHaveTextContent("Loading...");
-  await waitFor(() => {
-    expect(screen.getByTestId("loading")).toHaveTextContent("Not loading");
-  });
-};
-
-const expectErrorState = (errorMessage) => {
-  expect(screen.getByTestId("error")).toHaveTextContent(`Error: ${errorMessage}`);
-  expect(screen.getByTestId("data")).toHaveTextContent("No data");
-};
-
-const renderWithMockSuccess = (mockHandler, request, options, response) => {
-  mockHandler.sendMessageWithRetry.mockResolvedValue(response);
-  render(<TestComponent request={request} options={options} />);
-};
-
-const renderWithMockError = (mockHandler, request, options, error) => {
-  mockHandler.sendMessageWithRetry.mockRejectedValue(new Error(error));
-  render(<TestComponent request={request} options={options} />);
-};
-
 describe("useChromeMessage Hook", function() {
   let mockChromeAPIErrorHandler;
 
@@ -131,42 +109,6 @@ describe("useChromeMessage Hook", function() {
     expect(mockChromeAPIErrorHandler.sendMessageWithRetry).toHaveBeenCalledWith(
       { type: "getSettings" }, expect.any(Object)
     );
-  });
-
-  test.skip("should handle successful response", async () => {
-    const mockResponse = { theme: "dark", sessionLength: 8 };
-    renderWithMockSuccess(mockChromeAPIErrorHandler, { type: "getSettings" }, {}, mockResponse);
-    await expectLoadingThenComplete();
-    expect(screen.getByTestId("data")).toHaveTextContent(JSON.stringify(mockResponse));
-    expect(screen.getByTestId("error")).toHaveTextContent("No error");
-  });
-
-  test.skip("should handle Chrome runtime error", async () => {
-    const errorMessage = "Extension context invalidated";
-    renderWithMockError(mockChromeAPIErrorHandler, { type: "getSettings" }, {}, errorMessage);
-    await expectLoadingThenComplete();
-    expectErrorState(errorMessage);
-  });
-
-  test.skip("should handle response error", async () => {
-    const errorMessage = "Settings not found";
-    renderWithMockError(mockChromeAPIErrorHandler, { type: "getSettings" }, {}, errorMessage);
-    await expectLoadingThenComplete();
-    expectErrorState(errorMessage);
-  });
-
-  test.skip("should call onSuccess callback on successful response", async () => {
-    const mockResponse = { theme: "light" };
-    const onSuccess = jest.fn();
-    renderWithMockSuccess(mockChromeAPIErrorHandler, { type: "getSettings" }, { onSuccess }, mockResponse);
-    await waitFor(() => expect(onSuccess).toHaveBeenCalledWith(mockResponse));
-  });
-
-  test.skip("should call onError callback on error", async () => {
-    const onError = jest.fn();
-    const errorMessage = "Test error";
-    renderWithMockError(mockChromeAPIErrorHandler, { type: "getSettings" }, { onError }, errorMessage);
-    await waitFor(() => expect(onError).toHaveBeenCalledWith(errorMessage));
   });
 
   test("should handle retry functionality", async () => {

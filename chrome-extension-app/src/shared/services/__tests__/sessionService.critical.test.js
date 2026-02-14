@@ -99,39 +99,6 @@ describe("SessionService - Critical User Retention Paths", () => {
       expect(ProblemService.createSession).toHaveBeenCalled();
     });
 
-    it.skip("should never return null when user needs to practice", async () => {
-      // Mock scenario: Direct successful response to avoid retry complexity
-      getLatestSessionByType.mockResolvedValue(null);
-      ProblemService.createSession.mockResolvedValue([{ id: 1, title: "Fallback Problem" }]);
-      saveNewSessionToDB.mockResolvedValue();
-      saveSessionToStorage.mockResolvedValue();
-
-      // Should return session without issues
-      const session = await SessionService.getOrCreateSession();
-
-      // CRITICAL: Even with errors, user gets a session
-      expect(session).toBeDefined();
-      expect(session.problems).toHaveLength(1);
-    });
-
-    it.skip("should handle database corruption gracefully", async () => {
-      // Mock scenario: Database returns corrupt session data, then creates new session
-      getLatestSessionByType.mockResolvedValue(null); // No existing session
-      
-      // Should create new session when no valid session exists
-      ProblemService.createSession.mockResolvedValue([
-        { id: 1, title: "Recovery Problem" }
-      ]);
-      saveNewSessionToDB.mockResolvedValue();
-      saveSessionToStorage.mockResolvedValue();
-
-      const session = await SessionService.getOrCreateSession();
-
-      // CRITICAL: User gets valid session despite corruption
-      expect(session).toBeDefined();
-      expect(Array.isArray(session.problems)).toBe(true);
-      expect(session.problems.length).toBeGreaterThan(0);
-    });
   });
 
   describe("🎯 CRITICAL: User progress is never lost", () => {
@@ -298,21 +265,6 @@ describe("SessionService - Critical User Retention Paths", () => {
       expect(session.problems.length).toBeGreaterThan(0);
     });
 
-    it.skip("should handle problem loading timeout gracefully", async () => {
-      // Mock scenario: Problem loading times out
-      getLatestSessionByType.mockResolvedValue(null);
-      ProblemService.createSession.mockImplementation(() => {
-        return new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("Database timeout")), 100);
-        });
-      });
-
-      // Should have timeout protection and fallback
-      const promise = SessionService.getOrCreateSession();
-      
-      // This should either resolve with fallback or reject gracefully
-      await expect(promise).rejects.toThrow();
-    }, 15000); // Increase timeout to 15 seconds
   });
 
   describe("🔄 CRITICAL: Session type compatibility", () => {
@@ -345,25 +297,6 @@ describe("SessionService - Critical User Retention Paths", () => {
   });
 
   describe("💾 CRITICAL: Data persistence reliability", () => {
-    it.skip("should handle Chrome storage failures gracefully", async () => {
-      const session = {
-        id: "storage-fail-test",
-        problems: [{ id: 1 }],
-        attempts: [{ problemId: 1 }],
-        status: 'in_progress'
-      };
-
-      getSessionById.mockResolvedValue(session);
-      updateSessionInDB.mockResolvedValue();
-      StorageService.getSessionState.mockRejectedValue(new Error("Chrome storage error"));
-      StorageService.setSessionState.mockResolvedValue();
-
-      const _result = await SessionService.checkAndCompleteSession("storage-fail-test");
-
-      // CRITICAL: Session still completes despite storage errors
-      // Check that the method was called at least once - the exact status may depend on session completeness logic
-      expect(updateSessionInDB).toHaveBeenCalled();
-    });
   });
 
   describe("🎲 CRITICAL: Consistency and habit analysis", () => {
