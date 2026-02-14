@@ -187,7 +187,7 @@ function createCoreDataStores(db, transaction) {
   createAttemptsStore(db);
   createLimitsStore(db);
   createSessionStateStore(db);
-  createProblemRelationshipsStore(db);
+  createProblemRelationshipsStore(db, transaction);
   createProblemsStore(db);
   createSessionsStore(db, transaction);
   createStandardProblemsStore(db);

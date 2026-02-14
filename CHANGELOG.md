@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Session History Sorting** (#248) - Sessions now sorted by date before slicing, ensuring most recent sessions display correctly in history and charts
+- **Hints Used Card Shows 0** (#247) - Mapped nested `getSystemAnalytics()` response to flat shape expected by StatsMetrics component (`.overview.totalInteractions` -> `.total`, `.overview.byHintType.*` -> `.contextual/.general/.primer`)
+- **Goals Review Count Shows 0** - Review problem count now cross-references attempts with problems store `box_level` instead of checking non-existent `attempt.box_level`
+- **Fractional Box Levels (0.5)** - Changed Leitner demotion from 0.5/1 to 1/2 whole-number steps; added `Math.round()` guard in `calculateCoreStatistics` for existing fractional data
+- **Skip Problem IDB Index Error** (#255) - Added defensive try/catch fallback in `getRelationshipsForProblem()` for older DB schemas missing indexes; fixed `createProblemRelationshipsStore` to add missing indexes on existing stores
+- **Empty Session After Skip** - Added null guard for session in skip handler, preventing skip on non-existent session; added post-skip verification that session still has problems
+- **Session Length Not Updating** - Changed `applySessionLengthPreference` from `Math.min` (cap) to `Math.max` (floor) so user's explicit session length setting is respected as minimum
+- **New vs Review Count Inaccurate** - Fallback problem reconstruction in `dashboardSessionAnalyticsHelpers.js` now infers `selectionReason` from `box_level` (`> 1` = review, else new)
+
 ### Added
+- **Learning Path Legend - Connection Lines** - Added "Connection Strength" section to legend with 4 color-coded entries (Very Strong/Strong/Medium/Weak) using inline SVG line elements with solid/dashed styles
+- **Node Position Persistence** - Learning path node positions now persist across page reloads via Chrome storage; saved on drag end, loaded on mount with layout merge for new tags
+
 - **Enhanced Skip Functionality with Prerequisite Finding**
   - New skip reason selection UI when skipping a problem (Too difficult, Don't understand, Not relevant, Other)
   - "Don't understand" skips now find and replace with easier prerequisite problems

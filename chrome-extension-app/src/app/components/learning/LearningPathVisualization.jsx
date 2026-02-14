@@ -47,6 +47,7 @@ export function LearningPathVisualization({ pathData, tagRelationships, onNodeCl
     draggedNode,
     isPanning,
     lastPanPoint,
+    nodePositions,
     setDragStartPos,
     setIsDragging,
     setDraggedNode,

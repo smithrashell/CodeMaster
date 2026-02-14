@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { calculateForceDirectedLayout } from './forceDirectedLayout.js';
+import ChromeAPIErrorHandler from '../../../shared/services/chrome/chromeAPIErrorHandler.js';
 
 /**
  * Custom hooks for managing theme detection and node positioning effects
  */
 
 /**
- * Initialize node positions using force-directed layout based on dynamic tag relationships
+ * Initialize node positions - load saved positions first, run layout only for new tags
  */
 export function useNodePositionInitialization(setNodePositions, pathData, dynamicTagRelationships) {
   useEffect(() => {
@@ -19,8 +20,37 @@ export function useNodePositionInitialization(setNodePositions, pathData, dynami
       relationshipCount: Object.keys(dynamicTagRelationships || {}).length
     });
 
-    const positions = calculateForceDirectedLayout(pathData, dynamicTagRelationships);
-    setNodePositions(positions);
+    // Try loading saved positions, then merge with layout for any new tags
+    (async () => {
+      let savedPositions = null;
+      try {
+        const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'getStorage',
+          key: 'learning_path_node_positions'
+        });
+        if (response && typeof response === 'object' && !response.error) {
+          savedPositions = response;
+        }
+      } catch {
+        // No saved positions - will use full layout
+      }
+
+      const layoutPositions = calculateForceDirectedLayout(pathData, dynamicTagRelationships);
+
+      if (savedPositions) {
+        // Use saved positions for known tags, layout positions for new tags
+        const merged = { ...layoutPositions };
+        const allTags = Object.keys(layoutPositions);
+        for (const tag of allTags) {
+          if (savedPositions[tag]) {
+            merged[tag] = savedPositions[tag];
+          }
+        }
+        setNodePositions(merged);
+      } else {
+        setNodePositions(layoutPositions);
+      }
+    })();
   }, [setNodePositions, pathData, dynamicTagRelationships]);
 }
 

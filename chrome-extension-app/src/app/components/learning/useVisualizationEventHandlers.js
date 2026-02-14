@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useZoomHandlers } from './useZoomHandlers.js';
+import ChromeAPIErrorHandler from '../../../shared/services/chrome/chromeAPIErrorHandler.js';
 
 /**
  * Custom hook for handling all mouse and zoom event interactions
@@ -12,6 +13,7 @@ export function useVisualizationEventHandlers({
   draggedNode,
   isPanning,
   lastPanPoint,
+  nodePositions,
   setDragStartPos,
   setIsDragging,
   setDraggedNode,
@@ -22,6 +24,9 @@ export function useVisualizationEventHandlers({
   setZoom,
   setIsNodesLocked
 }) {
+  // Track latest positions for saving on drag end
+  const positionsRef = useRef(nodePositions);
+  positionsRef.current = nodePositions;
   // Extract zoom handlers to separate hook
   const { handleWheel, handleZoomIn, handleZoomOut, handleZoomReset } = useZoomHandlers({
     zoom,
@@ -92,6 +97,18 @@ export function useVisualizationEventHandlers({
   }, [draggedNode, isPanning, lastPanPoint, zoom, dragStartPos, setIsDragging, setNodePositions, setLastPanPoint, setViewBox]);
 
   const handleMouseUp = useCallback(() => {
+    // Save node positions to chrome storage if a node was dragged
+    if (draggedNode && positionsRef.current) {
+      try {
+        ChromeAPIErrorHandler.sendMessageWithRetry({
+          type: 'setStorage',
+          key: 'learning_path_node_positions',
+          value: positionsRef.current
+        });
+      } catch {
+        // Non-critical - positions will just be re-calculated next time
+      }
+    }
     setIsPanning(false);
     setDraggedNode(null);
     setDragStartPos(null);
@@ -99,7 +116,7 @@ export function useVisualizationEventHandlers({
     setTimeout(() => {
       setIsDragging(false);
     }, 50);
-  }, [setIsPanning, setDraggedNode, setDragStartPos, setIsDragging]);
+  }, [draggedNode, setIsPanning, setDraggedNode, setDragStartPos, setIsDragging]);
 
 
   // Toggle node lock/unlock

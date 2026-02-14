@@ -932,8 +932,30 @@ export async function getRelationshipsForProblem(problemId) {
     const tx = db.transaction("problem_relationships", "readonly");
     const store = tx.objectStore("problem_relationships");
 
+    // Try indexed query first, fall back to getAll + filter for older DBs
+    let index1;
+    try {
+      index1 = store.index("by_problem_id1");
+    } catch {
+      // Index missing (older DB schema) — fall back to full scan
+      const allRequest = store.getAll();
+      allRequest.onsuccess = () => {
+        const all = allRequest.result || [];
+        const numId = Number(problemId);
+        all.forEach(r => {
+          if (Number(r.problem_id1) === numId) {
+            relationships[Number(r.problem_id2)] = r.strength;
+          } else if (Number(r.problem_id2) === numId && !(Number(r.problem_id1) in relationships)) {
+            relationships[Number(r.problem_id1)] = r.strength;
+          }
+        });
+        resolve(relationships);
+      };
+      allRequest.onerror = () => reject(allRequest.error);
+      return;
+    }
+
     // Query using problem_id1 index
-    const index1 = store.index("by_problem_id1");
     const request1 = index1.getAll(Number(problemId));
 
     request1.onsuccess = () => {
@@ -943,7 +965,14 @@ export async function getRelationshipsForProblem(problemId) {
       });
 
       // Also query problem_id2 index (bidirectional relationships)
-      const index2 = store.index("by_problem_id2");
+      let index2;
+      try {
+        index2 = store.index("by_problem_id2");
+      } catch {
+        // Index missing — resolve with what we have
+        resolve(relationships);
+        return;
+      }
       const request2 = index2.getAll(Number(problemId));
 
       request2.onsuccess = () => {

@@ -41,18 +41,21 @@ export function generateSessionAnalytics(sessions, attempts) {
       completed,
       status: session.status || (completed ? "completed" : "in_progress"),
       // Preserve problems array, or use session.attempts if problems is empty
+      // When reconstructing from attempts, infer selectionReason from box_level
       problems: (session.problems && session.problems.length > 0)
         ? session.problems
         : (session.attempts && session.attempts.length > 0)
           ? session.attempts.map(attempt => ({
               id: attempt.problem_id || attempt.leetcode_id,
               difficulty: "Medium",
-              solved: attempt.success !== undefined ? attempt.success : attempt.Success
+              solved: attempt.success !== undefined ? attempt.success : attempt.Success,
+              selectionReason: { type: (attempt.box_level || 0) > 1 ? "review_problem" : "new_problem" }
             }))
           : sessionAttempts.map(attempt => ({
               id: attempt.problem_id || attempt.ProblemID,
               difficulty: "Medium",
-              solved: attempt.success !== undefined ? attempt.success : attempt.Success
+              solved: attempt.success !== undefined ? attempt.success : attempt.Success,
+              selectionReason: { type: (attempt.box_level || 0) > 1 ? "review_problem" : "new_problem" }
             })),
       // Also preserve the attempts array for filtering
       attempts: session.attempts || sessionAttempts
@@ -91,7 +94,7 @@ export function generateSessionAnalytics(sessions, attempts) {
 
   return {
     allSessions: enhancedSessions,
-    recentSessions: enhancedSessions.slice(-10),
+    recentSessions: [...enhancedSessions].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-10),
     sessionAnalytics,
     productivityMetrics
   };

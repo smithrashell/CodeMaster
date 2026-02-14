@@ -87,9 +87,9 @@ export function applyBoxLevelAdjustments(problem, attemptData, timePerformanceSc
     if (problem.consecutive_failures >= FAILURE_THRESHOLD) {
       problem.cooldown_status = true;
 
-      // Graduated demotion based on effort
+      // Graduated demotion based on effort (whole-number steps only)
       const showedEffort = timePerformanceScore >= 0.8 || attemptData?.UserIntent === "solving";
-      const demotionAmount = showedEffort ? 0.5 : 1;
+      const demotionAmount = showedEffort ? 1 : 2;
       problem.box_level = Math.max(problem.box_level - demotionAmount, 1);
     }
   }

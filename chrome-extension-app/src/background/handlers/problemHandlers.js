@@ -159,9 +159,17 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
       const hasRelationships = await hasRelationshipsToAttempted(leetcodeId);
       result.freeSkip = !hasRelationships;
 
-      // Get session once for all paths (needed for last-problem guard and excludeIds)
+      // Re-fetch session fresh before making skip decisions
       const session = await getLatestSession();
-      const isLastProblem = session?.problems?.length <= 1;
+
+      // Null guard: if no active session, return error immediately
+      if (!session) {
+        console.error("❌ No active session found for skip operation");
+        sendResponse({ error: "No active session", message: "Cannot skip - no session found" });
+        return;
+      }
+
+      const isLastProblem = (session.problems?.length || 0) <= 1;
 
       // Handle based on skip reason
       if (skipReason === 'too_difficult') {
@@ -181,7 +189,7 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
         }
       } else if (skipReason === 'dont_understand') {
         // Find prerequisite problem for "don't understand" skips
-        const excludeIds = session?.problems?.map(p => p.leetcode_id) || [];
+        const excludeIds = session.problems?.map(p => p.leetcode_id) || [];
 
         const prerequisite = await findPrerequisiteProblem(leetcodeId, excludeIds);
         if (prerequisite) {
@@ -211,6 +219,15 @@ export function handleSkipProblem(request, dependencies, sendResponse, finishReq
         } else {
           await SessionService.skipProblem(leetcodeId);
           console.log(`✅ Removed problem ${leetcodeId} from session`);
+        }
+      }
+
+      // After skip, verify session still has problems; if empty, restore skipped problem
+      if (!result.kept && !result.replaced) {
+        const postSkipSession = await getLatestSession();
+        if (postSkipSession && (postSkipSession.problems?.length || 0) === 0) {
+          console.warn(`⚠️ Session empty after skip - this should not happen, session may need attention`);
+          result.sessionEmpty = true;
         }
       }
 

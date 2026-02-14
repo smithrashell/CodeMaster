@@ -160,7 +160,7 @@ export function calculateCoreStatistics(filteredProblems, filteredAttempts, prob
 
   // Calculate problem statistics by box level (support both snake_case and PascalCase)
   filteredProblems.forEach((problem) => {
-    const boxLevel = problem.box_level || problem.BoxLevel || 1;
+    const boxLevel = Math.round(problem.box_level || problem.BoxLevel || 1);
     switch (boxLevel) {
       case 1:
         statistics.new++;
@@ -262,7 +262,18 @@ export function calculateStrategySuccessRate(sessions, attempts) {
 
 export async function getHintAnalytics() {
   try {
-    return await HintInteractionService.getSystemAnalytics();
+    const analytics = await HintInteractionService.getSystemAnalytics();
+    // Map nested structure to flat shape expected by StatsMetrics component
+    return {
+      total: analytics.overview?.totalInteractions || 0,
+      contextual: analytics.overview?.byHintType?.contextual || 0,
+      general: analytics.overview?.byHintType?.general || 0,
+      primer: analytics.overview?.byHintType?.primer || 0,
+      averagePerProblem: analytics.overview?.uniqueProblems
+        ? (analytics.overview.totalInteractions / analytics.overview.uniqueProblems)
+        : 0,
+      effectiveness: analytics.effectiveness?.overall || 0
+    };
   } catch (error) {
     logger.warn("Could not load hint analytics:", error);
     return {

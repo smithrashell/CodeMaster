@@ -255,18 +255,19 @@ export function normalizeSessionLengthForCalculation(userSetting, defaultBase = 
 }
 
 /**
- * Apply user session length preference as a hard maximum
+ * Apply user session length preference as a minimum floor
+ * When user explicitly sets a session length, respect it as the minimum
  */
 export function applySessionLengthPreference(adaptiveLength, userPreferredLength) {
   if (!userPreferredLength || userPreferredLength === 'auto' || userPreferredLength <= 0) {
     return adaptiveLength;
   }
 
-  const cappedLength = Math.min(adaptiveLength, userPreferredLength);
+  const adjustedLength = Math.max(adaptiveLength, userPreferredLength);
 
-  if (cappedLength !== adaptiveLength) {
-    logger.info(`Session length capped: Adaptive ${adaptiveLength} → User max ${userPreferredLength} = ${cappedLength}`);
+  if (adjustedLength !== adaptiveLength) {
+    logger.info(`Session length raised: Adaptive ${adaptiveLength} → User preference ${userPreferredLength} = ${adjustedLength}`);
   }
 
-  return cappedLength;
+  return adjustedLength;
 }

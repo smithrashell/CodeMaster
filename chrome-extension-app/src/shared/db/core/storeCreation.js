@@ -96,7 +96,7 @@ export function createSessionStateStore(db) {
  * Creates the problem_relationships store with indexes
  * @param {IDBDatabase} db - Database instance
  */
-export function createProblemRelationshipsStore(db) {
+export function createProblemRelationshipsStore(db, transaction) {
   // Create the store if it doesn't exist
   if (!db.objectStoreNames.contains("problem_relationships")) {
     console.log("🔧 Creating new problem_relationships store with indexes");
@@ -112,7 +112,11 @@ export function createProblemRelationshipsStore(db) {
 
     console.log("✅ problem_relationships store created with indexes:", Array.from(relationshipsStore.indexNames));
   } else {
-    console.log("📋 problem_relationships store already exists, keeping existing data");
+    // Ensure required indexes exist on existing store (handles older DB schemas)
+    const relationshipsStore = transaction.objectStore("problem_relationships");
+    ensureIndex(relationshipsStore, "by_problem_id1", "problem_id1");
+    ensureIndex(relationshipsStore, "by_problem_id2", "problem_id2");
+    console.log("📋 problem_relationships store indexes verified");
   }
 }
 

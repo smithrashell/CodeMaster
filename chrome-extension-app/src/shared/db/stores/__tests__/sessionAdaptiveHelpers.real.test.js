@@ -114,12 +114,12 @@ describe('applySessionLengthPreference', () => {
     expect(applySessionLengthPreference(6, 0)).toBe(6);
   });
 
-  it('caps adaptiveLength to userPreferredLength when adaptive exceeds preference', () => {
-    expect(applySessionLengthPreference(8, 5)).toBe(5);
+  it('raises adaptiveLength to userPreferredLength when adaptive is below preference', () => {
+    expect(applySessionLengthPreference(3, 5)).toBe(5);
   });
 
-  it('returns adaptiveLength when it is within userPreferredLength', () => {
-    expect(applySessionLengthPreference(4, 10)).toBe(4);
+  it('returns adaptiveLength when it already meets or exceeds userPreferredLength', () => {
+    expect(applySessionLengthPreference(10, 4)).toBe(10);
   });
 });
 
