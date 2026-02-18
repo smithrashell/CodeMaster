@@ -85,6 +85,10 @@ export function createAttemptRecord(attemptData) {
     baseRecord.difficulty = Number(attemptData.difficulty || attemptData.Difficulty);
   }
 
+  if (attemptData.user_intent !== undefined) {
+    baseRecord.user_intent = attemptData.user_intent;
+  }
+
   // Add interview signals if present
   if (attemptData.interviewSignals) {
     baseRecord.interviewSignals = {

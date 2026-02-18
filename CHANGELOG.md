@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Store user_intent on Attempt Records** - Timer UI's user intent ("solving", "stuck", "completed") now flows through to IndexedDB attempt records when the "Still Working?" prompt was shown; omitted when time limits are off or user solved within the limit
+- **Stability Penalty for "Stuck" Failures** - Failed attempts where user reported being stuck receive a 0.85x stability multiplier, scheduling more frequent reviews for weak knowledge
+- **Review Interval Cap for "Stuck" Failures** - Failed + stuck attempts are capped at a 7-day review interval regardless of box level, ensuring timely re-practice
+
 ### Fixed
 - **Session History Sorting** (#248) - Sessions now sorted by date before slicing, ensuring most recent sessions display correctly in history and charts
 - **Hints Used Card Shows 0** (#247) - Mapped nested `getSystemAnalytics()` response to flat shape expected by StatsMetrics component (`.overview.totalInteractions` -> `.total`, `.overview.byHintType.*` -> `.contextual/.general/.primer`)

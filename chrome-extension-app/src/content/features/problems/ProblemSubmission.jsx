@@ -160,7 +160,7 @@ const handleFormSubmission = async (data, routeState, navigate, setSubmitting) =
       // Enhanced time tracking from timer (if available)
       exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
       overageTime: routeState?.overageTime || 0,
-      userIntent: routeState?.userIntent || "completed",
+      ...(routeState?.exceededRecommendedTime ? { userIntent: routeState.userIntent } : {}),
       timeWarningLevel: routeState?.timeWarningLevel || 0,
     };
 

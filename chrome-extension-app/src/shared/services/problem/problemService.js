@@ -188,6 +188,7 @@ export const ProblemService = {
           time_spent: contentScriptData.timeSpent,
           perceived_difficulty: contentScriptData.difficulty,
           comments: contentScriptData.comments,
+          user_intent: contentScriptData.userIntent,
         },
         problem
       );
