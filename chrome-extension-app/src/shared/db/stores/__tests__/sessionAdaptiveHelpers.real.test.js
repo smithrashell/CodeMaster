@@ -114,12 +114,22 @@ describe('applySessionLengthPreference', () => {
     expect(applySessionLengthPreference(6, 0)).toBe(6);
   });
 
-  it('raises adaptiveLength to userPreferredLength when adaptive is below preference', () => {
-    expect(applySessionLengthPreference(3, 5)).toBe(5);
+  it('returns adaptiveLength when it is below userPreferredLength cap', () => {
+    expect(applySessionLengthPreference(3, 5)).toBe(3);
   });
 
-  it('returns adaptiveLength when it already meets or exceeds userPreferredLength', () => {
-    expect(applySessionLengthPreference(10, 4)).toBe(10);
+  it('caps adaptiveLength to userPreferredLength when adaptive exceeds preference', () => {
+    expect(applySessionLengthPreference(10, 4)).toBe(4);
+  });
+
+  it('never exceeds user max session length regardless of adaptive calculation', () => {
+    const userMax = 5;
+    // Adaptive algorithm might calculate various lengths based on performance
+    expect(applySessionLengthPreference(5, userMax)).toBe(5);
+    expect(applySessionLengthPreference(7, userMax)).toBe(5);
+    expect(applySessionLengthPreference(12, userMax)).toBe(5);
+    // But shorter adaptive sessions are still allowed
+    expect(applySessionLengthPreference(3, userMax)).toBe(3);
   });
 });
 

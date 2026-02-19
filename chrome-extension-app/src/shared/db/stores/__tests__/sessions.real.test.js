@@ -37,6 +37,7 @@ jest.mock('../sessionAdaptiveHelpers.js', () => ({
     allowedTags: ['array', 'string'],
     tag_index: 2,
   })),
+  calculateMaxHardProblems: jest.fn(() => 2),
 }));
 
 jest.mock('../sessionPerformanceHelpers.js', () => ({

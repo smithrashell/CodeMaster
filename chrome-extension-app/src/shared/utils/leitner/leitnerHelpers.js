@@ -125,7 +125,8 @@ export function applyStabilityAdjustment(problem, attemptData, timePerformanceSc
  */
 export function calculateNextReviewDate(problem, attemptData) {
   // Get base days from box level
-  const baseDays = BOX_INTERVALS[problem.box_level];
+  const boxIndex = Math.min(Math.max(Math.round(problem.box_level || 0), 0), BOX_INTERVALS.length - 1);
+  const baseDays = BOX_INTERVALS[boxIndex];
 
   // Apply stability multiplier
   const stabilityMultiplier = problem.stability / 2;

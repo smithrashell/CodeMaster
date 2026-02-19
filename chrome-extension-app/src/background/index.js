@@ -25,6 +25,7 @@ import {
   getStrategyMapData,
   initializeConsistencySystem,
   setupDevTestFunctions,
+  runStabilityRecalculation,
 } from "./backgroundHelpers.js";
 
 // Hot reload
@@ -59,6 +60,12 @@ self.addEventListener('activate', (event) => {
         }
       } catch (error) {
         console.error('❌ Passive decay check failed:', error);
+      }
+
+      try {
+        await runStabilityRecalculation();
+      } catch (error) {
+        console.error('❌ Stability recalculation failed:', error);
       }
     })
   );
@@ -275,4 +282,5 @@ chrome.runtime.onInstalled.addListener((details) => {
     console.log("🎉 First-time install - opening dashboard");
     chrome.tabs.create({ url: chrome.runtime.getURL("app.html") });
   }
+
 });

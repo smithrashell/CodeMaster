@@ -26,6 +26,43 @@ import {
   logReviewProblemsAnalysis
 } from "./problemServiceHelpers.js";
 
+/**
+ * Checks if a problem is considered "Hard" difficulty.
+ * Handles different object structures (standard_problem vs user_problem).
+ *
+ * @param {Object} p - Problem object
+ * @returns {boolean} True if difficulty is Hard
+ */
+function isHardProblem(p) {
+  if (!p) return false;
+  const difficulty = p.difficulty || p.Rating || p.rating;
+  if (difficulty === 'Hard' || difficulty === 3) return true;
+
+  // Sometimes Rating is a string "3" or "Hard"
+  if (String(difficulty).toLowerCase() === 'hard' || difficulty == '3') return true;
+
+  return false;
+}
+
+/**
+ * Filter problems by hard cap
+ *
+ * @param {Array} problems - Problems to filter
+ * @param {number} currentHardCount - Current number of hard problems in session
+ * @param {number} maxHardProblems - Maximum allowed hard problems
+ * @returns {Array} Filtered problems
+ */
+function filterByHardCap(problems, currentHardCount, maxHardProblems) {
+  let count = currentHardCount;
+  return problems.filter(p => {
+    if (isHardProblem(p)) {
+      if (count >= maxHardProblems) return false;
+      count++;
+    }
+    return true;
+  });
+}
+
 // ============================================================================
 // ADAPTIVE LEARNING: TRIGGERED REVIEW SYSTEM (Priority 1)
 // ============================================================================
@@ -39,7 +76,7 @@ import {
  * @param {boolean} isOnboarding - Whether this is an onboarding session
  * @returns {Promise<number>} Number of triggered reviews added
  */
-export async function addTriggeredReviewsToSession(sessionProblems, sessionLength, isOnboarding) {
+export async function addTriggeredReviewsToSession(sessionProblems, sessionLength, isOnboarding, maxHardProblems = Infinity) {
   if (isOnboarding) {
     logger.info("Skipping triggered reviews during onboarding");
     return 0;
@@ -64,9 +101,10 @@ export async function addTriggeredReviewsToSession(sessionProblems, sessionLengt
 
     // Add up to 2 triggered reviews (max per session)
     const maxTriggeredReviews = Math.min(2, sessionLength, triggeredReviews.length);
-    const reviewsToAdd = triggeredReviews.slice(0, maxTriggeredReviews);
+    const candidateReviews = triggeredReviews.slice(0, maxTriggeredReviews);
+    const countBefore = sessionProblems.length;
 
-    for (const review of reviewsToAdd) {
+    const triggeredReviewsWithMetadata = await Promise.all(candidateReviews.map(async (review) => {
       const enrichedProblem = await enrichReviewProblem(review.problem, fetchProblemById);
       const normalizedProblem = {
         ...enrichedProblem,
@@ -91,12 +129,18 @@ export async function addTriggeredReviewsToSession(sessionProblems, sessionLengt
             .replace(/^-|-$/g, '');
         }
       }
+      return normalizedProblem;
+    }));
 
-      sessionProblems.push(normalizedProblem);
-    }
+    // Ensure maxHardProblems is respected
+    const currentHardCount = sessionProblems.filter(isHardProblem).length;
+    const finalReviewsToAdd = filterByHardCap(triggeredReviewsWithMetadata, currentHardCount, maxHardProblems);
 
-    logger.info(`🌉 Added ${reviewsToAdd.length} triggered reviews (bridge problems) to session`);
-    return reviewsToAdd.length;
+    sessionProblems.push(...finalReviewsToAdd);
+
+    const addedCount = sessionProblems.length - countBefore;
+    logger.info(`🌉 Added ${addedCount} triggered reviews (bridge problems) to session`);
+    return addedCount;
   } catch (error) {
     logger.error("Error adding triggered reviews:", error);
     return 0;
@@ -114,7 +158,7 @@ export async function addTriggeredReviewsToSession(sessionProblems, sessionLengt
  * @param {Array} allProblems - All user problems for fallback analysis
  * @returns {Promise<number>} Number of learning reviews added
  */
-export async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnboarding, allProblems) {
+export async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems = Infinity) {
   if (isOnboarding) {
     logger.info("Skipping review problems during onboarding - focusing on new problem distribution");
     return 0;
@@ -151,20 +195,24 @@ export async function addReviewProblemsToSession(sessionProblems, sessionLength,
   const sessionIds = new Set(sessionProblems.map(p => p.id || p.leetcode_id));
   const uniqueReviewProblems = reviewProblemsToAdd.filter(p => !sessionIds.has(p.id || p.leetcode_id));
 
-  logReviewProblemsAnalysis(enrichedReviewProblems, learningReviewProblems, sessionProblems, uniqueReviewProblems);
-  sessionProblems.push(...uniqueReviewProblems);
+  // Filter out Hard problems that would exceed the hard cap
+  const currentHardCount = sessionProblems.filter(isHardProblem).length;
+  const filteredReviewProblems = filterByHardCap(uniqueReviewProblems, currentHardCount, maxHardProblems);
 
-  logger.info(`Added ${uniqueReviewProblems.length} learning reviews (box 1-5) to session`);
+  logReviewProblemsAnalysis(enrichedReviewProblems, learningReviewProblems, sessionProblems, filteredReviewProblems);
+  sessionProblems.push(...filteredReviewProblems);
+
+  logger.info(`Added ${filteredReviewProblems.length} learning reviews (box 1-5) to session`);
   if (masteredReviewCount > 0) {
     logger.info(`📌 ${masteredReviewCount} mastered reviews (box 6-8) deferred to triggered/passive fill`);
   }
 
-  if (uniqueReviewProblems.length > 0) {
+  if (filteredReviewProblems.length > 0) {
     logger.info(`Session has ${sessionProblems.length} problems, ${sessionLength - sessionProblems.length} slots for new problems`);
   }
 
   analyzeReviewProblems(learningReviewProblems, sessionLength, allProblems);
-  return uniqueReviewProblems.length;
+  return filteredReviewProblems.length;
 }
 
 export function analyzeReviewProblems(reviewProblems, sessionLength, allProblems) {
@@ -184,9 +232,12 @@ export function analyzeReviewProblems(reviewProblems, sessionLength, allProblems
 
 export async function addNewProblemsToSession(params) {
   const { sessionLength, sessionProblems, excludeIds, userFocusAreas,
-    currentAllowedTags, currentDifficultyCap, isOnboarding } = params;
+    currentAllowedTags, currentDifficultyCap, isOnboarding, numberOfNewProblems, maxHardProblems = Infinity } = params;
 
-  const newProblemsNeeded = sessionLength - sessionProblems.length;
+  const remainingSlots = sessionLength - sessionProblems.length;
+  const newProblemsNeeded = (numberOfNewProblems !== undefined && numberOfNewProblems >= 0)
+    ? Math.min(numberOfNewProblems, remainingSlots)
+    : remainingSlots;
   if (newProblemsNeeded <= 0) return;
 
   const candidatesNeeded = Math.min(newProblemsNeeded * 3, 50);
@@ -202,7 +253,19 @@ export async function addNewProblemsToSession(params) {
     }
   );
 
-  const newProblems = await selectNewProblems(candidateProblems, newProblemsNeeded, isOnboarding);
+  // Limit Hard candidates to remaining hard slots
+  const currentHardCount = sessionProblems.filter(isHardProblem).length;
+  const hardSlotsRemaining = Math.max(0, maxHardProblems - currentHardCount);
+  let hardIncluded = 0;
+  const filteredCandidates = candidateProblems.filter(p => {
+    if (isHardProblem(p)) {
+      if (hardIncluded >= hardSlotsRemaining) return false;
+      hardIncluded++;
+    }
+    return true;
+  });
+
+  const newProblems = await selectNewProblems(filteredCandidates, newProblemsNeeded, isOnboarding);
 
   const normalizedNewProblems = newProblems.map(p => {
     const normalized = {
@@ -280,7 +343,7 @@ export async function selectNewProblems(candidateProblems, newProblemsNeeded, is
  * @param {boolean} isOnboarding - Whether this is an onboarding session
  * @returns {Promise<number>} Number of passive mastered reviews added
  */
-export async function addPassiveMasteredReviews(sessionProblems, sessionLength, isOnboarding) {
+export async function addPassiveMasteredReviews(sessionProblems, sessionLength, isOnboarding, maxHardProblems = Infinity) {
   if (isOnboarding || sessionProblems.length >= sessionLength) {
     return 0;
   }
@@ -306,7 +369,12 @@ export async function addPassiveMasteredReviews(sessionProblems, sessionLength, 
 
     // Exclude IDs already in session
     const sessionIds = new Set(sessionProblems.map(p => p.id || p.leetcode_id));
-    const availableMastered = masteredReviews.filter(p => !sessionIds.has(p.id || p.leetcode_id));
+    const currentHardCount = sessionProblems.filter(isHardProblem).length;
+    const availableMastered = filterByHardCap(
+      masteredReviews.filter(p => !sessionIds.has(p.id || p.leetcode_id)),
+      currentHardCount,
+      maxHardProblems
+    );
 
     // Only add what's needed to fill the session
     const slotsRemaining = sessionLength - sessionProblems.length;
@@ -333,25 +401,45 @@ export async function addPassiveMasteredReviews(sessionProblems, sessionLength, 
   }
 }
 
-export async function addFallbackProblems(sessionProblems, sessionLength, allProblems) {
+export async function addFallbackProblems(sessionProblems, sessionLength, allProblems, maxHardProblems = Infinity) {
   if (sessionProblems.length >= sessionLength) return;
 
-  const fallbackNeeded = sessionLength - sessionProblems.length;
-  const usedIds = new Set(sessionProblems.filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim()).map((p) => p.problem_id || p.leetcode_id));
+  const usedIds = new Set();
+  sessionProblems.forEach(p => {
+    if (!p) return;
+    if (p.id) usedIds.add(p.id);
+    if (p.leetcode_id) usedIds.add(p.leetcode_id);
+    if (p.problem_id) usedIds.add(p.problem_id);
+  });
 
-  const fallbackProblems = allProblems
-    .filter(p => p && (p.problem_id || p.leetcode_id) && p.title && p.title.trim())
-    .filter((p) => !usedIds.has(p.problem_id || p.leetcode_id))
-    .sort(problemSortingCriteria)
-    .slice(0, fallbackNeeded);
+  // Filter and sort candidates before enrichment
+  const fallbackCandidates = allProblems
+    .filter(p => p && (p.leetcode_id || p.id || p.problem_id) && p.title)
+    .filter((p) => {
+      const isUsed = (p.id && usedIds.has(p.id)) ||
+        (p.leetcode_id && usedIds.has(p.leetcode_id)) ||
+        (p.problem_id && usedIds.has(p.problem_id));
+      return !isUsed;
+    })
+    .sort(problemSortingCriteria);
 
-  const enrichedFallback = await Promise.all(
-    fallbackProblems.map(p => enrichReviewProblem(p, fetchProblemById))
-  );
-  const validFallback = enrichedFallback.filter(p => p.difficulty && p.tags);
+  // Enrich first, THEN check hard cap — raw problems often lack difficulty field
+  for (const p of fallbackCandidates) {
+    if (sessionProblems.length >= sessionLength) break;
 
-  sessionProblems.push(...validFallback);
-  logger.info(`Added ${validFallback.length} fallback problems`);
+    const enriched = await enrichReviewProblem(p, fetchProblemById);
+    if (!enriched || !enriched.difficulty || !enriched.tags) continue;
+
+    // Check hard cap after enrichment when difficulty is known
+    if (isHardProblem(enriched)) {
+      const currentHardCount = sessionProblems.filter(isHardProblem).length;
+      if (currentHardCount >= maxHardProblems) continue;
+    }
+
+    sessionProblems.push(normalizeReviewProblem(enriched));
+  }
+
+  logger.info(`Added fallback problems. Session now has ${sessionProblems.length} problems.`);
 }
 
 export async function checkSafetyGuardRails(finalSession, currentDifficultyCap) {

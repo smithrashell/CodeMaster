@@ -255,18 +255,31 @@ export function normalizeSessionLengthForCalculation(userSetting, defaultBase = 
 }
 
 /**
- * Apply user session length preference as a minimum floor
- * When user explicitly sets a session length, respect it as the minimum
+ * Calculate maximum number of Hard problems allowed in a session
+ * based on user accuracy and session length.
+ */
+export function calculateMaxHardProblems(accuracy, sessionLength, isOnboarding) {
+  if (isOnboarding) return 0;
+  let ratio;
+  if (accuracy < 0.5) ratio = 0.2;
+  else if (accuracy < 0.75) ratio = 0.3;
+  else ratio = 0.4;
+  return Math.max(1, Math.floor(sessionLength * ratio));
+}
+
+/**
+ * Apply user session length preference as a maximum cap
+ * When user explicitly sets a session length, adaptive can go lower but never higher
  */
 export function applySessionLengthPreference(adaptiveLength, userPreferredLength) {
   if (!userPreferredLength || userPreferredLength === 'auto' || userPreferredLength <= 0) {
     return adaptiveLength;
   }
 
-  const adjustedLength = Math.max(adaptiveLength, userPreferredLength);
+  const adjustedLength = Math.min(adaptiveLength, userPreferredLength);
 
   if (adjustedLength !== adaptiveLength) {
-    logger.info(`Session length raised: Adaptive ${adaptiveLength} → User preference ${userPreferredLength} = ${adjustedLength}`);
+    logger.info(`Session length capped: Adaptive ${adaptiveLength} → User max ${userPreferredLength} = ${adjustedLength}`);
   }
 
   return adjustedLength;

@@ -16,7 +16,8 @@ export {
   applyInterviewInsightsToTags,
   computeSessionLength,
   normalizeSessionLengthForCalculation,
-  applySessionLengthPreference
+  applySessionLengthPreference,
+  calculateMaxHardProblems
 } from "./sessionAdaptiveHelpers.js";
 export {
   filterSessions,
@@ -30,7 +31,8 @@ export {
 import { applyEscapeHatchLogic, checkForDemotion, analyzePerformanceTrend } from "./sessionEscapeHatchHelpers.js";
 import {
   applyOnboardingSettings,
-  applyPostOnboardingLogic
+  applyPostOnboardingLogic,
+  calculateMaxHardProblems
 } from "./sessionAdaptiveHelpers.js";
 import {
   filterSessions,
@@ -487,6 +489,10 @@ export async function buildAdaptiveSessionSettings() {
 
   const finalDifficultyCap = focusDecision.onboarding ? "Easy" : updatedSessionState.current_difficulty_cap;
 
+  const maxHardProblems = calculateMaxHardProblems(
+    performanceMetrics.accuracy, sessionLength, focusDecision.onboarding
+  );
+
   return {
     sessionLength,
     numberOfNewProblems,
@@ -495,6 +501,7 @@ export async function buildAdaptiveSessionSettings() {
     userFocusAreas,
     sessionState: updatedSessionState,
     isOnboarding: focusDecision.onboarding,
+    maxHardProblems,
   };
 }
 

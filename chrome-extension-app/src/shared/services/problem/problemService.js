@@ -234,7 +234,8 @@ export const ProblemService = {
       settings.currentAllowedTags,
       settings.currentDifficultyCap,
       settings.userFocusAreas,
-      settings.isOnboarding
+      settings.isOnboarding,
+      settings.maxHardProblems
     );
     return problems;
   },
@@ -250,7 +251,8 @@ export const ProblemService = {
       adaptiveConfig.focusAreas || settings.currentAllowedTags,
       settings.currentDifficultyCap,
       adaptiveConfig.focusAreas || settings.userFocusAreas,
-      false
+      false,
+      settings.maxHardProblems
     );
 
     return {
@@ -281,11 +283,12 @@ export const ProblemService = {
    */
   async fetchAndAssembleSessionProblems(
     sessionLength,
-    _numberOfNewProblems,
+    numberOfNewProblems,
     currentAllowedTags,
     currentDifficultyCap,
     userFocusAreas = [],
-    isOnboarding = false
+    isOnboarding = false,
+    maxHardProblems = Infinity
   ) {
     logger.info("Starting intelligent session assembly with adaptive learning...");
     logger.info("Session length:", sessionLength);
@@ -298,27 +301,27 @@ export const ProblemService = {
 
     // PRIORITY 1: Triggered reviews (mastered problems related to struggling problems)
     const triggeredReviewsCount = await addTriggeredReviewsToSession(
-      sessionProblems, sessionLength, isOnboarding
+      sessionProblems, sessionLength, isOnboarding, maxHardProblems
     );
 
     // PRIORITY 2: Learning reviews (box 1-5)
     const learningReviewsCount = await addReviewProblemsToSession(
-      sessionProblems, sessionLength, isOnboarding, allProblems
+      sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems
     );
 
     // PRIORITY 3: New problems (primary learning)
     await addNewProblemsToSession({
       sessionLength, sessionProblems, excludeIds, userFocusAreas,
-      currentAllowedTags, currentDifficultyCap, isOnboarding
+      currentAllowedTags, currentDifficultyCap, isOnboarding, numberOfNewProblems, maxHardProblems
     });
 
     // PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
     const passiveMasteredCount = await addPassiveMasteredReviews(
-      sessionProblems, sessionLength, isOnboarding
+      sessionProblems, sessionLength, isOnboarding, maxHardProblems
     );
 
     // FALLBACK: Any available problems
-    await addFallbackProblems(sessionProblems, sessionLength, allProblems);
+    await addFallbackProblems(sessionProblems, sessionLength, allProblems, maxHardProblems);
 
     const deduplicated = deduplicateById(sessionProblems);
     const finalSession = deduplicated.slice(0, sessionLength);
@@ -361,7 +364,8 @@ export const ProblemService = {
         return this.fetchAndAssembleSessionProblems(
           settings.sessionLength, settings.numberOfNewProblems,
           settings.currentAllowedTags, settings.currentDifficultyCap,
-          settings.userFocusAreas, settings.isOnboarding
+          settings.userFocusAreas, settings.isOnboarding,
+          settings.maxHardProblems
         );
       }
 

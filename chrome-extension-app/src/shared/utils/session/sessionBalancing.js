@@ -114,16 +114,38 @@ export function applySafetyGuardRails(
 
   // Guard Rail 2: At Hard cap, ensure minimum Hard problems
   if (currentDifficultyCap === 'Hard' && sessionLength >= 5) {
-    const minHard = sessionLength <= 10 ? 2 : Math.ceil(sessionLength * 0.2);
+    // Determine minHard based on session length, but NEVER exceed 40% (or maxHardProblems if provided)
+    const theoreticalMinHard = sessionLength <= 10 ? 2 : Math.ceil(sessionLength * 0.2);
 
-    if (counts.Hard > 0 && counts.Hard < minHard) {
-      const message = `Session has only ${counts.Hard} Hard problems, need at least ${minHard} for Hard cap`;
-      logger.warn(`⚖️ Guard rail triggered: ${message}`);
-      return {
-        needsRebalance: true,
-        target: { Hard: minHard },
-        message
-      };
+    // If we have a very strict hard cap (e.g. maxHardProblems = 1), the guard rail should not force more
+    // Note: maxHardProblems is not currently passed to this function, but we can infer strictness
+    // by checking if accuracy-based limits are visible in recentPerformance.
+    const isStagnationPromotion = currentPromotionType === 'stagnation_escape_hatch';
+    const isPoorPerformance = recentPerformance && recentPerformance.accuracy < 0.5;
+
+    // In poor performance scenarios (accuracy < 50%), maxHard should be 1.
+    // Guard Rail 4 already handles this for stagnation. For standard sessions,
+    // we should also be careful not to force too many Hard if performance is weak.
+    if (isPoorPerformance && theoreticalMinHard > 1) {
+      logger.info(`⚖️ Performance is weak (${(recentPerformance.accuracy * 100).toFixed(0)}%) - overriding minHard to 1`);
+      // Relax minHard to 1 if performance is weak
+      const minHard = 1;
+      if (counts.Hard > 0 && counts.Hard < minHard) {
+        // Still need at least 1 if we are at Hard cap
+        const message = `Session has 0 Hard problems, need at least ${minHard} for Hard cap with weak performance`;
+        return { needsRebalance: true, target: { Hard: minHard }, message };
+      }
+    } else {
+      const minHard = theoreticalMinHard;
+      if (counts.Hard > 0 && counts.Hard < minHard) {
+        const message = `Session has only ${counts.Hard} Hard problems, need at least ${minHard} for Hard cap`;
+        logger.warn(`⚖️ Guard rail triggered: ${message}`);
+        return {
+          needsRebalance: true,
+          target: { Hard: minHard },
+          message
+        };
+      }
     }
   }
 

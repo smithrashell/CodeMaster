@@ -1249,11 +1249,16 @@ export async function getFailureTriggeredReviews(recentAttempts) {
   const strugglingIds = problemsNeedingHelp.map(p => Number(p.leetcode_id));
   console.log(`🔍 Finding bridge problems for ${strugglingIds.length} struggling problems`);
 
-  // Get all mastered problems (box 6-8)
-  const masteredProblems = await getMasteredProblems({ minBoxLevel: 6 });
+  // Get all mastered problems (box 6-8) that are due for review
+  const allMasteredProblems = await getMasteredProblems({ minBoxLevel: 6 });
+  const now = new Date();
+  const masteredProblems = allMasteredProblems.filter(p => {
+    const reviewDate = p.review_schedule || p.ReviewSchedule;
+    return !reviewDate || new Date(reviewDate) <= now;
+  });
 
   if (masteredProblems.length === 0) {
-    console.log("📝 No mastered problems available for triggered reviews");
+    console.log("📝 No mastered problems due for triggered reviews");
     return [];
   }
 
@@ -1413,6 +1418,25 @@ export async function findPrerequisiteProblem(problemId, excludeIds = []) {
 
     const best = candidates[0];
     console.log(`✅ Found prerequisite: ${best.problem.title} (${best.problem.difficulty}) with score ${best.score.toFixed(2)}`);
+
+    // Enrich with user attempt data so the UI shows correct status instead of "NEW"
+    try {
+      const db = await openDB();
+      const tx = db.transaction("problems", "readonly");
+      const store = tx.objectStore("problems");
+      const index = store.index("by_leetcode_id");
+      const userProblem = await new Promise((resolve, reject) => {
+        const req = index.get(Number(best.problem.leetcode_id || best.problem.id));
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      if (userProblem) {
+        console.log(`  Enriched prerequisite with user data (box_level: ${userProblem.box_level}, attempts: ${userProblem.attempts})`);
+        return { ...best.problem, ...userProblem };
+      }
+    } catch (err) {
+      console.warn("Could not enrich prerequisite with user data:", err.message);
+    }
 
     return best.problem;
   } catch (error) {
