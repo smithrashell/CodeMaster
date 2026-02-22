@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Automatic New Problems Per Session** - New "Automatic" option (now the default) for max new problems per session; when selected, empty review slots are backfilled with new problems while explicit numeric settings are always respected regardless of review count — closes the gap where no-review sessions ignored the user's cap
 - **Store user_intent on Attempt Records** - Timer UI's user intent ("solving", "stuck", "completed") now flows through to IndexedDB attempt records when the "Still Working?" prompt was shown; omitted when time limits are off or user solved within the limit
 - **Stability Penalty for "Stuck" Failures** - Failed attempts where user reported being stuck receive a 0.85x stability multiplier, scheduling more frequent reviews for weak knowledge
 - **Review Interval Cap for "Stuck" Failures** - Failed + stuck attempts are capped at a 7-day review interval regardless of box level, ensuring timely re-practice
 
 ### Fixed
+- **Leitner Box Level 8 Unreachable** - Off-by-one error in `reassessBoxLevel()` capped box level at 7 instead of 8, preventing problems from reaching max mastery level
 - **Session History Sorting** (#248) - Sessions now sorted by date before slicing, ensuring most recent sessions display correctly in history and charts
 - **Hints Used Card Shows 0** (#247) - Mapped nested `getSystemAnalytics()` response to flat shape expected by StatsMetrics component (`.overview.totalInteractions` -> `.total`, `.overview.byHintType.*` -> `.contextual/.general/.primer`)
 - **Goals Review Count Shows 0** - Review problem count now cross-references attempts with problems store `box_level` instead of checking non-existent `attempt.box_level`
