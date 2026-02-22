@@ -21,6 +21,8 @@ jest.mock('../../schedule/scheduleService.js', () => ({
   ScheduleService: {
     getDailyReviewSchedule: jest.fn().mockResolvedValue([]),
   },
+  isRecentlyAttempted: jest.fn().mockReturnValue(false),
+  isDueForReview: jest.fn().mockReturnValue(true),
 }));
 
 jest.mock('../../storage/storageService.js', () => ({
@@ -77,12 +79,13 @@ import {
   checkSafetyGuardRails,
   logFinalSessionComposition,
   deduplicateById,
+  filterRecentlyAttemptedProblems,
   problemSortingCriteria,
   getExistingProblemsAndExcludeIds,
 } from '../problemServiceSession.js';
 
 import { getRecentAttempts, getFailureTriggeredReviews, selectOptimalProblems } from '../../../db/stores/problem_relationships.js';
-import { ScheduleService } from '../../schedule/scheduleService.js';
+import { ScheduleService, isRecentlyAttempted, isDueForReview } from '../../schedule/scheduleService.js';
 import { StorageService } from '../../storage/storageService.js';
 import { fetchAdditionalProblems, fetchAllProblems } from '../../../db/stores/problems.js';
 import { getTagMastery } from '../../../db/stores/tag_mastery.js';
@@ -248,6 +251,81 @@ describe('problemServiceSession', () => {
         isOnboarding: true,
       });
       expect(session.length).toBeGreaterThan(0);
+    });
+
+    it('fills entire session with new problems when no reviews are present and auto mode', async () => {
+      fetchAdditionalProblems.mockResolvedValue([
+        { id: 10, leetcode_id: 10, title: 'Problem A', difficulty: 'Easy', tags: ['array'], slug: 'problem-a' },
+        { id: 11, leetcode_id: 11, title: 'Problem B', difficulty: 'Easy', tags: ['array'], slug: 'problem-b' },
+        { id: 12, leetcode_id: 12, title: 'Problem C', difficulty: 'Medium', tags: ['stack'], slug: 'problem-c' },
+        { id: 13, leetcode_id: 13, title: 'Problem D', difficulty: 'Easy', tags: ['string'], slug: 'problem-d' },
+        { id: 14, leetcode_id: 14, title: 'Problem E', difficulty: 'Medium', tags: ['hash table'], slug: 'problem-e' },
+      ]);
+      selectOptimalProblems.mockImplementation((probs) => probs);
+
+      const session = []; // No reviews present
+      await addNewProblemsToSession({
+        sessionLength: 5,
+        sessionProblems: session,
+        excludeIds: new Set(),
+        userFocusAreas: [],
+        currentAllowedTags: [],
+        currentDifficultyCap: 'Medium',
+        isOnboarding: true,
+        numberOfNewProblems: 2,
+        isAutoNewProblems: true, // Auto mode → fill all 5 when no reviews
+      });
+      expect(session).toHaveLength(5);
+    });
+
+    it('respects explicit cap even when no reviews are present (non-auto mode)', async () => {
+      fetchAdditionalProblems.mockResolvedValue([
+        { id: 10, leetcode_id: 10, title: 'Problem A', difficulty: 'Easy', tags: ['array'], slug: 'problem-a' },
+        { id: 11, leetcode_id: 11, title: 'Problem B', difficulty: 'Easy', tags: ['array'], slug: 'problem-b' },
+        { id: 12, leetcode_id: 12, title: 'Problem C', difficulty: 'Medium', tags: ['stack'], slug: 'problem-c' },
+        { id: 13, leetcode_id: 13, title: 'Problem D', difficulty: 'Easy', tags: ['string'], slug: 'problem-d' },
+        { id: 14, leetcode_id: 14, title: 'Problem E', difficulty: 'Medium', tags: ['hash table'], slug: 'problem-e' },
+      ]);
+      selectOptimalProblems.mockImplementation((probs) => probs);
+
+      const session = []; // No reviews present
+      await addNewProblemsToSession({
+        sessionLength: 5,
+        sessionProblems: session,
+        excludeIds: new Set(),
+        userFocusAreas: [],
+        currentAllowedTags: [],
+        currentDifficultyCap: 'Medium',
+        isOnboarding: true,
+        numberOfNewProblems: 3,
+        isAutoNewProblems: false, // Explicit mode → cap at 3 even with no reviews
+      });
+      expect(session).toHaveLength(3);
+    });
+
+    it('respects numberOfNewProblems cap when reviews ARE present', async () => {
+      fetchAdditionalProblems.mockResolvedValue([
+        { id: 10, leetcode_id: 10, title: 'New Problem', difficulty: 'Easy', tags: ['array'], slug: 'new-problem' },
+        { id: 11, leetcode_id: 11, title: 'New Problem 2', difficulty: 'Easy', tags: ['array'], slug: 'new-problem-2' },
+        { id: 12, leetcode_id: 12, title: 'New Problem 3', difficulty: 'Easy', tags: ['array'], slug: 'new-problem-3' },
+      ]);
+      selectOptimalProblems.mockImplementation((probs) => probs);
+
+      const session = [
+        { id: 1, leetcode_id: 1, title: 'Review 1', difficulty: 'Easy', tags: ['array'] },
+        { id: 2, leetcode_id: 2, title: 'Review 2', difficulty: 'Easy', tags: ['array'] },
+      ]; // 2 reviews already present
+      await addNewProblemsToSession({
+        sessionLength: 5,
+        sessionProblems: session,
+        excludeIds: new Set(),
+        userFocusAreas: [],
+        currentAllowedTags: [],
+        currentDifficultyCap: 'Medium',
+        isOnboarding: true,
+        numberOfNewProblems: 2, // Cap at 2 since reviews are present
+      });
+      expect(session).toHaveLength(4); // 2 reviews + 2 new = 4
     });
 
     it('normalizes attempt_stats', async () => {
@@ -476,6 +554,123 @@ describe('problemServiceSession', () => {
       const result = problemSortingCriteria(a, b);
       expect(typeof result).toBe('number');
     });
+  });
+
+  // -------------------------------------------------------------------
+  // filterRecentlyAttemptedProblems
+  // -------------------------------------------------------------------
+  describe('filterRecentlyAttemptedProblems', () => {
+    it('keeps problems with no last_attempt_date (new problems)', () => {
+      const problems = [
+        { id: 1, title: 'Two Sum' },
+        { id: 2, title: 'Add Two', last_attempt_date: null },
+      ];
+      const result = filterRecentlyAttemptedProblems(problems);
+      expect(result).toHaveLength(2);
+    });
+
+    it('filters problem flagged as recently attempted', () => {
+      isRecentlyAttempted.mockReturnValue(true);
+      const problems = [
+        { id: 1, title: 'Two Sum', last_attempt_date: new Date().toISOString(), box_level: 2 },
+      ];
+      const result = filterRecentlyAttemptedProblems(problems);
+      expect(result).toHaveLength(0);
+      expect(isRecentlyAttempted).toHaveBeenCalledWith(problems[0].last_attempt_date, 2);
+    });
+
+    it('keeps problem when isRecentlyAttempted returns false', () => {
+      isRecentlyAttempted.mockReturnValue(false);
+      const problems = [
+        { id: 1, title: 'Two Sum', last_attempt_date: '2026-02-18', box_level: 2 },
+      ];
+      const result = filterRecentlyAttemptedProblems(problems);
+      expect(result).toHaveLength(1);
+    });
+
+    it('defaults to box level 1 when box_level is missing', () => {
+      isRecentlyAttempted.mockReturnValue(false);
+      const problems = [
+        { id: 1, title: 'Test', last_attempt_date: '2026-02-21' },
+      ];
+      filterRecentlyAttemptedProblems(problems);
+      expect(isRecentlyAttempted).toHaveBeenCalledWith('2026-02-21', 1);
+    });
+
+    it('reads boxLevel as fallback for box_level', () => {
+      isRecentlyAttempted.mockReturnValue(false);
+      const problems = [
+        { id: 1, title: 'Test', last_attempt_date: '2026-02-21', boxLevel: 3 },
+      ];
+      filterRecentlyAttemptedProblems(problems);
+      expect(isRecentlyAttempted).toHaveBeenCalledWith('2026-02-21', 3);
+    });
+
+    it('filters some and keeps others in a mixed set', () => {
+      isRecentlyAttempted
+        .mockReturnValueOnce(true)   // problem 1: recently attempted
+        .mockReturnValueOnce(false); // problem 2: not recently attempted
+      const problems = [
+        { id: 1, title: 'Recent', last_attempt_date: '2026-02-21', box_level: 2 },
+        { id: 2, title: 'Old', last_attempt_date: '2026-02-18', box_level: 2 },
+        { id: 3, title: 'New' }, // no last_attempt_date
+      ];
+      const result = filterRecentlyAttemptedProblems(problems);
+      expect(result).toHaveLength(2);
+      expect(result.map(p => p.id)).toEqual([2, 3]);
+    });
+  });
+
+  // -------------------------------------------------------------------
+  // filterRecentlyAttemptedProblems + addNewProblemsToSession ordering
+  // -------------------------------------------------------------------
+  describe('recency filter must run before new problem selection', () => {
+    it('frees slots when reviews are filtered, allowing addNewProblemsToSession to fill them', async () => {
+      // Simulate: 3 review problems added by paths 1+2, all recently attempted
+      isRecentlyAttempted.mockReturnValue(true);
+      const reviewProblems = [
+        { id: 100, title: 'Review A', last_attempt_date: '2026-02-21', box_level: 2, difficulty: 'Medium', tags: ['array'] },
+        { id: 101, title: 'Review B', last_attempt_date: '2026-02-21', box_level: 3, difficulty: 'Medium', tags: ['array'] },
+        { id: 102, title: 'Review C', last_attempt_date: '2026-02-21', box_level: 2, difficulty: 'Easy', tags: ['math'] },
+      ];
+
+      // Step 1: Filter recently-attempted reviews (simulates orchestrator mid-pipeline filter)
+      const spacedReviews = filterRecentlyAttemptedProblems(reviewProblems);
+      expect(spacedReviews).toHaveLength(0); // all 3 filtered
+
+      // Step 2: Build clean array from survivors (matches production code pattern)
+      const assembledProblems = [...spacedReviews];
+
+      // Step 3: addNewProblemsToSession should now see 5 free slots, not 2
+      const { fetchAdditionalProblems } = require('../../../db/stores/problems.js');
+      fetchAdditionalProblems.mockResolvedValue([
+        { id: 201, title: 'New A', difficulty: 'Medium', tags: ['array'], slug: 'new-a' },
+        { id: 202, title: 'New B', difficulty: 'Medium', tags: ['array'], slug: 'new-b' },
+        { id: 203, title: 'New C', difficulty: 'Easy', tags: ['math'], slug: 'new-c' },
+        { id: 204, title: 'New D', difficulty: 'Medium', tags: ['hash table'], slug: 'new-d' },
+        { id: 205, title: 'New E', difficulty: 'Easy', tags: ['string'], slug: 'new-e' },
+      ]);
+
+      await addNewProblemsToSession({
+        sessionLength: 5,
+        sessionProblems: assembledProblems,
+        excludeIds: new Set(),
+        userFocusAreas: [],
+        currentAllowedTags: [],
+        currentDifficultyCap: 'Hard',
+        isOnboarding: true,
+        numberOfNewProblems: 5,
+      });
+
+      // All 5 slots should be filled with new problems
+      expect(assembledProblems.length).toBe(5);
+    });
+
+    // WHY THIS ORDERING MATTERS:
+    // If filterRecentlyAttemptedProblems runs AFTER addNewProblemsToSession,
+    // the new problem path sees review problems occupying slots and under-fills.
+    // Then the filter removes the reviews, leaving a short session.
+    // The test above proves the correct ordering prevents this.
   });
 
   // -------------------------------------------------------------------

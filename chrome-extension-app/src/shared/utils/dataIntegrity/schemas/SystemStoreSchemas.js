@@ -22,7 +22,12 @@ export const SETTINGS_SCHEMA = {
             label: { type: "string" },
           },
         },
-        numberofNewProblemsPerSession: { type: "integer", minimum: 0, maximum: 10 },
+        numberofNewProblemsPerSession: {
+          oneOf: [
+            { type: "integer", minimum: 0, maximum: 10 },
+            { type: "string", enum: ["auto"] }
+          ]
+        },
         adaptive: { type: "boolean" },
       },
       additionalProperties: false,

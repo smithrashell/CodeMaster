@@ -33,7 +33,7 @@ export function applyOnboardingSettings(settings, sessionState, allowedTags, foc
 
   const userMaxNewProblems = settings.numberofNewProblemsPerSession;
   const maxNewProblems = SessionLimits.getMaxNewProblems(sessionState);
-  if (userMaxNewProblems && userMaxNewProblems > 0) {
+  if (userMaxNewProblems && userMaxNewProblems !== 'auto' && userMaxNewProblems > 0) {
     numberOfNewProblems = Math.min(numberOfNewProblems, userMaxNewProblems, maxNewProblems);
     logger.info(`User new problems preference applied: ${userMaxNewProblems} → capped at ${numberOfNewProblems} for onboarding`);
   }
@@ -122,7 +122,7 @@ export function calculateNewProblems(accuracy, sessionLength, settings, intervie
   }
 
   const userMaxNewProblems = settings.numberofNewProblemsPerSession;
-  if (userMaxNewProblems && userMaxNewProblems > 0) {
+  if (userMaxNewProblems && userMaxNewProblems !== 'auto' && userMaxNewProblems > 0) {
     const originalNewProblems = numberOfNewProblems;
     numberOfNewProblems = Math.min(numberOfNewProblems, userMaxNewProblems);
     if (originalNewProblems !== numberOfNewProblems) {

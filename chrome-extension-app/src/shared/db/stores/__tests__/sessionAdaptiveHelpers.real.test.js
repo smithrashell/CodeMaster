@@ -222,6 +222,15 @@ describe('applyOnboardingSettings', () => {
     expect(result.sessionLength).toBe(4);
     expect(result.numberOfNewProblems).toBe(2);
   });
+
+  it('does not cap new problems when setting is "auto"', () => {
+    const settings = { sessionLength: 5, numberofNewProblemsPerSession: 'auto' };
+    const result = applyOnboardingSettings(settings, {}, ['array'], { reasoning: '' });
+
+    // sessionLength = min(5, 6) = 5, numberOfNewProblems = 5 (no user cap)
+    expect(result.sessionLength).toBe(5);
+    expect(result.numberOfNewProblems).toBe(5);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -294,6 +303,12 @@ describe('calculateNewProblems', () => {
   it('caps at user preference when set', () => {
     const result = calculateNewProblems(0.9, 8, { numberofNewProblemsPerSession: 2 }, noInterviewInsights());
     expect(result).toBe(2);
+  });
+
+  it('does not cap when user preference is "auto"', () => {
+    const result = calculateNewProblems(0.9, 8, { numberofNewProblemsPerSession: 'auto' }, noInterviewInsights());
+    // accuracy >= 0.85 => min(5, floor(8/2)) = 4, no user cap applied
+    expect(result).toBe(4);
   });
 
   it('applies interview newProblemsAdjustment', () => {

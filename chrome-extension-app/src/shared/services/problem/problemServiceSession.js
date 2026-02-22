@@ -5,7 +5,7 @@
 
 import { fetchAdditionalProblems, fetchAllProblems } from "../../db/stores/problems.js";
 import { fetchProblemById } from "../../db/stores/standard_problems.js";
-import { ScheduleService } from "../schedule/scheduleService.js";
+import { ScheduleService, isRecentlyAttempted, isDueForReview } from "../schedule/scheduleService.js";
 import { StorageService } from "../storage/storageService.js";
 import { calculateDecayScore } from "../../utils/leitner/Utils.js";
 import { getTagMastery } from "../../db/stores/tag_mastery.js";
@@ -232,10 +232,16 @@ export function analyzeReviewProblems(reviewProblems, sessionLength, allProblems
 
 export async function addNewProblemsToSession(params) {
   const { sessionLength, sessionProblems, excludeIds, userFocusAreas,
-    currentAllowedTags, currentDifficultyCap, isOnboarding, numberOfNewProblems, maxHardProblems = Infinity } = params;
+    currentAllowedTags, currentDifficultyCap, isOnboarding, numberOfNewProblems, maxHardProblems = Infinity,
+    isAutoNewProblems = false } = params;
 
   const remainingSlots = sessionLength - sessionProblems.length;
-  const newProblemsNeeded = (numberOfNewProblems !== undefined && numberOfNewProblems >= 0)
+  // When "Automatic", backfill all empty slots when no reviews are present.
+  // When an explicit number is set, always respect it regardless of reviews.
+  const reviewsPresent = sessionProblems.length > 0;
+  const shouldCapNewProblems = numberOfNewProblems !== undefined && numberOfNewProblems >= 0
+    && (reviewsPresent || !isAutoNewProblems);
+  const newProblemsNeeded = shouldCapNewProblems
     ? Math.min(numberOfNewProblems, remainingSlots)
     : remainingSlots;
   if (newProblemsNeeded <= 0) return;
@@ -419,7 +425,11 @@ export async function addFallbackProblems(sessionProblems, sessionLength, allPro
       const isUsed = (p.id && usedIds.has(p.id)) ||
         (p.leetcode_id && usedIds.has(p.leetcode_id)) ||
         (p.problem_id && usedIds.has(p.problem_id));
-      return !isUsed;
+      if (isUsed) return false;
+      // Exclude problems not yet due for review
+      const reviewDate = p.review_schedule || p.ReviewSchedule;
+      if (reviewDate && !isDueForReview(reviewDate)) return false;
+      return true;
     })
     .sort(problemSortingCriteria);
 
@@ -641,6 +651,28 @@ export function deduplicateById(problems) {
 
   logger.info(`Deduplication summary: kept=${kept}, filtered=${filtered}, total=${problems.length}`);
   return result;
+}
+
+/**
+ * Filters out problems that were recently attempted based on Leitner box-level intervals.
+ * Acts as a catch-all guard to prevent same-day re-review (massed practice).
+ * New problems (no last_attempt_date) always pass through.
+ */
+export function filterRecentlyAttemptedProblems(problems) {
+  return problems.filter(p => {
+    const lastAttemptDate = p.last_attempt_date;
+    const boxLevel = p.box_level || p.boxLevel;
+
+    // No attempt data = new problem, always keep
+    if (!lastAttemptDate) return true;
+
+    // Use existing isRecentlyAttempted (box-level-aware intervals)
+    if (isRecentlyAttempted(lastAttemptDate, boxLevel || 1)) {
+      logger.info(`Filtered recently-attempted problem: ${p.title || p.id} (last: ${lastAttemptDate}, box: ${boxLevel})`);
+      return false;
+    }
+    return true;
+  });
 }
 
 export function problemSortingCriteria(a, b) {

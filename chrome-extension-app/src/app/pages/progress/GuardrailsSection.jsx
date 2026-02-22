@@ -13,6 +13,7 @@ function getMaxNewProblemsOptions(sessionLength, isOnboarding) {
   // During onboarding, limit to 2-4 problems regardless of session length
   if (isOnboarding) {
     return [
+      { value: "auto", label: "Automatic" },
       { value: "2", label: "2 problems" },
       { value: "3", label: "3 problems" },
       { value: "4", label: "4 problems" }
@@ -22,8 +23,8 @@ function getMaxNewProblemsOptions(sessionLength, isOnboarding) {
   // Normalize "auto" mode to actual session length value
   const effectiveSessionLength = sessionLength === "auto" ? 5 : sessionLength;
 
-  // Generate options from 2 to session length
-  const options = [];
+  // Generate options from 2 to session length, with Automatic first
+  const options = [{ value: "auto", label: "Automatic" }];
   for (let i = 2; i <= effectiveSessionLength; i++) {
     options.push({ value: i.toString(), label: `${i} problems` });
   }
@@ -37,8 +38,9 @@ export function GuardrailsSection({
   isOnboarding,
   onGuardrailChange
 }) {
-  // Auto-adjust max new problems if it exceeds session length
+  // Auto-adjust max new problems if it exceeds session length (skip when "auto")
   useEffect(() => {
+    if (guardrails.maxNewProblems === 'auto') return;
     const effectiveSessionLength = sessionLength === "auto" ? 5 : sessionLength;
 
     if (guardrails.maxNewProblems > effectiveSessionLength) {
@@ -68,15 +70,20 @@ export function GuardrailsSection({
           </Group>
           <Select
             value={guardrails.maxNewProblems.toString()}
-            onChange={(value) => onGuardrailChange('maxNewProblems', parseInt(value))}
+            onChange={(value) => onGuardrailChange('maxNewProblems', value === 'auto' ? 'auto' : parseInt(value))}
             data={maxNewProblemsOptions}
           />
-          {isOnboarding && (
+          {isOnboarding && guardrails.maxNewProblems !== 'auto' && (
             <Text size="xs" c="orange" mt="xs">
               🔰 Limited to 4 new problems during onboarding to ensure solid foundations
             </Text>
           )}
-          {!isOnboarding && (
+          {guardrails.maxNewProblems === 'auto' && (
+            <Text size="xs" mt="xs">
+              Open session slots will be filled with new problems automatically
+            </Text>
+          )}
+          {!isOnboarding && guardrails.maxNewProblems !== 'auto' && (
             <Text size="xs" mt="xs">
               Limited to session length ({sessionLength === "auto" ? "5" : sessionLength} problems)
             </Text>

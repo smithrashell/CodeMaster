@@ -98,7 +98,7 @@ function reassessBoxLevel(problem, attempts) {
 
     if (isSuccess) {
       consecutiveFailures = 0;
-      currentBoxLevel = Math.min(currentBoxLevel + 1, boxIntervals.length - 1);
+      currentBoxLevel = Math.min(currentBoxLevel + 1, boxIntervals.length);
     } else {
       consecutiveFailures++;
       if (consecutiveFailures >= FAILURE_THRESHOLD) {

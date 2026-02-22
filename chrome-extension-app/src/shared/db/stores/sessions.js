@@ -502,6 +502,7 @@ export async function buildAdaptiveSessionSettings() {
     sessionState: updatedSessionState,
     isOnboarding: focusDecision.onboarding,
     maxHardProblems,
+    isAutoNewProblems: settings.numberofNewProblemsPerSession === 'auto',
   };
 }
 

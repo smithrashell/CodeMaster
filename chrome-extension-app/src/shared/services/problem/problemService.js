@@ -86,6 +86,7 @@ import {
   checkSafetyGuardRails,
   logFinalSessionComposition,
   deduplicateById,
+  filterRecentlyAttemptedProblems,
 } from "./problemServiceSession.js";
 import {
   createInterviewSession as createInterviewSessionHelper,
@@ -235,7 +236,8 @@ export const ProblemService = {
       settings.currentDifficultyCap,
       settings.userFocusAreas,
       settings.isOnboarding,
-      settings.maxHardProblems
+      settings.maxHardProblems,
+      settings.isAutoNewProblems
     );
     return problems;
   },
@@ -288,7 +290,8 @@ export const ProblemService = {
     currentDifficultyCap,
     userFocusAreas = [],
     isOnboarding = false,
-    maxHardProblems = Infinity
+    maxHardProblems = Infinity,
+    isAutoNewProblems = false
   ) {
     logger.info("Starting intelligent session assembly with adaptive learning...");
     logger.info("Session length:", sessionLength);
@@ -300,30 +303,46 @@ export const ProblemService = {
     const sessionProblems = [];
 
     // PRIORITY 1: Triggered reviews (mastered problems related to struggling problems)
-    const triggeredReviewsCount = await addTriggeredReviewsToSession(
+    await addTriggeredReviewsToSession(
       sessionProblems, sessionLength, isOnboarding, maxHardProblems
     );
 
     // PRIORITY 2: Learning reviews (box 1-5)
-    const learningReviewsCount = await addReviewProblemsToSession(
+    await addReviewProblemsToSession(
       sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems
     );
 
+    // Filter recently-attempted reviews BEFORE new problem selection,
+    // so the slot count reflects actual problems that will stay in the session.
+    const reviewProblems = filterRecentlyAttemptedProblems(sessionProblems);
+    const reviewsFiltered = sessionProblems.length - reviewProblems.length;
+    if (reviewsFiltered > 0) {
+      logger.info(`Filtered ${reviewsFiltered} recently-attempted review problems before new problem selection`);
+    }
+
+    // Build a clean array for the rest of the pipeline (avoids mutating the original)
+    const assembledProblems = [...reviewProblems];
+    const survivingReviewCount = reviewProblems.length;
+
     // PRIORITY 3: New problems (primary learning)
     await addNewProblemsToSession({
-      sessionLength, sessionProblems, excludeIds, userFocusAreas,
-      currentAllowedTags, currentDifficultyCap, isOnboarding, numberOfNewProblems, maxHardProblems
+      sessionLength, sessionProblems: assembledProblems, excludeIds, userFocusAreas,
+      currentAllowedTags, currentDifficultyCap, isOnboarding, numberOfNewProblems, maxHardProblems,
+      isAutoNewProblems
     });
 
     // PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
-    const passiveMasteredCount = await addPassiveMasteredReviews(
-      sessionProblems, sessionLength, isOnboarding, maxHardProblems
+    await addPassiveMasteredReviews(
+      assembledProblems, sessionLength, isOnboarding, maxHardProblems
     );
 
     // FALLBACK: Any available problems
-    await addFallbackProblems(sessionProblems, sessionLength, allProblems, maxHardProblems);
+    await addFallbackProblems(assembledProblems, sessionLength, allProblems, maxHardProblems);
 
-    const deduplicated = deduplicateById(sessionProblems);
+    // Single final filter for paths 4 and fallback (review survivors from above are
+    // already filtered and pass through since they cleared isRecentlyAttempted).
+    const spacedProblems = filterRecentlyAttemptedProblems(assembledProblems);
+    const deduplicated = deduplicateById(spacedProblems);
     const finalSession = deduplicated.slice(0, sessionLength);
 
     const { rebalancedSession } = await checkSafetyGuardRails(finalSession, currentDifficultyCap);
@@ -336,22 +355,27 @@ export const ProblemService = {
     );
     logger.info(`Normalized ${normalizedProblems.length} problems`);
 
-    const totalReviewCount = triggeredReviewsCount + learningReviewsCount + passiveMasteredCount;
+    // Derive review counts from what's actually in the final session.
+    // Reviews have last_attempt_date (previously seen); new problems don't.
+    const triggeredCount = normalizedProblems.filter(p => p.selectionReason?.type === 'triggered_review').length;
+    const passiveCount = normalizedProblems.filter(p => p.selectionReason?.type === 'passive_mastered_review').length;
+    const totalReviewCount = normalizedProblems.filter(p => p.last_attempt_date).length;
+    const learningCount = totalReviewCount - triggeredCount - passiveCount;
     const sessionWithReasons = await this.addProblemReasoningToSession(
       normalizedProblems,
       {
         sessionLength,
         reviewCount: totalReviewCount,
-        triggeredReviewCount: triggeredReviewsCount,
-        learningReviewCount: learningReviewsCount,
-        passiveMasteredCount: passiveMasteredCount,
+        triggeredReviewCount: triggeredCount,
+        learningReviewCount: Math.max(0, learningCount),
+        passiveMasteredCount: passiveCount,
         newCount: normalizedProblems.length - totalReviewCount,
         allowedTags: currentAllowedTags,
         difficultyCap: currentDifficultyCap,
       }
     );
 
-    logFinalSessionComposition(sessionWithReasons, sessionLength, totalReviewCount, triggeredReviewsCount);
+    logFinalSessionComposition(sessionWithReasons, sessionLength, totalReviewCount, triggeredCount);
     return sessionWithReasons;
   },
 
