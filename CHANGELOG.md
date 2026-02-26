@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactored
+- **problemHandlers.js — skip logic extracted into helpers** - Extracted `checkPostSkipCompletion`, `findAndReplaceWithPrerequisite`, and `applySkipReasonEffects` helpers to eliminate deep nesting and a 50-line if/else chain; replaced with a switch statement; reduces `handleSkipProblem` body by ~40 lines
+- **problemHandlers.js — deprecated session query replaced** - Replaced deprecated `getLatestSession()` (full table scan) with `getLatestSessionByType(null, 'in_progress')` (index-based) for both pre- and post-skip session lookups; also fixes a bug where `checkAndCompleteSession` was unreachable when session was empty
+- **problemHandlers.js — simplified leetcodeId extraction** - Removed fallback chain `request.leetcodeId || request.problemData?.leetcode_id || request.consentScriptData?.leetcode_id`; the only live caller (`SkipReason.jsx`) always sends `leetcodeId` directly, and `consentScriptData` was a dead-code typo
+- **problemHandlers.js — removed stale TODOs and unused parameters** - Renamed all `dependencies` params to `_dependencies`; renamed `request` to `_request` where not used; removed 3 stale TODO comments
+- **ProblemTime.jsx — removed dead `_onSkip` function** - `_onSkip` was never called from JSX and was the only sender of the `consentScriptData` typo field; removed it along with the now-unused `navigate` variable and `useNavigate` import
+
 ### Added
 - **Automatic New Problems Per Session** - New "Automatic" option (now the default) for max new problems per session; when selected, empty review slots are backfilled with new problems while explicit numeric settings are always respected regardless of review count — closes the gap where no-review sessions ignored the user's cap
 - **Store user_intent on Attempt Records** - Timer UI's user intent ("solving", "stuck", "completed") now flows through to IndexedDB attempt records when the "Still Working?" prompt was shown; omitted when time limits are off or user solved within the limit
