@@ -108,7 +108,7 @@ const ProbStat = () => {
     refetch,
   } = useChromeMessage({ type: "countProblemsByBoxLevel", forceRefresh: true }, [], {
     onSuccess: (response) => {
-      if (response && response.status === "success") {
+      if (response && response.success) {
         setBoxLevelData(response.data);
         setError(null);
         console.log("📊 Problem stats updated:", response.data);

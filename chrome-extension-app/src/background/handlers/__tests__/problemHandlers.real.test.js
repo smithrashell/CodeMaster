@@ -111,7 +111,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(ProblemService.getProblemByDescription).toHaveBeenCalledWith('two sum', 'two-sum');
-      expect(sendResponse).toHaveBeenCalledWith(problem);
+      expect(sendResponse).toHaveBeenCalledWith({ success: true, ...problem });
       expect(finishRequest).toHaveBeenCalled();
     });
 
@@ -128,7 +128,7 @@ describe('problemHandlers', () => {
       );
       await flush();
 
-      expect(sendResponse).toHaveBeenCalledWith({ error: 'not found' });
+      expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'not found' });
       expect(finishRequest).toHaveBeenCalled();
     });
 
@@ -165,7 +165,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(ProblemService.countProblemsByBoxLevel).toHaveBeenCalled();
-      expect(sendResponse).toHaveBeenCalledWith({ status: 'success', data: counts });
+      expect(sendResponse).toHaveBeenCalledWith({ success: true, data: counts });
       expect(finishRequest).toHaveBeenCalled();
     });
 
@@ -186,7 +186,7 @@ describe('problemHandlers', () => {
       expect(ProblemService.countProblemsByBoxLevelWithRetry).toHaveBeenCalledWith({
         priority: 'high',
       });
-      expect(sendResponse).toHaveBeenCalledWith({ status: 'success', data: counts });
+      expect(sendResponse).toHaveBeenCalledWith({ success: true, data: counts });
     });
 
     it('sends error on rejection', async () => {
@@ -197,7 +197,7 @@ describe('problemHandlers', () => {
       handleCountProblemsByBoxLevel({}, noDeps, sendResponse, finishRequest);
       await flush();
 
-      expect(sendResponse).toHaveBeenCalledWith({ status: 'error', message: 'db error' });
+      expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'db error' });
       expect(finishRequest).toHaveBeenCalled();
     });
   });
@@ -273,7 +273,7 @@ describe('problemHandlers', () => {
       expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(1, { type: 'problemSubmitted' }, expect.any(Function));
       expect(chrome.tabs.sendMessage).toHaveBeenCalledWith(2, { type: 'problemSubmitted' }, expect.any(Function));
       expect(sendResponse).toHaveBeenCalledWith({
-        status: 'success',
+        success: true,
         message: 'Problem submission notification sent',
       });
       expect(finishRequest).toHaveBeenCalled();
@@ -302,7 +302,7 @@ describe('problemHandlers', () => {
       handleSkipProblem({}, noDeps, sendResponse, finishRequest);
       // synchronous path
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'Invalid problem ID' })
+        expect.objectContaining({ success: false, error: 'Invalid problem ID' })
       );
       expect(finishRequest).toHaveBeenCalled();
     });
@@ -324,7 +324,7 @@ describe('problemHandlers', () => {
 
       expect(hasRelationshipsToAttempted).toHaveBeenCalledWith(42);
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ freeSkip: true, skipReason: 'not_relevant' })
+        expect.objectContaining({ success: true, freeSkip: true, skipReason: 'not_relevant' })
       );
       expect(finishRequest).toHaveBeenCalled();
     });
@@ -345,7 +345,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ skipReason: 'other' })
+        expect.objectContaining({ success: true, skipReason: 'other' })
       );
     });
 
@@ -370,7 +370,7 @@ describe('problemHandlers', () => {
       expect(findPrerequisiteProblem).toHaveBeenCalled();
       expect(SessionService.skipProblem).toHaveBeenCalledWith(5);
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ graphUpdated: true, freeSkip: false })
+        expect.objectContaining({ success: true, graphUpdated: true, freeSkip: false })
       );
     });
 
@@ -415,7 +415,7 @@ describe('problemHandlers', () => {
       expect(findPrerequisiteProblem).toHaveBeenCalledWith(5, [5, 6]);
       expect(SessionService.skipProblem).toHaveBeenCalledWith(5, prereq);
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ graphUpdated: true, prerequisite: prereq, replaced: true })
+        expect.objectContaining({ success: true, graphUpdated: true, prerequisite: prereq, replaced: true })
       );
     });
 
@@ -439,7 +439,7 @@ describe('problemHandlers', () => {
       expect(findPrerequisiteProblem).toHaveBeenCalledWith(5, [5, 6]);
       expect(SessionService.skipProblem).toHaveBeenCalledWith(5, prereq);
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ prerequisite: prereq, replaced: true })
+        expect.objectContaining({ success: true, prerequisite: prereq, replaced: true })
       );
     });
 
@@ -500,7 +500,7 @@ describe('problemHandlers', () => {
       expect(weakenRelationshipsForNotRelevant).toHaveBeenCalledWith(10);
       expect(SessionService.skipProblem).toHaveBeenCalledWith(10);
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ graphUpdated: true })
+        expect.objectContaining({ success: true, graphUpdated: true })
       );
     });
 
@@ -540,7 +540,7 @@ describe('problemHandlers', () => {
       expect(weakenRelationshipsForNotRelevant).not.toHaveBeenCalled();
       expect(SessionService.skipProblem).toHaveBeenCalledWith(10);
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ graphUpdated: false })
+        expect.objectContaining({ success: true, graphUpdated: false })
       );
     });
 
@@ -558,7 +558,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ error: 'db down' })
+        expect.objectContaining({ success: false, error: 'db down' })
       );
       expect(finishRequest).toHaveBeenCalled();
     });
@@ -577,7 +577,7 @@ describe('problemHandlers', () => {
       handleGetAllProblems({}, noDeps, sendResponse, finishRequest);
       await flush();
 
-      expect(sendResponse).toHaveBeenCalledWith(problems);
+      expect(sendResponse).toHaveBeenCalledWith({ success: true, data: problems });
       expect(finishRequest).toHaveBeenCalled();
     });
 
@@ -589,7 +589,7 @@ describe('problemHandlers', () => {
       handleGetAllProblems({}, noDeps, sendResponse, finishRequest);
       await flush();
 
-      expect(sendResponse).toHaveBeenCalledWith({ error: 'Failed to retrieve problems' });
+      expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'Failed to retrieve problems' });
     });
   });
 

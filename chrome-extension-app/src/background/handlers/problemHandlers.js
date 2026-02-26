@@ -38,10 +38,10 @@ export function handleGetProblemByDescription(request, _dependencies, sendRespon
     request.description,
     request.slug
   )
-    .then(sendResponse)
+    .then(r => sendResponse({ success: true, ...r }))
     .catch((error) => {
       console.error("❌ Error in getProblemByDescription:", error);
-      sendResponse({ error: error.message || "Problem not found" });
+      sendResponse({ success: false, error: error.message || "Problem not found" });
     })
     .finally(finishRequest);
   return true;
@@ -60,11 +60,11 @@ export function handleCountProblemsByBoxLevel(request, _dependencies, sendRespon
   countProblemsPromise
     .then((counts) => {
       console.log("📊 Background: Problem counts retrieved", counts);
-      sendResponse({ status: "success", data: counts });
+      sendResponse({ success: true, data: counts });
     })
     .catch((error) => {
       console.error("❌ Background: Error counting problems by box level:", error);
-      sendResponse({ status: "error", message: error.message });
+      sendResponse({ success: false, error: error.message });
     })
     .finally(finishRequest);
   return true;
@@ -83,7 +83,7 @@ export function handleAddProblem(request, _dependencies, sendResponse, finishReq
   )
     .catch((error) => {
       console.error('[ERROR]', new Date().toISOString(), '- Error adding problem:', error);
-      sendResponse({ error: "Failed to add problem: " + error.message });
+      sendResponse({ success: false, error: "Failed to add problem: " + error.message });
     })
     .finally(finishRequest);
   return true;
@@ -114,7 +114,7 @@ export function handleProblemSubmitted(_request, _dependencies, sendResponse, fi
       }
     });
   });
-  sendResponse({ status: "success", message: "Problem submission notification sent" });
+  sendResponse({ success: true, message: "Problem submission notification sent" });
   finishRequest();
   return true;
 }
@@ -214,7 +214,7 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
   // Input validation
   if (!leetcodeId) {
     console.error("❌ skipProblem called without valid leetcodeId");
-    sendResponse({ error: "Invalid problem ID", message: "Problem skip failed" });
+    sendResponse({ success: false, error: "Invalid problem ID" });
     finishRequest();
     return true;
   }
@@ -224,6 +224,7 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
   (async () => {
     try {
       const result = {
+        success: true,
         message: "Problem skipped successfully",
         skipReason,
         prerequisite: null,
@@ -241,7 +242,7 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
       // Null guard: if no active session, return error immediately
       if (!session) {
         console.error("❌ No active session found for skip operation");
-        sendResponse({ error: "No active session", message: "Cannot skip - no session found" });
+        sendResponse({ success: false, error: "No active session" });
         return;
       }
 
@@ -257,10 +258,7 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
       sendResponse(result);
     } catch (error) {
       console.error("❌ Error in skipProblem handler:", error);
-      sendResponse({
-        message: "Problem skipped with errors",
-        error: error.message
-      });
+      sendResponse({ success: false, error: error.message });
     } finally {
       finishRequest();
     }
@@ -275,8 +273,8 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
  */
 export function handleGetAllProblems(_request, _dependencies, sendResponse, finishRequest) {
   ProblemService.getAllProblems()
-    .then(sendResponse)
-    .catch(() => sendResponse({ error: "Failed to retrieve problems" }))
+    .then(data => sendResponse({ success: true, data }))
+    .catch(() => sendResponse({ success: false, error: "Failed to retrieve problems" }))
     .finally(finishRequest);
   return true;
 }
