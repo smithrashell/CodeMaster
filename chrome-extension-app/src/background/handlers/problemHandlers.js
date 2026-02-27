@@ -4,12 +4,11 @@
  * Extracted from messageRouter.js to improve maintainability
  * Handles all problem-related message types
  *
- * IMPORTANT: This file was automatically extracted during refactoring
- * All handler logic preserved exactly to maintain behavioral compatibility
- *
- * CRITICAL BEHAVIORS PRESERVED:
+ * CRITICAL BEHAVIORS:
  * - addProblem: Clears 6 dashboard cache keys after adding problem
  * - problemSubmitted: Broadcasts to all tabs for navigation state refresh
+ * - skipProblem: Graph weakening, prerequisite replacement, and session completion
+ *   vary by skip reason (too_difficult / dont_understand / not_relevant / other)
  */
 
 import { ProblemService } from "../../shared/services/problem/problemService.js";
@@ -77,9 +76,7 @@ export function handleCountProblemsByBoxLevel(request, _dependencies, sendRespon
 export function handleAddProblem(request, _dependencies, sendResponse, finishRequest) {
   ProblemService.addOrUpdateProblemWithRetry(
     request.contentScriptData,
-    (response) => {
-      sendResponse(response);
-    }
+    sendResponse
   )
     .catch((error) => {
       console.error('[ERROR]', new Date().toISOString(), '- Error adding problem:', error);
