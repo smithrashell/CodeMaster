@@ -1,16 +1,3 @@
-/**
- * Problem Handler Module
- *
- * Extracted from messageRouter.js to improve maintainability
- * Handles all problem-related message types
- *
- * CRITICAL BEHAVIORS:
- * - addProblem: Clears 6 dashboard cache keys after adding problem
- * - problemSubmitted: Broadcasts to all tabs for navigation state refresh
- * - skipProblem: Graph weakening, prerequisite replacement, and session completion
- *   vary by skip reason (too_difficult / dont_understand / not_relevant / other)
- */
-
 import { ProblemService } from "../../shared/services/problem/problemService.js";
 import { AttemptsService } from "../../shared/services/attempts/attemptsService.js";
 import { getProblemWithOfficialDifficulty } from "../../shared/db/stores/problems.js";
@@ -23,10 +10,6 @@ import {
 import { SessionService } from "../../shared/services/session/sessionService.js";
 import { getLatestSessionByType } from "../../shared/db/stores/sessions.js";
 
-/**
- * Handler: getProblemByDescription
- * Retrieves problem by description and slug
- */
 export function handleGetProblemByDescription(request, _dependencies, sendResponse, finishRequest) {
   console.log(
     "🧼 getProblemByDescription:",
@@ -46,12 +29,7 @@ export function handleGetProblemByDescription(request, _dependencies, sendRespon
   return true;
 }
 
-/**
- * Handler: countProblemsByBoxLevel
- * Counts problems by box level with optional cache invalidation
- */
 export function handleCountProblemsByBoxLevel(request, _dependencies, sendResponse, finishRequest) {
-  // Support cache invalidation for fresh database reads
   const countProblemsPromise = request.forceRefresh ?
     ProblemService.countProblemsByBoxLevelWithRetry({ priority: "high" }) :
     ProblemService.countProblemsByBoxLevel();
@@ -69,10 +47,6 @@ export function handleCountProblemsByBoxLevel(request, _dependencies, sendRespon
   return true;
 }
 
-/**
- * Handler: addProblem
- * Adds or updates a problem with retry logic
- */
 export function handleAddProblem(request, _dependencies, sendResponse, finishRequest) {
   ProblemService.addOrUpdateProblemWithRetry(
     request.contentScriptData,
@@ -86,16 +60,9 @@ export function handleAddProblem(request, _dependencies, sendResponse, finishReq
   return true;
 }
 
-/**
- * Handler: problemSubmitted
- * Notifies all content scripts about problem submission
- *
- * CRITICAL BEHAVIOR: Broadcasts to all tabs to refresh navigation state
- * Uses chrome.tabs.query() and chrome.tabs.sendMessage() for cross-tab communication
- */
+// Broadcasts problemSubmitted to all open tabs — content scripts use this to refresh navigation state.
 export function handleProblemSubmitted(_request, _dependencies, sendResponse, finishRequest) {
   console.log("🔄 Problem submitted - notifying all content scripts to refresh");
-  // Forward the message to all tabs to refresh navigation state
   chrome.tabs.query({}, (tabs) => {
     tabs.forEach((tab) => {
       // Only send to tabs that might have content scripts (http/https URLs)
@@ -116,11 +83,6 @@ export function handleProblemSubmitted(_request, _dependencies, sendResponse, fi
   return true;
 }
 
-/**
- * Checks session completion state after a skip and mutates result accordingly.
- * Always calls checkAndCompleteSession — even when the problems list is empty —
- * so the session can be finalized in either case.
- */
 async function checkPostSkipCompletion(session, result) {
   if (!session) return;
 
@@ -129,6 +91,7 @@ async function checkPostSkipCompletion(session, result) {
     result.sessionEmpty = true;
   }
 
+  // Always runs — session must be finalized even if the problems list is now empty.
   const completionResult = await SessionService.checkAndCompleteSession(session.id);
   if (Array.isArray(completionResult) && completionResult.length === 0) {
     console.log(`✅ Session completed after skip - all remaining problems were already attempted`);
@@ -136,10 +99,6 @@ async function checkPostSkipCompletion(session, result) {
   }
 }
 
-/**
- * Finds a prerequisite for the skipped problem and either replaces it in the
- * session or removes it if no prerequisite exists.
- */
 async function findAndReplaceWithPrerequisite(leetcodeId, session, result) {
   const excludeIds = session.problems?.map(p => p.leetcode_id) || [];
   const prerequisite = await findPrerequisiteProblem(leetcodeId, excludeIds);
@@ -155,10 +114,7 @@ async function findAndReplaceWithPrerequisite(leetcodeId, session, result) {
   }
 }
 
-/**
- * Applies graph and session effects based on the skip reason.
- * All reasons ultimately remove the problem from the session.
- */
+// All skip reasons remove the problem — they differ only in graph effects and prerequisite search.
 async function applySkipReasonEffects(skipReason, leetcodeId, session, result, hasRelationships) {
   switch (skipReason) {
     case 'too_difficult':
@@ -192,23 +148,19 @@ async function applySkipReasonEffects(skipReason, leetcodeId, session, result, h
 }
 
 /**
- * Handler: skipProblem
- * Handles problem skip with reason-based behavior
+ * Skip reasons and their effects (all reasons remove the problem from the session):
+ * - too_difficult:   weaken graph relationships + search for a prerequisite replacement
+ * - dont_understand: search for a prerequisite replacement (no graph penalty)
+ * - not_relevant:    weaken ALL graph connections permanently + remove
+ * - other:           remove only
  *
- * Skip reasons and their actions (all reasons always remove the problem):
- * - "too_difficult": Weaken graph (-0.4, last 5 successes) + find prerequisite replacement
- * - "dont_understand": Find prerequisite problem as replacement (no graph weakening)
- * - "not_relevant": Weaken ALL graph connections (-0.8) — permanent quality signal
- * - "other": No graph effect, just remove
- *
- * Free skip: Problems with zero relationships to attempted problems get no graph penalty
+ * Free skip: problems with no relationships to attempted problems skip graph effects entirely.
  */
 export function handleSkipProblem(request, _dependencies, sendResponse, finishRequest) {
   const leetcodeId = request.leetcodeId;
   const VALID_SKIP_REASONS = ['too_difficult', 'dont_understand', 'not_relevant', 'other'];
   const skipReason = VALID_SKIP_REASONS.includes(request.skipReason) ? request.skipReason : 'other';
 
-  // Input validation
   if (!leetcodeId) {
     console.error("❌ skipProblem called without valid leetcodeId");
     sendResponse({ error: "Invalid problem ID" });
@@ -229,14 +181,11 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
         freeSkip: false
       };
 
-      // Check if this is a "free skip" (no relationships to attempted problems)
       const hasRelationships = await hasRelationshipsToAttempted(leetcodeId);
       result.freeSkip = !hasRelationships;
 
-      // Re-fetch session fresh before making skip decisions (standard in-progress only)
       const session = await getLatestSessionByType(null, 'in_progress');
 
-      // Null guard: if no active session, return error immediately
       if (!session) {
         console.error("❌ No active session found for skip operation");
         sendResponse({ error: "No active session" });
@@ -245,10 +194,7 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
 
       await applySkipReasonEffects(skipReason, leetcodeId, session, result, hasRelationships);
 
-      // After skip, check if session is now effectively complete
-      // (all remaining problems have been attempted).
-      // Run this for ALL paths including "kept" — if the kept problem was
-      // already attempted, the session should complete so a new one generates.
+      // Re-fetch: remaining problems may all now be attempted, which should complete the session.
       const postSkipSession = await getLatestSessionByType(null, 'in_progress');
       await checkPostSkipCompletion(postSkipSession, result);
 
@@ -264,10 +210,6 @@ export function handleSkipProblem(request, _dependencies, sendResponse, finishRe
   return true;
 }
 
-/**
- * Handler: getAllProblems
- * Retrieves all problems from database
- */
 export function handleGetAllProblems(_request, _dependencies, sendResponse, finishRequest) {
   ProblemService.getAllProblems()
     .then(data => sendResponse({ success: true, data }))
@@ -276,10 +218,6 @@ export function handleGetAllProblems(_request, _dependencies, sendResponse, fini
   return true;
 }
 
-/**
- * Handler: getProblemById
- * Retrieves a single problem by ID with official difficulty
- */
 export function handleGetProblemById(request, _dependencies, sendResponse, finishRequest) {
   getProblemWithOfficialDifficulty(request.problemId)
     .then((problemData) => sendResponse({ success: true, data: problemData }))
@@ -291,10 +229,6 @@ export function handleGetProblemById(request, _dependencies, sendResponse, finis
   return true;
 }
 
-/**
- * Handler: getProblemAttemptStats
- * Retrieves attempt statistics for a problem
- */
 export function handleGetProblemAttemptStats(request, _dependencies, sendResponse, finishRequest) {
   AttemptsService.getProblemAttemptStats(request.problemId)
     .then((stats) => sendResponse({ success: true, data: stats }))
@@ -306,7 +240,6 @@ export function handleGetProblemAttemptStats(request, _dependencies, sendRespons
   return true;
 }
 
-// Export handler registry for problem-related messages
 export const problemHandlers = {
   'getProblemByDescription': handleGetProblemByDescription,
   'countProblemsByBoxLevel': handleCountProblemsByBoxLevel,
