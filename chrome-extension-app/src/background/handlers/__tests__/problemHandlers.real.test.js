@@ -128,7 +128,7 @@ describe('problemHandlers', () => {
       );
       await flush();
 
-      expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'not found' });
+      expect(sendResponse).toHaveBeenCalledWith({ error: 'not found' });
       expect(finishRequest).toHaveBeenCalled();
     });
 
@@ -197,7 +197,7 @@ describe('problemHandlers', () => {
       handleCountProblemsByBoxLevel({}, noDeps, sendResponse, finishRequest);
       await flush();
 
-      expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'db error' });
+      expect(sendResponse).toHaveBeenCalledWith({ error: 'db error' });
       expect(finishRequest).toHaveBeenCalled();
     });
   });
@@ -302,7 +302,7 @@ describe('problemHandlers', () => {
       handleSkipProblem({}, noDeps, sendResponse, finishRequest);
       // synchronous path
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, error: 'Invalid problem ID' })
+        expect.objectContaining({ error: 'Invalid problem ID' })
       );
       expect(finishRequest).toHaveBeenCalled();
     });
@@ -558,7 +558,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(sendResponse).toHaveBeenCalledWith(
-        expect.objectContaining({ success: false, error: 'db down' })
+        expect.objectContaining({ error: 'db down' })
       );
       expect(finishRequest).toHaveBeenCalled();
     });
@@ -589,7 +589,7 @@ describe('problemHandlers', () => {
       handleGetAllProblems({}, noDeps, sendResponse, finishRequest);
       await flush();
 
-      expect(sendResponse).toHaveBeenCalledWith({ success: false, error: 'Failed to retrieve problems' });
+      expect(sendResponse).toHaveBeenCalledWith({ error: 'Failed to retrieve problems' });
     });
   });
 
