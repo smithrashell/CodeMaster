@@ -3,7 +3,7 @@
  * Extracted from ProblemGenerator.jsx
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import logger from "../../../shared/utils/logging/logger.js";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
@@ -145,8 +145,8 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
         // Keep the current interview session type
         sessionType = currentSessionType;
       } else if (freshSettings?.interviewMode &&
-          freshSettings.interviewMode !== 'disabled' &&
-          freshSettings.interviewFrequency !== 'manual') {
+        freshSettings.interviewMode !== 'disabled' &&
+        freshSettings.interviewFrequency !== 'manual') {
         // Use settings if auto-interview is enabled
         sessionType = freshSettings.interviewMode;
       }
@@ -228,15 +228,15 @@ export const useSessionLoader = (options) => {
       type: "getOrCreateSession",
       ...(_manualSessionTypeOverride && { session_type: _manualSessionTypeOverride }),
       ...(settings?.interviewMode &&
-          settings.interviewMode !== 'disabled' &&
-          settings.interviewFrequency !== 'manual' &&
-          !_manualSessionTypeOverride &&
-          { session_type: settings.interviewMode }),
+        settings.interviewMode !== 'disabled' &&
+        settings.interviewFrequency !== 'manual' &&
+        !_manualSessionTypeOverride &&
+        { session_type: settings.interviewMode }),
       ...(settings?.interviewMode &&
-          settings.interviewMode !== 'disabled' &&
-          cacheClearedRecently &&
-          !_manualSessionTypeOverride &&
-          { session_type: settings.interviewMode })
+        settings.interviewMode !== 'disabled' &&
+        cacheClearedRecently &&
+        !_manualSessionTypeOverride &&
+        { session_type: settings.interviewMode })
     },
     [settings, settingsLoaded, _manualSessionTypeOverride],
     {
@@ -321,6 +321,12 @@ export const useSessionLoader = (options) => {
  */
 export const useSessionCacheListener = (setters, sessionCreationAttempted, setCacheClearedRecently, triggerSessionRefresh) => {
   const { setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner } = setters;
+  const triggerRefeshRef = useRef(triggerSessionRefresh);
+
+  useEffect(() => { triggerRefeshRef.current = triggerSessionRefresh; }, [triggerSessionRefresh]);
+
+
+
   useEffect(() => {
     const handleSessionCacheCleared = () => {
       logger.info("ProblemGenerator: Received session cache cleared signal, resetting session state");
@@ -336,9 +342,7 @@ export const useSessionCacheListener = (setters, sessionCreationAttempted, setCa
     const handleProblemSubmitted = () => {
       logger.info("ProblemGenerator: Received problemSubmitted, refreshing session from database");
       // Refetch session from database to get updated attempted status
-      if (triggerSessionRefresh) {
-        triggerSessionRefresh();
-      }
+      triggerRefeshRef.current?.();
     };
 
     const messageListener = (message, _sender, sendResponse) => {
@@ -360,5 +364,5 @@ export const useSessionCacheListener = (setters, sessionCreationAttempted, setCa
         chrome.runtime.onMessage.removeListener(messageListener);
       }
     };
-  }, [setters, sessionCreationAttempted, setCacheClearedRecently, triggerSessionRefresh, setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner]);
+  }, []);
 };
