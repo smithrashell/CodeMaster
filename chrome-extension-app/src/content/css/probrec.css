@@ -2443,15 +2443,15 @@ button.tag-strategy-button-expanded,
 .cm-extension .skip-reason-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 8px 0;
+  gap: 12px;
+  padding: 4px 0;
 }
 
 .cm-extension .skip-reason-prompt {
   font-size: 14px;
   color: var(--cm-text);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .cm-extension .skip-reason-prompt strong {
@@ -2461,14 +2461,14 @@ button.tag-strategy-button-expanded,
 .cm-extension .skip-reason-options {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .cm-extension .skip-reason-option {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
   border: 1px solid var(--cm-border);
   border-radius: 8px;
   background-color: var(--cm-card-bg);
@@ -2489,7 +2489,7 @@ button.tag-strategy-button-expanded,
 }
 
 .cm-extension .skip-reason-emoji {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -2536,7 +2536,7 @@ button.tag-strategy-button-expanded,
 .cm-extension .skip-reason-actions {
   display: flex;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .cm-extension .skip-reason-cancel-btn {
@@ -2570,6 +2570,36 @@ button.tag-strategy-button-expanded,
   border-radius: 6px;
   margin: 0;
   line-height: 1.4;
+}
+
+/* Compact skip reason for short viewports */
+@media screen and (max-height: 700px) {
+  .cm-extension .skip-reason-container {
+    gap: 8px;
+    padding: 2px 0;
+  }
+
+  .cm-extension .skip-reason-options {
+    gap: 4px;
+  }
+
+  .cm-extension .skip-reason-option {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .cm-extension .skip-reason-emoji {
+    font-size: 16px;
+  }
+
+  .cm-extension .skip-reason-actions {
+    margin-top: 2px;
+  }
+
+  .cm-extension .skip-reason-hint {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
 }
 
 

@@ -635,9 +635,9 @@ describe('updateProblemsWithRating', () => {
 
     const all = await readAll(testDb.db, 'problems');
     const byId = Object.fromEntries(all.map(p => [p.problem_id, p]));
-    expect(byId['rp-1'].Rating).toBe('Easy');
-    expect(byId['rp-2'].Rating).toBe('Hard');
-    expect(byId['rp-3'].Rating).toBeUndefined();
+    expect(byId['rp-1'].difficulty).toBe('Easy');
+    expect(byId['rp-2'].difficulty).toBe('Hard');
+    expect(byId['rp-3'].difficulty).toBeUndefined();
   });
 
   it('handles empty standard_problems gracefully', async () => {
@@ -651,7 +651,7 @@ describe('updateProblemsWithRating', () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     const all = await readAll(testDb.db, 'problems');
-    expect(all[0].Rating).toBeUndefined();
+    expect(all[0].difficulty).toBeUndefined();
   });
 });
 
@@ -712,7 +712,7 @@ describe('getProblemWithOfficialDifficulty', () => {
         problem_id: 'off-2',
         leetcode_id: 200,
         title: 'user only',
-        Rating: 'Hard',
+        difficulty: 'Hard',
         tags: ['string'],
       }),
     ]);

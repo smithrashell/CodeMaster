@@ -29,7 +29,7 @@ function SimilarProblemItem({ problem, index: _index, isLast }) {
     >
       <span style={{ fontSize: "10px" }}>•</span>
       <span style={{ flex: 1 }}>
-        {problem.title || problem.problemDescription}
+        {problem.title}
       </span>
       {problem.difficulty && (
         <span

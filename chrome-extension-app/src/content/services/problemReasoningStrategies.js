@@ -98,17 +98,17 @@ export class TagWeaknessStrategy extends ReasoningStrategy {
   applies(problem, _sessionContext, _userPerformance) {
     const problemTags = problem.tags || problem.Tags || [];
     const primaryTag = problemTags.length > 0 ? problemTags[0] : null;
-    
+
     return primaryTag &&
-           _userPerformance.weakTags &&
-           _userPerformance.weakTags.includes(primaryTag.toLowerCase());
+      _userPerformance.weakTags &&
+      _userPerformance.weakTags.includes(primaryTag.toLowerCase());
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
     const problemTags = problem.tags || problem.Tags || [];
     const primaryTag = problemTags[0];
     const tagAccuracy = _userPerformance.tagAccuracy?.[primaryTag.toLowerCase()] || 0;
-    
+
     return {
       type: REASON_TYPES.TAG_WEAKNESS,
       details: {
@@ -140,16 +140,16 @@ export class NewTagIntroductionStrategy extends ReasoningStrategy {
   applies(problem, _sessionContext, _userPerformance) {
     const problemTags = problem.tags || problem.Tags || [];
     const primaryTag = problemTags.length > 0 ? problemTags[0] : null;
-    
+
     return primaryTag &&
-           _userPerformance.newTags &&
-           _userPerformance.newTags.includes(primaryTag.toLowerCase());
+      _userPerformance.newTags &&
+      _userPerformance.newTags.includes(primaryTag.toLowerCase());
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
     const problemTags = problem.tags || problem.Tags || [];
     const primaryTag = problemTags[0];
-    
+
     return {
       type: REASON_TYPES.NEW_TAG_INTRODUCTION,
       details: {
@@ -175,10 +175,10 @@ export class DifficultyProgressionStrategy extends ReasoningStrategy {
   }
 
   applies(problem, _sessionContext, _userPerformance) {
-    return _sessionContext.difficultyProgression && 
-           problem.difficulty &&
-           _sessionContext.targetDifficulty &&
-           problem.difficulty.toLowerCase() === _sessionContext.targetDifficulty.toLowerCase();
+    return _sessionContext.difficultyProgression &&
+      problem.difficulty &&
+      _sessionContext.targetDifficulty &&
+      problem.difficulty.toLowerCase() === _sessionContext.targetDifficulty.toLowerCase();
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
@@ -268,7 +268,7 @@ export class PatternReinforcementStrategy extends ReasoningStrategy {
   applies(problem, _sessionContext, _userPerformance) {
     const problemTags = problem.tags || problem.Tags || [];
     const primaryTag = problemTags.length > 0 ? problemTags[0] : null;
-    
+
     return _sessionContext.patternReinforcement && primaryTag;
   }
 
@@ -276,7 +276,7 @@ export class PatternReinforcementStrategy extends ReasoningStrategy {
     const problemTags = problem.tags || problem.Tags || [];
     const primaryTag = problemTags[0];
     const successRate = _userPerformance.tagAccuracy?.[primaryTag.toLowerCase()] || 0;
-    
+
     return {
       type: REASON_TYPES.PATTERN_REINFORCEMENT,
       details: {
@@ -302,13 +302,13 @@ export class NewProblemStrategy extends ReasoningStrategy {
   }
 
   applies(problem, _sessionContext, _userPerformance) {
-    // New problem = no attempt_stats or zero attempts
+
     return !problem.attempt_stats || problem.attempt_stats.total_attempts === 0;
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
     const problemTags = problem.tags || problem.Tags || [];
-    
+
     return {
       type: REASON_TYPES.NEW_PROBLEM,
       details: {
@@ -330,14 +330,14 @@ export class ReviewProblemStrategy extends ReasoningStrategy {
   }
 
   applies(problem, _sessionContext, _userPerformance) {
-    // Review problem = has attempt_stats with at least one attempt
+
     return !!(problem.attempt_stats && problem.attempt_stats.total_attempts > 0);
   }
 
   generateReason(problem, _sessionContext, _userPerformance) {
     const daysSinceLastAttempt = this.calculateDaysSinceLastAttempt(problem);
 
-    // Get total attempts from attempt_stats
+
     const totalAttempts = problem.attempt_stats?.total_attempts || 0;
 
     return {

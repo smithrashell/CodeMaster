@@ -39,7 +39,7 @@ export async function enrichSessionsWithHintCounts(sessions) {
   const sessionsWithHints = await Promise.all(
     sessions.map(async (session) => {
       try {
-        const sessionId = session.id || session.sessionId || session.SessionID;
+        const sessionId = session.id;
         if (!sessionId) {
           return { ...session, hintsUsed: 0 };
         }
@@ -115,7 +115,7 @@ export function applyFiltering({ allProblems, allAttempts, allSessions, problemT
     });
 
     filteredProblems = allProblems.filter(p => filteredProblemIds.has(p.problem_id));
-    filteredAttempts = allAttempts.filter(a => filteredProblemIds.has(a.problem_id || a.ProblemID));
+    filteredAttempts = allAttempts.filter(a => filteredProblemIds.has(a.problem_id));
   }
 
   if (dateRange && (dateRange.startDate || dateRange.endDate)) {
@@ -123,7 +123,7 @@ export function applyFiltering({ allProblems, allAttempts, allSessions, problemT
     const endDate = dateRange.endDate ? new Date(dateRange.endDate) : new Date();
 
     filteredAttempts = filteredAttempts.filter(attempt => {
-      const attemptDate = new Date(attempt.attempt_date || attempt.AttemptDate);
+      const attemptDate = new Date(attempt.attempt_date);
       return attemptDate >= startDate && attemptDate <= endDate;
     });
 
@@ -179,10 +179,10 @@ export function calculateCoreStatistics(filteredProblems, filteredAttempts, prob
 
   // Calculate time and success statistics by difficulty (support both snake_case and PascalCase)
   filteredAttempts.forEach((attempt) => {
-    const problemId = attempt.problem_id || attempt.ProblemID;
+    const problemId = attempt.problem_id;
     const officialDifficulty = problemDifficultyMap[problemId];
-    const timeSpent = Number(attempt.time_spent || attempt.TimeSpent) || 0;
-    const success = attempt.success !== undefined ? attempt.success : attempt.Success;
+    const timeSpent = Number(attempt.time_spent) || 0;
+    const success = attempt.success;
 
     // Update overall statistics
     timeStats.overall.totalTime += timeSpent;
@@ -252,9 +252,9 @@ export function calculateStrategySuccessRate(sessions, attempts) {
 
   const guidedSessionIds = new Set(guidedSessions.map(s => s.id));
 
-  const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.session_id || a.SessionID));
+  const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.session_id));
 
-  const guidedSuccess = guidedAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length;
+  const guidedSuccess = guidedAttempts.filter(a => a.success).length;
 
   // Return a simple number for the KPI card - overall guided session success rate
   return guidedAttempts.length > 0 ? Math.round((guidedSuccess / guidedAttempts.length) * 100) : 0;

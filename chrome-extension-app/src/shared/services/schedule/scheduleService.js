@@ -90,7 +90,7 @@ export async function getDailyReviewSchedule(maxProblems = null) {
     console.log(
       `✅ Final Review Set: ${finalReviewProblems.length} problems (${maxProblems !== null ? `limited to ${maxProblems}` : 'all due problems'})`,
       finalReviewProblems.map((p) => ({
-        title: p.title || p.ProblemDescription,
+        title: p.title,
         tags: p.tags || p.Tags,
         leetcode_id: p.leetcode_id,
         review_schedule: p.review_schedule || p.ReviewSchedule

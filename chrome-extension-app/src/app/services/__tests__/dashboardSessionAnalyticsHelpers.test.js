@@ -97,10 +97,10 @@ describe("dashboardSessionAnalyticsHelpers", () => {
       expect(result.allSessions[0].sessionId).toBe("session_1");
     });
 
-    it("supports PascalCase attempt fields", () => {
+    it("supports snake_case attempt fields", () => {
       const sessions = [{ id: "s1", date: "2025-01-15T10:00:00Z" }];
       const attempts = [
-        { SessionID: "s1", Success: true, TimeSpent: 600 }
+        { session_id: "s1", success: true, time_spent: 600 }
       ];
 
       const result = generateSessionAnalytics(sessions, attempts);

@@ -588,7 +588,7 @@ export async function updateProblemsWithRating() {
         logger.info("difficulty:", difficulty);
         logger.info("problem:", problem.leetcode_id);
         if (difficulty) {
-          problem.Rating = difficulty;
+          problem.difficulty = difficulty;
           problemStore.put(problem);
         }
       }
@@ -672,8 +672,8 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
         leetcode_id: userProblem?.leetcode_id || leetCodeID,
         problemId: userProblem?.problem_id,
         title: userProblem?.title,
-        difficulty: userProblem?.difficulty || userProblem?.Rating || "Unknown",
-        tags: userProblem?.tags || userProblem?.Tags || [],
+        difficulty: userProblem?.difficulty || "Unknown",
+        tags: userProblem?.tags || [],
         boxLevel: userProblem?.box_level,
         reviewSchedule: userProblem?.review_schedule,
         cooldownStatus: userProblem?.cooldown_status,
@@ -688,8 +688,8 @@ export async function getProblemWithOfficialDifficulty(leetCodeID) {
       id: userProblem?.leetcode_id || leetCodeID,
       leetcode_id: userProblem?.leetcode_id || leetCodeID,
       problemId: userProblem?.problem_id,
-      difficulty: standardProblem.difficulty || userProblem?.difficulty || userProblem?.Rating || "Unknown",
-      tags: standardProblem.tags || userProblem?.tags || userProblem?.Tags || [],
+      difficulty: standardProblem.difficulty || userProblem?.difficulty || "Unknown",
+      tags: standardProblem.tags || userProblem?.tags || [],
       title: standardProblem.title || userProblem?.title,
       boxLevel: userProblem?.box_level,
       reviewSchedule: userProblem?.review_schedule,

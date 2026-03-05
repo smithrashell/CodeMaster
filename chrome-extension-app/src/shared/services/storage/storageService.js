@@ -121,6 +121,7 @@ export const StorageService = {
       reminder: { value: false, label: "6" },
       numberofNewProblemsPerSession: 'auto',
       adaptive: true,
+      maxDifficulty: 'all',
       focusAreas: [], // Empty by default - system will recommend based on learning state
       systemFocusPool: null, // Stable system-generated focus pool (created on first session)
       focusAreasLastChanged: null, // Timestamp when user last changed focus areas (for session staleness detection)

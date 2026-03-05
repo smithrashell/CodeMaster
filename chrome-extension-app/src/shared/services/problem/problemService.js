@@ -130,7 +130,7 @@ export const ProblemService = {
             id: problemInProblems?.leetcode_id || problem.id,
             leetcode_id: problemInProblems?.leetcode_id || problem.id,
             problemId: problemInProblems?.problem_id,
-            difficulty: problem.difficulty || problemInProblems?.difficulty || problemInProblems?.Rating || "Unknown",
+            difficulty: problem.difficulty || problemInProblems?.difficulty || "Unknown",
             tags: problem.tags || problemInProblems?.tags || problemInProblems?.Tags || [],
             title: problem.title || problemInProblems?.title,
             boxLevel: problemInProblems?.box_level,

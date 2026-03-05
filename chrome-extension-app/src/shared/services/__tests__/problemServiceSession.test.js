@@ -42,7 +42,9 @@ jest.mock('../../utils/session/sessionBalancing.js', () => ({
 jest.mock('../schedule/scheduleService.js', () => ({
   ScheduleService: {
     getDailyReviewSchedule: jest.fn()
-  }
+  },
+  isRecentlyAttempted: jest.fn().mockReturnValue(false),
+  isDueForReview: jest.fn().mockReturnValue(true),
 }));
 jest.mock('../storage/storageService.js', () => ({
   StorageService: {

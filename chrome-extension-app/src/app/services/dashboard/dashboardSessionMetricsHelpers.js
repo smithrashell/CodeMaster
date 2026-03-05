@@ -15,7 +15,7 @@ export function calculateSessionTypeMetrics(sessions, attempts, type) {
   const activeSessions = sessions.filter(s => s.status === 'in_progress');
 
   const successfulAttempts = attempts.filter(a => {
-    const success = a.success !== undefined ? a.success : a.Success;
+    const success = a.success;
     return success === true || success === 1;
   });
   const successRate = attempts.length > 0 ?
@@ -29,7 +29,7 @@ export function calculateSessionTypeMetrics(sessions, attempts, type) {
   const completionRate = type === 'guided' && sessions.length > 0 ?
     Math.round((completedSessions.length / sessions.length) * 100) : null;
 
-  const totalTimeSpent = attempts.reduce((sum, a) => sum + (a.time_spent || a.TimeSpent || 0), 0);
+  const totalTimeSpent = attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0);
   const avgTimePerProblem = attempts.length > 0 ?
     Math.round(totalTimeSpent / attempts.length) : 0;
 
@@ -68,7 +68,7 @@ export function calculateTrackingAdoptionMetrics(sessions, attempts) {
 
   if (!hasGuided) {
     const trackingAttempts = attempts.filter(a => {
-      const sessionId = a.session_id || a.SessionID;
+      const sessionId = a.session_id;
       return sessions.find(s => s.id === sessionId && s.session_type === 'tracking');
     });
 
@@ -191,8 +191,8 @@ export async function getSessionMetrics(options = {}) {
     const guidedSessionIds = new Set(guidedSessions.map(s => s.id));
     const trackingSessionIds = new Set(trackingSessions.map(s => s.id));
 
-    const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.session_id || a.SessionID));
-    const trackingAttempts = attempts.filter(a => trackingSessionIds.has(a.session_id || a.SessionID));
+    const guidedAttempts = attempts.filter(a => guidedSessionIds.has(a.session_id));
+    const trackingAttempts = attempts.filter(a => trackingSessionIds.has(a.session_id));
 
     // Calculate metrics for guided sessions
     const guidedMetrics = calculateSessionTypeMetrics(guidedSessions, guidedAttempts, 'guided');

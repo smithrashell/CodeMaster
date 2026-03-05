@@ -58,11 +58,6 @@ const generateMockSessions = (userType = "active") => {
       averageTime: 25 + Math.random() * 25, // 25-50 minutes average
       completed: true,
       timestamp: sessionDate.getTime(),
-      // Add fields expected by DataAdapter
-      Date: sessionDate.toISOString(), // Capital D for getProblemActivityData
-      SessionDate: sessionDate.toISOString(),
-      ProblemsAttempted: problemsInSession,
-      ProblemsCompleted: successfulCount,
       attempts: sessionAttempts, // Array of attempts for getProblemActivityData
     });
   }
@@ -119,16 +114,13 @@ const generateMockAttempts = (sessions, userType = "active") => {
 
       attempts.push({
         id: attemptId++,
-        ProblemID: problemId,
-        SessionID: session.id,
-        Success: isSuccess,
-        TimeSpent: Math.floor(timeSpent * 60), // Convert to seconds
-        Difficulty: difficulty,
-        AttemptDate: session.Date,
-        timestamp: new Date(session.Date).getTime(),
-        // Additional fields that might be expected
-        AttemptDateTime: session.Date,
-        problemId: problemId,
+        problem_id: problemId,
+        session_id: session.id,
+        success: isSuccess,
+        time_spent: Math.floor(timeSpent * 60), // Convert to seconds
+        difficulty: difficulty,
+        attempt_date: session.date,
+        timestamp: new Date(session.date).getTime(),
       });
     }
   });
@@ -141,7 +133,7 @@ const generateMockAttempts = (sessions, userType = "active") => {
  */
 const generateMockProblems = (attempts, userType = "active") => {
   const problems = [];
-  const uniqueProblemIds = [...new Set(attempts.map((a) => a.ProblemID))];
+  const uniqueProblemIds = [...new Set(attempts.map((a) => a.problem_id))];
 
   // Box level distribution by user type
   const boxDistributions = {
@@ -165,26 +157,19 @@ const generateMockProblems = (attempts, userType = "active") => {
       }
     }
 
-    const relatedAttempts = attempts.filter((a) => a.ProblemID === problemId);
+    const relatedAttempts = attempts.filter((a) => a.problem_id === problemId);
     const lastAttempt = relatedAttempts[relatedAttempts.length - 1];
 
     problems.push({
       id: problemId,
       leetCodeID: Math.floor(Math.random() * 2000) + 1,
       title: `Problem ${problemId.split("_")[2] || problemId.split("_")[1]}`,
-      difficulty: lastAttempt?.Difficulty || "Medium",
-      BoxLevel: boxLevel,
-      lastAttempted: lastAttempt?.AttemptDate || new Date().toISOString(),
-      // Fields expected by promotion data function
-      Tags: [`tag_${Math.floor(Math.random() * 20) + 1}`],
-      Rating: Math.floor(Math.random() * 1000) + 1000, // Random rating 1000-2000
-      // Additional fields that might be expected
-      ProblemTitle: `Problem ${
-        problemId.split("_")[2] || problemId.split("_")[1]
-      }`,
+      difficulty: lastAttempt?.difficulty || "Medium",
+      box_level: boxLevel,
+      lastAttempted: lastAttempt?.attempt_date || new Date().toISOString(),
+      tags: [`tag_${Math.floor(Math.random() * 20) + 1}`],
       total_attempts: relatedAttempts.length,
-      successful_attempts: relatedAttempts.filter((a) => a.Success).length,
-      tags: [`tag_${Math.floor(Math.random() * 20) + 1}`], // Legacy field
+      successful_attempts: relatedAttempts.filter((a) => a.success).length,
     });
   });
 
@@ -319,17 +304,17 @@ const generatePromotionData = (granularity = "weekly") => {
  */
 const calculateStatistics = (problems) => {
   const statistics = {
-    totalSolved: problems.filter((p) => p.BoxLevel >= 2).length,
-    mastered: problems.filter((p) => p.BoxLevel === 7).length,
-    inProgress: problems.filter((p) => p.BoxLevel >= 2 && p.BoxLevel <= 6)
+    totalSolved: problems.filter((p) => p.box_level >= 2).length,
+    mastered: problems.filter((p) => p.box_level === 7).length,
+    inProgress: problems.filter((p) => p.box_level >= 2 && p.box_level <= 6)
       .length,
-    new: problems.filter((p) => p.BoxLevel === 1).length,
+    new: problems.filter((p) => p.box_level === 1).length,
   };
 
   // Calculate box level distribution
   const boxLevelData = {};
   for (let i = 1; i <= 7; i++) {
-    boxLevelData[i] = problems.filter((p) => p.BoxLevel === i).length;
+    boxLevelData[i] = problems.filter((p) => p.box_level === i).length;
   }
 
   return { statistics, boxLevelData };
@@ -354,24 +339,24 @@ const calculatePerformanceMetrics = (attempts) => {
   };
 
   attempts.forEach((attempt) => {
-    const difficulty = attempt.Difficulty;
-    const timeSpent = attempt.TimeSpent;
+    const diff = attempt.difficulty;
+    const timeSpent = attempt.time_spent;
 
     timeStats.overall.totalTime += timeSpent;
     timeStats.overall.count++;
     successStats.overall.total++;
 
-    if (attempt.Success) {
+    if (attempt.success) {
       successStats.overall.successful++;
     }
 
-    if (timeStats[difficulty]) {
-      timeStats[difficulty].totalTime += timeSpent;
-      timeStats[difficulty].count++;
-      successStats[difficulty].total++;
+    if (timeStats[diff]) {
+      timeStats[diff].totalTime += timeSpent;
+      timeStats[diff].count++;
+      successStats[diff].total++;
 
-      if (attempt.Success) {
-        successStats[difficulty].successful++;
+      if (attempt.success) {
+        successStats[diff].successful++;
       }
     }
   });

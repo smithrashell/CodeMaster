@@ -14,7 +14,7 @@ jest.mock('../problemServiceHelpers.js', () => ({
     normalizeReviewProblem: jest.fn(p => ({
         ...p,
         id: p.id || p.leetcode_id,
-        difficulty: p.difficulty || p.Rating || 'Easy',
+        difficulty: p.difficulty || 'Easy',
         _normalized: true
     }))
 }));
@@ -38,8 +38,8 @@ describe('addFallbackProblems Hard Cap Enforcement', () => {
         const allProblems = [
             // Problem 1: Hard (using 'difficulty')
             { id: 1, leetcode_id: 1, title: 'Hard 1', difficulty: 'Hard', tags: ['array'], review_schedule: '2025-01-01' },
-            // Problem 2: Hard (using 'Rating') - This is where the bypass was occurring
-            { id: 2, leetcode_id: 2, title: 'Hard 2', Rating: 'Hard', tags: ['array'], review_schedule: '2025-01-02' },
+            // Problem 2: Hard (using 'difficulty') - Previously used 'Rating' which caused a bypass
+            { id: 2, leetcode_id: 2, title: 'Hard 2', difficulty: 'Hard', tags: ['array'], review_schedule: '2025-01-02' },
             // Problem 3: Hard (using difficulty: 3)
             { id: 3, leetcode_id: 3, title: 'Hard 3', difficulty: 3, tags: ['array'], review_schedule: '2025-01-03' },
             // Problem 4: Easy
@@ -51,7 +51,7 @@ describe('addFallbackProblems Hard Cap Enforcement', () => {
         // Mock enrichment
         enrichReviewProblem.mockImplementation(p => Promise.resolve({
             ...p,
-            difficulty: p.difficulty || p.Rating || 'Easy',
+            difficulty: p.difficulty || 'Easy',
             tags: p.tags || ['array']
         }));
 
@@ -59,7 +59,7 @@ describe('addFallbackProblems Hard Cap Enforcement', () => {
 
         // Verify count of Hard problems
         const hardProblemsAdded = sessionProblems.filter(p =>
-            p.difficulty === 'Hard' || p.difficulty === 3 || p.Rating === 'Hard'
+            p.difficulty === 'Hard' || p.difficulty === 3
         );
 
         expect(hardProblemsAdded.length).toBeLessThanOrEqual(maxHardProblems);

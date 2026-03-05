@@ -6,7 +6,7 @@ export function calculateStudyStreak(sessions) {
   const uniqueDates = [...new Set(
     sessions
       .filter(s => s.status === 'completed')
-      .map(s => new Date(s.date || s.Date).toDateString())
+      .map(s => new Date(s.date).toDateString())
   )].sort((a, b) => new Date(b) - new Date(a));
 
   if (uniqueDates.length === 0) return 0;

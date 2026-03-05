@@ -378,6 +378,17 @@ export function createUserActionsStore(db) {
 }
 
 /**
+ * Creates the excluded_problems store for permanent not-relevant exclusions
+ * @param {IDBDatabase} db - Database instance
+ */
+export function createExcludedProblemsStore(db) {
+  if (!db.objectStoreNames.contains("excluded_problems")) {
+    db.createObjectStore("excluded_problems", { keyPath: "leetcode_id" });
+    console.info("✅ Excluded problems store created!");
+  }
+}
+
+/**
  * Creates the error_reports store for error reporting
  * @param {IDBDatabase} db - Database instance
  */
@@ -542,5 +553,10 @@ export const STORES = [
     name: 'backup_storage',
     options: { keyPath: 'backupId' },
     indexes: [['by_backupId', 'backupId']],
+  },
+  {
+    name: 'excluded_problems',
+    options: { keyPath: 'leetcode_id' },
+    indexes: [],
   },
 ];

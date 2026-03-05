@@ -1,5 +1,5 @@
-import { Card, Title, Group, Stack, Text, Select, Badge, Alert } from "@mantine/core";
-import { IconShield, IconInfoCircle } from "@tabler/icons-react";
+import { Card, Title, Group, Stack, Text, Select, Badge } from "@mantine/core";
+import { IconShield } from "@tabler/icons-react";
 import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
 import { useEffect } from "react";
 
@@ -90,13 +90,21 @@ export function GuardrailsSection({
           )}
         </div>
 
-        <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
-          <Text size="sm" fw={500} mb={4}>Adaptive Difficulty Progression</Text>
-          <Text size="xs">
-            The system automatically progresses from Easy → Medium → Hard based on your performance.
-            This ensures you&apos;re always challenged appropriately while building solid foundations.
+        <div>
+          <Text size="sm" fw={500} mb="xs">Max difficulty</Text>
+          <Select
+            value={guardrails.maxDifficulty || 'all'}
+            onChange={(value) => onGuardrailChange('maxDifficulty', value)}
+            data={[
+              { value: 'all', label: 'All difficulties (Easy, Medium, Hard)' },
+              { value: 'Medium', label: 'Easy & Medium only' },
+              { value: 'Easy', label: 'Easy only' }
+            ]}
+          />
+          <Text size="xs" mt="xs">
+            The system adapts difficulty progression up to this ceiling.
           </Text>
-        </Alert>
+        </div>
       </Stack>
     </Card>
   );

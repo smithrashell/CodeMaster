@@ -9,7 +9,7 @@ export const createCacheKey = (sessions, range, functionName) => {
   if (!Array.isArray(sessions)) return null;
 
   const sessionHash = sessions.reduce((hash, session, index) => {
-    const sessionDate = session.Date || session.date || session.created_date;
+    const sessionDate = session.date;
     const attemptsCount = session.attempts?.length || 0;
     return hash + sessionDate + attemptsCount + index;
   }, '');

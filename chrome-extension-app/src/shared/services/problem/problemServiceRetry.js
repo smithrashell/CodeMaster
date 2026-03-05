@@ -216,7 +216,7 @@ export async function generateSessionWithRetry(
     if (difficulty && difficulty !== "Any") {
       filteredProblems = filteredProblems.filter(
         (problem) =>
-          problem.difficulty === difficulty || problem.Rating === difficulty
+          problem.difficulty === difficulty
       );
     }
 

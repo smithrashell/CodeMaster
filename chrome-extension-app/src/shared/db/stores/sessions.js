@@ -67,6 +67,7 @@ export const getSessionById = async (session_id) => {
  * Fetches the latest session by date.
  * @deprecated Use getLatestSessionByType() for better performance
  */
+// TODO : deleted this function and remove all refences
 export const getLatestSession = async () => {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -83,8 +84,8 @@ export const getLatestSession = async () => {
       }
 
       const sortedSessions = allSessions.sort((a, b) => {
-        const dateA = new Date(a.date || a.created_date || a.Date || 0);
-        const dateB = new Date(b.date || b.created_date || b.Date || 0);
+        const dateA = new Date(a.date || a.created_date || 0);
+        const dateB = new Date(b.date || b.created_date || 0);
         return dateB - dateA;
       });
       const result = sortedSessions[0];
@@ -151,7 +152,7 @@ export const getLatestSessionByType = async (session_type = null, status = null)
 
         const latestSession = filteredSessions[0] || null;
         if (latestSession) {
-          logger.info(`Found matching ${normalizedSessionType} session via fallback: ${latestSession.id?.substring(0,8)}... status=${latestSession.status}`);
+          logger.info(`Found matching ${normalizedSessionType} session via fallback: ${latestSession.id?.substring(0, 8)}... status=${latestSession.status}`);
         } else {
           logger.info(`No ${normalizedSessionType}/${status} sessions found via fallback`);
         }
@@ -181,7 +182,7 @@ export const getLatestSessionByType = async (session_type = null, status = null)
         if (matchingSessions.length > 0) {
           matchingSessions.sort((a, b) => new Date(b.date) - new Date(a.date));
           const latestSession = matchingSessions[0];
-          logger.info(`Found ${matchingSessions.length} matching ${normalizedSessionType} sessions, returning latest: ${latestSession.id?.substring(0,8)}... (date: ${latestSession.date})`);
+          logger.info(`Found ${matchingSessions.length} matching ${normalizedSessionType} sessions, returning latest: ${latestSession.id?.substring(0, 8)}... (date: ${latestSession.date})`);
           resolve(latestSession);
         } else {
           logger.info(`No matching ${normalizedSessionType} session found with status=${status || 'any'}`);
@@ -487,7 +488,8 @@ export async function buildAdaptiveSessionSettings() {
     onboarding: focusDecision.onboarding, sessionState: updatedSessionState
   });
 
-  const finalDifficultyCap = focusDecision.onboarding ? "Easy" : updatedSessionState.current_difficulty_cap;
+  const adaptiveCap = focusDecision.onboarding ? "Easy" : updatedSessionState.current_difficulty_cap;
+  const finalDifficultyCap = applyUserDifficultyCeiling(adaptiveCap, settings.maxDifficulty);
 
   const maxHardProblems = calculateMaxHardProblems(
     performanceMetrics.accuracy, sessionLength, focusDecision.onboarding
@@ -504,6 +506,12 @@ export async function buildAdaptiveSessionSettings() {
     maxHardProblems,
     isAutoNewProblems: settings.numberofNewProblemsPerSession === 'auto',
   };
+}
+
+function applyUserDifficultyCeiling(adaptiveCap, userCap) {
+  if (!userCap || userCap === 'all') return adaptiveCap;
+  const order = { Easy: 1, Medium: 2, Hard: 3 };
+  return (order[adaptiveCap] || 3) <= (order[userCap] || 3) ? adaptiveCap : userCap;
 }
 
 async function loadSessionContext(sessionStateKey) {

@@ -1784,6 +1784,15 @@ body[data-theme="light"] .cm-extension .tag-strategy-button:focus-visible {
   .cm-sidenav__content {
     padding-right: 6px;
   }
+
+  .cm-extension #cm-mySidenav .cm-sidenav a {
+    font-size: 20px !important;
+    padding: 14px 18px !important;
+  }
+
+  #cm-mySidenav nav {
+    gap: 24px;
+  }
 }
 
 /* Standard desktop (1367px - 1920px) */
@@ -1854,6 +1863,15 @@ body:has(.navbar) .cm-extension #cm-menuButton {
   .cm-extension .cm-sidenav {
     --cm-sidebar-preferred-width: 280px;
     --cm-sidebar-max-width: 300px;
+  }
+
+  .cm-extension #cm-mySidenav .cm-sidenav a {
+    font-size: 20px !important;
+    padding: 14px 16px !important;
+  }
+
+  #cm-mySidenav nav {
+    gap: 22px;
   }
 }
 

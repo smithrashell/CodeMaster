@@ -114,18 +114,18 @@ describe('normalizeReviewProblem', () => {
     expect(result.id).toBe(42);
   });
 
-  it('should use title_slug as slug fallback', () => {
-    const result = normalizeReviewProblem({ id: 1, title_slug: 'two-sum' });
+  it('should use slug property directly', () => {
+    const result = normalizeReviewProblem({ id: 1, slug: 'two-sum' });
     expect(result.slug).toBe('two-sum');
   });
 
-  it('should use titleSlug as slug fallback', () => {
-    const result = normalizeReviewProblem({ id: 1, titleSlug: 'two-sum' });
+  it('should not use title_slug as slug fallback', () => {
+    const result = normalizeReviewProblem({ id: 1, title_slug: 'two-sum', title: 'Two Sum' });
     expect(result.slug).toBe('two-sum');
   });
 
-  it('should use TitleSlug as slug fallback', () => {
-    const result = normalizeReviewProblem({ id: 1, TitleSlug: 'two-sum' });
+  it('should not use titleSlug as slug fallback', () => {
+    const result = normalizeReviewProblem({ id: 1, titleSlug: 'two-sum', title: 'Two Sum' });
     expect(result.slug).toBe('two-sum');
   });
 

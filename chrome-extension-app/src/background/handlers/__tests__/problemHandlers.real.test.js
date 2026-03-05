@@ -38,13 +38,21 @@ jest.mock('../../../shared/db/stores/problem_relationships.js', () => ({
 
 jest.mock('../../../shared/services/session/sessionService.js', () => ({
   SessionService: {
-    skipProblem: jest.fn(),
     checkAndCompleteSession: jest.fn().mockResolvedValue([{ leetcode_id: 1 }]),
   },
 }));
 
 jest.mock('../../../shared/db/stores/sessions.js', () => ({
   getLatestSessionByType: jest.fn(),
+  saveSessionToStorage: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('../../../shared/services/problem/problemNormalizer.js', () => ({
+  normalizeProblem: jest.fn((p) => ({ ...p, normalized: true })),
+}));
+
+jest.mock('../../../shared/db/stores/excludedProblems.js', () => ({
+  excludeProblem: jest.fn().mockResolvedValue(undefined),
 }));
 
 // ---------------------------------------------------------------------------
@@ -72,7 +80,7 @@ import {
   findPrerequisiteProblem,
 } from '../../../shared/db/stores/problem_relationships.js';
 import { SessionService } from '../../../shared/services/session/sessionService.js';
-import { getLatestSessionByType } from '../../../shared/db/stores/sessions.js';
+import { getLatestSessionByType, saveSessionToStorage } from '../../../shared/db/stores/sessions.js';
 
 // ---------------------------------------------------------------------------
 // 3. Test helpers
@@ -310,7 +318,6 @@ describe('problemHandlers', () => {
     it('extracts leetcodeId from request.leetcodeId', async () => {
       hasRelationshipsToAttempted.mockResolvedValue(false);
       getLatestSessionByType.mockResolvedValue({ problems: [{ leetcode_id: 1 }, { leetcode_id: 2 }] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -332,7 +339,6 @@ describe('problemHandlers', () => {
     it('defaults to "other" for invalid skip reason', async () => {
       hasRelationshipsToAttempted.mockResolvedValue(false);
       getLatestSessionByType.mockResolvedValue({ problems: [{}, {}] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -354,7 +360,6 @@ describe('problemHandlers', () => {
       weakenRelationshipsForSkip.mockResolvedValue({ updated: 3 });
       findPrerequisiteProblem.mockResolvedValue(null);
       getLatestSessionByType.mockResolvedValue({ problems: [{}, {}] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -368,7 +373,7 @@ describe('problemHandlers', () => {
 
       expect(weakenRelationshipsForSkip).toHaveBeenCalledWith(5);
       expect(findPrerequisiteProblem).toHaveBeenCalled();
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(5);
+      expect(saveSessionToStorage).toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith(
         expect.objectContaining({ success: true, graphUpdated: true, freeSkip: false })
       );
@@ -378,7 +383,6 @@ describe('problemHandlers', () => {
       hasRelationshipsToAttempted.mockResolvedValue(false);
       findPrerequisiteProblem.mockResolvedValue(null);
       getLatestSessionByType.mockResolvedValue({ problems: [{ leetcode_id: 5 }] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -390,7 +394,7 @@ describe('problemHandlers', () => {
       );
       await flush();
 
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(5);
+      expect(saveSessionToStorage).toHaveBeenCalled();
     });
 
     it('handles too_difficult with prerequisite found', async () => {
@@ -399,7 +403,6 @@ describe('problemHandlers', () => {
       const prereq = { title: 'Easier Problem', leetcode_id: 50 };
       findPrerequisiteProblem.mockResolvedValue(prereq);
       getLatestSessionByType.mockResolvedValue({ problems: [{ leetcode_id: 5 }, { leetcode_id: 6 }] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -413,7 +416,7 @@ describe('problemHandlers', () => {
 
       expect(weakenRelationshipsForSkip).toHaveBeenCalledWith(5);
       expect(findPrerequisiteProblem).toHaveBeenCalledWith(5, [5, 6]);
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(5, prereq);
+      expect(saveSessionToStorage).toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith(
         expect.objectContaining({ success: true, graphUpdated: true, prerequisite: prereq, replaced: true })
       );
@@ -424,7 +427,6 @@ describe('problemHandlers', () => {
       const prereq = { title: 'Prerequisite Problem', leetcode_id: 100 };
       findPrerequisiteProblem.mockResolvedValue(prereq);
       getLatestSessionByType.mockResolvedValue({ problems: [{ leetcode_id: 5 }, { leetcode_id: 6 }] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -437,7 +439,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(findPrerequisiteProblem).toHaveBeenCalledWith(5, [5, 6]);
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(5, prereq);
+      expect(saveSessionToStorage).toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith(
         expect.objectContaining({ success: true, prerequisite: prereq, replaced: true })
       );
@@ -447,7 +449,6 @@ describe('problemHandlers', () => {
       hasRelationshipsToAttempted.mockResolvedValue(true);
       findPrerequisiteProblem.mockResolvedValue(null);
       getLatestSessionByType.mockResolvedValue({ problems: [{ leetcode_id: 5 }] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -459,14 +460,13 @@ describe('problemHandlers', () => {
       );
       await flush();
 
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(5);
+      expect(saveSessionToStorage).toHaveBeenCalled();
     });
 
     it('handles dont_understand - no prerequisite, not last problem', async () => {
       hasRelationshipsToAttempted.mockResolvedValue(true);
       findPrerequisiteProblem.mockResolvedValue(null);
       getLatestSessionByType.mockResolvedValue({ problems: [{ leetcode_id: 5 }, { leetcode_id: 6 }] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -478,14 +478,13 @@ describe('problemHandlers', () => {
       );
       await flush();
 
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(5);
+      expect(saveSessionToStorage).toHaveBeenCalled();
     });
 
     it('handles not_relevant - always removes and weakens graph', async () => {
       hasRelationshipsToAttempted.mockResolvedValue(true);
       weakenRelationshipsForNotRelevant.mockResolvedValue({ updated: 5 });
       getLatestSessionByType.mockResolvedValue({ problems: [{}, {}] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -498,7 +497,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(weakenRelationshipsForNotRelevant).toHaveBeenCalledWith(10);
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(10);
+      expect(saveSessionToStorage).toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith(
         expect.objectContaining({ success: true, graphUpdated: true })
       );
@@ -507,7 +506,6 @@ describe('problemHandlers', () => {
     it('handles not_relevant - always removes even last problem', async () => {
       hasRelationshipsToAttempted.mockResolvedValue(false);
       getLatestSessionByType.mockResolvedValue({ problems: [{ leetcode_id: 10 }] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -519,13 +517,12 @@ describe('problemHandlers', () => {
       );
       await flush();
 
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(10);
+      expect(saveSessionToStorage).toHaveBeenCalled();
     });
 
     it('handles not_relevant - no graph weakening when no relationships', async () => {
       hasRelationshipsToAttempted.mockResolvedValue(false);
       getLatestSessionByType.mockResolvedValue({ problems: [{}, {}] });
-      SessionService.skipProblem.mockResolvedValue();
 
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
@@ -538,7 +535,7 @@ describe('problemHandlers', () => {
       await flush();
 
       expect(weakenRelationshipsForNotRelevant).not.toHaveBeenCalled();
-      expect(SessionService.skipProblem).toHaveBeenCalledWith(10);
+      expect(saveSessionToStorage).toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith(
         expect.objectContaining({ success: true, graphUpdated: false })
       );

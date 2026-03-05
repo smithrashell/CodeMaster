@@ -161,13 +161,13 @@ describe("dashboardMasteryHelpers", () => {
       expect(Object.keys(result).length).toBe(0);
     });
 
-    it("supports PascalCase attempt fields", () => {
+    it("handles snake_case attempt fields", () => {
       const problems = [
         { leetcode_id: 1, tags: ["array", "hash table"], difficulty: "Easy" }
       ];
 
       const attempts = [
-        { ProblemID: 1, success: true }
+        { problem_id: 1, success: true }
       ];
 
       const result = buildDynamicTagRelationships(attempts, problems);
@@ -281,10 +281,10 @@ describe("dashboardMasteryHelpers", () => {
       expect(result.percentage).toBe(70);
     });
 
-    it("supports PascalCase Success and AttemptDate fields", () => {
+    it("handles snake_case success and attempt_date fields", () => {
       const attempts = Array(20).fill(null).map((_, i) => ({
-        Success: i >= 10, // Newer half all success
-        AttemptDate: `2025-01-${String(i + 1).padStart(2, '0')}`
+        success: i >= 10, // Newer half all success
+        attempt_date: `2025-01-${String(i + 1).padStart(2, '0')}`
       }));
 
       const result = calculateProgressTrend(attempts);
@@ -453,10 +453,10 @@ describe("dashboardMasteryHelpers", () => {
       expect(["Accelerating", "Progressive", "Steady"]).toContain(result.learningVelocity.value);
     });
 
-    it("supports PascalCase attempt fields", () => {
+    it("handles snake_case attempt fields", () => {
       const attempts = [
-        { ProblemID: 1, Success: true, AttemptDate: recentDate },
-        { ProblemID: 2, Success: false, AttemptDate: recentDate }
+        { problem_id: 1, success: true, attempt_date: recentDate },
+        { problem_id: 2, success: false, attempt_date: recentDate }
       ];
 
       const result = calculateOutcomeTrends(attempts, [], {});

@@ -64,11 +64,11 @@ const _createProblem = (id, title, boxLevel, difficulty = 0) => ({
   difficulty: difficulty,
 });
 
-const _createAttempts = (attemptsData) => 
+const _createAttempts = (attemptsData) =>
   attemptsData.map(({ date, success, difficulty }) => ({
-    AttemptDate: date,
-    Success: success,
-    Difficulty: difficulty,
+    attempt_date: date,
+    success: success,
+    perceived_difficulty: difficulty,
   }));
 
 const _expectAttemptStats = (result, total, successful, unsuccessful) => {
@@ -167,9 +167,9 @@ const runBoxLevelIntervalsTests = () => {
         const attempts = Array(boxLevel)
           .fill()
           .map((_, i) => ({
-            AttemptDate: `2024-01-0${i + 1}`,
-            Success: true,
-            Difficulty: 5,
+            attempt_date: `2024-01-0${i + 1}`,
+            success: true,
+            perceived_difficulty: 5,
           }));
 
         const result = reassessBoxLevel(problem, attempts);
@@ -185,8 +185,8 @@ const runEdgeCasesTests = () => {
     it("should handle malformed attempt data", () => {
       const problem = { id: "test", boxLevel: 2, title: "Test" };
       const attempts = [
-        { AttemptDate: "invalid-date", Success: true, Difficulty: "invalid" },
-        { AttemptDate: "2024-01-01", Success: null, Difficulty: 5 },
+        { attempt_date: "invalid-date", success: true, perceived_difficulty: "invalid" },
+        { attempt_date: "2024-01-01", success: null, perceived_difficulty: 5 },
       ];
 
       expect(() => reassessBoxLevel(problem, attempts)).not.toThrow();

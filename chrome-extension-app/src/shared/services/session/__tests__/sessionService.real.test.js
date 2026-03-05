@@ -23,7 +23,7 @@ jest.mock('../../../utils/logging/logger.js', () => ({
 
 jest.mock('../../../db/stores/sessions.js', () => ({
   getSessionById: jest.fn(),
-  getLatestSession: jest.fn(),
+
   getLatestSessionByType: jest.fn(),
   saveSessionToStorage: jest.fn().mockResolvedValue(undefined),
   saveNewSessionToDB: jest.fn().mockResolvedValue(undefined),
@@ -104,7 +104,7 @@ jest.mock('../sessionAnalyticsHelpers.js', () => ({
 import { SessionService } from '../sessionService.js';
 import {
   getSessionById,
-  getLatestSession,
+
   getLatestSessionByType,
   saveSessionToStorage,
   updateSessionInDB,
@@ -435,8 +435,12 @@ describe('SessionService', () => {
   // createNewSession
   // ========================================================================
   describe('createNewSession', () => {
+    beforeEach(() => {
+      // Simulate "we won the race": atomic write creates the new session and returns it
+      getOrCreateSessionAtomic.mockImplementation((_type, _status, data) => Promise.resolve(data));
+    });
+
     it('should create a standard session with problems', async () => {
-      getLatestSessionByType.mockResolvedValue(null);
       ProblemService.createSession.mockResolvedValue([
         { leetcode_id: 1, title: 'Two Sum' },
         { leetcode_id: 2, title: 'Add Two Numbers' },
@@ -454,7 +458,6 @@ describe('SessionService', () => {
     });
 
     it('should return null when no problems available', async () => {
-      getLatestSessionByType.mockResolvedValue(null);
       ProblemService.createSession.mockResolvedValue([]);
 
       const session = await SessionService.createNewSession('standard');
@@ -462,7 +465,6 @@ describe('SessionService', () => {
     });
 
     it('should create interview session with config', async () => {
-      getLatestSessionByType.mockResolvedValue(null);
       ProblemService.createInterviewSession.mockResolvedValue({
         problems: [{ leetcode_id: 1, title: 'P1' }],
         session_type: 'interview-like',
@@ -479,25 +481,24 @@ describe('SessionService', () => {
       expect(session.interviewConfig.hintsEnabled).toBe(false);
     });
 
-    it('should mark existing in_progress sessions as completed', async () => {
-      const existingSession = {
-        id: 'old-session',
+    it('should reuse existing session when atomic write finds a concurrent session', async () => {
+      const concurrentSession = {
+        id: 'concurrent-session',
         status: 'in_progress',
         session_type: 'standard',
+        problems: [{ leetcode_id: 1, title: 'P1' }],
       };
-      getLatestSessionByType.mockResolvedValue(existingSession);
+      // Simulate concurrent creation: atomic write returns a different session
+      getOrCreateSessionAtomic.mockResolvedValue(concurrentSession);
       ProblemService.createSession.mockResolvedValue([
-        { leetcode_id: 1, title: 'P1' },
+        { leetcode_id: 2, title: 'P2' },
       ]);
 
-      await SessionService.createNewSession('standard');
+      const result = await SessionService.createNewSession('standard');
 
-      expect(updateSessionInDB).toHaveBeenCalledWith(
-        expect.objectContaining({
-          id: 'old-session',
-          status: 'completed',
-        })
-      );
+      // Should reuse the concurrent session, not the newly-built one
+      expect(result.id).toBe('concurrent-session');
+      expect(saveSessionToStorage).toHaveBeenCalledWith(concurrentSession);
     });
   });
 
@@ -519,8 +520,10 @@ describe('SessionService', () => {
     });
 
     it('should create new session when none exists', async () => {
-      getOrCreateSessionAtomic.mockResolvedValue(null);
-      getLatestSessionByType.mockResolvedValue(null);
+      // First call (check-only in _doGetOrCreateSession) returns null; second call (in createNewSession) creates the session
+      getOrCreateSessionAtomic
+        .mockResolvedValueOnce(null)
+        .mockImplementation((_type, _status, data) => Promise.resolve(data));
       StorageService.getSettings.mockResolvedValue({ sessionLength: 5 });
       ProblemService.createSession.mockResolvedValue([
         { leetcode_id: 1, title: 'P1' },
@@ -536,6 +539,11 @@ describe('SessionService', () => {
   // refreshSession
   // ========================================================================
   describe('refreshSession', () => {
+    beforeEach(() => {
+      // Simulate "we won the race" for createNewSession's atomic write
+      getOrCreateSessionAtomic.mockImplementation((_type, _status, data) => Promise.resolve(data));
+    });
+
     it('should create fresh session when no existing session and forceNew=false', async () => {
       getLatestSessionByType.mockResolvedValue(null);
       ProblemService.createSession.mockResolvedValue([
@@ -560,8 +568,7 @@ describe('SessionService', () => {
         session_type: 'standard',
         status: 'in_progress',
       };
-      getLatestSessionByType.mockResolvedValueOnce(existingSession); // resumeSession call
-      getLatestSessionByType.mockResolvedValueOnce(null); // createNewSession call
+      getLatestSessionByType.mockResolvedValue(existingSession);
       ProblemService.createSession.mockResolvedValue([
         { leetcode_id: 1, title: 'P1' },
       ]);
@@ -570,64 +577,26 @@ describe('SessionService', () => {
       expect(deleteSessionFromDB).toHaveBeenCalledWith('old-sess');
       expect(result).toBeDefined();
     });
+
+    it('should mark existing session as completed when forceNew=false', async () => {
+      const existingSession = {
+        id: 'old-sess',
+        session_type: 'standard',
+        status: 'in_progress',
+      };
+      getLatestSessionByType.mockResolvedValue(existingSession);
+      ProblemService.createSession.mockResolvedValue([
+        { leetcode_id: 1, title: 'P1' },
+      ]);
+
+      await SessionService.refreshSession('standard', false);
+
+      expect(updateSessionInDB).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'old-sess', status: 'completed' })
+      );
+    });
   });
 
-  // ========================================================================
-  // skipProblem
-  // ========================================================================
-  describe('skipProblem', () => {
-    it('should return null when no session exists', async () => {
-      getLatestSession.mockResolvedValue(null);
-
-      const result = await SessionService.skipProblem(123);
-      expect(result).toBeNull();
-    });
-
-    it('should remove skipped problem from session', async () => {
-      const session = {
-        id: 's1',
-        problems: [
-          { leetcode_id: 1, title: 'P1' },
-          { leetcode_id: 2, title: 'P2' },
-        ],
-      };
-      getLatestSession.mockResolvedValue(session);
-
-      const result = await SessionService.skipProblem(1);
-      expect(result.problems).toHaveLength(1);
-      expect(result.problems[0].leetcode_id).toBe(2);
-    });
-
-    it('should add replacement problem when provided', async () => {
-      const session = {
-        id: 's1',
-        problems: [
-          { leetcode_id: 1, title: 'P1' },
-          { leetcode_id: 2, title: 'P2' },
-        ],
-      };
-      getLatestSession.mockResolvedValue(session);
-
-      const replacement = { leetcode_id: 3, title: 'Replacement' };
-      const result = await SessionService.skipProblem(1, replacement);
-
-      expect(result.problems).toHaveLength(2);
-      // Last problem should be the normalized replacement
-      const lastProblem = result.problems[result.problems.length - 1];
-      expect(lastProblem.normalized).toBe(true);
-    });
-
-    it('should save session to storage after skip', async () => {
-      const session = {
-        id: 's1',
-        problems: [{ leetcode_id: 1, title: 'P1' }],
-      };
-      getLatestSession.mockResolvedValue(session);
-
-      await SessionService.skipProblem(1);
-      expect(saveSessionToStorage).toHaveBeenCalled();
-    });
-  });
 
   // ========================================================================
   // updateSessionStateOnCompletion

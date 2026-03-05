@@ -83,21 +83,4 @@ The `ChromeAPIErrorHandler` infrastructure detects `response.error` and surfaces
 
 ---
 
-## Comments
 
-Follow the principle: **comment intent, not mechanics**.
-
-```js
-// ✅ Explains WHY — a reader wouldn't know chrome:// tabs reject content script messages
-// Only send to tabs that might have content scripts (http/https URLs)
-
-// ✅ Amplification — guards against a future dev making this conditional
-// Always runs — session must be finalized even if the problems list is now empty.
-
-// ❌ Restates the code
-// Handler: getSession
-// Retrieves the current session
-```
-
-Remove JSDoc blocks on private or internal functions — the function name is the documentation.
-Reserve multi-line comments for genuinely non-obvious intent or ecosystem connections.

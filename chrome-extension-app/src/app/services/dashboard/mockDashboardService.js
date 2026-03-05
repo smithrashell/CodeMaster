@@ -19,7 +19,7 @@ function createEnhancedSessions(allSessions) {
     duration: Math.floor(Math.random() * 45) + 15, // 15-60 min sessions
     accuracy: 0.6 + (Math.random() * 0.3), // 60-90% accuracy
     completed: Math.random() > 0.1, // 90% completion rate
-    Date: new Date(Date.now() - (index * 24 * 60 * 60 * 1000)).toISOString(), // Spread over days
+    date: new Date(Date.now() - (index * 24 * 60 * 60 * 1000)).toISOString(), // Spread over days
     sessionId: `session_${index + 1}`,
     problems: Array.from({ length: Math.floor(Math.random() * 8) + 3 }, (_, i) => ({
       id: `problem_${index}_${i}`,
@@ -102,7 +102,7 @@ function createSessionsObject(enhancedSessions) {
     recentSessions: enhancedSessions.slice(-10),
     sessionAnalytics: enhancedSessions.map(session => ({
       sessionId: session.sessionId,
-      completedAt: session.Date,
+      completedAt: session.date,
       accuracy: roundToPrecision(session.accuracy),
       avgTime: session.duration,
       totalProblems: session.problems.length,

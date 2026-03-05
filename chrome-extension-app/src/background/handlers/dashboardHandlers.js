@@ -1,8 +1,3 @@
-/**
- * Dashboard Message Handlers
- * Extracted from messageRouter.js
- */
-
 import {
   getDashboardStatistics,
   getLearningProgressData,

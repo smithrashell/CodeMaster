@@ -47,8 +47,7 @@ export function calculateDecayScore(lastAttemptDate, successRate, stability) {
 }
 
 export function createAttemptRecord(attemptData) {
-  // Support both uppercase (legacy) and lowercase property names
-  const rawDate = attemptData.attempt_date || attemptData.AttemptDate;
+  const rawDate = attemptData.attempt_date;
   // CRITICAL: Ensure attempt_date is ALWAYS a Date object for IndexedDB compound index compatibility
   // The compound index [problem_id, attempt_date] requires Date objects, not strings
   const attemptDate = rawDate instanceof Date ? rawDate : new Date(rawDate);
@@ -56,11 +55,11 @@ export function createAttemptRecord(attemptData) {
   const baseRecord = {
     id: attemptData.id || uuidv4(), // Generate UUID if not provided
     session_id: attemptData.session_id,
-    problem_id: attemptData.problem_id !== undefined ? attemptData.problem_id : attemptData.ProblemID,
-    success: attemptData.success !== undefined ? attemptData.success : attemptData.Success,
+    problem_id: attemptData.problem_id,
+    success: attemptData.success,
     attempt_date: attemptDate,  // Must be Date object for compound index [problem_id, attempt_date]
-    time_spent: Number(attemptData.time_spent || attemptData.TimeSpent || 0),
-    comments: attemptData.comments || attemptData.Comments || "",
+    time_spent: Number(attemptData.time_spent || 0),
+    comments: attemptData.comments || "",
   };
 
   // Add optional fields only if they have values
@@ -80,9 +79,8 @@ export function createAttemptRecord(attemptData) {
     baseRecord.source = attemptData.source;
   }
 
-  // Add difficulty field if present (legacy support)
-  if (attemptData.Difficulty !== undefined || attemptData.difficulty !== undefined) {
-    baseRecord.difficulty = Number(attemptData.difficulty || attemptData.Difficulty);
+  if (attemptData.difficulty !== undefined) {
+    baseRecord.difficulty = Number(attemptData.difficulty);
   }
 
   if (attemptData.user_intent !== undefined) {

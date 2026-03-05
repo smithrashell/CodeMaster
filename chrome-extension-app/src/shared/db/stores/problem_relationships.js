@@ -340,6 +340,12 @@ export async function calculateOptimalPathScore(problem, userState = null, cache
       }
     }
 
+    // Deprioritize Hard problems with weak connectivity (likely niche/uncommon)
+    if (problem.difficulty === 'Hard' && avgRelationshipStrength > 0 && avgRelationshipStrength < 1.5) {
+      score *= 0.6;
+      console.log(`📉 Hard problem with weak connectivity (avg: ${avgRelationshipStrength.toFixed(2)}) - deprioritized`);
+    }
+
     // Factor 2: Tag mastery alignment (if userState provided)
     if (userState && userState.tagMastery) {
       const tagMasteryBonus = calculateTagMasteryAlignment(problem, userState);
@@ -914,6 +920,52 @@ export async function weakenRelationshipsForSkip(problemId) {
     return { updated: updatedCount };
   } catch (error) {
     console.error("❌ Error weakening relationships for skip:", error);
+    return { updated: 0 };
+  }
+}
+
+/**
+ * Weaken ALL relationships for a "not relevant" skip
+ * Applies a heavy penalty (-0.8) to all connections, signaling permanent irrelevance
+ * @param {number} problemId - The LeetCode ID of the skipped problem
+ * @returns {Promise<{updated: number}>} Number of relationships updated
+ */
+export async function weakenRelationshipsForNotRelevant(problemId) {
+  if (!problemId) {
+    console.warn("⚠️ weakenRelationshipsForNotRelevant called without problemId");
+    return { updated: 0 };
+  }
+
+  console.log(`🚫 Weakening ALL relationships for not-relevant problem: ${problemId}`);
+
+  try {
+    const relationships = await getRelationshipsForProblem(problemId);
+    const relatedIds = Object.keys(relationships).map(Number);
+
+    if (relatedIds.length === 0) {
+      console.log("📝 No relationships found - nothing to weaken");
+      return { updated: 0 };
+    }
+
+    let updatedCount = 0;
+    const NOT_RELEVANT_PENALTY = -0.8;
+
+    for (const relatedId of relatedIds) {
+      if (!relatedId || relatedId === problemId) continue;
+
+      const currentStrength = relationships[relatedId] || 2.0;
+      const newStrength = Math.max(0.5, currentStrength + NOT_RELEVANT_PENALTY);
+
+      await updateRelationshipStrength(problemId, relatedId, newStrength);
+      updatedCount++;
+
+      console.log(`  🚫 Weakened ${problemId} <-> ${relatedId}: ${currentStrength.toFixed(2)} -> ${newStrength.toFixed(2)}`);
+    }
+
+    console.log(`✅ Weakened ${updatedCount} relationships for not-relevant problem ${problemId}`);
+    return { updated: updatedCount };
+  } catch (error) {
+    console.error("❌ Error weakening relationships for not-relevant:", error);
     return { updated: 0 };
   }
 }

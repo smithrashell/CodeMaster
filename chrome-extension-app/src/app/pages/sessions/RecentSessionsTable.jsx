@@ -29,13 +29,12 @@ export const RecentSessionsTable = ({ recentSessions }) => {
               const hasAttempts = session.attempts && session.attempts.length > 0;
               const isCompleted = (session.status === "completed" || session.completed === true) && hasAttempts;
 
-              // Support both snake_case and camelCase field names
-              const sessionDate = session.created_date || session.date || session.Date || Date.now();
+              const sessionDate = session.created_date || session.date || Date.now();
               const sessionDuration = session.duration || session.session_duration || 0;
               const problemCount = session.problems?.length || session.problem_count || 0;
 
               return (
-                <tr key={session.session_id || session.sessionId || session.id || index} className="cm-table-row">
+                <tr key={session.id || index} className="cm-table-row">
                   <td className="cm-table-td cm-table-primary">{new Date(sessionDate).toLocaleDateString()}</td>
                   <td className="cm-table-td cm-table-primary">
                     {isCompleted ? (sessionDuration || 'N/A') + ' min' : 'Ongoing'}

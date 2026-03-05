@@ -41,7 +41,7 @@ async function updateProblemsWithRatings() {
     // Batch update all problem ratings
     const updatedProblems = problems.map((problem) => ({
       ...problem,
-      Rating: determineRating(problemRatings[problem.id] || []),
+      difficulty: determineRating(problemRatings[problem.id] || []),
     }));
 
     await saveAllToStore("problems", updatedProblems);
@@ -60,18 +60,18 @@ async function updateProblemsWithRatings() {
 function adjustProblemRatings(attempts) {
   const problemRatings = {};
 
-  attempts.forEach(({ ProblemID, TimeSpent }) => {
-    if (!problemRatings[ProblemID]) {
-      problemRatings[ProblemID] = [];
+  attempts.forEach(({ problem_id, time_spent }) => {
+    if (!problemRatings[problem_id]) {
+      problemRatings[problem_id] = [];
     }
-    problemRatings[ProblemID].push(Number(TimeSpent) || 0); // TimeSpent now in seconds
+    problemRatings[problem_id].push(Number(time_spent) || 0); // time_spent now in seconds
   });
 
-  Object.keys(problemRatings).forEach((ProblemID) => {
-    const times = problemRatings[ProblemID];
+  Object.keys(problemRatings).forEach((problem_id) => {
+    const times = problemRatings[problem_id];
     const { mean, stddev } = calculateStatistics(times);
 
-    problemRatings[ProblemID] = times.map((time) => {
+    problemRatings[problem_id] = times.map((time) => {
       if (time < mean - stddev) return "Easy";
       if (time > mean + stddev) return "Hard";
       return "Medium";
@@ -103,7 +103,7 @@ async function checkAndUpdateLimits(attempts) {
 
   if (
     !mostRecentLimit ||
-    new Date(mostRecentLimit.CreatedAt).getTime() <
+    new Date(mostRecentLimit.created_at).getTime() <
       currentDate.getTime() - 7 * 24 * 60 * 60 * 1000
   ) {
     const newLimits = await calculateLimits(attempts);
@@ -145,9 +145,9 @@ function setTimeLimits(attempts, ratings, idealLimits) {
   const timeSums = { Easy: 0, Medium: 0, Hard: 0 };
   const counts = { Easy: 0, Medium: 0, Hard: 0 };
 
-  attempts.forEach(({ ProblemID, TimeSpent }) => {
-    const rating = determineRating(ratings[ProblemID]);
-    timeSums[rating] += Number(TimeSpent) || 0; // TimeSpent now in seconds
+  attempts.forEach(({ problem_id, time_spent }) => {
+    const rating = determineRating(ratings[problem_id]);
+    timeSums[rating] += Number(time_spent) || 0; // time_spent now in seconds
     counts[rating]++;
   });
 

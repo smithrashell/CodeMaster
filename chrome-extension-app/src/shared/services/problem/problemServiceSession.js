@@ -35,7 +35,7 @@ import {
  */
 function isHardProblem(p) {
   if (!p) return false;
-  const difficulty = p.difficulty || p.Rating || p.rating;
+  const difficulty = p.difficulty;
   if (difficulty === 'Hard' || difficulty === 3) return true;
 
   // Sometimes Rating is a string "3" or "Hard"
@@ -121,7 +121,7 @@ export async function addTriggeredReviewsToSession(sessionProblems, sessionLengt
 
       // Ensure slug exists
       if (!normalizedProblem.slug) {
-        normalizedProblem.slug = enrichedProblem.slug || enrichedProblem.title_slug || enrichedProblem.titleSlug;
+        normalizedProblem.slug = enrichedProblem.slug;
         if (!normalizedProblem.slug && enrichedProblem.title) {
           normalizedProblem.slug = enrichedProblem.title
             .toLowerCase()
@@ -280,7 +280,7 @@ export async function addNewProblemsToSession(params) {
     };
 
     if (!normalized.slug) {
-      normalized.slug = p.slug || p.title_slug || p.titleSlug || p.TitleSlug;
+      normalized.slug = p.slug;
     }
 
     if (!normalized.slug && p.title) {

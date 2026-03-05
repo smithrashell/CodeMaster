@@ -131,7 +131,7 @@ const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfi
     navigate("/Timer", {
       state: {
         LeetCodeID: problemData.leetcode_id,
-        Description: problemData.title,
+        title: problemData.title,
         Tags: problemData.tags,
         interviewConfig: interviewConfig,
         sessionType: sessionType,

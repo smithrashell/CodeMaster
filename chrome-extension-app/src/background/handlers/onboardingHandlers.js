@@ -1,9 +1,3 @@
-/**
- * Onboarding Message Handlers
- *
- * Extracted from messageRouter.js to reduce complexity
- * Handles all onboarding-related message types
- */
 
 import { StorageService } from "../../shared/services/storage/storageService.js";
 import {
@@ -16,9 +10,7 @@ import {
   resetPageTour
 } from "../../shared/services/focus/onboardingService.js";
 
-/**
- * Handle user onboarding if needed
- */
+
 function handleOnboardingUserIfNeeded(request, dependencies, sendResponse, finishRequest) {
   onboardUserIfNeeded()
     .then((result) => {
@@ -43,9 +35,7 @@ function handleOnboardingUserIfNeeded(request, dependencies, sendResponse, finis
   return true;
 }
 
-/**
- * Check installation onboarding status
- */
+
 function handleCheckInstallationOnboardingStatus(request, dependencies, sendResponse, finishRequest) {
   StorageService.get('installation_onboarding_complete')
     .then((result) => {
@@ -70,9 +60,7 @@ function handleCheckInstallationOnboardingStatus(request, dependencies, sendResp
   return true;
 }
 
-/**
- * Check content onboarding status
- */
+
 function handleCheckContentOnboardingStatus(request, dependencies, sendResponse, finishRequest) {
   checkContentOnboardingStatus()
     .then(sendResponse)
@@ -84,9 +72,7 @@ function handleCheckContentOnboardingStatus(request, dependencies, sendResponse,
   return true;
 }
 
-/**
- * Check general onboarding status
- */
+
 function handleCheckOnboardingStatus(request, dependencies, sendResponse, finishRequest) {
   const { checkOnboardingStatus } = dependencies;
   checkOnboardingStatus()
@@ -99,9 +85,7 @@ function handleCheckOnboardingStatus(request, dependencies, sendResponse, finish
   return true;
 }
 
-/**
- * Complete onboarding
- */
+
 function handleCompleteOnboarding(request, dependencies, sendResponse, finishRequest) {
   const { completeOnboarding } = dependencies;
   completeOnboarding()
@@ -114,9 +98,7 @@ function handleCompleteOnboarding(request, dependencies, sendResponse, finishReq
   return true;
 }
 
-/**
- * Update content onboarding step
- */
+
 function handleUpdateContentOnboardingStep(request, dependencies, sendResponse, finishRequest) {
   updateContentOnboardingStep(request.step)
     .then(sendResponse)
@@ -128,9 +110,7 @@ function handleUpdateContentOnboardingStep(request, dependencies, sendResponse, 
   return true;
 }
 
-/**
- * Complete content onboarding
- */
+
 function handleCompleteContentOnboarding(request, dependencies, sendResponse, finishRequest) {
   completeContentOnboarding()
     .then(sendResponse)
@@ -142,9 +122,7 @@ function handleCompleteContentOnboarding(request, dependencies, sendResponse, fi
   return true;
 }
 
-/**
- * Check page tour status
- */
+
 function handleCheckPageTourStatus(request, dependencies, sendResponse, finishRequest) {
   checkPageTourStatus(request.pageId)
     .then(sendResponse)
@@ -156,9 +134,7 @@ function handleCheckPageTourStatus(request, dependencies, sendResponse, finishRe
   return true;
 }
 
-/**
- * Mark page tour as completed
- */
+
 function handleMarkPageTourCompleted(request, dependencies, sendResponse, finishRequest) {
   markPageTourCompleted(request.pageId)
     .then(sendResponse)
@@ -170,9 +146,7 @@ function handleMarkPageTourCompleted(request, dependencies, sendResponse, finish
   return true;
 }
 
-/**
- * Reset page tour
- */
+
 function handleResetPageTour(request, dependencies, sendResponse, finishRequest) {
   resetPageTour(request.pageId)
     .then(sendResponse)

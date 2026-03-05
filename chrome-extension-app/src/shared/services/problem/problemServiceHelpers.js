@@ -55,7 +55,7 @@ export function normalizeReviewProblem(p) {
 
   // Ensure slug exists
   if (!normalized.slug) {
-    normalized.slug = p.slug || p.title_slug || p.titleSlug || p.TitleSlug;
+    normalized.slug = p.slug;
   }
 
   // Generate slug from title as last resort

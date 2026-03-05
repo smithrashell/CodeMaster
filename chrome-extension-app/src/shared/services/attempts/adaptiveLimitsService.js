@@ -318,12 +318,12 @@ export class AdaptiveLimitsService {
       const relevantAttempts = attempts
         .filter(
           (attempt) =>
-            (attempt.Difficulty || attempt.difficulty) == targetDifficulty &&
-            (attempt.Success || attempt.success) &&
-            (attempt.TimeSpent || attempt.timeSpent || attempt.time_spent) > 0 &&
-            (attempt.TimeSpent || attempt.timeSpent || attempt.time_spent) < 14400 // Exclude outliers > 4 hours
+            attempt.difficulty == targetDifficulty &&
+            attempt.success &&
+            attempt.time_spent > 0 &&
+            attempt.time_spent < 14400 // Exclude outliers > 4 hours
         )
-        .map((attempt) => Number(attempt.TimeSpent || attempt.timeSpent || attempt.time_spent))
+        .map((attempt) => Number(attempt.time_spent))
         .sort((a, b) => a - b);
 
       if (relevantAttempts.length === 0) {

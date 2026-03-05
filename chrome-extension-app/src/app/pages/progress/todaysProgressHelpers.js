@@ -98,7 +98,7 @@ export function getTodaysReviewProblems(appState) {
 
   // A review problem is one that already existed in the user's problem store (box_level > 1)
   return todaysAttempts.filter(attempt => {
-    const problemId = attempt.problem_id || attempt.leetcode_id || attempt.ProblemID;
+    const problemId = attempt.problem_id;
     const boxLevel = boxLevelMap[problemId] || 1;
     return boxLevel > 1 && !!attempt.success;
   }).length;

@@ -8,7 +8,9 @@ import {
   findPrerequisiteProblem
 } from "../../shared/db/stores/problem_relationships.js";
 import { SessionService } from "../../shared/services/session/sessionService.js";
-import { getLatestSessionByType } from "../../shared/db/stores/sessions.js";
+import { getLatestSessionByType, saveSessionToStorage } from "../../shared/db/stores/sessions.js";
+import { excludeProblem } from "../../shared/db/stores/excludedProblems.js";
+import { normalizeProblem } from "../../shared/services/problem/problemNormalizer.js";
 
 export function handleGetProblemByDescription(request, _dependencies, sendResponse, finishRequest) {
   console.log(
@@ -83,6 +85,23 @@ export function handleProblemSubmitted(_request, _dependencies, sendResponse, fi
   return true;
 }
 
+async function removeFromSession(session, leetcodeId, replacement = null) {
+  session.problems = session.problems.filter(p => p.leetcode_id !== leetcodeId);
+  if (replacement) {
+    const normalized = normalizeProblem({
+      ...replacement,
+      selectionReason: {
+        type: 'prerequisite',
+        details: { skippedProblemId: leetcodeId },
+        shortText: 'Prerequisite',
+        fullText: 'Easier problem to help understand skipped concept'
+      }
+    }, 'prerequisite');
+    session.problems.push(normalized);
+  }
+  await saveSessionToStorage(session, true);
+}
+
 async function checkPostSkipCompletion(session, result) {
   if (!session) return;
 
@@ -106,10 +125,10 @@ async function findAndReplaceWithPrerequisite(leetcodeId, session, result) {
     result.prerequisite = prerequisite;
     result.replaced = true;
     console.log(`🎓 Found prerequisite: ${prerequisite.title}`);
-    await SessionService.skipProblem(leetcodeId, prerequisite);
+    await removeFromSession(session, leetcodeId, prerequisite);
     console.log(`✅ Replaced problem ${leetcodeId} with prerequisite ${prerequisite.leetcode_id || prerequisite.id}`);
   } else {
-    await SessionService.skipProblem(leetcodeId);
+    await removeFromSession(session, leetcodeId);
     console.log(`✅ Removed problem ${leetcodeId} from session`);
   }
 }
@@ -136,13 +155,14 @@ async function applySkipReasonEffects(skipReason, leetcodeId, session, result, h
         result.graphUpdated = weakenResult.updated > 0;
         console.log(`🚫 Graph updated: ${weakenResult.updated} relationships weakened for not-relevant`);
       }
-      await SessionService.skipProblem(leetcodeId);
+      await excludeProblem(leetcodeId, 'not_relevant');
+      await removeFromSession(session, leetcodeId);
       console.log(`✅ Removed problem ${leetcodeId} from session`);
       break;
 
     default:
       // "other" — no graph effect, just remove
-      await SessionService.skipProblem(leetcodeId);
+      await removeFromSession(session, leetcodeId);
       console.log(`✅ Removed problem ${leetcodeId} from session`);
   }
 }
@@ -151,7 +171,7 @@ async function applySkipReasonEffects(skipReason, leetcodeId, session, result, h
  * Skip reasons and their effects (all reasons remove the problem from the session):
  * - too_difficult:   weaken graph relationships + search for a prerequisite replacement
  * - dont_understand: search for a prerequisite replacement (no graph penalty)
- * - not_relevant:    weaken ALL graph connections permanently + remove
+ * - not_relevant:    weaken ALL graph connections permanently + write to excluded_problems store + remove
  * - other:           remove only
  *
  * Free skip: problems with no relationships to attempted problems skip graph effects entirely.

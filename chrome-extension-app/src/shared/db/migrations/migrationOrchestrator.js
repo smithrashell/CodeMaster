@@ -15,7 +15,8 @@ import {
   createStrategyDataStore,
   createHintInteractionsStore,
   createUserActionsStore,
-  createErrorReportsStore
+  createErrorReportsStore,
+  createExcludedProblemsStore
 } from "../core/storeCreation.js";
 
 import { backupIndexedDB } from "./backupDB.js";
@@ -194,6 +195,7 @@ function createCoreDataStores(db, transaction) {
   createTagRelationshipsStore(db, transaction);
   createTagMasteryStore(db);
   createPatternLaddersStore(db);
+  createExcludedProblemsStore(db);
 }
 
 /**

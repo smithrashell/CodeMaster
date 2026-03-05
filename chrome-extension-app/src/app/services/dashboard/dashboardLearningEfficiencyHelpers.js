@@ -91,16 +91,15 @@ export async function generateLearningEfficiencyChartData(sessions, attempts) {
 export async function calculatePeriodEfficiency(sessions, allAttempts) {
   if (sessions.length === 0) return 0;
 
-  const sessionIds = new Set(sessions.map(s => s.id || s.sessionId || s.SessionID));
+  const sessionIds = new Set(sessions.map(s => s.id));
 
   const periodAttempts = allAttempts.filter(attempt => {
-    const attemptSessionId = attempt.session_id || attempt.SessionID;
-    return sessionIds.has(attemptSessionId) || sessionIds.has(attempt.sessionId);
+    return sessionIds.has(attempt.session_id);
   });
 
   if (periodAttempts.length === 0) return 0;
 
-  const successfulProblems = periodAttempts.filter(attempt => (attempt.success !== undefined ? attempt.success : attempt.Success)).length;
+  const successfulProblems = periodAttempts.filter(attempt => attempt.success).length;
 
   let totalHintsUsed = 0;
   try {
@@ -146,10 +145,10 @@ export function calculateTimerBehavior(attempts, problemDifficultyMap) {
 
   const recentAttempts = attempts.slice(-100);
   const timelyAttempts = recentAttempts.filter(attempt => {
-    const timeSpent = attempt.time_spent || attempt.TimeSpent;
+    const timeSpent = attempt.time_spent;
     if (timeSpent === undefined || timeSpent === null || timeSpent <= 0) return false;
 
-    const problemId = attempt.problem_id || attempt.ProblemID;
+    const problemId = attempt.problem_id;
     const difficulty = problemDifficultyMap[problemId] || "Medium";
 
     const timeLimit = difficulty === "Easy" ? 1200 :
@@ -176,7 +175,7 @@ export function calculateLearningStatus(attempts, sessions) {
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const recentAttempts = attempts.filter(attempt =>
-    new Date(attempt.attempt_date || attempt.AttemptDate) >= sevenDaysAgo
+    new Date(attempt.attempt_date) >= sevenDaysAgo
   );
 
   const recentSessions = sessions.filter(session =>
@@ -184,7 +183,7 @@ export function calculateLearningStatus(attempts, sessions) {
   );
 
   const monthlyAttempts = attempts.filter(attempt =>
-    new Date(attempt.attempt_date || attempt.AttemptDate) >= thirtyDaysAgo
+    new Date(attempt.attempt_date) >= thirtyDaysAgo
   );
 
   if (recentAttempts.length >= 3 || recentSessions.length >= 1) {
@@ -206,10 +205,10 @@ export function calculateTimerPercentage(attempts, problemDifficultyMap) {
 
   const recentAttempts = attempts.slice(-100);
   const withinLimits = recentAttempts.filter(attempt => {
-    const timeSpent = attempt.time_spent || attempt.TimeSpent;
+    const timeSpent = attempt.time_spent;
     if (timeSpent === undefined || timeSpent === null || timeSpent <= 0) return false;
 
-    const problemId = attempt.problem_id || attempt.ProblemID;
+    const problemId = attempt.problem_id;
     const difficulty = problemDifficultyMap[problemId] || "Medium";
 
     const timeLimit = difficulty === "Easy" ? 1200 :

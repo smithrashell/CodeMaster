@@ -1,7 +1,3 @@
-/**
- * Hint Interaction Message Handlers
- * Extracted from messageRouter.js
- */
 
 import { HintInteractionService } from "../../shared/services/hints/hintInteractionService.js";
 import { getProblem } from "../../shared/db/stores/problems.js";

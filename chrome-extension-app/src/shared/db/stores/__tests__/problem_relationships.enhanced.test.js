@@ -324,6 +324,47 @@ describe('problem_relationships', () => {
       expect(score).toBeGreaterThan(0.1);
     });
 
+    it('deprioritizes Hard problems with weak connectivity', async () => {
+      const hardProblem = { id: 50, leetcode_id: 50, difficulty: 'Hard', tags: [] };
+      const recentSuccess = { leetcode_id: 99, success: true };
+      // Weak relationship strength (1.0 < 1.5 threshold)
+      const weakRelMap = new Map([['99-50', 1.0]]);
+      const cachedData = {
+        recentSuccesses: [recentSuccess],
+        relationshipMap: weakRelMap,
+        isPlateauing: false,
+      };
+
+      const hardWeakScore = await calculateOptimalPathScore(hardProblem, null, cachedData);
+
+      // Same problem but Medium difficulty — should not get the Hard penalty
+      const mediumProblem = { id: 50, leetcode_id: 50, difficulty: 'Medium', tags: [] };
+      const mediumScore = await calculateOptimalPathScore(mediumProblem, null, cachedData);
+
+      expect(hardWeakScore).toBeLessThan(mediumScore);
+    });
+
+    it('does not penalize Hard problems with strong connectivity', async () => {
+      const hardProblem = { id: 50, leetcode_id: 50, difficulty: 'Hard', tags: [] };
+      const recentSuccess = { leetcode_id: 99, success: true };
+      // Strong relationship (4.0 > 1.5 threshold)
+      const strongRelMap = new Map([['99-50', 4.0]]);
+      const cachedData = {
+        recentSuccesses: [recentSuccess],
+        relationshipMap: strongRelMap,
+        isPlateauing: false,
+      };
+
+      const hardStrongScore = await calculateOptimalPathScore(hardProblem, null, cachedData);
+
+      // Compare with weak connectivity
+      const weakRelMap = new Map([['99-50', 1.0]]);
+      const weakCachedData = { ...cachedData, relationshipMap: weakRelMap };
+      const hardWeakScore = await calculateOptimalPathScore(hardProblem, null, weakCachedData);
+
+      expect(hardStrongScore).toBeGreaterThan(hardWeakScore);
+    });
+
     it('applies tag mastery bonus when userState is provided', async () => {
       const problem = { id: 40, leetcode_id: 40, difficulty: 'Medium', tags: ['dp'] };
       const userState = {

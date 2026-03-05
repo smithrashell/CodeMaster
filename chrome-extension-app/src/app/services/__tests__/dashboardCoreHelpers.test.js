@@ -229,14 +229,14 @@ describe("dashboardCoreHelpers", () => {
       expect(result.filteredProblems).toHaveLength(3);
     });
 
-    it("supports PascalCase attempt fields", () => {
-      const pascalAttempts = [
-        { ProblemID: "p1", AttemptDate: "2025-01-15T10:00:00Z" }
+    it("handles snake_case attempt fields", () => {
+      const snakeCaseAttempts = [
+        { problem_id: "p1", attempt_date: "2025-01-15T10:00:00Z" }
       ];
 
       const result = applyFiltering({
         allProblems: mockProblems,
-        allAttempts: pascalAttempts,
+        allAttempts: snakeCaseAttempts,
         allSessions: mockSessions,
         problemTagsMap,
         focusAreaFilter: ["array"],
@@ -265,10 +265,10 @@ describe("dashboardCoreHelpers", () => {
       expect(statistics.totalSolved).toBe(4); // mastered + inProgress
     });
 
-    it("supports PascalCase BoxLevel field", () => {
+    it("handles box_level field", () => {
       const problems = [
-        { problem_id: "p1", BoxLevel: 1 },
-        { problem_id: "p2", BoxLevel: 7 }
+        { problem_id: "p1", box_level: 1 },
+        { problem_id: "p2", box_level: 7 }
       ];
 
       const { statistics } = calculateCoreStatistics(problems, [], {});
@@ -329,9 +329,9 @@ describe("dashboardCoreHelpers", () => {
       expect(successStats.Medium.total).toBe(1);
     });
 
-    it("supports PascalCase attempt fields", () => {
+    it("handles snake_case attempt fields", () => {
       const attempts = [
-        { ProblemID: "p1", TimeSpent: 600, Success: true }
+        { problem_id: "p1", time_spent: 600, success: true }
       ];
 
       const difficultyMap = { "p1": "Easy" };
@@ -470,11 +470,11 @@ describe("dashboardCoreHelpers", () => {
       expect(result).toBe(100);
     });
 
-    it("supports PascalCase Success and SessionID fields", () => {
+    it("handles snake_case success and session_id fields", () => {
       const sessions = [{ id: "s1", session_type: "standard" }];
       const attempts = [
-        { SessionID: "s1", Success: true },
-        { SessionID: "s1", Success: false }
+        { session_id: "s1", success: true },
+        { session_id: "s1", success: false }
       ];
 
       const result = calculateStrategySuccessRate(sessions, attempts);

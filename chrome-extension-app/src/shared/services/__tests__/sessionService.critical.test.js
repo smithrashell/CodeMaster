@@ -7,6 +7,7 @@ import {
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
+  getOrCreateSessionAtomic,
 } from "../../db/stores/sessions";
 import { ProblemService } from "../problem/problemService";
 import { StorageService } from "../storage/storageService";
@@ -45,7 +46,10 @@ jest.mock("../storage/indexedDBRetryService.js", () => ({
 describe("SessionService - Critical User Retention Paths", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
+    // Simulate "we won the race": getOrCreateSessionAtomic returns the newSessionData passed to it
+    getOrCreateSessionAtomic.mockImplementation((_type, _status, data) => Promise.resolve(data));
+
     // Ensure ProblemService mock is properly configured
     if (!ProblemService.createSession) {
       ProblemService.createSession = jest.fn();

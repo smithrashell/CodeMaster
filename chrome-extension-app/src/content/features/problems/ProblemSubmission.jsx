@@ -91,7 +91,7 @@ SimpleTextArea.displayName = 'SimpleTextArea';
 const getFormConfig = (routeState) => ({
   defaultValues: {
     leetCodeID: routeState?.LeetCodeID || "",
-    title: routeState?.Description || "",
+    title: routeState?.title || "",
     timeSpent: routeState?.Time ? `${Math.round(routeState.Time)}` : "",
     success: "",
     difficulty: "",
@@ -388,7 +388,7 @@ const ProbSubmission = () => {
       [key]: routeState[key]
     }), {}) : 'null',
     leetCodeID: routeState?.LeetCodeID,
-    description: routeState?.Description,
+    description: routeState?.title,
     time: routeState?.Time,
     // Check for snake_case versions
     leetcode_id: routeState?.leetcode_id,
