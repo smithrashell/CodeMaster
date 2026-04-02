@@ -15,6 +15,7 @@ import {
   getRecentAttempts,
   getFailureTriggeredReviews
 } from "../../db/stores/problem_relationships.js";
+import { filterProblemsByDifficultyCap } from "../../db/stores/problemSelectionHelpers.js";
 import { applySafetyGuardRails } from "../../utils/session/sessionBalancing.js";
 import { getRecentSessionAnalytics } from "../../db/stores/sessionAnalytics.js";
 import { getPatternLadders } from "../../utils/leitner/patternLadderUtils.js";
@@ -158,7 +159,7 @@ export async function addTriggeredReviewsToSession(sessionProblems, sessionLengt
  * @param {Array} allProblems - All user problems for fallback analysis
  * @returns {Promise<number>} Number of learning reviews added
  */
-export async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems = Infinity) {
+export async function addReviewProblemsToSession(sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems = Infinity, currentDifficultyCap = 'Hard') {
   if (isOnboarding) {
     logger.info("Skipping review problems during onboarding - focusing on new problem distribution");
     return 0;
@@ -197,7 +198,9 @@ export async function addReviewProblemsToSession(sessionProblems, sessionLength,
 
   // Filter out Hard problems that would exceed the hard cap
   const currentHardCount = sessionProblems.filter(isHardProblem).length;
-  const filteredReviewProblems = filterByHardCap(uniqueReviewProblems, currentHardCount, maxHardProblems);
+  const hardCapFiltered = filterByHardCap(uniqueReviewProblems, currentHardCount, maxHardProblems);
+  // Enforce the user's maxDifficulty ceiling (same cap applied to new problems)
+  const filteredReviewProblems = filterProblemsByDifficultyCap(hardCapFiltered, currentDifficultyCap);
 
   logReviewProblemsAnalysis(enrichedReviewProblems, learningReviewProblems, sessionProblems, filteredReviewProblems);
   sessionProblems.push(...filteredReviewProblems);

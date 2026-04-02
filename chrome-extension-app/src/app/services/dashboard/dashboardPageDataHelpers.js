@@ -261,7 +261,8 @@ export async function getGoalsData(options = {}, providedData = null, getDashboa
       return {
         ...goalsData,
         sessions: sessionAnalytics,
-        attempts: allAttempts
+        attempts: allAttempts,
+        problems: providedData.allProblems || []
       };
     } else {
       // Fallback: try existing method but catch errors gracefully

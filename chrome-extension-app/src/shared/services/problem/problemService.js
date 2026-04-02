@@ -98,13 +98,17 @@ import {
   addInterviewMetadata,
 } from "./problemServiceInterview.js";
 import {
-  addOrUpdateProblemWithRetry as addOrUpdateProblemWithRetryHelper,
-  getProblemByDescriptionWithRetry as getProblemByDescriptionWithRetryHelper,
-  getAllProblemsWithRetry as getAllProblemsWithRetryHelper,
+  addOrUpdateProblemWithRetry,
+  getProblemByDescriptionWithRetry,
+  getAllProblemsWithRetry,
   countProblemsByBoxLevelWithRetryService,
   createAbortController,
-  generateSessionWithRetry as generateSessionWithRetryHelper,
+  generateSessionWithRetry,
 } from "./problemServiceRetry.js";
+
+const findProblemInSession = (session, problemData) => {
+  return session.problems.find((p) => p.leetcode_id === problemData.leetcode_id);
+};
 
 export const ProblemService = {
   async getProblemByDescription(description, slug) {
@@ -309,7 +313,7 @@ export const ProblemService = {
 
     // PRIORITY 2: Learning reviews (box 1-5)
     await addReviewProblemsToSession(
-      sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems
+      sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems, currentDifficultyCap
     );
 
     // Filter recently-attempted reviews BEFORE new problem selection,
@@ -495,27 +499,36 @@ export const ProblemService = {
       );
       session.problems = updatedproblems;
       logger.info("Updated session problem with problem_id and attempted flag");
+    } else if (session.session_type === 'tracking') {
+      // Tracking sessions start with no predefined problems — add the problem on first attempt
+      session.problems.push({
+        ...problem,
+        leetcode_id: Number(problem.leetcode_id),
+        problem_id: problem.problem_id || problem.id,
+        attempted: true,
+        attempt_date: new Date().toISOString(),
+        selectionReason: { type: 'tracking' },
+      });
+      logger.info("Added tracking problem to session problems array", { leetcode_id: problem.leetcode_id });
     }
     return session;
   },
+
+  addOrUpdateProblemWithRetry(contentScriptData, sendResponse, options = {}) {
+    return addOrUpdateProblemWithRetry(this.addOrUpdateProblem.bind(this), contentScriptData, sendResponse, options);
+  },
+
+  getProblemByDescriptionWithRetry,
+
+  getAllProblemsWithRetry,
+
+  countProblemsByBoxLevelWithRetry: countProblemsByBoxLevelWithRetryService,
+
+  createAbortController,
+
+  generateSessionWithRetry(params = {}, abortController = null) {
+    return generateSessionWithRetry(this.getAllProblemsWithRetry.bind(this), params, abortController);
+  },
 };
 
-const findProblemInSession = (session, problemData) => {
-  return session.problems.find((p) => p.leetcode_id === problemData.leetcode_id);
-};
 
-ProblemService.addOrUpdateProblemWithRetry = function(contentScriptData, sendResponse, options = {}) {
-  return addOrUpdateProblemWithRetryHelper(this.addOrUpdateProblem.bind(this), contentScriptData, sendResponse, options);
-};
-
-ProblemService.getProblemByDescriptionWithRetry = getProblemByDescriptionWithRetryHelper;
-
-ProblemService.getAllProblemsWithRetry = getAllProblemsWithRetryHelper;
-
-ProblemService.countProblemsByBoxLevelWithRetry = countProblemsByBoxLevelWithRetryService;
-
-ProblemService.createAbortController = createAbortController;
-
-ProblemService.generateSessionWithRetry = function(params = {}, abortController = null) {
-  return generateSessionWithRetryHelper(this.getAllProblemsWithRetry.bind(this), params, abortController);
-};

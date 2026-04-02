@@ -13,14 +13,14 @@ import { SessionService } from "../session/sessionService.js";
  * Service for managing hint interactions and analytics
  * Handles persistence, session context, and privacy-compliant analytics
  */
-export class HintInteractionService {
+export const HintInteractionService = {
   /**
    * Save a hint interaction with complete context
    * @param {Object} interactionData - Raw interaction data from components
    * @param {Object} sessionContext - Current session context
    * @returns {Promise<Object>} - Saved interaction record
    */
-  static async saveHintInteraction(interactionData, sessionContext = {}) {
+  async saveHintInteraction(interactionData, sessionContext = {}) {
     try {
       const startTime = performance.now();
 
@@ -100,8 +100,6 @@ export class HintInteractionService {
       // Save to database - route through background script if in content script context
       const savedInteraction = await this._saveInteractionWithContext(completeInteraction, sessionContext);
 
-      // Keep only error logging for debugging - removed verbose success logging for performance
-
       return savedInteraction;
     } catch (error) {
       console.error("❌ Failed to save hint interaction:", error);
@@ -120,14 +118,14 @@ export class HintInteractionService {
         failed_data: interactionData,
       };
     }
-  }
+  },
 
   /**
    * Get interaction analytics for a specific problem
    * @param {string} problemId - Problem identifier
    * @returns {Promise<Object>} - Analytics data for the problem
    */
-  static async getProblemAnalytics(problemId) {
+  async getProblemAnalytics(problemId) {
     try {
       const interactions = await getInteractionsByProblem(problemId);
 
@@ -172,14 +170,14 @@ export class HintInteractionService {
       console.error("Error getting problem analytics:", error);
       throw error;
     }
-  }
+  },
 
   /**
    * Get interaction analytics for a specific session
    * @param {string} sessionId - Session identifier
    * @returns {Promise<Object>} - Analytics data for the session
    */
-  static async getSessionAnalytics(sessionId) {
+  async getSessionAnalytics(sessionId) {
     try {
       const interactions = await getInteractionsBySession(sessionId);
 
@@ -242,14 +240,14 @@ export class HintInteractionService {
       console.error("Error getting session analytics:", error);
       throw error;
     }
-  }
+  },
 
   /**
    * Get system-wide hint effectiveness metrics
    * @param {Object} filters - Optional filters for date range, difficulty, etc.
    * @returns {Promise<Object>} - Comprehensive effectiveness analytics
    */
-  static async getSystemAnalytics(filters = {}) {
+  async getSystemAnalytics(filters = {}) {
     try {
       let interactions = await getAllInteractions();
 
@@ -296,14 +294,14 @@ export class HintInteractionService {
       console.error("Error getting system analytics:", error);
       throw error;
     }
-  }
+  },
 
   /**
    * Clean up old interaction data (for privacy and performance)
    * @param {number} daysToKeep - Number of days of data to retain (default: 90)
    * @returns {Promise<Object>} - Cleanup results
    */
-  static async cleanupOldData(daysToKeep = 90) {
+  async cleanupOldData(daysToKeep = 90) {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
@@ -325,10 +323,10 @@ export class HintInteractionService {
       console.error("Error cleaning up old interaction data:", error);
       throw error;
     }
-  }
+  },
 
   // Private helper methods for analytics calculations
-  static _calculateDailyTrends(interactions) {
+  _calculateDailyTrends(interactions) {
     const dailyCounts = {};
     interactions.forEach((interaction) => {
       const date = new Date(interaction.timestamp).toDateString();
@@ -338,9 +336,9 @@ export class HintInteractionService {
     return Object.entries(dailyCounts)
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
-  }
+  },
 
-  static _calculateHintTypePopularity(interactions) {
+  _calculateHintTypePopularity(interactions) {
     const popularity = {};
     interactions.forEach((interaction) => {
       popularity[interaction.hint_type] =
@@ -350,9 +348,9 @@ export class HintInteractionService {
     return Object.entries(popularity)
       .map(([hintType, count]) => ({ hintType, count }))
       .sort((a, b) => b.count - a.count);
-  }
+  },
 
-  static _calculateDifficultyBreakdown(interactions) {
+  _calculateDifficultyBreakdown(interactions) {
     const breakdown = {};
     interactions.forEach((interaction) => {
       const diff = interaction.problem_difficulty;
@@ -374,9 +372,9 @@ export class HintInteractionService {
     });
 
     return breakdown;
-  }
+  },
 
-  static _generateInsights(interactions, effectiveness) {
+  _generateInsights(interactions, effectiveness) {
     const insights = [];
 
     // Find most effective hint types
@@ -406,7 +404,7 @@ export class HintInteractionService {
     }
 
     return insights;
-  }
+  },
 
   /**
    * Save interaction with context detection - routes through background script if in content script
@@ -415,14 +413,14 @@ export class HintInteractionService {
    * @returns {Promise<Object>} - Saved interaction record
    * @private
    */
-  static async _saveInteractionWithContext(interactionData, sessionContext) {
+  async _saveInteractionWithContext(interactionData, sessionContext) {
     // Detect if we're running in a content script context
     const isContentScript = this._isContentScriptContext();
 
     if (isContentScript) {
       // eslint-disable-next-line no-console
       console.log("🔄 Routing hint interaction through background script");
-      
+
       // Use Chrome messaging to route through background script
       return new Promise((resolve, reject) => {
         if (typeof chrome === 'undefined' || !chrome.runtime) {
@@ -453,18 +451,18 @@ export class HintInteractionService {
     } else {
       // eslint-disable-next-line no-console
       console.log("💾 Direct database save (background/dashboard context)");
-      
+
       // Direct database access (background script or dashboard context)
       return await saveHintInteraction(interactionData);
     }
-  }
+  },
 
   /**
    * Detect if we're running in a content script context
    * @returns {boolean} - True if content script, false if background/dashboard
    * @private
    */
-  static _isContentScriptContext() {
+  _isContentScriptContext() {
     try {
       // Content scripts have window object and run on web pages
       if (typeof window !== 'undefined' && window.location) {
@@ -472,15 +470,15 @@ export class HintInteractionService {
         const protocol = window.location.protocol;
         const isWebPage = protocol === 'http:' || protocol === 'https:';
         const isNotExtensionPage = !window.location.href.startsWith('chrome-extension://');
-        
+
         return isWebPage && isNotExtensionPage;
       }
-      
+
       // Background scripts don't have window object
       return false;
     } catch (error) {
       // If any error in detection, assume content script for safety
       return true;
     }
-  }
-}
+  },
+};

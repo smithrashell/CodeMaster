@@ -26,26 +26,26 @@ import {
  * Automated Alerting Service for production monitoring
  * Monitors system health and triggers alerts for critical issues
  */
-export class AlertingService {
-  static isActive = false;
-  static alertQueue = [];
-  static thresholds = {
+export const AlertingService = {
+  isActive: false,
+  alertQueue: [],
+  thresholds: {
     errorRate: 10, // % errors in last 100 requests
     crashRate: 5, // crashes per hour
     performanceDegraded: 2000, // ms average response time
     memoryUsage: 100 * 1024 * 1024, // 100MB
     userInactivity: 30 * 60 * 1000, // 30 minutes
     rapidErrors: 5, // errors in 5 minutes
-  };
+  },
 
-  static alertChannels = [];
-  static lastAlerts = {};
-  static suppressionPeriod = 5 * 60 * 1000; // 5 minutes between same alerts
+  alertChannels: [],
+  lastAlerts: {},
+  suppressionPeriod: 5 * 60 * 1000, // 5 minutes between same alerts
 
   /**
    * Initialize alerting system with monitoring
    */
-  static initialize(config = {}) {
+  initialize(config = {}) {
     if (this.isActive) {
       return;
     }
@@ -59,12 +59,12 @@ export class AlertingService {
       section: "alerting",
       thresholds: this.thresholds,
     });
-  }
+  },
 
   /**
    * Setup default alert channels
    */
-  static setupDefaultChannels() {
+  setupDefaultChannels() {
     // Console alerting (always available)
     this.addAlertChannel({
       name: "console",
@@ -113,12 +113,12 @@ export class AlertingService {
         },
       });
     }
-  }
+  },
 
   /**
    * Add custom alert channel
    */
-  static addAlertChannel(channel) {
+  addAlertChannel(channel) {
     if (!channel.name || !channel.handler) {
       throw new Error("Alert channel must have name and handler");
     }
@@ -127,12 +127,12 @@ export class AlertingService {
     logger.debug(`Alert channel '${channel.name}' added`, {
       section: "alerting",
     });
-  }
+  },
 
   /**
    * Remove alert channel
    */
-  static removeAlertChannel(channelName) {
+  removeAlertChannel(channelName) {
     const index = this.alertChannels.findIndex((c) => c.name === channelName);
     if (index > -1) {
       this.alertChannels.splice(index, 1);
@@ -140,12 +140,12 @@ export class AlertingService {
         section: "alerting",
       });
     }
-  }
+  },
 
   /**
    * Start monitoring loops for different metrics
    */
-  static startMonitoring() {
+  startMonitoring() {
     // Monitor performance every 30 seconds
     setInterval(() => {
       this.checkPerformanceHealth();
@@ -170,12 +170,12 @@ export class AlertingService {
     setInterval(() => {
       this.processAlertQueue();
     }, 10000);
-  }
+  },
 
   /**
    * Check performance health metrics
    */
-  static checkPerformanceHealth() {
+  checkPerformanceHealth() {
     try {
       const summary = performanceMonitor.getPerformanceSummary();
 
@@ -225,12 +225,12 @@ export class AlertingService {
         error
       );
     }
-  }
+  },
 
   /**
    * Check error patterns for concerning trends
    */
-  static async checkErrorPatterns() {
+  async checkErrorPatterns() {
     try {
       const recentErrors = await ErrorReportService.getErrorReports({
         since: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // Last 5 minutes
@@ -279,12 +279,12 @@ export class AlertingService {
         error
       );
     }
-  }
+  },
 
   /**
    * Check crash patterns for systemic issues
    */
-  static checkCrashPatterns() {
+  checkCrashPatterns() {
     try {
       // This would integrate with CrashReporter if available
       if (window.CrashReporter) {
@@ -317,12 +317,12 @@ export class AlertingService {
         error
       );
     }
-  }
+  },
 
   /**
    * Check system resource usage
    */
-  static checkResourceUsage() {
+  checkResourceUsage() {
     try {
       // Check memory usage
       if (performance.memory) {
@@ -358,12 +358,12 @@ export class AlertingService {
         error
       );
     }
-  }
+  },
 
   /**
    * Queue an alert for processing
    */
-  static queueAlert(alert) {
+  queueAlert(alert) {
     const alertKey = `${alert.type}_${alert.severity}`;
     const now = Date.now();
 
@@ -390,12 +390,12 @@ export class AlertingService {
       alertType: alert.type,
       severity: alert.severity,
     });
-  }
+  },
 
   /**
    * Process queued alerts
    */
-  static processAlertQueue() {
+  processAlertQueue() {
     if (this.alertQueue.length === 0) {
       return;
     }
@@ -406,12 +406,12 @@ export class AlertingService {
     alertsToProcess.forEach((alert) => {
       this.sendAlert(alert);
     });
-  }
+  },
 
   /**
    * Send alert to all configured channels
    */
-  static sendAlert(alert) {
+  sendAlert(alert) {
     this.alertChannels.forEach((channel) => {
       try {
         channel.handler(alert);
@@ -430,12 +430,12 @@ export class AlertingService {
         title: alert.title,
       },
     });
-  }
+  },
 
   /**
    * Get alert emoji for severity
    */
-  static getAlertEmoji(severity) {
+  getAlertEmoji(severity) {
     const emojis = {
       info: "ℹ️",
       warning: "⚠️",
@@ -443,12 +443,12 @@ export class AlertingService {
       critical: "🚨",
     };
     return emojis[severity] || "📢";
-  }
+  },
 
   /**
    * Manually trigger an alert
    */
-  static triggerAlert(type, message, severity = "info", data = {}) {
+  triggerAlert(type, message, severity = "info", data = {}) {
     this.queueAlert({
       type: `manual_${type}`,
       severity,
@@ -456,45 +456,45 @@ export class AlertingService {
       message,
       data,
     });
-  }
+  },
 
-  static getAlertStatistics = getAlertStatistics;
+  getAlertStatistics,
 
   /**
    * Update alert thresholds
    */
-  static updateThresholds(newThresholds) {
+  updateThresholds(newThresholds) {
     this.thresholds = { ...this.thresholds, ...newThresholds };
     logger.info("Alert thresholds updated", {
       section: "alerting",
       thresholds: this.thresholds,
     });
-  }
+  },
 
   /**
    * Enable/disable alerting
    */
-  static setActive(active) {
+  setActive(active) {
     this.isActive = active;
     logger.info(`Alerting ${active ? "enabled" : "disabled"}`, {
       section: "alerting",
     });
-  }
+  },
 
   /**
    * Clear all alerts
    */
-  static clearAlerts() {
+  clearAlerts() {
     this.alertQueue = [];
     this.lastAlerts = {};
     localStorage.removeItem("codemaster_alerts");
     logger.info("All alerts cleared", { section: "alerting" });
-  }
+  },
 
   /**
    * Consistency alert wrappers - delegate to helper functions
    */
-  static triggerStreakAlert(streakDays, daysSince) {
+  triggerStreakAlert(streakDays, daysSince) {
     triggerStreakAlertHelper(
       this.queueAlert.bind(this),
       routeToSession,
@@ -502,9 +502,9 @@ export class AlertingService {
       streakDays,
       daysSince
     );
-  }
+  },
 
-  static triggerCadenceAlert(typicalGap, actualGap) {
+  triggerCadenceAlert(typicalGap, actualGap) {
     triggerCadenceAlertHelper(
       this.queueAlert.bind(this),
       routeToSession,
@@ -512,18 +512,18 @@ export class AlertingService {
       typicalGap,
       actualGap
     );
-  }
+  },
 
-  static triggerWeeklyGoalAlert(completed, goal, daysLeft, isMidWeek) {
+  triggerWeeklyGoalAlert(completed, goal, daysLeft, isMidWeek) {
     triggerWeeklyGoalAlertHelper(
       this.queueAlert.bind(this),
       routeToSession,
       routeToProgress,
       { completed, goal, daysLeft, isMidWeek }
     );
-  }
+  },
 
-  static triggerReEngagementAlert(daysSince, messageType) {
+  triggerReEngagementAlert(daysSince, messageType) {
     triggerReEngagementAlertHelper(
       this.queueAlert.bind(this),
       routeToSession,
@@ -531,9 +531,9 @@ export class AlertingService {
       daysSince,
       messageType
     );
-  }
+  },
 
-  static handleConsistencyAlerts(alerts) {
+  handleConsistencyAlerts(alerts) {
     if (!alerts || alerts.length === 0) return;
 
     alerts.forEach(alert => {
@@ -562,29 +562,29 @@ export class AlertingService {
           logger.warn(`Unknown consistency alert type: ${alert.type}`);
       }
     });
-  }
+  },
 
   // Re-export navigation helpers for backwards compatibility
-  static routeToSession = routeToSession;
-  static routeToProgress = routeToProgress;
-  static routeToDashboard = routeToDashboard;
-  static fallbackRoute = fallbackRoute;
+  routeToSession,
+  routeToProgress,
+  routeToDashboard,
+  fallbackRoute,
 
   // Snooze/dismiss wrappers
-  static snoozeAlert = snoozeAlert;
-  static isAlertSnoozed = isAlertSnoozed;
+  snoozeAlert,
+  isAlertSnoozed,
 
-  static dismissAlert(alertType) {
+  dismissAlert(alertType) {
     const filterFn = createDismissHandler(alertType);
     this.alertQueue = this.alertQueue.filter(filterFn);
-  }
+  },
 
   // Re-export desktop notification helpers for backwards compatibility
-  static sendStreakAlert = sendStreakAlert;
-  static sendCadenceNudge = sendCadenceNudge;
-  static sendWeeklyGoalReminder = sendWeeklyGoalReminder;
-  static sendReEngagementPrompt = sendReEngagementPrompt;
-  static sendFocusAreaReminder = sendFocusAreaReminder;
-}
+  sendStreakAlert,
+  sendCadenceNudge,
+  sendWeeklyGoalReminder,
+  sendReEngagementPrompt,
+  sendFocusAreaReminder,
+};
 
 export default AlertingService;

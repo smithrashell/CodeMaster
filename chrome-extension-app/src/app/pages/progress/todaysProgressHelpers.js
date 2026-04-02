@@ -57,6 +57,13 @@ function getTodaysAttempts(appState) {
 }
 
 /**
+ * Calculate the number of problems attempted today (includes current session)
+ */
+export function getTodaysProblemsAttempted(appState) {
+  return getTodaysAttempts(appState).length;
+}
+
+/**
  * Calculate the number of problems solved today (includes current session)
  */
 export function getTodaysProblemsSolved(appState) {
@@ -100,7 +107,7 @@ export function getTodaysReviewProblems(appState) {
   return todaysAttempts.filter(attempt => {
     const problemId = attempt.problem_id;
     const boxLevel = boxLevelMap[problemId] || 1;
-    return boxLevel > 1 && !!attempt.success;
+    return boxLevel > 1;
   }).length;
 }
 
@@ -152,6 +159,7 @@ export function calculateTodaysProgress(appState) {
 
   if (!hasActivity) {
     return {
+      problemsAttempted: 0,
       problemsSolved: 0,
       accuracy: 0,
       reviewProblems: 0,
@@ -162,6 +170,7 @@ export function calculateTodaysProgress(appState) {
   }
 
   return {
+    problemsAttempted: getTodaysProblemsAttempted(appState),
     problemsSolved: getTodaysProblemsSolved(appState),
     accuracy: getTodaysAccuracy(appState),
     reviewProblems: getTodaysReviewProblems(appState),

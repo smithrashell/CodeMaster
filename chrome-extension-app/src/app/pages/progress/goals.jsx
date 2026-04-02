@@ -305,6 +305,7 @@ export function Goals() {
   
   // Calculate today's progress
   const [todaysProgress, setTodaysProgress] = useState({
+    problemsAttempted: 0,
     problemsSolved: 0,
     accuracy: 0,
     reviewProblems: 0,

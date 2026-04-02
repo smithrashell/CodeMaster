@@ -11,15 +11,15 @@ import {
   handleChromeAPIError,
 } from "../../utils/logging/errorNotifications";
 
-export class ChromeAPIErrorHandler {
-  static DEFAULT_RETRY_COUNT = 2; // Reduced from 3 to match content script pattern
-  static DEFAULT_RETRY_DELAY = 1000;
-  static DEFAULT_TIMEOUT = 10000;
+export const ChromeAPIErrorHandler = {
+  DEFAULT_RETRY_COUNT: 2, // Reduced from 3 to match content script pattern
+  DEFAULT_RETRY_DELAY: 1000,
+  DEFAULT_TIMEOUT: 10000,
 
   /**
    * Wrapper for chrome.runtime.sendMessage with retry logic and health checks
    */
-  static async sendMessageWithRetry(message, options = {}) {
+  async sendMessageWithRetry(message, options = {}) {
     const {
       maxRetries = this.DEFAULT_RETRY_COUNT,
       retryDelay = this.DEFAULT_RETRY_DELAY,
@@ -70,7 +70,7 @@ export class ChromeAPIErrorHandler {
         const baseDelay = retryDelay * Math.pow(2, attempt);
         const jitter = Math.random() * 500; // Add up to 500ms random jitter
         const delay = baseDelay + jitter;
-        
+
         console.log(`⏱️ RETRY: Waiting ${Math.round(delay)}ms before attempt ${attempt + 2}`);
         await this.sleep(delay);
       }
@@ -114,12 +114,12 @@ export class ChromeAPIErrorHandler {
     throw new Error(
       `Chrome API failed after ${maxRetries + 1} attempts: ${lastError.message}`
     );
-  }
+  },
 
   /**
    * Send message with timeout
    */
-  static sendMessageWithTimeout(message, timeout) {
+  sendMessageWithTimeout(message, timeout) {
     return new Promise((resolve, reject) => {
       // Set timeout
       const timeoutId = setTimeout(() => {
@@ -153,7 +153,7 @@ export class ChromeAPIErrorHandler {
           // Enhanced error detection for session-related issues
           if (response && response.error && !response.isEmergencyResponse) {
             // Add context for session timeout errors
-            if (message.type === 'getOrCreateSession' && 
+            if (message.type === 'getOrCreateSession' &&
                 response.error.includes('timeout')) {
               const sessionError = new Error(response.error);
               sessionError.context = {
@@ -165,7 +165,7 @@ export class ChromeAPIErrorHandler {
               reject(sessionError);
               return;
             }
-            
+
             reject(new Error(response.error));
             return;
           }
@@ -177,12 +177,12 @@ export class ChromeAPIErrorHandler {
         reject(error);
       }
     });
-  }
+  },
 
   /**
    * Wrapper for chrome.storage API calls with retry logic
    */
-  static async storageGetWithRetry(keys, options = {}) {
+  async storageGetWithRetry(keys, options = {}) {
     const { maxRetries = 2, retryDelay = 500 } = options;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -205,12 +205,12 @@ export class ChromeAPIErrorHandler {
         await this.sleep(retryDelay);
       }
     }
-  }
+  },
 
   /**
    * Wrapper for chrome.storage.set with retry logic
    */
-  static async storageSetWithRetry(items, options = {}) {
+  async storageSetWithRetry(items, options = {}) {
     const { maxRetries = 2, retryDelay = 500 } = options;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -232,12 +232,12 @@ export class ChromeAPIErrorHandler {
         await this.sleep(retryDelay);
       }
     }
-  }
+  },
 
   /**
    * Wrapper for chrome.tabs API calls with error handling
    */
-  static async tabsQueryWithRetry(queryInfo, options = {}) {
+  async tabsQueryWithRetry(queryInfo, options = {}) {
     const { maxRetries = 2 } = options;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -259,12 +259,12 @@ export class ChromeAPIErrorHandler {
         await this.sleep(500);
       }
     }
-  }
+  },
 
   /**
    * Report storage-related errors
    */
-  static async reportStorageError(operation, error, context = {}) {
+  async reportStorageError(operation, error, context = {}) {
     try {
       await ErrorReportService.storeErrorReport({
         errorId: `chrome_storage_${Date.now()}`,
@@ -291,12 +291,12 @@ export class ChromeAPIErrorHandler {
         },
       ],
     });
-  }
+  },
 
   /**
    * Report tabs-related errors
    */
-  static async reportTabsError(operation, error, context = {}) {
+  async reportTabsError(operation, error, context = {}) {
     try {
       await ErrorReportService.storeErrorReport({
         errorId: `chrome_tabs_${Date.now()}`,
@@ -311,12 +311,12 @@ export class ChromeAPIErrorHandler {
       // eslint-disable-next-line no-console
       console.error("Failed to report tabs error:", storageError);
     }
-  }
+  },
 
   /**
    * Show error report dialog
    */
-  static showErrorReportDialog(errorData) {
+  showErrorReportDialog(errorData) {
     // Simple implementation using browser APIs
     // In production, this would show a proper modal dialog
     const userDescription = prompt(
@@ -332,12 +332,12 @@ export class ChromeAPIErrorHandler {
         console.warn("Failed to store user feedback:", error);
       });
     }
-  }
+  },
 
   /**
    * Check if Chrome APIs are available
    */
-  static areAPIsAvailable() {
+  areAPIsAvailable() {
     try {
       return !!(
         typeof chrome !== "undefined" &&
@@ -347,12 +347,12 @@ export class ChromeAPIErrorHandler {
     } catch (error) {
       return false;
     }
-  }
+  },
 
   /**
    * Get Chrome extension context information
    */
-  static getExtensionContext() {
+  getExtensionContext() {
     try {
       return {
         id: chrome.runtime.id,
@@ -368,19 +368,19 @@ export class ChromeAPIErrorHandler {
         error: error.message,
       };
     }
-  }
+  },
 
   /**
    * Utility method to sleep/wait
    */
-  static sleep(ms) {
+  sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-  }
+  },
 
   /**
    * Graceful degradation handler for when Chrome APIs fail
    */
-  static handleGracefulDegradation(feature, fallbackAction = null) {
+  handleGracefulDegradation(feature, fallbackAction = null) {
     const message = `${feature} is temporarily unavailable. CodeMaster is running in limited mode.`;
 
     showErrorNotification(new Error(message), {
@@ -407,12 +407,12 @@ export class ChromeAPIErrorHandler {
             },
           ],
     });
-  }
+  },
 
   /**
    * Monitor Chrome extension health
    */
-  static async monitorExtensionHealth() {
+  async monitorExtensionHealth() {
     if (!this.areAPIsAvailable()) {
       this.handleGracefulDegradation("Chrome Extension APIs");
       return false;
@@ -427,7 +427,7 @@ export class ChromeAPIErrorHandler {
       console.warn("Chrome extension health check failed:", error);
       return false;
     }
-  }
-}
+  },
+};
 
 export default ChromeAPIErrorHandler;

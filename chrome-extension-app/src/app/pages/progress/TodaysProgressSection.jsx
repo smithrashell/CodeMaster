@@ -5,6 +5,7 @@ const SECTION_HEIGHT = 700;
 
 export function TodaysProgressSection({ todaysProgress }) {
   const {
+    problemsAttempted,
     problemsSolved,
     accuracy,
     reviewProblems,
@@ -27,11 +28,22 @@ export function TodaysProgressSection({ todaysProgress }) {
           <div>
             <Title order={5} mb="md">Performance</Title>
             <Stack gap="lg">
+              {/* Problems Attempted */}
+              <Group justify="space-between" wrap="nowrap">
+                <Text size="sm" fw={500}>Problems Attempted</Text>
+                <Group gap="xs" align="baseline">
+                  <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-blue-6)' }}>
+                    {problemsAttempted}
+                  </Text>
+                  <Text size="xs">problems</Text>
+                </Group>
+              </Group>
+
               {/* Problems Solved */}
               <Group justify="space-between" wrap="nowrap">
                 <Text size="sm" fw={500}>Problems Solved</Text>
                 <Group gap="xs" align="baseline">
-                  <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-blue-6)' }}>
+                  <Text size="lg" fw={700} style={{ color: 'var(--mantine-color-green-6)' }}>
                     {problemsSolved}
                   </Text>
                   <Text size="xs">problems</Text>

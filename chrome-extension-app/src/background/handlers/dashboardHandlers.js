@@ -19,6 +19,7 @@ import { HintInteractionService } from "../../shared/services/hints/hintInteract
 import FocusCoordinationService from "../../shared/services/focus/focusCoordinationService.js";
 import { getAllSessions } from "../../shared/db/stores/sessions.js";
 import { getAllAttempts } from "../../shared/db/stores/attempts.js";
+import { fetchAllProblems } from "../../shared/db/stores/problems.js";
 
 export const dashboardHandlers = {
   getDashboardStatistics: (request, _dependencies, sendResponse, finishRequest) => {
@@ -44,9 +45,10 @@ export const dashboardHandlers = {
         const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
         const settings = await StorageService.getSettings();
 
-        const [allSessions, allAttempts, hintsUsed] = await Promise.all([
+        const [allSessions, allAttempts, allProblems, hintsUsed] = await Promise.all([
           getAllSessions(),
           getAllAttempts(),
+          fetchAllProblems(),
           (async () => {
             try {
               const analytics = await HintInteractionService.getSystemAnalytics({});
@@ -81,6 +83,7 @@ export const dashboardHandlers = {
           focusDecision,
           allSessions,
           allAttempts,
+          allProblems,
           hintsUsed
         });
         sendResponse({ result });

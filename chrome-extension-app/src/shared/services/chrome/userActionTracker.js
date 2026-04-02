@@ -10,8 +10,8 @@ import { dbHelper } from "../../db/index.js";
 function isContentScriptContext() {
   try {
     return (
-      typeof chrome !== "undefined" && 
-      chrome.runtime && 
+      typeof chrome !== "undefined" &&
+      chrome.runtime &&
       chrome.runtime.sendMessage &&
       typeof document !== "undefined" &&
       (window.location.protocol === "http:" || window.location.protocol === "https:") &&
@@ -26,29 +26,28 @@ function isContentScriptContext() {
  * User Action Tracking Service for production analytics
  * Tracks user interactions and behaviors for insights and optimization
  */
-export class UserActionTracker {
-  static STORE_NAME = "user_actions";
-  static MAX_ACTIONS = 5000; // Keep last 5000 actions
-  static BATCH_SIZE = 50; // Batch process actions for performance
+export const UserActionTracker = {
+  STORE_NAME: "user_actions",
+  MAX_ACTIONS: 5000, // Keep last 5000 actions
+  BATCH_SIZE: 50, // Batch process actions for performance
 
   // Action categories for analytics
-  static CATEGORIES = {
+  CATEGORIES: {
     NAVIGATION: "navigation",
     PROBLEM_SOLVING: "problem_solving",
     FEATURE_USAGE: "feature_usage",
     SYSTEM_INTERACTION: "system_interaction",
     ERROR_OCCURRENCE: "error_occurrence",
-  };
+  },
 
-  static sessionStart = Date.now();
-  static actionQueue = [];
-  static isProcessing = false;
-
+  sessionStart: Date.now(),
+  actionQueue: [],
+  isProcessing: false,
 
   /**
    * Track a user action with context
    */
-  static async trackAction({
+  async trackAction({
     action,
     category = this.CATEGORIES.SYSTEM_INTERACTION,
     context = {},
@@ -103,12 +102,12 @@ export class UserActionTracker {
       );
       throw error;
     }
-  }
+  },
 
   /**
    * Process queued actions in batch for performance
    */
-  static async processBatch() {
+  async processBatch() {
     if (this.isProcessing || this.actionQueue.length === 0) {
       return;
     }
@@ -173,12 +172,12 @@ export class UserActionTracker {
     } finally {
       this.isProcessing = false;
     }
-  }
+  },
 
   /**
    * Get user actions with filtering
    */
-  static async getUserActions({
+  async getUserActions({
     limit = 100,
     category = null,
     action = null,
@@ -238,12 +237,12 @@ export class UserActionTracker {
       );
       return [];
     }
-  }
+  },
 
   /**
    * Get user behavior analytics
    */
-  static async getUserAnalytics(days = 7) {
+  async getUserAnalytics(days = 7) {
     try {
       const since = new Date();
       since.setDate(since.getDate() - days);
@@ -306,12 +305,12 @@ export class UserActionTracker {
       );
       return null;
     }
-  }
+  },
 
   /**
    * Analyze user flow patterns
    */
-  static _analyzeUserFlow(actions) {
+  _analyzeUserFlow(actions) {
     const flowMap = {};
     const sortedActions = actions.sort(
       (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
@@ -333,45 +332,45 @@ export class UserActionTracker {
         obj[key] = value;
         return obj;
       }, {});
-  }
+  },
 
   /**
    * Track specific feature usage
    */
-  static trackFeatureUsage(featureName, additionalContext = {}) {
+  trackFeatureUsage(featureName, additionalContext = {}) {
     return this.trackAction({
       action: `feature_${featureName}_used`,
       category: this.CATEGORIES.FEATURE_USAGE,
       context: additionalContext,
     });
-  }
+  },
 
   /**
    * Track navigation events
    */
-  static trackNavigation(from, to, method = "click") {
+  trackNavigation(from, to, method = "click") {
     return this.trackAction({
       action: "page_navigation",
       category: this.CATEGORIES.NAVIGATION,
       context: { from, to, method },
     });
-  }
+  },
 
   /**
    * Track problem-solving events
    */
-  static trackProblemSolving(problemId, event, context = {}) {
+  trackProblemSolving(problemId, event, context = {}) {
     return this.trackAction({
       action: `problem_${event}`,
       category: this.CATEGORIES.PROBLEM_SOLVING,
       context: { problemId, ...context },
     });
-  }
+  },
 
   /**
    * Track errors with context
    */
-  static trackError(error, context = {}) {
+  trackError(error, context = {}) {
     return this.trackAction({
       action: "error_occurred",
       category: this.CATEGORIES.ERROR_OCCURRENCE,
@@ -384,12 +383,12 @@ export class UserActionTracker {
         severity: context.severity || "medium",
       },
     });
-  }
+  },
 
   /**
    * Clean up old actions to prevent storage bloat
    */
-  static async cleanupOldActions() {
+  async cleanupOldActions() {
     try {
       const actions = await this.getUserActions({ limit: null });
 
@@ -413,12 +412,12 @@ export class UserActionTracker {
         error
       );
     }
-  }
+  },
 
   /**
    * Export user actions for external analysis
    */
-  static async exportUserActions(format = "json") {
+  async exportUserActions(format = "json") {
     try {
       const actions = await this.getUserActions({ limit: null });
 
@@ -459,17 +458,17 @@ export class UserActionTracker {
       );
       throw error;
     }
-  }
+  },
 
   /**
    * Flush remaining actions before page unload
    */
-  static async flush() {
+  async flush() {
     if (this.actionQueue.length > 0) {
       await this.processBatch();
     }
-  }
-}
+  },
+};
 
 // Auto-flush on page unload
 if (typeof window !== "undefined") {
