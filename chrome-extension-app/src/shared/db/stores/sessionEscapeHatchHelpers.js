@@ -205,6 +205,75 @@ export async function checkForDemotion(sessionState) {
   }
 }
 
+const DIFFICULTY_ORDER = ['Easy', 'Medium', 'Hard'];
+
+/**
+ * Adjusts new_problem_difficulty_cap on sessionState based on rolling new-problem accuracy.
+ * Operates independently of current_difficulty_cap so review problem difficulty is unaffected.
+ *
+ * Demotion: 2 consecutive sessions with new_problem_accuracy < 0.6 → drop one level
+ * Promotion: 2 consecutive sessions with new_problem_accuracy >= 0.75 → raise one level
+ * Floor:     already at Easy and still failing → sets new_problem_difficulty_cap to 'Easy'
+ *            (caller can use this to enforce 0 new problems as a last resort)
+ */
+export async function checkNewProblemDifficultyAdjustment(sessionState) {
+  const CONSECUTIVE_NEEDED = 2;
+  const DEMOTION_THRESHOLD = 0.6;
+  const PROMOTION_THRESHOLD = 0.75;
+
+  if (!sessionState.new_problem_difficulty_cap) {
+    sessionState.new_problem_difficulty_cap = sessionState.current_difficulty_cap || 'Easy';
+  }
+
+  let recentAnalytics;
+  try {
+    recentAnalytics = await getRecentSessionAnalytics(CONSECUTIVE_NEEDED);
+  } catch (error) {
+    logger.warn('checkNewProblemDifficultyAdjustment: failed to load analytics, skipping', error);
+    return sessionState;
+  }
+
+  const withNewProblemData = recentAnalytics.filter(
+    s => s.new_problem_accuracy !== null && s.new_problem_accuracy !== undefined
+  );
+
+  if (withNewProblemData.length < CONSECUTIVE_NEEDED) {
+    logger.info(`New problem difficulty check: not enough history (${withNewProblemData.length}/${CONSECUTIVE_NEEDED}), skipping`);
+    return sessionState;
+  }
+
+  const recent = withNewProblemData.slice(0, CONSECUTIVE_NEEDED);
+  const allStruggling = recent.every(s => s.new_problem_accuracy < DEMOTION_THRESHOLD);
+  const allThriving = recent.every(s => s.new_problem_accuracy >= PROMOTION_THRESHOLD);
+
+  const currentCap = sessionState.new_problem_difficulty_cap;
+  const currentIndex = DIFFICULTY_ORDER.indexOf(currentCap);
+
+  if (allStruggling) {
+    if (currentIndex > 0) {
+      const newCap = DIFFICULTY_ORDER[currentIndex - 1];
+      sessionState.new_problem_difficulty_cap = newCap;
+      logger.info(`New problem difficulty demoted: ${currentCap} → ${newCap} (new-problem accuracy below ${DEMOTION_THRESHOLD * 100}% for ${CONSECUTIVE_NEEDED} sessions)`);
+    } else {
+      logger.info(`New problem difficulty already at Easy and still struggling — caller may enforce 0 new problems`);
+    }
+  } else if (allThriving) {
+    const globalCap = sessionState.current_difficulty_cap || 'Hard';
+    const globalIndex = DIFFICULTY_ORDER.indexOf(globalCap);
+    if (currentIndex < globalIndex) {
+      const newCap = DIFFICULTY_ORDER[currentIndex + 1];
+      sessionState.new_problem_difficulty_cap = newCap;
+      logger.info(`New problem difficulty promoted: ${currentCap} → ${newCap} (new-problem accuracy above ${PROMOTION_THRESHOLD * 100}% for ${CONSECUTIVE_NEEDED} sessions)`);
+    } else {
+      logger.info(`New problem difficulty already at global cap (${globalCap}), no promotion needed`);
+    }
+  } else {
+    logger.info(`New problem difficulty maintained at ${currentCap}`);
+  }
+
+  return sessionState;
+}
+
 /**
  * Helper to analyze performance trend from recent sessions
  */

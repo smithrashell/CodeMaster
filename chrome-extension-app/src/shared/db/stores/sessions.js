@@ -7,7 +7,7 @@ import { getRecentSessionAnalytics } from "./sessionAnalytics.js";
 import logger from "../../utils/logging/logger.js";
 
 // Re-export helpers for backwards compatibility
-export { applyEscapeHatchLogic, checkForDemotion, analyzePerformanceTrend } from "./sessionEscapeHatchHelpers.js";
+export { applyEscapeHatchLogic, checkForDemotion, analyzePerformanceTrend, checkNewProblemDifficultyAdjustment } from "./sessionEscapeHatchHelpers.js";
 export {
   applyOnboardingSettings,
   applyPostOnboardingLogic,
@@ -28,7 +28,7 @@ export {
 } from "./sessionPerformanceHelpers.js";
 
 // Import helpers for internal use
-import { applyEscapeHatchLogic, checkForDemotion, analyzePerformanceTrend } from "./sessionEscapeHatchHelpers.js";
+import { applyEscapeHatchLogic, checkForDemotion, analyzePerformanceTrend, checkNewProblemDifficultyAdjustment } from "./sessionEscapeHatchHelpers.js";
 import {
   applyOnboardingSettings,
   applyPostOnboardingLogic,
@@ -491,6 +491,15 @@ export async function buildAdaptiveSessionSettings() {
   const adaptiveCap = focusDecision.onboarding ? "Easy" : updatedSessionState.current_difficulty_cap;
   const finalDifficultyCap = applyUserDifficultyCeiling(adaptiveCap, settings.maxDifficulty);
 
+  if (!focusDecision.onboarding) {
+    await checkNewProblemDifficultyAdjustment(updatedSessionState);
+    await StorageService.setSessionState(sessionStateKey, updatedSessionState);
+  }
+
+  const newProblemDifficultyCap = focusDecision.onboarding
+    ? "Easy"
+    : applyUserDifficultyCeiling(updatedSessionState.new_problem_difficulty_cap || finalDifficultyCap, settings.maxDifficulty);
+
   const maxHardProblems = calculateMaxHardProblems(
     performanceMetrics.accuracy, sessionLength, focusDecision.onboarding
   );
@@ -500,6 +509,7 @@ export async function buildAdaptiveSessionSettings() {
     numberOfNewProblems,
     currentAllowedTags: allowedTags,
     currentDifficultyCap: finalDifficultyCap,
+    newProblemDifficultyCap,
     userFocusAreas,
     sessionState: updatedSessionState,
     isOnboarding: focusDecision.onboarding,

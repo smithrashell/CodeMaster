@@ -241,7 +241,8 @@ export const ProblemService = {
       settings.userFocusAreas,
       settings.isOnboarding,
       settings.maxHardProblems,
-      settings.isAutoNewProblems
+      settings.isAutoNewProblems,
+      settings.newProblemDifficultyCap
     );
     return problems;
   },
@@ -295,7 +296,8 @@ export const ProblemService = {
     userFocusAreas = [],
     isOnboarding = false,
     maxHardProblems = Infinity,
-    isAutoNewProblems = false
+    isAutoNewProblems = false,
+    newProblemDifficultyCap = null
   ) {
     logger.info("Starting intelligent session assembly with adaptive learning...");
     logger.info("Session length:", sessionLength);
@@ -329,10 +331,12 @@ export const ProblemService = {
     const survivingReviewCount = reviewProblems.length;
 
     // PRIORITY 3: New problems (primary learning)
+    // newProblemDifficultyCap is used here instead of currentDifficultyCap so the
+    // adaptive new-problem difficulty circuit breaker does not affect review selection.
     await addNewProblemsToSession({
       sessionLength, sessionProblems: assembledProblems, excludeIds, userFocusAreas,
-      currentAllowedTags, currentDifficultyCap, isOnboarding, numberOfNewProblems, maxHardProblems,
-      isAutoNewProblems
+      currentAllowedTags, currentDifficultyCap: newProblemDifficultyCap || currentDifficultyCap,
+      isOnboarding, numberOfNewProblems, maxHardProblems, isAutoNewProblems
     });
 
     // PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
