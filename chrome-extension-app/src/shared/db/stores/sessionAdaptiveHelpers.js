@@ -47,7 +47,7 @@ export function applyOnboardingSettings(settings, sessionState, allowedTags, foc
  * Apply post-onboarding adaptive logic with performance-based adjustments
  */
 export async function applyPostOnboardingLogic({
-  accuracy, efficiencyScore, settings, interviewInsights,
+  accuracy, newProblemAccuracy, efficiencyScore, settings, interviewInsights,
   allowedTags, focusTags, _sessionState, now, performanceTrend, consecutiveExcellentSessions
 }) {
   let gapInDays = null;
@@ -71,7 +71,7 @@ export async function applyPostOnboardingLogic({
     logger.info(`Performance constraint applied: Session length capped from ${originalLength} to ${sessionLength} due to gap (${gapText}) or low accuracy (${(accuracy * 100).toFixed(1)}%)`);
   }
 
-  let numberOfNewProblems = calculateNewProblems(accuracy, sessionLength, settings, interviewInsights);
+  let numberOfNewProblems = calculateNewProblems(accuracy, sessionLength, settings, interviewInsights, newProblemAccuracy);
 
   const tagResult = applyInterviewInsightsToTags(allowedTags, focusTags, interviewInsights, accuracy);
 
@@ -108,14 +108,21 @@ export function applyInterviewInsightsToSessionLength(sessionLength, interviewIn
 }
 
 /**
- * Calculate new problems based on performance and apply guardrails
+ * Calculate new problems based on performance and apply guardrails.
+ * Uses newProblemAccuracy (rolling avg from recent sessions) when available
+ * as the primary signal, falling back to overall accuracy.
  */
-export function calculateNewProblems(accuracy, sessionLength, settings, interviewInsights) {
+export function calculateNewProblems(accuracy, sessionLength, settings, interviewInsights, newProblemAccuracy = null) {
   let numberOfNewProblems;
 
-  if (accuracy >= 0.85) {
+  const signal = newProblemAccuracy !== null ? newProblemAccuracy : accuracy;
+  if (newProblemAccuracy !== null) {
+    logger.info(`calculateNewProblems: using new-problem accuracy signal ${(signal * 100).toFixed(1)}% (overall: ${(accuracy * 100).toFixed(1)}%)`);
+  }
+
+  if (signal >= 0.85) {
     numberOfNewProblems = Math.min(5, Math.floor(sessionLength / 2));
-  } else if (accuracy < 0.6) {
+  } else if (signal < 0.6) {
     numberOfNewProblems = 1;
   } else {
     numberOfNewProblems = Math.floor(sessionLength * 0.3);

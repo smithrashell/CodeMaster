@@ -507,7 +507,7 @@ export const ProblemService = {
         problem_id: problem.problem_id || problem.id,
         attempted: true,
         attempt_date: new Date().toISOString(),
-        selectionReason: { type: 'tracking' },
+        selectionReason: { type: problem.last_attempt_date ? 'tracking' : 'new_problem' },
       });
       logger.info("Added tracking problem to session problems array", { leetcode_id: problem.leetcode_id });
     }

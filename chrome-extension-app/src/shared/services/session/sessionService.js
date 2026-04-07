@@ -296,6 +296,8 @@ export const SessionService = {
         },
         difficulty_analysis: difficultyMix,
         insights: this.generateSessionInsights(performanceMetrics, masteryDeltas, difficultyMix),
+        new_problem_accuracy: session.newProblemAccuracy ?? null,
+        review_accuracy: session.reviewAccuracy ?? null,
       };
 
       // Update session state with performance data
@@ -464,6 +466,17 @@ export const SessionService = {
       const successfulAttempts = session.attempts.filter(a => a.success).length;
       session.accuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
       session.duration = session.attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / 60; // minutes
+
+      // Calculate new vs review accuracy separately
+      const newProblemIds = new Set(
+        (session.problems || [])
+          .filter(p => p.selectionReason?.type === 'new_problem')
+          .map(p => p.leetcode_id)
+      );
+      const newAttempts = session.attempts.filter(a => newProblemIds.has(a.leetcode_id));
+      const reviewAttempts = session.attempts.filter(a => !newProblemIds.has(a.leetcode_id));
+      session.newProblemAccuracy = newAttempts.length > 0 ? newAttempts.filter(a => a.success).length / newAttempts.length : null;
+      session.reviewAccuracy = reviewAttempts.length > 0 ? reviewAttempts.filter(a => a.success).length / reviewAttempts.length : null;
 
       await updateSessionInDB(session);
 

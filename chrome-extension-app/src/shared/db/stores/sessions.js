@@ -537,6 +537,7 @@ async function calculatePerformanceMetrics(sessionState) {
   let efficiencyScore = 0.5;
   let performanceTrend = 'stable';
   let consecutiveExcellentSessions = 0;
+  let newProblemAccuracy = null;
 
   try {
     const recentAnalytics = await getRecentSessionAnalytics(5);
@@ -553,6 +554,14 @@ async function calculatePerformanceMetrics(sessionState) {
         consecutiveExcellentSessions = trendAnalysis.consecutiveExcellent;
         logger.info(`Performance analysis: trend=${performanceTrend}, avgAccuracy=${(trendAnalysis.avgRecent * 100).toFixed(1)}%, consecutiveExcellent=${consecutiveExcellentSessions}`);
       }
+
+      const recentNewProblemAccuracies = recentAnalytics
+        .filter(s => s.new_problem_accuracy !== null && s.new_problem_accuracy !== undefined)
+        .map(s => s.new_problem_accuracy);
+      if (recentNewProblemAccuracies.length > 0) {
+        newProblemAccuracy = recentNewProblemAccuracies.reduce((a, b) => a + b, 0) / recentNewProblemAccuracies.length;
+        logger.info(`New problem accuracy (rolling avg over ${recentNewProblemAccuracies.length} sessions): ${(newProblemAccuracy * 100).toFixed(1)}%`);
+      }
     } else {
       logger.info("No recent session analytics found, using defaults");
     }
@@ -560,7 +569,7 @@ async function calculatePerformanceMetrics(sessionState) {
     logger.warn("Failed to get recent session analytics, using defaults:", error);
   }
 
-  return { accuracy, efficiencyScore, performanceTrend, consecutiveExcellentSessions };
+  return { accuracy, efficiencyScore, performanceTrend, consecutiveExcellentSessions, newProblemAccuracy };
 }
 
 function calculateAccuracyFromAnalytics(lastSession, currentDifficulty) {
@@ -607,6 +616,7 @@ async function determineSessionParameters(context) {
   } else {
     const adaptiveResult = await applyPostOnboardingLogic({
       accuracy: performanceMetrics.accuracy,
+      newProblemAccuracy: performanceMetrics.newProblemAccuracy,
       efficiencyScore: performanceMetrics.efficiencyScore,
       settings,
       interviewInsights,
