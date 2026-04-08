@@ -124,6 +124,14 @@ export const storageHandlers = {
           return;
         }
 
+        const pendingRecalibration = await StorageService.get('pending_adaptive_recalibration');
+        if (pendingRecalibration) {
+          console.log('Adaptive recalibration already in progress, skipping welcome back modal');
+          sendResponse({ type: 'normal' });
+          finishRequest();
+          return;
+        }
+
         const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();
         const strategy = getWelcomeBackStrategy(daysSinceLastUse);
         sendResponse(strategy);
@@ -144,6 +152,7 @@ export const storageHandlers = {
           timestamp: request.timestamp,
           daysSinceLastUse: request.daysSinceLastUse
         });
+        await StorageService.updateLastActivityDate();
 
         console.log(`Welcome back modal dismissed (${request.daysSinceLastUse} days gap)`);
         sendResponse({ status: 'success' });
