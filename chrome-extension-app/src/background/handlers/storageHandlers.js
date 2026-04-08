@@ -193,6 +193,7 @@ export const storageHandlers = {
           metadata: result.metadata,
           createdAt: new Date().toISOString()
         });
+        await StorageService.updateLastActivityDate();
 
         console.log(`Diagnostic session created with ${result.problems.length} problems`);
         sendResponse({
@@ -240,6 +241,7 @@ export const storageHandlers = {
         const result = await createAdaptiveRecalibrationSession({
           daysSinceLastUse: request.daysSinceLastUse || 0
         });
+        await StorageService.updateLastActivityDate();
 
         console.log(`Adaptive recalibration session enabled: ${result.message}`);
         sendResponse(result);

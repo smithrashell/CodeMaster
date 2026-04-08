@@ -458,6 +458,7 @@ describe('storageHandlers', () => {
       };
       createDiagnosticSession.mockResolvedValue(diagResult);
       StorageService.set.mockResolvedValue();
+      StorageService.updateLastActivityDate.mockResolvedValue();
 
       const sendResponse = sr();
       const finishRequest = fr();
@@ -478,6 +479,7 @@ describe('storageHandlers', () => {
           metadata: diagResult.metadata,
         })
       );
+      expect(StorageService.updateLastActivityDate).toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith({
         status: 'success',
         problemCount: 2,
@@ -566,6 +568,7 @@ describe('storageHandlers', () => {
     it('creates adaptive session and returns result', async () => {
       const result = { status: 'success', message: 'Adaptive session enabled' };
       createAdaptiveRecalibrationSession.mockResolvedValue(result);
+      StorageService.updateLastActivityDate.mockResolvedValue();
 
       const sendResponse = sr();
       const finishRequest = fr();
@@ -578,6 +581,7 @@ describe('storageHandlers', () => {
       expect(createAdaptiveRecalibrationSession).toHaveBeenCalledWith({
         daysSinceLastUse: 14,
       });
+      expect(StorageService.updateLastActivityDate).toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith(result);
       expect(finishRequest).toHaveBeenCalled();
     });
