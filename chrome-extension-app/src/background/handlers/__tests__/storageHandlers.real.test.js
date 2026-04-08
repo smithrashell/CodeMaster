@@ -17,6 +17,7 @@ jest.mock('../../../shared/services/storage/storageService.js', () => ({
     setSettings: jest.fn(),
     getSessionState: jest.fn(),
     getDaysSinceLastActivity: jest.fn(),
+    updateLastActivityDate: jest.fn(),
   },
 }));
 
@@ -319,7 +320,9 @@ describe('storageHandlers', () => {
     });
 
     it('returns strategy when dismissed on a different day', async () => {
-      StorageService.get.mockResolvedValue({ timestamp: '2020-01-01T10:00:00Z' });
+      StorageService.get
+        .mockResolvedValueOnce({ timestamp: '2020-01-01T10:00:00Z' })  // welcome_back_dismissed → old date
+        .mockResolvedValueOnce(null);                                    // pending_adaptive_recalibration → none
       StorageService.getDaysSinceLastActivity.mockResolvedValue(3);
       getWelcomeBackStrategy.mockReturnValue({ type: 'recap' });
 
@@ -329,6 +332,27 @@ describe('storageHandlers', () => {
       await flush();
 
       expect(sendResponse).toHaveBeenCalledWith({ type: 'recap' });
+    });
+
+    it('returns normal type when adaptive recalibration is already pending', async () => {
+      // not dismissed today, but a pending recalibration exists in storage
+      StorageService.get
+        .mockResolvedValueOnce(null)  // welcome_back_dismissed → null
+        .mockResolvedValueOnce({      // pending_adaptive_recalibration → exists
+          daysSinceLastUse: 63,
+          createdAt: '2026-04-07T17:54:12.981Z',
+        });
+
+      const sendResponse = sr();
+      const finishRequest = fr();
+      storageHandlers.getWelcomeBackStrategy({}, noDeps, sendResponse, finishRequest);
+      await flush();
+
+      // modal suppressed — no need to re-prompt the user
+      expect(sendResponse).toHaveBeenCalledWith({ type: 'normal' });
+      // short-circuited before the expensive activity check
+      expect(StorageService.getDaysSinceLastActivity).not.toHaveBeenCalled();
+      expect(finishRequest).toHaveBeenCalled();
     });
 
     it('returns normal on error', async () => {
@@ -367,6 +391,27 @@ describe('storageHandlers', () => {
       expect(finishRequest).toHaveBeenCalled();
     });
 
+    it('should update last activity date after saving dismissed state', async () => {
+      // both writes resolve cleanly
+      StorageService.set.mockResolvedValue();
+      StorageService.updateLastActivityDate.mockResolvedValue();
+
+      const sendResponse = sr();
+      const finishRequest = fr();
+      storageHandlers.dismissWelcomeBack(
+        { timestamp: '2026-04-08T10:00:00Z', daysSinceLastUse: 63 },
+        noDeps,
+        sendResponse,
+        finishRequest
+      );
+      await flush();
+
+      // gap counter resets so the modal won't re-fire on the next visit
+      expect(StorageService.updateLastActivityDate).toHaveBeenCalled();
+      expect(sendResponse).toHaveBeenCalledWith({ status: 'success' });
+      expect(finishRequest).toHaveBeenCalled();
+    });
+
     it('returns error on failure', async () => {
       StorageService.set.mockRejectedValue(new Error('set fail'));
 
@@ -386,9 +431,7 @@ describe('storageHandlers', () => {
   // recordRecalibrationChoice
   // -----------------------------------------------------------------------
   describe('recordRecalibrationChoice', () => {
-    it('saves recalibration choice', async () => {
-      StorageService.set.mockResolvedValue();
-
+    it('returns success without writing to storage', async () => {
       const sendResponse = sr();
       const finishRequest = fr();
       storageHandlers.recordRecalibrationChoice(
@@ -397,26 +440,10 @@ describe('storageHandlers', () => {
       );
       await flush();
 
-      expect(StorageService.set).toHaveBeenCalledWith(
-        'last_recalibration_choice',
-        expect.objectContaining({ approach: 'diagnostic', daysSinceLastUse: 7 })
-      );
+      // last_recalibration_choice write was removed — nothing is stored
+      expect(StorageService.set).not.toHaveBeenCalled();
       expect(sendResponse).toHaveBeenCalledWith({ status: 'success' });
       expect(finishRequest).toHaveBeenCalled();
-    });
-
-    it('returns error on failure', async () => {
-      StorageService.set.mockRejectedValue(new Error('set error'));
-
-      const sendResponse = sr();
-      const finishRequest = fr();
-      storageHandlers.recordRecalibrationChoice(
-        { approach: 'x', daysSinceLastUse: 0 },
-        noDeps, sendResponse, finishRequest
-      );
-      await flush();
-
-      expect(sendResponse).toHaveBeenCalledWith({ status: 'error', message: 'set error' });
     });
   });
 
