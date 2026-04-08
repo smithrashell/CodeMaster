@@ -187,11 +187,11 @@ export async function applyPassiveDecay(daysSinceLastUse) {
  */
 export async function checkAndApplyDecay() {
   try {
-    // Performance optimization: Check if we already checked today (24-hour cooldown)
-    const lastCheckDate = await StorageService.get('last_decay_check_date');
+    // Performance optimization: Check if we already ran decay today (24-hour cooldown)
+    const lastDecayDate = await StorageService.get('last_decay_date');
     const today = new Date().toISOString().split('T')[0];
 
-    if (lastCheckDate === today) {
+    if (lastDecayDate === today) {
       return {
         decayApplied: false,
         daysSinceLastUse: 0,
@@ -199,9 +199,6 @@ export async function checkAndApplyDecay() {
         message: 'Already checked today'
       };
     }
-
-    // Update check date immediately to prevent race conditions on rapid service worker restarts
-    await StorageService.set('last_decay_check_date', today);
 
     // Get days since last activity
     const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();

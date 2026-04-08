@@ -157,16 +157,9 @@ export const storageHandlers = {
     return true;
   },
 
-  recordRecalibrationChoice: (request, _dependencies, sendResponse, finishRequest) => {
+  recordRecalibrationChoice: (_request, _dependencies, sendResponse, finishRequest) => {
     (async () => {
       try {
-        await StorageService.set('last_recalibration_choice', {
-          approach: request.approach,
-          daysSinceLastUse: request.daysSinceLastUse,
-          timestamp: new Date().toISOString()
-        });
-
-        console.log(`Recorded recalibration choice: ${request.approach} (${request.daysSinceLastUse} days gap)`);
         sendResponse({ status: 'success' });
       } catch (error) {
         console.error("Error recording recalibration choice:", error);
