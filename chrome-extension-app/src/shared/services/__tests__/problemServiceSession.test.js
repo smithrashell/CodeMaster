@@ -37,6 +37,13 @@ jest.mock('../../utils/leitner/patternLadderUtils.js', () => ({
 jest.mock('../../utils/session/sessionBalancing.js', () => ({
   applySafetyGuardRails: jest.fn()
 }));
+jest.mock('../../db/stores/problemSelectionHelpers.js', () => ({
+  filterProblemsByDifficultyCap: jest.fn((problems, cap) => {
+    const order = { Easy: 1, Medium: 2, Hard: 3 };
+    const max = order[cap] || 3;
+    return problems.filter(p => (order[p.difficulty] || 2) <= max);
+  })
+}));
 
 // Mock services
 jest.mock('../schedule/scheduleService.js', () => ({
@@ -259,6 +266,18 @@ describe('addReviewProblemsToSession', () => {
     const sessionProblems = [];
     const result = await addReviewProblemsToSession(sessionProblems, 10, false, []);
     expect(result).toBe(0);
+  });
+
+  it('should exclude Hard review problems when currentDifficultyCap is Medium', async () => {
+    ScheduleService.getDailyReviewSchedule.mockResolvedValue([
+      { leetcode_id: 1, title: 'Easy P', difficulty: 'Easy', tags: ['array'], box_level: 2 },
+      { leetcode_id: 2, title: 'Hard P', difficulty: 'Hard', tags: ['array'], box_level: 2 }
+    ]);
+    const sessionProblems = [];
+    await addReviewProblemsToSession(sessionProblems, 10, false, [], Infinity, 'Medium');
+    const difficulties = sessionProblems.map(p => p.difficulty);
+    expect(difficulties).not.toContain('Hard');
+    expect(difficulties).toContain('Easy');
   });
 });
 
