@@ -503,6 +503,24 @@ describe('storageHandlers', () => {
       });
     });
 
+    it('should update last activity date when user confirms diagnostic session', async () => {
+      // Regression: clicking Continue on the welcome back modal called createDiagnosticSession
+      // but never updated last_activity_date, causing the modal to re-fire on the next visit
+      createDiagnosticSession.mockResolvedValue({ problems: [], metadata: {} });
+      StorageService.set.mockResolvedValue();
+      StorageService.updateLastActivityDate.mockResolvedValue();
+
+      const sendResponse = sr();
+      const finishRequest = fr();
+      storageHandlers.createDiagnosticSession(
+        { problemCount: 5, daysSinceLastUse: 63 },
+        noDeps, sendResponse, finishRequest
+      );
+      await flush();
+
+      expect(StorageService.updateLastActivityDate).toHaveBeenCalled();
+    });
+
     it('returns error on failure', async () => {
       createDiagnosticSession.mockRejectedValue(new Error('diag fail'));
 
@@ -586,8 +604,26 @@ describe('storageHandlers', () => {
       expect(finishRequest).toHaveBeenCalled();
     });
 
+    it('should update last activity date when user confirms adaptive recalibration', async () => {
+      // Regression: clicking Continue on the welcome back modal called createAdaptiveRecalibrationSession
+      // but never updated last_activity_date, causing the modal to re-fire on the next visit
+      createAdaptiveRecalibrationSession.mockResolvedValue({ status: 'success' });
+      StorageService.updateLastActivityDate.mockResolvedValue();
+
+      const sendResponse = sr();
+      const finishRequest = fr();
+      storageHandlers.createAdaptiveRecalibrationSession(
+        { daysSinceLastUse: 63 },
+        noDeps, sendResponse, finishRequest
+      );
+      await flush();
+
+      expect(StorageService.updateLastActivityDate).toHaveBeenCalled();
+    });
+
     it('defaults daysSinceLastUse to 0', async () => {
       createAdaptiveRecalibrationSession.mockResolvedValue({ status: 'ok' });
+      StorageService.updateLastActivityDate.mockResolvedValue();
 
       const sendResponse = sr();
       const finishRequest = fr();
