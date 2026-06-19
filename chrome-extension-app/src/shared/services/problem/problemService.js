@@ -88,6 +88,7 @@ import {
   deduplicateById,
   filterRecentlyAttemptedProblems,
 } from "./problemServiceSession.js";
+import { getExcludedIds } from "../../db/stores/excludedProblems.js";
 import {
   createInterviewSession as createInterviewSessionHelper,
   applyProblemMix,
@@ -233,18 +234,7 @@ export const ProblemService = {
    */
   async createSession() {
     const settings = await buildAdaptiveSessionSettings();
-    const problems = await this.fetchAndAssembleSessionProblems(
-      settings.sessionLength,
-      settings.numberOfNewProblems,
-      settings.currentAllowedTags,
-      settings.currentDifficultyCap,
-      settings.userFocusAreas,
-      settings.isOnboarding,
-      settings.maxHardProblems,
-      settings.isAutoNewProblems,
-      settings.newProblemDifficultyCap
-    );
-    return problems;
+    return await this.fetchAndAssembleSessionProblems(settings);
   },
 
   async createSessionWithConfig(adaptiveConfig) {
@@ -252,15 +242,15 @@ export const ProblemService = {
     const sessionLength = adaptiveConfig.sessionLength || 8;
     const settings = await buildAdaptiveSessionSettings();
 
-    const problems = await this.fetchAndAssembleSessionProblems(
+    const problems = await this.fetchAndAssembleSessionProblems({
       sessionLength,
-      sessionLength,
-      adaptiveConfig.focusAreas || settings.currentAllowedTags,
-      settings.currentDifficultyCap,
-      adaptiveConfig.focusAreas || settings.userFocusAreas,
-      false,
-      settings.maxHardProblems
-    );
+      numberOfNewProblems: sessionLength,
+      currentAllowedTags: adaptiveConfig.focusAreas || settings.currentAllowedTags,
+      currentDifficultyCap: settings.currentDifficultyCap,
+      userFocusAreas: adaptiveConfig.focusAreas || settings.userFocusAreas,
+      isOnboarding: false,
+      maxHardProblems: settings.maxHardProblems
+    });
 
     return {
       problems,
@@ -288,7 +278,7 @@ export const ProblemService = {
    * PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
    * FALLBACK: Any available problems
    */
-  async fetchAndAssembleSessionProblems(
+  async fetchAndAssembleSessionProblems({
     sessionLength,
     numberOfNewProblems,
     currentAllowedTags,
@@ -298,13 +288,16 @@ export const ProblemService = {
     maxHardProblems = Infinity,
     isAutoNewProblems = false,
     newProblemDifficultyCap = null
-  ) {
+  }) {
     logger.info("Starting intelligent session assembly with adaptive learning...");
     logger.info("Session length:", sessionLength);
     logger.info("Is onboarding session?", isOnboarding);
 
     const allProblems = await fetchAllProblems();
     const excludeIds = new Set(allProblems.filter(p => p && p.leetcode_id && p.title && p.title.trim()).map((p) => p.leetcode_id));
+
+    // Single DB read for permanently excluded problems — reused at both filter passes below.
+    const excludedIds = await getExcludedIds();
 
     const sessionProblems = [];
 
@@ -318,18 +311,17 @@ export const ProblemService = {
       sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems, currentDifficultyCap
     );
 
-    // Filter recently-attempted reviews BEFORE new problem selection,
-    // so the slot count reflects actual problems that will stay in the session.
-    const reviewProblems = filterRecentlyAttemptedProblems(sessionProblems);
+    // Filter recently-attempted and permanently excluded reviews BEFORE new problem
+    // selection, so the slot count reflects problems that will actually stay in the session.
+    const reviewProblems = filterRecentlyAttemptedProblems(sessionProblems)
+      .filter(p => !excludedIds.has(Number(p.leetcode_id || p.id)));
     const reviewsFiltered = sessionProblems.length - reviewProblems.length;
     if (reviewsFiltered > 0) {
-      logger.info(`Filtered ${reviewsFiltered} recently-attempted review problems before new problem selection`);
+      logger.info(`Filtered ${reviewsFiltered} review problems (recently attempted or excluded) before new problem selection`);
     }
 
     // Build a clean array for the rest of the pipeline (avoids mutating the original)
     const assembledProblems = [...reviewProblems];
-    const survivingReviewCount = reviewProblems.length;
-
     // PRIORITY 3: New problems (primary learning)
     // newProblemDifficultyCap is used here instead of currentDifficultyCap so the
     // adaptive new-problem difficulty circuit breaker does not affect review selection.
@@ -347,9 +339,10 @@ export const ProblemService = {
     // FALLBACK: Any available problems
     await addFallbackProblems(assembledProblems, sessionLength, allProblems, maxHardProblems);
 
-    // Single final filter for paths 4 and fallback (review survivors from above are
-    // already filtered and pass through since they cleared isRecentlyAttempted).
-    const spacedProblems = filterRecentlyAttemptedProblems(assembledProblems);
+    // Final filter: recently attempted + permanently excluded + dedup.
+    // Catches anything excluded that slipped through via P4 or FALLBACK.
+    const spacedProblems = filterRecentlyAttemptedProblems(assembledProblems)
+      .filter(p => !excludedIds.has(Number(p.leetcode_id || p.id)));
     const deduplicated = deduplicateById(spacedProblems);
     const finalSession = deduplicated.slice(0, sessionLength);
 
@@ -393,12 +386,7 @@ export const ProblemService = {
 
       if (mode === 'standard') {
         const settings = await buildAdaptiveSessionSettings();
-        return this.fetchAndAssembleSessionProblems(
-          settings.sessionLength, settings.numberOfNewProblems,
-          settings.currentAllowedTags, settings.currentDifficultyCap,
-          settings.userFocusAreas, settings.isOnboarding,
-          settings.maxHardProblems
-        );
+        return this.fetchAndAssembleSessionProblems(settings);
       }
 
       const allProblems = await fetchAllProblems();

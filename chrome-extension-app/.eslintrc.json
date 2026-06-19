@@ -176,7 +176,7 @@
       }
     },
     {
-      "files": ["**/*test*.js", "**/*testing*.js", "**/*.test.js", "**/__tests__/**/*.js"],
+      "files": ["**/*test*.js", "**/*testing*.js", "**/*.test.js", "**/__tests__/**/*.js", "**/*test*.jsx", "**/*.test.jsx", "**/__tests__/**/*.jsx"],
       "rules": {
         "max-lines": "off",
         "max-lines-per-function": "off",

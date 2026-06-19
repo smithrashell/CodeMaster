@@ -3,7 +3,6 @@ import React, { useState, useCallback } from "react";
 import { useStrategy } from "../../../shared/hooks/useStrategy";
 import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
 
-// Strategy hint content component
 const StrategyHintContent = ({ strategy }) => {
   if (!strategy) {
     return (
@@ -50,7 +49,6 @@ const StrategyHintContent = ({ strategy }) => {
   );
 };
 
-// Tag button component
 const TagButton = ({
   tag,
   isExpanded,
@@ -113,7 +111,6 @@ const TagButton = ({
   );
 };
 
-// Section header component
 const TagSectionHeader = ({ strategiesCount, isInterviewMode, primersAvailable, strategiesRemaining, maxStrategies }) => (
   <div className="problem-sidebar-section-header">
     <span className="problem-sidebar-section-title">
@@ -150,105 +147,40 @@ const TagSectionHeader = ({ strategiesCount, isInterviewMode, primersAvailable, 
   </div>
 );
 
-// Consolidated strategy loader using existing useStrategy hook
 const useStrategyLoader = (problemTags) => {
-  logger.info("🏷️ useStrategyLoader: Received problemTags:", problemTags);
-  
   const { primers, loading } = useStrategy(problemTags);
-  
-  logger.info("🏷️ useStrategyLoader: Got primers from useStrategy:", primers);
-  logger.info("🏷️ useStrategyLoader: Loading state:", loading);
-  
-  // Convert array to object with tag names as keys to match expected interface
   const strategies = primers.reduce((acc, primer) => {
     if (primer && primer.tag) {
       acc[primer.tag] = primer;
-      logger.info(`🏷️ useStrategyLoader: Added strategy for "${primer.tag}":`, primer);
-    } else {
-      logger.warn("🏷️ useStrategyLoader: Invalid primer:", primer);
     }
     return acc;
   }, {});
-
-  logger.info("🏷️ useStrategyLoader: Final strategies object:", strategies);
-  logger.info("🏷️ useStrategyLoader: Strategy count:", Object.keys(strategies).length);
-
   return { strategies, loading };
 };
 
-// Custom hook for scroll management
 const useScrollManagement = () => {
-  // Helper function for Strategy 1: Ensure problem card remains fully visible
   const ensureProblemCardVisibility = useCallback((problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin) => {
-    const problemCardBottom = problemCardRect.bottom;
-    const buttonTop = buttonRect.top;
-
-    // If the expanded content would overlap with problem card
-    if (buttonTop < problemCardBottom + safeMargin) {
-      // Scroll so that the expanded button starts right after the problem card
-      const targetPosition = problemCardRect.height + scrollTop + safeMargin;
-
-      sidebarContent.scrollTo({
-        top: Math.max(0, targetPosition),
-        behavior: "smooth",
-      });
+    if (buttonRect.top < problemCardRect.bottom + safeMargin) {
+      sidebarContent.scrollTo({ top: Math.max(0, problemCardRect.height + scrollTop + safeMargin), behavior: "smooth" });
       return true;
     }
     return false;
   }, []);
 
-  // Helper function for Strategy 2: Enhanced scrollIntoView with action button protection
   const handleExpandedContainerScrolling = useCallback((expandedButton, actionButtons, hintRect) => {
-    const expandedTagContainer = expandedButton.closest(".tag-strategy-container");
-    if (expandedTagContainer && actionButtons) {
-      // Calculate if we need to ensure action buttons remain visible
-      const containerRect = expandedTagContainer.getBoundingClientRect();
-      const actionButtonsRect = actionButtons.getBoundingClientRect();
-      const expandedContentHeight = hintRect.height;
-      
-      // If expanded content would push action buttons out of view
-      if (containerRect.bottom + expandedContentHeight > actionButtonsRect.top - 20) {
-        // Scroll to position the container higher to keep action buttons visible
-        expandedTagContainer.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-          inline: "nearest",
-        });
-      } else {
-        expandedTagContainer.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-          inline: "nearest",
-        });
-      }
-      return true;
-    }
-    return false;
+    const container = expandedButton.closest(".tag-strategy-container");
+    if (!container || !actionButtons) return false;
+    const wouldOverflow = container.getBoundingClientRect().bottom + hintRect.height > actionButtons.getBoundingClientRect().top - 20;
+    container.scrollIntoView({ behavior: "smooth", block: wouldOverflow ? "center" : "start", inline: "nearest" });
+    return true;
   }, []);
 
-  // Helper function for Strategy 3: Fallback positioning
   const handleFallbackScrolling = useCallback(({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin }) => {
-    const currentRelativePosition = buttonRect.top - sidebarRect.top;
-    const minTopPosition = 80; // Minimum distance from top to ensure content visibility
-    const expandedContentHeight = hintRect.height;
-
-    // Check if current position would cause content to overflow or block other content
-    if (
-      currentRelativePosition < minTopPosition ||
-      currentRelativePosition + expandedContentHeight > sidebarRect.height - safeMargin
-    ) {
-      // Calculate position that ensures both button and expanded content are visible
-      const idealPosition = Math.min(
-        minTopPosition,
-        sidebarRect.height - expandedContentHeight - safeMargin
-      );
-
-      const targetPosition = buttonRect.top - sidebarRect.top + scrollTop - idealPosition;
-
-      sidebarContent.scrollTo({
-        top: Math.max(0, targetPosition),
-        behavior: "smooth",
-      });
+    const relPos = buttonRect.top - sidebarRect.top;
+    const contentHeight = hintRect.height;
+    if (relPos < 80 || relPos + contentHeight > sidebarRect.height - safeMargin) {
+      const idealPos = Math.min(80, sidebarRect.height - contentHeight - safeMargin);
+      sidebarContent.scrollTo({ top: Math.max(0, relPos + scrollTop - idealPos), behavior: "smooth" });
     }
   }, []);
 
@@ -259,50 +191,28 @@ const useScrollManagement = () => {
   };
 };
 
-// Helper function to create scrolling handler after tag expansion
 const createScrollingHandler = (scrollManagement) => () => {
   setTimeout(() => {
-    const hintElement = document.querySelector(".tag-strategy-hint");
-    const sidebarContent = document.querySelector(
-      ".cm-sidenav.problem-sidebar-view .cm-sidenav__content"
-    );
-    const expandedButton = document.querySelector(
-      ".tag-strategy-button-expanded"
-    );
+    const hint = document.querySelector(".tag-strategy-hint");
+    const sidebar = document.querySelector(".cm-sidenav.problem-sidebar-view .cm-sidenav__content");
+    const btn = document.querySelector(".tag-strategy-button-expanded");
     const problemCard = document.querySelector(".problem-sidebar-card");
-    const actionButtons = document.querySelector(".problem-sidebar-actions");
-
-    if (hintElement && sidebarContent && expandedButton) {
-      // Add expanded class for CSS animations
-      hintElement.classList.add("expanded");
-
-      // Wait for the hint element to render and get its actual height
-      setTimeout(() => {
-        const buttonRect = expandedButton.getBoundingClientRect();
-        const sidebarRect = sidebarContent.getBoundingClientRect();
-        const hintRect = hintElement.getBoundingClientRect();
-        const problemCardRect = problemCard ? problemCard.getBoundingClientRect() : null;
-        const scrollTop = sidebarContent.scrollTop;
-        const safeMargin = 20; // Extra breathing room
-
-        // Try each scrolling strategy in order
-        const { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling } = scrollManagement;
-        
-        if (problemCardRect && ensureProblemCardVisibility(problemCardRect, buttonRect, scrollTop, sidebarContent, safeMargin)) {
-          return;
-        }
-        
-        if (handleExpandedContainerScrolling(expandedButton, actionButtons, hintRect)) {
-          return;
-        }
-        
-        handleFallbackScrolling({ buttonRect, sidebarRect, hintRect, scrollTop, sidebarContent, safeMargin });
-      }, 50); // Wait for hint element to fully render
-    }
+    const actionBtns = document.querySelector(".problem-sidebar-actions");
+    if (!hint || !sidebar || !btn) return;
+    hint.classList.add("expanded");
+    setTimeout(() => {
+      const btnRect = btn.getBoundingClientRect();
+      const sidebarRect = sidebar.getBoundingClientRect();
+      const hintRect = hint.getBoundingClientRect();
+      const pcRect = problemCard ? problemCard.getBoundingClientRect() : null;
+      const { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling } = scrollManagement;
+      if (pcRect && ensureProblemCardVisibility(pcRect, btnRect, sidebar.scrollTop, sidebar, 20)) return;
+      if (handleExpandedContainerScrolling(btn, actionBtns, hintRect)) return;
+      handleFallbackScrolling({ buttonRect: btnRect, sidebarRect, hintRect, scrollTop: sidebar.scrollTop, sidebarContent: sidebar, safeMargin: 20 });
+    }, 50);
   }, 100);
 };
 
-// Helper function to track hint interaction
 const trackHintInteraction = async (tag, problemId) => {
   const normalizedTag = tag.toLowerCase().trim();
   logger.info(`🏷️ Tracking tag strategy view: ${tag}`, { problemId });
@@ -333,7 +243,6 @@ const trackHintInteraction = async (tag, problemId) => {
   }
 };
 
-// Helper function to handle tag expansion/collapse logic
 const handleTagToggle = (expandedTag, normalizedTag, setExpandedTag, scrollingHandler) => {
   if (expandedTag === normalizedTag) {
     // Clean up expanded class when collapsing
@@ -349,14 +258,12 @@ const handleTagToggle = (expandedTag, normalizedTag, setExpandedTag, scrollingHa
   }
 };
 
-// Default strategy limits by session type (fallback for sessions created before primers.max was added)
 const DEFAULT_STRATEGY_LIMITS = {
   'standard': null,        // unlimited
   'interview-like': 2,     // same as hints limit
   'full-interview': 0      // none allowed
 };
 
-// Helper function to calculate interview mode configuration
 const getInterviewModeConfig = (sessionType, interviewConfig, strategiesUsed = 0) => {
   const isInterviewMode = sessionType && sessionType !== 'standard';
   const primersAvailable = !isInterviewMode || (interviewConfig?.primers?.available !== false);
@@ -372,8 +279,7 @@ const getInterviewModeConfig = (sessionType, interviewConfig, strategiesUsed = 0
   return { isInterviewMode, primersAvailable, primersEncouraged, maxStrategies, strategiesRemaining, canExpandMore };
 };
 
-// Helper function to create tag click handler
-const createTagClickHandler = (expandedTag, setExpandedTag, interviewState, problemId, scrollManagement, onStrategyUsed) => {
+const createTagClickHandler = ({ expandedTag, setExpandedTag, interviewState, problemId, scrollManagement, onStrategyUsed }) => {
   return async (tag) => {
     const normalizedTag = tag.toLowerCase().trim();
     const isExpanding = expandedTag !== normalizedTag;
@@ -409,9 +315,7 @@ const createTagClickHandler = (expandedTag, setExpandedTag, interviewState, prob
   };
 };
 
-// Helper function to render "no tags" message
 const renderNoTagsMessage = (className) => {
-  logger.info("🏷️ TagStrategyGrid: Rendering 'No tags available' message");
   return (
     <div className={`problem-sidebar-section ${className}`}>
       <div className="problem-sidebar-section-header">
@@ -422,15 +326,6 @@ const renderNoTagsMessage = (className) => {
   );
 };
 
-/**
- * TagStrategyGrid Component
- *
- * Displays problem tags in a 3-column grid layout with inline strategy hints.
- * Only one tag's strategy can be expanded at a time, appearing directly below
- * the tag's row. Replaces the separate ExpandablePrimerSection.
- * 
- * Interview mode aware: respects interview constraints for primer/strategy access.
- */
 function TagStrategyGrid({
   problemTags,
   problemId,
@@ -441,85 +336,43 @@ function TagStrategyGrid({
   const [expandedTag, setExpandedTag] = useState(null);
   const [strategiesUsed, setStrategiesUsed] = useState(0);
 
-  logger.info("🏷️ TagStrategyGrid: Render started", {
-    problemTags,
-    problemId,
-    problemIdType: typeof problemId,
-    problemIdValue: problemId,
-    sessionType,
-    interviewConfig
-  });
-
-  // Interview mode logic (now includes strategy usage tracking)
   const { isInterviewMode, primersAvailable, primersEncouraged, maxStrategies, strategiesRemaining, canExpandMore } = getInterviewModeConfig(sessionType, interviewConfig, strategiesUsed);
 
-  logger.info("🏷️ TagStrategyGrid: Interview mode settings", {
-    isInterviewMode,
-    primersAvailable,
-    primersEncouraged,
-    maxStrategies,
-    strategiesUsed,
-    strategiesRemaining,
-    canExpandMore
-  });
-
-  // Use custom hooks (must be called unconditionally before any early returns)
   const { strategies, loading } = useStrategyLoader(problemTags);
-
-  logger.info("🏷️ TagStrategyGrid: After useStrategyLoader", {
-    strategiesCount: Object.keys(strategies).length,
-    strategiesKeys: Object.keys(strategies),
-    loading,
-    strategies
-  });
   const {
     ensureProblemCardVisibility,
     handleExpandedContainerScrolling,
     handleFallbackScrolling
   } = useScrollManagement();
 
-  // Hide strategy panel completely in interview mode when primers are not available
-  // This simulates a real interview where the user doesn't have access to strategy hints
   if (isInterviewMode && !primersAvailable) {
-    logger.info("🏷️ TagStrategyGrid: Hidden in interview mode (primers not available)");
     return null;
   }
 
-  // Callback to increment strategy usage counter
   const onStrategyUsed = () => {
     setStrategiesUsed(prev => prev + 1);
   };
 
-  // Create tag click handler using extracted helper
-  const handleTagClick = createTagClickHandler(
+  const handleTagClick = createTagClickHandler({
     expandedTag,
     setExpandedTag,
-    { primersAvailable, sessionType, canExpandMore, maxStrategies },
+    interviewState: { primersAvailable, sessionType, canExpandMore, maxStrategies },
     problemId,
-    { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling },
+    scrollManagement: { ensureProblemCardVisibility, handleExpandedContainerScrolling, handleFallbackScrolling },
     onStrategyUsed
-  );
+  });
 
-  const getTagRowIndex = (tagIndex) => {
-    return Math.floor(tagIndex / 2);
-  };
+  const getTagRowIndex = (tagIndex) => Math.floor(tagIndex / 2);
 
   const getExpandedTagRowIndex = () => {
     if (!expandedTag) return -1;
-    const expandedTagIndex = problemTags.findIndex(
-      (tag) => tag.toLowerCase().trim() === expandedTag
-    );
-    return expandedTagIndex !== -1 ? getTagRowIndex(expandedTagIndex) : -1;
+    const idx = problemTags.findIndex((tag) => tag.toLowerCase().trim() === expandedTag);
+    return idx !== -1 ? getTagRowIndex(idx) : -1;
   };
-
-
-  // Strategy hint rendering now handled by StrategyHintContent component
 
   if (!problemTags || problemTags.length === 0) {
     return renderNoTagsMessage(className);
   }
-
-  // Render strategy grid with available tags
 
   const expandedRowIndex = getExpandedTagRowIndex();
 

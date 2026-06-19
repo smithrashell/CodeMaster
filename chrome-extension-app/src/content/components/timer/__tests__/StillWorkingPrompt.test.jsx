@@ -162,7 +162,7 @@ describe('StillWorkingPrompt - Stale Closure Bug Fix', () => {
     expect(screen.getByTestId('prompt-visible')).toHaveTextContent('visible');
   });
 
-  it('should NOT reshow prompt after user dismisses it (stale closure fix)', async () => {
+  it('should NOT reshow prompt after user dismisses it (stale closure fix)', () => {
     render(
       <MemoryRouter>
         <TestHarness

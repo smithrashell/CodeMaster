@@ -18,7 +18,7 @@ jest.mock('../../index.js', () => ({
 // Mock re-exported helper modules
 jest.mock('../sessionEscapeHatchHelpers.js', () => ({
   applyEscapeHatchLogic: jest.fn((state) => state),
-  checkForDemotion: jest.fn(async (state) => state),
+  checkForDemotion: jest.fn((state) => state),
   analyzePerformanceTrend: jest.fn(() => ({
     trend: 'stable',
     consecutiveExcellent: 0,
@@ -31,7 +31,7 @@ jest.mock('../sessionAdaptiveHelpers.js', () => ({
     sessionLength: 5,
     numberOfNewProblems: 3,
   })),
-  applyPostOnboardingLogic: jest.fn(async () => ({
+  applyPostOnboardingLogic: jest.fn(() => ({
     sessionLength: 10,
     numberOfNewProblems: 5,
     allowedTags: ['array', 'string'],
@@ -42,7 +42,7 @@ jest.mock('../sessionAdaptiveHelpers.js', () => ({
 
 jest.mock('../sessionPerformanceHelpers.js', () => ({
   filterSessions: jest.fn((sessions) => sessions),
-  processAttempts: jest.fn(async () => ({
+  processAttempts: jest.fn(() => ({
     performance: {
       easy: { attempts: 2, correct: 2, time: 120 },
       medium: { attempts: 1, correct: 0, time: 90 },
@@ -62,29 +62,29 @@ jest.mock('../sessionPerformanceHelpers.js', () => ({
 }));
 
 jest.mock('../sessionAnalytics.js', () => ({
-  getRecentSessionAnalytics: jest.fn(async () => []),
+  getRecentSessionAnalytics: jest.fn(() => []),
 }));
 
 // Mock services that sessions.js imports
 jest.mock('../../../services/attempts/tagServices.js', () => ({
   TagService: {
-    getCurrentTier: jest.fn(async () => ({ focusTags: ['array', 'string'] })),
+    getCurrentTier: jest.fn(() => ({ focusTags: ['array', 'string'] })),
   },
 }));
 
 jest.mock('../../../services/storage/storageService.js', () => ({
   StorageService: {
-    migrateSessionStateToIndexedDB: jest.fn(async () => null),
-    getSessionState: jest.fn(async () => null),
-    setSessionState: jest.fn(async () => {}),
-    getSettings: jest.fn(async () => ({ sessionLength: 10 })),
+    migrateSessionStateToIndexedDB: jest.fn(() => null),
+    getSessionState: jest.fn(() => null),
+    setSessionState: jest.fn(() => {}),
+    getSettings: jest.fn(() => ({ sessionLength: 10 })),
   },
 }));
 
 jest.mock('../../../services/focus/focusCoordinationService.js', () => ({
   __esModule: true,
   default: {
-    getFocusDecision: jest.fn(async () => ({
+    getFocusDecision: jest.fn(() => ({
       onboarding: false,
       activeFocusTags: ['array', 'string'],
       userPreferences: { tags: ['array'] },
@@ -95,7 +95,7 @@ jest.mock('../../../services/focus/focusCoordinationService.js', () => ({
 
 jest.mock('../../../services/session/interviewService.js', () => ({
   InterviewService: {
-    getInterviewInsightsForAdaptiveLearning: jest.fn(async () => ({})),
+    getInterviewInsightsForAdaptiveLearning: jest.fn(() => ({})),
   },
 }));
 
@@ -740,7 +740,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
           activated_escape_hatches: [],
         },
       });
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => state);
       StorageService.setSessionState.mockResolvedValue();
 
@@ -761,7 +761,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
           activated_escape_hatches: [],
         },
       });
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => state);
       StorageService.setSessionState.mockResolvedValue();
 
@@ -771,7 +771,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
 
     it('creates default session state when none exists', async () => {
       StorageService.getSessionState.mockResolvedValue(null);
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => state);
       StorageService.setSessionState.mockResolvedValue();
 
@@ -793,7 +793,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
           activated_escape_hatches: [],
         },
       });
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => state);
       StorageService.setSessionState.mockResolvedValue();
 
@@ -814,7 +814,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
         },
       };
       StorageService.getSessionState.mockResolvedValue(sessionState);
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => ({
         ...state,
         current_difficulty_cap: 'Hard',
@@ -841,7 +841,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
         },
       };
       StorageService.getSessionState.mockResolvedValue(sessionState);
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => state);
       StorageService.setSessionState.mockResolvedValue();
 
@@ -868,7 +868,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
           activated_escape_hatches: [],
         },
       });
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockReturnValue(null);
 
       await expect(evaluateDifficultyProgression(0.5, {})).rejects.toThrow('Difficulty progression logic failed');
@@ -886,7 +886,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
           activated_escape_hatches: [],
         },
       });
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => state);
       StorageService.setSessionState.mockRejectedValue(new Error('Write failed'));
 
@@ -1580,7 +1580,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
           activated_escape_hatches: [],
         },
       });
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => ({ ...state }));
       StorageService.setSessionState.mockResolvedValue();
 
@@ -1600,7 +1600,7 @@ describe('sessions.js (real fake-indexeddb)', () => {
           activated_escape_hatches: [],
         },
       });
-      checkForDemotion.mockImplementation(async (state) => state);
+      checkForDemotion.mockImplementation((state) => state);
       applyEscapeHatchLogic.mockImplementation((state) => ({
         ...state,
         current_difficulty_cap: 'Medium',

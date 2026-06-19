@@ -30,7 +30,7 @@ export async function evaluateAttempts(problem) {
     const cursorRequest = index.openCursor(range);
     const attempts = [];
 
-    cursorRequest.onsuccess = async (event) => {
+    cursorRequest.onsuccess = (event) => {
       const cursor = event.target.result;
       if (cursor) {
         attempts.push(cursor.value);

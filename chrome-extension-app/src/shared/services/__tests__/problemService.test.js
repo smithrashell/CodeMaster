@@ -36,6 +36,9 @@ jest.mock("../../../content/services/problemReasoningService", () => ({
   },
 }));
 jest.mock("uuid", () => ({ v4: () => "test-uuid-123" }));
+jest.mock("../../db/stores/excludedProblems", () => ({
+  getExcludedIds: jest.fn().mockResolvedValue(new Set()),
+}));
 
 import { ProblemService } from "../problem/problemService";
 import * as problemsDb from "../../db/stores/problems";

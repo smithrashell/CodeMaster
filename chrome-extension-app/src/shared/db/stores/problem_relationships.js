@@ -1,10 +1,9 @@
 import { getTagMastery } from "./tag_mastery.js";
 import { calculateTagSimilarity } from "./tag_mastery.js";
-import { fetchAllProblems, getProblemsWithHighFailures } from "./problems.js";
+import { getProblemsWithHighFailures } from "./problems.js";
 import { fetchProblemById } from "./standard_problems.js";
 import { dbHelper } from "../index.js";
 import { calculateSuccessRate } from "../../utils/leitner/Utils.js";
-import { getSessionPerformance } from "./sessions.js";
 
 const openDB = dbHelper.openDB;
 
@@ -108,19 +107,7 @@ export async function storeRelationships(problemGraph) {
 export async function updateProblemRelationships(session) {
   const db = await openDB();
 
-  // Load all previously attempted problems from the `problems` store
-  const allAttemptedProblems = await fetchAllProblems(); // ✅ Ensures all past attempts are included
-  const attemptedProblemIds = new Set([
-    ...allAttemptedProblems.map((p) => p.leetcode_id),
-    ...session.attempts.map((a) => a.problem_id || a.problemId),
-  ]);
-
-  console.log(
-    "Attempted Problems (session + past attempts):",
-    attemptedProblemIds
-  );
-
-  const _tagMastery = await getTagMastery(); // Fetch user's tag mastery state
+  const _tagMastery = await getTagMastery();
 
   for (const attempt of session.attempts) {
     const problem_id = attempt.problem_id || attempt.problemId;
@@ -155,21 +142,12 @@ export async function updateProblemRelationships(session) {
     } : sessionProblem;
 
     if (!problem) continue;
-    console.log("problem", problem);
-    // === Dynamic Relationship Updates ===
-    // Phase 2: Update relationship strengths based on user success patterns
-    console.log(`🔄 Processing problem ${problem_id} for dynamic relationship updates`);
-
     try {
       await updateSuccessPatterns(problem, attempt);
-      console.log(`✅ Problem ${problem_id} dynamic relationships updated successfully`);
     } catch (error) {
       console.error(`❌ Error updating success patterns for problem ${problem_id}:`, error);
-      // Continue execution - don't fail entire session update for relationship errors
     }
   }
-
-  console.log("Problem relationships updated successfully.");
 }
 
 /**
@@ -219,7 +197,6 @@ export async function getAllRelationshipStrengths() {
         strengthMap.set(key, rel.strength);
       });
 
-      console.log(`⚡ Loaded ${strengthMap.size} relationship strengths for batch processing`);
       resolve(strengthMap);
     };
     request.onerror = () => reject(request.error);
@@ -275,306 +252,12 @@ export async function updateRelationshipStrength(problemId1, problemId2, newStre
   });
 }
 
-/**
- * Simple plateau detection using existing performance data
- * @returns {Promise<boolean>} True if user might be plateauing
- */
-async function detectSimplePlateau() {
-  try {
-    const recentPerformance = await getSessionPerformance({ recentSessionsLimit: 3 });
-    if (!recentPerformance || recentPerformance.accuracy === undefined) {
-      return false; // No data, assume not plateauing
-    }
-
-    // Simple plateau detection: low accuracy with recent activity
-    const isLowAccuracy = recentPerformance.accuracy < 0.6;
-    const hasRecentActivity = recentPerformance.Easy?.attempts > 0 ||
-                             recentPerformance.Medium?.attempts > 0 ||
-                             recentPerformance.Hard?.attempts > 0;
-
-    return isLowAccuracy && hasRecentActivity;
-  } catch (error) {
-    console.warn("⚠️ Plateau detection failed, assuming no plateau:", error.message);
-    return false;
-  }
-}
-
-/**
- * Calculate optimal path score for a problem based on user's recent successes
- * Core Phase 3 implementation for personalized session composition
- * @param {Object} problem - Candidate problem to score
- * @param {Object} userState - Current user state (can be null)
- * @param {Object} cachedData - Pre-computed data to avoid repeated database calls
- * @returns {Promise<number>} Optimal path score (higher = better fit)
- */
-export async function calculateOptimalPathScore(problem, userState = null, cachedData = {}) {
-  try {
-    let score = 1.0; // Base score
-
-    // Factor 1: Relationship strength from recent successes
-    const recentSuccesses = cachedData.recentSuccesses || await getUserRecentAttempts(5);
-    const relationshipMap = cachedData.relationshipMap || new Map();
-    let avgRelationshipStrength = 0;
-
-    if (recentSuccesses.length > 0) {
-      let totalStrength = 0;
-      let relationshipCount = 0;
-
-      for (const recentProblem of recentSuccesses) {
-        const relationshipKey = `${recentProblem.leetcode_id}-${problem.id || problem.leetcode_id}`;
-        let strength = relationshipMap.get(relationshipKey);
-
-        if (strength !== undefined) {
-          totalStrength += strength;
-          relationshipCount++;
-        } else {
-          // Default neutral strength for new relationships
-          totalStrength += 2.0;
-          relationshipCount++;
-        }
-      }
-
-      if (relationshipCount > 0) {
-        avgRelationshipStrength = totalStrength / relationshipCount;
-        score *= (avgRelationshipStrength / 3.0); // Normalize around 1.0 (3.0 is mid-range)
-      }
-    }
-
-    // Deprioritize Hard problems with weak connectivity (likely niche/uncommon)
-    if (problem.difficulty === 'Hard' && avgRelationshipStrength > 0 && avgRelationshipStrength < 1.5) {
-      score *= 0.6;
-      console.log(`📉 Hard problem with weak connectivity (avg: ${avgRelationshipStrength.toFixed(2)}) - deprioritized`);
-    }
-
-    // Factor 2: Tag mastery alignment (if userState provided)
-    if (userState && userState.tagMastery) {
-      const tagMasteryBonus = calculateTagMasteryAlignment(problem, userState);
-      score *= tagMasteryBonus;
-    }
-
-    // Factor 3: Recent problem diversity bonus (avoid repetition)
-    const diversityBonus = calculateDiversityBonus(problem, recentSuccesses);
-    score *= diversityBonus;
-
-    // Factor 4: Plateau detection - encourage harder challenges if plateauing
-    const isPlateauing = cachedData.isPlateauing !== undefined ? cachedData.isPlateauing : await detectSimplePlateau();
-    if (isPlateauing && problem.difficulty === 'Hard') {
-      score *= 1.2; // Boost hard problems when plateauing
-      console.log(`🚀 Plateau detection: Boosting Hard problem for breakthrough`);
-    } else if (isPlateauing && problem.difficulty === 'Easy') {
-      score *= 0.8; // Reduce easy problems when plateauing
-    }
-
-    console.log(`🎯 Optimal path score for problem ${problem.id || problem.leetcode_id}: ${score.toFixed(3)} (relationship: ${avgRelationshipStrength.toFixed(2)}, diversity: ${diversityBonus.toFixed(2)}, plateau: ${isPlateauing})`);
-
-    return Math.max(0.1, Math.min(5.0, score)); // Bound score between 0.1 and 5.0
-  } catch (error) {
-    console.error("❌ Error calculating optimal path score:", error);
-    return 1.0; // Return neutral score on error
-  }
-}
-
-/**
- * Calculate tag mastery alignment bonus for optimal path scoring
- * @param {Object} problem - Problem to score
- * @param {Object} userState - User state with tag mastery data
- * @returns {number} Tag mastery alignment bonus (0.5 to 1.5)
- */
-function calculateTagMasteryAlignment(problem, userState) {
-  if (!problem.tags || !userState.tagMastery) {
-    return 1.0; // Neutral if no tag data
-  }
-
-  let alignmentScore = 1.0;
-  let tagCount = 0;
-
-  for (const tag of problem.tags) {
-    const mastery = userState.tagMastery[tag];
-    if (mastery) {
-      tagCount++;
-      if (mastery.mastered) {
-        // Mastered tags: slight penalty to encourage exploration
-        alignmentScore *= 0.95;
-      } else if (mastery.successRate > 0.7) {
-        // High success rate: good fit
-        alignmentScore *= 1.2;
-      } else if (mastery.successRate > 0.4) {
-        // Medium success rate: optimal challenge
-        alignmentScore *= 1.3;
-      } else if (mastery.attempts < 3) {
-        // Exploration bonus: uncharted territory with high potential
-        alignmentScore *= 1.4;
-        console.log(`🔍 Exploration bonus applied for tag: ${tag} (${mastery.attempts} attempts)`);
-      } else {
-        // Low success rate with multiple attempts: might be too difficult
-        alignmentScore *= 0.8;
-      }
-    } else {
-      // Unknown tag - moderate exploration bonus
-      alignmentScore *= 1.2;
-      console.log(`🔍 Unknown tag exploration bonus: ${tag}`);
-    }
-  }
-
-  // Boost problems with known tags
-  if (tagCount > 0) {
-    alignmentScore *= 1.1;
-  }
-
-  return Math.max(0.5, Math.min(1.5, alignmentScore));
-}
-
-/**
- * Calculate diversity bonus to avoid repetitive problem selection
- * @param {Object} problem - Problem to score
- * @param {Array} recentSuccesses - Recent successful attempts
- * @returns {number} Diversity bonus (0.7 to 1.3)
- */
-function calculateDiversityBonus(problem, recentSuccesses) {
-  if (!problem.tags || recentSuccesses.length === 0) {
-    return 1.0; // Neutral if no comparison data
-  }
-
-  // Check tag overlap with recent problems
-  const recentTags = new Set();
-  recentSuccesses.forEach(recent => {
-    if (recent.tags) {
-      recent.tags.forEach(tag => recentTags.add(tag));
-    }
-  });
-
-  const problemTags = new Set(problem.tags);
-  const overlap = [...problemTags].filter(tag => recentTags.has(tag)).length;
-  const totalUniqueTags = problemTags.size;
-
-  if (totalUniqueTags === 0) {
-    return 1.0;
-  }
-
-  const overlapRatio = overlap / totalUniqueTags;
-
-  // Diversity scoring: less overlap = higher bonus
-  if (overlapRatio <= 0.2) {
-    return 1.3; // High diversity bonus
-  } else if (overlapRatio <= 0.5) {
-    return 1.1; // Medium diversity bonus
-  } else if (overlapRatio <= 0.8) {
-    return 0.9; // Slight penalty for high overlap
-  } else {
-    return 0.7; // Penalty for very high overlap
-  }
-}
-
-/**
- * Select optimal problems from candidates using relationship scoring
- * Main Phase 3 function for intelligent session composition
- * @param {Array} candidateProblems - Array of candidate problems
- * @param {Object} userState - Current user state
- * @returns {Promise<Array>} Selected problems sorted by optimal path score
- */
-export async function selectOptimalProblems(candidateProblems, userState = null) {
-  try {
-    console.log(`🧮 Scoring ${candidateProblems.length} candidate problems for optimal session composition`);
-
-    // Pre-compute ALL shared data to avoid repeated database calls
-    const [recentSuccesses, relationshipMap, isPlateauing] = await Promise.all([
-      getUserRecentAttempts(5),
-      getAllRelationshipStrengths(),
-      detectSimplePlateau()
-    ]);
-
-    const cachedData = {
-      recentSuccesses,
-      relationshipMap,
-      isPlateauing
-    };
-
-    console.log(`⚡ Cached shared data: ${cachedData.recentSuccesses.length} recent successes, ${cachedData.relationshipMap.size} relationships, plateau: ${cachedData.isPlateauing}`);
-
-    const scoredProblems = [];
-
-    for (const problem of candidateProblems) {
-      const score = await calculateOptimalPathScore(problem, userState, cachedData);
-      scoredProblems.push({
-        ...problem,
-        pathScore: score,
-        optimalPathData: {
-          scoredAt: new Date().toISOString(),
-          version: "1.0"
-        }
-      });
-    }
-
-    // Return highest-scoring problems for session
-    const sortedProblems = scoredProblems
-      .sort((a, b) => b.pathScore - a.pathScore);
-
-    console.log(`✅ Problems scored and sorted. Top 3 scores: ${sortedProblems.slice(0, 3).map(p => `${p.id || p.leetcode_id}:${p.pathScore.toFixed(2)}`).join(', ')}`);
-
-    return sortedProblems;
-  } catch (error) {
-    console.error("❌ Error in selectOptimalProblems:", error);
-    // Fallback: return candidates unsorted
-    return candidateProblems;
-  }
-}
-
-/**
- * Score candidate problems based on their relationships to recently attempted problems
- * Used by pattern ladder system for intelligent problem selection
- */
-export async function scoreProblemsWithRelationships(candidateProblems, recentAttempts, maxLookback = 5) {
-  try {
-    const problemGraph = await buildRelationshipMap();
-
-    // Get recently attempted problem IDs (last N problems)
-    const recentProblemIds = recentAttempts
-      .slice(-maxLookback)
-      .map(attempt => attempt.leetcode_id)
-      .filter(id => id != null);
-
-    console.log(`🔗 Scoring ${candidateProblems.length} candidates against ${recentProblemIds.length} recent problems`);
-
-    return candidateProblems.map(candidate => {
-      const candidateId = candidate.id || candidate.leetcode_id;
-      let relationshipScore = 0;
-      let relationshipCount = 0;
-
-      // Calculate relationship strength to recent problems
-      recentProblemIds.forEach(recentId => {
-        const relationships = problemGraph.get(recentId);
-        if (relationships && relationships[candidateId]) {
-          relationshipScore += relationships[candidateId];
-          relationshipCount++;
-        }
-
-        // Also check reverse relationships
-        const candidateRelationships = problemGraph.get(candidateId);
-        if (candidateRelationships && candidateRelationships[recentId]) {
-          relationshipScore += candidateRelationships[recentId];
-          relationshipCount++;
-        }
-      });
-
-      // Average relationship strength
-      const avgRelationshipScore = relationshipCount > 0 ? relationshipScore / relationshipCount : 0;
-
-      return {
-        ...candidate,
-        relationshipScore: avgRelationshipScore,
-        relationshipCount: relationshipCount
-      };
-    });
-  } catch (error) {
-    console.error("❌ Error scoring problems with relationships:", error);
-    // Return candidates without relationship scoring as fallback
-    return candidateProblems.map(candidate => ({
-      ...candidate,
-      relationshipScore: 0,
-      relationshipCount: 0
-    }));
-  }
-}
+// Scoring functions extracted to problem_relationships_scoring.js
+export {
+  calculateOptimalPathScore,
+  selectOptimalProblems,
+  scoreProblemsWithRelationships
+} from "./problem_relationships_scoring.js";
 
 export async function buildRelationshipMap() {
   const db = await openDB();
@@ -605,7 +288,6 @@ export async function buildRelationshipMap() {
         graph.get(problemId1)[problemId2] = strength;
       });
 
-      console.log("✅ Problem relationships loaded:", graph.size, "problems with relationships");
       resolve(graph);
     };
     request.onerror = () => reject(request.error);
@@ -661,84 +343,39 @@ export async function getUserRecentAttempts(limit = 5) {
  */
 export async function updateSuccessPatterns(completedProblem, attempt) {
   try {
-    console.log(`🧠 Learning from attempt: ${completedProblem.leetcode_id || completedProblem.id} (success: ${attempt.success})`);
-
-    // Get recent successful attempts for pattern analysis
     const recentProblems = await getUserRecentAttempts(5);
+    if (recentProblems.length === 0) return;
 
-    if (recentProblems.length === 0) {
-      console.log("📝 No recent successful attempts found for relationship learning");
-      return;
-    }
-
-    console.log(`🔗 Analyzing relationships between ${recentProblems.length} recent problems and current problem`);
-
-    // Determine timing performance - get recommended time based on difficulty
     const recommendedTime = getRecommendedTimeForDifficulty(completedProblem.difficulty || 'Medium');
+    const completedId = completedProblem.leetcode_id || completedProblem.id;
 
     for (const recentProblem of recentProblems) {
-      // Skip self-relationships
-      if (recentProblem.leetcode_id === (completedProblem.leetcode_id || completedProblem.id)) {
-        continue;
-      }
+      if (recentProblem.leetcode_id === completedId) continue;
 
-      const currentStrength = await getRelationshipStrength(
-        recentProblem.leetcode_id,
-        completedProblem.leetcode_id || completedProblem.id
-      );
-
+      const currentStrength = await getRelationshipStrength(recentProblem.leetcode_id, completedId);
       let strengthDelta = 0;
       const timeSpent = attempt.time_spent || 0;
 
       if (attempt.success && timeSpent <= recommendedTime) {
-        // Great transition - strengthen relationship significantly
         strengthDelta = +0.3;
-        console.log(`✅ Excellent transition: ${recentProblem.leetcode_id} → ${completedProblem.leetcode_id || completedProblem.id} (+0.3)`);
       } else if (attempt.success && timeSpent <= recommendedTime * 1.3) {
-        // Good transition - modest strengthening
         strengthDelta = +0.1;
-        console.log(`✅ Good transition: ${recentProblem.leetcode_id} → ${completedProblem.leetcode_id || completedProblem.id} (+0.1)`);
       } else if (!attempt.success || timeSpent > recommendedTime * 1.5) {
-        // Difficult transition - weaken relationship
         strengthDelta = -0.4;
-        console.log(`❌ Difficult transition: ${recentProblem.leetcode_id} → ${completedProblem.leetcode_id || completedProblem.id} (-0.4)`);
       } else {
-        // Neutral transition - small positive adjustment
         strengthDelta = +0.05;
-        console.log(`➡️ Neutral transition: ${recentProblem.leetcode_id} → ${completedProblem.leetcode_id || completedProblem.id} (+0.05)`);
       }
 
-      // Apply confidence-based learning using existing calculateSuccessRate
       const recentAttemptCount = Math.min(recentProblems.length, 5);
-      const successCount = recentProblems.length; // All recent attempts are successful
-      const confidence = calculateSuccessRate(successCount, Math.max(recentAttemptCount, 3));
-      const confidenceMultiplier = Math.max(0.3, Math.min(1.0, confidence)); // 30%-100% confidence
+      const confidence = calculateSuccessRate(recentProblems.length, Math.max(recentAttemptCount, 3));
+      strengthDelta *= Math.max(0.3, Math.min(1.0, confidence));
 
-      // Reduce volatile updates with low confidence
-      strengthDelta *= confidenceMultiplier;
+      const baseStrength = currentStrength || 2.0;
+      const neutralDecay = (2.0 - baseStrength) * 0.05;
+      const newStrength = Math.max(0.5, Math.min(5.0, baseStrength + neutralDecay + strengthDelta));
 
-      console.log(`🎯 Confidence adjustment: ${confidenceMultiplier.toFixed(2)} (${successCount}/${recentAttemptCount} recent success rate)`);
-
-      // Calculate new strength with bounds checking and gentle decay toward neutral
-      const baseStrength = currentStrength || 2.0; // Default neutral strength
-
-      // Apply gentle decay toward neutral (2.0) to prevent extreme values
-      const neutralDecay = (2.0 - baseStrength) * 0.05; // 5% pull toward neutral
-      const adjustedStrength = baseStrength + neutralDecay + strengthDelta;
-
-      // Enforce reasonable bounds (0.5 to 5.0)
-      const newStrength = Math.max(0.5, Math.min(5.0, adjustedStrength));
-
-      console.log(`📊 Strength update: ${baseStrength.toFixed(2)} → ${newStrength.toFixed(2)} (delta: ${strengthDelta.toFixed(2)}, decay: ${neutralDecay.toFixed(2)})`);
-
-      await updateRelationshipStrength(
-        recentProblem.leetcode_id,
-        completedProblem.leetcode_id || completedProblem.id,
-        newStrength
-      );
+      await updateRelationshipStrength(recentProblem.leetcode_id, completedId, newStrength);
     }
-
-    console.log(`🎯 Success pattern learning completed for problem ${completedProblem.leetcode_id || completedProblem.id}`);
   } catch (error) {
     console.error("❌ Error in updateSuccessPatterns:", error);
     throw error;
@@ -768,8 +405,7 @@ export function restoreMissingProblemRelationships({
     ? problems
     : Object.values(problems);
   const missingProblems = new Set();
-  console.log("problems", problemsArray);
-  // 🔹 Step 1: Ensure every problem appears in `problem_relationships`
+  // Ensure every problem appears in `problem_relationships`
   for (const problem of problemsArray) {
     const problemId = problem.leetcode_id || problem.id;
     const existing = problemGraph.get(problemId);
@@ -887,16 +523,9 @@ export async function weakenRelationshipsForSkip(problemId) {
     return { updated: 0 };
   }
 
-  console.log(`⏭️ Weakening relationships for skipped problem: ${problemId}`);
-
   try {
-    // Get recent successful attempts
     const recentSuccesses = await getUserRecentAttempts(5);
-
-    if (recentSuccesses.length === 0) {
-      console.log("📝 No recent successful attempts - nothing to weaken");
-      return { updated: 0 };
-    }
+    if (recentSuccesses.length === 0) return { updated: 0 };
 
     let updatedCount = 0;
     const SKIP_PENALTY = -0.4; // Same as failure penalty
@@ -913,10 +542,7 @@ export async function weakenRelationshipsForSkip(problemId) {
       await updateRelationshipStrength(problemId, recentId, newStrength);
       updatedCount++;
 
-      console.log(`  📉 Weakened ${problemId} <-> ${recentId}: ${currentStrength?.toFixed(2) || 'new'} -> ${newStrength.toFixed(2)}`);
     }
-
-    console.log(`✅ Weakened ${updatedCount} relationships for skipped problem ${problemId}`);
     return { updated: updatedCount };
   } catch (error) {
     console.error("❌ Error weakening relationships for skip:", error);
@@ -936,16 +562,10 @@ export async function weakenRelationshipsForNotRelevant(problemId) {
     return { updated: 0 };
   }
 
-  console.log(`🚫 Weakening ALL relationships for not-relevant problem: ${problemId}`);
-
   try {
     const relationships = await getRelationshipsForProblem(problemId);
     const relatedIds = Object.keys(relationships).map(Number);
-
-    if (relatedIds.length === 0) {
-      console.log("📝 No relationships found - nothing to weaken");
-      return { updated: 0 };
-    }
+    if (relatedIds.length === 0) return { updated: 0 };
 
     let updatedCount = 0;
     const NOT_RELEVANT_PENALTY = -0.8;
@@ -959,10 +579,7 @@ export async function weakenRelationshipsForNotRelevant(problemId) {
       await updateRelationshipStrength(problemId, relatedId, newStrength);
       updatedCount++;
 
-      console.log(`  🚫 Weakened ${problemId} <-> ${relatedId}: ${currentStrength.toFixed(2)} -> ${newStrength.toFixed(2)}`);
     }
-
-    console.log(`✅ Weakened ${updatedCount} relationships for not-relevant problem ${problemId}`);
     return { updated: updatedCount };
   } catch (error) {
     console.error("❌ Error weakening relationships for not-relevant:", error);
@@ -1057,10 +674,7 @@ export async function hasRelationshipsToAttempted(problemId) {
     const problemRelationships = await getRelationshipsForProblem(problemId);
     const relatedIds = Object.keys(problemRelationships).map(Number);
 
-    if (relatedIds.length === 0) {
-      console.log(`📍 Problem ${problemId} has no relationships - free skip`);
-      return false;
-    }
+    if (relatedIds.length === 0) return false;
 
     // Get all attempted problem IDs from problems store
     const db = await openDB();
@@ -1079,7 +693,6 @@ export async function hasRelationshipsToAttempted(problemId) {
     // Check if any relationships connect to attempted problems
     const hasConnection = relatedIds.some(id => attemptedIds.has(id));
 
-    console.log(`📍 Problem ${problemId} has ${relatedIds.length} relationships, ${hasConnection ? 'connected' : 'not connected'} to attempted problems`);
     return hasConnection;
   } catch (error) {
     console.error("❌ Error checking relationships:", error);
@@ -1223,11 +836,6 @@ export async function getProblemsNeedingReinforcement(recentAttempts) {
     }
   }
 
-  console.log(`📊 Found ${candidates.length} problems needing reinforcement:`, {
-    recentFailures: recentFailures.length,
-    chronicStruggles: strugglingProblems.length
-  });
-
   return candidates;
 }
 
@@ -1293,13 +901,9 @@ export async function getFailureTriggeredReviews(recentAttempts) {
   // Get all problems needing reinforcement
   const problemsNeedingHelp = await getProblemsNeedingReinforcement(recentAttempts);
 
-  if (problemsNeedingHelp.length === 0) {
-    console.log("✅ No problems needing reinforcement - skipping triggered reviews");
-    return [];
-  }
+  if (problemsNeedingHelp.length === 0) return [];
 
   const strugglingIds = problemsNeedingHelp.map(p => Number(p.leetcode_id));
-  console.log(`🔍 Finding bridge problems for ${strugglingIds.length} struggling problems`);
 
   // Get all mastered problems (box 6-8) that are due for review
   const allMasteredProblems = await getMasteredProblems({ minBoxLevel: 6 });
@@ -1309,10 +913,7 @@ export async function getFailureTriggeredReviews(recentAttempts) {
     return !reviewDate || new Date(reviewDate) <= now;
   });
 
-  if (masteredProblems.length === 0) {
-    console.log("📝 No mastered problems due for triggered reviews");
-    return [];
-  }
+  if (masteredProblems.length === 0) return [];
 
   // Optional: Get tag mastery for decay boost
   let tagMasteryMap = {};
@@ -1363,9 +964,7 @@ export async function getFailureTriggeredReviews(recentAttempts) {
       const tagLower = tag?.toLowerCase();
       const tagData = tagMasteryMap[tagLower];
       if (tagData && tagData.decay_score !== undefined && tagData.decay_score < 0.7) {
-        // Tag is getting stale - boost this problem
         finalScore *= 1.1;
-        console.log(`📉 Decay boost applied for stale tag: ${tag} (decay: ${tagData.decay_score?.toFixed(2)})`);
       }
     }
 
@@ -1379,55 +978,24 @@ export async function getFailureTriggeredReviews(recentAttempts) {
     });
   }
 
-  // Sort by finalScore (prefers problems connected to multiple struggling problems)
   scoredCandidates.sort((a, b) => b.finalScore - a.finalScore);
-
-  // Return top 2 "bridge" problems
-  const selected = scoredCandidates.slice(0, 2);
-
-  if (selected.length > 0) {
-    console.log(`🌉 Selected ${selected.length} bridge problems for triggered reviews:`,
-      selected.map(s => ({
-        id: s.problem.leetcode_id,
-        title: s.problem.title,
-        score: s.finalScore.toFixed(2),
-        connections: s.connectedProblems
-      }))
-    );
-  } else {
-    console.log("📝 No related mastered problems found for triggered reviews");
-  }
-
-  return selected;
+  return scoredCandidates.slice(0, 2);
 }
 
 export async function findPrerequisiteProblem(problemId, excludeIds = []) {
   if (!problemId) return null;
 
-  console.log(`🔍 Finding prerequisite for problem ${problemId}`);
-
   try {
-    // Look up skipped problem from standard_problems catalog (not user's local problems store)
     const skippedProblem = await fetchProblemById(Number(problemId));
-
-    if (!skippedProblem) {
-      console.warn(`⚠️ Could not find problem ${problemId} in standard_problems`);
-      return null;
-    }
+    if (!skippedProblem) return null;
 
     const skippedTags = skippedProblem.Tags || skippedProblem.tags || [];
     const skippedDifficulty = skippedProblem.difficulty || 'Medium';
-
     const difficultyOrder = { 'Easy': 0, 'Medium': 1, 'Hard': 2 };
     const skippedDiffNum = difficultyOrder[skippedDifficulty] ?? 1;
 
-    console.log(`  Skipped problem: "${skippedProblem.title}" (${skippedDifficulty}), tags: ${skippedTags.slice(0, 3).join(', ')}`);
-
-    // Get related problem IDs + strengths from the relationship graph
     const problemRelationships = await getRelationshipsForProblem(Number(problemId));
     const relatedIds = Object.keys(problemRelationships).map(Number);
-
-    console.log(`  Found ${relatedIds.length} related problems in graph`);
 
     const excludeSet = new Set(excludeIds.map(Number));
     excludeSet.add(Number(problemId));
@@ -1463,13 +1031,9 @@ export async function findPrerequisiteProblem(problemId, excludeIds = []) {
 
     candidates.sort((a, b) => b.score - a.score);
 
-    if (candidates.length === 0) {
-      console.log(`  No prerequisite candidates found for problem ${problemId}`);
-      return null;
-    }
+    if (candidates.length === 0) return null;
 
     const best = candidates[0];
-    console.log(`✅ Found prerequisite: ${best.problem.title} (${best.problem.difficulty}) with score ${best.score.toFixed(2)}`);
 
     // Enrich with user attempt data so the UI shows correct status instead of "NEW"
     try {
@@ -1482,10 +1046,7 @@ export async function findPrerequisiteProblem(problemId, excludeIds = []) {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
       });
-      if (userProblem) {
-        console.log(`  Enriched prerequisite with user data (box_level: ${userProblem.box_level}, attempts: ${userProblem.attempts})`);
-        return { ...best.problem, ...userProblem };
-      }
+      if (userProblem) return { ...best.problem, ...userProblem };
     } catch (err) {
       console.warn("Could not enrich prerequisite with user data:", err.message);
     }

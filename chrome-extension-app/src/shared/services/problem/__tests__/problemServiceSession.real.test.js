@@ -85,7 +85,7 @@ import {
 } from '../problemServiceSession.js';
 
 import { getRecentAttempts, getFailureTriggeredReviews, selectOptimalProblems } from '../../../db/stores/problem_relationships.js';
-import { ScheduleService, isRecentlyAttempted, isDueForReview } from '../../schedule/scheduleService.js';
+import { ScheduleService, isRecentlyAttempted } from '../../schedule/scheduleService.js';
 import { StorageService } from '../../storage/storageService.js';
 import { fetchAdditionalProblems, fetchAllProblems } from '../../../db/stores/problems.js';
 import { getTagMastery } from '../../../db/stores/tag_mastery.js';

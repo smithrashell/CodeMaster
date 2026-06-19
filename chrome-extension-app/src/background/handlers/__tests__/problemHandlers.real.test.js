@@ -79,7 +79,6 @@ import {
   hasRelationshipsToAttempted,
   findPrerequisiteProblem,
 } from '../../../shared/db/stores/problem_relationships.js';
-import { SessionService } from '../../../shared/services/session/sessionService.js';
 import { getLatestSessionByType, saveSessionToStorage } from '../../../shared/db/stores/sessions.js';
 
 // ---------------------------------------------------------------------------
@@ -304,7 +303,7 @@ describe('problemHandlers', () => {
   // handleSkipProblem
   // -----------------------------------------------------------------------
   describe('handleSkipProblem', () => {
-    it('returns error when no leetcodeId is provided', async () => {
+    it('returns error when no leetcodeId is provided', () => {
       const sendResponse = makeSendResponse();
       const finishRequest = makeFinishRequest();
       handleSkipProblem({}, noDeps, sendResponse, finishRequest);

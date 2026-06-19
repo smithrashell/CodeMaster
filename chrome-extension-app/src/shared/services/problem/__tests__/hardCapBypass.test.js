@@ -1,6 +1,5 @@
 import { addFallbackProblems } from '../problemServiceSession.js';
-import { enrichReviewProblem, normalizeReviewProblem } from '../problemServiceHelpers.js';
-import { fetchProblemById } from '../../../db/stores/standard_problems.js';
+import { enrichReviewProblem } from '../problemServiceHelpers.js';
 
 // Mock logger
 jest.mock('../../../utils/logging/logger.js', () => ({

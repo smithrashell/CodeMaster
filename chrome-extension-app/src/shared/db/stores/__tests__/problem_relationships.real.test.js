@@ -1081,7 +1081,7 @@ describe('problem_relationships (real IndexedDB)', () => {
 
     it('returns a prerequisite problem that is same or easier difficulty', async () => {
       // Mock the skipped problem as Medium
-      fetchProblemById.mockImplementation(async (id) => {
+      fetchProblemById.mockImplementation((id) => {
         if (id === 10) {
           return { id: 10, title: 'Skipped Medium', difficulty: 'Medium', tags: ['array'], Tags: ['array'] };
         }
@@ -1103,7 +1103,7 @@ describe('problem_relationships (real IndexedDB)', () => {
     });
 
     it('excludes problems in excludeIds', async () => {
-      fetchProblemById.mockImplementation(async (id) => {
+      fetchProblemById.mockImplementation((id) => {
         if (id === 10) {
           return { id: 10, title: 'Skipped', difficulty: 'Medium', tags: ['dp'], Tags: ['dp'] };
         }
@@ -1128,7 +1128,7 @@ describe('problem_relationships (real IndexedDB)', () => {
     });
 
     it('does not return a harder problem as prerequisite', async () => {
-      fetchProblemById.mockImplementation(async (id) => {
+      fetchProblemById.mockImplementation((id) => {
         if (id === 10) {
           return { id: 10, title: 'Easy Problem', difficulty: 'Easy', tags: ['array'], Tags: ['array'] };
         }

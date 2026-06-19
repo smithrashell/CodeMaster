@@ -375,8 +375,8 @@ describe('addAttempt', () => {
     // (problems, sessions need pre-existing records for the transaction)
     SessionService.resumeSession.mockResolvedValue({ ...mockSession });
     getProblem.mockResolvedValue({ ...mockProblem });
-    calculateLeitnerBox.mockImplementation(async (problem) => ({ ...problem, box_level: 2 }));
-    ProblemService.addOrUpdateProblemInSession.mockImplementation(async (session) => ({
+    calculateLeitnerBox.mockImplementation((problem) => ({ ...problem, box_level: 2 }));
+    ProblemService.addOrUpdateProblemInSession.mockImplementation((session) => ({
       ...session,
     }));
     createAttemptRecord.mockImplementation((data) => ({

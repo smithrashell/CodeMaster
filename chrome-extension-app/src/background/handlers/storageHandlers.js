@@ -167,7 +167,7 @@ export const storageHandlers = {
   },
 
   recordRecalibrationChoice: (_request, _dependencies, sendResponse, finishRequest) => {
-    (async () => {
+    (() => {
       try {
         sendResponse({ status: 'success' });
       } catch (error) {

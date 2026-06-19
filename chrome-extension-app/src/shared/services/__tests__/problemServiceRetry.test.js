@@ -278,7 +278,7 @@ describe('generateSessionWithRetry', () => {
   it('throws "cancelled after data loading" when aborted after data loads', async () => {
     const abortController = new AbortController();
 
-    const getAllProblemsWithRetryFn = jest.fn().mockImplementation(async () => {
+    const getAllProblemsWithRetryFn = jest.fn().mockImplementation(() => {
       // Abort during the data load
       abortController.abort();
       return buildProblems(5);

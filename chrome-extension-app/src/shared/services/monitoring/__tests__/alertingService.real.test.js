@@ -35,7 +35,7 @@ jest.mock('../../../utils/performance/PerformanceMonitor.js', () => ({
 
 jest.mock('../ErrorReportService.js', () => ({
   ErrorReportService: {
-    getErrorReports: jest.fn(async () => []),
+    getErrorReports: jest.fn(() => []),
   },
 }));
 

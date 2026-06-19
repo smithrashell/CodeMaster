@@ -194,7 +194,9 @@ export async function addReviewProblemsToSession(sessionProblems, sessionLength,
 
   // Exclude IDs already in session (from triggered reviews)
   const sessionIds = new Set(sessionProblems.map(p => p.id || p.leetcode_id));
-  const uniqueReviewProblems = reviewProblemsToAdd.filter(p => !sessionIds.has(p.id || p.leetcode_id));
+  const uniqueReviewProblems = reviewProblemsToAdd.filter(p =>
+    !sessionIds.has(p.id || p.leetcode_id)
+  );
 
   // Filter out Hard problems that would exceed the hard cap
   const currentHardCount = sessionProblems.filter(isHardProblem).length;
@@ -203,6 +205,9 @@ export async function addReviewProblemsToSession(sessionProblems, sessionLength,
   const filteredReviewProblems = filterProblemsByDifficultyCap(hardCapFiltered, currentDifficultyCap);
 
   logReviewProblemsAnalysis(enrichedReviewProblems, learningReviewProblems, sessionProblems, filteredReviewProblems);
+  filteredReviewProblems.forEach(p => {
+    p.selectionReason = { type: 'learning_review' };
+  });
   sessionProblems.push(...filteredReviewProblems);
 
   logger.info(`Added ${filteredReviewProblems.length} learning reviews (box 1-5) to session`);

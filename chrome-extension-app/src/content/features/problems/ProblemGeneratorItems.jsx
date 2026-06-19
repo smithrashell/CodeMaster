@@ -55,7 +55,7 @@ const renderSimilarProblems = ({ similarProblems, loadingSimilar, hovered }) => 
     )}
     {similarProblems.length > 0 && (
       <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
-        {similarProblems.slice(0, 2).map((similar, index) => (
+        {similarProblems.slice(0, 2).map((similar) => (
           <div key={similar.id} style={{
             display: "flex",
             alignItems: "center",

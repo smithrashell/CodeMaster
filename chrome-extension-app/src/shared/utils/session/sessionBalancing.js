@@ -120,7 +120,6 @@ export function applySafetyGuardRails(
     // If we have a very strict hard cap (e.g. maxHardProblems = 1), the guard rail should not force more
     // Note: maxHardProblems is not currently passed to this function, but we can infer strictness
     // by checking if accuracy-based limits are visible in recentPerformance.
-    const isStagnationPromotion = currentPromotionType === 'stagnation_escape_hatch';
     const isPoorPerformance = recentPerformance && recentPerformance.accuracy < 0.5;
 
     // In poor performance scenarios (accuracy < 50%), maxHard should be 1.

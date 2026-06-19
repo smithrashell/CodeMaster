@@ -2,10 +2,18 @@ import { useCallback, useRef } from 'react';
 import { useZoomHandlers } from './useZoomHandlers.js';
 import ChromeAPIErrorHandler from '../../../shared/services/chrome/chromeAPIErrorHandler.js';
 
-/**
- * Custom hook for handling all mouse and zoom event interactions
- * in the LearningPathVisualization component
- */
+function saveNodePositions(positions) {
+  try {
+    ChromeAPIErrorHandler.sendMessageWithRetry({
+      type: 'setStorage',
+      key: 'learning_path_node_positions',
+      value: positions
+    });
+  } catch {
+    // Non-critical
+  }
+}
+
 export function useVisualizationEventHandlers({
   isNodesLocked,
   zoom,
@@ -97,17 +105,8 @@ export function useVisualizationEventHandlers({
   }, [draggedNode, isPanning, lastPanPoint, zoom, dragStartPos, setIsDragging, setNodePositions, setLastPanPoint, setViewBox]);
 
   const handleMouseUp = useCallback(() => {
-    // Save node positions to chrome storage if a node was dragged
     if (draggedNode && positionsRef.current) {
-      try {
-        ChromeAPIErrorHandler.sendMessageWithRetry({
-          type: 'setStorage',
-          key: 'learning_path_node_positions',
-          value: positionsRef.current
-        });
-      } catch {
-        // Non-critical - positions will just be re-calculated next time
-      }
+      saveNodePositions(positionsRef.current);
     }
     setIsPanning(false);
     setDraggedNode(null);
@@ -117,7 +116,6 @@ export function useVisualizationEventHandlers({
       setIsDragging(false);
     }, 50);
   }, [draggedNode, setIsPanning, setDraggedNode, setDragStartPos, setIsDragging]);
-
 
   // Toggle node lock/unlock
   const handleToggleNodesLock = useCallback(() => {
