@@ -244,6 +244,18 @@ export function getDifficultyAllowanceForTag(data = null) {
   return allowance;
 }
 
+export const MASTERY_WINDOW_SIZE = 20;
+
+export function calculateWindowedSuccessRate(recentResults) {
+  if (!Array.isArray(recentResults) || recentResults.length === 0) return null;
+  return recentResults.filter(Boolean).length / recentResults.length;
+}
+
+export function calculateWindowedProgressPercentage(recentResults) {
+  const rate = calculateWindowedSuccessRate(recentResults);
+  return rate !== null ? Math.round(rate * 100) : null;
+}
+
 /**
  * Calculate success rate with safe division handling
  * @param {number} successfulAttempts - Number of successful attempts

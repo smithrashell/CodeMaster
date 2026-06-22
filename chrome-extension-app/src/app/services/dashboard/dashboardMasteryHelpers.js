@@ -4,7 +4,7 @@
  */
 
 import { StorageService } from "../../../shared/services/storage/storageService.js";
-import { calculateProgressPercentage, calculateSuccessRate } from "../../../shared/utils/leitner/Utils.js";
+import { calculateProgressPercentage, calculateSuccessRate, calculateWindowedProgressPercentage } from "../../../shared/utils/leitner/Utils.js";
 import { getTagRelationships } from "../../../shared/db/stores/tag_relationships.js";
 import logger from "../../../shared/utils/logging/logger.js";
 
@@ -21,14 +21,18 @@ export async function generateMasteryData(learningState) {
       const totalAttempts = mastery.total_attempts ?? mastery.totalAttempts ?? 0;
       const successfulAttempts = mastery.successful_attempts ?? mastery.successfulAttempts ?? 0;
 
+      const windowedProgress = calculateWindowedProgressPercentage(mastery.recent_results);
+      const cumulativeProgress = totalAttempts > 0 ?
+        calculateProgressPercentage(successfulAttempts, totalAttempts) : 0;
+      const progress = windowedProgress !== null ? windowedProgress : cumulativeProgress;
+      const successRate = calculateSuccessRate(successfulAttempts, totalAttempts);
+
       return {
         ...mastery,
         isFocus: focusTags.includes(mastery.tag),
-        progress: totalAttempts > 0 ?
-          calculateProgressPercentage(successfulAttempts, totalAttempts) :
-          0,
-        hintHelpfulness: calculateSuccessRate(successfulAttempts, totalAttempts) > 0.8 ? "low" :
-                        calculateSuccessRate(successfulAttempts, totalAttempts) > 0.5 ? "medium" : "high"
+        progress,
+        hintHelpfulness: successRate > 0.8 ? "low" :
+                        successRate > 0.5 ? "medium" : "high"
       };
     });
 

@@ -68,7 +68,12 @@ const processLearningPathData = (masteryData, focusTags, unmasteredTags) => {
       // Tag has mastery data - process it
       const totalAttempts = masteryItem.total_attempts ?? masteryItem.totalAttempts ?? 0;
       const successfulAttempts = masteryItem.successful_attempts ?? masteryItem.successfulAttempts ?? 0;
-      const progress = totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0;
+      const recentResults = masteryItem.recent_results;
+      const windowedProgress = Array.isArray(recentResults) && recentResults.length > 0
+        ? Math.round((recentResults.filter(Boolean).length / recentResults.length) * 100)
+        : null;
+      const progress = windowedProgress !== null ? windowedProgress
+        : (totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0);
 
       // Use actual 'mastered' field from database (considers min_attempts_required)
       const status = masteryItem.mastered ? 'mastered' :

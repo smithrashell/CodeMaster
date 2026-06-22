@@ -1,4 +1,6 @@
 import { dbHelper } from "../index.js";
+import { getAllStandardProblems } from "./standard_problems.js";
+import { MASTERY_WINDOW_SIZE } from "../../utils/leitner/Utils.js";
 
 const openDB = () => dbHelper.openDB();
 
@@ -65,127 +67,10 @@ export async function insertDefaultTagMasteryRecords() {
 }
 
 
-async function fetchProblemsData(db) {
-  // Step 1: Fetch user problems
-  const userProblems = await new Promise((resolve, reject) => {
-    const transaction = db.transaction(["problems"], "readonly");
-    const store = transaction.objectStore("problems");
-    const request = store.getAll();
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-
-  console.log("📥 Loaded user problems:", userProblems.length);
-
-  // Step 2: Fetch standard problems
-  const standardProblems = await new Promise((resolve, reject) => {
-    const transaction = db.transaction(["standard_problems"], "readonly");
-    const store = transaction.objectStore("standard_problems");
-    const request = store.getAll();
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-
-  console.log("📦 Loaded standard problems:", standardProblems.length);
-  console.log("🔍 Sample standard problem:", standardProblems[0]);
-
-  return { userProblems, standardProblems };
-}
-
-function extractAllTags(standardProblems) {
-  // Step 3: Extract all unique tags from standard problems
-  let allTags = new Set();
-  for (const problem of standardProblems) {
-    const tags = Array.isArray(problem.tags) ? problem.tags : [];
-
-    for (const tag of tags) {
-      allTags.add(tag);
-    }
-  }
-
-  console.log(
-    "📊 Total unique tags found in standard problems:",
-    allTags.size
-  );
-  console.log("🏷️ Tag list:", [...allTags]);
-
-  return allTags;
-}
-
-function calculateTagStats(allTags, userProblems) {
-  // Step 4: Initialize tagStats
-  let tagStats = new Map();
-  for (const tag of allTags) {
-    tagStats.set(tag, {
-      total_attempts: 0,
-      successful_attempts: 0,
-      last_attempt_date: null,
-    });
-  }
-
-  // Step 5: Accumulate stats from userProblems
-  for (const problem of userProblems) {
-    const tags = Array.isArray(problem.tags) ? problem.tags : [];
-    const { total_attempts = 0, successful_attempts = 0 } =
-      problem.attempt_stats || {};
-
-    for (const tag of tags) {
-      if (!tagStats.has(tag)) {
-        console.warn(
-          `⚠️ Tag "${tag}" found in user problems but not in standard problems.`
-        );
-        tagStats.set(tag, {
-          total_attempts: 0,
-          successful_attempts: 0,
-          last_attempt_date: null,
-        });
-      }
-
-      const entry = tagStats.get(tag);
-      entry.total_attempts += total_attempts;
-      entry.successful_attempts += successful_attempts;
-
-      if (
-        !entry.last_attempt_date ||
-        new Date(problem.last_attempt_date) > new Date(entry.last_attempt_date)
-      ) {
-        entry.last_attempt_date = problem.last_attempt_date;
-      }
-    }
-  }
-
-  console.log("📈 Tag stats before writing to DB:", [...tagStats.entries()]);
-  return tagStats;
-}
-
-// Legacy escape hatch function removed - replaced with data-driven mastery gates
-// See updateTagMasteryForAttempt() and calculateTagMastery() for new implementation
-
-async function writeMasteryToDatabase(tagMasteryStore, masteryData) {
-  const { tag, stats, decayScore, mastered } = masteryData;
-
-  // Calculate strength as normalized success rate with decay factor
-  const successRate = stats.total_attempts > 0 ?
-    stats.successful_attempts / stats.total_attempts : 0;
-  const strength = Math.min(successRate * (1 + decayScore), 1.0);
-
-  // Determine mastery date if newly mastered
-  const currentTime = new Date().toISOString();
-
+async function writeMasteryToDatabase(tagMasteryStore, record) {
   await new Promise((resolve, reject) => {
-    const request = tagMasteryStore.put({
-      tag,
-      total_attempts: stats.total_attempts,
-      successful_attempts: stats.successful_attempts,
-      decay_score: decayScore,
-      mastered,
-      strength: Number(strength.toFixed(3)),
-      mastery_date: mastered ? currentTime : null,
-      last_practiced: stats.lastAttemptDate || currentTime
-    });
-
+    const request = tagMasteryStore.put(record);
     request.onsuccess = resolve;
     request.onerror = () => reject(request.error);
   });
@@ -343,6 +228,14 @@ function updateMasteryCounters(masteryData, problem, isSuccess, attemptDate) {
   }
   masteryData.last_practiced = attemptDate;
 
+  if (!Array.isArray(masteryData.recent_results)) {
+    masteryData.recent_results = [];
+  }
+  masteryData.recent_results.push(isSuccess);
+  if (masteryData.recent_results.length > MASTERY_WINDOW_SIZE) {
+    masteryData.recent_results = masteryData.recent_results.slice(-MASTERY_WINDOW_SIZE);
+  }
+
   masteryData.attempted_problem_ids = masteryData.attempted_problem_ids || [];
   const problemId = problem.problem_id || problem.leetcode_id || problem.id;
   if (problemId && !masteryData.attempted_problem_ids.includes(problemId)) {
@@ -351,6 +244,9 @@ function updateMasteryCounters(masteryData, problem, isSuccess, attemptDate) {
 }
 
 function calculateMasteryRatio(masteryData) {
+  if (Array.isArray(masteryData.recent_results) && masteryData.recent_results.length > 0) {
+    return masteryData.recent_results.filter(Boolean).length / masteryData.recent_results.length;
+  }
   return masteryData.total_attempts > 0
     ? masteryData.successful_attempts / masteryData.total_attempts
     : 0;
@@ -374,7 +270,19 @@ function updateMasteryStatus(masteryData, masteryRatio, requirements, ladderCove
   const ladderOK = ladderCoverage.percentage >= requirements.minLadderCoverage;
 
   const wasAlreadyMastered = masteryData.mastered;
-  masteryData.mastered = volumeOK && uniqueOK && accuracyOK && ladderOK;
+  const allGatesPass = volumeOK && uniqueOK && accuracyOK && ladderOK;
+
+  if (wasAlreadyMastered && !allGatesPass) {
+    const nonAccuracyGatesPass = volumeOK && uniqueOK && ladderOK;
+    if (nonAccuracyGatesPass) {
+      const demotionThreshold = Math.round((requirements.masteryThreshold - 0.10) * 100) / 100;
+      masteryData.mastered = masteryRatio >= demotionThreshold;
+    } else {
+      masteryData.mastered = false;
+    }
+  } else {
+    masteryData.mastered = allGatesPass;
+  }
 
   if (masteryData.mastered && !wasAlreadyMastered) {
     masteryData.mastery_date = attemptDate;
@@ -389,15 +297,16 @@ function logMasteryUpdate(tag, masteryData, masteryRatio, requirements, ladderCo
   const uniqueOK = uniqueProblems >= requirements.minUniqueRequired;
   const accuracyOK = masteryRatio >= requirements.masteryThreshold;
   const ladderOK = ladderCoverage.percentage >= requirements.minLadderCoverage;
-  const wasAlreadyMastered = !masteryData.mastery_date || masteryData.mastery_date !== new Date().toISOString();
+  const cumulativeRate = masteryData.total_attempts > 0
+    ? masteryData.successful_attempts / masteryData.total_attempts : 0;
 
   console.log(`🧠 Updated mastery for "${tag}":`, {
     totalAttempts: masteryData.total_attempts,
     successfulAttempts: masteryData.successful_attempts,
     uniqueProblems,
-    accuracy: `${(masteryRatio * 100).toFixed(1)}%`,
+    windowedAccuracy: `${(masteryRatio * 100).toFixed(1)}% (last ${masteryData.recent_results?.length || 0})`,
+    cumulativeAccuracy: `${(cumulativeRate * 100).toFixed(1)}%`,
     mastered: masteryData.mastered,
-    newlyMastered: masteryData.mastered && !wasAlreadyMastered,
     gates: {
       volume: `${volumeOK ? '✅' : '❌'} ${masteryData.total_attempts}/${requirements.minAttemptsRequired}`,
       unique: `${uniqueOK ? '✅' : '❌'} ${uniqueProblems}/${requirements.minUniqueRequired}`,
@@ -419,90 +328,112 @@ export async function calculateTagMastery() {
   try {
     const db = await openDB();
 
-    const { userProblems, standardProblems } = await fetchProblemsData(db);
-    const allTags = extractAllTags(standardProblems);
-    const tagStats = calculateTagStats(allTags, userProblems);
+    const standardProblems = await getAllStandardProblems();
 
-    // Fetch all tag relationships for mastery requirements
+    const tagStats = await buildTagStatsFromAttempts(db, standardProblems);
+
+    // Fetch tag relationships for mastery requirements
     const tagRelationships = {};
-    const tagRelTx = db.transaction(["tag_relationships"], "readonly");
-    const tagRelStore = tagRelTx.objectStore("tag_relationships");
     const allTagRels = await new Promise((resolve, reject) => {
-      const request = tagRelStore.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      const tx = db.transaction(["tag_relationships"], "readonly");
+      const store = tx.objectStore("tag_relationships");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
     });
-
     allTagRels.forEach(rel => {
       tagRelationships[normalizeTag(rel.id)] = rel;
     });
 
-    // Fetch all ladder coverage BEFORE starting the readwrite transaction.
-    // getLadderCoverage opens its own readonly transaction on pattern_ladders;
-    // awaiting it inside an active readwrite transaction causes auto-commit.
+    // Fetch all ladder coverage BEFORE starting the readwrite transaction
     const ladderCoverageMap = new Map();
     for (const [tag] of tagStats.entries()) {
-      const normalizedTag = normalizeTag(tag);
-      ladderCoverageMap.set(normalizedTag, await getLadderCoverage(db, normalizedTag));
+      ladderCoverageMap.set(tag, await getLadderCoverage(db, tag));
     }
 
-    // Step 6: Write to tag_mastery
+    // Read existing mastery for demotion hysteresis
+    const existingMastery = await new Promise((resolve, reject) => {
+      const tx = db.transaction("tag_mastery", "readonly");
+      const store = tx.objectStore("tag_mastery");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const existingMasteryMap = new Map(existingMastery.map(m => [m.tag, m]));
+
+    // Write complete records to tag_mastery
     const updateTransaction = db.transaction(["tag_mastery"], "readwrite");
     const tagMasteryStore = updateTransaction.objectStore("tag_mastery");
 
     for (const [tag, stats] of tagStats.entries()) {
-      const normalizedTag = normalizeTag(tag);
-      const daysSinceLast = stats.lastAttemptDate
-        ? (Date.now() - new Date(stats.lastAttemptDate)) / (1000 * 60 * 60 * 24)
+      const daysSinceLast = stats.last_practiced
+        ? (Date.now() - new Date(stats.last_practiced)) / (1000 * 60 * 60 * 24)
         : 0;
 
-      const masteryRatio =
-        stats.total_attempts > 0
-          ? stats.successful_attempts / stats.total_attempts
-          : 0;
+      const cumulativeRatio = stats.total_attempts > 0
+        ? stats.successful_attempts / stats.total_attempts : 0;
 
-      const decayScore =
-        stats.total_attempts > 0 ? (1 - masteryRatio) * daysSinceLast : 1;
+      const masteryRatio = stats.recent_results.length > 0
+        ? stats.recent_results.filter(Boolean).length / stats.recent_results.length
+        : cumulativeRatio;
 
-      // Get tag-specific requirements from tag_relationships
-      const tagRel = tagRelationships[normalizedTag];
+      const decayScore = stats.total_attempts > 0
+        ? (1 - cumulativeRatio) * daysSinceLast : 1;
+
+      const tagRel = tagRelationships[tag];
       const masteryThreshold = tagRel?.mastery_threshold || 0.80;
       const minAttemptsRequired = tagRel?.min_attempts_required || 6;
-
-      // Calculate unique problems (approximation: assume unique_problems = total_attempts for batch calculation)
-      // Real tracking happens in updateTagMasteryForAttempt
-      const uniqueProblems = stats.unique_problem_count || stats.total_attempts;
+      const uniqueProblems = stats.attempted_problem_ids.length;
       const minUniqueRequired = Math.ceil(minAttemptsRequired * 0.7);
       const minLadderCoverage = 0.70;
+      const ladderCoverage = ladderCoverageMap.get(tag);
 
-      const ladderCoverage = ladderCoverageMap.get(normalizedTag);
-
-      // Mastery gates: volume + uniqueness + accuracy + ladder coverage
       const volumeOK = stats.total_attempts >= minAttemptsRequired;
       const uniqueOK = uniqueProblems >= minUniqueRequired;
       const accuracyOK = masteryRatio >= masteryThreshold;
       const ladderOK = ladderCoverage.percentage >= minLadderCoverage;
-      const mastered = volumeOK && uniqueOK && accuracyOK && ladderOK;
+      const allGatesPass = volumeOK && uniqueOK && accuracyOK && ladderOK;
 
-      console.log(`🧠 Writing mastery for "${normalizedTag}":`, {
+      const wasAlreadyMastered = existingMasteryMap.get(tag)?.mastered === true;
+      let mastered;
+      if (wasAlreadyMastered && !allGatesPass) {
+        const nonAccuracyGatesPass = volumeOK && uniqueOK && ladderOK;
+        if (nonAccuracyGatesPass) {
+          const demotionThreshold = Math.round((masteryThreshold - 0.10) * 100) / 100;
+          mastered = masteryRatio >= demotionThreshold;
+        } else {
+          mastered = false;
+        }
+      } else {
+        mastered = allGatesPass;
+      }
+
+      const strength = Math.round(masteryRatio * 100);
+      const existingMasteryDate = existingMasteryMap.get(tag)?.mastery_date;
+      const masteryDate = mastered
+        ? (wasAlreadyMastered ? existingMasteryDate : new Date().toISOString())
+        : null;
+
+      console.log(`🧠 Writing mastery for "${tag}":`, {
         totalAttempts: stats.total_attempts,
         successfulAttempts: stats.successful_attempts,
         uniqueProblems,
-        decayScore,
-        mastered: mastered,
-        gates: {
-          volume: `${volumeOK ? '✅' : '❌'} ${stats.total_attempts}/${minAttemptsRequired}`,
-          unique: `${uniqueOK ? '✅' : '❌'} ${uniqueProblems}/${minUniqueRequired}`,
-          accuracy: `${accuracyOK ? '✅' : '❌'} ${(masteryRatio * 100).toFixed(1)}%/${(masteryThreshold * 100).toFixed(0)}%`,
-          ladder: `${ladderOK ? '✅' : '❌'} ${ladderCoverage.attempted}/${ladderCoverage.total} (${(ladderCoverage.percentage * 100).toFixed(0)}%/${(minLadderCoverage * 100).toFixed(0)}%)`
-        }
+        mastered,
+        windowedAccuracy: `${(masteryRatio * 100).toFixed(1)}% (last ${stats.recent_results.length})`,
+        cumulativeAccuracy: `${(cumulativeRatio * 100).toFixed(1)}%`,
       });
 
       await writeMasteryToDatabase(tagMasteryStore, {
-        tag: normalizedTag,
-        stats,
-        decayScore,
-        mastered
+        tag,
+        total_attempts: stats.total_attempts,
+        successful_attempts: stats.successful_attempts,
+        attempted_problem_ids: stats.attempted_problem_ids,
+        decay_score: decayScore,
+        mastered,
+        strength,
+        mastery_date: masteryDate,
+        last_practiced: stats.last_practiced,
+        recent_results: stats.recent_results,
       });
     }
 
@@ -510,6 +441,67 @@ export async function calculateTagMastery() {
   } catch (error) {
     console.error("❌ Error calculating tag mastery:", error);
   }
+}
+
+async function buildTagStatsFromAttempts(db, standardProblems) {
+  const problemTagMap = new Map();
+  for (const p of standardProblems) {
+    const pid = p.id;
+    if (pid && Array.isArray(p.tags)) {
+      problemTagMap.set(String(pid), p.tags.map(t => normalizeTag(t)));
+    }
+  }
+  const allAttempts = await new Promise((resolve, reject) => {
+    const tx = db.transaction("attempts", "readonly");
+    const store = tx.objectStore("attempts");
+    const req = store.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+  const sortedAttempts = allAttempts
+    .filter(a => a.attempt_date)
+    .sort((a, b) => new Date(a.attempt_date) - new Date(b.attempt_date));
+
+  const tagStats = new Map();
+  for (const attempt of sortedAttempts) {
+    const pid = String(attempt.leetcode_id || attempt.problem_id);
+    const tags = problemTagMap.get(pid);
+    if (!tags) continue;
+
+    for (const tag of tags) {
+      if (!tagStats.has(tag)) {
+        tagStats.set(tag, {
+          total_attempts: 0,
+          successful_attempts: 0,
+          attempted_problem_ids: [],
+          recent_results: [],
+          last_practiced: null,
+        });
+      }
+      const entry = tagStats.get(tag);
+      entry.total_attempts += 1;
+      if (attempt.success) entry.successful_attempts += 1;
+
+      if (pid && !entry.attempted_problem_ids.includes(pid)) {
+        entry.attempted_problem_ids.push(pid);
+      }
+
+      entry.recent_results.push(!!attempt.success);
+      if (entry.recent_results.length > MASTERY_WINDOW_SIZE) {
+        entry.recent_results = entry.recent_results.slice(-MASTERY_WINDOW_SIZE);
+      }
+
+      const attemptDate = attempt.attempt_date instanceof Date
+        ? attempt.attempt_date.toISOString()
+        : attempt.attempt_date;
+      if (!entry.last_practiced || attemptDate > entry.last_practiced) {
+        entry.last_practiced = attemptDate;
+      }
+    }
+  }
+
+  return tagStats;
 }
 
 export async function getTagMastery() {

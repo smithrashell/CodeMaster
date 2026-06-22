@@ -309,3 +309,30 @@ describe("Moderate Struggle Escape Hatch (70% threshold)", () => {
       expect(failure.mastered).toBe(false);
     });
   });
+
+  describe("Windowed Success Rate Utilities", () => {
+    const { calculateWindowedSuccessRate, calculateWindowedProgressPercentage, MASTERY_WINDOW_SIZE } =
+      require("../leitner/Utils.js");
+
+    it("returns null for null/undefined/empty input", () => {
+      expect(calculateWindowedSuccessRate(null)).toBeNull();
+      expect(calculateWindowedSuccessRate(undefined)).toBeNull();
+      expect(calculateWindowedSuccessRate([])).toBeNull();
+    });
+
+    it("calculates rate from boolean array", () => {
+      expect(calculateWindowedSuccessRate([true, true, false])).toBeCloseTo(0.6667, 3);
+      expect(calculateWindowedSuccessRate([true, true, true])).toBe(1.0);
+      expect(calculateWindowedSuccessRate([false, false, false])).toBe(0.0);
+    });
+
+    it("returns percentage from calculateWindowedProgressPercentage", () => {
+      expect(calculateWindowedProgressPercentage([true, true, false])).toBe(67);
+      expect(calculateWindowedProgressPercentage([])).toBeNull();
+      expect(calculateWindowedProgressPercentage([true])).toBe(100);
+    });
+
+    it("exports MASTERY_WINDOW_SIZE as 20", () => {
+      expect(MASTERY_WINDOW_SIZE).toBe(20);
+    });
+  });

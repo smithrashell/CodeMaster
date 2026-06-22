@@ -1,5 +1,5 @@
-import React from "react";
-import { Container, Grid, Card, Title, Text, Group, Button } from "@mantine/core";
+import React, { useEffect, useRef, useState } from "react";
+import { Container, Grid, Card, Title, Text, Group, Button, SegmentedControl } from "@mantine/core";
 import { IconRefresh } from "@tabler/icons-react";
 import { usePageData } from "../../hooks/usePageData";
 import MasteryDashboard from "../../components/analytics/MasteryDashboard.jsx";
@@ -34,6 +34,32 @@ function Kpis({ items }) {
 
 export function TagMastery() {
   const { data: appState, loading, error, refresh } = usePageData('tag-mastery');
+  const backfillRan = useRef(false);
+
+  const [backfilling, setBackfilling] = useState(false);
+  const [viewMode, setViewMode] = useState('recent');
+
+  const runBackfill = () => {
+    setBackfilling(true);
+    console.log('🔄 Triggering recalculateTagMastery...');
+    chrome.runtime.sendMessage({ type: 'recalculateTagMastery' }, (response) => {
+      console.log('🔄 recalculateTagMastery response:', response);
+      setBackfilling(false);
+      refresh();
+    });
+  };
+
+  useEffect(() => {
+    if (backfillRan.current || !appState?.masteryData) return;
+    const needsBackfill = appState.masteryData.some(
+      t => !Array.isArray(t.attempted_problem_ids) ||
+           (Array.isArray(t.recent_results) && t.recent_results.length > 0 && t.total_attempts === 0)
+    );
+    if (!needsBackfill) return;
+    backfillRan.current = true;
+    runBackfill();
+  }, [appState, refresh]);
+
   // Use real mastery data from services
   const masteryData = appState || {};
 
@@ -54,9 +80,20 @@ export function TagMastery() {
   const pathData = hasData ? masteryData.masteryData.map(tag => {
     const totalAttempts = tag.total_attempts ?? tag.totalAttempts ?? 0;
     const successfulAttempts = tag.successful_attempts ?? tag.successfulAttempts ?? 0;
+    const rr = tag.recent_results;
+    const hasWindow = Array.isArray(rr) && rr.length > 0;
+
+    const windowedSuccessful = hasWindow ? rr.filter(Boolean).length : 0;
+    const windowedTotal = hasWindow ? rr.length : 0;
+    const windowedProgress = hasWindow ? Math.round((windowedSuccessful / windowedTotal) * 100) : 0;
+    const cumulativeProgress = totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0;
+
+    const isRecent = viewMode === 'recent';
     return {
       ...tag,
-      progress: totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0
+      total_attempts: isRecent && hasWindow ? windowedTotal : totalAttempts,
+      successful_attempts: isRecent && hasWindow ? windowedSuccessful : successfulAttempts,
+      progress: isRecent && hasWindow ? windowedProgress : cumulativeProgress,
     };
   }) : [];
 
@@ -81,14 +118,35 @@ export function TagMastery() {
         <Title order={2} style={{ color: "var(--cm-text)" }}>
           Tag Mastery Analytics
         </Title>
-        <Button 
-          leftSection={<IconRefresh size={16} />} 
-          variant="light" 
-          onClick={refresh}
-          size="sm"
-        >
-          Refresh
-        </Button>
+        <Group gap="xs">
+          <SegmentedControl
+            size="sm"
+            color="gray"
+            value={viewMode}
+            onChange={setViewMode}
+            data={[
+              { label: 'Recent (Last 20)', value: 'recent' },
+              { label: 'All Time', value: 'alltime' },
+            ]}
+          />
+          <Button
+            variant="light"
+            color="orange"
+            onClick={runBackfill}
+            loading={backfilling}
+            size="sm"
+          >
+            Recalculate Mastery
+          </Button>
+          <Button
+            leftSection={<IconRefresh size={16} />}
+            variant="light"
+            onClick={refresh}
+            size="sm"
+          >
+            Refresh
+          </Button>
+        </Group>
       </Group>
       
       {hasData ? (
@@ -99,7 +157,7 @@ export function TagMastery() {
           </Section>
 
           {/* Use the comprehensive MasteryDashboard component */}
-          <MasteryDashboard data={masteryData} />
+          <MasteryDashboard data={masteryData} viewMode={viewMode} />
         </>
       ) : (
         <Card withBorder p="xl" style={{ textAlign: 'center' }}>
