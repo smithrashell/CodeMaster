@@ -1,116 +1,75 @@
-import React, { useRef } from 'react';
-import { useLearningPathState } from '../../hooks/useLearningPathState.js';
-import { SVGControls } from './SVGControls.jsx';
-import { useVisualizationEventHandlers } from './useVisualizationEventHandlers.js';
-import { useNodePositionInitialization, useThemeDetection, useGlobalEventListeners } from './useVisualizationEffects.js';
-import { useSVGRenderer } from './useSVGRenderer.js';
-import { HoverTooltip } from './HoverTooltip.jsx';
+import React from 'react';
+import { Card, Text, Progress, Badge, Group, Stack, Grid } from '@mantine/core';
 
-// LearningPathVisualization Component - Interactive Network Learning Path with Pan/Zoom/Drag
-export function LearningPathVisualization({ pathData, tagRelationships, onNodeClick }) {
-  const svgRef = useRef(null);
-  const containerRef = useRef(null);
+const MAX_VISIBLE = 5;
 
-  const {
-    hoveredNode, setHoveredNode,
-    isDarkMode, setIsDarkMode,
-    viewBox, setViewBox,
-    zoom, setZoom,
-    isPanning, setIsPanning,
-    lastPanPoint, setLastPanPoint,
-    draggedNode, setDraggedNode,
-    nodePositions, setNodePositions,
-    hoveredConnection, setHoveredConnection,
-    isDragging, setIsDragging,
-    dragStartPos, setDragStartPos,
-    isNodesLocked, setIsNodesLocked
-  } = useLearningPathState();
+const STATUS_COLORS = {
+  mastered: { bg: 'var(--cm-chart-success)', badge: 'green', progress: 'green' },
+  learning: { bg: 'var(--cm-chart-primary)', badge: 'blue', progress: 'blue' },
+  available: { bg: 'var(--cm-chart-primary)', badge: 'blue', progress: 'blue' },
+  'not-started': { bg: 'var(--cm-chart-secondary)', badge: 'gray', progress: 'gray' },
+};
 
-  // Initialize node positions and handle theme detection
-  useNodePositionInitialization(setNodePositions, pathData, tagRelationships);
-  useThemeDetection(setIsDarkMode);
+function TagCard({ tag, onClick, isSelected }) {
+  const colors = STATUS_COLORS[tag.status] || STATUS_COLORS['not-started'];
+  return (
+    <Card
+      withBorder p="xs" radius="sm"
+      onClick={() => onClick?.(tag.tag)}
+      style={{
+        cursor: 'pointer',
+        backgroundColor: 'var(--cm-card-bg)',
+        borderLeft: `3px solid ${colors.bg}`,
+        outline: isSelected ? '2px solid var(--cm-chart-primary)' : 'none',
+      }}
+    >
+      <Group justify="space-between" wrap="nowrap" gap="xs">
+        <Text size="sm" fw={500} truncate>{tag.tag}</Text>
+        <Text size="xs" fw={600} c={colors.badge}>{tag.progress}%</Text>
+      </Group>
+      <Progress value={tag.progress} color={colors.progress} size="xs" mt={4} />
+    </Card>
+  );
+}
 
-  // Event handlers for mouse interactions and zoom controls
-  const {
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleWheel,
-    handleZoomIn,
-    handleZoomOut,
-    handleResetView,
-    handleToggleNodesLock
-  } = useVisualizationEventHandlers({
-    isNodesLocked,
-    zoom,
-    dragStartPos,
-    draggedNode,
-    isPanning,
-    lastPanPoint,
-    nodePositions,
-    setDragStartPos,
-    setIsDragging,
-    setDraggedNode,
-    setIsPanning,
-    setLastPanPoint,
-    setNodePositions,
-    setViewBox,
-    setZoom,
-    setIsNodesLocked
-  });
+function FlowColumn({ title, tags, badgeColor, onTagClick, selectedTag }) {
+  const visible = tags.slice(0, MAX_VISIBLE);
+  const overflow = tags.length - MAX_VISIBLE;
+  return (
+    <Stack gap="xs">
+      <Group gap="xs">
+        <Text size="sm" fw={600}>{title}</Text>
+        <Badge size="xs" color={badgeColor} variant="light">{tags.length}</Badge>
+      </Group>
+      {visible.map(tag => (
+        <TagCard key={tag.tag} tag={tag} onClick={onTagClick} isSelected={selectedTag === tag.tag} />
+      ))}
+      {tags.length === 0 && (
+        <Text size="xs" c="dimmed" ta="center" py="md">None yet</Text>
+      )}
+      {overflow > 0 && (
+        <Text size="xs" c="dimmed" ta="center">+{overflow} more</Text>
+      )}
+    </Stack>
+  );
+}
 
-  // Attach global event listeners
-  useGlobalEventListeners(isPanning, draggedNode, handleMouseMove, handleMouseUp);
-
-  // Handle SVG rendering
-  useSVGRenderer({
-    pathData,
-    tagRelationships,
-    onNodeClick,
-    nodePositions,
-    viewBox,
-    hoveredNode,
-    setHoveredNode,
-    draggedNode,
-    hoveredConnection,
-    setHoveredConnection,
-    isDragging,
-    isNodesLocked,
-    isDarkMode,
-    svgRef
-  });
+export function LearningPathVisualization({ flowData, onNodeClick, selectedTag }) {
+  if (!flowData) return null;
+  const { columns } = flowData;
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%', position: 'relative' }}>
-      <SVGControls
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onResetView={handleResetView}
-        isNodesLocked={isNodesLocked}
-        onToggleNodeLock={handleToggleNodesLock}
-        zoom={zoom}
-      />
-      
-      <svg
-        ref={svgRef}
-        width="100%"
-        height="100%"
-        style={{
-          background: 'var(--cm-bg-secondary)',
-          borderRadius: '8px',
-          cursor: isPanning ? 'grabbing' : draggedNode ? 'grabbing' : 'grab'
-        }}
-        onMouseDown={handleMouseDown}
-        onWheel={handleWheel}
-      />
-      
-      <HoverTooltip
-        hoveredNode={hoveredNode}
-        hoveredConnection={hoveredConnection}
-        pathData={pathData}
-        tagRelationships={tagRelationships}
-      />
-    </div>
+    <Grid gutter="md">
+      <Grid.Col span={4}>
+        <FlowColumn title="Mastered" tags={columns.mastered} badgeColor="green" onTagClick={onNodeClick} selectedTag={selectedTag} />
+      </Grid.Col>
+      <Grid.Col span={4}>
+        <FlowColumn title="Current Focus" tags={columns.focus} badgeColor="blue" onTagClick={onNodeClick} selectedTag={selectedTag} />
+      </Grid.Col>
+      <Grid.Col span={4}>
+        <FlowColumn title="Up Next" tags={columns.upNext} badgeColor="gray" onTagClick={onNodeClick} selectedTag={selectedTag} />
+      </Grid.Col>
+    </Grid>
   );
 }
 

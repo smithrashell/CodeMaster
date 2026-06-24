@@ -117,13 +117,6 @@ jest.mock('../components/learning/EmptyLearningPathState.jsx', () => ({
   default: () => <div data-testid="empty-learning-path">Empty State</div>,
 }));
 
-jest.mock('../components/learning/LearningPathLegend.jsx', () => ({
-  default: () => <div data-testid="learning-path-legend">Legend</div>,
-}));
-
-jest.mock('../components/learning/InteractiveControls.jsx', () => ({
-  default: () => <div data-testid="interactive-controls">Controls</div>,
-}));
 
 jest.mock('../components/learning/LearningStrategyPanel.jsx', () => ({
   default: () => <div data-testid="learning-strategy-panel">Strategy Panel</div>,

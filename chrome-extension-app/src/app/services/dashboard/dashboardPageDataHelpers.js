@@ -18,6 +18,9 @@ import { getAllAttempts } from "../../../shared/db/stores/attempts.js";
 import logger from "../../../shared/utils/logging/logger.js";
 import { generateSessionAnalytics } from "./dashboardSessionAnalyticsHelpers.js";
 import { buildDynamicTagRelationships } from "./dashboardMasteryHelpers.js";
+import { getAllTagRelationshipEntries } from "../../../shared/db/stores/tag_relationships.js";
+import { getLadderCoverage } from "../../../shared/db/stores/tag_mastery.js";
+import { dbHelper } from "../../../shared/db/index.js";
 import { calculateReflectionInsights } from "./dashboardProductivityHelpers.js";
 import { generateGoalsData } from "./dashboardGoalsHelpers.js";
 
@@ -424,36 +427,29 @@ export async function getLearningPathData(options = {}, getDashboardStatistics) 
   try {
     const fullData = await getDashboardStatistics(options);
 
-    console.log('DEBUG standardProblemsMap:', {
-      hasMap: !!fullData.standardProblemsMap,
-      mapType: typeof fullData.standardProblemsMap,
-      keys: fullData.standardProblemsMap ? Object.keys(fullData.standardProblemsMap).slice(0, 10) : [],
-      firstValue: fullData.standardProblemsMap ? fullData.standardProblemsMap[Object.keys(fullData.standardProblemsMap)[0]] : null
-    });
-
-    // Convert standardProblemsMap object to array
     const standardProblemsArray = fullData.standardProblemsMap
       ? Object.values(fullData.standardProblemsMap)
       : [];
 
-    console.log('getLearningPathData - fullData:', {
-      attemptsCount: fullData.allAttempts?.length || 0,
-      problemsCount: fullData.allProblems?.length || 0,
-      standardProblemsCount: standardProblemsArray.length
-    });
-
-    // Build dynamic tag relationships from actual attempts
-    // Use standard_problems which have Tags, not user problems
     const tagRelationships = buildDynamicTagRelationships(
       fullData.allAttempts || [],
       standardProblemsArray
     );
 
-    console.log('Dynamic tag relationships built:', {
-      relationshipCount: Object.keys(tagRelationships).length,
-      sampleKeys: Object.keys(tagRelationships).slice(0, 5),
-      sample: Object.keys(tagRelationships).length > 0 ? tagRelationships[Object.keys(tagRelationships)[0]] : null
-    });
+    const tagRelEntries = await getAllTagRelationshipEntries();
+    const db = await dbHelper.openDB();
+    const tagMeta = {};
+    for (const entry of tagRelEntries) {
+      const ladder = await getLadderCoverage(db, entry.id);
+      tagMeta[entry.id] = {
+        difficulty_distribution: entry.difficulty_distribution,
+        mastery_threshold: entry.mastery_threshold,
+        min_attempts_required: entry.min_attempts_required,
+        related_tags: entry.related_tags,
+        classification: entry.classification,
+        ladderCoverage: ladder
+      };
+    }
 
     return {
       ...(fullData.mastery || {
@@ -466,7 +462,8 @@ export async function getLearningPathData(options = {}, getDashboardStatistics) 
         masteryData: [],
         learningState: {}
       }),
-      tagRelationships // Add dynamic relationships
+      tagRelationships,
+      tagMeta
     };
   } catch (error) {
     logger.error("Error getting learning path data:", error);

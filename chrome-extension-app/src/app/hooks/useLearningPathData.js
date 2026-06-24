@@ -1,170 +1,87 @@
 import { useState, useEffect } from "react";
-import { debug, warn as _warn } from "../../shared/utils/logging/logger.js";
-import { tagRelationships } from "../components/learning/TagRelationships.js";
+import { debug } from "../../shared/utils/logging/logger.js";
 
-// Data extraction helper functions
-const extractMasteryData = (appState) => {
-  // getLearningPathData returns the mastery object directly, not wrapped in appState.mastery
-  return appState?.masteryData ||
-         appState?.mastery?.masteryData ||
-         appState?.learningState?.masteryData ||
-         appState?.progress?.learningState?.masteryData ||
-         [];
-};
+const TIER_ORDER = ["Core Concept", "Fundamental Technique", "Advanced Technique"];
+const TIER_LABELS = { "Core Concept": "Core Concepts", "Fundamental Technique": "Fundamentals", "Advanced Technique": "Advanced" };
 
-const extractFocusTags = (appState) => {
-  // getLearningPathData returns the mastery object directly, not wrapped in appState.mastery
-  return appState?.focusTags ||
-         appState?.mastery?.focusTags ||
-         appState?.learningState?.focusTags ||
-         appState?.progress?.learningState?.focusTags ||
-         [];
-};
+const extract = (appState, key) =>
+  appState?.[key] || appState?.mastery?.[key] || appState?.learningState?.[key] || [];
 
-const extractUnmasteredTags = (appState) => {
-  // getLearningPathData returns the mastery object directly, not wrapped in appState.mastery
-  return appState?.unmasteredTags ||
-         appState?.mastery?.unmasteredTags ||
-         appState?.learningState?.unmasteredTags ||
-         appState?.progress?.learningState?.unmasteredTags ||
-         [];
-};
-
-// Data processing helper
-const processLearningPathData = (masteryData, focusTags, unmasteredTags) => {
-  debug("Learning Path - extracted data", {
-    masteryCount: masteryData.length,
-    focusCount: focusTags.length,
-    unmasteredCount: unmasteredTags.length
-  });
-
-  // Create a map of mastery data for quick lookup
-  const masteryMap = new Map(masteryData.map(item => [item.tag, item]));
-
-  // Step 1: Collect tags with mastery data (tags user has attempted)
-  const tagsWithData = new Set(masteryData.map(item => item.tag));
-
-  // Step 2: Find all tags that are directly unlocked by tags with mastery data
-  const unlockedTags = new Set();
-  tagsWithData.forEach(tag => {
-    const relationship = tagRelationships[tag];
-    if (relationship?.unlocks) {
-      relationship.unlocks.forEach(unlockData => {
-        const unlockedTag = typeof unlockData === 'string' ? unlockData : unlockData.tag;
-        unlockedTags.add(unlockedTag);
-      });
-    }
-  });
-
-  // Step 3: Combine both sets - tags with data + their immediate unlocks
-  const visibleTags = new Set([...tagsWithData, ...unlockedTags]);
-
-  // Step 4: Process only the visible tags
-  const processedData = Array.from(visibleTags).map((tag) => {
-    const masteryItem = masteryMap.get(tag);
-    const isFocus = focusTags.includes(tag);
-
-    if (masteryItem) {
-      // Tag has mastery data - process it
-      const totalAttempts = masteryItem.total_attempts ?? masteryItem.totalAttempts ?? 0;
-      const successfulAttempts = masteryItem.successful_attempts ?? masteryItem.successfulAttempts ?? 0;
-      const recentResults = masteryItem.recent_results;
-      const windowedProgress = Array.isArray(recentResults) && recentResults.length > 0
-        ? Math.round((recentResults.filter(Boolean).length / recentResults.length) * 100)
-        : null;
-      const progress = windowedProgress !== null ? windowedProgress
-        : (totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0);
-
-      // Use actual 'mastered' field from database (considers min_attempts_required)
-      const status = masteryItem.mastered ? 'mastered' :
-                     totalAttempts > 0 ? 'learning' :
-                     isFocus ? 'available' : 'not-started';
-
-      return {
-        ...masteryItem,
-        isFocus,
-        progress: Math.min(progress, 100),
-        status
-      };
-    } else {
-      // Tag is unlocked but not attempted yet - show as available/locked
-      const tagRelationship = tagRelationships[tag];
-      const status = isFocus ? 'available' : 'locked';
-
-      return {
-        tag,
-        total_attempts: 0,
-        successful_attempts: 0,
-        mastered: false,
-        isFocus,
-        progress: 0,
-        status,
-        position: tagRelationship?.position
-      };
-    }
-  });
-
-  debug("Learning Path - visible tags", Array.from(visibleTags));
-  debug("Learning Path - processed data sample", processedData.slice(0, 3));
-  return processedData;
-};
-
-const generateRecommendations = (unmasteredTags, focusTags) => {
-  const recs = [];
-  if (unmasteredTags.length > 0) {
-    recs.push(`Focus on ${unmasteredTags.slice(0, 3).join(', ')} for skill advancement`);
+const computeProgress = (item) => {
+  const recentResults = item.recent_results;
+  if (Array.isArray(recentResults) && recentResults.length > 0) {
+    return Math.round((recentResults.filter(Boolean).length / recentResults.length) * 100);
   }
-  if (focusTags.length > 0) {
-    recs.push(`Continue practicing ${focusTags[0]} - you're making progress!`);
-  }
-  recs.push("Consider reviewing mastered topics to maintain proficiency");
-  return recs;
+  const total = item.total_attempts ?? item.totalAttempts ?? 0;
+  const success = item.successful_attempts ?? item.successfulAttempts ?? 0;
+  return total > 0 ? Math.round((success / total) * 100) : 0;
+};
+
+const enrichTag = (item, isFocus) => {
+  const totalAttempts = item.total_attempts ?? item.totalAttempts ?? 0;
+  const status = item.mastered ? 'mastered'
+    : totalAttempts > 0 ? 'learning'
+    : isFocus ? 'available' : 'not-started';
+  return { ...item, isFocus, progress: Math.min(computeProgress(item), 100), status };
 };
 
 export const useLearningPathData = (appState) => {
-  const [pathData, setPathData] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
-  const [tagRelationships, setTagRelationships] = useState({});
+  const [flowData, setFlowData] = useState(null);
 
   useEffect(() => {
     if (!appState) return;
 
-    // Extract data using helper functions
-    const masteryData = extractMasteryData(appState);
-    const focusTags = extractFocusTags(appState);
-    const unmasteredTags = extractUnmasteredTags(appState);
+    const masteryData = extract(appState, 'masteryData');
+    const focusTags = extract(appState, 'focusTags');
+    const allTagsInTier = extract(appState, 'allTagsInCurrentTier');
+    const masteredTagNames = extract(appState, 'masteredTags');
+    const currentTier = appState?.currentTier || appState?.classification || "Core Concept";
 
-    // Extract dynamic tag relationships from appState
-    const dynamicRelationships = appState?.tagRelationships || {};
-    console.log('🎯 useLearningPathData - extracting relationships:', {
-      hasAppState: !!appState,
-      hasTagRelationships: !!appState?.tagRelationships,
-      relationshipCount: Object.keys(dynamicRelationships).length,
-      appStateKeys: appState ? Object.keys(appState) : []
-    });
-    setTagRelationships(dynamicRelationships);
+    const masteryMap = new Map(masteryData.map(m => [m.tag, m]));
+    const focusSet = new Set(focusTags);
+    const masteredSet = new Set(masteredTagNames);
 
-    // Debug: Check extracted data
-    debug("Learning Path - extracted data", {
-      masteryDataLength: masteryData.length,
-      masteryData: masteryData,
-      focusTags: focusTags,
-      unmasteredTags: unmasteredTags,
-      dynamicRelationships: Object.keys(dynamicRelationships).length
-    });
+    const mastered = [];
+    const focus = [];
+    const upNext = [];
 
-    // Create progression data for visualization using helper function
-    const progressionData = processLearningPathData(masteryData, focusTags, unmasteredTags);
+    for (const tagName of allTagsInTier) {
+      const item = masteryMap.get(tagName);
+      const isFocus = focusSet.has(tagName);
 
-    debug("Learning Path - final progressionData", { progressionData });
+      if (masteredSet.has(tagName)) {
+        mastered.push(enrichTag(item || { tag: tagName, mastered: true, total_attempts: 0 }, false));
+      } else if (isFocus) {
+        focus.push(enrichTag(item || { tag: tagName, mastered: false, total_attempts: 0 }, true));
+      } else {
+        const enriched = enrichTag(item || { tag: tagName, mastered: false, total_attempts: 0 }, false);
+        upNext.push(enriched);
+      }
+    }
 
-    // Set progression data - empty array is valid state for new users
-    setPathData(progressionData);
+    upNext.sort((a, b) => b.progress - a.progress);
 
-    // Generate recommendations using helper function
-    const recs = generateRecommendations(unmasteredTags, focusTags);
-    setRecommendations(recs);
+    const tierProgress = {
+      mastered: mastered.length,
+      total: allTagsInTier.length,
+      percentage: allTagsInTier.length > 0 ? Math.round((mastered.length / allTagsInTier.length) * 100) : 0
+    };
+
+    const currentIdx = TIER_ORDER.indexOf(currentTier);
+    const tiers = TIER_ORDER.map((name, idx) => ({
+      name,
+      label: TIER_LABELS[name],
+      isCurrent: idx === currentIdx,
+      isCompleted: idx < currentIdx,
+      isLocked: idx > currentIdx
+    }));
+
+    debug("Learning Path flow", { currentTier, mastered: mastered.length, focus: focus.length, upNext: upNext.length });
+
+    const tagMeta = appState?.tagMeta || {};
+
+    setFlowData({ currentTier, tierProgress, tiers, columns: { mastered, focus, upNext }, tagMeta });
   }, [appState]);
 
-  return { pathData, recommendations, tagRelationships };
+  return flowData;
 };

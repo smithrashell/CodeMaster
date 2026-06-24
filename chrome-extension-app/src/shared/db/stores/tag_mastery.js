@@ -134,7 +134,7 @@ async function fetchTagRelationships(db, tags) {
   return tagRelationships;
 }
 
-async function getLadderCoverage(db, tag) {
+export async function getLadderCoverage(db, tag) {
   try {
     const transaction = db.transaction(["pattern_ladders"], "readonly");
     const store = transaction.objectStore("pattern_ladders");
@@ -267,13 +267,16 @@ function updateMasteryStatus(masteryData, masteryRatio, requirements, ladderCove
   const volumeOK = masteryData.total_attempts >= requirements.minAttemptsRequired;
   const uniqueOK = uniqueProblems >= requirements.minUniqueRequired;
   const accuracyOK = masteryRatio >= requirements.masteryThreshold;
-  const ladderOK = ladderCoverage.percentage >= requirements.minLadderCoverage;
+  const ladderCompleted = ladderCoverage.total > 0 && uniqueProblems >= ladderCoverage.total;
+  const ladderOK = ladderCoverage.percentage >= requirements.minLadderCoverage || ladderCompleted;
 
   const wasAlreadyMastered = masteryData.mastered;
   const allGatesPass = volumeOK && uniqueOK && accuracyOK && ladderOK;
 
   if (wasAlreadyMastered && !allGatesPass) {
-    const nonAccuracyGatesPass = volumeOK && uniqueOK && ladderOK;
+    // Ladder gate is initial qualification only — it resets on regeneration
+    // so exclude it from demotion. Volume/unique never regress.
+    const nonAccuracyGatesPass = volumeOK && uniqueOK;
     if (nonAccuracyGatesPass) {
       const demotionThreshold = Math.round((requirements.masteryThreshold - 0.10) * 100) / 100;
       masteryData.mastered = masteryRatio >= demotionThreshold;
