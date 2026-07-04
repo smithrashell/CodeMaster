@@ -1,0 +1,1933 @@
+[
+  {
+    "id": "array",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Arrays & Hashing",
+    "totalProblems": 1787,
+    "problemCounts": {
+      "easy": 371,
+      "medium": 968,
+      "hard": 448
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "hash table",
+        "type": "CO_DS",
+        "problemCount": 430
+      },
+      {
+        "to": "string",
+        "type": "CO_DS",
+        "problemCount": 207
+      },
+      {
+        "to": "matrix",
+        "type": "CO_DS",
+        "problemCount": 241
+      },
+      {
+        "to": "sorting",
+        "type": "ENABLES",
+        "problemCount": 378
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 335
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 268
+      },
+      {
+        "to": "binary search",
+        "type": "ENABLES",
+        "problemCount": 242
+      },
+      {
+        "to": "prefix sum",
+        "type": "ENABLES",
+        "problemCount": 159
+      },
+      {
+        "to": "bit manipulation",
+        "type": "ENABLES",
+        "problemCount": 151
+      },
+      {
+        "to": "two pointers",
+        "type": "ENABLES",
+        "problemCount": 129
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 116
+      },
+      {
+        "to": "sliding window",
+        "type": "ENABLES",
+        "problemCount": 95
+      },
+      {
+        "to": "counting",
+        "type": "ENABLES",
+        "problemCount": 89
+      },
+      {
+        "to": "backtracking",
+        "type": "ENABLES",
+        "problemCount": 56
+      },
+      {
+        "to": "monotonic stack",
+        "type": "ENABLES",
+        "problemCount": 57
+      },
+      {
+        "to": "union find",
+        "type": "ENABLES",
+        "problemCount": 52
+      },
+      {
+        "to": "queue",
+        "type": "CO_DS",
+        "problemCount": 35
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 36
+      },
+      {
+        "to": "monotonic queue",
+        "type": "ENABLES",
+        "problemCount": 17
+      },
+      {
+        "to": "enumeration",
+        "type": "ENABLES",
+        "problemCount": 56
+      },
+      {
+        "to": "math",
+        "type": "ENABLES",
+        "problemCount": 233
+      },
+      {
+        "to": "geometry",
+        "type": "ENABLES",
+        "problemCount": 31
+      },
+      {
+        "to": "bitmask",
+        "type": "ENABLES",
+        "problemCount": 37
+      },
+      {
+        "to": "intervals",
+        "type": "ENABLES",
+        "problemCount": 22
+      },
+      {
+        "to": "memoization",
+        "type": "ENABLES",
+        "problemCount": 19
+      },
+      {
+        "to": "recursion",
+        "type": "ENABLES",
+        "problemCount": 5
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ENABLES",
+        "problemCount": 6
+      },
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "hash table",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Arrays & Hashing",
+    "totalProblems": 652,
+    "problemCounts": {
+      "easy": 158,
+      "medium": 388,
+      "hard": 106
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "CO_DS",
+        "problemCount": 430
+      },
+      {
+        "to": "string",
+        "type": "CO_DS",
+        "problemCount": 251
+      },
+      {
+        "to": "counting",
+        "type": "ENABLES",
+        "problemCount": 131
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 53
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 42
+      },
+      {
+        "to": "queue",
+        "type": "CO_DS",
+        "problemCount": 6
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 7
+      },
+      {
+        "to": "enumeration",
+        "type": "ENABLES",
+        "problemCount": 24
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 27
+      },
+      {
+        "to": "sorting",
+        "type": "ENABLES",
+        "problemCount": 9
+      },
+      {
+        "to": "math",
+        "type": "ENABLES",
+        "problemCount": 8
+      },
+      {
+        "to": "two pointers",
+        "type": "ENABLES",
+        "problemCount": 6
+      },
+      {
+        "to": "binary search",
+        "type": "ENABLES",
+        "problemCount": 6
+      },
+      {
+        "to": "union find",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "bit manipulation",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "backtracking",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "string",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "String",
+    "totalProblems": 749,
+    "problemCounts": {
+      "easy": 214,
+      "medium": 372,
+      "hard": 163
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "CO_DS",
+        "problemCount": 207
+      },
+      {
+        "to": "hash table",
+        "type": "CO_DS",
+        "problemCount": 251
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 121
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 103
+      },
+      {
+        "to": "counting",
+        "type": "ENABLES",
+        "problemCount": 71
+      },
+      {
+        "to": "two pointers",
+        "type": "ENABLES",
+        "problemCount": 68
+      },
+      {
+        "to": "sorting",
+        "type": "ENABLES",
+        "problemCount": 63
+      },
+      {
+        "to": "sliding window",
+        "type": "ENABLES",
+        "problemCount": 48
+      },
+      {
+        "to": "backtracking",
+        "type": "ENABLES",
+        "problemCount": 43
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 36
+      },
+      {
+        "to": "bit manipulation",
+        "type": "ENABLES",
+        "problemCount": 36
+      },
+      {
+        "to": "prefix sum",
+        "type": "ENABLES",
+        "problemCount": 32
+      },
+      {
+        "to": "binary search",
+        "type": "ENABLES",
+        "problemCount": 26
+      },
+      {
+        "to": "recursion",
+        "type": "ENABLES",
+        "problemCount": 16
+      },
+      {
+        "to": "monotonic stack",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "queue",
+        "type": "CO_DS",
+        "problemCount": 3
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "enumeration",
+        "type": "ENABLES",
+        "problemCount": 19
+      },
+      {
+        "to": "math",
+        "type": "ENABLES",
+        "problemCount": 85
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ENABLES",
+        "problemCount": 5
+      },
+      {
+        "to": "union find",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "linked list",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Linked List",
+    "totalProblems": 79,
+    "problemCounts": {
+      "easy": 15,
+      "medium": 57,
+      "hard": 7
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "doubly-linked list",
+        "type": "CO_DS",
+        "problemCount": 11
+      },
+      {
+        "to": "two pointers",
+        "type": "ENABLES",
+        "problemCount": 18
+      },
+      {
+        "to": "recursion",
+        "type": "ENABLES",
+        "problemCount": 10
+      },
+      {
+        "to": "queue",
+        "type": "CO_DS",
+        "problemCount": 4
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 12
+      },
+      {
+        "to": "counting",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "doubly-linked list",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Linked List",
+    "totalProblems": 11,
+    "problemCounts": {
+      "easy": 1,
+      "medium": 6,
+      "hard": 4
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "linked list",
+        "type": "SPECIALIZES"
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 7
+      }
+    ]
+  },
+  {
+    "id": "tree",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Trees",
+    "totalProblems": 239,
+    "problemCounts": {
+      "easy": 41,
+      "medium": 149,
+      "hard": 49
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "graph",
+        "type": "SPECIALIZES"
+      },
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 187
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ENABLES",
+        "problemCount": 82
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 31
+      },
+      {
+        "to": "recursion",
+        "type": "ENABLES",
+        "problemCount": 8
+      },
+      {
+        "to": "backtracking",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 11
+      }
+    ]
+  },
+  {
+    "id": "binary tree",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Trees",
+    "totalProblems": 176,
+    "problemCounts": {
+      "easy": 38,
+      "medium": 122,
+      "hard": 16
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "tree",
+        "type": "SPECIALIZES"
+      },
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 134
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ENABLES",
+        "problemCount": 60
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 13
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 9
+      },
+      {
+        "to": "recursion",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "binary search tree",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Trees",
+    "totalProblems": 40,
+    "problemCounts": {
+      "easy": 10,
+      "medium": 27,
+      "hard": 3
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "binary tree",
+        "type": "SPECIALIZES"
+      },
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 24
+      },
+      {
+        "to": "binary search",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "recursion",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "trie",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Tries",
+    "totalProblems": 55,
+    "problemCounts": {
+      "easy": 4,
+      "medium": 27,
+      "hard": 24
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 9
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 7
+      },
+      {
+        "to": "backtracking",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "bit manipulation",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "heap (priority queue)",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Heap / Priority Queue",
+    "totalProblems": 183,
+    "problemCounts": {
+      "easy": 15,
+      "medium": 99,
+      "hard": 69
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "sorting",
+        "type": "ENABLES",
+        "problemCount": 74
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 52
+      },
+      {
+        "to": "shortest path",
+        "type": "ENABLES",
+        "problemCount": 23
+      },
+      {
+        "to": "queue",
+        "type": "CO_DS",
+        "problemCount": 14
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 9
+      },
+      {
+        "to": "monotonic queue",
+        "type": "ENABLES",
+        "problemCount": 12
+      },
+      {
+        "to": "intervals",
+        "type": "ENABLES",
+        "problemCount": 5
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 12
+      }
+    ]
+  },
+  {
+    "id": "graph",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Graphs",
+    "totalProblems": 152,
+    "problemCounts": {
+      "easy": 3,
+      "medium": 72,
+      "hard": 77
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 67
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ENABLES",
+        "problemCount": 65
+      },
+      {
+        "to": "topological sort",
+        "type": "ENABLES",
+        "problemCount": 32
+      },
+      {
+        "to": "shortest path",
+        "type": "ENABLES",
+        "problemCount": 31
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 23
+      },
+      {
+        "to": "backtracking",
+        "type": "ENABLES",
+        "problemCount": 14
+      },
+      {
+        "to": "union find",
+        "type": "ENABLES",
+        "problemCount": 36
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 7
+      },
+      {
+        "to": "bitmask",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "matrix",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Matrix",
+    "totalProblems": 241,
+    "problemCounts": {
+      "easy": 36,
+      "medium": 138,
+      "hard": 67
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "SPECIALIZES"
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ENABLES",
+        "problemCount": 64
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 48
+      },
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 37
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 28
+      },
+      {
+        "to": "binary search",
+        "type": "ENABLES",
+        "problemCount": 20
+      },
+      {
+        "to": "prefix sum",
+        "type": "ENABLES",
+        "problemCount": 18
+      },
+      {
+        "to": "backtracking",
+        "type": "ENABLES",
+        "problemCount": 8
+      },
+      {
+        "to": "union find",
+        "type": "ENABLES",
+        "problemCount": 24
+      },
+      {
+        "to": "divide and conquer",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "enumeration",
+        "type": "ENABLES",
+        "problemCount": 8
+      },
+      {
+        "to": "shortest path",
+        "type": "ENABLES",
+        "problemCount": 8
+      },
+      {
+        "to": "counting",
+        "type": "ENABLES",
+        "problemCount": 16
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 9
+      },
+      {
+        "to": "two pointers",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "sorting",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "monotonic stack",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "bit manipulation",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "topological sort",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "math",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "stack",
+    "tier": 1,
+    "nodeType": "Hybrid",
+    "patternCategory": "Stack",
+    "totalProblems": 164,
+    "problemCounts": {
+      "easy": 23,
+      "medium": 92,
+      "hard": 49
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "monotonic stack",
+        "type": "CO_DS",
+        "problemCount": 63
+      },
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 77
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 59
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 14
+      },
+      {
+        "to": "depth-first search",
+        "type": "ALTERNATIVE"
+      },
+      {
+        "to": "depth-first search",
+        "type": "ENABLES",
+        "problemCount": 3
+      },
+      {
+        "to": "queue",
+        "type": "CO_DS",
+        "problemCount": 6
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 5
+      },
+      {
+        "to": "recursion",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "monotonic stack",
+    "tier": 1,
+    "nodeType": "Hybrid",
+    "patternCategory": "Stack",
+    "totalProblems": 63,
+    "problemCounts": {
+      "easy": 2,
+      "medium": 37,
+      "hard": 24
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "stack",
+        "type": "SPECIALIZES"
+      },
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 57
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 4
+      }
+    ]
+  },
+  {
+    "id": "union find",
+    "tier": 1,
+    "nodeType": "Hybrid",
+    "patternCategory": "Graphs",
+    "totalProblems": 83,
+    "problemCounts": {
+      "easy": 1,
+      "medium": 44,
+      "hard": 38
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "graph",
+        "type": "REQUIRES",
+        "problemCount": 36
+      },
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 52
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 24
+      },
+      {
+        "to": "depth-first search",
+        "type": "ALTERNATIVE"
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ALTERNATIVE"
+      }
+    ]
+  },
+  {
+    "id": "two pointers",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Two Pointers",
+    "totalProblems": 210,
+    "problemCounts": {
+      "easy": 59,
+      "medium": 126,
+      "hard": 25
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 129
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 68
+      },
+      {
+        "to": "linked list",
+        "type": "REQUIRES",
+        "problemCount": 18
+      },
+      {
+        "to": "sliding window",
+        "type": "PREREQUISITE",
+        "problemCount": null
+      }
+    ]
+  },
+  {
+    "id": "sliding window",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Sliding Window",
+    "totalProblems": 142,
+    "problemCounts": {
+      "easy": 18,
+      "medium": 85,
+      "hard": 39
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 95
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 48
+      },
+      {
+        "to": "two pointers",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "queue",
+        "type": "REQUIRES",
+        "problemCount": 12
+      },
+      {
+        "to": "monotonic queue",
+        "type": "PREREQUISITE"
+      }
+    ]
+  },
+  {
+    "id": "binary search",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Binary Search",
+    "totalProblems": 289,
+    "problemCounts": {
+      "easy": 30,
+      "medium": 155,
+      "hard": 104
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 242
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 20
+      },
+      {
+        "to": "binary search tree",
+        "type": "REQUIRES",
+        "problemCount": 3
+      },
+      {
+        "to": "queue",
+        "type": "REQUIRES",
+        "problemCount": 8
+      },
+      {
+        "to": "divide and conquer",
+        "type": "PREREQUISITE"
+      }
+    ]
+  },
+  {
+    "id": "prefix sum",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Prefix Sum",
+    "totalProblems": 187,
+    "problemCounts": {
+      "easy": 17,
+      "medium": 117,
+      "hard": 53
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 159
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 32
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 18
+      },
+      {
+        "to": "queue",
+        "type": "REQUIRES",
+        "problemCount": 6
+      }
+    ]
+  },
+  {
+    "id": "sorting",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Sorting",
+    "totalProblems": 428,
+    "problemCounts": {
+      "easy": 84,
+      "medium": 251,
+      "hard": 93
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 378
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 63
+      }
+    ]
+  },
+  {
+    "id": "counting",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Counting",
+    "totalProblems": 153,
+    "problemCounts": {
+      "easy": 52,
+      "medium": 86,
+      "hard": 15
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "hash table",
+        "type": "REQUIRES",
+        "problemCount": 131
+      },
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 89
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 71
+      }
+    ]
+  },
+  {
+    "id": "simulation",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Simulation",
+    "totalProblems": 166,
+    "problemCounts": {
+      "easy": 70,
+      "medium": 84,
+      "hard": 12
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 116
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 36
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 28
+      },
+      {
+        "to": "queue",
+        "type": "REQUIRES",
+        "problemCount": 7
+      }
+    ]
+  },
+  {
+    "id": "bit manipulation",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Bit Manipulation",
+    "totalProblems": 229,
+    "problemCounts": {
+      "easy": 48,
+      "medium": 107,
+      "hard": 74
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 151
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 36
+      },
+      {
+        "to": "bitmask",
+        "type": "PREREQUISITE",
+        "problemCount": null
+      },
+      {
+        "to": "queue",
+        "type": "REQUIRES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "bitmask",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Bit Manipulation",
+    "totalProblems": 47,
+    "problemCounts": {
+      "easy": 0,
+      "medium": 16,
+      "hard": 31
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 37
+      },
+      {
+        "to": "bit manipulation",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ALTERNATIVE",
+        "problemCount": 46
+      }
+    ]
+  },
+  {
+    "id": "recursion",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Recursion",
+    "totalProblems": 46,
+    "problemCounts": {
+      "easy": 9,
+      "medium": 22,
+      "hard": 15
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 16
+      },
+      {
+        "to": "linked list",
+        "type": "REQUIRES",
+        "problemCount": 10
+      },
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 5
+      },
+      {
+        "to": "divide and conquer",
+        "type": "PREREQUISITE"
+      }
+    ]
+  },
+  {
+    "id": "depth-first search",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Graphs",
+    "totalProblems": 305,
+    "problemCounts": {
+      "easy": 39,
+      "medium": 193,
+      "hard": 73
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "tree",
+        "type": "REQUIRES",
+        "problemCount": 187
+      },
+      {
+        "to": "graph",
+        "type": "REQUIRES",
+        "problemCount": 67
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 37
+      },
+      {
+        "to": "trie",
+        "type": "REQUIRES",
+        "problemCount": 9
+      },
+      {
+        "to": "recursion",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ALTERNATIVE"
+      },
+      {
+        "to": "topological sort",
+        "type": "PREREQUISITE",
+        "problemCount": null
+      },
+      {
+        "to": "backtracking",
+        "type": "PREREQUISITE",
+        "problemCount": null
+      }
+    ]
+  },
+  {
+    "id": "breadth-first search",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Graphs",
+    "totalProblems": 235,
+    "problemCounts": {
+      "easy": 20,
+      "medium": 148,
+      "hard": 67
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "tree",
+        "type": "REQUIRES",
+        "problemCount": 82
+      },
+      {
+        "to": "graph",
+        "type": "REQUIRES",
+        "problemCount": 65
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 64
+      },
+      {
+        "to": "depth-first search",
+        "type": "ALTERNATIVE"
+      },
+      {
+        "to": "shortest path",
+        "type": "PREREQUISITE",
+        "problemCount": null
+      }
+    ]
+  },
+  {
+    "id": "dynamic programming",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Dynamic Programming",
+    "totalProblems": 549,
+    "problemCounts": {
+      "easy": 13,
+      "medium": 270,
+      "hard": 266
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 335
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 121
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 48
+      },
+      {
+        "to": "tree",
+        "type": "REQUIRES",
+        "problemCount": 31
+      },
+      {
+        "to": "graph",
+        "type": "REQUIRES",
+        "problemCount": 23
+      },
+      {
+        "to": "recursion",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "memoization",
+        "type": "ALTERNATIVE"
+      },
+      {
+        "to": "queue",
+        "type": "REQUIRES",
+        "problemCount": 10
+      }
+    ]
+  },
+  {
+    "id": "memoization",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Dynamic Programming",
+    "totalProblems": 41,
+    "problemCounts": {
+      "easy": 3,
+      "medium": 12,
+      "hard": 26
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 19
+      },
+      {
+        "to": "recursion",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ALTERNATIVE"
+      }
+    ]
+  },
+  {
+    "id": "greedy",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Greedy",
+    "totalProblems": 391,
+    "problemCounts": {
+      "easy": 44,
+      "medium": 262,
+      "hard": 85
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 268
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 103
+      },
+      {
+        "to": "heap (priority queue)",
+        "type": "REQUIRES",
+        "problemCount": 52
+      },
+      {
+        "to": "sorting",
+        "type": "PREREQUISITE",
+        "problemCount": 146
+      },
+      {
+        "to": "queue",
+        "type": "REQUIRES",
+        "problemCount": 4
+      }
+    ]
+  },
+  {
+    "id": "backtracking",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Backtracking",
+    "totalProblems": 106,
+    "problemCounts": {
+      "easy": 3,
+      "medium": 71,
+      "hard": 32
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 56
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 43
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 8
+      },
+      {
+        "to": "graph",
+        "type": "REQUIRES",
+        "problemCount": 14
+      },
+      {
+        "to": "trie",
+        "type": "REQUIRES",
+        "problemCount": 3
+      },
+      {
+        "to": "recursion",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "depth-first search",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "enumeration",
+        "type": "PREREQUISITE"
+      }
+    ]
+  },
+  {
+    "id": "topological sort",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Advanced Graphs",
+    "totalProblems": 32,
+    "problemCounts": {
+      "easy": 0,
+      "medium": 14,
+      "hard": 18
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "graph",
+        "type": "REQUIRES",
+        "problemCount": 32
+      },
+      {
+        "to": "depth-first search",
+        "type": "PREREQUISITE"
+      },
+      {
+        "to": "breadth-first search",
+        "type": "ALTERNATIVE"
+      }
+    ]
+  },
+  {
+    "id": "shortest path",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Advanced Graphs",
+    "totalProblems": 31,
+    "problemCounts": {
+      "easy": 0,
+      "medium": 18,
+      "hard": 13
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "graph",
+        "type": "REQUIRES",
+        "problemCount": 31
+      },
+      {
+        "to": "heap (priority queue)",
+        "type": "REQUIRES",
+        "problemCount": 23
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 8
+      },
+      {
+        "to": "breadth-first search",
+        "type": "PREREQUISITE"
+      }
+    ]
+  },
+  {
+    "id": "intervals",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Intervals",
+    "totalProblems": 26,
+    "problemCounts": {
+      "easy": 1,
+      "medium": 19,
+      "hard": 6
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 22
+      },
+      {
+        "to": "sorting",
+        "type": "PREREQUISITE",
+        "problemCount": 16
+      },
+      {
+        "to": "heap (priority queue)",
+        "type": "REQUIRES",
+        "problemCount": 5
+      }
+    ]
+  },
+  {
+    "id": "math",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Math",
+    "totalProblems": 542,
+    "problemCounts": {
+      "easy": 140,
+      "medium": 264,
+      "hard": 138
+    },
+    "classification": "Core Concept",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 233
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 85
+      },
+      {
+        "to": "recursion",
+        "type": "REQUIRES",
+        "problemCount": 23
+      }
+    ]
+  },
+  {
+    "id": "geometry",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Math",
+    "totalProblems": 38,
+    "problemCounts": {
+      "easy": 9,
+      "medium": 16,
+      "hard": 13
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 31
+      },
+      {
+        "to": "math",
+        "type": "PREREQUISITE"
+      }
+    ]
+  },
+  {
+    "id": "queue",
+    "tier": 1,
+    "nodeType": "DataStructure",
+    "patternCategory": "Queue",
+    "totalProblems": 46,
+    "problemCounts": {
+      "easy": 7,
+      "medium": 20,
+      "hard": 19
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "CO_DS",
+        "problemCount": 35
+      },
+      {
+        "to": "heap (priority queue)",
+        "type": "CO_DS",
+        "problemCount": 14
+      },
+      {
+        "to": "hash table",
+        "type": "CO_DS",
+        "problemCount": 6
+      },
+      {
+        "to": "stack",
+        "type": "CO_DS",
+        "problemCount": 6
+      },
+      {
+        "to": "linked list",
+        "type": "CO_DS",
+        "problemCount": 4
+      },
+      {
+        "to": "string",
+        "type": "CO_DS",
+        "problemCount": 3
+      },
+      {
+        "to": "sliding window",
+        "type": "ENABLES",
+        "problemCount": 12
+      },
+      {
+        "to": "dynamic programming",
+        "type": "ENABLES",
+        "problemCount": 10
+      },
+      {
+        "to": "binary search",
+        "type": "ENABLES",
+        "problemCount": 8
+      },
+      {
+        "to": "simulation",
+        "type": "ENABLES",
+        "problemCount": 7
+      },
+      {
+        "to": "prefix sum",
+        "type": "ENABLES",
+        "problemCount": 6
+      },
+      {
+        "to": "greedy",
+        "type": "ENABLES",
+        "problemCount": 4
+      },
+      {
+        "to": "bit manipulation",
+        "type": "ENABLES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "monotonic queue",
+    "tier": 1,
+    "nodeType": "Hybrid",
+    "patternCategory": "Queue",
+    "totalProblems": 17,
+    "problemCounts": {
+      "easy": 0,
+      "medium": 5,
+      "hard": 12
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "queue",
+        "type": "SPECIALIZES"
+      },
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 17
+      },
+      {
+        "to": "heap (priority queue)",
+        "type": "REQUIRES",
+        "problemCount": 12
+      }
+    ]
+  },
+  {
+    "id": "divide and conquer",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Divide and Conquer",
+    "totalProblems": 47,
+    "problemCounts": {
+      "easy": 5,
+      "medium": 25,
+      "hard": 17
+    },
+    "classification": "Advanced Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 36
+      },
+      {
+        "to": "tree",
+        "type": "REQUIRES",
+        "problemCount": 11
+      },
+      {
+        "to": "heap (priority queue)",
+        "type": "REQUIRES",
+        "problemCount": 9
+      },
+      {
+        "to": "binary tree",
+        "type": "REQUIRES",
+        "problemCount": 9
+      },
+      {
+        "to": "hash table",
+        "type": "REQUIRES",
+        "problemCount": 7
+      },
+      {
+        "to": "binary search tree",
+        "type": "REQUIRES",
+        "problemCount": 4
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 4
+      },
+      {
+        "to": "linked list",
+        "type": "REQUIRES",
+        "problemCount": 3
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 3
+      }
+    ]
+  },
+  {
+    "id": "enumeration",
+    "tier": 1,
+    "nodeType": "Technique",
+    "patternCategory": "Enumeration",
+    "totalProblems": 99,
+    "problemCounts": {
+      "easy": 25,
+      "medium": 49,
+      "hard": 25
+    },
+    "classification": "Fundamental Technique",
+    "relationships": [
+      {
+        "to": "array",
+        "type": "REQUIRES",
+        "problemCount": 56
+      },
+      {
+        "to": "hash table",
+        "type": "REQUIRES",
+        "problemCount": 24
+      },
+      {
+        "to": "string",
+        "type": "REQUIRES",
+        "problemCount": 19
+      },
+      {
+        "to": "matrix",
+        "type": "REQUIRES",
+        "problemCount": 8
+      }
+    ]
+  }
+]
