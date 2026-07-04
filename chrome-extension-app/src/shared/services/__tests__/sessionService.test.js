@@ -12,12 +12,13 @@ jest.mock("../../utils/logging/logger.js", () => ({
 import { SessionService } from "../session/sessionService";
 import {
   getSessionById,
-  getLatestSession,
+
   getLatestSessionByType,
   saveSessionToStorage,
   saveNewSessionToDB,
   updateSessionInDB,
   deleteSessionFromDB,
+  getOrCreateSessionAtomic,
 } from "../../db/stores/sessions";
 import { updateProblemRelationships } from "../../db/stores/problem_relationships";
 import { calculateTagMastery } from "../../db/stores/tag_mastery";
@@ -113,6 +114,7 @@ const setupMocksForNewSession = () => {
   ProblemService.createSession = jest.fn();
   saveNewSessionToDB.mockImplementation(() => Promise.resolve());
   saveSessionToStorage.mockImplementation(() => Promise.resolve());
+  getOrCreateSessionAtomic.mockImplementation((_type, _status, data) => Promise.resolve(data));
 };
 
 /**
@@ -284,42 +286,6 @@ const runCreateNewSessionTests = () => {
   });
 };
 
-const runSkipProblemTests = () => {
-  describe("skipProblem", () => {
-    // CONTRACT: Returns session with problem removed when valid
-    it("should remove problem from session and save to storage", async () => {
-      const leetCodeID = "problem-123";
-      const mockSession = {
-        id: "session-123",
-        problems: [
-          { leetcode_id: "problem-123", title: "Problem 1" },
-          { leetcode_id: "problem-456", title: "Problem 2" },
-        ],
-      };
-
-      getLatestSession.mockResolvedValue(mockSession);
-      saveSessionToStorage.mockResolvedValue();
-
-      const result = await SessionService.skipProblem(leetCodeID);
-
-      // Verify contract: returns session with specified problem removed
-      expect(result).not.toBeNull();
-      expect(result.problems).toHaveLength(1);
-      expect(result.problems[0].leetcode_id).toBe("problem-456");
-      expect(result.problems.find(p => p.leetcode_id === "problem-123")).toBeUndefined();
-    });
-
-    // CONTRACT: Returns null when no session exists
-    it("should return null when no session exists", async () => {
-      getLatestSession.mockResolvedValue(null);
-
-      const result = await SessionService.skipProblem("problem-123");
-
-      // Verify contract: null when no session
-      expect(result).toBeNull();
-    });
-  });
-};
 
 const runCalculateMasteryDeltasTests = () => {
   describe("calculateMasteryDeltas", () => {
@@ -485,7 +451,6 @@ describe("SessionService", () => {
   runCheckAndCompleteSessionTests();
   runResumeSessionTests();
   runCreateNewSessionTests();
-  runSkipProblemTests();
   runCalculateMasteryDeltasTests();
   runGetOrCreateSessionTests();
   runRefreshSessionTests();

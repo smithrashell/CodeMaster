@@ -34,7 +34,7 @@ export class ProblemReasoningService {
     try {
       console.log(
         `🧠 Generating reason for problem: ${
-          problem.problemDescription || problem.title
+          problem.title
         }`
       );
 

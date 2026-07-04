@@ -4,7 +4,7 @@
  */
 
 import { StorageService } from "../../../shared/services/storage/storageService.js";
-import { calculateProgressPercentage, calculateSuccessRate } from "../../../shared/utils/leitner/Utils.js";
+import { calculateProgressPercentage, calculateSuccessRate, calculateWindowedProgressPercentage } from "../../../shared/utils/leitner/Utils.js";
 import { getTagRelationships } from "../../../shared/db/stores/tag_relationships.js";
 import logger from "../../../shared/utils/logging/logger.js";
 
@@ -21,14 +21,18 @@ export async function generateMasteryData(learningState) {
       const totalAttempts = mastery.total_attempts ?? mastery.totalAttempts ?? 0;
       const successfulAttempts = mastery.successful_attempts ?? mastery.successfulAttempts ?? 0;
 
+      const windowedProgress = calculateWindowedProgressPercentage(mastery.recent_results);
+      const cumulativeProgress = totalAttempts > 0 ?
+        calculateProgressPercentage(successfulAttempts, totalAttempts) : 0;
+      const progress = windowedProgress !== null ? windowedProgress : cumulativeProgress;
+      const successRate = calculateSuccessRate(successfulAttempts, totalAttempts);
+
       return {
         ...mastery,
         isFocus: focusTags.includes(mastery.tag),
-        progress: totalAttempts > 0 ?
-          calculateProgressPercentage(successfulAttempts, totalAttempts) :
-          0,
-        hintHelpfulness: calculateSuccessRate(successfulAttempts, totalAttempts) > 0.8 ? "low" :
-                        calculateSuccessRate(successfulAttempts, totalAttempts) > 0.5 ? "medium" : "high"
+        progress,
+        hintHelpfulness: successRate > 0.8 ? "low" :
+                        successRate > 0.5 ? "medium" : "high"
       };
     });
 
@@ -121,7 +125,7 @@ export function buildDynamicTagRelationships(attempts, problems) {
   let processed = 0;
 
   attempts.forEach(attempt => {
-    const problemId = attempt.leetcode_id || attempt.ProblemID || attempt.problem_id;
+    const problemId = attempt.leetcode_id || attempt.problem_id;
     const problem = problemMap.get(problemId);
 
     if (!problem) {
@@ -208,7 +212,7 @@ export function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, p
   const userWeeklyTarget = sessionsPerWeek * maxProblemsPerSession;
 
   const weeklyAttempts = attempts.filter(attempt => {
-    const attemptDateValue = attempt.attempt_date || attempt.AttemptDate;
+    const attemptDateValue = attempt.attempt_date;
     if (!attemptDateValue) {
       console.warn("⚠️ Attempt missing date:", attempt.id);
       return false;
@@ -223,7 +227,7 @@ export function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, p
     return attemptDate >= oneWeekAgo;
   });
 
-  const successfulAttempts = weeklyAttempts.filter(a => (a.success !== undefined ? a.success : a.Success));
+  const successfulAttempts = weeklyAttempts.filter(a => a.success);
   const weeklyAccuracy = weeklyAttempts.length > 0
     ? Math.round((successfulAttempts.length / weeklyAttempts.length) * 100)
     : 0;
@@ -234,7 +238,7 @@ export function calculateOutcomeTrends(attempts, _sessions, userSettings = {}, p
     weeklyAccuracy: `${weeklyAccuracy}%`
   });
 
-  const weeklyProblems = new Set(weeklyAttempts.map(a => a.problem_id || a.ProblemID)).size;
+  const weeklyProblems = new Set(weeklyAttempts.map(a => a.problem_id)).size;
 
   let hintEfficiency = "2.5";
   if (providedHints && providedHints.total > 0 && weeklyAttempts.length > 0) {
@@ -299,7 +303,7 @@ export function calculateProgressTrend(attempts) {
   }
 
   const sortedAttempts = attempts.sort((a, b) =>
-    new Date(a.attempt_date || a.AttemptDate) - new Date(b.attempt_date || b.AttemptDate)
+    new Date(a.attempt_date) - new Date(b.attempt_date)
   );
 
   const recentAttempts = sortedAttempts.slice(-40);
@@ -311,8 +315,8 @@ export function calculateProgressTrend(attempts) {
     return { trend: "Insufficient Data", percentage: 0 };
   }
 
-  const olderSuccessRate = olderHalf.filter(a => (a.success !== undefined ? a.success : a.Success)).length / olderHalf.length;
-  const newerSuccessRate = newerHalf.filter(a => (a.success !== undefined ? a.success : a.Success)).length / newerHalf.length;
+  const olderSuccessRate = olderHalf.filter(a => a.success).length / olderHalf.length;
+  const newerSuccessRate = newerHalf.filter(a => a.success).length / newerHalf.length;
 
   const improvement = newerSuccessRate - olderSuccessRate;
 

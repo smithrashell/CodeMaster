@@ -318,10 +318,10 @@ describe('StorageService._createDefaultSettings', () => {
     expect(typeof defaults.reminder.label).toBe('string');
   });
 
-  it('returns numberofNewProblemsPerSession as a positive number', () => {
+  it('returns numberofNewProblemsPerSession as "auto" or a positive number', () => {
     const defaults = StorageService._createDefaultSettings();
-    expect(typeof defaults.numberofNewProblemsPerSession).toBe('number');
-    expect(defaults.numberofNewProblemsPerSession).toBeGreaterThan(0);
+    const value = defaults.numberofNewProblemsPerSession;
+    expect(value === 'auto' || (typeof value === 'number' && value > 0)).toBe(true);
   });
 });
 

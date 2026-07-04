@@ -24,6 +24,9 @@ export const useSessionData = (appState, timeRange) => {
       return (session.status === "completed" || session.completed === true) && hasProblems;
     });
 
+    // Sort by date so .slice(-N) returns the most recent sessions
+    completedSessions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
     // Process session length data - limit to last 20 for readability
     const sessionsForLengthChart = completedSessions.slice(-20);
     const lengthData = sessionsForLengthChart.map((session, index) => {

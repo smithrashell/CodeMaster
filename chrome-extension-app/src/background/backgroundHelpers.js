@@ -4,6 +4,7 @@ import { dbHelper } from "../shared/db/index.js";
 import { TagService } from "../shared/services/attempts/tagServices.js";
 import { StorageService } from "../shared/services/storage/storageService.js";
 import { onboardUserIfNeeded } from "../shared/services/focus/onboardingService.js";
+import { updateProblemsWithAttemptStats } from "../shared/utils/leitner/leitnerSystem.js";
 
 // Timeout wrapper utility
 export const withTimeout = (promise, timeoutMs, operationName = 'Operation') => {
@@ -195,6 +196,28 @@ export const createBackgroundScriptHealth = (activeRequests, requestQueue, isPro
     };
   }
 });
+
+// Run one-time stability recalculation migration to fix corrupted FSRS values
+export const runStabilityRecalculation = async () => {
+  try {
+    const migrationStatus = await StorageService.get('stability_recalculation_v2');
+    if (migrationStatus?.completed) {
+      console.log("✅ Stability recalculation already completed, skipping");
+      return;
+    }
+
+    console.log("🔄 Starting stability recalculation migration v2 (fixed query + double-count)...");
+    await updateProblemsWithAttemptStats();
+
+    await StorageService.set('stability_recalculation_v2', {
+      completed: true,
+      timestamp: new Date().toISOString()
+    });
+    console.log("✅ Stability recalculation migration v2 completed successfully");
+  } catch (error) {
+    console.error("❌ Stability recalculation migration failed:", error);
+  }
+};
 
 // Setup development testing functions
 export const setupDevTestFunctions = (services) => {

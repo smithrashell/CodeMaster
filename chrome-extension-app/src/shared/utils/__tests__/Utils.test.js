@@ -19,11 +19,11 @@ import {
 // Test data helpers
 const createSampleAttemptData = (overrides = {}) => ({
   id: "test-uuid-123",
-  ProblemID: "prob-123",
-  Success: true,
-  TimeSpent: 1800,
-  AttemptDate: "2024-01-01T10:00:00Z",
-  Difficulty: 6,
+  problem_id: "prob-123",
+  success: true,
+  time_spent: 1800,
+  attempt_date: "2024-01-01T10:00:00Z",
+  perceived_difficulty: 6,
   ...overrides,
 });
 
@@ -34,7 +34,7 @@ const createExpectedAttemptRecord = (overrides = {}) => ({
   success: true,
   attempt_date: new Date("2024-01-01T10:00:00Z"), // Date object for IndexedDB compound index
   time_spent: 1800,
-  difficulty: 6,
+  perceived_difficulty: 6,
   comments: "",
   ...overrides,
 });
@@ -64,8 +64,8 @@ const testCreateAttemptRecord = () => {
     // Arrange
     const attemptData = {
       id: "test-uuid-456",
-      ProblemID: "prob-456",
-      Success: false,
+      problem_id: "prob-456",
+      success: false,
     };
 
     // Act
@@ -78,12 +78,12 @@ const testCreateAttemptRecord = () => {
     expect(result.comments).toBe("");
   });
 
-  it("should handle missing ProblemID", () => {
+  it("should handle missing problem_id", () => {
     // Arrange
     const attemptData = {
       id: "test-uuid-789",
-      Success: true,
-      TimeSpent: 900,
+      success: true,
+      time_spent: 900,
     };
 
     // Act
@@ -258,9 +258,9 @@ describe("Utils Functions - Edge Cases", function() {
       // Arrange
       const malformedData = {
         id: "malformed-id",
-        ProblemID: null,
-        Success: "maybe",
-        TimeSpent: "very long",
+        problem_id: null,
+        success: "maybe",
+        time_spent: "very long",
         extraField: "should be ignored",
       };
 
@@ -286,10 +286,10 @@ describe("Utils Functions - Edge Cases", function() {
       // Arrange
       const attemptData = {
         id: "preserve-test",
-        ProblemID: "prob-789",
-        Success: true,
-        Comments: "custom comment",
-        Difficulty: 7,
+        problem_id: "prob-789",
+        success: true,
+        comments: "custom comment",
+        perceived_difficulty: 7,
       };
 
       // Act
@@ -299,7 +299,7 @@ describe("Utils Functions - Edge Cases", function() {
       expect(result.id).toBe("preserve-test");
       expect(result.problem_id).toBe("prob-789");
       expect(result.comments).toBe("custom comment");
-      expect(result.difficulty).toBe(7);
+      expect(result.perceived_difficulty).toBe(7);
     });
   });
 });

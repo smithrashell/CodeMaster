@@ -177,14 +177,20 @@ const PageTourProvider = () => {
   );
 };
 
+const WrappedRoute = ({ section, children }) => (
+  <div className="main-content">
+    <ErrorBoundary section={section} fallback={GenericErrorFallback}>
+      {children}
+    </ErrorBoundary>
+  </div>
+);
+
 const Router = () => {
   return (
     <ErrorBoundary
       section="Content Script Application"
       fallback={GenericErrorFallback}
       onReportProblem={(errorData) => {
-        // Store error report for content script issues
-        // eslint-disable-next-line no-console
         logger.error("Content Script Error Report:", errorData);
       }}
     >
@@ -193,91 +199,14 @@ const Router = () => {
         <FloatingHelpButton />
 
         <Routes>
-          <Route
-            path="/"
-            element={
-              <div className="main-content">
-                <Main />
-              </div>
-            }
-          />
-          <Route
-            path="/Probtime"
-            element={
-              <div className="main-content">
-                <ErrorBoundary
-                  section="Problem Timer"
-                  fallback={GenericErrorFallback}
-                >
-                  <ProbTime />
-                </ErrorBoundary>
-              </div>
-            }
-          />
-          <Route
-            path="/Probstat"
-            element={
-              <div className="main-content">
-                <ErrorBoundary
-                  section="Problem Statistics"
-                  fallback={GenericErrorFallback}
-                >
-                  <ProbStat />
-                </ErrorBoundary>
-              </div>
-            }
-          />
-          <Route
-            path="/Probgen"
-            element={
-              <div className="main-content">
-                <ErrorBoundary
-                  section="Problem Generator"
-                  fallback={GenericErrorFallback}
-                >
-                  <ProbGen />
-                </ErrorBoundary>
-              </div>
-            }
-          />
-          <Route
-            path="/Settings"
-            element={
-              <div className="main-content">
-                <ErrorBoundary
-                  section="Settings"
-                  fallback={GenericErrorFallback}
-                >
-                  <Settings />
-                </ErrorBoundary>
-              </div>
-            }
-          />
-          <Route
-            path="/SkipReason"
-            element={
-              <div className="main-content">
-                <ErrorBoundary
-                  section="Skip Reason"
-                  fallback={GenericErrorFallback}
-                >
-                  <SkipReason />
-                </ErrorBoundary>
-              </div>
-            }
-          />
-          <Route
-            path="/Timer"
-            element={
-              <ErrorBoundary section="Timer" fallback={TimerErrorFallback}>
-                <TimerBanner />
-              </ErrorBoundary>
-            }
-          />
-          <Route
-            path="*"
-            element={<div className="main-content"><div /></div>} // Catch-all
-          />
+          <Route path="/" element={<div className="main-content"><Main /></div>} />
+          <Route path="/Probtime" element={<WrappedRoute section="Problem Timer"><ProbTime /></WrappedRoute>} />
+          <Route path="/Probstat" element={<WrappedRoute section="Problem Statistics"><ProbStat /></WrappedRoute>} />
+          <Route path="/Probgen" element={<WrappedRoute section="Problem Generator"><ProbGen /></WrappedRoute>} />
+          <Route path="/Settings" element={<WrappedRoute section="Settings"><Settings /></WrappedRoute>} />
+          <Route path="/SkipReason" element={<WrappedRoute section="Skip Reason"><SkipReason /></WrappedRoute>} />
+          <Route path="/Timer" element={<ErrorBoundary section="Timer" fallback={TimerErrorFallback}><TimerBanner /></ErrorBoundary>} />
+          <Route path="*" element={<div className="main-content"><div /></div>} />
         </Routes>
       </AppProviders>
     </ErrorBoundary>

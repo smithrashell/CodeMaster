@@ -1,7 +1,6 @@
 import {
   updateStabilityFSRS,
   fetchAllProblems as getAllProblems,
-  saveUpdatedProblem,
 } from "../../db/stores/problems.js";
 // eslint-disable-next-line no-restricted-imports
 import { dbHelper } from "../../db/index.js";
@@ -17,47 +16,40 @@ const openDB = dbHelper.openDB;
 
 export async function evaluateAttempts(problem) {
   const db = await openDB();
-  const problemId = problem.id;
+  const problemId = problem.problem_id || problem.id;
   console.info("evaluateAttempt - problemId and problem", problemId, problem);
 
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(["attempts"], "readonly");
     const attemptStore = transaction.objectStore("attempts");
-    const index = attemptStore.index("by_problem_and_date");
-    let startDate = new Date(2022, 0, 1);
-    let endDate = new Date();
+    // Use simple by_problem_id index to avoid compound key type mismatches
+    // (attempt_date may be stored as Date objects or ISO strings depending on version)
+    const index = attemptStore.index("by_problem_id");
+    const range = IDBKeyRange.only(problemId);
 
-    console.info("evaluateAttempts - startDate", startDate.toISOString());
-    console.info("evaluateAttempts - endDate", endDate.toISOString());
-
-    const range = IDBKeyRange.bound(
-      [problemId, startDate.toISOString()],
-      [problemId, endDate.toISOString()],
-      false,
-      false
-    );
-
-    const cursorRequest = index.openCursor(range, "prev");
+    const cursorRequest = index.openCursor(range);
     const attempts = [];
-    let lastAttempt = null;
 
-    cursorRequest.onsuccess = async (event) => {
+    cursorRequest.onsuccess = (event) => {
       const cursor = event.target.result;
       if (cursor) {
-        if (!lastAttempt) {
-          console.info("First attempt found:", cursor.value);
-          lastAttempt = cursor.value;
-        }
-
         attempts.push(cursor.value);
         cursor.continue();
       } else {
-        console.info("All attempts sorted:", attempts, "problem", problem);
-        let tempProblem = reassessBoxLevel(problem, attempts);
-        let updatedProblem = await calculateLeitnerBox(
-          tempProblem,
-          lastAttempt
-        );
+        console.info(`evaluateAttempts: Found ${attempts.length} attempts for problem ${problemId}`);
+
+        // Rebuild all stats from complete attempt history
+        let updatedProblem = reassessBoxLevel(problem, attempts);
+
+        // Recalculate stability from all attempts (FSRS model)
+        // Start from initial stability and replay each attempt
+        let stability = 1.0;
+        for (const attempt of attempts) {
+          const isSuccess = attempt.success;
+          stability = updateStabilityFSRS(stability, !!isSuccess);
+        }
+        updatedProblem.stability = parseFloat(stability.toFixed(2));
+
         resolve(updatedProblem);
       }
     };
@@ -73,10 +65,10 @@ export async function evaluateAttempts(problem) {
 }
 
 function reassessBoxLevel(problem, attempts) {
-  // Sort by date - handle both uppercase and lowercase property names
+  // Sort by date
   attempts.sort((a, b) => {
-    const dateA = new Date(a.attempt_date || a.AttemptDate);
-    const dateB = new Date(b.attempt_date || b.AttemptDate);
+    const dateA = new Date(a.attempt_date);
+    const dateB = new Date(b.attempt_date);
     return dateA - dateB;
   });
 
@@ -91,17 +83,15 @@ function reassessBoxLevel(problem, attempts) {
   const COOLDOWN_REVIEW_INTERVAL = 3;
 
   // Start from the problem's existing box level, or default to 1 if not set
-  let currentBoxLevel = problem.boxLevel || problem.box_level || 1;
+  let currentBoxLevel = Math.round(problem.boxLevel || problem.box_level || 1);
   let consecutiveFailures = 0;
   let totalPerceivedDifficulty = 0;
 
   for (const attempt of attempts) {
     // Use perceived_difficulty for user difficulty assessment, not actual difficulty
-    // Handle both uppercase and lowercase property names
-    totalPerceivedDifficulty += attempt.perceived_difficulty || attempt.Difficulty || 2; // Default to 2 (Medium)
+    totalPerceivedDifficulty += attempt.perceived_difficulty || 2; // Default to 2 (Medium)
     stats.total_attempts++;
-    // Handle both uppercase and lowercase Success property
-    const isSuccess = attempt.success !== undefined ? attempt.success : attempt.Success;
+    const isSuccess = attempt.success;
     isSuccess ? stats.successful_attempts++ : stats.unsuccessful_attempts++;
 
     if (isSuccess) {
@@ -150,12 +140,12 @@ function reassessBoxLevel(problem, attempts) {
   return problem;
 }
 
-function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
+function calculateLeitnerBox(problem, attemptData) {
   console.info("CalculateLeitnerBox - attemptData", attemptData);
   console.info("problem", problem);
 
   // Step 1: Calculate time performance score
-  const { timePerformanceScore, exceededTimeLimit } = calculateTimePerformanceScore(attemptData, useTimeLimits);
+  const { timePerformanceScore, exceededTimeLimit } = calculateTimePerformanceScore(attemptData);
 
   // Step 2: Apply box level adjustments based on success/failure
   problem = applyBoxLevelAdjustments(problem, attemptData, timePerformanceScore);
@@ -188,10 +178,33 @@ function calculateLeitnerBox(problem, attemptData, useTimeLimits = true) {
 
 async function updateProblemsWithAttemptStats() {
   const problems = await getAllProblems();
+
+  // Phase 1: compute all updates (read-only, no writes)
+  const updatedProblems = [];
   for (const problem of problems) {
-    const updatedProblem = await evaluateAttempts(problem);
-    await saveUpdatedProblem(updatedProblem);
+    try {
+      const updatedProblem = await evaluateAttempts(problem);
+      updatedProblems.push(updatedProblem);
+    } catch (error) {
+      console.warn(`⚠️ Skipping problem ${problem.problem_id || problem.id}: ${error.message}`);
+      updatedProblems.push(problem);
+    }
   }
+
+  // Phase 2: write all at once in a single atomic transaction
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["problems"], "readwrite");
+    const store = tx.objectStore("problems");
+
+    for (const problem of updatedProblems) {
+      store.put(problem);
+    }
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error("Transaction aborted"));
+  });
 }
 
 export {

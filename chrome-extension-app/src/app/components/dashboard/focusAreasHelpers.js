@@ -31,10 +31,15 @@ export const getPriorityEmoji = (priority) => {
 export const calculateMasteryProgress = (tag, masteryData) => {
   const masteryInfo = masteryData.find(m => m.tag === tag);
   if (!masteryInfo) return 0;
-  
-  const { totalAttempts, successfulAttempts } = masteryInfo;
+
+  const totalAttempts = masteryInfo.total_attempts ?? masteryInfo.totalAttempts ?? 0;
+  const successfulAttempts = masteryInfo.successful_attempts ?? masteryInfo.successfulAttempts ?? 0;
   if (totalAttempts === 0) return 0;
-  
+
+  const rr = masteryInfo.recent_results;
+  if (Array.isArray(rr) && rr.length > 0) {
+    return Math.round((rr.filter(Boolean).length / rr.length) * 100);
+  }
   return Math.round((successfulAttempts / totalAttempts) * 100);
 };
 
@@ -85,6 +90,13 @@ export const getProgressColor = (progress, isMastered, isNearMastery) => {
   if (isMastered) return "green";
   if (isNearMastery) return "yellow";
   return progress >= 60 ? "blue" : "gray";
+};
+
+export const getMasteryColor = (masteryProgress, isMastered) => {
+  if (isMastered) return 'green';
+  if (masteryProgress >= 80) return 'green';
+  if (masteryProgress >= 40) return 'yellow';
+  return 'red';
 };
 
 export const formatTagName = (tag) => {

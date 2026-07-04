@@ -187,14 +187,17 @@ const runDataTypeIntegrityTests = () => {
       // sessionLength can be 'auto' (string) or a number
       expect(defaults.sessionLength === 'auto' || typeof defaults.sessionLength === 'number').toBe(true);
       expect(typeof defaults.adaptive).toBe('boolean');
-      expect(typeof defaults.numberofNewProblemsPerSession).toBe('number');
+      // numberofNewProblemsPerSession can be 'auto' (string) or a number
+      expect(defaults.numberofNewProblemsPerSession === 'auto' || typeof defaults.numberofNewProblemsPerSession === 'number').toBe(true);
       expect(Array.isArray(defaults.focusAreas)).toBe(true);
-      
+
       // Validate ranges for numeric values
       if (typeof defaults.sessionLength === 'number') {
         expect(defaults.sessionLength).toBeGreaterThan(0);
       }
-      expect(defaults.numberofNewProblemsPerSession).toBeGreaterThan(0);
+      if (typeof defaults.numberofNewProblemsPerSession === 'number') {
+        expect(defaults.numberofNewProblemsPerSession).toBeGreaterThan(0);
+      }
     });
 
     it('should have valid reminder structure', () => {

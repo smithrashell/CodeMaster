@@ -95,8 +95,8 @@ describe('focusAreaHelpers', () => {
   // -------------------------------------------------------------------
   describe('filterDataByDateRange', () => {
     const attempts = [
-      { AttemptDate: '2024-01-15T00:00:00Z' },
-      { AttemptDate: '2024-06-15T00:00:00Z' },
+      { attempt_date: '2024-01-15T00:00:00Z' },
+      { attempt_date: '2024-06-15T00:00:00Z' },
     ];
     const sessions = [
       { date: '2024-01-20T00:00:00Z' },
@@ -112,7 +112,7 @@ describe('focusAreaHelpers', () => {
     it('filters by start date', () => {
       const result = filterDataByDateRange(attempts, sessions, '2024-03-01T00:00:00Z', null);
       expect(result.filteredAttempts).toHaveLength(1);
-      expect(result.filteredAttempts[0].AttemptDate).toBe('2024-06-15T00:00:00Z');
+      expect(result.filteredAttempts[0].attempt_date).toBe('2024-06-15T00:00:00Z');
       expect(result.filteredSessions).toHaveLength(1);
     });
 
@@ -151,8 +151,8 @@ describe('focusAreaHelpers', () => {
 
     it('calculates performance for focus area with attempts', () => {
       const attempts = [
-        { ProblemID: 'p1', Success: true, TimeSpent: 600 },
-        { ProblemID: 'p2', Success: false, TimeSpent: 1200 },
+        { problem_id: 'p1', success: true, time_spent: 600 },
+        { problem_id: 'p2', success: false, time_spent: 1200 },
       ];
 
       const result = calculateFocusAreaPerformance(
@@ -184,7 +184,7 @@ describe('focusAreaHelpers', () => {
 
     it('calculates difficulty breakdown', () => {
       const attempts = [
-        { ProblemID: 'p1', Success: true, TimeSpent: 600 },
+        { problem_id: 'p1', success: true, time_spent: 600 },
       ];
 
       const result = calculateFocusAreaPerformance(
@@ -207,7 +207,7 @@ describe('focusAreaHelpers', () => {
     it('calculates progress for focus areas', () => {
       const problemTagsMap = new Map([['p1', ['array']]]);
       const attempts = [
-        { ProblemID: 'p1', Success: true, AttemptDate: new Date().toISOString() },
+        { problem_id: 'p1', success: true, attempt_date: new Date().toISOString() },
       ];
       const learningState = {
         tags: {

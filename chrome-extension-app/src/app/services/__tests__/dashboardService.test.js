@@ -17,16 +17,21 @@ jest.mock("../../../shared/db/stores/sessions");
 jest.mock("../../../shared/db/stores/standard_problems");
 jest.mock("../../../shared/db/stores/sessionAnalytics");
 jest.mock("../../../shared/db/stores/tag_relationships");
+jest.mock("../../../shared/db/stores/tag_mastery");
 jest.mock("../../../shared/db/stores/hint_interactions");
 jest.mock("../../../shared/services/attempts/tagServices");
 jest.mock("../../../shared/services/problem/problemService");
 jest.mock("../../../shared/services/storage/storageService");
+jest.mock("../../../shared/db/index.js", () => ({
+  dbHelper: { openDB: jest.fn().mockResolvedValue({}) }
+}));
 
 import { fetchAllProblems } from "../../../shared/db/stores/problems";
 import { getAllAttempts } from "../../../shared/db/stores/attempts";
 import { getAllSessions } from "../../../shared/db/stores/sessions";
 import { getAllStandardProblems } from "../../../shared/db/stores/standard_problems";
-import { getTagRelationships } from "../../../shared/db/stores/tag_relationships";
+import { getTagRelationships, getAllTagRelationshipEntries } from "../../../shared/db/stores/tag_relationships";
+import { getLadderCoverage } from "../../../shared/db/stores/tag_mastery";
 import { getInteractionsBySession } from "../../../shared/db/stores/hint_interactions";
 import { TagService } from "../../../shared/services/attempts/tagServices";
 import { ProblemService } from "../../../shared/services/problem/problemService";
@@ -87,8 +92,9 @@ function setupDashboardMocks(mockData) {
   getAllStandardProblems.mockResolvedValue(mockData.mockStandardProblems);
   TagService.getCurrentLearningState.mockResolvedValue(mockData.mockLearningState);
   ProblemService.countProblemsByBoxLevel.mockResolvedValue({});
-  // Mock hint interactions to return empty array (sessions will have hintsUsed: 0)
   getInteractionsBySession.mockResolvedValue([]);
+  getAllTagRelationshipEntries.mockResolvedValue([]);
+  getLadderCoverage.mockResolvedValue({ attempted: 0, total: 0, percentage: 0 });
 }
 
 describe("getDashboardStatistics", () => {

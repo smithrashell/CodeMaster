@@ -29,7 +29,8 @@ const useFocusPriorities = () => {
 
 const useGuardrails = () => {
   return useState({
-    maxNewProblems: 5 // System default (will be adjusted for onboarding to 4)
+    maxNewProblems: 5, // System default (will be adjusted for onboarding to 4)
+    maxDifficulty: 'all'
   });
 };
 
@@ -124,7 +125,8 @@ function updateLearningPlanData({
   const defaultMaxNewProblems = isOnboarding ? 4 : 5;
 
   setGuardrails(_prev => ({
-    maxNewProblems: savedMaxNewProblems || defaultMaxNewProblems
+    maxNewProblems: savedMaxNewProblems || defaultMaxNewProblems,
+    maxDifficulty: appState.learningPlan.guardrails?.maxDifficulty || 'all'
   }));
 
   // Calculate today's progress from real session data
@@ -303,6 +305,7 @@ export function Goals() {
   
   // Calculate today's progress
   const [todaysProgress, setTodaysProgress] = useState({
+    problemsAttempted: 0,
     problemsSolved: 0,
     accuracy: 0,
     reviewProblems: 0,
@@ -343,7 +346,8 @@ export function Goals() {
         sessionsPerWeek: cadenceSettingsRef.current.sessionsPerWeek,
         sessionLength: cadenceSettingsRef.current.sessionLength,
         focusAreas: focusPrioritiesRef.current.primaryTags,
-        numberofNewProblemsPerSession: guardrailsRef.current.maxNewProblems
+        numberofNewProblemsPerSession: guardrailsRef.current.maxNewProblems,
+        maxDifficulty: guardrailsRef.current.maxDifficulty
       };
 
       const response = await settingsMessaging.saveSettings(updatedSettings);

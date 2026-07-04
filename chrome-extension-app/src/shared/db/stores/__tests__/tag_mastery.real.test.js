@@ -83,6 +83,7 @@ function makeMasteryRecord(tag, overrides = {}) {
     strength: 0,
     mastery_date: null,
     last_practiced: null,
+    recent_results: [],
     ...overrides,
   };
 }
@@ -354,6 +355,7 @@ describe('updateTagMasteryForAttempt', () => {
         total_attempts: 2,
         successful_attempts: 0,
         attempted_problem_ids: ['p1', 'p2'],
+        recent_results: [false, false],
       }),
     ]);
     await seedStore(testDb.db, 'pattern_ladders', [
@@ -467,6 +469,7 @@ describe('updateTagMasteryForAttempt', () => {
         total_attempts: 2,
         successful_attempts: 1,
         attempted_problem_ids: ['p1'],
+        recent_results: [true, false],
       }),
     ]);
     await seedStore(testDb.db, 'pattern_ladders', [
@@ -689,16 +692,179 @@ describe('updateTagMasteryForAttempt', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Windowed mastery (recent_results ring buffer)
+// ---------------------------------------------------------------------------
+describe('windowed mastery', () => {
+  it('builds recent_results ring buffer on each attempt', async () => {
+    await seedStore(testDb.db, 'pattern_ladders', [
+      makePatternLadder('array', []),
+    ]);
+
+    const problem = { title: 'Test', tags: ['Array'], problem_id: 'p1' };
+    await updateTagMasteryForAttempt(problem, { success: true });
+    await updateTagMasteryForAttempt(problem, { success: false });
+    await updateTagMasteryForAttempt(problem, { success: true });
+
+    const records = await readAll(testDb.db, 'tag_mastery');
+    expect(records[0].recent_results).toEqual([true, false, true]);
+  });
+
+  it('trims ring buffer to MASTERY_WINDOW_SIZE', async () => {
+    const fullBuffer = Array(20).fill(false);
+    await seedStore(testDb.db, 'tag_mastery', [
+      makeMasteryRecord('array', {
+        total_attempts: 20,
+        successful_attempts: 0,
+        attempted_problem_ids: ['p1'],
+        recent_results: fullBuffer,
+      }),
+    ]);
+    await seedStore(testDb.db, 'pattern_ladders', [
+      makePatternLadder('array', []),
+    ]);
+
+    const problem = { title: 'Test', tags: ['Array'], problem_id: 'p2' };
+    await updateTagMasteryForAttempt(problem, { success: true });
+
+    const records = await readAll(testDb.db, 'tag_mastery');
+    expect(records[0].recent_results).toHaveLength(20);
+    expect(records[0].recent_results[19]).toBe(true);
+    expect(records[0].recent_results[0]).toBe(false);
+  });
+
+  it('uses windowed rate for mastery instead of cumulative', async () => {
+    // 100 total at 40% cumulative, but last 19 were all successful
+    const recentResults = Array(19).fill(true);
+    await seedStore(testDb.db, 'tag_relationships', [
+      makeTagRelationship('array', { mastery_threshold: 0.80, min_attempts_required: 6 }),
+    ]);
+    await seedStore(testDb.db, 'tag_mastery', [
+      makeMasteryRecord('array', {
+        total_attempts: 100,
+        successful_attempts: 40,
+        attempted_problem_ids: ['p1', 'p2', 'p3', 'p4', 'p5'],
+        recent_results: recentResults,
+      }),
+    ]);
+    await seedStore(testDb.db, 'pattern_ladders', [
+      makePatternLadder('array', [
+        { id: 'p1', attempted: true },
+        { id: 'p2', attempted: true },
+        { id: 'p3', attempted: true },
+      ]),
+    ]);
+
+    const problem = { title: 'Test', tags: ['Array'], problem_id: 'p6' };
+    await updateTagMasteryForAttempt(problem, { success: true });
+
+    const records = await readAll(testDb.db, 'tag_mastery');
+    // Windowed: 20/20 = 100% >= 80%, cumulative would be 41/101 = 40.6%
+    expect(records[0].mastered).toBe(true);
+  });
+
+  it('falls back to cumulative when recent_results is missing', async () => {
+    await seedStore(testDb.db, 'tag_relationships', [
+      makeTagRelationship('array', { mastery_threshold: 0.80, min_attempts_required: 3 }),
+    ]);
+    // Deliberately omit recent_results from the override to simulate old record
+    const record = makeMasteryRecord('array', {
+      total_attempts: 2,
+      successful_attempts: 0,
+      attempted_problem_ids: ['p1', 'p2'],
+    });
+    delete record.recent_results;
+    await seedStore(testDb.db, 'tag_mastery', [record]);
+    await seedStore(testDb.db, 'pattern_ladders', [
+      makePatternLadder('array', [
+        { id: 'p1', attempted: true },
+        { id: 'p2', attempted: true },
+        { id: 'p3', attempted: true },
+      ]),
+    ]);
+
+    const problem = { title: 'Test', tags: ['Array'], problem_id: 'p3' };
+    await updateTagMasteryForAttempt(problem, { success: true });
+
+    const records = await readAll(testDb.db, 'tag_mastery');
+    // After update, recent_results = [true] (only new attempt), windowed = 100%
+    // But volume = 3, unique = 3, accuracy = 100% >= 80%, ladder = 100%
+    expect(records[0].recent_results).toEqual([true]);
+    expect(records[0].mastered).toBe(true);
+  });
+
+  it('demotion hysteresis prevents oscillation above demotion threshold', async () => {
+    // Already mastered, but windowed rate will drop below mastery threshold
+    const recentResults = Array(14).fill(true).concat(Array(5).fill(false));
+    // 14/19 = 73.7% < 80% threshold, but >= 70% demotion threshold
+    await seedStore(testDb.db, 'tag_relationships', [
+      makeTagRelationship('array', { mastery_threshold: 0.80, min_attempts_required: 6 }),
+    ]);
+    await seedStore(testDb.db, 'tag_mastery', [
+      makeMasteryRecord('array', {
+        total_attempts: 50,
+        successful_attempts: 40,
+        attempted_problem_ids: ['p1', 'p2', 'p3', 'p4', 'p5'],
+        mastered: true,
+        mastery_date: '2025-01-01T00:00:00.000Z',
+        recent_results: recentResults,
+      }),
+    ]);
+    await seedStore(testDb.db, 'pattern_ladders', [
+      makePatternLadder('array', [
+        { id: 'p1', attempted: true },
+        { id: 'p2', attempted: true },
+        { id: 'p3', attempted: true },
+      ]),
+    ]);
+
+    const problem = { title: 'Test', tags: ['Array'], problem_id: 'p6' };
+    await updateTagMasteryForAttempt(problem, { success: false });
+
+    const records = await readAll(testDb.db, 'tag_mastery');
+    // 14/20 = 70% < 80% but >= 70% demotion threshold -> stays mastered
+    expect(records[0].mastered).toBe(true);
+    expect(records[0].mastery_date).toBe('2025-01-01T00:00:00.000Z');
+  });
+
+  it('demotes when windowed rate drops below demotion threshold', async () => {
+    // Already mastered, windowed rate will drop well below
+    const recentResults = Array(11).fill(true).concat(Array(8).fill(false));
+    // 11/19 = 57.9%
+    await seedStore(testDb.db, 'tag_relationships', [
+      makeTagRelationship('array', { mastery_threshold: 0.80, min_attempts_required: 6 }),
+    ]);
+    await seedStore(testDb.db, 'tag_mastery', [
+      makeMasteryRecord('array', {
+        total_attempts: 50,
+        successful_attempts: 40,
+        attempted_problem_ids: ['p1', 'p2', 'p3', 'p4', 'p5'],
+        mastered: true,
+        mastery_date: '2025-01-01T00:00:00.000Z',
+        recent_results: recentResults,
+      }),
+    ]);
+    await seedStore(testDb.db, 'pattern_ladders', [
+      makePatternLadder('array', [
+        { id: 'p1', attempted: true },
+        { id: 'p2', attempted: true },
+        { id: 'p3', attempted: true },
+      ]),
+    ]);
+
+    const problem = { title: 'Test', tags: ['Array'], problem_id: 'p6' };
+    await updateTagMasteryForAttempt(problem, { success: false });
+
+    const records = await readAll(testDb.db, 'tag_mastery');
+    // 11/20 = 55% < 70% demotion threshold -> demoted
+    expect(records[0].mastered).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // calculateTagMastery
 // ---------------------------------------------------------------------------
 describe('calculateTagMastery', () => {
-  // NOTE: calculateTagMastery has a known transaction ordering issue where
-  // getLadderCoverage opens a second transaction while tag_mastery readwrite
-  // is active. In fake-indexeddb this auto-commits the first tx. The function
-  // catches the error silently. These tests still exercise fetchProblemsData,
-  // extractAllTags, calculateTagStats, and all the early code paths.
-
-  it('exercises fetchProblemsData, extractAllTags, and calculateTagStats code paths', async () => {
+  it('builds tag stats from attempts and writes complete records', async () => {
     await seedStore(testDb.db, 'standard_problems', [
       makeStandardProblem({ id: 's1', tags: ['array'] }),
       makeStandardProblem({ id: 's2', tags: ['tree'] }),
@@ -744,7 +910,7 @@ describe('calculateTagMastery', () => {
     await seedStore(testDb.db, 'pattern_ladders', []);
 
     // The function will attempt to process both 'array' and 'exotic-tag'
-    // calculateTagStats creates entries for tags not in standard_problems with a console.warn
+    // Tags not in standard_problems are skipped by buildTagStatsFromAttempts
     await expect(calculateTagMastery()).resolves.toBeUndefined();
   });
 
@@ -766,7 +932,7 @@ describe('calculateTagMastery', () => {
 
     await calculateTagMastery();
 
-    // extractAllTags handles non-array tags gracefully
+    // Non-array tags in standard_problems are skipped
     const records = await readAll(testDb.db, 'tag_mastery');
     expect(records).toHaveLength(0);
   });

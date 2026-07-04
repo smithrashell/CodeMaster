@@ -38,8 +38,7 @@ export function filterSessionsByTimeRange(sessions, timeRange) {
   }
 
   return sessions.filter(session => {
-    // Support multiple date field names (created_date, date, timestamp, Date)
-    const dateValue = session.created_date || session.date || session.timestamp || session.Date;
+    const dateValue = session.created_date || session.date;
     if (!dateValue) return false;
     const sessionDate = new Date(dateValue);
     return sessionDate >= startDate;

@@ -67,6 +67,7 @@ import {
   restoreMissingProblemRelationships,
   calculateAndTrimProblemRelationships,
   weakenRelationshipsForSkip,
+  weakenRelationshipsForNotRelevant,
   getRelationshipsForProblem,
   hasRelationshipsToAttempted,
   getRecentAttempts,
@@ -652,6 +653,152 @@ describe('problem_relationships (real IndexedDB)', () => {
   });
 
   // -----------------------------------------------------------------
+  // weakenRelationshipsForNotRelevant
+  // -----------------------------------------------------------------
+  describe('weakenRelationshipsForNotRelevant', () => {
+    it('returns { updated: 0 } for null problemId', async () => {
+      const result = await weakenRelationshipsForNotRelevant(null);
+      expect(result).toEqual({ updated: 0 });
+    });
+
+    it('returns { updated: 0 } when problem has no relationships', async () => {
+      const result = await weakenRelationshipsForNotRelevant(999);
+      expect(result).toEqual({ updated: 0 });
+    });
+
+    it('weakens ALL connections (not just recent successes)', async () => {
+      // Seed relationships: problem 100 connected to 200, 300, 400
+      await seedStore(testDb.db, 'problem_relationships', [
+        makeRelationship(1, 100, 200, 3.0),
+        makeRelationship(2, 100, 300, 4.0),
+        makeRelationship(3, 100, 400, 2.0),
+        makeRelationship(4, 500, 600, 5.0), // unrelated — should not be touched
+      ]);
+
+      const result = await weakenRelationshipsForNotRelevant(100);
+      expect(result.updated).toBe(3);
+
+      // Verify all three relationships were weakened
+      const all = await readAll(testDb.db, 'problem_relationships');
+      const rel200 = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 200);
+      const rel300 = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 300);
+      const rel400 = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 400);
+      const relUnrelated = all.find(r => r.problem_id1 === 500);
+
+      // Each should be reduced by 0.8
+      expect(rel200.strength).toBeCloseTo(2.2, 1); // 3.0 - 0.8
+      expect(rel300.strength).toBeCloseTo(3.2, 1); // 4.0 - 0.8
+      expect(rel400.strength).toBeCloseTo(1.2, 1); // 2.0 - 0.8
+
+      // Unrelated relationship should be untouched
+      expect(relUnrelated.strength).toBe(5.0);
+    });
+
+    it('enforces 0.5 minimum floor', async () => {
+      await seedStore(testDb.db, 'problem_relationships', [
+        makeRelationship(1, 100, 200, 0.8), // 0.8 - 0.8 = 0.0, but floor is 0.5
+      ]);
+
+      await weakenRelationshipsForNotRelevant(100);
+
+      const all = await readAll(testDb.db, 'problem_relationships');
+      const rel = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 200);
+      expect(rel.strength).toBeGreaterThanOrEqual(0.5);
+    });
+
+    it('also weakens reverse-direction relationships (bidirectional)', async () => {
+      // problem 200 -> 100 (reverse direction)
+      await seedStore(testDb.db, 'problem_relationships', [
+        makeRelationship(1, 200, 100, 3.5),
+      ]);
+
+      const result = await weakenRelationshipsForNotRelevant(100);
+      // getRelationshipsForProblem finds bidirectional — so this should be weakened
+      expect(result.updated).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  // -----------------------------------------------------------------
+  // weakenRelationshipsForSkip vs weakenRelationshipsForNotRelevant
+  // (different weakening paths comparison)
+  // -----------------------------------------------------------------
+  describe('skip vs not-relevant weakening comparison', () => {
+    it('weakenRelationshipsForSkip only targets recent success connections', async () => {
+      const now = new Date();
+      // Only one recent successful attempt (problem 50)
+      await seedStore(testDb.db, 'attempts', [
+        makeAttempt(1, { success: true, attempt_date: now.toISOString(), leetcode_id: 50 }),
+      ]);
+
+      // Problem 100 has relationships to 50 (recent success) and 200 (not recent)
+      await seedStore(testDb.db, 'problem_relationships', [
+        makeRelationship(1, 100, 50, 4.0),
+        makeRelationship(2, 100, 200, 4.0),
+      ]);
+
+      const result = await weakenRelationshipsForSkip(100);
+      // Should only weaken the relationship to recent success (50)
+      expect(result.updated).toBe(1);
+
+      const all = await readAll(testDb.db, 'problem_relationships');
+      const rel50 = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 50);
+      const rel200 = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 200);
+
+      // rel50 weakened (4.0 - 0.4 = 3.6)
+      expect(rel50.strength).toBeCloseTo(3.6, 1);
+      // rel200 untouched
+      expect(rel200.strength).toBe(4.0);
+    });
+
+    it('weakenRelationshipsForNotRelevant targets ALL connections', async () => {
+      // Problem 100 has relationships to 50 and 200
+      await seedStore(testDb.db, 'problem_relationships', [
+        makeRelationship(1, 100, 50, 4.0),
+        makeRelationship(2, 100, 200, 4.0),
+      ]);
+
+      const result = await weakenRelationshipsForNotRelevant(100);
+      // Should weaken BOTH relationships
+      expect(result.updated).toBe(2);
+
+      const all = await readAll(testDb.db, 'problem_relationships');
+      const rel50 = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 50);
+      const rel200 = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 200);
+
+      // Both weakened by 0.8
+      expect(rel50.strength).toBeCloseTo(3.2, 1);
+      expect(rel200.strength).toBeCloseTo(3.2, 1);
+    });
+
+    it('not-relevant penalty (-0.8) is stronger than skip penalty (-0.4)', async () => {
+      const now = new Date();
+      await seedStore(testDb.db, 'attempts', [
+        makeAttempt(1, { success: true, attempt_date: now.toISOString(), leetcode_id: 50 }),
+      ]);
+
+      // Two identical starting points
+      await seedStore(testDb.db, 'problem_relationships', [
+        makeRelationship(1, 100, 50, 4.0), // for skip test
+        makeRelationship(2, 200, 50, 4.0), // for not-relevant test
+      ]);
+
+      await weakenRelationshipsForSkip(100);
+      await weakenRelationshipsForNotRelevant(200);
+
+      const all = await readAll(testDb.db, 'problem_relationships');
+      const skipResult = all.find(r => r.problem_id1 === 100 && r.problem_id2 === 50);
+      const notRelevantResult = all.find(r => r.problem_id1 === 200 && r.problem_id2 === 50);
+
+      // Skip: 4.0 - 0.4 = 3.6
+      expect(skipResult.strength).toBeCloseTo(3.6, 1);
+      // Not relevant: 4.0 - 0.8 = 3.2
+      expect(notRelevantResult.strength).toBeCloseTo(3.2, 1);
+      // Not relevant should be weaker
+      expect(notRelevantResult.strength).toBeLessThan(skipResult.strength);
+    });
+  });
+
+  // -----------------------------------------------------------------
   // getRelationshipsForProblem
   // -----------------------------------------------------------------
   describe('getRelationshipsForProblem', () => {
@@ -934,7 +1081,7 @@ describe('problem_relationships (real IndexedDB)', () => {
 
     it('returns a prerequisite problem that is same or easier difficulty', async () => {
       // Mock the skipped problem as Medium
-      fetchProblemById.mockImplementation(async (id) => {
+      fetchProblemById.mockImplementation((id) => {
         if (id === 10) {
           return { id: 10, title: 'Skipped Medium', difficulty: 'Medium', tags: ['array'], Tags: ['array'] };
         }
@@ -956,7 +1103,7 @@ describe('problem_relationships (real IndexedDB)', () => {
     });
 
     it('excludes problems in excludeIds', async () => {
-      fetchProblemById.mockImplementation(async (id) => {
+      fetchProblemById.mockImplementation((id) => {
         if (id === 10) {
           return { id: 10, title: 'Skipped', difficulty: 'Medium', tags: ['dp'], Tags: ['dp'] };
         }
@@ -981,7 +1128,7 @@ describe('problem_relationships (real IndexedDB)', () => {
     });
 
     it('does not return a harder problem as prerequisite', async () => {
-      fetchProblemById.mockImplementation(async (id) => {
+      fetchProblemById.mockImplementation((id) => {
         if (id === 10) {
           return { id: 10, title: 'Easy Problem', difficulty: 'Easy', tags: ['array'], Tags: ['array'] };
         }

@@ -7,4 +7,3 @@ export * from './focusAreaInsights.js';
 export * from './mockDashboardService.js';
 export * from './mockDataService.js';
 export * from './ratingService.js';
-export * from './svgRenderService.js';

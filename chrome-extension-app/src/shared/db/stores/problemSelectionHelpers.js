@@ -13,6 +13,7 @@ import { scoreProblemsWithRelationships } from "./problem_relationships.js";
 import { regenerateCompletedPatternLadder } from "../../services/problem/problemladderService.js";
 import { calculateCompositeScore, logCompositeScores } from "./problemsHelpers.js";
 import { getAllStandardProblems } from "./standard_problems.js";
+import { getExcludedIds } from "./excludedProblems.js";
 import logger from "../../utils/logging/logger.js";
 
 const openDB = () => dbHelper.openDB();
@@ -82,19 +83,23 @@ export async function loadProblemSelectionContext(currentDifficultyCap, fetchAll
   const allProblems = await getAllStandardProblems();
   const ladders = await getPatternLadders();
 
-  // Get attempted problems from problems store
-  const attemptedProblems = await fetchAllProblems();
+  // Load attempted problems and permanently excluded problems in parallel
+  const [attemptedProblems, excludedIds] = await Promise.all([
+    fetchAllProblems(),
+    getExcludedIds()
+  ]);
   const attemptedProblemIds = new Set(
     attemptedProblems.map(p => Number(p.leetcode_id))
   );
   logger.info(`Excluding ${attemptedProblemIds.size} attempted problems from selection`);
+  logger.info(`Excluding ${excludedIds.size} permanently excluded problems from selection`);
 
-  // Filter out attempted problems
+  // Filter out attempted and permanently excluded problems
   let availableProblems = allProblems.filter(problem => {
     const problemId = Number(problem.id || problem.leetcode_id);
-    return !attemptedProblemIds.has(problemId);
+    return !attemptedProblemIds.has(problemId) && !excludedIds.has(problemId);
   });
-  logger.info(`Available problems after filtering attempts: ${availableProblems.length}/${allProblems.length}`);
+  logger.info(`Available problems after filtering attempts + exclusions: ${availableProblems.length}/${allProblems.length}`);
 
   if (currentDifficultyCap) {
     availableProblems = filterProblemsByDifficultyCap(availableProblems, currentDifficultyCap);
@@ -248,8 +253,28 @@ export async function selectProblemsForTag(tag, count, config) {
     problem.compositeScore = calculateCompositeScore(problem, currentDifficultyCap, getDifficultyScore);
   });
 
+  // Filter out low-relevance problems (heavily weakened by "not relevant" skips)
+  const LOW_RELEVANCE_THRESHOLD = 0.15;
+  const filteredProblems = problemsWithRelationships.filter(problem => {
+    // Always keep unscored/new problems (no relationship data yet)
+    if (problem.relationshipCount === 0) return true;
+    // Remove problems with both weak relationships and low composite score
+    if (problem.relationshipScore < 0.5 && problem.compositeScore < LOW_RELEVANCE_THRESHOLD) {
+      logger.info(`Filtered low-relevance problem ${problem.id} (relScore: ${problem.relationshipScore.toFixed(2)}, composite: ${problem.compositeScore.toFixed(3)})`);
+      return false;
+    }
+    return true;
+  });
+
+  // Deprioritize Hard problems with weak connectivity
+  filteredProblems.forEach(problem => {
+    if (problem.difficulty === 'Hard' && problem.relationshipCount > 0 && problem.relationshipScore < 1.0) {
+      problem.compositeScore *= 0.7;
+    }
+  });
+
   // Sort by composite score
-  problemsWithRelationships.sort((a, b) => {
+  filteredProblems.sort((a, b) => {
     const scoreDiff = b.compositeScore - a.compositeScore;
     if (Math.abs(scoreDiff) > 0.001) {
       return scoreDiff;
@@ -257,15 +282,15 @@ export async function selectProblemsForTag(tag, count, config) {
     return a.difficultyScore - b.difficultyScore;
   });
 
-  logCompositeScores(problemsWithRelationships, tag);
+  logCompositeScores(filteredProblems, tag);
 
-  logger.info(`Found ${eligibleProblems.length} eligible problems for ${tag}`);
+  logger.info(`Found ${eligibleProblems.length} eligible problems for ${tag} (${filteredProblems.length} after relevance filter)`);
 
   // Select problems
   const selectedProblems = [];
   let selectedCount = 0;
 
-  for (const problem of problemsWithRelationships) {
+  for (const problem of filteredProblems) {
     if (selectedCount >= count) break;
 
     const problemId = problem.id;

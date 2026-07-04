@@ -14,16 +14,14 @@
 
 import {
   getSessionById,
-  getLatestSession,
   getLatestSessionByType,
   saveSessionToStorage,
-  saveNewSessionToDB,
   updateSessionInDB,
   deleteSessionFromDB,
   getOrCreateSessionAtomic,
 } from "../../db/stores/sessions.js";
 import { ProblemService } from "../problem/problemService.js";
-import { normalizeProblem } from "../problem/problemNormalizer.js";
+
 import { StorageService } from "../storage/storageService.js";
 import { FocusCoordinationService } from "../focus/focusCoordinationService.js";
 import { v4 as uuidv4 } from "uuid";
@@ -148,36 +146,36 @@ export const SessionService = {
    */
   isSessionTypeCompatible(session, expectedSessionType) {
     if (!session) return false;
-    
+
     // Normalize types - treat missing sessionType as 'standard'
     const sessionType = session.session_type || 'standard';
     const expected = expectedSessionType || 'standard';
-    
+
     // Define compatibility groups
     const standardModes = ['standard', 'tracking']; // Standard modes (including tracking sessions)
-    
+
     // Interview modes are NOT compatible with each other - each has different constraints
     // interview-like: Limited hints, mild time pressure  
     // full-interview: No hints, strict timing, realistic conditions
     // Each interview mode should create its own dedicated session
-    
+
     // Check if both are in the same compatibility group
     const bothStandard = standardModes.includes(sessionType) && standardModes.includes(expected);
     const exactInterviewMatch = (sessionType === expected) && !standardModes.includes(sessionType);
-    
+
     // Allow mixed compatibility for common cases:
     // - Any session can be resumed as 'standard' (fallback behavior)
     // - 'standard' sessions can be resumed for any request (existing behavior)
     const allowMixedStandard = (sessionType === 'standard' || expected === 'standard');
-    
+
     const compatible = bothStandard || exactInterviewMatch || allowMixedStandard;
-    
+
     if (!compatible) {
       logger.info(`🔍 Session type incompatible: session=${sessionType} vs expected=${expected} (standard: ${bothStandard}, exactInterview: ${exactInterviewMatch}, mixed: ${allowMixedStandard})`);
     } else {
       logger.info(`✅ Session types compatible: ${sessionType} ↔ ${expected} (standard: ${bothStandard}, exactInterview: ${exactInterviewMatch}, mixed: ${allowMixedStandard})`);
     }
-    
+
     return compatible;
   },
 
@@ -191,11 +189,11 @@ export const SessionService = {
     if (!session) {
       return { hasMismatch: false, reason: 'no_session' };
     }
-    
+
     const sessionType = session.session_type || 'standard';
     const expected = expectedSessionType || 'standard';
     const isCompatible = this.isSessionTypeCompatible(session, expected);
-    
+
     if (!isCompatible) {
       return {
         hasMismatch: true,
@@ -207,7 +205,7 @@ export const SessionService = {
         details: `Session type mismatch: ${sessionType} !== ${expected}`
       };
     }
-    
+
     return { hasMismatch: false, reason: 'compatible' };
   },
 
@@ -248,7 +246,6 @@ export const SessionService = {
     );
 
     logger.info(`📊 Starting performance summary for session ${session.id}`);
-    console.log(`🔍 DEBUG: summarizeSessionPerformance ENTRY for session ${session.id}`);
 
     // Handle edge cases
     if (!session.attempts || session.attempts.length === 0) {
@@ -264,8 +261,6 @@ export const SessionService = {
     }
 
     try {
-      console.log(`🔍 DEBUG: Starting comprehensive session analysis for ${session.id}...`);
-
       // Get mastery state before and after
       const { preSessionMasteryMap } = await getMasteryDeltas();
       const { postSessionTagMastery, postSessionMasteryMap } = await updateRelationshipsAndGetPostMastery(session);
@@ -277,13 +272,11 @@ export const SessionService = {
       const masteryDeltas = this.calculateMasteryDeltas(preSessionMasteryMap, postSessionMasteryMap);
 
       // Analyze difficulty distribution
-      console.log(`🔍 DEBUG: Step 7 - Analyzing session difficulty distribution...`);
       let difficultyMix;
       try {
         difficultyMix = await this.analyzeSessionDifficulty(session);
-        console.log(`✅ DEBUG: Difficulty analysis completed`);
       } catch (difficultyError) {
-        console.error(`❌ DEBUG: Difficulty analysis failed:`, difficultyError);
+        logger.error(`❌ Difficulty analysis failed:`, difficultyError);
         difficultyMix = {
           predominantDifficulty: 'Unknown',
           totalProblems: session.attempts?.length || 0,
@@ -303,14 +296,14 @@ export const SessionService = {
         },
         difficulty_analysis: difficultyMix,
         insights: this.generateSessionInsights(performanceMetrics, masteryDeltas, difficultyMix),
+        new_problem_accuracy: session.newProblemAccuracy ?? null,
+        review_accuracy: session.reviewAccuracy ?? null,
       };
 
       // Update session state with performance data
       try {
         await this.updateSessionStateWithPerformance(session, sessionSummary);
-        console.log(`✅ REAL SESSION DEBUG: updateSessionStateWithPerformance completed successfully for session ${session.id}`);
       } catch (stateUpdateError) {
-        console.error(`❌ REAL SESSION DEBUG: updateSessionStateWithPerformance failed for session ${session.id}:`, stateUpdateError);
         logger.error(`❌ Failed to update session state for session ${session.id}:`, stateUpdateError);
       }
 
@@ -318,9 +311,7 @@ export const SessionService = {
       await storeSessionSummary(session, sessionSummary);
 
       // Log analytics for dashboard
-      console.log(`🔍 REAL SESSION DEBUG: About to call logSessionAnalytics for session ${session.id}`);
       this.logSessionAnalytics(sessionSummary);
-      console.log(`🔍 REAL SESSION DEBUG: logSessionAnalytics completed for session ${session.id}`);
 
       logger.info(`✅ Session performance summary completed for ${session.id}`);
       performanceMonitor.endQuery(queryContext, true, Object.keys(sessionSummary).length);
@@ -468,37 +459,29 @@ export const SessionService = {
     logger.info("📎 Unattempted Problems Count:", unattemptedProblems.length);
 
     if (unattemptedProblems.length === 0) {
-      // ✅ Mark session as completed and calculate accuracy
       session.status = "completed";
 
-      // Calculate and store accuracy: successful attempts / total attempts
+      // Calculate accuracy and duration on completion
       const totalAttempts = session.attempts.length;
       const successfulAttempts = session.attempts.filter(a => a.success).length;
       session.accuracy = totalAttempts > 0 ? successfulAttempts / totalAttempts : 0;
+      session.duration = session.attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / 60; // minutes
 
-      // Calculate total time spent
-      session.duration = session.attempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / 60; // Convert to minutes
-
-      // 🐛 DEBUG: Log accuracy calculation details
-      console.log(`🎯 ACCURACY CALCULATION DEBUG:`, {
-        sessionId: sessionId,
-        totalAttempts: totalAttempts,
-        successfulAttempts: successfulAttempts,
-        calculatedAccuracy: session.accuracy,
-        percentageAccuracy: Math.round(session.accuracy * 100) + '%',
-        attemptsDetails: session.attempts.map(a => ({
-          attempt_id: a.attempt_id,
-          leetcode_id: a.leetcode_id,
-          success: a.success,
-          success_type: typeof a.success
-        }))
-      });
+      // Calculate new vs review accuracy separately
+      const newProblemIds = new Set(
+        (session.problems || [])
+          .filter(p => p.selectionReason?.type === 'new_problem')
+          .map(p => p.leetcode_id)
+      );
+      const newAttempts = session.attempts.filter(a => newProblemIds.has(a.leetcode_id));
+      const reviewAttempts = session.attempts.filter(a => !newProblemIds.has(a.leetcode_id));
+      session.newProblemAccuracy = newAttempts.length > 0 ? newAttempts.filter(a => a.success).length / newAttempts.length : null;
+      session.reviewAccuracy = reviewAttempts.length > 0 ? reviewAttempts.filter(a => a.success).length / reviewAttempts.length : null;
 
       await updateSessionInDB(session);
 
       logger.info(`✅ Session ${sessionId} marked as completed with ${Math.round(session.accuracy * 100)}% accuracy.`);
 
-      // ✅ CRITICAL FIX: Update session state to increment numSessionsCompleted
       await this.updateSessionStateOnCompletion(session);
 
       // Clear cached data for functions that still use caching (focus areas, learning paths)
@@ -529,11 +512,8 @@ export const SessionService = {
         logger.warn("Failed to clear interview mode from storage:", error);
       }
 
-      // ✅ Run centralized session performance analysis
-      console.log(`🔍 DEBUG: About to call summarizeSessionPerformance for session ${session.id}`);
       try {
         await this.summarizeSessionPerformance(session);
-        console.log(`✅ DEBUG: summarizeSessionPerformance completed successfully for session ${session.id}`);
       } catch (performanceError) {
         logger.error(`❌ Failed to summarize session performance for session ${session.id}:`, performanceError);
         logger.error(`❌ Session data:`, {
@@ -549,8 +529,8 @@ export const SessionService = {
   },
 
   /**
-   * Attempts to resume an existing in-progress session using efficient database queries.
-   * Now includes session type compatibility validation to prevent hanging behavior.
+   * Attempts to resume an existing in-progress session.
+   * Validates session type compatibility to prevent resuming an incompatible session.
    * @param {string} [sessionType] - Optional session type to filter by ('interview-like', 'full-interview', etc.)
    * @returns {Promise<Object|null>} - Session object or null if no resumable session
    */
@@ -570,11 +550,11 @@ export const SessionService = {
     });
 
     if (latestSession) {
-      // ✨ NEW: Validate session type compatibility before resuming
+      // Validate session type compatibility before resuming
       logger.info(`🔍 Checking session compatibility for resume...`);
       const mismatchInfo = this.detectSessionTypeMismatch(latestSession, sessionType);
       logger.info(`🔍 Resume compatibility result:`, mismatchInfo);
-      
+
       if (mismatchInfo.hasMismatch) {
         logger.warn(`🚫 BLOCKING SESSION RESUME due to type mismatch:`, {
           details: mismatchInfo.details,
@@ -586,14 +566,14 @@ export const SessionService = {
         logger.info(`🔄 Will create NEW session instead of resuming existing incompatible session`);
         return null; // Fail fast instead of trying to resume incompatible session
       }
-      
+
       logger.info(`✅ Resuming existing ${sessionType || 'any'} session:`, latestSession.id);
-      
+
       // Add currentProblemIndex to track progress if missing
       if (!latestSession.currentProblemIndex) {
         latestSession.currentProblemIndex = 0;
       }
-      
+
       logger.info(`🔍 Calling saveSessionToStorage...`);
       await saveSessionToStorage(latestSession);
       logger.info(`✅ Session saved to storage successfully`);
@@ -610,13 +590,11 @@ export const SessionService = {
    * Used by: getOrCreateSession(), refreshSession(), background handlers.
    *
    * BEHAVIOR:
-   * - Enforces one active session per type policy
-   * - Marks existing in_progress sessions of same type as completed
    * - Uses ProblemService.createSession() for standard sessions
    * - Uses ProblemService.createInterviewSession() for interview sessions
+   * - Atomic check-and-write: reuses existing session if concurrent call wins the race
    *
    * SIDE EFFECTS:
-   * - Marks existing in_progress sessions as completed
    * - Saves new session to database and storage
    * - Uses retry service with deduplication for reliability
    *
@@ -644,17 +622,6 @@ export const SessionService = {
     try {
       logger.info(`📌 Creating new ${sessionType} session with status: in_progress`);
 
-      // Enforce one active session per type: mark existing in_progress sessions as completed
-      logger.info(`🔍 Checking for existing active ${sessionType} sessions to mark as completed...`);
-
-      const existingInProgress = await getLatestSessionByType(sessionType, "in_progress");
-      if (existingInProgress) {
-        logger.info(`⏹️ Marking existing in_progress ${sessionType} session as completed:`, existingInProgress.id.substring(0, 8));
-        existingInProgress.status = "completed";
-        // Don't update last_activity_time - it should reflect when user last worked on it
-        await updateSessionInDB(existingInProgress);
-      }
-
       // Use appropriate service based on session type
       logger.info(`🎯 SESSION SERVICE: Creating ${sessionType} session`);
       let sessionData;
@@ -676,7 +643,7 @@ export const SessionService = {
           hasConfig: !!sessionData?.interviewConfig
         });
       }
-      
+
       logger.info("📌 sessionData for new session:", sessionData);
 
       const problems = sessionData.problems || [];
@@ -720,26 +687,23 @@ export const SessionService = {
 
       logger.info("📌 newSession:", newSession);
 
-      // Use retry service with deduplication for session creation
-      await this._retryService.executeWithRetry(
-        () => saveNewSessionToDB(newSession),
-        {
-          operationName: "saveNewSessionToDB",
-          deduplicationKey: `session-creation-${newSession.id}`,
-          timeout: this._retryService.quickTimeout
-        }
-      );
-      
+      // Atomic check-and-write: if a concurrent call already committed a session, reuse it
+      const savedSession = await getOrCreateSessionAtomic(sessionType, 'in_progress', newSession);
+      if (savedSession.id !== newSession.id) {
+        logger.info('⚡ Concurrent session detected, reusing:', savedSession.id);
+        await saveSessionToStorage(savedSession);
+        performanceMonitor.endQuery(queryContext, true, savedSession.problems.length);
+        return savedSession;
+      }
+
       await this._retryService.executeWithRetry(
         () => saveSessionToStorage(newSession),
         {
-          operationName: "saveSessionToStorage", 
+          operationName: "saveSessionToStorage",
           deduplicationKey: `session-storage-${newSession.id}`,
           timeout: this._retryService.quickTimeout
         }
       );
-
-      // Update session creation timestamp for cooldown management
 
       logger.info("✅ New session created and stored:", newSession);
       performanceMonitor.endQuery(
@@ -788,10 +752,6 @@ export const SessionService = {
 
     // Now perform the actual async session creation
     try {
-      logger.info(`🔍 Getting settings...`);
-      const _settings = await StorageService.getSettings();
-      logger.info(`✅ Settings loaded successfully`);
-
       // Try atomic resume/create to prevent race conditions
       logger.info(`🔍 Attempting atomic resume or create for ${sessionType}...`);
 
@@ -822,16 +782,13 @@ export const SessionService = {
     }
   },
 
-  // Removed getDraftSession and startSession - sessions auto-start immediately now
-  // Session Classification, Tracking, and Habit delegations removed - import directly from helper files
-
   /**
    * Refresh/regenerate current session with new problems
    */
   // eslint-disable-next-line require-await
   async refreshSession(sessionType = 'standard', forceNew = false) {
     logger.info(`🔄 Refreshing ${sessionType} session (forceNew: ${forceNew})`);
-    
+
     // Acquire lock to prevent race conditions during regeneration
     const lockKey = `refresh_${sessionType}`;
     if (sessionRefreshLocks.has(lockKey)) {
@@ -841,7 +798,6 @@ export const SessionService = {
 
     const refreshPromise = (async () => {
       try {
-        // Delete current session immediately if it exists (no longer need to mark as expired)
         const currentSession = await this.resumeSession(sessionType);
 
         // Guard: If forceNew=true (regeneration), we MUST have an existing session to replace
@@ -855,6 +811,11 @@ export const SessionService = {
         if (currentSession && forceNew) {
           await deleteSessionFromDB(currentSession.id);
           logger.info(`Deleted session ${currentSession.id} (type: ${sessionType}, status: ${currentSession.status}) for regeneration`);
+        } else if (currentSession) {
+          // Mark existing session as completed so createNewSession's atomic write can proceed
+          currentSession.status = "completed";
+          await updateSessionInDB(currentSession);
+          logger.info(`⏹️ Marked existing ${sessionType} session as completed before refresh:`, currentSession.id.substring(0, 8));
         }
 
         // Create fresh session
@@ -870,41 +831,6 @@ export const SessionService = {
 
     sessionRefreshLocks.set(lockKey, refreshPromise);
     return refreshPromise;
-  },
-
-  /**
-   * Skips a problem from the session, optionally replacing it with another.
-   * @param {number} leetCodeID - The LeetCode ID of the problem to skip
-   * @param {Object|null} replacementProblem - Optional problem to add as replacement
-   * @returns {Promise<Object|null>} The updated session or null
-   */
-  async skipProblem(leetCodeID, replacementProblem = null) {
-    const session = await getLatestSession();
-    if (!session) return null;
-
-    // Remove the skipped problem
-    session.problems = session.problems.filter(
-      (p) => p.leetcode_id !== leetCodeID
-    );
-
-    // Add replacement problem if provided
-    if (replacementProblem) {
-      const problemWithReason = {
-        ...replacementProblem,
-        selectionReason: {
-          type: 'prerequisite',
-          details: { skippedProblemId: leetCodeID },
-          shortText: 'Prerequisite',
-          fullText: 'Easier problem to help understand skipped concept'
-        }
-      };
-      const normalizedReplacement = normalizeProblem(problemWithReason, 'prerequisite');
-      session.problems.push(normalizedReplacement);
-      logger.info(`➕ Added prerequisite to session: ${normalizedReplacement.title}`);
-    }
-
-    await saveSessionToStorage(session, true);
-    return session;
   },
 
   // Session Analytics delegations - delegate to sessionAnalyticsHelpers

@@ -7,24 +7,24 @@ import performanceMonitor from "../../utils/performance/PerformanceMonitor.js";
  * Crash Reporting Service for production monitoring
  * Handles application crashes, uncaught exceptions, and critical errors
  */
-export class CrashReporter {
-  static isInitialized = false;
-  static crashCount = 0;
-  static lastCrashTime = null;
-  static recentErrors = [];
+export const CrashReporter = {
+  isInitialized: false,
+  crashCount: 0,
+  lastCrashTime: null,
+  recentErrors: [],
 
   // Crash severity levels
-  static SEVERITY = {
+  SEVERITY: {
     LOW: "low",
     MEDIUM: "medium",
     HIGH: "high",
     CRITICAL: "critical",
-  };
+  },
 
   /**
    * Initialize crash reporting with global error handlers
    */
-  static initialize() {
+  initialize() {
     if (this.isInitialized) {
       return;
     }
@@ -56,12 +56,12 @@ export class CrashReporter {
 
     this.isInitialized = true;
     logger.info("Crash reporting initialized", { section: "crash_reporter" });
-  }
+  },
 
   /**
    * Handle JavaScript runtime errors
    */
-  static async handleJavaScriptError(error, context = {}) {
+  async handleJavaScriptError(error, context = {}) {
     try {
       const severity = this.determineSeverity(error, context);
       const crashData = await this.collectCrashData(error, context, severity);
@@ -100,12 +100,12 @@ export class CrashReporter {
     } catch (reportError) {
       console.error("Failed to report JavaScript error:", reportError);
     }
-  }
+  },
 
   /**
    * Handle unhandled promise rejections
    */
-  static async handlePromiseRejection(reason, context = {}) {
+  async handlePromiseRejection(reason, context = {}) {
     try {
       const error =
         reason instanceof Error ? reason : new Error(String(reason));
@@ -142,22 +142,22 @@ export class CrashReporter {
     } catch (reportError) {
       console.error("Failed to report promise rejection:", reportError);
     }
-  }
+  },
 
   /**
    * Setup React-specific error handling
    */
-  static setupReactErrorHandling() {
+  setupReactErrorHandling() {
     // This will be called from React Error Boundaries
     window.reportReactError = (error, errorInfo) => {
       this.handleReactError(error, errorInfo);
     };
-  }
+  },
 
   /**
    * Handle React component errors
    */
-  static async handleReactError(error, errorInfo) {
+  async handleReactError(error, errorInfo) {
     try {
       const severity = this.SEVERITY.HIGH; // React errors are usually high severity
 
@@ -191,12 +191,12 @@ export class CrashReporter {
     } catch (reportError) {
       console.error("Failed to report React error:", reportError);
     }
-  }
+  },
 
   /**
    * Determine error severity based on error type and context
    */
-  static determineSeverity(error, context = {}) {
+  determineSeverity(error, context = {}) {
     // Critical errors that likely crash the app
     if (
       error.name === "ReferenceError" ||
@@ -223,12 +223,12 @@ export class CrashReporter {
     }
 
     return this.SEVERITY.LOW;
-  }
+  },
 
   /**
    * Collect comprehensive crash data
    */
-  static async collectCrashData(
+  async collectCrashData(
     error,
     context = {},
     severity = this.SEVERITY.MEDIUM
@@ -270,12 +270,12 @@ export class CrashReporter {
 
     this.lastCrashTime = Date.now();
     return crashData;
-  }
+  },
 
   /**
    * Get memory usage information
    */
-  static getMemoryInfo() {
+  getMemoryInfo() {
     try {
       if (performance.memory) {
         return {
@@ -288,12 +288,12 @@ export class CrashReporter {
       // Memory API might not be available
     }
     return null;
-  }
+  },
 
   /**
    * Get performance snapshot
    */
-  static getPerformanceSnapshot() {
+  getPerformanceSnapshot() {
     try {
       return {
         systemMetrics: performanceMonitor.getPerformanceSummary().systemMetrics,
@@ -305,12 +305,12 @@ export class CrashReporter {
     } catch (error) {
       return null;
     }
-  }
+  },
 
   /**
    * Get recent user actions for context
    */
-  static async getRecentUserActions() {
+  async getRecentUserActions() {
     try {
       const actions = await UserActionTracker.getUserActions({ limit: 10 });
       return actions.map((action) => ({
@@ -322,12 +322,12 @@ export class CrashReporter {
     } catch (error) {
       return [];
     }
-  }
+  },
 
   /**
    * Report crash to error tracking service
    */
-  static async reportCrash(type, crashData) {
+  async reportCrash(type, crashData) {
     try {
       await ErrorReportService.storeErrorReport({
         errorId: crashData.crashId,
@@ -357,12 +357,12 @@ export class CrashReporter {
       console.error("Failed to report crash:", error);
       throw error;
     }
-  }
+  },
 
   /**
    * Check for crash patterns that might indicate systemic issues
    */
-  static getCrashPatterns() {
+  getCrashPatterns() {
     const patterns = {
       rapidCrashes: 0,
       repeatingErrors: {},
@@ -390,12 +390,12 @@ export class CrashReporter {
     ).length;
 
     return patterns;
-  }
+  },
 
   /**
    * Start monitoring critical system resources
    */
-  static startResourceMonitoring() {
+  startResourceMonitoring() {
     // Monitor memory usage every 30 seconds
     setInterval(() => {
       const memInfo = this.getMemoryInfo();
@@ -418,12 +418,12 @@ export class CrashReporter {
         });
       }
     }, 60000); // Check every minute
-  }
+  },
 
   /**
    * Manually report a critical issue
    */
-  static async reportCriticalIssue(description, context = {}) {
+  async reportCriticalIssue(description, context = {}) {
     const error = new Error(description);
     error.name = "CriticalIssue";
 
@@ -432,12 +432,12 @@ export class CrashReporter {
       type: "manual_report",
       severity: this.SEVERITY.CRITICAL,
     });
-  }
+  },
 
   /**
    * Get crash statistics for dashboard
    */
-  static getCrashStatistics() {
+  getCrashStatistics() {
     return {
       totalCrashes: this.crashCount,
       lastCrashTime: this.lastCrashTime,
@@ -445,7 +445,7 @@ export class CrashReporter {
       patterns: this.getCrashPatterns(),
       isHealthy: this.crashCount < 5 && this.recentErrors.length < 3,
     };
-  }
-}
+  },
+};
 
 export default CrashReporter;

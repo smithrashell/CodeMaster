@@ -33,7 +33,7 @@ export function applyOnboardingSettings(settings, sessionState, allowedTags, foc
 
   const userMaxNewProblems = settings.numberofNewProblemsPerSession;
   const maxNewProblems = SessionLimits.getMaxNewProblems(sessionState);
-  if (userMaxNewProblems && userMaxNewProblems > 0) {
+  if (userMaxNewProblems && userMaxNewProblems !== 'auto' && userMaxNewProblems > 0) {
     numberOfNewProblems = Math.min(numberOfNewProblems, userMaxNewProblems, maxNewProblems);
     logger.info(`User new problems preference applied: ${userMaxNewProblems} → capped at ${numberOfNewProblems} for onboarding`);
   }
@@ -47,7 +47,7 @@ export function applyOnboardingSettings(settings, sessionState, allowedTags, foc
  * Apply post-onboarding adaptive logic with performance-based adjustments
  */
 export async function applyPostOnboardingLogic({
-  accuracy, efficiencyScore, settings, interviewInsights,
+  accuracy, newProblemAccuracy, efficiencyScore, settings, interviewInsights,
   allowedTags, focusTags, _sessionState, now, performanceTrend, consecutiveExcellentSessions
 }) {
   let gapInDays = null;
@@ -71,7 +71,7 @@ export async function applyPostOnboardingLogic({
     logger.info(`Performance constraint applied: Session length capped from ${originalLength} to ${sessionLength} due to gap (${gapText}) or low accuracy (${(accuracy * 100).toFixed(1)}%)`);
   }
 
-  let numberOfNewProblems = calculateNewProblems(accuracy, sessionLength, settings, interviewInsights);
+  let numberOfNewProblems = calculateNewProblems(accuracy, sessionLength, settings, interviewInsights, newProblemAccuracy);
 
   const tagResult = applyInterviewInsightsToTags(allowedTags, focusTags, interviewInsights, accuracy);
 
@@ -108,21 +108,28 @@ export function applyInterviewInsightsToSessionLength(sessionLength, interviewIn
 }
 
 /**
- * Calculate new problems based on performance and apply guardrails
+ * Calculate new problems based on performance and apply guardrails.
+ * Uses newProblemAccuracy (rolling avg from recent sessions) when available
+ * as the primary signal, falling back to overall accuracy.
  */
-export function calculateNewProblems(accuracy, sessionLength, settings, interviewInsights) {
+export function calculateNewProblems(accuracy, sessionLength, settings, interviewInsights, newProblemAccuracy = null) {
   let numberOfNewProblems;
 
-  if (accuracy >= 0.85) {
+  const signal = newProblemAccuracy !== null ? newProblemAccuracy : accuracy;
+  if (newProblemAccuracy !== null) {
+    logger.info(`calculateNewProblems: using new-problem accuracy signal ${(signal * 100).toFixed(1)}% (overall: ${(accuracy * 100).toFixed(1)}%)`);
+  }
+
+  if (signal >= 0.85) {
     numberOfNewProblems = Math.min(5, Math.floor(sessionLength / 2));
-  } else if (accuracy < 0.6) {
+  } else if (signal < 0.6) {
     numberOfNewProblems = 1;
   } else {
     numberOfNewProblems = Math.floor(sessionLength * 0.3);
   }
 
   const userMaxNewProblems = settings.numberofNewProblemsPerSession;
-  if (userMaxNewProblems && userMaxNewProblems > 0) {
+  if (userMaxNewProblems && userMaxNewProblems !== 'auto' && userMaxNewProblems > 0) {
     const originalNewProblems = numberOfNewProblems;
     numberOfNewProblems = Math.min(numberOfNewProblems, userMaxNewProblems);
     if (originalNewProblems !== numberOfNewProblems) {
@@ -255,18 +262,32 @@ export function normalizeSessionLengthForCalculation(userSetting, defaultBase = 
 }
 
 /**
- * Apply user session length preference as a hard maximum
+ * Calculate maximum number of Hard problems allowed in a session
+ * based on user accuracy and session length.
+ */
+export function calculateMaxHardProblems(accuracy, sessionLength, isOnboarding) {
+  if (isOnboarding) return 0;
+  let ratio;
+  if (accuracy < 0.5) ratio = 0.2;
+  else if (accuracy < 0.75) ratio = 0.3;
+  else ratio = 0.4;
+  return Math.max(1, Math.floor(sessionLength * ratio));
+}
+
+/**
+ * Apply user session length preference as a maximum cap
+ * When user explicitly sets a session length, adaptive can go lower but never higher
  */
 export function applySessionLengthPreference(adaptiveLength, userPreferredLength) {
   if (!userPreferredLength || userPreferredLength === 'auto' || userPreferredLength <= 0) {
     return adaptiveLength;
   }
 
-  const cappedLength = Math.min(adaptiveLength, userPreferredLength);
+  const adjustedLength = Math.min(adaptiveLength, userPreferredLength);
 
-  if (cappedLength !== adaptiveLength) {
-    logger.info(`Session length capped: Adaptive ${adaptiveLength} → User max ${userPreferredLength} = ${cappedLength}`);
+  if (adjustedLength !== adaptiveLength) {
+    logger.info(`Session length capped: Adaptive ${adaptiveLength} → User max ${userPreferredLength} = ${adjustedLength}`);
   }
 
-  return cappedLength;
+  return adjustedLength;
 }

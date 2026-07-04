@@ -188,12 +188,12 @@ describe('getPerformanceData', () => {
   it('calculates performance from successful Easy attempts', async () => {
     // Difficulty "1" maps to "Easy" per the internal difficultyMap
     await seedStore(testDb.db, 'attempts', [
-      { id: 'a1', Difficulty: 1, Success: true, TimeSpent: 300, attempt_date: '2025-01-01' },
-      { id: 'a2', Difficulty: 1, Success: true, TimeSpent: 400, attempt_date: '2025-01-02' },
-      { id: 'a3', Difficulty: 1, Success: true, TimeSpent: 500, attempt_date: '2025-01-03' },
-      { id: 'a4', Difficulty: 1, Success: true, TimeSpent: 600, attempt_date: '2025-01-04' },
-      { id: 'a5', Difficulty: 1, Success: true, TimeSpent: 700, attempt_date: '2025-01-05' },
-      { id: 'a6', Difficulty: 1, Success: true, TimeSpent: 800, attempt_date: '2025-01-06' },
+      { id: 'a1', difficulty: 1, success: true, time_spent: 300, attempt_date: '2025-01-01' },
+      { id: 'a2', difficulty: 1, success: true, time_spent: 400, attempt_date: '2025-01-02' },
+      { id: 'a3', difficulty: 1, success: true, time_spent: 500, attempt_date: '2025-01-03' },
+      { id: 'a4', difficulty: 1, success: true, time_spent: 600, attempt_date: '2025-01-04' },
+      { id: 'a5', difficulty: 1, success: true, time_spent: 700, attempt_date: '2025-01-05' },
+      { id: 'a6', difficulty: 1, success: true, time_spent: 800, attempt_date: '2025-01-06' },
     ]);
 
     const result = await service.getPerformanceData('Easy');
@@ -205,8 +205,8 @@ describe('getPerformanceData', () => {
 
   it('filters out failed attempts', async () => {
     await seedStore(testDb.db, 'attempts', [
-      { id: 'a1', Difficulty: 2, Success: true, TimeSpent: 500, attempt_date: '2025-01-01' },
-      { id: 'a2', Difficulty: 2, Success: false, TimeSpent: 1000, attempt_date: '2025-01-02' },
+      { id: 'a1', difficulty: 2, success: true, time_spent: 500, attempt_date: '2025-01-01' },
+      { id: 'a2', difficulty: 2, success: false, time_spent: 1000, attempt_date: '2025-01-02' },
     ]);
 
     const result = await service.getPerformanceData('Medium');
@@ -217,8 +217,8 @@ describe('getPerformanceData', () => {
 
   it('filters out outliers above 4 hours (14400s)', async () => {
     await seedStore(testDb.db, 'attempts', [
-      { id: 'a1', Difficulty: 3, Success: true, TimeSpent: 1000, attempt_date: '2025-01-01' },
-      { id: 'a2', Difficulty: 3, Success: true, TimeSpent: 99999, attempt_date: '2025-01-02' },
+      { id: 'a1', difficulty: 3, success: true, time_spent: 1000, attempt_date: '2025-01-01' },
+      { id: 'a2', difficulty: 3, success: true, time_spent: 99999, attempt_date: '2025-01-02' },
     ]);
 
     const result = await service.getPerformanceData('Hard');
@@ -268,11 +268,11 @@ describe('calculateAdaptiveLimit', () => {
 
   it('computes adaptive limit from real performance data', async () => {
     await seedStore(testDb.db, 'attempts', [
-      { id: 'a1', Difficulty: 2, Success: true, TimeSpent: 600, attempt_date: '2025-01-01' },
-      { id: 'a2', Difficulty: 2, Success: true, TimeSpent: 700, attempt_date: '2025-01-02' },
-      { id: 'a3', Difficulty: 2, Success: true, TimeSpent: 800, attempt_date: '2025-01-03' },
-      { id: 'a4', Difficulty: 2, Success: true, TimeSpent: 900, attempt_date: '2025-01-04' },
-      { id: 'a5', Difficulty: 2, Success: true, TimeSpent: 1000, attempt_date: '2025-01-05' },
+      { id: 'a1', difficulty: 2, success: true, time_spent: 600, attempt_date: '2025-01-01' },
+      { id: 'a2', difficulty: 2, success: true, time_spent: 700, attempt_date: '2025-01-02' },
+      { id: 'a3', difficulty: 2, success: true, time_spent: 800, attempt_date: '2025-01-03' },
+      { id: 'a4', difficulty: 2, success: true, time_spent: 900, attempt_date: '2025-01-04' },
+      { id: 'a5', difficulty: 2, success: true, time_spent: 1000, attempt_date: '2025-01-05' },
     ]);
 
     const result = await service.calculateAdaptiveLimit('Medium');

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, Text, Title, Button, Stack, Alert, Group } from "@mantine/core";
+import { Button, Card, Text, Title, Stack, Alert, Group } from "@mantine/core";
 import { IconSettings, IconInfoCircle } from "@tabler/icons-react";
 import {
   SliderMarksSessionLength,
@@ -23,6 +23,8 @@ import {
 function SessionControls({ settings, updateSettings, maxNewProblems }) {
   if (settings?.adaptive) return null;
 
+  const isAutoNewProblems = settings?.numberofNewProblemsPerSession === 'auto';
+
   return (
     <Stack gap="md">
       <div>
@@ -37,16 +39,39 @@ function SessionControls({ settings, updateSettings, maxNewProblems }) {
 
       <div>
         <Text size="sm" fw={500} mb="xs">New Problems Per Session</Text>
-        <SliderMarksNewProblemsPerSession
-          value={Math.min(settings?.numberofNewProblemsPerSession || 1, maxNewProblems || 8)}
-          onChange={(value) =>
-            updateSettings({
-              ...settings,
-              numberofNewProblemsPerSession: value,
-            })
-          }
-          max={maxNewProblems || 8}
-        />
+        {isAutoNewProblems ? (
+          <Group gap="xs">
+            <Text size="sm">Automatic</Text>
+            <Button
+              variant="subtle"
+              size="xs"
+              onClick={() => updateSettings({ ...settings, numberofNewProblemsPerSession: 2 })}
+            >
+              Set manually
+            </Button>
+          </Group>
+        ) : (
+          <>
+            <SliderMarksNewProblemsPerSession
+              value={Math.min(settings?.numberofNewProblemsPerSession || 1, maxNewProblems || 8)}
+              onChange={(value) =>
+                updateSettings({
+                  ...settings,
+                  numberofNewProblemsPerSession: value,
+                })
+              }
+              max={maxNewProblems || 8}
+            />
+            <Button
+              variant="subtle"
+              size="xs"
+              mt="xs"
+              onClick={() => updateSettings({ ...settings, numberofNewProblemsPerSession: 'auto' })}
+            >
+              Switch to Automatic
+            </Button>
+          </>
+        )}
       </div>
     </Stack>
   );

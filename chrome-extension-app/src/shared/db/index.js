@@ -32,7 +32,7 @@ if (typeof window !== 'undefined') {
 
 const dbHelper = {
   dbName: "CodeMaster",
-  version: 47, // 🆙 Fixed problem_relationships store snake_case field names migration
+  version: 48, // 🆙 Added excluded_problems store for permanent not-relevant exclusions
   db: null,
   pendingConnection: null, // Track pending database connection promises
 
@@ -50,7 +50,7 @@ const dbHelper = {
     console.log('🔧 Attempting to recover with default database configuration...');
     try {
       this.dbName = "CodeMaster";
-      this.version = 47;
+      this.version = 48;
       this.db = null;
       this.pendingConnection = null;
 
@@ -204,7 +204,7 @@ const dbHelper = {
       'standard_problems', 'strategy_data', 'tag_relationships',
       'problem_relationships', 'pattern_ladders', 'session_analytics',
       'hint_interactions', 'user_actions', 'error_reports', 
-      'limits', 'session_state', 'backup_storage'
+      'limits', 'session_state', 'backup_storage', 'excluded_problems'
     ];
 
     const existingStores = Array.from(db.objectStoreNames);

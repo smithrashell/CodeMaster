@@ -14,18 +14,18 @@ export function generateSessionAnalytics(sessions, attempts) {
     const sessionId = session.id || session.sessionId || `session_${index + 1}`;
 
     const sessionAttempts = attempts.filter(attempt => {
-      const attemptSessionId = attempt.session_id || attempt.SessionID;
-      const attemptDate = attempt.attempt_date || attempt.AttemptDate;
+      const attemptSessionId = attempt.session_id;
+      const attemptDate = attempt.attempt_date;
       return attemptSessionId === sessionId ||
         (session.date && Math.abs(new Date(session.date) - new Date(attemptDate)) < 60 * 60 * 1000);
     });
 
     // Calculate duration from session attempts if available
     const duration = session.duration ||
-      (sessionAttempts.length > 0 ? sessionAttempts.reduce((sum, a) => sum + (Number(a.time_spent || a.TimeSpent) || 0), 0) / 60 : 30);
+      (sessionAttempts.length > 0 ? sessionAttempts.reduce((sum, a) => sum + (Number(a.time_spent) || 0), 0) / 60 : 30);
 
     // Calculate accuracy from session attempts
-    const successfulAttempts = sessionAttempts.filter(a => a.success !== undefined ? a.success : a.Success).length;
+    const successfulAttempts = sessionAttempts.filter(a => a.success).length;
     const accuracy = session.accuracy || (sessionAttempts.length > 0 ? successfulAttempts / sessionAttempts.length : 0);
 
     // Support both session.completed and session.status === "completed"
@@ -41,18 +41,21 @@ export function generateSessionAnalytics(sessions, attempts) {
       completed,
       status: session.status || (completed ? "completed" : "in_progress"),
       // Preserve problems array, or use session.attempts if problems is empty
+      // When reconstructing from attempts, infer selectionReason from box_level
       problems: (session.problems && session.problems.length > 0)
         ? session.problems
         : (session.attempts && session.attempts.length > 0)
           ? session.attempts.map(attempt => ({
               id: attempt.problem_id || attempt.leetcode_id,
               difficulty: "Medium",
-              solved: attempt.success !== undefined ? attempt.success : attempt.Success
+              solved: attempt.success,
+              selectionReason: { type: (attempt.box_level || 0) > 1 ? "review_problem" : "new_problem" }
             }))
           : sessionAttempts.map(attempt => ({
-              id: attempt.problem_id || attempt.ProblemID,
+              id: attempt.problem_id,
               difficulty: "Medium",
-              solved: attempt.success !== undefined ? attempt.success : attempt.Success
+              solved: attempt.success,
+              selectionReason: { type: (attempt.box_level || 0) > 1 ? "review_problem" : "new_problem" }
             })),
       // Also preserve the attempts array for filtering
       attempts: session.attempts || sessionAttempts
@@ -91,7 +94,7 @@ export function generateSessionAnalytics(sessions, attempts) {
 
   return {
     allSessions: enhancedSessions,
-    recentSessions: enhancedSessions.slice(-10),
+    recentSessions: [...enhancedSessions].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-10),
     sessionAnalytics,
     productivityMetrics
   };

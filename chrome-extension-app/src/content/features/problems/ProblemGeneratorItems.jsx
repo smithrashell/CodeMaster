@@ -27,10 +27,10 @@ const renderProblemBadges = ({ problem, isNewProblem, handleMouseEnter, handleMo
     {isNewProblem && <span className="cm-new-tag">NEW</span>}
     <span
       className={`cd-difficulty cd-difficulty-${
-        (problem.difficulty || "medium").toLowerCase()
+        problem.difficulty.toLowerCase()
       }`}
     >
-      {problem.difficulty || "Medium"}
+      {problem.difficulty}
     </span>
   </div>
 );
@@ -55,8 +55,8 @@ const renderSimilarProblems = ({ similarProblems, loadingSimilar, hovered }) => 
     )}
     {similarProblems.length > 0 && (
       <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
-        {similarProblems.slice(0, 2).map((similar, index) => (
-          <div key={similar.id || index} style={{
+        {similarProblems.slice(0, 2).map((similar) => (
+          <div key={similar.id} style={{
             display: "flex",
             alignItems: "center",
             gap: "6px",
@@ -72,8 +72,7 @@ const renderSimilarProblems = ({ similarProblems, loadingSimilar, hovered }) => 
               textOverflow: "ellipsis",
               whiteSpace: "nowrap"
             }}>
-              {(similar.Description || similar.ProblemDescription || similar.problemDescription || similar.title || '').substring(0, 30)}
-              {(similar.Description || similar.ProblemDescription || similar.problemDescription || similar.title || '').length > 30 ? '...' : ''}
+              {similar.title.length > 30 ? `${similar.title.substring(0, 30)}...` : similar.title}
             </span>
             {similar.difficulty && (
               <span style={{
@@ -193,7 +192,7 @@ export const ProblemItemWithReason = ({ problem, isNewProblem, onLinkClick, sess
             width: '100%'
           }}
         >
-          {problem.Description || problem.ProblemDescription || problem.problemDescription || problem.title || "N/A"}
+          {problem.title}
         </button>
         {renderProblemBadges({ problem, isNewProblem, handleMouseEnter, handleMouseLeave })}
       </div>

@@ -91,7 +91,7 @@ SimpleTextArea.displayName = 'SimpleTextArea';
 const getFormConfig = (routeState) => ({
   defaultValues: {
     leetCodeID: routeState?.LeetCodeID || "",
-    title: routeState?.Description || "",
+    title: routeState?.title || "",
     timeSpent: routeState?.Time ? `${Math.round(routeState.Time)}` : "",
     success: "",
     difficulty: "",
@@ -160,7 +160,7 @@ const handleFormSubmission = async (data, routeState, navigate, setSubmitting) =
       // Enhanced time tracking from timer (if available)
       exceededRecommendedTime: routeState?.exceededRecommendedTime || false,
       overageTime: routeState?.overageTime || 0,
-      userIntent: routeState?.userIntent || "completed",
+      ...(routeState?.exceededRecommendedTime ? { userIntent: routeState.userIntent } : {}),
       timeWarningLevel: routeState?.timeWarningLevel || 0,
     };
 
@@ -388,7 +388,7 @@ const ProbSubmission = () => {
       [key]: routeState[key]
     }), {}) : 'null',
     leetCodeID: routeState?.LeetCodeID,
-    description: routeState?.Description,
+    description: routeState?.title,
     time: routeState?.Time,
     // Check for snake_case versions
     leetcode_id: routeState?.leetcode_id,

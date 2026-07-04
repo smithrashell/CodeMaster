@@ -13,7 +13,7 @@ export function calculateReflectionInsights(dashboardData) {
     const allAttempts = dashboardData.allAttempts || [];
 
     const attemptsWithReflections = allAttempts.filter(attempt => {
-      const commentText = attempt.comments || attempt.Comments;
+      const commentText = attempt.comments;
       return commentText && commentText.trim().length > 0;
     });
 
@@ -28,8 +28,7 @@ export function calculateReflectionInsights(dashboardData) {
       sampleAttemptWithComment: attemptsWithReflections[0],
       first3Attempts: allAttempts.slice(0, 3).map(a => ({
         hasComments: !!a.comments,
-        hasCommentsCapital: !!a.Comments,
-        commentValue: a.comments || a.Comments || 'EMPTY'
+        commentValue: a.comments || 'EMPTY'
       }))
     });
 
@@ -37,7 +36,7 @@ export function calculateReflectionInsights(dashboardData) {
 
     const avgReflectionLength = reflectionsCount > 0
       ? attemptsWithReflections.reduce((sum, attempt) => {
-          const commentText = attempt.comments || attempt.Comments;
+          const commentText = attempt.comments;
           return sum + (commentText ? commentText.length : 0);
         }, 0) / reflectionsCount
       : 0;
@@ -83,7 +82,7 @@ export function analyzeReflectionThemes(attemptsWithReflections) {
   const themeCounts = {};
 
   attemptsWithReflections.forEach(attempt => {
-    const commentText = attempt.comments || attempt.Comments;
+    const commentText = attempt.comments;
     const reflection = (commentText || '').toLowerCase();
 
     Object.entries(themeKeywords).forEach(([theme, keywords]) => {
@@ -109,8 +108,8 @@ export function analyzeReflectionThemes(attemptsWithReflections) {
 export function calculateReflectionPerformanceCorrelation(attemptsWithReflections, allAttempts) {
   if (attemptsWithReflections.length === 0) return 0;
 
-  const reflectionSuccessRate = attemptsWithReflections.filter(a => (a.success !== undefined ? a.success : a.Success)).length / attemptsWithReflections.length;
-  const overallSuccessRate = allAttempts.filter(a => (a.success !== undefined ? a.success : a.Success)).length / allAttempts.length;
+  const reflectionSuccessRate = attemptsWithReflections.filter(a => a.success).length / attemptsWithReflections.length;
+  const overallSuccessRate = allAttempts.filter(a => a.success).length / allAttempts.length;
 
   return Math.round((reflectionSuccessRate - overallSuccessRate) * 100);
 }

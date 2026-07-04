@@ -1,8 +1,3 @@
-/**
- * Dashboard Message Handlers
- * Extracted from messageRouter.js
- */
-
 import {
   getDashboardStatistics,
   getLearningProgressData,
@@ -23,7 +18,9 @@ import { HabitLearningHelpers } from "../../shared/services/session/sessionHabit
 import { HintInteractionService } from "../../shared/services/hints/hintInteractionService.js";
 import FocusCoordinationService from "../../shared/services/focus/focusCoordinationService.js";
 import { getAllSessions } from "../../shared/db/stores/sessions.js";
+import { calculateTagMastery } from "../../shared/db/stores/tag_mastery.js";
 import { getAllAttempts } from "../../shared/db/stores/attempts.js";
+import { fetchAllProblems } from "../../shared/db/stores/problems.js";
 
 export const dashboardHandlers = {
   getDashboardStatistics: (request, _dependencies, sendResponse, finishRequest) => {
@@ -49,9 +46,10 @@ export const dashboardHandlers = {
         const focusDecision = await FocusCoordinationService.getFocusDecision("session_state");
         const settings = await StorageService.getSettings();
 
-        const [allSessions, allAttempts, hintsUsed] = await Promise.all([
+        const [allSessions, allAttempts, allProblems, hintsUsed] = await Promise.all([
           getAllSessions(),
           getAllAttempts(),
+          fetchAllProblems(),
           (async () => {
             try {
               const analytics = await HintInteractionService.getSystemAnalytics({});
@@ -86,6 +84,7 @@ export const dashboardHandlers = {
           focusDecision,
           allSessions,
           allAttempts,
+          allProblems,
           hintsUsed
         });
         sendResponse({ result });
@@ -125,6 +124,14 @@ export const dashboardHandlers = {
   getTagMasteryData: (request, _dependencies, sendResponse, finishRequest) => {
     getTagMasteryData(request.options || {})
       .then((result) => sendResponse({ result }))
+      .catch((error) => sendResponse({ error: error.message }))
+      .finally(finishRequest);
+    return true;
+  },
+
+  recalculateTagMastery: (_request, _dependencies, sendResponse, finishRequest) => {
+    calculateTagMastery()
+      .then(() => sendResponse({ result: { success: true } }))
       .catch((error) => sendResponse({ error: error.message }))
       .finally(finishRequest);
     return true;

@@ -16,6 +16,10 @@ export function useTierTagGrouping(focusAvailability, masteryData) {
     const getTagProgress = (tagName) => {
       const tagData = masteryData?.find((tag) => tag.tag === tagName);
       if (!tagData || tagData.total_attempts === 0) return 0;
+      const rr = tagData.recent_results;
+      if (Array.isArray(rr) && rr.length > 0) {
+        return Math.round((rr.filter(Boolean).length / rr.length) * 100);
+      }
       return Math.round((tagData.successful_attempts / tagData.total_attempts) * 100);
     };
 

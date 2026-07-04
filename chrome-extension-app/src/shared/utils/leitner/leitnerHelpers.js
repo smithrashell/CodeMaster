@@ -11,8 +11,8 @@ const TIME_LIMITS_BY_DIFFICULTY = { 1: 15, 2: 25, 3: 40 };
 /**
  * Calculate time performance score based on attempt data
  */
-export function calculateTimePerformanceScore(attemptData, useTimeLimits = true) {
-  if (!useTimeLimits || !attemptData) {
+export function calculateTimePerformanceScore(attemptData) {
+  if (!attemptData) {
     return { timePerformanceScore: 1.0, exceededTimeLimit: false };
   }
 
@@ -36,9 +36,9 @@ export function calculateTimePerformanceScore(attemptData, useTimeLimits = true)
   }
 
   // Apply user intent modifiers
-  if (attemptData.UserIntent === "stuck") {
+  if (attemptData.user_intent === "stuck") {
     timePerformanceScore *= 0.9; // Slight penalty
-  } else if (attemptData.UserIntent === "solving" && attemptData.ExceededRecommendedTime) {
+  } else if (attemptData.user_intent === "solving" && exceededTimeLimit) {
     timePerformanceScore *= 1.1; // Bonus for persistence
   }
 
@@ -87,9 +87,9 @@ export function applyBoxLevelAdjustments(problem, attemptData, timePerformanceSc
     if (problem.consecutive_failures >= FAILURE_THRESHOLD) {
       problem.cooldown_status = true;
 
-      // Graduated demotion based on effort
-      const showedEffort = timePerformanceScore >= 0.8 || attemptData?.UserIntent === "solving";
-      const demotionAmount = showedEffort ? 0.5 : 1;
+      // Graduated demotion based on effort (whole-number steps only)
+      const showedEffort = timePerformanceScore >= 0.8 || attemptData?.user_intent === "solving";
+      const demotionAmount = showedEffort ? 1 : 2;
       problem.box_level = Math.max(problem.box_level - demotionAmount, 1);
     }
   }
@@ -100,15 +100,20 @@ export function applyBoxLevelAdjustments(problem, attemptData, timePerformanceSc
 /**
  * Apply FSRS stability adjustments
  */
-export function applyStabilityAdjustment(problem, attemptData, timePerformanceScore, updateStabilityFSRS) {
+export function applyStabilityAdjustment(problem, attemptData, timePerformanceScore = 1.0, updateStabilityFSRS) {
   let stabilityAdjustment = updateStabilityFSRS(
     problem.stability,
-    attemptData ? attemptData.Success : false
+    attemptData ? attemptData.success : false
   );
 
   // Apply time performance bonus/penalty to stability
-  if (attemptData && attemptData.Success) {
+  if (attemptData && attemptData.success) {
     stabilityAdjustment *= timePerformanceScore;
+  }
+
+  // Stuck + failed = knowledge is weaker than time alone suggests
+  if (attemptData && !attemptData.success && attemptData.user_intent === "stuck") {
+    stabilityAdjustment *= 0.85;
   }
 
   problem.stability = stabilityAdjustment;
@@ -120,7 +125,8 @@ export function applyStabilityAdjustment(problem, attemptData, timePerformanceSc
  */
 export function calculateNextReviewDate(problem, attemptData) {
   // Get base days from box level
-  const baseDays = BOX_INTERVALS[problem.box_level];
+  const boxIndex = Math.min(Math.max(Math.round(problem.box_level || 0), 0), BOX_INTERVALS.length - 1);
+  const baseDays = BOX_INTERVALS[boxIndex];
 
   // Apply stability multiplier
   const stabilityMultiplier = problem.stability / 2;
@@ -131,6 +137,11 @@ export function calculateNextReviewDate(problem, attemptData) {
   
   if (problem.cooldown_status) {
     nextReviewDays = Math.max(nextReviewDays, COOLDOWN_REVIEW_INTERVAL);
+  }
+
+  // Stuck + failed = bring problem back sooner for practice
+  if (attemptData && !attemptData.success && attemptData.user_intent === "stuck") {
+    nextReviewDays = Math.min(nextReviewDays, 7);
   }
 
   // Calculate the actual date

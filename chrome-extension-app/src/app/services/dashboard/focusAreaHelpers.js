@@ -50,7 +50,7 @@ export function filterDataByDateRange(allAttempts, allSessions, startDate, endDa
   const end = endDate ? new Date(endDate) : new Date();
 
   const filteredAttempts = allAttempts.filter((attempt) => {
-    const attemptDate = new Date(attempt.AttemptDate);
+    const attemptDate = new Date(attempt.attempt_date);
     return attemptDate >= start && attemptDate <= end;
   });
 
@@ -77,7 +77,7 @@ export function calculateFocusAreaPerformance(
   for (const focusArea of focusAreas) {
     // Filter attempts for problems that contain this focus area tag
     const focusAreaAttempts = attempts.filter((attempt) => {
-      const problemTags = problemTagsMap.get(attempt.ProblemID) || [];
+      const problemTags = problemTagsMap.get(attempt.problem_id) || [];
       return problemTags.includes(focusArea);
     });
 
@@ -100,22 +100,22 @@ export function calculateFocusAreaPerformance(
 
     // Calculate basic metrics
     const totalAttempts = focusAreaAttempts.length;
-    const successfulAttempts = focusAreaAttempts.filter(a => a.Success).length;
+    const successfulAttempts = focusAreaAttempts.filter(a => a.success).length;
     const successRate = calculateSuccessRate(successfulAttempts, totalAttempts);
-    const averageTime = focusAreaAttempts.reduce((sum, a) => sum + (a.TimeSpent || 0), 0) / totalAttempts;
+    const averageTime = focusAreaAttempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / totalAttempts;
 
     // Calculate difficulty breakdown
     const difficultyBreakdown = { Easy: { attempts: 0, successes: 0, avgTime: 0 }, Medium: { attempts: 0, successes: 0, avgTime: 0 }, Hard: { attempts: 0, successes: 0, avgTime: 0 } };
-    
+
     focusAreaAttempts.forEach((attempt) => {
       const standardProblem = standardProblemsMap.get(
-        allProblems.find(p => p.problem_id === attempt.ProblemID)?.leetcode_id
+        allProblems.find(p => p.problem_id === attempt.problem_id)?.leetcode_id
       );
       const difficulty = standardProblem?.difficulty || 'Medium';
-      
+
       difficultyBreakdown[difficulty].attempts++;
-      if (attempt.Success) difficultyBreakdown[difficulty].successes++;
-      difficultyBreakdown[difficulty].avgTime += attempt.TimeSpent || 0;
+      if (attempt.success) difficultyBreakdown[difficulty].successes++;
+      difficultyBreakdown[difficulty].avgTime += attempt.time_spent || 0;
     });
 
     // Finalize difficulty breakdown averages
@@ -149,18 +149,18 @@ export function calculateFocusAreaProgress(options) {
   
   for (const focusArea of focusAreas) {
     const focusAreaAttempts = attempts.filter((attempt) => {
-      const problemTags = problemTagsMap.get(attempt.ProblemID) || [];
+      const problemTags = problemTagsMap.get(attempt.problem_id) || [];
       return problemTags.includes(focusArea);
     });
 
     const tagMastery = learningState?.tags?.[focusArea] || {};
-    
+
     progress[focusArea] = {
       masteryLevel: tagMastery.masteryLevel || 'beginner',
       completionPercentage: tagMastery.completionPercentage || 0,
-      problemsSolved: focusAreaAttempts.filter(a => a.Success).length,
+      problemsSolved: focusAreaAttempts.filter(a => a.success).length,
       streak: tagMastery.currentStreak || 0,
-      lastAttempt: focusAreaAttempts.length > 0 ? focusAreaAttempts[focusAreaAttempts.length - 1].AttemptDate : null,
+      lastAttempt: focusAreaAttempts.length > 0 ? focusAreaAttempts[focusAreaAttempts.length - 1].attempt_date : null,
       weeklyProgress: calculateWeeklyProgress(focusAreaAttempts),
       targetProgress: calculateTargetProgress(focusArea, tagMastery),
     };
@@ -213,8 +213,8 @@ function calculateRecentTrend(attempts) {
   
   if (older.length === 0) return 'new';
   
-  const recentSuccess = recent.filter(a => a.Success).length / recent.length;
-  const olderSuccess = older.filter(a => a.Success).length / older.length;
+  const recentSuccess = recent.filter(a => a.success).length / recent.length;
+  const olderSuccess = older.filter(a => a.success).length / older.length;
   
   if (recentSuccess > olderSuccess + 0.1) return 'improving';
   if (recentSuccess < olderSuccess - 0.1) return 'declining';
@@ -225,8 +225,8 @@ function calculateBoxLevelDistribution(attempts, allProblems) {
   const distribution = {};
   
   attempts.forEach(attempt => {
-    const problem = allProblems.find(p => p.id === attempt.ProblemID);
-    const boxLevel = problem?.BoxLevel || 1;
+    const problem = allProblems.find(p => p.id === attempt.problem_id);
+    const boxLevel = problem?.box_level || 1;
     distribution[boxLevel] = (distribution[boxLevel] || 0) + 1;
   });
   
@@ -235,13 +235,13 @@ function calculateBoxLevelDistribution(attempts, allProblems) {
 
 function calculateWeeklyProgress(attempts) {
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const recentAttempts = attempts.filter(a => new Date(a.AttemptDate) >= oneWeekAgo);
-  
+  const recentAttempts = attempts.filter(a => new Date(a.attempt_date) >= oneWeekAgo);
+
   return {
     attempts: recentAttempts.length,
-    successes: recentAttempts.filter(a => a.Success).length,
-    averageTime: recentAttempts.length > 0 
-      ? recentAttempts.reduce((sum, a) => sum + (a.TimeSpent || 0), 0) / recentAttempts.length 
+    successes: recentAttempts.filter(a => a.success).length,
+    averageTime: recentAttempts.length > 0
+      ? recentAttempts.reduce((sum, a) => sum + (a.time_spent || 0), 0) / recentAttempts.length
       : 0,
   };
 }

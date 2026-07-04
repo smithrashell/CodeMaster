@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Refactored
+- **problemHandlers.js — skip logic extracted into helpers** - Extracted `checkPostSkipCompletion`, `findAndReplaceWithPrerequisite`, and `applySkipReasonEffects` helpers to eliminate deep nesting and a 50-line if/else chain; replaced with a switch statement; reduces `handleSkipProblem` body by ~40 lines
+- **problemHandlers.js — deprecated session query replaced** - Replaced deprecated `getLatestSession()` (full table scan) with `getLatestSessionByType(null, 'in_progress')` (index-based) for both pre- and post-skip session lookups; also fixes a bug where `checkAndCompleteSession` was unreachable when session was empty
+- **problemHandlers.js — simplified leetcodeId extraction** - Removed fallback chain `request.leetcodeId || request.problemData?.leetcode_id || request.consentScriptData?.leetcode_id`; the only live caller (`SkipReason.jsx`) always sends `leetcodeId` directly, and `consentScriptData` was a dead-code typo
+- **problemHandlers.js — removed stale TODOs and unused parameters** - Renamed all `dependencies` params to `_dependencies`; renamed `request` to `_request` where not used; removed 3 stale TODO comments
+- **ProblemTime.jsx — removed dead `_onSkip` function** - `_onSkip` was never called from JSX and was the only sender of the `consentScriptData` typo field; removed it along with the now-unused `navigate` variable and `useNavigate` import
+
 ### Added
+- **Automatic New Problems Per Session** - New "Automatic" option (now the default) for max new problems per session; when selected, empty review slots are backfilled with new problems while explicit numeric settings are always respected regardless of review count — closes the gap where no-review sessions ignored the user's cap
+- **Store user_intent on Attempt Records** - Timer UI's user intent ("solving", "stuck", "completed") now flows through to IndexedDB attempt records when the "Still Working?" prompt was shown; omitted when time limits are off or user solved within the limit
+- **Stability Penalty for "Stuck" Failures** - Failed attempts where user reported being stuck receive a 0.85x stability multiplier, scheduling more frequent reviews for weak knowledge
+- **Review Interval Cap for "Stuck" Failures** - Failed + stuck attempts are capped at a 7-day review interval regardless of box level, ensuring timely re-practice
+
+### Fixed
+- **Difficulty Cap Not Applied to Review Problems** - `addReviewProblemsToSession` now accepts and applies `currentDifficultyCap`, passing it through from `fetchAndAssembleSessionProblems`; review problems are filtered through `filterProblemsByDifficultyCap` after the hard-cap check, so the user's max difficulty ceiling is enforced consistently across both new and review problem slots
+- **Duplicate Session Race Condition** - Replaced non-atomic `saveNewSessionToDB` with `getOrCreateSessionAtomic` in session creation; if a concurrent call already committed a session the atomic function returns the existing one instead of creating a duplicate; removed the non-atomic pre-creation mark-completed check that was itself a race condition; moved mark-completed responsibility to `refreshSession`
+- **Re-attempts Routing to Guided Session Instead of Tracking Session** - In `addAttempt`, after `isMatchingProblem` returns true, now checks the `attempted` flag on the session problem; if `attempted === true`, falls through to the tracking session path so re-attempts are no longer re-attached to the guided session
+- **`skipProblem` Redundant Session Fetch** - Removed `skipProblem` from `SessionService` entirely; the handler already held the session and `skipProblem` was re-fetching it; inlined a local `removeFromSession` helper in `problemHandlers.js` and passes the session directly, eliminating the extra IndexedDB round-trip
+- **`sessionService.js` Dead Code and Debug Noise** - Removed dead `_settings` fetch (unnecessary DB round-trip, result never used); removed 9 DEBUG `console.log`/`console.error` statements from `summarizeSessionPerformance` and `checkAndCompleteSession`; removed stale emoji-prefixed comments (`// ✨ NEW:`, `// ✅ CRITICAL FIX:`, `// 🐛 DEBUG:`); fixed stale JSDoc on `createNewSession` and `resumeSession`
+- **Leitner Box Level 8 Unreachable** - Off-by-one error in `reassessBoxLevel()` capped box level at 7 instead of 8, preventing problems from reaching max mastery level
+- **Session History Sorting** (#248) - Sessions now sorted by date before slicing, ensuring most recent sessions display correctly in history and charts
+- **Hints Used Card Shows 0** (#247) - Mapped nested `getSystemAnalytics()` response to flat shape expected by StatsMetrics component (`.overview.totalInteractions` -> `.total`, `.overview.byHintType.*` -> `.contextual/.general/.primer`)
+- **Goals Review Count Shows 0** - Review problem count now cross-references attempts with problems store `box_level` instead of checking non-existent `attempt.box_level`
+- **Fractional Box Levels (0.5)** - Changed Leitner demotion from 0.5/1 to 1/2 whole-number steps; added `Math.round()` guard in `calculateCoreStatistics` for existing fractional data
+- **Skip Problem IDB Index Error** (#255) - Added defensive try/catch fallback in `getRelationshipsForProblem()` for older DB schemas missing indexes; fixed `createProblemRelationshipsStore` to add missing indexes on existing stores
+- **Empty Session After Skip** - Added null guard for session in skip handler, preventing skip on non-existent session; added post-skip verification that session still has problems
+- **Session Length Not Updating** - Changed `applySessionLengthPreference` from `Math.min` (cap) to `Math.max` (floor) so user's explicit session length setting is respected as minimum
+- **New vs Review Count Inaccurate** - Fallback problem reconstruction in `dashboardSessionAnalyticsHelpers.js` now infers `selectionReason` from `box_level` (`> 1` = review, else new)
+
+### Added
+- **Learning Path Legend - Connection Lines** - Added "Connection Strength" section to legend with 4 color-coded entries (Very Strong/Strong/Medium/Weak) using inline SVG line elements with solid/dashed styles
+- **Node Position Persistence** - Learning path node positions now persist across page reloads via Chrome storage; saved on drag end, loaded on mount with layout merge for new tags
+
 - **Enhanced Skip Functionality with Prerequisite Finding**
   - New skip reason selection UI when skipping a problem (Too difficult, Don't understand, Not relevant, Other)
   - "Don't understand" skips now find and replace with easier prerequisite problems

@@ -119,7 +119,7 @@ export async function getRecentTrackingAttempts(withinHours = 48) {
   const recentTrackingAttempts = allAttempts.filter(attempt => {
     const attemptDate = new Date(attempt.date);
     return attemptDate >= cutoffTime &&
-      trackingSessionIds.has(attempt.SessionID);
+      trackingSessionIds.has(attempt.session_id);
   });
 
   logger.info(`Found ${recentTrackingAttempts.length} recent tracking attempts`);

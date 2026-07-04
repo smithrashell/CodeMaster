@@ -114,12 +114,22 @@ describe('applySessionLengthPreference', () => {
     expect(applySessionLengthPreference(6, 0)).toBe(6);
   });
 
-  it('caps adaptiveLength to userPreferredLength when adaptive exceeds preference', () => {
-    expect(applySessionLengthPreference(8, 5)).toBe(5);
+  it('returns adaptiveLength when it is below userPreferredLength cap', () => {
+    expect(applySessionLengthPreference(3, 5)).toBe(3);
   });
 
-  it('returns adaptiveLength when it is within userPreferredLength', () => {
-    expect(applySessionLengthPreference(4, 10)).toBe(4);
+  it('caps adaptiveLength to userPreferredLength when adaptive exceeds preference', () => {
+    expect(applySessionLengthPreference(10, 4)).toBe(4);
+  });
+
+  it('never exceeds user max session length regardless of adaptive calculation', () => {
+    const userMax = 5;
+    // Adaptive algorithm might calculate various lengths based on performance
+    expect(applySessionLengthPreference(5, userMax)).toBe(5);
+    expect(applySessionLengthPreference(7, userMax)).toBe(5);
+    expect(applySessionLengthPreference(12, userMax)).toBe(5);
+    // But shorter adaptive sessions are still allowed
+    expect(applySessionLengthPreference(3, userMax)).toBe(3);
   });
 });
 
@@ -212,6 +222,15 @@ describe('applyOnboardingSettings', () => {
     expect(result.sessionLength).toBe(4);
     expect(result.numberOfNewProblems).toBe(2);
   });
+
+  it('does not cap new problems when setting is "auto"', () => {
+    const settings = { sessionLength: 5, numberofNewProblemsPerSession: 'auto' };
+    const result = applyOnboardingSettings(settings, {}, ['array'], { reasoning: '' });
+
+    // sessionLength = min(5, 6) = 5, numberOfNewProblems = 5 (no user cap)
+    expect(result.sessionLength).toBe(5);
+    expect(result.numberOfNewProblems).toBe(5);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -284,6 +303,12 @@ describe('calculateNewProblems', () => {
   it('caps at user preference when set', () => {
     const result = calculateNewProblems(0.9, 8, { numberofNewProblemsPerSession: 2 }, noInterviewInsights());
     expect(result).toBe(2);
+  });
+
+  it('does not cap when user preference is "auto"', () => {
+    const result = calculateNewProblems(0.9, 8, { numberofNewProblemsPerSession: 'auto' }, noInterviewInsights());
+    // accuracy >= 0.85 => min(5, floor(8/2)) = 4, no user cap applied
+    expect(result).toBe(4);
   });
 
   it('applies interview newProblemsAdjustment', () => {

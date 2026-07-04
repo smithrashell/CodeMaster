@@ -22,6 +22,17 @@ import {
 import { checkAndGenerateFromTracking } from "../../shared/services/session/sessionTrackingHelpers.js";
 import { shouldCreateInterviewSession } from "../../shared/services/session/sessionInterviewHelpers.js";
 
+async function checkSessionStaleness(session) {
+  const classification = classifySessionState(session);
+  const classificationStale = !['active', 'unclear'].includes(classification);
+  const settings = await StorageService.getSettings();
+  const focusAreasChanged = settings?.focusAreasLastChanged;
+  const sessionCreated = new Date(session.created_at || session.date);
+  const focusAreasChangedDate = focusAreasChanged ? new Date(focusAreasChanged) : null;
+  const focusChangeStale = focusAreasChangedDate && focusAreasChangedDate > sessionCreated;
+  return classificationStale || focusChangeStale;
+}
+
 /**
  * Handler: getSession
  * Retrieves the current session
@@ -111,42 +122,7 @@ export async function handleGetOrCreateSession(request, dependencies, sendRespon
     .then(async (session) => {
       clearTimeout(timeoutId);
       const duration = Date.now() - startTime;
-
-      // Check if session is stale
-      let isSessionStale = false;
-      if (session) {
-        const classification = classifySessionState(session);
-        const classificationStale = !['active', 'unclear'].includes(classification);
-
-        // Check if focus areas changed after session creation (read from settings)
-        const settings = await StorageService.getSettings();
-        const focusAreasChanged = settings?.focusAreasLastChanged;
-        console.log('🔍 DEBUG: Raw focusAreasChanged from settings:', focusAreasChanged, 'type:', typeof focusAreasChanged);
-
-        const sessionCreated = new Date(session.created_at || session.date);
-        console.log('🔍 DEBUG: Session created timestamp:', session.created_at || session.date, 'parsed:', sessionCreated.toISOString());
-
-        const focusAreasChangedDate = focusAreasChanged ? new Date(focusAreasChanged) : null;
-        console.log('🔍 DEBUG: Focus areas changed date:', focusAreasChangedDate ? focusAreasChangedDate.toISOString() : 'null');
-
-        const focusChangeStale = focusAreasChangedDate && focusAreasChangedDate > sessionCreated;
-        console.log('🔍 DEBUG: Comparison - focusAreasChangedDate > sessionCreated:', focusChangeStale);
-        console.log('🔍 DEBUG: Time difference (ms):', focusAreasChangedDate ? (focusAreasChangedDate.getTime() - sessionCreated.getTime()) : 'N/A');
-
-        isSessionStale = classificationStale || focusChangeStale;
-
-        console.log('🔍 Background: Session staleness check:', {
-          sessionId: session.id?.substring(0, 8),
-          sessionType: session.sessionType,
-          classification: classification,
-          classificationStale: classificationStale,
-          focusChangeStale: focusChangeStale,
-          isSessionStale: isSessionStale,
-          lastActivityTime: session.lastActivityTime,
-          sessionCreated: session.created_at || session.date,
-          focusAreasLastChanged: focusAreasChanged
-        });
-      }
+      const isSessionStale = session ? await checkSessionStaleness(session) : false;
 
       sendResponse({
         session: session,
@@ -215,8 +191,6 @@ export function handleRefreshSession(request, dependencies, sendResponse, finish
         ...settings,
         focusAreasLastChanged: null
       });
-      console.log("🔄 Cleared focus area change flag after regeneration");
-
       sendResponse({
         session: session,
         isSessionStale: false, // Fresh session is never stale
@@ -247,9 +221,6 @@ export function handleGetCurrentSession(request, dependencies, sendResponse, fin
 
   StorageService.getSettings()
     .then((settings) => {
-      console.log("getCurrentSession - checking interview mode:", settings?.interviewMode, "frequency:", settings?.interviewFrequency);
-
-      // Determine session type based on settings
       let sessionType = 'standard';
       if (settings?.interviewMode && settings.interviewMode !== "disabled") {
         sessionType = settings.interviewMode;
@@ -258,10 +229,7 @@ export function handleGetCurrentSession(request, dependencies, sendResponse, fin
       return SessionService.getOrCreateSession(sessionType);
     })
     .then((session) => {
-      console.log("getCurrentSession - session:", session);
-      sendResponse({
-        session: session,
-      });
+      sendResponse({ session });
     })
     .catch((error) => {
       console.error("Error retrieving session:", error);
@@ -318,7 +286,6 @@ export function handleGetSessionAnalytics(request, dependencies, sendResponse, f
         recentCleanups: cleanupAnalytics.slice(-5)
       };
 
-      console.log("✅ Session analytics:", response);
       sendResponse(response);
     } catch (error) {
       console.error("❌ Failed to get session analytics:", error);
@@ -333,7 +300,6 @@ export function handleGetSessionAnalytics(request, dependencies, sendResponse, f
  * Classifies all sessions by state
  */
 export function handleClassifyAllSessions(request, dependencies, sendResponse, finishRequest) {
-  console.log("🔍 Classifying all sessions");
   (async () => {
     try {
       const sessions = await getAllSessionsFromDB();
@@ -345,7 +311,6 @@ export function handleClassifyAllSessions(request, dependencies, sendResponse, f
         lastActivity: session.lastActivityTime || session.date
       }));
 
-      console.log(`✅ Classified ${classifications.length} sessions`);
       sendResponse({ classifications });
     } catch (error) {
       console.error("❌ Failed to classify sessions:", error);
@@ -360,10 +325,8 @@ export function handleClassifyAllSessions(request, dependencies, sendResponse, f
  * Generates session from tracking data
  */
 export function handleGenerateSessionFromTracking(request, dependencies, sendResponse, finishRequest) {
-  console.log("🎯 Manual session generation from tracking triggered");
   checkAndGenerateFromTracking(() => SessionService.resumeSession('standard'))
     .then((session) => {
-      console.log(session ? "✅ Session generated" : "📝 No session generated");
       sendResponse({ session });
     })
     .catch((error) => {
@@ -379,10 +342,8 @@ export function handleGenerateSessionFromTracking(request, dependencies, sendRes
  * Retrieves separated session metrics
  */
 export function handleGetSessionMetrics(request, dependencies, sendResponse, finishRequest) {
-  console.log("📊 Getting separated session metrics");
   getSessionMetrics(request.options || {})
     .then((result) => {
-      console.log("✅ Session metrics retrieved");
       sendResponse({ result });
     })
     .catch((error) => {

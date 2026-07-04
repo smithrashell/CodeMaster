@@ -43,7 +43,7 @@ function createFakeTestDb(enableLogging = false) {
     enableLogging,
     dbName: `test_scenario_${Date.now()}`,
     _stores: stores,
-    async put(storeName, data) {
+    put(storeName, data) {
       if (!stores[storeName]) {
         stores[storeName] = [];
       }

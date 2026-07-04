@@ -57,6 +57,13 @@ function getTodaysAttempts(appState) {
 }
 
 /**
+ * Calculate the number of problems attempted today (includes current session)
+ */
+export function getTodaysProblemsAttempted(appState) {
+  return getTodaysAttempts(appState).length;
+}
+
+/**
  * Calculate the number of problems solved today (includes current session)
  */
 export function getTodaysProblemsSolved(appState) {
@@ -81,15 +88,27 @@ export function getTodaysAccuracy(appState) {
 
 /**
  * Count review problems completed today (includes current session)
- * Review problems are identified by box_level > 0
+ * Review problems are those with box_level > 1 in the problems store
  */
 export function getTodaysReviewProblems(appState) {
   const todaysAttempts = getTodaysAttempts(appState);
 
-  // Count successful review attempts (box_level > 0, handle both boolean true and number 1)
-  return todaysAttempts.filter(attempt =>
-    attempt.box_level > 0 && !!attempt.success
-  ).length;
+  // Build a map of problem_id -> box_level from the problems store
+  const allProblems = appState?.problems || appState?.allProblems || [];
+  const boxLevelMap = {};
+  allProblems.forEach(p => {
+    const id = p.problem_id || p.leetcode_id || p.id;
+    if (id != null) {
+      boxLevelMap[id] = p.box_level || p.BoxLevel || 1;
+    }
+  });
+
+  // A review problem is one that already existed in the user's problem store (box_level > 1)
+  return todaysAttempts.filter(attempt => {
+    const problemId = attempt.problem_id;
+    const boxLevel = boxLevelMap[problemId] || 1;
+    return boxLevel > 1;
+  }).length;
 }
 
 /**
@@ -140,6 +159,7 @@ export function calculateTodaysProgress(appState) {
 
   if (!hasActivity) {
     return {
+      problemsAttempted: 0,
       problemsSolved: 0,
       accuracy: 0,
       reviewProblems: 0,
@@ -150,6 +170,7 @@ export function calculateTodaysProgress(appState) {
   }
 
   return {
+    problemsAttempted: getTodaysProblemsAttempted(appState),
     problemsSolved: getTodaysProblemsSolved(appState),
     accuracy: getTodaysAccuracy(appState),
     reviewProblems: getTodaysReviewProblems(appState),

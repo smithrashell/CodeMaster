@@ -3,7 +3,7 @@
  * Extracted from ProblemGenerator.jsx
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import logger from "../../../shared/utils/logging/logger.js";
 import { useChromeMessage } from "../../../shared/hooks/useChromeMessage";
 import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErrorHandler.js";
@@ -45,9 +45,6 @@ export const useSettingsManager = () => {
   };
 };
 
-/**
- * Custom hook for session management
- */
 export const useSessionManagement = (settings, settingsLoaded, sessionCreationAttempted, lastSettingsHash, setProblems) => {
   const [sessionData, setSessionData] = useState(null);
   const [showInterviewBanner, setShowInterviewBanner] = useState(false);
@@ -60,14 +57,7 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
     const canCreateInterviewSession = freshSettings?.interviewMode && freshSettings.interviewMode !== 'disabled';
     const defaultInterviewMode = canCreateInterviewSession ? freshSettings.interviewMode : 'interview-like';
 
-    logger.info('handleInterviewChoice called:', {
-      settingsInterviewMode: freshSettings?.interviewMode,
-      canCreateInterviewSession,
-      willUseMode: defaultInterviewMode,
-      settingsFrequency: freshSettings?.interviewFrequency,
-      freshSettings,
-      cachedSettings: settings
-    });
+    logger.info('handleInterviewChoice called:', { mode: defaultInterviewMode, canCreate: canCreateInterviewSession });
 
     setShowInterviewBanner(false);
 
@@ -83,14 +73,7 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
         setShowInterviewBanner(true);
       }
     } catch (error) {
-      logger.error("Failed to create interview session:", {
-        error: error.message,
-        stack: error.stack,
-        settingsState: {
-          interviewMode: settings?.interviewMode,
-          interviewFrequency: settings?.interviewFrequency
-        }
-      });
+      logger.error("Failed to create interview session:", error.message);
       setShowInterviewBanner(true);
     }
   };
@@ -98,8 +81,6 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
   const handleRegularChoice = async () => {
     logger.info('handleRegularChoice called - creating standard session');
     setShowInterviewBanner(false);
-
-    // Clear interview mode from storage since user chose standard session
     chrome.storage.local.set({
       currentInterviewMode: { sessionType: 'standard', interviewConfig: null }
     }, () => {
@@ -117,10 +98,7 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
         setShowInterviewBanner(true);
       }
     } catch (error) {
-      logger.error("Failed to create standard session:", {
-        error: error.message,
-        stack: error.stack
-      });
+      logger.error("Failed to create standard session:", error.message);
       setShowInterviewBanner(true);
     }
   };
@@ -145,19 +123,13 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
         // Keep the current interview session type
         sessionType = currentSessionType;
       } else if (freshSettings?.interviewMode &&
-          freshSettings.interviewMode !== 'disabled' &&
-          freshSettings.interviewFrequency !== 'manual') {
+        freshSettings.interviewMode !== 'disabled' &&
+        freshSettings.interviewFrequency !== 'manual') {
         // Use settings if auto-interview is enabled
         sessionType = freshSettings.interviewMode;
       }
 
-      logger.info('handleRegenerateSession: Determining session type:', {
-        currentSessionType,
-        isCurrentlyInterview,
-        settingsInterviewMode: freshSettings?.interviewMode,
-        settingsFrequency: freshSettings?.interviewFrequency,
-        resolvedSessionType: sessionType
-      });
+      logger.info('handleRegenerateSession:', { currentSessionType, resolvedSessionType: sessionType });
 
       const response = await ChromeAPIErrorHandler.sendMessageWithRetry({
         type: "refreshSession",
@@ -187,23 +159,9 @@ export const useSessionManagement = (settings, settingsLoaded, sessionCreationAt
     }
   };
 
-  return {
-    sessionData,
-    setSessionData,
-    showInterviewBanner,
-    setShowInterviewBanner,
-    showRegenerationBanner,
-    setShowRegenerationBanner,
-    isRegenerating,
-    handleInterviewChoice,
-    handleRegularChoice,
-    handleRegenerateSession
-  };
+  return { sessionData, setSessionData, showInterviewBanner, setShowInterviewBanner, showRegenerationBanner, setShowRegenerationBanner, isRegenerating, handleInterviewChoice, handleRegularChoice, handleRegenerateSession };
 };
 
-/**
- * Custom hook for session loading and effects
- */
 export const useSessionLoader = (options) => {
   const {
     settings,
@@ -228,15 +186,15 @@ export const useSessionLoader = (options) => {
       type: "getOrCreateSession",
       ...(_manualSessionTypeOverride && { session_type: _manualSessionTypeOverride }),
       ...(settings?.interviewMode &&
-          settings.interviewMode !== 'disabled' &&
-          settings.interviewFrequency !== 'manual' &&
-          !_manualSessionTypeOverride &&
-          { session_type: settings.interviewMode }),
+        settings.interviewMode !== 'disabled' &&
+        settings.interviewFrequency !== 'manual' &&
+        !_manualSessionTypeOverride &&
+        { session_type: settings.interviewMode }),
       ...(settings?.interviewMode &&
-          settings.interviewMode !== 'disabled' &&
-          cacheClearedRecently &&
-          !_manualSessionTypeOverride &&
-          { session_type: settings.interviewMode })
+        settings.interviewMode !== 'disabled' &&
+        cacheClearedRecently &&
+        !_manualSessionTypeOverride &&
+        { session_type: settings.interviewMode })
     },
     [settings, settingsLoaded, _manualSessionTypeOverride],
     {
@@ -321,6 +279,12 @@ export const useSessionLoader = (options) => {
  */
 export const useSessionCacheListener = (setters, sessionCreationAttempted, setCacheClearedRecently, triggerSessionRefresh) => {
   const { setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner } = setters;
+  const triggerRefeshRef = useRef(triggerSessionRefresh);
+
+  useEffect(() => { triggerRefeshRef.current = triggerSessionRefresh; }, [triggerSessionRefresh]);
+
+
+
   useEffect(() => {
     const handleSessionCacheCleared = () => {
       logger.info("ProblemGenerator: Received session cache cleared signal, resetting session state");
@@ -336,9 +300,7 @@ export const useSessionCacheListener = (setters, sessionCreationAttempted, setCa
     const handleProblemSubmitted = () => {
       logger.info("ProblemGenerator: Received problemSubmitted, refreshing session from database");
       // Refetch session from database to get updated attempted status
-      if (triggerSessionRefresh) {
-        triggerSessionRefresh();
-      }
+      triggerRefeshRef.current?.();
     };
 
     const messageListener = (message, _sender, sendResponse) => {
@@ -360,5 +322,5 @@ export const useSessionCacheListener = (setters, sessionCreationAttempted, setCa
         chrome.runtime.onMessage.removeListener(messageListener);
       }
     };
-  }, [setters, sessionCreationAttempted, setCacheClearedRecently, triggerSessionRefresh, setSessionData, setProblems, setShowInterviewBanner, setShowRegenerationBanner]);
+  }, [sessionCreationAttempted, setCacheClearedRecently, setProblems, setSessionData, setShowInterviewBanner, setShowRegenerationBanner]);
 };

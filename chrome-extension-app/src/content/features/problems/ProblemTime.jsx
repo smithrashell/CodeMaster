@@ -1,6 +1,6 @@
 // ProbTime.js
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useNav } from "../../../shared/provider/navprovider";
 import { usePreviousRoute } from "../../../shared/provider/PreviousRouteProvider.js";
 import { useAnimatedClose } from "../../../shared/hooks/useAnimatedClose";
@@ -11,7 +11,6 @@ import Header from "../../components/navigation/header.jsx";
 
 const ProbTime = () => {
   const { state: routeState, pathname } = useLocation();
-  const navigate = useNavigate();
   const { isAppOpen, setIsAppOpen } = useNav();
   const { shouldRender, isClosing } = useAnimatedClose(isAppOpen);
 
@@ -44,16 +43,6 @@ const ProbTime = () => {
     isFromTimer: previousRoute === "/Timer",
     shouldShowSubmission: previousRoute === "/Timer"
   });
-
-  const _onSkip = () => {
-    chrome.runtime.sendMessage(
-      { type: "skipProblem", consentScriptData: routeState.problemData },
-      function (response) {
-        console.log("📌Response from content script", response);
-        navigate("/Probgen");
-      }
-    );
-  };
 
   // Render the form if coming from the Timer route
   // NOTE: We use CSS display:none instead of returning null to prevent unmounting.

@@ -26,7 +26,7 @@ const filterSessionsByTimeRange = (sessions, timeRange) => {
   }
   
   return sessions.filter(session => {
-    const sessionDate = new Date(session.Date || session.date);
+    const sessionDate = new Date(session.date);
     return sessionDate >= startDate;
   });
 };
@@ -127,7 +127,7 @@ const calculateDifficultyProgression = (sessions) => {
   // Sort sessions by date (oldest to newest)
   const sortedSessions = sessions
     .filter(s => s.status === 'completed')
-    .sort((a, b) => new Date(a.date || a.Date) - new Date(b.date || b.Date));
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   // Group by date and count difficulties
   return sortedSessions.map(session => {
@@ -148,7 +148,7 @@ const calculateDifficultyProgression = (sessions) => {
     });
 
     // Format date for display
-    const sessionDate = new Date(session.date || session.Date);
+    const sessionDate = new Date(session.date);
     const dateStr = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
     return {

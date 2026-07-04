@@ -1,9 +1,3 @@
-/**
- * Message Router Module
- *
- * Extracted from background/index.js to improve maintainability
- * Handles all Chrome message routing for the extension
- */
 
 import { NavigationService } from "../shared/services/chrome/navigationService.js";
 import { adaptiveLimitsService } from "../shared/services/attempts/adaptiveLimitsService.js";

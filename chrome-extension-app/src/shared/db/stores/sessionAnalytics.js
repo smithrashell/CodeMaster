@@ -99,6 +99,8 @@ function createAnalyticsRecord(sessionSummary) {
     weak_tags: sessionSummary.performance?.weakTags || [],
     timing_feedback: sessionSummary.performance?.timingFeedback || {},
     insights: sessionSummary.insights || {},
+    new_problem_accuracy: sessionSummary.new_problem_accuracy ?? null,
+    review_accuracy: sessionSummary.review_accuracy ?? null,
     difficulty_breakdown: {
       easy: sessionSummary.performance?.easy || sessionSummary.performance?.Easy || { attempts: 0, correct: 0, time: 0, avg_time: 0 },
       medium: sessionSummary.performance?.medium || sessionSummary.performance?.Medium || { attempts: 0, correct: 0, time: 0, avg_time: 0 },

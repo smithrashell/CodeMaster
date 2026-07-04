@@ -50,14 +50,14 @@ function setupUserProgressMocks() {
   ]);
 
   getAllAttempts.mockResolvedValue([
-    { ProblemID: 1, Success: true, TimeSpent: 1200, AttemptDate: "2024-01-15T10:00:00Z" },
-    { ProblemID: 2, Success: false, TimeSpent: 1800, AttemptDate: "2024-01-15T11:00:00Z" },
-    { ProblemID: 2, Success: true, TimeSpent: 1500, AttemptDate: "2024-01-15T12:00:00Z" }
+    { problem_id: 1, success: true, time_spent: 1200, attempt_date: "2024-01-15T10:00:00Z" },
+    { problem_id: 2, success: false, time_spent: 1800, attempt_date: "2024-01-15T11:00:00Z" },
+    { problem_id: 2, success: true, time_spent: 1500, attempt_date: "2024-01-15T12:00:00Z" }
   ]);
 
   getAllSessions.mockResolvedValue([
-    { sessionId: "session-1", Date: "2024-01-15T10:00:00Z", completed: true, duration: 45 },
-    { sessionId: "session-2", Date: "2024-01-14T14:00:00Z", completed: true, duration: 30 }
+    { sessionId: "session-1", date: "2024-01-15T10:00:00Z", completed: true, duration: 45 },
+    { sessionId: "session-2", date: "2024-01-14T14:00:00Z", completed: true, duration: 30 }
   ]);
 
   getAllStandardProblems.mockResolvedValue([
@@ -107,10 +107,10 @@ function createLargeMockDataset() {
       attempt_stats: { total_attempts: i % 10, successful_attempts: i % 5 }
     })),
     attempts: Array.from({ length: 15000 }, (_, i) => ({
-      ProblemID: i % 5000,
-      Success: i % 3 === 0,
-      TimeSpent: 900 + (i % 1200),
-      AttemptDate: new Date(Date.now() - (i * 60000)).toISOString()
+      problem_id: i % 5000,
+      success: i % 3 === 0,
+      time_spent: 900 + (i % 1200),
+      attempt_date: new Date(Date.now() - (i * 60000)).toISOString()
     }))
   };
 }
@@ -186,17 +186,17 @@ describe("DashboardService - Critical User Retention Paths", () => {
     it("should calculate problem statistics correctly for user confidence", async () => {
       // Mock specific scenario to test accuracy
       fetchAllProblems.mockResolvedValue([
-        { id: 1, problem_id: 1, BoxLevel: 1 }, // New problem
-        { id: 2, problem_id: 2, BoxLevel: 3 }, // In progress
-        { id: 3, problem_id: 3, BoxLevel: 7 }, // Mastered
-        { id: 4, problem_id: 4, BoxLevel: 7 }  // Mastered
+        { id: 1, problem_id: 1, box_level: 1 }, // New problem
+        { id: 2, problem_id: 2, box_level: 3 }, // In progress
+        { id: 3, problem_id: 3, box_level: 7 }, // Mastered
+        { id: 4, problem_id: 4, box_level: 7 }  // Mastered
       ]);
 
       getAllAttempts.mockResolvedValue([
-        { ProblemID: 1, Success: false, TimeSpent: 1200 },
-        { ProblemID: 2, Success: true, TimeSpent: 900 },
-        { ProblemID: 3, Success: true, TimeSpent: 600 },
-        { ProblemID: 4, Success: true, TimeSpent: 800 }
+        { problem_id: 1, success: false, time_spent: 1200 },
+        { problem_id: 2, success: true, time_spent: 900 },
+        { problem_id: 3, success: true, time_spent: 600 },
+        { problem_id: 4, success: true, time_spent: 800 }
       ]);
 
       getAllSessions.mockResolvedValue([]);
@@ -214,9 +214,9 @@ describe("DashboardService - Critical User Retention Paths", () => {
       const result = await getDashboardStatistics();
 
       // CRITICAL: Statistics must be accurate for user trust
-      expect(result.statistics.new).toBe(1);        // 1 problem at BoxLevel 1
-      expect(result.statistics.inProgress).toBe(1); // 1 problem at BoxLevel 3
-      expect(result.statistics.mastered).toBe(2);   // 2 problems at BoxLevel 7
+      expect(result.statistics.new).toBe(1);        // 1 problem at box_level 1
+      expect(result.statistics.inProgress).toBe(1); // 1 problem at box_level 3
+      expect(result.statistics.mastered).toBe(2);   // 2 problems at box_level 7
       expect(result.statistics.totalSolved).toBe(3); // mastered + inProgress
     });
 
@@ -228,11 +228,11 @@ describe("DashboardService - Critical User Retention Paths", () => {
       ]);
 
       getAllAttempts.mockResolvedValue([
-        { ProblemID: 1, Success: true },   // Easy success
-        { ProblemID: 1, Success: false },  // Easy failure  
-        { ProblemID: 2, Success: true },   // Medium success
-        { ProblemID: 2, Success: true },   // Medium success
-        { ProblemID: 3, Success: false },  // Hard failure
+        { problem_id: 1, success: true },   // Easy success
+        { problem_id: 1, success: false },  // Easy failure
+        { problem_id: 2, success: true },   // Medium success
+        { problem_id: 2, success: true },   // Medium success
+        { problem_id: 3, success: false },  // Hard failure
       ]);
 
       getAllSessions.mockResolvedValue([]);
@@ -280,13 +280,13 @@ describe("DashboardService - Critical User Retention Paths", () => {
     it("should provide consistent learning progress data", async () => {
       // Mock the underlying data sources instead of spying on getDashboardStatistics
       fetchAllProblems.mockResolvedValue([
-        { id: 1, problem_id: 1, leetcode_id: 1, BoxLevel: 1 },
-        { id: 2, problem_id: 2, leetcode_id: 2, BoxLevel: 2 },
-        { id: 3, problem_id: 3, leetcode_id: 3, BoxLevel: 7 }
+        { id: 1, problem_id: 1, leetcode_id: 1, box_level: 1 },
+        { id: 2, problem_id: 2, leetcode_id: 2, box_level: 2 },
+        { id: 3, problem_id: 3, leetcode_id: 3, box_level: 7 }
       ]);
-      
+
       getAllAttempts.mockResolvedValue([
-        { id: 1, ProblemID: 1, Success: true }
+        { id: 1, problem_id: 1, success: true }
       ]);
       
       getAllSessions.mockResolvedValue([]);
@@ -334,18 +334,18 @@ describe("DashboardService - Critical User Retention Paths", () => {
     it("should handle session history data requests reliably", async () => {
       // Mock the underlying data sources to generate proper session data
       fetchAllProblems.mockResolvedValue([
-        { id: 1, problem_id: 1, leetcode_id: 1, BoxLevel: 3 },
-        { id: 2, problem_id: 2, leetcode_id: 2, BoxLevel: 7 }
+        { id: 1, problem_id: 1, leetcode_id: 1, box_level: 3 },
+        { id: 2, problem_id: 2, leetcode_id: 2, box_level: 7 }
       ]);
-      
+
       getAllAttempts.mockResolvedValue([
-        { id: 1, ProblemID: 1, Success: true, TimeSpent: 900, sessionId: "s1" },
-        { id: 2, ProblemID: 2, Success: true, TimeSpent: 600, sessionId: "s2" }
+        { id: 1, problem_id: 1, success: true, time_spent: 900, sessionId: "s1" },
+        { id: 2, problem_id: 2, success: true, time_spent: 600, sessionId: "s2" }
       ]);
-      
+
       getAllSessions.mockResolvedValue([
-        { sessionId: "s1", Date: "2024-01-15", completed: true, duration: 45, status: "completed" },
-        { sessionId: "s2", Date: "2024-01-14", completed: true, duration: 30, status: "completed" }
+        { sessionId: "s1", date: "2024-01-15", completed: true, duration: 45, status: "completed" },
+        { sessionId: "s2", date: "2024-01-14", completed: true, duration: 30, status: "completed" }
       ]);
       
       getAllStandardProblems.mockResolvedValue([
@@ -393,8 +393,8 @@ describe("DashboardService - Critical User Retention Paths", () => {
 
     it("should handle concurrent data requests efficiently", async () => {
       // Mock data for concurrent requests
-      fetchAllProblems.mockResolvedValue([{ id: 1, BoxLevel: 2 }]);
-      getAllAttempts.mockResolvedValue([{ ProblemID: 1, Success: true }]);
+      fetchAllProblems.mockResolvedValue([{ id: 1, box_level: 2 }]);
+      getAllAttempts.mockResolvedValue([{ problem_id: 1, success: true }]);
       getAllSessions.mockResolvedValue([{ sessionId: "s1", completed: true }]);
       getAllStandardProblems.mockResolvedValue([{ id: 1, difficulty: "Easy" }]);
       TagService.getCurrentLearningState.mockResolvedValue({ masteryData: [] });
@@ -426,8 +426,8 @@ describe("DashboardService - Critical User Retention Paths", () => {
   describe("🔧 CRITICAL: Error recovery and data consistency", () => {
     it("should recover from partial service failures", async () => {
       // Mock scenario: Some services fail, others succeed
-      fetchAllProblems.mockResolvedValue([{ id: 1, BoxLevel: 2 }]);
-      getAllAttempts.mockResolvedValue([{ ProblemID: 1, Success: true }]);
+      fetchAllProblems.mockResolvedValue([{ id: 1, box_level: 2 }]);
+      getAllAttempts.mockResolvedValue([{ problem_id: 1, success: true }]);
       getAllSessions.mockResolvedValue([]);
       getAllStandardProblems.mockRejectedValue(new Error("Standard problems service down"));
       TagService.getCurrentLearningState.mockRejectedValue(new Error("Tag service unavailable"));
@@ -441,8 +441,8 @@ describe("DashboardService - Critical User Retention Paths", () => {
     it("should provide data consistency across page loads", async () => {
       // Mock stable data
       const stableData = {
-        problems: [{ id: 1, BoxLevel: 2 }],
-        attempts: [{ ProblemID: 1, Success: true, TimeSpent: 900 }],
+        problems: [{ id: 1, box_level: 2 }],
+        attempts: [{ problem_id: 1, success: true, time_spent: 900 }],
         sessions: [{ sessionId: "s1", completed: true }]
       };
 
@@ -506,12 +506,12 @@ describe("DashboardService - Critical User Retention Paths", () => {
       // Mock minimal user activity
       const mockDashboardData = {
         sessions: {
-          allSessions: [{ sessionId: "s1", Date: "2024-01-15", completed: true }],
+          allSessions: [{ sessionId: "s1", date: "2024-01-15", completed: true }],
           sessionAnalytics: [{ sessionId: "s1", accuracy: 0.8 }],
           productivityMetrics: { averageSessionLength: 45 }
         },
         attempts: [
-          { ProblemID: 1, Success: true, Comments: "Used hash map approach, worked well" }
+          { problem_id: 1, success: true, Comments: "Used hash map approach, worked well" }
         ]
       };
 

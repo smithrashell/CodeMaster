@@ -31,10 +31,10 @@ export default function SearchableTagTable({ tags = [], onSelect }) {
           </thead>
           <tbody>
             {filteredTags.map((tag) => {
-              const mastery =
-                tag.totalAttempts > 0
-                  ? (tag.successfulAttempts / tag.totalAttempts) * 100
-                  : 0;
+              const rr = tag.recentResults || tag.recent_results;
+              const mastery = Array.isArray(rr) && rr.length > 0
+                ? (rr.filter(Boolean).length / rr.length) * 100
+                : (tag.totalAttempts > 0 ? (tag.successfulAttempts / tag.totalAttempts) * 100 : 0);
 
               return (
                 <tr key={tag.tag}>

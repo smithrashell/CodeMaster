@@ -1,0 +1,736 @@
+{
+  "generatedFrom": {
+    "taxonomy": "tag_taxonomy.json",
+    "patternStats": "pattern_stats.json",
+    "windowSize": 20,
+    "notes": [
+      "problemCounts/totalProblems aggregate only confirmed/novel cells from pattern_stats.json; fallback-classified problems (cell_status=fallback) are excluded and must not be folded in on regeneration.",
+      "dsNodes.breadthGate.minRequired = max(2, ceil(0.25 * availableTechniques)) -- flat 25% coverage floor, chosen so the largest hub DS nodes (array/hash table/matrix/string) do not get the weakest breadth requirement, which a sqrt-scaled formula produced.",
+      "techniqueNodes.breadthGate.minRequired = min(2, availableDs) -- a binary transferability check (has this technique been shown to generalize beyond one DS context), not a coverage percentage, so it is intentionally not scaled the same way as dsNodes."
+    ]
+  },
+  "dsNodes": [
+    {
+      "id": "array",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 361,
+        "medium": 758,
+        "hard": 342
+      },
+      "totalProblems": 1461,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 19,
+      "minUniqueRequired": 14,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 24,
+        "minRequired": 6
+      }
+    },
+    {
+      "id": "string",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 139,
+        "medium": 234,
+        "hard": 111
+      },
+      "totalProblems": 484,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 13,
+      "minUniqueRequired": 10,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 20,
+        "minRequired": 5
+      }
+    },
+    {
+      "id": "matrix",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 37,
+        "medium": 143,
+        "hard": 67
+      },
+      "totalProblems": 247,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 11,
+      "minUniqueRequired": 8,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 21,
+        "minRequired": 6
+      }
+    },
+    {
+      "id": "hash table",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 68,
+        "medium": 111,
+        "hard": 21
+      },
+      "totalProblems": 200,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 11,
+      "minUniqueRequired": 8,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 21,
+        "minRequired": 6
+      }
+    },
+    {
+      "id": "binary tree",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 28,
+        "medium": 94,
+        "hard": 12
+      },
+      "totalProblems": 134,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 11,
+        "minRequired": 3
+      }
+    },
+    {
+      "id": "graph",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 2,
+        "medium": 63,
+        "hard": 52
+      },
+      "totalProblems": 117,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 14,
+        "minRequired": 4
+      }
+    },
+    {
+      "id": "heap (priority queue)",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 5,
+        "medium": 37,
+        "hard": 20
+      },
+      "totalProblems": 62,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 9,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 8,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "tree",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 3,
+        "medium": 24,
+        "hard": 33
+      },
+      "totalProblems": 60,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 9,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 7,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "linked list",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 12,
+        "medium": 36,
+        "hard": 4
+      },
+      "totalProblems": 52,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 9,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 8,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "binary search tree",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 9,
+        "medium": 26,
+        "hard": 3
+      },
+      "totalProblems": 38,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 7,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "stack",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 8,
+        "medium": 24,
+        "hard": 6
+      },
+      "totalProblems": 38,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 5,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "trie",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 1,
+        "medium": 13,
+        "hard": 14
+      },
+      "totalProblems": 28,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 10,
+        "minRequired": 3
+      }
+    },
+    {
+      "id": "queue",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 5,
+        "medium": 11,
+        "hard": 2
+      },
+      "totalProblems": 18,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 5,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "doubly-linked list",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 1,
+        "medium": 5,
+        "hard": 3
+      },
+      "totalProblems": 9,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 7,
+      "minUniqueRequired": 5,
+      "breadthGate": {
+        "type": "distinctTechniques",
+        "availableTechniques": 3,
+        "minRequired": 2
+      }
+    }
+  ],
+  "techniqueNodes": [
+    {
+      "id": "dynamic programming",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 9,
+        "medium": 206,
+        "hard": 216
+      },
+      "totalProblems": 431,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 13,
+      "minUniqueRequired": 10,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 9,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "greedy",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 50,
+        "medium": 226,
+        "hard": 65
+      },
+      "totalProblems": 341,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 12,
+      "minUniqueRequired": 9,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 9,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "simulation",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 158,
+        "medium": 145,
+        "hard": 23
+      },
+      "totalProblems": 326,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 12,
+      "minUniqueRequired": 9,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 11,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "counting",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 128,
+        "medium": 91,
+        "hard": 6
+      },
+      "totalProblems": 225,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 11,
+      "minUniqueRequired": 8,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 9,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "depth-first search",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 35,
+        "medium": 138,
+        "hard": 52
+      },
+      "totalProblems": 225,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 11,
+      "minUniqueRequired": 8,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 11,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "binary search",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 18,
+        "medium": 98,
+        "hard": 63
+      },
+      "totalProblems": 179,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 11,
+      "minUniqueRequired": 8,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 8,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "two pointers",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 65,
+        "medium": 86,
+        "hard": 10
+      },
+      "totalProblems": 161,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 11,
+      "minUniqueRequired": 8,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 8,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "math",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 71,
+        "medium": 61,
+        "hard": 25
+      },
+      "totalProblems": 157,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 6,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "sliding window",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 28,
+        "medium": 76,
+        "hard": 25
+      },
+      "totalProblems": 129,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 5,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "bit manipulation",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 32,
+        "medium": 57,
+        "hard": 19
+      },
+      "totalProblems": 108,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 6,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "prefix sum",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 16,
+        "medium": 79,
+        "hard": 12
+      },
+      "totalProblems": 107,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 5,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "breadth-first search",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 4,
+        "medium": 63,
+        "hard": 28
+      },
+      "totalProblems": 95,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 7,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "sorting",
+      "classification": "Core Concept",
+      "problemCounts": {
+        "easy": 36,
+        "medium": 50,
+        "hard": 5
+      },
+      "totalProblems": 91,
+      "masteryThreshold": 0.75,
+      "minAttemptsRequired": 10,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 7,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "backtracking",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 2,
+        "medium": 55,
+        "hard": 26
+      },
+      "totalProblems": 83,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 9,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 7,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "monotonic stack",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 2,
+        "medium": 29,
+        "hard": 19
+      },
+      "totalProblems": 50,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 9,
+      "minUniqueRequired": 7,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 6,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "union find",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 0,
+        "medium": 19,
+        "hard": 24
+      },
+      "totalProblems": 43,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 7,
+      "minUniqueRequired": 5,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 5,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "enumeration",
+      "classification": "Fundamental Technique",
+      "problemCounts": {
+        "easy": 12,
+        "medium": 20,
+        "hard": 5
+      },
+      "totalProblems": 37,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 6,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "recursion",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 3,
+        "medium": 16,
+        "hard": 12
+      },
+      "totalProblems": 31,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 8,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "geometry",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 6,
+        "medium": 12,
+        "hard": 8
+      },
+      "totalProblems": 26,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 3,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "divide and conquer",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 2,
+        "medium": 15,
+        "hard": 6
+      },
+      "totalProblems": 23,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 8,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "shortest path",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 0,
+        "medium": 14,
+        "hard": 9
+      },
+      "totalProblems": 23,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 6,
+      "minUniqueRequired": 5,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 3,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "bitmask",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 0,
+        "medium": 7,
+        "hard": 15
+      },
+      "totalProblems": 22,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 6,
+      "minUniqueRequired": 5,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 5,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "topological sort",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 0,
+        "medium": 5,
+        "hard": 8
+      },
+      "totalProblems": 13,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 6,
+      "minUniqueRequired": 5,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 3,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "intervals",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 2,
+        "medium": 7,
+        "hard": 3
+      },
+      "totalProblems": 12,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 8,
+      "minUniqueRequired": 6,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 2,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "memoization",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 0,
+        "medium": 4,
+        "hard": 3
+      },
+      "totalProblems": 7,
+      "masteryThreshold": 0.85,
+      "minAttemptsRequired": 6,
+      "minUniqueRequired": 5,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 6,
+        "minRequired": 2
+      }
+    },
+    {
+      "id": "monotonic queue",
+      "classification": "Advanced Technique",
+      "problemCounts": {
+        "easy": 0,
+        "medium": 0,
+        "hard": 3
+      },
+      "totalProblems": 3,
+      "masteryThreshold": 0.8,
+      "minAttemptsRequired": 6,
+      "minUniqueRequired": 5,
+      "breadthGate": {
+        "type": "distinctDs",
+        "availableDs": 1,
+        "minRequired": 1
+      }
+    }
+  ]
+}

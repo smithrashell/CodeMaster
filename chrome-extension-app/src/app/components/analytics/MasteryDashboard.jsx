@@ -23,14 +23,25 @@ import {
   getTierTagsSource,
 } from "./masteryDashboardHelpers";
 
+const getDisplayStats = (tag, viewMode) => {
+  const cumTotal = tag.total_attempts ?? tag.totalAttempts ?? 0;
+  const cumSuccessful = tag.successful_attempts ?? tag.successfulAttempts ?? 0;
+  const rr = tag.recent_results;
+  const hasWindow = Array.isArray(rr) && rr.length > 0;
+
+  if (viewMode === 'recent' && hasWindow) {
+    const winSuccessful = rr.filter(Boolean).length;
+    const winTotal = rr.length;
+    return { totalAttempts: winTotal, successfulAttempts: winSuccessful, progress: Math.round((winSuccessful / winTotal) * 100) };
+  }
+  return { totalAttempts: cumTotal, successfulAttempts: cumSuccessful, progress: cumTotal > 0 ? Math.round((cumSuccessful / cumTotal) * 100) : 0 };
+};
+
 const createTableRows = (data, _options, callbacks) => {
-  const { setSelectedTag } = callbacks;
+  const { setSelectedTag, viewMode } = callbacks;
 
   return data.map((tag) => {
-    // Support both snake_case and PascalCase field names
-    const successfulAttempts = tag.successful_attempts ?? tag.successfulAttempts ?? 0;
-    const totalAttempts = tag.total_attempts ?? tag.totalAttempts ?? 0;
-    const progress = totalAttempts > 0 ? Math.round((successfulAttempts / totalAttempts) * 100) : 0;
+    const { totalAttempts, progress } = getDisplayStats(tag, viewMode);
     const isFocus = tag.isFocus;
     const isUnmastered = !tag.mastered;
 
@@ -81,11 +92,12 @@ const TagTable = ({
   search,
   setSearch,
   setSelectedTag,
+  viewMode,
   height
 }) => {
   const rows = createTableRows(paginateData(source, currentPage, pageSize),
     { highlightUnmastered },
-    { setSelectedTag }
+    { setSelectedTag, viewMode }
   );
   const totalPages = Math.max(1, Math.ceil(source.length / pageSize));
 
@@ -160,6 +172,7 @@ const TagTable = ({
 };
 
 export default function MasteryDashboard(props) {
+  const { viewMode = 'recent' } = props;
   const [selectedTag, setSelectedTag] = useState(null);
   const [data, setData] = useState(props.data);
   const [search, setSearch] = useState("");
@@ -186,6 +199,12 @@ export default function MasteryDashboard(props) {
 
   const tierTagsSource = getTierTagsSource(data);
   const tierTagsFiltered = processTagData(tierTagsSource || [], data.unmasteredTags || [], search, activeFocusFilter);
+
+  // Adjust selectedTag for pie chart based on viewMode
+  const displayTag = selectedTag ? (() => {
+    const stats = getDisplayStats(selectedTag, viewMode);
+    return { ...selectedTag, total_attempts: stats.totalAttempts, successful_attempts: stats.successfulAttempts };
+  })() : null;
 
   return (
     <Tabs
@@ -224,7 +243,7 @@ export default function MasteryDashboard(props) {
                 title={getPieTitle(selectedTag, "tier")}
                 chartType="pie"
                 useTimeGranularity={false}
-                data={generatePieData(selectedTag, tierTagsFiltered, "tier")}
+                data={generatePieData(displayTag, tierTagsFiltered, "tier")}
                 dataKeys={[{ key: "value", color: "#82ca9d" }]}
                 chartHeight={450}
               />
@@ -245,6 +264,7 @@ export default function MasteryDashboard(props) {
               search={search}
               setSearch={setSearch}
               setSelectedTag={setSelectedTag}
+              viewMode={viewMode}
               height="600px"
             />
           </Grid.Col>
@@ -260,7 +280,7 @@ export default function MasteryDashboard(props) {
                 title={getPieTitle(selectedTag, "overall")}
                 chartType="pie"
                 useTimeGranularity={false}
-                data={generatePieData(selectedTag, allTagsFiltered, "overall")}
+                data={generatePieData(displayTag, allTagsFiltered, "overall")}
                 dataKeys={[{ key: "value", color: "#a9c1ff" }]}
                 chartHeight={450}
               />
@@ -281,6 +301,7 @@ export default function MasteryDashboard(props) {
               search={search}
               setSearch={setSearch}
               setSelectedTag={setSelectedTag}
+              viewMode={viewMode}
               height="600px"
             />
           </Grid.Col>

@@ -23,11 +23,11 @@ jest.mock('../../index.js', () => ({
 
 // Sibling store imports used by sessionsAdaptive.js
 jest.mock('../attempts.js', () => ({
-  getMostRecentAttempt: jest.fn(async () => null),
+  getMostRecentAttempt: jest.fn(() => null),
 }));
 
 jest.mock('../sessionAnalytics.js', () => ({
-  getRecentSessionAnalytics: jest.fn(async () => []),
+  getRecentSessionAnalytics: jest.fn(() => []),
 }));
 
 jest.mock('../sessionsEscapeHatch.js', () => ({
@@ -39,7 +39,7 @@ jest.mock('../sessionsEscapeHatch.js', () => ({
 }));
 
 jest.mock('../sessionsState.js', () => ({
-  initializeSessionState: jest.fn(async () => ({
+  initializeSessionState: jest.fn(() => ({
     id: 'session_state',
     num_sessions_completed: 5,
     current_difficulty_cap: 'Medium',
@@ -64,7 +64,7 @@ jest.mock('../sessionsState.js', () => ({
 // Service imports
 jest.mock('../../../services/attempts/tagServices.js', () => ({
   TagService: {
-    getCurrentTier: jest.fn(async () => ({ focusTags: ['array', 'string', 'hash-table'] })),
+    getCurrentTier: jest.fn(() => ({ focusTags: ['array', 'string', 'hash-table'] })),
   },
 }));
 
@@ -72,16 +72,16 @@ jest.mock('../../../services/attempts/tagServices.js', () => ({
 // Use { virtual: true } so Jest creates the mock without requiring the file.
 jest.mock('../../services/storageService.js', () => ({
   StorageService: {
-    getSettings: jest.fn(async () => ({ sessionLength: 5, numberofNewProblemsPerSession: 3 })),
-    setSessionState: jest.fn(async () => {}),
-    getSessionState: jest.fn(async () => null),
+    getSettings: jest.fn(() => ({ sessionLength: 5, numberofNewProblemsPerSession: 3 })),
+    setSessionState: jest.fn(() => {}),
+    getSessionState: jest.fn(() => null),
   },
 }), { virtual: true });
 
 jest.mock('../../services/focusCoordinationService.js', () => ({
   __esModule: true,
   default: {
-    getFocusDecision: jest.fn(async () => ({
+    getFocusDecision: jest.fn(() => ({
       onboarding: false,
       activeFocusTags: ['array', 'string'],
       userPreferences: { tags: ['array'] },
@@ -107,7 +107,7 @@ jest.mock('../../../utils/session/sessionLimits.js', () => ({
 
 jest.mock('../../services/interviewService.js', () => ({
   InterviewService: {
-    getInterviewInsightsForAdaptiveLearning: jest.fn(async () => ({
+    getInterviewInsightsForAdaptiveLearning: jest.fn(() => ({
       hasInterviewData: false,
       transferAccuracy: 0,
       speedDelta: 0,

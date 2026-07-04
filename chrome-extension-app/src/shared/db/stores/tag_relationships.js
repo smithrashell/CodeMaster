@@ -112,6 +112,17 @@ export const classifyTags = async () => {
   }
 };
 
+export async function getAllTagRelationshipEntries() {
+  const db = await openDB();
+  const tx = db.transaction("tag_relationships", "readonly");
+  const store = tx.objectStore("tag_relationships");
+  const request = store.getAll();
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 export async function getTagRelationships() {
   const db = await openDB();
   const tx = db.transaction("tag_relationships", "readonly");

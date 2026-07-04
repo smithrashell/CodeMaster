@@ -75,7 +75,7 @@ export async function generateGoalsData(providedData = {}) {
           minReviewRatio: 30,
           maxNewProblems: settings.numberofNewProblemsPerSession || 4,
           difficultyCapEnabled: true,
-          maxDifficulty: "Medium",
+          maxDifficulty: settings.maxDifficulty || 'all',
           hintLimitEnabled: false,
           maxHintsPerProblem: 3
         },
@@ -88,7 +88,7 @@ export async function generateGoalsData(providedData = {}) {
       learningPlan: {
         cadence: { sessionsPerWeek: 5, sessionLength: "auto", flexibleSchedule: true },
         focus: { primaryTags: [], difficultyDistribution: { easy: 20, medium: 60, hard: 20 }, reviewRatio: 40 },
-        guardrails: { minReviewRatio: 30, maxNewProblems: 5, difficultyCapEnabled: true, maxDifficulty: "Medium", hintLimitEnabled: false, maxHintsPerProblem: 3 },
+        guardrails: { minReviewRatio: 30, maxNewProblems: 5, difficultyCapEnabled: true, maxDifficulty: 'all', hintLimitEnabled: false, maxHintsPerProblem: 3 },
         outcomeTrends: {
           weeklyAccuracy: { value: 0, status: "behind", target: 75 },
           problemsPerWeek: { value: 0, status: "behind", target: "25-30", display: "0" },

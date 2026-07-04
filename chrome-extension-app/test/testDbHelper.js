@@ -14,7 +14,7 @@
  */
 // test/testDbHelper.js
 import { STORES } from '../src/shared/db/core/storeCreation.js';
-// Schema mirrors storeCreation.js — all 17 stores with their keyPaths and indexes.
+// Schema mirrors storeCreation.js — all 18 stores with their keyPaths and indexes.
 
 let dbCounter = 0;
 

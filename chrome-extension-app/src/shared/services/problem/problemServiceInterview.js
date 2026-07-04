@@ -193,14 +193,7 @@ export async function handleInterviewSessionFallback(error, fetchAndAssembleSess
   logger.info("Attempting fallback to standard session");
   try {
     const settings = await buildAdaptiveSessionSettings();
-    const fallbackProblems = await fetchAndAssembleSessionProblems(
-      settings.sessionLength,
-      settings.numberOfNewProblems,
-      settings.currentAllowedTags,
-      settings.currentDifficultyCap,
-      settings.userFocusAreas,
-      settings.isOnboarding
-    );
+    const fallbackProblems = await fetchAndAssembleSessionProblems(settings);
     logger.info(`Fallback session created with ${fallbackProblems.length} problems`);
     return fallbackProblems;
   } catch (fallbackError) {

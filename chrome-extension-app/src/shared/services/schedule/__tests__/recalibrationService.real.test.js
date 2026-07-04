@@ -37,7 +37,7 @@ jest.mock('../recalibrationHelpers.js', () => ({
     problemsRecalibrated: recalibrated,
     message: `${Math.round(accuracy * 100)}% accuracy`,
   })),
-  prepareProblemsForRecalibration: jest.fn(async () => []),
+  prepareProblemsForRecalibration: jest.fn(() => []),
 }));
 
 import {

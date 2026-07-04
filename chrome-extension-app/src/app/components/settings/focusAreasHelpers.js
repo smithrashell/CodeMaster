@@ -244,6 +244,10 @@ export const setupAttemptUpdateListener = (focusAvailability, setFocusAvailabili
 export const getTagMasteryProgress = (tagName, masteryData) => {
   const tagData = masteryData.find((tag) => tag.tag === tagName);
   if (!tagData || tagData.totalAttempts === 0) return 0;
+  const rr = tagData.recentResults || tagData.recent_results;
+  if (Array.isArray(rr) && rr.length > 0) {
+    return Math.round((rr.filter(Boolean).length / rr.length) * 100);
+  }
   return Math.round((tagData.successfulAttempts / tagData.totalAttempts) * 100);
 };
 

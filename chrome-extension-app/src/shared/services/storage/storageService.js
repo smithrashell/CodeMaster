@@ -119,8 +119,9 @@ export const StorageService = {
       sessionLength: 'auto', // Auto mode lets algorithm decide (3-12 problems based on performance)
       limit: "off",
       reminder: { value: false, label: "6" },
-      numberofNewProblemsPerSession: 2,
+      numberofNewProblemsPerSession: 'auto',
       adaptive: true,
+      maxDifficulty: 'all',
       focusAreas: [], // Empty by default - system will recommend based on learning state
       systemFocusPool: null, // Stable system-generated focus pool (created on first session)
       focusAreasLastChanged: null, // Timestamp when user last changed focus areas (for session staleness detection)

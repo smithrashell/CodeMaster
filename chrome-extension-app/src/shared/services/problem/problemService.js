@@ -86,7 +86,9 @@ import {
   checkSafetyGuardRails,
   logFinalSessionComposition,
   deduplicateById,
+  filterRecentlyAttemptedProblems,
 } from "./problemServiceSession.js";
+import { getExcludedIds } from "../../db/stores/excludedProblems.js";
 import {
   createInterviewSession as createInterviewSessionHelper,
   applyProblemMix,
@@ -97,13 +99,17 @@ import {
   addInterviewMetadata,
 } from "./problemServiceInterview.js";
 import {
-  addOrUpdateProblemWithRetry as addOrUpdateProblemWithRetryHelper,
-  getProblemByDescriptionWithRetry as getProblemByDescriptionWithRetryHelper,
-  getAllProblemsWithRetry as getAllProblemsWithRetryHelper,
+  addOrUpdateProblemWithRetry,
+  getProblemByDescriptionWithRetry,
+  getAllProblemsWithRetry,
   countProblemsByBoxLevelWithRetryService,
   createAbortController,
-  generateSessionWithRetry as generateSessionWithRetryHelper,
+  generateSessionWithRetry,
 } from "./problemServiceRetry.js";
+
+const findProblemInSession = (session, problemData) => {
+  return session.problems.find((p) => p.leetcode_id === problemData.leetcode_id);
+};
 
 export const ProblemService = {
   async getProblemByDescription(description, slug) {
@@ -129,7 +135,7 @@ export const ProblemService = {
             id: problemInProblems?.leetcode_id || problem.id,
             leetcode_id: problemInProblems?.leetcode_id || problem.id,
             problemId: problemInProblems?.problem_id,
-            difficulty: problem.difficulty || problemInProblems?.difficulty || problemInProblems?.Rating || "Unknown",
+            difficulty: problem.difficulty || problemInProblems?.difficulty || "Unknown",
             tags: problem.tags || problemInProblems?.tags || problemInProblems?.Tags || [],
             title: problem.title || problemInProblems?.title,
             boxLevel: problemInProblems?.box_level,
@@ -188,6 +194,7 @@ export const ProblemService = {
           time_spent: contentScriptData.timeSpent,
           perceived_difficulty: contentScriptData.difficulty,
           comments: contentScriptData.comments,
+          user_intent: contentScriptData.userIntent,
         },
         problem
       );
@@ -227,15 +234,7 @@ export const ProblemService = {
    */
   async createSession() {
     const settings = await buildAdaptiveSessionSettings();
-    const problems = await this.fetchAndAssembleSessionProblems(
-      settings.sessionLength,
-      settings.numberOfNewProblems,
-      settings.currentAllowedTags,
-      settings.currentDifficultyCap,
-      settings.userFocusAreas,
-      settings.isOnboarding
-    );
-    return problems;
+    return await this.fetchAndAssembleSessionProblems(settings);
   },
 
   async createSessionWithConfig(adaptiveConfig) {
@@ -243,14 +242,15 @@ export const ProblemService = {
     const sessionLength = adaptiveConfig.sessionLength || 8;
     const settings = await buildAdaptiveSessionSettings();
 
-    const problems = await this.fetchAndAssembleSessionProblems(
+    const problems = await this.fetchAndAssembleSessionProblems({
       sessionLength,
-      sessionLength,
-      adaptiveConfig.focusAreas || settings.currentAllowedTags,
-      settings.currentDifficultyCap,
-      adaptiveConfig.focusAreas || settings.userFocusAreas,
-      false
-    );
+      numberOfNewProblems: sessionLength,
+      currentAllowedTags: adaptiveConfig.focusAreas || settings.currentAllowedTags,
+      currentDifficultyCap: settings.currentDifficultyCap,
+      userFocusAreas: adaptiveConfig.focusAreas || settings.userFocusAreas,
+      isOnboarding: false,
+      maxHardProblems: settings.maxHardProblems
+    });
 
     return {
       problems,
@@ -278,14 +278,17 @@ export const ProblemService = {
    * PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
    * FALLBACK: Any available problems
    */
-  async fetchAndAssembleSessionProblems(
+  async fetchAndAssembleSessionProblems({
     sessionLength,
-    _numberOfNewProblems,
+    numberOfNewProblems,
     currentAllowedTags,
     currentDifficultyCap,
     userFocusAreas = [],
-    isOnboarding = false
-  ) {
+    isOnboarding = false,
+    maxHardProblems = Infinity,
+    isAutoNewProblems = false,
+    newProblemDifficultyCap = null
+  }) {
     logger.info("Starting intelligent session assembly with adaptive learning...");
     logger.info("Session length:", sessionLength);
     logger.info("Is onboarding session?", isOnboarding);
@@ -293,33 +296,54 @@ export const ProblemService = {
     const allProblems = await fetchAllProblems();
     const excludeIds = new Set(allProblems.filter(p => p && p.leetcode_id && p.title && p.title.trim()).map((p) => p.leetcode_id));
 
+    // Single DB read for permanently excluded problems — reused at both filter passes below.
+    const excludedIds = await getExcludedIds();
+
     const sessionProblems = [];
 
     // PRIORITY 1: Triggered reviews (mastered problems related to struggling problems)
-    const triggeredReviewsCount = await addTriggeredReviewsToSession(
-      sessionProblems, sessionLength, isOnboarding
+    await addTriggeredReviewsToSession(
+      sessionProblems, sessionLength, isOnboarding, maxHardProblems
     );
 
     // PRIORITY 2: Learning reviews (box 1-5)
-    const learningReviewsCount = await addReviewProblemsToSession(
-      sessionProblems, sessionLength, isOnboarding, allProblems
+    await addReviewProblemsToSession(
+      sessionProblems, sessionLength, isOnboarding, allProblems, maxHardProblems, currentDifficultyCap
     );
 
+    // Filter recently-attempted and permanently excluded reviews BEFORE new problem
+    // selection, so the slot count reflects problems that will actually stay in the session.
+    const reviewProblems = filterRecentlyAttemptedProblems(sessionProblems)
+      .filter(p => !excludedIds.has(Number(p.leetcode_id || p.id)));
+    const reviewsFiltered = sessionProblems.length - reviewProblems.length;
+    if (reviewsFiltered > 0) {
+      logger.info(`Filtered ${reviewsFiltered} review problems (recently attempted or excluded) before new problem selection`);
+    }
+
+    // Build a clean array for the rest of the pipeline (avoids mutating the original)
+    const assembledProblems = [...reviewProblems];
     // PRIORITY 3: New problems (primary learning)
+    // newProblemDifficultyCap is used here instead of currentDifficultyCap so the
+    // adaptive new-problem difficulty circuit breaker does not affect review selection.
     await addNewProblemsToSession({
-      sessionLength, sessionProblems, excludeIds, userFocusAreas,
-      currentAllowedTags, currentDifficultyCap, isOnboarding
+      sessionLength, sessionProblems: assembledProblems, excludeIds, userFocusAreas,
+      currentAllowedTags, currentDifficultyCap: newProblemDifficultyCap || currentDifficultyCap,
+      isOnboarding, numberOfNewProblems, maxHardProblems, isAutoNewProblems
     });
 
     // PRIORITY 4: Passive mastered reviews (box 6-8, only if session not full)
-    const passiveMasteredCount = await addPassiveMasteredReviews(
-      sessionProblems, sessionLength, isOnboarding
+    await addPassiveMasteredReviews(
+      assembledProblems, sessionLength, isOnboarding, maxHardProblems
     );
 
     // FALLBACK: Any available problems
-    await addFallbackProblems(sessionProblems, sessionLength, allProblems);
+    await addFallbackProblems(assembledProblems, sessionLength, allProblems, maxHardProblems);
 
-    const deduplicated = deduplicateById(sessionProblems);
+    // Final filter: recently attempted + permanently excluded + dedup.
+    // Catches anything excluded that slipped through via P4 or FALLBACK.
+    const spacedProblems = filterRecentlyAttemptedProblems(assembledProblems)
+      .filter(p => !excludedIds.has(Number(p.leetcode_id || p.id)));
+    const deduplicated = deduplicateById(spacedProblems);
     const finalSession = deduplicated.slice(0, sessionLength);
 
     const { rebalancedSession } = await checkSafetyGuardRails(finalSession, currentDifficultyCap);
@@ -332,22 +356,27 @@ export const ProblemService = {
     );
     logger.info(`Normalized ${normalizedProblems.length} problems`);
 
-    const totalReviewCount = triggeredReviewsCount + learningReviewsCount + passiveMasteredCount;
+    // Derive review counts from what's actually in the final session.
+    // Reviews have last_attempt_date (previously seen); new problems don't.
+    const triggeredCount = normalizedProblems.filter(p => p.selectionReason?.type === 'triggered_review').length;
+    const passiveCount = normalizedProblems.filter(p => p.selectionReason?.type === 'passive_mastered_review').length;
+    const totalReviewCount = normalizedProblems.filter(p => p.last_attempt_date).length;
+    const learningCount = totalReviewCount - triggeredCount - passiveCount;
     const sessionWithReasons = await this.addProblemReasoningToSession(
       normalizedProblems,
       {
         sessionLength,
         reviewCount: totalReviewCount,
-        triggeredReviewCount: triggeredReviewsCount,
-        learningReviewCount: learningReviewsCount,
-        passiveMasteredCount: passiveMasteredCount,
+        triggeredReviewCount: triggeredCount,
+        learningReviewCount: Math.max(0, learningCount),
+        passiveMasteredCount: passiveCount,
         newCount: normalizedProblems.length - totalReviewCount,
         allowedTags: currentAllowedTags,
         difficultyCap: currentDifficultyCap,
       }
     );
 
-    logFinalSessionComposition(sessionWithReasons, sessionLength, totalReviewCount, triggeredReviewsCount);
+    logFinalSessionComposition(sessionWithReasons, sessionLength, totalReviewCount, triggeredCount);
     return sessionWithReasons;
   },
 
@@ -357,11 +386,7 @@ export const ProblemService = {
 
       if (mode === 'standard') {
         const settings = await buildAdaptiveSessionSettings();
-        return this.fetchAndAssembleSessionProblems(
-          settings.sessionLength, settings.numberOfNewProblems,
-          settings.currentAllowedTags, settings.currentDifficultyCap,
-          settings.userFocusAreas, settings.isOnboarding
-        );
+        return this.fetchAndAssembleSessionProblems(settings);
       }
 
       const allProblems = await fetchAllProblems();
@@ -466,27 +491,36 @@ export const ProblemService = {
       );
       session.problems = updatedproblems;
       logger.info("Updated session problem with problem_id and attempted flag");
+    } else if (session.session_type === 'tracking') {
+      // Tracking sessions start with no predefined problems — add the problem on first attempt
+      session.problems.push({
+        ...problem,
+        leetcode_id: Number(problem.leetcode_id),
+        problem_id: problem.problem_id || problem.id,
+        attempted: true,
+        attempt_date: new Date().toISOString(),
+        selectionReason: { type: problem.last_attempt_date ? 'tracking' : 'new_problem' },
+      });
+      logger.info("Added tracking problem to session problems array", { leetcode_id: problem.leetcode_id });
     }
     return session;
   },
+
+  addOrUpdateProblemWithRetry(contentScriptData, sendResponse, options = {}) {
+    return addOrUpdateProblemWithRetry(this.addOrUpdateProblem.bind(this), contentScriptData, sendResponse, options);
+  },
+
+  getProblemByDescriptionWithRetry,
+
+  getAllProblemsWithRetry,
+
+  countProblemsByBoxLevelWithRetry: countProblemsByBoxLevelWithRetryService,
+
+  createAbortController,
+
+  generateSessionWithRetry(params = {}, abortController = null) {
+    return generateSessionWithRetry(this.getAllProblemsWithRetry.bind(this), params, abortController);
+  },
 };
 
-const findProblemInSession = (session, problemData) => {
-  return session.problems.find((p) => p.leetcode_id === problemData.leetcode_id);
-};
 
-ProblemService.addOrUpdateProblemWithRetry = function(contentScriptData, sendResponse, options = {}) {
-  return addOrUpdateProblemWithRetryHelper(this.addOrUpdateProblem.bind(this), contentScriptData, sendResponse, options);
-};
-
-ProblemService.getProblemByDescriptionWithRetry = getProblemByDescriptionWithRetryHelper;
-
-ProblemService.getAllProblemsWithRetry = getAllProblemsWithRetryHelper;
-
-ProblemService.countProblemsByBoxLevelWithRetry = countProblemsByBoxLevelWithRetryService;
-
-ProblemService.createAbortController = createAbortController;
-
-ProblemService.generateSessionWithRetry = function(params = {}, abortController = null) {
-  return generateSessionWithRetryHelper(this.getAllProblemsWithRetry.bind(this), params, abortController);
-};

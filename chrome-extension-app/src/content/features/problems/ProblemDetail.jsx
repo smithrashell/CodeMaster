@@ -1,6 +1,5 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useNav } from "../../../shared/provider/navprovider";
 import {
   ChevronLeftIcon,
   BarChart3Icon,
@@ -8,6 +7,7 @@ import {
   PlayIcon,
   BrainIcon,
 } from "../../../shared/components/ui/Icons";
+import {CircleCheck} from "lucide-react"
 import Button from "../../components/ui/Button.jsx";
 import Badge from "../../components/ui/Badge.jsx";
 import Separator from "../../components/ui/Separator.jsx";
@@ -18,13 +18,10 @@ import ChromeAPIErrorHandler from "../../../shared/services/chrome/chromeAPIErro
 import logger from "../../../shared/utils/logging/logger.js";
 import styles from "./ProblemCard.module.css";
 
-/**
- * Helper function to get property with fallback keys
- */
 const getProblemProperty = (routeState, ...keys) => {
   const problemData = routeState?.problemData;
   if (!problemData) return null;
-  
+
   for (const key of keys) {
     if (problemData[key] !== undefined && problemData[key] !== null) {
       return problemData[key];
@@ -33,9 +30,6 @@ const getProblemProperty = (routeState, ...keys) => {
   return null;
 };
 
-/**
- * Extract problem data from route state
- */
 const useProblemData = (routeState) => {
   // State for interview mode loaded from storage (fallback when route state is missing)
   const [storedInterviewMode, setStoredInterviewMode] = useState(null);
@@ -109,14 +103,7 @@ const useProblemData = (routeState) => {
   return { problemData, interviewConfig, sessionType, isInterviewMode };
 };
 
-/**
- * Navigation and action handlers
- */
-const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfig, sessionType, _routeState, showPageTour }) => {
-  const _handleClose = () => {
-    setIsAppOpen(false);
-  };
-
+const useProblemActions = ({ navigate, problemData, interviewConfig, sessionType, showPageTour }) => {
   const handleNewAttempt = () => {
     // Complete page tour only if it's currently active (to avoid unnecessary API calls)
     if (showPageTour) {
@@ -127,11 +114,11 @@ const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfi
         logger.warn('Failed to mark page tour completed:', error);
       });
     }
-    
+
     navigate("/Timer", {
       state: {
         LeetCodeID: problemData.leetcode_id,
-        Description: problemData.title,
+        title: problemData.title,
         Tags: problemData.tags,
         interviewConfig: interviewConfig,
         sessionType: sessionType,
@@ -150,9 +137,6 @@ const useProblemActions = ({ navigate, setIsAppOpen, problemData, interviewConfi
   return { handleNewAttempt, handleSkip };
 };
 
-/**
- * Problem statistics display component
- */
 const ProblemStats = ({ problemData: _problemData, attemptStats = { successful: 0, total: 0 } }) => (
   <div className={styles.stats}>
     <div className={styles.stat}>
@@ -176,18 +160,15 @@ const ProblemStats = ({ problemData: _problemData, attemptStats = { successful: 
   </div>
 );
 
-/**
- * Status section component
- */
 const StatusSection = ({ problemData: _problemData, attemptStats }) => {
   const formatLastSolved = (lastSolved) => {
     if (!lastSolved) return "Never";
-    
+
     try {
       const date = new Date(lastSolved);
       const now = new Date();
       const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-      
+
       if (diffDays === 0) return "Today";
       if (diffDays === 1) return "Yesterday";
       if (diffDays < 7) return `${diffDays} days ago`;
@@ -202,13 +183,24 @@ const StatusSection = ({ problemData: _problemData, attemptStats }) => {
   return (
     <div className="problem-sidebar-section">
       <div className={styles.statusCard}>
-        <BrainIcon className={styles.statusIcon} />
+   
         <span className={styles.statusLabel}>
           Last Attempted:
         </span>
         <div className={styles.statusItem}>
+            <BrainIcon className={styles.statusIcon} />
           <span className={styles.statusValue}>
-            {formatLastSolved(attemptStats?.lastAttempted || attemptStats?.lastSolved)}
+            {formatLastSolved(attemptStats?.lastAttempted)}
+          </span>
+        </div>
+        
+         <span className={styles.statusLabel}>
+          Last Solved:
+        </span>
+        <div className={styles.statusItem}>
+           <CircleCheck className={styles.statusIcon} />
+          <span className={styles.statusValue}>
+            {formatLastSolved( attemptStats?.lastSolved)}
           </span>
         </div>
       </div>
@@ -216,13 +208,7 @@ const StatusSection = ({ problemData: _problemData, attemptStats }) => {
   );
 };
 
-/**
- * Main content card component
- */
 const MainContentCard = ({ problemData, getDifficultyColor, attemptStats }) => {
-  console.log('🔍 MainContentCard received problemData:', problemData);
-  console.log('🔍 MainContentCard title value:', problemData?.title);
-
   return (
     <div className={styles.card}>
       <div className={styles.header}>
@@ -234,24 +220,21 @@ const MainContentCard = ({ problemData, getDifficultyColor, attemptStats }) => {
       <h3 className={styles.title}>
         {problemData?.title || "N/A"}
       </h3>
-    <Badge
-      className={styles.difficultyBadge}
-      color={getDifficultyColor(problemData?.difficulty)}
-      variant="filled"
-    >
-      {problemData?.difficulty || "Unknown"}
-    </Badge>
+      <Badge
+        className={styles.difficultyBadge}
+        color={getDifficultyColor(problemData?.difficulty)}
+        variant="filled"
+      >
+        {problemData?.difficulty || "Unknown"}
+      </Badge>
 
-    <Separator className={styles.separator} />
-    <ProblemStats problemData={problemData} attemptStats={attemptStats} />
-    <StatusSection problemData={problemData} attemptStats={attemptStats} />
-  </div>
+      <Separator className={styles.separator} />
+      <ProblemStats problemData={problemData} attemptStats={attemptStats} />
+      <StatusSection problemData={problemData} attemptStats={attemptStats} />
+    </div>
   );
 };
 
-/**
- * Action buttons component
- */
 const ActionButtons = ({ handleNewAttempt, handleSkip, showSkip }) => (
   <div className="problem-sidebar-actions" style={{ marginTop: '6px' }}>
     <Button
@@ -277,16 +260,13 @@ const ActionButtons = ({ handleNewAttempt, handleSkip, showSkip }) => (
   </div>
 );
 
-/**
- * Interview Mode Banner Component
- */
 const InterviewModeBanner = ({ isInterviewMode, sessionType, interviewConfig }) => {
   if (!isInterviewMode) return null;
 
-  const modeDisplayName = sessionType === 'interview-like' ? 'Interview Practice' : 
-                         sessionType === 'full-interview' ? 'Full Interview' : 
-                         'Interview Mode';
-  
+  const modeDisplayName = sessionType === 'interview-like' ? 'Interview Practice' :
+    sessionType === 'full-interview' ? 'Full Interview' :
+      'Interview Mode';
+
   const constraints = [];
   if (interviewConfig?.hints?.max !== null && interviewConfig?.hints?.max !== undefined) {
     constraints.push(`${interviewConfig.hints.max} hint${interviewConfig.hints.max !== 1 ? 's' : ''} max`);
@@ -298,43 +278,70 @@ const InterviewModeBanner = ({ isInterviewMode, sessionType, interviewConfig }) 
     constraints.push('no strategy guides');
   }
 
-  const bannerStyle = {
-    backgroundColor: sessionType === 'full-interview' ? '#fef2f2' : '#fff7ed',
-    border: `1px solid ${sessionType === 'full-interview' ? '#fecaca' : '#fed7aa'}`,
-    borderRadius: '8px',
-    padding: '12px 16px',
-    margin: '12px 0'
-  };
-
-  const textStyle = {
-    fontSize: '13px',
-    color: sessionType === 'full-interview' ? '#7f1d1d' : '#9a3412',
-    fontWeight: '500'
-  };
-
-  const constraintStyle = {
-    fontSize: '11px',
-    color: sessionType === 'full-interview' ? '#991b1b' : '#c2410c',
-    marginLeft: '4px'
-  };
+  const isFull = sessionType === 'full-interview';
 
   return (
-    <div style={bannerStyle}>
-      <div>
-        <div style={textStyle}>
-          {modeDisplayName} Mode Active
-        </div>
-        {constraints.length > 0 && (
-          <div style={constraintStyle}>
-            {constraints.join(' • ')}
-          </div>
-        )}
+    <div style={{ backgroundColor: isFull ? '#fef2f2' : '#fff7ed', border: `1px solid ${isFull ? '#fecaca' : '#fed7aa'}`, borderRadius: '8px', padding: '12px 16px', margin: '12px 0' }}>
+      <div style={{ fontSize: '13px', color: isFull ? '#7f1d1d' : '#9a3412', fontWeight: '500' }}>
+        {modeDisplayName} Mode Active
       </div>
+      {constraints.length > 0 && (
+        <div style={{ fontSize: '11px', color: isFull ? '#991b1b' : '#c2410c', marginLeft: '4px' }}>
+          {constraints.join(' • ')}
+        </div>
+      )}
     </div>
   );
 };
+const getDifficultyColor = (difficulty) => {
+  if (!difficulty) return "gray";
+  const diff = difficulty.toLowerCase();
+  if (diff === "easy") return "green";
+  if (diff === "medium") return "orange";
+  if (diff === "hard") return "red";
+  return "gray";
+};
 
-// Hook to fetch problem attempt statistics
+const REVIEW_TYPES = new Set(['learning_review', 'triggered_review', 'passive_mastered_review']);
+
+function useFetchProblemIfNeeded(needsDataFetch, routeState) {
+  const [fetchedProblemData, setFetchedProblemData] = useState(null);
+
+  useEffect(() => {
+    if (!needsDataFetch) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const problemIdFromUrl = urlParams.get('problemId') || routeState?.problemId;
+    if (problemIdFromUrl) {
+      ChromeAPIErrorHandler.sendMessageWithRetry({
+        type: 'getProblemById',
+        problemId: problemIdFromUrl
+      }).then(response => {
+        if (response?.success && response.data) setFetchedProblemData(response.data);
+      }).catch(error => {
+        logger.error('Failed to fetch problem data:', error);
+      });
+    }
+  }, [needsDataFetch, routeState?.problemId]);
+
+  return fetchedProblemData;
+}
+
+function useShowSkip(routeState, problemId) {
+  const [showSkip, setShowSkip] = useState(false);
+
+  useEffect(() => {
+    if (!routeState?.problemFound) { setShowSkip(true); return; }
+    if (!problemId) { setShowSkip(false); return; }
+    chrome.storage.local.get(['session_state'], (result) => {
+      const session = result.session_state;
+      const sessionProblem = session?.problems?.find(p => p.leetcode_id === problemId);
+      setShowSkip(REVIEW_TYPES.has(sessionProblem?.selectionReason?.type));
+    });
+  }, [routeState?.problemFound, problemId]);
+
+  return showSkip;
+}
+
 function useProblemAttemptStats(problemId) {
   const [attemptStats, setAttemptStats] = useState({ successful: 0, total: 0, lastSolved: null });
 
@@ -348,7 +355,8 @@ function useProblemAttemptStats(problemId) {
           setAttemptStats({
             successful: response.data?.successful || 0,
             total: response.data?.total || 0,
-            lastSolved: response.data?.lastSolved || null
+            lastSolved: response.data?.lastSolved || null,
+            lastAttempted: response.data?.lastAttempted || null
           });
         }
       });
@@ -360,73 +368,20 @@ function useProblemAttemptStats(problemId) {
 
 const ProbDetail = ({ isLoading }) => {
   const { state: routeState } = useLocation();
-  const { setIsAppOpen } = useNav();
   const navigate = useNavigate();
-  const [showSkip, setShowSkip] = useState(false);
-  const [fetchedProblemData, setFetchedProblemData] = useState(null);
-
   const { problemData, interviewConfig, sessionType, isInterviewMode } = useProblemData(routeState);
 
-  // If problemData is missing essential fields, try to fetch from database
-  const needsDataFetch = !problemData?.leetcode_id;
+  const fetchedProblemData = useFetchProblemIfNeeded(!problemData?.leetcode_id, routeState);
   const finalProblemData = fetchedProblemData || problemData;
-  
-  // Use page tour hook to check if tour is active
   const { showTour: showPageTour } = usePageTour();
-  
   const { handleNewAttempt, handleSkip } = useProblemActions({
-    navigate, setIsAppOpen, problemData: finalProblemData, interviewConfig, sessionType, _routeState: routeState, showPageTour
+    navigate, problemData: finalProblemData, interviewConfig, sessionType, showPageTour
   });
 
-  // Memoize problem tags to prevent array recreation
-  const problemTags = useMemo(() =>
-    finalProblemData?.tags || [],
-    [finalProblemData?.tags]
-  );
-
-  // Memoize problem ID to prevent string recreation
-  const problemId = useMemo(() =>
-    finalProblemData?.leetcode_id,
-    [finalProblemData?.leetcode_id]
-  );
-
-  // Fetch attempt statistics for this problem
+  const problemTags = useMemo(() => finalProblemData?.tags || [], [finalProblemData?.tags]);
+  const problemId = useMemo(() => finalProblemData?.leetcode_id, [finalProblemData?.leetcode_id]);
   const attemptStats = useProblemAttemptStats(problemId);
-
-  // Fetch missing problem data from database if needed
-  useEffect(() => {
-    if (needsDataFetch) {
-      // Try to get problem ID from URL params or route state
-      const urlParams = new URLSearchParams(window.location.search);
-      const problemIdFromUrl = urlParams.get('problemId') || routeState?.problemId;
-
-      if (problemIdFromUrl) {
-        ChromeAPIErrorHandler.sendMessageWithRetry({
-          type: 'getProblemById',
-          problemId: problemIdFromUrl
-        }).then(response => {
-          if (response?.success && response.data) {
-            setFetchedProblemData(response.data);
-          }
-        }).catch(error => {
-          logger.error('Failed to fetch problem data:', error);
-        });
-      }
-    }
-  }, [needsDataFetch, routeState?.problemId]);
-
-  useEffect(() => {
-    setShowSkip(!routeState?.problemFound);
-  }, [routeState?.problemFound]);
-
-  const getDifficultyColor = useCallback((difficulty) => {
-    if (!difficulty) return "gray";
-    const diff = difficulty.toLowerCase();
-    if (diff === "easy") return "green";
-    if (diff === "medium") return "orange";
-    if (diff === "hard") return "red";
-    return "gray";
-  }, []);
+  const showSkip = useShowSkip(routeState, problemId);
 
 
   if (isLoading && !problemData.LeetCodeID && !problemData.leetCodeID) {
@@ -446,7 +401,7 @@ const ProbDetail = ({ isLoading }) => {
   return (
     <>
       <div className="cm-sidenav__content">
-        <InterviewModeBanner 
+        <InterviewModeBanner
           isInterviewMode={isInterviewMode}
           sessionType={sessionType}
           interviewConfig={interviewConfig}
@@ -456,8 +411,8 @@ const ProbDetail = ({ isLoading }) => {
           getDifficultyColor={getDifficultyColor}
           attemptStats={attemptStats}
         />
-        <TagStrategyGrid 
-          problemTags={problemTags} 
+        <TagStrategyGrid
+          problemTags={problemTags}
           problemId={problemId}
           interviewConfig={interviewConfig}
           sessionType={sessionType}
@@ -471,7 +426,7 @@ const ProbDetail = ({ isLoading }) => {
             sessionType={sessionType}
           />
         )}
-        <ActionButtons 
+        <ActionButtons
           handleNewAttempt={handleNewAttempt}
           handleSkip={handleSkip}
           showSkip={showSkip}
@@ -480,5 +435,4 @@ const ProbDetail = ({ isLoading }) => {
     </>
   );
 };
-
 export default ProbDetail;

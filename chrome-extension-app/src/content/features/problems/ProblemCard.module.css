@@ -105,9 +105,11 @@
 }
 
 .statusCard {
-  display: flex;
+  /* display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: center; */
+  display: grid;
+  grid-template-columns: repeat(2, 2fr);
   gap: 8px;
   padding: 4px 0;
   width: 100%;
@@ -130,7 +132,7 @@
   font-size: 12px;
   flex: 1;
   min-width: 0;
-  gap: 4px;
+
 }
 
 .statusLabel {

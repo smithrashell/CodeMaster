@@ -124,6 +124,14 @@ export const storageHandlers = {
           return;
         }
 
+        const pendingRecalibration = await StorageService.get('pending_adaptive_recalibration');
+        if (pendingRecalibration) {
+          console.log('Adaptive recalibration already in progress, skipping welcome back modal');
+          sendResponse({ type: 'normal' });
+          finishRequest();
+          return;
+        }
+
         const daysSinceLastUse = await StorageService.getDaysSinceLastActivity();
         const strategy = getWelcomeBackStrategy(daysSinceLastUse);
         sendResponse(strategy);
@@ -144,6 +152,7 @@ export const storageHandlers = {
           timestamp: request.timestamp,
           daysSinceLastUse: request.daysSinceLastUse
         });
+        await StorageService.updateLastActivityDate();
 
         console.log(`Welcome back modal dismissed (${request.daysSinceLastUse} days gap)`);
         sendResponse({ status: 'success' });
@@ -157,16 +166,9 @@ export const storageHandlers = {
     return true;
   },
 
-  recordRecalibrationChoice: (request, _dependencies, sendResponse, finishRequest) => {
-    (async () => {
+  recordRecalibrationChoice: (_request, _dependencies, sendResponse, finishRequest) => {
+    (() => {
       try {
-        await StorageService.set('last_recalibration_choice', {
-          approach: request.approach,
-          daysSinceLastUse: request.daysSinceLastUse,
-          timestamp: new Date().toISOString()
-        });
-
-        console.log(`Recorded recalibration choice: ${request.approach} (${request.daysSinceLastUse} days gap)`);
         sendResponse({ status: 'success' });
       } catch (error) {
         console.error("Error recording recalibration choice:", error);
@@ -191,6 +193,7 @@ export const storageHandlers = {
           metadata: result.metadata,
           createdAt: new Date().toISOString()
         });
+        await StorageService.updateLastActivityDate();
 
         console.log(`Diagnostic session created with ${result.problems.length} problems`);
         sendResponse({
@@ -238,6 +241,7 @@ export const storageHandlers = {
         const result = await createAdaptiveRecalibrationSession({
           daysSinceLastUse: request.daysSinceLastUse || 0
         });
+        await StorageService.updateLastActivityDate();
 
         console.log(`Adaptive recalibration session enabled: ${result.message}`);
         sendResponse(result);

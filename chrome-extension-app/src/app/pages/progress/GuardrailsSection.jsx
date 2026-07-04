@@ -1,5 +1,5 @@
-import { Card, Title, Group, Stack, Text, Select, Badge, Alert } from "@mantine/core";
-import { IconShield, IconInfoCircle } from "@tabler/icons-react";
+import { Card, Title, Group, Stack, Text, Select, Badge } from "@mantine/core";
+import { IconShield } from "@tabler/icons-react";
 import SessionLimits from "../../../shared/utils/session/sessionLimits.js";
 import { useEffect } from "react";
 
@@ -13,6 +13,7 @@ function getMaxNewProblemsOptions(sessionLength, isOnboarding) {
   // During onboarding, limit to 2-4 problems regardless of session length
   if (isOnboarding) {
     return [
+      { value: "auto", label: "Automatic" },
       { value: "2", label: "2 problems" },
       { value: "3", label: "3 problems" },
       { value: "4", label: "4 problems" }
@@ -22,8 +23,8 @@ function getMaxNewProblemsOptions(sessionLength, isOnboarding) {
   // Normalize "auto" mode to actual session length value
   const effectiveSessionLength = sessionLength === "auto" ? 5 : sessionLength;
 
-  // Generate options from 2 to session length
-  const options = [];
+  // Generate options from 2 to session length, with Automatic first
+  const options = [{ value: "auto", label: "Automatic" }];
   for (let i = 2; i <= effectiveSessionLength; i++) {
     options.push({ value: i.toString(), label: `${i} problems` });
   }
@@ -37,8 +38,9 @@ export function GuardrailsSection({
   isOnboarding,
   onGuardrailChange
 }) {
-  // Auto-adjust max new problems if it exceeds session length
+  // Auto-adjust max new problems if it exceeds session length (skip when "auto")
   useEffect(() => {
+    if (guardrails.maxNewProblems === 'auto') return;
     const effectiveSessionLength = sessionLength === "auto" ? 5 : sessionLength;
 
     if (guardrails.maxNewProblems > effectiveSessionLength) {
@@ -68,28 +70,41 @@ export function GuardrailsSection({
           </Group>
           <Select
             value={guardrails.maxNewProblems.toString()}
-            onChange={(value) => onGuardrailChange('maxNewProblems', parseInt(value))}
+            onChange={(value) => onGuardrailChange('maxNewProblems', value === 'auto' ? 'auto' : parseInt(value))}
             data={maxNewProblemsOptions}
           />
-          {isOnboarding && (
+          {isOnboarding && guardrails.maxNewProblems !== 'auto' && (
             <Text size="xs" c="orange" mt="xs">
               🔰 Limited to 4 new problems during onboarding to ensure solid foundations
             </Text>
           )}
-          {!isOnboarding && (
+          {guardrails.maxNewProblems === 'auto' && (
+            <Text size="xs" mt="xs">
+              Open session slots will be filled with new problems automatically
+            </Text>
+          )}
+          {!isOnboarding && guardrails.maxNewProblems !== 'auto' && (
             <Text size="xs" mt="xs">
               Limited to session length ({sessionLength === "auto" ? "5" : sessionLength} problems)
             </Text>
           )}
         </div>
 
-        <Alert icon={<IconInfoCircle size={16} />} color="blue" variant="light">
-          <Text size="sm" fw={500} mb={4}>Adaptive Difficulty Progression</Text>
-          <Text size="xs">
-            The system automatically progresses from Easy → Medium → Hard based on your performance.
-            This ensures you&apos;re always challenged appropriately while building solid foundations.
+        <div>
+          <Text size="sm" fw={500} mb="xs">Max difficulty</Text>
+          <Select
+            value={guardrails.maxDifficulty || 'all'}
+            onChange={(value) => onGuardrailChange('maxDifficulty', value)}
+            data={[
+              { value: 'all', label: 'All difficulties (Easy, Medium, Hard)' },
+              { value: 'Medium', label: 'Easy & Medium only' },
+              { value: 'Easy', label: 'Easy only' }
+            ]}
+          />
+          <Text size="xs" mt="xs">
+            The system adapts difficulty progression up to this ceiling.
           </Text>
-        </Alert>
+        </div>
       </Stack>
     </Card>
   );

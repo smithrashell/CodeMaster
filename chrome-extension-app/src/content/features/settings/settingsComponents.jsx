@@ -308,10 +308,20 @@ export const SessionControls = ({ workingSettings, setSettings, maxNewProblems }
 
       <div className="cm-form-group">
         <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: 'var(--cm-text)' }}>
-          New Problems Per Session: {Math.min(workingSettings.numberofNewProblemsPerSession || 1, Math.min(maxNewProblems, workingSettings.sessionLength || 8))}
-          {maxNewProblems < (workingSettings.sessionLength || 8) && <span style={{ fontSize: '11px', color: 'var(--cm-text-secondary)', marginLeft: '8px' }}>(Max {maxNewProblems} during onboarding)</span>}
+          New Problems Per Session: {workingSettings.numberofNewProblemsPerSession === 'auto' ? 'Automatic' : Math.min(workingSettings.numberofNewProblemsPerSession || 1, Math.min(maxNewProblems, workingSettings.sessionLength || 8))}
+          {workingSettings.numberofNewProblemsPerSession !== 'auto' && maxNewProblems < (workingSettings.sessionLength || 8) && <span style={{ fontSize: '11px', color: 'var(--cm-text-secondary)', marginLeft: '8px' }}>(Max {maxNewProblems} during onboarding)</span>}
         </div>
-        <input type="range" min="1" max={Math.min(maxNewProblems, workingSettings.sessionLength || 8)} value={Math.min(workingSettings.numberofNewProblemsPerSession || 1, Math.min(maxNewProblems, workingSettings.sessionLength || 8))} onChange={(e) => { const newValue = parseInt(e.target.value); setSettings({ ...workingSettings, numberofNewProblemsPerSession: Math.min(newValue, workingSettings.sessionLength || 8) }); }} style={{ width: '100%', height: '4px', borderRadius: '2px', outline: 'none', cursor: 'pointer' }} />
+        {workingSettings.numberofNewProblemsPerSession === 'auto' ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--cm-text-secondary)' }}>Open slots filled with new problems automatically</span>
+            <button onClick={() => setSettings({ ...workingSettings, numberofNewProblemsPerSession: 2 })} style={{ fontSize: '11px', color: 'var(--cm-primary, #228be6)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Set manually</button>
+          </div>
+        ) : (
+          <>
+            <input type="range" min="1" max={Math.min(maxNewProblems, workingSettings.sessionLength || 8)} value={Math.min(workingSettings.numberofNewProblemsPerSession || 1, Math.min(maxNewProblems, workingSettings.sessionLength || 8))} onChange={(e) => { const newValue = parseInt(e.target.value); setSettings({ ...workingSettings, numberofNewProblemsPerSession: Math.min(newValue, workingSettings.sessionLength || 8) }); }} style={{ width: '100%', height: '4px', borderRadius: '2px', outline: 'none', cursor: 'pointer' }} />
+            <button onClick={() => setSettings({ ...workingSettings, numberofNewProblemsPerSession: 'auto' })} style={{ fontSize: '11px', color: 'var(--cm-primary, #228be6)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginTop: '4px' }}>Switch to Automatic</button>
+          </>
+        )}
       </div>
     </>
   );

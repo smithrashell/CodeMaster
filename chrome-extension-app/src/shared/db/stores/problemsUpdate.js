@@ -209,7 +209,7 @@ export async function updateProblemsWithRating() {
         logger.info("difficulty:", difficulty);
         logger.info("problem:", problem.leetcode_id);
         if (difficulty) {
-          problem.Rating = difficulty;
+          problem.difficulty = difficulty;
           problemStore.put(problem);
         }
       }
