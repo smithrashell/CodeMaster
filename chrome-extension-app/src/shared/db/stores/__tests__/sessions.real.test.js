@@ -24,6 +24,7 @@ jest.mock('../sessionEscapeHatchHelpers.js', () => ({
     consecutiveExcellent: 0,
     avgRecent: 0.5,
   })),
+  checkNewProblemDifficultyAdjustment: jest.fn((state) => state),
 }));
 
 jest.mock('../sessionAdaptiveHelpers.js', () => ({

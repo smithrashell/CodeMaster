@@ -66,6 +66,10 @@ jest.mock('../../../shared/db/stores/attempts.js', () => ({
   getAllAttempts: jest.fn(),
 }));
 
+jest.mock('../../../shared/db/stores/problems.js', () => ({
+  fetchAllProblems: jest.fn(),
+}));
+
 // ---------------------------------------------------------------------------
 // 2. Imports
 // ---------------------------------------------------------------------------
@@ -92,6 +96,7 @@ import { HintInteractionService } from '../../../shared/services/hints/hintInter
 import FocusCoordinationService from '../../../shared/services/focus/focusCoordinationService.js';
 import { getAllSessions } from '../../../shared/db/stores/sessions.js';
 import { getAllAttempts } from '../../../shared/db/stores/attempts.js';
+import { fetchAllProblems } from '../../../shared/db/stores/problems.js';
 
 // ---------------------------------------------------------------------------
 // 3. Helpers
@@ -192,6 +197,7 @@ describe('dashboardHandlers', () => {
       StorageService.getSettings.mockResolvedValue({ theme: 'dark' });
       getAllSessions.mockResolvedValue([{ id: 's1' }]);
       getAllAttempts.mockResolvedValue([{ id: 'a1' }]);
+      fetchAllProblems.mockResolvedValue([{ id: 'p1' }]);
       HintInteractionService.getSystemAnalytics.mockResolvedValue({
         overview: { totalInteractions: 10 },
       });
@@ -212,6 +218,7 @@ describe('dashboardHandlers', () => {
           systemFocusTags: ['Tree'],
           allSessions: [{ id: 's1' }],
           allAttempts: [{ id: 'a1' }],
+          allProblems: [{ id: 'p1' }],
           hintsUsed: { total: 10, contextual: 0, general: 0, primer: 0 },
         })
       );
@@ -229,6 +236,7 @@ describe('dashboardHandlers', () => {
       StorageService.getSettings.mockResolvedValue({});
       getAllSessions.mockResolvedValue([]);
       getAllAttempts.mockResolvedValue([]);
+      fetchAllProblems.mockResolvedValue([]);
       HintInteractionService.getSystemAnalytics.mockRejectedValue(new Error('hint fail'));
       getGoalsData.mockResolvedValue({});
 

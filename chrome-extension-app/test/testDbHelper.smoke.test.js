@@ -15,7 +15,7 @@ describe('testDbHelper smoke test', () => {
     closeTestDb(testDb);
   });
 
-  it('creates a database with all 17 stores', () => {
+  it('creates a database with all 18 stores', () => {
     const storeNames = Array.from(testDb.db.objectStoreNames);
     expect(storeNames).toContain('problems');
     expect(storeNames).toContain('sessions');
@@ -25,7 +25,8 @@ describe('testDbHelper smoke test', () => {
     expect(storeNames).toContain('problem_relationships');
     expect(storeNames).toContain('settings');
     expect(storeNames).toContain('session_analytics');
-    expect(storeNames.length).toBe(17);
+    expect(storeNames).toContain('excluded_problems');
+    expect(storeNames.length).toBe(18);
   });
 
   it('mockDbHelper.openDB() returns the same db', async () => {
